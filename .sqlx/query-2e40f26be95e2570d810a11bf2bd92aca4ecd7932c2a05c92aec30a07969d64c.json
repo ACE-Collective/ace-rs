@@ -1,0 +1,31 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO queue.tasks (root_id, observable_id, module, max_attempts, input_hashes)\n           SELECT o.root_id, o.id, $3, $4,\n                  CASE WHEN o.type = 'file' THEN ARRAY[o.value] ELSE '{}' END\n           FROM analysis.observables o WHERE o.root_id = $1 AND o.id = $2\n           ON CONFLICT (root_id, observable_id, module) DO NOTHING\n           RETURNING id AS \"id: TaskId\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id: TaskId",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "queue.tasks",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int8",
+        "Text",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "2e40f26be95e2570d810a11bf2bd92aca4ecd7932c2a05c92aec30a07969d64c"
+}

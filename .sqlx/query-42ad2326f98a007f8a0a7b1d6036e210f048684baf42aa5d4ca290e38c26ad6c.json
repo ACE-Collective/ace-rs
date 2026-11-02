@@ -1,0 +1,150 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE queue.tasks t\n               SET state = 'running', lease_owner = $1,\n                   lease_expires_at = now() + make_interval(secs => $2),\n                   attempts = t.attempts + 1, updated_at = now()\n               FROM analysis.observables o\n               WHERE t.id = (\n                       SELECT id FROM queue.tasks\n                       WHERE state IN ('queued', 'delayed') AND run_after <= now()\n                         AND module = ANY($3)\n                       ORDER BY run_after, id\n                       FOR UPDATE SKIP LOCKED\n                       LIMIT 1)\n                 AND o.id = t.observable_id\n               RETURNING t.id AS \"id: TaskId\", t.root_id, t.module, t.attempts, t.input_hashes,\n                         t.lease_expires_at AS \"lease_expires_at!\",\n                         o.id AS \"observable_id: ObservableId\", o.type AS kind, o.value,\n                         o.time, o.directives",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id: TaskId",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "queue.tasks",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "root_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "queue.tasks",
+            "name": "root_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "module",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "queue.tasks",
+            "name": "module"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "attempts",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "queue.tasks",
+            "name": "attempts"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "input_hashes",
+        "type_info": "TextArray",
+        "origin": {
+          "Table": {
+            "table": "queue.tasks",
+            "name": "input_hashes"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "lease_expires_at!",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "queue.tasks",
+            "name": "lease_expires_at"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "observable_id: ObservableId",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "analysis.observables",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "kind",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.observables",
+            "name": "type"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "value",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.observables",
+            "name": "value"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "time",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "analysis.observables",
+            "name": "time"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "directives",
+        "type_info": "TextArray",
+        "origin": {
+          "Table": {
+            "table": "analysis.observables",
+            "name": "directives"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Float8",
+        "TextArray"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "42ad2326f98a007f8a0a7b1d6036e210f048684baf42aa5d4ca290e38c26ad6c"
+}

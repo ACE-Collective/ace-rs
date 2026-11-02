@@ -4,6 +4,7 @@
 
 pub mod bucket;
 pub mod db;
+pub mod queue;
 #[cfg(any(test, feature = "testing"))]
 pub mod testing;
 pub mod tree;

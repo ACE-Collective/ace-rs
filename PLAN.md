@@ -131,7 +131,7 @@ The goal is to run the five phase 1 modules end to end from a submission.
 
 ### Queue
 
-- [ ] **2.6 Tasks and claims.** A task is (root, observable, module) with a state enum, `run_after`, lease owner and expiry, attempt count, error and input hashes. Workers claim with `FOR UPDATE SKIP LOCKED`. Done when two workers draining 1,000 tasks run each one exactly once.
+- [x] **2.6 Tasks and claims.** A task is (root, observable, module) with a state enum, `run_after`, lease owner and expiry, attempt count, error and input hashes. Workers claim with `FOR UPDATE SKIP LOCKED`. Done when two workers draining 1,000 tasks run each one exactly once.
 - [ ] **2.7 Leases.** A worker renews its lease while it runs. A reaper requeues tasks whose lease expired and fails a task at its attempt limit. Done when killing a worker mid-task gets the task rerun after its lease expires.
 - [ ] **2.8 Wakeups.** Workers wait on `LISTEN/NOTIFY`, with a bounded timeout as the fallback. Done when a test shows a task claimed without the fallback firing.
 - [ ] **2.9 Delays.** A task whose `run_after` is in the future can't be claimed until then. Done when 1.28's delayed module runs again after its delay.

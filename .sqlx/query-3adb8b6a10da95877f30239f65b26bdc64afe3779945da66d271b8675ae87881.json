@@ -1,0 +1,42 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT state AS \"state: TaskState\" FROM queue.tasks WHERE id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "state: TaskState",
+        "type_info": {
+          "Custom": {
+            "name": "queue.task_state",
+            "kind": {
+              "Enum": [
+                "queued",
+                "delayed",
+                "running",
+                "done",
+                "failed",
+                "cancelled"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "queue.tasks",
+            "name": "state"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "3adb8b6a10da95877f30239f65b26bdc64afe3779945da66d271b8675ae87881"
+}
