@@ -1,0 +1,1014 @@
+{
+  "about": "ace3's observable types, written by tools/ace3/dumps/observable_types.py",
+  "ace3_commit": "844e3584",
+  "types": [
+    {
+      "name": "asset",
+      "extends": null,
+      "description": "a F_IPV4 identified to be a managed asset",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": "saq.observables.asset.AssetObservable",
+      "in_yaml": true
+    },
+    {
+      "name": "av_streetname",
+      "extends": null,
+      "description": "anti-virus vendor name for a malware family",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": "saq.observables.ids.AVStreetnameObservable",
+      "in_yaml": true
+    },
+    {
+      "name": "aws_access_key_id",
+      "extends": null,
+      "description": "an access key ID assigned to a user identity",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": "saq.observables.cloud.aws.AWSAccessKeyIdObservable",
+      "in_yaml": true
+    },
+    {
+      "name": "aws_account_id",
+      "extends": null,
+      "description": "id of an AWS account",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": "saq.observables.cloud.aws.AWSAccountObservable",
+      "in_yaml": true
+    },
+    {
+      "name": "aws_ami_id",
+      "extends": null,
+      "description": "id of an AWS AMI",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": null,
+      "in_yaml": true
+    },
+    {
+      "name": "aws_instance_id",
+      "extends": null,
+      "description": "id of an AWS instance",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": "saq.observables.cloud.aws.AWSInstanceID",
+      "in_yaml": true
+    },
+    {
+      "name": "aws_network_interface_id",
+      "extends": null,
+      "description": "eni id",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": null,
+      "in_yaml": true
+    },
+    {
+      "name": "aws_principal_id",
+      "extends": null,
+      "description": "principal ID for an aws user",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": "saq.observables.cloud.aws.AWSPrincipalIdObservable",
+      "in_yaml": true
+    },
+    {
+      "name": "aws_private_dns_name",
+      "extends": null,
+      "description": "private DNS Name for an AWS entity",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": "saq.observables.cloud.aws.AWSPrivateDNSName",
+      "in_yaml": true
+    },
+    {
+      "name": "aws_security_group_id",
+      "extends": null,
+      "description": "id of an AWS security group",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": "saq.observables.cloud.aws.AWSSecurityGroupID",
+      "in_yaml": true
+    },
+    {
+      "name": "aws_subnet_id",
+      "extends": null,
+      "description": "AWS subnet id",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": null,
+      "in_yaml": true
+    },
+    {
+      "name": "aws_username",
+      "extends": null,
+      "description": "username associated with an AWS account",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": "saq.observables.cloud.aws.AWSUsername",
+      "in_yaml": true
+    },
+    {
+      "name": "aws_vpc_id",
+      "extends": null,
+      "description": "virtual private cloud (VPC) id",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": null,
+      "in_yaml": true
+    },
+    {
+      "name": "cidr",
+      "extends": null,
+      "description": "IPv4 range in CIDR notation",
+      "deprecated": true,
+      "default_display_type": null,
+      "python_class": null,
+      "in_yaml": true
+    },
+    {
+      "name": "command_line",
+      "extends": null,
+      "description": "command line options to a command that was executed",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": null,
+      "in_yaml": true
+    },
+    {
+      "name": "compromised_account",
+      "extends": null,
+      "description": "a username + password that may have been compromised",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": null,
+      "in_yaml": true
+    },
+    {
+      "name": "contact",
+      "extends": null,
+      "description": "email contact e.g. \"Last, First <email@domain.com>\"",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": null,
+      "in_yaml": true
+    },
+    {
+      "name": "cookie",
+      "extends": null,
+      "description": "cookie",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": null,
+      "in_yaml": true
+    },
+    {
+      "name": "email_address",
+      "extends": null,
+      "description": "email address",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": "saq.observables.email.EmailAddressObservable",
+      "in_yaml": true
+    },
+    {
+      "name": "email_body",
+      "extends": null,
+      "description": "string from an email body",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": "saq.observables.email.EmailBodyObservable",
+      "in_yaml": true
+    },
+    {
+      "name": "email_cc",
+      "extends": "email_address",
+      "description": "email Cc: header address",
+      "deprecated": false,
+      "default_display_type": "Mail CC",
+      "python_class": null,
+      "in_yaml": true
+    },
+    {
+      "name": "email_conversation",
+      "extends": null,
+      "description": "a conversation between a source email address (MAIL FROM) and a destination email address (RCPT TO)",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": "saq.observables.email.EmailConversationObservable",
+      "in_yaml": true
+    },
+    {
+      "name": "email_delivery",
+      "extends": null,
+      "description": "a delivery of a an email to a target mailbox",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": "saq.observables.email.EmailDeliveryObservable",
+      "in_yaml": true
+    },
+    {
+      "name": "email_dkim_signing_domain",
+      "extends": "fqdn",
+      "description": "signing domain (d= tag) from a DKIM-Signature header on the message",
+      "deprecated": false,
+      "default_display_type": "DKIM Signing Domain",
+      "python_class": null,
+      "in_yaml": true
+    },
+    {
+      "name": "email_envelope_mail_from",
+      "extends": "email_address",
+      "description": "envelope MAIL FROM address from the SMTP transaction",
+      "deprecated": false,
+      "default_display_type": "Envelope Mail From",
+      "python_class": null,
+      "in_yaml": true
+    },
+    {
+      "name": "email_envelope_rcpt_to",
+      "extends": "email_address",
+      "description": "envelope RCPT TO address from the SMTP transaction",
+      "deprecated": false,
+      "default_display_type": "Envelope Recipient",
+      "python_class": null,
+      "in_yaml": true
+    },
+    {
+      "name": "email_first_hop_from",
+      "extends": null,
+      "description": "reverse-DNS host name of the first external Received: hop (the parenthesized rDNS in `from HELO (rdns [ip])`, not the RFC5322 From:); often absent when the hop records only an IP",
+      "deprecated": false,
+      "default_display_type": "First Hop From",
+      "python_class": null,
+      "in_yaml": true
+    },
+    {
+      "name": "email_first_hop_helo",
+      "extends": null,
+      "description": "HELO/EHLO string the client presented on the first external Received: hop (the token after `from`, or an explicit helo= tag); may be a host name or an address literal like 127.0.0.1",
+      "deprecated": false,
+      "default_display_type": "First Hop HELO/EHLO",
+      "python_class": null,
+      "in_yaml": true
+    },
+    {
+      "name": "email_first_hop_ip",
+      "extends": "ip",
+      "description": "sending IP of the first external hop of an RFC822 message (from the configured provider first-hop headers, default Microsoft 365; else the Received: hop accepted by a local domain)",
+      "deprecated": false,
+      "default_display_type": "First Hop IP",
+      "python_class": "saq.observables.email.EmailFirstHopIPObservable",
+      "in_yaml": true
+    },
+    {
+      "name": "email_from",
+      "extends": "email_address",
+      "description": "email From: header address",
+      "deprecated": false,
+      "default_display_type": "Mail From",
+      "python_class": null,
+      "in_yaml": true
+    },
+    {
+      "name": "email_header",
+      "extends": null,
+      "description": "string from an email header",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": "saq.observables.email.EmailHeaderObservable",
+      "in_yaml": true
+    },
+    {
+      "name": "email_reply_to",
+      "extends": "email_address",
+      "description": "email Reply-To: header address",
+      "deprecated": false,
+      "default_display_type": "Mail Reply To",
+      "python_class": null,
+      "in_yaml": true
+    },
+    {
+      "name": "email_return_path",
+      "extends": "email_address",
+      "description": "email Return-Path address",
+      "deprecated": false,
+      "default_display_type": "Mail Return Path",
+      "python_class": null,
+      "in_yaml": true
+    },
+    {
+      "name": "email_sender_tenant_id",
+      "extends": null,
+      "description": "tenant GUID of the sending organization (from the configured sender-tenant headers, default Microsoft 365 cross-tenant headers); useful for detecting tenant-relay laundering",
+      "deprecated": false,
+      "default_display_type": "Sender Tenant ID",
+      "python_class": null,
+      "in_yaml": true
+    },
+    {
+      "name": "email_subject",
+      "extends": null,
+      "description": "the subject of an email",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": "saq.observables.email.EmailSubjectObservable",
+      "in_yaml": true
+    },
+    {
+      "name": "email_to",
+      "extends": "email_address",
+      "description": "email To: header address",
+      "deprecated": false,
+      "default_display_type": "Mail To",
+      "python_class": null,
+      "in_yaml": true
+    },
+    {
+      "name": "email_x_auth_id",
+      "extends": "email_address",
+      "description": "email X-Auth-Id: header address",
+      "deprecated": false,
+      "default_display_type": "Mail X-Auth ID",
+      "python_class": null,
+      "in_yaml": true
+    },
+    {
+      "name": "email_x_mailer",
+      "extends": null,
+      "description": "email x-mailer",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": "saq.observables.email.EmailXMailerObservable",
+      "in_yaml": true
+    },
+    {
+      "name": "email_x_original_sender",
+      "extends": "email_address",
+      "description": "email X-Original-Sender: header address",
+      "deprecated": false,
+      "default_display_type": "Mail X-Original Sender",
+      "python_class": null,
+      "in_yaml": true
+    },
+    {
+      "name": "email_x_sender",
+      "extends": "email_address",
+      "description": "email X-Sender: header address",
+      "deprecated": false,
+      "default_display_type": "Mail X-Sender",
+      "python_class": null,
+      "in_yaml": true
+    },
+    {
+      "name": "email_x_sender_id",
+      "extends": "email_address",
+      "description": "email X-Sender-Id: header address",
+      "deprecated": false,
+      "default_display_type": "Mail X-Sender ID",
+      "python_class": null,
+      "in_yaml": true
+    },
+    {
+      "name": "external_uid",
+      "extends": null,
+      "description": "unique identifier for something that is stored in an external tool. Format: tool_name:uid",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": null,
+      "in_yaml": true
+    },
+    {
+      "name": "file",
+      "extends": null,
+      "description": "path to an attached file",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": "saq.observables.file.FileObservable",
+      "in_yaml": true
+    },
+    {
+      "name": "file_location",
+      "extends": null,
+      "description": "the location of file with format hostname@full_path",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": "saq.observables.file.FileLocationObservable",
+      "in_yaml": true
+    },
+    {
+      "name": "file_name",
+      "extends": null,
+      "description": "a file name (no directory path)",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": "saq.observables.file.FileNameObservable",
+      "in_yaml": true
+    },
+    {
+      "name": "file_path",
+      "extends": null,
+      "description": "a file path",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": "saq.observables.file.FilePathObservable",
+      "in_yaml": true
+    },
+    {
+      "name": "fireeye_uuid",
+      "extends": null,
+      "description": "UUID used to identify a FireEye alert",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": null,
+      "in_yaml": true
+    },
+    {
+      "name": "forum_author",
+      "extends": null,
+      "description": "author of forum post (used for intel tracking)",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": null,
+      "in_yaml": true
+    },
+    {
+      "name": "forum_channel",
+      "extends": null,
+      "description": "channel of forum post (used for intel tracking)",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": null,
+      "in_yaml": true
+    },
+    {
+      "name": "forum_chat_type",
+      "extends": null,
+      "description": "type of forum post (used for intel tracking)",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": null,
+      "in_yaml": true
+    },
+    {
+      "name": "fqdn",
+      "extends": null,
+      "description": "fully qualified domain name",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": "saq.observables.network.dns.FQDNObservable",
+      "in_yaml": true
+    },
+    {
+      "name": "hostname",
+      "extends": null,
+      "description": "host or workstation name",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": "saq.observables.asset.HostnameObservable",
+      "in_yaml": true
+    },
+    {
+      "name": "http_request",
+      "extends": null,
+      "description": "a single HTTP request",
+      "deprecated": true,
+      "default_display_type": null,
+      "python_class": null,
+      "in_yaml": true
+    },
+    {
+      "name": "hunt",
+      "extends": null,
+      "description": "the name of a hunt",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": null,
+      "in_yaml": true
+    },
+    {
+      "name": "ids_streetname",
+      "extends": null,
+      "description": null,
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": "saq.observables.ids.IDSStreetnameObservable",
+      "in_yaml": false
+    },
+    {
+      "name": "imphash",
+      "extends": null,
+      "description": "hash of the imported functions of a PE file",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": null,
+      "in_yaml": true
+    },
+    {
+      "name": "indicator",
+      "extends": null,
+      "description": "indicator id",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": "saq.observables.intel.IndicatorObservable",
+      "in_yaml": true
+    },
+    {
+      "name": "ip",
+      "extends": null,
+      "description": "IP address (version 4 or 6)",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": "saq.observables.network.ip.IPObservable",
+      "in_yaml": true
+    },
+    {
+      "name": "ip_conversation",
+      "extends": null,
+      "description": "two F_IP that were communicating formatted as src_dst",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": "saq.observables.network.ip.IPConversationObservable",
+      "in_yaml": true
+    },
+    {
+      "name": "ip_full_conversation",
+      "extends": null,
+      "description": "two F_IP that were communicating formatted as src_ip!src_port!dest_ip!dest_port",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": "saq.observables.network.ip.IPFullConversationObservable",
+      "in_yaml": true
+    },
+    {
+      "name": "ipv4",
+      "extends": null,
+      "description": "IP address (version 4)",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": "saq.observables.network.ipv4.IPv4Observable",
+      "in_yaml": true
+    },
+    {
+      "name": "ipv4_conversation",
+      "extends": null,
+      "description": "two F_IPV4 that were communicating formatted as aaa.bbb.ccc.ddd_aaa.bbb.ccc.ddd",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": "saq.observables.network.ipv4.IPv4ConversationObservable",
+      "in_yaml": true
+    },
+    {
+      "name": "ipv4_full_conversation",
+      "extends": null,
+      "description": "two F_IPV4 that were communicating formatted as src_ipv4:src_port:dest_ipv4:dest_port",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": "saq.observables.network.ipv4.IPv4FullConversationObservable",
+      "in_yaml": true
+    },
+    {
+      "name": "ja3",
+      "extends": null,
+      "description": "JA3 TLS client fingerprint hash",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": null,
+      "in_yaml": true
+    },
+    {
+      "name": "ja3s",
+      "extends": null,
+      "description": "JA3S TLS server fingerprint hash",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": null,
+      "in_yaml": true
+    },
+    {
+      "name": "ja4",
+      "extends": null,
+      "description": "JA4 TLS client fingerprint",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": null,
+      "in_yaml": true
+    },
+    {
+      "name": "jarm_hash",
+      "extends": null,
+      "description": "JARM TLS server fingerprint hash",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": null,
+      "in_yaml": true
+    },
+    {
+      "name": "mac_address",
+      "extends": null,
+      "description": "network card mac address",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": "saq.observables.network.layer2.MacAddressObservable",
+      "in_yaml": true
+    },
+    {
+      "name": "md5",
+      "extends": null,
+      "description": "MD5 hash",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": "saq.observables.file.MD5Observable",
+      "in_yaml": true
+    },
+    {
+      "name": "message_id",
+      "extends": null,
+      "description": "email Message-ID",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": "saq.observables.email.MessageIDObservable",
+      "in_yaml": true
+    },
+    {
+      "name": "mutex",
+      "extends": null,
+      "description": "mutex created during sample execution",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": "saq.observables.windows.MutexObservable",
+      "in_yaml": true
+    },
+    {
+      "name": "o365_file",
+      "extends": null,
+      "description": "graph api path to a file in o365",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": null,
+      "in_yaml": true
+    },
+    {
+      "name": "o365_file_conversation",
+      "extends": null,
+      "description": "two users sharing o365 files",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": null,
+      "in_yaml": true
+    },
+    {
+      "name": "o365_group",
+      "extends": null,
+      "description": "graph api id of a group in o365",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": null,
+      "in_yaml": true
+    },
+    {
+      "name": "o365_security_alert",
+      "extends": null,
+      "description": "The alert uuID",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": null,
+      "in_yaml": true
+    },
+    {
+      "name": "pan_pcap_id",
+      "extends": null,
+      "description": "PaloAlto PCAP identification",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": null,
+      "in_yaml": true
+    },
+    {
+      "name": "pcap",
+      "extends": null,
+      "description": "path to a pcap formatted file *** DEPRECATED (use F_FILE instead)",
+      "deprecated": true,
+      "default_display_type": null,
+      "python_class": null,
+      "in_yaml": true
+    },
+    {
+      "name": "pp_campaign_id",
+      "extends": null,
+      "description": "Proofpoint Campaign ID",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": null,
+      "in_yaml": true
+    },
+    {
+      "name": "pp_guid",
+      "extends": null,
+      "description": "Proofpoint Email GUID",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": null,
+      "in_yaml": true
+    },
+    {
+      "name": "pp_threat_id",
+      "extends": null,
+      "description": "Proofpoint Threat ID",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": null,
+      "in_yaml": true
+    },
+    {
+      "name": "pp_trap_incident_id",
+      "extends": null,
+      "description": "Proofpoint TRAP Incident ID",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": null,
+      "in_yaml": true
+    },
+    {
+      "name": "printer",
+      "extends": null,
+      "description": "name of a printer",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": null,
+      "in_yaml": true
+    },
+    {
+      "name": "process_guid",
+      "extends": null,
+      "description": "globally unique identifier for a process on an endpoint",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": null,
+      "in_yaml": true
+    },
+    {
+      "name": "scan_id",
+      "extends": null,
+      "description": "an identifer for a scan by some remote system",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": null,
+      "in_yaml": true
+    },
+    {
+      "name": "sha1",
+      "extends": null,
+      "description": "SHA1 hash",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": "saq.observables.file.SHA1Observable",
+      "in_yaml": true
+    },
+    {
+      "name": "sha256",
+      "extends": null,
+      "description": "SHA256 hash",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": "saq.observables.file.SHA256Observable",
+      "in_yaml": true
+    },
+    {
+      "name": "sharepoint_file",
+      "extends": null,
+      "description": "sharepoint file path",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": null,
+      "in_yaml": true
+    },
+    {
+      "name": "signature_id",
+      "extends": null,
+      "description": "the UUID of a signature",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": null,
+      "in_yaml": true
+    },
+    {
+      "name": "snort_sig",
+      "extends": null,
+      "description": "snort signature ID",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": "saq.observables.ids.SnortSignatureObservable",
+      "in_yaml": true
+    },
+    {
+      "name": "string_eps",
+      "extends": null,
+      "description": "string in an eps file",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": "saq.observables.string.StringEPSObservable",
+      "in_yaml": true
+    },
+    {
+      "name": "string_html",
+      "extends": null,
+      "description": "string in an html file",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": "saq.observables.string.StringHTMLObservable",
+      "in_yaml": true
+    },
+    {
+      "name": "string_java",
+      "extends": null,
+      "description": "string in java source code",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": "saq.observables.string.StringJavaObservable",
+      "in_yaml": true
+    },
+    {
+      "name": "string_js",
+      "extends": null,
+      "description": "string in javascript code",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": "saq.observables.string.StringJSObservable",
+      "in_yaml": true
+    },
+    {
+      "name": "string_office",
+      "extends": null,
+      "description": "string in a microsoft office file",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": "saq.observables.string.StringOfficeObservable",
+      "in_yaml": true
+    },
+    {
+      "name": "string_pdf",
+      "extends": null,
+      "description": "string in a pdf file",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": "saq.observables.string.StringPDFObservable",
+      "in_yaml": true
+    },
+    {
+      "name": "string_pe",
+      "extends": null,
+      "description": "string in a portable executable file",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": "saq.observables.string.StringPEObservable",
+      "in_yaml": true
+    },
+    {
+      "name": "string_rtf",
+      "extends": null,
+      "description": "string in an rtf file",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": "saq.observables.string.StringRTFObservable",
+      "in_yaml": true
+    },
+    {
+      "name": "string_swf",
+      "extends": null,
+      "description": "string in a shockwave/flash file",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": "saq.observables.string.StringSWFObservable",
+      "in_yaml": true
+    },
+    {
+      "name": "string_unix_shell",
+      "extends": null,
+      "description": "string from unix command line",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": "saq.observables.string.StringUnixShellObservable",
+      "in_yaml": true
+    },
+    {
+      "name": "string_vbs",
+      "extends": null,
+      "description": "string in a vbs file",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": "saq.observables.string.StringVBSObservable",
+      "in_yaml": true
+    },
+    {
+      "name": "string_windows_shell",
+      "extends": null,
+      "description": "string from windows command line",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": "saq.observables.string.StringWindowsShellObservable",
+      "in_yaml": true
+    },
+    {
+      "name": "suspect_file",
+      "extends": null,
+      "description": "path to an attached file that might be malicious *** DEPRECATED (use directives instead)",
+      "deprecated": true,
+      "default_display_type": null,
+      "python_class": null,
+      "in_yaml": true
+    },
+    {
+      "name": "test",
+      "extends": null,
+      "description": "unit testing observable",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": "saq.observables.testing.TestObservable",
+      "in_yaml": true
+    },
+    {
+      "name": "uri_path",
+      "extends": null,
+      "description": "URI path from a URL",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": "saq.observables.network.http.URIPathObservable",
+      "in_yaml": true
+    },
+    {
+      "name": "url",
+      "extends": null,
+      "description": "a URL",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": "saq.observables.network.http.URLObservable",
+      "in_yaml": true
+    },
+    {
+      "name": "user",
+      "extends": null,
+      "description": "an NT user ID identified to have used a given asset in the given period of time",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": "saq.observables.user.UserObservable",
+      "in_yaml": true
+    },
+    {
+      "name": "user_agent",
+      "extends": null,
+      "description": "user agent used in web requests",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": "saq.observables.network.http.UserAgentObservable",
+      "in_yaml": true
+    },
+    {
+      "name": "windows_registry",
+      "extends": null,
+      "description": "a windows registry key",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": "saq.observables.windows.WindowsRegistryObservable",
+      "in_yaml": true
+    },
+    {
+      "name": "windows_service",
+      "extends": null,
+      "description": "name of a windows service",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": "saq.observables.windows.WindowsServiceObservable",
+      "in_yaml": true
+    },
+    {
+      "name": "yara",
+      "extends": null,
+      "description": "yara scan result *** DEPRECATED (use F_YARA_RULE instead)",
+      "deprecated": true,
+      "default_display_type": null,
+      "python_class": null,
+      "in_yaml": true
+    },
+    {
+      "name": "yara_rule",
+      "extends": null,
+      "description": "yara rule name",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": "saq.observables.yara.YaraRuleObservable",
+      "in_yaml": true
+    },
+    {
+      "name": "yara_string",
+      "extends": null,
+      "description": "yara rule and string name",
+      "deprecated": false,
+      "default_display_type": null,
+      "python_class": "saq.observables.yara.YaraStringObservable",
+      "in_yaml": true
+    }
+  ]
+}
