@@ -6,6 +6,10 @@
 //! change a worker makes to the task checks that it still owns it, so a worker whose lease ran
 //! out can't overwrite what the task's next owner does.
 //!
+//! A worker with nothing to claim waits on `LISTEN ace4_tasks` (`Wakeups`), which a trigger
+//! notifies whenever a task becomes claimable, with a bounded wait as the fallback in case a
+//! notification is lost.
+//!
 //! A worker renews its lease while the task runs (`Worker::keep_lease`). If the worker dies,
 //! the renewals stop, and once the lease expires the reaper (`reap_expired_leases`) queues the
 //! task again, or fails it when it has used its attempts.
@@ -14,6 +18,7 @@ use std::time::Duration;
 
 use ace_results::ObservableKind;
 use chrono::{DateTime, Utc};
+use sqlx::postgres::PgListener;
 use tokio::task::JoinHandle;
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
@@ -206,6 +211,25 @@ impl Worker {
         }))
     }
 
+    /// Claims the next task, waiting for a wakeup while there is none. Each wait lasts at most
+    /// `fallback`, after which the worker tries to claim anyway.
+    pub async fn next_task(
+        &self,
+        wakeups: &mut Wakeups,
+        fallback: Duration,
+    ) -> Result<(Task, WakeCount), QueueError> {
+        let mut count = WakeCount::default();
+        loop {
+            if let Some(task) = self.claim().await? {
+                return Ok((task, count));
+            }
+            match wakeups.wait(&self.modules, fallback).await? {
+                Wake::Notified => count.notified += 1,
+                Wake::TimedOut => count.timed_out += 1,
+            }
+        }
+    }
+
     /// Extends the lease on a task the worker owns to a full lease from now, and returns when
     /// it now expires.
     pub async fn renew(&self, task: TaskId) -> Result<DateTime<Utc>, QueueError> {
@@ -284,6 +308,69 @@ impl Worker {
         }
         tx.commit().await?;
         Ok(())
+    }
+}
+
+/// The channel the queue's trigger notifies when a task becomes claimable. The payload is the
+/// task's module.
+pub const TASKS_CHANNEL: &str = "ace4_tasks";
+
+/// Why a wait ended.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Wake {
+    /// A task of one of the worker's modules became claimable, or the listener reconnected
+    /// and may have missed one.
+    Notified,
+    /// The fallback timeout passed.
+    TimedOut,
+}
+
+/// How a `next_task` call's waits ended.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct WakeCount {
+    pub notified: u32,
+    pub timed_out: u32,
+}
+
+/// A worker's subscription to the queue's notifications, on a connection of its own.
+pub struct Wakeups {
+    listener: PgListener,
+}
+
+impl Wakeups {
+    pub async fn listen(db: &Db) -> Result<Wakeups, QueueError> {
+        let mut listener = PgListener::connect_with(db.pool()).await?;
+        listener.listen(TASKS_CHANNEL).await?;
+        Ok(Wakeups { listener })
+    }
+
+    /// Waits for a notification about one of `modules`, or until `timeout` passes.
+    /// Notifications about other modules are skipped.
+    pub async fn wait(
+        &mut self,
+        modules: &[String],
+        timeout: Duration,
+    ) -> Result<Wake, QueueError> {
+        let deadline = tokio::time::Instant::now() + timeout;
+        loop {
+            match tokio::time::timeout_at(deadline, self.listener.try_recv()).await {
+                Err(_) => return Ok(Wake::TimedOut),
+                // the connection dropped and reconnects; anything sent meanwhile is lost
+                Ok(Ok(None)) => return Ok(Wake::Notified),
+                Ok(Ok(Some(notification))) => {
+                    if modules.iter().any(|m| m == notification.payload()) {
+                        return Ok(Wake::Notified);
+                    }
+                }
+                Ok(Err(e)) => return Err(e.into()),
+            }
+        }
+    }
+}
+
+impl std::fmt::Debug for Wakeups {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Wakeups").finish_non_exhaustive()
     }
 }
 
