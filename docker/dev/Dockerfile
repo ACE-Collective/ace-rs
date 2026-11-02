@@ -28,6 +28,11 @@ RUN apt-get update \
 RUN cargo install --locked sccache@0.18.0 bacon@3.26.0 \
     && rm -rf /usr/local/cargo/registry /usr/local/cargo/git
 
+# sqlx's CLI, at the version of the workspace's sqlx: `cargo sqlx migrate` and
+# `cargo sqlx prepare`, which writes the offline query data in .sqlx/ (PLAN.md 2.2).
+RUN cargo install --locked sqlx-cli@0.9.0 --no-default-features --features postgres,rustls,sqlx-toml \
+    && rm -rf /usr/local/cargo/registry /usr/local/cargo/git
+
 # Link with mold. These are set here rather than in .cargo/config.toml so that builds outside
 # this container, such as CI's, don't need mold.
 ENV CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=clang \

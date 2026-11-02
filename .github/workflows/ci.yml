@@ -17,7 +17,13 @@ jobs:
       # ace-yara links libmagic and checks its answers against the magic database the dev
       # image pins (PLAN.md 1.7), so every step runs in the dev image.
       - name: Build the dev image
-        run: docker build -t ace4-dev:ci docker/dev
+        run: docker build -t ace4-dev:ci -t ace4-dev:latest docker/dev
+
+      # ace-core's tests and the sqlx check need Postgres, which the Compose stack runs. The
+      # steps that use it run in the stack's dev service, which is the same image, so they
+      # reach it by service name.
+      - name: Start Postgres
+        run: docker compose up -d --wait postgres
 
       - name: cargo fmt
         run: docker run --rm -v "$PWD:/workspace" -w /workspace ace4-dev:ci cargo fmt --all --check
@@ -26,7 +32,13 @@ jobs:
         run: docker run --rm -v "$PWD:/workspace" -w /workspace ace4-dev:ci cargo clippy --workspace --all-targets --locked -- -D warnings
 
       - name: cargo test
-        run: docker run --rm -v "$PWD:/workspace" -w /workspace -e CI=true ace4-dev:ci cargo test --workspace --locked
+        run: docker compose run --rm -T -e CI=true dev cargo test --workspace --locked
+
+      # Fails when .sqlx/, the query data builds check queries against, doesn't match the
+      # queries and the migrations. sqlx-cli needs a database even with --check, so this runs
+      # against the stack's Postgres once the migrations are applied.
+      - name: sqlx offline data
+        run: docker compose run --rm -T dev sh -c 'cargo sqlx migrate run && cargo sqlx prepare --workspace --check'
 
       # Fails when ace-results, ace-api, ace-gui or ace-search depends on an ace-mod-* crate.
       - name: Layering check

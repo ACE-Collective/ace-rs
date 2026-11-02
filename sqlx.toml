@@ -1,0 +1,11 @@
+# sqlx-cli's settings, read when it runs in the workspace root: `cargo sqlx migrate run` and
+# `cargo sqlx prepare --workspace [--check]`. The query macros read only a sqlx.toml in their
+# own crate's directory, so builds don't see this file, and with no DATABASE_URL set they check
+# queries against the offline data in .sqlx/.
+
+[common]
+# The dev container sets this to the Compose stack's Postgres.
+database-url-var = "ACE4_DATABASE_URL"
+
+[migrate]
+migrations-dir = "crates/ace-core/migrations"

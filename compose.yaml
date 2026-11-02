@@ -45,6 +45,11 @@ services:
       stack-guard:
         condition: service_completed_successfully
     init: true
+    environment:
+      # Tests, `cargo sqlx migrate run` and `cargo sqlx prepare --workspace` reach the stack's
+      # Postgres through this (sqlx.toml names it). Builds don't read it: with no DATABASE_URL
+      # set, sqlx checks queries against the offline data in .sqlx/.
+      ACE4_DATABASE_URL: postgres://${ACE4_POSTGRES_USER:-ace4}:${ACE4_POSTGRES_PASSWORD:-ace4-dev-password}@postgres:5432/${ACE4_POSTGRES_DB:-ace4}
     # The image's main process, poll-host-changes, passes saves on the macOS host to
     # inotify in the container so bacon sees them. Rancher Desktop's virtiofs mount
     # doesn't, so without it bacon only rebuilds for changes made inside the container.
