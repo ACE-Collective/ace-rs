@@ -2,16 +2,18 @@
 
 use std::collections::BTreeMap;
 use std::fmt;
+use std::io::Read;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use ace_results::{AlertPath, ObservableKind, Sha256, YaraMeta};
+use ace_results::{AlertPath, NewFile, ObservableKind, Sha256, YaraMeta};
 use chrono::{DateTime, Utc};
 use serde::de::DeserializeOwned;
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
+use crate::files::{FileOutputError, FileStore, write_file};
 use crate::module::{Module, ModuleError};
 
 /// The observable a task analyzes.
@@ -149,6 +151,7 @@ pub struct TaskContext<S> {
     deadline: Instant,
     now: DateTime<Utc>,
     delayed: Option<DelayedRun>,
+    files: Option<Arc<dyn FileStore>>,
 }
 
 impl<S> TaskContext<S> {
@@ -169,7 +172,14 @@ impl<S> TaskContext<S> {
             deadline: Instant::now() + M::RESOURCES.timeout,
             now: Utc::now(),
             delayed: None,
+            files: None,
         }
+    }
+
+    /// The store the task's output files go to.
+    pub fn with_file_store(mut self, store: Arc<dyn FileStore>) -> Self {
+        self.files = Some(store);
+        self
     }
 
     /// Sets the deadline `timeout` from now.
@@ -277,5 +287,28 @@ impl<S> TaskContext<S> {
             .map(|delayed| serde_json::from_value(delayed.state.clone()))
             .transpose()
             .map_err(|e| ModuleError::other(format!("unreadable delay state: {e}")))
+    }
+
+    /// Stores a new file at `path` inside the alert, such as
+    /// `evil.zip.extracted/docs/invoice.doc`, and returns the record to add to the result. An
+    /// absolute path or one with a `.` or `..` part fails before anything is stored.
+    pub fn write_file(
+        &self,
+        path: &str,
+        bytes: &[u8],
+        yara_meta: &[YaraMeta],
+    ) -> Result<NewFile, FileOutputError> {
+        self.write_file_from(path, &mut &bytes[..], yara_meta)
+    }
+
+    /// `write_file` for bytes that come from a reader, such as an archive member.
+    pub fn write_file_from(
+        &self,
+        path: &str,
+        reader: &mut dyn Read,
+        yara_meta: &[YaraMeta],
+    ) -> Result<NewFile, FileOutputError> {
+        let store = self.files.as_deref().ok_or(FileOutputError::NoStore)?;
+        write_file(store, path, reader, yara_meta)
     }
 }

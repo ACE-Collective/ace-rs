@@ -6,7 +6,7 @@ use std::io::Read;
 use std::net::Ipv4Addr;
 use std::time::Duration;
 
-use ace_results::{AnalysisType, Bytes, NewObservable, ObservableKind, ResultEnvelope};
+use ace_results::{AnalysisType, Bytes, NewObservable, ObservableKind, ResultEnvelope, YaraMeta};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -89,6 +89,13 @@ impl Parser for LineCounter {
         }
         let first_line = bytes.split(|&b| b == b'\n').next().unwrap_or_default();
 
+        // the first line also goes into the alert as a file of its own, next to the input
+        let first_line_file = ctx.write_file(
+            &format!("{}.first_line", file.path),
+            first_line,
+            &[YaraMeta::new("type", "example.first_line").map_err(ModuleError::other)?],
+        )?;
+
         let stats = LineStats {
             lines,
             longest_line,
@@ -96,7 +103,9 @@ impl Parser for LineCounter {
             truncated: file.size > max_bytes,
         };
         Ok(Outcome::Done(
-            ResultEnvelope::new(stats).with_summary(format!("{lines} lines")),
+            ResultEnvelope::new(stats)
+                .with_summary(format!("{lines} lines"))
+                .with_file(first_line_file),
         ))
     }
 }
@@ -215,6 +224,7 @@ mod tests {
 
     use super::*;
     use crate::context::{DelayedRun, InputFile, Observable, Secret, Secrets};
+    use crate::files::LocalFileStore;
     use crate::module::{run_lookup, run_parser};
 
     fn file_observable(bytes: &[u8]) -> (tempfile::NamedTempFile, Observable) {
@@ -233,19 +243,26 @@ mod tests {
         (local, Observable::file(file))
     }
 
-    fn parser_ctx(observable: Observable) -> TaskContext<LineCounterSettings> {
-        TaskContext::new::<LineCounter>(
+    /// A parser context whose output files go to a store in a temporary directory, which is
+    /// removed when the returned guard drops.
+    fn parser_ctx(observable: Observable) -> (tempfile::TempDir, TaskContext<LineCounterSettings>) {
+        let dir = tempfile::tempdir().expect("temp dir");
+        let store = LocalFileStore::new(dir.path()).expect("store");
+        let ctx = TaskContext::new::<LineCounter>(
             Uuid::new_v4(),
             observable,
             Arc::new(LineCounterSettings::default()),
         )
+        .with_file_store(Arc::new(store));
+        (dir, ctx)
     }
 
     #[test]
     fn parser_runs() {
         let (_local, observable) = file_observable(b"first\xff line\nsecond\n\nlast");
         let module = LineCounter::init(&LineCounterSettings::default()).expect("init");
-        let outcome = run_parser(&module, &parser_ctx(observable)).expect("runs");
+        let (_store, ctx) = parser_ctx(observable);
+        let outcome = run_parser(&module, &ctx).expect("runs");
         let Outcome::Done(result) = outcome else {
             panic!("expected a result, got {outcome:?}");
         };
@@ -260,16 +277,26 @@ mod tests {
                 truncated: false,
             }
         );
+        let [file] = result.files.as_slice() else {
+            panic!("expected one file, got {:?}", result.files);
+        };
+        assert_eq!(
+            file.path.as_str(),
+            "email.rfc822.unknown_text_plain_000.first_line"
+        );
+        assert_eq!(file.size, 11);
+        assert_eq!(file.yara_meta[0].as_str(), "type=example.first_line");
     }
 
     #[test]
     fn parser_skips_an_empty_file_and_stops_when_cancelled() {
         let (_local, observable) = file_observable(b"");
-        let outcome = run_parser(&LineCounter, &parser_ctx(observable)).expect("runs");
+        let (_store, ctx) = parser_ctx(observable);
+        let outcome = run_parser(&LineCounter, &ctx).expect("runs");
         assert!(matches!(outcome, Outcome::Skipped(_)), "{outcome:?}");
 
         let (_local, observable) = file_observable(b"x\n");
-        let ctx = parser_ctx(observable);
+        let (_store, ctx) = parser_ctx(observable);
         ctx.cancel_token().cancel();
         assert!(matches!(
             run_parser(&LineCounter, &ctx),
@@ -281,9 +308,10 @@ mod tests {
     fn context_reports_time_left() {
         let (_local, observable) = file_observable(b"x");
         // the manifest's default timeout is 300 seconds
-        let left = parser_ctx(observable.clone()).time_left();
+        let left = parser_ctx(observable.clone()).1.time_left();
         assert!(left <= Duration::from_secs(300) && left > Duration::from_secs(295));
         let left = parser_ctx(observable)
+            .1
             .with_timeout(Duration::from_secs(60))
             .time_left();
         assert!(left <= Duration::from_secs(60) && left > Duration::from_secs(55));

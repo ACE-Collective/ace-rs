@@ -137,6 +137,12 @@ impl From<std::io::Error> for ModuleError {
     }
 }
 
+impl From<crate::files::FileOutputError> for ModuleError {
+    fn from(error: crate::files::FileOutputError) -> Self {
+        ModuleError::Other(error.into())
+    }
+}
+
 /// Runs a parser on one task.
 pub fn run_parser<M: Parser>(
     module: &M,
