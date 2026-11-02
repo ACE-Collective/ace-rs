@@ -48,6 +48,12 @@ fn libmagic_agrees_with_file_on_the_fixture_set() {
     let mut kinds = std::collections::BTreeSet::new();
     for path in &files {
         let ours = typer.mime_type(&std::fs::read(path).unwrap()).unwrap();
+        assert_eq!(
+            typer.mime_type_of_path(path).unwrap(),
+            ours,
+            "{}",
+            path.display()
+        );
         let theirs = file_command(path);
         if ours != theirs {
             differences.push(format!(

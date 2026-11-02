@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT o.sha256 FROM store.objects o\n                 WHERE o.pool = $1 AND o.state = 'present'\n                   AND o.last_held_at < now() - make_interval(secs => $2)\n                   AND NOT EXISTS (\n                       SELECT 1 FROM store.holds h\n                       WHERE h.pool = o.pool AND h.sha256 = o.sha256\n                         AND (h.expires_at IS NULL OR h.expires_at > now()))\n                 ORDER BY o.sha256 LIMIT $3",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "sha256",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "store.objects",
+            "name": "sha256"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Float8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "efd672286904114a036908688f52e761eea63e729648b9a13dfadcc6ddc38dd8"
+}

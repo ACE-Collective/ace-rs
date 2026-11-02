@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE store.objects o SET state = 'deleting'\n                     WHERE o.pool = $1 AND o.sha256 = $2 AND o.state = 'present'\n                       AND o.last_held_at < now() - make_interval(secs => $3)\n                       AND NOT EXISTS (\n                           SELECT 1 FROM store.holds h\n                           WHERE h.pool = o.pool AND h.sha256 = o.sha256\n                             AND (h.expires_at IS NULL OR h.expires_at > now()))",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Float8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "18ca430e515bc099fe484322a6cd59fe68aff2d7368003cd8f5fdf7e667f3030"
+}

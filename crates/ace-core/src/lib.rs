@@ -2,6 +2,7 @@
 //!
 //! The schema is SQL migrations in `migrations/`, one Postgres schema per area (`db::AREAS`).
 
+pub mod bucket;
 pub mod db;
 #[cfg(any(test, feature = "testing"))]
 pub mod testing;

@@ -75,8 +75,15 @@ impl MimeTyper {
     pub fn mime_type(&self, data: &[u8]) -> Result<String, MimeError> {
         let file = in_memory_file(data)
             .map_err(|e| MimeError(format!("unable to hold the bytes in memory: {e}")))?;
+        self.mime_type_of_path(Path::new(&format!("/proc/self/fd/{}", file.as_raw_fd())))
+    }
+
+    /// The mime type of the file at `path`, as `file -b --mime-type` gives it, for a file that
+    /// is already on disk, such as one the bucket spooled. libmagic reads only the parts of it
+    /// the magic asks for.
+    pub fn mime_type_of_path(&self, path: &Path) -> Result<String, MimeError> {
         self.cookie
-            .file(format!("/proc/self/fd/{}", file.as_raw_fd()))
+            .file(path)
             .map_err(|e| MimeError(format!("libmagic failed: {e}")))
     }
 }

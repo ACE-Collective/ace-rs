@@ -1,0 +1,28 @@
+[package]
+name = "ace-store"
+version = "0.1.0"
+description = "The content-addressed bucket client and each node's cache of it"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+ace-results = { path = "../ace-results" }
+# libmagic's mime type for each put (PLAN.md 1.7).
+ace-yara = { path = "../ace-yara" }
+# Without aws-config, which reads credentials and regions from places other than the config
+# given here; without sigv4a and the legacy hyper 0.14 client.
+aws-sdk-s3 = { version = "1.157.0", default-features = false, features = ["default-https-client", "http-1x", "rt-tokio"] }
+sha2 = "0.11.1"
+tempfile = "3.27.0"
+thiserror = "2.0.21"
+tokio = { version = "1.54.1", features = ["fs", "io-util", "rt", "sync"] }
+tracing = "0.1.44"
+
+[dev-dependencies]
+tokio = { version = "1.54.1", features = ["macros", "rt-multi-thread"] }
+uuid = { version = "1.29.0", features = ["v4"] }
+
+[lints]
+workspace = true

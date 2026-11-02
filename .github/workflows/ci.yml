@@ -19,11 +19,11 @@ jobs:
       - name: Build the dev image
         run: docker build -t ace4-dev:ci -t ace4-dev:latest docker/dev
 
-      # ace-core's tests and the sqlx check need Postgres, which the Compose stack runs. The
-      # steps that use it run in the stack's dev service, which is the same image, so they
-      # reach it by service name.
-      - name: Start Postgres
-        run: docker compose up -d --wait postgres
+      # ace-core's and ace-store's tests need Postgres and the bucket, and the sqlx check needs
+      # Postgres; the Compose stack runs both. The steps that use them run in the stack's dev
+      # service, which is the same image, so they reach them by service name.
+      - name: Start Postgres and the bucket
+        run: docker compose up -d --wait postgres bucket
 
       - name: cargo fmt
         run: docker run --rm -v "$PWD:/workspace" -w /workspace ace4-dev:ci cargo fmt --all --check

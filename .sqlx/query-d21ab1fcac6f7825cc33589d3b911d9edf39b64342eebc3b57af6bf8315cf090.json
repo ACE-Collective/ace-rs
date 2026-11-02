@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM store.holds WHERE (pool, sha256, holder_kind, holder_id) IN (\n                     SELECT pool, sha256, holder_kind, holder_id FROM store.holds\n                     WHERE pool = $1 AND expires_at <= now()\n                     ORDER BY sha256, holder_kind, holder_id LIMIT $2)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "d21ab1fcac6f7825cc33589d3b911d9edf39b64342eebc3b57af6bf8315cf090"
+}

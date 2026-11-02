@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO store.holds (pool, sha256, holder_kind, holder_id, expires_at)\n         VALUES ($1, $2, $3, $4, $5)\n         ON CONFLICT (pool, sha256, holder_kind, holder_id)\n         DO UPDATE SET expires_at = EXCLUDED.expires_at",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4bf8111ba61ed8c0734642250f5ff1fb444ac6f5af74699fb5210a0603e3a5d6"
+}

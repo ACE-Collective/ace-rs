@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE store.objects SET last_held_at = now() WHERE pool = $1 AND sha256 = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "58002c1ab721afa64d874ed77d2909d363af7d90afd8de749285c41de0b2ad40"
+}
