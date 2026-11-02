@@ -44,6 +44,18 @@ The comparison ran three times on 2026-11-02, with the same counts each time. Th
 | Different scan errors | | 0 | 0 |
 | Mime type differs from ace3's `file` | | 0 of 53 samples | |
 
+## Triage
+
+Step 1.12 marks each difference as a yara-x incompatibility or a port bug. The comparison found none to mark, and a fourth run after this section was written found none either.
+
+**yara-x incompatibilities: none.** yara-x compiles all 87 files ace3's yara service loads, and 96 of the 97 in the checkout. The one it leaves out, `vti/signature_name_8.yar`, yara-python leaves out too, so it isn't a yara-x incompatibility. Nothing needs changing in the signatures repository for yara-x. One rule leans on a field yara-x marks deprecated: `site/signature_name_4.yar` uses `pe.number_of_signatures`, which a later yara-x could drop. `pe.signatures.len()` replaces it.
+
+**Port bugs: none found by the comparison.** Each step's tests caught three before the comparison ran, and the fix landed in that step:
+
+- yara-x returns any meta string with an escape in it as bytes, so `file_name = "re:.*\\.eml"` never reached the filter as a string and the directive was ignored. `ace-yara` now reads meta strings as yara-python does (step 1.3).
+- libmagic's buffer interface can't read magic at offsets from the end of a file, so it called every zip `application/octet-stream` where `file` says `application/zip`. `ace-yara` now hands libmagic the bytes as an in-memory file (step 1.7).
+- yara-x named each source by its absolute path, which put the checkout's location into the manifest's error texts, so two checkouts of one commit gave different manifests. Sources are now named `<namespace>/<file>` (step 1.6).
+
 ## Compile half
 
 All 97 rule files in the checkout:
