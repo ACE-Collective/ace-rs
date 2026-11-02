@@ -5,11 +5,17 @@
 //! claim takes a lease: the worker is the task's owner until the lease expires. Every later
 //! change a worker makes to the task checks that it still owns it, so a worker whose lease ran
 //! out can't overwrite what the task's next owner does.
+//!
+//! A worker renews its lease while the task runs (`Worker::keep_lease`). If the worker dies,
+//! the renewals stop, and once the lease expires the reaper (`reap_expired_leases`) queues the
+//! task again, or fails it when it has used its attempts.
 
 use std::time::Duration;
 
 use ace_results::ObservableKind;
 use chrono::{DateTime, Utc};
+use tokio::task::JoinHandle;
+use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
 use crate::db::{Db, DbError, Tx};
@@ -200,6 +206,49 @@ impl Worker {
         }))
     }
 
+    /// Extends the lease on a task the worker owns to a full lease from now, and returns when
+    /// it now expires.
+    pub async fn renew(&self, task: TaskId) -> Result<DateTime<Utc>, QueueError> {
+        let mut tx = self.db.begin().await?;
+        let expires = sqlx::query_scalar!(
+            r#"UPDATE queue.tasks SET lease_expires_at = now() + make_interval(secs => $3)
+               WHERE id = $1 AND lease_owner = $2 AND state = 'running'
+               RETURNING lease_expires_at AS "lease_expires_at!""#,
+            task as TaskId,
+            self.name,
+            self.lease.as_secs_f64(),
+        )
+        .fetch_optional(tx.conn())
+        .await?;
+        tx.commit().await?;
+        expires.ok_or(QueueError::LeaseLost(task))
+    }
+
+    /// Renews the lease every third of its length until the keeper is dropped. The keeper's
+    /// token fires when the worker loses the task, so the module can stop.
+    pub fn keep_lease(&self, task: TaskId) -> LeaseKeeper {
+        let token = CancellationToken::new();
+        let worker = self.clone();
+        let fired = token.clone();
+        let handle = tokio::spawn(async move {
+            let every = worker.lease / 3;
+            loop {
+                tokio::time::sleep(every).await;
+                match worker.renew(task).await {
+                    Ok(_) => {}
+                    Err(QueueError::LeaseLost(_)) => {
+                        tracing::warn!(%task, worker = %worker.name, "lost the lease");
+                        fired.cancel();
+                        return;
+                    }
+                    // the next renewal may get through before the lease runs out
+                    Err(e) => tracing::warn!(%task, worker = %worker.name, "renewal failed: {e}"),
+                }
+            }
+        });
+        LeaseKeeper { handle, token }
+    }
+
     /// Ends a task the worker owns: it ran to the end.
     pub async fn complete(&self, task: TaskId) -> Result<(), QueueError> {
         self.finish(task, TaskState::Done, None).await
@@ -235,6 +284,85 @@ impl Worker {
         }
         tx.commit().await?;
         Ok(())
+    }
+}
+
+/// Renews a task's lease in the background while it runs. Dropping it stops the renewals.
+#[derive(Debug)]
+pub struct LeaseKeeper {
+    handle: JoinHandle<()>,
+    token: CancellationToken,
+}
+
+impl LeaseKeeper {
+    /// Fires when the worker loses the task. Hand it to the module's task context.
+    pub fn token(&self) -> &CancellationToken {
+        &self.token
+    }
+}
+
+impl Drop for LeaseKeeper {
+    fn drop(&mut self) {
+        self.handle.abort();
+    }
+}
+
+/// What a reaper pass did.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Reaped {
+    /// Tasks queued again for another attempt.
+    pub requeued: Vec<TaskId>,
+    /// Tasks whose lease expired on their last attempt.
+    pub failed: Vec<TaskId>,
+}
+
+/// Takes back every running task whose lease has expired: it is queued again, or fails if it
+/// has used its attempts.
+pub async fn reap_expired_leases(db: &Db) -> Result<Reaped, QueueError> {
+    let mut tx = db.begin().await?;
+    let rows = sqlx::query!(
+        r#"UPDATE queue.tasks SET
+               state = CASE WHEN attempts >= max_attempts THEN 'failed'::queue.task_state
+                            ELSE 'queued'::queue.task_state END,
+               error = CASE WHEN attempts >= max_attempts
+                            THEN format('the lease expired on all %s attempts; the last owner was %s',
+                                        attempts, lease_owner)
+                            ELSE error END,
+               lease_owner = NULL, lease_expires_at = NULL, updated_at = now()
+           WHERE state = 'running' AND lease_expires_at < now()
+           RETURNING id AS "id: TaskId", state AS "state: TaskState""#,
+    )
+    .fetch_all(tx.conn())
+    .await?;
+    tx.commit().await?;
+    let mut reaped = Reaped::default();
+    for row in rows {
+        if row.state == TaskState::Failed {
+            reaped.failed.push(row.id);
+        } else {
+            reaped.requeued.push(row.id);
+        }
+    }
+    if !reaped.requeued.is_empty() || !reaped.failed.is_empty() {
+        tracing::info!(
+            requeued = reaped.requeued.len(),
+            failed = reaped.failed.len(),
+            "took back tasks whose lease expired"
+        );
+    }
+    Ok(reaped)
+}
+
+/// Runs `reap_expired_leases` every `interval` until `stop` fires.
+pub async fn run_reaper(db: Db, interval: Duration, stop: CancellationToken) {
+    loop {
+        if let Err(e) = reap_expired_leases(&db).await {
+            tracing::error!("the reaper failed: {e}");
+        }
+        tokio::select! {
+            () = stop.cancelled() => return,
+            () = tokio::time::sleep(interval) => {}
+        }
     }
 }
 
