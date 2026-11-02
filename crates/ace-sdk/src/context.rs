@@ -25,6 +25,8 @@ pub struct Observable {
     pub time: Option<DateTime<Utc>>,
     /// Set when `kind` is `file`.
     pub file: Option<InputFile>,
+    /// The observable's directives, such as `original_email` or `no_scan`.
+    pub directives: Vec<String>,
 }
 
 impl Observable {
@@ -34,6 +36,7 @@ impl Observable {
             value: value.into(),
             time: None,
             file: None,
+            directives: Vec::new(),
         }
     }
 
@@ -43,7 +46,17 @@ impl Observable {
             value: file.sha256.to_hex(),
             time: None,
             file: Some(file),
+            directives: Vec::new(),
         }
+    }
+
+    pub fn with_directive(mut self, directive: impl Into<String>) -> Self {
+        self.directives.push(directive.into());
+        self
+    }
+
+    pub fn has_directive(&self, directive: &str) -> bool {
+        self.directives.iter().any(|d| d == directive)
     }
 }
 

@@ -19,7 +19,8 @@ use crate::validate::{InvalidResult, ResultValidator};
 
 /// Every analysis type ace4 knows, in the order `ace schema export` writes them. Each ported
 /// module adds its types here.
-pub const BUILTIN: &[AnalysisTypeInfo] = &[];
+pub const BUILTIN: &[AnalysisTypeInfo] =
+    &[AnalysisTypeInfo::of::<crate::types::email::EmailAnalysis>()];
 
 /// One analysis type: its name, version, module and schema.
 #[derive(Clone, Copy)]

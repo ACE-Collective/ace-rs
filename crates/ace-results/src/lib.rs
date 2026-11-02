@@ -7,15 +7,20 @@
 pub mod bytes;
 pub mod envelope;
 pub mod file;
+pub mod links;
 pub mod observable;
 pub mod registry;
+pub mod types;
 pub mod validate;
 
 pub use bytes::Bytes;
-pub use envelope::{AnalysisType, EnvelopeError, NewObservable, ResultEnvelope};
+pub use envelope::{
+    AnalysisType, EnvelopeError, NewObservable, ObservableAdditions, ResultEnvelope,
+};
 pub use file::{
     AlertPath, InvalidAlertPath, InvalidSha256, InvalidYaraMeta, NewFile, Sha256, YaraMeta,
 };
+pub use links::{Detection, ObservableRef, Relationship, RelationshipKind};
 pub use observable::{ObservableKind, UnknownObservableKind};
 pub use registry::{
     AnalysisTypeInfo, BUILTIN, Registry, RegistryError, result_schema, sort_json_keys,

@@ -11,6 +11,7 @@ pub mod context;
 pub mod example;
 pub mod files;
 pub mod http;
+pub mod ip;
 pub mod manifest;
 pub mod module;
 

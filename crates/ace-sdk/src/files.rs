@@ -109,13 +109,7 @@ pub fn write_file(
         path: path.to_string(),
         source,
     })?;
-    Ok(NewFile {
-        path,
-        sha256,
-        size,
-        yara_meta: yara_meta.to_vec(),
-        tags: Vec::new(),
-        directives: Vec::new(),
-        exclude_modules: Vec::new(),
-    })
+    let mut file = NewFile::new(path, sha256, size);
+    file.yara_meta = yara_meta.to_vec();
+    Ok(file)
 }

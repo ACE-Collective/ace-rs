@@ -11,6 +11,8 @@
 //! from JSON. The root uuid and the task's clock are fixed, so snapshots are stable. Output files
 //! go to a store in a temporary directory, where `read_output` finds them.
 
+pub mod reference;
+
 use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};

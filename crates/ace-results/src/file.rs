@@ -11,6 +11,8 @@ use std::str::FromStr;
 use schemars::{JsonSchema, Schema, SchemaGenerator, json_schema};
 use serde::{Deserialize, Serialize};
 
+use crate::links::{Detection, ObservableRef, Relationship};
+
 /// A string type's schema, for the newtypes below.
 macro_rules! string_schema {
     ($type:ty, $name:literal, $schema:tt) => {
@@ -331,12 +333,62 @@ pub struct NewFile {
     /// module on the `.headers` file it wrote itself.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub exclude_modules: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub detections: Vec<Detection>,
+    /// Relationships from this file to other observables, such as `extracted_from` the archive
+    /// it came out of.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub relationships: Vec<Relationship>,
+    /// The observable that stands for this file when something acts on it, as ace3's
+    /// `redirection`, such as the Office document a part was extracted from.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub redirection: Option<ObservableRef>,
 }
 
 impl NewFile {
+    /// A file record with nothing but its path, hash and size.
+    pub fn new(path: AlertPath, sha256: Sha256, size: u64) -> Self {
+        NewFile {
+            path,
+            sha256,
+            size,
+            yara_meta: Vec::new(),
+            tags: Vec::new(),
+            directives: Vec::new(),
+            exclude_modules: Vec::new(),
+            detections: Vec::new(),
+            relationships: Vec::new(),
+            redirection: None,
+        }
+    }
+
     /// The file's name: the last part of its path.
     pub fn name(&self) -> &str {
         self.path.name()
+    }
+
+    /// The file as a reference, for a relationship or a redirection to it.
+    pub fn reference(&self) -> ObservableRef {
+        ObservableRef::new(
+            crate::observable::ObservableKind::File,
+            self.sha256.to_hex(),
+        )
+    }
+
+    /// Adds a directive unless it is already there, as ace3's `add_directive` does.
+    pub fn add_directive(&mut self, directive: impl Into<String>) {
+        let directive = directive.into();
+        if !self.directives.contains(&directive) {
+            self.directives.push(directive);
+        }
+    }
+
+    /// Adds a tag unless it is already there.
+    pub fn add_tag(&mut self, tag: impl Into<String>) {
+        let tag = tag.into();
+        if !self.tags.contains(&tag) {
+            self.tags.push(tag);
+        }
     }
 }
 

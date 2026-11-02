@@ -19,10 +19,60 @@ expression: text
       ],
       "type": "object"
     },
+    "Detection": {
+      "additionalProperties": false,
+      "description": "A detection point: something seen that makes the alert worth an analyst's time, as ace3's\n`DetectionPoint`. It sits on a result or on an observable.",
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "details": {
+          "description": "Structured facts about the detection, such as the rule a YARA match came from."
+        },
+        "queue": {
+          "description": "The alert queue the detection asks for, as a YARA rule's `queue` meta.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "signature_family": {
+          "description": "The kind of signature, such as `yara`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "signature_uuid": {
+          "description": "The signature that raised it, such as a YARA rule's `uuid` meta or one of ace3's built-in\nsignatures.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "signature_version": {
+          "description": "The signature's version, such as the commit of the rule's repository.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "description"
+      ],
+      "type": "object"
+    },
     "NewFile": {
       "additionalProperties": false,
       "description": "A file a result adds to the alert. Its bytes are already in the file store under `sha256`.",
       "properties": {
+        "detections": {
+          "items": {
+            "$ref": "#/$defs/Detection"
+          },
+          "type": "array"
+        },
         "directives": {
           "items": {
             "type": "string"
@@ -40,6 +90,24 @@ expression: text
           "description": "A file's path inside its alert: relative, with / between parts, and no empty, . or .. part.",
           "minLength": 1,
           "type": "string"
+        },
+        "redirection": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ObservableRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The observable that stands for this file when something acts on it, as ace3's\n`redirection`, such as the Office document a part was extracted from."
+        },
+        "relationships": {
+          "description": "Relationships from this file to other observables, such as `extracted_from` the archive\nit came out of.",
+          "items": {
+            "$ref": "#/$defs/Relationship"
+          },
+          "type": "array"
         },
         "sha256": {
           "description": "A sha256 digest in lowercase hex.",
@@ -77,6 +145,12 @@ expression: text
       "additionalProperties": false,
       "description": "An observable a result adds to the alert. The alert keeps one observable per (type, value).",
       "properties": {
+        "detections": {
+          "items": {
+            "$ref": "#/$defs/Detection"
+          },
+          "type": "array"
+        },
         "directives": {
           "items": {
             "type": "string"
@@ -87,6 +161,24 @@ expression: text
           "description": "Modules that must not analyze this observable, as ace3's `exclude_analysis`.",
           "items": {
             "type": "string"
+          },
+          "type": "array"
+        },
+        "redirection": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ObservableRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The observable that stands for this one when something acts on it, as ace3's\n`redirection`: a part of an Office document redirects to the document, so a YARA match on\nthe part sandboxes the document."
+        },
+        "relationships": {
+          "description": "Relationships from this observable to others, such as a file `extracted_from` the archive\nit came out of.",
+          "items": {
+            "$ref": "#/$defs/Relationship"
           },
           "type": "array"
         },
@@ -115,6 +207,39 @@ expression: text
         "type",
         "value"
       ],
+      "type": "object"
+    },
+    "ObservableAdditions": {
+      "additionalProperties": false,
+      "description": "What a result adds to an observable already in the alert: tags, directives, `yara_meta` tags\nand detection points. ace3's modules change the observable they analyze this way, such as the\nemail module tagging a message `authentication_failed` or the YARA module adding `sandbox`.",
+      "properties": {
+        "detections": {
+          "items": {
+            "$ref": "#/$defs/Detection"
+          },
+          "type": "array"
+        },
+        "directives": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "tags": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "yara_meta": {
+          "items": {
+            "description": "A yara_meta tag, written name=value, such as type=email.attachment.",
+            "pattern": "^[A-Za-z0-9_-]+=",
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
       "type": "object"
     },
     "ObservableKind": {
@@ -235,6 +360,61 @@ expression: text
       ],
       "type": "string"
     },
+    "ObservableRef": {
+      "additionalProperties": false,
+      "description": "An observable already in the alert, or added by the same result, named by its type and\nvalue. A file's value is its sha256 in hex.",
+      "properties": {
+        "type": {
+          "$ref": "#/$defs/ObservableKind"
+        },
+        "value": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "value"
+      ],
+      "type": "object"
+    },
+    "Relationship": {
+      "additionalProperties": false,
+      "description": "A relationship from the observable that carries it to `target`.",
+      "properties": {
+        "target": {
+          "$ref": "#/$defs/ObservableRef"
+        },
+        "type": {
+          "$ref": "#/$defs/RelationshipKind"
+        }
+      },
+      "required": [
+        "type",
+        "target"
+      ],
+      "type": "object"
+    },
+    "RelationshipKind": {
+      "description": "How one observable relates to another, as ace3's `R_*` relationship types.",
+      "oneOf": [
+        {
+          "enum": [
+            "related_to",
+            "downloaded_from",
+            "executed_on",
+            "is_hash_of",
+            "logged_into",
+            "redirected_from"
+          ],
+          "type": "string"
+        },
+        {
+          "const": "extracted_from",
+          "description": "A file taken out of another file, such as an archive member.",
+          "type": "string"
+        }
+      ]
+    },
     "SampleAnalysis": {
       "additionalProperties": false,
       "description": "A sample analysis type.",
@@ -318,9 +498,20 @@ expression: text
       "const": "sample_analysis",
       "type": "string"
     },
+    "analyzed": {
+      "$ref": "#/$defs/ObservableAdditions",
+      "description": "What the result adds to the observable the module analyzed."
+    },
     "details": {
       "$ref": "#/$defs/SampleAnalysis",
       "description": "The analysis type's own fields."
+    },
+    "detections": {
+      "description": "Detection points on the result itself.",
+      "items": {
+        "$ref": "#/$defs/Detection"
+      },
+      "type": "array"
     },
     "files": {
       "description": "Files the result adds to the alert.",
@@ -348,7 +539,7 @@ expression: text
       ]
     },
     "tags": {
-      "description": "Tags this result puts on the observable it analyzed.",
+      "description": "Tags on the result itself, as ace3's analysis tags, such as `single_file_zip`. Tags for the\nobservable the module analyzed go in `analyzed`.",
       "items": {
         "type": "string"
       },

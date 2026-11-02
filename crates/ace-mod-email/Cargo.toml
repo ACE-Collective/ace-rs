@@ -1,0 +1,27 @@
+[package]
+name = "ace-mod-email"
+version = "0.1.0"
+description = "The email module: an RFC 822 message's headers, addresses, body parts and attachments"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+ace-results = { path = "../ace-results" }
+ace-sdk = { path = "../ace-sdk" }
+chrono = { version = "0.4.45", default-features = false, features = ["std"] }
+# Python's codecs for the charsets ace3 decodes headers and bodies with.
+encoding_rs = "0.8.35"
+mail-parser = "1.0.1"
+regex = "1.13.1"
+schemars = "1.2.3"
+serde = { version = "1.0.229", features = ["derive"] }
+tracing = "0.1.44"
+
+[dev-dependencies]
+ace-testkit = { path = "../ace-testkit" }
+serde_json = "1.0.154"
+
+[lints]
+workspace = true

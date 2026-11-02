@@ -1,8 +1,8 @@
 //! PLAN.md 1.16: the schema export of a sample type, snapshot-tested.
 //!
-//! `ace schema export <dir>` calls `Registry::builtin().export_schemas(dir)`. The builtin list is
-//! empty until track C's modules add their types, so this test exports a registry holding the
-//! sample type from `common`.
+//! `ace schema export <dir>` calls `Registry::builtin().export_schemas(dir)`. This test exports a
+//! registry holding the sample type from `common`, so its snapshot changes only with the envelope,
+//! not with each module's details.
 
 mod common;
 
