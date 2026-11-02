@@ -9,6 +9,9 @@
 #   noop        with nothing changed since the last build
 #   edit        after rewriting the one line `pub const EDIT_MARKER: u32 = N;` in LEAF_FILE
 #
+# SERIES, a space-separated list, runs only some of them, such as SERIES=edit to time edits
+# in another file of a workspace already measured.
+#
 # Dependencies are fetched before the first run, so no run includes downloads. sccache
 # runs with its own cache directory under $SCCACHE_DIR, so emptying it leaves the dev
 # container's cache alone. Each run records its exit status, how many crates cargo
@@ -28,7 +31,12 @@ workspace=$(cd "$1" && pwd)
 leaf_file=$(cd "$(dirname "$2")" && pwd)/$(basename "$2")
 out_dir=$3
 runs=${4:-5}
+series_wanted=${SERIES:-clean-cold clean-warm noop edit}
 here=$(cd "$(dirname "$0")" && pwd)
+
+wanted() {
+    case " $series_wanted " in *" $1 "*) return 0 ;; *) return 1 ;; esac
+}
 
 mkdir -p "$out_dir"
 out_dir=$(cd "$out_dir" && pwd)
@@ -74,6 +82,10 @@ print(hits, misses, sum(s["not_cached"].values()))'
     echo "# rustc: $(rustc --version)"
     echo "# linker: ${CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_RUSTFLAGS:-${CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUSTFLAGS:-default}}"
     echo "# sccache: $use_sccache $(sccache --version 2>/dev/null)"
+    echo "# edited: $leaf_file"
+    # the workspace's [profile.*] sections on one line, or Cargo's default
+    profile=$(sed -n '/^\[profile\./,$p' "$workspace/Cargo.toml" | grep -v '^#' | grep -v '^$' | tr '\n' ' ')
+    echo "# profile: ${profile:-cargo default}"
     printf 'series\trun\tseconds\texit\tcompiled\tsccache_hits\tsccache_misses\tsccache_not_cached\n'
 } > "$out_dir/runs.tsv"
 
@@ -97,27 +109,35 @@ timed_build() {
     echo "$series $run: ${seconds}s exit $status, compiled $compiled crates"
 }
 
-for run in $(seq 1 "$runs"); do
-    cargo clean >/dev/null 2>&1
-    [ "$use_sccache" = yes ] && restart_sccache empty
-    timed_build clean-cold "$run"
-done
+if wanted clean-cold; then
+    for run in $(seq 1 "$runs"); do
+        cargo clean >/dev/null 2>&1
+        [ "$use_sccache" = yes ] && restart_sccache empty
+        timed_build clean-cold "$run"
+    done
+fi
 
 [ "$use_sccache" = yes ] && restart_sccache keep
-for run in $(seq 1 "$runs"); do
-    cargo clean >/dev/null 2>&1
-    timed_build clean-warm "$run"
-done
+if wanted clean-warm; then
+    for run in $(seq 1 "$runs"); do
+        cargo clean >/dev/null 2>&1
+        timed_build clean-warm "$run"
+    done
+fi
 
-for run in $(seq 1 "$runs"); do
-    timed_build noop "$run"
-done
+if wanted noop; then
+    for run in $(seq 1 "$runs"); do
+        timed_build noop "$run"
+    done
+fi
 
-for run in $(seq 1 "$runs"); do
-    sed -i "s/^pub const EDIT_MARKER: u32 = [0-9]*;$/pub const EDIT_MARKER: u32 = $run;/" "$leaf_file"
-    timed_build edit "$run"
-done
-sed -i 's/^pub const EDIT_MARKER: u32 = [0-9]*;$/pub const EDIT_MARKER: u32 = 0;/' "$leaf_file"
+if wanted edit; then
+    for run in $(seq 1 "$runs"); do
+        sed -i "s/^pub const EDIT_MARKER: u32 = [0-9]*;$/pub const EDIT_MARKER: u32 = $run;/" "$leaf_file"
+        timed_build edit "$run"
+    done
+    sed -i 's/^pub const EDIT_MARKER: u32 = [0-9]*;$/pub const EDIT_MARKER: u32 = 0;/' "$leaf_file"
+fi
 
 [ "$use_sccache" = yes ] && sccache --stop-server >/dev/null 2>&1
 python3 "$here/summarize.py" "$out_dir/runs.tsv"

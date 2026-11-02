@@ -1,0 +1,36 @@
+# command: cargo test --workspace --no-run --frozen
+# workspace: /workspace
+# date: 2026-11-02T17:02:20Z
+# host: Linux 6.18.37-0-virt aarch64, 8 CPUs, 31.3 GB
+# rustc: rustc 1.99.1 (58cf8f9c3 2026-10-13)
+# linker: -C link-arg=-fuse-ld=mold
+# sccache: yes sccache 0.18.0
+# edited: /workspace/crates/ace-mod-yara/src/lib.rs
+# profile: [profile.dev] debug = "line-tables-only" [profile.dev.package."*"] debug = false 
+# edit-shared: the edit series again, run right after with SERIES=edit, editing /workspace/crates/ace-results/src/lib.rs
+series	run	seconds	exit	compiled	sccache_hits	sccache_misses	sccache_not_cached
+clean-cold	1	40.86	0	430	0	870	146
+clean-cold	2	39.40	0	430	0	870	146
+clean-cold	3	46.51	0	430	0	870	146
+clean-cold	4	44.00	0	430	0	870	146
+clean-cold	5	44.74	0	430	0	870	146
+clean-warm	1	15.53	0	430	870	0	146
+clean-warm	2	15.70	0	430	870	0	146
+clean-warm	3	15.84	0	430	870	0	146
+clean-warm	4	15.39	0	430	870	0	146
+clean-warm	5	16.98	0	430	870	0	146
+noop	1	0.29	0	0	0	0	0
+noop	2	0.25	0	0	0	0	0
+noop	3	0.24	0	0	0	0	0
+noop	4	0.23	0	0	0	0	0
+noop	5	0.23	0	0	0	0	0
+edit	1	1.15	0	1	0	0	4
+edit	2	1.35	0	1	0	0	4
+edit	3	1.09	0	1	0	0	4
+edit	4	0.99	0	1	0	0	4
+edit	5	0.93	0	1	0	0	4
+edit-shared	1	2.86	0	8	0	0	30
+edit-shared	2	2.53	0	8	0	0	30
+edit-shared	3	2.50	0	8	0	0	30
+edit-shared	4	2.83	0	8	0	0	30
+edit-shared	5	2.85	0	8	0	0	30

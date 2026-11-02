@@ -1,0 +1,30 @@
+# command: cargo test --workspace --no-run --frozen
+# workspace: /workspace/spike-build-loop
+# date: 2026-11-02T16:56:21Z
+# host: Linux 6.18.37-0-virt aarch64, 8 CPUs, 31.3 GB
+# rustc: rustc 1.99.1 (58cf8f9c3 2026-10-13)
+# linker: -C link-arg=-fuse-ld=mold
+# sccache: yes sccache 0.18.0
+# edited: /workspace/spike-build-loop/spike-leaf/src/lib.rs
+# profile: [profile.dev] debug = "line-tables-only" [profile.dev.package."*"] debug = false 
+series	run	seconds	exit	compiled	sccache_hits	sccache_misses	sccache_not_cached
+clean-cold	1	52.46	0	406	0	862	100
+clean-cold	2	50.04	0	406	0	862	100
+clean-cold	3	50.95	0	406	0	862	100
+clean-cold	4	53.43	0	406	0	862	100
+clean-cold	5	56.64	0	406	0	862	100
+clean-warm	1	11.67	0	406	862	0	100
+clean-warm	2	8.92	0	406	862	0	100
+clean-warm	3	9.23	0	406	862	0	100
+clean-warm	4	8.75	0	406	862	0	100
+clean-warm	5	9.60	0	406	862	0	100
+noop	1	0.16	0	0	0	0	0
+noop	2	0.14	0	0	0	0	0
+noop	3	0.13	0	0	0	0	0
+noop	4	0.14	0	0	0	0	0
+noop	5	0.14	0	0	0	0	0
+edit	1	0.52	0	1	0	0	2
+edit	2	0.56	0	1	0	0	2
+edit	3	0.50	0	1	0	0	2
+edit	4	0.51	0	1	0	0	2
+edit	5	0.52	0	1	0	0	2

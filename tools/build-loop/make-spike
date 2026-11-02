@@ -7,12 +7,22 @@
 #   spike-leaf  depends on spike-deps and has the test whose binary the edit loop builds
 # measure edits one line in spike-leaf. Delete DIR when the numbers are recorded.
 #
-# Usage: tools/build-loop/make-spike DIR
+# With --ace4-profile the spike gets the [profile.*] sections of ace4's own Cargo.toml (no
+# debug info for dependencies, line tables for workspace crates), for a row that is like for
+# like with step 1.31's measurement of the real workspace. Without it the spike uses Cargo's
+# default dev profile, as step 0.5 measured it.
+#
+# Usage: tools/build-loop/make-spike [--ace4-profile] DIR
 
 set -euo pipefail
 
+ace4_profile=no
+if [ "${1:-}" = --ace4-profile ]; then
+    ace4_profile=yes
+    shift
+fi
 if [ $# -ne 1 ]; then
-    echo "usage: $0 DIR" >&2
+    echo "usage: $0 [--ace4-profile] DIR" >&2
     exit 2
 fi
 dir=$1
@@ -27,6 +37,19 @@ cat > "$dir/Cargo.toml" <<'EOF'
 resolver = "3"
 members = ["spike-deps", "spike-leaf"]
 EOF
+
+if [ "$ace4_profile" = yes ]; then
+    # ace4's Cargo.toml from its first [profile.*] section to the end
+    here=$(cd "$(dirname "$0")" && pwd)
+    {
+        echo
+        sed -n '/^\[profile\./,$p' "$here/../../Cargo.toml"
+    } >> "$dir/Cargo.toml"
+    grep -q '^\[profile\.dev\]' "$dir/Cargo.toml" || {
+        echo "ace4's Cargo.toml has no [profile.dev] section to copy" >&2
+        exit 1
+    }
+fi
 
 cat > "$dir/spike-deps/Cargo.toml" <<'EOF'
 [package]
