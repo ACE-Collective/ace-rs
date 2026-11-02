@@ -1,0 +1,8 @@
+---
+source: crates/ace-testkit/tests/examples.rs
+expression: "$crate :: snapshot_value(& harness.run_parser(empty).expect(\"runs\"))"
+---
+{
+  "outcome": "skipped",
+  "reason": "the file is empty"
+}

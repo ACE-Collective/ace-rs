@@ -206,7 +206,7 @@ impl Registry {
         let mut written = Vec::new();
         for info in self.types() {
             let path = dir.join(info.schema_file_name());
-            let mut text = serde_json::to_string_pretty(&sorted(info.schema().to_value()))
+            let mut text = serde_json::to_string_pretty(&sort_json_keys(info.schema().to_value()))
                 .map_err(io::Error::other)?;
             text.push('\n');
             fs::write(&path, text)?;
@@ -216,15 +216,18 @@ impl Registry {
     }
 }
 
-/// `value` with every object's keys in sorted order.
-fn sorted(value: Value) -> Value {
+/// `value` with every object's keys in sorted order, whether or not serde_json was built with
+/// `preserve_order`, for output that is compared byte for byte, such as snapshots.
+pub fn sort_json_keys(value: Value) -> Value {
     match value {
         Value::Object(map) => {
-            let entries: BTreeMap<String, Value> =
-                map.into_iter().map(|(k, v)| (k, sorted(v))).collect();
+            let entries: BTreeMap<String, Value> = map
+                .into_iter()
+                .map(|(k, v)| (k, sort_json_keys(v)))
+                .collect();
             Value::Object(entries.into_iter().collect())
         }
-        Value::Array(items) => Value::Array(items.into_iter().map(sorted).collect()),
+        Value::Array(items) => Value::Array(items.into_iter().map(sort_json_keys).collect()),
         other => other,
     }
 }

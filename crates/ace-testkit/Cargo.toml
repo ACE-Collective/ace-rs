@@ -1,0 +1,28 @@
+[package]
+name = "ace-testkit"
+version = "0.1.0"
+description = "Runs an analysis module on a fixture without the core, checks its result against its schema and snapshots it"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+ace-results = { path = "../ace-results" }
+ace-sdk = { path = "../ace-sdk" }
+chrono = { version = "0.4.45", default-features = false, features = ["std"] }
+insta = { version = "1.49.0", features = ["json"] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+sha2 = "0.11.1"
+tempfile = "3.27.0"
+thiserror = "2.0.21"
+uuid = "1.29.0"
+
+[dev-dependencies]
+ace-sdk = { path = "../ace-sdk", features = ["example-modules"] }
+schemars = "1.2.3"
+tokio = { version = "1.54.1", features = ["macros", "rt"] }
+
+[lints]
+workspace = true

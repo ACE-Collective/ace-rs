@@ -1,0 +1,30 @@
+---
+source: crates/ace-testkit/tests/examples.rs
+expression: "$crate :: snapshot_value(& second)"
+---
+{
+  "outcome": "done",
+  "result": {
+    "analysis_type": "example_resolved_addresses",
+    "details": {
+      "addresses": [
+        "192.0.2.1",
+        "192.0.2.2"
+      ],
+      "delays": 1,
+      "fqdn": "example.com"
+    },
+    "observables": [
+      {
+        "type": "ipv4",
+        "value": "192.0.2.1"
+      },
+      {
+        "type": "ipv4",
+        "value": "192.0.2.2"
+      }
+    ],
+    "schema_version": 1,
+    "summary": "example.com has 2 addresses"
+  }
+}

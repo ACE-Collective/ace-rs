@@ -1,0 +1,30 @@
+---
+source: crates/ace-testkit/tests/examples.rs
+expression: "$crate :: snapshot_value(& outcome)"
+---
+{
+  "outcome": "done",
+  "result": {
+    "analysis_type": "example_line_stats",
+    "details": {
+      "first_line": {
+        "base64": "SW52b2ljZSCjMTIwIGF0dGFjaGVk"
+      },
+      "lines": 5,
+      "longest_line": 21,
+      "truncated": false
+    },
+    "files": [
+      {
+        "path": "notes.txt.first_line",
+        "sha256": "04773ed83fe28ebfd7084db8d9b328627b5e53984846e7197888da14d4a09179",
+        "size": 21,
+        "yara_meta": [
+          "type=example.first_line"
+        ]
+      }
+    ],
+    "schema_version": 1,
+    "summary": "5 lines"
+  }
+}

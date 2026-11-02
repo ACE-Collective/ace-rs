@@ -51,6 +51,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "ace-testkit"
+version = "0.1.0"
+dependencies = [
+ "ace-results",
+ "ace-sdk",
+ "chrono",
+ "insta",
+ "schemars",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tempfile",
+ "thiserror",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
 name = "ahash"
 version = "0.8.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
