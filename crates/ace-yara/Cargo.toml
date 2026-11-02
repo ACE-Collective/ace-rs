@@ -17,6 +17,12 @@ sha2 = "0.11.1"
 tracing = "0.1.44"
 yara-x = "1.22.1"
 
+[features]
+# yara-x's per-rule timing, for SVS validation's slowest-rule report. It adds overhead to every
+# scan, so only the SVS build turns it on (DESIGN.md, *The YARA scanner*). A build with it
+# can't load a ruleset serialized by a build without it, or the other way round.
+rules-profiling = ["yara-x/rules-profiling"]
+
 [dev-dependencies]
 tempfile = "3.27.0"
 tracing-subscriber = { version = "0.3.23", features = ["fmt"] }

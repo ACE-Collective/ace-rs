@@ -17,6 +17,10 @@
 //! is left out instead of failing the whole load, a `re:` item the regex crate rejects leaves
 //! its file out, the mime type comes from libmagic once per unit instead of `file` once per
 //! scan, and `combined_compile_seconds` includes compiling each file alone.
+//!
+//! With the `rules-profiling` feature, the result also lists the slowest rules over the whole
+//! replay: yara-x's slowest-rule report, which replaces yara_scanner_v2's timing harness.
+//! yara-x lists only rules that took over 100 ms in all, so a fast replay lists none.
 
 use std::collections::BTreeMap;
 use std::fmt;
@@ -28,7 +32,10 @@ use serde::{Deserialize, Serialize};
 use crate::load::{self, FileOutcome, FileReport, LoadError, LoadOptions, Namespace};
 use crate::meta::Meta;
 use crate::mime::MimeTyper;
-use crate::scan::{Match, ScanError, ScanRequest, Scanner};
+use crate::scan::{Match, RuleTime, ScanError, ScanRequest, Scanner};
+
+/// How many rules the slowest-rule report lists.
+pub const SLOWEST_RULES: usize = 20;
 
 pub const PROTOCOL_VERSION: u32 = 1;
 pub const JOB_FILE: &str = "job.json";
@@ -79,6 +86,10 @@ pub struct ReplayResult {
     pub units: BTreeMap<String, UnitOutcome>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub combined_compile_seconds: Option<f64>,
+    /// The slowest rules over every unit, slowest first. Only a build with the
+    /// `rules-profiling` feature records them.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub slowest_rules: Option<Vec<RuleTime>>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -221,6 +232,7 @@ pub fn run(workdir: &Path, typer: &MimeTyper) -> Result<ReplayResult, ReplayErro
         namespaces: BTreeMap::new(),
         units: BTreeMap::new(),
         combined_compile_seconds: None,
+        slowest_rules: None,
     };
 
     let namespaces: Vec<Namespace> = job
@@ -251,6 +263,8 @@ pub fn run(workdir: &Path, typer: &MimeTyper) -> Result<ReplayResult, ReplayErro
     drop(loaded.ruleset);
 
     // 2. each namespace on its own, scanning every unit
+    #[cfg(feature = "rules-profiling")]
+    let mut slowest: Vec<RuleTime> = Vec::new();
     let mut mime_types: BTreeMap<u64, Result<String, String>> = BTreeMap::new();
     let timeout = Duration::from_secs_f64(job.file_timeout);
     for namespace in &namespaces {
@@ -327,12 +341,21 @@ pub fn run(workdir: &Path, typer: &MimeTyper) -> Result<ReplayResult, ReplayErro
             }
         }
         timing.scan_seconds = started.elapsed().as_secs_f64();
+        #[cfg(feature = "rules-profiling")]
+        slowest.extend(scanner.slowest_rules(SLOWEST_RULES));
         result.namespaces.insert(namespace.name.clone(), timing);
         write_json(
             workdir,
             PROGRESS_FILE,
             &serde_json::json!({"namespaces": result.namespaces}),
         )?;
+    }
+
+    #[cfg(feature = "rules-profiling")]
+    {
+        slowest.sort_by(|a, b| b.total_seconds().total_cmp(&a.total_seconds()));
+        slowest.truncate(SLOWEST_RULES);
+        result.slowest_rules = Some(slowest);
     }
 
     Ok(result)

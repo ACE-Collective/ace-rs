@@ -82,7 +82,37 @@ pub struct Scanner<'r> {
     inner: yara_x::Scanner<'r>,
 }
 
+/// The time one rule took over every scan a scanner ran.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct RuleTime {
+    pub namespace: String,
+    pub rule: String,
+    pub condition_seconds: f64,
+    pub pattern_matching_seconds: f64,
+}
+
+impl RuleTime {
+    pub fn total_seconds(&self) -> f64 {
+        self.condition_seconds + self.pattern_matching_seconds
+    }
+}
+
 impl<'r> Scanner<'r> {
+    /// The `n` rules that took longest over every scan this scanner ran, slowest first.
+    #[cfg(feature = "rules-profiling")]
+    pub fn slowest_rules(&self, n: usize) -> Vec<RuleTime> {
+        self.inner
+            .slowest_rules(n)
+            .into_iter()
+            .map(|p| RuleTime {
+                namespace: p.namespace.to_string(),
+                rule: p.rule.to_string(),
+                condition_seconds: p.condition_exec_time.as_secs_f64(),
+                pattern_matching_seconds: p.pattern_matching_time.as_secs_f64(),
+            })
+            .collect()
+    }
+
     pub fn new(ruleset: &'r Ruleset) -> Self {
         Scanner {
             ruleset,

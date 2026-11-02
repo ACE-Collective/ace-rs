@@ -22,7 +22,7 @@ pub enum YaraCommand {
     Scan(ScanArgs),
     /// Replay SVS samples: read the job.json that ace3's SVS replay writes in a working
     /// directory, compile its rules, scan its units and write result.json there, with each
-    /// match's pattern offsets.
+    /// match's pattern offsets. A build with the svs feature also prints the slowest rules.
     Replay(ReplayArgs),
 }
 
@@ -283,6 +283,25 @@ fn replay(args: ReplayArgs) -> Result<ExitCode> {
         count(|u| u.dropped.len()),
         count(|u| u.errors.len()),
     );
+    if let Some(slowest) = &result.slowest_rules {
+        if slowest.is_empty() {
+            println!(
+                "slowest rules: none took over 100 ms across the units, and yara-x lists only those"
+            );
+        } else {
+            println!("slowest rules across the units, condition + pattern matching:");
+        }
+        for rule in slowest {
+            println!(
+                "\t{:.6}s\t{}:{} (condition {:.6}s, patterns {:.6}s)",
+                rule.total_seconds(),
+                rule.namespace,
+                rule.rule,
+                rule.condition_seconds,
+                rule.pattern_matching_seconds,
+            );
+        }
+    }
     println!("wrote {}", args.workdir.join(RESULT_FILE).display());
     Ok(ExitCode::SUCCESS)
 }

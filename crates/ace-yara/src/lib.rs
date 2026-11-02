@@ -22,4 +22,4 @@ pub use load::{
 };
 pub use meta::{Meta, MetaValue};
 pub use rule_meta::DetectionBlocker;
-pub use scan::{Match, PatternMatch, ScanError, ScanOutcome, ScanRequest, Scanner};
+pub use scan::{Match, PatternMatch, RuleTime, ScanError, ScanOutcome, ScanRequest, Scanner};

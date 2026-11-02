@@ -155,3 +155,31 @@ fn files_that_compile_alone_but_not_together_are_a_ruleset_error() {
     assert_eq!(result["files"].as_array().unwrap().len(), 2);
     assert_eq!(result["units"], json!({}));
 }
+
+#[test]
+fn the_slowest_rules_are_reported_only_with_rules_profiling() {
+    // yara-x reports only rules that took over 100 ms in all. The quadratic rule takes
+    // about filesize squared steps, so 1,200 zero bytes keep it busy for longer than that,
+    // and well under the timeout.
+    let zeros = vec![0u8; 1_200];
+    let dir = workdir(
+        json!([
+            namespace("scan", "scan/signatures/scan", &["rules.yar"]),
+            namespace("loops", "scan/slow/loops", &["slow.yar"]),
+        ]),
+        &[("zeros.bin", &zeros, &[])],
+    );
+    let started = std::time::Instant::now();
+    let result = run(dir.path());
+    println!("replay took {:?}", started.elapsed());
+    assert_eq!(result["units"]["0"]["errors"], json!([]));
+    if cfg!(feature = "rules-profiling") {
+        let slowest = result["slowest_rules"].as_array().unwrap();
+        println!("{slowest:#?}");
+        assert_eq!(slowest[0]["namespace"], "loops");
+        assert_eq!(slowest[0]["rule"], "quadratic");
+        assert!(slowest[0]["condition_seconds"].as_f64().unwrap() > 0.1);
+    } else {
+        assert_eq!(result.get("slowest_rules"), None);
+    }
+}
