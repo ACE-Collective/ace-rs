@@ -41,7 +41,7 @@ use tokio::task::JoinHandle;
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
-use crate::db::{Db, DbError, Tx};
+use crate::db::{Db, DbError, Isolation, Retryable, Tx};
 use crate::tree::ObservableId;
 
 /// A task's row id.
@@ -92,6 +92,12 @@ pub enum QueueError {
 impl From<sqlx::Error> for QueueError {
     fn from(error: sqlx::Error) -> Self {
         QueueError::Db(DbError::Sqlx(error))
+    }
+}
+
+impl Retryable for QueueError {
+    fn is_retryable(&self) -> bool {
+        matches!(self, QueueError::Db(e) if e.is_retryable())
     }
 }
 
@@ -274,9 +280,13 @@ impl Worker {
     /// Claims the oldest claimable task of the worker's modules, if there is one, and takes
     /// its lease.
     pub async fn claim(&self) -> Result<Option<Task>, QueueError> {
-        let mut tx = self.db.begin().await?;
-        let row = sqlx::query!(
-            r#"UPDATE queue.tasks t
+        let row = self
+            .db
+            .transaction(Isolation::ReadCommitted, |tx| {
+                Box::pin(async move {
+                    Ok::<_, QueueError>(
+                        sqlx::query!(
+                            r#"UPDATE queue.tasks t
                SET state = 'running', lease_owner = $1,
                    lease_expires_at = now() + make_interval(secs => $2),
                    attempts = t.attempts + 1, updated_at = now()
@@ -294,13 +304,16 @@ impl Worker {
                          t.delay_state, t.first_delayed_at, t.delays,
                          o.id AS "observable_id: ObservableId", o.type AS kind, o.value,
                          o.time, o.directives"#,
-            self.name,
-            self.lease.as_secs_f64(),
-            &self.modules,
-        )
-        .fetch_optional(tx.conn())
-        .await?;
-        tx.commit().await?;
+                            self.name,
+                            self.lease.as_secs_f64(),
+                            &self.modules,
+                        )
+                        .fetch_optional(tx.conn())
+                        .await?,
+                    )
+                })
+            })
+            .await?;
         let Some(row) = row else {
             return Ok(None);
         };
@@ -382,10 +395,13 @@ impl Worker {
         after: Duration,
         state: &serde_json::Value,
     ) -> Result<DateTime<Utc>, QueueError> {
-        let mut tx = self.db.begin().await?;
-        let root = self.lock_task_root(&mut tx, task).await?;
-        let row = sqlx::query!(
-            r#"UPDATE queue.tasks
+        let run_after = self
+            .db
+            .transaction(Isolation::ReadCommitted, |tx| {
+                Box::pin(async move {
+                    let root = self.lock_task_root(tx, task).await?;
+                    let row = sqlx::query!(
+                        r#"UPDATE queue.tasks
                SET state = CASE WHEN cancel_requested THEN 'cancelled'::queue.task_state
                                 ELSE 'delayed'::queue.task_state END,
                    run_after = now() + make_interval(secs => $3),
@@ -394,22 +410,24 @@ impl Worker {
                    lease_expires_at = NULL, updated_at = now()
                WHERE id = $1 AND lease_owner = $2 AND state = 'running'
                RETURNING run_after, state AS "state: TaskState""#,
-            task as TaskId,
-            self.name,
-            after.as_secs_f64(),
-            state,
-        )
-        .fetch_optional(tx.conn())
-        .await?
-        .ok_or(QueueError::LeaseLost(task))?;
-        // a task whose root was cancelled while it ran ends here instead
-        if row.state == TaskState::Cancelled {
-            check_completion(&mut tx, root).await?;
-            tx.commit().await?;
-            return Err(QueueError::Cancelled(task));
-        }
-        tx.commit().await?;
-        Ok(row.run_after)
+                        task as TaskId,
+                        self.name,
+                        after.as_secs_f64(),
+                        state,
+                    )
+                    .fetch_optional(tx.conn())
+                    .await?
+                    .ok_or(QueueError::LeaseLost(task))?;
+                    // a task whose root was cancelled while it ran ends here instead
+                    if row.state == TaskState::Cancelled {
+                        check_completion(tx, root).await?;
+                        return Ok(None);
+                    }
+                    Ok::<_, QueueError>(Some(row.run_after))
+                })
+            })
+            .await?;
+        run_after.ok_or(QueueError::Cancelled(task))
     }
 
     /// The task's root, locked until the transaction ends.
@@ -428,8 +446,11 @@ impl Worker {
     /// Extends the lease on a task the worker owns to a full lease from now. The answer also
     /// says whether the task's root was cancelled meanwhile.
     pub async fn renew(&self, task: TaskId) -> Result<Lease, QueueError> {
-        let mut tx = self.db.begin().await?;
-        let row = sqlx::query!(
+        let row = self
+            .db
+            .transaction(Isolation::ReadCommitted, |tx| {
+                Box::pin(async move {
+                    Ok::<_, QueueError>(sqlx::query!(
             r#"UPDATE queue.tasks SET lease_expires_at = now() + make_interval(secs => $3)
                WHERE id = $1 AND lease_owner = $2 AND state = 'running'
                RETURNING lease_expires_at AS "expires_at!", cancel_requested"#,
@@ -438,8 +459,10 @@ impl Worker {
             self.lease.as_secs_f64(),
         )
         .fetch_optional(tx.conn())
-        .await?;
-        tx.commit().await?;
+        .await?)
+                })
+            })
+            .await?;
         let row = row.ok_or(QueueError::LeaseLost(task))?;
         Ok(Lease {
             expires_at: row.expires_at,
@@ -498,11 +521,15 @@ impl Worker {
         state: TaskState,
         error: Option<&str>,
     ) -> Result<(), QueueError> {
-        let mut tx = self.db.begin().await?;
-        let root = self.finish_in(&mut tx, task, state, error).await?;
-        check_completion(&mut tx, root).await?;
-        tx.commit().await?;
-        Ok(())
+        self.db
+            .transaction(Isolation::ReadCommitted, |tx| {
+                Box::pin(async move {
+                    let root = self.finish_in(tx, task, state, error).await?;
+                    check_completion(tx, root).await?;
+                    Ok::<_, QueueError>(())
+                })
+            })
+            .await
     }
 
     /// Ends a task the worker owns inside a transaction that also writes what the task found,
@@ -789,8 +816,10 @@ pub async fn reap_expired_leases(db: &Db) -> Result<Reaped, QueueError> {
     .await?;
     let mut reaped = Reaped::default();
     for root in roots {
-        let mut tx = db.begin().await?;
-        lock_root(&mut tx, root).await?;
+        let rows = db
+            .transaction(Isolation::ReadCommitted, |tx| {
+                Box::pin(async move {
+        lock_root(tx, root).await?;
         let rows = sqlx::query!(
             r#"UPDATE queue.tasks SET
                    state = CASE WHEN cancel_requested THEN 'cancelled'::queue.task_state
@@ -807,8 +836,11 @@ pub async fn reap_expired_leases(db: &Db) -> Result<Reaped, QueueError> {
         )
         .fetch_all(tx.conn())
         .await?;
-        check_completion(&mut tx, root).await?;
-        tx.commit().await?;
+        check_completion(tx, root).await?;
+        Ok::<_, QueueError>(rows)
+                })
+            })
+            .await?;
         for row in rows {
             match row.state {
                 TaskState::Failed => reaped.failed.push(row.id),

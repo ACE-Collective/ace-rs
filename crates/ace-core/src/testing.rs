@@ -225,7 +225,9 @@ async fn build_locked(
     .await?;
     let db = Db::connect(&config.clone().database(&building).max_connections(1)).await?;
     db.migrate().await?;
-    sqlx::raw_sql(SEED).execute(db.pool()).await?;
+    let mut tx = db.begin().await?;
+    sqlx::raw_sql(SEED).execute(tx.conn()).await?;
+    tx.commit().await?;
     db.close().await;
     sqlx::raw_sql(database_statement(format!(
         r#"ALTER DATABASE "{building}" RENAME TO "{template}""#

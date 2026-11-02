@@ -12,4 +12,4 @@ pub mod queue;
 pub mod testing;
 pub mod tree;
 
-pub use db::{Db, DbConfig, DbError, Tx};
+pub use db::{Db, DbConfig, DbError, Isolation, Retryable, Tx};

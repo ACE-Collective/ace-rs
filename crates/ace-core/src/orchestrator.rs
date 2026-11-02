@@ -17,7 +17,7 @@ use ace_results::{Detection, NewObservable, ObservableKind, ResultEnvelope};
 use serde_json::Value;
 use uuid::Uuid;
 
-use crate::db::{DbError, Tx};
+use crate::db::{DbError, Retryable, Tx};
 use crate::eligibility::{Catalog, Facts, check};
 use crate::modes::{CORRELATION, DISPOSITIONED, Modes};
 use crate::queue::{self, QueueError, Task, TaskId, TaskState, Worker};
@@ -36,6 +36,16 @@ pub enum OrchestratorError {
 impl From<sqlx::Error> for OrchestratorError {
     fn from(error: sqlx::Error) -> Self {
         OrchestratorError::Db(DbError::Sqlx(error))
+    }
+}
+
+impl Retryable for OrchestratorError {
+    fn is_retryable(&self) -> bool {
+        match self {
+            OrchestratorError::Db(e) => e.is_retryable(),
+            OrchestratorError::Queue(e) => e.is_retryable(),
+            OrchestratorError::NoRoot(_) => false,
+        }
     }
 }
 
