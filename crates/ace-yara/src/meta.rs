@@ -1,14 +1,38 @@
 //! A rule's meta block, as yara-python hands it to ace3.
 
+use serde::ser::{Serialize, SerializeMap, Serializer};
 use yara_x::MetaValue as XMetaValue;
 
-/// One meta value: a string, an integer, a float or a boolean.
+/// One meta value: a string, an integer, a float or a boolean. It serializes as the bare
+/// value, as ace3's JSON writes it.
 #[derive(Debug, Clone, PartialEq)]
 pub enum MetaValue {
     Str(String),
     Int(i64),
     Float(f64),
     Bool(bool),
+}
+
+impl Serialize for MetaValue {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        match self {
+            MetaValue::Str(s) => serializer.serialize_str(s),
+            MetaValue::Int(i) => serializer.serialize_i64(*i),
+            MetaValue::Float(f) => serializer.serialize_f64(*f),
+            MetaValue::Bool(b) => serializer.serialize_bool(*b),
+        }
+    }
+}
+
+/// Serializes as an object, in the dict's order.
+impl Serialize for Meta {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        let mut map = serializer.serialize_map(Some(self.0.len()))?;
+        for (key, value) in &self.0 {
+            map.serialize_entry(key, value)?;
+        }
+        map.end()
+    }
 }
 
 /// A meta string as yara-python returns it. libyara keeps the string as a C string, so it ends

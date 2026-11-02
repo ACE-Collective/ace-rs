@@ -4,6 +4,8 @@
 use std::fmt;
 use std::time::Duration;
 
+use serde::Serialize;
+
 use crate::filter::{self, RuleFilter, Target};
 use crate::load::Ruleset;
 use crate::meta::Meta;
@@ -24,7 +26,7 @@ pub struct ScanRequest<'a> {
 }
 
 /// One occurrence of a pattern.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize)]
 pub struct PatternMatch {
     /// The pattern's identifier, such as `$a`.
     pub identifier: String,
@@ -33,7 +35,7 @@ pub struct PatternMatch {
 }
 
 /// A rule that matched.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct Match {
     pub namespace: String,
     pub rule: String,

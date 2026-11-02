@@ -116,7 +116,7 @@ pub fn build(signature_dir: &Path, options: &LoadOptions) -> Result<Built, Build
     }
 
     let manifest = Manifest {
-        key: sha256_hex(&bytes),
+        key: key(&bytes),
         commit: git_commit(signature_dir),
         sources_sha256: sources_sha256(signature_dir, &namespaces),
         yara_x_version: yara_x::VERSION.to_string(),
@@ -156,7 +156,8 @@ impl Ruleset {
     }
 }
 
-fn sha256_hex(bytes: &[u8]) -> String {
+/// A serialized ruleset's key: the sha256 of its bytes.
+pub fn key(bytes: &[u8]) -> String {
     hex(&Sha256::digest(bytes))
 }
 
