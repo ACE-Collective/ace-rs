@@ -8,6 +8,11 @@
 #   docker compose exec dev bacon      rebuild on every save; `bacon clippy` or `bacon test` for other jobs
 #   docker compose exec dev bash       a shell with the toolchain
 #   docker compose down                stop it; the named volumes keep target/ and the caches
+#   docker compose port postgres 5432  the host port Postgres was given, likewise bucket 8333
+#
+# Postgres and the bucket publish on ephemeral host ports bound to ACE4_BIND_ADDRESS, so they
+# never take a port ace3 or another stack holds. Containers in the stack reach them by service
+# name. Their credentials are dev defaults that ACE4_ variables override; none come from ace3.
 
 name: ${ACE4_STACK:-ace4}
 
@@ -66,7 +71,66 @@ services:
       start_period: 10s
       retries: 3
 
+  postgres:
+    image: postgres:18.6-alpine3.24
+    depends_on:
+      stack-guard:
+        condition: service_completed_successfully
+    environment:
+      POSTGRES_USER: ${ACE4_POSTGRES_USER:-ace4}
+      POSTGRES_PASSWORD: ${ACE4_POSTGRES_PASSWORD:-ace4-dev-password}
+      POSTGRES_DB: ${ACE4_POSTGRES_DB:-ace4}
+    ports:
+      - "${ACE4_BIND_ADDRESS:-127.0.0.1}::5432"
+    volumes:
+      # Postgres 18's image keeps its data under /var/lib/postgresql/18/, so the volume goes on
+      # the parent directory and a major upgrade can sit beside the old data.
+      - postgres-data:/var/lib/postgresql
+    mem_limit: ${ACE4_POSTGRES_MEM_LIMIT:-1g}
+    healthcheck:
+      # Over TCP, because during first-start initialization the image's temporary server
+      # listens only on the Unix socket, and pg_isready on the socket would pass too early.
+      test:
+        - CMD-SHELL
+        - pg_isready -h 127.0.0.1 -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"
+      interval: 5s
+      timeout: 5s
+      start_period: 30s
+      retries: 5
+
+  # The S3-compatible bucket for dev. MinIO's maintainers stopped publishing the community
+  # edition's images in October 2025 and archived the repository in 2026, so dev runs
+  # SeaweedFS instead. `weed mini` is one process with the S3 gateway, and it creates the
+  # bucket and its one access key from these variables when it starts.
+  bucket:
+    image: chrislusf/seaweedfs:4.48
+    depends_on:
+      stack-guard:
+        condition: service_completed_successfully
+    environment:
+      AWS_ACCESS_KEY_ID: ${ACE4_BUCKET_ACCESS_KEY:-ace4-dev}
+      AWS_SECRET_ACCESS_KEY: ${ACE4_BUCKET_SECRET_KEY:-ace4-dev-secret}
+      S3_BUCKET: ${ACE4_BUCKET_NAME:-ace4}
+    ports:
+      - "${ACE4_BIND_ADDRESS:-127.0.0.1}::8333"
+    volumes:
+      - bucket-data:/data
+    mem_limit: ${ACE4_BUCKET_MEM_LIMIT:-1g}
+    healthcheck:
+      # Healthy when the S3 gateway answers and the filer holds the bucket's directory.
+      test:
+        - CMD-SHELL
+        - >-
+          curl -sf -o /dev/null http://127.0.0.1:8333/healthz
+          && curl -sf -o /dev/null "http://127.0.0.1:8888/buckets/$$S3_BUCKET/"
+      interval: 5s
+      timeout: 5s
+      start_period: 30s
+      retries: 5
+
 volumes:
+  postgres-data:
+  bucket-data:
   target:
   cargo-registry:
   cargo-git:
