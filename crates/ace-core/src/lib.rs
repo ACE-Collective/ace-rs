@@ -4,6 +4,9 @@
 
 pub mod bucket;
 pub mod db;
+pub mod eligibility;
+pub mod modes;
+pub mod orchestrator;
 pub mod queue;
 #[cfg(any(test, feature = "testing"))]
 pub mod testing;

@@ -20,12 +20,18 @@ name = "ace-core"
 version = "0.1.0"
 dependencies = [
  "ace-core",
+ "ace-mod-archive",
+ "ace-mod-email",
+ "ace-mod-rdap",
  "ace-mod-splunk",
+ "ace-mod-yara",
  "ace-results",
  "ace-sdk",
  "ace-store",
  "ace-testkit",
  "chrono",
+ "schemars 1.2.3",
+ "serde",
  "serde_json",
  "sha2 0.11.1",
  "sqlx",

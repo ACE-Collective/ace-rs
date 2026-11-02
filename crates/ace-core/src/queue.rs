@@ -108,6 +108,22 @@ pub async fn enqueue(
     Ok(id)
 }
 
+/// Queues a cancelled task again from the start, as when a root's mode changes and the module
+/// is eligible in the new one. Returns false when the task isn't cancelled.
+pub async fn requeue_cancelled(tx: &mut Tx<'_>, task: TaskId) -> Result<bool, QueueError> {
+    let requeued = sqlx::query!(
+        "UPDATE queue.tasks
+         SET state = 'queued', run_after = now(), attempts = 0, error = NULL,
+             delay_state = NULL, first_delayed_at = NULL, delays = 0, updated_at = now()
+         WHERE id = $1 AND state = 'cancelled'",
+        task as TaskId,
+    )
+    .execute(tx.conn())
+    .await?
+    .rows_affected();
+    Ok(requeued > 0)
+}
+
 /// The observable a claimed task analyzes.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TaskObservable {
@@ -358,6 +374,19 @@ impl Worker {
         error: Option<&str>,
     ) -> Result<(), QueueError> {
         let mut tx = self.db.begin().await?;
+        self.finish_in(&mut tx, task, state, error).await?;
+        tx.commit().await?;
+        Ok(())
+    }
+
+    /// Ends a task the worker owns inside a transaction that also writes what the task found.
+    pub async fn finish_in(
+        &self,
+        tx: &mut Tx<'_>,
+        task: TaskId,
+        state: TaskState,
+        error: Option<&str>,
+    ) -> Result<(), QueueError> {
         let finished = sqlx::query!(
             "UPDATE queue.tasks
              SET state = $3, error = $4, lease_owner = NULL, lease_expires_at = NULL,
@@ -374,7 +403,6 @@ impl Worker {
         if finished == 0 {
             return Err(QueueError::LeaseLost(task));
         }
-        tx.commit().await?;
         Ok(())
     }
 }

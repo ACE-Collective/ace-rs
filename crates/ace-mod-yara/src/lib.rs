@@ -71,6 +71,9 @@ pub struct YaraScanner {
 impl Module for YaraScanner {
     const NAME: &'static str = "yara_scanner_v3_4";
     const INPUTS: &'static [ObservableKind] = &[ObservableKind::File];
+    /// ace3's YARA module skips a file with `no_scan` itself (`yara.py:299`); here the core
+    /// doesn't queue it, and the SDK skips a run if the directive came later.
+    const SKIP_DIRECTIVES: &'static [&'static str] = &[DIRECTIVE_NO_SCAN];
     const RESOURCES: Resources = Resources {
         memory_mb: 4096,
         ..Resources::DEFAULT
@@ -147,9 +150,6 @@ impl Parser for YaraScanner {
         let file = ctx.input_file()?;
         if file.size == 0 {
             return Ok(Outcome::Skipped("an empty file".to_owned()));
-        }
-        if observable.has_directive(DIRECTIVE_NO_SCAN) {
-            return Ok(Outcome::Skipped(format!("directive {DIRECTIVE_NO_SCAN}")));
         }
         let data = std::fs::read(&file.local_path)?;
         let mime_type = match &file.mime_type {

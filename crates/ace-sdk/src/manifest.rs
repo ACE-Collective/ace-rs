@@ -17,7 +17,7 @@ use ace_results::{AnalysisTypeInfo, ObservableKind};
 use schemars::Schema;
 use serde_json::{Value, json};
 
-use crate::module::{Lookup, Module, Parser, Settings};
+use crate::module::{EXCLUDE_ALL, Lookup, Module, Parser, Settings};
 
 /// The limits a module's task runs under.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -70,6 +70,8 @@ pub struct Manifest {
     pub output: AnalysisTypeInfo,
     /// Modules whose results this one needs before it runs.
     pub depends_on: &'static [&'static str],
+    /// Directives that keep the module off an observable, besides `exclude_all`.
+    pub skip_directives: &'static [&'static str],
     pub resources: Resources,
     pub sandbox: Sandbox,
     pub secrets: &'static [&'static str],
@@ -98,6 +100,7 @@ impl Manifest {
             inputs: M::INPUTS,
             output: AnalysisTypeInfo::of::<M::Output>(),
             depends_on: M::DEPENDS_ON,
+            skip_directives: M::SKIP_DIRECTIVES,
             resources: M::RESOURCES,
             sandbox,
             secrets: M::SECRETS,
@@ -121,6 +124,15 @@ impl Manifest {
         self.inputs.iter().any(|&input| kind.is_subtype_of(input))
     }
 
+    /// The first of `directives` that keeps the module off an observable: `exclude_all`, or one
+    /// of the module's own skip directives.
+    pub fn skipped_by<'d>(&self, directives: &'d [String]) -> Option<&'d str> {
+        directives
+            .iter()
+            .map(String::as_str)
+            .find(|d| *d == EXCLUDE_ALL || self.skip_directives.contains(d))
+    }
+
     /// The manifest as JSON, for listing modules and for snapshots.
     pub fn describe(&self) -> Value {
         let sandbox = match self.sandbox {
@@ -136,6 +148,7 @@ impl Manifest {
             "inputs": self.inputs,
             "output": {"analysis_type": self.output.name, "schema_version": self.output.version},
             "depends_on": self.depends_on,
+            "skip_directives": self.skip_directives,
             "resources": {
                 "timeout_seconds": self.resources.timeout.as_secs(),
                 "memory_mb": self.resources.memory_mb,
@@ -156,6 +169,7 @@ impl fmt::Debug for Manifest {
             .field("inputs", &self.inputs)
             .field("output", &self.output)
             .field("depends_on", &self.depends_on)
+            .field("skip_directives", &self.skip_directives)
             .field("resources", &self.resources)
             .field("sandbox", &self.sandbox)
             .field("secrets", &self.secrets)
@@ -302,6 +316,11 @@ mod tests {
         assert_eq!(LINE_COUNTER.output.name, "example_line_stats");
         assert!(LINE_COUNTER.accepts(ObservableKind::File));
         assert!(!LINE_COUNTER.accepts(ObservableKind::Fqdn));
+        assert_eq!(
+            LINE_COUNTER.skipped_by(&["sandbox".to_owned(), "exclude_all".to_owned()]),
+            Some("exclude_all")
+        );
+        assert_eq!(LINE_COUNTER.skipped_by(&["no_scan".to_owned()]), None);
 
         assert_eq!(RESOLVER.kind, ModuleKind::Lookup);
         assert_eq!(RESOLVER.sandbox, Sandbox::Network { tcp_ports: &[] });

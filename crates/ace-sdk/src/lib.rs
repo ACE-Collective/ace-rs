@@ -19,5 +19,6 @@ pub use context::{DelayedRun, InputFile, Observable, Secret, Secrets, TaskContex
 pub use files::{FileOutputError, FileStore, LocalFileStore};
 pub use manifest::{Manifest, ModuleKind, Resources, Sandbox, SettingsError, load_settings};
 pub use module::{
-    BoxError, Delay, Lookup, Module, ModuleError, Outcome, Parser, Settings, run_lookup, run_parser,
+    BoxError, Delay, EXCLUDE_ALL, Lookup, Module, ModuleError, Outcome, Parser, Settings,
+    run_lookup, run_parser,
 };

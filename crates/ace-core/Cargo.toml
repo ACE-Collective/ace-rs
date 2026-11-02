@@ -30,14 +30,18 @@ uuid = { version = "1.29.0", features = ["v4"] }
 
 [dev-dependencies]
 ace-core = { path = ".", features = ["testing"] }
-# 2.9's check runs 1.28's delayed module through the queue, against its recorded Splunk API.
+# The ported modules' manifests, for eligibility's tests; 2.9's check runs 1.28's delayed
+# module through the queue against its recorded Splunk API.
+ace-mod-archive = { path = "../ace-mod-archive" }
+ace-mod-email = { path = "../ace-mod-email" }
+ace-mod-rdap = { path = "../ace-mod-rdap" }
 ace-mod-splunk = { path = "../ace-mod-splunk" }
+ace-mod-yara = { path = "../ace-mod-yara" }
 ace-testkit = { path = "../ace-testkit" }
+schemars = "1.2.3"
+serde = { version = "1.0.229", features = ["derive"] }
 tempfile = "3.27.0"
-ace-results = { path = "../ace-results" }
-chrono = { version = "0.4.45", default-features = false, features = ["clock", "std"] }
 tokio = { version = "1.54.1", features = ["io-util", "macros", "process", "rt-multi-thread"] }
-tokio-util = "0.7.20"
 
 [lints]
 workspace = true

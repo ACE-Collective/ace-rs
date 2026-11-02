@@ -32,6 +32,11 @@ pub trait Module: Sized + Send + Sync + 'static {
     const INPUTS: &'static [ObservableKind];
     /// Modules whose results this one needs before it runs.
     const DEPENDS_ON: &'static [&'static str] = &[];
+    /// Directives that keep the module off an observable, such as `no_scan` for YARA. The core
+    /// doesn't queue the module for an observable that has one, and a run on an observable
+    /// that gained one after its task was queued is skipped. `exclude_all` keeps every module
+    /// off.
+    const SKIP_DIRECTIVES: &'static [&'static str] = &[];
     /// The names of the secrets the module reads. The task context gives it these and no others.
     const SECRETS: &'static [&'static str] = &[];
     const RESOURCES: Resources = Resources::DEFAULT;
@@ -158,6 +163,18 @@ pub fn task_span<S>(module: &'static str, ctx: &TaskContext<S>) -> tracing::Span
     )
 }
 
+/// The directive that keeps every module off an observable, as ace3's `exclude_all`.
+pub const EXCLUDE_ALL: &str = "exclude_all";
+
+/// The first of the observable's directives that keeps module `M` off it.
+fn skipping_directive<M: Module, S>(ctx: &TaskContext<S>) -> Option<&str> {
+    ctx.observable()
+        .directives
+        .iter()
+        .map(String::as_str)
+        .find(|d| *d == EXCLUDE_ALL || M::SKIP_DIRECTIVES.contains(d))
+}
+
 /// Runs a parser on one task, inside the task's span.
 pub fn run_parser<M: Parser>(
     module: &M,
@@ -166,6 +183,9 @@ pub fn run_parser<M: Parser>(
     let span = task_span(M::NAME, ctx);
     let _entered = span.enter();
     ctx.check_cancelled()?;
+    if let Some(directive) = skipping_directive::<M, _>(ctx) {
+        return Ok(Outcome::Skipped(format!("directive {directive}")));
+    }
     let outcome = module.analyze(ctx)?;
     check_delay(ctx, outcome)
 }
@@ -178,6 +198,9 @@ pub async fn run_lookup<M: Lookup>(
 ) -> Result<Outcome<M::Output>, ModuleError> {
     async {
         ctx.check_cancelled()?;
+        if let Some(directive) = skipping_directive::<M, _>(ctx) {
+            return Ok(Outcome::Skipped(format!("directive {directive}")));
+        }
         let outcome = tokio::select! {
             biased;
             () = ctx.cancelled() => return Err(ModuleError::Cancelled),

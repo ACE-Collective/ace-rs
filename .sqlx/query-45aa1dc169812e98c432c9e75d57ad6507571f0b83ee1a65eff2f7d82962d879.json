@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE analysis.observables\n         SET tags = analysis.merged(tags, $3), directives = analysis.merged(directives, $4)\n         WHERE root_id = $1 AND id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int8",
+        "TextArray",
+        "TextArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "45aa1dc169812e98c432c9e75d57ad6507571f0b83ee1a65eff2f7d82962d879"
+}

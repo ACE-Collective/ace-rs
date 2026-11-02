@@ -4,7 +4,7 @@
 //! its tags, directives and excluded modules into the existing row. A result is unique on
 //! (root, observable, module).
 
-use ace_results::{NewObservable, ObservableKind, ResultEnvelope};
+use ace_results::{Detection, NewObservable, ObservableKind, ResultEnvelope};
 use chrono::{DateTime, Utc};
 use serde_json::Value;
 use sqlx::PgExecutor;
@@ -255,4 +255,55 @@ pub async fn insert_result(
     .fetch_one(tx.conn())
     .await?;
     Ok(id)
+}
+
+/// Appends tags and directives an observable doesn't have yet, as a result's additions to the
+/// observable it analyzed.
+pub async fn add_to_observable(
+    tx: &mut Tx<'_>,
+    root: Uuid,
+    observable: ObservableId,
+    tags: &[String],
+    directives: &[String],
+) -> Result<(), DbError> {
+    sqlx::query!(
+        "UPDATE analysis.observables
+         SET tags = analysis.merged(tags, $3), directives = analysis.merged(directives, $4)
+         WHERE root_id = $1 AND id = $2",
+        root,
+        observable as ObservableId,
+        tags,
+        directives,
+    )
+    .execute(tx.conn())
+    .await?;
+    Ok(())
+}
+
+/// Records a detection on an observable, raised by `result`.
+pub async fn add_detection(
+    tx: &mut Tx<'_>,
+    root: Uuid,
+    observable: ObservableId,
+    result: Option<ResultId>,
+    detection: &Detection,
+) -> Result<(), DbError> {
+    sqlx::query!(
+        "INSERT INTO analysis.detections
+             (root_id, observable_id, result_id, description, details, queue, signature_uuid,
+              signature_version, signature_family)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+        root,
+        observable as ObservableId,
+        result as Option<ResultId>,
+        detection.description,
+        detection.details,
+        detection.queue,
+        detection.signature_uuid,
+        detection.signature_version,
+        detection.signature_family,
+    )
+    .execute(tx.conn())
+    .await?;
+    Ok(())
 }
