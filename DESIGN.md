@@ -136,6 +136,8 @@ Docker mounts `/sys/fs/cgroup` read-only in an unprivileged container, so a pool
 - Landlock rules for files and TCP ports
 - a seccomp filter that blocks fork, clone and exec once the process has started
 
+Landlock doesn't cover UDP, so a DNS query sent straight to a resolver's address gets out, and it doesn't stop `stat` on any path. Task processes run as a non-root user with no capabilities, so raw sockets aren't open to them either.
+
 A process that can't have children dies completely when its PID is killed, which avoids #981's problem without cgroups. The pool container's `mem_limit` bounds the pool as a whole. External tools that start children keep ACE's existing sandbox runner. Workers start by exec, so the at-fork repair hooks behind #982 aren't needed.
 
 A failed or hung task leaves a row with its error and the hashes of its inputs, which are already in the bucket, so the task can be replayed under a debugger. Before killing a hung Python task, the pool supervisor captures its stacks with `py-spy dump`, which needs ptrace permission on the pool's processes.
