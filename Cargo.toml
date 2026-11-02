@@ -16,3 +16,12 @@ unused_must_use = "deny"
 [workspace.lints.clippy]
 # `let _ = fallible();` hides a dropped error from unused_must_use, so clippy denies it too.
 let_underscore_must_use = "deny"
+
+# Dependencies build without debug info, and workspace crates keep line tables so a backtrace
+# still names the file and line. With full debug info each test binary that links yara-x was
+# about 390 MB, and stale copies of them filled the Docker VM's disk.
+[profile.dev]
+debug = "line-tables-only"
+
+[profile.dev.package."*"]
+debug = false
