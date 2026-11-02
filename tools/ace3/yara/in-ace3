@@ -4,8 +4,8 @@
 # Usage: tools/ace3/yara/in-ace3 SCRIPT [ARG...]
 #
 # The script is copied into the container's /tmp/ace4-yara/, never under /opt/ace, which is
-# ace3's checkout, and runs there with ace3's venv in isolated mode (-I), so it imports
-# nothing from the directory it sits in. Its stdin is this command's stdin.
+# ace3's checkout, runs there with ace3's venv in isolated mode (-I), so it imports nothing
+# from the directory it sits in, and is deleted afterwards. Its stdin is this command's stdin.
 #
 # ACE4_ACE3_CONTAINER names the container (default ace-dev-1).
 set -euo pipefail
@@ -22,5 +22,6 @@ shift
 name=$(basename "$script")
 
 docker exec "$container" mkdir -p "$dest"
+trap 'docker exec "$container" rm -f "$dest/$name"' EXIT
 docker exec -i "$container" sh -c "cat > '$dest/$name'" < "$script"
-exec docker exec -i "$container" /venv/bin/python3 -I "$dest/$name" "$@"
+docker exec -i "$container" /venv/bin/python3 -I "$dest/$name" "$@"

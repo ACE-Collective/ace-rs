@@ -1,0 +1,88 @@
+#!/usr/bin/env python3
+"""Runs tools/ace3/yara/child.py, ace3's replay child with offsets, on a working directory.
+
+Usage: tools/ace3/yara/run-child WORKDIR
+
+WORKDIR is a directory on the host holding a job.json in the shape ace3's
+saq/svs/yara/replay.py writes, and the unit files it names (tools/ace3/yara/make-workdir
+writes one). Its "workdir" key is the absolute path the job's paths assume. The job's rules
+are read where ace3's dev container has them, /opt/ace/signatures, and the units at that
+"workdir" path.
+
+ace3's dev container can't see the host directory, so this copies the working directory
+into the container's /tmp at that path (never under /opt/ace, ace3's checkout), runs the
+child there on ace3's Python with the environment replay.py gives it, copies its result back
+to WORKDIR/result.ace3.json, and deletes the copy. replay.py runs the child in a Landlock
+sandbox; this doesn't.
+
+ACE4_ACE3_CONTAINER names the container (default ace-dev-1).
+"""
+
+import io
+import json
+import os
+import subprocess
+import sys
+import tarfile
+import time
+from pathlib import Path
+
+CONTAINER = os.environ.get("ACE4_ACE3_CONTAINER", "ace-dev-1")
+CONTAINER_ROOT = "/tmp/ace4-yara-work/"
+CHILD = Path(__file__).resolve().parent / "child.py"
+# what replay.py's _sandbox_env gives the child, with HOME the working directory
+MAGIC_FILE = "/usr/lib/file/magic.mgc"
+OUTPUTS = {"result.json", "progress.json", "result.ace3.json", "result.ace4.json"}
+
+
+def docker(*args, stdin=None):
+    return subprocess.run(["docker", *args], input=stdin, check=True, capture_output=True)
+
+
+def main():
+    if len(sys.argv) != 2:
+        print(__doc__, file=sys.stderr)
+        return 2
+
+    workdir = Path(sys.argv[1]).resolve()
+    with open(workdir / "job.json") as fp:
+        target = json.load(fp)["workdir"]
+    if not target.startswith(CONTAINER_ROOT) or ".." in target.split("/"):
+        raise SystemExit(f"the job's workdir {target} is not under {CONTAINER_ROOT}")
+
+    # the working directory, without earlier results, as a tar stream
+    archive = io.BytesIO()
+    with tarfile.open(fileobj=archive, mode="w") as tar:
+        for path in sorted(workdir.rglob("*")):
+            relative = path.relative_to(workdir)
+            if len(relative.parts) == 1 and relative.name in OUTPUTS:
+                continue
+            tar.add(path, arcname=str(relative), recursive=False)
+
+    child = f"{target}.child.py"
+    docker("exec", CONTAINER, "rm", "-rf", target, child)
+    docker("exec", CONTAINER, "mkdir", "-p", target)
+    docker("exec", "-i", CONTAINER, "tar", "-x", "-C", target, stdin=archive.getvalue())
+    docker("exec", "-i", CONTAINER, "sh", "-c", f"cat > '{child}'", stdin=CHILD.read_bytes())
+
+    started = time.monotonic()
+    try:
+        run = subprocess.run(
+            ["docker", "exec", CONTAINER, "env", "-i", "PATH=/usr/bin:/bin", "LANG=C.UTF-8",
+             f"HOME={target}", f"MAGIC={MAGIC_FILE}", "/venv/bin/python3", "-I", child, target],
+            capture_output=True, text=True)
+        seconds = time.monotonic() - started
+        if run.returncode != 0:
+            print(run.stderr, file=sys.stderr)
+            raise SystemExit(f"the child exited with {run.returncode}")
+        result = docker("exec", CONTAINER, "cat", f"{target}/result.json").stdout
+    finally:
+        docker("exec", CONTAINER, "rm", "-rf", target, child)
+
+    (workdir / "result.ace3.json").write_bytes(result)
+    print(f"ace3's child ran in {seconds:.1f}s and wrote {workdir / 'result.ace3.json'}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
