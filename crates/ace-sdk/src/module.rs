@@ -65,6 +65,9 @@ pub trait Lookup: Module {
 }
 
 /// How a task ended, when it didn't fail.
+// A task returns one Outcome and it's moved once or twice, so the size of the result variant
+// costs nothing worth a Box at every module's return.
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, Clone, PartialEq)]
 pub enum Outcome<D> {
     /// The result, which the core checks against its schema and stores.

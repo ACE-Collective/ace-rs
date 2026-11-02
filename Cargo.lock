@@ -81,6 +81,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "ace-mod-yara"
+version = "0.1.0"
+dependencies = [
+ "ace-results",
+ "ace-sdk",
+ "ace-testkit",
+ "ace-yara",
+ "regex",
+ "schemars 1.2.3",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tracing",
+]
+
+[[package]]
 name = "ace-results"
 version = "0.1.0"
 dependencies = [

@@ -23,6 +23,7 @@ pub const BUILTIN: &[AnalysisTypeInfo] = &[
     AnalysisTypeInfo::of::<crate::types::archive::ArchiveAnalysis>(),
     AnalysisTypeInfo::of::<crate::types::email::EmailAnalysis>(),
     AnalysisTypeInfo::of::<crate::types::rdap::RdapAnalysis>(),
+    AnalysisTypeInfo::of::<crate::types::yara::YaraScanResults>(),
 ];
 
 /// One analysis type: its name, version, module and schema.

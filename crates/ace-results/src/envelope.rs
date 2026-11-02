@@ -50,6 +50,11 @@ pub struct ResultEnvelope<D> {
     /// What the result adds to the observable the module analyzed.
     #[serde(default, skip_serializing_if = "ObservableAdditions::is_empty")]
     pub analyzed: ObservableAdditions,
+    /// What the result adds to the observable the analyzed one redirects to, such as the Office
+    /// document a part was extracted from: ace3's YARA module sandboxes that document rather than
+    /// the part that matched.
+    #[serde(default, skip_serializing_if = "ObservableAdditions::is_empty")]
+    pub redirected: ObservableAdditions,
     /// Observables the result adds to the alert. Files go in `files` instead.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub observables: Vec<NewObservable>,
@@ -69,6 +74,7 @@ impl<D: AnalysisType> ResultEnvelope<D> {
             tags: Vec::new(),
             detections: Vec::new(),
             analyzed: ObservableAdditions::default(),
+            redirected: ObservableAdditions::default(),
             observables: Vec::new(),
             files: Vec::new(),
         }
@@ -96,6 +102,7 @@ impl<D: AnalysisType> ResultEnvelope<D> {
             tags: self.tags.clone(),
             detections: self.detections.clone(),
             analyzed: self.analyzed.clone(),
+            redirected: self.redirected.clone(),
             observables: self.observables.clone(),
             files: self.files.clone(),
         })

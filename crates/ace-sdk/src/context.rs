@@ -7,7 +7,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use ace_results::{AlertPath, NewFile, ObservableKind, Sha256, YaraMeta};
+use ace_results::{AlertPath, NewFile, ObservableKind, ObservableRef, Sha256, YaraMeta};
 use chrono::{DateTime, Utc};
 use serde::de::DeserializeOwned;
 use tokio_util::sync::CancellationToken;
@@ -27,6 +27,9 @@ pub struct Observable {
     pub file: Option<InputFile>,
     /// The observable's directives, such as `original_email` or `no_scan`.
     pub directives: Vec<String>,
+    /// The observable that stands for this one when something acts on it, as ace3's
+    /// `redirection`, such as the Office document a part came out of.
+    pub redirection: Option<ObservableRef>,
 }
 
 impl Observable {
@@ -37,6 +40,7 @@ impl Observable {
             time: None,
             file: None,
             directives: Vec::new(),
+            redirection: None,
         }
     }
 
@@ -47,6 +51,7 @@ impl Observable {
             time: None,
             file: Some(file),
             directives: Vec::new(),
+            redirection: None,
         }
     }
 
