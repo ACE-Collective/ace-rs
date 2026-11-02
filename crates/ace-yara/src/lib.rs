@@ -11,6 +11,7 @@ pub mod filter;
 pub mod load;
 pub mod meta;
 pub mod rule_meta;
+pub mod scan;
 
 pub use load::{
     EXTERNALS, FileOutcome, FileReport, LoadError, LoadOptions, Loaded, Namespace, RuleInfo,
@@ -18,3 +19,4 @@ pub use load::{
 };
 pub use meta::{Meta, MetaValue};
 pub use rule_meta::DetectionBlocker;
+pub use scan::{Match, PatternMatch, ScanError, ScanOutcome, ScanRequest, Scanner};
