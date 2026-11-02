@@ -1,0 +1,2 @@
+-- Rows every test database starts with, run on the template after the migrations
+-- (src/testing.rs). Changing this file builds a new template.

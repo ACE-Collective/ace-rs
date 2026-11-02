@@ -3,5 +3,7 @@
 //! The schema is SQL migrations in `migrations/`, one Postgres schema per area (`db::AREAS`).
 
 pub mod db;
+#[cfg(any(test, feature = "testing"))]
+pub mod testing;
 
 pub use db::{Db, DbConfig, DbError, Tx};

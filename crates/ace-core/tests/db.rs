@@ -1,12 +1,10 @@
-//! PLAN.md 2.2: the pool connects and the migrations create one schema per area.
+//! PLAN.md 2.2: the migrations create one schema per area.
 
-use ace_core::db::{AREAS, Db, DbConfig};
+use ace_core::db::AREAS;
+use ace_core::testing::TestDb;
 
 #[tokio::test]
 async fn migrations_create_each_area() {
-    let db = Db::connect(&DbConfig::from_env("ace-core-tests").expect("ACE4_DATABASE_URL"))
-        .await
-        .expect("connects");
-    db.migrate().await.expect("migrates");
-    assert_eq!(db.areas().await.expect("lists the areas"), AREAS);
+    let test_db = TestDb::new().await;
+    assert_eq!(test_db.db().areas().await.expect("lists the areas"), AREAS);
 }

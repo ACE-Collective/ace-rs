@@ -125,7 +125,7 @@ The goal is to run the five phase 1 modules end to end from a submission.
 
 - [x] **2.1 Postgres and MinIO.** Add both to Compose, published on ephemeral host ports. Done when `docker compose up postgres minio` is healthy while ace3's stack is running.
 - [x] **2.2 Migrations.** Add `ace-core` with SQL migration files and one Postgres schema per area. Commit sqlx's offline metadata in `.sqlx/`, and have CI run `cargo sqlx prepare --check` without a database. One function builds the connection pool for every component (#1023). Done when a query on a missing column fails the build.
-- [ ] **2.3 Test databases.** Migrate and seed a template database once per test run, and give each test its own copy with `CREATE DATABASE ... TEMPLATE`. Done when tests run in parallel on separate databases.
+- [x] **2.3 Test databases.** Migrate and seed a template database once per test run, and give each test its own copy with `CREATE DATABASE ... TEMPLATE`. Done when tests run in parallel on separate databases.
 - [ ] **2.4 Alert tree tables.** Roots, with an event time and where that time came from (#850). Observables, unique on (root, type, value). Results, unique on (root, observable, module), with the analysis type, schema version and JSONB details under a GIN index. Done when upserting one observable twice leaves one row.
 - [ ] **2.5 Bucket.** `ace-store` puts and gets bytes by sha256 on S3 (MinIO in dev), with a size-capped cache on each node. A put also stores the libmagic mime type from 1.7. Carry over the pools and retention from `ace3/docs/CAS.md` and the `cas:` section of `ace3/etc/saq.default.yaml`. Done when two puts of the same bytes leave one object and a get on a second node fills that node's cache.
 

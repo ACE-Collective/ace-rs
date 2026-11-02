@@ -41,7 +41,7 @@ pub enum DbError {
 /// How a component connects.
 #[derive(Debug, Clone)]
 pub struct DbConfig {
-    pub url: String,
+    options: PgConnectOptions,
     /// The component's name, which Postgres shows as the connections' `application_name`.
     pub component: String,
     pub max_connections: u32,
@@ -52,25 +52,47 @@ pub struct DbConfig {
 }
 
 impl DbConfig {
-    pub fn new(url: impl Into<String>, component: impl Into<String>) -> Self {
-        DbConfig {
-            url: url.into(),
+    /// A config for `url`, such as `postgres://ace4:password@postgres:5432/ace4`, with the
+    /// default limits.
+    pub fn parse(url: &str, component: impl Into<String>) -> Result<Self, DbError> {
+        Ok(DbConfig {
+            options: url.parse().map_err(DbError::InvalidUrl)?,
             component: component.into(),
             max_connections: 10,
             acquire_timeout: Duration::from_secs(10),
             statement_timeout: Duration::from_secs(60),
-        }
+        })
     }
 
     /// The URL from `ACE4_DATABASE_URL`, with the default limits.
     pub fn from_env(component: impl Into<String>) -> Result<Self, DbError> {
         let url = std::env::var(URL_VAR).map_err(|_| DbError::NoUrl)?;
-        Ok(DbConfig::new(url, component))
+        DbConfig::parse(&url, component)
     }
 
     pub fn max_connections(mut self, max: u32) -> Self {
         self.max_connections = max;
         self
+    }
+
+    /// The same server and credentials, another database.
+    pub fn database(mut self, name: &str) -> Self {
+        self.options = self.options.database(name);
+        self
+    }
+
+    /// The database the config connects to.
+    pub fn database_name(&self) -> Option<&str> {
+        self.options.get_database()
+    }
+
+    /// The options each connection opens with.
+    pub fn connect_options(&self) -> PgConnectOptions {
+        let statement_timeout = self.statement_timeout.as_millis().to_string();
+        self.options
+            .clone()
+            .application_name(&self.component)
+            .options([("statement_timeout", statement_timeout.as_str())])
     }
 }
 
@@ -84,15 +106,10 @@ impl Db {
     /// Builds the pool and opens its first connection, so a bad URL or an unreachable server
     /// fails here rather than at the first query.
     pub async fn connect(config: &DbConfig) -> Result<Db, DbError> {
-        let options: PgConnectOptions = config.url.parse().map_err(DbError::InvalidUrl)?;
-        let statement_timeout = config.statement_timeout.as_millis().to_string();
-        let options = options
-            .application_name(&config.component)
-            .options([("statement_timeout", statement_timeout.as_str())]);
         let pool = PgPoolOptions::new()
             .max_connections(config.max_connections)
             .acquire_timeout(config.acquire_timeout)
-            .connect_with(options)
+            .connect_with(config.connect_options())
             .await?;
         Ok(Db { pool })
     }
