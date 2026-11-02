@@ -85,7 +85,7 @@ Track A is the YARA scanner. It holds the other result that could change the lan
 - [x] **1.10 Rust replay child.** `ace yara replay <workdir>` reads a `job.json` in the shape `ace3/saq/svs/yara/replay.py` writes, and writes `result.json` in 1.9's shape. A script in `tools/ace3/` builds that working directory from 0.8's samples, one unit per (file, path inside the alert, meta tags). Done when both children run on the same working directory.
 - [x] **1.11 Comparison.** Compile every rule file in ace3's signatures checkout with both scanners, and list the files each one leaves out. That half needs no samples and covers the whole repository. Then run both children over 0.8's sample set at the same commit, and diff the matched namespace, rule and offsets for each unit. Compare libmagic's mime type with `file -b --mime-type` on every sample too. Done when `docs/measurements/yara-compare.md` counts each kind of difference and says how many samples and rules the match half covered.
 - [x] **1.12 Triage.** Mark each difference as a yara-x incompatibility, recorded with its rule and the reason, or a port bug, fixed in `ace-yara`. Done when a rerun of 1.11 shows no unexplained difference.
-- [x] **1.13 Slowest-rule report.** Enable yara-x's `rules-profiling` feature behind a cargo feature that only the SVS build turns on, and print the slowest rules after a replay. Done when `cargo tree -e features` for the YARA pool binary doesn't show `rules-profiling`.
+- [x] **1.13 Slowest-rule report.** Enable yara-x's `rules-profiling` feature behind a cargo feature that only the SVS build turns on, and print the slowest rules after a replay. Done when `cargo tree -e features -i yara-x` shows `rules-profiling` for the SVS build and not for the YARA pool binary. Without `-i yara-x` the tree doesn't list a feature that a root feature turns on, so it can't show the difference.
 
 ### Track B: results crate, SDK and test harness
 
@@ -102,6 +102,8 @@ Track A is the YARA scanner. It holds the other result that could change the lan
 - [ ] **1.24 Reference dumps.** A script in `tools/ace3/` runs one ace3 module on one sample in the `cli` analysis mode, inside ace3's dev container, and writes its analysis details as JSON. Phase 1 ports compare against these dumps. Done when it writes dumps for the five track C modules.
 
 ### Track C: five modules
+
+1.15's envelope has no place for four things the reference dumps show these modules produce: detection points, relationships such as `extracted_from`, redirection, and the directives and `yara_meta` tags a module adds to the observable it analyzed. 1.25 adds them to `ace-results` before it ports anything.
 
 - [ ] **1.25 Email headers.** Port the header and address part of `EmailAnalyzer` (`ace3/saq/modules/email/rfc822.py:979`) onto mail-parser, in `ace-mod-email`. Done when its output matches the reference dumps for ace3's email test fixtures, or each difference is listed and explained.
 - [ ] **1.26 Email parts.** Add body parts and attachments as files. Keep ace3's output names, such as `.rfc822.headers`, and its `yara_meta` tags, such as `type=email.attachment`, because YARA rules match on both. Done when names and tags match the reference dumps.

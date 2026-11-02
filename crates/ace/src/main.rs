@@ -1,5 +1,6 @@
 //! The `ace` command.
 
+mod schema;
 mod yara;
 
 use std::process::ExitCode;
@@ -17,6 +18,9 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
+    /// JSON Schemas of the analysis types.
+    #[command(subcommand)]
+    Schema(schema::SchemaCommand),
     /// YARA rulesets and scans.
     #[command(subcommand)]
     Yara(yara::YaraCommand),
@@ -34,6 +38,7 @@ fn main() -> ExitCode {
 
     let cli = Cli::parse();
     let result = match cli.command {
+        Command::Schema(command) => schema::run(command),
         Command::Yara(command) => yara::run(command),
     };
     match result {
