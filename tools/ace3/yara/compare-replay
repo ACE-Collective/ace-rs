@@ -1,0 +1,263 @@
+#!/usr/bin/env python3
+"""Compares ace3's YARA scanner with ace4's on the signatures checkout and the local samples
+(PLAN.md 1.11).
+
+Usage: tools/ace3/yara/compare-replay [--debug] WORKROOT
+
+1. make-workdir writes three working directories under WORKROOT on the host:
+   - every-rule-file/: every rule file in the signatures checkout, and no units. Only the
+     compile half reads it.
+   - samples/: the namespaces ace3's yara service loads, and one unit per distinct (sample,
+     path inside the alert, meta tags) in samples/manifest.json.
+   - rule-sources/: the same namespaces, with each loaded rule file as a unit, once with every
+     tag the rules name and once with none. The samples match few rules; a rule's own source
+     holds its strings, so this set gives the match half far more to compare. It is reported
+     apart from the samples.
+2. Each goes through both children. ace4's, `ace yara replay` (a release build unless
+   --debug), runs in a one-off dev container of ace4's stack that mounts the signatures read
+   only at /opt/ace/signatures and WORKROOT at /tmp/ace4-yara-work; its result.json is kept as
+   result.ace4.json. ace3's, child.py, runs through run-child into result.ace3.json.
+3. Every sample's mime type, from ace4's libmagic (`ace yara scan --json` with no rules) and
+   from `file -b --mime-type` in ace3's dev container.
+4. Prints the differences by kind and writes them to WORKROOT/differences.json.
+
+The compile half compares, file by file, whether each scanner left the file out and which
+rules it defines. The match half compares, unit by unit, every rule that matched before the
+meta filter (namespace, rule, and each string occurrence's offset, identifier and length),
+whether the filter kept it, and the scan errors.
+
+ACE4_ACE3_CHECKOUT is ace3's checkout on the host (default ../ace3 beside this checkout);
+Compose reads ACE4_STACK and the other ACE4_ variables as usual. Exits 1 if any difference
+is found.
+"""
+
+import argparse
+import io
+import json
+import os
+import subprocess
+import sys
+import tarfile
+import time
+from collections import Counter
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+REPO = HERE.parents[2]
+ACE3 = Path(os.environ.get("ACE4_ACE3_CHECKOUT", REPO.parent / "ace3")).resolve()
+CONTAINER = os.environ.get("ACE4_ACE3_CONTAINER", "ace-dev-1")
+CONTAINER_ROOT = "/tmp/ace4-yara-work"
+
+
+def run(argv, **kwargs):
+    return subprocess.run(argv, check=True, capture_output=True, text=True, **kwargs)
+
+
+def ace4(workroot, command):
+    """Runs a shell command in a one-off dev container with the mounts the jobs assume."""
+    return run(["docker", "compose", "run", "--rm", "-T", "--no-deps",
+                "-v", f"{ACE3 / 'signatures'}:/opt/ace/signatures:ro",
+                "-v", f"{workroot}:{CONTAINER_ROOT}",
+                "dev", "bash", "-c", command], cwd=REPO).stdout
+
+
+def both_children(workroot, name, binary):
+    workdir = workroot / name
+    started = time.monotonic()
+    out = ace4(workroot, f"{binary} yara replay {CONTAINER_ROOT}/{name}")
+    ace4_seconds = time.monotonic() - started
+    (workdir / "result.json").rename(workdir / "result.ace4.json")
+    print(f"ace4 {name}: {out.splitlines()[0]} ({ace4_seconds:.1f}s with container start)")
+    print(run([str(HERE / "run-child"), str(workdir)]).stdout.strip())
+    load = lambda side: json.loads((workdir / f"result.{side}.json").read_text())
+    return load("ace3"), load("ace4")
+
+
+def compile_half(r3, r4):
+    files3 = {f["path"]: f for f in r3["files"]}
+    files4 = {f["path"]: f for f in r4["files"]}
+    kinds, details, both_left_out = Counter(), [], []
+    for path in sorted(set(files3) | set(files4)):
+        f3, f4 = files3.get(path), files4.get(path)
+        if f3 is None or f4 is None:
+            kinds["file read by one scanner only"] += 1
+            details.append({"kind": "file read by one scanner only", "path": path})
+            continue
+        e3, e4 = f3["error"], f4["error"]
+        if e3 and e4:
+            # agreement, not a difference
+            both_left_out.append({"path": path, "ace3": e3, "ace4": e4})
+        elif e3 or e4:
+            kind = "left out by ace3 only" if e3 else "left out by ace4 only"
+            kinds[kind] += 1
+            details.append({"kind": kind, "path": path, "error": e3 or e4})
+        else:
+            rules3 = sorted((r["name"], r["private"], r["global"], tuple(r["tags"])) for r in f3["rules"])
+            rules4 = sorted((r["name"], r["private"], r["global"], tuple(r["tags"])) for r in f4["rules"])
+            if rules3 != rules4:
+                kinds["different rules in a file"] += 1
+                details.append({"kind": "different rules in a file", "path": path, "ace3": rules3, "ace4": rules4})
+            meta3 = {r["name"]: r["meta"] for r in f3["rules"]}
+            meta4 = {r["name"]: r["meta"] for r in f4["rules"]}
+            for rule in sorted(set(meta3) & set(meta4)):
+                if meta3[rule] != meta4[rule]:
+                    kinds["different meta"] += 1
+                    details.append({"kind": "different meta", "path": path, "rule": rule,
+                                    "ace3": meta3[rule], "ace4": meta4[rule]})
+    if (r3["ruleset_error"] is None) != (r4["ruleset_error"] is None):
+        kinds["ruleset loads in one scanner only"] += 1
+        details.append({"kind": "ruleset loads in one scanner only", "ace3": r3["ruleset_error"],
+                        "ace4": r4["ruleset_error"]})
+    included = sum(1 for f in files4.values() if not f["error"])
+    rules = sum(len(f["rules"]) for f in files4.values())
+    warning_kinds = Counter(w.split("]", 1)[0].removeprefix("warning[") for w in r4["warnings"])
+    return kinds, details, {"files": len(set(files3) | set(files4)), "included_by_ace4": included,
+                            "rules_in_included_files_ace4": rules, "left_out_by_both": both_left_out,
+                            "ruleset_error_ace3": r3["ruleset_error"], "ruleset_error_ace4": r4["ruleset_error"],
+                            "warnings_ace3": len(r3["warnings"]), "warnings_ace4": dict(warning_kinds)}
+
+
+def raw_matches(unit):
+    """(namespace, rule) -> (sorted string occurrences, kept by the filter)"""
+    found = {}
+    for kept, key in ((True, "matches"), (False, "dropped")):
+        for m in unit.get(key, []):
+            found[(m["namespace"], m["rule"])] = (sorted(tuple(s) for s in m["strings"]), kept)
+    return found
+
+
+def match_half(job, r3, r4):
+    kinds, details = Counter(), []
+    coverage = Counter()
+    rules_raw, rules_kept = set(), set()
+    for unit in job["units"]:
+        uid = str(unit["id"])
+        u3, u4 = r3["units"].get(uid, {}), r4["units"].get(uid, {})
+        m3, m4 = raw_matches(u3), raw_matches(u4)
+        for key in sorted(set(m3) | set(m4)):
+            where = {"unit": unit["id"], "sample": unit.get("sample"), "namespace": key[0], "rule": key[1]}
+            rules_raw.add(key)
+            if key not in m4 or key not in m3:
+                kind = "rule matched by ace3 only" if key in m3 else "rule matched by ace4 only"
+                kinds[kind] += 1
+                details.append({"kind": kind, **where, "strings": (m3.get(key) or m4.get(key))[0]})
+                continue
+            (s3, k3), (s4, k4) = m3[key], m4[key]
+            coverage["raw matches in both"] += 1
+            coverage["string occurrences compared"] += len(s3)
+            if s3 != s4:
+                kinds["same rule, different string occurrences"] += 1
+                details.append({"kind": "same rule, different string occurrences", **where,
+                                "ace3_only": sorted(set(s3) - set(s4)), "ace4_only": sorted(set(s4) - set(s3)),
+                                "ace3_count": len(s3), "ace4_count": len(s4)})
+            if k3 != k4:
+                kinds["kept by the filter in one scanner only"] += 1
+                details.append({"kind": "kept by the filter in one scanner only", **where, "ace3_kept": k3,
+                                "ace4_kept": k4})
+            elif k3:
+                coverage["kept matches in both"] += 1
+                rules_kept.add(key)
+        e3 = sorted((e["namespace"], e["type"]) for e in u3.get("errors", []))
+        e4 = sorted((e["namespace"], e["type"]) for e in u4.get("errors", []))
+        if e3 != e4:
+            kinds["different scan errors"] += 1
+            details.append({"kind": "different scan errors", "unit": unit["id"], "sample": unit.get("sample"),
+                            "ace3": u3.get("errors"), "ace4": u4.get("errors")})
+        coverage["scan errors"] += len(e3) + len(e4)
+    coverage["rules with a raw match"] = len(rules_raw)
+    coverage["rules with a kept match"] = len(rules_kept)
+    return kinds, details, coverage
+
+
+def mime_types(workroot, binary):
+    manifest = json.loads((REPO / "samples" / "manifest.json").read_text())
+    paths = [s["path"] for s in manifest["samples"]]
+
+    # ace4: libmagic, through ace yara scan with an empty signature directory
+    (workroot / "mime-paths.txt").write_text("".join(f"/workspace/samples/{p}\n" for p in paths))
+    out = ace4(workroot, f"mkdir -p /tmp/no-rules && {binary} yara scan --rules /tmp/no-rules --json "
+                         f"--from-stdin < {CONTAINER_ROOT}/mime-paths.txt")
+    decoder, ours, index = json.JSONDecoder(), {}, 0
+    while index < len(out):
+        while index < len(out) and out[index].isspace():
+            index += 1
+        if index >= len(out):
+            break
+        record, index = decoder.raw_decode(out, index)
+        ours[record["path"].removeprefix("/workspace/samples/")] = record["mime_type"]
+
+    # ace3: `file`, on copies in its dev container's /tmp, deleted afterwards
+    target = f"{CONTAINER_ROOT}/mime"
+    archive = io.BytesIO()
+    with tarfile.open(fileobj=archive, mode="w") as tar:
+        for p in paths:
+            tar.add(REPO / "samples" / p, arcname=p)
+    subprocess.run(["docker", "exec", CONTAINER, "mkdir", "-p", target], check=True)
+    try:
+        subprocess.run(["docker", "exec", "-i", CONTAINER, "tar", "-x", "-C", target],
+                       input=archive.getvalue(), check=True)
+        out = run(["docker", "exec", "-w", target, CONTAINER, "file", "-b", "--mime-type", *paths]).stdout
+    finally:
+        subprocess.run(["docker", "exec", CONTAINER, "rm", "-rf", target], check=True)
+    theirs = dict(zip(paths, out.splitlines()))
+
+    differences = [{"sample": p, "ace4_libmagic": ours.get(p), "ace3_file": theirs.get(p)}
+                   for p in paths if ours.get(p) != theirs.get(p)]
+    return len(paths), differences, sorted(set(theirs.values()))
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--debug", action="store_true", help="use a debug build of ace")
+    parser.add_argument("workroot", type=Path)
+    args = parser.parse_args()
+    workroot = args.workroot.resolve()
+    workroot.mkdir(parents=True, exist_ok=True)
+
+    env = {**os.environ, "ACE4_ACE3_CHECKOUT": str(ACE3)}
+    for name, extra in (("every-rule-file", ["--every-rule-file"]), ("samples", []),
+                        ("rule-sources", ["--rule-sources"])):
+        print(run([str(HERE / "make-workdir"), *extra, str(workroot / name)], env=env).stdout.strip())
+
+    profile = "debug" if args.debug else "release"
+    ace4(workroot, "cargo build -q -p ace" + ("" if args.debug else " --release"))
+    binary = f"target/{profile}/ace"
+
+    report = {"ace4_build": profile}
+    r3, r4 = both_children(workroot, "every-rule-file", binary)
+    kinds, details, info = compile_half(r3, r4)
+    report["compile"] = {"kinds": kinds, "info": info, "details": details}
+
+    for name, section in (("samples", "match"), ("rule-sources", "rule_sources_match")):
+        r3, r4 = both_children(workroot, name, binary)
+        job = json.loads((workroot / name / "job.json").read_text())
+        kinds, details, coverage = match_half(job, r3, r4)
+        compile_kinds, compile_details, compile_info = compile_half(r3, r4)
+        report[f"{section}_compile"] = {"kinds": compile_kinds, "info": compile_info, "details": compile_details}
+        report[section] = {"kinds": kinds, "coverage": coverage, "details": details,
+                           "units": len(job["units"]),
+                           "rules_scanned": {side: sum(t["rules"] for t in r["namespaces"].values())
+                                             for side, r in (("ace3", r3), ("ace4", r4))},
+                           "timings": {side: r["namespaces"] for side, r in (("ace3", r3), ("ace4", r4))}}
+
+    count, differences, kinds_seen = mime_types(workroot, binary)
+    report["mime"] = {"samples": count, "differences": differences, "mime_types": kinds_seen}
+
+    (workroot / "differences.json").write_text(json.dumps(report, indent=1, default=list) + "\n")
+
+    total = 0
+    for section in ("compile", "match_compile", "match", "rule_sources_match_compile", "rule_sources_match"):
+        print(f"== {section}: {dict(report[section]['kinds']) or 'no differences'}")
+        total += sum(report[section]["kinds"].values())
+    print(f"== compile info: {report['compile']['info']}")
+    for section in ("match", "rule_sources_match"):
+        print(f"== {section} coverage: {dict(report[section]['coverage'])}, units {report[section]['units']}, "
+              f"rules scanned {report[section]['rules_scanned']}")
+    print(f"== mime: {count} samples, {len(differences)} differences, types {kinds_seen}")
+    total += len(differences)
+    print(f"wrote {workroot / 'differences.json'}")
+    return 1 if total else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

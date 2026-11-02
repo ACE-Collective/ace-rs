@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Writes an SVS replay working directory from the local sample set (PLAN.md 1.10).
 
-Usage: tools/ace3/yara/make-workdir [--signatures DIR] [--every-rule-file] WORKDIR
+Usage: tools/ace3/yara/make-workdir [--signatures DIR] [--every-rule-file | --rule-sources] WORKDIR
 
 Both replay children read it: ace3's, tools/ace3/yara/child.py through run-child, and ace4's,
 `ace yara replay`. WORKDIR is on the host. It gets:
@@ -21,6 +21,11 @@ with the .yar and .yara files directly in it, in name order.
 With --every-rule-file the job only compiles: every directory in the checkout that holds rule
 files is a namespace, named by its path in the checkout, and there are no units.
 
+With --rule-sources the units are the loaded rule files themselves instead of the samples:
+each file twice, named as it is, once with every tag the rules' meta_tags directives name and
+once with none. A rule's strings are in its own source, so these units match far more rules
+than the samples do, which gives the scanners' matches and offsets something to compare.
+
 --signatures is the checkout on the host (default: $ACE4_ACE3_CHECKOUT/signatures, or
 ../ace3/signatures beside this checkout). The file timeout is 10 seconds, ace3's
 service_yara.default_timeout.
@@ -29,6 +34,7 @@ service_yara.default_timeout.
 import argparse
 import json
 import os
+import re
 import shutil
 import sys
 from pathlib import Path
@@ -70,6 +76,19 @@ def every_rule_file(signatures):
     return result
 
 
+def tags_named(signatures, namespaces):
+    """Every plain item of every meta_tags directive in the namespaces' rule files."""
+    tags = set()
+    for ns in namespaces:
+        for path in ns["files"]:
+            host = signatures / Path(path).relative_to(CONTAINER_SIGNATURES)
+            text = host.read_text(errors="replace")
+            for value in re.findall(r'^\s*meta_tags\s*=\s*"([^"]*)"', text, re.MULTILINE | re.IGNORECASE):
+                if not value.startswith(("!", "re:", "sub:")):
+                    tags.update(item.strip().lower() for item in value.split(",") if item.strip())
+    return sorted(tags)
+
+
 def is_safe_path(path):
     return bool(path) and "\0" not in path and not os.path.isabs(path) and ".." not in path.split("/")
 
@@ -78,7 +97,9 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     default_checkout = Path(os.environ.get("ACE4_ACE3_CHECKOUT", REPO.parent / "ace3"))
     parser.add_argument("--signatures", type=Path, default=default_checkout / "signatures")
-    parser.add_argument("--every-rule-file", action="store_true")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--every-rule-file", action="store_true")
+    mode.add_argument("--rule-sources", action="store_true")
     parser.add_argument("workdir", type=Path)
     args = parser.parse_args()
 
@@ -96,7 +117,19 @@ def main():
     namespaces = every_rule_file(signatures) if args.every_rule_file else service_namespaces(signatures)
 
     units, skipped, seen = [], [], set()
-    if not args.every_rule_file:
+    if args.rule_sources:
+        every_tag = tags_named(signatures, namespaces)
+        for ns in namespaces:
+            for path in ns["files"]:
+                host = signatures / Path(path).relative_to(CONTAINER_SIGNATURES)
+                for tags in (every_tag, []):
+                    unit_id = len(units)
+                    dest = workdir / "u" / str(unit_id) / "files" / host.name
+                    dest.parent.mkdir(parents=True)
+                    shutil.copyfile(host, dest)
+                    units.append({"id": unit_id, "path": f"{target}/u/{unit_id}/files/{host.name}",
+                                  "meta_tags": tags, "sample": f"{ns['name']}/{host.name}"})
+    elif not args.every_rule_file:
         manifest = json.loads((REPO / "samples" / "manifest.json").read_text())
         for sample in manifest["samples"]:
             key = (sample["sha256"], sample["alert_path"], tuple(sample["meta_tags"]))
