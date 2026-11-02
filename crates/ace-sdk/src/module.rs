@@ -7,12 +7,13 @@
 use std::future::Future;
 use std::time::Duration;
 
-use ace_results::{AnalysisType, ResultEnvelope};
+use ace_results::{AnalysisType, ObservableKind, ResultEnvelope};
 use schemars::JsonSchema;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 
 use crate::context::TaskContext;
+use crate::manifest::Resources;
 
 /// A module's settings: the block a site's config overlay gives it. Missing settings fall back
 /// to `Default`. Derive `Deserialize` with `#[serde(deny_unknown_fields)]`; the loader refuses
@@ -21,12 +22,18 @@ pub trait Settings: DeserializeOwned + JsonSchema + Default + Send + Sync + 'sta
 
 impl<T: DeserializeOwned + JsonSchema + Default + Send + Sync + 'static> Settings for T {}
 
-/// What every module has, whichever way it runs.
+/// What every module has, whichever way it runs. `Manifest::parser` and `Manifest::lookup`
+/// collect these constants into the module's manifest.
 pub trait Module: Sized + Send + Sync + 'static {
     /// The module's name, as configured and as named in a result's `exclude_modules`.
     const NAME: &'static str;
+    /// The observable types the module takes. Types that extend these are taken too.
+    const INPUTS: &'static [ObservableKind];
+    /// Modules whose results this one needs before it runs.
+    const DEPENDS_ON: &'static [&'static str] = &[];
     /// The names of the secrets the module reads. The task context gives it these and no others.
     const SECRETS: &'static [&'static str] = &[];
+    const RESOURCES: Resources = Resources::DEFAULT;
 
     /// The analysis type the module writes.
     type Output: AnalysisType;
@@ -47,6 +54,9 @@ pub trait Parser: Module {
 
 /// A module that looks something up over the network: async, many tasks per pool process.
 pub trait Lookup: Module {
+    /// The TCP ports the module connects to.
+    const TCP_PORTS: &'static [u16];
+
     fn analyze(
         &self,
         ctx: &TaskContext<Self::Settings>,

@@ -152,13 +152,12 @@ pub struct TaskContext<S> {
 }
 
 impl<S> TaskContext<S> {
-    /// A context for a task of module `M`, with no secrets, a deadline `timeout` from now, and a
-    /// fresh cancellation token. Only the secrets `M` declares can be added or read.
+    /// A context for a task of module `M`, with no secrets, the deadline from `M::RESOURCES`,
+    /// and a fresh cancellation token. Only the secrets `M` declares can be added or read.
     pub fn new<M: Module<Settings = S>>(
         root: Uuid,
         observable: Observable,
         settings: Arc<S>,
-        timeout: Duration,
     ) -> Self {
         TaskContext {
             root,
@@ -167,10 +166,16 @@ impl<S> TaskContext<S> {
             secrets: Secrets::new(),
             declared_secrets: M::SECRETS,
             cancel: CancellationToken::new(),
-            deadline: Instant::now() + timeout,
+            deadline: Instant::now() + M::RESOURCES.timeout,
             now: Utc::now(),
             delayed: None,
         }
+    }
+
+    /// Sets the deadline `timeout` from now.
+    pub fn with_timeout(mut self, timeout: Duration) -> Self {
+        self.deadline = Instant::now() + timeout;
+        self
     }
 
     /// Keeps only the secrets the module declares.

@@ -11,6 +11,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::context::TaskContext;
+use crate::manifest::{Manifest, Resources};
 use crate::module::{Delay, Lookup, Module, ModuleError, Outcome, Parser};
 
 /// A parser: counts the lines of a file.
@@ -48,8 +49,11 @@ impl Default for LineCounterSettings {
     }
 }
 
+pub const LINE_COUNTER_MANIFEST: Manifest = Manifest::parser::<LineCounter>();
+
 impl Module for LineCounter {
     const NAME: &'static str = "example_line_counter";
+    const INPUTS: &'static [ObservableKind] = &[ObservableKind::File];
     type Output = LineStats;
     type Settings = LineCounterSettings;
 
@@ -134,9 +138,16 @@ struct Pending {
     fqdn: String,
 }
 
+pub const RESOLVER_MANIFEST: Manifest = Manifest::lookup::<Resolver>();
+
 impl Module for Resolver {
     const NAME: &'static str = "example_resolver";
+    const INPUTS: &'static [ObservableKind] = &[ObservableKind::Fqdn];
     const SECRETS: &'static [&'static str] = &["resolver_token"];
+    const RESOURCES: Resources = Resources {
+        timeout: Duration::from_secs(30),
+        ..Resources::DEFAULT
+    };
     type Output = ResolvedAddresses;
     type Settings = ResolverSettings;
 
@@ -146,6 +157,9 @@ impl Module for Resolver {
 }
 
 impl Lookup for Resolver {
+    // the example never connects anywhere
+    const TCP_PORTS: &'static [u16] = &[];
+
     async fn analyze(
         &self,
         ctx: &TaskContext<ResolverSettings>,
@@ -224,7 +238,6 @@ mod tests {
             Uuid::new_v4(),
             observable,
             Arc::new(LineCounterSettings::default()),
-            Duration::from_secs(60),
         )
     }
 
@@ -267,8 +280,15 @@ mod tests {
     #[test]
     fn context_reports_time_left() {
         let (_local, observable) = file_observable(b"x");
-        let left = parser_ctx(observable).time_left();
+        // the manifest's default timeout is 300 seconds
+        let left = parser_ctx(observable.clone()).time_left();
+        assert!(left <= Duration::from_secs(300) && left > Duration::from_secs(295));
+        let left = parser_ctx(observable)
+            .with_timeout(Duration::from_secs(60))
+            .time_left();
         assert!(left <= Duration::from_secs(60) && left > Duration::from_secs(55));
+        let resolver = resolver_ctx(resolver_settings()).time_left();
+        assert!(resolver <= Duration::from_secs(30) && resolver > Duration::from_secs(25));
     }
 
     fn resolver_settings() -> ResolverSettings {
@@ -292,7 +312,6 @@ mod tests {
             Uuid::new_v4(),
             Observable::new(ObservableKind::Fqdn, "Example.com"),
             Arc::new(settings),
-            Duration::from_secs(60),
         )
         .with_secrets(&secrets)
     }
@@ -371,7 +390,6 @@ mod tests {
             Uuid::new_v4(),
             Observable::new(ObservableKind::Fqdn, "example.com"),
             Arc::new(resolver_settings()),
-            Duration::from_secs(60),
         );
         assert!(matches!(
             run_lookup(&Resolver, &no_secrets).await,
