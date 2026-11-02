@@ -23,7 +23,7 @@ fn matches_the_reference_dumps_or_lists_each_difference() {
             // samples/local/ is git-ignored, so CI doesn't have it
             Err(e) if sample.starts_with("local/") => {
                 eprintln!("skipping {}: {e}", dump.name);
-                skipped.push(dump.name.clone());
+                skipped.push(dump.short_name().to_owned());
                 continue;
             }
             Err(e) => panic!("{}: {e}", dump.name),
@@ -37,7 +37,7 @@ fn matches_the_reference_dumps_or_lists_each_difference() {
             .run_parser(observable)
             .unwrap_or_else(|e| panic!("{}: {e}", dump.name));
         let differences = diff(&dump.normal_form("EmailAnalysis"), &normal_form(&outcome));
-        compared.push((dump.name.clone(), differences));
+        compared.push((dump.short_name().to_owned(), differences));
     }
     assert!(
         compared.len() >= 17,

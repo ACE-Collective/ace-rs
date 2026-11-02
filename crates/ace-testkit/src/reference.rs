@@ -72,6 +72,14 @@ impl Dump {
         names.iter().map(|name| Dump::load(name)).collect()
     }
 
+    /// The dump's name inside its module's directory, such as `ace3/email/smtp.email.rfc822`,
+    /// which is what `differences.md` rows match.
+    pub fn short_name(&self) -> &str {
+        self.name
+            .split_once('/')
+            .map_or(self.name.as_str(), |(_, rest)| rest)
+    }
+
     /// The sample under `samples/` the dump analyzed: its input label for a file.
     pub fn sample(&self) -> Option<&str> {
         let label = self.value["input"]["label"].as_str()?;

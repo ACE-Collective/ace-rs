@@ -117,10 +117,14 @@ pub enum Skip {
 }
 
 /// What the header half of the analysis produced, for the part extraction to add to.
-pub struct HeaderAnalysis {
+pub struct HeaderAnalysis<'a, 'm> {
     pub result: ResultEnvelope<EmailAnalysis>,
     /// What the result adds to the analyzed file.
     pub analyzed: ObservableAdditions,
+    /// The message analyzed: the file's, or the original message in a journal report.
+    pub target: &'a Node<'m>,
+    /// The original message's id in a journal report.
+    pub target_message_id: Option<String>,
 }
 
 /// Analyzes the headers of `root`, the parsed `file`. `directives` are the file's.
@@ -130,7 +134,7 @@ pub fn analyze_headers<'a, 'm>(
     directives: &[String],
     settings: &EmailAnalyzerSettings,
     now: DateTime<Utc>,
-) -> Result<HeaderAnalysis, Skip> {
+) -> Result<HeaderAnalysis<'a, 'm>, Skip> {
     let target = find_target(root);
     let headers = &target.node.headers;
     let mut analyzed = ObservableAdditions::default();
@@ -520,7 +524,12 @@ pub fn analyze_headers<'a, 'm>(
         email: Some(email),
     });
     result.observables = observables.list;
-    Ok(HeaderAnalysis { result, analyzed })
+    Ok(HeaderAnalysis {
+        result,
+        analyzed,
+        target: target.node,
+        target_message_id: target.message_id,
+    })
 }
 
 enum Field {

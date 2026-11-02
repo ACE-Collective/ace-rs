@@ -17,6 +17,10 @@ mail-parser = "1.0.1"
 regex = "1.13.1"
 schemars = "1.2.3"
 serde = { version = "1.0.229", features = ["derive"] }
+# sha1 for ace3's shortened file names, sha256 for the log entry's attachment hashes
+sha1 = "0.11.0"
+sha2 = "0.11.1"
+thiserror = "2.0.21"
 tracing = "0.1.44"
 
 [dev-dependencies]

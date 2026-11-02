@@ -236,64 +236,296 @@ impl Headers {
         ctype
     }
 
-    /// `msg.get_param(name)` of the Content-Type, unquoted; None when it isn't there.
-    pub fn content_type_param(&self, name: &str) -> Option<String> {
-        let value = self.get("content-type")?.to_str();
+    /// `msg.get_param(param, header=header)`, unquoted; None when the header or the parameter
+    /// isn't there.
+    pub fn get_param(&self, param: &str, header: &str) -> Option<Param> {
+        let value = self.get(header)?.to_str();
         params(&value)
             .into_iter()
-            .find(|(k, _)| k.eq_ignore_ascii_case(name))
-            .map(|(_, v)| v)
+            .find(|(k, _)| k.to_lowercase() == param.to_lowercase())
+            .map(|(_, v)| match v {
+                Param::Text(text) => Param::Text(unquote(&text)),
+                Param::Encoded {
+                    charset,
+                    language,
+                    value,
+                } => Param::Encoded {
+                    charset,
+                    language,
+                    value: unquote(&value),
+                },
+            })
     }
 
     /// `msg.get_content_charset()`, lowercased.
     pub fn content_charset(&self) -> Option<String> {
-        let charset = self.content_type_param("charset")?;
+        let charset = match self.get_param("charset", "content-type")? {
+            Param::Text(text) => text,
+            Param::Encoded { charset, value, .. } => {
+                let bytes = raw_unicode_escape(&value);
+                let charset = charset.unwrap_or_else(|| "us-ascii".to_owned());
+                decode_charset_strict(&bytes, &charset).unwrap_or(value)
+            }
+        };
         charset.is_ascii().then(|| charset.to_lowercase())
+    }
+
+    /// `msg.get_filename()`: the Content-Disposition's `filename`, else the Content-Type's
+    /// `name`, with RFC 2231 encoding undone.
+    pub fn filename(&self) -> Option<String> {
+        let param = self
+            .get_param("filename", "content-disposition")
+            .or_else(|| self.get_param("name", "content-type"))?;
+        Some(py_strip(&collapse_rfc2231_value(param)).to_owned())
     }
 }
 
-/// The parameters after the first `;` of a structured header (`email.message._parseparam`): each
-/// `name=value`, the value unquoted.
-fn params(value: &str) -> Vec<(String, String)> {
-    let mut rest = match value.find(';') {
-        Some(i) => &value[i..],
-        None => return Vec::new(),
-    };
+/// A parameter's value: plain text, or RFC 2231 text with its charset and language.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Param {
+    Text(String),
+    Encoded {
+        charset: Option<String>,
+        language: Option<String>,
+        value: String,
+    },
+}
+
+/// `email.message._parseparam`: the parts of a structured header split on the semicolons that
+/// aren't inside quotes, each `name=value` with the name lowercased.
+fn parse_param_parts(value: &str) -> Vec<String> {
+    let mut s: String = format!(";{value}");
     let mut parts = Vec::new();
-    while let Some(after) = rest.strip_prefix(';') {
-        // the next ; that isn't inside quotes
-        let bytes = after.as_bytes();
-        let mut end = 0;
-        let mut quotes = 0usize;
-        let mut escaped = false;
-        let mut found = None;
-        while end < bytes.len() {
-            let c = bytes[end];
-            if c == b';' && quotes.is_multiple_of(2) {
-                found = Some(end);
+    while s.starts_with(';') {
+        s.remove(0);
+        let quotes_before = |end: usize| {
+            let head = &s[..end];
+            head.matches('"').count() - head.matches("\\\"").count()
+        };
+        let mut end = s.find(';');
+        while let Some(e) = end {
+            if e > 0 && quotes_before(e) % 2 == 1 {
+                end = s[e + 1..].find(';').map(|n| n + e + 1);
+            } else {
                 break;
             }
-            if c == b'"' && !escaped {
-                quotes += 1;
-            }
-            escaped = c == b'\\' && !escaped;
-            end += 1;
         }
-        let end = found.unwrap_or(after.len());
-        let part = after[..end].trim();
+        let end = end.unwrap_or(s.len());
+        let mut part = s[..end].to_owned();
         if let Some(eq) = part.find('=') {
-            let key = part[..eq].trim().to_lowercase();
-            let mut val = part[eq + 1..].trim().to_owned();
-            if val.len() >= 2 && val.starts_with('"') && val.ends_with('"') {
-                val = val[1..val.len() - 1]
-                    .replace("\\\\", "\\")
-                    .replace("\\\"", "\"");
-            }
-            parts.push((key, val));
+            part = format!(
+                "{}={}",
+                py_strip(&part[..eq]).to_lowercase(),
+                py_strip(&part[eq + 1..])
+            );
         }
-        rest = &after[end..];
+        parts.push(py_strip(&part).to_owned());
+        s = s[end..].to_owned();
     }
     parts
+}
+
+/// `_get_params_preserve` and `email.utils.decode_params`: every parameter, the first being the
+/// header's main value, with RFC 2231 continuations joined and decoded.
+fn params(value: &str) -> Vec<(String, Param)> {
+    static CONTINUATION: LazyLock<Regex> = LazyLock::new(|| {
+        Regex::new(r"^(?P<name>[A-Za-z0-9_]+)\*(?:(?P<num>[0-9]+)\*?)?$").expect("valid regex")
+    });
+    let raw: Vec<(String, String)> = parse_param_parts(value)
+        .into_iter()
+        .map(|p| match p.split_once('=') {
+            Some((name, val)) => (py_strip(name).to_owned(), py_strip(val).to_owned()),
+            None => (py_strip(&p).to_owned(), String::new()),
+        })
+        .collect();
+    let Some((first, rest)) = raw.split_first() else {
+        return Vec::new();
+    };
+    let mut out = vec![(first.0.clone(), Param::Text(first.1.clone()))];
+    // name -> its pieces, in the order seen
+    let mut continued: Vec<(String, Vec<Piece>)> = Vec::new();
+    for (name, value) in rest {
+        let encoded = name.ends_with('*');
+        let value = unquote(value);
+        match CONTINUATION.captures(name) {
+            Some(caps) => {
+                let base = caps["name"].to_owned();
+                let num = caps.name("num").and_then(|n| n.as_str().parse().ok());
+                match continued.iter_mut().find(|(n, _)| *n == base) {
+                    Some((_, list)) => list.push((num, value, encoded)),
+                    None => continued.push((base, vec![(num, value, encoded)])),
+                }
+            }
+            None => out.push((name.clone(), Param::Text(format!("\"{}\"", quote(&value))))),
+        }
+    }
+    for (name, mut parts) in continued {
+        if parts.iter().any(|p| p.0 == Some(0)) {
+            parts.retain(|p| p.0.is_some());
+        } else {
+            for p in &mut parts {
+                p.0 = Some(p.0.unwrap_or(0));
+            }
+        }
+        parts.sort_by_key(|p| p.0);
+        let mut extended = false;
+        let mut joined = String::new();
+        for (_, text, encoded) in parts {
+            if encoded {
+                joined.push_str(&percent_decode_latin1(&text));
+                extended = true;
+            } else {
+                joined.push_str(&text);
+            }
+        }
+        let joined = quote(&joined);
+        if extended {
+            let pieces: Vec<&str> = joined.splitn(3, '\'').collect();
+            if let [charset, language, text] = pieces.as_slice() {
+                out.push((
+                    name,
+                    Param::Encoded {
+                        charset: Some((*charset).to_owned()).filter(|c| !c.is_empty()),
+                        language: Some((*language).to_owned()).filter(|l| !l.is_empty()),
+                        value: format!("\"{text}\""),
+                    },
+                ));
+            } else {
+                out.push((
+                    name,
+                    Param::Encoded {
+                        charset: None,
+                        language: None,
+                        value: format!("\"{joined}\""),
+                    },
+                ));
+            }
+        } else {
+            out.push((name, Param::Text(format!("\"{joined}\""))));
+        }
+    }
+    out
+}
+
+/// One RFC 2231 piece of a parameter: its number, its text, and whether it is %-encoded.
+type Piece = (Option<u32>, String, bool);
+
+/// `urllib.parse.unquote(text, encoding="latin-1")`.
+fn percent_decode_latin1(text: &str) -> String {
+    let bytes = text.as_bytes();
+    let mut out = String::with_capacity(text.len());
+    let mut i = 0;
+    while i < bytes.len() {
+        let hex = bytes
+            .get(i + 1..i + 3)
+            .filter(|_| bytes[i] == b'%')
+            .and_then(|pair| std::str::from_utf8(pair).ok())
+            .and_then(|pair| u8::from_str_radix(pair, 16).ok());
+        match hex {
+            Some(byte) => {
+                out.push(byte as char);
+                i += 3;
+            }
+            None => {
+                let c = text[i..].chars().next().unwrap_or_default();
+                out.push(c);
+                i += c.len_utf8();
+            }
+        }
+    }
+    out
+}
+
+/// `email.utils.quote`.
+fn quote(text: &str) -> String {
+    text.replace('\\', "\\\\").replace('"', "\\\"")
+}
+
+/// `email.utils.unquote`.
+pub fn unquote(text: &str) -> String {
+    if text.chars().count() > 1 {
+        if text.starts_with('"') && text.ends_with('"') {
+            return text[1..text.len() - 1]
+                .replace("\\\\", "\\")
+                .replace("\\\"", "\"");
+        }
+        if text.starts_with('<') && text.ends_with('>') {
+            return text[1..text.len() - 1].to_owned();
+        }
+    }
+    text.to_owned()
+}
+
+/// `email.utils.collapse_rfc2231_value`.
+fn collapse_rfc2231_value(param: Param) -> String {
+    match param {
+        Param::Text(text) => unquote(&text),
+        Param::Encoded { charset, value, .. } => {
+            let bytes = raw_unicode_escape(&value);
+            let charset = charset.unwrap_or_else(|| "us-ascii".to_owned());
+            decode_charset_replace(&bytes, &charset).unwrap_or_else(|| unquote(&value))
+        }
+    }
+}
+
+/// `str(email.header.make_header(email.header.decode_header(text)))`, as ace3 decodes an
+/// attachment's name, or None where Python raises (an unknown charset or bytes that don't
+/// decode), in which case ace3 keeps the name as it was.
+pub fn make_header_str(text: &str) -> Option<String> {
+    if !ENCODED_WORD.is_match(text) {
+        return Some(text.to_owned());
+    }
+    // Header.append: each chunk decoded strictly with its charset, plain text as ASCII
+    let mut chunks: Vec<(String, String)> = Vec::new();
+    for (bytes, charset) in decode_header(text) {
+        let charset = normalize_charset(charset.as_deref().unwrap_or("us-ascii"));
+        let text = decode_charset_strict(&bytes, &charset)?;
+        // Header._normalize joins neighbours in the same charset with a space
+        match chunks.last_mut() {
+            Some((last, last_charset)) if *last_charset == charset => {
+                last.push(' ');
+                last.push_str(&text);
+            }
+            _ => chunks.push((text, charset)),
+        }
+    }
+    // Header.__str__ puts a space where an encoded chunk meets a plain one
+    let nonctext = |c: Option<char>| c.is_some_and(|c| c.is_whitespace() || "()\\".contains(c));
+    let plain = |charset: Option<&str>| matches!(charset, None | Some("us-ascii"));
+    let mut out = String::new();
+    let mut started = false;
+    let mut last_charset: Option<String> = None;
+    let mut last_space = false;
+    for (text, charset) in chunks {
+        let mut next_charset = Some(charset);
+        if started {
+            let has_space = nonctext(text.chars().next());
+            if !plain(last_charset.as_deref()) {
+                if plain(next_charset.as_deref()) && !has_space {
+                    out.push(' ');
+                    next_charset = None;
+                }
+            } else if !plain(next_charset.as_deref()) && !last_space {
+                out.push(' ');
+            }
+        }
+        last_space = nonctext(text.chars().last());
+        last_charset = next_charset;
+        out.push_str(&text);
+        started = true;
+    }
+    Some(out)
+}
+
+/// `email.charset.Charset`'s name for a charset, as far as comparing two of them goes.
+fn normalize_charset(charset: &str) -> String {
+    let charset = charset.to_lowercase();
+    match charset.as_str() {
+        "ascii" => "us-ascii".to_owned(),
+        "utf8" => "utf-8".to_owned(),
+        "latin-1" | "latin_1" | "latin1" => "iso-8859-1".to_owned(),
+        _ => charset,
+    }
 }
 
 static ENCODED_WORD: LazyLock<Regex> = LazyLock::new(|| {
@@ -1149,6 +1381,32 @@ mod tests {
         // a complete pad sequence ends the input
         assert_eq!(a2b_base64("YQ==YWJj"), b"a");
         assert_eq!(a2b_base64("YW=Jj"), b"abc");
+    }
+
+    #[test]
+    fn filenames_decode_like_get_filename_and_make_header() {
+        let headers = parse_headers(
+            b"Content-Type: application/octet-stream; name=\"fallback.bin\"\n\
+Content-Disposition: attachment; filename*=utf-8''caf%C3%A9.txt\n\n",
+        );
+        assert_eq!(headers.filename(), Some(s("caf\u{e9}.txt")));
+        let headers = parse_headers(
+            b"Content-Disposition: attachment; filename*0=\"in\"; filename*1=\"voice.pdf\"\n\n",
+        );
+        assert_eq!(headers.filename(), Some(s("invoice.pdf")));
+        let headers = parse_headers(b"Content-Type: text/plain; name=\"a; b.txt\"\n\n");
+        assert_eq!(headers.filename(), Some(s("a; b.txt")));
+        assert_eq!(
+            parse_headers(b"Content-Type: text/plain\n\n").filename(),
+            None
+        );
+        // a space where an encoded chunk meets a plain one, as Header.__str__ puts it
+        assert_eq!(
+            make_header_str("=?utf-8?b?SGVsbG8=?=__=?utf-8?b?V29ybGQ=?=.txt"),
+            Some(s("Hello __ World .txt"))
+        );
+        assert_eq!(make_header_str("=?x-unknown?q?abc?="), None);
+        assert_eq!(make_header_str("plain.txt"), Some(s("plain.txt")));
     }
 
     #[test]
