@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# Runs a Python script on ace3's Python, in ace3's dev container.
+#
+# Usage: tools/ace3/yara/in-ace3 SCRIPT [ARG...]
+#
+# The script is copied into the container's /tmp/ace4-yara/, never under /opt/ace, which is
+# ace3's checkout, and runs there with ace3's venv in isolated mode (-I), so it imports
+# nothing from the directory it sits in. Its stdin is this command's stdin.
+#
+# ACE4_ACE3_CONTAINER names the container (default ace-dev-1).
+set -euo pipefail
+
+if [ $# -lt 1 ]; then
+    echo "usage: $0 SCRIPT [ARG...]" >&2
+    exit 2
+fi
+
+container=${ACE4_ACE3_CONTAINER:-ace-dev-1}
+dest=/tmp/ace4-yara
+script=$1
+shift
+name=$(basename "$script")
+
+docker exec "$container" mkdir -p "$dest"
+docker exec -i "$container" sh -c "cat > '$dest/$name'" < "$script"
+exec docker exec -i "$container" /venv/bin/python3 -I "$dest/$name" "$@"

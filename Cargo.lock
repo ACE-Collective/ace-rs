@@ -13,6 +13,8 @@ dependencies = [
 name = "ace-yara"
 version = "0.1.0"
 dependencies = [
+ "regex",
+ "serde_json",
  "tracing",
  "tracing-subscriber",
  "yara-x",
