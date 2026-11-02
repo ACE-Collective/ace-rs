@@ -12,6 +12,7 @@
 //! go to a store in a temporary directory, where `read_output` finds them.
 
 pub mod reference;
+pub mod replay;
 
 use std::fs;
 use std::io;

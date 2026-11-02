@@ -2,3 +2,4 @@
 //! lists them all.
 
 pub mod email;
+pub mod rdap;
