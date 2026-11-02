@@ -11,6 +11,7 @@ pub mod filter;
 pub mod load;
 pub mod meta;
 pub mod rule_meta;
+pub mod ruleset;
 pub mod scan;
 
 pub use load::{

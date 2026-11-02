@@ -235,7 +235,7 @@ pub fn compile(namespaces: &[Namespace], options: &LoadOptions) -> Result<Loaded
         compiler.new_namespace(&namespace.name);
         compiler.add_include_dir(&namespace.dir);
         for (path, source) in sources {
-            if let Err(error) = compiler.add_source(source_code(path, source)) {
+            if let Err(error) = compiler.add_source(source_code(namespace, path, source)) {
                 return Err(LoadError::Combined {
                     path: path.clone(),
                     error: error.to_string(),
@@ -268,8 +268,11 @@ pub(crate) fn new_compiler<'a>() -> Compiler<'a> {
     compiler
 }
 
-fn source_code<'a>(path: &Path, source: &'a [u8]) -> SourceCode<'a> {
-    SourceCode::from(source).with_origin(path.display().to_string())
+/// The source, named `<namespace>/<file name>` in yara-x's errors and warnings, so they read
+/// the same wherever the checkout is.
+fn source_code<'a>(namespace: &Namespace, path: &Path, source: &'a [u8]) -> SourceCode<'a> {
+    let file_name = path.file_name().unwrap_or_default().to_string_lossy();
+    SourceCode::from(source).with_origin(format!("{}/{file_name}", namespace.name))
 }
 
 /// A file that compiled alone: its source, and its rules each with its filter.
@@ -288,7 +291,7 @@ fn compile_file(namespace: &Namespace, path: &Path) -> Result<CompiledFile, Stri
     compiler.new_namespace(&namespace.name);
     compiler.add_include_dir(&namespace.dir);
     compiler
-        .add_source(source_code(path, &source))
+        .add_source(source_code(namespace, path, &source))
         .map_err(|e| e.to_string())?;
 
     let mut rules = Vec::new();
