@@ -115,7 +115,7 @@ Track A is the YARA scanner. It holds the other result that could change the lan
 ### Decision
 
 - [ ] **1.31 Build loop again.** Repeat 0.5's measurements on the real workspace. Done when `build-loop.md` shows them next to the spike's.
-- [ ] **1.32 Language decision.** Write `docs/decisions/0001-language.md` from 1.12 and 1.31: keep Rust, or move the core to Go as DESIGN.md's *Alternatives considered* describes. The record says that 1.11 compared matches only on local samples. Done when the record is signed off. Phase 2 starts after that.
+- [x] **1.32 Language decision.** Write `docs/decisions/0001-language.md` from 1.12 and 1.31: keep Rust, or move the core to Go as DESIGN.md's *Alternatives considered* describes. The record says that 1.11 compared matches only on local samples. Done when the record is signed off. Phase 2 starts after that.
 
 ## Phase 2: the core, the queue and the bucket
 
@@ -178,6 +178,10 @@ Site integrations live in their own repositories (decision 9), so this workspace
 
 - [ ] **2.31 Extension points.** Add `ace-app`, which builds the `ace` binary and each pool binary from a list of crates, so another repository can build its own. Each thing an ace3 integration can add today (`ace3/docs/INTEGRATIONS.md`) becomes an entry in that list once its feature exists. That means analysis modules and collectors now, then API routes, alert toolbar buttons, alert page cards and analysis and manual-analysis templates in phase 5, hunt query sources and command types in phase 6, and alert routers in 7.13. Done when the open-source binaries are short `main` functions over `ace-app`, and a test builds a binary with one extra module.
 - [ ] **2.32 site_ace workspace.** Start a site's Rust workspace as a new repository outside ace3's checkout, and leave the existing site_ace repository as it is. It depends on this workspace's crates by git tag, builds its own `ace` and pool images through `ace-app`, runs 0.4's layering check on its own crates, and follows *Running beside ace3*. Its CI also builds against this workspace's main branch, so a breaking change shows up before a tag. Done when a site's images pass 2.30's end-to-end test plus a test of one module of its own.
+
+### Build loop
+
+- [ ] **2.33 Build loop again.** Repeat 1.31's measurements on the workspace now that sqlx, axum and the AWS SDK are in it, and add a series that makes a one-line edit in `ace-core`. Done when `build-loop.md` shows them next to 1.31's. If the `ace-core` edit takes more than 10 seconds to a runnable test binary, reopen `docs/decisions/0001-language.md`.
 
 ## Phase 3: comparison with ace3 on local samples
 
