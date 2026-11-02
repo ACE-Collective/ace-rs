@@ -10,6 +10,11 @@
 //! notifies whenever a task becomes claimable, with a bounded wait as the fallback in case a
 //! notification is lost.
 //!
+//! A module can ask to run again later (`Worker::delay`). The task goes back to the queue as
+//! `delayed` with `run_after` in the future and can't be claimed before then. Nothing notifies
+//! when that time comes, so a waiting worker also wakes when the next of its delayed tasks is
+//! due.
+//!
 //! A worker renews its lease while the task runs (`Worker::keep_lease`). If the worker dies,
 //! the renewals stop, and once the lease expires the reaper (`reap_expired_leases`) queues the
 //! task again, or fails it when it has used its attempts.
@@ -17,6 +22,7 @@
 use std::time::Duration;
 
 use ace_results::ObservableKind;
+use ace_sdk::DelayedRun;
 use chrono::{DateTime, Utc};
 use sqlx::postgres::PgListener;
 use tokio::task::JoinHandle;
@@ -123,6 +129,8 @@ pub struct Task {
     pub attempts: i32,
     pub input_hashes: Vec<String>,
     pub lease_expires_at: DateTime<Utc>,
+    /// Set when the module asked for a delay on an earlier run.
+    pub delayed: Option<DelayedRun>,
 }
 
 /// One process's identity on the queue, the modules it runs, and how long its leases last.
@@ -178,6 +186,7 @@ impl Worker {
                  AND o.id = t.observable_id
                RETURNING t.id AS "id: TaskId", t.root_id, t.module, t.attempts, t.input_hashes,
                          t.lease_expires_at AS "lease_expires_at!",
+                         t.delay_state, t.first_delayed_at, t.delays,
                          o.id AS "observable_id: ObservableId", o.type AS kind, o.value,
                          o.time, o.directives"#,
             self.name,
@@ -208,7 +217,23 @@ impl Worker {
             attempts: row.attempts,
             input_hashes: row.input_hashes,
             lease_expires_at: row.lease_expires_at,
+            delayed: row.first_delayed_at.map(|first_delayed_at| DelayedRun {
+                state: row.delay_state.unwrap_or_default(),
+                first_delayed_at,
+                delays: u32::try_from(row.delays).unwrap_or_default(),
+            }),
         }))
+    }
+
+    /// When the next queued or delayed task of the worker's modules may be claimed.
+    async fn next_due(&self) -> Result<Option<DateTime<Utc>>, QueueError> {
+        Ok(sqlx::query_scalar!(
+            "SELECT min(run_after) FROM queue.tasks
+             WHERE state IN ('queued', 'delayed') AND module = ANY($1)",
+            &self.modules,
+        )
+        .fetch_one(self.db.pool())
+        .await?)
     }
 
     /// Claims the next task, waiting for a wakeup while there is none. Each wait lasts at most
@@ -223,11 +248,54 @@ impl Worker {
             if let Some(task) = self.claim().await? {
                 return Ok((task, count));
             }
-            match wakeups.wait(&self.modules, fallback).await? {
+            // a delayed task comes due without a notification, so wait no longer than that;
+            // a due task another worker is claiming gets a short wait, not a busy loop
+            let until_due = self.next_due().await?.map(|due| {
+                (due - Utc::now())
+                    .to_std()
+                    .unwrap_or_default()
+                    .max(MIN_WAIT)
+            });
+            let (wait, due) = match until_due {
+                Some(until_due) if until_due < fallback => (until_due, true),
+                _ => (fallback, false),
+            };
+            match wakeups.wait(&self.modules, wait).await? {
                 Wake::Notified => count.notified += 1,
+                Wake::TimedOut if due => count.due += 1,
                 Wake::TimedOut => count.timed_out += 1,
             }
         }
+    }
+
+    /// Sends a task the worker owns back to the queue until `after` from now, keeping `state`
+    /// for the module's next run, as ace3's `delay_analysis`. A delay isn't a failed attempt,
+    /// so the attempt count starts again.
+    pub async fn delay(
+        &self,
+        task: TaskId,
+        after: Duration,
+        state: &serde_json::Value,
+    ) -> Result<DateTime<Utc>, QueueError> {
+        let mut tx = self.db.begin().await?;
+        let run_after = sqlx::query_scalar!(
+            "UPDATE queue.tasks
+             SET state = 'delayed', run_after = now() + make_interval(secs => $3),
+                 delay_state = $4, first_delayed_at = COALESCE(first_delayed_at, now()),
+                 delays = delays + 1, attempts = 0, lease_owner = NULL,
+                 lease_expires_at = NULL, updated_at = now()
+             WHERE id = $1 AND lease_owner = $2 AND state = 'running'
+             RETURNING run_after",
+            task as TaskId,
+            self.name,
+            after.as_secs_f64(),
+            state,
+        )
+        .fetch_optional(tx.conn())
+        .await?
+        .ok_or(QueueError::LeaseLost(task))?;
+        tx.commit().await?;
+        Ok(run_after)
     }
 
     /// Extends the lease on a task the worker owns to a full lease from now, and returns when
@@ -329,8 +397,15 @@ pub enum Wake {
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct WakeCount {
     pub notified: u32,
+    /// Waits that ended when a delayed task came due.
+    pub due: u32,
+    /// Waits that ended at the fallback.
     pub timed_out: u32,
 }
+
+/// The shortest wait for a task that is due, so a worker that keeps losing the race for it
+/// doesn't spin.
+const MIN_WAIT: Duration = Duration::from_millis(20);
 
 /// A worker's subscription to the queue's notifications, on a connection of its own.
 pub struct Wakeups {
