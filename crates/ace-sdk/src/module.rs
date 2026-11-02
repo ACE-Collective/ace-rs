@@ -11,6 +11,7 @@ use ace_results::{AnalysisType, ObservableKind, ResultEnvelope};
 use schemars::JsonSchema;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
+use tracing::Instrument;
 
 use crate::context::TaskContext;
 use crate::manifest::Resources;
@@ -143,29 +144,46 @@ impl From<crate::files::FileOutputError> for ModuleError {
     }
 }
 
-/// Runs a parser on one task.
+/// The span a task runs in. Every log line inside it carries the root's uuid, the observable and
+/// the module.
+pub fn task_span<S>(module: &'static str, ctx: &TaskContext<S>) -> tracing::Span {
+    tracing::info_span!(
+        "task",
+        root = %ctx.root(),
+        observable = %ctx.observable(),
+        module = %module,
+    )
+}
+
+/// Runs a parser on one task, inside the task's span.
 pub fn run_parser<M: Parser>(
     module: &M,
     ctx: &TaskContext<M::Settings>,
 ) -> Result<Outcome<M::Output>, ModuleError> {
+    let span = task_span(M::NAME, ctx);
+    let _entered = span.enter();
     ctx.check_cancelled()?;
     let outcome = module.analyze(ctx)?;
     check_delay(ctx, outcome)
 }
 
-/// Runs a lookup on one task. Cancelling the task's token ends it at the module's next await,
-/// even if the module never checks the token itself.
+/// Runs a lookup on one task, inside the task's span. Cancelling the task's token ends it at the
+/// module's next await, even if the module never checks the token itself.
 pub async fn run_lookup<M: Lookup>(
     module: &M,
     ctx: &TaskContext<M::Settings>,
 ) -> Result<Outcome<M::Output>, ModuleError> {
-    ctx.check_cancelled()?;
-    let outcome = tokio::select! {
-        biased;
-        () = ctx.cancelled() => return Err(ModuleError::Cancelled),
-        outcome = module.analyze(ctx) => outcome?,
-    };
-    check_delay(ctx, outcome)
+    async {
+        ctx.check_cancelled()?;
+        let outcome = tokio::select! {
+            biased;
+            () = ctx.cancelled() => return Err(ModuleError::Cancelled),
+            outcome = module.analyze(ctx) => outcome?,
+        };
+        check_delay(ctx, outcome)
+    }
+    .instrument(task_span(M::NAME, ctx))
+    .await
 }
 
 /// Refuses a delay asked for after the timeout of the first one.

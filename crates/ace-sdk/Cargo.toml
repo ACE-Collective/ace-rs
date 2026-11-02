@@ -28,6 +28,7 @@ tempfile = "3.27.0"
 thiserror = "2.0.21"
 tokio = { version = "1.54.1", features = ["macros", "rt", "time"] }
 tokio-util = "0.7.20"
+tracing = "0.1.44"
 uuid = { version = "1.29.0", features = ["v4"] }
 
 [dev-dependencies]
@@ -36,6 +37,7 @@ ace-sdk = { path = ".", features = ["example-modules"] }
 rcgen = "0.14.10"
 tokio ={ version = "1.54.1", features = ["io-util", "net"] }
 tokio-rustls = "0.26.6"
+tracing-subscriber = { version = "0.3.23", default-features = false, features = ["fmt", "std"] }
 
 [lints]
 workspace = true

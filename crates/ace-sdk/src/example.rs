@@ -88,6 +88,7 @@ impl Parser for LineCounter {
             longest_line = longest_line.max(line.len() as u64);
         }
         let first_line = bytes.split(|&b| b == b'\n').next().unwrap_or_default();
+        tracing::info!(lines, longest_line, "counted lines");
 
         // the first line also goes into the alert as a file of its own, next to the input
         let first_line_file = ctx.write_file(
@@ -198,6 +199,7 @@ impl Lookup for Resolver {
         tokio::task::yield_now().await;
 
         let addresses = settings.hosts.get(&fqdn).cloned().unwrap_or_default();
+        tracing::info!(addresses = addresses.len(), "resolved");
         let mut result = ResultEnvelope::new(ResolvedAddresses {
             fqdn: fqdn.clone(),
             addresses: addresses.clone(),
