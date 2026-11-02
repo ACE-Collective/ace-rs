@@ -1,0 +1,133 @@
+#!/usr/bin/env python3
+"""Writes an SVS replay working directory from the local sample set (PLAN.md 1.10).
+
+Usage: tools/ace3/yara/make-workdir [--signatures DIR] [--every-rule-file] WORKDIR
+
+Both replay children read it: ace3's, tools/ace3/yara/child.py through run-child, and ace4's,
+`ace yara replay`. WORKDIR is on the host. It gets:
+
+- job.json, in the shape ace3's saq/svs/yara/replay.py writes, plus "workdir": the absolute
+  path both containers see WORKDIR at, /tmp/ace4-yara-work/<WORKDIR's name>. run-child copies
+  it there in ace3's dev container; ace4's container bind-mounts the host directory there;
+- one unit per distinct (sha256, path inside the alert, meta tags) in samples/manifest.json,
+  as ace3's saq/svs/yara/corpus.py makes units, written to u/<id>/files/<path inside the
+  alert>. A path that is absolute or climbs out with `..` is skipped, as corpus.py does.
+
+The rules are ace3's signatures checkout where both containers see it, /opt/ace/signatures:
+ace3's dev container has it there, and ace4's mounts it there read only. The namespaces are
+the ones ace3's yara service loads (signature_dir signatures/yara): each directory in yara/,
+with the .yar and .yara files directly in it, in name order.
+
+With --every-rule-file the job only compiles: every directory in the checkout that holds rule
+files is a namespace, named by its path in the checkout, and there are no units.
+
+--signatures is the checkout on the host (default: $ACE4_ACE3_CHECKOUT/signatures, or
+../ace3/signatures beside this checkout). The file timeout is 10 seconds, ace3's
+service_yara.default_timeout.
+"""
+
+import argparse
+import json
+import os
+import shutil
+import sys
+from pathlib import Path
+
+REPO = Path(__file__).resolve().parents[3]
+CONTAINER_ROOT = "/tmp/ace4-yara-work"
+CONTAINER_SIGNATURES = "/opt/ace/signatures"
+FILE_TIMEOUT = 10
+
+
+def is_rule_file(name):
+    return name.lower().endswith((".yar", ".yara"))
+
+
+def rule_files(directory):
+    return sorted(name for name in os.listdir(directory)
+                  if is_rule_file(name) and os.path.isfile(os.path.join(directory, name)))
+
+
+def namespace(name, host_dir, relative):
+    container_dir = f"{CONTAINER_SIGNATURES}/{relative}"
+    return {"name": name, "directory": container_dir,
+            "files": [f"{container_dir}/{f}" for f in rule_files(host_dir)]}
+
+
+def service_namespaces(signatures):
+    yara_dir = signatures / "yara"
+    return [namespace(entry, yara_dir / entry, f"yara/{entry}")
+            for entry in sorted(os.listdir(yara_dir)) if (yara_dir / entry).is_dir()]
+
+
+def every_rule_file(signatures):
+    result = []
+    for directory, dirnames, filenames in os.walk(signatures):
+        dirnames[:] = sorted(d for d in dirnames if not d.startswith("."))
+        if any(is_rule_file(f) for f in filenames):
+            relative = Path(directory).relative_to(signatures).as_posix()
+            result.append(namespace(relative, Path(directory), relative))
+    return result
+
+
+def is_safe_path(path):
+    return bool(path) and "\0" not in path and not os.path.isabs(path) and ".." not in path.split("/")
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    default_checkout = Path(os.environ.get("ACE4_ACE3_CHECKOUT", REPO.parent / "ace3"))
+    parser.add_argument("--signatures", type=Path, default=default_checkout / "signatures")
+    parser.add_argument("--every-rule-file", action="store_true")
+    parser.add_argument("workdir", type=Path)
+    args = parser.parse_args()
+
+    workdir = args.workdir.resolve()
+    target = f"{CONTAINER_ROOT}/{workdir.name}"
+    # replay.py refuses a work root with a '.' in it: the extension external and the file_ext
+    # filter take everything after the last '.' of the whole path
+    if "." in target:
+        raise SystemExit(f"{target} has a '.' in it")
+    if workdir.exists():
+        shutil.rmtree(workdir)
+    workdir.mkdir(parents=True)
+
+    signatures = args.signatures.resolve()
+    namespaces = every_rule_file(signatures) if args.every_rule_file else service_namespaces(signatures)
+
+    units, skipped, seen = [], [], set()
+    if not args.every_rule_file:
+        manifest = json.loads((REPO / "samples" / "manifest.json").read_text())
+        for sample in manifest["samples"]:
+            key = (sample["sha256"], sample["alert_path"], tuple(sample["meta_tags"]))
+            if key in seen:
+                continue
+            seen.add(key)
+            if not is_safe_path(sample["alert_path"]):
+                skipped.append(sample["path"])
+                continue
+            source = REPO / "samples" / sample["path"]
+            if not source.is_file():
+                skipped.append(sample["path"])
+                continue
+            unit_id = len(units)
+            dest = workdir / "u" / str(unit_id) / "files" / sample["alert_path"]
+            dest.parent.mkdir(parents=True)
+            shutil.copyfile(source, dest)
+            units.append({"id": unit_id, "path": f"{target}/u/{unit_id}/files/{sample['alert_path']}",
+                          "meta_tags": sample["meta_tags"],
+                          # not in replay.py's job: which sample the unit is, for reports
+                          "sample": sample["path"]})
+
+    job = {"version": 1, "workdir": target, "tree_root": CONTAINER_SIGNATURES, "file_timeout": FILE_TIMEOUT,
+           "namespaces": namespaces, "units": units}
+    (workdir / "job.json").write_text(json.dumps(job, indent=1) + "\n")
+
+    files = sum(len(n["files"]) for n in namespaces)
+    print(f"{workdir}: {len(namespaces)} namespaces, {files} rule files, {len(units)} units"
+          + (f", skipped {skipped}" if skipped else ""))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

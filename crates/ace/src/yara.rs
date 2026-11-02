@@ -6,6 +6,7 @@ use std::process::ExitCode;
 use std::time::Duration;
 
 use ace_yara::mime::{DEFAULT_DATABASE, MimeTyper};
+use ace_yara::replay::{self, RESULT_FILE};
 use ace_yara::ruleset::{self, Manifest};
 use ace_yara::{LoadOptions, Ruleset, ScanError, ScanRequest, Scanner};
 use anyhow::{Context, Result, anyhow, bail};
@@ -19,6 +20,19 @@ pub enum YaraCommand {
     /// Scan files with a ruleset, the way ace3's `ace yara scan` does through its yara
     /// service.
     Scan(ScanArgs),
+    /// Replay SVS samples: read the job.json that ace3's SVS replay writes in a working
+    /// directory, compile its rules, scan its units and write result.json there, with each
+    /// match's pattern offsets.
+    Replay(ReplayArgs),
+}
+
+#[derive(Args)]
+pub struct ReplayArgs {
+    /// The working directory holding job.json.
+    workdir: PathBuf,
+    /// The magic database for the mime_type filter.
+    #[arg(long, default_value = DEFAULT_DATABASE)]
+    magic_database: PathBuf,
 }
 
 #[derive(Args)]
@@ -76,6 +90,7 @@ pub fn run(command: YaraCommand) -> Result<ExitCode> {
     match command {
         YaraCommand::Build(args) => build(args),
         YaraCommand::Scan(args) => scan(args),
+        YaraCommand::Replay(args) => replay(args),
     }
 }
 
@@ -246,4 +261,28 @@ fn scan(args: ScanArgs) -> Result<ExitCode> {
         }
     }
     Ok(exit)
+}
+
+fn replay(args: ReplayArgs) -> Result<ExitCode> {
+    let typer = MimeTyper::open(&args.magic_database)?;
+    let result = replay::run(&args.workdir, &typer)?;
+    replay::write_json(&args.workdir, RESULT_FILE, &result)?;
+
+    let left_out = result.files.iter().filter(|f| f.error.is_some()).count();
+    let count = |f: fn(&replay::UnitOutcome) -> usize| result.units.values().map(f).sum::<usize>();
+    println!(
+        "{} rule files, {left_out} left out{}; {} units: {} matches, {} dropped by the filter, {} errors",
+        result.files.len(),
+        result
+            .ruleset_error
+            .as_ref()
+            .map(|e| format!(", and they don't compile together: {e}"))
+            .unwrap_or_default(),
+        result.units.len(),
+        count(|u| u.matches.len()),
+        count(|u| u.dropped.len()),
+        count(|u| u.errors.len()),
+    );
+    println!("wrote {}", args.workdir.join(RESULT_FILE).display());
+    Ok(ExitCode::SUCCESS)
 }

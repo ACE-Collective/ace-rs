@@ -118,6 +118,26 @@ pub struct Ruleset {
 }
 
 impl Ruleset {
+    /// Wraps compiled rules, compiling each rule's filter directives. Fails on a `re:` item
+    /// the regex crate can't compile, which `compile` has already left out.
+    pub fn new(rules: yara_x::Rules, options: &LoadOptions) -> Result<Ruleset, String> {
+        let mut filters = HashMap::new();
+        for rule in rules.iter() {
+            let meta = Meta::from_yara_x(rule.metadata());
+            let filter = RuleFilter::from_meta(&meta)
+                .map_err(|e| format!("rule {}: {e}", rule.identifier()))?;
+            filters.insert(
+                (rule.namespace().to_string(), rule.identifier().to_string()),
+                filter,
+            );
+        }
+        Ok(Ruleset {
+            rules,
+            blacklist: options.blacklist.clone(),
+            filters,
+        })
+    }
+
     pub fn rules(&self) -> &yara_x::Rules {
         &self.rules
     }
@@ -158,8 +178,13 @@ pub enum LoadError {
     /// The signature directory couldn't be listed.
     Discover { dir: PathBuf, error: io::Error },
     /// Every file compiled alone, but not together, so nothing loads. Two files in one
-    /// namespace that define the same rule name do this.
-    Combined { path: PathBuf, error: String },
+    /// namespace that define the same rule name do this. `files` is what became of each file
+    /// when it compiled alone, when `compile` compiled them so.
+    Combined {
+        path: PathBuf,
+        error: String,
+        files: Vec<FileReport>,
+    },
 }
 
 impl fmt::Display for LoadError {
@@ -172,7 +197,7 @@ impl fmt::Display for LoadError {
                     dir.display()
                 )
             }
-            LoadError::Combined { path, error } => write!(
+            LoadError::Combined { path, error, .. } => write!(
                 f,
                 "the rule files compile alone but not together, at {}: {error}",
                 path.display()
@@ -195,21 +220,15 @@ pub fn load_dir(signature_dir: &Path, options: &LoadOptions) -> Result<Loaded, L
 /// Compiles the given namespaces: each file alone, then the files that compiled together.
 pub fn compile(namespaces: &[Namespace], options: &LoadOptions) -> Result<Loaded, LoadError> {
     let mut files = Vec::new();
-    let mut filters = HashMap::new();
-    // Each namespace with the (path, source) of each file that compiled alone.
-    type Sources = Vec<(PathBuf, Vec<u8>)>;
     let mut survivors: Vec<(&Namespace, Sources)> = Vec::new();
 
     for namespace in namespaces {
         let mut sources = Vec::new();
         for path in &namespace.files {
             let outcome = match compile_file(namespace, path) {
-                Ok(file) => {
-                    sources.push((path.clone(), file.source));
-                    for (rule, filter) in file.rules.iter().zip(file.filters) {
-                        filters.insert((rule.namespace.clone(), rule.name.clone()), filter);
-                    }
-                    FileOutcome::Included { rules: file.rules }
+                Ok((source, rules)) => {
+                    sources.push((path.clone(), source));
+                    FileOutcome::Included { rules }
                 }
                 Err(error) => {
                     tracing::error!(
@@ -230,8 +249,52 @@ pub fn compile(namespaces: &[Namespace], options: &LoadOptions) -> Result<Loaded
         survivors.push((namespace, sources));
     }
 
+    let (ruleset, warnings) = match compile_sources(&survivors, options) {
+        Ok(compiled) => compiled,
+        Err(LoadError::Combined { path, error, .. }) => {
+            return Err(LoadError::Combined { path, error, files });
+        }
+        Err(e) => return Err(e),
+    };
+    Ok(Loaded {
+        ruleset,
+        files,
+        warnings,
+    })
+}
+
+/// Compiles the files of the given namespaces together, without compiling each alone first:
+/// for files `compile` has already let through, such as one namespace's at a time. Returns
+/// the ruleset and the compiler's warnings.
+pub fn compile_together(
+    namespaces: &[Namespace],
+    options: &LoadOptions,
+) -> Result<(Ruleset, Vec<String>), LoadError> {
+    let mut survivors = Vec::new();
+    for namespace in namespaces {
+        let mut sources = Vec::new();
+        for path in &namespace.files {
+            let source = std::fs::read(path).map_err(|e| LoadError::Combined {
+                path: path.clone(),
+                error: format!("unable to read the file: {e}"),
+                files: Vec::new(),
+            })?;
+            sources.push((path.clone(), source));
+        }
+        survivors.push((namespace, sources));
+    }
+    compile_sources(&survivors, options)
+}
+
+/// Each file's path and source.
+type Sources = Vec<(PathBuf, Vec<u8>)>;
+
+fn compile_sources(
+    survivors: &[(&Namespace, Sources)],
+    options: &LoadOptions,
+) -> Result<(Ruleset, Vec<String>), LoadError> {
     let mut compiler = new_compiler();
-    for (namespace, sources) in &survivors {
+    for (namespace, sources) in survivors {
         compiler.new_namespace(&namespace.name);
         compiler.add_include_dir(&namespace.dir);
         for (path, source) in sources {
@@ -239,6 +302,7 @@ pub fn compile(namespaces: &[Namespace], options: &LoadOptions) -> Result<Loaded
                 return Err(LoadError::Combined {
                     path: path.clone(),
                     error: error.to_string(),
+                    files: Vec::new(),
                 });
             }
         }
@@ -246,15 +310,13 @@ pub fn compile(namespaces: &[Namespace], options: &LoadOptions) -> Result<Loaded
 
     let rules = compiler.build();
     let warnings = rules.warnings().iter().map(|w| w.to_string()).collect();
-    Ok(Loaded {
-        ruleset: Ruleset {
-            rules,
-            blacklist: options.blacklist.clone(),
-            filters,
-        },
-        files,
-        warnings,
-    })
+    // Every rule's filter compiled when its file compiled alone.
+    let ruleset = Ruleset::new(rules, options).map_err(|error| LoadError::Combined {
+        path: PathBuf::new(),
+        error,
+        files: Vec::new(),
+    })?;
+    Ok((ruleset, warnings))
 }
 
 pub(crate) fn new_compiler<'a>() -> Compiler<'a> {
@@ -275,16 +337,10 @@ fn source_code<'a>(namespace: &Namespace, path: &Path, source: &'a [u8]) -> Sour
     SourceCode::from(source).with_origin(format!("{}/{file_name}", namespace.name))
 }
 
-/// A file that compiled alone: its source, and its rules each with its filter.
-struct CompiledFile {
-    source: Vec<u8>,
-    rules: Vec<RuleInfo>,
-    filters: Vec<RuleFilter>,
-}
-
 /// Compiles one file alone, as yara_scanner_v2 does before compiling the files together, and
-/// compiles each rule's filter directives. Returns why the file is left out if either fails.
-fn compile_file(namespace: &Namespace, path: &Path) -> Result<CompiledFile, String> {
+/// compiles each rule's filter directives. Returns the file's source and its rules, or why it
+/// is left out if either fails.
+fn compile_file(namespace: &Namespace, path: &Path) -> Result<(Vec<u8>, Vec<RuleInfo>), String> {
     let source = std::fs::read(path).map_err(|e| format!("unable to read the file: {e}"))?;
 
     let mut compiler = new_compiler();
@@ -295,7 +351,6 @@ fn compile_file(namespace: &Namespace, path: &Path) -> Result<CompiledFile, Stri
         .map_err(|e| e.to_string())?;
 
     let mut rules = Vec::new();
-    let mut filters = Vec::new();
     for rule in compiler.build().iter() {
         let info = RuleInfo {
             namespace: namespace.name.clone(),
@@ -305,14 +360,8 @@ fn compile_file(namespace: &Namespace, path: &Path) -> Result<CompiledFile, Stri
             private: rule.is_private(),
             global: rule.is_global(),
         };
-        let filter =
-            RuleFilter::from_meta(&info.meta).map_err(|e| format!("rule {}: {e}", info.name))?;
+        RuleFilter::from_meta(&info.meta).map_err(|e| format!("rule {}: {e}", info.name))?;
         rules.push(info);
-        filters.push(filter);
     }
-    Ok(CompiledFile {
-        source,
-        rules,
-        filters,
-    })
+    Ok((source, rules))
 }

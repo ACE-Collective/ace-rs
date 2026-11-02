@@ -92,7 +92,10 @@ fn the_default_externals_are_defined() {
 fn files_that_compile_alone_but_not_together_load_nothing() {
     let result = load_dir(&fixture("load/duplicate"), &LoadOptions::default());
     match result {
-        Err(LoadError::Combined { path, error }) => {
+        Err(LoadError::Combined { path, error, files }) => {
+            // What became of each file alone is still reported.
+            assert_eq!(files.len(), 3);
+            assert!(files.iter().all(|f| f.is_included()));
             assert!(path.ends_with("alpha/two.yar"), "{path:?}");
             assert!(error.contains("same_name"), "{error}");
         }

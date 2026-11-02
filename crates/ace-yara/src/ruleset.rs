@@ -17,7 +17,6 @@ use std::process::{Command, Stdio};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
-use crate::filter::RuleFilter;
 use crate::load::{self, FileOutcome, LoadError, LoadOptions, Namespace, Ruleset};
 
 /// What a ruleset was built from.
@@ -138,21 +137,7 @@ impl Ruleset {
     /// built without it, or the other way round.
     pub fn from_bytes(bytes: &[u8], options: &LoadOptions) -> Result<Ruleset, String> {
         let rules = yara_x::Rules::deserialize(bytes).map_err(|e| e.to_string())?;
-        let mut filters = std::collections::HashMap::new();
-        for rule in rules.iter() {
-            let meta = crate::meta::Meta::from_yara_x(rule.metadata());
-            let filter = RuleFilter::from_meta(&meta)
-                .map_err(|e| format!("rule {}: {e}", rule.identifier()))?;
-            filters.insert(
-                (rule.namespace().to_string(), rule.identifier().to_string()),
-                filter,
-            );
-        }
-        Ok(Ruleset {
-            rules,
-            blacklist: options.blacklist.clone(),
-            filters,
-        })
+        Ruleset::new(rules, options)
     }
 }
 
