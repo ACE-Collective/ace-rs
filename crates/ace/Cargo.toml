@@ -1,0 +1,29 @@
+[package]
+name = "ace"
+version = "0.1.0"
+description = "The ace binary: CLI, API, GUI, orchestrator, scheduler"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[features]
+# The SVS build: `ace yara replay` also reports the slowest rules. Off by default, because
+# yara-x's rule profiling slows every scan. `cargo tree -e features -i yara-x -p ace` shows
+# whether a build has it; the tree without -i doesn't list features a root feature turns on.
+svs = ["ace-yara/rules-profiling"]
+
+[[bin]]
+name = "ace"
+path = "src/main.rs"
+
+[dependencies]
+ace-yara = { path = "../ace-yara" }
+anyhow = "1.0.104"
+clap = { version = "4.6.7", features = ["derive"] }
+serde_json = "1.0.154"
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.23", features = ["env-filter", "fmt"] }
+
+[lints]
+workspace = true
