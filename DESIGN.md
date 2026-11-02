@@ -206,7 +206,7 @@ In the rebuild an integration is a set of crates in its own repository. An `ace-
 Today's [`ace3/docker-compose.yml`](../ace3/docker-compose.yml) has 31 services. The rebuild has:
 
 - `postgres`
-- `minio`, for dev and single-node installs; production in AWS uses S3
+- `bucket`, SeaweedFS's S3 server, for dev and single-node installs; production in AWS uses S3. MinIO stopped publishing community images in October 2025.
 - `ace`, one binary for the API, GUI, orchestrator and scheduler, or an engine container and an API container if they should restart separately
 - one container per module pool, scaled with `replicas`: Rust parsers, network lookups, and the Python pool
 - `phishkit` and `js-deobfuscator`, unchanged

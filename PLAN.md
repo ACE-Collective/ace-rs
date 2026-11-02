@@ -48,7 +48,7 @@ ace4's stack has to run on the laptop at the same time as ace3's. ace3 keeps its
 
 - **Project name.** ace4's Compose file sets `name: ${ACE4_STACK:-ace4}`. ace3's default project is `ace`, and its extra instances take their names from `ACE_STACK`, so no ace3 instance may be named `ace4`. Compose derives container, network and volume names from the project name, so ace4 sets no `container_name` and gives no volume or network an explicit `name:`. `COMPOSE_PROJECT_NAME` overrides `name:` in both stacks, so ace4's `stack-guard` service refuses to start the stack when the project in use isn't `ACE4_STACK`. Compose can't tell that variable set to `ace4` from not set at all, so unlike ace3's `docker/startup/initialize_volumes.sh`, the guard refuses a different name rather than any value.
 - **Variables.** Every ace4 variable starts with `ACE4_`, so a shell that exports ace3's `ACE_*` variables doesn't change ace4.
-- **Host ports.** ace3 fixes five by default: 5000, 5001, 8443, 9443 and 24224. Each extra ace3 instance shifts all five by its offset, such as 100. ace4 fixes one, `ACE4_PORT_HTTPS` (default 7443), for the `ace` service. Postgres, MinIO and everything else publish on ephemeral ports bound to `ACE4_BIND_ADDRESS` (default `127.0.0.1`), as ace3's databases do.
+- **Host ports.** ace3 fixes five by default: 5000, 5001, 8443, 9443 and 24224. Each extra ace3 instance shifts all five by its offset, such as 100. ace4 fixes one, `ACE4_PORT_HTTPS` (default 7443), for the `ace` service. Postgres, the bucket and everything else publish on ephemeral ports bound to `ACE4_BIND_ADDRESS` (default `127.0.0.1`), as ace3's databases do.
 - **Logs.** The stack logs to stdout. It doesn't use Docker's fluentd log driver, because that driver needs a fixed host port, and ace3 already holds 24224.
 - **Images.** Every image ace4 builds is named `ace4-*`. ace3 builds `ace3`, `phishkit`, `phishkit-manager`, `js-deobfuscator` and `js-deobfuscator-manager`, all tagged `latest`, and a build in one checkout must not replace the other's images.
 - **ace3's data.** ace4 reads ace3's data only through ace3's API, ace3's own commands run in its dev container, or read-only bind mounts of host directories. It never mounts an ace3 volume, and ace3 sends ace4 nothing.
@@ -123,11 +123,11 @@ The goal is to run the five phase 1 modules end to end from a submission.
 
 ### Storage
 
-- [x] **2.1 Postgres and MinIO.** Add both to Compose, published on ephemeral host ports. Done when `docker compose up postgres minio` is healthy while ace3's stack is running.
-- [x] **2.2 Migrations.** Add `ace-core` with SQL migration files and one Postgres schema per area. Commit sqlx's offline metadata in `.sqlx/`, and have CI run `cargo sqlx prepare --check` without a database. One function builds the connection pool for every component (#1023). Done when a query on a missing column fails the build.
+- [x] **2.1 Postgres and a bucket.** Add Postgres and an S3-compatible bucket to Compose, published on ephemeral host ports. The bucket is SeaweedFS, because MinIO's maintainers stopped publishing community images in October 2025. Done when `docker compose up postgres bucket` is healthy while ace3's stack is running.
+- [x] **2.2 Migrations.** Add `ace-core` with SQL migration files and one Postgres schema per area. Commit sqlx's offline metadata in `.sqlx/`, and have CI run `cargo sqlx prepare --workspace --check` against Postgres. sqlx-cli can't check without a database, but building needs none. One function builds the connection pool for every component (#1023). Done when a query on a missing column fails the build.
 - [x] **2.3 Test databases.** Migrate and seed a template database once per test run, and give each test its own copy with `CREATE DATABASE ... TEMPLATE`. Done when tests run in parallel on separate databases.
 - [x] **2.4 Alert tree tables.** Roots, with an event time and where that time came from (#850). Observables, unique on (root, type, value). Results, unique on (root, observable, module), with the analysis type, schema version and JSONB details under a GIN index. Done when upserting one observable twice leaves one row.
-- [x] **2.5 Bucket.** `ace-store` puts and gets bytes by sha256 on S3 (MinIO in dev), with a size-capped cache on each node. A put also stores the libmagic mime type from 1.7. Carry over the pools and retention from `ace3/docs/CAS.md` and the `cas:` section of `ace3/etc/saq.default.yaml`. Done when two puts of the same bytes leave one object and a get on a second node fills that node's cache.
+- [x] **2.5 Bucket.** `ace-store` puts and gets bytes by sha256 on S3 (SeaweedFS in dev), with a size-capped cache on each node. A put also stores the libmagic mime type from 1.7. Carry over the pools and retention from `ace3/docs/CAS.md` and the `cas:` section of `ace3/etc/saq.default.yaml`. Done when two puts of the same bytes leave one object and a get on a second node fills that node's cache.
 
 ### Queue
 
@@ -169,7 +169,7 @@ The goal is to run the five phase 1 modules end to end from a submission.
 ### End to end
 
 - [ ] **2.28 Submissions.** An endpoint that creates a root with its observables, files and analysis mode, and queues its first tasks. Done when a submitted file is in the bucket and its tasks are queued.
-- [ ] **2.29 Compose stack.** `postgres`, `minio`, `ace`, a Rust parser pool and a network pool. Done when `docker compose up` brings every service up healthy while ace3's stack is running, and 0.6's check passes.
+- [ ] **2.29 Compose stack.** `postgres`, `bucket`, `ace`, a Rust parser pool and a network pool. Done when `docker compose up` brings every service up healthy while ace3's stack is running, and 0.6's check passes.
 - [ ] **2.30 End-to-end test.** Submit an email with a domain in its headers and a zip attachment that a fixture YARA rule matches only through its `meta_tags`. Done when the email, archive, YARA, RDAP and delayed modules all have results, the root completes, killing the parser pool mid-run only delays completion, and the test runs in CI.
 
 ### Building outside this workspace
