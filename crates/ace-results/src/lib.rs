@@ -9,6 +9,7 @@ pub mod envelope;
 pub mod file;
 pub mod observable;
 pub mod registry;
+pub mod validate;
 
 pub use bytes::Bytes;
 pub use envelope::{AnalysisType, EnvelopeError, NewObservable, ResultEnvelope};
@@ -17,3 +18,4 @@ pub use file::{
 };
 pub use observable::{ObservableKind, UnknownObservableKind};
 pub use registry::{AnalysisTypeInfo, BUILTIN, Registry, RegistryError, result_schema};
+pub use validate::{FieldError, InvalidResult, InvalidSchema, ResultValidator};

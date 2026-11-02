@@ -15,6 +15,7 @@ use schemars::generate::SchemaSettings;
 use serde_json::{Value, json};
 
 use crate::envelope::{AnalysisType, ResultEnvelope};
+use crate::validate::{InvalidResult, ResultValidator};
 
 /// Every analysis type ace4 knows, in the order `ace schema export` writes them. Each ported
 /// module adds its types here.
@@ -88,7 +89,14 @@ pub fn result_schema<T: AnalysisType>() -> Schema {
 /// A set of analysis types, at most one per (name, version).
 #[derive(Debug)]
 pub struct Registry {
-    types: BTreeMap<(&'static str, u32), AnalysisTypeInfo>,
+    types: BTreeMap<(&'static str, u32), Entry>,
+}
+
+#[derive(Debug)]
+struct Entry {
+    info: AnalysisTypeInfo,
+    /// Compiled the first time a result of this type is checked.
+    validator: OnceLock<Result<ResultValidator, String>>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -117,7 +125,11 @@ impl Registry {
                     second: other.module,
                 });
             }
-            if by_key.insert((info.name, info.version), *info).is_some() {
+            let entry = Entry {
+                info: *info,
+                validator: OnceLock::new(),
+            };
+            if by_key.insert((info.name, info.version), entry).is_some() {
                 return Err(RegistryError::Duplicate {
                     name: info.name,
                     version: info.version,
@@ -137,23 +149,53 @@ impl Registry {
     }
 
     pub fn get(&self, name: &str, version: u32) -> Option<&AnalysisTypeInfo> {
+        self.entry(name, version).map(|entry| &entry.info)
+    }
+
+    fn entry(&self, name: &str, version: u32) -> Option<&Entry> {
         self.types
             .iter()
             .find(|((n, v), _)| *n == name && *v == version)
-            .map(|(_, info)| info)
+            .map(|(_, entry)| entry)
     }
 
     /// The module that writes `name`.
     pub fn module_of(&self, name: &str) -> Option<&'static str> {
-        self.types
-            .values()
+        self.types()
             .find(|info| info.name == name)
             .map(|info| info.module)
     }
 
     /// Every type, by name and then version.
     pub fn types(&self) -> impl Iterator<Item = &AnalysisTypeInfo> {
-        self.types.values()
+        self.types.values().map(|entry| &entry.info)
+    }
+
+    /// Checks a result in JSON against the schema of the type it names in `analysis_type` and
+    /// `schema_version`.
+    pub fn validate(&self, result: &Value) -> Result<(), InvalidResult> {
+        let name = result.get("analysis_type").and_then(Value::as_str);
+        let version = result.get("schema_version").and_then(Value::as_u64);
+        let (Some(name), Some(version)) = (name, version) else {
+            return Err(InvalidResult::Untyped);
+        };
+        let entry = u32::try_from(version)
+            .ok()
+            .and_then(|version| self.entry(name, version))
+            .ok_or_else(|| InvalidResult::UnknownType {
+                name: name.to_owned(),
+                version,
+            })?;
+        let validator = entry
+            .validator
+            .get_or_init(|| ResultValidator::new(&entry.info.schema()).map_err(|e| e.to_string()))
+            .as_ref()
+            .map_err(|e| InvalidResult::BadSchema {
+                name: entry.info.name,
+                version: entry.info.version,
+                error: e.clone(),
+            })?;
+        validator.validate(result)
     }
 
     /// Writes each type's schema to `<dir>/<name>.v<version>.schema.json`, creating `dir` if it
