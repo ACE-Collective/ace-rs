@@ -1,0 +1,365 @@
+---
+source: crates/ace-results/tests/schema_export.rs
+expression: text
+---
+{
+  "$defs": {
+    "Bytes": {
+      "additionalProperties": false,
+      "description": "A byte string, as standard base64 with padding.",
+      "properties": {
+        "base64": {
+          "contentEncoding": "base64",
+          "pattern": "^[A-Za-z0-9+/]*={0,2}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "base64"
+      ],
+      "type": "object"
+    },
+    "NewFile": {
+      "additionalProperties": false,
+      "description": "A file a result adds to the alert. Its bytes are already in the file store under `sha256`.",
+      "properties": {
+        "directives": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "exclude_modules": {
+          "description": "Modules that must not analyze this file, as ace3's `exclude_analysis`, such as the email\nmodule on the `.headers` file it wrote itself.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "path": {
+          "description": "A file's path inside its alert: relative, with / between parts, and no empty, . or .. part.",
+          "minLength": 1,
+          "type": "string"
+        },
+        "sha256": {
+          "description": "A sha256 digest in lowercase hex.",
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "size": {
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "tags": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "yara_meta": {
+          "items": {
+            "description": "A yara_meta tag, written name=value, such as type=email.attachment.",
+            "pattern": "^[A-Za-z0-9_-]+=",
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "path",
+        "sha256",
+        "size"
+      ],
+      "type": "object"
+    },
+    "NewObservable": {
+      "additionalProperties": false,
+      "description": "An observable a result adds to the alert. The alert keeps one observable per (type, value).",
+      "properties": {
+        "directives": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "exclude_modules": {
+          "description": "Modules that must not analyze this observable, as ace3's `exclude_analysis`.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "tags": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "time": {
+          "description": "When the observable was seen, for kinds whose meaning depends on time, such as an IP\naddress's owner.",
+          "format": "date-time",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "type": {
+          "$ref": "#/$defs/ObservableKind"
+        },
+        "value": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "value"
+      ],
+      "type": "object"
+    },
+    "ObservableKind": {
+      "description": "The type of an observable, named as in ace3 (`ipv4`, `email_address`, `file`).",
+      "enum": [
+        "asset",
+        "av_streetname",
+        "aws_access_key_id",
+        "aws_account_id",
+        "aws_ami_id",
+        "aws_instance_id",
+        "aws_network_interface_id",
+        "aws_principal_id",
+        "aws_private_dns_name",
+        "aws_security_group_id",
+        "aws_subnet_id",
+        "aws_username",
+        "aws_vpc_id",
+        "cidr",
+        "command_line",
+        "compromised_account",
+        "contact",
+        "cookie",
+        "email_address",
+        "email_body",
+        "email_cc",
+        "email_conversation",
+        "email_delivery",
+        "email_dkim_signing_domain",
+        "email_envelope_mail_from",
+        "email_envelope_rcpt_to",
+        "email_first_hop_from",
+        "email_first_hop_helo",
+        "email_first_hop_ip",
+        "email_from",
+        "email_header",
+        "email_reply_to",
+        "email_return_path",
+        "email_sender_tenant_id",
+        "email_subject",
+        "email_to",
+        "email_x_auth_id",
+        "email_x_mailer",
+        "email_x_original_sender",
+        "email_x_sender",
+        "email_x_sender_id",
+        "external_uid",
+        "file",
+        "file_location",
+        "file_name",
+        "file_path",
+        "fireeye_uuid",
+        "forum_author",
+        "forum_channel",
+        "forum_chat_type",
+        "fqdn",
+        "hostname",
+        "http_request",
+        "hunt",
+        "ids_streetname",
+        "imphash",
+        "indicator",
+        "ip",
+        "ip_conversation",
+        "ip_full_conversation",
+        "ipv4",
+        "ipv4_conversation",
+        "ipv4_full_conversation",
+        "ja3",
+        "ja3s",
+        "ja4",
+        "jarm_hash",
+        "mac_address",
+        "md5",
+        "message_id",
+        "mutex",
+        "o365_file",
+        "o365_file_conversation",
+        "o365_group",
+        "o365_security_alert",
+        "pan_pcap_id",
+        "pcap",
+        "pp_campaign_id",
+        "pp_guid",
+        "pp_threat_id",
+        "pp_trap_incident_id",
+        "printer",
+        "process_guid",
+        "scan_id",
+        "sha1",
+        "sha256",
+        "sharepoint_file",
+        "signature_id",
+        "snort_sig",
+        "string_eps",
+        "string_html",
+        "string_java",
+        "string_js",
+        "string_office",
+        "string_pdf",
+        "string_pe",
+        "string_rtf",
+        "string_swf",
+        "string_unix_shell",
+        "string_vbs",
+        "string_windows_shell",
+        "suspect_file",
+        "test",
+        "uri_path",
+        "url",
+        "user",
+        "user_agent",
+        "windows_registry",
+        "windows_service",
+        "yara",
+        "yara_rule",
+        "yara_string"
+      ],
+      "type": "string"
+    },
+    "SampleAnalysis": {
+      "additionalProperties": false,
+      "description": "A sample analysis type.",
+      "properties": {
+        "attachment_count": {
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "counts": {
+          "additionalProperties": {
+            "format": "uint64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "default": {},
+          "type": "object"
+        },
+        "headers": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/SampleHeader"
+          },
+          "type": "array"
+        },
+        "message_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "raw_subject": {
+          "$ref": "#/$defs/Bytes",
+          "description": "Bytes stay bytes."
+        },
+        "subject": {
+          "description": "A required string.",
+          "type": "string"
+        },
+        "verdict": {
+          "$ref": "#/$defs/SampleVerdict"
+        }
+      },
+      "required": [
+        "subject",
+        "raw_subject",
+        "attachment_count",
+        "verdict"
+      ],
+      "type": "object"
+    },
+    "SampleHeader": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "value": {
+          "$ref": "#/$defs/Bytes"
+        }
+      },
+      "required": [
+        "name",
+        "value"
+      ],
+      "type": "object"
+    },
+    "SampleVerdict": {
+      "enum": [
+        "clean",
+        "suspicious"
+      ],
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "One module's result for one observable.",
+  "properties": {
+    "analysis_type": {
+      "const": "sample_analysis",
+      "type": "string"
+    },
+    "details": {
+      "$ref": "#/$defs/SampleAnalysis",
+      "description": "The analysis type's own fields."
+    },
+    "files": {
+      "description": "Files the result adds to the alert.",
+      "items": {
+        "$ref": "#/$defs/NewFile"
+      },
+      "type": "array"
+    },
+    "observables": {
+      "description": "Observables the result adds to the alert. Files go in `files` instead.",
+      "items": {
+        "$ref": "#/$defs/NewObservable"
+      },
+      "type": "array"
+    },
+    "schema_version": {
+      "const": 1,
+      "type": "integer"
+    },
+    "summary": {
+      "description": "One line for the alert view.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "tags": {
+      "description": "Tags this result puts on the observable it analyzed.",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "analysis_type",
+    "schema_version",
+    "details"
+  ],
+  "title": "sample_analysis version 1",
+  "type": "object"
+}

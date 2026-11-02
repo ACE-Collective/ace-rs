@@ -8,6 +8,7 @@
 use std::fmt;
 use std::str::FromStr;
 
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 macro_rules! observable_kinds {
@@ -16,7 +17,9 @@ macro_rules! observable_kinds {
             display $display:expr, description $description:expr;
     )+) => {
         /// The type of an observable, named as in ace3 (`ipv4`, `email_address`, `file`).
-        #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
+        #[derive(
+            Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize, JsonSchema,
+        )]
         pub enum ObservableKind {
             $(
                 #[serde(rename = $name)]

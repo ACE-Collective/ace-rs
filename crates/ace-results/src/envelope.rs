@@ -5,6 +5,7 @@
 //! `ResultEnvelope<serde_json::Value>`.
 
 use chrono::{DateTime, Utc};
+use schemars::JsonSchema;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 
@@ -15,16 +16,20 @@ use crate::observable::ObservableKind;
 ///
 /// The name is what a result is stored and found by, never a code path. A change to the details
 /// that old readers can't take bumps the version, and the old version's type stays so stored
-/// results still read.
-pub trait AnalysisType: Serialize + DeserializeOwned {
+/// results still read. Every struct in the details should carry `#[serde(deny_unknown_fields)]`,
+/// so its schema refuses fields it doesn't declare.
+pub trait AnalysisType: Serialize + DeserializeOwned + JsonSchema + 'static {
     /// The type's name, such as `email_analysis`.
     const NAME: &'static str;
     /// The schema version of the details, from 1.
     const VERSION: u32;
+    /// The module that writes this type, so finding a type's module needs no instance of either
+    /// (ace3 #827). Several configured instances of one module share its types.
+    const MODULE: &'static str;
 }
 
 /// One module's result for one observable.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct ResultEnvelope<D> {
     analysis_type: String,
@@ -116,7 +121,7 @@ impl<D> ResultEnvelope<D> {
 }
 
 /// An observable a result adds to the alert. The alert keeps one observable per (type, value).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct NewObservable {
     #[serde(rename = "type")]
@@ -169,7 +174,7 @@ mod tests {
     use crate::file::{AlertPath, YaraMeta};
     use serde_json::json;
 
-    #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+    #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
     #[serde(deny_unknown_fields)]
     struct HeaderDump {
         name: String,
@@ -179,6 +184,7 @@ mod tests {
     impl AnalysisType for HeaderDump {
         const NAME: &'static str = "header_dump";
         const VERSION: u32 = 1;
+        const MODULE: &'static str = "header_dumper";
     }
 
     fn sample() -> ResultEnvelope<HeaderDump> {

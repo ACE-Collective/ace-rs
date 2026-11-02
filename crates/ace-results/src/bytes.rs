@@ -5,11 +5,13 @@
 //! key, `{"base64": "..."}`, holding standard base64 with padding. It never goes through a text
 //! codec, and a plain JSON string is not accepted in its place.
 
+use std::borrow::Cow;
 use std::fmt;
 use std::ops::Deref;
 
 use base64::Engine as _;
 use base64::engine::general_purpose::STANDARD;
+use schemars::{JsonSchema, Schema, SchemaGenerator, json_schema};
 use serde::de::{self, Deserializer};
 use serde::ser::{SerializeStruct, Serializer};
 use serde::{Deserialize, Serialize};
@@ -82,6 +84,32 @@ impl<'de> Deserialize<'de> for Bytes {
             .decode(tagged.base64.as_bytes())
             .map(Bytes)
             .map_err(|e| de::Error::custom(format_args!("invalid base64 in a byte string: {e}")))
+    }
+}
+
+impl JsonSchema for Bytes {
+    fn schema_name() -> Cow<'static, str> {
+        "Bytes".into()
+    }
+
+    fn schema_id() -> Cow<'static, str> {
+        "ace_results::Bytes".into()
+    }
+
+    fn json_schema(_: &mut SchemaGenerator) -> Schema {
+        json_schema!({
+            "description": "A byte string, as standard base64 with padding.",
+            "type": "object",
+            "properties": {
+                BYTES_TAG: {
+                    "type": "string",
+                    "contentEncoding": "base64",
+                    "pattern": "^[A-Za-z0-9+/]*={0,2}$",
+                },
+            },
+            "required": [BYTES_TAG],
+            "additionalProperties": false,
+        })
     }
 }
 

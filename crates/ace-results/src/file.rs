@@ -4,10 +4,53 @@
 //! inside the alert and its `yara_meta` tags, because YARA rules match on the name, the path and
 //! the tags (`file_name`, `full_path` and `meta_tags`).
 
+use std::borrow::Cow;
 use std::fmt;
 use std::str::FromStr;
 
+use schemars::{JsonSchema, Schema, SchemaGenerator, json_schema};
 use serde::{Deserialize, Serialize};
+
+/// A string type's schema, for the newtypes below.
+macro_rules! string_schema {
+    ($type:ty, $name:literal, $schema:tt) => {
+        impl JsonSchema for $type {
+            fn inline_schema() -> bool {
+                true
+            }
+
+            fn schema_name() -> Cow<'static, str> {
+                $name.into()
+            }
+
+            fn schema_id() -> Cow<'static, str> {
+                concat!("ace_results::", $name).into()
+            }
+
+            fn json_schema(_: &mut SchemaGenerator) -> Schema {
+                json_schema!($schema)
+            }
+        }
+    };
+}
+
+string_schema!(Sha256, "Sha256", {
+    "description": "A sha256 digest in lowercase hex.",
+    "type": "string",
+    "pattern": "^[0-9a-f]{64}$",
+});
+
+string_schema!(AlertPath, "AlertPath", {
+    "description": "A file's path inside its alert: relative, with / between parts, and no empty, . or .. part.",
+    "type": "string",
+    "minLength": 1,
+});
+
+string_schema!(YaraMeta, "YaraMeta", {
+    "description": "A yara_meta tag, written name=value, such as type=email.attachment.",
+    "type": "string",
+    "pattern": "^[A-Za-z0-9_-]+=",
+});
 
 /// A sha256 digest, written as 64 lowercase hex digits.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -272,7 +315,7 @@ impl fmt::Display for InvalidYaraMeta {
 impl std::error::Error for InvalidYaraMeta {}
 
 /// A file a result adds to the alert. Its bytes are already in the file store under `sha256`.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct NewFile {
     pub path: AlertPath,
