@@ -10,9 +10,11 @@
 pub mod filter;
 pub mod load;
 pub mod meta;
+pub mod rule_meta;
 
 pub use load::{
     EXTERNALS, FileOutcome, FileReport, LoadError, LoadOptions, Loaded, Namespace, RuleInfo,
     Ruleset, compile, discover, load_dir,
 };
 pub use meta::{Meta, MetaValue};
+pub use rule_meta::DetectionBlocker;
