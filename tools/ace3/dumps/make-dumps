@@ -12,6 +12,10 @@ The dumps go to tools/ace3/dumps/reference/<module>/, named after the sample's p
 samples/ (or the observable for a lookup), with index.json listing every run. RDAP runs also keep
 the HTTP requests and responses they made, in <name>.http/, so a port can replay them.
 
+There is no Splunk here, so the Splunk runs point ace3's Splunk module at fake_splunk.py, a fake
+Splunk REST API started inside the container for each run, through a config file loaded for that
+run only (SPLUNK_CONFIG below). The fake records every exchange, which lands in <name>.http/ too.
+
 ace3's local overlay, etc/saq.yaml, is skipped (SAQ_SKIP_LOCAL_SAQ_YAML), so the modules run on
 saq.default.yaml and the integrations' configs. It holds live credentials, and at 844e3584 it
 also stops a fresh process from loading its config (a partial hunt_type_splunk section).
@@ -19,10 +23,12 @@ also stops a fresh process from loading its config (a partial hunt_type_splunk s
 The local samples under samples/local/ are git-ignored; copy them in before running this.
 """
 
+import contextlib
 import json
 import os
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 CONTAINER = "ace-dev-1"
@@ -90,16 +96,74 @@ def yara_runs():
     ]
 
 
-# Track C's fifth module has no dump, and why.
-NOT_MADE = [
-    {
-        "module": "splunk_api",
-        "class": "saq.modules.splunk.SplunkAPIAnalyzer",
-        "reason": "There is no Splunk on this laptop, and ace3's tests have no recorded or mocked "
-        "Splunk API to run it against: tests/saq/modules/test_splunk.py and tests/saq/test_splunk.py "
-        "replace the client object in Python (MockSplunk, whose query_async returns the query "
-        "text as its results, and Mock objects in place of splunklib), not the REST API.",
-    }
+# modules with no dump, and why
+NOT_MADE = []
+
+# The Splunk module runs proxy_domain_lookup, the example query ace3 ships in
+# etc/saq.splunk_modules.yaml, against fake_splunk.py. That example says valid_observable_types
+# [domain], which isn't an ace3 observable type, so it runs on fqdn. Everything else is as shipped,
+# with ace3's api_query_defaults_default values (etc/saq.splunk.default.yaml) under a name of
+# its own. The username and password are the fake's; it takes any.
+SPLUNK_PORT = 8089
+SPLUNK_CONFIG = """\
+splunk_config_ace4_fake:
+  name: ace4_fake
+  enabled: true
+  host: 127.0.0.1
+  port: {port}
+  username: ace4
+  password: ace4-fake-password
+  timezone: GMT
+  performance_logging_dir: ""
+  request_timeout: 10
+api_query_defaults_ace4_fake:
+  name: ace4_fake
+  wide_duration_before: "01:00:00:00"
+  wide_duration_after: "01:00:00:00"
+  narrow_duration_before: "00:01:00:00"
+  narrow_duration_after: "00:01:00:00"
+  max_result_count: 1000
+  query_timeout: 300
+  async_delay: 1
+  use_index_time: true
+analysis_module_proxy_domain_lookup:
+  name: proxy_domain_lookup
+  python_module: saq.modules.splunk
+  python_class: SplunkAPIAnalyzer
+  enabled: true
+  api_name: ace4_fake
+  valid_observable_types: [fqdn]
+  question: "Was this domain seen in proxy logs?"
+  summary: "Proxy correlation"
+  query: |
+    index=network_proxy_web (transport=HTTPS OR transport=HTTP) hostname="<O_VALUE>"
+    | eval full_url = lower(transport) . "://" . url
+  use_index_time: true
+  narrow_duration_before: "00:24:00:00"
+  narrow_duration_after: "00:24:00:00"
+{query_timeout}  observable_mapping:
+    - field: src_ip
+      type: ip
+      display_type: Source IP
+    - field: src_translated_ip
+      type: ip
+      display_type: Source IP
+    - field: dest_ip
+      type: ip
+      display_type: Destination IP
+    - field: full_url
+      type: url
+    - field: user
+      type: email_address
+"""
+
+# the Splunk runs: (name suffix, fake_splunk.py's job option, the module's query_timeout or None)
+# The first job reports RUNNING for four status reads: ace3 reads a job's status three times a
+# poll, so it sees one poll still running and gets the rows on the second. The second job never
+# finishes, and a 3 second query_timeout ends the module's wait for it.
+SPLUNK_RUNS = [
+    ("", ["--running-polls", "4"], None),
+    (".never-done", ["--never-done"], 3),
 ]
 
 RUNS = {
@@ -107,14 +171,68 @@ RUNS = {
     "archive": lambda: file_runs("archive", ["file_type"], "archive/"),
     "rdap": lambda: lookup_runs("rdap_analyzer", [("fqdn", "example.com"), ("ip", "8.8.8.8")]),
     "yara": yara_runs,
+    "splunk": lambda: splunk_runs(),
 }
 
 
-def docker(*args, stdin=None, capture=True):
-    return subprocess.run(["docker", *args], input=stdin, capture_output=capture, check=True)
+def splunk_runs():
+    runs = []
+    for suffix, job_args, query_timeout in SPLUNK_RUNS:
+        name = f"fqdn_www.example.com{suffix}"
+        fake_dir = f"{REMOTE}/fake/{name}"
+        runs.append(
+            {
+                "module": "proxy_domain_lookup",
+                "enable": [],
+                "name": name,
+                "args": ["--observable", "fqdn", "www.example.com", "--config", f"{fake_dir}/saq.ace4_fake.yaml"],
+                "label": f"fqdn www.example.com, against fake_splunk.py with {' '.join(job_args)}",
+                # splunk-sdk talks to the fake with http.client, which reads no proxy settings,
+                # but the container has ALL_PROXY set, so make sure nothing sends 127.0.0.1 there
+                "env": ["NO_PROXY=127.0.0.1,localhost", "no_proxy=127.0.0.1,localhost"],
+                "http_dir": f"{fake_dir}/http",
+                "service": lambda fake_dir=fake_dir, job_args=job_args, query_timeout=query_timeout: fake_splunk(
+                    fake_dir, job_args, query_timeout
+                ),
+            }
+        )
+    return runs
 
 
-def copy_in():
+def put(path, data):
+    docker("exec", "-i", CONTAINER, "sh", "-c", 'cat > "$1"', "sh", path, stdin=data)
+
+
+@contextlib.contextmanager
+def fake_splunk(fake_dir, job_args, query_timeout):
+    """Runs fake_splunk.py in the container for one run, with the config file that points ace3 at it."""
+    docker("exec", CONTAINER, "mkdir", "-p", f"{fake_dir}/http")
+    timeout_line = f"  query_timeout: {query_timeout}\n" if query_timeout is not None else ""
+    put(f"{fake_dir}/saq.ace4_fake.yaml", SPLUNK_CONFIG.format(port=SPLUNK_PORT, query_timeout=timeout_line).encode())
+    docker(
+        "exec", "-d", CONTAINER, "sh", "-c",
+        f'exec /venv/bin/python3 -I {REMOTE}/fake_splunk.py --rows {REMOTE}/fixtures/splunk/proxy_rows.json '
+        f'--cert {REMOTE}/fake/cert.pem --key {REMOTE}/fake/key.pem --port {SPLUNK_PORT} '
+        f'--record {fake_dir}/http --pid-file {fake_dir}/pid {" ".join(job_args)} 2> {fake_dir}/fake.log',
+    )
+    try:
+        for _ in range(100):
+            if docker("exec", CONTAINER, "test", "-e", f"{fake_dir}/pid", check=False).returncode == 0:
+                break
+            time.sleep(0.1)
+        else:
+            log = docker("exec", CONTAINER, "cat", f"{fake_dir}/fake.log", check=False).stdout.decode(errors="replace")
+            raise SystemExit(f"fake_splunk.py did not start:\n{log}")
+        yield
+    finally:
+        docker("exec", CONTAINER, "sh", "-c", f'kill "$(cat {fake_dir}/pid)" 2>/dev/null || true', check=False)
+
+
+def docker(*args, stdin=None, capture=True, check=True):
+    return subprocess.run(["docker", *args], input=stdin, capture_output=capture, check=check)
+
+
+def copy_in(keys):
     """Copies the sample set and the fixtures into the container, as tar streams: /tmp there is a
     tmpfs, which `docker cp` can't write to."""
     docker("exec", CONTAINER, "rm", "-rf", REMOTE)
@@ -125,19 +243,31 @@ def copy_in():
             capture_output=True, check=True, env={**os.environ, "COPYFILE_DISABLE": "1"},
         ).stdout
         docker("exec", "-i", CONTAINER, "tar", "-C", f"{REMOTE}/{target}", "-xf", "-", stdin=archive)
+    if "splunk" in keys:
+        # the fake and its self-signed certificate: splunk-sdk speaks HTTPS to splunkd, without
+        # verifying it (saq/splunk.py builds its handler with verify=False)
+        docker("exec", CONTAINER, "mkdir", "-p", f"{REMOTE}/fake")
+        put(f"{REMOTE}/fake_splunk.py", (HERE / "fake_splunk.py").read_bytes())
+        docker(
+            "exec", CONTAINER, "openssl", "req", "-x509", "-newkey", "rsa:2048", "-nodes", "-days", "1",
+            "-subj", "/CN=127.0.0.1", "-addext", "subjectAltName=IP:127.0.0.1",
+            "-keyout", f"{REMOTE}/fake/key.pem", "-out", f"{REMOTE}/fake/cert.pem",
+        )
 
 
 def run(spec):
     work = f"{REMOTE}/runs/{spec['module']}/{spec['name']}"
+    env = [arg for value in spec.get("env", []) for arg in ("-e", value)]
     command = [
-        "exec", "-i", "-e", "PYTHONDONTWRITEBYTECODE=1", "-e", "SAQ_SKIP_LOCAL_SAQ_YAML=1",
+        "exec", "-i", "-e", "PYTHONDONTWRITEBYTECODE=1", "-e", "SAQ_SKIP_LOCAL_SAQ_YAML=1", *env,
         CONTAINER, "/venv/bin/python3", "-", "--work", work, "--module", spec["module"],
         "--label", spec["label"], *spec["args"],
     ]
     for module in spec["enable"]:
         command += ["--enable", module]
     script = (HERE / "run_module.py").read_bytes()
-    result = subprocess.run(["docker", *command], input=script, capture_output=True)
+    with spec.get("service", contextlib.nullcontext)():
+        result = subprocess.run(["docker", *command], input=script, capture_output=True)
     if result.returncode != 0:
         sys.stderr.write(result.stderr.decode(errors="replace"))
         raise SystemExit(f"run_module.py failed for {spec['module']} {spec['name']}")
@@ -147,12 +277,13 @@ def run(spec):
     dump = docker("exec", CONTAINER, "cat", f"{work}/dump.json").stdout
     target.write_bytes(dump)
 
-    if "--record-http" in spec["args"]:
+    remote_http = spec.get("http_dir", f"{work}/http" if "--record-http" in spec["args"] else None)
+    if remote_http is not None:
         http_dir = OUT / spec["module"] / f"{spec['name']}.http"
         http_dir.mkdir(parents=True, exist_ok=True)
         for old in http_dir.iterdir():
             old.unlink()
-        archive = docker("exec", CONTAINER, "tar", "-C", f"{work}/http", "-cf", "-", ".").stdout
+        archive = docker("exec", CONTAINER, "tar", "-C", remote_http, "-cf", "-", ".").stdout
         subprocess.run(["tar", "-C", str(http_dir), "-xf", "-"], input=archive, check=True)
 
     parsed = json.loads(dump)
@@ -161,6 +292,7 @@ def run(spec):
         "archive": "ArchiveAnalysis",
         "rdap_analyzer": "RdapAnalysis",
         "yara_scanner_v3_4": "YaraScanResults_v3_4",
+        "proxy_domain_lookup": "SplunkAPIAnalysis",
     }[spec["module"]]
     analysis = next((a for a in parsed["analyses"] if a["class"] == target_class), None)
     return {
@@ -179,7 +311,7 @@ def main():
     if unknown:
         raise SystemExit(f"unknown run set {unknown}; choose from {list(RUNS)}")
 
-    copy_in()
+    copy_in(keys)
     index_path = OUT / "index.json"
     index = json.loads(index_path.read_text()) if index_path.exists() else {"runs": []}
     done_modules = set()

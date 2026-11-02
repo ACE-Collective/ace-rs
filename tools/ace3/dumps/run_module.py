@@ -18,7 +18,9 @@ does (saq/cli/commands/correlate.py) with all modules disabled except the ones n
 - with --yara-rules, the YARA module scans with its local scanner over that rule directory,
   because the yara service only knows ace3's own signatures;
 - with --record-http, every request made through `requests` is written to http.json with its
-  response, so a port can replay them.
+  response, so a port can replay them;
+- with --config, ace3 loads that YAML file over its own configuration, as `ace -c` does, which is
+  how the Splunk dumps point a module at tools/ace3/dumps/fake_splunk.py for one run.
 
 The dump lists every analysis on the observable (the module's and its dependencies'), with the
 observables each one added, and what the module did to the observable itself (tags, directives,
@@ -68,6 +70,7 @@ def parse_args():
     parser.add_argument("--observable", nargs=2, metavar=("TYPE", "VALUE"), help="a non-file observable to analyze")
     parser.add_argument("--yara-rules", help="scan with the local YARA scanner over this signature directory")
     parser.add_argument("--record-http", action="store_true", help="record HTTP requests made through requests")
+    parser.add_argument("--config", action="append", default=[], help="a YAML file ace3 loads over its configuration")
     parser.add_argument("--label", default="", help="a name for the input, written into the dump")
     args = parser.parse_args(sys.argv[1:])
     if bool(args.file) == bool(args.observable):
@@ -151,6 +154,9 @@ def dump_observable(observable):
     if observable.time is not None:
         entry["time"] = str(observable.time)
     entry["directives"] = sorted(observable.directives)
+    # set by an observable mapping's display_type, such as the Splunk module's; ace3 stores it
+    if getattr(observable, "_display_type", None) is not None:
+        entry["display_type"] = observable._display_type
     entry["tags"] = sorted(str(tag) for tag in observable.tags)
     entry["detections"] = [
         {"description": d.description, "details": json_safe(d.details)} for d in observable.detections
@@ -210,6 +216,7 @@ def main():
         saq_home=ACE3,
         data_dir=os.path.join(work, "data"),
         temp_dir=os.path.join(work, "tmp"),
+        config_paths=args.config,
         logging_config_path=os.path.join(work, "logging.yaml"),
     )
 

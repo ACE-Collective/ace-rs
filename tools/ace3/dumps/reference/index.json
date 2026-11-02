@@ -1,13 +1,7 @@
 {
   "about": "Reference dumps written by tools/ace3/dumps/make-dumps; one entry per run.",
   "ace3_commit": "844e3584",
-  "not_made": [
-    {
-      "class": "saq.modules.splunk.SplunkAPIAnalyzer",
-      "module": "splunk_api",
-      "reason": "There is no Splunk on this laptop, and ace3's tests have no recorded or mocked Splunk API to run it against: tests/saq/modules/test_splunk.py and tests/saq/test_splunk.py replace the client object in Python (MockSplunk, whose query_async returns the query text as its results, and Mock objects in place of splunklib), not the REST API."
-    }
-  ],
+  "not_made": [],
   "runs": [
     {
       "analysis": "ArchiveAnalysis",
@@ -296,6 +290,22 @@
       "module": "email_analyzer",
       "observables_added": 9,
       "summary": "Email Analysis: From sender@example.com To recipient@example.com Subject invoice"
+    },
+    {
+      "analysis": "SplunkAPIAnalysis",
+      "dump": "proxy_domain_lookup/fqdn_www.example.com.json",
+      "input": "fqdn www.example.com, against fake_splunk.py with --running-polls 4",
+      "module": "proxy_domain_lookup",
+      "observables_added": 11,
+      "summary": "Proxy correlation: (3 results)"
+    },
+    {
+      "analysis": "SplunkAPIAnalysis",
+      "dump": "proxy_domain_lookup/fqdn_www.example.com.never-done.json",
+      "input": "fqdn www.example.com, against fake_splunk.py with --never-done",
+      "module": "proxy_domain_lookup",
+      "observables_added": 0,
+      "summary": "Proxy correlation: ERROR: timed out"
     },
     {
       "analysis": "RdapAnalysis",

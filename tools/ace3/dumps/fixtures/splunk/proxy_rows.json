@@ -1,0 +1,32 @@
+{
+  "about": "Made-up rows. No Splunk produced these: fake_splunk.py serves them as the results of proxy_domain_lookup's search (ace3's etc/saq.splunk_modules.yaml) for the hostname the search quotes. Names are under example.com and addresses are in the documentation ranges 192.0.2.0/24 and 198.51.100.0/24. Each row has only the fields the module's result handling reads: _time, for the event time, and the five fields its observable_mapping names. The third row leaves out src_translated_ip and user, as a real row with no NAT and no authenticated user would.",
+  "searches": [
+    {
+      "hostname": "www.example.com",
+      "rows": [
+        {
+          "_time": "2026-10-30T14:02:11.000+00:00",
+          "dest_ip": "198.51.100.20",
+          "full_url": "https://www.example.com/login",
+          "src_ip": "192.0.2.10",
+          "src_translated_ip": "198.51.100.7",
+          "user": "alice@example.com"
+        },
+        {
+          "_time": "2026-10-30T14:05:42.000+00:00",
+          "dest_ip": "198.51.100.20",
+          "full_url": "http://www.example.com/",
+          "src_ip": "192.0.2.11",
+          "src_translated_ip": "198.51.100.7",
+          "user": "bob@example.com"
+        },
+        {
+          "_time": "2026-10-30T14:09:03.000+00:00",
+          "dest_ip": "198.51.100.21",
+          "full_url": "https://www.example.com/static/app.js",
+          "src_ip": "192.0.2.12"
+        }
+      ]
+    }
+  ]
+}
