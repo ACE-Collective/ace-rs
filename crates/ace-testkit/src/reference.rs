@@ -562,8 +562,12 @@ pub fn glob(pattern: &str, text: &str) -> bool {
 }
 
 /// Whether a JSON pointer matches a pattern: `*` is one segment, `**` any number of segments
-/// (none included), and a `*` inside a segment globs within it.
+/// (none included), and a `*` inside a segment globs within it. `/` alone is the whole result,
+/// for a dump where only one side has a result at all.
 pub fn path_matches(pattern: &str, path: &str) -> bool {
+    if pattern == "/" {
+        return path.is_empty();
+    }
     let pattern: Vec<&str> = pattern.split('/').skip(1).collect();
     let path: Vec<&str> = path.split('/').skip(1).collect();
     segments_match(&pattern, &path)
@@ -605,6 +609,8 @@ mod tests {
             "/observables/x/tags/pdf"
         ));
         assert!(!path_matches("/details", "/details/a"));
+        assert!(path_matches("/", ""));
+        assert!(!path_matches("/", "/details"));
         assert!(glob(
             "ace3/email/o365*",
             "ace3/email/o365_journaled.email.rfc822"

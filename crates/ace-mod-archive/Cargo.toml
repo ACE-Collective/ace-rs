@@ -1,0 +1,31 @@
+[package]
+name = "ace-mod-archive"
+version = "0.1.0"
+description = "The archive module: the files inside zip, JAR, 7z, RAR and gzip archives"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+ace-results = { path = "../ace-results" }
+ace-sdk = { path = "../ace-sdk" }
+flate2 = "1.1.10"
+schemars = "1.2.3"
+serde = { version = "1.0.229", features = ["derive"] }
+# The maintained fork of sevenz-rust, which hasn't had a release since 2024. Only decoding, and
+# the codecs 7z archives use; AES for passwords.
+sevenz-rust2 = { version = "0.24.2", default-features = false, features = ["aes256", "bzip2", "deflate", "ppmd"] }
+thiserror = "2.0.21"
+tracing = "0.1.44"
+# Binds RARLAB's C++ unrar library, built from source by unrar_sys.
+unrar = "0.5.8"
+# The methods Python's zipfile and 7z read, without zstd's C library or the zopfli encoder.
+zip = { version = "9.2.2", default-features = false, features = ["aes-crypto", "bzip2", "deflate-flate2", "deflate64", "lzma", "ppmd", "xz"] }
+
+[dev-dependencies]
+ace-testkit = { path = "../ace-testkit" }
+serde_json = "1.0.154"
+
+[lints]
+workspace = true
