@@ -1,0 +1,26 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT DISTINCT root_id FROM queue.tasks\n         WHERE state = 'running' AND lease_expires_at < now()\n         ORDER BY root_id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "root_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "queue.tasks",
+            "name": "root_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "9b74183e9ae6376632305457dd2538ed3927706482ab0bc5883e76a45981157c"
+}

@@ -15,6 +15,12 @@
 //! when that time comes, so a waiting worker also wakes when the next of its delayed tasks is
 //! due.
 //!
+//! A root is complete when it has no queued, delayed or running tasks. Queueing work on an
+//! idle root starts an analysis pass, and the transaction that ends its last task records the
+//! pass's one completion (`check_completion`), which `Completions` waits for. Every change
+//! that queues or ends tasks locks the root's row first, so two that race on one root take
+//! turns and the second sees what the first did: a pass can't end twice, or not at all.
+//!
 //! A worker renews its lease while the task runs (`Worker::keep_lease`). If the worker dies,
 //! the renewals stop, and once the lease expires the reaper (`reap_expired_leases`) queues the
 //! task again, or fails it when it has used its attempts.
@@ -105,7 +111,71 @@ pub async fn enqueue(
     )
     .fetch_optional(tx.conn())
     .await?;
+    if id.is_some() {
+        begin_pass(tx, root).await?;
+    }
     Ok(id)
+}
+
+/// Locks the root's row until the transaction ends. Every change that queues or ends tasks
+/// takes this lock first, so completion is decided by one transaction at a time.
+pub async fn lock_root(tx: &mut Tx<'_>, root: Uuid) -> Result<(), QueueError> {
+    sqlx::query!(
+        "SELECT id FROM analysis.roots WHERE id = $1 FOR UPDATE",
+        root
+    )
+    .fetch_optional(tx.conn())
+    .await?;
+    Ok(())
+}
+
+/// Starts a new analysis pass if the root's last one completed, as when tasks are queued on an
+/// idle root. Locks the root.
+pub async fn begin_pass(tx: &mut Tx<'_>, root: Uuid) -> Result<(), QueueError> {
+    sqlx::query!(
+        "UPDATE analysis.roots
+         SET pass = CASE WHEN completed_pass = pass THEN pass + 1 ELSE pass END
+         WHERE id = $1",
+        root,
+    )
+    .execute(tx.conn())
+    .await?;
+    Ok(())
+}
+
+/// Ends the root's current pass if it has no queued, delayed or running tasks left, and returns
+/// the pass. Call it last in a transaction that ended tasks, with the root locked.
+pub async fn check_completion(tx: &mut Tx<'_>, root: Uuid) -> Result<Option<i32>, QueueError> {
+    let active = sqlx::query_scalar!(
+        r#"SELECT EXISTS (SELECT 1 FROM queue.tasks
+                          WHERE root_id = $1 AND state IN ('queued', 'delayed', 'running'))
+           AS "active!""#,
+        root,
+    )
+    .fetch_one(tx.conn())
+    .await?;
+    if active {
+        return Ok(None);
+    }
+    let pass = sqlx::query_scalar!(
+        "UPDATE analysis.roots SET completed_pass = pass
+         WHERE id = $1 AND completed_pass < pass
+         RETURNING pass",
+        root,
+    )
+    .fetch_optional(tx.conn())
+    .await?;
+    if let Some(pass) = pass {
+        sqlx::query!(
+            "INSERT INTO queue.root_completions (root_id, pass) VALUES ($1, $2)",
+            root,
+            pass,
+        )
+        .execute(tx.conn())
+        .await?;
+        tracing::info!(%root, pass, "the root's analysis pass completed");
+    }
+    Ok(pass)
 }
 
 /// Queues a cancelled task again from the start, as when a root's mode changes and the module
@@ -121,6 +191,15 @@ pub async fn requeue_cancelled(tx: &mut Tx<'_>, task: TaskId) -> Result<bool, Qu
     .execute(tx.conn())
     .await?
     .rows_affected();
+    if requeued > 0 {
+        let root = sqlx::query_scalar!(
+            "SELECT root_id FROM queue.tasks WHERE id = $1",
+            task as TaskId
+        )
+        .fetch_one(tx.conn())
+        .await?;
+        begin_pass(tx, root).await?;
+    }
     Ok(requeued > 0)
 }
 
@@ -374,19 +453,29 @@ impl Worker {
         error: Option<&str>,
     ) -> Result<(), QueueError> {
         let mut tx = self.db.begin().await?;
-        self.finish_in(&mut tx, task, state, error).await?;
+        let root = self.finish_in(&mut tx, task, state, error).await?;
+        check_completion(&mut tx, root).await?;
         tx.commit().await?;
         Ok(())
     }
 
-    /// Ends a task the worker owns inside a transaction that also writes what the task found.
+    /// Ends a task the worker owns inside a transaction that also writes what the task found,
+    /// and returns its root, which stays locked. The caller checks the root's completion last.
     pub async fn finish_in(
         &self,
         tx: &mut Tx<'_>,
         task: TaskId,
         state: TaskState,
         error: Option<&str>,
-    ) -> Result<(), QueueError> {
+    ) -> Result<Uuid, QueueError> {
+        let root = sqlx::query_scalar!(
+            "SELECT root_id FROM queue.tasks WHERE id = $1",
+            task as TaskId
+        )
+        .fetch_optional(tx.conn())
+        .await?
+        .ok_or(QueueError::LeaseLost(task))?;
+        lock_root(tx, root).await?;
         let finished = sqlx::query!(
             "UPDATE queue.tasks
              SET state = $3, error = $4, lease_owner = NULL, lease_expires_at = NULL,
@@ -403,7 +492,7 @@ impl Worker {
         if finished == 0 {
             return Err(QueueError::LeaseLost(task));
         }
-        Ok(())
+        Ok(root)
     }
 }
 
@@ -507,30 +596,43 @@ pub struct Reaped {
 }
 
 /// Takes back every running task whose lease has expired: it is queued again, or fails if it
-/// has used its attempts.
+/// has used its attempts. One transaction per root, which locks the root first like every
+/// other change that can end its tasks.
 pub async fn reap_expired_leases(db: &Db) -> Result<Reaped, QueueError> {
-    let mut tx = db.begin().await?;
-    let rows = sqlx::query!(
-        r#"UPDATE queue.tasks SET
-               state = CASE WHEN attempts >= max_attempts THEN 'failed'::queue.task_state
-                            ELSE 'queued'::queue.task_state END,
-               error = CASE WHEN attempts >= max_attempts
-                            THEN format('the lease expired on all %s attempts; the last owner was %s',
-                                        attempts, lease_owner)
-                            ELSE error END,
-               lease_owner = NULL, lease_expires_at = NULL, updated_at = now()
-           WHERE state = 'running' AND lease_expires_at < now()
-           RETURNING id AS "id: TaskId", state AS "state: TaskState""#,
+    let roots = sqlx::query_scalar!(
+        "SELECT DISTINCT root_id FROM queue.tasks
+         WHERE state = 'running' AND lease_expires_at < now()
+         ORDER BY root_id",
     )
-    .fetch_all(tx.conn())
+    .fetch_all(db.pool())
     .await?;
-    tx.commit().await?;
     let mut reaped = Reaped::default();
-    for row in rows {
-        if row.state == TaskState::Failed {
-            reaped.failed.push(row.id);
-        } else {
-            reaped.requeued.push(row.id);
+    for root in roots {
+        let mut tx = db.begin().await?;
+        lock_root(&mut tx, root).await?;
+        let rows = sqlx::query!(
+            r#"UPDATE queue.tasks SET
+                   state = CASE WHEN attempts >= max_attempts THEN 'failed'::queue.task_state
+                                ELSE 'queued'::queue.task_state END,
+                   error = CASE WHEN attempts >= max_attempts
+                                THEN format('the lease expired on all %s attempts; the last owner was %s',
+                                            attempts, lease_owner)
+                                ELSE error END,
+                   lease_owner = NULL, lease_expires_at = NULL, updated_at = now()
+               WHERE root_id = $1 AND state = 'running' AND lease_expires_at < now()
+               RETURNING id AS "id: TaskId", state AS "state: TaskState""#,
+            root,
+        )
+        .fetch_all(tx.conn())
+        .await?;
+        check_completion(&mut tx, root).await?;
+        tx.commit().await?;
+        for row in rows {
+            if row.state == TaskState::Failed {
+                reaped.failed.push(row.id);
+            } else {
+                reaped.requeued.push(row.id);
+            }
         }
     }
     if !reaped.requeued.is_empty() || !reaped.failed.is_empty() {
@@ -541,6 +643,77 @@ pub async fn reap_expired_leases(db: &Db) -> Result<Reaped, QueueError> {
         );
     }
     Ok(reaped)
+}
+
+/// The channel a root's completion notifies, with `<root>/<pass>` as the payload.
+pub const COMPLETIONS_CHANNEL: &str = "ace4_root_complete";
+
+/// One analysis pass's end.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Completion {
+    pub root: Uuid,
+    pub pass: i32,
+}
+
+/// A subscription to roots' completions, on a connection of its own, for whatever acts once a
+/// root's analysis is done, such as alert routing.
+pub struct Completions {
+    listener: PgListener,
+}
+
+impl Completions {
+    pub async fn listen(db: &Db) -> Result<Completions, QueueError> {
+        let mut listener = PgListener::connect_with(db.pool()).await?;
+        listener.listen(COMPLETIONS_CHANNEL).await?;
+        Ok(Completions { listener })
+    }
+
+    /// The next completion, or None if none comes within `timeout`. A notification lost while
+    /// the listener reconnected is in `queue.root_completions` all the same.
+    pub async fn next(&mut self, timeout: Duration) -> Result<Option<Completion>, QueueError> {
+        let deadline = tokio::time::Instant::now() + timeout;
+        loop {
+            match tokio::time::timeout_at(deadline, self.listener.try_recv()).await {
+                Err(_) => return Ok(None),
+                Ok(Ok(None)) => continue,
+                Ok(Ok(Some(notification))) => {
+                    let parsed = notification.payload().split_once('/').and_then(|(r, p)| {
+                        Some(Completion {
+                            root: r.parse().ok()?,
+                            pass: p.parse().ok()?,
+                        })
+                    });
+                    match parsed {
+                        Some(completion) => return Ok(Some(completion)),
+                        None => tracing::warn!(
+                            payload = notification.payload(),
+                            "an unreadable completion notification"
+                        ),
+                    }
+                }
+                Ok(Err(e)) => return Err(e.into()),
+            }
+        }
+    }
+}
+
+impl std::fmt::Debug for Completions {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Completions").finish_non_exhaustive()
+    }
+}
+
+/// The root's completed passes, oldest first.
+pub async fn completions(db: &Db, root: Uuid) -> Result<Vec<Completion>, QueueError> {
+    Ok(sqlx::query_scalar!(
+        "SELECT pass FROM queue.root_completions WHERE root_id = $1 ORDER BY pass",
+        root,
+    )
+    .fetch_all(db.pool())
+    .await?
+    .into_iter()
+    .map(|pass| Completion { root, pass })
+    .collect())
 }
 
 /// Runs `reap_expired_leases` every `interval` until `stop` fires.

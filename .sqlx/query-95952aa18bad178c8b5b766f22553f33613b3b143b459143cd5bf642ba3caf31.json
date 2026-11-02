@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE analysis.roots SET completed_pass = pass\n         WHERE id = $1 AND completed_pass < pass\n         RETURNING pass",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "pass",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "analysis.roots",
+            "name": "pass"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "95952aa18bad178c8b5b766f22553f33613b3b143b459143cd5bf642ba3caf31"
+}

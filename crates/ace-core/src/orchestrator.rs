@@ -8,7 +8,8 @@
 //!
 //! Each of these locks the root's row first, so two results landing on one root take turns:
 //! the second sees the first's observables and mode, and nothing the first made eligible is
-//! missed.
+//! missed. Landing a result checks the root's completion last, so the tasks it queues keep the
+//! same pass open.
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -184,6 +185,22 @@ impl Orchestrator {
         Ok(queued)
     }
 
+    /// Starts analysis of a new root: queues what is eligible for every observable it has. A
+    /// root with nothing eligible completes its first pass at once.
+    pub async fn start(
+        &self,
+        tx: &mut Tx<'_>,
+        root: Uuid,
+    ) -> Result<Vec<TaskId>, OrchestratorError> {
+        let mode = lock_root(tx, root).await?;
+        queue::begin_pass(tx, root).await?;
+        let queued = self
+            .queue_eligible_locked(tx, root, &mode, Scope::All, false)
+            .await?;
+        queue::check_completion(tx, root).await?;
+        Ok(queued)
+    }
+
     /// Changes a root's mode and reruns eligibility over every observable it has. Cancelled
     /// tasks whose modules the new mode runs are queued again.
     pub async fn set_mode(
@@ -263,6 +280,7 @@ impl Orchestrator {
             .await?;
             tracing::info!(%root, from = %mode, "a detection made the root an alert");
             let queued = self.set_mode(tx, root, CORRELATION).await?;
+            queue::check_completion(tx, root).await?;
             return Ok(Landed {
                 result: result_id,
                 queued,
@@ -272,6 +290,7 @@ impl Orchestrator {
         let queued = self
             .queue_eligible_locked(tx, root, &mode, Scope::Observables(&touched), false)
             .await?;
+        queue::check_completion(tx, root).await?;
         Ok(Landed {
             result: result_id,
             queued,
