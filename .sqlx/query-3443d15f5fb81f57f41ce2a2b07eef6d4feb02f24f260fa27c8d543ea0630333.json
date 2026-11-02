@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE analysis.roots SET disposition = $2, dispositioned_at = now() WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "3443d15f5fb81f57f41ce2a2b07eef6d4feb02f24f260fa27c8d543ea0630333"
+}

@@ -21,10 +21,16 @@
 //! that queues or ends tasks locks the root's row first, so two that race on one root take
 //! turns and the second sees what the first did: a pass can't end twice, or not at all.
 //!
+//! Cancelling a root (`cancel_root`) cancels its queued and delayed tasks and asks its running
+//! ones to stop. A worker learns of it from a notification (`CancelWatch`) at once, or from
+//! its next lease renewal, and either way the task's cancellation token fires.
+//!
 //! A worker renews its lease while the task runs (`Worker::keep_lease`). If the worker dies,
 //! the renewals stop, and once the lease expires the reaper (`reap_expired_leases`) queues the
 //! task again, or fails it when it has used its attempts.
 
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use ace_results::ObservableKind;
@@ -76,6 +82,9 @@ pub enum QueueError {
     /// the task was cancelled.
     #[error("{0} is no longer leased to this worker")]
     LeaseLost(TaskId),
+    /// The task's root was cancelled while it ran, so it won't run again.
+    #[error("{0} was cancelled")]
+    Cancelled(TaskId),
     #[error(transparent)]
     Db(#[from] DbError),
 }
@@ -184,7 +193,8 @@ pub async fn requeue_cancelled(tx: &mut Tx<'_>, task: TaskId) -> Result<bool, Qu
     let requeued = sqlx::query!(
         "UPDATE queue.tasks
          SET state = 'queued', run_after = now(), attempts = 0, error = NULL,
-             delay_state = NULL, first_delayed_at = NULL, delays = 0, updated_at = now()
+             delay_state = NULL, first_delayed_at = NULL, delays = 0, cancel_requested = false,
+             updated_at = now()
          WHERE id = $1 AND state = 'cancelled'",
         task as TaskId,
     )
@@ -373,14 +383,17 @@ impl Worker {
         state: &serde_json::Value,
     ) -> Result<DateTime<Utc>, QueueError> {
         let mut tx = self.db.begin().await?;
-        let run_after = sqlx::query_scalar!(
-            "UPDATE queue.tasks
-             SET state = 'delayed', run_after = now() + make_interval(secs => $3),
-                 delay_state = $4, first_delayed_at = COALESCE(first_delayed_at, now()),
-                 delays = delays + 1, attempts = 0, lease_owner = NULL,
-                 lease_expires_at = NULL, updated_at = now()
-             WHERE id = $1 AND lease_owner = $2 AND state = 'running'
-             RETURNING run_after",
+        let root = self.lock_task_root(&mut tx, task).await?;
+        let row = sqlx::query!(
+            r#"UPDATE queue.tasks
+               SET state = CASE WHEN cancel_requested THEN 'cancelled'::queue.task_state
+                                ELSE 'delayed'::queue.task_state END,
+                   run_after = now() + make_interval(secs => $3),
+                   delay_state = $4, first_delayed_at = COALESCE(first_delayed_at, now()),
+                   delays = delays + 1, attempts = 0, lease_owner = NULL,
+                   lease_expires_at = NULL, updated_at = now()
+               WHERE id = $1 AND lease_owner = $2 AND state = 'running'
+               RETURNING run_after, state AS "state: TaskState""#,
             task as TaskId,
             self.name,
             after.as_secs_f64(),
@@ -389,18 +402,37 @@ impl Worker {
         .fetch_optional(tx.conn())
         .await?
         .ok_or(QueueError::LeaseLost(task))?;
+        // a task whose root was cancelled while it ran ends here instead
+        if row.state == TaskState::Cancelled {
+            check_completion(&mut tx, root).await?;
+            tx.commit().await?;
+            return Err(QueueError::Cancelled(task));
+        }
         tx.commit().await?;
-        Ok(run_after)
+        Ok(row.run_after)
     }
 
-    /// Extends the lease on a task the worker owns to a full lease from now, and returns when
-    /// it now expires.
-    pub async fn renew(&self, task: TaskId) -> Result<DateTime<Utc>, QueueError> {
+    /// The task's root, locked until the transaction ends.
+    async fn lock_task_root(&self, tx: &mut Tx<'_>, task: TaskId) -> Result<Uuid, QueueError> {
+        let root = sqlx::query_scalar!(
+            "SELECT root_id FROM queue.tasks WHERE id = $1",
+            task as TaskId
+        )
+        .fetch_optional(tx.conn())
+        .await?
+        .ok_or(QueueError::LeaseLost(task))?;
+        lock_root(tx, root).await?;
+        Ok(root)
+    }
+
+    /// Extends the lease on a task the worker owns to a full lease from now. The answer also
+    /// says whether the task's root was cancelled meanwhile.
+    pub async fn renew(&self, task: TaskId) -> Result<Lease, QueueError> {
         let mut tx = self.db.begin().await?;
-        let expires = sqlx::query_scalar!(
+        let row = sqlx::query!(
             r#"UPDATE queue.tasks SET lease_expires_at = now() + make_interval(secs => $3)
                WHERE id = $1 AND lease_owner = $2 AND state = 'running'
-               RETURNING lease_expires_at AS "lease_expires_at!""#,
+               RETURNING lease_expires_at AS "expires_at!", cancel_requested"#,
             task as TaskId,
             self.name,
             self.lease.as_secs_f64(),
@@ -408,11 +440,16 @@ impl Worker {
         .fetch_optional(tx.conn())
         .await?;
         tx.commit().await?;
-        expires.ok_or(QueueError::LeaseLost(task))
+        let row = row.ok_or(QueueError::LeaseLost(task))?;
+        Ok(Lease {
+            expires_at: row.expires_at,
+            cancel_requested: row.cancel_requested,
+        })
     }
 
     /// Renews the lease every third of its length until the keeper is dropped. The keeper's
-    /// token fires when the worker loses the task, so the module can stop.
+    /// token fires when the worker loses the task or a renewal finds it cancelled, so the
+    /// module can stop.
     pub fn keep_lease(&self, task: TaskId) -> LeaseKeeper {
         let token = CancellationToken::new();
         let worker = self.clone();
@@ -422,6 +459,10 @@ impl Worker {
             loop {
                 tokio::time::sleep(every).await;
                 match worker.renew(task).await {
+                    Ok(lease) if lease.cancel_requested => {
+                        tracing::info!(%task, worker = %worker.name, "the task was cancelled");
+                        fired.cancel();
+                    }
                     Ok(_) => {}
                     Err(QueueError::LeaseLost(_)) => {
                         tracing::warn!(%task, worker = %worker.name, "lost the lease");
@@ -446,6 +487,11 @@ impl Worker {
         self.finish(task, TaskState::Failed, Some(error)).await
     }
 
+    /// Ends a task the worker owns: the module stopped because the task was cancelled.
+    pub async fn cancelled(&self, task: TaskId) -> Result<(), QueueError> {
+        self.finish(task, TaskState::Cancelled, None).await
+    }
+
     async fn finish(
         &self,
         task: TaskId,
@@ -468,14 +514,7 @@ impl Worker {
         state: TaskState,
         error: Option<&str>,
     ) -> Result<Uuid, QueueError> {
-        let root = sqlx::query_scalar!(
-            "SELECT root_id FROM queue.tasks WHERE id = $1",
-            task as TaskId
-        )
-        .fetch_optional(tx.conn())
-        .await?
-        .ok_or(QueueError::LeaseLost(task))?;
-        lock_root(tx, root).await?;
+        let root = self.lock_task_root(tx, task).await?;
         let finished = sqlx::query!(
             "UPDATE queue.tasks
              SET state = $3, error = $4, lease_owner = NULL, lease_expires_at = NULL,
@@ -566,6 +605,146 @@ impl std::fmt::Debug for Wakeups {
     }
 }
 
+/// A renewed lease.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Lease {
+    pub expires_at: DateTime<Utc>,
+    /// The task's root was cancelled: the module should stop.
+    pub cancel_requested: bool,
+}
+
+/// What cancelling a root did.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct CancelledRoot {
+    /// Queued and delayed tasks, now cancelled.
+    pub cancelled: Vec<TaskId>,
+    /// Running tasks asked to stop.
+    pub signalled: Vec<TaskId>,
+}
+
+/// Cancels a root's analysis: its queued and delayed tasks are cancelled, and its running ones
+/// are asked to stop through their cancellation tokens. Results that still land afterwards are
+/// stored but queue nothing more, until a mode change restarts analysis. With no task left
+/// running, this ends the root's pass.
+pub async fn cancel_root(tx: &mut Tx<'_>, root: Uuid) -> Result<CancelledRoot, QueueError> {
+    lock_root(tx, root).await?;
+    sqlx::query!(
+        "UPDATE analysis.roots SET cancelled_at = now() WHERE id = $1",
+        root
+    )
+    .execute(tx.conn())
+    .await?;
+    let cancelled = sqlx::query_scalar!(
+        r#"UPDATE queue.tasks SET state = 'cancelled', updated_at = now()
+           WHERE root_id = $1 AND state IN ('queued', 'delayed')
+           RETURNING id AS "id: TaskId""#,
+        root,
+    )
+    .fetch_all(tx.conn())
+    .await?;
+    let signalled = sqlx::query_scalar!(
+        r#"UPDATE queue.tasks SET cancel_requested = true, updated_at = now()
+           WHERE root_id = $1 AND state = 'running' AND NOT cancel_requested
+           RETURNING id AS "id: TaskId""#,
+        root,
+    )
+    .fetch_all(tx.conn())
+    .await?;
+    check_completion(tx, root).await?;
+    tracing::info!(
+        %root,
+        cancelled = cancelled.len(),
+        signalled = signalled.len(),
+        "cancelled the root's analysis"
+    );
+    Ok(CancelledRoot {
+        cancelled,
+        signalled,
+    })
+}
+
+/// The channel a task's cancellation notifies, with the task's id as the payload.
+pub const CANCEL_CHANNEL: &str = "ace4_cancel";
+
+/// One listener per process that fires the cancellation token of each task the process runs
+/// when its root is cancelled, without waiting for the next lease renewal.
+pub struct CancelWatch {
+    tokens: Arc<Mutex<HashMap<TaskId, CancellationToken>>>,
+    handle: JoinHandle<()>,
+}
+
+impl CancelWatch {
+    pub async fn start(db: &Db) -> Result<CancelWatch, QueueError> {
+        let mut listener = PgListener::connect_with(db.pool()).await?;
+        listener.listen(CANCEL_CHANNEL).await?;
+        let tokens: Arc<Mutex<HashMap<TaskId, CancellationToken>>> = Arc::default();
+        let watched = tokens.clone();
+        let handle = tokio::spawn(async move {
+            loop {
+                match listener.recv().await {
+                    Ok(notification) => {
+                        let Ok(id) = notification.payload().parse::<i64>() else {
+                            continue;
+                        };
+                        let token = watched
+                            .lock()
+                            .ok()
+                            .and_then(|tokens| tokens.get(&TaskId(id)).cloned());
+                        if let Some(token) = token {
+                            tracing::info!(task = id, "the task was cancelled");
+                            token.cancel();
+                        }
+                    }
+                    // the renewals still deliver a cancel meanwhile
+                    Err(e) => {
+                        tracing::warn!("the cancel listener failed: {e}");
+                        tokio::time::sleep(Duration::from_secs(1)).await;
+                    }
+                }
+            }
+        });
+        Ok(CancelWatch { tokens, handle })
+    }
+
+    /// Fires `token` when `task` is cancelled, until the guard is dropped.
+    pub fn watch(&self, task: TaskId, token: &CancellationToken) -> CancelGuard {
+        if let Ok(mut tokens) = self.tokens.lock() {
+            tokens.insert(task, token.clone());
+        }
+        CancelGuard {
+            tokens: self.tokens.clone(),
+            task,
+        }
+    }
+}
+
+impl Drop for CancelWatch {
+    fn drop(&mut self) {
+        self.handle.abort();
+    }
+}
+
+impl std::fmt::Debug for CancelWatch {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("CancelWatch").finish_non_exhaustive()
+    }
+}
+
+/// Stops watching a task when dropped.
+#[derive(Debug)]
+pub struct CancelGuard {
+    tokens: Arc<Mutex<HashMap<TaskId, CancellationToken>>>,
+    task: TaskId,
+}
+
+impl Drop for CancelGuard {
+    fn drop(&mut self) {
+        if let Ok(mut tokens) = self.tokens.lock() {
+            tokens.remove(&self.task);
+        }
+    }
+}
+
 /// Renews a task's lease in the background while it runs. Dropping it stops the renewals.
 #[derive(Debug)]
 pub struct LeaseKeeper {
@@ -593,6 +772,8 @@ pub struct Reaped {
     pub requeued: Vec<TaskId>,
     /// Tasks whose lease expired on their last attempt.
     pub failed: Vec<TaskId>,
+    /// Tasks whose root was cancelled while they ran.
+    pub cancelled: Vec<TaskId>,
 }
 
 /// Takes back every running task whose lease has expired: it is queued again, or fails if it
@@ -612,9 +793,10 @@ pub async fn reap_expired_leases(db: &Db) -> Result<Reaped, QueueError> {
         lock_root(&mut tx, root).await?;
         let rows = sqlx::query!(
             r#"UPDATE queue.tasks SET
-                   state = CASE WHEN attempts >= max_attempts THEN 'failed'::queue.task_state
+                   state = CASE WHEN cancel_requested THEN 'cancelled'::queue.task_state
+                                WHEN attempts >= max_attempts THEN 'failed'::queue.task_state
                                 ELSE 'queued'::queue.task_state END,
-                   error = CASE WHEN attempts >= max_attempts
+                   error = CASE WHEN NOT cancel_requested AND attempts >= max_attempts
                                 THEN format('the lease expired on all %s attempts; the last owner was %s',
                                             attempts, lease_owner)
                                 ELSE error END,
@@ -628,10 +810,10 @@ pub async fn reap_expired_leases(db: &Db) -> Result<Reaped, QueueError> {
         check_completion(&mut tx, root).await?;
         tx.commit().await?;
         for row in rows {
-            if row.state == TaskState::Failed {
-                reaped.failed.push(row.id);
-            } else {
-                reaped.requeued.push(row.id);
+            match row.state {
+                TaskState::Failed => reaped.failed.push(row.id),
+                TaskState::Cancelled => reaped.cancelled.push(row.id),
+                _ => reaped.requeued.push(row.id),
             }
         }
     }

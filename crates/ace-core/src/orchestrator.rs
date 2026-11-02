@@ -19,7 +19,7 @@ use uuid::Uuid;
 
 use crate::db::{DbError, Tx};
 use crate::eligibility::{Catalog, Facts, check};
-use crate::modes::{CORRELATION, Modes};
+use crate::modes::{CORRELATION, DISPOSITIONED, Modes};
 use crate::queue::{self, QueueError, Task, TaskId, TaskState, Worker};
 use crate::tree::{self, ObservableId, ResultId};
 
@@ -56,6 +56,14 @@ pub struct Landed {
     pub mode_changed_to: Option<String>,
 }
 
+/// What dispositioning an alert did.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Dispositioned {
+    pub cancelled: queue::CancelledRoot,
+    /// The dispositioned mode's tasks.
+    pub queued: Vec<TaskId>,
+}
+
 /// The modules the core runs, and the modes that choose among them.
 #[derive(Debug, Clone)]
 pub struct Orchestrator {
@@ -86,8 +94,11 @@ impl Orchestrator {
         scope: Scope<'_>,
         requeue_cancelled: bool,
     ) -> Result<Vec<TaskId>, OrchestratorError> {
-        let mode = lock_root(tx, root).await?;
-        self.queue_eligible_locked(tx, root, &mode, scope, requeue_cancelled)
+        let locked = lock_root(tx, root).await?;
+        if locked.cancelled {
+            return Ok(Vec::new());
+        }
+        self.queue_eligible_locked(tx, root, &locked.mode, scope, requeue_cancelled)
             .await
     }
 
@@ -192,17 +203,18 @@ impl Orchestrator {
         tx: &mut Tx<'_>,
         root: Uuid,
     ) -> Result<Vec<TaskId>, OrchestratorError> {
-        let mode = lock_root(tx, root).await?;
+        let locked = lock_root(tx, root).await?;
         queue::begin_pass(tx, root).await?;
         let queued = self
-            .queue_eligible_locked(tx, root, &mode, Scope::All, false)
+            .queue_eligible_locked(tx, root, &locked.mode, Scope::All, false)
             .await?;
         queue::check_completion(tx, root).await?;
         Ok(queued)
     }
 
     /// Changes a root's mode and reruns eligibility over every observable it has. Cancelled
-    /// tasks whose modules the new mode runs are queued again.
+    /// tasks whose modules the new mode runs are queued again, and a cancelled root's analysis
+    /// restarts.
     pub async fn set_mode(
         &self,
         tx: &mut Tx<'_>,
@@ -211,7 +223,7 @@ impl Orchestrator {
     ) -> Result<Vec<TaskId>, OrchestratorError> {
         lock_root(tx, root).await?;
         sqlx::query!(
-            "UPDATE analysis.roots SET analysis_mode = $2 WHERE id = $1",
+            "UPDATE analysis.roots SET analysis_mode = $2, cancelled_at = NULL WHERE id = $1",
             root,
             mode,
         )
@@ -219,6 +231,28 @@ impl Orchestrator {
         .await?;
         self.queue_eligible_locked(tx, root, mode, Scope::All, true)
             .await
+    }
+
+    /// Records an analyst's disposition of an alert: cancels its analysis, then switches it
+    /// to dispositioned mode, which queues that mode's few modules, as ace3 does when
+    /// `stop_analysis_on_any_alert_disposition` is set.
+    pub async fn disposition(
+        &self,
+        tx: &mut Tx<'_>,
+        root: Uuid,
+        disposition: &str,
+    ) -> Result<Dispositioned, OrchestratorError> {
+        let cancelled = queue::cancel_root(tx, root).await?;
+        sqlx::query!(
+            "UPDATE analysis.roots SET disposition = $2, dispositioned_at = now() WHERE id = $1",
+            root,
+            disposition,
+        )
+        .execute(tx.conn())
+        .await?;
+        let queued = self.set_mode(tx, root, DISPOSITIONED).await?;
+        queue::check_completion(tx, root).await?;
+        Ok(Dispositioned { cancelled, queued })
     }
 
     /// Lands a module's result for a task the worker owns: ends the task and writes the result,
@@ -234,7 +268,8 @@ impl Orchestrator {
     ) -> Result<Landed, OrchestratorError> {
         let root = task.root;
         let analyzed = task.observable.id;
-        let mode = lock_root(tx, root).await?;
+        let locked = lock_root(tx, root).await?;
+        let mode = locked.mode;
         worker.finish_in(tx, task.id, TaskState::Done, None).await?;
         let result_id = tree::insert_result(tx, root, analyzed, &task.module, result).await?;
         tree::add_to_observable(
@@ -271,6 +306,15 @@ impl Orchestrator {
             tree::add_detection(tx, root, *observable, Some(result_id), detection).await?;
         }
 
+        // a result that lands after its root was cancelled is kept, and queues nothing
+        if locked.cancelled {
+            queue::check_completion(tx, root).await?;
+            return Ok(Landed {
+                result: result_id,
+                queued: Vec::new(),
+                mode_changed_to: None,
+            });
+        }
         if !detections.is_empty() && self.modes.is_detectable(&mode) {
             sqlx::query!(
                 "UPDATE analysis.roots SET alerted_at = COALESCE(alerted_at, now()) WHERE id = $1",
@@ -299,13 +343,24 @@ impl Orchestrator {
     }
 }
 
+/// A root's state, read with its row locked.
+struct Locked {
+    mode: String,
+    /// Its analysis was cancelled and no mode change has restarted it.
+    cancelled: bool,
+}
+
 /// Locks the root's row until the transaction ends and returns its mode.
-async fn lock_root(tx: &mut Tx<'_>, root: Uuid) -> Result<String, OrchestratorError> {
-    sqlx::query_scalar!(
-        "SELECT analysis_mode FROM analysis.roots WHERE id = $1 FOR UPDATE",
+async fn lock_root(tx: &mut Tx<'_>, root: Uuid) -> Result<Locked, OrchestratorError> {
+    let row = sqlx::query!(
+        "SELECT analysis_mode, cancelled_at FROM analysis.roots WHERE id = $1 FOR UPDATE",
         root,
     )
     .fetch_optional(tx.conn())
     .await?
-    .ok_or(OrchestratorError::NoRoot(root))
+    .ok_or(OrchestratorError::NoRoot(root))?;
+    Ok(Locked {
+        mode: row.analysis_mode,
+        cancelled: row.cancelled_at.is_some(),
+    })
 }

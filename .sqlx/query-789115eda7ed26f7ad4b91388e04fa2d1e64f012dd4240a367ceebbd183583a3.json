@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE queue.tasks SET cancel_requested = true, updated_at = now()\n           WHERE root_id = $1 AND state = 'running' AND NOT cancel_requested\n           RETURNING id AS \"id: TaskId\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id: TaskId",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "queue.tasks",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "789115eda7ed26f7ad4b91388e04fa2d1e64f012dd4240a367ceebbd183583a3"
+}

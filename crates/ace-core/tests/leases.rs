@@ -197,7 +197,8 @@ async fn renewing_extends_the_lease_and_the_keeper_fires_when_the_task_is_lost()
     let holder = worker(&test_db, "holder", &["module"], lease).await;
     let claimed = holder.claim().await.expect("claims").expect("a task");
     let renewed = holder.renew(task).await.expect("renews");
-    assert!(renewed >= claimed.lease_expires_at);
+    assert!(renewed.expires_at >= claimed.lease_expires_at);
+    assert!(!renewed.cancel_requested);
 
     // the keeper renews past several lease lengths
     let keeper = holder.keep_lease(task);

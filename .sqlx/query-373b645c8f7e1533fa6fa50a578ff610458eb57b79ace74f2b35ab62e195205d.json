@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE queue.tasks SET\n                   state = CASE WHEN attempts >= max_attempts THEN 'failed'::queue.task_state\n                                ELSE 'queued'::queue.task_state END,\n                   error = CASE WHEN attempts >= max_attempts\n                                THEN format('the lease expired on all %s attempts; the last owner was %s',\n                                            attempts, lease_owner)\n                                ELSE error END,\n                   lease_owner = NULL, lease_expires_at = NULL, updated_at = now()\n               WHERE root_id = $1 AND state = 'running' AND lease_expires_at < now()\n               RETURNING id AS \"id: TaskId\", state AS \"state: TaskState\"",
+  "query": "UPDATE queue.tasks SET\n                   state = CASE WHEN cancel_requested THEN 'cancelled'::queue.task_state\n                                WHEN attempts >= max_attempts THEN 'failed'::queue.task_state\n                                ELSE 'queued'::queue.task_state END,\n                   error = CASE WHEN NOT cancel_requested AND attempts >= max_attempts\n                                THEN format('the lease expired on all %s attempts; the last owner was %s',\n                                            attempts, lease_owner)\n                                ELSE error END,\n                   lease_owner = NULL, lease_expires_at = NULL, updated_at = now()\n               WHERE root_id = $1 AND state = 'running' AND lease_expires_at < now()\n               RETURNING id AS \"id: TaskId\", state AS \"state: TaskState\"",
   "describe": {
     "columns": [
       {
@@ -50,5 +50,5 @@
       false
     ]
   },
-  "hash": "6bfd9d28ee402ca7c83058cdb85b69872bab7ca6220059ed0c56ec82ec7c2553"
+  "hash": "373b645c8f7e1533fa6fa50a578ff610458eb57b79ace74f2b35ab62e195205d"
 }
