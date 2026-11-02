@@ -36,6 +36,9 @@ pub enum DbError {
     Sqlx(#[from] sqlx::Error),
     #[error(transparent)]
     Migrate(#[from] MigrateError),
+    /// A row the code can't read, such as an observable type it doesn't know.
+    #[error("unreadable row: {0}")]
+    Decode(String),
 }
 
 /// How a component connects.

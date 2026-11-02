@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO analysis.roots (id, analysis_mode, description, event_time, event_time_source)\n         VALUES ($1, $2, $3, $4, $5)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Timestamptz",
+        {
+          "Custom": {
+            "name": "analysis.event_time_source",
+            "kind": {
+              "Enum": [
+                "event",
+                "query_time",
+                "now",
+                "unset"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "886a634b120baebdb52d32b33cec56cc72593b07727da9c820742742d146ccee"
+}

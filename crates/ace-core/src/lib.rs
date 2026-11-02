@@ -5,5 +5,6 @@
 pub mod db;
 #[cfg(any(test, feature = "testing"))]
 pub mod testing;
+pub mod tree;
 
 pub use db::{Db, DbConfig, DbError, Tx};
