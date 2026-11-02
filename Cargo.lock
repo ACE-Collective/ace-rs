@@ -81,6 +81,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "ace-mod-splunk"
+version = "0.1.0"
+dependencies = [
+ "ace-results",
+ "ace-sdk",
+ "ace-testkit",
+ "chrono",
+ "form_urlencoded",
+ "regex",
+ "reqwest",
+ "roxmltree",
+ "schemars 1.2.3",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "ace-mod-yara"
 version = "0.1.0"
 dependencies = [

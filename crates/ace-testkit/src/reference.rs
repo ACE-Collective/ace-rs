@@ -23,9 +23,11 @@
 //!
 //! Each observable carries `tags`, `directives`, `yara_meta`, `detections`, `relationships`
 //! (`"<kind> <type>:<value>"`), `excluded_analysis` (module names), and `time`, `redirection`,
-//! `sha256` and `size` when it has them. Sets are objects whose keys are the members, so a
-//! difference names the member. ace3 keeps `yara_meta` tags among the directives as
-//! `yara_meta:name=value`; the normal form keeps them only under `yara_meta`.
+//! `sha256` and `size` when it has them. An ace3 observable also carries the `display_type` an
+//! observable mapping gave it, which ace4's observables have no counterpart for. Sets are
+//! objects whose keys are the members, so a difference names the member. ace3 keeps `yara_meta`
+//! tags among the directives as `yara_meta:name=value`; the normal form keeps them only under
+//! `yara_meta`.
 
 use std::collections::BTreeSet;
 use std::fs;
@@ -263,6 +265,9 @@ fn ace3_observable(o: &Value) -> (String, Value) {
             redirection["type"].as_str().unwrap_or_default(),
             redirection["value"].as_str().unwrap_or_default()
         ));
+    }
+    if let Some(display_type) = o.get("display_type") {
+        normal["display_type"] = display_type.clone();
     }
     if kind == "file" {
         normal["sha256"] = o["value"].clone();

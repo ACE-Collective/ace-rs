@@ -4,4 +4,5 @@
 pub mod archive;
 pub mod email;
 pub mod rdap;
+pub mod splunk;
 pub mod yara;

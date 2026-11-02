@@ -1,0 +1,32 @@
+[package]
+name = "ace-mod-splunk"
+version = "0.1.0"
+description = "The Splunk module: a correlation search about an observable, polled until it finishes"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+ace-results = { path = "../ace-results" }
+ace-sdk = { path = "../ace-sdk" }
+chrono = { version = "0.4.45", default-features = false, features = ["std"] }
+form_urlencoded = "1.2.2"
+regex = "1.13.1"
+# Only for its methods, status codes and header names; ace-sdk picks reqwest's features.
+reqwest = { version = "0.13.5", default-features = false }
+# splunkd answers in XML (Atom entries and <response> documents); the workspace already has
+# roxmltree through yara-x.
+roxmltree = "0.21.2"
+schemars = "1.2.3"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+tracing = "0.1.44"
+
+[dev-dependencies]
+ace-testkit = { path = "../ace-testkit" }
+tempfile = "3.27.0"
+tokio = { version = "1.54.1", features = ["macros", "rt"] }
+
+[lints]
+workspace = true

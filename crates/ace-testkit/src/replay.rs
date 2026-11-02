@@ -6,7 +6,13 @@
 //! to `<scheme>://<host>/<path>`, and a request nothing was recorded for gets a 404 and is noted,
 //! so a test can fail on it. URLs inside the bodies of chosen responses, such as a bootstrap
 //! registry's server list, are pointed at the replay too, so the module comes back here.
+//!
+//! A URL asked for more than once gets its recorded responses in the order they were recorded,
+//! and the last one again after that, so a job polled until it finishes answers "running,
+//! running, done" as it did for ace3. The replay keeps each request's headers and body, so a
+//! test can check what the module sent.
 
+use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::path::Path;
 use std::sync::{Arc, Mutex};
@@ -42,10 +48,33 @@ struct Exchange {
     body: Vec<u8>,
 }
 
+/// A request the replay received.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Request {
+    pub method: String,
+    /// The original URL.
+    pub url: String,
+    /// The headers, as sent.
+    pub headers: Vec<(String, String)>,
+    pub body: Vec<u8>,
+}
+
+impl Request {
+    /// The first header named `name`, in any case.
+    pub fn header(&self, name: &str) -> Option<&str> {
+        self.headers
+            .iter()
+            .find(|(n, _)| n.eq_ignore_ascii_case(name))
+            .map(|(_, v)| v.as_str())
+    }
+}
+
 #[derive(Default)]
 struct Log {
-    requested: Vec<String>,
+    requests: Vec<Request>,
     unmatched: Vec<String>,
+    /// How many times each (method, URL) was asked for.
+    served: HashMap<(String, String), usize>,
 }
 
 /// A local server for one recording.
@@ -130,9 +159,14 @@ impl HttpReplay {
 
     /// The original URL of every request, in order.
     pub fn requested(&self) -> Vec<String> {
+        self.requests().into_iter().map(|r| r.url).collect()
+    }
+
+    /// Every request, in order, with its method and body.
+    pub fn requests(&self) -> Vec<Request> {
         self.log
             .lock()
-            .map(|log| log.requested.clone())
+            .map(|log| log.requests.clone())
             .unwrap_or_default()
     }
 
@@ -165,7 +199,30 @@ async fn serve(
         }
         head.extend_from_slice(&buffer[..read]);
     }
+    let end = head
+        .windows(4)
+        .position(|w| w == b"\r\n\r\n")
+        .map_or(head.len(), |at| at + 4);
+    let mut body = head.split_off(end);
     let head = String::from_utf8_lossy(&head);
+    let headers: Vec<(String, String)> = head
+        .lines()
+        .skip(1)
+        .filter_map(|line| line.split_once(':'))
+        .map(|(name, value)| (name.trim().to_owned(), value.trim().to_owned()))
+        .collect();
+    let length = headers
+        .iter()
+        .find(|(name, _)| name.eq_ignore_ascii_case("content-length"))
+        .and_then(|(_, value)| value.parse::<usize>().ok())
+        .unwrap_or(0);
+    while body.len() < length {
+        let read = stream.read(&mut buffer).await?;
+        if read == 0 {
+            break;
+        }
+        body.extend_from_slice(&buffer[..read]);
+    }
     let mut request_line = head.lines().next().unwrap_or_default().split(' ');
     let method = request_line.next().unwrap_or_default().to_owned();
     let path = request_line.next().unwrap_or_default();
@@ -173,15 +230,32 @@ async fn serve(
         Some((scheme, rest)) => format!("{scheme}://{rest}"),
         None => path.to_owned(),
     };
-    let found = exchanges
-        .iter()
-        .find(|e| e.method == method && e.url == original);
-    if let Ok(mut log) = log.lock() {
-        log.requested.push(original.clone());
-        if found.is_none() {
-            log.unmatched.push(format!("{method} {original}"));
+    let found = match log.lock() {
+        Ok(mut log) => {
+            let served = log
+                .served
+                .entry((method.clone(), original.clone()))
+                .or_insert(0);
+            let matching: Vec<&Exchange> = exchanges
+                .iter()
+                .filter(|e| e.method == method && e.url == original)
+                .collect();
+            // the nth request for a URL gets its nth recorded response, then the last again
+            let found = matching.get(*served).or(matching.last()).copied();
+            *served += 1;
+            log.requests.push(Request {
+                method: method.clone(),
+                url: original.clone(),
+                headers,
+                body,
+            });
+            if found.is_none() {
+                log.unmatched.push(format!("{method} {original}"));
+            }
+            found
         }
-    }
+        Err(_) => None,
+    };
     let (status, content_type, body): (u16, Option<&str>, &[u8]) = match found {
         Some(e) => (e.status, e.content_type.as_deref(), &e.body),
         None => (404, Some("text/plain"), b"not recorded"),
