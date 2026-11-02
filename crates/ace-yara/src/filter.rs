@@ -101,6 +101,7 @@ pub struct InvalidRegex {
     pub key: String,
     /// The pattern as compiled: lowercased and trimmed, as the Python compiles it.
     pub pattern: String,
+    /// The regex crate's reason, on one line.
     pub error: String,
 }
 
@@ -108,13 +109,24 @@ impl fmt::Display for InvalidRegex {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "meta {} has a re: pattern the regex crate can't compile, {:?}: {}",
+            "meta {} has a re: pattern the regex crate can't compile, `{}`: {}",
             self.key, self.pattern, self.error
         )
     }
 }
 
 impl std::error::Error for InvalidRegex {}
+
+/// The regex crate's parse errors repeat the pattern over several lines with a caret under
+/// the problem, ending in an `error: ` line. Keeps that line, so a log entry stays one line.
+fn one_line(error: &regex::Error) -> String {
+    let text = error.to_string();
+    let reason = text
+        .lines()
+        .find_map(|line| line.strip_prefix("error: "))
+        .map(str::to_string);
+    reason.unwrap_or_else(|| text.lines().collect::<Vec<_>>().join(" "))
+}
 
 impl Directive {
     /// Parses one meta entry. Returns `None` when the key isn't a directive or the value
@@ -148,7 +160,7 @@ impl Directive {
                         return Err(InvalidRegex {
                             key: key.to_string(),
                             pattern,
-                            error: e.to_string(),
+                            error: one_line(&e),
                         });
                     }
                 }

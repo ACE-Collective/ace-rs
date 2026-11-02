@@ -2,15 +2,23 @@
 
 use yara_x::MetaValue as XMetaValue;
 
-/// One meta value. YARA meta values are strings, integers, floats or booleans; yara-x
-/// returns a string with an escape that isn't valid UTF-8 as bytes.
+/// One meta value: a string, an integer, a float or a boolean.
 #[derive(Debug, Clone, PartialEq)]
 pub enum MetaValue {
     Str(String),
-    Bytes(Vec<u8>),
     Int(i64),
     Float(f64),
     Bool(bool),
+}
+
+/// A meta string as yara-python returns it. libyara keeps the string as a C string, so it ends
+/// at the first NUL, and yara-python decodes it as UTF-8 with invalid bytes dropped.
+fn python_string(bytes: &[u8]) -> String {
+    let end = bytes.iter().position(|&b| b == 0).unwrap_or(bytes.len());
+    bytes[..end]
+        .utf8_chunks()
+        .map(|chunk| chunk.valid())
+        .collect()
 }
 
 /// A rule's meta, keyed the way yara-python's `rule.meta` dict is: when a key repeats, the
@@ -32,14 +40,16 @@ impl Meta {
         meta
     }
 
+    /// yara-x returns any string with an escape sequence in it as bytes, valid UTF-8 or not, so
+    /// both kinds become the string yara-python would return.
     pub(crate) fn from_yara_x(metadata: yara_x::Metadata<'_, '_>) -> Self {
         Self::from_pairs(metadata.map(|(key, value)| {
             let value = match value {
                 XMetaValue::Integer(i) => MetaValue::Int(i),
                 XMetaValue::Float(f) => MetaValue::Float(f),
                 XMetaValue::Bool(b) => MetaValue::Bool(b),
-                XMetaValue::String(s) => MetaValue::Str(s.to_string()),
-                XMetaValue::Bytes(b) => MetaValue::Bytes(b.to_vec()),
+                XMetaValue::String(s) => MetaValue::Str(python_string(s.as_bytes())),
+                XMetaValue::Bytes(b) => MetaValue::Str(python_string(b)),
             };
             (key, value)
         }))
@@ -77,5 +87,28 @@ mod tests {
                 ("n", &MetaValue::Int(5))
             ]
         );
+    }
+
+    #[test]
+    fn strings_with_escapes_read_as_yara_python_reads_them() {
+        // yara-python 4.5.4 in ace3's dev container reads this meta as
+        // {'e': 'AB', 'f': 'a\\b', 'g': '', 'plain': 'x', 're': 're:.*\\.doc$', 'n': -2}.
+        let rules = yara_x::compile(
+            r#"rule a { meta: e = "\x41\xff\x42" f = "a\\b" g = "\x00x" plain = "x"
+               re = "re:.*\\.doc$" n = -2 condition: true }"#,
+        )
+        .unwrap();
+        let rule = rules.iter().next().unwrap();
+        let meta = Meta::from_yara_x(rule.metadata());
+        let str_of = |key| match meta.get(key) {
+            Some(MetaValue::Str(s)) => s.clone(),
+            other => panic!("{key}: {other:?}"),
+        };
+        assert_eq!(str_of("e"), "AB");
+        assert_eq!(str_of("f"), r"a\b");
+        assert_eq!(str_of("g"), "");
+        assert_eq!(str_of("plain"), "x");
+        assert_eq!(str_of("re"), r"re:.*\.doc$");
+        assert_eq!(meta.get("n"), Some(&MetaValue::Int(-2)));
     }
 }

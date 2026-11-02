@@ -8,16 +8,23 @@
 //! - The files that are left then compile together. If they don't, nothing loads, as in ace3,
 //!   where the yara service keeps its previous generation.
 //!
-//! One deliberate difference: ace3 reads a rule file before its `try`, so a file that isn't
-//! UTF-8 fails the whole load there. Here it is one more file that is left out.
+//! Two deliberate differences:
+//!
+//! - Every `re:` item in a rule's filter directives compiles with the regex crate while the
+//!   file compiles alone, and a file with one that doesn't is left out like a file YARA
+//!   rejects. ace3 compiles them with Python's `re` at scan time, where a bad pattern fails
+//!   the scan, and only when the directives before it let the match through.
+//! - ace3 reads a rule file before its `try`, so a file that isn't UTF-8 fails the whole load
+//!   there. Here it is one more file that is left out.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, HashMap};
 use std::fmt;
 use std::io;
 use std::path::{Path, PathBuf};
 
 use yara_x::{Compiler, SourceCode};
 
+use crate::filter::RuleFilter;
 use crate::meta::Meta;
 
 /// The external variables yara_scanner_v2 defines for every rule (`DEFAULT_YARA_EXTERNALS`),
@@ -102,10 +109,12 @@ impl FileReport {
     }
 }
 
-/// Compiled rules and the blacklist they are scanned with.
+/// Compiled rules, with the blacklist and each rule's filter directives, compiled once.
 pub struct Ruleset {
     pub(crate) rules: yara_x::Rules,
     pub(crate) blacklist: BTreeSet<String>,
+    /// Keyed by (namespace, rule name).
+    pub(crate) filters: HashMap<(String, String), RuleFilter>,
 }
 
 impl Ruleset {
@@ -115,6 +124,11 @@ impl Ruleset {
 
     pub fn is_blacklisted(&self, rule: &str) -> bool {
         self.blacklist.contains(rule)
+    }
+
+    /// The rule's filter directives. Every rule in the ruleset has an entry.
+    pub fn filter(&self, namespace: &str, rule: &str) -> Option<&RuleFilter> {
+        self.filters.get(&(namespace.to_string(), rule.to_string()))
     }
 }
 
@@ -181,6 +195,7 @@ pub fn load_dir(signature_dir: &Path, options: &LoadOptions) -> Result<Loaded, L
 /// Compiles the given namespaces: each file alone, then the files that compiled together.
 pub fn compile(namespaces: &[Namespace], options: &LoadOptions) -> Result<Loaded, LoadError> {
     let mut files = Vec::new();
+    let mut filters = HashMap::new();
     // Each namespace with the (path, source) of each file that compiled alone.
     type Sources = Vec<(PathBuf, Vec<u8>)>;
     let mut survivors: Vec<(&Namespace, Sources)> = Vec::new();
@@ -189,9 +204,12 @@ pub fn compile(namespaces: &[Namespace], options: &LoadOptions) -> Result<Loaded
         let mut sources = Vec::new();
         for path in &namespace.files {
             let outcome = match compile_file(namespace, path) {
-                Ok((source, rules)) => {
-                    sources.push((path.clone(), source));
-                    FileOutcome::Included { rules }
+                Ok(file) => {
+                    sources.push((path.clone(), file.source));
+                    for (rule, filter) in file.rules.iter().zip(file.filters) {
+                        filters.insert((rule.namespace.clone(), rule.name.clone()), filter);
+                    }
+                    FileOutcome::Included { rules: file.rules }
                 }
                 Err(error) => {
                     tracing::error!(
@@ -232,6 +250,7 @@ pub fn compile(namespaces: &[Namespace], options: &LoadOptions) -> Result<Loaded
         ruleset: Ruleset {
             rules,
             blacklist: options.blacklist.clone(),
+            filters,
         },
         files,
         warnings,
@@ -253,9 +272,16 @@ fn source_code<'a>(path: &Path, source: &'a [u8]) -> SourceCode<'a> {
     SourceCode::from(source).with_origin(path.display().to_string())
 }
 
-/// Compiles one file alone, as yara_scanner_v2 does before compiling the files together.
-/// Returns the file's source and the rules in it, or why it is left out.
-fn compile_file(namespace: &Namespace, path: &Path) -> Result<(Vec<u8>, Vec<RuleInfo>), String> {
+/// A file that compiled alone: its source, and its rules each with its filter.
+struct CompiledFile {
+    source: Vec<u8>,
+    rules: Vec<RuleInfo>,
+    filters: Vec<RuleFilter>,
+}
+
+/// Compiles one file alone, as yara_scanner_v2 does before compiling the files together, and
+/// compiles each rule's filter directives. Returns why the file is left out if either fails.
+fn compile_file(namespace: &Namespace, path: &Path) -> Result<CompiledFile, String> {
     let source = std::fs::read(path).map_err(|e| format!("unable to read the file: {e}"))?;
 
     let mut compiler = new_compiler();
@@ -265,17 +291,25 @@ fn compile_file(namespace: &Namespace, path: &Path) -> Result<(Vec<u8>, Vec<Rule
         .add_source(source_code(path, &source))
         .map_err(|e| e.to_string())?;
 
-    let rules = compiler.build();
-    let infos = rules
-        .iter()
-        .map(|rule| RuleInfo {
+    let mut rules = Vec::new();
+    let mut filters = Vec::new();
+    for rule in compiler.build().iter() {
+        let info = RuleInfo {
             namespace: namespace.name.clone(),
             name: rule.identifier().to_string(),
             meta: Meta::from_yara_x(rule.metadata()),
             tags: rule.tags().map(|t| t.identifier().to_string()).collect(),
             private: rule.is_private(),
             global: rule.is_global(),
-        })
-        .collect();
-    Ok((source, infos))
+        };
+        let filter =
+            RuleFilter::from_meta(&info.meta).map_err(|e| format!("rule {}: {e}", info.name))?;
+        rules.push(info);
+        filters.push(filter);
+    }
+    Ok(CompiledFile {
+        source,
+        rules,
+        filters,
+    })
 }
