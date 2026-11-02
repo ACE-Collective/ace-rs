@@ -10,6 +10,7 @@
 pub mod filter;
 pub mod load;
 pub mod meta;
+pub mod mime;
 pub mod rule_meta;
 pub mod ruleset;
 pub mod scan;
