@@ -1,0 +1,21 @@
+[package]
+name = "ace-pool"
+version = "0.1.0"
+description = "The pool runtime: lease loop, task supervisor and containment"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+ace-sdk = { path = "../ace-sdk" }
+# The Landlock maintainers' own bindings.
+landlock = "0.4.7"
+libc = "0.2.191"
+thiserror = "2.0.21"
+
+[dev-dependencies]
+tempfile = "3.27.0"
+
+[lints]
+workspace = true
