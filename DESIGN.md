@@ -174,6 +174,7 @@ tokio, axum, sqlx, `tracing` with OpenTelemetry, and rustls. ACE's uptime rule t
 
 Each module ships a manifest with its input types, output schema, resources, sandbox, settings and the secrets it needs. Site config is a small YAML overlay deserialized with `deny_unknown_fields`, so unknown keys fail.
 
+- A module can run as several named instances declared in the overlay, each with its own inputs and settings, as ace3's `analysis_module_*` sections run many Splunk queries on one class.
 - A process resolves only the secrets its pool declares (#1009).
 - A removed module named in an overlay logs a warning instead of stopping startup ([#901](https://github.com/ACE-Collective/ace3/issues/901), [#916](https://github.com/ACE-Collective/ace3/issues/916)).
 - Lists analysts edit at runtime, such as whitelists and suppressions, live in the database behind the API with an audit record ([#1063](https://github.com/ACE-Collective/ace3/issues/1063)).
@@ -198,7 +199,7 @@ A page that needs real client-side interaction, such as an observable relationsh
 
 ace3 loads integrations at run time as Python packages cloned into [`ace3/integrations/`](../ace3/integrations/), and each one runs registration hooks when it is imported ([#1031](https://github.com/ACE-Collective/ace3/issues/1031)). site_ace is one of them. It is its own repository, ignored by ace3's git, and holds the journal email collector and the a mail API, EndpointVendor (with LogScale), Rapid7, VirusTotal, ExampleSandbox, ExampleCloud and intel feed integrations.
 
-In the rebuild an integration is a set of crates in its own repository. An `ace-app` crate builds the `ace` binary and each pool binary from a list of crates. The open-source binaries call it with the open-source crates, and a site repository calls it with those crates, pinned by tag, plus its own. The list takes what an ace3 integration can add today ([`ace3/docs/INTEGRATIONS.md`](../ace3/docs/INTEGRATIONS.md)): analysis modules, collectors, hunt query sources and command types, alert routers, API routes, alert toolbar buttons, alert page cards and templates. The site's CI also builds against the open-source main branch, so a breaking change shows up before a tag.
+In the rebuild an integration is a set of crates in its own repository. An `ace-app` crate builds the `ace` binary and each pool binary from a list of crates. The open-source binaries call it with the open-source crates, and a site repository calls it with those crates, pinned by tag, plus its own. The list takes analysis modules, collectors, hunt query sources and command types, alert routers, API routes, alert toolbar buttons, observable actions, alert page cards and templates, which is what an ace3 integration can add today ([`ace3/docs/INTEGRATIONS.md`](../ace3/docs/INTEGRATIONS.md)). It also takes observable types. ace3 accepts any type name it doesn't know through a generic `DefaultObservable` class, but the rebuild's types are a fixed list, so a site's types join that list when its binary is built. The site's CI also builds against the open-source main branch, so a breaking change shows up before a tag.
 
 ## Deployment with Docker Compose
 
