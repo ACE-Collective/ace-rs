@@ -1,0 +1,31 @@
+# Formatting, lints, tests and the layering check on every push (PLAN.md 0.3 and 0.4).
+name: ci
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  rust:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install the toolchain that rust-toolchain.toml pins
+        run: rustup toolchain install
+
+      - name: cargo fmt
+        run: cargo fmt --all --check
+
+      - name: cargo clippy
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+
+      - name: cargo test
+        run: cargo test --workspace --locked
+
+      # Fails when ace-results, ace-api, ace-gui or ace-search depends on an ace-mod-* crate.
+      - name: Layering check
+        run: cargo run --locked --quiet -p ace-layering

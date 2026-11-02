@@ -1,0 +1,184 @@
+#!/usr/bin/env python3
+"""Checks that ace4's Compose stack can run beside ace3's on one Docker host.
+
+Reads `docker compose config --format json` and fails on anything PLAN.md's
+"Running beside ace3" rules out:
+
+- the project name `ace`, which is ace3's
+- a published host port in ace3's fixed list, or one not set from an ACE4_ variable
+- an image name that ace3 builds, or an image ace4 builds that isn't named ace4-*
+- a container_name
+- an explicitly named or external volume or network
+- the fluentd log driver
+
+Usage: bin/check-coexistence [docker compose options]
+
+With no options it checks compose.yaml at the root of the checkout this script is in.
+Options such as `-f other.yaml` go to `docker compose` in its place. Every profile is
+included, so a service behind a profile is checked too.
+
+Exits 0 when the stack passes, 1 when it breaks a rule, and 2 when Compose fails.
+"""
+
+import json
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+ACE3_PROJECT = "ace"
+# ace3's fixed host ports (ace3/docs/MULTI_INSTANCE.md). Extra ace3 instances shift them
+# by an offset, which this check can't know.
+ACE3_PORTS = {5000, 5001, 8443, 9443, 24224}
+# The images ace3's own docker compose build produces.
+ACE3_IMAGES = {"ace3", "phishkit", "phishkit-manager", "js-deobfuscator", "js-deobfuscator-manager"}
+ACE4_IMAGE_PREFIX = "ace4-"
+# A project name no real stack uses. Rendering under it shows which volume and network
+# names Compose derives from the project name and which are fixed.
+PROBE_PROJECT = "ace4-coexistence-probe"
+# A published port that comes from one ACE4_ variable, such as ${ACE4_PORT_HTTPS:-7443}.
+ACE4_VARIABLE = re.compile(r"^\$\{?ACE4_[A-Z0-9_]*(:?-[^}]*)?\}?$")
+VARIABLE = re.compile(r"\$\{[^}]*\}|\$[A-Za-z_][A-Za-z0-9_]*")
+
+
+class ComposeError(Exception):
+    pass
+
+
+def compose_config(compose_args, project=None, interpolate=True):
+    """Runs `docker compose ... config --format json` and returns the parsed model."""
+    command = ["docker", "compose", *compose_args, "--profile", "*"]
+    if project:
+        command += ["--project-name", project]
+    command += ["config", "--format", "json"]
+    if not interpolate:
+        command.append("--no-interpolate")
+    result = subprocess.run(command, capture_output=True, text=True)
+    if result.returncode != 0:
+        raise ComposeError(f"{' '.join(command)} failed:\n{result.stderr.strip()}")
+    return json.loads(result.stdout)
+
+
+def published_ports(published):
+    """Expands a published value such as "7443" or "7000-7002" to port numbers."""
+    low, _, high = str(published).partition("-")
+    return range(int(low), int(high or low) + 1)
+
+
+def raw_published(port):
+    """Returns the host port part of an uninterpolated port entry, or "" if there is none."""
+    if isinstance(port, dict):
+        return str(port.get("published") or "")
+    # Hide variables, whose defaults may hold colons, before splitting
+    # [HOST_IP:][HOST_PORT:]CONTAINER_PORT[/PROTOCOL].
+    variables = []
+
+    def hide(match):
+        variables.append(match.group(0))
+        return f"\0{len(variables) - 1}\0"
+
+    parts = VARIABLE.sub(hide, str(port)).split(":")
+    host_port = parts[-2] if len(parts) >= 2 else ""
+    return re.sub(r"\0(\d+)\0", lambda m: variables[int(m.group(1))], host_port)
+
+
+def image_name(image):
+    """Strips the registry, tag and digest: docker.io/library/ace3:latest becomes ace3."""
+    name = image.split("@", 1)[0]
+    last = name.rsplit("/", 1)[-1]
+    if ":" in last:
+        name = name[: len(name) - len(last) + last.index(":")]
+    for prefix in ("docker.io/", "library/"):
+        name = name.removeprefix(prefix)
+    return name
+
+
+def check(config, raw, probe):
+    """Returns one message per rule the stack breaks."""
+    problems = []
+    if config.get("name") == ACE3_PROJECT:
+        problems.append(
+            f"the project name is {ACE3_PROJECT!r}, which is ace3's; set ACE4_STACK and "
+            "unset COMPOSE_PROJECT_NAME"
+        )
+
+    for service_name, service in sorted(config.get("services", {}).items()):
+        where = f"service {service_name}"
+
+        for port in service.get("ports", []):
+            published = port.get("published")
+            if published and ACE3_PORTS.intersection(published_ports(published)):
+                problems.append(
+                    f"{where}: host port {published} is one of ace3's fixed ports "
+                    f"{sorted(ACE3_PORTS)}"
+                )
+        raw_service = raw.get("services", {}).get(service_name, {})
+        for port in raw_service.get("ports", []):
+            host_port = raw_published(port)
+            if host_port and not ACE4_VARIABLE.match(host_port):
+                problems.append(
+                    f"{where}: host port {host_port!r} is not set from an ACE4_ variable; "
+                    "publish on an ephemeral port or use ${ACE4_PORT_...}"
+                )
+
+        image = service.get("image")
+        if image and image_name(image) in ACE3_IMAGES:
+            problems.append(f"{where}: image {image!r} has a name that ace3 builds")
+        if "build" in service and not (image and image_name(image).startswith(ACE4_IMAGE_PREFIX)):
+            problems.append(
+                f"{where}: an image ace4 builds must be named {ACE4_IMAGE_PREFIX}*, "
+                f"not {image!r}"
+            )
+
+        if "container_name" in service:
+            problems.append(
+                f"{where}: container_name {service['container_name']!r} is set; let Compose "
+                "derive it from the project name"
+            )
+
+        driver = service.get("logging", {}).get("driver")
+        if driver == "fluentd":
+            problems.append(
+                f"{where}: the fluentd log driver needs a fixed host port, and ace3 holds 24224"
+            )
+
+    for kind in ("volumes", "networks"):
+        for key, item in sorted(probe.get(kind, {}).items()):
+            what = f"{kind[:-1]} {key}"
+            if item.get("external"):
+                problems.append(
+                    f"{what} is external; ace4 uses only volumes and networks its own "
+                    "project creates"
+                )
+            elif item.get("name") != f"{PROBE_PROJECT}_{key}":
+                problems.append(
+                    f"{what} has the fixed name {item.get('name')!r}; remove its name: so "
+                    "Compose derives it from the project name"
+                )
+    return problems
+
+
+def main(argv):
+    compose_args = argv or ["-f", str(Path(__file__).resolve().parent.parent / "compose.yaml")]
+    try:
+        config = compose_config(compose_args)
+        raw = compose_config(compose_args, interpolate=False)
+        probe = compose_config(compose_args, project=PROBE_PROJECT)
+    except ComposeError as error:
+        print(f"check-coexistence: {error}", file=sys.stderr)
+        return 2
+
+    problems = check(config, raw, probe)
+    for problem in problems:
+        print(f"check-coexistence: {problem}", file=sys.stderr)
+    if problems:
+        return 1
+    print(
+        f"check-coexistence: project {config.get('name')!r} with "
+        f"{len(config.get('services', {}))} services can run beside ace3"
+    )
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

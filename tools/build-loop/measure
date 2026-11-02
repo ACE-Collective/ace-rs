@@ -1,0 +1,123 @@
+#!/usr/bin/env bash
+#
+# Times the build loop for PLAN.md steps 0.5 and 1.31.
+#
+# Every run times the same command, `cargo test --workspace --no-run --frozen`, which
+# ends with runnable test binaries. Four series of RUNS runs each:
+#   clean-cold  after `cargo clean`, with sccache's cache emptied first
+#   clean-warm  after `cargo clean`, with sccache's cache kept from the run before
+#   noop        with nothing changed since the last build
+#   edit        after rewriting the one line `pub const EDIT_MARKER: u32 = N;` in LEAF_FILE
+#
+# Dependencies are fetched before the first run, so no run includes downloads. sccache
+# runs with its own cache directory under $SCCACHE_DIR, so emptying it leaves the dev
+# container's cache alone. Each run records its exit status, how many crates cargo
+# compiled and sccache's hits and misses, so a number that came from an error, a cache or
+# skipped work shows up beside it.
+#
+# Usage: tools/build-loop/measure WORKSPACE LEAF_FILE OUT_DIR [RUNS]
+# Writes OUT_DIR/runs.tsv, one cargo log per run, and prints a summary.
+
+set -uo pipefail
+
+if [ $# -lt 3 ] || [ $# -gt 4 ]; then
+    echo "usage: $0 WORKSPACE LEAF_FILE OUT_DIR [RUNS]" >&2
+    exit 2
+fi
+workspace=$(cd "$1" && pwd)
+leaf_file=$(cd "$(dirname "$2")" && pwd)/$(basename "$2")
+out_dir=$3
+runs=${4:-5}
+here=$(cd "$(dirname "$0")" && pwd)
+
+mkdir -p "$out_dir"
+out_dir=$(cd "$out_dir" && pwd)
+grep -q '^pub const EDIT_MARKER: u32 = [0-9]*;$' "$leaf_file" || {
+    echo "$leaf_file has no 'pub const EDIT_MARKER: u32 = N;' line to edit" >&2
+    exit 2
+}
+
+use_sccache=no
+if [ "${RUSTC_WRAPPER:-}" = sccache ] || [ "$(basename "${RUSTC_WRAPPER:-}")" = sccache ]; then
+    use_sccache=yes
+    cache_dir=${SCCACHE_DIR:-$HOME/.cache/sccache}/build-loop
+fi
+
+restart_sccache() {
+    sccache --stop-server >/dev/null 2>&1 || true
+    if [ "$1" = empty ]; then
+        rm -rf "$cache_dir"
+    fi
+    mkdir -p "$cache_dir"
+    SCCACHE_DIR=$cache_dir sccache --start-server >/dev/null
+}
+
+sccache_counts() {
+    # Prints "hits misses not_cacheable" since the last zero.
+    if [ "$use_sccache" = no ]; then
+        echo "- - -"
+        return
+    fi
+    sccache --show-stats --stats-format json | python3 -c '
+import json, sys
+s = json.load(sys.stdin)["stats"]
+hits = sum(s["cache_hits"]["counts"].values())
+misses = sum(s["cache_misses"]["counts"].values())
+print(hits, misses, sum(s["not_cached"].values()))'
+}
+
+{
+    echo "# command: cargo test --workspace --no-run --frozen"
+    echo "# workspace: $workspace"
+    echo "# date: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    echo "# host: $(uname -srm), $(nproc) CPUs, $(awk '/MemTotal/ {printf "%.1f GB", $2/1048576}' /proc/meminfo)"
+    echo "# rustc: $(rustc --version)"
+    echo "# linker: ${CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_RUSTFLAGS:-${CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUSTFLAGS:-default}}"
+    echo "# sccache: $use_sccache $(sccache --version 2>/dev/null)"
+    printf 'series\trun\tseconds\texit\tcompiled\tsccache_hits\tsccache_misses\tsccache_not_cached\n'
+} > "$out_dir/runs.tsv"
+
+cd "$workspace"
+echo "fetching dependencies (not timed)"
+cargo fetch >"$out_dir/fetch.log" 2>&1 || { echo "cargo fetch failed, see $out_dir/fetch.log" >&2; exit 1; }
+
+timed_build() {
+    local series=$1 run=$2 log="$out_dir/$1-$2.log"
+    [ "$use_sccache" = yes ] && sccache --zero-stats >/dev/null
+    local start end status
+    start=$(date +%s.%N)
+    cargo test --workspace --no-run --frozen >"$log" 2>&1
+    status=$?
+    end=$(date +%s.%N)
+    local seconds compiled
+    seconds=$(python3 -c "print(f'{$end - $start:.2f}')")
+    compiled=$(grep -cE '^\s+Compiling ' "$log")
+    printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$series" "$run" "$seconds" "$status" "$compiled" \
+        "$(sccache_counts | tr ' ' '\t')" >> "$out_dir/runs.tsv"
+    echo "$series $run: ${seconds}s exit $status, compiled $compiled crates"
+}
+
+for run in $(seq 1 "$runs"); do
+    cargo clean >/dev/null 2>&1
+    [ "$use_sccache" = yes ] && restart_sccache empty
+    timed_build clean-cold "$run"
+done
+
+[ "$use_sccache" = yes ] && restart_sccache keep
+for run in $(seq 1 "$runs"); do
+    cargo clean >/dev/null 2>&1
+    timed_build clean-warm "$run"
+done
+
+for run in $(seq 1 "$runs"); do
+    timed_build noop "$run"
+done
+
+for run in $(seq 1 "$runs"); do
+    sed -i "s/^pub const EDIT_MARKER: u32 = [0-9]*;$/pub const EDIT_MARKER: u32 = $run;/" "$leaf_file"
+    timed_build edit "$run"
+done
+sed -i 's/^pub const EDIT_MARKER: u32 = [0-9]*;$/pub const EDIT_MARKER: u32 = 0;/' "$leaf_file"
+
+[ "$use_sccache" = yes ] && sccache --stop-server >/dev/null 2>&1
+python3 "$here/summarize.py" "$out_dir/runs.tsv"

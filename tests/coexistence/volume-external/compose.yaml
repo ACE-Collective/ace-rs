@@ -1,0 +1,9 @@
+name: ace4
+services:
+  web:
+    image: alpine:3.24.2
+    volumes:
+      - ace_data:/data
+volumes:
+  ace_data:
+    external: true

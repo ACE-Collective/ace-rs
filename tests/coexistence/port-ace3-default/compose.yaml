@@ -1,0 +1,6 @@
+name: ace4
+services:
+  web:
+    image: alpine:3.24.2
+    ports:
+      - "${ACE4_PORT_HTTPS:-8443}:443"

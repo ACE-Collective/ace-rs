@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+#
+# Tests bin/check-coexistence. Each directory here holds a compose.yaml. The one named
+# pass must pass. Every other one breaks one rule and must fail with the text in its
+# expect file.
+
+set -uo pipefail
+
+here=$(cd "$(dirname "$0")" && pwd)
+check="$here/../../bin/check-coexistence"
+failures=0
+
+for dir in "$here"/*/; do
+    case_name=$(basename "$dir")
+    output=$("$check" -f "$dir/compose.yaml" 2>&1)
+    status=$?
+    if [ "$case_name" = pass ]; then
+        if [ "$status" -ne 0 ]; then
+            echo "FAIL $case_name: expected exit 0, got $status"
+            echo "$output" | sed 's/^/    /'
+            failures=$((failures + 1))
+            continue
+        fi
+    else
+        expected=$(cat "$dir/expect")
+        if [ "$status" -ne 1 ] || ! grep -qF -- "$expected" <<<"$output"; then
+            echo "FAIL $case_name: expected exit 1 and \"$expected\", got exit $status"
+            echo "$output" | sed 's/^/    /'
+            failures=$((failures + 1))
+            continue
+        fi
+    fi
+    echo "ok   $case_name"
+done
+
+if [ "$failures" -ne 0 ]; then
+    echo "$failures case(s) failed"
+    exit 1
+fi

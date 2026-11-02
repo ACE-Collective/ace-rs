@@ -1,0 +1,762 @@
+{
+  "about": "The local sample set from PLAN.md step 0.8, written by tools/samples/gather. alert_path and meta_tags give the unit each file is scanned as: an email is the alert's root file email.rfc822 with no tags, and anything else is an email attachment at the alert's top level tagged type=email.attachment. Files under local/ aren't in git; rerun the script to make them.",
+  "ace3_commit": "141a60a2",
+  "required_kinds": [
+    "email",
+    "archive/zip",
+    "archive/7z",
+    "archive/rar",
+    "archive/password",
+    "pdf",
+    "office/macro",
+    "rtf"
+  ],
+  "gaps": [
+    "an encrypted RAR: making one needs RARLAB's non-free rar tool",
+    "a legacy .xls (BIFF8) with an Excel 4.0 macro sheet: nothing here writes one",
+    "PowerPoint and Excel files with VBA macros: ace3's tests hold Word ones only",
+    "an encrypted PDF: ace3's tests build theirs with pikepdf at test time"
+  ],
+  "samples": [
+    {
+      "path": "ace3/archive/dhl_report.ace",
+      "sha256": "2f3aaf99afb1f4ee8d3b7770fd4ed6df2896f811e8192b8f3f8fa128ec609fa9",
+      "size": 179265,
+      "kinds": [
+        "archive/ace"
+      ],
+      "source": "ace3 141a60a2: tests/saq/modules/test_file_analysis_full/ace/dhl_report.ace",
+      "in_git": true,
+      "alert_path": "dhl_report.ace",
+      "meta_tags": [
+        "type=email.attachment"
+      ],
+      "note": "WinACE, which ace3 extracts with unace"
+    },
+    {
+      "path": "ace3/archive/evil.zip",
+      "sha256": "2d507223962cab653edbbfb4b4efec226b0e07b81ba3f3f26f26e3a78146bf0a",
+      "size": 166,
+      "kinds": [
+        "archive/zip"
+      ],
+      "source": "ace3 141a60a2: tests/saq/modules/test_file_analysis/evil.zip",
+      "in_git": true,
+      "alert_path": "evil.zip",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace3/archive/malicious.jar",
+      "sha256": "e142fa9d8e6ec9e4b276ede91b8454182951d788d94823b8504ea2ad0ef7546f",
+      "size": 104338,
+      "kinds": [
+        "archive/zip",
+        "archive/jar"
+      ],
+      "source": "ace3 141a60a2: tests/saq/modules/test_file_analysis_full/jar/malicious.jar",
+      "in_git": true,
+      "alert_path": "malicious.jar",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace3/archive/over.7z",
+      "sha256": "8ea2de3451c69656305e2b7058441f122790ba2029edc5060f452917fb4a84d9",
+      "size": 275,
+      "kinds": [
+        "archive/7z"
+      ],
+      "source": "ace3 141a60a2: tests/saq/modules/test_file_analysis_full/7z/over.7z",
+      "in_git": true,
+      "alert_path": "over.7z",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace3/archive/test.jar",
+      "sha256": "dab3c61a52ee59a1876e8651f1ec84f3f1523c56c0c8b0404a51d2aaa23ffc9d",
+      "size": 703439,
+      "kinds": [
+        "archive/zip",
+        "archive/jar"
+      ],
+      "source": "ace3 141a60a2: tests/saq/modules/test_file_analysis_full/jar/test.jar",
+      "in_git": true,
+      "alert_path": "test.jar",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace3/archive/test.r07",
+      "sha256": "249bf2b232d17cc031423f125dfd1c8a9888a6ff3d686a0c04dc315f4a9517b9",
+      "size": 618043,
+      "kinds": [
+        "archive/rar"
+      ],
+      "source": "ace3 141a60a2: tests/saq/modules/test_file_analysis_full/rar/test.r07",
+      "in_git": true,
+      "alert_path": "test.r07",
+      "meta_tags": [
+        "type=email.attachment"
+      ],
+      "note": "RAR5, one member, not encrypted"
+    },
+    {
+      "path": "ace3/archive/test.zip",
+      "sha256": "1f0e8019d2bc4dadef1395af870b509adf4e8a226dee0fb7716cc5d8c3a4d147",
+      "size": 6734,
+      "kinds": [
+        "archive/zip"
+      ],
+      "source": "ace3 141a60a2: tests/saq/modules/test_file_analysis_full/zip/test.zip",
+      "in_git": true,
+      "alert_path": "test.zip",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace3/archive/too_many_files.jar",
+      "sha256": "cd9a2177f72f490842b0b84909f58b5548614a78ecd135ce28b833f93429e5a0",
+      "size": 1765873,
+      "kinds": [
+        "archive/zip",
+        "archive/jar"
+      ],
+      "source": "ace3 141a60a2: tests/saq/modules/test_file_analysis_full/jar/too_many_files.jar",
+      "in_git": true,
+      "alert_path": "too_many_files.jar",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace3/archive/under.7z",
+      "sha256": "78f3bd13c31a185a52c3a85a68045c0b89a6b6f2278b9066ef785ecb4a277f27",
+      "size": 155,
+      "kinds": [
+        "archive/7z"
+      ],
+      "source": "ace3 141a60a2: tests/saq/modules/test_file_analysis_full/7z/under.7z",
+      "in_git": true,
+      "alert_path": "under.7z",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace3/archive/zipped.jar",
+      "sha256": "fbee0b3554a7617e94dcc22e7eb17198ff0c66f10476ee3de62b23c9db75b3ba",
+      "size": 405,
+      "kinds": [
+        "archive/zip",
+        "archive/jar"
+      ],
+      "source": "ace3 141a60a2: tests/saq/modules/test_file_analysis/zipped.jar",
+      "in_git": true,
+      "alert_path": "zipped.jar",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace3/archive/zipped.zip",
+      "sha256": "77a82713ace45d9a500bad7c852113174467a9fb71caa653a1f93310cb3ffb60",
+      "size": 588,
+      "kinds": [
+        "archive/zip"
+      ],
+      "source": "ace3 141a60a2: tests/saq/modules/test_file_analysis/zipped.zip",
+      "in_git": true,
+      "alert_path": "zipped.zip",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace3/email/direct_send_spoof.email.rfc822",
+      "sha256": "1112b24335f68d1221335afa91ab09de34684825be51abf8abb90a36748ee61a",
+      "size": 1180,
+      "kinds": [
+        "email"
+      ],
+      "source": "ace3 141a60a2: tests/saq/modules/test_email/emails/direct_send_spoof.email.rfc822",
+      "in_git": true,
+      "alert_path": "email.rfc822",
+      "meta_tags": []
+    },
+    {
+      "path": "ace3/email/encoded_subject.email.rfc822",
+      "sha256": "fd6a8dabab9eac75144c14fcb540537e43a9a1e4524739362393be5bafeebe8f",
+      "size": 595,
+      "kinds": [
+        "email"
+      ],
+      "source": "ace3 141a60a2: tests/saq/modules/test_email/emails/encoded_subject.email.rfc822",
+      "in_git": true,
+      "alert_path": "email.rfc822",
+      "meta_tags": []
+    },
+    {
+      "path": "ace3/email/encrypted_msoffice.email.rfc822",
+      "sha256": "bfe786d76a1bdd92b7786b47ddae228f9b0c5fefcfdef656b689352b250dfc01",
+      "size": 97167,
+      "kinds": [
+        "email"
+      ],
+      "source": "ace3 141a60a2: tests/saq/modules/test_email/emails/encrypted_msoffice.email.rfc822",
+      "in_git": true,
+      "alert_path": "email.rfc822",
+      "meta_tags": []
+    },
+    {
+      "path": "ace3/email/extra_message_id.email.rfc822",
+      "sha256": "776c86f29ff3d002f0b5d4fe4bd52e0498836b5b433c9109a687f1f4f231d62e",
+      "size": 118384,
+      "kinds": [
+        "email"
+      ],
+      "source": "ace3 141a60a2: tests/saq/modules/test_email/emails/extra_message_id.email.rfc822",
+      "in_git": true,
+      "alert_path": "email.rfc822",
+      "meta_tags": []
+    },
+    {
+      "path": "ace3/email/multi_recipient_to_cc.email.rfc822",
+      "sha256": "47f097f12fd51dc19065770161789a17f621b1c1c131089c0cc5bdbf3b335dc9",
+      "size": 672,
+      "kinds": [
+        "email"
+      ],
+      "source": "ace3 141a60a2: tests/saq/modules/test_email/emails/multi_recipient_to_cc.email.rfc822",
+      "in_git": true,
+      "alert_path": "email.rfc822",
+      "meta_tags": []
+    },
+    {
+      "path": "ace3/email/multi_rfc2047_filename.email.rfc822",
+      "sha256": "319d73b463bb59113f0c71d76f621f9a2d233d3183b817ae7058dfbd5f01a6a1",
+      "size": 898,
+      "kinds": [
+        "email"
+      ],
+      "source": "ace3 141a60a2: tests/saq/modules/test_email/emails/multi_rfc2047_filename.email.rfc822",
+      "in_git": true,
+      "alert_path": "email.rfc822",
+      "meta_tags": []
+    },
+    {
+      "path": "ace3/email/nested_rfc822_bom.email.rfc822",
+      "sha256": "c5892b0b9c873f1f16d630785f3f0c38a70bf9c17ab9160640caca767e9702d2",
+      "size": 2023,
+      "kinds": [
+        "email"
+      ],
+      "source": "ace3 141a60a2: tests/saq/modules/test_email/emails/nested_rfc822_bom.email.rfc822",
+      "in_git": true,
+      "alert_path": "email.rfc822",
+      "meta_tags": []
+    },
+    {
+      "path": "ace3/email/nested_rfc822_pdf.email.rfc822",
+      "sha256": "058d47db0c96560355d331739f267395cb73fb4377aa22bb92cdfe77ff62592b",
+      "size": 2773,
+      "kinds": [
+        "email"
+      ],
+      "source": "ace3 141a60a2: tests/saq/modules/test_email/emails/nested_rfc822_pdf.email.rfc822",
+      "in_git": true,
+      "alert_path": "email.rfc822",
+      "meta_tags": []
+    },
+    {
+      "path": "ace3/email/o365_journaled.email.rfc822",
+      "sha256": "c09769d5f85a2ad6ec1e1cc8196b0c413fa45708faa54fdbc2644f31ed16a99d",
+      "size": 22712,
+      "kinds": [
+        "email"
+      ],
+      "source": "ace3 141a60a2: tests/saq/modules/test_email/emails/o365_journaled.email.rfc822",
+      "in_git": true,
+      "alert_path": "email.rfc822",
+      "meta_tags": []
+    },
+    {
+      "path": "ace3/email/o365_journaled_7bit_bom_meta.email.rfc822",
+      "sha256": "00892c0df0360d7b5bedd806470854672fc6030d63e0d2cd4ebf8f9a80352478",
+      "size": 2952,
+      "kinds": [
+        "email"
+      ],
+      "source": "ace3 141a60a2: tests/saq/modules/test_email/emails/o365_journaled_7bit_bom_meta.email.rfc822",
+      "in_git": true,
+      "alert_path": "email.rfc822",
+      "meta_tags": []
+    },
+    {
+      "path": "ace3/email/o365_journaled_expanded_rcpt.email.rfc822",
+      "sha256": "71040db1d86e00082b630459a94cb2913fb4ed06880fffdf58c275f98034cbb6",
+      "size": 22887,
+      "kinds": [
+        "email"
+      ],
+      "source": "ace3 141a60a2: tests/saq/modules/test_email/emails/o365_journaled_expanded_rcpt.email.rfc822",
+      "in_git": true,
+      "alert_path": "email.rfc822",
+      "meta_tags": []
+    },
+    {
+      "path": "ace3/email/o365_journaled_multi_rcpt.email.rfc822",
+      "sha256": "5c3eb4e952cf18ba0d854bfd9c8de548dbcbe56e6bc2d6cb945df173d43a4e26",
+      "size": 22782,
+      "kinds": [
+        "email"
+      ],
+      "source": "ace3 141a60a2: tests/saq/modules/test_email/emails/o365_journaled_multi_rcpt.email.rfc822",
+      "in_git": true,
+      "alert_path": "email.rfc822",
+      "meta_tags": []
+    },
+    {
+      "path": "ace3/email/o365_journaled_qp_meta.email.rfc822",
+      "sha256": "e2b8f8ac2e981223e21989167fad128f86e9eca90953b1db417c6c07a6fdf6b1",
+      "size": 2805,
+      "kinds": [
+        "email"
+      ],
+      "source": "ace3 141a60a2: tests/saq/modules/test_email/emails/o365_journaled_qp_meta.email.rfc822",
+      "in_git": true,
+      "alert_path": "email.rfc822",
+      "meta_tags": []
+    },
+    {
+      "path": "ace3/email/pdf_attachment.email.rfc822",
+      "sha256": "694b8f9f32e3c7fb62f5efa622b0f8b88c37893699599c1b4d28e6b39a931782",
+      "size": 250677,
+      "kinds": [
+        "email"
+      ],
+      "source": "ace3 141a60a2: tests/saq/modules/test_email/emails/pdf_attachment.email.rfc822",
+      "in_git": true,
+      "alert_path": "email.rfc822",
+      "meta_tags": []
+    },
+    {
+      "path": "ace3/email/sample_rfc822.in",
+      "sha256": "759f4eb6a31031c0af03b00d206725fce2e5d0fc13c8e7d3426d714477948bdf",
+      "size": 23406,
+      "kinds": [
+        "email"
+      ],
+      "source": "ace3 141a60a2: tests/saq/modules/test_file_analysis/sample_rfc822.in",
+      "in_git": true,
+      "alert_path": "email.rfc822",
+      "meta_tags": []
+    },
+    {
+      "path": "ace3/email/smtp.email.rfc822",
+      "sha256": "5d2569cdbe088294e456effabcfd8362108468f12deaf6464f95bc5400f85874",
+      "size": 16597,
+      "kinds": [
+        "email"
+      ],
+      "source": "ace3 141a60a2: tests/saq/modules/test_email/emails/smtp.email.rfc822",
+      "in_git": true,
+      "alert_path": "email.rfc822",
+      "meta_tags": []
+    },
+    {
+      "path": "ace3/email/splunk_logging.email.rfc822",
+      "sha256": "759f4eb6a31031c0af03b00d206725fce2e5d0fc13c8e7d3426d714477948bdf",
+      "size": 23406,
+      "kinds": [
+        "email"
+      ],
+      "source": "ace3 141a60a2: tests/saq/modules/test_email/emails/splunk_logging.email.rfc822",
+      "in_git": true,
+      "alert_path": "email.rfc822",
+      "meta_tags": []
+    },
+    {
+      "path": "ace3/office/DOC_PO_10142020EX.doc",
+      "sha256": "3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a",
+      "size": 132953,
+      "kinds": [
+        "office/macro",
+        "office/ole"
+      ],
+      "source": "ace3 141a60a2: tests/saq/modules/test_file_analysis_full/doc/DOC_PO_10142020EX.doc",
+      "in_git": true,
+      "alert_path": "DOC_PO_10142020EX.doc",
+      "meta_tags": [
+        "type=email.attachment"
+      ],
+      "note": "VBA"
+    },
+    {
+      "path": "ace3/office/Outstanding Invoices.doc",
+      "sha256": "e3b01e57c810dfdefc08e93b5131438d31ef4108834cfc11a6f6fd9b44a1f0ab",
+      "size": 139776,
+      "kinds": [
+        "office/macro",
+        "office/ole"
+      ],
+      "source": "ace3 141a60a2: tests/saq/modules/test_file_analysis_full/ole_files/Outstanding Invoices.doc",
+      "in_git": true,
+      "alert_path": "Outstanding Invoices.doc",
+      "meta_tags": [
+        "type=email.attachment"
+      ],
+      "note": "VBA"
+    },
+    {
+      "path": "ace3/office/Paid Invoice.doc",
+      "sha256": "fb9fc26235d7b3f7465a6da2d0a60ebf395785372d06a16c9f558b773b0b2c01",
+      "size": 134656,
+      "kinds": [
+        "office/macro",
+        "office/ole"
+      ],
+      "source": "ace3 141a60a2: tests/saq/modules/test_file_analysis_full/ole_files/Paid Invoice.doc",
+      "in_git": true,
+      "alert_path": "Paid Invoice.doc",
+      "meta_tags": [
+        "type=email.attachment"
+      ],
+      "note": "VBA"
+    },
+    {
+      "path": "ace3/office/Past Due Invoices.doc",
+      "sha256": "b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f",
+      "size": 143360,
+      "kinds": [
+        "office/macro",
+        "office/ole"
+      ],
+      "source": "ace3 141a60a2: tests/saq/modules/test_file_analysis_full/ole_files/Past Due Invoices.doc",
+      "in_git": true,
+      "alert_path": "Past Due Invoices.doc",
+      "meta_tags": [
+        "type=email.attachment"
+      ],
+      "note": "VBA"
+    },
+    {
+      "path": "ace3/office/demo.odt",
+      "sha256": "8495d37825dab8744f7d2c8049fc6b70b1777b9184f0abe69ce314795480ce39",
+      "size": 7668,
+      "kinds": [
+        "office/macro",
+        "office/odf"
+      ],
+      "source": "ace3 141a60a2: tests/saq/modules/test_file_analysis_full/openoffice/demo.odt",
+      "in_git": true,
+      "alert_path": "demo.odt",
+      "meta_tags": [
+        "type=email.attachment"
+      ],
+      "note": "OpenOffice Basic"
+    },
+    {
+      "path": "ace3/office/doc.doc",
+      "sha256": "80f5e4db83b6b9062f17b67460d80e257b315f83999eb570e11d78beab556add",
+      "size": 22528,
+      "kinds": [
+        "office/ole"
+      ],
+      "source": "ace3 141a60a2: tests/saq/modules/test_file_analysis/doc.doc",
+      "in_git": true,
+      "alert_path": "doc.doc",
+      "meta_tags": [
+        "type=email.attachment"
+      ],
+      "note": "no macros"
+    },
+    {
+      "path": "ace3/office/doc.docx",
+      "sha256": "6a65fb99c4c7ecb88273b7f1d49b00640de95cb682cb1a63df0c08764f0ef24d",
+      "size": 12529,
+      "kinds": [
+        "office/ooxml"
+      ],
+      "source": "ace3 141a60a2: tests/saq/modules/test_file_analysis/doc.docx",
+      "in_git": true,
+      "alert_path": "doc.docx",
+      "meta_tags": [
+        "type=email.attachment"
+      ],
+      "note": "no macros"
+    },
+    {
+      "path": "ace3/office/js_ole_obj.docx",
+      "sha256": "6955bbde3060e80da7cb2dc86cc8e363ee34003e6eb596fd067027de5da867cc",
+      "size": 61807,
+      "kinds": [
+        "office/ooxml"
+      ],
+      "source": "ace3 141a60a2: tests/saq/modules/test_file_analysis_full/docx/js_ole_obj.docx",
+      "in_git": true,
+      "alert_path": "js_ole_obj.docx",
+      "meta_tags": [
+        "type=email.attachment"
+      ],
+      "note": "embedded OLE objects, no macros"
+    },
+    {
+      "path": "ace3/office/mortgage_payment-0873821-0565.docm",
+      "sha256": "45cca7fd63944ca6b6ea4e4669078cf3520b3896956c183c9bfd0fb3d0bfaf4f",
+      "size": 73622,
+      "kinds": [
+        "office/macro",
+        "office/ooxml"
+      ],
+      "source": "ace3 141a60a2: tests/saq/modules/test_file_analysis_full/ole_files/mortgage_payment-0873821-0565.docm",
+      "in_git": true,
+      "alert_path": "mortgage_payment-0873821-0565.docm",
+      "meta_tags": [
+        "type=email.attachment"
+      ],
+      "note": "VBA in word/vbaProject.bin"
+    },
+    {
+      "path": "ace3/office/receipt_687790.doc",
+      "sha256": "a363fb24edce3162326238d0152b99845d0dd0be53191183aad2ceba2d168a2a",
+      "size": 219648,
+      "kinds": [
+        "office/macro",
+        "office/ole"
+      ],
+      "source": "ace3 141a60a2: tests/saq/modules/test_file_analysis_full/ole_files/receipt_687790.doc",
+      "in_git": true,
+      "alert_path": "receipt_687790.doc",
+      "meta_tags": [
+        "type=email.attachment"
+      ],
+      "note": "VBA"
+    },
+    {
+      "path": "ace3/office/word2013_macro_stripped.doc",
+      "sha256": "1dff27c2897cd3d48c589166d8f33ae160c3d249c7456c0421aa9a0a6ed1e3c5",
+      "size": 28160,
+      "kinds": [
+        "office/macro",
+        "office/ole"
+      ],
+      "source": "ace3 141a60a2: tests/saq/modules/test_file_analysis_full/ole_files/word2013_macro_stripped.doc",
+      "in_git": true,
+      "alert_path": "word2013_macro_stripped.doc",
+      "meta_tags": [
+        "type=email.attachment"
+      ],
+      "note": "VBA project with its source stripped, so only the p-code is left"
+    },
+    {
+      "path": "ace3/pdf/718148a5712c1fec7b50acc89eee2aa0",
+      "sha256": "5b677d297fb862c2d223973697479ee53a91d03073b14556f421b3d74f136b9d",
+      "size": 283542,
+      "kinds": [
+        "pdf"
+      ],
+      "source": "ace3 141a60a2: tests/saq/test_mime_extractor/718148a5712c1fec7b50acc89eee2aa0",
+      "in_git": true,
+      "alert_path": "718148a5712c1fec7b50acc89eee2aa0",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace3/pdf/ComplaintApril_424256637.pdf",
+      "sha256": "f68ba01d524f39a2832632eeb77772feb30440d2dbbf92fc83de39494cff4076",
+      "size": 92914,
+      "kinds": [
+        "pdf"
+      ],
+      "source": "ace3 141a60a2: tests/saq/modules/test_file_analysis_full/pdf/ComplaintApril_424256637.pdf",
+      "in_git": true,
+      "alert_path": "ComplaintApril_424256637.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace3/pdf/Payment_Advice.pdf",
+      "sha256": "fa13c652534f9207beec811a50948860f5b3194aeae686fcdecac645fae65d15",
+      "size": 29664,
+      "kinds": [
+        "pdf"
+      ],
+      "source": "ace3 141a60a2: tests/saq/modules/test_file_analysis_full/pdf/Payment_Advice.pdf",
+      "in_git": true,
+      "alert_path": "Payment_Advice.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace3/pdf/sample_pdf_with_qr_code.pdf",
+      "sha256": "4efb0032a6de86d9c0dabc0d2814533aac30811ee40e433d26092eaf988ca110",
+      "size": 151801,
+      "kinds": [
+        "pdf"
+      ],
+      "source": "ace3 141a60a2: tests/saq/modules/test_file_analysis/sample_pdf_with_qr_code.pdf",
+      "in_git": true,
+      "alert_path": "sample_pdf_with_qr_code.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "local/archive/nested.zip",
+      "sha256": "49f5d35b7bdd85850e771564dabdd2dd45bfcf88c70feb72472a07cba8f2a5bd",
+      "size": 222,
+      "kinds": [
+        "archive/zip",
+        "archive/nested"
+      ],
+      "source": "made by tools/samples/gather: Python zipfile, a zip inside a zip holding one text file",
+      "in_git": false,
+      "alert_path": "nested.zip",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "local/archive/password-infected-aes256.zip",
+      "sha256": "a845ad33c7d667ed8cb41d79d92e4e0dd432a0d70688f2c2b3f45603ebe0a239",
+      "size": 241,
+      "kinds": [
+        "archive/zip",
+        "archive/password"
+      ],
+      "source": "made by tools/samples/gather: 7z, AES-256, password infected, one text member",
+      "in_git": false,
+      "alert_path": "password-infected-aes256.zip",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "local/archive/password-infected-headers.7z",
+      "sha256": "65dcea9d3a4f082b4af3591b317b2745582bdaae066558d167d4d899987904d3",
+      "size": 255,
+      "kinds": [
+        "archive/7z",
+        "archive/password"
+      ],
+      "source": "made by tools/samples/gather: 7z, password infected, member names encrypted too",
+      "in_git": false,
+      "alert_path": "password-infected-headers.7z",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "local/archive/password-infected.7z",
+      "sha256": "f65c10cb57bd74047ed353bbd3c3ce39b681fc5f2334f135399858bed268ee18",
+      "size": 194,
+      "kinds": [
+        "archive/7z",
+        "archive/password"
+      ],
+      "source": "made by tools/samples/gather: 7z, password infected, member names visible",
+      "in_git": false,
+      "alert_path": "password-infected.7z",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "local/archive/password-infected.zip",
+      "sha256": "67049b9aa12f0ce835fba99ba0c2fa5184067d868d23e170b95be8b98815b363",
+      "size": 203,
+      "kinds": [
+        "archive/zip",
+        "archive/password"
+      ],
+      "source": "made by tools/samples/gather: 7z, ZipCrypto, password infected, one text member",
+      "in_git": false,
+      "alert_path": "password-infected.zip",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "local/archive/zip-slip.zip",
+      "sha256": "e8381b6c3d2295771cde6ab11878226b757a95560cd1d6cecbd7c7e88f655d57",
+      "size": 280,
+      "kinds": [
+        "archive/zip",
+        "archive/path-traversal"
+      ],
+      "source": "made by tools/samples/gather: Python zipfile, a member named ../x beside a normal one",
+      "in_git": false,
+      "alert_path": "zip-slip.zip",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "local/email/encrypted_zip_password_in_body.email.rfc822",
+      "sha256": "9075f86486a8a1c09d3efa38334d7532c7561fb4fbfeb5f47a28e886890529c2",
+      "size": 841,
+      "kinds": [
+        "email",
+        "archive/password"
+      ],
+      "source": "made by tools/samples/gather: Python email, a zip encrypted with the password Secr3tPw, which the body gives",
+      "in_git": false,
+      "alert_path": "email.rfc822",
+      "meta_tags": []
+    },
+    {
+      "path": "local/office/invoice.xlsm",
+      "sha256": "07d430f63c363448ab0ff2b8cca02da59fcc09d3be421405b513421aa9fe0a44",
+      "size": 1727,
+      "kinds": [
+        "office/macro",
+        "office/ooxml"
+      ],
+      "source": "made by tools/samples/gather: Python zipfile, an Excel 4.0 (XLM) auto-open macro sheet",
+      "in_git": false,
+      "alert_path": "invoice.xlsm",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "local/rtf/document.rtf",
+      "sha256": "19aeb8172f8d0703224212c1eb31f7b9abde38ac115450b27bec4661b90c5ce5",
+      "size": 399,
+      "kinds": [
+        "rtf",
+        "rtf/ole-object"
+      ],
+      "source": "made by tools/samples/gather: an OLE1 Package object holding payload.exe, which is MZ and 64 NOPs",
+      "in_git": false,
+      "alert_path": "document.rtf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "local/rtf/plain.rtf",
+      "sha256": "dc0f6712c412938417a842065b9ed22080fa453a088ed6696b77f10db5cf0682",
+      "size": 63,
+      "kinds": [
+        "rtf"
+      ],
+      "source": "made by tools/samples/gather: text only, no objects",
+      "in_git": false,
+      "alert_path": "plain.rtf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    }
+  ]
+}

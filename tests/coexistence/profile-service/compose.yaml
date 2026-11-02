@@ -1,0 +1,9 @@
+# A service behind a profile is checked too.
+name: ace4
+services:
+  web:
+    image: alpine:3.24.2
+  extra:
+    image: alpine:3.24.2
+    profiles: [extra]
+    container_name: hidden

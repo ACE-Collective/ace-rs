@@ -1,0 +1,9 @@
+name: ace4
+services:
+  web:
+    image: alpine:3.24.2
+    volumes:
+      - data:/data
+volumes:
+  data:
+    name: ace4_data

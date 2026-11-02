@@ -1,0 +1,5 @@
+[toolchain]
+# Keep in step with the base image in docker/dev/Dockerfile.
+channel = "1.99.1"
+profile = "minimal"
+components = ["clippy", "rustfmt"]

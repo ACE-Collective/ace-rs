@@ -1,0 +1,46 @@
+# PLAN.md 0.5 on CI's Linux runner: the build-loop spike, measured inside the dev image so
+# the toolchain, mold and sccache match the dev container. Run it by hand from the Actions
+# tab and copy the summary into docs/measurements/build-loop.md.
+name: build-loop
+
+on:
+  workflow_dispatch:
+    inputs:
+      runs:
+        description: Runs per series
+        default: "5"
+
+permissions:
+  contents: read
+
+jobs:
+  spike:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Build the dev image
+        run: docker build -t ace4-dev:ci docker/dev
+
+      - name: Measure the spike
+        env:
+          RUNS: ${{ inputs.runs }}
+        run: |
+          docker run --rm -v "$PWD:/workspace" -w /workspace \
+            -e CARGO_TARGET_DIR=/workspace/target/build-loop-spike -e RUNS \
+            ace4-dev:ci bash -c '
+              tools/build-loop/make-spike spike-build-loop &&
+              tools/build-loop/measure spike-build-loop spike-build-loop/spike-leaf/src/lib.rs \
+                target/build-loop-results "$RUNS"'
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo '```'
+            grep '^#' target/build-loop-results/runs.tsv
+            echo '```'
+            python3 tools/build-loop/summarize.py target/build-loop-results/runs.tsv
+          } >> "$GITHUB_STEP_SUMMARY"
+          cat target/build-loop-results/runs.tsv

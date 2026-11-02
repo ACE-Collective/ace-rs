@@ -1,0 +1,6 @@
+name: ace4
+services:
+  web:
+    image: alpine:3.24.2
+    ports:
+      - "127.0.0.1:7443:443"

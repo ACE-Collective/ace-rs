@@ -1,0 +1,167 @@
+#!/usr/bin/env bash
+#
+# Writes PLAN.md step 0.5's throwaway workspace into DIR, which must not exist yet.
+#
+# The spike is its own Cargo workspace, outside ace4's members, with two crates:
+#   spike-deps  uses tokio, axum, sqlx, askama, the AWS S3 SDK and yara-x once each
+#   spike-leaf  depends on spike-deps and has the test whose binary the edit loop builds
+# measure edits one line in spike-leaf. Delete DIR when the numbers are recorded.
+#
+# Usage: tools/build-loop/make-spike DIR
+
+set -euo pipefail
+
+if [ $# -ne 1 ]; then
+    echo "usage: $0 DIR" >&2
+    exit 2
+fi
+dir=$1
+if [ -e "$dir" ]; then
+    echo "$dir already exists" >&2
+    exit 1
+fi
+mkdir -p "$dir/spike-deps/src" "$dir/spike-leaf/src"
+
+cat > "$dir/Cargo.toml" <<'EOF'
+[workspace]
+resolver = "3"
+members = ["spike-deps", "spike-leaf"]
+EOF
+
+cat > "$dir/spike-deps/Cargo.toml" <<'EOF'
+[package]
+name = "spike-deps"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+askama = "0.16.1"
+aws-sdk-s3 = "1.156.0"
+axum = "0.8.9"
+sqlx = { version = "0.9.0", default-features = false, features = ["runtime-tokio", "tls-rustls-aws-lc-rs", "postgres", "macros", "derive", "migrate"] }
+tokio = { version = "1.54.1", features = ["rt-multi-thread", "macros", "net", "time"] }
+yara-x = "1.22.1"
+EOF
+
+cat > "$dir/spike-deps/src/lib.rs" <<'EOF'
+//! Uses each heavy dependency once, so a binary that calls `exercise` links all of them.
+//! With `network` false nothing leaves the process, but the network paths still link.
+
+use askama::Template;
+use aws_sdk_s3::config::{BehaviorVersion, Credentials, Region};
+use axum::{Router, routing::get};
+
+#[derive(Template)]
+#[template(source = "rule {{ name }} matched {{ count }} times", ext = "txt")]
+struct Summary<'a> {
+    name: &'a str,
+    count: usize,
+}
+
+#[derive(sqlx::FromRow)]
+pub struct Row {
+    pub n: i32,
+}
+
+/// What `exercise` saw, so a test can check that each library ran.
+pub struct Report {
+    pub yara_matches: usize,
+    pub summary: String,
+    pub bound_port: u16,
+}
+
+pub fn exercise(network: bool) -> Report {
+    let runtime = tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()
+        .expect("tokio runtime");
+    runtime.block_on(async move {
+        // yara-x: compile one rule and scan a buffer.
+        let rules = yara_x::compile(r#"rule spike { strings: $a = "malware" condition: $a }"#)
+            .expect("rule compiles");
+        let mut scanner = yara_x::Scanner::new(&rules);
+        let yara_matches = scanner
+            .scan(b"this is not malware")
+            .expect("scan")
+            .matching_rules()
+            .len();
+
+        // askama: render a template.
+        let summary = Summary { name: "spike", count: yara_matches }
+            .render()
+            .expect("template renders");
+
+        // axum on tokio: serve a router on an ephemeral port, then stop.
+        let app = Router::new().route("/", get(|| async { "ok" }));
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.expect("bind");
+        let bound_port = listener.local_addr().expect("local addr").port();
+        let server = tokio::spawn(async move { axum::serve(listener, app).await });
+        server.abort();
+
+        // sqlx: a lazy pool connects only when a query runs.
+        let pool = sqlx::postgres::PgPoolOptions::new()
+            .connect_lazy("postgres://spike:spike@127.0.0.1:1/spike")
+            .expect("pool");
+
+        // The AWS S3 SDK: a client for a MinIO-style endpoint.
+        let config = aws_sdk_s3::Config::builder()
+            .behavior_version(BehaviorVersion::latest())
+            .region(Region::new("us-east-1"))
+            .endpoint_url("http://127.0.0.1:1")
+            .credentials_provider(Credentials::new("spike", "spike", None, None, "spike"))
+            .force_path_style(true)
+            .build();
+        let s3 = aws_sdk_s3::Client::from_conf(config);
+
+        if network {
+            let row: Row = sqlx::query_as("SELECT 1 AS n")
+                .fetch_one(&pool)
+                .await
+                .expect("query");
+            assert_eq!(row.n, 1);
+            s3.put_object()
+                .bucket("spike")
+                .key("spike")
+                .body(aws_sdk_s3::primitives::ByteStream::from_static(b"spike"))
+                .send()
+                .await
+                .expect("put_object");
+        }
+
+        Report { yara_matches, summary, bound_port }
+    })
+}
+EOF
+
+cat > "$dir/spike-leaf/Cargo.toml" <<'EOF'
+[package]
+name = "spike-leaf"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+spike-deps = { path = "../spike-deps" }
+EOF
+
+cat > "$dir/spike-leaf/src/lib.rs" <<'EOF'
+/// measure rewrites the next line on every edit run.
+pub const EDIT_MARKER: u32 = 0;
+
+pub fn describe() -> String {
+    let report = spike_deps::exercise(std::env::var_os("SPIKE_NETWORK").is_some());
+    format!("{} (port {}, marker {EDIT_MARKER})", report.summary, report.bound_port)
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn every_library_runs() {
+        let text = super::describe();
+        assert!(text.starts_with("rule spike matched 1 times"), "{text}");
+    }
+}
+EOF
+
+echo "wrote the spike workspace to $dir"

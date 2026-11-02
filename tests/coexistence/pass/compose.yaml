@@ -1,0 +1,19 @@
+# Uses each thing the rules allow: an ACE4_ port, an ephemeral port, an ace4-* image
+# that's built here, and a volume and a network named by Compose.
+name: ${ACE4_STACK:-ace4}
+services:
+  web:
+    build: .
+    image: ace4-web:latest
+    ports:
+      - "${ACE4_BIND_ADDRESS:-127.0.0.1}:${ACE4_PORT_HTTPS:-7443}:443"
+      - "${ACE4_BIND_ADDRESS:-127.0.0.1}::5432"
+      - target: 80
+        published: "${ACE4_PORT_HTTP:-7080}"
+    volumes:
+      - data:/data
+    networks: [inner]
+volumes:
+  data:
+networks:
+  inner:

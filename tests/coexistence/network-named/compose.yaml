@@ -1,0 +1,8 @@
+name: ace4
+services:
+  web:
+    image: alpine:3.24.2
+    networks: [inner]
+networks:
+  inner:
+    name: ace_ace

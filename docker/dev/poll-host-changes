@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+#
+# Passes saves made on the macOS host to inotify inside the dev container.
+#
+# Rancher Desktop mounts the checkout into its VM with virtiofs, and a save on the host
+# raises no inotify event in the VM, so bacon never sees it. This loop runs as the dev
+# container's main process. Every ACE4_POLL_INTERVAL seconds it finds the files whose
+# mtime moved since its last pass and runs `touch -r f f` on each. touch opens the file
+# for writing, sets its times to the values they already have and closes it, which
+# raises IN_CLOSE_WRITE inside the container without changing the file's contents or
+# mtime. bacon rebuilds on IN_CLOSE_WRITE. It ignores the IN_ATTRIB that `touch -c`
+# alone would raise, so don't add -c.
+#
+# A directory created on the host is not watched until bacon restarts, because inotify
+# adds watches for new directories only when it sees them created.
+#
+# A host save that replaces a file by rename, as sed -i and some editors do, leaves a
+# stale entry in the VM: opening the file by its path fails with ENOENT until something
+# lists its directory. find lists every directory on each pass, which clears it, so by the
+# time bacon runs cargo the file opens. A cargo command typed by hand in the second after
+# such a save can still fail with "No such file or directory"; run it again.
+
+set -uo pipefail
+
+root=${ACE4_POLL_ROOT:-/workspace}
+interval=${ACE4_POLL_INTERVAL:-1}
+state=/tmp/poll-host-changes
+
+mkdir -p "$state"
+touch "$state/last"
+
+while true; do
+    touch "$state/next"
+    find "$root" \
+        \( -path "$root/target" -o -path "$root/.git" -o -path "$root/samples" \) -prune \
+        -o -type f -newer "$state/last" -print0 |
+        while IFS= read -r -d '' file; do
+            # If the file is gone by now, -r fails before touch creates anything.
+            touch -r "$file" "$file" 2>/dev/null || true
+        done
+    # The healthcheck reads this file's mtime to see that the loop is alive.
+    mv "$state/next" "$state/last"
+    sleep "$interval"
+done

@@ -1,0 +1,7 @@
+name: ace4
+services:
+  web:
+    image: alpine:3.24.2
+    ports:
+      - target: 80
+        published: "7080"

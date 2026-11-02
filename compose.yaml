@@ -1,0 +1,73 @@
+# ace4's Compose stack. It runs on the same Docker host as ace3's stack, so it follows
+# PLAN.md's "Running beside ace3": its own project name, ACE4_ variables, no fixed host
+# port other than ACE4_PORT_HTTPS, ace4-* image names, no container_name, no explicitly
+# named volume or network, and no fluentd log driver. bin/check-coexistence checks this file.
+#
+# Day to day:
+#   docker compose up -d --wait        start the stack
+#   docker compose exec dev bacon      rebuild on every save; `bacon clippy` or `bacon test` for other jobs
+#   docker compose exec dev bash       a shell with the toolchain
+#   docker compose down                stop it; the named volumes keep target/ and the caches
+
+name: ${ACE4_STACK:-ace4}
+
+services:
+  # Every other service waits for this one. COMPOSE_PROJECT_NAME overrides the name: above,
+  # and the stack's containers, network and volumes would then follow it instead of
+  # ACE4_STACK, so the guard refuses to let the stack start under any other project name.
+  # Compose sets COMPOSE_PROJECT_NAME for interpolation to the project name in use.
+  stack-guard:
+    image: alpine:3.24.2
+    environment:
+      ACE4_STACK: ${ACE4_STACK:-ace4}
+      PROJECT_IN_USE: ${COMPOSE_PROJECT_NAME}
+    command:
+      - sh
+      - -c
+      - |
+        if [ "$$PROJECT_IN_USE" != "$$ACE4_STACK" ]; then
+          echo "FATAL: the Compose project is '$$PROJECT_IN_USE', but ACE4_STACK is '$$ACE4_STACK'." >&2
+          echo "       unset COMPOSE_PROJECT_NAME and set ACE4_STACK to pick the project name." >&2
+          exit 1
+        fi
+    restart: "no"
+
+  dev:
+    build:
+      context: docker/dev
+    image: ace4-dev:latest
+    depends_on:
+      stack-guard:
+        condition: service_completed_successfully
+    init: true
+    # The image's main process, poll-host-changes, passes saves on the macOS host to
+    # inotify in the container so bacon sees them. Rancher Desktop's virtiofs mount
+    # doesn't, so without it bacon only rebuilds for changes made inside the container.
+    working_dir: /workspace
+    volumes:
+      - .:/workspace
+      # target/ lives on a named volume, not the macOS bind mount.
+      - target:/workspace/target
+      - cargo-registry:/usr/local/cargo/registry
+      - cargo-git:/usr/local/cargo/git
+      - sccache:/sccache
+    mem_limit: ${ACE4_DEV_MEM_LIMIT:-12g}
+    healthcheck:
+      # Healthy when the checkout is mounted, the toolchain runs and the poller finished a
+      # pass in the last 10 seconds.
+      test:
+        - CMD-SHELL
+        - >-
+          test -f /workspace/Cargo.toml
+          && cargo --version >/dev/null
+          && test -n "$$(find /tmp/poll-host-changes/last -newermt '-10 seconds')"
+      interval: 15s
+      timeout: 10s
+      start_period: 10s
+      retries: 3
+
+volumes:
+  target:
+  cargo-registry:
+  cargo-git:
+  sccache:

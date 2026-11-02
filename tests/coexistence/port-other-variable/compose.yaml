@@ -1,0 +1,6 @@
+name: ace4
+services:
+  web:
+    image: alpine:3.24.2
+    ports:
+      - "${ACE_PORT_HTTP:-7000}:7000"
