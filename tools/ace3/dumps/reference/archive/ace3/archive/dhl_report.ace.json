@@ -1,0 +1,112 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "844e3584",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "ArchiveAnalysis",
+      "details": {
+        "extracted_files": [
+          "DHL EXPRESS ONLINE DELIVERY REPORT.scr"
+        ],
+        "file_count": 1
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.archive:ArchiveAnalysis",
+      "observables": [
+        {
+          "detections": [
+            {
+              "description": "An archive contained a single file that was an executable",
+              "details": null
+            }
+          ],
+          "directives": [
+            "sandbox",
+            "yara_meta:type=executable"
+          ],
+          "excluded_analysis": [],
+          "file_path": "dhl_report.ace.extracted/DHL EXPRESS ONLINE DELIVERY REPORT.scr",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "2f3aaf99afb1f4ee8d3b7770fd4ed6df2896f811e8192b8f3f8fa128ec609fa9"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 430490,
+          "tags": [
+            "executable"
+          ],
+          "type": "file",
+          "value": "75f1d5b69ef6ecfb89c7ff6af1535cc7ad603ba1b72b489dc4c75ba77efab91e",
+          "yara_meta": [
+            "type=executable"
+          ]
+        }
+      ],
+      "summary": "Archive Analysis: extracted 1 of 1 files: (DHL EXPRESS ONLINE DELIVERY REPORT.scr)",
+      "tags": [
+        "exe_in_zip",
+        "single_file_zip"
+      ]
+    },
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "application/x-ace-compressed",
+        "type": "ACE archive data version 20, from Win/32, version 20 to extract, contains AV-String (unregistered), solid"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: ACE archive data version 20, from Win/32, version 20 to extract, contains AV-String (unregistered), solid (application/x-ace-compressed)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace3/archive/dhl_report.ace",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "dhl_report.ace",
+      "size": 179265,
+      "type": "file",
+      "value": "2f3aaf99afb1f4ee8d3b7770fd4ed6df2896f811e8192b8f3f8fa128ec609fa9"
+    }
+  },
+  "module": "archive",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "dhl_report.ace",
+    "relationships": [],
+    "size": 179265,
+    "tags": [],
+    "type": "file",
+    "value": "2f3aaf99afb1f4ee8d3b7770fd4ed6df2896f811e8192b8f3f8fa128ec609fa9",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

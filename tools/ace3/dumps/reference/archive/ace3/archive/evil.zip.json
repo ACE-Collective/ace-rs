@@ -1,0 +1,109 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "844e3584",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "ArchiveAnalysis",
+      "details": {
+        "extracted_files": [
+          "evil.one"
+        ],
+        "file_count": 1
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.archive:ArchiveAnalysis",
+      "observables": [
+        {
+          "detections": [
+            {
+              "description": "An archive contained a single file that was a OneNote document",
+              "details": null
+            }
+          ],
+          "directives": [
+            "sandbox"
+          ],
+          "excluded_analysis": [],
+          "file_path": "evil.zip.extracted/evil.one",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "2d507223962cab653edbbfb4b4efec226b0e07b81ba3f3f26f26e3a78146bf0a"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 0,
+          "tags": [],
+          "type": "file",
+          "value": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "yara_meta": []
+        }
+      ],
+      "summary": "Archive Analysis: extracted 1 of 1 files: (evil.one)",
+      "tags": [
+        "one_in_zip",
+        "single_file_zip"
+      ]
+    },
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": true,
+        "mime": "application/zip",
+        "type": "Zip archive data, made by v3.0 UNIX, extract using at least v1.0, last modified Feb 02 2023 15:56:56, uncompressed size 0, method=store"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: Zip archive data, made by v3.0 UNIX, extract using at least v1.0, last modified Feb 02 2023 15:56:56, uncompressed size 0, method=store (application/zip) (zip archive)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace3/archive/evil.zip",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "evil.zip",
+      "size": 166,
+      "type": "file",
+      "value": "2d507223962cab653edbbfb4b4efec226b0e07b81ba3f3f26f26e3a78146bf0a"
+    }
+  },
+  "module": "archive",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "evil.zip",
+    "relationships": [],
+    "size": 166,
+    "tags": [
+      "zip"
+    ],
+    "type": "file",
+    "value": "2d507223962cab653edbbfb4b4efec226b0e07b81ba3f3f26f26e3a78146bf0a",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

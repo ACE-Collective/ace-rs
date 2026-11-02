@@ -1,0 +1,113 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "844e3584",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "YaraScanResults_v3_4",
+      "details": {
+        "scan_results": [
+          {
+            "commit": null,
+            "context": [
+              [
+                0,
+                "$local_file_header",
+                "PK\u0003\u0004",
+                "00000000  50 4b 03 04 14 00 00 00  08 00 a7 33 99 35 96 5a  |PK.........3.5.Z|\n00000010  ff 90 6c 19 00 00 6d 5b  00 00 2e 00 00 00 46 61  |..l...m[......Fa|\n00000020  6b 74 75 72 61 2e 46 53  2e 31 37 2e 39 2e 32 30  |ktura.FS.17.9.20|\n00000030  5f 32 30 31 38 5f 32 5f  31 33 5f 41 49 30 32 36  |_2018_2_13_AI026|\n00000040  36 38 37 37 39 2e 70 64  66 2e 6a 73 e4 5c 6b 53  |68779.pdf.js.\\kS|\n00000050  db c8 b6 fd 2b 33 5d 67  52 61 e8 70 fd c4 b6 72  |....+3]gRa.p...r|\n00000060  5c 75 b1 c1 90 09 10 06  3b 61 72 38 9c 5b 6d a9  |\\u......;ar8.[m.|\n00000070  6d f7 b8 a5 d6 b4 24 1c  85 ca 7f bf 6b b7 20 36  |m.....$.....k. 6|\n00000080  19 fc 08 c9                                       |....|\n00000084\n"
+              ]
+            ],
+            "match_context": [
+              {
+                "data": "UEsDBBQAAAAIAKczmTWWWv+QbBkAAG1bAAAuAAAARmFrdHVyYS5GUy4xNy45LjIwXzIwMThfMl8xM19BSTAyNjY4Nzc5LnBkZi5qc+Rca1PbyLb9KzNdZ1Jh6HD9xLZyXHWxwZAJEAY7YXI4nFttqW33uKXWtCQchcp/v2u3IDYZ/AjJ",
+                "match_length": 4,
+                "match_offset": 0
+              }
+            ],
+            "meta": {
+              "description": "Any zip archive",
+              "modifiers": "no_alert",
+              "uuid": "2cbf38f7-4b53-4717-868b-fa0f585cad5f"
+            },
+            "namespace": "<work>/signatures/ace4_fixture",
+            "rule": "ace4_fixture_zip_any",
+            "rule_source": {
+              "file": "zip.yar",
+              "start_line": 18,
+              "text": "rule ace4_fixture_zip_any\n{\n    meta:\n        description = \"Any zip archive\"\n        modifiers = \"no_alert\"\n        uuid = \"2cbf38f7-4b53-4717-868b-fa0f585cad5f\"\n    strings:\n        $local_file_header = { 50 4B 03 04 }\n    condition:\n        $local_file_header at 0\n}\n"
+            },
+            "string_patterns": {
+              "$local_file_header": "{ 50 4B 03 04 }"
+            },
+            "strings": [
+              [
+                0,
+                "$local_file_header",
+                "PK\u0003\u0004"
+              ]
+            ],
+            "tags": [],
+            "target": "<root>/files/test.zip"
+          }
+        ]
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.yara:YaraScanResults_v3_4",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "yara_rule",
+          "value": "ace4_fixture_zip_any"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "signature_id",
+          "value": "2cbf38f7-4b53-4717-868b-fa0f585cad5f"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "yara_string",
+          "value": "ace4_fixture_zip_any:$local_file_header"
+        }
+      ],
+      "summary": "Yara Scan Results: matched yara rules ace4_fixture_zip_any",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace3/archive/test.zip with meta tags []",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "test.zip",
+      "size": 6734,
+      "type": "file",
+      "value": "1f0e8019d2bc4dadef1395af870b509adf4e8a226dee0fb7716cc5d8c3a4d147"
+    }
+  },
+  "module": "yara_scanner_v3_4",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "test.zip",
+    "relationships": [],
+    "size": 6734,
+    "tags": [],
+    "type": "file",
+    "value": "1f0e8019d2bc4dadef1395af870b509adf4e8a226dee0fb7716cc5d8c3a4d147",
+    "yara_meta": []
+  }
+}

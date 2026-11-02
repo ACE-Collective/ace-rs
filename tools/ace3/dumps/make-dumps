@@ -1,0 +1,206 @@
+#!/usr/bin/env python3
+"""Write the reference dumps phase 1's ports compare against (PLAN.md step 1.24).
+
+Each dump is one ace3 module's analysis of one input in the cli analysis mode, made by
+run_module.py inside ace3's dev container (ace-dev-1). Everything runs under the container's
+/tmp/ace4-dumps; nothing is written under /opt/ace, ace3's checkout.
+
+    tools/ace3/dumps/make-dumps            all modules
+    tools/ace3/dumps/make-dumps rdap       one module, by its key in RUNS below
+
+The dumps go to tools/ace3/dumps/reference/<module>/, named after the sample's path under
+samples/ (or the observable for a lookup), with index.json listing every run. RDAP runs also keep
+the HTTP requests and responses they made, in <name>.http/, so a port can replay them.
+
+ace3's local overlay, etc/saq.yaml, is skipped (SAQ_SKIP_LOCAL_SAQ_YAML), so the modules run on
+saq.default.yaml and the integrations' configs. It holds live credentials, and at 844e3584 it
+also stops a fresh process from loading its config (a partial hunt_type_splunk section).
+
+The local samples under samples/local/ are git-ignored; copy them in before running this.
+"""
+
+import json
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+CONTAINER = "ace-dev-1"
+REMOTE = "/tmp/ace4-dumps"
+HERE = Path(__file__).resolve().parent
+REPO = HERE.parents[2]
+SAMPLES = REPO / "samples"
+OUT = HERE / "reference"
+
+# the YARA module's fixture runs: a zip passed with the right tag, with none and with another
+YARA_RUNS = [
+    ("tagged-attachment", ["type=email.attachment"]),
+    ("untagged", []),
+    ("tagged-headers", ["type=email.headers"]),
+]
+
+
+def manifest_samples(kind_prefix):
+    manifest = json.loads((SAMPLES / "manifest.json").read_text())
+    return [s for s in manifest["samples"] if any(k.startswith(kind_prefix) for k in s["kinds"])]
+
+
+def file_runs(module, enable, kind_prefix):
+    runs = []
+    for sample in manifest_samples(kind_prefix):
+        runs.append(
+            {
+                "module": module,
+                "enable": enable,
+                "name": sample["path"],
+                "args": ["--file", f"{REMOTE}/samples/{sample['path']}", "--alert-path", sample["alert_path"]]
+                + [arg for tag in sample["meta_tags"] for arg in ("--meta-tag", tag)],
+                "label": sample["path"],
+            }
+        )
+    return runs
+
+
+def lookup_runs(module, observables):
+    return [
+        {
+            "module": module,
+            "enable": [],
+            "name": f"{kind}_{value}",
+            "args": ["--observable", kind, value, "--record-http"],
+            "label": f"{kind} {value}",
+        }
+        for kind, value in observables
+    ]
+
+
+def yara_runs():
+    sample = "ace3/archive/test.zip"
+    return [
+        {
+            "module": "yara_scanner_v3_4",
+            "enable": [],
+            "name": f"{sample}.{label}",
+            "args": ["--file", f"{REMOTE}/samples/{sample}", "--alert-path", "test.zip",
+                     "--yara-rules", f"{REMOTE}/fixtures/yara"]
+            + [arg for tag in tags for arg in ("--meta-tag", tag)],
+            "label": f"{sample} with meta tags {tags}",
+        }
+        for label, tags in YARA_RUNS
+    ]
+
+
+# Track C's fifth module has no dump, and why.
+NOT_MADE = [
+    {
+        "module": "splunk_api",
+        "class": "saq.modules.splunk.SplunkAPIAnalyzer",
+        "reason": "There is no Splunk on this laptop, and ace3's tests have no recorded or mocked "
+        "Splunk API to run it against: tests/saq/modules/test_splunk.py and tests/saq/test_splunk.py "
+        "replace the client object in Python (MockSplunk, whose query_async returns the query "
+        "text as its results, and Mock objects in place of splunklib), not the REST API.",
+    }
+]
+
+RUNS = {
+    "email": lambda: file_runs("email_analyzer", ["file_type"], "email"),
+    "archive": lambda: file_runs("archive", ["file_type"], "archive/"),
+    "rdap": lambda: lookup_runs("rdap_analyzer", [("fqdn", "example.com"), ("ip", "8.8.8.8")]),
+    "yara": yara_runs,
+}
+
+
+def docker(*args, stdin=None, capture=True):
+    return subprocess.run(["docker", *args], input=stdin, capture_output=capture, check=True)
+
+
+def copy_in():
+    """Copies the sample set and the fixtures into the container, as tar streams: /tmp there is a
+    tmpfs, which `docker cp` can't write to."""
+    docker("exec", CONTAINER, "rm", "-rf", REMOTE)
+    docker("exec", CONTAINER, "mkdir", "-p", f"{REMOTE}/samples", f"{REMOTE}/fixtures", f"{REMOTE}/runs")
+    for source, target in ((SAMPLES, "samples"), (HERE / "fixtures", "fixtures")):
+        archive = subprocess.run(
+            ["tar", "--no-xattrs", "--exclude", ".DS_Store", "-C", str(source), "-cf", "-", "."],
+            capture_output=True, check=True, env={**os.environ, "COPYFILE_DISABLE": "1"},
+        ).stdout
+        docker("exec", "-i", CONTAINER, "tar", "-C", f"{REMOTE}/{target}", "-xf", "-", stdin=archive)
+
+
+def run(spec):
+    work = f"{REMOTE}/runs/{spec['module']}/{spec['name']}"
+    command = [
+        "exec", "-i", "-e", "PYTHONDONTWRITEBYTECODE=1", "-e", "SAQ_SKIP_LOCAL_SAQ_YAML=1",
+        CONTAINER, "/venv/bin/python3", "-", "--work", work, "--module", spec["module"],
+        "--label", spec["label"], *spec["args"],
+    ]
+    for module in spec["enable"]:
+        command += ["--enable", module]
+    script = (HERE / "run_module.py").read_bytes()
+    result = subprocess.run(["docker", *command], input=script, capture_output=True)
+    if result.returncode != 0:
+        sys.stderr.write(result.stderr.decode(errors="replace"))
+        raise SystemExit(f"run_module.py failed for {spec['module']} {spec['name']}")
+
+    target = OUT / spec["module"] / f"{spec['name']}.json"
+    target.parent.mkdir(parents=True, exist_ok=True)
+    dump = docker("exec", CONTAINER, "cat", f"{work}/dump.json").stdout
+    target.write_bytes(dump)
+
+    if "--record-http" in spec["args"]:
+        http_dir = OUT / spec["module"] / f"{spec['name']}.http"
+        http_dir.mkdir(parents=True, exist_ok=True)
+        for old in http_dir.iterdir():
+            old.unlink()
+        archive = docker("exec", CONTAINER, "tar", "-C", f"{work}/http", "-cf", "-", ".").stdout
+        subprocess.run(["tar", "-C", str(http_dir), "-xf", "-"], input=archive, check=True)
+
+    parsed = json.loads(dump)
+    target_class = {
+        "email_analyzer": "EmailAnalysis",
+        "archive": "ArchiveAnalysis",
+        "rdap_analyzer": "RdapAnalysis",
+        "yara_scanner_v3_4": "YaraScanResults_v3_4",
+    }[spec["module"]]
+    analysis = next((a for a in parsed["analyses"] if a["class"] == target_class), None)
+    return {
+        "module": spec["module"],
+        "input": spec["label"],
+        "dump": str(target.relative_to(OUT)),
+        "analysis": target_class if analysis else None,
+        "summary": analysis["summary"] if analysis else None,
+        "observables_added": len(analysis["observables"]) if analysis else 0,
+    }
+
+
+def main():
+    keys = sys.argv[1:] or list(RUNS)
+    unknown = [k for k in keys if k not in RUNS]
+    if unknown:
+        raise SystemExit(f"unknown run set {unknown}; choose from {list(RUNS)}")
+
+    copy_in()
+    index_path = OUT / "index.json"
+    index = json.loads(index_path.read_text()) if index_path.exists() else {"runs": []}
+    done_modules = set()
+    results = []
+    for key in keys:
+        for spec in RUNS[key]():
+            print(f"{spec['module']}: {spec['name']}", flush=True)
+            results.append(run(spec))
+            done_modules.add(spec["module"])
+
+    commit = json.loads((OUT / results[0]["dump"]).read_text())["ace3_commit"] if results else None
+    index["runs"] = sorted(
+        [r for r in index["runs"] if r["module"] not in done_modules] + results,
+        key=lambda r: (r["module"], r["dump"]),
+    )
+    index["ace3_commit"] = commit
+    index["about"] = "Reference dumps written by tools/ace3/dumps/make-dumps; one entry per run."
+    index["not_made"] = NOT_MADE
+    index_path.write_text(json.dumps(index, indent=2, sort_keys=True) + "\n")
+    docker("exec", CONTAINER, "rm", "-rf", REMOTE)
+
+
+if __name__ == "__main__":
+    main()

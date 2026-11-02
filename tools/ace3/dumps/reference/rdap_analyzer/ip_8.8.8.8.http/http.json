@@ -1,0 +1,203 @@
+{
+  "about": "Every request the module made through requests, in order, with its response. Each body_file holds the body after requests undid any Content-Encoding, so a replay serves it without that header. Bodies too large to keep have only body_size and body_sha256.",
+  "exchanges": [
+    {
+      "body_file": "000-80a0659f933b.body",
+      "body_sha256": "80a0659f933b45130435c0bc7d6143ca2b815b3c5d2ef80c769b985a7821bb65",
+      "body_size": 4408,
+      "method": "GET",
+      "request_headers": {
+        "Accept": "*/*",
+        "Accept-Encoding": "gzip, deflate, zstd",
+        "Connection": "keep-alive",
+        "User-Agent": "whoisit/4.1.0"
+      },
+      "response_headers": {
+        "Access-Control-Allow-Origin": "*",
+        "Age": "25295",
+        "CF-RAY": "a5442b6d6c7260d7-CLE",
+        "Cache-Control": "max-age=86400",
+        "Connection": "keep-alive",
+        "Content-Encoding": "gzip",
+        "Content-Type": "application/json",
+        "Date": "Mon, 02 Nov 2026 15:28:32 GMT",
+        "ETag": "W/\"1138-65336a3cb9688-br\"",
+        "Expires": "Tue, 03 Nov 2026 08:26:56 GMT",
+        "Last-Modified": "Mon, 01 Jun 2026 20:00:01 GMT",
+        "Referrer-Policy": "origin-when-cross-origin",
+        "Server": "cloudflare",
+        "Strict-Transport-Security": "max-age=48211200; preload",
+        "Transfer-Encoding": "chunked",
+        "Vary": "Accept-Encoding",
+        "X-Frame-Options": "SAMEORIGIN",
+        "alt-svc": "h3=\":443\"; ma=86400",
+        "cf-cache-status": "HIT"
+      },
+      "status": 200,
+      "url": "https://data.iana.org/rdap/asn.json"
+    },
+    {
+      "body_file": "001-2789f2f92f7b.body",
+      "body_sha256": "2789f2f92f7ba785e0d3cd4cdcc70709e0ded1d331619e6784317c8bf2bc72b6",
+      "body_size": 71328,
+      "method": "GET",
+      "request_headers": {
+        "Accept": "*/*",
+        "Accept-Encoding": "gzip, deflate, zstd",
+        "Connection": "keep-alive",
+        "User-Agent": "whoisit/4.1.0"
+      },
+      "response_headers": {
+        "Access-Control-Allow-Origin": "*",
+        "Age": "19490",
+        "CF-RAY": "a5442b6dcd1f60d7-CLE",
+        "Cache-Control": "max-age=86400",
+        "Connection": "keep-alive",
+        "Content-Encoding": "gzip",
+        "Content-Type": "application/json",
+        "Date": "Mon, 02 Nov 2026 15:28:32 GMT",
+        "ETag": "W/\"116a0-65eedaf72ee97-br\"",
+        "Expires": "Tue, 03 Nov 2026 10:03:42 GMT",
+        "Last-Modified": "Wed, 28 Oct 2026 22:00:04 GMT",
+        "Referrer-Policy": "origin-when-cross-origin",
+        "Server": "cloudflare",
+        "Strict-Transport-Security": "max-age=48211200; preload",
+        "Transfer-Encoding": "chunked",
+        "Vary": "Accept-Encoding",
+        "X-Frame-Options": "SAMEORIGIN",
+        "alt-svc": "h3=\":443\"; ma=86400",
+        "cf-cache-status": "HIT"
+      },
+      "status": 200,
+      "url": "https://data.iana.org/rdap/dns.json"
+    },
+    {
+      "body_file": "002-f6ad30d1ebbd.body",
+      "body_sha256": "f6ad30d1ebbd16fed6121e1eb54ae7db86edbf5e425345a040aa7893b0447d78",
+      "body_size": 5629,
+      "method": "GET",
+      "request_headers": {
+        "Accept": "*/*",
+        "Accept-Encoding": "gzip, deflate, zstd",
+        "Connection": "keep-alive",
+        "User-Agent": "whoisit/4.1.0"
+      },
+      "response_headers": {
+        "Access-Control-Allow-Origin": "*",
+        "Age": "25296",
+        "CF-RAY": "a5442b6e2dbe60d7-CLE",
+        "Cache-Control": "max-age=86400",
+        "Connection": "keep-alive",
+        "Content-Encoding": "gzip",
+        "Content-Type": "application/json",
+        "Date": "Mon, 02 Nov 2026 15:28:32 GMT",
+        "ETag": "W/\"15fd-58ac070130427-br\"",
+        "Expires": "Tue, 03 Nov 2026 08:26:56 GMT",
+        "Last-Modified": "Fri, 07 Jun 2019 19:00:02 GMT",
+        "Referrer-Policy": "origin-when-cross-origin",
+        "Server": "cloudflare",
+        "Strict-Transport-Security": "max-age=48211200; preload",
+        "Transfer-Encoding": "chunked",
+        "Vary": "Accept-Encoding",
+        "X-Frame-Options": "SAMEORIGIN",
+        "alt-svc": "h3=\":443\"; ma=86400",
+        "cf-cache-status": "HIT"
+      },
+      "status": 200,
+      "url": "https://data.iana.org/rdap/ipv4.json"
+    },
+    {
+      "body_file": "003-3292eb71787b.body",
+      "body_sha256": "3292eb71787b903f7a6798ff31f7f2239fb61ce346be142a3719ffa26deaf080",
+      "body_size": 1476,
+      "method": "GET",
+      "request_headers": {
+        "Accept": "*/*",
+        "Accept-Encoding": "gzip, deflate, zstd",
+        "Connection": "keep-alive",
+        "User-Agent": "whoisit/4.1.0"
+      },
+      "response_headers": {
+        "Access-Control-Allow-Origin": "*",
+        "Age": "25296",
+        "CF-RAY": "a5442b6e8e4c60d7-CLE",
+        "Cache-Control": "max-age=86400",
+        "Connection": "keep-alive",
+        "Content-Encoding": "gzip",
+        "Content-Type": "application/json",
+        "Date": "Mon, 02 Nov 2026 15:28:33 GMT",
+        "ETag": "W/\"5c4-625e10e87eede-br\"",
+        "Expires": "Tue, 03 Nov 2026 08:26:56 GMT",
+        "Last-Modified": "Fri, 01 Nov 2024 22:00:01 GMT",
+        "Referrer-Policy": "origin-when-cross-origin",
+        "Server": "cloudflare",
+        "Strict-Transport-Security": "max-age=48211200; preload",
+        "Transfer-Encoding": "chunked",
+        "Vary": "Accept-Encoding",
+        "X-Frame-Options": "SAMEORIGIN",
+        "alt-svc": "h3=\":443\"; ma=86400",
+        "cf-cache-status": "HIT"
+      },
+      "status": 200,
+      "url": "https://data.iana.org/rdap/ipv6.json"
+    },
+    {
+      "body_file": "004-7d81a6d437bb.body",
+      "body_sha256": "7d81a6d437bbd610bbc9067915c6dc3285f291eb36e7121dce56c71cd2835f5f",
+      "body_size": 1341,
+      "method": "GET",
+      "request_headers": {
+        "Accept": "*/*",
+        "Accept-Encoding": "gzip, deflate, zstd",
+        "Connection": "keep-alive",
+        "User-Agent": "whoisit/4.1.0"
+      },
+      "response_headers": {
+        "Access-Control-Allow-Origin": "*",
+        "Age": "302",
+        "CF-RAY": "a5442b6edee160d7-CLE",
+        "Cache-Control": "max-age=86400",
+        "Connection": "keep-alive",
+        "Content-Encoding": "gzip",
+        "Content-Type": "application/json",
+        "Date": "Mon, 02 Nov 2026 15:28:33 GMT",
+        "ETag": "W/\"53d-65d71258dc6c0-br\"",
+        "Expires": "Tue, 03 Nov 2026 15:23:30 GMT",
+        "Last-Modified": "Sat, 10 Oct 2026 00:00:03 GMT",
+        "Referrer-Policy": "origin-when-cross-origin",
+        "Server": "cloudflare",
+        "Strict-Transport-Security": "max-age=48211200; preload",
+        "Transfer-Encoding": "chunked",
+        "Vary": "Accept-Encoding",
+        "X-Frame-Options": "SAMEORIGIN",
+        "alt-svc": "h3=\":443\"; ma=86400",
+        "cf-cache-status": "HIT"
+      },
+      "status": 200,
+      "url": "https://data.iana.org/rdap/object-tags.json"
+    },
+    {
+      "body_file": "005-ce670818e25b.body",
+      "body_sha256": "ce670818e25b5935f717ba5ac83a2296e26de41077a9ea3d6036bdb342433011",
+      "body_size": 6388,
+      "method": "GET",
+      "request_headers": {
+        "Accept": "*/*",
+        "Accept-Encoding": "gzip, deflate, zstd",
+        "Connection": "keep-alive",
+        "User-Agent": "whoisit/4.1.0"
+      },
+      "response_headers": {
+        "Access-Control-Allow-Origin": "*",
+        "Connection": "Keep-Alive",
+        "Content-Length": "6388",
+        "Content-Type": "application/rdap+json",
+        "Date": "Mon, 02 Nov 2026 15:28:33 GMT",
+        "Keep-Alive": "timeout=5, max=100",
+        "Server": "Apache/2.4.6 (CentOS) OpenSSL/1.0.2k-fips"
+      },
+      "status": 200,
+      "url": "https://rdap.arin.net/registry/ip/8.8.8.8"
+    }
+  ]
+}

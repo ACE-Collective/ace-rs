@@ -1,0 +1,120 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "844e3584",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "ArchiveAnalysis",
+      "details": {
+        "extracted_files": [
+          "readme.txt",
+          "x"
+        ],
+        "file_count": 2
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.archive:ArchiveAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "file_path": "zip-slip.zip.extracted/readme.txt",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "e8381b6c3d2295771cde6ab11878226b757a95560cd1d6cecbd7c7e88f655d57"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 37,
+          "tags": [],
+          "type": "file",
+          "value": "f53d8796244d2c39d94ca1f1cdef0c8450aa17de6a222f899a1bbfeeb6886844",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "file_path": "zip-slip.zip.extracted/x",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "e8381b6c3d2295771cde6ab11878226b757a95560cd1d6cecbd7c7e88f655d57"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 37,
+          "tags": [],
+          "type": "file",
+          "value": "f53d8796244d2c39d94ca1f1cdef0c8450aa17de6a222f899a1bbfeeb6886844",
+          "yara_meta": []
+        }
+      ],
+      "summary": "Archive Analysis: extracted 2 of 2 files: (readme.txt, x)",
+      "tags": []
+    },
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": true,
+        "mime": "application/zip",
+        "type": "Zip archive data, made by v2.0 UNIX, extract using at least v2.0, last modified Oct 29 2026 00:00:00, uncompressed size 37, method=deflate"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: Zip archive data, made by v2.0 UNIX, extract using at least v2.0, last modified Oct 29 2026 00:00:00, uncompressed size 37, method=deflate (application/zip) (zip archive)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "local/archive/zip-slip.zip",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "zip-slip.zip",
+      "size": 280,
+      "type": "file",
+      "value": "e8381b6c3d2295771cde6ab11878226b757a95560cd1d6cecbd7c7e88f655d57"
+    }
+  },
+  "module": "archive",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "zip-slip.zip",
+    "relationships": [],
+    "size": 280,
+    "tags": [
+      "zip"
+    ],
+    "type": "file",
+    "value": "e8381b6c3d2295771cde6ab11878226b757a95560cd1d6cecbd7c7e88f655d57",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

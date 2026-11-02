@@ -1,0 +1,711 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "844e3584",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "ArchiveAnalysis",
+      "details": {
+        "extracted_files": [
+          "com/strobel/Procyon.class",
+          "com/strobel/util/EmptyArrayCache.class",
+          "com/strobel/util/ContractUtils.class",
+          "com/strobel/reflection/TargetInvocationException.class",
+          "com/strobel/io/PathHelper.class",
+          "com/strobel/io/Error.class",
+          "com/strobel/io/Ansi.class",
+          "com/strobel/io/Ansi$Color.class",
+          "com/strobel/io/Ansi$Attribute.class",
+          "com/strobel/io/Ansi$AnsiColor.class",
+          "com/strobel/io/Ansi$1.class",
+          "com/strobel/functions/Suppliers.class",
+          "com/strobel/functions/Suppliers$1.class",
+          "com/strobel/functions/Supplier.class",
+          "com/strobel/functions/Function.class",
+          "com/strobel/functions/Block.class",
+          "com/strobel/decompiler/PlainTextOutput.class",
+          "com/strobel/decompiler/NoRetryMetadataSystem.class",
+          "com/strobel/decompiler/NameSyntax.class",
+          "com/strobel/decompiler/LineNumberPrintWriter.class",
+          "com/strobel/decompiler/LineNumberFormatter.class",
+          "com/strobel/decompiler/LineNumberFormatter$LineNumberOption.class",
+          "com/strobel/decompiler/ITextOutput.class",
+          "com/strobel/decompiler/InstructionHelper.class",
+          "com/strobel/decompiler/InstructionHelper$1.class",
+          "com/strobel/decompiler/FileOutputWriter.class",
+          "com/strobel/decompiler/DecompilerSettings.class",
+          "com/strobel/decompiler/DecompilerHelpers.class",
+          "com/strobel/decompiler/DecompilerHelpers$1.class",
+          "com/strobel/decompiler/DecompilerDriver.class"
+        ],
+        "file_count": 1037
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.archive:ArchiveAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "file_path": "too_many_files.jar.extracted/com/strobel/Procyon.class",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "cd9a2177f72f490842b0b84909f58b5548614a78ecd135ce28b833f93429e5a0"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 419,
+          "tags": [],
+          "type": "file",
+          "value": "ec50902add92d505aca47e8e01134841ca2acef0c8d4c323ba61093f58df6e8b",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "file_path": "too_many_files.jar.extracted/com/strobel/util/EmptyArrayCache.class",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "cd9a2177f72f490842b0b84909f58b5548614a78ecd135ce28b833f93429e5a0"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 3397,
+          "tags": [],
+          "type": "file",
+          "value": "b42e771ac0d95fe03f86e029b951cc21aa1a01cb6dc45999711595643518a689",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "file_path": "too_many_files.jar.extracted/com/strobel/util/ContractUtils.class",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "cd9a2177f72f490842b0b84909f58b5548614a78ecd135ce28b833f93429e5a0"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 711,
+          "tags": [],
+          "type": "file",
+          "value": "c252716f4f230043c997f1fe6c3cd6c534ab72995356124801fa56c389ee7c28",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "file_path": "too_many_files.jar.extracted/com/strobel/reflection/TargetInvocationException.class",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "cd9a2177f72f490842b0b84909f58b5548614a78ecd135ce28b833f93429e5a0"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 1225,
+          "tags": [],
+          "type": "file",
+          "value": "a436065278b2cba7e24705bef253c81715fbc45df67f70db4fd01fa29978c3eb",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "file_path": "too_many_files.jar.extracted/com/strobel/io/PathHelper.class",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "cd9a2177f72f490842b0b84909f58b5548614a78ecd135ce28b833f93429e5a0"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 9222,
+          "tags": [],
+          "type": "file",
+          "value": "7d637fdd007f35c10a9c6f8a394595243fa62df709b1d24bccc3a32630444cc1",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "file_path": "too_many_files.jar.extracted/com/strobel/io/Error.class",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "cd9a2177f72f490842b0b84909f58b5548614a78ecd135ce28b833f93429e5a0"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 1463,
+          "tags": [],
+          "type": "file",
+          "value": "fde93e4f8c478e1d3a72590c7ec726757ede0bfd542edff2b4f9c39050be7b84",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "file_path": "too_many_files.jar.extracted/com/strobel/io/Ansi.class",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "cd9a2177f72f490842b0b84909f58b5548614a78ecd135ce28b833f93429e5a0"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 6211,
+          "tags": [],
+          "type": "file",
+          "value": "b4e6165ca0c80e56ea95ea25ab62b3be1935171e59593fb0a5a1b225f5a15d1a",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "file_path": "too_many_files.jar.extracted/com/strobel/io/Ansi$Color.class",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "cd9a2177f72f490842b0b84909f58b5548614a78ecd135ce28b833f93429e5a0"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 1320,
+          "tags": [],
+          "type": "file",
+          "value": "c2f48a8e6aae350922c88b9796a5cb0d1570a7921d9736928a305234079e46cb",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "file_path": "too_many_files.jar.extracted/com/strobel/io/Ansi$Attribute.class",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "cd9a2177f72f490842b0b84909f58b5548614a78ecd135ce28b833f93429e5a0"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 1719,
+          "tags": [],
+          "type": "file",
+          "value": "5a690235144cb0b4d9b95636c063460c305dd64c0080bea1186d3200016325c7",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "file_path": "too_many_files.jar.extracted/com/strobel/io/Ansi$AnsiColor.class",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "cd9a2177f72f490842b0b84909f58b5548614a78ecd135ce28b833f93429e5a0"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 2165,
+          "tags": [],
+          "type": "file",
+          "value": "9d21115f53827098011d4361daafd81e9b359b1d2e631868ebd5243843675ec0",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "file_path": "too_many_files.jar.extracted/com/strobel/io/Ansi$1.class",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "cd9a2177f72f490842b0b84909f58b5548614a78ecd135ce28b833f93429e5a0"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 1074,
+          "tags": [],
+          "type": "file",
+          "value": "49838fd9538c9e778a68744cee94218256fc41a00711f552b0d0edf309ea1af8",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "file_path": "too_many_files.jar.extracted/com/strobel/functions/Suppliers.class",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "cd9a2177f72f490842b0b84909f58b5548614a78ecd135ce28b833f93429e5a0"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 804,
+          "tags": [],
+          "type": "file",
+          "value": "d87c07be146cbda31af9a57e8ea217981a635a9bea0c5d4b7f4dcddf4e407823",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "file_path": "too_many_files.jar.extracted/com/strobel/functions/Suppliers$1.class",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "cd9a2177f72f490842b0b84909f58b5548614a78ecd135ce28b833f93429e5a0"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 772,
+          "tags": [],
+          "type": "file",
+          "value": "0326f5f5aa1a377f3f0c991b3ce192612bc43ac162713e3b9ae0ec7282cc1277",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "file_path": "too_many_files.jar.extracted/com/strobel/functions/Supplier.class",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "cd9a2177f72f490842b0b84909f58b5548614a78ecd135ce28b833f93429e5a0"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 235,
+          "tags": [],
+          "type": "file",
+          "value": "84863414b3d0515c5b18a4f9c5af2b32dc6c8635dea75a05e4241a8a33a7d511",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "file_path": "too_many_files.jar.extracted/com/strobel/functions/Function.class",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "cd9a2177f72f490842b0b84909f58b5548614a78ecd135ce28b833f93429e5a0"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 278,
+          "tags": [],
+          "type": "file",
+          "value": "c18265c678f837225f8af9949f1a38bcdafc970ff4a92db8e4d7fca35061bee2",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "file_path": "too_many_files.jar.extracted/com/strobel/functions/Block.class",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "cd9a2177f72f490842b0b84909f58b5548614a78ecd135ce28b833f93429e5a0"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 234,
+          "tags": [],
+          "type": "file",
+          "value": "7e7252fcb743a5c7f06a31e09db74ad7208df5e46eb3f9d03633ea17df818512",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "file_path": "too_many_files.jar.extracted/com/strobel/decompiler/PlainTextOutput.class",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "cd9a2177f72f490842b0b84909f58b5548614a78ecd135ce28b833f93429e5a0"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 5935,
+          "tags": [],
+          "type": "file",
+          "value": "adeffece9a9376c8cb9c640e1e9092d8be0621f8f32b6a63cbd429cf11b69426",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "file_path": "too_many_files.jar.extracted/com/strobel/decompiler/NoRetryMetadataSystem.class",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "cd9a2177f72f490842b0b84909f58b5548614a78ecd135ce28b833f93429e5a0"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 1380,
+          "tags": [],
+          "type": "file",
+          "value": "12236d633221a8bac5a982e5a21a2fca7c2657a8d314d44bb062591a9e8446a6",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "file_path": "too_many_files.jar.extracted/com/strobel/decompiler/NameSyntax.class",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "cd9a2177f72f490842b0b84909f58b5548614a78ecd135ce28b833f93429e5a0"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 1212,
+          "tags": [],
+          "type": "file",
+          "value": "96828e316ddafe91af48d4902fc33f287b766d3cc632f5b9549e8bcacea8c189",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "file_path": "too_many_files.jar.extracted/com/strobel/decompiler/LineNumberPrintWriter.class",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "cd9a2177f72f490842b0b84909f58b5548614a78ecd135ce28b833f93429e5a0"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 2220,
+          "tags": [],
+          "type": "file",
+          "value": "18b0ffc61935c257b9432859621cb79fac102e8dbf442b5ceda605a81410b437",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "file_path": "too_many_files.jar.extracted/com/strobel/decompiler/LineNumberFormatter.class",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "cd9a2177f72f490842b0b84909f58b5548614a78ecd135ce28b833f93429e5a0"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 6950,
+          "tags": [],
+          "type": "file",
+          "value": "f6745034114c8ba647334af992689bfd15b6eff0c1381d771b3be73eff40c954",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "file_path": "too_many_files.jar.extracted/com/strobel/decompiler/LineNumberFormatter$LineNumberOption.class",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "cd9a2177f72f490842b0b84909f58b5548614a78ecd135ce28b833f93429e5a0"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 1300,
+          "tags": [],
+          "type": "file",
+          "value": "34020b76e4a853f1fcf9d5527deace3960baafa75d78c91972493441a65a9ee3",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "file_path": "too_many_files.jar.extracted/com/strobel/decompiler/ITextOutput.class",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "cd9a2177f72f490842b0b84909f58b5548614a78ecd135ce28b833f93429e5a0"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 928,
+          "tags": [],
+          "type": "file",
+          "value": "50ffca4e8a48ef44a4e769dd6528526084d731167601acd98f51ea2524e79291",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "file_path": "too_many_files.jar.extracted/com/strobel/decompiler/InstructionHelper.class",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "cd9a2177f72f490842b0b84909f58b5548614a78ecd135ce28b833f93429e5a0"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 6127,
+          "tags": [],
+          "type": "file",
+          "value": "8a1df39806df003a53f66a0a53c4c12a9c13213b56176666c893b8830aea3843",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "file_path": "too_many_files.jar.extracted/com/strobel/decompiler/InstructionHelper$1.class",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "cd9a2177f72f490842b0b84909f58b5548614a78ecd135ce28b833f93429e5a0"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 3286,
+          "tags": [],
+          "type": "file",
+          "value": "8b3d5614f04917a08139d14e79cf1b4e515701a54bcefe2754ff90365e6d75ef",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "file_path": "too_many_files.jar.extracted/com/strobel/decompiler/FileOutputWriter.class",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "cd9a2177f72f490842b0b84909f58b5548614a78ecd135ce28b833f93429e5a0"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 1142,
+          "tags": [],
+          "type": "file",
+          "value": "12886e125034601a96075e296f0791bb0a147b67d8873b34e844c9341abd96d9",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "file_path": "too_many_files.jar.extracted/com/strobel/decompiler/DecompilerSettings.class",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "cd9a2177f72f490842b0b84909f58b5548614a78ecd135ce28b833f93429e5a0"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 6439,
+          "tags": [],
+          "type": "file",
+          "value": "9c6950585714c554a405051567f1e5f854e16e499cc18e017d21f00450917713",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "file_path": "too_many_files.jar.extracted/com/strobel/decompiler/DecompilerHelpers.class",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "cd9a2177f72f490842b0b84909f58b5548614a78ecd135ce28b833f93429e5a0"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 20550,
+          "tags": [],
+          "type": "file",
+          "value": "ad62a8a00eb61f641771116dfb9a832e66e0fcaf8c82af11c761243468308426",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "file_path": "too_many_files.jar.extracted/com/strobel/decompiler/DecompilerHelpers$1.class",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "cd9a2177f72f490842b0b84909f58b5548614a78ecd135ce28b833f93429e5a0"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 1009,
+          "tags": [],
+          "type": "file",
+          "value": "85c0b4b9d30b0b24362f6ed5ed6c6f41500f403ab7a2e3504133f7fdd0f14922",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "file_path": "too_many_files.jar.extracted/com/strobel/decompiler/DecompilerDriver.class",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "cd9a2177f72f490842b0b84909f58b5548614a78ecd135ce28b833f93429e5a0"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 15276,
+          "tags": [],
+          "type": "file",
+          "value": "cfb3451eaca11b56286a5f917a39a0aff33582815c8fa5cb0f4ac4f865ceb99d",
+          "yara_meta": []
+        }
+      ],
+      "summary": "Archive Analysis: extracted 30 of 1037 files: (com/strobel/Procyon.class, com/strobel/util/EmptyArrayCache.class, com/strobel/util/ContractUtils.class, com/strobel/reflection/TargetInvocationException.class, com/strobel/io/PathHelper.class, com/strobel/io/Error.class, com/strobel/io/Ansi.class, com/strobel/io/Ansi$Color.class, com/strobel/io/Ansi$Attribute.class, com/strobel/io/Ansi$AnsiColor.class, com/strobel/io/Ansi$1.class, com/strobel/functions/Suppliers.class, com/strobel/functions/Suppliers$1.class, com/strobel/functions/Supplier.class, com/strobel/functions/Function.class, com/strobel/functions/Block.class, com/strobel/decompiler/PlainTextOutput.class, com/strobel/decompiler/NoRetryMetadataSystem.class, com/strobel/decompiler/NameSyntax.class, com/strobel/decompiler/LineNumberPrintWriter.class + 10 more)",
+      "tags": []
+    },
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": true,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": true,
+        "mime": "application/zip",
+        "type": "Zip archive data, made by v2.0 UNIX, extract using at least v1.0, last modified Aug 30 2015 12:32:44, uncompressed size 0, method=deflate"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: Zip archive data, made by v2.0 UNIX, extract using at least v1.0, last modified Aug 30 2015 12:32:44, uncompressed size 0, method=deflate (application/zip) (zip archive) (java archive)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace3/archive/too_many_files.jar",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "too_many_files.jar",
+      "size": 1765873,
+      "type": "file",
+      "value": "cd9a2177f72f490842b0b84909f58b5548614a78ecd135ce28b833f93429e5a0"
+    }
+  },
+  "module": "archive",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=archive.jar",
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "too_many_files.jar",
+    "relationships": [],
+    "size": 1765873,
+    "tags": [
+      "jar",
+      "zip"
+    ],
+    "type": "file",
+    "value": "cd9a2177f72f490842b0b84909f58b5548614a78ecd135ce28b833f93429e5a0",
+    "yara_meta": [
+      "type=archive.jar",
+      "type=email.attachment"
+    ]
+  }
+}

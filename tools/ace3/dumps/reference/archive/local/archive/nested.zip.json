@@ -1,0 +1,105 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "844e3584",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "ArchiveAnalysis",
+      "details": {
+        "extracted_files": [
+          "inner.zip"
+        ],
+        "file_count": 1
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.archive:ArchiveAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "sandbox"
+          ],
+          "excluded_analysis": [],
+          "file_path": "nested.zip.extracted/inner.zip",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "49f5d35b7bdd85850e771564dabdd2dd45bfcf88c70feb72472a07cba8f2a5bd"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 157,
+          "tags": [
+            "zip"
+          ],
+          "type": "file",
+          "value": "ff4a85333bcc3cd27d002229a6f163713e77111dc4a8f953ccfe1944941d1ff9",
+          "yara_meta": []
+        }
+      ],
+      "summary": "Archive Analysis: extracted 1 of 1 files: (inner.zip)",
+      "tags": [
+        "single_file_zip"
+      ]
+    },
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": true,
+        "mime": "application/zip",
+        "type": "Zip archive data, made by v2.0 UNIX, extract using at least v2.0, last modified Oct 29 2026 00:00:00, uncompressed size 157, method=deflate"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: Zip archive data, made by v2.0 UNIX, extract using at least v2.0, last modified Oct 29 2026 00:00:00, uncompressed size 157, method=deflate (application/zip) (zip archive)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "local/archive/nested.zip",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "nested.zip",
+      "size": 222,
+      "type": "file",
+      "value": "49f5d35b7bdd85850e771564dabdd2dd45bfcf88c70feb72472a07cba8f2a5bd"
+    }
+  },
+  "module": "archive",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "nested.zip",
+    "relationships": [],
+    "size": 222,
+    "tags": [
+      "zip"
+    ],
+    "type": "file",
+    "value": "49f5d35b7bdd85850e771564dabdd2dd45bfcf88c70feb72472a07cba8f2a5bd",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

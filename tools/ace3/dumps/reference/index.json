@@ -1,0 +1,341 @@
+{
+  "about": "Reference dumps written by tools/ace3/dumps/make-dumps; one entry per run.",
+  "ace3_commit": "844e3584",
+  "not_made": [
+    {
+      "class": "saq.modules.splunk.SplunkAPIAnalyzer",
+      "module": "splunk_api",
+      "reason": "There is no Splunk on this laptop, and ace3's tests have no recorded or mocked Splunk API to run it against: tests/saq/modules/test_splunk.py and tests/saq/test_splunk.py replace the client object in Python (MockSplunk, whose query_async returns the query text as its results, and Mock objects in place of splunklib), not the REST API."
+    }
+  ],
+  "runs": [
+    {
+      "analysis": "ArchiveAnalysis",
+      "dump": "archive/ace3/archive/dhl_report.ace.json",
+      "input": "ace3/archive/dhl_report.ace",
+      "module": "archive",
+      "observables_added": 1,
+      "summary": "Archive Analysis: extracted 1 of 1 files: (DHL EXPRESS ONLINE DELIVERY REPORT.scr)"
+    },
+    {
+      "analysis": "ArchiveAnalysis",
+      "dump": "archive/ace3/archive/evil.zip.json",
+      "input": "ace3/archive/evil.zip",
+      "module": "archive",
+      "observables_added": 1,
+      "summary": "Archive Analysis: extracted 1 of 1 files: (evil.one)"
+    },
+    {
+      "analysis": "ArchiveAnalysis",
+      "dump": "archive/ace3/archive/malicious.jar.json",
+      "input": "ace3/archive/malicious.jar",
+      "module": "archive",
+      "observables_added": 30,
+      "summary": "Archive Analysis: extracted 30 of 68 files: (carLambo/qnNjMRhKWLDZqELPHOTwI.class, carLambo/kBhawALwlrqVcjfWJNvgS.class, carLambo/WCRZHrQWQBvEEYgYYZzQq.class, carLambo/VxUGJsAplRNavewkjKujp.class, carLambo/OYxlLCXXWIypUZSPdHsPX.class, carLambo/ihdfOqfNbRUJDjKpjvpnr.class, carLambo/fduGjKczzZttGpojcNbZC.class, carLambo/KnKzXYelkDHNivqOgoueK.class, carLambo/FEtmyskmqalTiyfHhnwFs.class, carLambo/FirstRun.class, carLambo/yxvCfnmvOQpQgXPjwPFwr.class, carLambo/GDI32.class, carLambo/LdKEhxNHjdDJiHcyLJrxu.class, carLambo/BLgKGOIpqcIMnwSZFSrEA.class, carLambo/QKapGVCpQFLicWpcutuBU.class, carLambo/UhQHjUXtUuzkIEppbRiyn.class, carLambo/HBrowserNativeApis.class, carLambo/qwnpagplDgPcaUDQmBTMS.class, carLambo/rpRMuRmugtdDNsflnGBtk.class, carLambo/KTuOhVytQSWzdQFpRBmGf.class + 10 more)"
+    },
+    {
+      "analysis": "ArchiveAnalysis",
+      "dump": "archive/ace3/archive/over.7z.json",
+      "input": "ace3/archive/over.7z",
+      "module": "archive",
+      "observables_added": 6,
+      "summary": "Archive Analysis: extracted 6 of 11 files: (hello_world_9.txt, hello_world_8.txt, hello_world_7.txt, hello_world_6.txt, hello_world_5.txt, hello_world_4.txt)"
+    },
+    {
+      "analysis": "ArchiveAnalysis",
+      "dump": "archive/ace3/archive/test.jar.json",
+      "input": "ace3/archive/test.jar",
+      "module": "archive",
+      "observables_added": 30,
+      "summary": "Archive Analysis: extracted 30 of 42 files: (tpklpgl/phao/Azezhb$1$1.class, tpklpgl/phao/Azezhb$__3__.class, tpklpgl/phao/Azezhb$1.class, tpklpgl/phao/Azezhb$__4__.class, tpklpgl/phao/Azezhb$__7__.class, tpklpgl/phao/Azezhb.class, tpklpgl/phao/Azezhb$__1__.class, tpklpgl/phao/Azezhb$__8__.class, tpklpgl/phao/Azezhb$__5__.class, tpklpgl/phao/Azezhb$__6__.class, tpklpgl/phao/Azezhb$__2__.class, tpklpgl/phao/Perrdom.class, tpklpgl/phao/Kccerog.class, tpklpgl/phao/Rgkfp.class, tpklpgl/phao/Ebredvgt.class, tpklpgl/phao/Eljeyf.class, tpklpgl/phao/Apkttc.class, tpklpgl/phao/Zpfzsrjv.class, tpklpgl/phao/Fcoghfju.class, tpklpgl/phao/Sazzrjja.class + 10 more)"
+    },
+    {
+      "analysis": "ArchiveAnalysis",
+      "dump": "archive/ace3/archive/test.r07.json",
+      "input": "ace3/archive/test.r07",
+      "module": "archive",
+      "observables_added": 1,
+      "summary": "Archive Analysis: extracted 1 of 1 files: (IMPORTANT DOCUMENT.vbs)"
+    },
+    {
+      "analysis": "ArchiveAnalysis",
+      "dump": "archive/ace3/archive/test.zip.json",
+      "input": "ace3/archive/test.zip",
+      "module": "archive",
+      "observables_added": 1,
+      "summary": "Archive Analysis: extracted 1 of 1 files: (Faktura.FS.17.9.20_2018_2_13_AI02668779.pdf.js)"
+    },
+    {
+      "analysis": "ArchiveAnalysis",
+      "dump": "archive/ace3/archive/too_many_files.jar.json",
+      "input": "ace3/archive/too_many_files.jar",
+      "module": "archive",
+      "observables_added": 30,
+      "summary": "Archive Analysis: extracted 30 of 1037 files: (com/strobel/Procyon.class, com/strobel/util/EmptyArrayCache.class, com/strobel/util/ContractUtils.class, com/strobel/reflection/TargetInvocationException.class, com/strobel/io/PathHelper.class, com/strobel/io/Error.class, com/strobel/io/Ansi.class, com/strobel/io/Ansi$Color.class, com/strobel/io/Ansi$Attribute.class, com/strobel/io/Ansi$AnsiColor.class, com/strobel/io/Ansi$1.class, com/strobel/functions/Suppliers.class, com/strobel/functions/Suppliers$1.class, com/strobel/functions/Supplier.class, com/strobel/functions/Function.class, com/strobel/functions/Block.class, com/strobel/decompiler/PlainTextOutput.class, com/strobel/decompiler/NoRetryMetadataSystem.class, com/strobel/decompiler/NameSyntax.class, com/strobel/decompiler/LineNumberPrintWriter.class + 10 more)"
+    },
+    {
+      "analysis": "ArchiveAnalysis",
+      "dump": "archive/ace3/archive/under.7z.json",
+      "input": "ace3/archive/under.7z",
+      "module": "archive",
+      "observables_added": 1,
+      "summary": "Archive Analysis: extracted 1 of 1 files: (hello_world.txt)"
+    },
+    {
+      "analysis": "ArchiveAnalysis",
+      "dump": "archive/ace3/archive/zipped.jar.json",
+      "input": "ace3/archive/zipped.jar",
+      "module": "archive",
+      "observables_added": 1,
+      "summary": "Archive Analysis: extracted 1 of 1 files: (META-INF/MANIFEST.MF)"
+    },
+    {
+      "analysis": "ArchiveAnalysis",
+      "dump": "archive/ace3/archive/zipped.zip.json",
+      "input": "ace3/archive/zipped.zip",
+      "module": "archive",
+      "observables_added": 1,
+      "summary": "Archive Analysis: extracted 1 of 1 files: (tests/saq/modules/test_file_analysis/zipped.jar)"
+    },
+    {
+      "analysis": "ArchiveAnalysis",
+      "dump": "archive/local/archive/nested.zip.json",
+      "input": "local/archive/nested.zip",
+      "module": "archive",
+      "observables_added": 1,
+      "summary": "Archive Analysis: extracted 1 of 1 files: (inner.zip)"
+    },
+    {
+      "analysis": "ArchiveAnalysis",
+      "dump": "archive/local/archive/password-infected-aes256.zip.json",
+      "input": "local/archive/password-infected-aes256.zip",
+      "module": "archive",
+      "observables_added": 1,
+      "summary": "Archive Analysis: extracted 1 of 1 files: (readme.txt)"
+    },
+    {
+      "analysis": "ArchiveAnalysis",
+      "dump": "archive/local/archive/password-infected-headers.7z.json",
+      "input": "local/archive/password-infected-headers.7z",
+      "module": "archive",
+      "observables_added": 1,
+      "summary": "Archive Analysis: extracted 1 of 1 files: (readme.txt)"
+    },
+    {
+      "analysis": "ArchiveAnalysis",
+      "dump": "archive/local/archive/password-infected.7z.json",
+      "input": "local/archive/password-infected.7z",
+      "module": "archive",
+      "observables_added": 1,
+      "summary": "Archive Analysis: extracted 1 of 1 files: (readme.txt)"
+    },
+    {
+      "analysis": "ArchiveAnalysis",
+      "dump": "archive/local/archive/password-infected.zip.json",
+      "input": "local/archive/password-infected.zip",
+      "module": "archive",
+      "observables_added": 1,
+      "summary": "Archive Analysis: extracted 1 of 1 files: (readme.txt)"
+    },
+    {
+      "analysis": "ArchiveAnalysis",
+      "dump": "archive/local/archive/zip-slip.zip.json",
+      "input": "local/archive/zip-slip.zip",
+      "module": "archive",
+      "observables_added": 2,
+      "summary": "Archive Analysis: extracted 2 of 2 files: (readme.txt, x)"
+    },
+    {
+      "analysis": null,
+      "dump": "archive/local/email/encrypted_zip_password_in_body.email.rfc822.json",
+      "input": "local/email/encrypted_zip_password_in_body.email.rfc822",
+      "module": "archive",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "analysis": "EmailAnalysis",
+      "dump": "email_analyzer/ace3/email/direct_send_spoof.email.rfc822.json",
+      "input": "ace3/email/direct_send_spoof.email.rfc822",
+      "module": "email_analyzer",
+      "observables_added": 10,
+      "summary": "Email Analysis: From \"Chief Executive\" <ceo@company.com> To user@company.com Subject Task Submission Confirmation"
+    },
+    {
+      "analysis": "EmailAnalysis",
+      "dump": "email_analyzer/ace3/email/encoded_subject.email.rfc822.json",
+      "input": "ace3/email/encoded_subject.email.rfc822",
+      "module": "email_analyzer",
+      "observables_added": 10,
+      "summary": "Email Analysis: From Sender <sender@example.com> To recipient@example.com Subject Test Encoded Subject"
+    },
+    {
+      "analysis": "EmailAnalysis",
+      "dump": "email_analyzer/ace3/email/encrypted_msoffice.email.rfc822.json",
+      "input": "ace3/email/encrypted_msoffice.email.rfc822",
+      "module": "email_analyzer",
+      "observables_added": 11,
+      "summary": "Email Analysis: From Peachey Wexler <noreply@tovarioseni9.fun> To target@user.com Subject Doc #848625: facsimile copy"
+    },
+    {
+      "analysis": "EmailAnalysis",
+      "dump": "email_analyzer/ace3/email/extra_message_id.email.rfc822.json",
+      "input": "ace3/email/extra_message_id.email.rfc822",
+      "module": "email_analyzer",
+      "observables_added": 20,
+      "summary": "Email Analysis: From Jacob Picklefoot <jrobinson@company.com> To ashphish@integraldefense.com Subject [POTENTIAL PHISH] FW: URGENT RFQ-03167218 IGOL MEF project 2018"
+    },
+    {
+      "analysis": "EmailAnalysis",
+      "dump": "email_analyzer/ace3/email/multi_recipient_to_cc.email.rfc822.json",
+      "input": "ace3/email/multi_recipient_to_cc.email.rfc822",
+      "module": "email_analyzer",
+      "observables_added": 17,
+      "summary": "Email Analysis: From External Sender <sender@external.example> To alice@company.com, Bob <bob@company.com> Subject Re: Invoices 12927-12929"
+    },
+    {
+      "analysis": "EmailAnalysis",
+      "dump": "email_analyzer/ace3/email/multi_rfc2047_filename.email.rfc822.json",
+      "input": "ace3/email/multi_rfc2047_filename.email.rfc822",
+      "module": "email_analyzer",
+      "observables_added": 10,
+      "summary": "Email Analysis: From External Sender <sender@external.example> To alice@company.com Subject Test multi-chunk RFC 2047 attachment filename"
+    },
+    {
+      "analysis": "EmailAnalysis",
+      "dump": "email_analyzer/ace3/email/nested_rfc822_bom.email.rfc822.json",
+      "input": "ace3/email/nested_rfc822_bom.email.rfc822",
+      "module": "email_analyzer",
+      "observables_added": 11,
+      "summary": "Email Analysis: From \"HR Director\" <hr@victim-company.example> To victim@example.com Subject Fwd: Payroll adjustment"
+    },
+    {
+      "analysis": "EmailAnalysis",
+      "dump": "email_analyzer/ace3/email/nested_rfc822_pdf.email.rfc822.json",
+      "input": "ace3/email/nested_rfc822_pdf.email.rfc822",
+      "module": "email_analyzer",
+      "observables_added": 10,
+      "summary": "Email Analysis: From Test Sender <sender@example.com> To recipient@example.com Subject Test Email with Nested PDF"
+    },
+    {
+      "analysis": "EmailAnalysis",
+      "dump": "email_analyzer/ace3/email/o365_journaled.email.rfc822.json",
+      "input": "ace3/email/o365_journaled.email.rfc822",
+      "module": "email_analyzer",
+      "observables_added": 15,
+      "summary": "Email Analysis: From Bobbie Fruitypie <ap@someothercompany.com> To lulu.zingzing@company.com Subject INVOICE PDL-06-38776"
+    },
+    {
+      "analysis": "EmailAnalysis",
+      "dump": "email_analyzer/ace3/email/o365_journaled_7bit_bom_meta.email.rfc822.json",
+      "input": "ace3/email/o365_journaled_7bit_bom_meta.email.rfc822",
+      "module": "email_analyzer",
+      "observables_added": 21,
+      "summary": "Email Analysis: From \"John Smith\" <john.smith@contractor.example> To alice@acmecorp.com Subject RE: Test Subject Line"
+    },
+    {
+      "analysis": "EmailAnalysis",
+      "dump": "email_analyzer/ace3/email/o365_journaled_expanded_rcpt.email.rfc822.json",
+      "input": "ace3/email/o365_journaled_expanded_rcpt.email.rfc822",
+      "module": "email_analyzer",
+      "observables_added": 19,
+      "summary": "Email Analysis: From Bobbie Fruitypie <ap@someothercompany.com> To lulu.zingzing@company.com Subject INVOICE PDL-06-38776"
+    },
+    {
+      "analysis": "EmailAnalysis",
+      "dump": "email_analyzer/ace3/email/o365_journaled_multi_rcpt.email.rfc822.json",
+      "input": "ace3/email/o365_journaled_multi_rcpt.email.rfc822",
+      "module": "email_analyzer",
+      "observables_added": 19,
+      "summary": "Email Analysis: From Bobbie Fruitypie <ap@someothercompany.com> To lulu.zingzing@company.com Subject INVOICE PDL-06-38776"
+    },
+    {
+      "analysis": "EmailAnalysis",
+      "dump": "email_analyzer/ace3/email/o365_journaled_qp_meta.email.rfc822.json",
+      "input": "ace3/email/o365_journaled_qp_meta.email.rfc822",
+      "module": "email_analyzer",
+      "observables_added": 10,
+      "summary": "Email Analysis: From \"Smith, Jane\" <jane.smith@widgetsinc.com> To john.doe@acmecorp.com Subject RE: Project Alpha - Design Review Discussions on March 17, 2026 | Read Meeting Report"
+    },
+    {
+      "analysis": "EmailAnalysis",
+      "dump": "email_analyzer/ace3/email/pdf_attachment.email.rfc822.json",
+      "input": "ace3/email/pdf_attachment.email.rfc822",
+      "module": "email_analyzer",
+      "observables_added": 15,
+      "summary": "Email Analysis: From John Davison <unixfreak0037@gmail.com> To jwdavison@company.com Subject canary #1"
+    },
+    {
+      "analysis": "EmailAnalysis",
+      "dump": "email_analyzer/ace3/email/sample_rfc822.in.json",
+      "input": "ace3/email/sample_rfc822.in",
+      "module": "email_analyzer",
+      "observables_added": 14,
+      "summary": "Email Analysis: From John Davison <unixfreak0037@gmail.com> To jwdavison@company.com Subject canary #3"
+    },
+    {
+      "analysis": "EmailAnalysis",
+      "dump": "email_analyzer/ace3/email/smtp.email.rfc822.json",
+      "input": "ace3/email/smtp.email.rfc822",
+      "module": "email_analyzer",
+      "observables_added": 12,
+      "summary": "Email Analysis: From John Davison <unixfreak0037@gmail.com> To \"Davison, John\" <John.Davison@company.com> Subject test canary #1"
+    },
+    {
+      "analysis": "EmailAnalysis",
+      "dump": "email_analyzer/ace3/email/splunk_logging.email.rfc822.json",
+      "input": "ace3/email/splunk_logging.email.rfc822",
+      "module": "email_analyzer",
+      "observables_added": 14,
+      "summary": "Email Analysis: From John Davison <unixfreak0037@gmail.com> To jwdavison@company.com Subject canary #3"
+    },
+    {
+      "analysis": "EmailAnalysis",
+      "dump": "email_analyzer/local/email/encrypted_zip_password_in_body.email.rfc822.json",
+      "input": "local/email/encrypted_zip_password_in_body.email.rfc822",
+      "module": "email_analyzer",
+      "observables_added": 9,
+      "summary": "Email Analysis: From sender@example.com To recipient@example.com Subject invoice"
+    },
+    {
+      "analysis": "RdapAnalysis",
+      "dump": "rdap_analyzer/fqdn_example.com.json",
+      "input": "fqdn example.com",
+      "module": "rdap_analyzer",
+      "observables_added": 0,
+      "summary": "RDAP Analysis: created: 11403 day(s) ago, last updated: 80 day(s) ago, nameservers: (ELLIOTT.NS.CLOUDFLARE.COM, HERA.NS.CLOUDFLARE.COM), registrar: RESERVED-Internet Assigned Numbers Authority, rdap service: https://rdap.verisign.com/com/v1/domain/example.com"
+    },
+    {
+      "analysis": "RdapAnalysis",
+      "dump": "rdap_analyzer/ip_8.8.8.8.json",
+      "input": "ip 8.8.8.8",
+      "module": "rdap_analyzer",
+      "observables_added": 0,
+      "summary": "RDAP Analysis: network: 8.8.8.0/24 (GOGL), created: 1039 day(s) ago, last updated: 1039 day(s) ago, rdap service: https://rdap.arin.net/registry/ip/8.8.8.0, emails: (arin-contact@google.com, network-abuse@google.com)"
+    },
+    {
+      "analysis": "YaraScanResults_v3_4",
+      "dump": "yara_scanner_v3_4/ace3/archive/test.zip.tagged-attachment.json",
+      "input": "ace3/archive/test.zip with meta tags ['type=email.attachment']",
+      "module": "yara_scanner_v3_4",
+      "observables_added": 6,
+      "summary": "Yara Scan Results: matched yara rules ace4_fixture_zip_attachment, ace4_fixture_zip_any"
+    },
+    {
+      "analysis": "YaraScanResults_v3_4",
+      "dump": "yara_scanner_v3_4/ace3/archive/test.zip.tagged-headers.json",
+      "input": "ace3/archive/test.zip with meta tags ['type=email.headers']",
+      "module": "yara_scanner_v3_4",
+      "observables_added": 3,
+      "summary": "Yara Scan Results: matched yara rules ace4_fixture_zip_any"
+    },
+    {
+      "analysis": "YaraScanResults_v3_4",
+      "dump": "yara_scanner_v3_4/ace3/archive/test.zip.untagged.json",
+      "input": "ace3/archive/test.zip with meta tags []",
+      "module": "yara_scanner_v3_4",
+      "observables_added": 3,
+      "summary": "Yara Scan Results: matched yara rules ace4_fixture_zip_any"
+    }
+  ]
+}
