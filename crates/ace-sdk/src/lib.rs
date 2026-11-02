@@ -8,6 +8,7 @@
 pub mod context;
 #[cfg(any(test, feature = "example-modules"))]
 pub mod example;
+pub mod http;
 pub mod manifest;
 pub mod module;
 
