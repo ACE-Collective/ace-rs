@@ -1,18 +1,21 @@
 # Build loop
 
-PLAN.md step 0.5 times the build loop on a throwaway workspace that uses tokio, axum, sqlx, askama, the AWS S3 SDK and yara-x once each, before any ACE code exists. Step 1.31 repeats the measurements on the real workspace at the end of phase 1, and reruns the spike with the workspace's dev profile so the two compare like for like.
+PLAN.md step 0.5 times the build loop on a throwaway workspace that uses tokio, axum, sqlx, askama, the AWS S3 SDK and yara-x once each, before any ACE code exists. Step 1.31 repeats the measurements on the real workspace at the end of phase 1, and reruns the spike with the workspace's dev profile so the two compare like for like. Step 2.33 repeats 1.31's workspace measurements at the end of phase 2, with sqlx, axum and the AWS SDK in the workspace, and adds an edit in `ace-core`.
 
 ## Summary
 
 Medians of five runs each, in seconds, in the dev container on macOS. Each column names the dev profile it used, and the profile matters: 0.5's spike built with Cargo's default dev profile (full debug info everywhere), and since commit 9e79bad the workspace builds dependencies without debug info and its own crates with line tables only. A link-bound number such as the edit loop isn't comparable across profiles, so the spike was measured again with the workspace's profile.
 
-| Series | Spike, default profile (0.5) | Spike, ace4's profile (1.31) | Workspace, ace4's profile (1.31) |
-|---|---|---|---|
-| clean-cold | 59.2 | 52.5 | 44.0 |
-| clean-warm | 11.3 | 9.2 | 15.7 |
-| noop | 0.2 | 0.1 | 0.2 |
-| edit in a leaf crate | 0.7 | 0.5 | 1.1 |
-| edit in `ace-results`, which 7 crates depend on | | | 2.8 |
+| Series | Spike, default profile (0.5) | Spike, ace4's profile (1.31) | Workspace, ace4's profile (1.31) | Workspace, ace4's profile (2.33) |
+|---|---|---|---|---|
+| clean-cold | 59.2 | 52.5 | 44.0 | 79.3 |
+| clean-warm | 11.3 | 9.2 | 15.7 | 34.6 |
+| noop | 0.2 | 0.1 | 0.2 | 0.2 |
+| edit in a leaf crate (in the workspace, `ace-mod-yara`) | 0.7 | 0.5 | 1.1 | 14.6 |
+| edit in `ace-results` | | | 2.8 | 15.7 |
+| edit in `ace-core` | | | | 12.3 |
+
+`ace-mod-yara` was a leaf in 1.31. By 2.33 `ace-core` depends on it, so its edit recompiles five crates after it, and the row compares the same file, not the same kind of edit. `ace-results` had 7 crates depending on it in 1.31 and 13 in 2.33.
 
 The sections below give each row's runs, ranges, sccache counts and what else the numbers include.
 
@@ -103,6 +106,59 @@ What else the 1.31 numbers include, as in 0.5:
 - **sccache's own cost**, in clean-cold, which writes every result to the cache.
 - **No failures.** Every run exited 0, and the crates-compiled column shows each series did the work it names: every crate for a clean build, none for a no-op, one crate for the leaf edit and eight for the shared one. After the series, `cargo test -p ace-mod-yara -p ace-results` in the same target directory ran the rebuilt test binaries: 36 tests passed.
 
+## Dev container on macOS (2.33)
+
+Measured on 2026-11-03 on the same machine and container as 1.31: Rancher Desktop's VZ virtual machine on Apple silicon (aarch64, Linux 6.18.37), 8 CPUs and 31.3 GB, mold 2.37.1 through clang, sccache 0.18.0, Rust 1.99.1, and the same dev profile. Raw data: [build-loop-2.33-workspace.tsv](build-loop-2.33-workspace.tsv).
+
+`tools/build-loop/measure` on `/workspace` at commit f1169f2, after step 2.32: the workspace's 16 crates and their dependencies, 527 compiled crates in all. New since 1.31 are sqlx 0.9.0 (in `ace-core`, `ace-pool` and `ace-site-example`), axum 0.8.9 (in `ace-core`), aws-sdk-s3 1.157.0 (in `ace-store`) and opentelemetry 0.33.1; yara-x, reqwest, tokio, jsonschema, mail-parser, zip and unrar are at 1.31's versions. askama isn't in the workspace yet. The build ends with 77 test executables, 5.4 GB together. The largest, `ace-pool`'s `async_pool` and `shutdown` tests, are 181 MB each.
+
+Each series ran as its own `measure` invocation, with `SERIES` naming it, so the disk could be checked before each one. The order was clean-cold, clean-warm, noop, then the three edit series, which is the order one invocation runs them in. The sccache cache under `/sccache/build-loop` carried over between invocations, as it does within one. Three edit series, each on a line `pub const EDIT_MARKER: u32 = N;` added to the end of the crate's `lib.rs` for the runs and removed afterwards:
+
+- `edit` on `crates/ace-mod-yara/src/lib.rs`, as in 1.31. It now recompiles 6 crates: `ace-mod-yara`, `ace-core`, `ace-pool`, `ace-app`, `ace` and `ace-site-example`.
+- `edit-shared` on `crates/ace-results/src/lib.rs`, as in 1.31. It recompiles 14 crates.
+- `edit-core` on `crates/ace-core/src/lib.rs`, new in 2.33. It recompiles 5 crates: `ace-core`, `ace-pool`, `ace-app`, `ace` and `ace-site-example`. The constant is public, so it is part of `ace-core`'s metadata and Cargo rebuilds every crate after it. The crates-compiled column shows that happened in every run, and the `ace-core` unit test binary had a new mtime after the series.
+
+| Series | Runs | Median (s) | Range (s) | Failed runs | Crates compiled | sccache hits / misses, each run |
+|---|---|---|---|---|---|---|
+| clean-cold | 5 | 79.3 | 76.1 to 94.9 | 0 | 527 | 0 / 1012 |
+| clean-warm | 5 | 34.6 | 33.0 to 43.5 | 0 | 527 | 1012 / 0 |
+| noop | 5 | 0.2 | 0.2 to 0.4 | 0 | 0 | 0 / 0 |
+| edit | 5 | 14.6 | 12.6 to 16.0 | 0 | 6 | 0 / 0 |
+| edit-shared | 5 | 15.7 | 14.4 to 16.9 | 0 | 14 | 0 / 0 |
+| edit-core | 5 | 12.3 | 11.7 to 13.3 | 0 | 5 | 0 / 0 |
+
+How these compare with 1.31:
+
+- **Clean-cold** went from 44.0 to 79.3 seconds, for 527 crates against 430. sqlx, axum and the AWS SDK are the additions the spike already built, where they took the spike to 52.5 seconds.
+- **Clean-warm** went from 15.7 to 34.6. sccache can't cache 216 compilations per build here, against 146 in 1.31, and the build links 77 test executables instead of 32.
+- **The edits** took 1 to 3 seconds in 1.31 and take 12 to 17 seconds now. Every edit now recompiles `ace-core` or a crate under it, and with it the test targets of `ace-core`, `ace-pool`, `ace-app`, `ace` and `ace-site-example`. Each file under a crate's `tests/` is its own test executable that links sqlx, axum, the AWS SDK and yara-x.
+
+**Where an `ace-core` edit's time goes.** One extra edit-core build, outside the series, ran with `--timings` and took 12.5 seconds. It had 46 units. `ace-core`'s library took 0.75 seconds and `ace-app`'s 0.72. The other 44 were test targets: 16 in `ace-core`, 16 in `ace-pool`, 7 in `ace-site-example`, 5 in `ace` and 2 in `ace-app`, at 1.5 to 2.9 seconds each. Together the units took 89.4 seconds, spread over 8 CPUs. That is one run, so only its breakdown is used here, but it says what would bring the number down: fewer test executables, by gathering each crate's `tests/*.rs` into one test binary, rather than a faster compile of `ace-core` itself.
+
+**The threshold.** PLAN.md 2.33 reopens `docs/decisions/0001-language.md` if a one-line edit in `ace-core` takes more than 10 seconds to a runnable test binary. The median is 12.3 seconds and the fastest of the five runs took 11.7, so the threshold did not hold, and the record is reopened.
+
+What else the 2.33 numbers include:
+
+- **ace3's stack on the same VM**, running throughout and not stopped. Its 27 containers used 20.5% of one CPU together just before the runs and 19.9% just after, by `docker stats --no-stream`. A sampler ran `docker stats` about every 5 seconds during the runs. Summed over ace3's containers, as a share of one CPU:
+
+  | Series | Samples | Median | Range | Mean |
+  |---|---|---|---|---|
+  | clean-cold | 81 | 17% | 6% to 286% | 49% |
+  | clean-warm | 35 | 17% | 9% to 333% | 33% |
+  | noop | 1 | 19% | | |
+  | edit | 14 | 17% | 9% to 36% | 19% |
+  | edit-shared | 15 | 16% | 11% to 32% | 17% |
+  | edit-core | 11 | 28% | 14% to 122% | 40% |
+
+  The peaks came from ace3's dev container, where another session was running ace3's tests in short bursts. The clean series overlap the larger bursts, and clean-warm's 43.5-second run 4 is probably one of them. A 5-second sample can miss a burst that falls inside one edit run, so the edit series' figures are a floor.
+- **A first clean-cold series that wasn't used.** It ran from 18:37 UTC while ace3's dev container ran ace3's full test suite under `pytest -n 6`, which took 3.3 CPUs on median (93% to 453%). Its runs took 107.0 to 140.9 seconds, median 136.0. The series was run again once the suite finished, and the second one is the row above. Both are in the TSV, the first as `clean-cold-contended`.
+- **A first edit-core series that wasn't used.** Its run 1 compiled 14 crates, because `measure` resets the marker in `ace-results` to 0 after edit-shared and that change was still unbuilt. One untimed build cleared it, and edit-core ran again. The first series is in the TSV as `edit-core-first`: 12.6 seconds median, 10.7 to 13.5, and 10.7 to 12.9 over its four clean runs. The same reset adds no work to edit-shared's run 1, since the crates it rebuilds are a subset of edit-shared's.
+- **sccache.** clean-cold emptied the tool's own cache before each run (0 hits, 1012 misses each), so it includes writing every result to the cache. clean-warm ran on the cache clean-cold filled (1012 hits, 0 misses each). The edit and no-op runs used it for nothing: workspace crates aren't cached because they compile incrementally.
+- **Disk.** Before the second clean-cold series the Docker VM had 5.7 GB free, so ace4's own build output in `target/debug` was deleted, which brought it to 14.1 GB. That was between series, not within one, and the tool's target directory, `target/build-loop-real`, wasn't touched. Every later check showed 12.6 GB or more free. The tool's target directory was 11 GB after the runs.
+- **No downloads.** `cargo fetch` ran before each invocation and isn't timed, and `--frozen` keeps every run offline.
+- **Warm file caches** after each series' first run. Run 1 is the slowest run of clean-cold.
+- **No failures.** Every run exited 0, and the crates-compiled column shows each series did the work it names. After the series, `cargo test -p ace-mod-yara -p ace-results` in the same target directory ran the rebuilt test binaries (36 tests passed), and `ace-core`'s rebuilt unit test binary ran with `--list`. `ace-core`'s and `ace-pool`'s tests need the stack's Postgres and bucket, which weren't running, so their binaries weren't run.
+
 ## CI's Linux runner
 
 Pending, as in 0.5. The `build-loop` workflow (`.github/workflows/build-loop.yml`) runs the same two scripts inside the dev image on GitHub's `ubuntu-24.04` runner, by hand from the Actions tab, and writes the same table to the run's summary. It hasn't run yet, because this checkout has no GitHub repository. As written it measures 0.5's spike, with Cargo's default profile; 1.31's rows on CI would need `make-spike --ace4-profile` and a run over the workspace as below.
@@ -121,19 +177,23 @@ CARGO_TARGET_DIR=/workspace/target/build-loop-spike \
 rm -rf spike-build-loop /workspace/target/build-loop-spike /workspace/target/build-loop-results /sccache/build-loop
 ```
 
-The workspace. `measure` edits a line `pub const EDIT_MARKER: u32 = N;`, which no crate has, so add one to the end of the leaf's and the shared crate's `lib.rs` first, and remove both afterwards:
+The workspace. `measure` edits a line `pub const EDIT_MARKER: u32 = N;`, which no crate has, so add one to the end of each edited crate's `lib.rs` first, and remove them afterwards. 2.33 ran each series as its own invocation, as below, to check the disk between series:
 
 ```sh
-for f in crates/ace-mod-yara/src/lib.rs crates/ace-results/src/lib.rs; do
+for f in crates/ace-mod-yara/src/lib.rs crates/ace-results/src/lib.rs crates/ace-core/src/lib.rs; do
   printf '\npub const EDIT_MARKER: u32 = 0;\n' >> "$f"
 done
-CARGO_TARGET_DIR=/workspace/target/build-loop-real \
-  tools/build-loop/measure /workspace crates/ace-mod-yara/src/lib.rs \
-  /workspace/target/build-loop-results-real 5
-SERIES=edit CARGO_TARGET_DIR=/workspace/target/build-loop-real \
-  tools/build-loop/measure /workspace crates/ace-results/src/lib.rs \
+export CARGO_TARGET_DIR=/workspace/target/build-loop-real
+for s in clean-cold clean-warm noop edit; do
+  SERIES=$s tools/build-loop/measure /workspace crates/ace-mod-yara/src/lib.rs \
+    /workspace/target/build-loop-results-$s 5
+done
+SERIES=edit tools/build-loop/measure /workspace crates/ace-results/src/lib.rs \
   /workspace/target/build-loop-results-shared 5
+cargo test --workspace --no-run --frozen   # builds ace-results' reset marker, untimed
+SERIES=edit tools/build-loop/measure /workspace crates/ace-core/src/lib.rs \
+  /workspace/target/build-loop-results-core 5
 rm -rf /workspace/target/build-loop-real /workspace/target/build-loop-results-* /sccache/build-loop
 ```
 
-The second run's edit rows are the `edit-shared` rows in `build-loop-1.31-workspace.tsv`.
+The `ace-results` run's edit rows are the `edit-shared` rows in the TSVs, and the `ace-core` run's are the `edit-core` rows.

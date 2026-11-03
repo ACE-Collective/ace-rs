@@ -182,7 +182,7 @@ Site integrations live in their own repositories (decision 9), so this workspace
 
 ### Build loop
 
-- [ ] **2.33 Build loop again.** Repeat 1.31's measurements on the workspace now that sqlx, axum and the AWS SDK are in it, and add a series that makes a one-line edit in `ace-core`. Done when `build-loop.md` shows them next to 1.31's. If the `ace-core` edit takes more than 10 seconds to a runnable test binary, reopen `docs/decisions/0001-language.md`.
+- [x] **2.33 Build loop again.** Repeat 1.31's measurements on the workspace now that sqlx, axum and the AWS SDK are in it, and add a series that makes a one-line edit in `ace-core`. Done when `build-loop.md` shows them next to 1.31's. If the `ace-core` edit takes more than 10 seconds to a runnable test binary, reopen `docs/decisions/0001-language.md`.
 
 ## Phase 3: comparison with ace3 on local samples
 

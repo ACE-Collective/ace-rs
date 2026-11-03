@@ -1,6 +1,6 @@
 # 0001: Keep Rust for the core
 
-Status: accepted (PLAN.md 1.32).
+Status: accepted (PLAN.md 1.32), reopened on 2026-11-03 (PLAN.md 2.33; see *Reopened* below).
 
 ## The question
 
@@ -62,3 +62,21 @@ Keep Rust for the core and the modules. Neither result that could have changed t
 ## Sign-off
 
 Signed off by Matthew Wilson on 2026-11-02.
+
+## Reopened: 2026-11-03
+
+PLAN.md 2.33 measured the build loop again at the end of phase 2, with sqlx, axum and the AWS SDK in the workspace. [build-loop.md](../measurements/build-loop.md) has the method and raw data. A one-line edit in `ace-core` took 12.3 seconds to runnable test binaries, the median of five runs, with a range of 11.7 to 13.3. That is over this record's 10-second limit in every run, so the decision is reopened. The decision above stands as written until it is decided again.
+
+| Series | 1.31 | 2.33 |
+|---|---|---|
+| Clean build, empty cache | 44.0 s (39.4 to 46.5) | 79.3 s (76.1 to 94.9) |
+| Clean build, cache kept | 15.7 s (15.4 to 17.0) | 34.6 s (33.0 to 43.5) |
+| No-op | 0.2 s | 0.2 s |
+| One-line edit in `ace-mod-yara` | 1.1 s (0.9 to 1.4) | 14.6 s (12.6 to 16.0) |
+| One-line edit in `ace-results` | 2.8 s (2.5 to 2.9) | 15.7 s (14.4 to 16.9) |
+| One-line edit in `ace-core` | | 12.3 s (11.7 to 13.3) |
+
+What bounds the result:
+- ace3's stack ran on the same VM throughout, mostly idle (median 16% to 28% of one CPU per series), with bursts up to 3.3 CPUs from tests in ace3's dev container. The edit-core series saw bursts up to 1.2 CPUs.
+- Every run exited 0 and compiled the expected crates: 5 for the `ace-core` edit.
+- One run with `--timings` put `ace-core`'s own compile at 0.75 seconds. Most of the time went to the 44 test executables of `ace-core`, `ace-pool`, `ace-app`, `ace` and `ace-site-example`, each recompiled and linked against sqlx, axum, the AWS SDK and yara-x, at 1.5 to 2.9 seconds each, run in parallel on 8 CPUs. Fewer test executables per crate is the change that measurement points to. It hasn't been tried, and nothing has been built in Go.
