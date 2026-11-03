@@ -226,6 +226,14 @@ impl Store {
         Spooled::from_reader(&self.cache, &mut file).await
     }
 
+    /// Spools what `reader` yields until it ends, such as a submitted file's upload.
+    pub async fn spool_reader(
+        &self,
+        reader: &mut (dyn tokio::io::AsyncRead + Unpin + Send),
+    ) -> Result<Spooled, StoreError> {
+        Spooled::from_reader(&self.cache, reader).await
+    }
+
     /// True when the bucket has the object.
     pub async fn exists(&self, pool: &str, sha256: &Sha256) -> Result<bool, StoreError> {
         let key = Store::key(pool, sha256)?;

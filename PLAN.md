@@ -168,7 +168,7 @@ The goal is to run the five phase 1 modules end to end from a submission.
 
 ### End to end
 
-- [ ] **2.28 Submissions.** An endpoint that creates a root with its observables, files and analysis mode, and queues its first tasks. Done when a submitted file is in the bucket and its tasks are queued.
+- [x] **2.28 Submissions.** An endpoint that creates a root with its observables, files and analysis mode, and queues its first tasks. Done when a submitted file is in the bucket and its tasks are queued.
 - [ ] **2.29 Compose stack.** `postgres`, `bucket`, `ace`, a Rust parser pool and a network pool. Done when `docker compose up` brings every service up healthy while ace3's stack is running, and 0.6's check passes.
 - [ ] **2.30 End-to-end test.** Submit an email with a domain in its headers and a zip attachment that a fixture YARA rule matches only through its `meta_tags`. Done when the email, archive, YARA, RDAP and delayed modules all have results, the root completes, killing the parser pool mid-run only delays completion, and the test runs in CI.
 

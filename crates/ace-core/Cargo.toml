@@ -17,11 +17,14 @@ ace-results = { path = "../ace-results" }
 ace-sdk = { path = "../ace-sdk" }
 ace-store = { path = "../ace-store" }
 ace-yara = { path = "../ace-yara" }
-axum = "0.8.9"
+axum = { version = "0.8.9", features = ["multipart"] }
+# A submitted file streams from its form field into the spool.
+futures-util = { version = "0.3.34", default-features = false }
 chrono = { version = "0.4.45", default-features = false, features = ["clock", "std"] }
 # The lease API's spans join their callers' traces (PLAN.md 2.22).
 opentelemetry = "0.33.1"
 opentelemetry_sdk = { version = "0.33.1", default-features = false, features = ["trace"] }
+serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.154"
 sha2 = "0.11.1"
 # Queries are checked against the migrated schema at build time, from the offline data in the
@@ -29,7 +32,7 @@ sha2 = "0.11.1"
 sqlx = { version = "0.9.0", default-features = false, features = ["runtime-tokio", "tls-rustls-aws-lc-rs", "postgres", "macros", "migrate", "sqlx-toml", "uuid", "chrono", "json"] }
 thiserror = "2.0.21"
 tokio = { version = "1.54.1", features = ["macros", "net", "rt", "sync", "time"] }
-tokio-util = "0.7.20"
+tokio-util = { version = "0.7.20", features = ["io"] }
 tracing = "0.1.44"
 tracing-opentelemetry = { version = "0.34.0", default-features = false }
 uuid = { version = "1.29.0", features = ["v4"] }
@@ -44,6 +47,8 @@ ace-mod-rdap = { path = "../ace-mod-rdap" }
 ace-mod-splunk = { path = "../ace-mod-splunk" }
 ace-mod-yara = { path = "../ace-mod-yara" }
 ace-testkit = { path = "../ace-testkit" }
+# The submissions test posts its forms over HTTP.
+reqwest = { version = "0.13.5", default-features = false, features = ["json"] }
 schemars = "1.2.3"
 serde = { version = "1.0.229", features = ["derive"] }
 tempfile = "3.27.0"

@@ -1,11 +1,13 @@
-//! `ace serve`: the lease API workers call (PLAN.md 2.14), the reaper that takes back tasks
+//! `ace serve`: the lease API workers call (PLAN.md 2.14) and the submit endpoint (2.28), the
+//! reaper that takes back tasks
 //! whose lease expired, the recorder of YARA QA matches (2.27), and the ruleset builder (2.25)
 //! when `ACE4_SIGNATURES_REPO` names the
 //! signatures repository's checkout (`SignatureRepo::from_env`), every
 //! `ACE4_RULESET_POLL_SECONDS` (60).
 //!
 //! It reads `ACE4_DATABASE_URL`, the `ACE4_BUCKET_*` variables, the pools and their tokens
-//! (`ACE4_POOLS`, `ACE4_POOL_TOKEN_<POOL>`, see `ApiConfig::from_env`), `ACE4_API_LISTEN`
+//! (`ACE4_POOLS`, `ACE4_POOL_TOKEN_<POOL>`, see `ApiConfig::from_env`), the submit token
+//! (`ACE4_SUBMIT_TOKEN`), `ACE4_API_LISTEN`
 //! (default `0.0.0.0:8080`), `ACE4_CACHE_DIR` for the node's bucket cache, and the site overlay
 //! at `ACE4_OVERLAY` (`site`).
 
