@@ -9,8 +9,10 @@
 //! The manifest says where the rules came from. In a git checkout with no uncommitted changes
 //! under the signature directory, that is the commit. A directory outside git, or one with
 //! changes, has no commit, and is known by the hash of its sources, which every manifest
-//! records.
+//! records. `build_commit` builds a commit of a repository as git holds it, whatever its working
+//! tree has, which is what the core's ruleset builds use (PLAN.md 2.25).
 
+use std::ffi::OsStr;
 use std::path::Path;
 use std::process::{Command, Stdio};
 
@@ -63,6 +65,9 @@ pub struct Built {
 pub enum BuildError {
     Load(LoadError),
     Serialize(String),
+    /// git couldn't read the repository, or the commit isn't in it.
+    Git(String),
+    Io(std::io::Error),
 }
 
 impl std::fmt::Display for BuildError {
@@ -70,6 +75,8 @@ impl std::fmt::Display for BuildError {
         match self {
             BuildError::Load(e) => write!(f, "{e}"),
             BuildError::Serialize(e) => write!(f, "unable to serialize the ruleset: {e}"),
+            BuildError::Git(e) => write!(f, "git: {e}"),
+            BuildError::Io(e) => write!(f, "{e}"),
         }
     }
 }
@@ -78,6 +85,115 @@ impl std::error::Error for BuildError {}
 
 /// Compiles a signature directory and serializes the result.
 pub fn build(signature_dir: &Path, options: &LoadOptions) -> Result<Built, BuildError> {
+    build_with(signature_dir, options, git_commit(signature_dir))
+}
+
+/// Compiles the signature directory `dir` (relative to the repository's top) of the git
+/// repository `repo` as it is at `commit`, and serializes the result. The files come from git's
+/// objects into a temporary directory, so the working tree's state doesn't matter and nothing in
+/// the repository changes. Only regular files are read; symbolic links and submodules aren't.
+pub fn build_commit(
+    repo: &Path,
+    commit: &str,
+    dir: &Path,
+    options: &LoadOptions,
+) -> Result<Built, BuildError> {
+    let export = tempfile::Builder::new()
+        .prefix("ace4-ruleset-")
+        .tempdir()
+        .map_err(BuildError::Io)?;
+    let mut args = ["ls-tree", "-r", "-z", "--full-tree", commit]
+        .map(OsStr::new)
+        .to_vec();
+    if !top_relative(dir).as_os_str().is_empty() {
+        args.extend([OsStr::new("--"), top_relative(dir).as_os_str()]);
+    }
+    let listing = git_bytes(repo, &args)?;
+    for entry in listing.split(|b| *b == 0).filter(|e| !e.is_empty()) {
+        let entry = String::from_utf8_lossy(entry);
+        // <mode> SP <type> SP <object> TAB <path>
+        let Some((header, path)) = entry.split_once('\t') else {
+            return Err(BuildError::Git(format!(
+                "unexpected ls-tree entry {entry:?}"
+            )));
+        };
+        let mut fields = header.split(' ');
+        let (Some(mode), Some(kind), Some(object)) = (fields.next(), fields.next(), fields.next())
+        else {
+            return Err(BuildError::Git(format!(
+                "unexpected ls-tree entry {entry:?}"
+            )));
+        };
+        if kind != "blob" || !matches!(mode, "100644" | "100755") {
+            continue;
+        }
+        let Ok(relative) = Path::new(path).strip_prefix(top_relative(dir)) else {
+            continue;
+        };
+        let bytes = git_bytes(
+            repo,
+            &[
+                OsStr::new("cat-file"),
+                OsStr::new("blob"),
+                OsStr::new(object),
+            ],
+        )?;
+        let target = export.path().join(relative);
+        if let Some(parent) = target.parent() {
+            std::fs::create_dir_all(parent).map_err(BuildError::Io)?;
+        }
+        std::fs::write(&target, bytes).map_err(BuildError::Io)?;
+    }
+    build_with(export.path(), options, Some(commit.to_owned()))
+}
+
+/// The commit `rev` names in the repository, such as `HEAD` or `main`.
+pub fn resolve_commit(repo: &Path, rev: &str) -> Result<String, BuildError> {
+    let spec = format!("{rev}^{{commit}}");
+    let out = git_bytes(
+        repo,
+        &[
+            OsStr::new("rev-parse"),
+            OsStr::new("--verify"),
+            OsStr::new(&spec),
+        ],
+    )?;
+    Ok(String::from_utf8_lossy(&out).trim().to_owned())
+}
+
+/// The id of the tree git holds at `dir` in `commit`, or None when the commit has no such
+/// directory. Two commits with the same tree there build the same ruleset.
+pub fn tree_id(repo: &Path, commit: &str, dir: &Path) -> Result<Option<String>, BuildError> {
+    let spec = format!("{commit}:{}", top_relative(dir).to_string_lossy());
+    match git_bytes(
+        repo,
+        &[
+            OsStr::new("rev-parse"),
+            OsStr::new("--verify"),
+            OsStr::new("--quiet"),
+            OsStr::new(&spec),
+        ],
+    ) {
+        Ok(out) => Ok(Some(String::from_utf8_lossy(&out).trim().to_owned())),
+        Err(BuildError::Git(_)) => Ok(None),
+        Err(e) => Err(e),
+    }
+}
+
+/// `dir` as git names a path from the repository's top: the top itself is empty.
+fn top_relative(dir: &Path) -> &Path {
+    if dir == Path::new(".") {
+        Path::new("")
+    } else {
+        dir
+    }
+}
+
+fn build_with(
+    signature_dir: &Path,
+    options: &LoadOptions,
+    commit: Option<String>,
+) -> Result<Built, BuildError> {
     let namespaces = load::discover(signature_dir).map_err(|error| {
         BuildError::Load(LoadError::Discover {
             dir: signature_dir.to_path_buf(),
@@ -116,9 +232,9 @@ pub fn build(signature_dir: &Path, options: &LoadOptions) -> Result<Built, Build
 
     let manifest = Manifest {
         key: key(&bytes),
-        commit: git_commit(signature_dir),
+        commit,
         sources_sha256: sources_sha256(signature_dir, &namespaces),
-        yara_x_version: yara_x::VERSION.to_string(),
+        yara_x_version: crate::YARA_X_VERSION.to_string(),
         files,
         left_out,
     };
@@ -197,17 +313,25 @@ fn git_commit(dir: &Path) -> Option<String> {
 }
 
 fn git(dir: &Path, args: &[&str]) -> Option<String> {
+    let args: Vec<&OsStr> = args.iter().map(OsStr::new).collect();
+    let out = git_bytes(dir, &args).ok()?;
+    Some(String::from_utf8_lossy(&out).trim().to_string())
+}
+
+/// Runs git in `dir` with fsmonitor off and returns its stdout, or its stderr as the error.
+fn git_bytes(dir: &Path, args: &[&OsStr]) -> Result<Vec<u8>, BuildError> {
     let output = Command::new("git")
         .arg("-C")
         .arg(dir)
         .args(["-c", "core.fsmonitor=false"])
         .args(args)
         .stdin(Stdio::null())
-        .stderr(Stdio::null())
         .output()
-        .ok()?;
+        .map_err(|e| BuildError::Git(format!("unable to run git: {e}")))?;
     if !output.status.success() {
-        return None;
+        return Err(BuildError::Git(
+            String::from_utf8_lossy(&output.stderr).trim().to_owned(),
+        ));
     }
-    Some(String::from_utf8_lossy(&output.stdout).trim().to_string())
+    Ok(output.stdout)
 }

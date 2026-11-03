@@ -16,6 +16,7 @@ testing = []
 ace-results = { path = "../ace-results" }
 ace-sdk = { path = "../ace-sdk" }
 ace-store = { path = "../ace-store" }
+ace-yara = { path = "../ace-yara" }
 axum = "0.8.9"
 chrono = { version = "0.4.45", default-features = false, features = ["clock", "std"] }
 # The lease API's spans join their callers' traces (PLAN.md 2.22).

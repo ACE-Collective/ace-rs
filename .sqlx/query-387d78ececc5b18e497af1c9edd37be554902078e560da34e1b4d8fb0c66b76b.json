@@ -1,0 +1,125 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, key, commit, tree, sources_sha256, yara_x_version, files, left_out, built_at\n         FROM yara.rulesets WHERE commit = $1 AND yara_x_version = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "yara.rulesets",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "key",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "yara.rulesets",
+            "name": "key"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "commit",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "yara.rulesets",
+            "name": "commit"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "tree",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "yara.rulesets",
+            "name": "tree"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "sources_sha256",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "yara.rulesets",
+            "name": "sources_sha256"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "yara_x_version",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "yara.rulesets",
+            "name": "yara_x_version"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "files",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "yara.rulesets",
+            "name": "files"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "left_out",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "yara.rulesets",
+            "name": "left_out"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "built_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "yara.rulesets",
+            "name": "built_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "387d78ececc5b18e497af1c9edd37be554902078e560da34e1b4d8fb0c66b76b"
+}

@@ -21,5 +21,9 @@ pub use load::{
     Ruleset, compile, discover, load_dir,
 };
 pub use meta::{Meta, MetaValue};
+
+/// The yara-x version this crate builds with. A ruleset serialized by one version loads only in
+/// the same version.
+pub const YARA_X_VERSION: &str = yara_x::VERSION;
 pub use rule_meta::DetectionBlocker;
 pub use scan::{Match, PatternMatch, RuleTime, ScanError, ScanOutcome, ScanRequest, Scanner};

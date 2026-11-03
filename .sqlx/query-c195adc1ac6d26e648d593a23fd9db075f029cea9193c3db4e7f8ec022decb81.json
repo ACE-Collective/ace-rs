@@ -1,0 +1,65 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT key, sources_sha256, files, left_out FROM yara.rulesets\n           WHERE tree = $1 AND yara_x_version = $2 ORDER BY id DESC LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "key",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "yara.rulesets",
+            "name": "key"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "sources_sha256",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "yara.rulesets",
+            "name": "sources_sha256"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "files",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "yara.rulesets",
+            "name": "files"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "left_out",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "yara.rulesets",
+            "name": "left_out"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "c195adc1ac6d26e648d593a23fd9db075f029cea9193c3db4e7f8ec022decb81"
+}

@@ -54,9 +54,9 @@ pub struct BucketSettings {
 pub const DEFAULT_GRACE: Duration = Duration::from_secs(86_400);
 
 impl Default for BucketSettings {
-    /// ace3's defaults. Its two pools, `yara_qa` and `svs_samples`, keep their retention, and
+    /// ace3's defaults. Its two pools, `yara_qa` and `svs_samples`, keep their retention,
     /// `alert_files`, the pool CAS.md plans for alert files, holds each file for the roots it
-    /// is in.
+    /// is in, and `yara_rulesets` keeps every ruleset the core built (PLAN.md 2.25).
     fn default() -> Self {
         let held = PoolConfig {
             retention: Retention::Held {
@@ -69,6 +69,12 @@ impl Default for BucketSettings {
             put_deleting_wait: Duration::from_secs(30),
             pools: [
                 (ALERT_FILES.to_owned(), held),
+                (
+                    crate::rulesets::RULESETS.to_owned(),
+                    PoolConfig {
+                        retention: Retention::Permanent,
+                    },
+                ),
                 ("yara_qa".to_owned(), held),
                 ("svs_samples".to_owned(), held),
             ]
