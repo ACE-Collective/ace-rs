@@ -3,7 +3,8 @@
 //!
 //! It reads `ACE4_DATABASE_URL`, the `ACE4_BUCKET_*` variables, the pools and their tokens
 //! (`ACE4_POOLS`, `ACE4_POOL_TOKEN_<POOL>`, see `ApiConfig::from_env`), `ACE4_API_LISTEN`
-//! (default `0.0.0.0:8080`) and `ACE4_CACHE_DIR` for the node's bucket cache.
+//! (default `0.0.0.0:8080`), `ACE4_CACHE_DIR` for the node's bucket cache, and the site overlay
+//! at `ACE4_OVERLAY` (`site`).
 
 use std::process::ExitCode;
 use std::time::Duration;
@@ -18,17 +19,6 @@ use ace_core::queue::run_reaper;
 use ace_store::{BucketConfig, DEFAULT_CACHE_MAX_BYTES, NodeCache, Store};
 use anyhow::{Context, Result};
 use tokio_util::sync::CancellationToken;
-
-/// The modules this binary knows: the five ported in phase 1.
-pub fn manifests() -> Vec<ace_sdk::Manifest> {
-    vec![
-        ace_mod_email::MANIFEST,
-        ace_mod_rdap::MANIFEST,
-        ace_mod_archive::MANIFEST,
-        ace_mod_yara::MANIFEST,
-        ace_mod_splunk::MANIFEST,
-    ]
-}
 
 /// How long `ace serve` waits at shutdown for open requests: a little over the longest a lease
 /// request waits.
@@ -57,7 +47,8 @@ async fn serve() -> Result<ExitCode> {
             .with_context(|| format!("the cache in {}", cache_dir.display()))?,
     );
     let bucket = Bucket::new(db.clone(), store, BucketSettings::default());
-    let orchestrator = Orchestrator::new(Catalog::new(manifests()), Modes::ace3());
+    let components = crate::site::components(&crate::site::registry(), &crate::site::overlay()?)?;
+    let orchestrator = Orchestrator::new(Catalog::of(components), Modes::ace3());
     let config = ApiConfig::from_env();
     for pool in &config.pools {
         tracing::info!(pool = %pool.name, modules = ?pool.modules, "serving a pool");

@@ -2,6 +2,7 @@
 
 mod schema;
 mod serve;
+mod site;
 mod task;
 mod yara;
 

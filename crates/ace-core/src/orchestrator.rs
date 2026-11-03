@@ -128,7 +128,14 @@ impl Orchestrator {
         let registry = self
             .registry
             .get_or_init(|| {
-                let outputs: Vec<_> = self.catalog.iter().map(|(_, m)| m.output).collect();
+                // a module's instances share its analysis type, listed once
+                let mut modules = BTreeSet::new();
+                let outputs: Vec<_> = self
+                    .catalog
+                    .iter()
+                    .filter(|c| modules.insert(c.manifest.name))
+                    .map(|c| c.manifest.output)
+                    .collect();
                 Registry::new(&outputs).map_err(|e| e.to_string())
             })
             .as_ref()
@@ -237,10 +244,11 @@ impl Orchestrator {
                 .iter()
                 .map(String::as_str)
                 .collect();
-            for (key, manifest) in self.catalog.iter() {
-                if check(key, manifest, facts, &mode_modules, &done).is_err() {
+            for component in self.catalog.iter() {
+                if check(component, facts, &mode_modules, &done).is_err() {
                     continue;
                 }
+                let key = component.key.as_str();
                 match tasks.get(&(observable.id, key.to_owned())) {
                     None => {
                         if let Some(id) = queue::enqueue(tx, root, observable.id, key).await? {

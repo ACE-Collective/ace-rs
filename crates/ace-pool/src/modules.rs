@@ -1,5 +1,7 @@
 //! The modules a pool runs, behind one interface each for parsers and lookups, so a pool's
-//! runtime handles a leased task without knowing the module's types.
+//! runtime handles a leased task without knowing the module's types. Each runs as a component
+//! (PLAN.md 2.23): the module as itself, or a named instance of it from the site overlay, keyed
+//! by the name its tasks carry.
 
 use std::collections::BTreeMap;
 use std::future::Future;
@@ -10,8 +12,8 @@ use std::sync::Arc;
 use ace_results::AnalysisType;
 use ace_sdk::wire::{LeasedTask, TaskEnd};
 use ace_sdk::{
-    FileStore, Lookup, Manifest, ModuleError, Outcome, Parser, Secrets, SettingsError, TaskContext,
-    load_settings, run_lookup, run_parser,
+    Component, FileStore, Lookup, Manifest, ModuleError, Outcome, Parser, Secrets, SettingsError,
+    TaskContext, load_settings, run_lookup, run_parser,
 };
 use serde_json::Value;
 use tokio_util::sync::CancellationToken;
@@ -30,6 +32,8 @@ pub enum SetupError {
         #[source]
         source: ModuleError,
     },
+    #[error("this pool has no module {0}")]
+    Unknown(String),
 }
 
 /// Where a task runs and what it may use.
@@ -48,26 +52,31 @@ pub struct Run<'a> {
 /// A parser a pool runs, built with its settings.
 pub trait PoolParser: Send + Sync {
     fn manifest(&self) -> Manifest;
+    /// The name its tasks carry: the module's, or its instance's.
+    fn key(&self) -> &str;
     fn run(&self, run: Run<'_>) -> TaskEnd;
 }
 
 /// A lookup a pool runs, built with its settings.
 pub trait PoolLookup: Send + Sync {
     fn manifest(&self) -> Manifest;
+    fn key(&self) -> &str;
     fn run<'a>(&'a self, run: Run<'a>) -> Pin<Box<dyn Future<Output = TaskEnd> + Send + 'a>>;
 }
 
-/// A module, its settings and the secrets it declared.
+/// A module, its settings and the secrets it declared, under its component's key.
 pub struct Entry<M: ace_sdk::Module> {
     module: M,
     settings: Arc<M::Settings>,
     secrets: Secrets,
     manifest: Manifest,
+    key: String,
 }
 
 impl<M: ace_sdk::Module> Entry<M> {
     fn build(
         manifest: Manifest,
+        key: &str,
         settings: Option<&Value>,
         secrets: &Secrets,
     ) -> Result<Self, SetupError> {
@@ -85,6 +94,7 @@ impl<M: ace_sdk::Module> Entry<M> {
             settings: Arc::new(settings),
             secrets: secrets.clone(),
             manifest,
+            key: key.to_owned(),
         })
     }
 
@@ -109,19 +119,23 @@ impl<M: ace_sdk::Module> Entry<M> {
 impl<M: Parser> Entry<M> {
     /// A parser with its settings block, which loads as a site overlay's would.
     pub fn parser(settings: Option<&Value>, secrets: &Secrets) -> Result<Self, SetupError> {
-        Entry::build(Manifest::parser::<M>(), settings, secrets)
+        Entry::build(Manifest::parser::<M>(), M::NAME, settings, secrets)
     }
 }
 
 impl<M: Lookup> Entry<M> {
     pub fn lookup(settings: Option<&Value>, secrets: &Secrets) -> Result<Self, SetupError> {
-        Entry::build(Manifest::lookup::<M>(), settings, secrets)
+        Entry::build(Manifest::lookup::<M>(), M::NAME, settings, secrets)
     }
 }
 
 impl<M: Parser> PoolParser for Entry<M> {
     fn manifest(&self) -> Manifest {
         self.manifest
+    }
+
+    fn key(&self) -> &str {
+        &self.key
     }
 
     fn run(&self, run: Run<'_>) -> TaskEnd {
@@ -132,6 +146,10 @@ impl<M: Parser> PoolParser for Entry<M> {
 impl<M: Lookup> PoolLookup for Entry<M> {
     fn manifest(&self) -> Manifest {
         self.manifest
+    }
+
+    fn key(&self) -> &str {
+        &self.key
     }
 
     fn run<'a>(&'a self, run: Run<'a>) -> Pin<Box<dyn Future<Output = TaskEnd> + Send + 'a>> {
@@ -177,13 +195,13 @@ impl Modules {
 
     pub fn with_parser(mut self, parser: impl PoolParser + 'static) -> Self {
         self.parsers
-            .insert(parser.manifest().name.to_owned(), Box::new(parser));
+            .insert(parser.key().to_owned(), Box::new(parser));
         self
     }
 
     pub fn with_lookup(mut self, lookup: impl PoolLookup + 'static) -> Self {
         self.lookups
-            .insert(lookup.manifest().name.to_owned(), Box::new(lookup));
+            .insert(lookup.key().to_owned(), Box::new(lookup));
         self
     }
 
@@ -195,7 +213,7 @@ impl Modules {
         self.lookups.get(name).map(|l| l.as_ref())
     }
 
-    /// The names of every module, parsers and lookups.
+    /// The keys of every component, parsers and lookups.
     pub fn names(&self) -> Vec<String> {
         self.parsers
             .keys()
@@ -210,5 +228,83 @@ impl Modules {
             .map(|p| p.manifest())
             .chain(self.lookups.values().map(|l| l.manifest()))
             .collect()
+    }
+}
+
+/// Builds one component of a module type the registry knows.
+type Build = fn(&Component, &Secrets, Modules) -> Result<Modules, SetupError>;
+
+fn build_parser<M: Parser>(
+    component: &Component,
+    secrets: &Secrets,
+    modules: Modules,
+) -> Result<Modules, SetupError> {
+    let entry = Entry::<M>::build(
+        component.manifest,
+        &component.key,
+        component.settings.as_ref(),
+        secrets,
+    )?;
+    Ok(modules.with_parser(entry))
+}
+
+fn build_lookup<M: Lookup>(
+    component: &Component,
+    secrets: &Secrets,
+    modules: Modules,
+) -> Result<Modules, SetupError> {
+    let entry = Entry::<M>::build(
+        component.manifest,
+        &component.key,
+        component.settings.as_ref(),
+        secrets,
+    )?;
+    Ok(modules.with_lookup(entry))
+}
+
+/// The module types a binary links, so it can build the components a site overlay makes of
+/// them without knowing their types.
+#[derive(Default)]
+pub struct Registry {
+    modules: Vec<(Manifest, Build)>,
+}
+
+impl Registry {
+    pub fn new() -> Self {
+        Registry::default()
+    }
+
+    pub fn parser<M: Parser>(mut self) -> Self {
+        self.modules
+            .push((Manifest::parser::<M>(), build_parser::<M>));
+        self
+    }
+
+    pub fn lookup<M: Lookup>(mut self) -> Self {
+        self.modules
+            .push((Manifest::lookup::<M>(), build_lookup::<M>));
+        self
+    }
+
+    pub fn manifests(&self) -> Vec<Manifest> {
+        self.modules.iter().map(|(manifest, _)| *manifest).collect()
+    }
+
+    /// Builds each of `components`, with its settings and `secrets`.
+    pub fn build(
+        &self,
+        components: &[Component],
+        secrets: &Secrets,
+    ) -> Result<Modules, SetupError> {
+        components
+            .iter()
+            .try_fold(Modules::new(), |modules, component| {
+                let (_, build) = self
+                    .modules
+                    .iter()
+                    .find(|(manifest, _)| manifest.name == component.manifest.name)
+                    .ok_or_else(|| SetupError::Unknown(component.manifest.name.to_owned()))?;
+                build(component, secrets, modules)
+            })
     }
 }

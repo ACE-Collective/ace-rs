@@ -1,10 +1,11 @@
 //! Eligibility: whether a module may run on an observable.
 //!
-//! A module is eligible for an observable when it takes the observable's type (or a type that
-//! type extends), the root's analysis mode runs it, none of the observable's directives keeps
-//! it off and the observable doesn't exclude it, and every module it depends on has a result
-//! for the observable. The inputs, dependencies and skip directives come from the module's
-//! manifest; the mode's modules from `Modes`.
+//! A component, a module or a named instance of one, is eligible for an observable when it
+//! takes the observable's type (or a type that type extends), the root's analysis mode runs it,
+//! none of the observable's directives keeps it off and the observable doesn't exclude it, and
+//! every module it depends on has a result for the observable. The inputs come from the component (the manifest's, or an instance's
+//! narrower list), the dependencies and skip directives from the module's manifest, and the
+//! mode's modules from `Modes`.
 //!
 //! A dependency without a result yet makes a module wait, never fail: if the dependency's task
 //! is cancelled and later runs, its result makes the module eligible then (ace3 #846).
@@ -12,34 +13,43 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use ace_results::ObservableKind;
-use ace_sdk::Manifest;
+use ace_sdk::{Component, Manifest};
 
-/// The modules the core knows, by their key: the module's name, and later a named instance's.
+/// The components the core knows, by key: each module as itself, or its named instances from
+/// the site overlay (PLAN.md 2.23).
 #[derive(Debug, Clone, Default)]
 pub struct Catalog {
-    modules: BTreeMap<String, Manifest>,
+    components: BTreeMap<String, Component>,
 }
 
 impl Catalog {
+    /// Each module as itself, on its defaults: the catalog of a site with no overlay.
     pub fn new(manifests: impl IntoIterator<Item = Manifest>) -> Catalog {
+        Catalog::of(manifests.into_iter().map(Component::of))
+    }
+
+    /// The components a site overlay made (`Overlay::components`).
+    pub fn of(components: impl IntoIterator<Item = Component>) -> Catalog {
         Catalog {
-            modules: manifests
-                .into_iter()
-                .map(|m| (m.name.to_owned(), m))
-                .collect(),
+            components: components.into_iter().map(|c| (c.key.clone(), c)).collect(),
         }
     }
 
+    /// The manifest of the module the component `key` runs.
     pub fn get(&self, key: &str) -> Option<&Manifest> {
-        self.modules.get(key)
+        self.components.get(key).map(|c| &c.manifest)
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = (&str, &Manifest)> {
-        self.modules.iter().map(|(k, m)| (k.as_str(), m))
+    pub fn component(&self, key: &str) -> Option<&Component> {
+        self.components.get(key)
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = &Component> {
+        self.components.values()
     }
 
     pub fn keys(&self) -> BTreeSet<&str> {
-        self.modules.keys().map(String::as_str).collect()
+        self.components.keys().map(String::as_str).collect()
     }
 }
 
@@ -66,16 +76,16 @@ pub enum Ineligible {
     WaitingFor(String),
 }
 
-/// Whether module `key`, with `manifest`, may run on an observable with `facts`, in a mode
-/// that runs `mode_modules`, given the modules that have results for the observable.
+/// Whether `component` may run on an observable with `facts`, in a mode that runs
+/// `mode_modules`, given the components that have results for the observable.
 pub fn check(
-    key: &str,
-    manifest: &Manifest,
+    component: &Component,
     facts: Facts<'_>,
     mode_modules: &BTreeSet<&str>,
     results: &BTreeSet<&str>,
 ) -> Result<(), Ineligible> {
-    if !manifest.accepts(facts.kind) {
+    let (key, manifest) = (component.key.as_str(), &component.manifest);
+    if !component.accepts(facts.kind) {
         return Err(Ineligible::NotAnInput);
     }
     if !mode_modules.contains(key) {

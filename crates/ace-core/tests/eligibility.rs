@@ -184,13 +184,12 @@ fn each_rule() {
     let catalog = Catalog::new(manifests());
     let modes = modes();
     for case in cases {
-        let manifest = catalog.get(case.module).expect("a known module");
+        let component = catalog.component(case.module).expect("a known module");
         let directives = strings(case.directives);
         let exclude = strings(case.exclude);
         let results: BTreeSet<&str> = case.results.iter().copied().collect();
         let got = check(
-            case.module,
-            manifest,
+            component,
             Facts {
                 kind: case.kind,
                 directives: &directives,

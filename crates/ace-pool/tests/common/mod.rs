@@ -44,6 +44,16 @@ impl Drop for Core {
 impl Core {
     /// A core whose catalog is `manifests`, with one pool, `test`, that runs `pool_modules`.
     pub async fn start(manifests: Vec<Manifest>, pool_modules: &[&str], lease: Duration) -> Core {
+        Core::start_with(Catalog::new(manifests), Modes::ace3(), pool_modules, lease).await
+    }
+
+    /// `start` with a catalog and modes of the test's own.
+    pub async fn start_with(
+        catalog: Catalog,
+        modes: Modes,
+        pool_modules: &[&str],
+        lease: Duration,
+    ) -> Core {
         let test_db = TestDb::new().await;
         let cache = tempfile::tempdir().expect("a cache directory");
         let store = Store::new(
@@ -51,7 +61,7 @@ impl Core {
             NodeCache::new(cache.path(), 1 << 30).expect("a cache"),
         );
         let bucket = Bucket::new(test_db.db().clone(), store, BucketSettings::default());
-        let orchestrator = Orchestrator::new(Catalog::new(manifests), Modes::ace3());
+        let orchestrator = Orchestrator::new(catalog, modes);
         let config = ApiConfig::new(vec![PoolAccess::new(
             "test",
             TOKEN,

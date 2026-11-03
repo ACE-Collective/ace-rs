@@ -22,6 +22,8 @@ schemars = "1.2.3"
 serde = { version = "1.0.229", features = ["derive"] }
 serde_ignored = "0.1.14"
 serde_json = "1.0.154"
+# The site overlay (PLAN.md 2.23): serde_yaml's maintained fork.
+serde_norway = "0.9.42"
 serde_path_to_error = "0.1.20"
 sha2 = "0.11.1"
 tempfile = "3.27.0"
