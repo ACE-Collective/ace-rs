@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO store.objects (pool, sha256, size, mime_type) VALUES ($1, $2, $3, $4)\n             ON CONFLICT (pool, sha256) DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Int8",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "495fc30794910341e5adc15d03ebade177fd52c85ba4cc9904b177a952771499"
+}

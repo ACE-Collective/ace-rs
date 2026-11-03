@@ -23,8 +23,8 @@ use std::time::Duration;
 
 use ace_results::{AlertPath, ObservableKind, ResultEnvelope, Sha256, YaraMeta};
 use ace_sdk::wire::{
-    ApiError, LeaseRequest, LeasedTask, Presigned, Renewal, TaskEnd, TaskFile, TaskObservable,
-    UploadRequest, paths,
+    ApiError, FieldError as WireFieldError, LeaseRequest, LeasedTask, Presigned, Renewal, TaskEnd,
+    TaskFile, TaskObservable, UploadRequest, paths,
 };
 use axum::extract::{Path, State};
 use axum::http::{HeaderMap, StatusCode};
@@ -39,7 +39,7 @@ use tokio::sync::broadcast;
 use tokio::task::JoinHandle;
 
 use crate::bucket::{ALERT_FILES, Bucket, BucketError, Hold};
-use crate::db::{Db, DbError, Isolation};
+use crate::db::{Db, DbError, Isolation, Retryable};
 use crate::orchestrator::{Orchestrator, OrchestratorError};
 use crate::queue::{QueueError, TASKS_CHANNEL, Task, TaskId, Worker};
 use crate::tree;
@@ -371,34 +371,88 @@ impl Api {
         }))
     }
 
-    /// Lands a module's result: the files it wrote move from the task's uploads into the
-    /// pool, held by the root, and then the result, its observables, its file records and what
-    /// became eligible are written in one transaction.
-    async fn land(
-        &self,
-        worker: &Worker,
-        task: TaskId,
-        result: ResultEnvelope<Value>,
-    ) -> Result<(), Failure> {
+    /// Lands a module's result (PLAN.md 2.15). It is checked against its type's schema before
+    /// anything is written, and each file it adds must have been uploaded with bytes that
+    /// match its sha256. Then one transaction puts the files in the `alert_files` pool, held by
+    /// the root, and writes the result, its observables, its file records and the tasks that
+    /// became eligible. The uploads go once that has committed.
+    async fn land(&self, worker: &Worker, task: TaskId, result: Value) -> Result<(), Failure> {
         let task = worker.owned(task).await?.ok_or(Failure::LeaseLost(task))?;
-        let hold = Hold::root(task.root);
+        let orchestrator = &self.inner.orchestrator;
+        orchestrator
+            .check_result(&task.module, &result)
+            .map_err(|rejected| {
+                Failure::Invalid(ApiError {
+                    error: rejected.error,
+                    fields: rejected
+                        .fields
+                        .into_iter()
+                        .map(|f| WireFieldError {
+                            path: f.path,
+                            message: f.message,
+                        })
+                        .collect(),
+                })
+            })?;
+        let result: ResultEnvelope<Value> = serde_json::from_value(result)
+            .map_err(|e| Failure::BadRequest(format!("the result doesn't read: {e}")))?;
+        let bucket = &self.inner.bucket;
+        let mut files = Vec::new();
         for file in &result.files {
-            self.inner
-                .bucket
-                .adopt_upload(ALERT_FILES, task.id.0, &file.sha256, Some(&hold))
-                .await?;
+            files.push(bucket.fetch_upload(task.id.0, &file.sha256).await?);
         }
-        let (orchestrator, task, result) = (&self.inner.orchestrator, &task, &result);
+        let hold = Hold::root(task.root);
+        let (task, result, files, hold) = (&task, &result, &files, &hold);
         self.inner
             .db
             .transaction(Isolation::ReadCommitted, |tx| {
                 Box::pin(async move {
+                    for file in files {
+                        bucket.put_in(tx, ALERT_FILES, file, Some(hold)).await?;
+                    }
                     orchestrator.land_result(tx, worker, task, result).await?;
-                    Ok::<_, OrchestratorError>(())
+                    Ok::<_, LandError>(())
                 })
             })
             .await?;
+        for file in files {
+            bucket.remove_upload(task.id.0, &file.sha256).await?;
+        }
         Ok(())
+    }
+}
+
+/// What can go wrong inside a result's transaction.
+#[derive(Debug, thiserror::Error)]
+enum LandError {
+    #[error(transparent)]
+    Bucket(#[from] BucketError),
+    #[error(transparent)]
+    Orchestrator(#[from] OrchestratorError),
+}
+
+impl From<DbError> for LandError {
+    fn from(error: DbError) -> Self {
+        LandError::Orchestrator(OrchestratorError::Db(error))
+    }
+}
+
+impl Retryable for LandError {
+    fn is_retryable(&self) -> bool {
+        match self {
+            LandError::Bucket(BucketError::Db(e)) => e.is_retryable(),
+            LandError::Bucket(_) => false,
+            LandError::Orchestrator(e) => e.is_retryable(),
+        }
+    }
+}
+
+impl From<LandError> for Failure {
+    fn from(error: LandError) -> Self {
+        match error {
+            LandError::Bucket(e) => Failure::from(e),
+            LandError::Orchestrator(e) => Failure::from(e),
+        }
     }
 }
 
@@ -486,7 +540,12 @@ async fn end(
     let worker = api.worker(&headers)?;
     let task = TaskId(id);
     match end {
-        TaskEnd::Done { result } => api.land(&worker, task, result).await?,
+        TaskEnd::Done { result } => {
+            // checked as JSON, so each field that fails is named
+            let result = serde_json::to_value(result)
+                .map_err(|e| Failure::Internal(format!("re-encoding a result: {e}")))?;
+            api.land(&worker, task, result).await?
+        }
         TaskEnd::Skipped { reason } => {
             tracing::info!(%task, "skipped: {reason}");
             worker.complete(task).await?;
@@ -517,6 +576,8 @@ pub enum Failure {
     Cancelled(TaskId),
     /// A result that failed its schema, with each field that failed.
     Invalid(ApiError),
+    /// Something to try again shortly.
+    Unavailable(String),
     Internal(String),
 }
 
@@ -555,6 +616,9 @@ impl From<BucketError> for Failure {
             BucketError::Store(StoreError::Integrity { key, actual }) => {
                 Failure::BadRequest(format!("the bytes uploaded to {key} have sha256 {actual}"))
             }
+            BucketError::Deleting { pool, sha256 } => Failure::Unavailable(format!(
+                "{pool}/{sha256} is being deleted; end the task again"
+            )),
             other => Failure::Internal(other.to_string()),
         }
     }
@@ -575,6 +639,7 @@ impl IntoResponse for Failure {
                 api_error(&format!("{task} was cancelled")),
             ),
             Failure::Invalid(body) => (StatusCode::UNPROCESSABLE_ENTITY, body),
+            Failure::Unavailable(why) => (StatusCode::SERVICE_UNAVAILABLE, api_error(&why)),
             Failure::Internal(why) => {
                 tracing::error!("the lease API failed: {why}");
                 (

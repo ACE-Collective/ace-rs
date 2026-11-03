@@ -12,8 +12,9 @@
 //! same pass open.
 
 use std::collections::{BTreeMap, BTreeSet};
+use std::sync::{Arc, OnceLock};
 
-use ace_results::{Detection, NewObservable, ObservableKind, ResultEnvelope};
+use ace_results::{Detection, FieldError, NewObservable, ObservableKind, Registry, ResultEnvelope};
 use serde_json::Value;
 use uuid::Uuid;
 
@@ -79,11 +80,63 @@ pub struct Dispositioned {
 pub struct Orchestrator {
     catalog: Catalog,
     modes: Modes,
+    /// The catalog's analysis types and their schemas, built the first time a result is
+    /// checked.
+    registry: Arc<OnceLock<Result<Registry, String>>>,
+}
+
+/// Why a result was refused before anything from it was written.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Rejected {
+    pub error: String,
+    /// Each field that failed the type's schema, by JSON pointer.
+    pub fields: Vec<FieldError>,
 }
 
 impl Orchestrator {
     pub fn new(catalog: Catalog, modes: Modes) -> Self {
-        Orchestrator { catalog, modes }
+        Orchestrator {
+            catalog,
+            modes,
+            registry: Arc::default(),
+        }
+    }
+
+    /// Checks a result before it lands (PLAN.md 2.15): its type is the one `module`'s manifest
+    /// says it writes, and it passes that type's JSON Schema.
+    pub fn check_result(&self, module: &str, result: &Value) -> Result<(), Rejected> {
+        let rejected = |error: String| Rejected {
+            error,
+            fields: Vec::new(),
+        };
+        let manifest = self
+            .catalog
+            .get(module)
+            .ok_or_else(|| rejected(format!("no module {module} in the catalog")))?;
+        let name = result.get("analysis_type").and_then(Value::as_str);
+        let version = result.get("schema_version").and_then(Value::as_u64);
+        if name != Some(manifest.output.name) || version != Some(u64::from(manifest.output.version))
+        {
+            return Err(rejected(format!(
+                "{module} writes {} version {}, not {} version {}",
+                manifest.output.name,
+                manifest.output.version,
+                name.unwrap_or("nothing"),
+                version.map_or("none".to_owned(), |v| v.to_string()),
+            )));
+        }
+        let registry = self
+            .registry
+            .get_or_init(|| {
+                let outputs: Vec<_> = self.catalog.iter().map(|(_, m)| m.output).collect();
+                Registry::new(&outputs).map_err(|e| e.to_string())
+            })
+            .as_ref()
+            .map_err(|e| rejected(format!("the catalog's analysis types: {e}")))?;
+        registry.validate(result).map_err(|invalid| Rejected {
+            error: invalid.to_string(),
+            fields: invalid.fields().to_vec(),
+        })
     }
 
     pub fn catalog(&self) -> &Catalog {

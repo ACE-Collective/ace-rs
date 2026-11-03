@@ -22,7 +22,7 @@ use ace_store::{CachedFile, Spooled, Store, StoreError};
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
-use crate::db::{Db, DbError};
+use crate::db::{Db, DbError, Tx};
 
 /// How long a pool keeps an object.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -217,25 +217,74 @@ impl Bucket {
         self.put(pool, spooled, hold).await
     }
 
-    /// Moves a file a worker uploaded for `task` into `pool` and takes `hold` on it, once its
-    /// bytes match `sha256`. The upload is removed either way it ends: bytes that don't match
-    /// their name never reach the pool.
-    pub async fn adopt_upload(
-        &self,
-        pool: &str,
-        task: i64,
-        sha256: &Sha256,
-        hold: Option<&Hold>,
-    ) -> Result<Put, BucketError> {
-        self.pool(pool)?;
+    /// Downloads a file a worker uploaded for `task` and checks that its bytes match `sha256`.
+    /// The upload stays until `remove_upload`, so a transaction that puts it can run again.
+    /// Bytes that don't match their name are removed at once and never reach a pool.
+    pub async fn fetch_upload(&self, task: i64, sha256: &Sha256) -> Result<Spooled, BucketError> {
         let key = Store::upload_key(task, sha256);
         let spooled = self.store.spool_key(&key, sha256).await;
         if let Err(StoreError::Integrity { .. }) = &spooled {
             self.store.delete_key(&key).await?;
         }
-        let put = self.put(pool, spooled?, hold).await?;
-        self.store.delete_key(&key).await?;
-        Ok(put)
+        Ok(spooled?)
+    }
+
+    /// Removes an upload once what it held is in a pool.
+    pub async fn remove_upload(&self, task: i64, sha256: &Sha256) -> Result<(), BucketError> {
+        Ok(self
+            .store
+            .delete_key(&Store::upload_key(task, sha256))
+            .await?)
+    }
+
+    /// Puts spooled bytes in `pool` and takes `hold` on them inside the caller's transaction:
+    /// inserts the object's row if it is new, locks it, uploads the bytes while holding the
+    /// lock unless the bucket has them, and takes the hold. An object GC is deleting fails with
+    /// `Deleting`; put it again later.
+    pub async fn put_in(
+        &self,
+        tx: &mut Tx<'_>,
+        pool: &str,
+        spooled: &Spooled,
+        hold: Option<&Hold>,
+    ) -> Result<bool, BucketError> {
+        self.pool(pool)?;
+        let sha256 = spooled.sha256.to_hex();
+        sqlx::query!(
+            "INSERT INTO store.objects (pool, sha256, size, mime_type) VALUES ($1, $2, $3, $4)
+             ON CONFLICT (pool, sha256) DO NOTHING",
+            pool,
+            sha256,
+            i64::try_from(spooled.size).unwrap_or(i64::MAX),
+            spooled.mime_type,
+        )
+        .execute(tx.conn())
+        .await?;
+        let state = sqlx::query_scalar!(
+            r#"SELECT state AS "state: ObjectState" FROM store.objects
+               WHERE pool = $1 AND sha256 = $2 FOR UPDATE"#,
+            pool,
+            sha256,
+        )
+        .fetch_one(tx.conn())
+        .await?;
+        if state == ObjectState::Deleting {
+            return Err(BucketError::Deleting {
+                pool: pool.to_owned(),
+                sha256: spooled.sha256,
+            });
+        }
+        // under the row's lock, so GC can't remove the bytes between the check and the hold
+        let uploaded = if self.store.exists(pool, &spooled.sha256).await? {
+            false
+        } else {
+            self.store.upload(pool, spooled).await?;
+            true
+        };
+        if let Some(hold) = hold {
+            take_hold(tx, pool, &sha256, hold).await?;
+        }
+        Ok(uploaded)
     }
 
     async fn put(
@@ -244,49 +293,20 @@ impl Bucket {
         spooled: Spooled,
         hold: Option<&Hold>,
     ) -> Result<Put, BucketError> {
-        let sha256 = spooled.sha256.to_hex();
         let waited_since = Instant::now();
         loop {
             let mut tx = self.db.begin().await?;
-            sqlx::query!(
-                "INSERT INTO store.objects (pool, sha256, size, mime_type) VALUES ($1, $2, $3, $4)
-                 ON CONFLICT (pool, sha256) DO NOTHING",
-                pool,
-                sha256,
-                i64::try_from(spooled.size).unwrap_or(i64::MAX),
-                spooled.mime_type,
-            )
-            .execute(tx.conn())
-            .await?;
-            let state = sqlx::query_scalar!(
-                r#"SELECT state AS "state: ObjectState" FROM store.objects
-                   WHERE pool = $1 AND sha256 = $2 FOR UPDATE"#,
-                pool,
-                sha256,
-            )
-            .fetch_one(tx.conn())
-            .await?;
-            if state == ObjectState::Deleting {
-                drop(tx);
-                if waited_since.elapsed() >= self.settings.put_deleting_wait {
-                    return Err(BucketError::Deleting {
-                        pool: pool.to_owned(),
-                        sha256: spooled.sha256,
-                    });
+            let uploaded = match self.put_in(&mut tx, pool, &spooled, hold).await {
+                Ok(uploaded) => uploaded,
+                Err(BucketError::Deleting { .. })
+                    if waited_since.elapsed() < self.settings.put_deleting_wait =>
+                {
+                    drop(tx);
+                    tokio::time::sleep(Duration::from_millis(200)).await;
+                    continue;
                 }
-                tokio::time::sleep(Duration::from_millis(200)).await;
-                continue;
-            }
-            // under the row's lock, so GC can't remove the bytes between the check and the hold
-            let uploaded = if self.store.exists(pool, &spooled.sha256).await? {
-                false
-            } else {
-                self.store.upload(pool, &spooled).await?;
-                true
+                Err(e) => return Err(e),
             };
-            if let Some(hold) = hold {
-                take_hold(&mut tx, pool, &sha256, hold).await?;
-            }
             tx.commit().await?;
             let object =
                 self.object(pool, &spooled.sha256)
@@ -530,7 +550,7 @@ enum ObjectState {
 }
 
 async fn take_hold(
-    tx: &mut crate::db::Tx<'_>,
+    tx: &mut Tx<'_>,
     pool: &str,
     sha256: &str,
     hold: &Hold,
