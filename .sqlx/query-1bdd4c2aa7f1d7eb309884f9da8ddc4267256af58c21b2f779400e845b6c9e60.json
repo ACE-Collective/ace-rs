@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE queue.tasks\n                           SET state = CASE WHEN cancel_requested THEN 'cancelled'::queue.task_state\n                                            ELSE 'queued'::queue.task_state END,\n                               attempts = GREATEST(attempts - 1, 0), lease_owner = NULL,\n                               lease_expires_at = NULL, updated_at = now()\n                           WHERE id = $1 AND lease_owner = $2 AND state = 'running'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "1bdd4c2aa7f1d7eb309884f9da8ddc4267256af58c21b2f779400e845b6c9e60"
+}

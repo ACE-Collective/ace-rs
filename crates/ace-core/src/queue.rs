@@ -549,6 +549,36 @@ impl Worker {
         LeaseKeeper { handle, token }
     }
 
+    /// Gives a task the worker owns back to the queue, as at shutdown: queued again at once,
+    /// with this attempt not counted. A task cancelled meanwhile ends cancelled instead.
+    pub async fn release(&self, task: TaskId) -> Result<(), QueueError> {
+        self.db
+            .transaction(Isolation::ReadCommitted, |tx| {
+                Box::pin(async move {
+                    let root = self.lock_task_root(tx, task).await?;
+                    let released = sqlx::query!(
+                        r#"UPDATE queue.tasks
+                           SET state = CASE WHEN cancel_requested THEN 'cancelled'::queue.task_state
+                                            ELSE 'queued'::queue.task_state END,
+                               attempts = GREATEST(attempts - 1, 0), lease_owner = NULL,
+                               lease_expires_at = NULL, updated_at = now()
+                           WHERE id = $1 AND lease_owner = $2 AND state = 'running'"#,
+                        task as TaskId,
+                        self.name,
+                    )
+                    .execute(tx.conn())
+                    .await?
+                    .rows_affected();
+                    if released == 0 {
+                        return Err(QueueError::LeaseLost(task));
+                    }
+                    check_completion(tx, root).await?;
+                    Ok(())
+                })
+            })
+            .await
+    }
+
     /// Ends a task the worker owns: it ran to the end.
     pub async fn complete(&self, task: TaskId) -> Result<(), QueueError> {
         self.finish(task, TaskState::Done, None).await

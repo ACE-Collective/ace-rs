@@ -45,7 +45,8 @@ pub fn modules(settings: &Value) -> Result<Modules, SetupError> {
             block(PanickingParser::NAME),
             &secrets,
         )?)
-        .with_parser(Entry::<Spin>::parser(block(Spin::NAME), &secrets)?))
+        .with_parser(Entry::<Spin>::parser(block(Spin::NAME), &secrets)?)
+        .with_lookup(Entry::<Hung>::lookup(block(Hung::NAME), &secrets)?))
 }
 
 /// The manifests of the test modules, for a core's catalog.
@@ -57,6 +58,7 @@ pub fn test_manifests() -> Vec<ace_sdk::Manifest> {
         ace_sdk::Manifest::parser::<Capabilities>(),
         ace_sdk::Manifest::parser::<PanickingParser>(),
         ace_sdk::Manifest::parser::<Spin>(),
+        ace_sdk::Manifest::lookup::<Hung>(),
     ]
 }
 
@@ -80,6 +82,7 @@ macro_rules! note_type {
 note_type!(CountedNote, "test_counted_note", "test_counted");
 note_type!(PanickyNote, "test_panicky_note", "test_panicky");
 note_type!(SpinNote, "test_spin_note", "test_spin");
+note_type!(HungNote, "test_hung_note", "test_hung");
 note_type!(ConnectNote, "test_connect_note", "test_connect");
 note_type!(
     CapabilitiesNote,
@@ -278,5 +281,58 @@ impl ace_sdk::Parser for Spin {
             std::hint::black_box(first);
             std::hint::spin_loop();
         }
+    }
+}
+
+/// `test_hung`'s settings: where its upstream is, and whether it waits on it in a blocking
+/// call, which no cancellation can interrupt, rather than an await.
+#[derive(Debug, Clone, Default, PartialEq, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields, default)]
+pub struct HungSettings {
+    pub address: String,
+    pub blocking: bool,
+}
+
+/// A lookup whose upstream accepts the connection and never answers.
+pub struct Hung {
+    address: String,
+    blocking: bool,
+}
+
+impl Module for Hung {
+    const NAME: &'static str = "test_hung";
+    const INPUTS: &'static [ObservableKind] = &[ObservableKind::Fqdn];
+    type Output = HungNote;
+    type Settings = HungSettings;
+
+    fn init(settings: &HungSettings) -> Result<Self, ModuleError> {
+        Ok(Hung {
+            address: settings.address.clone(),
+            blocking: settings.blocking,
+        })
+    }
+}
+
+impl Lookup for Hung {
+    const TCP_PORTS: &'static [u16] = &[];
+
+    async fn analyze(
+        &self,
+        _: &TaskContext<HungSettings>,
+    ) -> Result<Outcome<HungNote>, ModuleError> {
+        let mut buffer = [0u8; 1];
+        let read = if self.blocking {
+            // holds a runtime thread until the upstream hangs up
+            use std::io::Read;
+            let mut stream = std::net::TcpStream::connect(&self.address)?;
+            stream.read(&mut buffer)?
+        } else {
+            use tokio::io::AsyncReadExt;
+            let mut stream = tokio::net::TcpStream::connect(&self.address).await?;
+            stream.read(&mut buffer).await?
+        };
+        Ok(Outcome::Done(ResultEnvelope::new(HungNote {
+            note: format!("the upstream answered after all ({read} bytes)"),
+        })))
     }
 }

@@ -30,6 +30,10 @@ pub fn manifests() -> Vec<ace_sdk::Manifest> {
     ]
 }
 
+/// How long `ace serve` waits at shutdown for open requests: a little over the longest a lease
+/// request waits.
+const SHUTDOWN_DEADLINE: Duration = Duration::from_secs(25);
+
 pub fn run() -> Result<ExitCode> {
     let runtime = tokio::runtime::Builder::new_multi_thread()
         .enable_all()
@@ -58,6 +62,7 @@ async fn serve() -> Result<ExitCode> {
         tracing::info!(pool = %pool.name, modules = ?pool.modules, "serving a pool");
     }
     let api = Api::new(db.clone(), bucket, orchestrator, config).await?;
+    let stopping_api = api.clone();
     let listen = std::env::var("ACE4_API_LISTEN").unwrap_or_else(|_| "0.0.0.0:8080".to_owned());
     let listener = tokio::net::TcpListener::bind(&listen)
         .await
@@ -67,20 +72,26 @@ async fn serve() -> Result<ExitCode> {
     let stop = CancellationToken::new();
     let reaper = tokio::spawn(run_reaper(db, Duration::from_secs(5), stop.clone()));
     let stopping = stop.clone();
-    ace_core::api::serve(listener, api, async move {
-        if let Err(e) = tokio::signal::ctrl_c().await {
-            tracing::error!("waiting for a signal failed: {e}");
-        }
-        stopping.cancel();
-    })
-    .await
-    .context("serving")?;
+    let server = tokio::spawn(ace_core::api::serve(listener, api, async move {
+        stopping.cancelled().await;
+    }));
+    if let Err(e) = tokio::signal::ctrl_c().await {
+        tracing::error!("waiting for a signal failed: {e}");
+    }
+    stopping_api.shut_down();
     stop.cancel();
-    if tokio::time::timeout(Duration::from_secs(10), reaper)
+    // a lease request may wait up to its limit for a task; shutdown waits no longer than this
+    match tokio::time::timeout(SHUTDOWN_DEADLINE, server).await {
+        Ok(Ok(Ok(()))) => {}
+        Ok(Ok(Err(e))) => tracing::error!("serving failed: {e}"),
+        Ok(Err(e)) => tracing::error!("the server's task failed: {e}"),
+        Err(_) => tracing::warn!("requests were still open at the shutdown deadline"),
+    }
+    if tokio::time::timeout(Duration::from_secs(5), reaper)
         .await
         .is_err()
     {
-        tracing::warn!("the reaper didn't stop within 10 seconds");
+        tracing::warn!("the reaper didn't stop within 5 seconds");
     }
     Ok(ExitCode::SUCCESS)
 }

@@ -15,8 +15,10 @@ use tokio::io::AsyncWriteExt;
 /// The header a task-scoped request names its worker in.
 pub const WORKER_HEADER: &str = "x-ace4-worker";
 
-/// The timeout of each call that doesn't wait for a task.
+/// The timeout of each call that doesn't wait for a task or move a file.
 pub const CALL_TIMEOUT: Duration = Duration::from_secs(30);
+/// The timeout of a download or an upload of a file.
+pub const TRANSFER_TIMEOUT: Duration = Duration::from_secs(600);
 
 #[derive(Debug, thiserror::Error)]
 pub enum ClientError {
@@ -150,6 +152,15 @@ impl LeaseClient {
         expect_empty(response, task).await
     }
 
+    /// Gives the task back to the queue without counting the attempt, as at shutdown.
+    pub async fn release(&self, task: i64) -> Result<(), ClientError> {
+        let response = self
+            .http
+            .send(self.post(&paths::task(task, "release")))
+            .await?;
+        expect_empty(response, task).await
+    }
+
     /// A task in its leased form, with a fresh download URL for its input, for a replay. It
     /// takes the admin token and takes no lease.
     pub async fn replay_task(&self, task: i64) -> Result<LeasedTask, ClientError> {
@@ -180,7 +191,7 @@ impl LeaseClient {
 
     /// Downloads a presigned URL to `dest`.
     pub async fn download(&self, url: &Presigned, dest: &Path) -> Result<u64, ClientError> {
-        let mut request = self.http.get(&url.url);
+        let mut request = self.http.get(&url.url).timeout(TRANSFER_TIMEOUT);
         for (name, value) in &url.headers {
             request = request.header(name, value);
         }
@@ -207,6 +218,7 @@ impl LeaseClient {
         let mut request = self
             .http
             .request(reqwest::Method::PUT, &url.url)
+            .timeout(TRANSFER_TIMEOUT)
             .body(bytes);
         for (name, value) in &url.headers {
             // the client sets the length from the body

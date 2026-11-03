@@ -268,7 +268,7 @@ async fn once(client: LeaseClient, modules: Arc<Modules>) -> ExitCode {
     match client.lease(&[], Duration::from_secs(10)).await {
         Ok(Some(task)) => {
             let (id, module) = (task.id, task.module.clone());
-            match run_in_process(&client, &modules, task).await {
+            match run_in_process(&client, &modules, task, &CancellationToken::new()).await {
                 Ok(end) => {
                     println!("task {id} ({module}): {}", outcome_name(&end));
                     ExitCode::SUCCESS

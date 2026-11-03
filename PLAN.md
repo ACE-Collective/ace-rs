@@ -152,7 +152,7 @@ The goal is to run the five phase 1 modules end to end from a submission.
 - [x] **2.18 Containment.** Before the module runs, the task process sets rlimits on address space and CPU time, applies Landlock rules for files and TCP ports, and installs a seccomp filter that blocks fork, clone and exec. A process with no children dies completely when its PID is killed (#981). Done when test tasks that fork, exec, open a file outside their allowed paths, connect to a port that isn't allowed, or allocate past the limit are each stopped, and a task process reports one thread.
 - [x] **2.19 Hung tasks.** The supervisor kills a task process at its deadline and writes a failed-task row with the error and the input hashes. Done when an infinite-loop task is killed and its row names its inputs.
 - [x] **2.20 Replay.** `ace task replay <id>` fetches a failed task's inputs by hash and runs the module locally, outside containment, so a debugger can attach. Done when replaying 2.19's task reproduces the hang.
-- [ ] **2.21 Bounded waits.** Wrap every network call, lock and join on a run or shutdown path in `tokio::time::timeout`. Shutdown stops leasing and releases held leases. Done when shutdown with a hung upstream finishes within its deadline and the hung task's lease is released.
+- [x] **2.21 Bounded waits.** Wrap every network call, lock and join on a run or shutdown path in `tokio::time::timeout`. Shutdown stops leasing and releases held leases. Done when shutdown with a hung upstream finishes within its deadline and the hung task's lease is released.
 - [ ] **2.22 Telemetry.** Export spans through OpenTelemetry, with the task id added to 1.22's identifiers. Done when one task's spans appear together in the collector.
 
 ### Config

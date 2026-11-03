@@ -13,6 +13,8 @@
 //!   be uploaded first; the core checks each one's bytes against its sha256 and moves it into
 //!   the `alert_files` pool, held by the root.
 //!
+//! - `POST /api/worker/v1/tasks/<id>/release`: gives the task back to the queue without
+//!   counting the attempt, as a pool does at shutdown.
 //! - `GET /api/admin/v1/tasks/<id>/replay`: any task in its leased form, with a fresh download
 //!   URL, for `ace task replay`. It takes the admin token, and takes no lease.
 //!
@@ -161,6 +163,8 @@ struct Inner {
     /// may have missed some.
     wakeups: broadcast::Sender<String>,
     listener: JoinHandle<()>,
+    /// Fires at shutdown, so waiting lease requests answer at once.
+    stopping: tokio_util::sync::CancellationToken,
 }
 
 impl Drop for Inner {
@@ -206,6 +210,7 @@ impl Api {
                 config,
                 wakeups,
                 listener,
+                stopping: tokio_util::sync::CancellationToken::new(),
             }),
         })
     }
@@ -214,12 +219,19 @@ impl Api {
         &self.inner.db
     }
 
+    /// Ends every waiting lease request with no task, as at shutdown, so the server's
+    /// graceful stop doesn't wait out their waits.
+    pub fn shut_down(&self) {
+        self.inner.stopping.cancel();
+    }
+
     pub fn router(&self) -> Router {
         Router::new()
             .route(paths::LEASE, post(lease))
             .route("/api/worker/v1/tasks/{id}/renew", post(renew))
             .route("/api/worker/v1/tasks/{id}/uploads", post(uploads))
             .route("/api/worker/v1/tasks/{id}/end", post(end))
+            .route("/api/worker/v1/tasks/{id}/release", post(release))
             .route("/api/admin/v1/tasks/{id}/replay", get(replay))
             .with_state(self.clone())
     }
@@ -271,7 +283,7 @@ impl Api {
                 }
             }
             let now = tokio::time::Instant::now();
-            if now >= deadline {
+            if now >= deadline || self.inner.stopping.is_cancelled() {
                 return Ok(None);
             }
             let mut until = deadline - now;
@@ -284,6 +296,7 @@ impl Api {
             loop {
                 tokio::select! {
                     () = &mut sleep => break,
+                    () = self.inner.stopping.cancelled() => return Ok(None),
                     woken = wakeups.recv() => match woken {
                         Ok(module) if module == "*" || worker.modules().contains(&module) => break,
                         Ok(_) => {}
@@ -525,6 +538,17 @@ async fn renew(
         expires_at: lease.expires_at,
         cancel_requested: lease.cancel_requested,
     }))
+}
+
+/// Gives a task back to the queue without counting the attempt, as a pool does when it shuts
+/// down with the task unfinished (PLAN.md 2.21).
+async fn release(
+    State(api): State<Api>,
+    Path(id): Path<i64>,
+    headers: HeaderMap,
+) -> Result<StatusCode, Failure> {
+    api.worker(&headers)?.release(TaskId(id)).await?;
+    Ok(StatusCode::NO_CONTENT)
 }
 
 async fn uploads(

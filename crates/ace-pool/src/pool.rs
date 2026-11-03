@@ -1,10 +1,14 @@
 //! A pool's definition, and the async pool (PLAN.md 2.16): one process that runs many lookups
 //! at once, up to its concurrency limit, which replaces ace3's `network-semaphore` service.
 
+use std::collections::BTreeSet;
+use std::future::Future;
 use std::path::Path;
-use std::sync::Arc;
+use std::pin::Pin;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
+use ace_sdk::wire::LeasedTask;
 use tokio::sync::Semaphore;
 use tokio::task::JoinSet;
 use tokio_util::sync::CancellationToken;
@@ -72,11 +76,127 @@ impl PoolDefinition {
     }
 }
 
-/// How an async pool's run went.
+/// How a pool's run went.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct PoolStats {
     pub tasks: u64,
     pub errors: u64,
+    /// Tasks still running at the shutdown deadline, whose leases were given back.
+    pub released_at_deadline: u64,
+}
+
+/// How long a pool waits at shutdown for its running tasks to stop, by default.
+pub const SHUTDOWN_GRACE: Duration = Duration::from_secs(10);
+/// How long one call that gives a lease back at shutdown may take.
+const RELEASE_TIMEOUT: Duration = Duration::from_secs(5);
+
+/// Runs one leased task to its end, stopping when the token fires.
+pub type Runner = Arc<
+    dyn Fn(LeasedTask, CancellationToken) -> Pin<Box<dyn Future<Output = bool> + Send>>
+        + Send
+        + Sync,
+>;
+
+/// A pool's lease loop: leases a task whenever a slot is free and runs it, until `stop` fires.
+/// Then it leases no more, stops the running tasks, which give their leases back, and waits up
+/// to `grace` for them (PLAN.md 2.21). A task still running then is abandoned and its lease is
+/// given back here, each call bounded, so shutdown ends by `grace` plus the release calls,
+/// whatever an upstream does.
+pub async fn lease_loop(
+    client: &LeaseClient,
+    concurrency: usize,
+    lease_wait: Duration,
+    grace: Duration,
+    stop: CancellationToken,
+    run: Runner,
+) -> PoolStats {
+    let slots = Arc::new(Semaphore::new(concurrency.max(1)));
+    // fires at shutdown; each running task's token is its child
+    let tasks = CancellationToken::new();
+    let held: Arc<Mutex<BTreeSet<i64>>> = Arc::default();
+    let mut running: JoinSet<bool> = JoinSet::new();
+    let mut stats = PoolStats::default();
+    loop {
+        // a slot first, so a leased task always has somewhere to run
+        let slot = tokio::select! {
+            biased;
+            () = stop.cancelled() => break,
+            slot = slots.clone().acquire_owned() => match slot {
+                Ok(slot) => slot,
+                Err(_) => break,
+            },
+        };
+        while let Some(finished) = running.try_join_next() {
+            count(&mut stats, finished);
+        }
+        let leased = tokio::select! {
+            biased;
+            () = stop.cancelled() => break,
+            leased = client.lease(&[], lease_wait) => leased,
+        };
+        match leased {
+            Ok(Some(task)) => {
+                let id = task.id;
+                lock(&held).insert(id);
+                let (run, token, held) = (run.clone(), tasks.child_token(), held.clone());
+                running.spawn(async move {
+                    let _slot = slot;
+                    let ended = run(task, token).await;
+                    lock(&held).remove(&id);
+                    ended
+                });
+            }
+            Ok(None) => {}
+            Err(e) => {
+                tracing::warn!("leasing failed: {e}");
+                stats.errors += 1;
+                tokio::select! {
+                    () = stop.cancelled() => break,
+                    () = tokio::time::sleep(Duration::from_secs(1)) => {}
+                }
+            }
+        }
+    }
+
+    tasks.cancel();
+    let deadline = tokio::time::Instant::now() + grace;
+    loop {
+        match tokio::time::timeout_at(deadline, running.join_next()).await {
+            Ok(Some(finished)) => count(&mut stats, finished),
+            Ok(None) => break,
+            Err(_) => {
+                tracing::warn!(
+                    tasks = running.len(),
+                    "tasks still running at the shutdown deadline; abandoning them"
+                );
+                running.abort_all();
+                break;
+            }
+        }
+    }
+    let abandoned: Vec<i64> = lock(&held).iter().copied().collect();
+    for id in abandoned {
+        stats.released_at_deadline += 1;
+        match tokio::time::timeout(RELEASE_TIMEOUT, client.release(id)).await {
+            Ok(Ok(())) => tracing::info!(task = id, "gave the task back"),
+            Ok(Err(e)) => tracing::warn!(task = id, "giving the task back failed: {e}"),
+            Err(_) => tracing::warn!(task = id, "giving the task back timed out"),
+        }
+    }
+    stats
+}
+
+fn lock<T>(mutex: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
+    mutex
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+}
+
+fn count(stats: &mut PoolStats, finished: Result<bool, tokio::task::JoinError>) {
+    stats.tasks += 1;
+    if !matches!(finished, Ok(true)) {
+        stats.errors += 1;
+    }
 }
 
 /// An async pool: leases tasks for its lookups and runs up to `concurrency` of them at once on
@@ -87,6 +207,7 @@ pub struct AsyncPool {
     concurrency: usize,
     /// How long one lease request waits for a task.
     lease_wait: Duration,
+    grace: Duration,
 }
 
 impl AsyncPool {
@@ -96,6 +217,7 @@ impl AsyncPool {
             modules: definition.modules.clone(),
             concurrency: definition.concurrency.max(1),
             lease_wait: Duration::from_secs(10),
+            grace: SHUTDOWN_GRACE,
         }
     }
 
@@ -104,65 +226,36 @@ impl AsyncPool {
         self
     }
 
-    /// Leases and runs tasks until `stop` fires, then waits for the running ones to end.
+    /// How long shutdown waits for running tasks before it gives their leases back.
+    pub fn shutdown_grace(mut self, grace: Duration) -> Self {
+        self.grace = grace;
+        self
+    }
+
+    /// Leases and runs tasks until `stop` fires, then shuts down as `lease_loop` does.
     pub async fn run(&self, stop: CancellationToken) -> PoolStats {
-        let slots = Arc::new(Semaphore::new(self.concurrency));
-        let mut running: JoinSet<bool> = JoinSet::new();
-        let mut stats = PoolStats::default();
-        loop {
-            // a slot first, so a leased task always has somewhere to run
-            let slot = tokio::select! {
-                biased;
-                () = stop.cancelled() => break,
-                slot = slots.clone().acquire_owned() => match slot {
-                    Ok(slot) => slot,
-                    Err(_) => break,
-                },
-            };
-            while let Some(finished) = running.try_join_next() {
-                count(&mut stats, finished);
-            }
-            let leased = tokio::select! {
-                biased;
-                () = stop.cancelled() => break,
-                leased = self.client.lease(&[], self.lease_wait) => leased,
-            };
-            match leased {
-                Ok(Some(task)) => {
-                    let (client, modules) = (self.client.clone(), self.modules.clone());
-                    running.spawn(async move {
-                        let _slot = slot;
-                        let (id, module) = (task.id, task.module.clone());
-                        match run_in_process(&client, &modules, task).await {
-                            Ok(_) => true,
-                            Err(e) => {
-                                tracing::error!(task = id, %module, "the task's end wasn't sent: {e}");
-                                false
-                            }
-                        }
-                    });
-                }
-                Ok(None) => {}
-                Err(e) => {
-                    tracing::warn!("leasing failed: {e}");
-                    stats.errors += 1;
-                    tokio::select! {
-                        () = stop.cancelled() => break,
-                        () = tokio::time::sleep(Duration::from_secs(1)) => {}
+        let (client, modules) = (self.client.clone(), self.modules.clone());
+        let run: Runner = Arc::new(move |task, shutdown| {
+            let (client, modules) = (client.clone(), modules.clone());
+            Box::pin(async move {
+                let (id, module) = (task.id, task.module.clone());
+                match run_in_process(&client, &modules, task, &shutdown).await {
+                    Ok(_) => true,
+                    Err(e) => {
+                        tracing::error!(task = id, %module, "the task's end wasn't sent: {e}");
+                        false
                     }
                 }
-            }
-        }
-        while let Some(finished) = running.join_next().await {
-            count(&mut stats, finished);
-        }
-        stats
-    }
-}
-
-fn count(stats: &mut PoolStats, finished: Result<bool, tokio::task::JoinError>) {
-    stats.tasks += 1;
-    if !matches!(finished, Ok(true)) {
-        stats.errors += 1;
+            })
+        });
+        lease_loop(
+            &self.client,
+            self.concurrency,
+            self.lease_wait,
+            self.grace,
+            stop,
+            run,
+        )
+        .await
     }
 }

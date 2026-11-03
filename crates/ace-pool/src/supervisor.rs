@@ -25,15 +25,13 @@ use ace_sdk::LocalFileStore;
 use ace_sdk::wire::{LeasedTask, TaskEnd};
 use serde::{Deserialize, Serialize};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tokio::sync::Semaphore;
-use tokio::task::JoinSet;
 use tokio_util::sync::CancellationToken;
 
 use crate::client::{ClientError, LeaseClient};
 use crate::containment::SandboxProfile;
 use crate::modules::Modules;
-use crate::pool::PoolStats;
-use crate::run::{LeaseKeeper, TaskDir, fetch_input, send_end};
+use crate::pool::{PoolStats, Runner, SHUTDOWN_GRACE, lease_loop};
+use crate::run::{LeaseKeeper, TaskDir, fetch_input, finish};
 
 /// The task's end is on stdout.
 pub const EXIT_DONE: i32 = 0;
@@ -44,6 +42,9 @@ pub const EXIT_SETUP: i32 = 10;
 pub const EXIT_MODULE: i32 = 20;
 /// Rust's exit code after a panic.
 pub const EXIT_PANIC: i32 = 101;
+
+/// How long the supervisor waits for a finished task process's pipes to close.
+const PIPE_TIMEOUT: Duration = Duration::from_secs(5);
 
 /// What the supervisor writes on a task process's stdin.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -105,6 +106,7 @@ pub struct Supervisor {
     modules: Arc<Modules>,
     config: SupervisorConfig,
     lease_wait: Duration,
+    grace: Duration,
 }
 
 impl Supervisor {
@@ -114,6 +116,7 @@ impl Supervisor {
             modules,
             config,
             lease_wait: Duration::from_secs(10),
+            grace: SHUTDOWN_GRACE,
         }
     }
 
@@ -122,79 +125,54 @@ impl Supervisor {
         self
     }
 
+    /// How long shutdown waits for task processes, which it kills, before it gives their
+    /// leases back.
+    pub fn shutdown_grace(mut self, grace: Duration) -> Self {
+        self.grace = grace;
+        self
+    }
+
     /// Leases tasks and runs each in a task process, up to the concurrency limit, until `stop`
-    /// fires, then waits for the running ones to end.
+    /// fires; then kills the running ones and gives their tasks back (`lease_loop`).
     pub async fn run(&self, stop: CancellationToken) -> PoolStats {
-        let slots = Arc::new(Semaphore::new(self.config.concurrency.max(1)));
-        let mut running: JoinSet<bool> = JoinSet::new();
-        let mut stats = PoolStats::default();
-        loop {
-            let slot = tokio::select! {
-                biased;
-                () = stop.cancelled() => break,
-                slot = slots.clone().acquire_owned() => match slot {
-                    Ok(slot) => slot,
-                    Err(_) => break,
-                },
-            };
-            while let Some(finished) = running.try_join_next() {
-                count(&mut stats, finished);
-            }
-            let leased = tokio::select! {
-                biased;
-                () = stop.cancelled() => break,
-                leased = self.client.lease(&[], self.lease_wait) => leased,
-            };
-            match leased {
-                Ok(Some(task)) => {
-                    let (client, modules, config) = (
-                        self.client.clone(),
-                        self.modules.clone(),
-                        self.config.clone(),
-                    );
-                    running.spawn(async move {
-                        let _slot = slot;
-                        let id = task.id;
-                        match run_task_process(&client, &modules, &config, task).await {
-                            Ok(_) => true,
-                            Err(e) => {
-                                tracing::error!(task = id, "the task's end wasn't sent: {e}");
-                                false
-                            }
-                        }
-                    });
-                }
-                Ok(None) => {}
-                Err(e) => {
-                    tracing::warn!("leasing failed: {e}");
-                    stats.errors += 1;
-                    tokio::select! {
-                        () = stop.cancelled() => break,
-                        () = tokio::time::sleep(Duration::from_secs(1)) => {}
+        let (client, modules, config) = (
+            self.client.clone(),
+            self.modules.clone(),
+            self.config.clone(),
+        );
+        let run: Runner = Arc::new(move |task, shutdown| {
+            let (client, modules, config) = (client.clone(), modules.clone(), config.clone());
+            Box::pin(async move {
+                let id = task.id;
+                match run_task_process(&client, &modules, &config, task, &shutdown).await {
+                    Ok(_) => true,
+                    Err(e) => {
+                        tracing::error!(task = id, "the task's end wasn't sent: {e}");
+                        false
                     }
                 }
-            }
-        }
-        while let Some(finished) = running.join_next().await {
-            count(&mut stats, finished);
-        }
-        stats
+            })
+        });
+        lease_loop(
+            &self.client,
+            self.config.concurrency,
+            self.lease_wait,
+            self.grace,
+            stop,
+            run,
+        )
+        .await
     }
 }
 
-fn count(stats: &mut PoolStats, finished: Result<bool, tokio::task::JoinError>) {
-    stats.tasks += 1;
-    if !matches!(finished, Ok(true)) {
-        stats.errors += 1;
-    }
-}
-
-/// Runs one leased task in a task process and sends its end.
+/// Runs one leased task in a task process and sends its end. `shutdown` kills the process, and
+/// the task then goes back to the queue.
 pub async fn run_task_process(
     client: &LeaseClient,
     modules: &Modules,
     config: &SupervisorConfig,
     task: LeasedTask,
+    shutdown: &CancellationToken,
 ) -> Result<TaskEnd, ClientError> {
     let Some(parser) = modules.parser(&task.module) else {
         let end = TaskEnd::Failed {
@@ -204,7 +182,7 @@ pub async fn run_task_process(
         return Ok(end);
     };
     let manifest = parser.manifest();
-    let keeper = LeaseKeeper::start(client, &task);
+    let keeper = LeaseKeeper::start(client, &task, shutdown);
     let dir = TaskDir::new()?;
     let input = fetch_input(client, &task, &dir).await?;
     open_to_task_user(&dir, input.as_deref(), config.user)?;
@@ -231,7 +209,7 @@ pub async fn run_task_process(
     };
     drop(keeper);
     let outputs = LocalFileStore::new(dir.outputs())?;
-    send_end(client, &task, &outputs, &end).await?;
+    finish(client, &task, &outputs, &end, shutdown).await?;
     Ok(end)
 }
 
@@ -313,12 +291,19 @@ async fn run_process(
         }
     };
     // a task process that died early may never have read its request
-    if let Ok(Err(e)) = writer.await {
+    if let Ok(Ok(Err(e))) = tokio::time::timeout(PIPE_TIMEOUT, writer).await {
         tracing::debug!("writing the task's request: {e}");
     }
-    // the pipes close when the process dies, so these end too
-    let stdout = reader.await.map_err(std::io::Error::other)??;
-    let stderr = errors.await.map_err(std::io::Error::other)??;
+    // the process can't have children, so its pipes close when it dies and these end too;
+    // the timeouts only make that bound explicit
+    let stdout = tokio::time::timeout(PIPE_TIMEOUT, reader)
+        .await
+        .map_err(std::io::Error::other)?
+        .map_err(std::io::Error::other)??;
+    let stderr = tokio::time::timeout(PIPE_TIMEOUT, errors)
+        .await
+        .map_err(std::io::Error::other)?
+        .map_err(std::io::Error::other)??;
     let stderr = String::from_utf8_lossy(&stderr);
     for line in stderr.lines() {
         tracing::info!(task = id, "task process: {line}");

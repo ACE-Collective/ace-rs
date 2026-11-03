@@ -21,8 +21,14 @@ pub struct LeaseKeeper {
 }
 
 impl LeaseKeeper {
-    pub fn start(client: &LeaseClient, task: &LeasedTask) -> LeaseKeeper {
-        let token = CancellationToken::new();
+    /// Starts renewing. Its token is a child of `shutdown`, so the pool's shutdown stops the
+    /// module too.
+    pub fn start(
+        client: &LeaseClient,
+        task: &LeasedTask,
+        shutdown: &CancellationToken,
+    ) -> LeaseKeeper {
+        let token = shutdown.child_token();
         let (client, fired, id) = (client.clone(), token.clone(), task.id);
         let every = Duration::from_secs_f64(task.lease_seconds / 3.0);
         let handle = tokio::spawn(async move {
@@ -113,14 +119,32 @@ pub async fn send_end(
     client.end(task.id, end).await
 }
 
+/// Ends the task as the module did, or, when the module stopped because the pool is shutting
+/// down, gives the task back to the queue (PLAN.md 2.21).
+pub async fn finish(
+    client: &LeaseClient,
+    task: &LeasedTask,
+    outputs: &LocalFileStore,
+    end: &TaskEnd,
+    shutdown: &CancellationToken,
+) -> Result<(), ClientError> {
+    if shutdown.is_cancelled() && matches!(end, TaskEnd::Cancelled) {
+        tracing::info!(task = task.id, "shutting down; giving the task back");
+        return client.release(task.id).await;
+    }
+    send_end(client, task, outputs, end).await
+}
+
 /// Runs a leased task in this process, uncontained: a parser on a blocking thread, a lookup on
-/// the runtime. Returns how it ended.
+/// the runtime. `shutdown` stops it, and the task then goes back to the queue. Returns how it
+/// ended.
 pub async fn run_in_process(
     client: &LeaseClient,
     modules: &Arc<Modules>,
     task: LeasedTask,
+    shutdown: &CancellationToken,
 ) -> Result<TaskEnd, ClientError> {
-    let keeper = LeaseKeeper::start(client, &task);
+    let keeper = LeaseKeeper::start(client, &task, shutdown);
     let dir = TaskDir::new()?;
     let input = fetch_input(client, &task, &dir).await?;
     let outputs = Arc::new(LocalFileStore::new(dir.outputs())?);
@@ -162,7 +186,7 @@ pub async fn run_in_process(
     let end = joined.unwrap_or_else(|e| TaskEnd::Failed {
         error: format!("the module panicked: {}", panic_message(e)),
     });
-    send_end(client, &task, &outputs, &end).await?;
+    finish(client, &task, &outputs, &end, shutdown).await?;
     Ok(end)
 }
 

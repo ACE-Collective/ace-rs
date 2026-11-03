@@ -19,6 +19,7 @@ mod spool;
 use std::path::Path;
 
 use ace_results::Sha256;
+use aws_sdk_s3::config::timeout::TimeoutConfig;
 use aws_sdk_s3::config::{
     BehaviorVersion, Credentials, Region, RequestChecksumCalculation, ResponseChecksumValidation,
 };
@@ -43,6 +44,11 @@ pub struct Presigned {
     pub url: String,
     pub headers: Vec<(String, String)>,
 }
+
+/// How long connecting to the bucket may take.
+pub const CONNECT_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(10);
+/// How long one call to the bucket may take, retries included: long enough for a large file.
+pub const OPERATION_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(600);
 
 /// The node cache's default cap, ace3's `cas.read_cache.max_bytes`: 10 GiB.
 pub const DEFAULT_CACHE_MAX_BYTES: u64 = 10 * 1024 * 1024 * 1024;
@@ -93,7 +99,14 @@ impl Store {
             // Checksums only where S3 requires them: not every S3-compatible server takes the
             // SDK's default CRC32 trailers, and gets are checked against the sha256 anyway.
             .request_checksum_calculation(RequestChecksumCalculation::WhenRequired)
-            .response_checksum_validation(ResponseChecksumValidation::WhenRequired);
+            .response_checksum_validation(ResponseChecksumValidation::WhenRequired)
+            // every call is bounded, a large file's included (PLAN.md 2.21)
+            .timeout_config(
+                TimeoutConfig::builder()
+                    .connect_timeout(CONNECT_TIMEOUT)
+                    .operation_timeout(OPERATION_TIMEOUT)
+                    .build(),
+            );
         if let Some(endpoint) = &config.endpoint {
             s3 = s3.endpoint_url(endpoint);
         }
