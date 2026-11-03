@@ -153,7 +153,7 @@ The goal is to run the five phase 1 modules end to end from a submission.
 - [x] **2.19 Hung tasks.** The supervisor kills a task process at its deadline and writes a failed-task row with the error and the input hashes. Done when an infinite-loop task is killed and its row names its inputs.
 - [x] **2.20 Replay.** `ace task replay <id>` fetches a failed task's inputs by hash and runs the module locally, outside containment, so a debugger can attach. Done when replaying 2.19's task reproduces the hang.
 - [x] **2.21 Bounded waits.** Wrap every network call, lock and join on a run or shutdown path in `tokio::time::timeout`. Shutdown stops leasing and releases held leases. Done when shutdown with a hung upstream finishes within its deadline and the hung task's lease is released.
-- [ ] **2.22 Telemetry.** Export spans through OpenTelemetry, with the task id added to 1.22's identifiers. Done when one task's spans appear together in the collector.
+- [x] **2.22 Telemetry.** Export spans through OpenTelemetry, with the task id added to 1.22's identifiers. Done when one task's spans appear together in the collector.
 
 ### Config
 

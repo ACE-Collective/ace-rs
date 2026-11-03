@@ -9,6 +9,7 @@ use ace_sdk::LocalFileStore;
 use ace_sdk::wire::{LeasedTask, TaskEnd};
 use tokio::task::JoinHandle;
 use tokio_util::sync::CancellationToken;
+use tracing::Instrument;
 
 use crate::client::{ClientError, LeaseClient};
 use crate::modules::{Modules, Run};
@@ -146,47 +147,58 @@ pub async fn run_in_process(
 ) -> Result<TaskEnd, ClientError> {
     let keeper = LeaseKeeper::start(client, &task, shutdown);
     let dir = TaskDir::new()?;
-    let input = fetch_input(client, &task, &dir).await?;
+    let input = fetch_input(client, &task, &dir)
+        .instrument(tracing::info_span!("fetch_input"))
+        .await?;
     let outputs = Arc::new(LocalFileStore::new(dir.outputs())?);
+    // the module's own span (ace_sdk::module::task_span) is a child of this task's
+    let span = tracing::Span::current();
     let cancel = keeper.token().clone();
     // each module runs in a task of its own, so a panic ends that task and fails it
     let (owned_modules, owned_task, owned_outputs) =
         (modules.clone(), task.clone(), outputs.clone());
     let joined = if modules.parser(&task.module).is_some() {
         tokio::task::spawn_blocking(move || match owned_modules.parser(&owned_task.module) {
-            Some(parser) => parser.run(Run {
-                task: &owned_task,
-                input: input.as_deref(),
-                outputs: owned_outputs,
-                cancel,
-                contained: false,
+            Some(parser) => span.in_scope(|| {
+                parser.run(Run {
+                    task: &owned_task,
+                    input: input.as_deref(),
+                    outputs: owned_outputs,
+                    cancel,
+                    contained: false,
+                })
             }),
             None => unknown_module(&owned_task),
         })
         .await
     } else {
-        tokio::spawn(async move {
-            match owned_modules.lookup(&owned_task.module) {
-                Some(lookup) => {
-                    lookup
-                        .run(Run {
-                            task: &owned_task,
-                            input: input.as_deref(),
-                            outputs: owned_outputs,
-                            cancel,
-                            contained: false,
-                        })
-                        .await
+        tokio::spawn(
+            async move {
+                match owned_modules.lookup(&owned_task.module) {
+                    Some(lookup) => {
+                        lookup
+                            .run(Run {
+                                task: &owned_task,
+                                input: input.as_deref(),
+                                outputs: owned_outputs,
+                                cancel,
+                                contained: false,
+                            })
+                            .await
+                    }
+                    None => unknown_module(&owned_task),
                 }
-                None => unknown_module(&owned_task),
             }
-        })
+            .instrument(span),
+        )
         .await
     };
     let end = joined.unwrap_or_else(|e| TaskEnd::Failed {
         error: format!("the module panicked: {}", panic_message(e)),
     });
-    finish(client, &task, &outputs, &end, shutdown).await?;
+    finish(client, &task, &outputs, &end, shutdown)
+        .instrument(tracing::info_span!("send_end"))
+        .await?;
     Ok(end)
 }
 

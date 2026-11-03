@@ -81,13 +81,8 @@ fn parse() -> Result<Args, String> {
 }
 
 fn main() -> ExitCode {
-    tracing_subscriber::fmt()
-        .with_writer(std::io::stderr)
-        .with_env_filter(
-            tracing_subscriber::EnvFilter::try_from_env("ACE4_LOG")
-                .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info")),
-        )
-        .init();
+    // logs now; span export, which starts threads, once any containment is in place
+    let mut telemetry = ace_pool::telemetry::init("ace4-test-pool", "info");
     let args = match parse() {
         Ok(args) => args,
         Err(e) => {
@@ -118,6 +113,12 @@ fn main() -> ExitCode {
             return ExitCode::from(2);
         }
     };
+    // a lookups pool starts it below, after it contains itself
+    if args.mode != "lookups"
+        && let Err(e) = telemetry.start_export()
+    {
+        eprintln!("no span export: {e}");
+    }
     match args.mode.as_str() {
         "once" => with_runtime(once(client, modules)),
         "lookups" => {
@@ -136,6 +137,9 @@ fn main() -> ExitCode {
                         return ExitCode::from(3);
                     }
                 }
+            }
+            if let Err(e) = telemetry.start_export() {
+                eprintln!("no span export: {e}");
             }
             let definition = PoolDefinition {
                 name: "test".to_owned(),

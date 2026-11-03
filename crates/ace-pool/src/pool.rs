@@ -12,6 +12,7 @@ use ace_sdk::wire::LeasedTask;
 use tokio::sync::Semaphore;
 use tokio::task::JoinSet;
 use tokio_util::sync::CancellationToken;
+use tracing::Instrument;
 
 use crate::client::LeaseClient;
 use crate::containment::SandboxProfile;
@@ -68,6 +69,9 @@ impl PoolDefinition {
             }
         }
         profile = profile.allow_port(api_port);
+        if let Some(port) = crate::telemetry::otlp_port() {
+            profile = profile.allow_port(port);
+        }
         for path in NETWORK_READ_PATHS {
             profile = profile.allow_read_if_exists(Path::new(path));
         }
@@ -138,13 +142,23 @@ pub async fn lease_loop(
             Ok(Some(task)) => {
                 let id = task.id;
                 lock(&held).insert(id);
+                // every span of the task's run in this process is a child of this one
+                let span = tracing::info_span!(
+                    "pool.task",
+                    task = id,
+                    module = %task.module,
+                    root = %task.root,
+                );
                 let (run, token, held) = (run.clone(), tasks.child_token(), held.clone());
-                running.spawn(async move {
-                    let _slot = slot;
-                    let ended = run(task, token).await;
-                    lock(&held).remove(&id);
-                    ended
-                });
+                running.spawn(
+                    async move {
+                        let _slot = slot;
+                        let ended = run(task, token).await;
+                        lock(&held).remove(&id);
+                        ended
+                    }
+                    .instrument(span),
+                );
             }
             Ok(None) => {}
             Err(e) => {

@@ -9,7 +9,7 @@ publish.workspace = true
 
 [features]
 # The test pool binary and its modules, for this crate's tests.
-test-pools = ["dep:ace-mod-archive", "dep:ace-mod-email", "dep:ace-mod-yara", "dep:schemars", "dep:tracing-subscriber"]
+test-pools = ["dep:ace-mod-archive", "dep:ace-mod-email", "dep:ace-mod-yara", "dep:schemars"]
 
 [[bin]]
 name = "test-pool"
@@ -24,6 +24,11 @@ ace-sdk = { path = "../ace-sdk" }
 # The Landlock maintainers' own bindings.
 landlock = "0.4.7"
 libc = "0.2.191"
+# Span export (PLAN.md 2.22): OTLP over HTTP with reqwest's blocking client, which the batch
+# processor's own thread drives.
+opentelemetry = "0.33.1"
+opentelemetry-otlp = { version = "0.33.1", default-features = false, features = ["http-proto", "reqwest-blocking-client", "trace"] }
+opentelemetry_sdk = { version = "0.33.1", default-features = false, features = ["trace"] }
 # Only for its types; ace-sdk's HttpClient picks reqwest's features.
 reqwest = { version = "0.13.5", default-features = false }
 schemars = { version = "1.2.3", optional = true }
@@ -34,10 +39,12 @@ thiserror = "2.0.21"
 tokio = { version = "1.54.1", features = ["fs", "io-util", "macros", "net", "process", "rt-multi-thread", "signal", "sync", "time"] }
 tokio-util = "0.7.20"
 tracing = "0.1.44"
-tracing-subscriber = { version = "0.3.23", features = ["env-filter", "fmt"], optional = true }
+tracing-opentelemetry = { version = "0.34.0", default-features = false }
+tracing-subscriber = { version = "0.3.23", features = ["env-filter", "fmt", "registry"] }
 
 [dev-dependencies]
 ace-core = { path = "../ace-core", features = ["testing"] }
+chrono = { version = "0.4.45", default-features = false, features = ["clock", "std"] }
 ace-pool = { path = ".", features = ["test-pools"] }
 ace-store = { path = "../ace-store" }
 sqlx = { version = "0.9.0", default-features = false, features = ["postgres", "runtime-tokio"] }

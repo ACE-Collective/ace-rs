@@ -172,6 +172,7 @@ pub struct TaskContext<S> {
     delayed: Option<DelayedRun>,
     files: Option<Arc<dyn FileStore>>,
     contained: bool,
+    task: Option<i64>,
 }
 
 impl<S> TaskContext<S> {
@@ -194,6 +195,7 @@ impl<S> TaskContext<S> {
             delayed: None,
             files: None,
             contained: false,
+            task: None,
         }
     }
 
@@ -241,6 +243,16 @@ impl<S> TaskContext<S> {
     /// True when the task's process is contained and can't start a thread or a process.
     pub fn is_contained(&self) -> bool {
         self.contained
+    }
+
+    /// The task's id in the queue, which its span carries (PLAN.md 2.22).
+    pub fn with_task_id(mut self, task: i64) -> Self {
+        self.task = Some(task);
+        self
+    }
+
+    pub fn task_id(&self) -> Option<i64> {
+        self.task
     }
 
     /// The root (alert) the observable is in.

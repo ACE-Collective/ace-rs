@@ -97,7 +97,8 @@ impl<M: ace_sdk::Module> Entry<M> {
         .with_secrets(&self.secrets)
         .with_cancel(run.cancel.clone())
         .with_file_store(run.outputs.clone())
-        .with_contained(run.contained);
+        .with_contained(run.contained)
+        .with_task_id(run.task.id);
         match &run.task.delayed {
             Some(delayed) => ctx.with_delayed(delayed.clone()),
             None => ctx,

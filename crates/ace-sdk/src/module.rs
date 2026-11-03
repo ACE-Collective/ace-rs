@@ -152,14 +152,15 @@ impl From<crate::files::FileOutputError> for ModuleError {
     }
 }
 
-/// The span a task runs in. Every log line inside it carries the root's uuid, the observable and
-/// the module.
+/// The span a task runs in. Every log line inside it carries the root's uuid, the observable,
+/// the module and, when the task came from the queue, its id.
 pub fn task_span<S>(module: &'static str, ctx: &TaskContext<S>) -> tracing::Span {
     tracing::info_span!(
         "task",
         root = %ctx.root(),
         observable = %ctx.observable(),
         module = %module,
+        task = ctx.task_id(),
     )
 }
 

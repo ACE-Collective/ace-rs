@@ -12,6 +12,7 @@ pub mod replay;
 pub mod run;
 pub mod supervisor;
 pub mod task_process;
+pub mod telemetry;
 #[cfg(feature = "test-pools")]
 pub mod testing;
 

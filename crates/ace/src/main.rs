@@ -8,7 +8,6 @@ mod yara;
 use std::process::ExitCode;
 
 use clap::{Parser, Subcommand};
-use tracing_subscriber::EnvFilter;
 
 /// ACE: the analysis correlation engine.
 #[derive(Parser)]
@@ -35,19 +34,14 @@ enum Command {
 
 fn main() -> ExitCode {
     // Logs go to stderr, filtered by ACE4_LOG (tracing's EnvFilter syntax), WARN and up by
-    // default.
-    tracing_subscriber::fmt()
-        .with_writer(std::io::stderr)
-        .with_env_filter(
-            EnvFilter::try_from_env("ACE4_LOG").unwrap_or_else(|_| EnvFilter::new("warn")),
-        )
-        .init();
+    // default. `ace serve` also exports spans when ACE4_OTLP_ENDPOINT is set.
+    let mut telemetry = ace_pool::telemetry::init("ace", "warn");
 
     let cli = Cli::parse();
     let result = match cli.command {
         Command::Schema(command) => schema::run(command),
         Command::Yara(command) => yara::run(command),
-        Command::Serve => serve::run(),
+        Command::Serve => serve::run(&mut telemetry),
         Command::Task(command) => task::run(command),
     };
     match result {

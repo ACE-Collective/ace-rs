@@ -277,6 +277,21 @@ impl PoolProcess {
             .is_some_and(|child| matches!(child.try_wait(), Ok(None)))
     }
 
+    /// Asks the process to stop with SIGTERM, waits up to `within` for it, and returns what it
+    /// wrote to stderr.
+    pub fn terminate(&mut self, within: Duration) -> String {
+        if let Some(child) = &self.child {
+            let pid = i32::try_from(child.id()).unwrap_or_default();
+            // SAFETY: kill takes integers only; the pid is this child's, not yet reaped
+            unsafe { libc::kill(pid, libc::SIGTERM) };
+        }
+        let started = std::time::Instant::now();
+        while self.running() && started.elapsed() < within {
+            std::thread::sleep(Duration::from_millis(50));
+        }
+        self.stop()
+    }
+
     /// Kills the process and returns what it wrote to stderr.
     pub fn stop(&mut self) -> String {
         let Some(mut child) = self.child.take() else {

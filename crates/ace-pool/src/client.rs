@@ -110,11 +110,18 @@ impl LeaseClient {
         }
     }
 
+    /// A call to the API, carrying the current span's context so the API's spans join its
+    /// trace (PLAN.md 2.22).
     fn post(&self, path: &str) -> reqwest::RequestBuilder {
-        self.http
+        let mut request = self
+            .http
             .post(&format!("{}{path}", self.base))
             .bearer_auth(&self.token)
-            .header(WORKER_HEADER, &self.worker)
+            .header(WORKER_HEADER, &self.worker);
+        for (name, value) in crate::telemetry::trace_headers() {
+            request = request.header(name, value);
+        }
+        request
     }
 
     /// Leases a task of `modules` (all the pool's when empty), waiting up to `wait` for one.

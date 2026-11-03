@@ -59,8 +59,14 @@ services:
       # NO_PROXY list that doesn't name this stack's services, and the S3 client honors them.
       # The stack's own services are reached directly; anything else still goes through the
       # proxy, if there is one.
-      NO_PROXY: localhost,127.0.0.1,postgres,bucket
-      no_proxy: localhost,127.0.0.1,postgres,bucket
+      NO_PROXY: localhost,127.0.0.1,postgres,bucket,collector
+      no_proxy: localhost,127.0.0.1,postgres,bucket,collector
+      # The telemetry profile's collector, for ace-pool's telemetry test: where it sends spans
+      # and where it reads them back. Processes export spans only when ACE4_OTLP_ENDPOINT is
+      # set, which it isn't here, so nothing else in the container tries to reach a collector
+      # that isn't running.
+      ACE4_TEST_OTLP_ENDPOINT: http://collector:4318
+      ACE4_TEST_TRACES_URL: http://collector:16686
     # The image's main process, poll-host-changes, passes saves on the macOS host to
     # inotify in the container so bacon sees them. Rancher Desktop's virtiofs mount
     # doesn't, so without it bacon only rebuilds for changes made inside the container.
@@ -142,6 +148,34 @@ services:
       interval: 5s
       timeout: 5s
       start_period: 30s
+      retries: 5
+
+  # The trace collector (PLAN.md 2.22): Jaeger, which takes OpenTelemetry's OTLP and keeps
+  # spans in memory, with a query API and a UI on 16686. Off by default; start it with
+  # `docker compose --profile telemetry up -d --wait collector`, and processes that have
+  # ACE4_OTLP_ENDPOINT set export their spans to it.
+  collector:
+    image: jaegertracing/jaeger:2.22.0
+    profiles: [telemetry]
+    depends_on:
+      stack-guard:
+        condition: service_completed_successfully
+    environment:
+      # see the dev service: the Docker client may give containers a proxy
+      NO_PROXY: localhost,127.0.0.1,postgres,bucket,collector
+      no_proxy: localhost,127.0.0.1,postgres,bucket,collector
+    ports:
+      # the UI and query API, and OTLP over HTTP
+      - "${ACE4_BIND_ADDRESS:-127.0.0.1}::16686"
+      - "${ACE4_BIND_ADDRESS:-127.0.0.1}::4318"
+    mem_limit: ${ACE4_COLLECTOR_MEM_LIMIT:-512m}
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - wget -q -O /dev/null http://127.0.0.1:13133/status
+      interval: 5s
+      timeout: 5s
+      start_period: 20s
       retries: 5
 
 volumes:

@@ -37,11 +37,14 @@ use axum::response::{IntoResponse, Response};
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use chrono::Utc;
+use opentelemetry::propagation::{Extractor, TextMapPropagator};
+use opentelemetry_sdk::propagation::TraceContextPropagator;
 use serde_json::Value;
 use sha2::Digest;
 use sqlx::postgres::PgListener;
 use tokio::sync::broadcast;
 use tokio::task::JoinHandle;
+use tracing::Instrument;
 
 use crate::bucket::{ALERT_FILES, Bucket, BucketError, Hold};
 use crate::db::{Db, DbError, Isolation, Retryable};
@@ -486,6 +489,30 @@ impl From<LandError> for Failure {
     }
 }
 
+/// A span for one request, a child of the caller's span when the request carries a W3C
+/// `traceparent` header (PLAN.md 2.22), so a task's spans in its pool and here share a trace.
+fn request_span(name: &'static str, task: Option<i64>, headers: &HeaderMap) -> tracing::Span {
+    use tracing_opentelemetry::OpenTelemetrySpanExt;
+    let span = tracing::info_span!("lease_api", request = name, task);
+    let parent = TraceContextPropagator::new().extract(&HeaderCarrier(headers));
+    if let Err(e) = span.set_parent(parent) {
+        tracing::debug!("no parent for the request's span: {e}");
+    }
+    span
+}
+
+struct HeaderCarrier<'a>(&'a HeaderMap);
+
+impl Extractor for HeaderCarrier<'_> {
+    fn get(&self, key: &str) -> Option<&str> {
+        self.0.get(key).and_then(|v| v.to_str().ok())
+    }
+
+    fn keys(&self) -> Vec<&str> {
+        self.0.keys().map(|k| k.as_str()).collect()
+    }
+}
+
 fn bearer(headers: &HeaderMap) -> Option<&str> {
     headers
         .get(axum::http::header::AUTHORIZATION)?
@@ -505,6 +532,15 @@ async fn lease(
     State(api): State<Api>,
     headers: HeaderMap,
     Json(request): Json<LeaseRequest>,
+) -> Result<Response, Failure> {
+    let span = request_span("lease", None, &headers);
+    lease_in(api, headers, request).instrument(span).await
+}
+
+async fn lease_in(
+    api: Api,
+    headers: HeaderMap,
+    request: LeaseRequest,
 ) -> Result<Response, Failure> {
     let pool = api.pool(&headers)?;
     let modules = if request.modules.is_empty() {
@@ -533,7 +569,10 @@ async fn renew(
     Path(id): Path<i64>,
     headers: HeaderMap,
 ) -> Result<Json<Renewal>, Failure> {
-    let lease = api.worker(&headers)?.renew(TaskId(id)).await?;
+    let span = request_span("renew", Some(id), &headers);
+    let lease = async { Ok::<_, Failure>(api.worker(&headers)?.renew(TaskId(id)).await?) }
+        .instrument(span)
+        .await?;
     Ok(Json(Renewal {
         expires_at: lease.expires_at,
         cancel_requested: lease.cancel_requested,
@@ -577,6 +616,16 @@ async fn end(
     Path(id): Path<i64>,
     headers: HeaderMap,
     Json(end): Json<TaskEnd>,
+) -> Result<StatusCode, Failure> {
+    let span = request_span("end", Some(id), &headers);
+    end_in(api, id, headers, end).instrument(span).await
+}
+
+async fn end_in(
+    api: Api,
+    id: i64,
+    headers: HeaderMap,
+    end: TaskEnd,
 ) -> Result<StatusCode, Failure> {
     let worker = api.worker(&headers)?;
     let task = TaskId(id);

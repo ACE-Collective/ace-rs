@@ -34,7 +34,8 @@ pub fn manifests() -> Vec<ace_sdk::Manifest> {
 /// request waits.
 const SHUTDOWN_DEADLINE: Duration = Duration::from_secs(25);
 
-pub fn run() -> Result<ExitCode> {
+pub fn run(telemetry: &mut ace_pool::telemetry::Telemetry) -> Result<ExitCode> {
+    telemetry.start_export().context("starting span export")?;
     let runtime = tokio::runtime::Builder::new_multi_thread()
         .enable_all()
         .build()
