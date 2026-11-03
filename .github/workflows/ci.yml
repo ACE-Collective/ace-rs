@@ -1,4 +1,5 @@
-# Formatting, lints, tests and the layering check on every push (PLAN.md 0.3 and 0.4).
+# Formatting, lints, tests and the layering check on every push (PLAN.md 0.3 and 0.4), and
+# the end-to-end test against the stack's images (2.30).
 name: ci
 
 on:
@@ -44,3 +45,15 @@ jobs:
       # Fails when ace-results, ace-api, ace-gui or ace-search depends on an ace-mod-* crate.
       - name: Layering check
         run: docker run --rm -v "$PWD:/workspace" -w /workspace ace4-dev:ci cargo run --locked --quiet -p ace-layering
+
+  # PLAN.md 2.30: the end-to-end test, against the images docker/ace4/Dockerfile builds, under
+  # a Compose project of its own. It makes its own signatures repository and replays recorded
+  # RDAP and Splunk APIs, so it reaches nothing outside the runner.
+  e2e:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: End-to-end test
+        run: tests/e2e/run

@@ -295,6 +295,37 @@ services:
       start_period: 10s
       retries: 3
 
+  # The end-to-end test's recorded RDAP and Splunk APIs (PLAN.md 2.30), behind the e2e
+  # profile, so the stack's lookups never reach the internet in the test. Plain HTTP on 443,
+  # a port both modules' manifests allow; tests/e2e/site/overlay.yaml points them here.
+  responder:
+    build:
+      context: .
+      dockerfile: docker/ace4/Dockerfile
+      target: responder
+    image: ace4-responder:latest
+    profiles: [e2e]
+    depends_on:
+      stack-guard:
+        condition: service_completed_successfully
+    command:
+      - replay-server
+      - --listen
+      - 0.0.0.0:443
+      - --public
+      - http://responder:443
+      - --recording
+      - /recordings/rdap_analyzer/fqdn_example.com.http=https://data.iana.org/
+      - --recording
+      - /recordings/proxy_domain_lookup/fqdn_www.example.com.http
+    mem_limit: ${ACE4_RESPONDER_MEM_LIMIT:-128m}
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/443"]
+      interval: 5s
+      timeout: 5s
+      start_period: 5s
+      retries: 3
+
 volumes:
   postgres-data:
   bucket-data:

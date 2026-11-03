@@ -1,7 +1,8 @@
 # syntax=docker/dockerfile:1
 #
 # The images of ace4's Compose stack (PLAN.md 2.29): ace4-ace, the core; ace4-parsers, the
-# parser pool; and ace4-lookups, the network pool. One build stage compiles every binary once, and each image is a
+# parser pool; ace4-lookups, the network pool; and ace4-responder, the recorded-response server
+# of the end-to-end test. One build stage compiles every binary once, and each image is a
 # target of this file. The build's target directory is a BuildKit cache, so a rebuild compiles
 # only what changed; it isn't the dev container's target/ volume.
 
@@ -26,9 +27,10 @@ WORKDIR /src
 COPY . .
 RUN --mount=type=cache,id=ace4-images-registry,target=/usr/local/cargo/registry \
     --mount=type=cache,id=ace4-images-target,target=/src/target \
-    cargo build --release --locked -p ace -p ace-pools --bins \
+    cargo build --release --locked -p ace -p ace-pools -p ace-testkit --bins \
     && mkdir -p /out \
-    && cp target/release/ace target/release/ace-parsers target/release/ace-lookups /out/
+    && cp target/release/ace target/release/ace-parsers target/release/ace-lookups \
+        target/release/replay-server /out/
 
 # What every image runs on: Debian with the pinned libmagic and its database, which the core's
 # mime types and the YARA module's mime_type filter read.
@@ -67,3 +69,10 @@ FROM runtime AS lookups
 COPY --from=build /out/ace-lookups /usr/local/bin/ace-lookups
 USER ace4
 CMD ["ace-lookups"]
+
+# The end-to-end test's recorded RDAP and Splunk APIs (tools/ace3/dumps/reference).
+FROM runtime AS responder
+COPY --from=build /out/replay-server /usr/local/bin/replay-server
+COPY tools/ace3/dumps/reference /recordings
+USER ace4
+CMD ["replay-server"]

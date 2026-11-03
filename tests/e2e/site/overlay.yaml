@@ -1,0 +1,26 @@
+# The end-to-end test's site overlay (PLAN.md 2.30, tests/e2e/run). The RDAP module and the
+# Splunk instance talk to the stack's responder service, which replays the recordings in
+# tools/ace3/dumps/reference over plain HTTP on port 443, so nothing reaches the internet or a
+# real Splunk.
+modules:
+  rdap_analyzer:
+    settings:
+      bootstrap_url: http://responder:443/https/data.iana.org/rdap/
+      request_timeout_seconds: 10
+  splunk_api:
+    instances:
+      # ace3's correlation group runs an instance by this name, so a root that becomes an
+      # alert runs it
+      clicker_detection_splunk:
+        inputs: [fqdn]
+        settings:
+          base_url: http://responder:443/https/127.0.0.1:8089
+          username: ace4
+          request_timeout_seconds: 10
+          question: Was this domain seen in proxy logs?
+          summary: Proxy correlation
+          query: index=proxy hostname="<O_VALUE>"
+          observable_mapping:
+            - {field: user, type: email_address}
+secrets:
+  splunk_password: env:ACE4_SPLUNK_PASSWORD

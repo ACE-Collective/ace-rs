@@ -7,6 +7,10 @@ rust-version.workspace = true
 license.workspace = true
 publish.workspace = true
 
+# The recorded-response server of the Compose stack's end-to-end test (PLAN.md 2.30).
+[[bin]]
+name = "replay-server"
+
 [dependencies]
 ace-results = { path = "../ace-results" }
 ace-sdk = { path = "../ace-sdk" }
@@ -19,7 +23,7 @@ sha2 = "0.11.1"
 tempfile = "3.27.0"
 thiserror = "2.0.21"
 # The HTTP replay server for lookup modules' tests.
-tokio = { version = "1.54.1", features = ["io-util", "net", "rt", "sync"] }
+tokio = { version = "1.54.1", features = ["io-util", "macros", "net", "rt", "signal", "sync", "time"] }
 uuid = "1.29.0"
 
 [dev-dependencies]

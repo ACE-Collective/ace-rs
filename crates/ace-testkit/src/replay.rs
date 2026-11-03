@@ -77,7 +77,49 @@ struct Log {
     served: HashMap<(String, String), usize>,
 }
 
-/// A local server for one recording.
+/// The exchanges in `dir/http.json` that can be replayed, with the URLs in the bodies of
+/// responses to URLs that start with one of `rewrite` pointed at `base`.
+fn load(dir: &Path, rewrite: &[&str], base: &str) -> Result<Vec<Exchange>, HarnessError> {
+    let path = dir.join("http.json");
+    let text = std::fs::read_to_string(&path)
+        .map_err(|e| HarnessError::Fixture(format!("{}: {e}", path.display())))?;
+    let recording: Recording = serde_json::from_str(&text)
+        .map_err(|e| HarnessError::Fixture(format!("{}: {e}", path.display())))?;
+    let url_pattern = Regex::new(r"(https?)://").expect("valid regex");
+    let mut exchanges = Vec::new();
+    for recorded in recording.exchanges {
+        // a body too large to keep, or a request that failed, can't be replayed
+        let (Some(status), Some(body_file)) = (recorded.status, &recorded.body_file) else {
+            continue;
+        };
+        let body_path = dir.join(body_file);
+        let mut body = std::fs::read(&body_path)
+            .map_err(|e| HarnessError::Fixture(format!("{}: {e}", body_path.display())))?;
+        if rewrite
+            .iter()
+            .any(|prefix| recorded.url.starts_with(prefix))
+        {
+            body = url_pattern
+                .replace_all(&body, format!("{base}/$1/").as_bytes())
+                .into_owned();
+        }
+        let content_type = recorded
+            .response_headers
+            .iter()
+            .find(|(name, _)| name.eq_ignore_ascii_case("content-type"))
+            .map(|(_, value)| value.clone());
+        exchanges.push(Exchange {
+            method: recorded.method,
+            url: recorded.url,
+            status,
+            content_type,
+            body,
+        });
+    }
+    Ok(exchanges)
+}
+
+/// A local server for recorded exchanges.
 pub struct HttpReplay {
     base: String,
     log: Arc<Mutex<Log>>,
@@ -88,48 +130,24 @@ impl HttpReplay {
     /// Serves the exchanges in `dir/http.json`. The bodies of responses to URLs that start with
     /// one of `rewrite` get every `http://` and `https://` URL in them pointed here.
     pub async fn start(dir: &Path, rewrite: &[&str]) -> Result<HttpReplay, HarnessError> {
-        let path = dir.join("http.json");
-        let text = std::fs::read_to_string(&path)
-            .map_err(|e| HarnessError::Fixture(format!("{}: {e}", path.display())))?;
-        let recording: Recording = serde_json::from_str(&text)
-            .map_err(|e| HarnessError::Fixture(format!("{}: {e}", path.display())))?;
-
         let listener = TcpListener::bind("127.0.0.1:0").await?;
+        HttpReplay::serve(&[(dir, rewrite)], listener, None).await
+    }
+
+    /// Serves several recordings on `listener`, as one server, such as the recorded-response
+    /// service of the Compose stack's end-to-end test. Rewritten URLs point at `public_base`,
+    /// the URL clients reach the server at, or at the listener's own address.
+    pub async fn serve(
+        recordings: &[(&Path, &[&str])],
+        listener: TcpListener,
+        public_base: Option<String>,
+    ) -> Result<HttpReplay, HarnessError> {
         let addr: SocketAddr = listener.local_addr()?;
-        let base = format!("http://{addr}");
-        let url_pattern = Regex::new(r"(https?)://").expect("valid regex");
-
+        let base = public_base.unwrap_or_else(|| format!("http://{addr}"));
         let mut exchanges = Vec::new();
-        for recorded in recording.exchanges {
-            // a body too large to keep, or a request that failed, can't be replayed
-            let (Some(status), Some(body_file)) = (recorded.status, &recorded.body_file) else {
-                continue;
-            };
-            let body_path = dir.join(body_file);
-            let mut body = std::fs::read(&body_path)
-                .map_err(|e| HarnessError::Fixture(format!("{}: {e}", body_path.display())))?;
-            if rewrite
-                .iter()
-                .any(|prefix| recorded.url.starts_with(prefix))
-            {
-                body = url_pattern
-                    .replace_all(&body, format!("{base}/$1/").as_bytes())
-                    .into_owned();
-            }
-            let content_type = recorded
-                .response_headers
-                .iter()
-                .find(|(name, _)| name.eq_ignore_ascii_case("content-type"))
-                .map(|(_, value)| value.clone());
-            exchanges.push(Exchange {
-                method: recorded.method,
-                url: recorded.url,
-                status,
-                content_type,
-                body,
-            });
+        for (dir, rewrite) in recordings {
+            exchanges.extend(load(dir, rewrite, &base)?);
         }
-
         let exchanges = Arc::new(exchanges);
         let log = Arc::new(Mutex::new(Log::default()));
         let task = {

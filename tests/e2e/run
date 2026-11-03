@@ -1,0 +1,367 @@
+#!/usr/bin/env python3
+"""PLAN.md 2.30: the end-to-end test, against the Compose stack's own images.
+
+It brings up postgres, bucket, ace, the parser and network pools and the e2e profile's
+responder under a project of its own (ace4-e2e), with:
+
+- a signatures repository it makes under target/e2e/, holding one rule that matches a marker
+  string only in a file tagged type=email.attachment (its meta_tags directive);
+- tests/e2e/site/overlay.yaml, which points the RDAP module and the clicker_detection_splunk
+  instance of the Splunk module at the responder's recordings, so nothing reaches the internet;
+- a 15-second lease, so a task a killed pool held comes back quickly.
+
+Then it submits an email with a DKIM signing domain (example.com) in its headers and a zip
+attachment holding the marker, twice. Each time, the email, archive and YARA modules run in
+email mode; the YARA match on the attachment makes the root an alert in correlation mode, which
+runs RDAP and the Splunk instance, the delayed module, on the domain. The second time the
+parser pool is frozen before the submission, so the core leases it a task it never answers, and
+it is killed with SIGKILL while it holds that lease, then started again. Both roots must have
+results from all five modules and complete; the second only later.
+
+Usage: tests/e2e/run [--keep]   (--keep leaves the stack up)
+Exits 0 when every check passes. Needs docker compose and python3 on the host.
+"""
+
+import io
+import json
+import os
+import shutil
+import subprocess
+import sys
+import time
+import urllib.request
+import uuid
+import zipfile
+from email.message import EmailMessage
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent.parent
+WORK = ROOT / "target" / "e2e"
+PROJECT = "ace4-e2e"
+PORT = os.environ.get("ACE4_E2E_PORT", "7444")
+SUBMIT_TOKEN = "ace4-e2e-submit-token"
+LEASE_SECONDS = 15
+MARKER = "ACE4-E2E-MARKER-6c1f"
+RULE = "ace4_e2e_attachment"
+MODULES = [
+    "email_analyzer",
+    "archive",
+    "yara_scanner_v3_4",
+    "rdap_analyzer",
+    "clicker_detection_splunk",
+]
+PARSER_MODULES = ["email_analyzer", "archive", "yara_scanner_v3_4"]
+
+ENV = {
+    **os.environ,
+    "ACE4_STACK": PROJECT,
+    "ACE4_PORT_HTTPS": PORT,
+    "ACE4_SITE": str(ROOT / "tests" / "e2e" / "site"),
+    "ACE4_SIGNATURES": str(WORK / "signatures"),
+    "ACE4_LEASE_SECONDS": str(LEASE_SECONDS),
+    "ACE4_RULESET_POLL_SECONDS": "2",
+    "ACE4_POOL_RULESET_POLL_SECONDS": "2",
+    "ACE4_SUBMIT_TOKEN": SUBMIT_TOKEN,
+    # the recorded Splunk takes any password
+    "ACE4_SPLUNK_PASSWORD": "ace4-fake-password",
+}
+ENV.pop("COMPOSE_PROJECT_NAME", None)
+COMPOSE = ["docker", "compose", "-f", str(ROOT / "compose.yaml"), "--profile", "e2e"]
+SERVICES = ["postgres", "bucket", "ace", "parsers", "lookups", "responder"]
+
+
+def log(message):
+    print(f"e2e: {message}", flush=True)
+
+
+def compose(*args, check=True, capture=False):
+    result = subprocess.run(
+        [*COMPOSE, *args], env=ENV, cwd=ROOT, text=True, capture_output=capture
+    )
+    if check and result.returncode != 0:
+        raise SystemExit(
+            f"e2e: docker compose {' '.join(args)} failed ({result.returncode})\n"
+            f"{result.stderr if capture else ''}"
+        )
+    return result.stdout if capture else ""
+
+
+def sql(query):
+    """Rows of a query against the stack's Postgres, as lists of strings."""
+    out = compose(
+        "exec", "-T", "postgres", "psql", "-U", "ace4", "-d", "ace4", "-At", "-F", "\t",
+        "-v", "ON_ERROR_STOP=1", "-c", query, capture=True,
+    )
+    return [line.split("\t") for line in out.splitlines() if line]
+
+
+def git(*args):
+    subprocess.run(
+        ["git", "-C", str(WORK / "signatures"), "-c", "user.name=ace4 e2e",
+         "-c", "user.email=e2e@example.invalid", "-c", "commit.gpgsign=false",
+         "-c", "init.defaultBranch=main", *args],
+        check=True, capture_output=True,
+    )
+
+
+def make_signatures():
+    """A repository with the one fixture rule, committed. Returns its commit."""
+    repo = WORK / "signatures"
+    shutil.rmtree(repo, ignore_errors=True)
+    (repo / "yara" / "e2e").mkdir(parents=True)
+    (repo / "yara" / "e2e" / "attachment.yar").write_text(
+        f"""rule {RULE}
+{{
+    meta:
+        uuid = "4f6e2b9a-0d3c-4e5f-9a8b-7c6d5e4f3a2b"
+        // kept only for a file the email module tagged as an attachment
+        meta_tags = "type=email.attachment"
+    strings:
+        $marker = "{MARKER}"
+    condition:
+        $marker
+}}
+"""
+    )
+    git("init", "-q")
+    git("add", ".")
+    git("commit", "-q", "-m", "the end-to-end test's rule")
+    return subprocess.run(
+        ["git", "-C", str(repo), "rev-parse", "HEAD"], check=True, capture_output=True,
+        text=True,
+    ).stdout.strip()
+
+
+def make_email(n):
+    """An email with a DKIM signing domain and a stored zip attachment holding the marker,
+    which the extracted file holds too, untagged."""
+    archive = io.BytesIO()
+    with zipfile.ZipFile(archive, "w", zipfile.ZIP_STORED) as z:
+        z.writestr(
+            zipfile.ZipInfo("invoice.txt", date_time=(2026, 1, 1, 0, 0, 0)),
+            f"Invoice 1001\n{MARKER}\n",
+        )
+    message = EmailMessage()
+    message["From"] = "Alice <alice@example.com>"
+    message["To"] = "bob@example.net"
+    message["Subject"] = f"ace4 end-to-end {n}"
+    message["Date"] = "Sun, 01 Nov 2026 12:00:00 +0000"
+    message["Message-ID"] = f"<ace4-e2e-{n}-{uuid.uuid4()}@example.com>"
+    message["DKIM-Signature"] = (
+        "v=1; a=rsa-sha256; c=relaxed/relaxed; d=example.com; s=e2e; "
+        "h=from:to:subject; bh=AAAA; b=BBBB"
+    )
+    message.set_content("The invoice is attached.\n")
+    message.add_attachment(
+        archive.getvalue(), maintype="application", subtype="zip", filename="invoice.zip"
+    )
+    return message.as_bytes()
+
+
+def submit(email):
+    boundary = f"ace4-e2e-{uuid.uuid4().hex}"
+    analysis = json.dumps({"description": "ace4 end-to-end test", "analysis_mode": "email"})
+    body = (
+        f"--{boundary}\r\nContent-Disposition: form-data; name=\"analysis\"\r\n\r\n"
+        f"{analysis}\r\n--{boundary}\r\nContent-Disposition: form-data; name=\"file\"; "
+        f"filename=\"email.rfc822\"\r\nContent-Type: message/rfc822\r\n\r\n"
+    ).encode() + email + f"\r\n--{boundary}--\r\n".encode()
+    request = urllib.request.Request(
+        f"http://127.0.0.1:{PORT}/api/analysis/v1/submit",
+        data=body,
+        method="POST",
+        headers={
+            "Authorization": f"Bearer {SUBMIT_TOKEN}",
+            "Content-Type": f"multipart/form-data; boundary={boundary}",
+        },
+    )
+    with urllib.request.urlopen(request, timeout=30) as response:
+        if response.status != 201:
+            raise SystemExit(f"e2e: the submission answered {response.status}")
+        return json.load(response)["uuid"]
+
+
+def wait_for(what, check, within, every=0.25):
+    started = time.monotonic()
+    while True:
+        value = check()
+        if value:
+            return value
+        if time.monotonic() - started > within:
+            raise SystemExit(f"e2e: timed out after {within}s waiting for {what}")
+        time.sleep(every)
+
+
+def completed_after(root):
+    """Seconds from the root's creation to its first completion, or None."""
+    rows = sql(
+        f"""SELECT extract(epoch FROM c.completed_at - r.created_at)
+            FROM queue.root_completions c JOIN analysis.roots r ON r.id = c.root_id
+            WHERE c.root_id = '{root}' ORDER BY c.pass LIMIT 1"""
+    )
+    return float(rows[0][0]) if rows else None
+
+
+def tasks(root):
+    return sql(
+        f"""SELECT t.module, o.type, coalesce(f.path, o.value), t.state::text, t.attempts,
+                   coalesce(t.error, '')
+            FROM queue.tasks t JOIN analysis.observables o ON o.id = t.observable_id
+            LEFT JOIN analysis.files f ON f.observable_id = o.id
+            WHERE t.root_id = '{root}' ORDER BY t.id"""
+    )
+
+
+def check_root(root, failures):
+    """Checks one root once it completed, adding a line to failures for each check that fails."""
+
+    def expect(ok, message):
+        log(("ok    " if ok else "FAIL  ") + message)
+        if not ok:
+            failures.append(f"{root}: {message}")
+
+    modules = {row[0] for row in sql(
+        f"SELECT DISTINCT module FROM analysis.results WHERE root_id = '{root}'"
+    )}
+    for module in MODULES:
+        expect(module in modules, f"{module} has a result")
+    mode, alerted, passes = sql(
+        f"""SELECT analysis_mode, alerted_at IS NOT NULL, completed_pass = pass
+            FROM analysis.roots WHERE id = '{root}'"""
+    )[0]
+    expect(mode == "correlation" and alerted == "t", "the YARA match made the root an alert")
+    expect(passes == "t", "the root's pass completed")
+    active = sql(
+        f"""SELECT count(*) FROM queue.tasks WHERE root_id = '{root}'
+            AND state IN ('queued', 'delayed', 'running')"""
+    )[0][0]
+    expect(active == "0", "no task is left queued, delayed or running")
+
+    # the rule matched the attachment and not the extracted file, which holds the same marker;
+    # a scan that matched nothing ends done with no result
+    scans = {row[0]: (row[1], row[2] == "t") for row in sql(
+        f"""SELECT f.path, t.state::text, coalesce(r.details::text LIKE '%{RULE}%', false)
+            FROM queue.tasks t
+            JOIN analysis.files f ON f.observable_id = t.observable_id AND f.root_id = t.root_id
+            LEFT JOIN analysis.results r ON r.root_id = t.root_id
+              AND r.observable_id = t.observable_id AND r.module = t.module
+            WHERE t.root_id = '{root}' AND t.module = 'yara_scanner_v3_4'"""
+    )}
+    attachment = {p: v for p, v in scans.items() if p.endswith("invoice.zip")}
+    extracted = {p: v for p, v in scans.items() if p.endswith("invoice.txt")}
+    expect(bool(attachment) and all(v == ("done", True) for v in attachment.values()),
+           f"the rule matched the tagged attachment: {attachment}")
+    expect(bool(extracted) and all(v == ("done", False) for v in extracted.values()),
+           f"the rule didn't match the untagged extracted file, which has the marker: "
+           f"{extracted}")
+    others = [p for p, v in scans.items() if v[1] and p not in attachment]
+    expect(not others, f"the rule matched nothing else: {others}")
+
+    rdap = sql(
+        f"""SELECT o.value, r.details->>'lookup_protocol', coalesce(r.details->>'error', '')
+            FROM analysis.results r JOIN analysis.observables o ON o.id = r.observable_id
+            WHERE r.root_id = '{root}' AND r.module = 'rdap_analyzer'"""
+    )
+    expect(["example.com", "rdap", ""] in rdap,
+           f"RDAP answered for example.com from the recording: {rdap}")
+    splunk = sql(
+        f"""SELECT o.value, coalesce(r.details->>'error', ''), t.attempts
+            FROM analysis.results r JOIN analysis.observables o ON o.id = r.observable_id
+            JOIN queue.tasks t ON t.root_id = r.root_id AND t.observable_id = r.observable_id
+              AND t.module = r.module
+            WHERE r.root_id = '{root}' AND r.module = 'clicker_detection_splunk'"""
+    )
+    expect(any(row[0] == "example.com" and row[1] == "" for row in splunk),
+           f"the Splunk instance answered for example.com: {splunk}")
+    delays = sql(
+        f"""SELECT count(*) FROM queue.tasks
+            WHERE root_id = '{root}' AND module = 'clicker_detection_splunk'
+            AND first_delayed_at IS NOT NULL"""
+    )[0][0]
+    expect(delays != "0", "the Splunk task was delayed before its result")
+
+
+def run(n, kill, failures):
+    """Submits the email and waits for its root to complete. With kill, freezes the parser pool
+    first, kills it once it holds a lease, and starts it again. Returns the root and seconds to
+    completion."""
+    # the recorded Splunk job answers "running" twice and then "done", counting requests from
+    # when the responder started, so each run starts it again to see the same answers
+    compose("restart", "responder")
+    compose("up", "-d", "--wait", "responder")
+    if kill:
+        compose("pause", "parsers")
+    root = submit(make_email(n))
+    log(f"submitted root {root}{' with the parser pool frozen' if kill else ''}")
+    if kill:
+        held = wait_for(
+            "the frozen parser pool to be given a task",
+            lambda: sql(
+                f"""SELECT module, lease_owner FROM queue.tasks WHERE root_id = '{root}'
+                    AND state = 'running' AND lease_owner LIKE 'parsers/%'"""
+            ),
+            within=30,
+        )
+        log(f"the frozen parser pool holds {held}; killing it with SIGKILL")
+        compose("kill", "-s", "SIGKILL", "parsers")
+        killed_at = time.monotonic()
+        compose("up", "-d", "--wait", "parsers")
+        log(f"started the parser pool again {time.monotonic() - killed_at:.1f}s after the kill")
+    seconds = wait_for(f"root {root} to complete", lambda: completed_after(root), within=300)
+    log(f"root {root} completed {seconds:.2f}s after it was created")
+    for row in tasks(root):
+        log("  task " + " | ".join(row))
+    check_root(root, failures)
+    if kill:
+        taken_back = [r for r in tasks(root) if r[0] in PARSER_MODULES and int(r[4]) >= 2]
+        ok = bool(taken_back) and all(r[3] == "done" for r in taken_back)
+        log(("ok    " if ok else "FAIL  ")
+            + f"the killed pool's task ran again and ended done: {taken_back}")
+        if not ok:
+            failures.append(f"{root}: the killed pool's task didn't run again")
+    return root, seconds
+
+
+def main(argv):
+    keep = "--keep" in argv
+    WORK.mkdir(parents=True, exist_ok=True)
+    commit = make_signatures()
+    log(f"signatures at {WORK / 'signatures'}, commit {commit}")
+    compose("up", "-d", "--build", "--wait", *SERVICES)
+    failures = []
+    try:
+        wait_for(
+            "the core to build the fixture's ruleset",
+            lambda: sql(f"SELECT 1 FROM yara.rulesets WHERE commit = '{commit}'"),
+            within=120,
+        )
+        wait_for(
+            "the parser pool to load it",
+            lambda: "the first ruleset loaded" in compose("logs", "parsers", capture=True),
+            within=60,
+        )
+        _, undisturbed = run(1, kill=False, failures=failures)
+        _, killed = run(2, kill=True, failures=failures)
+        log(f"completion: {undisturbed:.2f}s undisturbed, {killed:.2f}s with the parser pool "
+            f"killed mid-run (lease {LEASE_SECONDS}s)")
+        if killed <= undisturbed:
+            failures.append("the run with the kill wasn't slower; did the kill land?")
+    finally:
+        if failures or keep:
+            for service in ("ace", "parsers", "lookups", "responder"):
+                print(f"----- {service} logs (last 40 lines)")
+                print(compose("logs", "--no-color", "--tail", "40", service, capture=True,
+                              check=False))
+        if not keep:
+            compose("down", "-v", "--remove-orphans", check=False)
+    if failures:
+        log(f"{len(failures)} check(s) failed:")
+        for failure in failures:
+            log(f"  {failure}")
+        return 1
+    log("every check passed")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
