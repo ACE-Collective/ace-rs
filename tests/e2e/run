@@ -20,6 +20,16 @@ results from all five modules and complete; the second only later.
 
 Usage: tests/e2e/run [--keep]   (--keep leaves the stack up)
 Exits 0 when every check passes. Needs docker compose and python3 on the host.
+
+A site repository runs the same scenario against its own images (PLAN.md 2.32) by setting:
+
+- ACE4_E2E_COMPOSE: its Compose file, whose services have this file's names (postgres, bucket,
+  ace, parsers, lookups and the e2e profile's responder);
+- ACE4_E2E_PREFIX: the prefix of that file's variables, such as SITE_PORT_, in place of ACE4_;
+- ACE4_E2E_PROJECT: the Compose project the test runs under, in place of ace4-e2e;
+- ACE4_E2E_SITE: the site overlay directory, in place of tests/e2e/site;
+- ACE4_E2E_WORK: where the signatures repository goes, in place of target/e2e;
+- ACE4_E2E_PORT: the host port, as for ace4.
 """
 
 import io
@@ -36,8 +46,11 @@ from email.message import EmailMessage
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent.parent
-WORK = ROOT / "target" / "e2e"
-PROJECT = "ace4-e2e"
+COMPOSE_FILE = Path(os.environ.get("ACE4_E2E_COMPOSE", ROOT / "compose.yaml")).resolve()
+PREFIX = os.environ.get("ACE4_E2E_PREFIX", "ACE4_")
+WORK = Path(os.environ.get("ACE4_E2E_WORK", ROOT / "target" / "e2e")).resolve()
+SITE = Path(os.environ.get("ACE4_E2E_SITE", ROOT / "tests" / "e2e" / "site")).resolve()
+PROJECT = os.environ.get("ACE4_E2E_PROJECT", "ace4-e2e")
 PORT = os.environ.get("ACE4_E2E_PORT", "7444")
 SUBMIT_TOKEN = "ace4-e2e-submit-token"
 LEASE_SECONDS = 15
@@ -54,19 +67,24 @@ PARSER_MODULES = ["email_analyzer", "archive", "yara_scanner_v3_4"]
 
 ENV = {
     **os.environ,
-    "ACE4_STACK": PROJECT,
-    "ACE4_PORT_HTTPS": PORT,
-    "ACE4_SITE": str(ROOT / "tests" / "e2e" / "site"),
-    "ACE4_SIGNATURES": str(WORK / "signatures"),
-    "ACE4_LEASE_SECONDS": str(LEASE_SECONDS),
-    "ACE4_RULESET_POLL_SECONDS": "2",
-    "ACE4_POOL_RULESET_POLL_SECONDS": "2",
-    "ACE4_SUBMIT_TOKEN": SUBMIT_TOKEN,
-    # the recorded Splunk takes any password
-    "ACE4_SPLUNK_PASSWORD": "ace4-fake-password",
+    **{
+        PREFIX + name: value
+        for name, value in {
+            "STACK": PROJECT,
+            "PORT_HTTPS": PORT,
+            "SITE": str(SITE),
+            "SIGNATURES": str(WORK / "signatures"),
+            "LEASE_SECONDS": str(LEASE_SECONDS),
+            "RULESET_POLL_SECONDS": "2",
+            "POOL_RULESET_POLL_SECONDS": "2",
+            "SUBMIT_TOKEN": SUBMIT_TOKEN,
+            # the recorded Splunk takes any password
+            "SPLUNK_PASSWORD": "ace4-fake-password",
+        }.items()
+    },
 }
 ENV.pop("COMPOSE_PROJECT_NAME", None)
-COMPOSE = ["docker", "compose", "-f", str(ROOT / "compose.yaml"), "--profile", "e2e"]
+COMPOSE = ["docker", "compose", "-f", str(COMPOSE_FILE), "--profile", "e2e"]
 SERVICES = ["postgres", "bucket", "ace", "parsers", "lookups", "responder"]
 
 
@@ -76,7 +94,7 @@ def log(message):
 
 def compose(*args, check=True, capture=False):
     result = subprocess.run(
-        [*COMPOSE, *args], env=ENV, cwd=ROOT, text=True, capture_output=capture
+        [*COMPOSE, *args], env=ENV, cwd=COMPOSE_FILE.parent, text=True, capture_output=capture
     )
     if check and result.returncode != 0:
         raise SystemExit(
@@ -88,9 +106,11 @@ def compose(*args, check=True, capture=False):
 
 def sql(query):
     """Rows of a query against the stack's Postgres, as lists of strings."""
+    # the database and user the stack's Compose file gave the postgres service
     out = compose(
-        "exec", "-T", "postgres", "psql", "-U", "ace4", "-d", "ace4", "-At", "-F", "\t",
-        "-v", "ON_ERROR_STOP=1", "-c", query, capture=True,
+        "exec", "-T", "-e", f"QUERY={query}", "postgres", "sh", "-c",
+        'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -At -F "\t" -v ON_ERROR_STOP=1 -c "$QUERY"',
+        capture=True,
     )
     return [line.split("\t") for line in out.splitlines() if line]
 
