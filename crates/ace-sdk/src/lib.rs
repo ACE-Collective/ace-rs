@@ -25,4 +25,4 @@ pub use module::{
     BoxError, Delay, EXCLUDE_ALL, Lookup, Module, ModuleError, Outcome, Parser, Settings,
     run_lookup, run_parser,
 };
-pub use overlay::{Component, Overlay, OverlayError};
+pub use overlay::{Component, Overlay, OverlayError, SecretSource};

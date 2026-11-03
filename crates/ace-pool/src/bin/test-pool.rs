@@ -146,7 +146,6 @@ fn main() -> ExitCode {
                 modules,
                 concurrency: args.concurrency,
                 sandbox: Default::default(),
-                secrets: Vec::new(),
             };
             with_runtime(lookups(client, definition))
         }

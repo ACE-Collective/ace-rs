@@ -130,7 +130,6 @@ async fn two_splunk_instances_run_different_queries_on_one_observable() {
         modules: Arc::new(modules),
         concurrency: 4,
         sandbox: Default::default(),
-        secrets: Vec::new(),
     };
     let client = LeaseClient::new(&core.url, TOKEN, "pool").expect("a client");
     let pool = AsyncPool::new(client, &definition).lease_wait(Duration::from_secs(1));

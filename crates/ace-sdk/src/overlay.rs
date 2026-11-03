@@ -12,12 +12,20 @@
 //!         inputs: [fqdn]
 //!         settings:
 //!           query: index=proxy hostname="<O_VALUE>"
+//! secrets:
+//!   splunk_password: env:ACE4_SPLUNK_PASSWORD
+//!   resolver_token: file:/run/secrets/resolver_token
 //! ```
 //!
 //! Every level refuses keys it doesn't know, settings blocks included (ace3 #858). A module with
 //! no section runs on its manifest's defaults (ace3 #1044). A section for a module this build
 //! doesn't have logs a warning and is skipped, so removing a module never stops startup (ace3
 //! #901, #916).
+//!
+//! `secrets:` says where each secret comes from, by the name modules declare in
+//! `Module::SECRETS`: `env:<VARIABLE>` or `file:<path>`, as ace3's `env:` references. Nothing
+//! is read when the overlay loads; a pool reads only the ones its modules declare (PLAN.md 2.24,
+//! ace3 #1009).
 //!
 //! A module with `instances` runs once per instance and not as itself, as each of ace3's
 //! `analysis_module_*` sections is one run of its class. An instance's name is its key: the
@@ -38,6 +46,42 @@ use crate::manifest::{Manifest, SettingsError};
 pub struct Overlay {
     /// Sections by module name.
     pub modules: BTreeMap<String, ModuleSection>,
+    /// Where each secret comes from, by name.
+    pub secrets: BTreeMap<String, SecretSource>,
+}
+
+/// Where a secret's value comes from.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(try_from = "String")]
+pub enum SecretSource {
+    /// `env:<VARIABLE>`: an environment variable of the process.
+    Env(String),
+    /// `file:<path>`: a file's contents without its trailing newline, such as a Compose secret
+    /// in `/run/secrets`.
+    File(std::path::PathBuf),
+}
+
+impl TryFrom<String> for SecretSource {
+    type Error = String;
+
+    fn try_from(text: String) -> Result<Self, String> {
+        match text.split_once(':') {
+            Some(("env", name)) if !name.is_empty() => Ok(SecretSource::Env(name.to_owned())),
+            Some(("file", path)) if !path.is_empty() => Ok(SecretSource::File(path.into())),
+            _ => Err(format!(
+                "{text:?} is neither env:<VARIABLE> nor file:<path>"
+            )),
+        }
+    }
+}
+
+impl std::fmt::Display for SecretSource {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            SecretSource::Env(name) => write!(f, "env:{name}"),
+            SecretSource::File(path) => write!(f, "file:{}", path.display()),
+        }
+    }
 }
 
 /// What the overlay says about one module.
@@ -143,6 +187,22 @@ impl Overlay {
             message: e.to_string(),
         })?;
         Overlay::from_yaml(&text)
+    }
+
+    /// The overlay without the sections of modules not in `manifests`. A pool's binary links
+    /// only its own modules, so it reads the site's overlay through this: the other pools'
+    /// sections aren't removed modules, and the core, which knows every module, warns about the
+    /// ones that are.
+    pub fn for_pool(&self, manifests: &[Manifest]) -> Overlay {
+        Overlay {
+            modules: self
+                .modules
+                .iter()
+                .filter(|(name, _)| manifests.iter().any(|m| m.name == name.as_str()))
+                .map(|(name, section)| (name.clone(), section.clone()))
+                .collect(),
+            secrets: self.secrets.clone(),
+        }
     }
 
     /// The components the overlay makes of `manifests`, the modules this build has, with each
@@ -409,5 +469,27 @@ mod tests {
             super::tests::components("modules: {example_resolver: {instances: {Bad-Name: {}}}}")
                 .unwrap_err();
         assert!(matches!(err, OverlayError::BadName(_)), "{err}");
+    }
+
+    #[test]
+    fn secrets_name_their_sources() {
+        let overlay = Overlay::from_yaml(
+            "secrets:\n  resolver_token: env:ACE4_RESOLVER_TOKEN\n  other: file:/run/secrets/other\n",
+        )
+        .expect("loads");
+        assert_eq!(
+            overlay.secrets["resolver_token"],
+            SecretSource::Env("ACE4_RESOLVER_TOKEN".to_owned())
+        );
+        assert_eq!(
+            overlay.secrets["other"],
+            SecretSource::File("/run/secrets/other".into())
+        );
+        let err = Overlay::from_yaml("secrets: {resolver_token: ACE4_RESOLVER_TOKEN}").unwrap_err();
+        println!("{err}");
+        assert!(
+            matches!(&err, OverlayError::Parse { path, .. } if path == "secrets.resolver_token"),
+            "{err}"
+        );
     }
 }

@@ -48,7 +48,6 @@ async fn shut_down_with_a_hung_upstream(blocking: bool) {
         modules: Arc::new(modules),
         concurrency: 4,
         sandbox: Default::default(),
-        secrets: Vec::new(),
     };
     let grace = Duration::from_secs(2);
     let pool = AsyncPool::new(

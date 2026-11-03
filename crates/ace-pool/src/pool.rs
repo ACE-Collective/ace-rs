@@ -19,14 +19,14 @@ use crate::containment::SandboxProfile;
 use crate::modules::Modules;
 use crate::run::run_in_process;
 
-/// What a pool is: the modules it runs, how many tasks it runs at once, what its processes may
-/// touch, and the secrets it resolves. Its container sets the pool's resource limits.
+/// What a pool is: the modules it runs, how many tasks it runs at once and what its processes
+/// may touch. The secrets it resolves are the ones its modules' manifests declare
+/// (`Registry::start`). Its container sets the pool's resource limits.
 pub struct PoolDefinition {
     pub name: String,
     pub modules: Arc<Modules>,
     pub concurrency: usize,
     pub sandbox: SandboxProfile,
-    pub secrets: Vec<String>,
 }
 
 /// Files a pool process reads to resolve names and verify certificates, where they exist.

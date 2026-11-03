@@ -2,13 +2,13 @@
 //! from the bucket by hash, through the lease API, and runs its module here, outside
 //! containment, so a debugger can attach. It needs `ACE4_API_URL` and `ACE4_ADMIN_TOKEN`, and
 //! the site overlay at `ACE4_OVERLAY` when the task's component needs settings, such as the
-//! YARA module's signature directory or a Splunk instance's query.
+//! YARA module's signature directory or a Splunk instance's query, and for the secrets the
+//! module declares.
 
 use std::path::PathBuf;
 use std::process::ExitCode;
 
 use ace_pool::client::LeaseClient;
-use ace_sdk::Secrets;
 use anyhow::{Context, Result, bail};
 use clap::Subcommand;
 
@@ -28,7 +28,8 @@ pub enum TaskCommand {
 pub fn run(command: TaskCommand) -> Result<ExitCode> {
     let TaskCommand::Replay { id, keep } = command;
     let registry = crate::site::registry();
-    let components = crate::site::components(&registry, &crate::site::overlay()?)?;
+    let overlay = crate::site::overlay()?;
+    let components = crate::site::components(&registry, &overlay)?;
     let base = std::env::var("ACE4_API_URL").context("ACE4_API_URL isn't set")?;
     let token = std::env::var("ACE4_ADMIN_TOKEN").context("ACE4_ADMIN_TOKEN isn't set")?;
     let runtime = tokio::runtime::Builder::new_multi_thread()
@@ -42,7 +43,14 @@ pub fn run(command: TaskCommand) -> Result<ExitCode> {
         let Some(component) = components.iter().find(|c| c.key == task.module) else {
             bail!("this binary has no module {}", task.module);
         };
-        let modules = registry.build(std::slice::from_ref(component), &Secrets::new())?;
+        // and only the secrets its module declares
+        let secrets = ace_pool::secrets::resolve(
+            "replay",
+            &[component.manifest],
+            &overlay,
+            &ace_pool::secrets::process_env,
+        );
+        let modules = registry.build(std::slice::from_ref(component), &secrets)?;
         let temp;
         let dir = match keep {
             Some(dir) => {

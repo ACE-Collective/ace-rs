@@ -47,6 +47,8 @@ ace-core = { path = "../ace-core", features = ["testing"] }
 chrono = { version = "0.4.45", default-features = false, features = ["clock", "std"] }
 ace-mod-splunk = { path = "../ace-mod-splunk" }
 ace-pool = { path = ".", features = ["test-pools"] }
+# The example resolver, which declares a secret, for the secrets test.
+ace-sdk = { path = "../ace-sdk", features = ["example-modules"] }
 ace-store = { path = "../ace-store" }
 ace-testkit = { path = "../ace-testkit" }
 form_urlencoded = "1.2.2"

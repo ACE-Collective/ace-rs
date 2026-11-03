@@ -134,6 +134,11 @@ impl Secrets {
         self
     }
 
+    /// The names of the secrets held, in order.
+    pub fn names(&self) -> Vec<&str> {
+        self.0.keys().map(String::as_str).collect()
+    }
+
     /// Only the secrets named in `declared`.
     fn only(&self, declared: &[&str]) -> Secrets {
         Secrets(

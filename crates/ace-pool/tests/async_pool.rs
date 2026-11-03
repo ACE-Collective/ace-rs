@@ -23,7 +23,6 @@ fn definition(concurrency: usize) -> PoolDefinition {
         modules: Arc::new(testing::modules(&json!({})).expect("the test modules")),
         concurrency,
         sandbox: Default::default(),
-        secrets: Vec::new(),
     }
 }
 

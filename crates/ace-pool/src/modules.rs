@@ -36,6 +36,15 @@ pub enum SetupError {
     Unknown(String),
 }
 
+/// Why a pool's modules didn't start from the overlay.
+#[derive(Debug, thiserror::Error)]
+pub enum StartError {
+    #[error(transparent)]
+    Overlay(#[from] ace_sdk::OverlayError),
+    #[error(transparent)]
+    Setup(#[from] SetupError),
+}
+
 /// Where a task runs and what it may use.
 pub struct Run<'a> {
     pub task: &'a LeasedTask,
@@ -288,6 +297,21 @@ impl Registry {
 
     pub fn manifests(&self) -> Vec<Manifest> {
         self.modules.iter().map(|(manifest, _)| *manifest).collect()
+    }
+
+    /// The pool's modules from the site overlay: every component it makes of the registry's
+    /// modules, skipping other pools' sections without a warning, with the secrets their manifests declare and no others (PLAN.md 2.24), read
+    /// through `env` and the files the overlay names.
+    pub fn start(
+        &self,
+        pool: &str,
+        overlay: &ace_sdk::Overlay,
+        env: &dyn Fn(&str) -> Option<String>,
+    ) -> Result<Modules, StartError> {
+        let manifests = self.manifests();
+        let components = overlay.for_pool(&manifests).components(&manifests)?;
+        let secrets = crate::secrets::resolve(pool, &manifests, overlay, env);
+        Ok(self.build(&components, &secrets)?)
     }
 
     /// Builds each of `components`, with its settings and `secrets`.

@@ -158,7 +158,7 @@ The goal is to run the five phase 1 modules end to end from a submission.
 ### Config
 
 - [x] **2.23 Site overlay.** A small YAML overlay deserialized with `deny_unknown_fields`. A component with no section in it runs on its manifest's defaults (#1044). A module named in the overlay that no longer exists logs a warning, and startup continues (#901, #916). The overlay can also declare named instances of a module, each with its own inputs and settings, the way ace3's `analysis_module_*` sections run many Splunk queries on one class. Each instance is its own task type in the queue, and its results record the instance, so two instances' results on one observable don't collide. Done when tests cover an unknown key, a missing section, a removed module, and two instances of 1.28's Splunk module running different queries on the same observable.
-- [ ] **2.24 Secrets.** A process resolves only the secrets its pool's manifests declare (#1009). Done when a pool can't read a secret that only another pool declares, and its startup log lists only its own.
+- [x] **2.24 Secrets.** A process resolves only the secrets its pool's manifests declare (#1009). Done when a pool can't read a secret that only another pool declares, and its startup log lists only its own.
 
 ### YARA in the core
 
