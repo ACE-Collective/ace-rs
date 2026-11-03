@@ -307,3 +307,52 @@ pub async fn add_detection(
     .await?;
     Ok(())
 }
+
+/// A path a file has in a root, with its `yara_meta` tags.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FileRecord {
+    pub path: String,
+    pub yara_meta: Vec<String>,
+}
+
+/// Records that the file observable is in the root at `path`, with these `yara_meta` tags. The
+/// same path again merges its tags.
+pub async fn add_file(
+    tx: &mut Tx<'_>,
+    root: Uuid,
+    observable: ObservableId,
+    path: &str,
+    yara_meta: &[String],
+) -> Result<(), DbError> {
+    sqlx::query!(
+        "INSERT INTO analysis.files AS f (root_id, observable_id, path, yara_meta)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (root_id, observable_id, path)
+         DO UPDATE SET yara_meta = analysis.merged(f.yara_meta, EXCLUDED.yara_meta)",
+        root,
+        observable as ObservableId,
+        path,
+        yara_meta,
+    )
+    .execute(tx.conn())
+    .await?;
+    Ok(())
+}
+
+/// The first path a file observable was recorded under, which its tasks read it as.
+pub async fn first_file<'e>(
+    executor: impl PgExecutor<'e>,
+    root: Uuid,
+    observable: ObservableId,
+) -> Result<Option<FileRecord>, DbError> {
+    Ok(sqlx::query_as!(
+        FileRecord,
+        "SELECT path, yara_meta FROM analysis.files
+         WHERE root_id = $1 AND observable_id = $2
+         ORDER BY created_at, path LIMIT 1",
+        root,
+        observable as ObservableId,
+    )
+    .fetch_optional(executor)
+    .await?)
+}

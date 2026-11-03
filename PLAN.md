@@ -142,7 +142,7 @@ The goal is to run the five phase 1 modules end to end from a submission.
 
 ### Worker API
 
-- [ ] **2.14 Lease API.** Axum endpoints for a worker to lease, renew, complete and fail tasks, and to get presigned bucket URLs for its inputs and outputs. A worker then holds neither database nor bucket credentials. Workers authenticate as their pool. Done when a worker with only an API token runs a task end to end.
+- [x] **2.14 Lease API.** Axum endpoints for a worker to lease, renew, complete and fail tasks, and to get presigned bucket URLs for its inputs and outputs. A worker then holds neither database nor bucket credentials. Workers authenticate as their pool. Done when a worker with only an API token runs a task end to end.
 - [ ] **2.15 Result writes.** Completing a task checks the result against its schema, stores it under its analysis type name, upserts its observables, records its files and queues what became eligible, all in one transaction. Done when an invalid result is rejected with the field's path and nothing from it is written.
 
 ### Pools

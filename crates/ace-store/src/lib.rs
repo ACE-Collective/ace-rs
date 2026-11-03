@@ -23,6 +23,7 @@ use aws_sdk_s3::config::{
     BehaviorVersion, Credentials, Region, RequestChecksumCalculation, ResponseChecksumValidation,
 };
 use aws_sdk_s3::error::DisplayErrorContext;
+use aws_sdk_s3::presigning::PresigningConfig;
 use aws_sdk_s3::primitives::ByteStream;
 use sha2::Digest;
 use tokio::io::AsyncWriteExt;
@@ -30,6 +31,18 @@ use tokio::io::AsyncWriteExt;
 pub use cache::{CacheStats, CachedFile, NodeCache};
 pub use config::BucketConfig;
 pub use spool::Spooled;
+
+/// The key prefix of files a worker uploads before the core checks them (`Store::upload_key`).
+/// It isn't a pool: a file reaches its pool only after its bytes match its name.
+pub const UPLOADS: &str = "uploads";
+
+/// A request the bucket accepts without credentials until it expires: a URL, and headers the
+/// signature covers.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Presigned {
+    pub url: String,
+    pub headers: Vec<(String, String)>,
+}
 
 /// The node cache's default cap, ace3's `cas.read_cache.max_bytes`: 10 GiB.
 pub const DEFAULT_CACHE_MAX_BYTES: u64 = 10 * 1024 * 1024 * 1024;
@@ -100,6 +113,93 @@ impl Store {
         check_pool(pool)?;
         let hex = sha256.to_hex();
         Ok(format!("{pool}/{}/{}/{hex}", &hex[..2], &hex[2..4]))
+    }
+
+    /// Where a worker uploads a file its task wrote: `uploads/<task>/<sha256>`, a key of the
+    /// task's own, so a worker can't put bytes under a pool's name for them.
+    pub fn upload_key(task: i64, sha256: &Sha256) -> String {
+        format!("{UPLOADS}/{task}/{}", sha256.to_hex())
+    }
+
+    /// A URL that downloads the object until `expires`.
+    pub async fn presign_get(
+        &self,
+        pool: &str,
+        sha256: &Sha256,
+        expires: std::time::Duration,
+    ) -> Result<Presigned, StoreError> {
+        let key = Store::key(pool, sha256)?;
+        let request = self
+            .s3
+            .get_object()
+            .bucket(&self.bucket)
+            .key(&key)
+            .presigned(presigning(expires, &key)?)
+            .await
+            .map_err(|e| bucket_error("presign get", key.clone(), e))?;
+        Ok(presigned(&request))
+    }
+
+    /// A URL that uploads `size` bytes to `key` until `expires`.
+    pub async fn presign_put(
+        &self,
+        key: &str,
+        size: u64,
+        expires: std::time::Duration,
+    ) -> Result<Presigned, StoreError> {
+        let request = self
+            .s3
+            .put_object()
+            .bucket(&self.bucket)
+            .key(key)
+            .content_length(i64::try_from(size).unwrap_or(i64::MAX))
+            .presigned(presigning(expires, key)?)
+            .await
+            .map_err(|e| bucket_error("presign put", key.to_owned(), e))?;
+        Ok(presigned(&request))
+    }
+
+    /// Downloads `key` and spools it on this node, failing unless its sha256 is `expected`,
+    /// as when the core checks a file a worker uploaded.
+    pub async fn spool_key(&self, key: &str, expected: &Sha256) -> Result<Spooled, StoreError> {
+        let response = match self
+            .s3
+            .get_object()
+            .bucket(&self.bucket)
+            .key(key)
+            .send()
+            .await
+        {
+            Ok(response) => response,
+            Err(e) if e.as_service_error().is_some_and(|e| e.is_no_such_key()) => {
+                return Err(StoreError::NotFound {
+                    key: key.to_owned(),
+                });
+            }
+            Err(e) => return Err(bucket_error("get", key.to_owned(), e)),
+        };
+        let mut reader = response.body.into_async_read();
+        let spooled = Spooled::from_reader(&self.cache, &mut reader).await?;
+        if spooled.sha256 != *expected {
+            return Err(StoreError::Integrity {
+                key: key.to_owned(),
+                actual: spooled.sha256,
+            });
+        }
+        Ok(spooled)
+    }
+
+    /// Deletes `key`, which isn't an object of a pool, such as an upload. A missing key is not
+    /// an error.
+    pub async fn delete_key(&self, key: &str) -> Result<(), StoreError> {
+        self.s3
+            .delete_object()
+            .bucket(&self.bucket)
+            .key(key)
+            .send()
+            .await
+            .map_err(|e| bucket_error("delete", key.to_owned(), e))?;
+        Ok(())
     }
 
     /// Spools `bytes` on this node, with their sha256, size and mime type.
@@ -250,6 +350,24 @@ impl Store {
             );
         }
         Ok(keys)
+    }
+}
+
+fn presigning(expires: std::time::Duration, key: &str) -> Result<PresigningConfig, StoreError> {
+    PresigningConfig::expires_in(expires).map_err(|e| StoreError::Bucket {
+        operation: "presign",
+        key: key.to_owned(),
+        message: e.to_string(),
+    })
+}
+
+fn presigned(request: &aws_sdk_s3::presigning::PresignedRequest) -> Presigned {
+    Presigned {
+        url: request.uri().to_owned(),
+        headers: request
+            .headers()
+            .map(|(name, value)| (name.to_owned(), value.to_owned()))
+            .collect(),
     }
 }
 

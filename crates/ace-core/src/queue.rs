@@ -343,8 +343,57 @@ impl Worker {
         }))
     }
 
+    /// The modules the worker runs.
+    pub fn modules(&self) -> &[String] {
+        &self.modules
+    }
+
+    /// A task the worker owns, as it was claimed, or None when the worker doesn't own it.
+    pub async fn owned(&self, task: TaskId) -> Result<Option<Task>, QueueError> {
+        let row = sqlx::query!(
+            r#"SELECT t.id AS "id: TaskId", t.root_id, t.module, t.attempts, t.input_hashes,
+                      t.lease_expires_at AS "lease_expires_at!",
+                      t.delay_state, t.first_delayed_at, t.delays,
+                      o.id AS "observable_id: ObservableId", o.type AS kind, o.value,
+                      o.time, o.directives
+               FROM queue.tasks t JOIN analysis.observables o ON o.id = t.observable_id
+               WHERE t.id = $1 AND t.lease_owner = $2 AND t.state = 'running'"#,
+            task as TaskId,
+            self.name,
+        )
+        .fetch_optional(self.db.pool())
+        .await?;
+        let Some(row) = row else {
+            return Ok(None);
+        };
+        let kind = row
+            .kind
+            .parse()
+            .map_err(|e| DbError::Decode(format!("{}: {e}", row.id)))?;
+        Ok(Some(Task {
+            id: row.id,
+            root: row.root_id,
+            observable: TaskObservable {
+                id: row.observable_id,
+                kind,
+                value: row.value,
+                time: row.time,
+                directives: row.directives,
+            },
+            module: row.module,
+            attempts: row.attempts,
+            input_hashes: row.input_hashes,
+            lease_expires_at: row.lease_expires_at,
+            delayed: row.first_delayed_at.map(|first_delayed_at| DelayedRun {
+                state: row.delay_state.unwrap_or_default(),
+                first_delayed_at,
+                delays: u32::try_from(row.delays).unwrap_or_default(),
+            }),
+        }))
+    }
+
     /// When the next queued or delayed task of the worker's modules may be claimed.
-    async fn next_due(&self) -> Result<Option<DateTime<Utc>>, QueueError> {
+    pub async fn next_due(&self) -> Result<Option<DateTime<Utc>>, QueueError> {
         Ok(sqlx::query_scalar!(
             "SELECT min(run_after) FROM queue.tasks
              WHERE state IN ('queued', 'delayed') AND module = ANY($1)",

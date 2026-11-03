@@ -1,0 +1,154 @@
+//! What the pool tests share: a core serving the lease API on a test database and the stack's
+//! bucket, and roots with files in them. Needs the stack's postgres and bucket services.
+
+#![allow(dead_code)]
+
+use std::path::Path;
+use std::time::Duration;
+
+use ace_core::api::{Api, ApiConfig, PoolAccess};
+use ace_core::bucket::{ALERT_FILES, Bucket, BucketSettings, Hold};
+use ace_core::eligibility::Catalog;
+use ace_core::modes::Modes;
+use ace_core::orchestrator::Orchestrator;
+use ace_core::testing::TestDb;
+use ace_core::tree::{self, NewRoot, ObservableId};
+use ace_results::{NewObservable, ObservableKind, Sha256};
+use ace_sdk::Manifest;
+use ace_store::{BucketConfig, NodeCache, Store};
+use uuid::Uuid;
+
+/// The test pool's token.
+pub const TOKEN: &str = "ace4-test-pool-token";
+
+/// A core serving the lease API on a test database.
+pub struct Core {
+    pub test_db: TestDb,
+    pub bucket: Bucket,
+    pub orchestrator: Orchestrator,
+    /// The lease API's base URL.
+    pub url: String,
+    pub port: u16,
+    server: tokio::task::JoinHandle<()>,
+    _cache: tempfile::TempDir,
+}
+
+impl Drop for Core {
+    fn drop(&mut self) {
+        self.server.abort();
+    }
+}
+
+impl Core {
+    /// A core whose catalog is `manifests`, with one pool, `test`, that runs `pool_modules`.
+    pub async fn start(manifests: Vec<Manifest>, pool_modules: &[&str], lease: Duration) -> Core {
+        let test_db = TestDb::new().await;
+        let cache = tempfile::tempdir().expect("a cache directory");
+        let store = Store::new(
+            &BucketConfig::from_env().expect("the ACE4_BUCKET_* variables"),
+            NodeCache::new(cache.path(), 1 << 30).expect("a cache"),
+        );
+        let bucket = Bucket::new(test_db.db().clone(), store, BucketSettings::default());
+        let orchestrator = Orchestrator::new(Catalog::new(manifests), Modes::ace3());
+        let config = ApiConfig::new(vec![PoolAccess::new(
+            "test",
+            TOKEN,
+            pool_modules.iter().map(|m| (*m).to_owned()).collect(),
+        )])
+        .lease(lease);
+        let api = Api::new(
+            test_db.db().clone(),
+            bucket.clone(),
+            orchestrator.clone(),
+            config,
+        )
+        .await
+        .expect("the API starts");
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
+            .await
+            .expect("binds");
+        let port = listener.local_addr().expect("an address").port();
+        let server = tokio::spawn(async move {
+            if let Err(e) = ace_core::api::serve(listener, api, std::future::pending()).await {
+                eprintln!("the lease API stopped: {e}");
+            }
+        });
+        Core {
+            test_db,
+            bucket,
+            orchestrator,
+            url: format!("http://127.0.0.1:{port}"),
+            port,
+            server,
+            _cache: cache,
+        }
+    }
+
+    /// A root in `mode` with one file, the sample at `samples/<sample>`, at `alert_path`, whose
+    /// analysis has started.
+    pub async fn root_with_file(
+        &self,
+        mode: &str,
+        sample: &str,
+        alert_path: &str,
+    ) -> (Uuid, ObservableId, Sha256) {
+        let db = self.test_db.db();
+        let root = NewRoot::new(mode);
+        let mut tx = db.begin().await.expect("begins");
+        tree::create_root(&mut tx, &root).await.expect("creates");
+        tx.commit().await.expect("commits");
+        let local = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../samples")
+            .join(sample);
+        let put = self
+            .bucket
+            .put_file(ALERT_FILES, &local, Some(&Hold::root(root.id)))
+            .await
+            .expect("puts the sample");
+        let sha256 = put.object.sha256;
+        let mut tx = db.begin().await.expect("begins");
+        let observable = tree::upsert_observable(
+            &mut tx,
+            root.id,
+            &NewObservable::new(ObservableKind::File, sha256.to_hex()),
+        )
+        .await
+        .expect("adds")
+        .id;
+        tree::add_file(&mut tx, root.id, observable, alert_path, &[])
+            .await
+            .expect("records the file");
+        self.orchestrator
+            .start(&mut tx, root.id)
+            .await
+            .expect("starts");
+        tx.commit().await.expect("commits");
+        (root.id, observable, sha256)
+    }
+
+    /// The root's tasks as (module, observable value, state).
+    pub async fn tasks(&self, root: Uuid) -> Vec<(String, String, String)> {
+        sqlx::query_as(
+            "SELECT t.module, o.value, t.state::text FROM queue.tasks t
+             JOIN analysis.observables o ON o.id = t.observable_id
+             WHERE t.root_id = $1 ORDER BY t.id",
+        )
+        .bind(root)
+        .fetch_all(self.test_db.db().pool())
+        .await
+        .expect("lists tasks")
+    }
+}
+
+/// The test pool binary, run with only the lease API's URL and the pool's token.
+pub fn test_pool(core: &Core, args: &[&str]) -> std::process::Command {
+    let mut command = std::process::Command::new(env!("CARGO_BIN_EXE_test-pool"));
+    command
+        .args(args)
+        .env_clear()
+        .env("PATH", std::env::var("PATH").unwrap_or_default())
+        .env("ACE4_API_URL", &core.url)
+        .env("ACE4_POOL_TOKEN", TOKEN)
+        .env("ACE4_LOG", "info");
+    command
+}

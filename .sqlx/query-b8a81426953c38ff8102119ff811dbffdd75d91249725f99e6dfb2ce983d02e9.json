@@ -1,0 +1,185 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT t.id AS \"id: TaskId\", t.root_id, t.module, t.attempts, t.input_hashes,\n                      t.lease_expires_at AS \"lease_expires_at!\",\n                      t.delay_state, t.first_delayed_at, t.delays,\n                      o.id AS \"observable_id: ObservableId\", o.type AS kind, o.value,\n                      o.time, o.directives\n               FROM queue.tasks t JOIN analysis.observables o ON o.id = t.observable_id\n               WHERE t.id = $1 AND t.lease_owner = $2 AND t.state = 'running'",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id: TaskId",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "queue.tasks",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "root_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "queue.tasks",
+            "name": "root_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "module",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "queue.tasks",
+            "name": "module"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "attempts",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "queue.tasks",
+            "name": "attempts"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "input_hashes",
+        "type_info": "TextArray",
+        "origin": {
+          "Table": {
+            "table": "queue.tasks",
+            "name": "input_hashes"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "lease_expires_at!",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "queue.tasks",
+            "name": "lease_expires_at"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "delay_state",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "queue.tasks",
+            "name": "delay_state"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "first_delayed_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "queue.tasks",
+            "name": "first_delayed_at"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "delays",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "queue.tasks",
+            "name": "delays"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "observable_id: ObservableId",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "analysis.observables",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "kind",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.observables",
+            "name": "type"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "value",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.observables",
+            "name": "value"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "time",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "analysis.observables",
+            "name": "time"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "directives",
+        "type_info": "TextArray",
+        "origin": {
+          "Table": {
+            "table": "analysis.observables",
+            "name": "directives"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "b8a81426953c38ff8102119ff811dbffdd75d91249725f99e6dfb2ce983d02e9"
+}

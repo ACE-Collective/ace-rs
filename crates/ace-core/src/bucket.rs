@@ -217,6 +217,27 @@ impl Bucket {
         self.put(pool, spooled, hold).await
     }
 
+    /// Moves a file a worker uploaded for `task` into `pool` and takes `hold` on it, once its
+    /// bytes match `sha256`. The upload is removed either way it ends: bytes that don't match
+    /// their name never reach the pool.
+    pub async fn adopt_upload(
+        &self,
+        pool: &str,
+        task: i64,
+        sha256: &Sha256,
+        hold: Option<&Hold>,
+    ) -> Result<Put, BucketError> {
+        self.pool(pool)?;
+        let key = Store::upload_key(task, sha256);
+        let spooled = self.store.spool_key(&key, sha256).await;
+        if let Err(StoreError::Integrity { .. }) = &spooled {
+            self.store.delete_key(&key).await?;
+        }
+        let put = self.put(pool, spooled?, hold).await?;
+        self.store.delete_key(&key).await?;
+        Ok(put)
+    }
+
     async fn put(
         &self,
         pool: &str,

@@ -1,6 +1,7 @@
 //! The `ace` command.
 
 mod schema;
+mod serve;
 mod yara;
 
 use std::process::ExitCode;
@@ -24,6 +25,8 @@ enum Command {
     /// YARA rulesets and scans.
     #[command(subcommand)]
     Yara(yara::YaraCommand),
+    /// Serve the lease API to workers, and take back tasks whose lease expired.
+    Serve,
 }
 
 fn main() -> ExitCode {
@@ -40,6 +43,7 @@ fn main() -> ExitCode {
     let result = match cli.command {
         Command::Schema(command) => schema::run(command),
         Command::Yara(command) => yara::run(command),
+        Command::Serve => serve::run(),
     };
     match result {
         Ok(code) => code,

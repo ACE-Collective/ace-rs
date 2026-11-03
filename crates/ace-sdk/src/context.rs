@@ -147,7 +147,8 @@ impl Secrets {
 }
 
 /// A task that runs again after a delay, and what the module left for the next run.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct DelayedRun {
     /// The state from the module's last `Delay`.
     pub state: serde_json::Value,
@@ -170,6 +171,7 @@ pub struct TaskContext<S> {
     now: DateTime<Utc>,
     delayed: Option<DelayedRun>,
     files: Option<Arc<dyn FileStore>>,
+    contained: bool,
 }
 
 impl<S> TaskContext<S> {
@@ -191,6 +193,7 @@ impl<S> TaskContext<S> {
             now: Utc::now(),
             delayed: None,
             files: None,
+            contained: false,
         }
     }
 
@@ -226,6 +229,18 @@ impl<S> TaskContext<S> {
     pub fn with_delayed(mut self, delayed: DelayedRun) -> Self {
         self.delayed = Some(delayed);
         self
+    }
+
+    /// Marks the task as running contained (PLAN.md 2.18): its process can't start a thread,
+    /// so a module skips what would, such as a library's watchdog thread.
+    pub fn with_contained(mut self, contained: bool) -> Self {
+        self.contained = contained;
+        self
+    }
+
+    /// True when the task's process is contained and can't start a thread or a process.
+    pub fn is_contained(&self) -> bool {
+        self.contained
     }
 
     /// The root (alert) the observable is in.

@@ -1,9 +1,14 @@
-//! The pool runtime.
+//! The pool runtime: the lease API's client, the modules a pool runs, and containment.
 //!
-//! For now it holds containment (PLAN.md 2.18): what a parser's task process applies to itself
-//! before the module runs. The async pool (2.16) and the task supervisor (2.17) come later and
-//! call it.
+//! A pool holds the lease API's URL and its pool's token, and nothing else: inputs and outputs
+//! go to and from the bucket through presigned URLs the API hands out (PLAN.md 2.14).
+//! Containment (2.18) is what a parser's task process applies to itself before the module runs.
 
+pub mod client;
 pub mod containment;
+pub mod modules;
+pub mod run;
+#[cfg(feature = "test-pools")]
+pub mod testing;
 
 pub use containment::{Contained, ContainmentError, SandboxProfile, contain};

@@ -309,6 +309,12 @@ impl Orchestrator {
             observable.directives = file.directives.clone();
             observable.exclude_modules = file.exclude_modules.clone();
             let id = tree::upsert_observable(tx, root, &observable).await?.id;
+            let yara_meta: Vec<String> = file
+                .yara_meta
+                .iter()
+                .map(|tag| tag.as_str().to_owned())
+                .collect();
+            tree::add_file(tx, root, id, file.path.as_str(), &yara_meta).await?;
             touched.push(id);
             detections.extend(file.detections.iter().map(|d| (id, d)));
         }

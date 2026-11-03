@@ -14,6 +14,7 @@ pub mod http;
 pub mod ip;
 pub mod manifest;
 pub mod module;
+pub mod wire;
 
 pub use context::{DelayedRun, InputFile, Observable, Secret, Secrets, TaskContext};
 pub use files::{FileOutputError, FileStore, LocalFileStore};

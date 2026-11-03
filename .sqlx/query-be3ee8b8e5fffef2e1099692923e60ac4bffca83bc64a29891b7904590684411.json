@@ -1,0 +1,41 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT path, yara_meta FROM analysis.files\n         WHERE root_id = $1 AND observable_id = $2\n         ORDER BY created_at, path LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "path",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.files",
+            "name": "path"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "yara_meta",
+        "type_info": "TextArray",
+        "origin": {
+          "Table": {
+            "table": "analysis.files",
+            "name": "yara_meta"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "be3ee8b8e5fffef2e1099692923e60ac4bffca83bc64a29891b7904590684411"
+}
