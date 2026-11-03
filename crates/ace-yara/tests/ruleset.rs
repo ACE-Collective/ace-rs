@@ -207,7 +207,7 @@ fn a_ruleset_loaded_from_its_bytes_scans_like_the_one_built() {
         path: "alert/sample.bin",
         mime_type: "application/octet-stream",
         meta_tags: &tags,
-        timeout: Duration::from_secs(5),
+        timeout: Some(Duration::from_secs(5)),
     };
     let from_build = Scanner::new(&built.ruleset).scan(&request).unwrap();
     let from_bytes = Scanner::new(&loaded).scan(&request).unwrap();

@@ -168,7 +168,9 @@ impl Parser for YaraScanner {
             path: file.path.as_str(),
             mime_type: &mime_type,
             meta_tags: &meta_tags,
-            timeout: Duration::from_secs(settings.timeout_seconds),
+            // contained, a scan runs without yara-x's timeout, whose heartbeat is a thread;
+            // the task's CPU-time limit and deadline bound it
+            timeout: (!ctx.is_contained()).then(|| Duration::from_secs(settings.timeout_seconds)),
         }) {
             Ok(outcome) => outcome,
             // ace3 logs a timeout and moves on with no analysis

@@ -1,3 +1,5 @@
 # Samples are compared byte for byte against samples/manifest.json, so git must never
 # change their line endings.
 samples/** -text
+# Vendored crates are kept byte for byte as upstream ships them, CRLF line endings included.
+vendor/** -text

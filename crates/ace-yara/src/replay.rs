@@ -326,7 +326,7 @@ pub fn run(workdir: &Path, typer: &MimeTyper) -> Result<ReplayResult, ReplayErro
                 path: &unit.path,
                 mime_type: &mime_type,
                 meta_tags: &unit.meta_tags,
-                timeout,
+                timeout: Some(timeout),
             }) {
                 Ok(scanned) => {
                     outcome

@@ -87,7 +87,8 @@ const REQUIRED_LANDLOCK_ABI: ABI = ABI::V4;
 const TARGET_LANDLOCK_ABI: ABI = ABI::V7;
 
 /// What a contained task may touch.
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct SandboxProfile {
     /// Files and directories the task may read, with everything beneath them.
     pub read_paths: Vec<PathBuf>,

@@ -13,11 +13,19 @@ use serde_json::Value;
 use crate::modules::{Entry, Modules, SetupError};
 
 /// The modules `test-pool` runs, each with its block from `settings`, an object keyed by
-/// module name.
+/// module name. The YARA module is there only when `settings` has a block for it, since it
+/// needs a signature directory.
 pub fn modules(settings: &Value) -> Result<Modules, SetupError> {
     let secrets = Secrets::new();
     let block = |name: &str| settings.get(name);
-    Ok(Modules::new()
+    let mut modules = Modules::new();
+    if let Some(yara) = block(ace_mod_yara::YaraScanner::NAME) {
+        modules = modules.with_parser(Entry::<ace_mod_yara::YaraScanner>::parser(
+            Some(yara),
+            &secrets,
+        )?);
+    }
+    Ok(modules
         .with_parser(Entry::<ace_mod_archive::ArchiveAnalyzer>::parser(
             block("archive"),
             &secrets,
@@ -28,7 +36,15 @@ pub fn modules(settings: &Value) -> Result<Modules, SetupError> {
         )?)
         .with_lookup(Entry::<Counted>::lookup(block(Counted::NAME), &secrets)?)
         .with_lookup(Entry::<Panicky>::lookup(block(Panicky::NAME), &secrets)?)
-        .with_lookup(Entry::<Connect>::lookup(block(Connect::NAME), &secrets)?))
+        .with_lookup(Entry::<Connect>::lookup(block(Connect::NAME), &secrets)?)
+        .with_parser(Entry::<Capabilities>::parser(
+            block(Capabilities::NAME),
+            &secrets,
+        )?)
+        .with_parser(Entry::<PanickingParser>::parser(
+            block(PanickingParser::NAME),
+            &secrets,
+        )?))
 }
 
 /// The manifests of the test modules, for a core's catalog.
@@ -37,6 +53,8 @@ pub fn test_manifests() -> Vec<ace_sdk::Manifest> {
         ace_sdk::Manifest::lookup::<Counted>(),
         ace_sdk::Manifest::lookup::<Panicky>(),
         ace_sdk::Manifest::lookup::<Connect>(),
+        ace_sdk::Manifest::parser::<Capabilities>(),
+        ace_sdk::Manifest::parser::<PanickingParser>(),
     ]
 }
 
@@ -60,6 +78,16 @@ macro_rules! note_type {
 note_type!(CountedNote, "test_counted_note", "test_counted");
 note_type!(PanickyNote, "test_panicky_note", "test_panicky");
 note_type!(ConnectNote, "test_connect_note", "test_connect");
+note_type!(
+    CapabilitiesNote,
+    "test_capabilities_note",
+    "test_capabilities"
+);
+note_type!(
+    PanickingNote,
+    "test_panicking_parser_note",
+    "test_panicking_parser"
+);
 
 /// How many `test_counted` tasks run right now, and the most that ever ran at once.
 pub static RUNNING: AtomicUsize = AtomicUsize::new(0);
@@ -157,5 +185,60 @@ impl Lookup for Connect {
         Ok(Outcome::Done(ResultEnvelope::new(ConnectNote {
             note: notes.join("; "),
         })))
+    }
+}
+
+/// A parser that reports the user and capabilities its process had when it was set up, which
+/// in a task process is just before containment.
+pub struct Capabilities {
+    status: String,
+}
+
+impl Module for Capabilities {
+    const NAME: &'static str = "test_capabilities";
+    const INPUTS: &'static [ObservableKind] = ObservableKind::ALL;
+    type Output = CapabilitiesNote;
+    type Settings = ();
+
+    fn init(_: &()) -> Result<Self, ModuleError> {
+        let status = std::fs::read_to_string("/proc/self/status")?;
+        let wanted = [
+            "Uid:", "Gid:", "Groups:", "CapInh:", "CapPrm:", "CapEff:", "CapAmb:",
+        ];
+        let status = status
+            .lines()
+            .filter(|line| wanted.iter().any(|w| line.starts_with(w)))
+            .map(|line| line.split_whitespace().collect::<Vec<_>>().join(" "))
+            .collect::<Vec<_>>()
+            .join("; ");
+        Ok(Capabilities { status })
+    }
+}
+
+impl ace_sdk::Parser for Capabilities {
+    fn analyze(&self, _: &TaskContext<()>) -> Result<Outcome<CapabilitiesNote>, ModuleError> {
+        Ok(Outcome::Done(ResultEnvelope::new(CapabilitiesNote {
+            note: self.status.clone(),
+        })))
+    }
+}
+
+/// A parser that always panics.
+pub struct PanickingParser;
+
+impl Module for PanickingParser {
+    const NAME: &'static str = "test_panicking_parser";
+    const INPUTS: &'static [ObservableKind] = ObservableKind::ALL;
+    type Output = PanickingNote;
+    type Settings = ();
+
+    fn init(_: &()) -> Result<Self, ModuleError> {
+        Ok(PanickingParser)
+    }
+}
+
+impl ace_sdk::Parser for PanickingParser {
+    fn analyze(&self, ctx: &TaskContext<()>) -> Result<Outcome<PanickingNote>, ModuleError> {
+        panic!("test_panicking_parser was given {}", ctx.observable().value);
     }
 }

@@ -6,6 +6,10 @@
 //!     lease one task, run it in this process, and exit
 //! test-pool lookups [--contained] [--concurrency N] [--settings JSON]
 //!     run as an async pool until SIGTERM; --contained applies contain_pool first
+//! test-pool parsers [--task-user NAME] [--concurrency N] [--read PATH]... [--settings JSON]
+//!     run as a parser pool's supervisor until SIGTERM, one task process per task
+//! test-pool task [--settings JSON]
+//!     a task process: read a task on stdin, contain, run it, write its end on stdout
 //! ```
 //!
 //! `once` exits 0 when it ran a task, 1 when there was none to lease, and 2 on an error.
@@ -18,14 +22,19 @@ use ace_pool::client::LeaseClient;
 use ace_pool::modules::Modules;
 use ace_pool::pool::{AsyncPool, POOL_ADDRESS_SPACE, PoolDefinition};
 use ace_pool::run::run_in_process;
+use ace_pool::supervisor::{Supervisor, SupervisorConfig};
 use serde_json::Value;
 use tokio_util::sync::CancellationToken;
 
 struct Args {
     mode: String,
+    /// The settings as given, to hand to task processes.
+    settings_text: String,
     settings: Value,
     contained: bool,
     concurrency: usize,
+    task_user: Option<String>,
+    read_paths: Vec<std::path::PathBuf>,
 }
 
 fn parse() -> Result<Args, String> {
@@ -33,17 +42,27 @@ fn parse() -> Result<Args, String> {
     let mode = args.next().ok_or("no mode")?;
     let mut parsed = Args {
         mode,
+        settings_text: "{}".to_owned(),
         settings: Value::Object(Default::default()),
         contained: false,
         concurrency: 4,
+        task_user: None,
+        read_paths: Vec::new(),
     };
     while let Some(arg) = args.next() {
         match arg.as_str() {
             "--settings" => {
                 let text = args.next().ok_or("--settings takes JSON")?;
                 parsed.settings = serde_json::from_str(&text).map_err(|e| e.to_string())?;
+                parsed.settings_text = text;
             }
             "--contained" => parsed.contained = true,
+            "--task-user" => {
+                parsed.task_user = Some(args.next().ok_or("--task-user takes a name")?)
+            }
+            "--read" => parsed
+                .read_paths
+                .push(args.next().ok_or("--read takes a path")?.into()),
             "--concurrency" => {
                 parsed.concurrency = args
                     .next()
@@ -78,9 +97,12 @@ fn main() -> ExitCode {
         Ok(modules) => Arc::new(modules),
         Err(e) => {
             eprintln!("setup failed: {e}");
-            return ExitCode::from(2);
+            return ExitCode::from(if args.mode == "task" { 10 } else { 2 });
         }
     };
+    if args.mode == "task" {
+        return ace_pool::task_process::main(&modules);
+    }
     let client = match LeaseClient::from_env(&format!("test-pool-{}", std::process::id())) {
         Ok(client) => client,
         Err(e) => {
@@ -116,11 +138,74 @@ fn main() -> ExitCode {
             };
             with_runtime(lookups(client, definition))
         }
+        "parsers" => {
+            let user = match &args.task_user {
+                Some(name) => match ace_pool::supervisor::user_ids(name) {
+                    Some(ids) => Some(ids),
+                    None => {
+                        eprintln!("no user {name}");
+                        return ExitCode::from(2);
+                    }
+                },
+                None => None,
+            };
+            let program = match std::env::current_exe() {
+                Ok(program) => program,
+                Err(e) => {
+                    eprintln!("this binary's path: {e}");
+                    return ExitCode::from(2);
+                }
+            };
+            let config = SupervisorConfig {
+                program,
+                args: vec![
+                    "task".to_owned(),
+                    "--settings".to_owned(),
+                    args.settings_text,
+                ],
+                user,
+                concurrency: args.concurrency,
+                read_paths: args.read_paths,
+            };
+            with_runtime(parsers(Supervisor::new(client, modules, config)))
+        }
         other => {
             eprintln!("unknown mode {other}");
             ExitCode::from(2)
         }
     }
+}
+
+async fn parsers(supervisor: Supervisor) -> ExitCode {
+    let stop = stop_on_signal();
+    let stats = supervisor
+        .lease_wait(Duration::from_secs(2))
+        .run(stop)
+        .await;
+    println!("ran {} tasks, {} errors", stats.tasks, stats.errors);
+    ExitCode::SUCCESS
+}
+
+/// A token that fires on SIGTERM or SIGINT.
+fn stop_on_signal() -> CancellationToken {
+    let stop = CancellationToken::new();
+    let stopping = stop.clone();
+    tokio::spawn(async move {
+        let mut terminate =
+            match tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate()) {
+                Ok(signal) => signal,
+                Err(e) => {
+                    eprintln!("no SIGTERM handler: {e}");
+                    return;
+                }
+            };
+        tokio::select! {
+            _ = terminate.recv() => {}
+            _ = tokio::signal::ctrl_c() => {}
+        }
+        stopping.cancel();
+    });
+    stop
 }
 
 fn with_runtime(work: impl std::future::Future<Output = ExitCode>) -> ExitCode {
@@ -160,23 +245,7 @@ async fn once(client: LeaseClient, modules: Arc<Modules>) -> ExitCode {
 }
 
 async fn lookups(client: LeaseClient, definition: PoolDefinition) -> ExitCode {
-    let stop = CancellationToken::new();
-    let stopping = stop.clone();
-    tokio::spawn(async move {
-        let mut terminate =
-            match tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate()) {
-                Ok(signal) => signal,
-                Err(e) => {
-                    eprintln!("no SIGTERM handler: {e}");
-                    return;
-                }
-            };
-        tokio::select! {
-            _ = terminate.recv() => {}
-            _ = tokio::signal::ctrl_c() => {}
-        }
-        stopping.cancel();
-    });
+    let stop = stop_on_signal();
     let pool = AsyncPool::new(client, &definition).lease_wait(Duration::from_secs(2));
     let stats = pool.run(stop).await;
     println!("ran {} tasks, {} errors", stats.tasks, stats.errors);

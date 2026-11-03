@@ -211,7 +211,7 @@ fn scan(args: ScanArgs) -> Result<ExitCode> {
                 path: &path,
                 mime_type: &mime_type,
                 meta_tags: &args.meta_tags,
-                timeout: Duration::from_secs(args.timeout),
+                timeout: Some(Duration::from_secs(args.timeout)),
             });
             match outcome {
                 Ok(outcome) => Ok((mime_type, outcome)),

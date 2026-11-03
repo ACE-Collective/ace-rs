@@ -21,8 +21,11 @@ pub struct ScanRequest<'a> {
     pub mime_type: &'a str,
     /// The file's `yara_meta` tags, which `meta_tags` compares against.
     pub meta_tags: &'a [String],
-    /// How long the scan may take. yara-x checks it about once a second.
-    pub timeout: Duration,
+    /// How long the scan may take. yara-x checks it about once a second, from a heartbeat
+    /// thread it starts the first time a scan has a timeout. None scans without one, for a
+    /// contained task process, which can't start a thread: its CPU-time limit and its
+    /// deadline bound the scan instead (PLAN.md 2.17).
+    pub timeout: Option<Duration>,
 }
 
 /// One occurrence of a pattern.
@@ -137,7 +140,9 @@ impl<'r> Scanner<'r> {
                 .set_global(name, value)
                 .map_err(|e| ScanError::Failed(e.to_string()))?;
         }
-        self.inner.set_timeout(request.timeout);
+        if let Some(timeout) = request.timeout {
+            self.inner.set_timeout(timeout);
+        }
 
         let results = self.inner.scan(request.data).map_err(|e| match e {
             yara_x::ScanError::Timeout => ScanError::Timeout,

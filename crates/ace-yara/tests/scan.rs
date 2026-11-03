@@ -22,7 +22,7 @@ fn scan(options: &LoadOptions, path: &str, mime_type: &str, meta_tags: &[&str]) 
             path,
             mime_type,
             meta_tags: &tags,
-            timeout: Duration::from_secs(5),
+            timeout: Some(Duration::from_secs(5)),
         })
         .unwrap()
 }
@@ -139,7 +139,7 @@ fn a_scan_past_its_timeout_is_a_timeout_error_not_an_empty_match_list() {
         path: "alert/zeros.bin",
         mime_type: "application/octet-stream",
         meta_tags: &[],
-        timeout: Duration::from_secs(1),
+        timeout: Some(Duration::from_secs(1)),
     });
     let elapsed = started.elapsed();
 

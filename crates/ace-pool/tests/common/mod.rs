@@ -198,3 +198,95 @@ pub async fn wait_until_idle(core: &Core, root: Uuid, within: Duration) {
         tokio::time::sleep(Duration::from_millis(100)).await;
     }
 }
+
+/// A root in `mode` with one file holding `bytes` at `alert_path`, whose analysis has started.
+pub async fn root_with_bytes(
+    core: &Core,
+    mode: &str,
+    bytes: &[u8],
+    alert_path: &str,
+) -> (Uuid, Sha256) {
+    let db = core.test_db.db();
+    let root = NewRoot::new(mode);
+    let mut tx = db.begin().await.expect("begins");
+    tree::create_root(&mut tx, &root).await.expect("creates");
+    tx.commit().await.expect("commits");
+    let sha256 = core
+        .bucket
+        .put_bytes(ALERT_FILES, bytes, Some(&Hold::root(root.id)))
+        .await
+        .expect("puts the bytes")
+        .object
+        .sha256;
+    let mut tx = db.begin().await.expect("begins");
+    let observable = tree::upsert_observable(
+        &mut tx,
+        root.id,
+        &NewObservable::new(ObservableKind::File, sha256.to_hex()),
+    )
+    .await
+    .expect("adds")
+    .id;
+    tree::add_file(&mut tx, root.id, observable, alert_path, &[])
+        .await
+        .expect("records the file");
+    core.orchestrator
+        .start(&mut tx, root.id)
+        .await
+        .expect("starts");
+    tx.commit().await.expect("commits");
+    (root.id, sha256)
+}
+
+/// A task's state and error, by module.
+pub async fn task_of(core: &Core, root: Uuid, module: &str) -> (String, Option<String>) {
+    sqlx::query_as("SELECT state::text, error FROM queue.tasks WHERE root_id = $1 AND module = $2")
+        .bind(root)
+        .bind(module)
+        .fetch_one(core.test_db.db().pool())
+        .await
+        .expect("the task")
+}
+
+/// A running pool process, killed and reaped when dropped, whose stderr `stop` returns.
+pub struct PoolProcess {
+    child: Option<std::process::Child>,
+}
+
+impl PoolProcess {
+    pub fn start(mut command: std::process::Command) -> PoolProcess {
+        let child = command
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::piped())
+            .spawn()
+            .expect("the pool starts");
+        PoolProcess { child: Some(child) }
+    }
+
+    /// True while the process runs.
+    pub fn running(&mut self) -> bool {
+        self.child
+            .as_mut()
+            .is_some_and(|child| matches!(child.try_wait(), Ok(None)))
+    }
+
+    /// Kills the process and returns what it wrote to stderr.
+    pub fn stop(&mut self) -> String {
+        let Some(mut child) = self.child.take() else {
+            return String::new();
+        };
+        if let Err(e) = child.kill() {
+            eprintln!("killing the pool: {e}");
+        }
+        match child.wait_with_output() {
+            Ok(output) => String::from_utf8_lossy(&output.stderr).into_owned(),
+            Err(e) => format!("no output: {e}"),
+        }
+    }
+}
+
+impl Drop for PoolProcess {
+    fn drop(&mut self) {
+        self.stop();
+    }
+}

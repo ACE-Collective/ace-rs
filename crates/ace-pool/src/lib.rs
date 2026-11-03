@@ -9,6 +9,8 @@ pub mod containment;
 pub mod modules;
 pub mod pool;
 pub mod run;
+pub mod supervisor;
+pub mod task_process;
 #[cfg(feature = "test-pools")]
 pub mod testing;
 

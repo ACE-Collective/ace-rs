@@ -48,3 +48,9 @@ ENV RUSTC_WRAPPER=sccache \
 # The dev container's main process. See the script for why it exists.
 COPY poll-host-changes /usr/local/bin/poll-host-changes
 CMD ["poll-host-changes"]
+
+# The user a parser pool's task processes run as (PLAN.md 2.17): not root, so a task process
+# has no capabilities, which closes containment's gaps for raw sockets and for calls on other
+# processes of the same user. It owns no files and has no shell or home.
+RUN useradd --system --uid 10001 --user-group --no-create-home --home-dir /nonexistent \
+        --shell /usr/sbin/nologin ace4-task
