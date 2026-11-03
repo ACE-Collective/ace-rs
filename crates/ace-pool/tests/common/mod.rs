@@ -152,3 +152,49 @@ pub fn test_pool(core: &Core, args: &[&str]) -> std::process::Command {
         .env("ACE4_LOG", "info");
     command
 }
+
+/// A root with one fqdn per value, each with a task for `module`, committed. Returns the root.
+pub async fn root_with_tasks(core: &Core, values: &[String], module: &str) -> Uuid {
+    let db = core.test_db.db();
+    let root = NewRoot::new("analysis");
+    let mut tx = db.begin().await.expect("begins");
+    tree::create_root(&mut tx, &root).await.expect("creates");
+    for value in values {
+        let id = tree::upsert_observable(
+            &mut tx,
+            root.id,
+            &NewObservable::new(ObservableKind::Fqdn, value.clone()),
+        )
+        .await
+        .expect("adds")
+        .id;
+        ace_core::queue::enqueue(&mut tx, root.id, id, module)
+            .await
+            .expect("queues");
+    }
+    tx.commit().await.expect("commits");
+    root.id
+}
+
+/// Waits until none of the root's tasks is queued, delayed or running.
+pub async fn wait_until_idle(core: &Core, root: Uuid, within: Duration) {
+    let started = std::time::Instant::now();
+    loop {
+        let active: i64 = sqlx::query_scalar(
+            "SELECT count(*) FROM queue.tasks
+             WHERE root_id = $1 AND state IN ('queued', 'delayed', 'running')",
+        )
+        .bind(root)
+        .fetch_one(core.test_db.db().pool())
+        .await
+        .expect("counts");
+        if active == 0 {
+            return;
+        }
+        assert!(
+            started.elapsed() < within,
+            "{active} tasks still active after {within:?}"
+        );
+        tokio::time::sleep(Duration::from_millis(100)).await;
+    }
+}

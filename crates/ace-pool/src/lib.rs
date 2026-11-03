@@ -7,8 +7,9 @@
 pub mod client;
 pub mod containment;
 pub mod modules;
+pub mod pool;
 pub mod run;
 #[cfg(feature = "test-pools")]
 pub mod testing;
 
-pub use containment::{Contained, ContainmentError, SandboxProfile, contain};
+pub use containment::{Contained, ContainmentError, SandboxProfile, contain, contain_pool};

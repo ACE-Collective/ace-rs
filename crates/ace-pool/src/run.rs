@@ -125,39 +125,51 @@ pub async fn run_in_process(
     let input = fetch_input(client, &task, &dir).await?;
     let outputs = Arc::new(LocalFileStore::new(dir.outputs())?);
     let cancel = keeper.token().clone();
-    let end = if modules.parser(&task.module).is_some() {
-        let (modules, task, outputs) = (modules.clone(), task.clone(), outputs.clone());
-        tokio::task::spawn_blocking(move || {
-            let parser = modules.parser(&task.module).expect("checked above");
-            parser.run(Run {
-                task: &task,
+    // each module runs in a task of its own, so a panic ends that task and fails it
+    let (owned_modules, owned_task, owned_outputs) =
+        (modules.clone(), task.clone(), outputs.clone());
+    let joined = if modules.parser(&task.module).is_some() {
+        tokio::task::spawn_blocking(move || match owned_modules.parser(&owned_task.module) {
+            Some(parser) => parser.run(Run {
+                task: &owned_task,
                 input: input.as_deref(),
-                outputs,
+                outputs: owned_outputs,
                 cancel,
                 contained: false,
-            })
+            }),
+            None => unknown_module(&owned_task),
         })
         .await
-        .unwrap_or_else(|e| TaskEnd::Failed {
-            error: format!("the module panicked: {}", panic_message(e)),
-        })
-    } else if let Some(lookup) = modules.lookup(&task.module) {
-        lookup
-            .run(Run {
-                task: &task,
-                input: input.as_deref(),
-                outputs: outputs.clone(),
-                cancel,
-                contained: false,
-            })
-            .await
     } else {
-        TaskEnd::Failed {
-            error: format!("this pool doesn't run {}", task.module),
-        }
+        tokio::spawn(async move {
+            match owned_modules.lookup(&owned_task.module) {
+                Some(lookup) => {
+                    lookup
+                        .run(Run {
+                            task: &owned_task,
+                            input: input.as_deref(),
+                            outputs: owned_outputs,
+                            cancel,
+                            contained: false,
+                        })
+                        .await
+                }
+                None => unknown_module(&owned_task),
+            }
+        })
+        .await
     };
+    let end = joined.unwrap_or_else(|e| TaskEnd::Failed {
+        error: format!("the module panicked: {}", panic_message(e)),
+    });
     send_end(client, &task, &outputs, &end).await?;
     Ok(end)
+}
+
+fn unknown_module(task: &LeasedTask) -> TaskEnd {
+    TaskEnd::Failed {
+        error: format!("this pool doesn't run {}", task.module),
+    }
 }
 
 /// What a panicked task's join error says.

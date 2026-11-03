@@ -20,6 +20,13 @@
 //! After that the process can't start a thread or a process. It stays one thread with no
 //! children, so killing its PID ends all of it (#981).
 //!
+//! `contain_pool` is the variant for an async pool's process (PLAN.md 2.16), which runs many
+//! lookups at once on tokio's threads. It applies the same Landlock rules and the address-space
+//! and core-file limits, before the runtime starts any thread, so every thread the runtime
+//! starts later inherits them. It leaves out the seccomp filter, because tokio needs to start
+//! threads, and the CPU-time limit, which would count the whole life of a process that serves
+//! for days.
+//!
 //! How a test task sees each forbidden action:
 //!
 //! - fork, exec or a new thread: the process dies of SIGSYS.
@@ -80,7 +87,7 @@ const REQUIRED_LANDLOCK_ABI: ABI = ABI::V4;
 const TARGET_LANDLOCK_ABI: ABI = ABI::V7;
 
 /// What a contained task may touch.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct SandboxProfile {
     /// Files and directories the task may read, with everything beneath them.
     pub read_paths: Vec<PathBuf>,
@@ -125,6 +132,24 @@ impl SandboxProfile {
 
     pub fn allow_write(mut self, path: impl Into<PathBuf>) -> Self {
         self.write_paths.push(path.into());
+        self
+    }
+
+    /// Allows reading `path` if it exists, for files a process may need on one system and not
+    /// another, such as `/etc/gai.conf`.
+    pub fn allow_read_if_exists(self, path: impl Into<PathBuf>) -> Self {
+        let path = path.into();
+        if path.exists() {
+            self.allow_read(path)
+        } else {
+            self
+        }
+    }
+
+    pub fn allow_port(mut self, port: u16) -> Self {
+        if !self.tcp_ports.contains(&port) {
+            self.tcp_ports.push(port);
+        }
         self
     }
 }
@@ -174,6 +199,21 @@ pub fn contain(profile: &SandboxProfile) -> Result<Contained, ContainmentError> 
     let contained = restrict_files_and_ports(profile)?;
     seccomp::install().map_err(ContainmentError::Seccomp)?;
     Ok(contained)
+}
+
+/// Contains an async pool's process for the rest of its life: the single-thread check, the
+/// address-space and core-file limits, `no_new_privs` and the Landlock rules, but no seccomp
+/// filter and no CPU-time limit (see the module docs). Call it before starting the runtime.
+pub fn contain_pool(profile: &SandboxProfile) -> Result<Contained, ContainmentError> {
+    let threads = count_threads().map_err(ContainmentError::CountThreads)?;
+    if threads != 1 {
+        return Err(ContainmentError::Threads(threads));
+    }
+    let bytes = profile.address_space_bytes;
+    set_rlimit(libc::RLIMIT_AS, "RLIMIT_AS", bytes, bytes)?;
+    set_rlimit(libc::RLIMIT_CORE, "RLIMIT_CORE", 0, 0)?;
+    set_no_new_privs()?;
+    restrict_files_and_ports(profile)
 }
 
 /// The `Threads:` count in `/proc/self/status`.
