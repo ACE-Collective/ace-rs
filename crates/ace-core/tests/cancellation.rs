@@ -32,7 +32,7 @@ struct Poller;
 
 impl Module for Poller {
     const NAME: &'static str = "test_poller";
-    const INPUTS: &'static [ObservableKind] = ObservableKind::ALL;
+    const INPUTS: &'static [ObservableKind] = ObservableKind::BUILTIN;
     type Output = StubOutput;
     type Settings = ();
 
@@ -55,7 +55,7 @@ struct Hung;
 
 impl Module for Hung {
     const NAME: &'static str = "test_hung";
-    const INPUTS: &'static [ObservableKind] = ObservableKind::ALL;
+    const INPUTS: &'static [ObservableKind] = ObservableKind::BUILTIN;
     type Output = StubOutput;
     type Settings = ();
 

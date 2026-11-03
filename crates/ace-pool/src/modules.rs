@@ -295,6 +295,12 @@ impl Registry {
         self
     }
 
+    /// This registry's modules followed by `other`'s, as a binary that links several pools'.
+    pub fn merge(mut self, other: &Registry) -> Self {
+        self.modules.extend_from_slice(&other.modules);
+        self
+    }
+
     pub fn manifests(&self) -> Vec<Manifest> {
         self.modules.iter().map(|(manifest, _)| *manifest).collect()
     }

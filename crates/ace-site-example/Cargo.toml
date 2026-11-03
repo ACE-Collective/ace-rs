@@ -1,0 +1,40 @@
+[package]
+name = "ace-site-example"
+version = "0.1.0"
+description = "An example site crate: binaries built through ace-app with one module and one observable type of the site's own"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+# A site repository depends on these by git tag (PLAN.md 2.32); this one uses paths, and only
+# the crates' public items.
+[dependencies]
+ace = { path = "../ace" }
+ace-app = { path = "../ace-app" }
+ace-results = { path = "../ace-results" }
+ace-sdk = { path = "../ace-sdk" }
+schemars = "1.2.3"
+serde = { version = "1.0.229", features = ["derive"] }
+
+[[bin]]
+name = "example-ace"
+path = "src/bin/example-ace.rs"
+
+[[bin]]
+name = "example-lookups"
+path = "src/bin/example-lookups.rs"
+
+[dev-dependencies]
+# A database of the test's own, which the site's `ace serve` runs on.
+ace-core = { path = "../ace-core", features = ["testing"] }
+libc = "0.2.191"
+reqwest = { version = "0.13.5", default-features = false, features = ["json"] }
+serde_json = "1.0.154"
+sqlx = { version = "0.9.0", default-features = false, features = ["json", "postgres", "runtime-tokio", "uuid"] }
+tempfile = "3.27.0"
+tokio = { version = "1.54.1", features = ["macros", "rt-multi-thread", "time"] }
+uuid = "1.29.0"
+
+[lints]
+workspace = true

@@ -142,13 +142,10 @@ impl ApiConfig {
     /// The pools in `ACE4_POOLS`, as `<pool>:<module>,<module>;<pool>:...`, each with the
     /// token in `ACE4_POOL_TOKEN_<POOL>`, the admin token in `ACE4_ADMIN_TOKEN` and the submit
     /// token in `ACE4_SUBMIT_TOKEN`, and the lease's length in `ACE4_LEASE_SECONDS` (60). Each has a
-    /// dev default: the parsers and lookups pools with the five ported modules, and tokens
-    /// named `ace4-dev-<pool>-token`.
-    pub fn from_env() -> Self {
-        let pools = std::env::var("ACE4_POOLS").unwrap_or_else(|_| {
-            "parsers:email_analyzer,archive,yara_scanner_v3_4;lookups:rdap_analyzer,splunk_api"
-                .to_owned()
-        });
+    /// dev default: `default_pools`, the binary's own pools and their modules in the same form,
+    /// and tokens named `ace4-dev-<pool>-token`.
+    pub fn from_env(default_pools: &str) -> Self {
+        let pools = std::env::var("ACE4_POOLS").unwrap_or_else(|_| default_pools.to_owned());
         let pools = pools
             .split(';')
             .filter_map(|pool| pool.split_once(':'))

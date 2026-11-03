@@ -21,8 +21,8 @@ pub use file::{
     AlertPath, InvalidAlertPath, InvalidSha256, InvalidYaraMeta, NewFile, Sha256, YaraMeta,
 };
 pub use links::{Detection, ObservableRef, Relationship, RelationshipKind};
-pub use observable::{ObservableKind, UnknownObservableKind};
-pub use registry::{
-    AnalysisTypeInfo, BUILTIN, Registry, RegistryError, result_schema, sort_json_keys,
+pub use observable::{
+    ObservableKind, ObservableType, TypeListError, UnknownObservableKind, install_types, type_list,
 };
+pub use registry::{AnalysisTypeInfo, Registry, RegistryError, result_schema, sort_json_keys};
 pub use validate::{FieldError, InvalidResult, InvalidSchema, ResultValidator};

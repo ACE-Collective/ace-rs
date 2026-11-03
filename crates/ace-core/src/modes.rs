@@ -216,6 +216,22 @@ impl Modes {
         )
     }
 
+    /// Adds `module` to the group `group`, creating the group if there's none, as a site's
+    /// configuration appends to ace3's `module_group_*` lists.
+    pub fn with_module_in_group(mut self, group: &str, module: &str) -> Modes {
+        let entry = self
+            .groups
+            .entry(group.to_owned())
+            .or_insert_with(|| ModuleGroup {
+                name: group.to_owned(),
+                modules: Vec::new(),
+            });
+        if !entry.modules.iter().any(|m| m == module) {
+            entry.modules.push(module.to_owned());
+        }
+        self
+    }
+
     /// Adds a mode, or replaces the one with its name.
     pub fn with_mode(mut self, mode: AnalysisMode) -> Modes {
         self.modes.insert(mode.name.clone(), mode);
@@ -307,6 +323,28 @@ mod tests {
         assert!(!modes.is_detectable(CORRELATION));
         assert!(!modes.is_detectable("event"));
         assert_eq!(modes.default_mode(), "analysis");
+    }
+
+    #[test]
+    fn a_sites_module_joins_a_group() {
+        let modes = Modes::ace3()
+            .with_module_in_group("correlation", "site_lookup")
+            .with_module_in_group("correlation", "site_lookup")
+            .with_module_in_group("site", "site_parser");
+        assert!(modes.modules_in("analysis").contains("site_lookup"));
+        assert!(modes.modules_in("analysis").contains("rdap_analyzer"));
+        assert!(!modes.modules_in("email").contains("site_lookup"));
+        let correlation = modes.group("correlation").expect("the group");
+        assert_eq!(
+            correlation
+                .modules
+                .iter()
+                .filter(|m| *m == "site_lookup")
+                .count(),
+            1
+        );
+        // a new group runs in no mode until one names it
+        assert!(!modes.modules_in("analysis").contains("site_parser"));
     }
 
     #[test]

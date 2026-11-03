@@ -44,7 +44,9 @@ fn strings(items: &[&str]) -> Vec<String> {
 
 #[test]
 fn each_rule() {
-    use ObservableKind::*;
+    const FILE: ObservableKind = ObservableKind::File;
+    const FQDN: ObservableKind = ObservableKind::Fqdn;
+    const DKIM_DOMAIN: ObservableKind = ObservableKind::EmailDkimSigningDomain;
     struct Case {
         what: &'static str,
         module: &'static str,
@@ -69,56 +71,56 @@ fn each_rule() {
         case(
             "takes its input type",
             "email_analyzer",
-            File,
+            FILE,
             "email",
             Ok(()),
         ),
         case(
             "takes a type that extends its input",
             "rdap_analyzer",
-            EmailDkimSigningDomain,
+            DKIM_DOMAIN,
             "correlation",
             Ok(()),
         ),
         case(
             "doesn't take the type",
             "email_analyzer",
-            Fqdn,
+            FQDN,
             "email",
             Err(Ineligible::NotAnInput),
         ),
         case(
             "the mode doesn't run its group",
             "rdap_analyzer",
-            Fqdn,
+            FQDN,
             "email",
             Err(Ineligible::NotInMode),
         ),
         case(
             "no group names it",
             "splunk_api",
-            Fqdn,
+            FQDN,
             "analysis",
             Err(Ineligible::NotInMode),
         ),
         case(
             "the mode enables it by name",
             "alert_added_to_event",
-            Fqdn,
+            FQDN,
             "dispositioned",
             Ok(()),
         ),
         case(
             "the mode disables it",
             "yara_scanner_v3_4",
-            File,
+            FILE,
             "test",
             Err(Ineligible::NotInMode),
         ),
         case(
             "an unknown mode runs nothing",
             "email_analyzer",
-            File,
+            FILE,
             "no_such_mode",
             Err(Ineligible::NotInMode),
         ),
@@ -127,7 +129,7 @@ fn each_rule() {
             ..case(
                 "no_scan keeps the YARA module off",
                 "yara_scanner_v3_4",
-                File,
+                FILE,
                 "email",
                 Err(Ineligible::Directive("no_scan".to_owned())),
             )
@@ -137,7 +139,7 @@ fn each_rule() {
             ..case(
                 "no_scan leaves other modules alone",
                 "archive",
-                File,
+                FILE,
                 "email",
                 Ok(()),
             )
@@ -147,7 +149,7 @@ fn each_rule() {
             ..case(
                 "exclude_all keeps every module off",
                 "archive",
-                File,
+                FILE,
                 "email",
                 Err(Ineligible::Directive("exclude_all".to_owned())),
             )
@@ -157,7 +159,7 @@ fn each_rule() {
             ..case(
                 "the observable excludes it",
                 "archive",
-                File,
+                FILE,
                 "email",
                 Err(Ineligible::Excluded),
             )
@@ -165,7 +167,7 @@ fn each_rule() {
         case(
             "a dependency has no result yet",
             "test_depends_on_archive",
-            File,
+            FILE,
             "test",
             Err(Ineligible::WaitingFor("archive".to_owned())),
         ),
@@ -174,7 +176,7 @@ fn each_rule() {
             ..case(
                 "a dependency has a result",
                 "test_depends_on_archive",
-                File,
+                FILE,
                 "test",
                 Ok(()),
             )

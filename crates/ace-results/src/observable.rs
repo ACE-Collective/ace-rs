@@ -1,82 +1,66 @@
 //! Observable kinds.
 //!
-//! The kinds are a closed enum built from ace3's observable types, so nothing registers a type at
-//! run time (ace3 #1030). `fixtures/ace3_observable_types.json` is ace3's list, dumped by
-//! `tools/ace3/dumps/observable_types.py`, and a test checks this enum against it: names, parents,
+//! A kind is one entry of a list that is fixed when the binary is built, so nothing registers a
+//! type at run time (ace3 #1030). The open-source kinds, `ObservableKind::BUILTIN`, are ace3's
+//! observable types: `fixtures/ace3_observable_types.json` is ace3's list, dumped by
+//! `tools/ace3/dumps/observable_types.py`, and a test checks them against it: names, parents,
 //! deprecated flags, default display types and descriptions.
+//!
+//! A site defines its own kinds as constants with `ObservableKind::define`, and its binary's
+//! list is the built-in kinds plus those (PLAN.md 2.31). `ace-app` hands that list to
+//! `install_types` first thing in `main`, before anything reads a type name, and it can't change
+//! after. A name is looked up in the installed list, or in `BUILTIN` in a process that installed
+//! none, such as a library's tests.
 
+use std::borrow::Cow;
+use std::cmp::Ordering;
 use std::fmt;
+use std::hash::{Hash, Hasher};
 use std::str::FromStr;
+use std::sync::OnceLock;
 
-use schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
+use schemars::{JsonSchema, Schema, SchemaGenerator, json_schema};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
+/// What an observable kind is: its name and where it sits among the others.
+#[derive(Debug, PartialEq, Eq)]
+pub struct ObservableType {
+    /// The kind's name, as ace3 spells it: lowercase letters, digits and `_`.
+    pub name: &'static str,
+    /// The kind this one extends, from ace3's `etc/observable_types.yaml` for the built-in kinds.
+    /// A module that accepts the parent also accepts this kind.
+    pub parent: Option<ObservableKind>,
+    /// Recognized, but not offered to analysts.
+    pub deprecated: bool,
+    /// The label shown when nothing sets one on the observable.
+    pub default_display_type: Option<&'static str>,
+    pub description: Option<&'static str>,
+}
+
+/// The type of an observable, named as in ace3 (`ipv4`, `email_address`, `file`). Two kinds are
+/// equal when their names are, and they sort by name.
+#[derive(Clone, Copy)]
+pub struct ObservableKind(&'static ObservableType);
 
 macro_rules! observable_kinds {
     ($(
         $variant:ident = $name:literal, parent $parent:expr, deprecated $deprecated:literal,
             display $display:expr, description $description:expr;
     )+) => {
-        /// The type of an observable, named as in ace3 (`ipv4`, `email_address`, `file`).
-        #[derive(
-            Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize, JsonSchema,
-        )]
-        pub enum ObservableKind {
-            $(
-                #[serde(rename = $name)]
-                $variant,
-            )+
-        }
-
+        #[allow(non_upper_case_globals)]
         impl ObservableKind {
-            /// Every kind, in name order.
-            pub const ALL: &'static [ObservableKind] = &[$(ObservableKind::$variant),+];
+            $(
+                pub const $variant: ObservableKind = ObservableKind::define(&ObservableType {
+                    name: $name,
+                    parent: $parent,
+                    deprecated: $deprecated,
+                    default_display_type: $display,
+                    description: $description,
+                });
+            )+
 
-            /// The kind's name, as ace3 spells it.
-            pub const fn as_str(self) -> &'static str {
-                match self {
-                    $(ObservableKind::$variant => $name,)+
-                }
-            }
-
-            /// The kind this one extends, from ace3's `etc/observable_types.yaml`. A module that
-            /// accepts the parent also accepts this kind.
-            pub const fn parent(self) -> Option<ObservableKind> {
-                use ObservableKind::*;
-                match self {
-                    $($variant => $parent,)+
-                }
-            }
-
-            /// Recognized, but not offered to analysts.
-            pub const fn is_deprecated(self) -> bool {
-                match self {
-                    $(ObservableKind::$variant => $deprecated,)+
-                }
-            }
-
-            /// The label shown when nothing sets one on the observable.
-            pub const fn default_display_type(self) -> Option<&'static str> {
-                match self {
-                    $(ObservableKind::$variant => $display,)+
-                }
-            }
-
-            pub const fn description(self) -> Option<&'static str> {
-                match self {
-                    $(ObservableKind::$variant => $description,)+
-                }
-            }
-        }
-
-        impl FromStr for ObservableKind {
-            type Err = UnknownObservableKind;
-
-            fn from_str(name: &str) -> Result<Self, Self::Err> {
-                match name {
-                    $($name => Ok(ObservableKind::$variant),)+
-                    _ => Err(UnknownObservableKind(name.to_owned())),
-                }
-            }
+            /// The open-source kinds, ace3's, in name order.
+            pub const BUILTIN: &'static [ObservableKind] = &[$(ObservableKind::$variant),+];
         }
     };
 }
@@ -122,47 +106,47 @@ observable_kinds! {
         description Some("email address");
     EmailBody = "email_body", parent None, deprecated false, display None,
         description Some("string from an email body");
-    EmailCc = "email_cc", parent Some(EmailAddress), deprecated false, display Some("Mail CC"),
+    EmailCc = "email_cc", parent Some(ObservableKind::EmailAddress), deprecated false, display Some("Mail CC"),
         description Some("email Cc: header address");
     EmailConversation = "email_conversation", parent None, deprecated false, display None,
         description Some("a conversation between a source email address (MAIL FROM) and a destination email address (RCPT TO)");
     EmailDelivery = "email_delivery", parent None, deprecated false, display None,
         description Some("a delivery of a an email to a target mailbox");
-    EmailDkimSigningDomain = "email_dkim_signing_domain", parent Some(Fqdn), deprecated false, display Some("DKIM Signing Domain"),
+    EmailDkimSigningDomain = "email_dkim_signing_domain", parent Some(ObservableKind::Fqdn), deprecated false, display Some("DKIM Signing Domain"),
         description Some("signing domain (d= tag) from a DKIM-Signature header on the message");
-    EmailEnvelopeMailFrom = "email_envelope_mail_from", parent Some(EmailAddress), deprecated false, display Some("Envelope Mail From"),
+    EmailEnvelopeMailFrom = "email_envelope_mail_from", parent Some(ObservableKind::EmailAddress), deprecated false, display Some("Envelope Mail From"),
         description Some("envelope MAIL FROM address from the SMTP transaction");
-    EmailEnvelopeRcptTo = "email_envelope_rcpt_to", parent Some(EmailAddress), deprecated false, display Some("Envelope Recipient"),
+    EmailEnvelopeRcptTo = "email_envelope_rcpt_to", parent Some(ObservableKind::EmailAddress), deprecated false, display Some("Envelope Recipient"),
         description Some("envelope RCPT TO address from the SMTP transaction");
     EmailFirstHopFrom = "email_first_hop_from", parent None, deprecated false, display Some("First Hop From"),
         description Some("reverse-DNS host name of the first external Received: hop (the parenthesized rDNS in `from HELO (rdns [ip])`, not the RFC5322 From:); often absent when the hop records only an IP");
     EmailFirstHopHelo = "email_first_hop_helo", parent None, deprecated false, display Some("First Hop HELO/EHLO"),
         description Some("HELO/EHLO string the client presented on the first external Received: hop (the token after `from`, or an explicit helo= tag); may be a host name or an address literal like 127.0.0.1");
-    EmailFirstHopIp = "email_first_hop_ip", parent Some(Ip), deprecated false, display Some("First Hop IP"),
+    EmailFirstHopIp = "email_first_hop_ip", parent Some(ObservableKind::Ip), deprecated false, display Some("First Hop IP"),
         description Some("sending IP of the first external hop of an RFC822 message (from the configured provider first-hop headers, default Microsoft 365; else the Received: hop accepted by a local domain)");
-    EmailFrom = "email_from", parent Some(EmailAddress), deprecated false, display Some("Mail From"),
+    EmailFrom = "email_from", parent Some(ObservableKind::EmailAddress), deprecated false, display Some("Mail From"),
         description Some("email From: header address");
     EmailHeader = "email_header", parent None, deprecated false, display None,
         description Some("string from an email header");
-    EmailReplyTo = "email_reply_to", parent Some(EmailAddress), deprecated false, display Some("Mail Reply To"),
+    EmailReplyTo = "email_reply_to", parent Some(ObservableKind::EmailAddress), deprecated false, display Some("Mail Reply To"),
         description Some("email Reply-To: header address");
-    EmailReturnPath = "email_return_path", parent Some(EmailAddress), deprecated false, display Some("Mail Return Path"),
+    EmailReturnPath = "email_return_path", parent Some(ObservableKind::EmailAddress), deprecated false, display Some("Mail Return Path"),
         description Some("email Return-Path address");
     EmailSenderTenantId = "email_sender_tenant_id", parent None, deprecated false, display Some("Sender Tenant ID"),
         description Some("tenant GUID of the sending organization (from the configured sender-tenant headers, default Microsoft 365 cross-tenant headers); useful for detecting tenant-relay laundering");
     EmailSubject = "email_subject", parent None, deprecated false, display None,
         description Some("the subject of an email");
-    EmailTo = "email_to", parent Some(EmailAddress), deprecated false, display Some("Mail To"),
+    EmailTo = "email_to", parent Some(ObservableKind::EmailAddress), deprecated false, display Some("Mail To"),
         description Some("email To: header address");
-    EmailXAuthId = "email_x_auth_id", parent Some(EmailAddress), deprecated false, display Some("Mail X-Auth ID"),
+    EmailXAuthId = "email_x_auth_id", parent Some(ObservableKind::EmailAddress), deprecated false, display Some("Mail X-Auth ID"),
         description Some("email X-Auth-Id: header address");
     EmailXMailer = "email_x_mailer", parent None, deprecated false, display None,
         description Some("email x-mailer");
-    EmailXOriginalSender = "email_x_original_sender", parent Some(EmailAddress), deprecated false, display Some("Mail X-Original Sender"),
+    EmailXOriginalSender = "email_x_original_sender", parent Some(ObservableKind::EmailAddress), deprecated false, display Some("Mail X-Original Sender"),
         description Some("email X-Original-Sender: header address");
-    EmailXSender = "email_x_sender", parent Some(EmailAddress), deprecated false, display Some("Mail X-Sender"),
+    EmailXSender = "email_x_sender", parent Some(ObservableKind::EmailAddress), deprecated false, display Some("Mail X-Sender"),
         description Some("email X-Sender: header address");
-    EmailXSenderId = "email_x_sender_id", parent Some(EmailAddress), deprecated false, display Some("Mail X-Sender ID"),
+    EmailXSenderId = "email_x_sender_id", parent Some(ObservableKind::EmailAddress), deprecated false, display Some("Mail X-Sender ID"),
         description Some("email X-Sender-Id: header address");
     ExternalUid = "external_uid", parent None, deprecated false, display None,
         description Some("unique identifier for something that is stored in an external tool. Format: tool_name:uid");
@@ -309,6 +293,35 @@ observable_kinds! {
 }
 
 impl ObservableKind {
+    /// A kind of a site's own, for its binary's list (`install_types`).
+    pub const fn define(info: &'static ObservableType) -> ObservableKind {
+        ObservableKind(info)
+    }
+
+    /// The kind's name, as ace3 spells it.
+    pub const fn as_str(self) -> &'static str {
+        self.0.name
+    }
+
+    /// The kind this one extends. A module that accepts the parent also accepts this kind.
+    pub const fn parent(self) -> Option<ObservableKind> {
+        self.0.parent
+    }
+
+    /// Recognized, but not offered to analysts.
+    pub const fn is_deprecated(self) -> bool {
+        self.0.deprecated
+    }
+
+    /// The label shown when nothing sets one on the observable.
+    pub const fn default_display_type(self) -> Option<&'static str> {
+        self.0.default_display_type
+    }
+
+    pub const fn description(self) -> Option<&'static str> {
+        self.0.description
+    }
+
     /// The kinds this one extends, nearest first.
     pub fn ancestors(self) -> impl Iterator<Item = ObservableKind> {
         std::iter::successors(self.parent(), |kind| kind.parent())
@@ -318,6 +331,107 @@ impl ObservableKind {
     pub fn is_subtype_of(self, other: ObservableKind) -> bool {
         self == other || self.ancestors().any(|kind| kind == other)
     }
+
+    /// This binary's kinds in name order: the list `install_types` installed, or `BUILTIN`.
+    pub fn all() -> &'static [ObservableKind] {
+        INSTALLED
+            .get()
+            .map_or(ObservableKind::BUILTIN, Vec::as_slice)
+    }
+}
+
+static INSTALLED: OnceLock<Vec<ObservableKind>> = OnceLock::new();
+
+/// Why a binary's list of kinds is refused.
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+pub enum TypeListError {
+    #[error("observable type {0:?} isn't lowercase letters, digits and _")]
+    BadName(&'static str),
+    #[error("observable type {0} is listed twice")]
+    Duplicate(&'static str),
+    #[error("observable type {kind} extends {parent}, which isn't in the list")]
+    UnknownParent {
+        kind: &'static str,
+        parent: &'static str,
+    },
+    #[error("this process already installed a different list of observable types")]
+    AlreadyInstalled,
+}
+
+/// The built-in kinds and `extra`, in name order, after checking that every name is valid and
+/// listed once and every parent is in the list.
+pub fn type_list(extra: &[ObservableKind]) -> Result<Vec<ObservableKind>, TypeListError> {
+    let mut list: Vec<ObservableKind> = ObservableKind::BUILTIN.to_vec();
+    for kind in extra {
+        let name = kind.as_str();
+        let valid = name.starts_with(|c: char| c.is_ascii_lowercase())
+            && name
+                .chars()
+                .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_');
+        if !valid {
+            return Err(TypeListError::BadName(name));
+        }
+        if list.contains(kind) {
+            return Err(TypeListError::Duplicate(name));
+        }
+        list.push(*kind);
+    }
+    for kind in &list {
+        if let Some(parent) = kind.parent()
+            && !list.contains(&parent)
+        {
+            return Err(TypeListError::UnknownParent {
+                kind: kind.as_str(),
+                parent: parent.as_str(),
+            });
+        }
+    }
+    list.sort();
+    Ok(list)
+}
+
+/// Makes this process's kinds the built-in ones plus `extra`. `ace-app` calls it once, first
+/// thing in `main`; calling it again with the same list does nothing, and with another fails.
+pub fn install_types(extra: &[ObservableKind]) -> Result<(), TypeListError> {
+    let list = type_list(extra)?;
+    let installed = INSTALLED.get_or_init(|| list.clone());
+    if *installed == list {
+        Ok(())
+    } else {
+        Err(TypeListError::AlreadyInstalled)
+    }
+}
+
+impl PartialEq for ObservableKind {
+    fn eq(&self, other: &Self) -> bool {
+        self.0.name == other.0.name
+    }
+}
+
+impl Eq for ObservableKind {}
+
+impl PartialOrd for ObservableKind {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for ObservableKind {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.0.name.cmp(other.0.name)
+    }
+}
+
+impl Hash for ObservableKind {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.0.name.hash(state);
+    }
+}
+
+impl fmt::Debug for ObservableKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_tuple("ObservableKind").field(&self.0.name).finish()
+    }
 }
 
 impl fmt::Display for ObservableKind {
@@ -326,7 +440,49 @@ impl fmt::Display for ObservableKind {
     }
 }
 
-/// A name that isn't one of ace3's observable types.
+impl FromStr for ObservableKind {
+    type Err = UnknownObservableKind;
+
+    /// The kind of this binary's list with this name.
+    fn from_str(name: &str) -> Result<Self, Self::Err> {
+        ObservableKind::all()
+            .iter()
+            .find(|kind| kind.as_str() == name)
+            .copied()
+            .ok_or_else(|| UnknownObservableKind(name.to_owned()))
+    }
+}
+
+impl Serialize for ObservableKind {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for ObservableKind {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let name = Cow::<'de, str>::deserialize(deserializer)?;
+        name.parse().map_err(serde::de::Error::custom)
+    }
+}
+
+impl JsonSchema for ObservableKind {
+    fn schema_name() -> Cow<'static, str> {
+        "ObservableKind".into()
+    }
+
+    /// A string naming one of this binary's kinds.
+    fn json_schema(_: &mut SchemaGenerator) -> Schema {
+        let names: Vec<&str> = ObservableKind::all().iter().map(|k| k.as_str()).collect();
+        json_schema!({
+            "description": "The type of an observable, named as in ace3 (`ipv4`, `email_address`, `file`).",
+            "type": "string",
+            "enum": names,
+        })
+    }
+}
+
+/// A name that isn't one of this binary's observable types.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UnknownObservableKind(pub String);
 
@@ -364,10 +520,10 @@ mod tests {
     }
 
     #[test]
-    fn enum_matches_ace3_fixture() {
+    fn builtin_kinds_match_ace3_fixture() {
         let fixture = fixture();
         let fixture_names: Vec<&str> = fixture.iter().map(|t| t.name.as_str()).collect();
-        let enum_names: Vec<&str> = ObservableKind::ALL.iter().map(|k| k.as_str()).collect();
+        let enum_names: Vec<&str> = ObservableKind::BUILTIN.iter().map(|k| k.as_str()).collect();
         assert_eq!(
             enum_names, fixture_names,
             "the enum's kinds differ from ace3's"
@@ -411,17 +567,87 @@ mod tests {
             Err(UnknownObservableKind("not_a_type".to_owned()))
         );
         let err = serde_json::from_str::<ObservableKind>("\"IPV4\"").unwrap_err();
-        assert!(err.to_string().contains("unknown variant"), "{err}");
+        assert!(
+            err.to_string().contains("unknown observable type \"IPV4\""),
+            "{err}"
+        );
     }
 
     #[test]
     fn subtypes_follow_parents() {
-        use ObservableKind::*;
-        assert!(EmailFrom.is_subtype_of(EmailAddress));
-        assert!(EmailFirstHopIp.is_subtype_of(Ip));
-        assert!(EmailDkimSigningDomain.is_subtype_of(Fqdn));
-        assert!(Fqdn.is_subtype_of(Fqdn));
-        assert!(!EmailAddress.is_subtype_of(EmailFrom));
-        assert!(!Ipv4.is_subtype_of(Ip), "ace3 doesn't make ipv4 extend ip");
+        type K = ObservableKind;
+        assert!(K::EmailFrom.is_subtype_of(K::EmailAddress));
+        assert!(K::EmailFirstHopIp.is_subtype_of(K::Ip));
+        assert!(K::EmailDkimSigningDomain.is_subtype_of(K::Fqdn));
+        assert!(K::Fqdn.is_subtype_of(K::Fqdn));
+        assert!(!K::EmailAddress.is_subtype_of(K::EmailFrom));
+        assert!(
+            !K::Ipv4.is_subtype_of(K::Ip),
+            "ace3 doesn't make ipv4 extend ip"
+        );
+    }
+
+    const SITE_ACCOUNT: ObservableKind = ObservableKind::define(&ObservableType {
+        name: "site_account",
+        parent: None,
+        deprecated: false,
+        default_display_type: Some("Site Account"),
+        description: Some("an account in a site's own system"),
+    });
+
+    const SITE_ADMIN: ObservableKind = ObservableKind::define(&ObservableType {
+        name: "site_admin",
+        parent: Some(SITE_ACCOUNT),
+        deprecated: false,
+        default_display_type: None,
+        description: None,
+    });
+
+    const fn named(name: &'static str, parent: Option<ObservableKind>) -> ObservableType {
+        ObservableType {
+            name,
+            parent,
+            deprecated: false,
+            default_display_type: None,
+            description: None,
+        }
+    }
+
+    #[test]
+    fn a_sites_kinds_join_the_builtin_ones_in_name_order() {
+        let list = type_list(&[SITE_ADMIN, SITE_ACCOUNT]).expect("a valid list");
+        assert_eq!(list.len(), ObservableKind::BUILTIN.len() + 2);
+        assert!(list.windows(2).all(|pair| pair[0] < pair[1]));
+        assert!(list.contains(&SITE_ACCOUNT) && list.contains(&ObservableKind::Fqdn));
+        assert!(SITE_ADMIN.is_subtype_of(SITE_ACCOUNT));
+        assert_eq!(SITE_ADMIN.parent(), Some(SITE_ACCOUNT));
+        // a parent from the built-in list is fine too
+        static DOMAIN: ObservableType = named("site_domain", Some(ObservableKind::Fqdn));
+        assert!(type_list(&[ObservableKind::define(&DOMAIN)]).is_ok());
+    }
+
+    #[test]
+    fn a_bad_list_is_refused() {
+        assert_eq!(
+            type_list(&[SITE_ADMIN]),
+            Err(TypeListError::UnknownParent {
+                kind: "site_admin",
+                parent: "site_account",
+            })
+        );
+        assert_eq!(
+            type_list(&[SITE_ACCOUNT, SITE_ACCOUNT]),
+            Err(TypeListError::Duplicate("site_account"))
+        );
+        static FQDN: ObservableType = named("fqdn", None);
+        assert_eq!(
+            type_list(&[ObservableKind::define(&FQDN)]),
+            Err(TypeListError::Duplicate("fqdn"))
+        );
+        static UPPER: ObservableType = named("Site", None);
+        assert_eq!(
+            type_list(&[ObservableKind::define(&UPPER)]),
+            Err(TypeListError::BadName("Site"))
+        );
     }
 }

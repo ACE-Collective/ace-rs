@@ -202,7 +202,7 @@ pub struct Capabilities {
 
 impl Module for Capabilities {
     const NAME: &'static str = "test_capabilities";
-    const INPUTS: &'static [ObservableKind] = ObservableKind::ALL;
+    const INPUTS: &'static [ObservableKind] = ObservableKind::BUILTIN;
     type Output = CapabilitiesNote;
     type Settings = ();
 
@@ -234,7 +234,7 @@ pub struct PanickingParser;
 
 impl Module for PanickingParser {
     const NAME: &'static str = "test_panicking_parser";
-    const INPUTS: &'static [ObservableKind] = ObservableKind::ALL;
+    const INPUTS: &'static [ObservableKind] = ObservableKind::BUILTIN;
     type Output = PanickingNote;
     type Settings = ();
 

@@ -1,0 +1,37 @@
+[package]
+name = "ace-app"
+version = "0.1.0"
+description = "Builds the ace binary and each pool binary from a list of crates, here and in site repositories"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[features]
+# The SVS build: `ace yara replay` also reports the slowest rules. Off by default, because
+# yara-x's rule profiling slows every scan. `cargo tree -e features -i yara-x -p ace` shows
+# whether a build has it; the tree without -i doesn't list features a root feature turns on.
+svs = ["ace-yara/rules-profiling"]
+
+[dependencies]
+ace-core = { path = "../ace-core" }
+ace-pool = { path = "../ace-pool" }
+ace-results = { path = "../ace-results" }
+ace-sdk = { path = "../ace-sdk" }
+ace-store = { path = "../ace-store" }
+ace-yara = { path = "../ace-yara" }
+anyhow = "1.0.104"
+clap = { version = "4.6.7", features = ["derive"] }
+serde_json = "1.0.154"
+tempfile = "3.27.0"
+tokio = { version = "1.54.1", features = ["fs", "macros", "net", "rt-multi-thread", "signal", "time"] }
+tokio-util = "0.7.20"
+tracing = "0.1.44"
+
+[dev-dependencies]
+# The open-source parser pool's modules, for the unit test of the YARA module's ruleset directory.
+ace-mod-email = { path = "../ace-mod-email" }
+ace-mod-yara = { path = "../ace-mod-yara" }
+
+[lints]
+workspace = true

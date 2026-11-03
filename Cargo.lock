@@ -6,11 +6,20 @@ version = 4
 name = "ace"
 version = "0.1.0"
 dependencies = [
- "ace-core",
+ "ace-app",
  "ace-mod-archive",
  "ace-mod-email",
  "ace-mod-rdap",
  "ace-mod-splunk",
+ "ace-mod-yara",
+]
+
+[[package]]
+name = "ace-app"
+version = "0.1.0"
+dependencies = [
+ "ace-core",
+ "ace-mod-email",
  "ace-mod-yara",
  "ace-pool",
  "ace-results",
@@ -200,23 +209,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ace-pools"
-version = "0.1.0"
-dependencies = [
- "ace-mod-archive",
- "ace-mod-email",
- "ace-mod-rdap",
- "ace-mod-splunk",
- "ace-mod-yara",
- "ace-pool",
- "ace-sdk",
- "serde_json",
- "tokio",
- "tokio-util",
- "tracing",
-]
-
-[[package]]
 name = "ace-results"
 version = "0.1.0"
 dependencies = [
@@ -255,6 +247,26 @@ dependencies = [
  "tokio-util",
  "tracing",
  "tracing-subscriber",
+ "uuid",
+]
+
+[[package]]
+name = "ace-site-example"
+version = "0.1.0"
+dependencies = [
+ "ace",
+ "ace-app",
+ "ace-core",
+ "ace-results",
+ "ace-sdk",
+ "libc",
+ "reqwest",
+ "schemars 1.2.3",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "tempfile",
+ "tokio",
  "uuid",
 ]
 

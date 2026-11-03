@@ -12,6 +12,8 @@ use ace_pool::client::LeaseClient;
 use anyhow::{Context, Result, bail};
 use clap::Subcommand;
 
+use crate::App;
+
 #[derive(Subcommand)]
 pub enum TaskCommand {
     /// Run a task's module again on its inputs, here and uncontained. The task's row stays as it
@@ -25,11 +27,11 @@ pub enum TaskCommand {
     },
 }
 
-pub fn run(command: TaskCommand) -> Result<ExitCode> {
+pub fn run(app: &App, command: TaskCommand) -> Result<ExitCode> {
     let TaskCommand::Replay { id, keep } = command;
-    let registry = crate::site::registry();
-    let overlay = crate::site::overlay()?;
-    let components = crate::site::components(&registry, &overlay)?;
+    let registry = app.registry();
+    let overlay = crate::cli::overlay()?;
+    let components = crate::cli::components(&registry, &overlay)?;
     let base = std::env::var("ACE4_API_URL").context("ACE4_API_URL isn't set")?;
     let token = std::env::var("ACE4_ADMIN_TOKEN").context("ACE4_ADMIN_TOKEN isn't set")?;
     let runtime = tokio::runtime::Builder::new_multi_thread()

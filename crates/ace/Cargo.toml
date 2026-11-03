@@ -1,41 +1,39 @@
 [package]
 name = "ace"
 version = "0.1.0"
-description = "The ace binary: CLI, API, GUI, orchestrator, scheduler"
+description = "The open-source binaries over ace-app: ace, and the ace-parsers and ace-lookups pools"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 publish.workspace = true
 
 [features]
-# The SVS build: `ace yara replay` also reports the slowest rules. Off by default, because
-# yara-x's rule profiling slows every scan. `cargo tree -e features -i yara-x -p ace` shows
-# whether a build has it; the tree without -i doesn't list features a root feature turns on.
-svs = ["ace-yara/rules-profiling"]
+# The SVS build: `ace yara replay` also reports the slowest rules (ace-app's svs feature).
+# `cargo tree -e features -i yara-x -p ace --features svs` shows rules-profiling.
+svs = ["ace-app/svs"]
+
+[lib]
+path = "src/lib.rs"
 
 [[bin]]
 name = "ace"
 path = "src/main.rs"
 
+[[bin]]
+name = "ace-parsers"
+path = "src/bin/ace-parsers.rs"
+
+[[bin]]
+name = "ace-lookups"
+path = "src/bin/ace-lookups.rs"
+
 [dependencies]
-ace-core = { path = "../ace-core" }
+ace-app = { path = "../ace-app" }
 ace-mod-archive = { path = "../ace-mod-archive" }
 ace-mod-email = { path = "../ace-mod-email" }
 ace-mod-rdap = { path = "../ace-mod-rdap" }
 ace-mod-splunk = { path = "../ace-mod-splunk" }
 ace-mod-yara = { path = "../ace-mod-yara" }
-ace-pool = { path = "../ace-pool" }
-ace-results = { path = "../ace-results" }
-ace-sdk = { path = "../ace-sdk" }
-ace-store = { path = "../ace-store" }
-ace-yara = { path = "../ace-yara" }
-anyhow = "1.0.104"
-clap = { version = "4.6.7", features = ["derive"] }
-serde_json = "1.0.154"
-tempfile = "3.27.0"
-tokio = { version = "1.54.1", features = ["macros", "net", "rt-multi-thread", "signal"] }
-tokio-util = "0.7.20"
-tracing = "0.1.44"
 
 [lints]
 workspace = true

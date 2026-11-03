@@ -100,7 +100,7 @@ pub mod stubs {
     stub!(
         AlertAddedToEvent,
         "alert_added_to_event",
-        ObservableKind::ALL,
+        ObservableKind::BUILTIN,
         &[]
     );
 

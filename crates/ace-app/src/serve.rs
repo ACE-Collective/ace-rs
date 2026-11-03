@@ -6,7 +6,8 @@
 //! `ACE4_RULESET_POLL_SECONDS` (60).
 //!
 //! It reads `ACE4_DATABASE_URL`, the `ACE4_BUCKET_*` variables, the pools and their tokens
-//! (`ACE4_POOLS`, `ACE4_POOL_TOKEN_<POOL>`, see `ApiConfig::from_env`), the submit token
+//! (`ACE4_POOLS`, by default the binary's own; `ACE4_POOL_TOKEN_<POOL>`, see
+//! `ApiConfig::from_env`), the submit token
 //! (`ACE4_SUBMIT_TOKEN`), `ACE4_API_LISTEN`
 //! (default `0.0.0.0:8080`), `ACE4_CACHE_DIR` for the node's bucket cache, and the site overlay
 //! at `ACE4_OVERLAY` (`site`).
@@ -18,7 +19,6 @@ use ace_core::api::{Api, ApiConfig};
 use ace_core::bucket::{Bucket, BucketSettings};
 use ace_core::db::{Db, DbConfig};
 use ace_core::eligibility::Catalog;
-use ace_core::modes::Modes;
 use ace_core::orchestrator::Orchestrator;
 use ace_core::queue::run_reaper;
 use ace_core::rulesets::{SignatureRepo, run_builder};
@@ -26,23 +26,25 @@ use ace_store::{BucketConfig, DEFAULT_CACHE_MAX_BYTES, NodeCache, Store};
 use anyhow::{Context, Result};
 use tokio_util::sync::CancellationToken;
 
+use crate::App;
+
 /// How long `ace serve` waits at shutdown for open requests: a little over the longest a lease
 /// request waits.
 const SHUTDOWN_DEADLINE: Duration = Duration::from_secs(25);
 
-pub fn run(telemetry: &mut ace_pool::telemetry::Telemetry) -> Result<ExitCode> {
+pub fn run(app: &App, telemetry: &mut ace_pool::telemetry::Telemetry) -> Result<ExitCode> {
     telemetry.start_export().context("starting span export")?;
     let runtime = tokio::runtime::Builder::new_multi_thread()
         .enable_all()
         .build()
         .context("starting the runtime")?;
-    let code = runtime.block_on(serve());
+    let code = runtime.block_on(serve(app));
     // a ruleset compile still running on a blocking thread doesn't hold the exit up
     runtime.shutdown_timeout(Duration::from_secs(5));
     code
 }
 
-async fn serve() -> Result<ExitCode> {
+async fn serve(app: &App) -> Result<ExitCode> {
     let db = Db::connect(&DbConfig::from_env("ace")?)
         .await
         .context("connecting to Postgres")?;
@@ -57,10 +59,10 @@ async fn serve() -> Result<ExitCode> {
     );
     let bucket = Bucket::new(db.clone(), store, BucketSettings::default());
     let signatures = SignatureRepo::from_env();
-    let components = crate::site::components(&crate::site::registry(), &crate::site::overlay()?)?;
-    let orchestrator = Orchestrator::new(Catalog::of(components), Modes::ace3());
+    let components = crate::cli::components(&app.registry(), &crate::cli::overlay()?)?;
+    let orchestrator = Orchestrator::new(Catalog::of(components), app.modes());
     // a pool that lists a module leases its overlay instances too
-    let config = ApiConfig::from_env().with_instances(orchestrator.catalog());
+    let config = ApiConfig::from_env(&app.pool_list()).with_instances(orchestrator.catalog());
     for pool in &config.pools {
         tracing::info!(pool = %pool.name, modules = ?pool.modules, "serving a pool");
     }

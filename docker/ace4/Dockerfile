@@ -27,7 +27,7 @@ WORKDIR /src
 COPY . .
 RUN --mount=type=cache,id=ace4-images-registry,target=/usr/local/cargo/registry \
     --mount=type=cache,id=ace4-images-target,target=/src/target \
-    cargo build --release --locked -p ace -p ace-pools -p ace-testkit --bins \
+    cargo build --release --locked -p ace -p ace-testkit --bins \
     && mkdir -p /out \
     && cp target/release/ace target/release/ace-parsers target/release/ace-lookups \
         target/release/replay-server /out/

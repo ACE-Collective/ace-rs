@@ -2,7 +2,8 @@
 //!
 //! Each analysis type is listed by name and version, with the module that writes it and its
 //! schema. The list is plain data, built from `AnalysisTypeInfo::of::<T>()`, so finding a type or
-//! its module needs no instance (ace3 #827) and nothing registers at run time.
+//! its module needs no instance (ace3 #827) and nothing registers at run time. A binary's list is
+//! the output types of the modules it links, which their manifests name.
 
 use std::collections::BTreeMap;
 use std::fs;
@@ -16,16 +17,6 @@ use serde_json::{Value, json};
 
 use crate::envelope::{AnalysisType, ResultEnvelope};
 use crate::validate::{InvalidResult, ResultValidator};
-
-/// Every analysis type ace4 knows, in the order `ace schema export` writes them. Each ported
-/// module adds its types here.
-pub const BUILTIN: &[AnalysisTypeInfo] = &[
-    AnalysisTypeInfo::of::<crate::types::archive::ArchiveAnalysis>(),
-    AnalysisTypeInfo::of::<crate::types::email::EmailAnalysis>(),
-    AnalysisTypeInfo::of::<crate::types::rdap::RdapAnalysis>(),
-    AnalysisTypeInfo::of::<crate::types::splunk::SplunkApiAnalysis>(),
-    AnalysisTypeInfo::of::<crate::types::yara::YaraScanResults>(),
-];
 
 /// One analysis type: its name, version, module and schema.
 #[derive(Clone, Copy)]
@@ -145,15 +136,6 @@ impl Registry {
         Ok(Registry { types: by_key })
     }
 
-    /// The registry of `BUILTIN`.
-    pub fn builtin() -> &'static Registry {
-        static BUILTIN_REGISTRY: OnceLock<Registry> = OnceLock::new();
-        BUILTIN_REGISTRY.get_or_init(|| {
-            // a duplicate in BUILTIN is a bug that the builtin_registry_loads test catches
-            Registry::new(BUILTIN).unwrap_or_else(|e| panic!("BUILTIN is invalid: {e}"))
-        })
-    }
-
     pub fn get(&self, name: &str, version: u32) -> Option<&AnalysisTypeInfo> {
         self.entry(name, version).map(|entry| &entry.info)
     }
@@ -266,11 +248,6 @@ mod tests {
         const NAME: &'static str = "a";
         const VERSION: u32 = 3;
         const MODULE: &'static str = "module_b";
-    }
-
-    #[test]
-    fn builtin_registry_loads() {
-        assert_eq!(Registry::builtin().types().count(), BUILTIN.len());
     }
 
     #[test]

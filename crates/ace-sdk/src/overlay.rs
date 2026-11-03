@@ -486,10 +486,7 @@ mod tests {
         assert!(
             matches!(
                 err,
-                OverlayError::Input {
-                    kind: ObservableKind::File,
-                    ..
-                }
+                OverlayError::Input { kind, .. } if kind == ObservableKind::File
             ),
             "{err}"
         );
