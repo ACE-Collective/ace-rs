@@ -44,7 +44,8 @@ pub fn modules(settings: &Value) -> Result<Modules, SetupError> {
         .with_parser(Entry::<PanickingParser>::parser(
             block(PanickingParser::NAME),
             &secrets,
-        )?))
+        )?)
+        .with_parser(Entry::<Spin>::parser(block(Spin::NAME), &secrets)?))
 }
 
 /// The manifests of the test modules, for a core's catalog.
@@ -55,6 +56,7 @@ pub fn test_manifests() -> Vec<ace_sdk::Manifest> {
         ace_sdk::Manifest::lookup::<Connect>(),
         ace_sdk::Manifest::parser::<Capabilities>(),
         ace_sdk::Manifest::parser::<PanickingParser>(),
+        ace_sdk::Manifest::parser::<Spin>(),
     ]
 }
 
@@ -77,6 +79,7 @@ macro_rules! note_type {
 
 note_type!(CountedNote, "test_counted_note", "test_counted");
 note_type!(PanickyNote, "test_panicky_note", "test_panicky");
+note_type!(SpinNote, "test_spin_note", "test_spin");
 note_type!(ConnectNote, "test_connect_note", "test_connect");
 note_type!(
     CapabilitiesNote,
@@ -240,5 +243,40 @@ impl Module for PanickingParser {
 impl ace_sdk::Parser for PanickingParser {
     fn analyze(&self, ctx: &TaskContext<()>) -> Result<Outcome<PanickingNote>, ModuleError> {
         panic!("test_panicking_parser was given {}", ctx.observable().value);
+    }
+}
+
+/// A parser that never returns, once it has read the first byte of its file: a hung task. Its
+/// deadline is 2 seconds, well inside its CPU-time limit, so the deadline is what stops it.
+pub struct Spin;
+
+impl Module for Spin {
+    const NAME: &'static str = "test_spin";
+    const INPUTS: &'static [ObservableKind] = &[ObservableKind::File];
+    const RESOURCES: ace_sdk::Resources = ace_sdk::Resources {
+        timeout: Duration::from_secs(2),
+        memory_mb: 1024,
+        cpu_seconds: 120,
+    };
+    type Output = SpinNote;
+    type Settings = ();
+
+    fn init(_: &()) -> Result<Self, ModuleError> {
+        Ok(Spin)
+    }
+}
+
+impl ace_sdk::Parser for Spin {
+    fn analyze(&self, ctx: &TaskContext<()>) -> Result<Outcome<SpinNote>, ModuleError> {
+        let file = ctx.input_file()?;
+        let first = std::fs::read(&file.local_path)?.first().copied();
+        eprintln!(
+            "test_spin: spinning on {} (first byte {first:?})",
+            file.sha256
+        );
+        loop {
+            std::hint::black_box(first);
+            std::hint::spin_loop();
+        }
     }
 }

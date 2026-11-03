@@ -290,3 +290,21 @@ impl Drop for PoolProcess {
         self.stop();
     }
 }
+
+/// Queues a task for `module` on the root's observable with this value, committed.
+pub async fn enqueue(core: &Core, root: Uuid, value: &str, module: &str) {
+    let db = core.test_db.db();
+    let observable: i64 =
+        sqlx::query_scalar("SELECT id FROM analysis.observables WHERE root_id = $1 AND value = $2")
+            .bind(root)
+            .bind(value)
+            .fetch_one(db.pool())
+            .await
+            .expect("the observable");
+    let mut tx = db.begin().await.expect("begins");
+    ace_core::queue::enqueue(&mut tx, root, ObservableId(observable), module)
+        .await
+        .expect("queues")
+        .expect("a new task");
+    tx.commit().await.expect("commits");
+}

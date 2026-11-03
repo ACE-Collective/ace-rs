@@ -11,7 +11,8 @@
 //! The task process's exit code says which side failed (#847): 0 and 20 put the task's end on
 //! stdout (20 when the module failed), 10 is a setup failure before the module ran, 101 is a
 //! panic, and a signal is a crash or a limit, such as SIGSYS for a blocked call or SIGXCPU for
-//! the CPU-time limit.
+//! the CPU-time limit. A task process still running at its module's deadline is killed and its
+//! task fails; the task's row keeps its error and the hashes of its inputs (PLAN.md 2.19).
 
 use std::os::unix::fs::PermissionsExt;
 use std::os::unix::process::ExitStatusExt;
@@ -221,7 +222,8 @@ pub async fn run_task_process(
         outputs: dir.outputs(),
         profile,
     };
-    let end = match run_process(config, &request, keeper.token()).await {
+    let end = match run_process(config, &request, keeper.token(), manifest.resources.timeout).await
+    {
         Ok(end) => end,
         Err(e) => TaskEnd::Failed {
             error: format!("the task process didn't run: {e}"),
@@ -250,11 +252,13 @@ fn open_to_task_user(
 }
 
 /// Starts the task process, hands it the request and reads how the task ended. Cancelling
-/// `cancel` kills it.
+/// `cancel` kills it, and so does running past `deadline` (PLAN.md 2.19), which fails the task;
+/// the task's row keeps its input hashes for replay.
 async fn run_process(
     config: &SupervisorConfig,
     request: &TaskRequest,
     cancel: &CancellationToken,
+    deadline: Duration,
 ) -> std::io::Result<TaskEnd> {
     let mut command = tokio::process::Command::new(&config.program);
     command
@@ -290,25 +294,49 @@ async fn run_process(
         let mut err = Vec::new();
         stderr.read_to_end(&mut err).await.map(|_| err)
     });
-    let status = tokio::select! {
-        status = child.wait() => status?,
+    // one thread and no children, so a kill ends all of it
+    enum Ended {
+        Exited(ExitStatus),
+        Cancelled,
+        PastDeadline,
+    }
+    let ended = tokio::select! {
+        status = child.wait() => Ended::Exited(status?),
         () = cancel.cancelled() => {
-            // one thread and no children, so the kill ends all of it
             child.kill().await?;
-            return Ok(TaskEnd::Cancelled);
+            Ended::Cancelled
+        }
+        () = tokio::time::sleep(deadline) => {
+            child.kill().await?;
+            tracing::error!(task = id, ?deadline, "killed the task process at its deadline");
+            Ended::PastDeadline
         }
     };
     // a task process that died early may never have read its request
     if let Ok(Err(e)) = writer.await {
         tracing::debug!("writing the task's request: {e}");
     }
+    // the pipes close when the process dies, so these end too
     let stdout = reader.await.map_err(std::io::Error::other)??;
     let stderr = errors.await.map_err(std::io::Error::other)??;
     let stderr = String::from_utf8_lossy(&stderr);
     for line in stderr.lines() {
         tracing::info!(task = id, "task process: {line}");
     }
-    Ok(end_of(status, &stdout, &stderr))
+    Ok(match ended {
+        Ended::Exited(status) => end_of(status, &stdout, &stderr),
+        Ended::Cancelled => TaskEnd::Cancelled,
+        Ended::PastDeadline => TaskEnd::Failed {
+            error: format!(
+                "the task process ran past its deadline of {} and was killed",
+                seconds(deadline)
+            ),
+        },
+    })
+}
+
+fn seconds(duration: Duration) -> String {
+    format!("{}s", duration.as_secs_f64())
 }
 
 /// How a task ended, from its process's exit status and output.
