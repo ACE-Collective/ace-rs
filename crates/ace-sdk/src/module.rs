@@ -40,6 +40,10 @@ pub trait Module: Sized + Send + Sync + 'static {
     /// The names of the secrets the module reads. The task context gives it these and no others.
     const SECRETS: &'static [&'static str] = &[];
     const RESOURCES: Resources = Resources::DEFAULT;
+    /// True for a module that does nothing until a site configures it, such as the Splunk
+    /// module, which needs its query: it runs only as the site overlay's named instances
+    /// (PLAN.md 2.23), never as itself on its defaults.
+    const INSTANCES_ONLY: bool = false;
 
     /// The analysis type the module writes.
     type Output: AnalysisType;

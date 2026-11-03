@@ -58,9 +58,11 @@ impl SignatureRepo {
 
     /// The repository in `ACE4_SIGNATURES_REPO`, with `ACE4_SIGNATURES_REV` and
     /// `ACE4_SIGNATURES_DIR` overriding the revision and the directory. None when the first
-    /// isn't set.
+    /// isn't set or is empty.
     pub fn from_env() -> Option<Self> {
-        let mut repo = SignatureRepo::new(std::env::var_os("ACE4_SIGNATURES_REPO")?);
+        // set but empty is unset, as Compose's ${VAR:+...} leaves it when no repository is given
+        let repo = std::env::var_os("ACE4_SIGNATURES_REPO").filter(|repo| !repo.is_empty())?;
+        let mut repo = SignatureRepo::new(repo);
         if let Ok(rev) = std::env::var("ACE4_SIGNATURES_REV") {
             repo.rev = rev;
         }

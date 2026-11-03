@@ -1,0 +1,8 @@
+# The image builds (docker/ace4/Dockerfile) need the workspace's sources and nothing else.
+target/
+.git/
+samples/
+docs/
+tests/
+.claude/
+**/.DS_Store

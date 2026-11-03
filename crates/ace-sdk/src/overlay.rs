@@ -219,7 +219,23 @@ impl Overlay {
         }
         let mut components = Vec::new();
         for &manifest in manifests {
-            let Some(section) = self.modules.get(manifest.name) else {
+            let section = self.modules.get(manifest.name);
+            if manifest.instances_only && section.is_none_or(|s| s.instances.is_empty()) {
+                if section.is_some_and(|s| s.settings.is_some()) {
+                    return Err(OverlayError::Parse {
+                        path: format!("modules.{}.settings", manifest.name),
+                        message: "this module runs only as named instances, each with its own \
+                                  settings"
+                            .into(),
+                    });
+                }
+                tracing::info!(
+                    module = manifest.name,
+                    "the overlay names no instance of this module, so it doesn't run"
+                );
+                continue;
+            }
+            let Some(section) = section else {
                 components.push(Component::of(manifest));
                 continue;
             };
@@ -425,6 +441,23 @@ mod tests {
         assert!(logs.contains("WARN"), "{logs}");
         assert!(logs.contains("module=pdf_parser_v1"), "{logs}");
         assert!(logs.contains("doesn't have"), "{logs}");
+    }
+
+    /// A module that needs a site's settings to do anything, as the Splunk module needs its
+    /// query, runs only as named instances: with none, it isn't a component at all.
+    #[test]
+    fn an_instances_only_module_runs_only_as_its_instances() {
+        let mut resolver = RESOLVER;
+        resolver.instances_only = true;
+        let manifests = [LINE_COUNTER, resolver];
+        let of = |yaml: &str| Overlay::from_yaml(yaml).and_then(|o| o.components(&manifests));
+        assert_eq!(keys(&of("").expect("loads")), ["example_line_counter"]);
+        assert_eq!(
+            keys(&of("modules: {example_resolver: {instances: {a: {}}}}").expect("loads")),
+            ["example_line_counter", "a"]
+        );
+        let err = of("modules: {example_resolver: {settings: {delays: 1}}}").unwrap_err();
+        assert!(err.to_string().contains("only as named instances"), "{err}");
     }
 
     #[test]

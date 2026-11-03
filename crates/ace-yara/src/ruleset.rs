@@ -319,11 +319,16 @@ fn git(dir: &Path, args: &[&str]) -> Option<String> {
 }
 
 /// Runs git in `dir` with fsmonitor off and returns its stdout, or its stderr as the error.
+///
+/// Every repository is a safe directory here: the core reads a signatures checkout that another
+/// user owns, such as one bind-mounted into its container, and git refuses a repository owned by
+/// someone else unless told otherwise. The calls only read, and fsmonitor, the one setting that
+/// would run a program the repository names, is off.
 fn git_bytes(dir: &Path, args: &[&OsStr]) -> Result<Vec<u8>, BuildError> {
     let output = Command::new("git")
         .arg("-C")
         .arg(dir)
-        .args(["-c", "core.fsmonitor=false"])
+        .args(["-c", "core.fsmonitor=false", "-c", "safe.directory=*"])
         .args(args)
         .stdin(Stdio::null())
         .output()

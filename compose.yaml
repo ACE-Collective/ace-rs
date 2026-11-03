@@ -178,6 +178,123 @@ services:
       start_period: 20s
       retries: 5
 
+  # The core (PLAN.md 2.29): `ace serve`, with the lease API, the submit endpoint, the reaper,
+  # the QA recorder and, when ACE4_SIGNATURES names a signatures checkout on the host, the
+  # ruleset builder. Its API is on the stack's one fixed host port, ACE4_PORT_HTTPS, over plain
+  # HTTP for now. It reads the site overlay from ACE4_SITE's overlay.yaml.
+  ace:
+    build:
+      context: .
+      dockerfile: docker/ace4/Dockerfile
+      target: ace
+    image: ace4-ace:latest
+    depends_on:
+      stack-guard:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      bucket:
+        condition: service_healthy
+    environment:
+      ACE4_DATABASE_URL: postgres://${ACE4_POSTGRES_USER:-ace4}:${ACE4_POSTGRES_PASSWORD:-ace4-dev-password}@postgres:5432/${ACE4_POSTGRES_DB:-ace4}
+      ACE4_BUCKET_ENDPOINT: http://bucket:8333
+      ACE4_BUCKET_NAME: ${ACE4_BUCKET_NAME:-ace4}
+      ACE4_BUCKET_ACCESS_KEY: ${ACE4_BUCKET_ACCESS_KEY:-ace4-dev}
+      ACE4_BUCKET_SECRET_KEY: ${ACE4_BUCKET_SECRET_KEY:-ace4-dev-secret}
+      ACE4_API_LISTEN: 0.0.0.0:8080
+      ACE4_OVERLAY: /etc/ace4/overlay.yaml
+      # set only when ACE4_SIGNATURES names a checkout; without one nothing builds rulesets
+      ACE4_SIGNATURES_REPO: ${ACE4_SIGNATURES:+/signatures}
+      ACE4_RULESET_POLL_SECONDS: ${ACE4_RULESET_POLL_SECONDS:-60}
+      ACE4_LEASE_SECONDS: ${ACE4_LEASE_SECONDS:-60}
+      ACE4_POOL_TOKEN_PARSERS: ${ACE4_POOL_TOKEN_PARSERS:-ace4-dev-parsers-token}
+      ACE4_POOL_TOKEN_LOOKUPS: ${ACE4_POOL_TOKEN_LOOKUPS:-ace4-dev-lookups-token}
+      ACE4_ADMIN_TOKEN: ${ACE4_ADMIN_TOKEN:-ace4-dev-admin-token}
+      ACE4_SUBMIT_TOKEN: ${ACE4_SUBMIT_TOKEN:-ace4-dev-submit-token}
+      ACE4_LOG: ${ACE4_LOG:-info}
+      NO_PROXY: localhost,127.0.0.1,postgres,bucket,collector
+      no_proxy: localhost,127.0.0.1,postgres,bucket,collector
+    volumes:
+      - ${ACE4_SITE:-./docker/site}:/etc/ace4:ro
+      # read-only; the builder reads the checkout's git objects and changes nothing
+      - ${ACE4_SIGNATURES:-./docker/site}:/signatures:ro
+    ports:
+      - "${ACE4_BIND_ADDRESS:-127.0.0.1}:${ACE4_PORT_HTTPS:-7443}:8080"
+    mem_limit: ${ACE4_ACE_MEM_LIMIT:-1g}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1:8080/healthz"]
+      interval: 5s
+      timeout: 5s
+      start_period: 30s
+      retries: 5
+
+  # The parser pool: the email, archive and YARA modules, one contained process per task, as
+  # the ace4-task user. It leases nothing until the core's first YARA ruleset has loaded.
+  parsers:
+    build:
+      context: .
+      dockerfile: docker/ace4/Dockerfile
+      target: parsers
+    image: ace4-parsers:latest
+    depends_on:
+      ace:
+        condition: service_healthy
+    init: true
+    environment:
+      ACE4_API_URL: http://ace:8080
+      ACE4_POOL_TOKEN: ${ACE4_POOL_TOKEN_PARSERS:-ace4-dev-parsers-token}
+      ACE4_OVERLAY: /etc/ace4/overlay.yaml
+      ACE4_CONCURRENCY: ${ACE4_PARSERS_CONCURRENCY:-4}
+      ACE4_RULESET_POLL_SECONDS: ${ACE4_POOL_RULESET_POLL_SECONDS:-30}
+      ACE4_LOG: ${ACE4_LOG:-info}
+      NO_PROXY: localhost,127.0.0.1,ace,bucket,collector
+      no_proxy: localhost,127.0.0.1,ace,bucket,collector
+    volumes:
+      - ${ACE4_SITE:-./docker/site}:/etc/ace4:ro
+    mem_limit: ${ACE4_PARSERS_MEM_LIMIT:-4g}
+    restart: unless-stopped
+    healthcheck:
+      # the pool writes this file every 5 seconds while its runtime runs
+      test: ["CMD-SHELL", "test -n \"$$(find /tmp/ace4-health -newermt '-20 seconds')\""]
+      interval: 5s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+
+  # The network pool: the RDAP and Splunk modules as async tasks in one contained process. A
+  # secret its modules declare comes from where the overlay's secrets: section says, such as
+  # ACE4_SPLUNK_PASSWORD.
+  lookups:
+    build:
+      context: .
+      dockerfile: docker/ace4/Dockerfile
+      target: lookups
+    image: ace4-lookups:latest
+    depends_on:
+      ace:
+        condition: service_healthy
+    init: true
+    environment:
+      ACE4_API_URL: http://ace:8080
+      ACE4_POOL_TOKEN: ${ACE4_POOL_TOKEN_LOOKUPS:-ace4-dev-lookups-token}
+      ACE4_OVERLAY: /etc/ace4/overlay.yaml
+      ACE4_CONCURRENCY: ${ACE4_LOOKUPS_CONCURRENCY:-16}
+      ACE4_SPLUNK_PASSWORD: ${ACE4_SPLUNK_PASSWORD:-}
+      ACE4_LOG: ${ACE4_LOG:-info}
+      NO_PROXY: localhost,127.0.0.1,ace,collector,responder
+      no_proxy: localhost,127.0.0.1,ace,collector,responder
+    volumes:
+      - ${ACE4_SITE:-./docker/site}:/etc/ace4:ro
+    mem_limit: ${ACE4_LOOKUPS_MEM_LIMIT:-1g}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "test -n \"$$(find /tmp/ace4-health -newermt '-20 seconds')\""]
+      interval: 5s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+
 volumes:
   postgres-data:
   bucket-data:

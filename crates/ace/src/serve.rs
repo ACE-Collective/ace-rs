@@ -59,7 +59,8 @@ async fn serve() -> Result<ExitCode> {
     let signatures = SignatureRepo::from_env();
     let components = crate::site::components(&crate::site::registry(), &crate::site::overlay()?)?;
     let orchestrator = Orchestrator::new(Catalog::of(components), Modes::ace3());
-    let config = ApiConfig::from_env();
+    // a pool that lists a module leases its overlay instances too
+    let config = ApiConfig::from_env().with_instances(orchestrator.catalog());
     for pool in &config.pools {
         tracing::info!(pool = %pool.name, modules = ?pool.modules, "serving a pool");
     }
@@ -97,9 +98,8 @@ async fn serve() -> Result<ExitCode> {
     let server = tokio::spawn(ace_core::api::serve(listener, api, async move {
         stopping.cancelled().await;
     }));
-    if let Err(e) = tokio::signal::ctrl_c().await {
-        tracing::error!("waiting for a signal failed: {e}");
-    }
+    // Compose and Docker stop a container with SIGTERM, a terminal with SIGINT
+    wait_for_stop().await;
     stopping_api.shut_down();
     stop.cancel();
     // a lease request may wait up to its limit for a task; shutdown waits no longer than this
@@ -129,4 +129,24 @@ async fn serve() -> Result<ExitCode> {
         tracing::warn!("the ruleset builder didn't stop within 5 seconds");
     }
     Ok(ExitCode::SUCCESS)
+}
+
+/// Returns at SIGTERM or SIGINT.
+async fn wait_for_stop() {
+    use tokio::signal::unix::{SignalKind, signal};
+    match signal(SignalKind::terminate()) {
+        Ok(mut terminate) => {
+            tokio::select! {
+                _ = terminate.recv() => {}
+                _ = tokio::signal::ctrl_c() => {}
+            }
+        }
+        Err(e) => {
+            tracing::error!("no SIGTERM handler: {e}");
+            if let Err(e) = tokio::signal::ctrl_c().await {
+                tracing::error!("waiting for a signal failed: {e}");
+            }
+        }
+    }
+    tracing::info!("stopping");
 }

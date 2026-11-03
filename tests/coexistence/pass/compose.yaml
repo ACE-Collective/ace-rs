@@ -1,5 +1,6 @@
 # Uses each thing the rules allow: an ACE4_ port, an ephemeral port, an ace4-* image
-# that's built here, and a volume and a network named by Compose.
+# that's built here, a volume and a network named by Compose, a mem_limit, and a one-shot
+# service that needs none.
 name: ${ACE4_STACK:-ace4}
 services:
   web:
@@ -13,6 +14,10 @@ services:
     volumes:
       - data:/data
     networks: [inner]
+    mem_limit: 256m
+  setup:
+    image: alpine:3.24.2
+    restart: "no"
 volumes:
   data:
 networks:

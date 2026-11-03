@@ -1,7 +1,7 @@
 //! PLAN.md 2.28's Done check: a submission through the lease API's submit endpoint creates a
 //! root in its mode with its observables and files, each file is in the bucket held by the root,
 //! and the root's first tasks are queued. A request without the submit token, or with a mode
-//! that doesn't exist, writes nothing.
+//! that doesn't exist, writes nothing. The same server answers the stack's healthcheck (2.29).
 
 use std::path::Path;
 use std::time::Duration;
@@ -304,4 +304,13 @@ async fn a_submission_without_a_mode_gets_the_default_mode() {
             .await
             .expect("the tasks");
     assert_eq!(tasks, ["rdap_analyzer"]);
+}
+
+#[tokio::test]
+async fn the_health_endpoint_answers_without_a_token() {
+    let server = server().await;
+    let response = reqwest::get(format!("{}/healthz", server.url))
+        .await
+        .expect("answers");
+    assert_eq!(response.status(), 200);
 }

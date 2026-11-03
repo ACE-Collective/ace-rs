@@ -11,7 +11,7 @@ use std::path::Path;
 use std::process::Command;
 use std::time::Duration;
 
-use ace_yara::ruleset::{Manifest, build};
+use ace_yara::ruleset::{Manifest, build, build_commit, resolve_commit};
 use ace_yara::{LoadOptions, Ruleset, ScanRequest, Scanner};
 use common::fixture;
 
@@ -221,4 +221,50 @@ fn a_ruleset_loaded_from_its_bytes_scans_like_the_one_built() {
     };
     let outcome = Scanner::new(&loaded).scan(&untagged).unwrap();
     assert!(outcome.dropped.iter().any(|m| m.rule == "one_a"));
+}
+
+/// Owns every file under `path` by `uid`.
+fn chown_all(path: &Path, uid: u32) {
+    std::os::unix::fs::lchown(path, Some(uid), Some(uid)).unwrap();
+    if path.is_dir() && !path.is_symlink() {
+        for entry in std::fs::read_dir(path).unwrap() {
+            chown_all(&entry.unwrap().path(), uid);
+        }
+    }
+}
+
+/// A checkout owned by another user, as one bind-mounted into the core's container is, still
+/// builds; git refuses such a repository unless it is a safe directory. Only root can give the
+/// checkout away, so the test is skipped elsewhere.
+#[test]
+fn a_checkout_another_user_owns_builds() {
+    use std::os::unix::fs::MetadataExt;
+    let temp = tempfile::tempdir().unwrap();
+    // the new directory is owned by this process's user
+    if std::fs::metadata(temp.path()).unwrap().uid() != 0 {
+        eprintln!("skipped: only root can give the checkout to another user");
+        return;
+    }
+    let repo = temp.path().join("repo");
+    let commit = repository(&repo);
+    chown_all(&repo, 10_002);
+    let refused = Command::new("git")
+        .arg("-C")
+        .arg(&repo)
+        .args(["rev-parse", "HEAD"])
+        .output()
+        .unwrap();
+    assert!(
+        String::from_utf8_lossy(&refused.stderr).contains("dubious ownership"),
+        "plain git refuses the checkout: {refused:?}"
+    );
+    assert_eq!(resolve_commit(&repo, "HEAD").unwrap(), commit);
+    let built = build_commit(
+        &repo,
+        &commit,
+        Path::new("signatures"),
+        &LoadOptions::default(),
+    )
+    .expect("builds");
+    assert_eq!(built.manifest.commit.as_deref(), Some(commit.as_str()));
 }

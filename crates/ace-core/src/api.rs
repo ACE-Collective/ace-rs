@@ -21,6 +21,8 @@
 //!   URL, for `ace task replay`. It takes the admin token, and takes no lease.
 //! - `POST /api/analysis/v1/submit`: a submission (PLAN.md 2.28, `crate::submit`), with the
 //!   submit token. It answers 201 with the new root's uuid and the tasks it queued.
+//! - `GET /healthz`: 200 when the database answers, for the stack's healthcheck. It takes no
+//!   token.
 //!
 //! Every request carries `Authorization: Bearer <token>`, and the token says which pool the
 //! worker is in. A task-scoped request also names the worker in `x-ace4-worker`. A task's lease
@@ -139,7 +141,7 @@ impl ApiConfig {
 
     /// The pools in `ACE4_POOLS`, as `<pool>:<module>,<module>;<pool>:...`, each with the
     /// token in `ACE4_POOL_TOKEN_<POOL>`, the admin token in `ACE4_ADMIN_TOKEN` and the submit
-    /// token in `ACE4_SUBMIT_TOKEN`. Each has a
+    /// token in `ACE4_SUBMIT_TOKEN`, and the lease's length in `ACE4_LEASE_SECONDS` (60). Each has a
     /// dev default: the parsers and lookups pools with the five ported modules, and tokens
     /// named `ace4-dev-<pool>-token`.
     pub fn from_env() -> Self {
@@ -166,9 +168,31 @@ impl ApiConfig {
             std::env::var("ACE4_ADMIN_TOKEN").unwrap_or_else(|_| "ace4-dev-admin-token".to_owned());
         let submit = std::env::var("ACE4_SUBMIT_TOKEN")
             .unwrap_or_else(|_| "ace4-dev-submit-token".to_owned());
-        ApiConfig::new(pools)
+        let mut config = ApiConfig::new(pools)
             .admin_token(&admin)
-            .submit_token(&submit)
+            .submit_token(&submit);
+        if let Some(seconds) = std::env::var("ACE4_LEASE_SECONDS")
+            .ok()
+            .and_then(|s| s.parse::<u64>().ok())
+        {
+            config = config.lease(Duration::from_secs(seconds));
+        }
+        config
+    }
+
+    /// Lets each pool lease every instance of a module it lists (PLAN.md 2.23): a pool's list in
+    /// `ACE4_POOLS` names module types, and an instance's tasks carry the instance's key.
+    pub fn with_instances(mut self, catalog: &crate::eligibility::Catalog) -> Self {
+        for pool in &mut self.pools {
+            for component in catalog.iter() {
+                if pool.modules.iter().any(|m| m == component.manifest.name)
+                    && !pool.modules.contains(&component.key)
+                {
+                    pool.modules.push(component.key.clone());
+                }
+            }
+        }
+        self
     }
 }
 
@@ -258,6 +282,7 @@ impl Api {
             .route("/api/worker/v1/tasks/{id}/release", post(release))
             .route(paths::RULESET, get(current_ruleset))
             .route("/api/admin/v1/tasks/{id}/replay", get(replay))
+            .route("/healthz", get(health))
             .route(
                 "/api/analysis/v1/submit",
                 post(submit).layer(axum::extract::DefaultBodyLimit::max(
@@ -798,6 +823,15 @@ async fn submit(
     }
 }
 
+/// 200 when the database answers, for the stack's healthcheck.
+async fn health(State(api): State<Api>) -> Result<StatusCode, Failure> {
+    sqlx::query("SELECT 1")
+        .execute(api.inner.db.pool())
+        .await
+        .map_err(|e| Failure::Unavailable(format!("the database: {e}")))?;
+    Ok(StatusCode::OK)
+}
+
 /// Why a request failed, as the status and body the worker gets.
 #[derive(Debug)]
 pub enum Failure {
@@ -904,4 +938,37 @@ pub async fn serve(
     axum::serve(listener, api.router())
         .with_graceful_shutdown(shutdown)
         .await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::eligibility::Catalog;
+
+    /// A pool that lists a module leases the overlay's instances of it, which `ace serve`
+    /// couldn't before: the default `ACE4_POOLS` names `splunk_api`, and an instance's tasks
+    /// carry the instance's key.
+    #[test]
+    fn a_pool_leases_the_instances_of_its_modules() {
+        let overlay = ace_sdk::Overlay::from_yaml(
+            "modules:\n  splunk_api:\n    instances:\n      clicker_detection_splunk:\n        inputs: [fqdn]\n",
+        )
+        .expect("reads");
+        let manifests = [ace_mod_splunk::MANIFEST, ace_mod_rdap::MANIFEST];
+        let catalog = Catalog::of(overlay.components(&manifests).expect("components"));
+        let config = ApiConfig::new(vec![
+            PoolAccess::new(
+                "lookups",
+                "a",
+                vec!["rdap_analyzer".to_owned(), "splunk_api".to_owned()],
+            ),
+            PoolAccess::new("parsers", "b", vec!["email_analyzer".to_owned()]),
+        ])
+        .with_instances(&catalog);
+        assert_eq!(
+            config.pools[0].modules,
+            ["rdap_analyzer", "splunk_api", "clicker_detection_splunk"]
+        );
+        assert_eq!(config.pools[1].modules, ["email_analyzer"]);
+    }
 }

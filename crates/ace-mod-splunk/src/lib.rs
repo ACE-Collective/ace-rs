@@ -140,6 +140,9 @@ impl Module for SplunkAnalyzer {
     /// Every type: `valid_observable_types` narrows it, as in ace3.
     const INPUTS: &'static [ObservableKind] = ObservableKind::ALL;
     const SECRETS: &'static [&'static str] = &[PASSWORD, TOKEN];
+    /// A search needs its query, so the module runs only as the overlay's instances, as ace3's
+    /// `SplunkAPIAnalyzer` runs only as its configured sections.
+    const INSTANCES_ONLY: bool = true;
     const RESOURCES: Resources = Resources {
         timeout: Duration::from_secs(120),
         ..Resources::DEFAULT

@@ -200,6 +200,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "ace-pools"
+version = "0.1.0"
+dependencies = [
+ "ace-mod-archive",
+ "ace-mod-email",
+ "ace-mod-rdap",
+ "ace-mod-splunk",
+ "ace-mod-yara",
+ "ace-pool",
+ "ace-sdk",
+ "serde_json",
+ "tokio",
+ "tokio-util",
+ "tracing",
+]
+
+[[package]]
 name = "ace-results"
 version = "0.1.0"
 dependencies = [

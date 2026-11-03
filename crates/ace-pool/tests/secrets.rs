@@ -84,8 +84,10 @@ async fn a_pool_resolves_only_the_secrets_its_modules_declare() {
     let overlay = Overlay::from_yaml(&format!(
         "modules:
   splunk_api:
-    settings:
-      query: index=proxy hostname=\"<O_VALUE>\"
+    instances:
+      proxy_domain_lookup:
+        settings:
+          query: index=proxy hostname=\"<O_VALUE>\"
 secrets:
   resolver_token: env:ACE4_TEST_RESOLVER_TOKEN
   splunk_password: env:ACE4_TEST_SPLUNK_PASSWORD
@@ -132,7 +134,7 @@ secrets:
         splunk.log
     );
     assert!(!splunk.log.contains("resolver"), "{}", splunk.log);
-    assert!(splunk.modules.lookup("splunk_api").is_some());
+    assert!(splunk.modules.lookup("proxy_domain_lookup").is_some());
 
     // a declared secret with no source is a warning, and the pool still starts
     let bare = start(

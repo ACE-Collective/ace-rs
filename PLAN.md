@@ -36,6 +36,7 @@ Each crate is added by the step in the last column.
 | `ace-core` | schema, queue, eligibility, lease API, submissions | 2.2 |
 | `ace-store` | the content-addressed bucket client and node cache | 2.5 |
 | `ace-pool` | the pool runtime: lease loop, task supervisor, containment | 2.16 |
+| `ace-pools` | the open-source pool binaries, `ace-parsers` and `ace-lookups`, until 2.31 builds them over `ace-app` | 2.29 |
 | `ace-app` | builds the `ace` and pool binaries from a list of crates, here and in site repositories | 2.31 |
 | `ace-service` | the service layer: actors, permissions, audit | 5.1 |
 | `ace-api` | the JSON adapter | 5.5 |
@@ -169,7 +170,7 @@ The goal is to run the five phase 1 modules end to end from a submission.
 ### End to end
 
 - [x] **2.28 Submissions.** An endpoint that creates a root with its observables, files and analysis mode, and queues its first tasks. Done when a submitted file is in the bucket and its tasks are queued.
-- [ ] **2.29 Compose stack.** `postgres`, `bucket`, `ace`, a Rust parser pool and a network pool. Done when `docker compose up` brings every service up healthy while ace3's stack is running, and 0.6's check passes.
+- [x] **2.29 Compose stack.** `postgres`, `bucket`, `ace`, a Rust parser pool and a network pool. Done when `docker compose up` brings every service up healthy while ace3's stack is running, and 0.6's check passes.
 - [ ] **2.30 End-to-end test.** Submit an email with a domain in its headers and a zip attachment that a fixture YARA rule matches only through its `meta_tags`. Done when the email, archive, YARA, RDAP and delayed modules all have results, the root completes, killing the parser pool mid-run only delays completion, and the test runs in CI.
 
 ### Building outside this workspace

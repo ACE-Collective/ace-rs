@@ -10,6 +10,8 @@ Reads `docker compose config --format json` and fails on anything PLAN.md's
 - a container_name
 - an explicitly named or external volume or network
 - the fluentd log driver
+- a long-running service without a mem_limit, since both stacks share one Docker VM's memory
+  (a one-shot service, with restart: "no", may go without)
 
 Usage: bin/check-coexistence [docker compose options]
 
@@ -134,6 +136,12 @@ def check(config, raw, probe):
             problems.append(
                 f"{where}: container_name {service['container_name']!r} is set; let Compose "
                 "derive it from the project name"
+            )
+
+        if service.get("restart") != "no" and not service.get("mem_limit"):
+            problems.append(
+                f"{where}: no mem_limit; ace4 shares the Docker VM's memory with ace3, so every "
+                "long-running service sets one"
             )
 
         driver = service.get("logging", {}).get("driver")

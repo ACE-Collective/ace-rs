@@ -75,6 +75,8 @@ pub struct Manifest {
     pub resources: Resources,
     pub sandbox: Sandbox,
     pub secrets: &'static [&'static str],
+    /// The module runs only as named instances (`Module::INSTANCES_ONLY`).
+    pub instances_only: bool,
     settings_schema: fn() -> Schema,
     check_settings: fn(Option<&Value>) -> Result<(), SettingsError>,
 }
@@ -104,6 +106,7 @@ impl Manifest {
             resources: M::RESOURCES,
             sandbox,
             secrets: M::SECRETS,
+            instances_only: M::INSTANCES_ONLY,
             settings_schema: settings_schema::<M::Settings>,
             check_settings: check_settings::<M::Settings>,
         }
