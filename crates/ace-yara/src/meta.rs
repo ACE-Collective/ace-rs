@@ -79,6 +79,24 @@ impl Meta {
         }))
     }
 
+    /// The meta a scan result recorded as JSON (its `Serialize` form), as the core reads it
+    /// back. A value of another JSON kind is left out.
+    pub fn from_json(object: &serde_json::Map<String, serde_json::Value>) -> Self {
+        use serde_json::Value;
+        Self::from_pairs(object.iter().filter_map(|(key, value)| {
+            let value = match value {
+                Value::String(s) => MetaValue::Str(s.clone()),
+                Value::Bool(b) => MetaValue::Bool(*b),
+                Value::Number(n) => match n.as_i64() {
+                    Some(i) => MetaValue::Int(i),
+                    None => MetaValue::Float(n.as_f64()?),
+                },
+                _ => return None,
+            };
+            Some((key.clone(), value))
+        }))
+    }
+
     pub fn get(&self, key: &str) -> Option<&MetaValue> {
         self.0.iter().find(|(k, _)| k == key).map(|(_, v)| v)
     }

@@ -1,0 +1,38 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO yara.qa_matches AS q\n                     (signature_uuid, signature_version, rule, namespace, ruleset, sha256,\n                      file_path, root_id, observable_id, match, expires_at)\n                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)\n                 ON CONFLICT (signature_uuid, signature_version, sha256) DO UPDATE\n                 SET hit_count = q.hit_count + 1, last_seen = now(),\n                     expires_at = EXCLUDED.expires_at, rule = EXCLUDED.rule,\n                     namespace = EXCLUDED.namespace, file_path = EXCLUDED.file_path,\n                     root_id = EXCLUDED.root_id, observable_id = EXCLUDED.observable_id,\n                     match = EXCLUDED.match\n                 RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "yara.qa_matches",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Uuid",
+        "Int8",
+        "Jsonb",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "3a7f7b66443852dddb84530adaed61fd469e5edf0592488e454eb00af81e7016"
+}

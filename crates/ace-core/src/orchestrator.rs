@@ -61,7 +61,8 @@ pub enum Scope<'a> {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Landed {
     pub result: ResultId,
-    /// Tasks queued because the result made them eligible.
+    /// Tasks queued because the result made them eligible, and its QA task if it has QA
+    /// matches.
     pub queued: Vec<TaskId>,
     /// The mode the root changed to, when a detection made it an alert.
     pub mode_changed_to: Option<String>,
@@ -392,6 +393,13 @@ impl Orchestrator {
                 mode_changed_to: None,
             });
         }
+        // a QA rule's match never alerts; a task of the core's records it (PLAN.md 2.27)
+        let mut qa_task = Vec::new();
+        if !crate::yara_qa::qa_matches(result).is_empty()
+            && let Some(id) = queue::enqueue(tx, root, analyzed, crate::yara_qa::QA_MODULE).await?
+        {
+            qa_task.push(id);
+        }
         if !detections.is_empty() && self.modes.is_detectable(&mode) {
             sqlx::query!(
                 "UPDATE analysis.roots SET alerted_at = COALESCE(alerted_at, now()) WHERE id = $1",
@@ -400,7 +408,8 @@ impl Orchestrator {
             .execute(tx.conn())
             .await?;
             tracing::info!(%root, from = %mode, "a detection made the root an alert");
-            let queued = self.set_mode(tx, root, CORRELATION).await?;
+            let mut queued = self.set_mode(tx, root, CORRELATION).await?;
+            queued.extend(qa_task);
             queue::check_completion(tx, root).await?;
             return Ok(Landed {
                 result: result_id,
@@ -408,9 +417,10 @@ impl Orchestrator {
                 mode_changed_to: Some(CORRELATION.to_owned()),
             });
         }
-        let queued = self
+        let mut queued = self
             .queue_eligible_locked(tx, root, &mode, Scope::Observables(&touched), false)
             .await?;
+        queued.extend(qa_task);
         queue::check_completion(tx, root).await?;
         Ok(Landed {
             result: result_id,

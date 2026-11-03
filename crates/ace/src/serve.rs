@@ -1,5 +1,6 @@
 //! `ace serve`: the lease API workers call (PLAN.md 2.14), the reaper that takes back tasks
-//! whose lease expired, and the ruleset builder (2.25) when `ACE4_SIGNATURES_REPO` names the
+//! whose lease expired, the recorder of YARA QA matches (2.27), and the ruleset builder (2.25)
+//! when `ACE4_SIGNATURES_REPO` names the
 //! signatures repository's checkout (`SignatureRepo::from_env`), every
 //! `ACE4_RULESET_POLL_SECONDS` (60).
 //!
@@ -70,6 +71,12 @@ async fn serve() -> Result<ExitCode> {
 
     let stop = CancellationToken::new();
     let reaper = tokio::spawn(run_reaper(db.clone(), Duration::from_secs(5), stop.clone()));
+    let recorder = tokio::spawn(ace_core::yara_qa::run_recorder(
+        ace_core::yara_qa::recorder_worker(db.clone()),
+        bucket.clone(),
+        Duration::from_secs(5),
+        stop.clone(),
+    ));
     let builder = signatures.map(|repo| {
         let every = std::env::var("ACE4_RULESET_POLL_SECONDS")
             .ok()
@@ -105,6 +112,12 @@ async fn serve() -> Result<ExitCode> {
         .is_err()
     {
         tracing::warn!("the reaper didn't stop within 5 seconds");
+    }
+    if tokio::time::timeout(Duration::from_secs(5), recorder)
+        .await
+        .is_err()
+    {
+        tracing::warn!("the QA recorder didn't stop within 5 seconds");
     }
     if let Some(builder) = builder
         && tokio::time::timeout(Duration::from_secs(5), builder)

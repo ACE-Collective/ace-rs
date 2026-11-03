@@ -54,9 +54,10 @@ pub struct BucketSettings {
 pub const DEFAULT_GRACE: Duration = Duration::from_secs(86_400);
 
 impl Default for BucketSettings {
-    /// ace3's defaults. Its two pools, `yara_qa` and `svs_samples`, keep their retention,
-    /// `alert_files`, the pool CAS.md plans for alert files, holds each file for the roots it
-    /// is in, and `yara_rulesets` keeps every ruleset the core built (PLAN.md 2.25).
+    /// ace3's defaults. `svs_samples` keeps its retention, `alert_files`, the pool CAS.md plans
+    /// for alert files, holds each file for the roots it is in and the QA matches it is in
+    /// (PLAN.md 2.27), and `yara_rulesets` keeps every ruleset the core built (2.25). ace3's
+    /// `yara_qa` pool isn't carried over: a QA match holds the file where it already is.
     fn default() -> Self {
         let held = PoolConfig {
             retention: Retention::Held {
@@ -75,7 +76,6 @@ impl Default for BucketSettings {
                         retention: Retention::Permanent,
                     },
                 ),
-                ("yara_qa".to_owned(), held),
                 ("svs_samples".to_owned(), held),
             ]
             .into(),
@@ -329,9 +329,23 @@ impl Bucket {
 
     /// Takes a hold on an object that is already in the bucket, or renews its expiry.
     pub async fn hold(&self, pool: &str, sha256: &Sha256, hold: &Hold) -> Result<(), BucketError> {
+        let mut tx = self.db.begin().await?;
+        self.hold_in(&mut tx, pool, sha256, hold).await?;
+        tx.commit().await?;
+        Ok(())
+    }
+
+    /// `hold`, inside the caller's transaction. The object's row stays locked until it ends, so
+    /// GC can't claim the object in between.
+    pub async fn hold_in(
+        &self,
+        tx: &mut Tx<'_>,
+        pool: &str,
+        sha256: &Sha256,
+        hold: &Hold,
+    ) -> Result<(), BucketError> {
         self.pool(pool)?;
         let hex = sha256.to_hex();
-        let mut tx = self.db.begin().await?;
         let state = sqlx::query_scalar!(
             r#"SELECT state AS "state: ObjectState" FROM store.objects
                WHERE pool = $1 AND sha256 = $2 FOR UPDATE"#,
@@ -349,11 +363,7 @@ impl Bucket {
                 pool: pool.to_owned(),
                 sha256: *sha256,
             }),
-            Some(ObjectState::Present) => {
-                take_hold(&mut tx, pool, &hex, hold).await?;
-                tx.commit().await?;
-                Ok(())
-            }
+            Some(ObjectState::Present) => take_hold(tx, pool, &hex, hold).await,
         }
     }
 
