@@ -20,6 +20,8 @@ use uuid::Uuid;
 
 /// The test pool's token.
 pub const TOKEN: &str = "ace4-test-pool-token";
+/// The admin token, for replays.
+pub const ADMIN_TOKEN: &str = "ace4-test-admin-token";
 
 /// A core serving the lease API on a test database.
 pub struct Core {
@@ -55,6 +57,7 @@ impl Core {
             TOKEN,
             pool_modules.iter().map(|m| (*m).to_owned()).collect(),
         )])
+        .admin_token(ADMIN_TOKEN)
         .lease(lease);
         let api = Api::new(
             test_db.db().clone(),
@@ -261,6 +264,10 @@ impl PoolProcess {
             .spawn()
             .expect("the pool starts");
         PoolProcess { child: Some(child) }
+    }
+
+    pub fn pid(&self) -> u32 {
+        self.child.as_ref().map_or(0, std::process::Child::id)
     }
 
     /// True while the process runs.

@@ -24,6 +24,7 @@ ace-mod-email = { path = "../ace-mod-email" }
 ace-mod-rdap = { path = "../ace-mod-rdap" }
 ace-mod-splunk = { path = "../ace-mod-splunk" }
 ace-mod-yara = { path = "../ace-mod-yara" }
+ace-pool = { path = "../ace-pool" }
 ace-results = { path = "../ace-results" }
 ace-sdk = { path = "../ace-sdk" }
 ace-store = { path = "../ace-store" }
@@ -31,6 +32,7 @@ ace-yara = { path = "../ace-yara" }
 anyhow = "1.0.104"
 clap = { version = "4.6.7", features = ["derive"] }
 serde_json = "1.0.154"
+tempfile = "3.27.0"
 tokio = { version = "1.54.1", features = ["macros", "net", "rt-multi-thread", "signal"] }
 tokio-util = "0.7.20"
 tracing = "0.1.44"

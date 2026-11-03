@@ -10,6 +10,8 @@
 //!     run as a parser pool's supervisor until SIGTERM, one task process per task
 //! test-pool task [--settings JSON]
 //!     a task process: read a task on stdin, contain, run it, write its end on stdout
+//! test-pool replay ID [--settings JSON]
+//!     replay task ID uncontained, with ACE4_ADMIN_TOKEN, and print how it ended
 //! ```
 //!
 //! `once` exits 0 when it ran a task, 1 when there was none to lease, and 2 on an error.
@@ -39,7 +41,10 @@ struct Args {
 
 fn parse() -> Result<Args, String> {
     let mut args = std::env::args().skip(1);
-    let mode = args.next().ok_or("no mode")?;
+    let mut mode = args.next().ok_or("no mode")?;
+    if mode == "replay" {
+        mode = format!("replay:{}", args.next().ok_or("replay takes a task id")?);
+    }
     let mut parsed = Args {
         mode,
         settings_text: "{}".to_owned(),
@@ -102,6 +107,9 @@ fn main() -> ExitCode {
     };
     if args.mode == "task" {
         return ace_pool::task_process::main(&modules);
+    }
+    if let Some(id) = args.mode.strip_prefix("replay:") {
+        return with_runtime(replay(id.to_owned(), modules));
     }
     let client = match LeaseClient::from_env(&format!("test-pool-{}", std::process::id())) {
         Ok(client) => client,
@@ -171,6 +179,41 @@ fn main() -> ExitCode {
         }
         other => {
             eprintln!("unknown mode {other}");
+            ExitCode::from(2)
+        }
+    }
+}
+
+async fn replay(id: String, modules: Arc<Modules>) -> ExitCode {
+    let (Ok(base), Ok(token), Ok(id)) = (
+        std::env::var("ACE4_API_URL"),
+        std::env::var("ACE4_ADMIN_TOKEN"),
+        id.parse::<i64>(),
+    ) else {
+        eprintln!("replay needs a task id, ACE4_API_URL and ACE4_ADMIN_TOKEN");
+        return ExitCode::from(2);
+    };
+    let client = match LeaseClient::new(&base, &token, "replay") {
+        Ok(client) => client,
+        Err(e) => {
+            eprintln!("{e}");
+            return ExitCode::from(2);
+        }
+    };
+    let dir = match tempfile::Builder::new().prefix("ace4-replay-").tempdir() {
+        Ok(dir) => dir,
+        Err(e) => {
+            eprintln!("{e}");
+            return ExitCode::from(2);
+        }
+    };
+    match ace_pool::replay::replay(&client, &modules, id, dir.path()).await {
+        Ok(end) => {
+            println!("{}", serde_json::to_string(&end).unwrap_or_default());
+            ExitCode::SUCCESS
+        }
+        Err(e) => {
+            eprintln!("replay failed: {e}");
             ExitCode::from(2)
         }
     }

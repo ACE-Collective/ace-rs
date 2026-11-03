@@ -2,6 +2,7 @@
 
 mod schema;
 mod serve;
+mod task;
 mod yara;
 
 use std::process::ExitCode;
@@ -27,6 +28,9 @@ enum Command {
     Yara(yara::YaraCommand),
     /// Serve the lease API to workers, and take back tasks whose lease expired.
     Serve,
+    /// Tools for one task, such as replaying it.
+    #[command(subcommand)]
+    Task(task::TaskCommand),
 }
 
 fn main() -> ExitCode {
@@ -44,6 +48,7 @@ fn main() -> ExitCode {
         Command::Schema(command) => schema::run(command),
         Command::Yara(command) => yara::run(command),
         Command::Serve => serve::run(),
+        Command::Task(command) => task::run(command),
     };
     match result {
         Ok(code) => code,

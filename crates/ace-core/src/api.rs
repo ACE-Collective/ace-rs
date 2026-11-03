@@ -13,6 +13,9 @@
 //!   be uploaded first; the core checks each one's bytes against its sha256 and moves it into
 //!   the `alert_files` pool, held by the root.
 //!
+//! - `GET /api/admin/v1/tasks/<id>/replay`: any task in its leased form, with a fresh download
+//!   URL, for `ace task replay`. It takes the admin token, and takes no lease.
+//!
 //! Every request carries `Authorization: Bearer <token>`, and the token says which pool the
 //! worker is in. A task-scoped request also names the worker in `x-ace4-worker`. A task's lease
 //! owner is `<pool>/<worker>`, so one pool's token can't touch another pool's tasks, and one
@@ -29,7 +32,7 @@ use ace_sdk::wire::{
 use axum::extract::{Path, State};
 use axum::http::{HeaderMap, StatusCode};
 use axum::response::{IntoResponse, Response};
-use axum::routing::post;
+use axum::routing::{get, post};
 use axum::{Json, Router};
 use chrono::Utc;
 use serde_json::Value;
@@ -217,6 +220,7 @@ impl Api {
             .route("/api/worker/v1/tasks/{id}/renew", post(renew))
             .route("/api/worker/v1/tasks/{id}/uploads", post(uploads))
             .route("/api/worker/v1/tasks/{id}/end", post(end))
+            .route("/api/admin/v1/tasks/{id}/replay", get(replay))
             .with_state(self.clone())
     }
 
@@ -309,7 +313,11 @@ impl Api {
         } else {
             None
         };
-        Ok(Some(LeasedTask {
+        Ok(Some(self.wire_task(task, file)))
+    }
+
+    fn wire_task(&self, task: Task, file: Option<TaskFile>) -> LeasedTask {
+        LeasedTask {
             id: task.id.0,
             root: task.root,
             module: task.module,
@@ -325,7 +333,16 @@ impl Api {
             },
             delayed: task.delayed,
             input_hashes: task.input_hashes,
-        }))
+        }
+    }
+
+    /// Checks that a request carries the admin token.
+    fn admin(&self, headers: &HeaderMap) -> Result<(), Failure> {
+        let token = bearer(headers).ok_or(Failure::Unauthorized)?;
+        match self.inner.config.admin_token_sha256 {
+            Some(hash) if hash == sha256(token) => Ok(()),
+            _ => Err(Failure::Unauthorized),
+        }
     }
 
     /// A file task's record and its download URL, or why the task can't run.
@@ -564,11 +581,31 @@ async fn end(
     Ok(StatusCode::NO_CONTENT)
 }
 
+/// A task as a worker would lease it, with a fresh download URL for its input, for
+/// `ace task replay` (PLAN.md 2.20). It takes no lease and changes nothing.
+async fn replay(
+    State(api): State<Api>,
+    Path(id): Path<i64>,
+    headers: HeaderMap,
+) -> Result<Json<LeasedTask>, Failure> {
+    api.admin(&headers)?;
+    let task = crate::queue::find(&api.inner.db, TaskId(id))
+        .await?
+        .ok_or_else(|| Failure::NotFound(format!("no task {id}")))?;
+    let file = if task.observable.kind == ObservableKind::File {
+        Some(api.task_file(&task).await?.map_err(Failure::BadRequest)?)
+    } else {
+        None
+    };
+    Ok(Json(api.wire_task(task, file)))
+}
+
 /// Why a request failed, as the status and body the worker gets.
 #[derive(Debug)]
 pub enum Failure {
     Unauthorized,
     Forbidden(String),
+    NotFound(String),
     BadRequest(String),
     /// The worker doesn't hold the task's lease any more.
     LeaseLost(TaskId),
@@ -629,6 +666,7 @@ impl IntoResponse for Failure {
         let (status, body) = match self {
             Failure::Unauthorized => (StatusCode::UNAUTHORIZED, api_error("unknown token")),
             Failure::Forbidden(why) => (StatusCode::FORBIDDEN, api_error(&why)),
+            Failure::NotFound(why) => (StatusCode::NOT_FOUND, api_error(&why)),
             Failure::BadRequest(why) => (StatusCode::BAD_REQUEST, api_error(&why)),
             Failure::LeaseLost(task) => (
                 StatusCode::CONFLICT,

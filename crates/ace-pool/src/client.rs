@@ -150,6 +150,17 @@ impl LeaseClient {
         expect_empty(response, task).await
     }
 
+    /// A task in its leased form, with a fresh download URL for its input, for a replay. It
+    /// takes the admin token and takes no lease.
+    pub async fn replay_task(&self, task: i64) -> Result<LeasedTask, ClientError> {
+        let request = self
+            .http
+            .get(&format!("{}{}", self.base, paths::replay(task)))
+            .bearer_auth(&self.token);
+        let response = self.http.send(request).await?;
+        answer(response, task).await
+    }
+
     /// Where to upload a file the task's module wrote.
     pub async fn upload_url(
         &self,

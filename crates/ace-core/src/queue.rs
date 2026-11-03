@@ -992,6 +992,50 @@ pub async fn run_reaper(db: Db, interval: Duration, stop: CancellationToken) {
     }
 }
 
+/// Any task, as it was last claimed, whoever holds it, as for a replay. A task nobody holds has
+/// the time it was read as its lease's expiry.
+pub async fn find(db: &Db, task: TaskId) -> Result<Option<Task>, QueueError> {
+    let row = sqlx::query!(
+        r#"SELECT t.id AS "id: TaskId", t.root_id, t.module, t.attempts, t.input_hashes,
+                  COALESCE(t.lease_expires_at, now()) AS "lease_expires_at!",
+                  t.delay_state, t.first_delayed_at, t.delays,
+                  o.id AS "observable_id: ObservableId", o.type AS kind, o.value,
+                  o.time, o.directives
+           FROM queue.tasks t JOIN analysis.observables o ON o.id = t.observable_id
+           WHERE t.id = $1"#,
+        task as TaskId,
+    )
+    .fetch_optional(db.pool())
+    .await?;
+    let Some(row) = row else {
+        return Ok(None);
+    };
+    let kind = row
+        .kind
+        .parse()
+        .map_err(|e| DbError::Decode(format!("{}: {e}", row.id)))?;
+    Ok(Some(Task {
+        id: row.id,
+        root: row.root_id,
+        observable: TaskObservable {
+            id: row.observable_id,
+            kind,
+            value: row.value,
+            time: row.time,
+            directives: row.directives,
+        },
+        module: row.module,
+        attempts: row.attempts,
+        input_hashes: row.input_hashes,
+        lease_expires_at: row.lease_expires_at,
+        delayed: row.first_delayed_at.map(|first_delayed_at| DelayedRun {
+            state: row.delay_state.unwrap_or_default(),
+            first_delayed_at,
+            delays: u32::try_from(row.delays).unwrap_or_default(),
+        }),
+    }))
+}
+
 /// A task's state, for tests and tools.
 pub async fn state(db: &Db, task: TaskId) -> Result<Option<TaskState>, QueueError> {
     Ok(sqlx::query_scalar!(
