@@ -38,6 +38,10 @@ pub struct ScanResult {
     pub tags: Vec<String>,
     /// The commit of the repository the rule came from, when it came from one.
     pub commit: Option<String>,
+    /// The key of the ruleset the rule came from, the sha256 of its bytes, when the module
+    /// scanned with a ruleset the core built (PLAN.md 2.26).
+    #[serde(default)]
+    pub ruleset: Option<String>,
     /// The file scanned, by its path inside the alert.
     pub target: String,
     /// Every pattern occurrence: `[offset, identifier, matched bytes]`.

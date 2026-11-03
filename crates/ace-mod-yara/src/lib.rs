@@ -8,15 +8,18 @@
 //! alert (no `no_alert` or `qa` modifier) is a detection on the file and sandboxes it, or the
 //! document it redirects to; `directive=` modifiers add directives and rule tags tag the file.
 //!
-//! Until the YARA pool loads rulesets from the bucket (PLAN.md 2.26), the module compiles the
-//! signature directory in `signature_dir` when it starts.
+//! In a YARA pool the module loads the ruleset the core built, from the pool's ruleset
+//! directory (`rulesets`, PLAN.md 2.26), and every match records that ruleset's key and commit.
+//! Without one, as in tests and `ace task replay` on a laptop, it compiles `signature_dir` when it
+//! starts, and its matches record neither.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::LazyLock;
 use std::time::Duration;
 
 use ace_results::types::yara::{MatchContext, ScanResult, YaraScanResults};
 use ace_results::{Bytes, Detection, NewObservable, ObservableKind, ResultEnvelope};
+use ace_sdk::generation::{self, GenerationInfo};
 use ace_sdk::{Manifest, Module, ModuleError, Outcome, Parser, Resources, TaskContext};
 use ace_yara::mime::{DEFAULT_DATABASE, MimeTyper};
 use ace_yara::{LoadOptions, Ruleset, ScanError, ScanRequest, Scanner};
@@ -41,8 +44,12 @@ pub const DIRECTIVE_SANDBOX: &str = "sandbox";
 #[derive(Debug, Clone, PartialEq, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields, default)]
 pub struct YaraSettings {
-    /// The signature directory: one namespace per subdirectory.
+    /// The signature directory: one namespace per subdirectory. Compiled when `rulesets` isn't
+    /// set.
     pub signature_dir: PathBuf,
+    /// A YARA pool's ruleset directory, which the pool keeps on the core's current ruleset
+    /// (`ace_sdk::generation`). The module loads the generation that is current when it starts.
+    pub rulesets: Option<PathBuf>,
     /// Rule names whose matches are dropped.
     pub blacklist: Vec<String>,
     /// How many bytes of context to keep on each side of a pattern match.
@@ -56,6 +63,7 @@ impl Default for YaraSettings {
         // ace3's saq.default.yaml
         YaraSettings {
             signature_dir: PathBuf::from("signatures/yara"),
+            rulesets: None,
             blacklist: Vec::new(),
             context_bytes: 64,
             timeout_seconds: 10,
@@ -63,9 +71,25 @@ impl Default for YaraSettings {
     }
 }
 
-/// The YARA module, with its compiled ruleset.
+/// The YARA module, with its ruleset.
 pub struct YaraScanner {
+    /// None in a pool whose first ruleset hasn't arrived: the supervisor builds its modules
+    /// before it has one, and runs no task until it does.
+    ruleset: Option<Loaded>,
+}
+
+/// A ruleset and where it came from.
+struct Loaded {
     ruleset: Ruleset,
+    /// The key and commit of a ruleset the core built.
+    built: Option<GenerationInfo>,
+}
+
+/// Loads a serialized ruleset as the module will, for a pool to check one before it switches
+/// to it.
+pub fn check_ruleset(path: &Path) -> Result<(), String> {
+    let bytes = std::fs::read(path).map_err(|e| format!("reading {}: {e}", path.display()))?;
+    Ruleset::from_bytes(&bytes, &LoadOptions::default()).map(drop)
 }
 
 impl Module for YaraScanner {
@@ -85,13 +109,34 @@ impl Module for YaraScanner {
         let options = LoadOptions {
             blacklist: settings.blacklist.iter().cloned().collect(),
         };
+        if let Some(dir) = &settings.rulesets {
+            let Some(current) = generation::current(dir)
+                .map_err(|e| ModuleError::other(format!("the ruleset directory: {e}")))?
+            else {
+                return Ok(YaraScanner { ruleset: None });
+            };
+            let bytes = std::fs::read(current.data())
+                .map_err(|e| ModuleError::other(format!("reading the ruleset: {e}")))?;
+            let ruleset = Ruleset::from_bytes(&bytes, &options).map_err(|e| {
+                ModuleError::other(format!("loading ruleset {}: {e}", current.info.key))
+            })?;
+            return Ok(YaraScanner {
+                ruleset: Some(Loaded {
+                    ruleset,
+                    built: Some(current.info),
+                }),
+            });
+        }
         let loaded = ace_yara::load_dir(&settings.signature_dir, &options)
             .map_err(|e| ModuleError::other(format!("loading the YARA rules: {e}")))?;
         for left_out in loaded.left_out() {
             tracing::error!(path = %left_out.path.display(), "a YARA rule file was left out");
         }
         Ok(YaraScanner {
-            ruleset: loaded.ruleset,
+            ruleset: Some(Loaded {
+                ruleset: loaded.ruleset,
+                built: None,
+            }),
         })
     }
 }
@@ -146,6 +191,15 @@ impl Parser for YaraScanner {
         ctx: &TaskContext<YaraSettings>,
     ) -> Result<Outcome<YaraScanResults>, ModuleError> {
         let settings = ctx.settings();
+        let Some(loaded) = &self.ruleset else {
+            return Err(ModuleError::other(
+                "no ruleset has arrived from the core yet",
+            ));
+        };
+        let (key, commit) = match &loaded.built {
+            Some(info) => (Some(info.key.clone()), Some(info.commit.clone())),
+            None => (None, None),
+        };
         let observable = ctx.observable();
         let file = ctx.input_file()?;
         if file.size == 0 {
@@ -162,7 +216,7 @@ impl Parser for YaraScanner {
         let meta_tags: Vec<String> = file.yara_meta.iter().map(|t| t.to_string()).collect();
         ctx.check_cancelled()?;
 
-        let mut scanner = Scanner::new(&self.ruleset);
+        let mut scanner = Scanner::new(&loaded.ruleset);
         let outcome = match scanner.scan(&ScanRequest {
             data: &data,
             path: file.path.as_str(),
@@ -271,7 +325,12 @@ impl Parser for YaraScanner {
                     .filter(|q| !q.is_empty());
                 detection.signature_uuid =
                     Some(uuid.clone().unwrap_or_else(|| YARA_RULE_MATCH.to_owned()));
-                detection.signature_version = Some(SIGNATURE_VERSION_UNKNOWN.to_owned());
+                // ace3's signature version is the commit of the rule's repository
+                detection.signature_version = Some(
+                    commit
+                        .clone()
+                        .unwrap_or_else(|| SIGNATURE_VERSION_UNKNOWN.to_owned()),
+                );
                 detection.signature_family = uuid.as_ref().map(|_| "yara".to_owned());
                 result.analyzed.detections.push(detection);
             }
@@ -331,7 +390,8 @@ impl Parser for YaraScanner {
                 namespace: m.namespace.clone(),
                 meta,
                 tags: m.tags.clone(),
-                commit: None,
+                commit: commit.clone(),
+                ruleset: key.clone(),
                 target: file.path.to_string(),
                 strings,
                 context,

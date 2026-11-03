@@ -7,7 +7,10 @@
 //! test-pool lookups [--contained] [--concurrency N] [--settings JSON]
 //!     run as an async pool until SIGTERM; --contained applies contain_pool first
 //! test-pool parsers [--task-user NAME] [--concurrency N] [--read PATH]... [--settings JSON]
-//!     run as a parser pool's supervisor until SIGTERM, one task process per task
+//!                  [--rulesets DIR [--ruleset-poll-ms N]]
+//!     run as a parser pool's supervisor until SIGTERM, one task process per task; with
+//!     --rulesets, keep DIR on the core's current YARA ruleset, and lease nothing until the
+//!     first has loaded
 //! test-pool task [--settings JSON]
 //!     a task process: read a task on stdin, contain, run it, write its end on stdout
 //! test-pool replay ID [--settings JSON]
@@ -23,6 +26,7 @@ use std::time::Duration;
 use ace_pool::client::LeaseClient;
 use ace_pool::modules::Modules;
 use ace_pool::pool::{AsyncPool, POOL_ADDRESS_SPACE, PoolDefinition};
+use ace_pool::rulesets::RulesetWatcher;
 use ace_pool::run::run_in_process;
 use ace_pool::supervisor::{Supervisor, SupervisorConfig};
 use serde_json::Value;
@@ -37,6 +41,8 @@ struct Args {
     concurrency: usize,
     task_user: Option<String>,
     read_paths: Vec<std::path::PathBuf>,
+    rulesets: Option<std::path::PathBuf>,
+    ruleset_poll: Duration,
 }
 
 fn parse() -> Result<Args, String> {
@@ -53,6 +59,8 @@ fn parse() -> Result<Args, String> {
         concurrency: 4,
         task_user: None,
         read_paths: Vec::new(),
+        rulesets: None,
+        ruleset_poll: ace_pool::rulesets::DEFAULT_EVERY,
     };
     while let Some(arg) = args.next() {
         match arg.as_str() {
@@ -68,6 +76,16 @@ fn parse() -> Result<Args, String> {
             "--read" => parsed
                 .read_paths
                 .push(args.next().ok_or("--read takes a path")?.into()),
+            "--rulesets" => {
+                parsed.rulesets = Some(args.next().ok_or("--rulesets takes a directory")?.into())
+            }
+            "--ruleset-poll-ms" => {
+                parsed.ruleset_poll = Duration::from_millis(
+                    args.next()
+                        .and_then(|n| n.parse().ok())
+                        .ok_or("--ruleset-poll-ms takes a number")?,
+                );
+            }
             "--concurrency" => {
                 parsed.concurrency = args
                     .next()
@@ -178,7 +196,11 @@ fn main() -> ExitCode {
                 concurrency: args.concurrency,
                 read_paths: args.read_paths,
             };
-            with_runtime(parsers(Supervisor::new(client, modules, config)))
+            let watcher = args.rulesets.map(|dir| {
+                RulesetWatcher::new(client.clone(), dir, Arc::new(ace_mod_yara::check_ruleset))
+                    .every(args.ruleset_poll)
+            });
+            with_runtime(parsers(Supervisor::new(client, modules, config), watcher))
         }
         other => {
             eprintln!("unknown mode {other}");
@@ -222,13 +244,30 @@ async fn replay(id: String, modules: Arc<Modules>) -> ExitCode {
     }
 }
 
-async fn parsers(supervisor: Supervisor) -> ExitCode {
+async fn parsers(supervisor: Supervisor, watcher: Option<RulesetWatcher>) -> ExitCode {
     let stop = stop_on_signal();
+    let watching = match watcher {
+        Some(watcher) => {
+            if watcher.first(&stop).await.is_none() {
+                return ExitCode::SUCCESS;
+            }
+            let stopping = stop.clone();
+            Some(tokio::spawn(async move { watcher.run(stopping).await }))
+        }
+        None => None,
+    };
     let stats = supervisor
         .lease_wait(Duration::from_secs(2))
         .run(stop)
         .await;
     println!("ran {} tasks, {} errors", stats.tasks, stats.errors);
+    if let Some(watching) = watching
+        && tokio::time::timeout(Duration::from_secs(5), watching)
+            .await
+            .is_err()
+    {
+        eprintln!("the ruleset watcher didn't stop within 5 seconds");
+    }
     ExitCode::SUCCESS
 }
 

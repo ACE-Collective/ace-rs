@@ -19,6 +19,9 @@ use crate::context::{DelayedRun, InputFile, Observable};
 pub mod paths {
     pub const LEASE: &str = "/api/worker/v1/lease";
 
+    /// The ruleset a YARA pool should scan with (PLAN.md 2.26).
+    pub const RULESET: &str = "/api/worker/v1/yara/ruleset";
+
     /// `/api/worker/v1/tasks/<id>/<action>`, where action is `renew`, `end`, `release` or
     /// `uploads`.
     pub fn task(id: i64, action: &str) -> String {
@@ -127,6 +130,18 @@ pub struct LeasedTask {
     pub delayed: Option<DelayedRun>,
     #[serde(default)]
     pub input_hashes: Vec<String>,
+}
+
+/// The ruleset a YARA pool should scan with: the latest the core built (PLAN.md 2.26), and
+/// where to download its bytes.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CurrentRuleset {
+    /// The sha256 of the serialized ruleset.
+    pub key: Sha256,
+    /// The commit of the signatures repository it was built from.
+    pub commit: String,
+    pub download: Presigned,
 }
 
 /// A renewed lease.

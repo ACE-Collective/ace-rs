@@ -11,6 +11,7 @@ In the Dumps column, `*` matches any text in a dump's name. In the Path column, 
 | `*` | `/details/scan_results/*/match_context/*/data` | The context bytes are bytes too: `{"base64": ...}` where ace3 writes the base64 text itself. The value inside is the same. |
 | `*` | `/details/scan_results/*/namespace` | The namespace is the rule directory's name, `ace4_fixture`. ace3's scan result carries the directory's absolute path; its detection details already use the relative name, and those match. |
 | `*` | `/details/scan_results/*/target` | The file scanned, by its path inside the alert (`test.zip`). ace3 records the absolute path on the node, which has no meaning once files live in the bucket. |
+| `*` | `/details/scan_results/*/ruleset` | Each match records the key of the ruleset it came from (PLAN.md 2.26). ace3 has no ruleset keys. These scans compile the fixture directory, not a ruleset the core built, so the key is null. |
 | `*` | `/details/scan_results/*/rule_source` | ace3 attaches each rule's source text and pattern definitions for the analysis template. That belongs with the ruleset the match came from, whose manifest arrives with the ruleset builds of PLAN.md 2.25 and 2.26, rather than being copied into every match. |
 | `*` | `/details/scan_results/*/string_patterns` | The same: each pattern's definition from the rule source. |
 
@@ -18,7 +19,7 @@ In the Dumps column, `*` matches any text in a dump's name. In the Path column, 
 
 These depart from ace3:
 
-- The rules come from `signature_dir`, compiled when the module starts, until the YARA pool loads rulesets from the bucket (PLAN.md 2.26). So `commit` is always null and a detection's signature version is `unknown`.
+- In a YARA pool the rules come from the ruleset the core built (PLAN.md 2.26), and each match records its key and commit; a detection's signature version is the commit, as in ace3. These tests compile `signature_dir` instead, so `commit` and `ruleset` are null and the signature version is `unknown`.
 - ace3 asks the yara scanner service and falls back to a local scanner. There is no service here; the module scans in its own process.
 - A QA rule's match isn't recorded in the QA store (PLAN.md 2.27); it is logged, and as in ace3 it never alerts or adds directives.
 - `$obsd_` and `$obs_` strings name rows of ace3's database, whose observables ace3 adds to the alert. That needs the core's read API (PLAN.md 7.2).

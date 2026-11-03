@@ -6,7 +6,8 @@ use std::time::Duration;
 use ace_results::Sha256;
 use ace_sdk::http::{HttpClient, HttpError};
 use ace_sdk::wire::{
-    ApiError, LeaseRequest, LeasedTask, Presigned, Renewal, TaskEnd, UploadRequest, paths,
+    ApiError, CurrentRuleset, LeaseRequest, LeasedTask, Presigned, Renewal, TaskEnd, UploadRequest,
+    paths,
 };
 use reqwest::StatusCode;
 use serde::de::DeserializeOwned;
@@ -177,6 +178,22 @@ impl LeaseClient {
             .bearer_auth(&self.token);
         let response = self.http.send(request).await?;
         answer(response, task).await
+    }
+
+    /// The ruleset YARA pools should scan with, or None before the core built one.
+    pub async fn current_ruleset(&self) -> Result<Option<CurrentRuleset>, ClientError> {
+        let mut request = self
+            .http
+            .get(&format!("{}{}", self.base, paths::RULESET))
+            .bearer_auth(&self.token);
+        for (name, value) in crate::telemetry::trace_headers() {
+            request = request.header(name, value);
+        }
+        let response = self.http.send(request).await?;
+        if response.status() == StatusCode::NO_CONTENT {
+            return Ok(None);
+        }
+        answer(response, 0).await.map(Some)
     }
 
     /// Where to upload a file the task's module wrote.

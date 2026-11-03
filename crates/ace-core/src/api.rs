@@ -15,6 +15,8 @@
 //!
 //! - `POST /api/worker/v1/tasks/<id>/release`: gives the task back to the queue without
 //!   counting the attempt, as a pool does at shutdown.
+//! - `GET /api/worker/v1/yara/ruleset`: the ruleset YARA pools should scan with, the latest the
+//!   core built (PLAN.md 2.26), with a presigned URL for its bytes; 204 before the first build.
 //! - `GET /api/admin/v1/tasks/<id>/replay`: any task in its leased form, with a fresh download
 //!   URL, for `ace task replay`. It takes the admin token, and takes no lease.
 //!
@@ -28,8 +30,8 @@ use std::time::Duration;
 
 use ace_results::{AlertPath, ObservableKind, ResultEnvelope, Sha256, YaraMeta};
 use ace_sdk::wire::{
-    ApiError, FieldError as WireFieldError, LeaseRequest, LeasedTask, Presigned, Renewal, TaskEnd,
-    TaskFile, TaskObservable, UploadRequest, paths,
+    ApiError, CurrentRuleset, FieldError as WireFieldError, LeaseRequest, LeasedTask, Presigned,
+    Renewal, TaskEnd, TaskFile, TaskObservable, UploadRequest, paths,
 };
 use axum::extract::{Path, State};
 use axum::http::{HeaderMap, StatusCode};
@@ -235,6 +237,7 @@ impl Api {
             .route("/api/worker/v1/tasks/{id}/uploads", post(uploads))
             .route("/api/worker/v1/tasks/{id}/end", post(end))
             .route("/api/worker/v1/tasks/{id}/release", post(release))
+            .route(paths::RULESET, get(current_ruleset))
             .route("/api/admin/v1/tasks/{id}/replay", get(replay))
             .with_state(self.clone())
     }
@@ -652,6 +655,31 @@ async fn end_in(
         TaskEnd::Cancelled => worker.cancelled(task).await?,
     }
     Ok(StatusCode::NO_CONTENT)
+}
+
+/// The ruleset YARA pools should scan with, for any pool's token.
+async fn current_ruleset(State(api): State<Api>, headers: HeaderMap) -> Result<Response, Failure> {
+    api.pool(&headers)?;
+    let Some(row) = crate::rulesets::current(&api.inner.db).await? else {
+        return Ok(StatusCode::NO_CONTENT.into_response());
+    };
+    let download = api
+        .inner
+        .bucket
+        .store()
+        .presign_get(
+            crate::rulesets::RULESETS,
+            &row.key,
+            api.inner.config.url_expiry,
+        )
+        .await
+        .map_err(BucketError::from)?;
+    Ok(Json(CurrentRuleset {
+        key: row.key,
+        commit: row.commit,
+        download: wire_presigned(download),
+    })
+    .into_response())
 }
 
 /// A task as a worker would lease it, with a fresh download URL for its input, for

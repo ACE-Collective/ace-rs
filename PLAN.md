@@ -163,7 +163,7 @@ The goal is to run the five phase 1 modules end to end from a submission.
 ### YARA in the core
 
 - [x] **2.25 Ruleset builds.** A build task compiles the signatures repo at each new commit, puts the serialized ruleset in the bucket under its hash, and writes the manifest from 1.6 as a row (#1051). Done when a new commit produces a row that lists the files left out.
-- [ ] **2.26 YARA pool.** The pool loads a ruleset by hash and switches to a new one only after it has loaded. Every match records its ruleset hash and commit. Done when a switch during a stream of scans drops none.
+- [x] **2.26 YARA pool.** The pool loads a ruleset by hash and switches to a new one only after it has loaded. Every match records its ruleset hash and commit. Done when a switch during a stream of scans drops none.
 - [ ] **2.27 QA matches.** A match from a QA rule queues a task that records it. The file is already in the bucket, so there is no spool directory. Done when a QA match appears in the QA table and raises no alert.
 
 ### End to end

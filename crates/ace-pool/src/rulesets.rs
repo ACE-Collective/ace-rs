@@ -1,0 +1,168 @@
+//! A YARA pool's rulesets (PLAN.md 2.26): the pool loads the ruleset the core names by its
+//! hash, and switches to a new one only after it has loaded.
+//!
+//! The watcher asks the lease API which ruleset is current. When it isn't the one on disk, it
+//! downloads the bytes from the bucket into the pool's ruleset directory, checks that their
+//! sha256 is the key, and has the binary load them (`Check`). Only then does it publish them as
+//! the directory's current generation (`ace_sdk::generation`). A task process loads the current
+//! generation when it starts, so a task that started before the switch finishes on the old
+//! ruleset and every task after it runs on the new one. A download or a load that fails keeps
+//! the old ruleset and is tried again on the next look.
+
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
+use std::time::Duration;
+
+use ace_sdk::generation::{self, Generation, GenerationInfo};
+use sha2::Digest;
+use tokio_util::sync::CancellationToken;
+
+use crate::client::{ClientError, LeaseClient};
+
+/// Loads the ruleset at a path the way the pool's task processes will, and says why it didn't.
+pub type Check = Arc<dyn Fn(&Path) -> Result<(), String> + Send + Sync>;
+
+/// How often the watcher asks for the current ruleset by default.
+pub const DEFAULT_EVERY: Duration = Duration::from_secs(30);
+
+#[derive(Debug, thiserror::Error)]
+pub enum WatchError {
+    #[error(transparent)]
+    Client(#[from] ClientError),
+    #[error("the ruleset downloaded as {key} has sha256 {actual}")]
+    Integrity { key: String, actual: String },
+    #[error("ruleset {key} didn't load: {error}")]
+    Load { key: String, error: String },
+    #[error("the ruleset directory: {0}")]
+    Io(#[from] std::io::Error),
+    #[error("the ruleset's check stopped: {0}")]
+    Join(String),
+}
+
+/// Keeps a pool's ruleset directory on the core's current ruleset.
+pub struct RulesetWatcher {
+    client: LeaseClient,
+    dir: PathBuf,
+    check: Check,
+    every: Duration,
+}
+
+impl RulesetWatcher {
+    pub fn new(client: LeaseClient, dir: impl Into<PathBuf>, check: Check) -> Self {
+        RulesetWatcher {
+            client,
+            dir: dir.into(),
+            check,
+            every: DEFAULT_EVERY,
+        }
+    }
+
+    pub fn every(mut self, every: Duration) -> Self {
+        self.every = every;
+        self
+    }
+
+    pub fn dir(&self) -> &Path {
+        &self.dir
+    }
+
+    /// Looks once: switches to the core's current ruleset if it isn't the one on disk. Returns
+    /// the generation that is current afterwards, if any.
+    pub async fn refresh(&self) -> Result<Option<Generation>, WatchError> {
+        let on_disk = generation::current(&self.dir)?;
+        let Some(current) = self.client.current_ruleset().await? else {
+            return Ok(on_disk);
+        };
+        let info = GenerationInfo {
+            key: current.key.to_hex(),
+            commit: current.commit,
+        };
+        if on_disk.as_ref().is_some_and(|g| g.info == info) {
+            return Ok(on_disk);
+        }
+        let download = self.dir.join(format!(".download-{}", info.key));
+        self.client.download(&current.download, &download).await?;
+        let (check, dir, key) = (self.check.clone(), self.dir.clone(), info.key.clone());
+        let published = tokio::task::spawn_blocking(move || {
+            let checked = verify(&download, &key).and_then(|()| {
+                check(&download).map_err(|error| WatchError::Load {
+                    key: key.clone(),
+                    error,
+                })
+            });
+            match checked {
+                Ok(()) => Ok(generation::publish(&dir, &info, &download)?),
+                Err(e) => {
+                    if let Err(removing) = std::fs::remove_file(&download) {
+                        tracing::warn!("removing a ruleset that didn't load: {removing}");
+                    }
+                    Err(e)
+                }
+            }
+        })
+        .await
+        .map_err(|e| WatchError::Join(e.to_string()))??;
+        tracing::info!(
+            key = %published.info.key,
+            commit = %published.info.commit,
+            previous = ?on_disk.map(|g| g.info.key),
+            "switched to a new ruleset"
+        );
+        Ok(Some(published))
+    }
+
+    /// Looks until a ruleset is current, as a pool does before it leases its first YARA task.
+    /// None when `stop` fired first.
+    pub async fn first(&self, stop: &CancellationToken) -> Option<Generation> {
+        loop {
+            match self.refresh().await {
+                Ok(Some(generation)) => return Some(generation),
+                Ok(None) => tracing::info!("waiting for the core's first ruleset"),
+                Err(e) => tracing::error!("loading the current ruleset failed: {e}"),
+            }
+            tokio::select! {
+                () = stop.cancelled() => return None,
+                () = tokio::time::sleep(self.every) => {}
+            }
+        }
+    }
+
+    /// Looks every `every` until `stop` fires.
+    pub async fn run(&self, stop: CancellationToken) {
+        loop {
+            tokio::select! {
+                () = stop.cancelled() => return,
+                () = tokio::time::sleep(self.every) => {}
+            }
+            if let Err(e) = self.refresh().await {
+                tracing::error!("switching rulesets failed; the pool keeps its ruleset: {e}");
+            }
+        }
+    }
+}
+
+/// Checks that the file's sha256 is `key`.
+fn verify(path: &Path, key: &str) -> Result<(), WatchError> {
+    let mut hasher = sha2::Sha256::new();
+    let mut file = std::fs::File::open(path)?;
+    let mut buffer = vec![0u8; 1 << 16];
+    loop {
+        let read = std::io::Read::read(&mut file, &mut buffer)?;
+        if read == 0 {
+            break;
+        }
+        hasher.update(&buffer[..read]);
+    }
+    let actual: String = hasher
+        .finalize()
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect();
+    if actual != key {
+        return Err(WatchError::Integrity {
+            key: key.to_owned(),
+            actual,
+        });
+    }
+    Ok(())
+}

@@ -10,6 +10,7 @@ pub mod containment;
 pub mod modules;
 pub mod pool;
 pub mod replay;
+pub mod rulesets;
 pub mod run;
 pub mod secrets;
 pub mod supervisor;

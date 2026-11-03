@@ -11,6 +11,7 @@ pub mod context;
 #[cfg(any(test, feature = "example-modules"))]
 pub mod example;
 pub mod files;
+pub mod generation;
 pub mod http;
 pub mod ip;
 pub mod manifest;
