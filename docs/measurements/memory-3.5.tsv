@@ -1,0 +1,3481 @@
+series	run	phase	subject	figure	value
+fixture	1	idle-before	parsers supervisor	private median	18332
+fixture	1	idle-before	parsers supervisor	private peak	18336
+fixture	1	idle-before	parsers supervisor	private_dirty median	3076
+fixture	1	idle-before	parsers supervisor	private_dirty peak	3080
+fixture	1	idle-before	parsers supervisor	pss median	19359
+fixture	1	idle-before	parsers supervisor	pss peak	19363
+fixture	1	idle-before	parsers supervisor	rss median	21932
+fixture	1	idle-before	parsers supervisor	rss peak	21936
+fixture	1	idle-before	parsers supervisor	anon median	3076
+fixture	1	idle-before	parsers supervisor	anon peak	3080
+fixture	1	idle-before	parsers supervisor	processes	1
+fixture	1	idle-before	lookups main	private median	12344
+fixture	1	idle-before	lookups main	private peak	18936
+fixture	1	idle-before	lookups main	private_dirty median	2592
+fixture	1	idle-before	lookups main	private_dirty peak	9184
+fixture	1	idle-before	lookups main	pss median	13371
+fixture	1	idle-before	lookups main	pss peak	23004
+fixture	1	idle-before	lookups main	rss median	15944
+fixture	1	idle-before	lookups main	rss peak	29152
+fixture	1	idle-before	lookups main	anon median	2592
+fixture	1	idle-before	lookups main	anon peak	9048
+fixture	1	idle-before	lookups main	processes	2
+fixture	1	idle-before	ace main	private median	35452
+fixture	1	idle-before	ace main	private peak	37736
+fixture	1	idle-before	ace main	private_dirty median	6200
+fixture	1	idle-before	ace main	private_dirty peak	6436
+fixture	1	idle-before	ace main	pss median	36481
+fixture	1	idle-before	ace main	pss peak	38958
+fixture	1	idle-before	ace main	rss median	39056
+fixture	1	idle-before	ace main	rss peak	42784
+fixture	1	idle-before	ace main	anon median	6200
+fixture	1	idle-before	ace main	anon peak	6436
+fixture	1	idle-before	ace main	processes	2
+fixture	1	idle-before	postgres main	private median	28872
+fixture	1	idle-before	postgres main	private peak	28936
+fixture	1	idle-before	postgres main	private_dirty median	20596
+fixture	1	idle-before	postgres main	private_dirty peak	20660
+fixture	1	idle-before	postgres main	pss median	52684
+fixture	1	idle-before	postgres main	pss peak	52716
+fixture	1	idle-before	postgres main	rss median	181056
+fixture	1	idle-before	postgres main	rss peak	181216
+fixture	1	idle-before	postgres main	anon median	37160
+fixture	1	idle-before	postgres main	anon peak	37192
+fixture	1	idle-before	postgres main	processes	14
+fixture	1	idle-before	bucket main	private median	206200
+fixture	1	idle-before	bucket main	private peak	206204
+fixture	1	idle-before	bucket main	private_dirty median	119936
+fixture	1	idle-before	bucket main	private_dirty peak	119940
+fixture	1	idle-before	bucket main	pss median	206200
+fixture	1	idle-before	bucket main	pss peak	206204
+fixture	1	idle-before	bucket main	rss median	206204
+fixture	1	idle-before	bucket main	rss peak	206208
+fixture	1	idle-before	bucket main	anon median	119936
+fixture	1	idle-before	bucket main	anon peak	119940
+fixture	1	idle-before	bucket main	processes	1
+fixture	1	idle-before	parsers supervisor and tasks	private peak	18336
+fixture	1	idle-before	parsers supervisor and tasks	private_dirty peak	3080
+fixture	1	idle-before	parsers supervisor and tasks	pss peak	19363
+fixture	1	idle-before	parsers tasks	running at once	0
+fixture	1	compare	parsers supervisor	private median	24100
+fixture	1	compare	parsers supervisor	private peak	26008
+fixture	1	compare	parsers supervisor	private_dirty median	8652
+fixture	1	compare	parsers supervisor	private_dirty peak	10568
+fixture	1	compare	parsers supervisor	pss median	24909
+fixture	1	compare	parsers supervisor	pss peak	26817
+fixture	1	compare	parsers supervisor	rss median	27700
+fixture	1	compare	parsers supervisor	rss peak	29616
+fixture	1	compare	parsers supervisor	anon median	8652
+fixture	1	compare	parsers supervisor	anon peak	10568
+fixture	1	compare	parsers supervisor	processes	1
+fixture	1	compare	lookups main	private median	15296
+fixture	1	compare	lookups main	private peak	16264
+fixture	1	compare	lookups main	private_dirty median	4968
+fixture	1	compare	lookups main	private_dirty peak	5424
+fixture	1	compare	lookups main	pss median	16105
+fixture	1	compare	lookups main	pss peak	17291
+fixture	1	compare	lookups main	rss median	18896
+fixture	1	compare	lookups main	rss peak	19864
+fixture	1	compare	lookups main	anon median	4968
+fixture	1	compare	lookups main	anon peak	5424
+fixture	1	compare	lookups main	processes	1
+fixture	1	compare	ace main	private median	48328
+fixture	1	compare	ace main	private peak	62368
+fixture	1	compare	ace main	private_dirty median	31912
+fixture	1	compare	ace main	private_dirty peak	33952
+fixture	1	compare	ace main	pss median	65127
+fixture	1	compare	ace main	pss peak	73385
+fixture	1	compare	ace main	rss median	93896
+fixture	1	compare	ace main	rss peak	95936
+fixture	1	compare	ace main	anon median	31912
+fixture	1	compare	ace main	anon peak	33952
+fixture	1	compare	ace main	processes	1
+fixture	1	compare	postgres main	private median	51444
+fixture	1	compare	postgres main	private peak	57248
+fixture	1	compare	postgres main	private_dirty median	43676
+fixture	1	compare	postgres main	private_dirty peak	49480
+fixture	1	compare	postgres main	pss median	78045
+fixture	1	compare	postgres main	pss peak	84942
+fixture	1	compare	postgres main	rss median	339876
+fixture	1	compare	postgres main	rss peak	387008
+fixture	1	compare	postgres main	anon median	67808
+fixture	1	compare	postgres main	anon peak	74704
+fixture	1	compare	postgres main	processes	21
+fixture	1	compare	bucket main	private median	339788
+fixture	1	compare	bucket main	private peak	472236
+fixture	1	compare	bucket main	private_dirty median	253160
+fixture	1	compare	bucket main	private_dirty peak	385292
+fixture	1	compare	bucket main	pss median	339788
+fixture	1	compare	bucket main	pss peak	472236
+fixture	1	compare	bucket main	rss median	339792
+fixture	1	compare	bucket main	rss peak	472240
+fixture	1	compare	bucket main	anon median	253160
+fixture	1	compare	bucket main	anon peak	385292
+fixture	1	compare	bucket main	processes	1
+fixture	1	compare	parsers supervisor and tasks	private peak	37620
+fixture	1	compare	parsers supervisor and tasks	private_dirty peak	20264
+fixture	1	compare	parsers supervisor and tasks	pss peak	48153
+fixture	1	compare	parsers tasks	running at once	4
+fixture	1	idle-after	parsers supervisor	private median	25440
+fixture	1	idle-after	parsers supervisor	private peak	25440
+fixture	1	idle-after	parsers supervisor	private_dirty median	9992
+fixture	1	idle-after	parsers supervisor	private_dirty peak	9992
+fixture	1	idle-after	parsers supervisor	pss median	26467
+fixture	1	idle-after	parsers supervisor	pss peak	26467
+fixture	1	idle-after	parsers supervisor	rss median	29040
+fixture	1	idle-after	parsers supervisor	rss peak	29040
+fixture	1	idle-after	parsers supervisor	anon median	9992
+fixture	1	idle-after	parsers supervisor	anon peak	9992
+fixture	1	idle-after	parsers supervisor	processes	1
+fixture	1	idle-after	lookups main	private median	16264
+fixture	1	idle-after	lookups main	private peak	16264
+fixture	1	idle-after	lookups main	private_dirty median	5424
+fixture	1	idle-after	lookups main	private_dirty peak	5424
+fixture	1	idle-after	lookups main	pss median	17291
+fixture	1	idle-after	lookups main	pss peak	17291
+fixture	1	idle-after	lookups main	rss median	19864
+fixture	1	idle-after	lookups main	rss peak	19864
+fixture	1	idle-after	lookups main	anon median	5424
+fixture	1	idle-after	lookups main	anon peak	5424
+fixture	1	idle-after	lookups main	processes	1
+fixture	1	idle-after	ace main	private median	62368
+fixture	1	idle-after	ace main	private peak	62368
+fixture	1	idle-after	ace main	private_dirty median	33952
+fixture	1	idle-after	ace main	private_dirty peak	33952
+fixture	1	idle-after	ace main	pss median	73385
+fixture	1	idle-after	ace main	pss peak	73385
+fixture	1	idle-after	ace main	rss median	95936
+fixture	1	idle-after	ace main	rss peak	95936
+fixture	1	idle-after	ace main	anon median	33952
+fixture	1	idle-after	ace main	anon peak	33952
+fixture	1	idle-after	ace main	processes	1
+fixture	1	idle-after	postgres main	private median	50784
+fixture	1	idle-after	postgres main	private peak	53288
+fixture	1	idle-after	postgres main	private_dirty median	43016
+fixture	1	idle-after	postgres main	private_dirty peak	45520
+fixture	1	idle-after	postgres main	pss median	78276
+fixture	1	idle-after	postgres main	pss peak	80858
+fixture	1	idle-after	postgres main	rss median	327992
+fixture	1	idle-after	postgres main	rss peak	347320
+fixture	1	idle-after	postgres main	anon median	63584
+fixture	1	idle-after	postgres main	anon peak	67556
+fixture	1	idle-after	postgres main	processes	19
+fixture	1	idle-after	bucket main	private median	474456
+fixture	1	idle-after	bucket main	private peak	474464
+fixture	1	idle-after	bucket main	private_dirty median	387384
+fixture	1	idle-after	bucket main	private_dirty peak	387392
+fixture	1	idle-after	bucket main	pss median	474456
+fixture	1	idle-after	bucket main	pss peak	474464
+fixture	1	idle-after	bucket main	rss median	474460
+fixture	1	idle-after	bucket main	rss peak	474468
+fixture	1	idle-after	bucket main	anon median	387384
+fixture	1	idle-after	bucket main	anon peak	387392
+fixture	1	idle-after	bucket main	processes	1
+fixture	1	idle-after	parsers supervisor and tasks	private peak	25440
+fixture	1	idle-after	parsers supervisor and tasks	private_dirty peak	9992
+fixture	1	idle-after	parsers supervisor and tasks	pss peak	26467
+fixture	1	idle-after	parsers tasks	running at once	0
+fixture	1	idle-before	ace cgroup	anon median	6200
+fixture	1	idle-before	ace cgroup	anon peak	6248
+fixture	1	idle-before	ace cgroup	file median	100
+fixture	1	idle-before	ace cgroup	file peak	100
+fixture	1	idle-before	ace cgroup	kernel median	1408
+fixture	1	idle-before	ace cgroup	kernel peak	1664
+fixture	1	idle-before	ace cgroup	current median	8112
+fixture	1	idle-before	ace cgroup	current peak	9328
+fixture	1	idle-before	parsers cgroup	anon median	3096
+fixture	1	idle-before	parsers cgroup	anon peak	10596
+fixture	1	idle-before	parsers cgroup	file median	80
+fixture	1	idle-before	parsers cgroup	file peak	80
+fixture	1	idle-before	parsers cgroup	kernel median	1300
+fixture	1	idle-before	parsers cgroup	kernel peak	1684
+fixture	1	idle-before	parsers cgroup	current median	4728
+fixture	1	idle-before	parsers cgroup	current peak	13404
+fixture	1	idle-before	lookups cgroup	anon median	2616
+fixture	1	idle-before	lookups cgroup	anon peak	9072
+fixture	1	idle-before	lookups cgroup	file median	4
+fixture	1	idle-before	lookups cgroup	file peak	4
+fixture	1	idle-before	lookups cgroup	kernel median	1268
+fixture	1	idle-before	lookups cgroup	kernel peak	1712
+fixture	1	idle-before	lookups cgroup	current median	3888
+fixture	1	idle-before	lookups cgroup	current peak	11520
+fixture	1	idle-before	bucket cgroup	anon median	119936
+fixture	1	idle-before	bucket cgroup	anon peak	119940
+fixture	1	idle-before	bucket cgroup	file median	532
+fixture	1	idle-before	bucket cgroup	file peak	532
+fixture	1	idle-before	bucket cgroup	kernel median	1808
+fixture	1	idle-before	bucket cgroup	kernel peak	1812
+fixture	1	idle-before	bucket cgroup	current median	123272
+fixture	1	idle-before	bucket cgroup	current peak	124524
+fixture	1	idle-before	postgres cgroup	anon median	16352
+fixture	1	idle-before	postgres cgroup	anon peak	16384
+fixture	1	idle-before	postgres cgroup	file median	66220
+fixture	1	idle-before	postgres cgroup	file peak	66408
+fixture	1	idle-before	postgres cgroup	kernel median	7764
+fixture	1	idle-before	postgres cgroup	kernel peak	7924
+fixture	1	idle-before	postgres cgroup	current median	90864
+fixture	1	idle-before	postgres cgroup	current peak	91940
+fixture	1	compare	ace cgroup	anon median	31912
+fixture	1	compare	ace cgroup	anon peak	33952
+fixture	1	compare	ace cgroup	file median	100
+fixture	1	compare	ace cgroup	file peak	424
+fixture	1	compare	ace cgroup	kernel median	1560
+fixture	1	compare	ace cgroup	kernel peak	1680
+fixture	1	compare	ace cgroup	current median	34692
+fixture	1	compare	ace cgroup	current peak	37668
+fixture	1	compare	parsers cgroup	anon median	8672
+fixture	1	compare	parsers cgroup	anon peak	14492
+fixture	1	compare	parsers cgroup	file median	116
+fixture	1	compare	parsers cgroup	file peak	2012
+fixture	1	compare	parsers cgroup	kernel median	1604
+fixture	1	compare	parsers cgroup	kernel peak	3032
+fixture	1	compare	parsers cgroup	current median	11680
+fixture	1	compare	parsers cgroup	current peak	19072
+fixture	1	compare	lookups cgroup	anon median	4992
+fixture	1	compare	lookups cgroup	anon peak	5448
+fixture	1	compare	lookups cgroup	file median	4
+fixture	1	compare	lookups cgroup	file peak	4
+fixture	1	compare	lookups cgroup	kernel median	1344
+fixture	1	compare	lookups cgroup	kernel peak	1360
+fixture	1	compare	lookups cgroup	current median	6664
+fixture	1	compare	lookups cgroup	current peak	8648
+fixture	1	compare	bucket cgroup	anon median	253148
+fixture	1	compare	bucket cgroup	anon peak	385292
+fixture	1	compare	bucket cgroup	file median	7808
+fixture	1	compare	bucket cgroup	file peak	10984
+fixture	1	compare	bucket cgroup	kernel median	2296
+fixture	1	compare	bucket cgroup	kernel peak	2848
+fixture	1	compare	bucket cgroup	current median	265236
+fixture	1	compare	bucket cgroup	current peak	401172
+fixture	1	compare	postgres cgroup	anon median	38300
+fixture	1	compare	postgres cgroup	anon peak	47352
+fixture	1	compare	postgres cgroup	file median	71532
+fixture	1	compare	postgres cgroup	file peak	90944
+fixture	1	compare	postgres cgroup	kernel median	9272
+fixture	1	compare	postgres cgroup	kernel peak	10076
+fixture	1	compare	postgres cgroup	current median	120352
+fixture	1	compare	postgres cgroup	current peak	146480
+fixture	1	idle-after	ace cgroup	anon median	33952
+fixture	1	idle-after	ace cgroup	anon peak	33952
+fixture	1	idle-after	ace cgroup	file median	100
+fixture	1	idle-after	ace cgroup	file peak	100
+fixture	1	idle-after	ace cgroup	kernel median	1560
+fixture	1	idle-after	ace cgroup	kernel peak	1696
+fixture	1	idle-after	ace cgroup	current median	35888
+fixture	1	idle-after	ace cgroup	current peak	36844
+fixture	1	idle-after	parsers cgroup	anon median	10012
+fixture	1	idle-after	parsers cgroup	anon peak	14180
+fixture	1	idle-after	parsers cgroup	file median	116
+fixture	1	idle-after	parsers cgroup	file peak	116
+fixture	1	idle-after	parsers cgroup	kernel median	1544
+fixture	1	idle-after	parsers cgroup	kernel peak	1928
+fixture	1	idle-after	parsers cgroup	current median	11816
+fixture	1	idle-after	parsers cgroup	current peak	17132
+fixture	1	idle-after	lookups cgroup	anon median	5448
+fixture	1	idle-after	lookups cgroup	anon peak	5448
+fixture	1	idle-after	lookups cgroup	file median	4
+fixture	1	idle-after	lookups cgroup	file peak	4
+fixture	1	idle-after	lookups cgroup	kernel median	1308
+fixture	1	idle-after	lookups cgroup	kernel peak	1356
+fixture	1	idle-after	lookups cgroup	current median	6796
+fixture	1	idle-after	lookups cgroup	current peak	8096
+fixture	1	idle-after	bucket cgroup	anon median	387372
+fixture	1	idle-after	bucket cgroup	anon peak	387392
+fixture	1	idle-after	bucket cgroup	file median	11004
+fixture	1	idle-after	bucket cgroup	file peak	11008
+fixture	1	idle-after	bucket cgroup	kernel median	2648
+fixture	1	idle-after	bucket cgroup	kernel peak	2664
+fixture	1	idle-after	bucket cgroup	current median	401996
+fixture	1	idle-after	bucket cgroup	current peak	403572
+fixture	1	idle-after	postgres cgroup	anon median	37088
+fixture	1	idle-after	postgres cgroup	anon peak	39456
+fixture	1	idle-after	postgres cgroup	file median	91668
+fixture	1	idle-after	postgres cgroup	file peak	91668
+fixture	1	idle-after	postgres cgroup	kernel median	9384
+fixture	1	idle-after	postgres cgroup	kernel peak	9692
+fixture	1	idle-after	postgres cgroup	current median	138412
+fixture	1	idle-after	postgres cgroup	current peak	141312
+fixture	1	idle-before	ace cgroup	memory.peak	18592
+fixture	1	idle-before	ace cgroup	limit	1048576
+fixture	1	idle-before	ace cgroup	events_max	0
+fixture	1	idle-before	ace cgroup	events_oom	0
+fixture	1	idle-before	ace cgroup	events_oom_kill	0
+fixture	1	idle-before	parsers cgroup	memory.peak	14980
+fixture	1	idle-before	parsers cgroup	limit	4194304
+fixture	1	idle-before	parsers cgroup	events_max	0
+fixture	1	idle-before	parsers cgroup	events_oom	0
+fixture	1	idle-before	parsers cgroup	events_oom_kill	0
+fixture	1	idle-before	lookups cgroup	memory.peak	12964
+fixture	1	idle-before	lookups cgroup	limit	1048576
+fixture	1	idle-before	lookups cgroup	events_max	0
+fixture	1	idle-before	lookups cgroup	events_oom	0
+fixture	1	idle-before	lookups cgroup	events_oom_kill	0
+fixture	1	idle-before	postgres cgroup	memory.peak	102400
+fixture	1	idle-before	postgres cgroup	limit	1048576
+fixture	1	idle-before	postgres cgroup	events_max	0
+fixture	1	idle-before	postgres cgroup	events_oom	0
+fixture	1	idle-before	postgres cgroup	events_oom_kill	0
+fixture	1	idle-before	bucket cgroup	memory.peak	132364
+fixture	1	idle-before	bucket cgroup	limit	1048576
+fixture	1	idle-before	bucket cgroup	events_max	0
+fixture	1	idle-before	bucket cgroup	events_oom	0
+fixture	1	idle-before	bucket cgroup	events_oom_kill	0
+fixture	1	compare	ace cgroup	memory.peak	45272
+fixture	1	compare	ace cgroup	limit	1048576
+fixture	1	compare	ace cgroup	events_max	0
+fixture	1	compare	ace cgroup	events_oom	0
+fixture	1	compare	ace cgroup	events_oom_kill	0
+fixture	1	compare	parsers cgroup	memory.peak	29996
+fixture	1	compare	parsers cgroup	limit	4194304
+fixture	1	compare	parsers cgroup	events_max	0
+fixture	1	compare	parsers cgroup	events_oom	0
+fixture	1	compare	parsers cgroup	events_oom_kill	0
+fixture	1	compare	lookups cgroup	memory.peak	15332
+fixture	1	compare	lookups cgroup	limit	1048576
+fixture	1	compare	lookups cgroup	events_max	0
+fixture	1	compare	lookups cgroup	events_oom	0
+fixture	1	compare	lookups cgroup	events_oom_kill	0
+fixture	1	compare	postgres cgroup	memory.peak	154292
+fixture	1	compare	postgres cgroup	limit	1048576
+fixture	1	compare	postgres cgroup	events_max	0
+fixture	1	compare	postgres cgroup	events_oom	0
+fixture	1	compare	postgres cgroup	events_oom_kill	0
+fixture	1	compare	bucket cgroup	memory.peak	401432
+fixture	1	compare	bucket cgroup	limit	1048576
+fixture	1	compare	bucket cgroup	events_max	0
+fixture	1	compare	bucket cgroup	events_oom	0
+fixture	1	compare	bucket cgroup	events_oom_kill	0
+fixture	1	idle-after	ace cgroup	memory.peak	46532
+fixture	1	idle-after	ace cgroup	limit	1048576
+fixture	1	idle-after	ace cgroup	events_max	0
+fixture	1	idle-after	ace cgroup	events_oom	0
+fixture	1	idle-after	ace cgroup	events_oom_kill	0
+fixture	1	idle-after	parsers cgroup	memory.peak	22344
+fixture	1	idle-after	parsers cgroup	limit	4194304
+fixture	1	idle-after	parsers cgroup	events_max	0
+fixture	1	idle-after	parsers cgroup	events_oom	0
+fixture	1	idle-after	parsers cgroup	events_oom_kill	0
+fixture	1	idle-after	lookups cgroup	memory.peak	15088
+fixture	1	idle-after	lookups cgroup	limit	1048576
+fixture	1	idle-after	lookups cgroup	events_max	0
+fixture	1	idle-after	lookups cgroup	events_oom	0
+fixture	1	idle-after	lookups cgroup	events_oom_kill	0
+fixture	1	idle-after	postgres cgroup	memory.peak	149252
+fixture	1	idle-after	postgres cgroup	limit	1048576
+fixture	1	idle-after	postgres cgroup	events_max	0
+fixture	1	idle-after	postgres cgroup	events_oom	0
+fixture	1	idle-after	postgres cgroup	events_oom_kill	0
+fixture	1	idle-after	bucket cgroup	memory.peak	411316
+fixture	1	idle-after	bucket cgroup	limit	1048576
+fixture	1	idle-after	bucket cgroup	events_max	0
+fixture	1	idle-after	bucket cgroup	events_oom	0
+fixture	1	idle-after	bucket cgroup	events_oom_kill	0
+fixture	1	container-life	ace cgroup	memory.peak	46532
+fixture	1	container-life	ace cgroup	limit	1048576
+fixture	1	container-life	ace cgroup	events_max	0
+fixture	1	container-life	ace cgroup	events_oom	0
+fixture	1	container-life	ace cgroup	events_oom_kill	0
+fixture	1	container-life	parsers cgroup	memory.peak	29996
+fixture	1	container-life	parsers cgroup	limit	4194304
+fixture	1	container-life	parsers cgroup	events_max	0
+fixture	1	container-life	parsers cgroup	events_oom	0
+fixture	1	container-life	parsers cgroup	events_oom_kill	0
+fixture	1	container-life	lookups cgroup	memory.peak	15332
+fixture	1	container-life	lookups cgroup	limit	1048576
+fixture	1	container-life	lookups cgroup	events_max	0
+fixture	1	container-life	lookups cgroup	events_oom	0
+fixture	1	container-life	lookups cgroup	events_oom_kill	0
+fixture	1	container-life	postgres cgroup	memory.peak	154292
+fixture	1	container-life	postgres cgroup	limit	1048576
+fixture	1	container-life	postgres cgroup	events_max	0
+fixture	1	container-life	postgres cgroup	events_oom	0
+fixture	1	container-life	postgres cgroup	events_oom_kill	0
+fixture	1	container-life	bucket cgroup	memory.peak	411316
+fixture	1	container-life	bucket cgroup	limit	1048576
+fixture	1	container-life	bucket cgroup	events_max	0
+fixture	1	container-life	bucket cgroup	events_oom	0
+fixture	1	container-life	bucket cgroup	events_oom_kill	0
+fixture	1	compare	parsers task process	exit records	946
+fixture	1	compare	parsers task process	sampled	941
+fixture	1	compare	parsers task process	non-zero exits	0
+fixture	1	compare	parsers task process	dropped exit records	0
+fixture	1	compare	parsers task process	lifetime ms median	3.8499999999999996
+fixture	1	compare	parsers task process	lifetime ms peak	28.8
+fixture	1	compare	parsers task process	cpu ms median	3.0
+fixture	1	compare	parsers task process	cpu ms peak	11.0
+fixture	1	compare	parsers task process	exit peak rss median	18484.0
+fixture	1	compare	parsers task process	exit peak rss p95	20160
+fixture	1	compare	parsers task process	exit peak rss peak	24360
+fixture	1	compare	parsers task process	private median	2656
+fixture	1	compare	parsers task process	private p95	4320
+fixture	1	compare	parsers task process	private peak	8644
+fixture	1	compare	parsers task process	private_dirty median	2316
+fixture	1	compare	parsers task process	private_dirty p95	2444
+fixture	1	compare	parsers task process	private_dirty peak	6968
+fixture	1	compare	parsers task process	pss median	8570
+fixture	1	compare	parsers task process	pss p95	11229
+fixture	1	compare	parsers task process	pss peak	15585
+fixture	1	compare	parsers task process	anon median	2316
+fixture	1	compare	parsers task process	anon p95	2444
+fixture	1	compare	parsers task process	anon peak	6968
+fixture	1	compare	parsers task process	rss shortfall median	348
+fixture	1	compare	parsers task process	rss shortfall p95	744
+fixture	1	compare	parsers task process	rss shortfall peak	17180
+fixture	1	compare	parsers task process	sampled tasks more than 1 MB short (count)	27
+fixture	1	compare	parsers task process	samples per task median	24
+fixture	1	compare	load	parser task attempts	946
+fixture	1	compare	load	lookup task attempts	24
+fixture	1	compare	load	other task attempts	0
+fixture	1	compare	load	tasks not done	0
+fixture	1	compare	load	roots	54
+fixture	1	compare	load	results	71
+fixture	1	compare	load	seconds	31.2
+fixture	1	compare	load	exit	0
+fixture	1	compare	load	report samples	54
+fixture	1	compare	sampler	tick ms median	0.011
+fixture	2	idle-before	parsers supervisor	private median	18340
+fixture	2	idle-before	parsers supervisor	private peak	18344
+fixture	2	idle-before	parsers supervisor	private_dirty median	3084
+fixture	2	idle-before	parsers supervisor	private_dirty peak	3088
+fixture	2	idle-before	parsers supervisor	pss median	19372
+fixture	2	idle-before	parsers supervisor	pss peak	19376
+fixture	2	idle-before	parsers supervisor	rss median	21956
+fixture	2	idle-before	parsers supervisor	rss peak	21960
+fixture	2	idle-before	parsers supervisor	anon median	3084
+fixture	2	idle-before	parsers supervisor	anon peak	3088
+fixture	2	idle-before	parsers supervisor	processes	1
+fixture	2	idle-before	lookups main	private median	12344
+fixture	2	idle-before	lookups main	private peak	12352
+fixture	2	idle-before	lookups main	private_dirty median	2592
+fixture	2	idle-before	lookups main	private_dirty peak	2600
+fixture	2	idle-before	lookups main	pss median	13372
+fixture	2	idle-before	lookups main	pss peak	14690
+fixture	2	idle-before	lookups main	rss median	15948
+fixture	2	idle-before	lookups main	rss peak	19136
+fixture	2	idle-before	lookups main	anon median	2592
+fixture	2	idle-before	lookups main	anon peak	3768
+fixture	2	idle-before	lookups main	processes	2
+fixture	2	idle-before	ace main	private median	35424
+fixture	2	idle-before	ace main	private peak	42036
+fixture	2	idle-before	ace main	private_dirty median	6176
+fixture	2	idle-before	ace main	private_dirty peak	12788
+fixture	2	idle-before	ace main	pss median	36452
+fixture	2	idle-before	ace main	pss peak	46102
+fixture	2	idle-before	ace main	rss median	39032
+fixture	2	idle-before	ace main	rss peak	52176
+fixture	2	idle-before	ace main	anon median	6176
+fixture	2	idle-before	ace main	anon peak	12632
+fixture	2	idle-before	ace main	processes	2
+fixture	2	idle-before	postgres main	private median	28656
+fixture	2	idle-before	postgres main	private peak	28768
+fixture	2	idle-before	postgres main	private_dirty median	20556
+fixture	2	idle-before	postgres main	private_dirty peak	20668
+fixture	2	idle-before	postgres main	pss median	52690
+fixture	2	idle-before	postgres main	pss peak	52726
+fixture	2	idle-before	postgres main	rss median	182356
+fixture	2	idle-before	postgres main	rss peak	182520
+fixture	2	idle-before	postgres main	anon median	37108
+fixture	2	idle-before	postgres main	anon peak	37144
+fixture	2	idle-before	postgres main	processes	14
+fixture	2	idle-before	bucket main	private median	199908
+fixture	2	idle-before	bucket main	private peak	199912
+fixture	2	idle-before	bucket main	private_dirty median	113908
+fixture	2	idle-before	bucket main	private_dirty peak	113912
+fixture	2	idle-before	bucket main	pss median	199908
+fixture	2	idle-before	bucket main	pss peak	199912
+fixture	2	idle-before	bucket main	rss median	199912
+fixture	2	idle-before	bucket main	rss peak	199916
+fixture	2	idle-before	bucket main	anon median	113908
+fixture	2	idle-before	bucket main	anon peak	113912
+fixture	2	idle-before	bucket main	processes	1
+fixture	2	idle-before	parsers supervisor and tasks	private peak	18344
+fixture	2	idle-before	parsers supervisor and tasks	private_dirty peak	3088
+fixture	2	idle-before	parsers supervisor and tasks	pss peak	19376
+fixture	2	idle-before	parsers tasks	running at once	0
+fixture	2	compare	parsers supervisor	private median	26560
+fixture	2	compare	parsers supervisor	private peak	27760
+fixture	2	compare	parsers supervisor	private_dirty median	11112
+fixture	2	compare	parsers supervisor	private_dirty peak	12312
+fixture	2	compare	parsers supervisor	pss median	27373
+fixture	2	compare	parsers supervisor	pss peak	28573
+fixture	2	compare	parsers supervisor	rss median	30176
+fixture	2	compare	parsers supervisor	rss peak	31376
+fixture	2	compare	parsers supervisor	anon median	11112
+fixture	2	compare	parsers supervisor	anon peak	12312
+fixture	2	compare	parsers supervisor	processes	1
+fixture	2	compare	lookups main	private median	15144
+fixture	2	compare	lookups main	private peak	15816
+fixture	2	compare	lookups main	private_dirty median	4816
+fixture	2	compare	lookups main	private_dirty peak	4976
+fixture	2	compare	lookups main	pss median	15950
+fixture	2	compare	lookups main	pss peak	16844
+fixture	2	compare	lookups main	rss median	18748
+fixture	2	compare	lookups main	rss peak	19420
+fixture	2	compare	lookups main	anon median	4816
+fixture	2	compare	lookups main	anon peak	4976
+fixture	2	compare	lookups main	processes	1
+fixture	2	compare	ace main	private median	48488
+fixture	2	compare	ace main	private peak	61752
+fixture	2	compare	ace main	private_dirty median	32072
+fixture	2	compare	ace main	private_dirty peak	33336
+fixture	2	compare	ace main	pss median	65281
+fixture	2	compare	ace main	pss peak	72764
+fixture	2	compare	ace main	rss median	94048
+fixture	2	compare	ace main	rss peak	95312
+fixture	2	compare	ace main	anon median	32072
+fixture	2	compare	ace main	anon peak	33336
+fixture	2	compare	ace main	processes	1
+fixture	2	compare	postgres main	private median	48988
+fixture	2	compare	postgres main	private peak	53588
+fixture	2	compare	postgres main	private_dirty median	41404
+fixture	2	compare	postgres main	private_dirty peak	46004
+fixture	2	compare	postgres main	pss median	75485
+fixture	2	compare	postgres main	pss peak	81462
+fixture	2	compare	postgres main	rss median	320632
+fixture	2	compare	postgres main	rss peak	362848
+fixture	2	compare	postgres main	anon median	64008
+fixture	2	compare	postgres main	anon peak	69628
+fixture	2	compare	postgres main	processes	20
+fixture	2	compare	bucket main	private median	398092
+fixture	2	compare	bucket main	private peak	409700
+fixture	2	compare	bucket main	private_dirty median	311664
+fixture	2	compare	bucket main	private_dirty peak	322952
+fixture	2	compare	bucket main	pss median	398092
+fixture	2	compare	bucket main	pss peak	409700
+fixture	2	compare	bucket main	rss median	398096
+fixture	2	compare	bucket main	rss peak	409704
+fixture	2	compare	bucket main	anon median	311664
+fixture	2	compare	bucket main	anon peak	322952
+fixture	2	compare	bucket main	processes	2
+fixture	2	compare	parsers supervisor and tasks	private peak	42760
+fixture	2	compare	parsers supervisor and tasks	private_dirty peak	23756
+fixture	2	compare	parsers supervisor and tasks	pss peak	54689
+fixture	2	compare	parsers tasks	running at once	4
+fixture	2	idle-after	parsers supervisor	private median	27300
+fixture	2	idle-after	parsers supervisor	private peak	27300
+fixture	2	idle-after	parsers supervisor	private_dirty median	11852
+fixture	2	idle-after	parsers supervisor	private_dirty peak	11852
+fixture	2	idle-after	parsers supervisor	pss median	28332
+fixture	2	idle-after	parsers supervisor	pss peak	28332
+fixture	2	idle-after	parsers supervisor	rss median	30916
+fixture	2	idle-after	parsers supervisor	rss peak	30916
+fixture	2	idle-after	parsers supervisor	anon median	11852
+fixture	2	idle-after	parsers supervisor	anon peak	11852
+fixture	2	idle-after	parsers supervisor	processes	1
+fixture	2	idle-after	lookups main	private median	15816
+fixture	2	idle-after	lookups main	private peak	15816
+fixture	2	idle-after	lookups main	private_dirty median	4976
+fixture	2	idle-after	lookups main	private_dirty peak	4976
+fixture	2	idle-after	lookups main	pss median	16844
+fixture	2	idle-after	lookups main	pss peak	16844
+fixture	2	idle-after	lookups main	rss median	19420
+fixture	2	idle-after	lookups main	rss peak	19420
+fixture	2	idle-after	lookups main	anon median	4976
+fixture	2	idle-after	lookups main	anon peak	4976
+fixture	2	idle-after	lookups main	processes	1
+fixture	2	idle-after	ace main	private median	61752
+fixture	2	idle-after	ace main	private peak	70520
+fixture	2	idle-after	ace main	private_dirty median	33336
+fixture	2	idle-after	ace main	private_dirty peak	34864
+fixture	2	idle-after	ace main	pss median	72764
+fixture	2	idle-after	ace main	pss peak	81697
+fixture	2	idle-after	ace main	rss median	95312
+fixture	2	idle-after	ace main	rss peak	105332
+fixture	2	idle-after	ace main	anon median	33336
+fixture	2	idle-after	ace main	anon peak	34864
+fixture	2	idle-after	ace main	processes	2
+fixture	2	idle-after	postgres main	private median	46876
+fixture	2	idle-after	postgres main	private peak	49460
+fixture	2	idle-after	postgres main	private_dirty median	39292
+fixture	2	idle-after	postgres main	private_dirty peak	41876
+fixture	2	idle-after	postgres main	pss median	74732
+fixture	2	idle-after	postgres main	pss peak	77376
+fixture	2	idle-after	postgres main	rss median	303248
+fixture	2	idle-after	postgres main	rss peak	323148
+fixture	2	idle-after	postgres main	anon median	58460
+fixture	2	idle-after	postgres main	anon peak	62428
+fixture	2	idle-after	postgres main	processes	18
+fixture	2	idle-after	bucket main	private median	411936
+fixture	2	idle-after	bucket main	private peak	411940
+fixture	2	idle-after	bucket main	private_dirty median	325060
+fixture	2	idle-after	bucket main	private_dirty peak	325064
+fixture	2	idle-after	bucket main	pss median	411936
+fixture	2	idle-after	bucket main	pss peak	411940
+fixture	2	idle-after	bucket main	rss median	411940
+fixture	2	idle-after	bucket main	rss peak	411944
+fixture	2	idle-after	bucket main	anon median	325060
+fixture	2	idle-after	bucket main	anon peak	325064
+fixture	2	idle-after	bucket main	processes	1
+fixture	2	idle-after	parsers supervisor and tasks	private peak	27300
+fixture	2	idle-after	parsers supervisor and tasks	private_dirty peak	11852
+fixture	2	idle-after	parsers supervisor and tasks	pss peak	28332
+fixture	2	idle-after	parsers tasks	running at once	0
+fixture	2	idle-before	ace cgroup	anon median	6168
+fixture	2	idle-before	ace cgroup	anon peak	12632
+fixture	2	idle-before	ace cgroup	file median	100
+fixture	2	idle-before	ace cgroup	file peak	100
+fixture	2	idle-before	ace cgroup	kernel median	1412
+fixture	2	idle-before	ace cgroup	kernel peak	1840
+fixture	2	idle-before	ace cgroup	current median	8104
+fixture	2	idle-before	ace cgroup	current peak	15336
+fixture	2	idle-before	parsers cgroup	anon median	3108
+fixture	2	idle-before	parsers cgroup	anon peak	9488
+fixture	2	idle-before	parsers cgroup	file median	80
+fixture	2	idle-before	parsers cgroup	file peak	80
+fixture	2	idle-before	parsers cgroup	kernel median	1304
+fixture	2	idle-before	parsers cgroup	kernel peak	1732
+fixture	2	idle-before	parsers cgroup	current median	4500
+fixture	2	idle-before	parsers cgroup	current peak	11792
+fixture	2	idle-before	lookups cgroup	anon median	2612
+fixture	2	idle-before	lookups cgroup	anon peak	8800
+fixture	2	idle-before	lookups cgroup	file median	4
+fixture	2	idle-before	lookups cgroup	file peak	4
+fixture	2	idle-before	lookups cgroup	kernel median	1260
+fixture	2	idle-before	lookups cgroup	kernel peak	1476
+fixture	2	idle-before	lookups cgroup	current median	3880
+fixture	2	idle-before	lookups cgroup	current peak	10968
+fixture	2	idle-before	bucket cgroup	anon median	113900
+fixture	2	idle-before	bucket cgroup	anon peak	113912
+fixture	2	idle-before	bucket cgroup	file median	528
+fixture	2	idle-before	bucket cgroup	file peak	528
+fixture	2	idle-before	bucket cgroup	kernel median	1792
+fixture	2	idle-before	bucket cgroup	kernel peak	1804
+fixture	2	idle-before	bucket cgroup	current median	116220
+fixture	2	idle-before	bucket cgroup	current peak	117636
+fixture	2	idle-before	postgres cgroup	anon median	16364
+fixture	2	idle-before	postgres cgroup	anon peak	16396
+fixture	2	idle-before	postgres cgroup	file median	66216
+fixture	2	idle-before	postgres cgroup	file peak	66404
+fixture	2	idle-before	postgres cgroup	kernel median	7716
+fixture	2	idle-before	postgres cgroup	kernel peak	7732
+fixture	2	idle-before	postgres cgroup	current median	90868
+fixture	2	idle-before	postgres cgroup	current peak	91704
+fixture	2	compare	ace cgroup	anon median	32072
+fixture	2	compare	ace cgroup	anon peak	33336
+fixture	2	compare	ace cgroup	file median	100
+fixture	2	compare	ace cgroup	file peak	788
+fixture	2	compare	ace cgroup	kernel median	1560
+fixture	2	compare	ace cgroup	kernel peak	1604
+fixture	2	compare	ace cgroup	current median	34692
+fixture	2	compare	ace cgroup	current peak	37196
+fixture	2	compare	parsers cgroup	anon median	11136
+fixture	2	compare	parsers cgroup	anon peak	18092
+fixture	2	compare	parsers cgroup	file median	80
+fixture	2	compare	parsers cgroup	file peak	544
+fixture	2	compare	parsers cgroup	kernel median	1540
+fixture	2	compare	parsers cgroup	kernel peak	3116
+fixture	2	compare	parsers cgroup	current median	13728
+fixture	2	compare	parsers cgroup	current peak	22772
+fixture	2	compare	lookups cgroup	anon median	4832
+fixture	2	compare	lookups cgroup	anon peak	4996
+fixture	2	compare	lookups cgroup	file median	4
+fixture	2	compare	lookups cgroup	file peak	4
+fixture	2	compare	lookups cgroup	kernel median	1304
+fixture	2	compare	lookups cgroup	kernel peak	1316
+fixture	2	compare	lookups cgroup	current median	6304
+fixture	2	compare	lookups cgroup	current peak	7828
+fixture	2	compare	bucket cgroup	anon median	311668
+fixture	2	compare	bucket cgroup	anon peak	322952
+fixture	2	compare	bucket cgroup	file median	7812
+fixture	2	compare	bucket cgroup	file peak	10976
+fixture	2	compare	bucket cgroup	kernel median	2416
+fixture	2	compare	bucket cgroup	kernel peak	2744
+fixture	2	compare	bucket cgroup	current median	323516
+fixture	2	compare	bucket cgroup	current peak	338484
+fixture	2	compare	postgres cgroup	anon median	35928
+fixture	2	compare	postgres cgroup	anon peak	43548
+fixture	2	compare	postgres cgroup	file median	71460
+fixture	2	compare	postgres cgroup	file peak	91112
+fixture	2	compare	postgres cgroup	kernel median	9032
+fixture	2	compare	postgres cgroup	kernel peak	10228
+fixture	2	compare	postgres cgroup	current median	118148
+fixture	2	compare	postgres cgroup	current peak	148256
+fixture	2	idle-after	ace cgroup	anon median	33336
+fixture	2	idle-after	ace cgroup	anon peak	43328
+fixture	2	idle-after	ace cgroup	file median	100
+fixture	2	idle-after	ace cgroup	file peak	100
+fixture	2	idle-after	ace cgroup	kernel median	1564
+fixture	2	idle-after	ace cgroup	kernel peak	1996
+fixture	2	idle-after	ace cgroup	current median	35484
+fixture	2	idle-after	ace cgroup	current peak	46516
+fixture	2	idle-after	parsers cgroup	anon median	11876
+fixture	2	idle-after	parsers cgroup	anon peak	18336
+fixture	2	idle-after	parsers cgroup	file median	80
+fixture	2	idle-after	parsers cgroup	file peak	80
+fixture	2	idle-after	parsers cgroup	kernel median	1520
+fixture	2	idle-after	parsers cgroup	kernel peak	1904
+fixture	2	idle-after	parsers cgroup	current median	13728
+fixture	2	idle-after	parsers cgroup	current peak	21284
+fixture	2	idle-after	lookups cgroup	anon median	4996
+fixture	2	idle-after	lookups cgroup	anon peak	13456
+fixture	2	idle-after	lookups cgroup	file median	4
+fixture	2	idle-after	lookups cgroup	file peak	4
+fixture	2	idle-after	lookups cgroup	kernel median	1288
+fixture	2	idle-after	lookups cgroup	kernel peak	1496
+fixture	2	idle-after	lookups cgroup	current median	6308
+fixture	2	idle-after	lookups cgroup	current peak	15880
+fixture	2	idle-after	bucket cgroup	anon median	325056
+fixture	2	idle-after	bucket cgroup	anon peak	325064
+fixture	2	idle-after	bucket cgroup	file median	10996
+fixture	2	idle-after	bucket cgroup	file peak	11000
+fixture	2	idle-after	bucket cgroup	kernel median	2532
+fixture	2	idle-after	bucket cgroup	kernel peak	2540
+fixture	2	idle-after	bucket cgroup	current median	338580
+fixture	2	idle-after	bucket cgroup	current peak	339980
+fixture	2	idle-after	postgres cgroup	anon median	33468
+fixture	2	idle-after	postgres cgroup	anon peak	35840
+fixture	2	idle-after	postgres cgroup	file median	91852
+fixture	2	idle-after	postgres cgroup	file peak	91852
+fixture	2	idle-after	postgres cgroup	kernel median	9140
+fixture	2	idle-after	postgres cgroup	kernel peak	9360
+fixture	2	idle-after	postgres cgroup	current median	134784
+fixture	2	idle-after	postgres cgroup	current peak	138132
+fixture	2	idle-before	ace cgroup	memory.peak	19612
+fixture	2	idle-before	ace cgroup	limit	1048576
+fixture	2	idle-before	ace cgroup	events_max	0
+fixture	2	idle-before	ace cgroup	events_oom	0
+fixture	2	idle-before	ace cgroup	events_oom_kill	0
+fixture	2	idle-before	parsers cgroup	memory.peak	14488
+fixture	2	idle-before	parsers cgroup	limit	4194304
+fixture	2	idle-before	parsers cgroup	events_max	0
+fixture	2	idle-before	parsers cgroup	events_oom	0
+fixture	2	idle-before	parsers cgroup	events_oom_kill	0
+fixture	2	idle-before	lookups cgroup	memory.peak	12284
+fixture	2	idle-before	lookups cgroup	limit	1048576
+fixture	2	idle-before	lookups cgroup	events_max	0
+fixture	2	idle-before	lookups cgroup	events_oom	0
+fixture	2	idle-before	lookups cgroup	events_oom_kill	0
+fixture	2	idle-before	postgres cgroup	memory.peak	100404
+fixture	2	idle-before	postgres cgroup	limit	1048576
+fixture	2	idle-before	postgres cgroup	events_max	0
+fixture	2	idle-before	postgres cgroup	events_oom	0
+fixture	2	idle-before	postgres cgroup	events_oom_kill	0
+fixture	2	idle-before	bucket cgroup	memory.peak	125248
+fixture	2	idle-before	bucket cgroup	limit	1048576
+fixture	2	idle-before	bucket cgroup	events_max	0
+fixture	2	idle-before	bucket cgroup	events_oom	0
+fixture	2	idle-before	bucket cgroup	events_oom_kill	0
+fixture	2	compare	ace cgroup	memory.peak	46660
+fixture	2	compare	ace cgroup	limit	1048576
+fixture	2	compare	ace cgroup	events_max	0
+fixture	2	compare	ace cgroup	events_oom	0
+fixture	2	compare	ace cgroup	events_oom_kill	0
+fixture	2	compare	parsers cgroup	memory.peak	30132
+fixture	2	compare	parsers cgroup	limit	4194304
+fixture	2	compare	parsers cgroup	events_max	0
+fixture	2	compare	parsers cgroup	events_oom	0
+fixture	2	compare	parsers cgroup	events_oom_kill	0
+fixture	2	compare	lookups cgroup	memory.peak	14900
+fixture	2	compare	lookups cgroup	limit	1048576
+fixture	2	compare	lookups cgroup	events_max	0
+fixture	2	compare	lookups cgroup	events_oom	0
+fixture	2	compare	lookups cgroup	events_oom_kill	0
+fixture	2	compare	postgres cgroup	memory.peak	151060
+fixture	2	compare	postgres cgroup	limit	1048576
+fixture	2	compare	postgres cgroup	events_max	0
+fixture	2	compare	postgres cgroup	events_oom	0
+fixture	2	compare	postgres cgroup	events_oom_kill	0
+fixture	2	compare	bucket cgroup	memory.peak	344848
+fixture	2	compare	bucket cgroup	limit	1048576
+fixture	2	compare	bucket cgroup	events_max	0
+fixture	2	compare	bucket cgroup	events_oom	0
+fixture	2	compare	bucket cgroup	events_oom_kill	0
+fixture	2	idle-after	ace cgroup	memory.peak	46692
+fixture	2	idle-after	ace cgroup	limit	1048576
+fixture	2	idle-after	ace cgroup	events_max	0
+fixture	2	idle-after	ace cgroup	events_oom	0
+fixture	2	idle-after	ace cgroup	events_oom_kill	0
+fixture	2	idle-after	parsers cgroup	memory.peak	21908
+fixture	2	idle-after	parsers cgroup	limit	4194304
+fixture	2	idle-after	parsers cgroup	events_max	0
+fixture	2	idle-after	parsers cgroup	events_oom	0
+fixture	2	idle-after	parsers cgroup	events_oom_kill	0
+fixture	2	idle-after	lookups cgroup	memory.peak	16552
+fixture	2	idle-after	lookups cgroup	limit	1048576
+fixture	2	idle-after	lookups cgroup	events_max	0
+fixture	2	idle-after	lookups cgroup	events_oom	0
+fixture	2	idle-after	lookups cgroup	events_oom_kill	0
+fixture	2	idle-after	postgres cgroup	memory.peak	144768
+fixture	2	idle-after	postgres cgroup	limit	1048576
+fixture	2	idle-after	postgres cgroup	events_max	0
+fixture	2	idle-after	postgres cgroup	events_oom	0
+fixture	2	idle-after	postgres cgroup	events_oom_kill	0
+fixture	2	idle-after	bucket cgroup	memory.peak	347568
+fixture	2	idle-after	bucket cgroup	limit	1048576
+fixture	2	idle-after	bucket cgroup	events_max	0
+fixture	2	idle-after	bucket cgroup	events_oom	0
+fixture	2	idle-after	bucket cgroup	events_oom_kill	0
+fixture	2	container-life	ace cgroup	memory.peak	46692
+fixture	2	container-life	ace cgroup	limit	1048576
+fixture	2	container-life	ace cgroup	events_max	0
+fixture	2	container-life	ace cgroup	events_oom	0
+fixture	2	container-life	ace cgroup	events_oom_kill	0
+fixture	2	container-life	parsers cgroup	memory.peak	30132
+fixture	2	container-life	parsers cgroup	limit	4194304
+fixture	2	container-life	parsers cgroup	events_max	0
+fixture	2	container-life	parsers cgroup	events_oom	0
+fixture	2	container-life	parsers cgroup	events_oom_kill	0
+fixture	2	container-life	lookups cgroup	memory.peak	16552
+fixture	2	container-life	lookups cgroup	limit	1048576
+fixture	2	container-life	lookups cgroup	events_max	0
+fixture	2	container-life	lookups cgroup	events_oom	0
+fixture	2	container-life	lookups cgroup	events_oom_kill	0
+fixture	2	container-life	postgres cgroup	memory.peak	151060
+fixture	2	container-life	postgres cgroup	limit	1048576
+fixture	2	container-life	postgres cgroup	events_max	0
+fixture	2	container-life	postgres cgroup	events_oom	0
+fixture	2	container-life	postgres cgroup	events_oom_kill	0
+fixture	2	container-life	bucket cgroup	memory.peak	347568
+fixture	2	container-life	bucket cgroup	limit	1048576
+fixture	2	container-life	bucket cgroup	events_max	0
+fixture	2	container-life	bucket cgroup	events_oom	0
+fixture	2	container-life	bucket cgroup	events_oom_kill	0
+fixture	2	compare	parsers task process	exit records	946
+fixture	2	compare	parsers task process	sampled	942
+fixture	2	compare	parsers task process	non-zero exits	0
+fixture	2	compare	parsers task process	dropped exit records	0
+fixture	2	compare	parsers task process	lifetime ms median	3.9
+fixture	2	compare	parsers task process	lifetime ms peak	22.0
+fixture	2	compare	parsers task process	cpu ms median	4.0
+fixture	2	compare	parsers task process	cpu ms peak	12.0
+fixture	2	compare	parsers task process	exit peak rss median	18484.0
+fixture	2	compare	parsers task process	exit peak rss p95	20160
+fixture	2	compare	parsers task process	exit peak rss peak	24560
+fixture	2	compare	parsers task process	private median	2656.0
+fixture	2	compare	parsers task process	private p95	4320
+fixture	2	compare	parsers task process	private peak	8640
+fixture	2	compare	parsers task process	private_dirty median	2316.0
+fixture	2	compare	parsers task process	private_dirty p95	2408
+fixture	2	compare	parsers task process	private_dirty peak	6964
+fixture	2	compare	parsers task process	pss median	8568.5
+fixture	2	compare	parsers task process	pss p95	11226
+fixture	2	compare	parsers task process	pss peak	15575
+fixture	2	compare	parsers task process	anon median	2316.0
+fixture	2	compare	parsers task process	anon p95	2408
+fixture	2	compare	parsers task process	anon peak	6964
+fixture	2	compare	parsers task process	rss shortfall median	348.0
+fixture	2	compare	parsers task process	rss shortfall p95	744
+fixture	2	compare	parsers task process	rss shortfall peak	19484
+fixture	2	compare	parsers task process	sampled tasks more than 1 MB short (count)	27
+fixture	2	compare	parsers task process	samples per task median	24.0
+fixture	2	compare	load	parser task attempts	946
+fixture	2	compare	load	lookup task attempts	24
+fixture	2	compare	load	other task attempts	0
+fixture	2	compare	load	tasks not done	0
+fixture	2	compare	load	roots	54
+fixture	2	compare	load	results	71
+fixture	2	compare	load	seconds	31.2
+fixture	2	compare	load	exit	0
+fixture	2	compare	load	report samples	54
+fixture	2	compare	sampler	tick ms median	0.01
+fixture	3	idle-before	parsers supervisor	private median	18336.0
+fixture	3	idle-before	parsers supervisor	private peak	18336
+fixture	3	idle-before	parsers supervisor	private_dirty median	3076.0
+fixture	3	idle-before	parsers supervisor	private_dirty peak	3076
+fixture	3	idle-before	parsers supervisor	pss median	19368.0
+fixture	3	idle-before	parsers supervisor	pss peak	19368
+fixture	3	idle-before	parsers supervisor	rss median	21948.0
+fixture	3	idle-before	parsers supervisor	rss peak	21948
+fixture	3	idle-before	parsers supervisor	anon median	3076.0
+fixture	3	idle-before	parsers supervisor	anon peak	3076
+fixture	3	idle-before	parsers supervisor	processes	1
+fixture	3	idle-before	lookups main	private median	12344.0
+fixture	3	idle-before	lookups main	private peak	12352
+fixture	3	idle-before	lookups main	private_dirty median	2592.0
+fixture	3	idle-before	lookups main	private_dirty peak	2600
+fixture	3	idle-before	lookups main	pss median	13376.0
+fixture	3	idle-before	lookups main	pss peak	13384
+fixture	3	idle-before	lookups main	rss median	15956.0
+fixture	3	idle-before	lookups main	rss peak	15964
+fixture	3	idle-before	lookups main	anon median	2592.0
+fixture	3	idle-before	lookups main	anon peak	2600
+fixture	3	idle-before	lookups main	processes	1
+fixture	3	idle-before	ace main	private median	35448.0
+fixture	3	idle-before	ace main	private peak	35504
+fixture	3	idle-before	ace main	private_dirty median	6200.0
+fixture	3	idle-before	ace main	private_dirty peak	6256
+fixture	3	idle-before	ace main	pss median	36470.0
+fixture	3	idle-before	ace main	pss peak	36526
+fixture	3	idle-before	ace main	rss median	39036.0
+fixture	3	idle-before	ace main	rss peak	39092
+fixture	3	idle-before	ace main	anon median	6200.0
+fixture	3	idle-before	ace main	anon peak	6256
+fixture	3	idle-before	ace main	processes	1
+fixture	3	idle-before	postgres main	private median	28932.0
+fixture	3	idle-before	postgres main	private peak	29028
+fixture	3	idle-before	postgres main	private_dirty median	20772.0
+fixture	3	idle-before	postgres main	private_dirty peak	20868
+fixture	3	idle-before	postgres main	pss median	52822.0
+fixture	3	idle-before	postgres main	pss peak	52854
+fixture	3	idle-before	postgres main	rss median	183212.0
+fixture	3	idle-before	postgres main	rss peak	183372
+fixture	3	idle-before	postgres main	anon median	37104.0
+fixture	3	idle-before	postgres main	anon peak	37136
+fixture	3	idle-before	postgres main	processes	14
+fixture	3	idle-before	bucket main	private median	203716.0
+fixture	3	idle-before	bucket main	private peak	203716
+fixture	3	idle-before	bucket main	private_dirty median	118024.0
+fixture	3	idle-before	bucket main	private_dirty peak	118024
+fixture	3	idle-before	bucket main	pss median	203716.0
+fixture	3	idle-before	bucket main	pss peak	203716
+fixture	3	idle-before	bucket main	rss median	203720.0
+fixture	3	idle-before	bucket main	rss peak	203720
+fixture	3	idle-before	bucket main	anon median	118024.0
+fixture	3	idle-before	bucket main	anon peak	118024
+fixture	3	idle-before	bucket main	processes	1
+fixture	3	idle-before	parsers supervisor and tasks	private peak	18336
+fixture	3	idle-before	parsers supervisor and tasks	private_dirty peak	3076
+fixture	3	idle-before	parsers supervisor and tasks	pss peak	19368
+fixture	3	idle-before	parsers tasks	running at once	0
+fixture	3	compare	parsers supervisor	private median	23608.0
+fixture	3	compare	parsers supervisor	private peak	25072
+fixture	3	compare	parsers supervisor	private_dirty median	8160.0
+fixture	3	compare	parsers supervisor	private_dirty peak	9600
+fixture	3	compare	parsers supervisor	pss median	24424.0
+fixture	3	compare	parsers supervisor	pss peak	25888
+fixture	3	compare	parsers supervisor	rss median	27224.0
+fixture	3	compare	parsers supervisor	rss peak	28688
+fixture	3	compare	parsers supervisor	anon median	8160.0
+fixture	3	compare	parsers supervisor	anon peak	9600
+fixture	3	compare	parsers supervisor	processes	1
+fixture	3	compare	lookups main	private median	15336.0
+fixture	3	compare	lookups main	private peak	16028
+fixture	3	compare	lookups main	private_dirty median	5008.0
+fixture	3	compare	lookups main	private_dirty peak	5188
+fixture	3	compare	lookups main	pss median	16070.0
+fixture	3	compare	lookups main	pss peak	17062
+fixture	3	compare	lookups main	rss median	18948.0
+fixture	3	compare	lookups main	rss peak	19640
+fixture	3	compare	lookups main	anon median	5008.0
+fixture	3	compare	lookups main	anon peak	5188
+fixture	3	compare	lookups main	processes	1
+fixture	3	compare	ace main	private median	45066.0
+fixture	3	compare	ace main	private peak	58208
+fixture	3	compare	ace main	private_dirty median	28650.0
+fixture	3	compare	ace main	private_dirty peak	29792
+fixture	3	compare	ace main	pss median	61796.5
+fixture	3	compare	ace main	pss peak	69214
+fixture	3	compare	ace main	rss median	90606.0
+fixture	3	compare	ace main	rss peak	91748
+fixture	3	compare	ace main	anon median	28650.0
+fixture	3	compare	ace main	anon peak	29792
+fixture	3	compare	ace main	processes	1
+fixture	3	compare	postgres main	private median	49088.0
+fixture	3	compare	postgres main	private peak	53612
+fixture	3	compare	postgres main	private_dirty median	41472.0
+fixture	3	compare	postgres main	private_dirty peak	45996
+fixture	3	compare	postgres main	pss median	75839.5
+fixture	3	compare	postgres main	pss peak	81456
+fixture	3	compare	postgres main	rss median	323712.0
+fixture	3	compare	postgres main	rss peak	365276
+fixture	3	compare	postgres main	anon median	64088.0
+fixture	3	compare	postgres main	anon peak	69572
+fixture	3	compare	postgres main	processes	20
+fixture	3	compare	bucket main	private median	349974.0
+fixture	3	compare	bucket main	private peak	447188
+fixture	3	compare	bucket main	private_dirty median	263858.0
+fixture	3	compare	bucket main	private_dirty peak	360688
+fixture	3	compare	bucket main	pss median	349974.0
+fixture	3	compare	bucket main	pss peak	447188
+fixture	3	compare	bucket main	rss median	349978.0
+fixture	3	compare	bucket main	rss peak	447192
+fixture	3	compare	bucket main	anon median	263858.0
+fixture	3	compare	bucket main	anon peak	360688
+fixture	3	compare	bucket main	processes	1
+fixture	3	compare	parsers supervisor and tasks	private peak	38016
+fixture	3	compare	parsers supervisor and tasks	private_dirty peak	19824
+fixture	3	compare	parsers supervisor and tasks	pss peak	49438
+fixture	3	compare	parsers tasks	running at once	4
+fixture	3	idle-after	parsers supervisor	private median	24100.0
+fixture	3	idle-after	parsers supervisor	private peak	24100
+fixture	3	idle-after	parsers supervisor	private_dirty median	8624.0
+fixture	3	idle-after	parsers supervisor	private_dirty peak	8624
+fixture	3	idle-after	parsers supervisor	pss median	25134.0
+fixture	3	idle-after	parsers supervisor	pss peak	25134
+fixture	3	idle-after	parsers supervisor	rss median	27712.0
+fixture	3	idle-after	parsers supervisor	rss peak	27712
+fixture	3	idle-after	parsers supervisor	anon median	8624.0
+fixture	3	idle-after	parsers supervisor	anon peak	8624
+fixture	3	idle-after	parsers supervisor	processes	1
+fixture	3	idle-after	lookups main	private median	16028.0
+fixture	3	idle-after	lookups main	private peak	16028
+fixture	3	idle-after	lookups main	private_dirty median	5188.0
+fixture	3	idle-after	lookups main	private_dirty peak	5188
+fixture	3	idle-after	lookups main	pss median	17062.0
+fixture	3	idle-after	lookups main	pss peak	17062
+fixture	3	idle-after	lookups main	rss median	19640.0
+fixture	3	idle-after	lookups main	rss peak	19640
+fixture	3	idle-after	lookups main	anon median	5188.0
+fixture	3	idle-after	lookups main	anon peak	5188
+fixture	3	idle-after	lookups main	processes	1
+fixture	3	idle-after	ace main	private median	58208.0
+fixture	3	idle-after	ace main	private peak	62288
+fixture	3	idle-after	ace main	private_dirty median	29792.0
+fixture	3	idle-after	ace main	private_dirty peak	33872
+fixture	3	idle-after	ace main	pss median	69214.0
+fixture	3	idle-after	ace main	pss peak	76334
+fixture	3	idle-after	ace main	rss median	91748.0
+fixture	3	idle-after	ace main	rss peak	102388
+fixture	3	idle-after	ace main	anon median	29792.0
+fixture	3	idle-after	ace main	anon peak	33808
+fixture	3	idle-after	ace main	processes	2
+fixture	3	idle-after	postgres main	private median	47012.0
+fixture	3	idle-after	postgres main	private peak	47148
+fixture	3	idle-after	postgres main	private_dirty median	39396.0
+fixture	3	idle-after	postgres main	private_dirty peak	39532
+fixture	3	idle-after	postgres main	pss median	74819.0
+fixture	3	idle-after	postgres main	pss peak	75000
+fixture	3	idle-after	postgres main	rss median	305060.0
+fixture	3	idle-after	postgres main	rss peak	306036
+fixture	3	idle-after	postgres main	anon median	58480.0
+fixture	3	idle-after	postgres main	anon peak	58536
+fixture	3	idle-after	postgres main	processes	17
+fixture	3	idle-after	bucket main	private median	447320.0
+fixture	3	idle-after	bucket main	private peak	452564
+fixture	3	idle-after	bucket main	private_dirty median	360692.0
+fixture	3	idle-after	bucket main	private_dirty peak	361624
+fixture	3	idle-after	bucket main	pss median	447320.0
+fixture	3	idle-after	bucket main	pss peak	453084
+fixture	3	idle-after	bucket main	rss median	447324.0
+fixture	3	idle-after	bucket main	rss peak	453616
+fixture	3	idle-after	bucket main	anon median	360692.0
+fixture	3	idle-after	bucket main	anon peak	361624
+fixture	3	idle-after	bucket main	processes	3
+fixture	3	idle-after	parsers supervisor and tasks	private peak	24100
+fixture	3	idle-after	parsers supervisor and tasks	private_dirty peak	8624
+fixture	3	idle-after	parsers supervisor and tasks	pss peak	25134
+fixture	3	idle-after	parsers tasks	running at once	0
+fixture	3	idle-before	ace cgroup	anon median	6200.0
+fixture	3	idle-before	ace cgroup	anon peak	6256
+fixture	3	idle-before	ace cgroup	file median	100.0
+fixture	3	idle-before	ace cgroup	file peak	100
+fixture	3	idle-before	ace cgroup	kernel median	1404.0
+fixture	3	idle-before	ace cgroup	kernel peak	1664
+fixture	3	idle-before	ace cgroup	current median	8112.0
+fixture	3	idle-before	ace cgroup	current peak	9280
+fixture	3	idle-before	parsers cgroup	anon median	3100.0
+fixture	3	idle-before	parsers cgroup	anon peak	9272
+fixture	3	idle-before	parsers cgroup	file median	80.0
+fixture	3	idle-before	parsers cgroup	file peak	80
+fixture	3	idle-before	parsers cgroup	kernel median	1304.0
+fixture	3	idle-before	parsers cgroup	kernel peak	1712
+fixture	3	idle-before	parsers cgroup	current median	4732.0
+fixture	3	idle-before	parsers cgroup	current peak	11912
+fixture	3	idle-before	lookups cgroup	anon median	2616.0
+fixture	3	idle-before	lookups cgroup	anon peak	8808
+fixture	3	idle-before	lookups cgroup	file median	4.0
+fixture	3	idle-before	lookups cgroup	file peak	4
+fixture	3	idle-before	lookups cgroup	kernel median	1256.0
+fixture	3	idle-before	lookups cgroup	kernel peak	1640
+fixture	3	idle-before	lookups cgroup	current median	3880.0
+fixture	3	idle-before	lookups cgroup	current peak	11716
+fixture	3	idle-before	bucket cgroup	anon median	118024.0
+fixture	3	idle-before	bucket cgroup	anon peak	118024
+fixture	3	idle-before	bucket cgroup	file median	528.0
+fixture	3	idle-before	bucket cgroup	file peak	528
+fixture	3	idle-before	bucket cgroup	kernel median	1828.0
+fixture	3	idle-before	bucket cgroup	kernel peak	1836
+fixture	3	idle-before	bucket cgroup	current median	120624.0
+fixture	3	idle-before	bucket cgroup	current peak	121636
+fixture	3	idle-before	postgres cgroup	anon median	16360.0
+fixture	3	idle-before	postgres cgroup	anon peak	16392
+fixture	3	idle-before	postgres cgroup	file median	66204.0
+fixture	3	idle-before	postgres cgroup	file peak	66392
+fixture	3	idle-before	postgres cgroup	kernel median	7712.0
+fixture	3	idle-before	postgres cgroup	kernel peak	7724
+fixture	3	idle-before	postgres cgroup	current median	90830.0
+fixture	3	idle-before	postgres cgroup	current peak	91796
+fixture	3	compare	ace cgroup	anon median	28610.0
+fixture	3	compare	ace cgroup	anon peak	29792
+fixture	3	compare	ace cgroup	file median	100.0
+fixture	3	compare	ace cgroup	file peak	1828
+fixture	3	compare	ace cgroup	kernel median	1548.0
+fixture	3	compare	ace cgroup	kernel peak	1612
+fixture	3	compare	ace cgroup	current median	31264.0
+fixture	3	compare	ace cgroup	current peak	33588
+fixture	3	compare	parsers cgroup	anon median	8416.0
+fixture	3	compare	parsers cgroup	anon peak	14456
+fixture	3	compare	parsers cgroup	file median	80.0
+fixture	3	compare	parsers cgroup	file peak	2172
+fixture	3	compare	parsers cgroup	kernel median	1560.0
+fixture	3	compare	parsers cgroup	kernel peak	3444
+fixture	3	compare	parsers cgroup	current median	10490.0
+fixture	3	compare	parsers cgroup	current peak	19552
+fixture	3	compare	lookups cgroup	anon median	5032.0
+fixture	3	compare	lookups cgroup	anon peak	5212
+fixture	3	compare	lookups cgroup	file median	4.0
+fixture	3	compare	lookups cgroup	file peak	4
+fixture	3	compare	lookups cgroup	kernel median	1272.0
+fixture	3	compare	lookups cgroup	kernel peak	1284
+fixture	3	compare	lookups cgroup	current median	6448.0
+fixture	3	compare	lookups cgroup	current peak	7984
+fixture	3	compare	bucket cgroup	anon median	263858.0
+fixture	3	compare	bucket cgroup	anon peak	360688
+fixture	3	compare	bucket cgroup	file median	7812.0
+fixture	3	compare	bucket cgroup	file peak	10976
+fixture	3	compare	bucket cgroup	kernel median	2344.0
+fixture	3	compare	bucket cgroup	kernel peak	2644
+fixture	3	compare	bucket cgroup	current median	275816.0
+fixture	3	compare	bucket cgroup	current peak	376244
+fixture	3	compare	postgres cgroup	anon median	36112.0
+fixture	3	compare	postgres cgroup	anon peak	40100
+fixture	3	compare	postgres cgroup	file median	71512.0
+fixture	3	compare	postgres cgroup	file peak	91036
+fixture	3	compare	postgres cgroup	kernel median	9038.0
+fixture	3	compare	postgres cgroup	kernel peak	9808
+fixture	3	compare	postgres cgroup	current median	118384.0
+fixture	3	compare	postgres cgroup	current peak	142472
+fixture	3	idle-after	ace cgroup	anon median	29792.0
+fixture	3	idle-after	ace cgroup	anon peak	33812
+fixture	3	idle-after	ace cgroup	file median	100.0
+fixture	3	idle-after	ace cgroup	file peak	100
+fixture	3	idle-after	ace cgroup	kernel median	1548.0
+fixture	3	idle-after	ace cgroup	kernel peak	1972
+fixture	3	idle-after	ace cgroup	current median	31916.0
+fixture	3	idle-after	ace cgroup	current peak	37208
+fixture	3	idle-after	parsers cgroup	anon median	8648.0
+fixture	3	idle-after	parsers cgroup	anon peak	14836
+fixture	3	idle-after	parsers cgroup	file median	80.0
+fixture	3	idle-after	parsers cgroup	file peak	80
+fixture	3	idle-after	parsers cgroup	kernel median	1542.0
+fixture	3	idle-after	parsers cgroup	kernel peak	1924
+fixture	3	idle-after	parsers cgroup	current median	10354.0
+fixture	3	idle-after	parsers cgroup	current peak	17872
+fixture	3	idle-after	lookups cgroup	anon median	5212.0
+fixture	3	idle-after	lookups cgroup	anon peak	5212
+fixture	3	idle-after	lookups cgroup	file median	4.0
+fixture	3	idle-after	lookups cgroup	file peak	4
+fixture	3	idle-after	lookups cgroup	kernel median	1272.0
+fixture	3	idle-after	lookups cgroup	kernel peak	1280
+fixture	3	idle-after	lookups cgroup	current median	6488.0
+fixture	3	idle-after	lookups cgroup	current peak	7560
+fixture	3	idle-after	bucket cgroup	anon median	360692.0
+fixture	3	idle-after	bucket cgroup	anon peak	365960
+fixture	3	idle-after	bucket cgroup	file median	10998.0
+fixture	3	idle-after	bucket cgroup	file peak	11000
+fixture	3	idle-after	bucket cgroup	kernel median	2624.0
+fixture	3	idle-after	bucket cgroup	kernel peak	3092
+fixture	3	idle-after	bucket cgroup	current median	374572.0
+fixture	3	idle-after	bucket cgroup	current peak	380956
+fixture	3	idle-after	postgres cgroup	anon median	33484.0
+fixture	3	idle-after	postgres cgroup	anon peak	33544
+fixture	3	idle-after	postgres cgroup	file median	91776.0
+fixture	3	idle-after	postgres cgroup	file peak	91776
+fixture	3	idle-after	postgres cgroup	kernel median	9132.0
+fixture	3	idle-after	postgres cgroup	kernel peak	9148
+fixture	3	idle-after	postgres cgroup	current median	134712.0
+fixture	3	idle-after	postgres cgroup	current peak	136056
+fixture	3	idle-before	ace cgroup	memory.peak	19020
+fixture	3	idle-before	ace cgroup	limit	1048576
+fixture	3	idle-before	ace cgroup	events_max	0
+fixture	3	idle-before	ace cgroup	events_oom	0
+fixture	3	idle-before	ace cgroup	events_oom_kill	0
+fixture	3	idle-before	parsers cgroup	memory.peak	14636
+fixture	3	idle-before	parsers cgroup	limit	4194304
+fixture	3	idle-before	parsers cgroup	events_max	0
+fixture	3	idle-before	parsers cgroup	events_oom	0
+fixture	3	idle-before	parsers cgroup	events_oom_kill	0
+fixture	3	idle-before	lookups cgroup	memory.peak	12376
+fixture	3	idle-before	lookups cgroup	limit	1048576
+fixture	3	idle-before	lookups cgroup	events_max	0
+fixture	3	idle-before	lookups cgroup	events_oom	0
+fixture	3	idle-before	lookups cgroup	events_oom_kill	0
+fixture	3	idle-before	postgres cgroup	memory.peak	101912
+fixture	3	idle-before	postgres cgroup	limit	1048576
+fixture	3	idle-before	postgres cgroup	events_max	0
+fixture	3	idle-before	postgres cgroup	events_oom	0
+fixture	3	idle-before	postgres cgroup	events_oom_kill	0
+fixture	3	idle-before	bucket cgroup	memory.peak	129496
+fixture	3	idle-before	bucket cgroup	limit	1048576
+fixture	3	idle-before	bucket cgroup	events_max	0
+fixture	3	idle-before	bucket cgroup	events_oom	0
+fixture	3	idle-before	bucket cgroup	events_oom_kill	0
+fixture	3	compare	ace cgroup	memory.peak	43292
+fixture	3	compare	ace cgroup	limit	1048576
+fixture	3	compare	ace cgroup	events_max	0
+fixture	3	compare	ace cgroup	events_oom	0
+fixture	3	compare	ace cgroup	events_oom_kill	0
+fixture	3	compare	parsers cgroup	memory.peak	25712
+fixture	3	compare	parsers cgroup	limit	4194304
+fixture	3	compare	parsers cgroup	events_max	0
+fixture	3	compare	parsers cgroup	events_oom	0
+fixture	3	compare	parsers cgroup	events_oom_kill	0
+fixture	3	compare	lookups cgroup	memory.peak	16888
+fixture	3	compare	lookups cgroup	limit	1048576
+fixture	3	compare	lookups cgroup	events_max	0
+fixture	3	compare	lookups cgroup	events_oom	0
+fixture	3	compare	lookups cgroup	events_oom_kill	0
+fixture	3	compare	postgres cgroup	memory.peak	151220
+fixture	3	compare	postgres cgroup	limit	1048576
+fixture	3	compare	postgres cgroup	events_max	0
+fixture	3	compare	postgres cgroup	events_oom	0
+fixture	3	compare	postgres cgroup	events_oom_kill	0
+fixture	3	compare	bucket cgroup	memory.peak	383408
+fixture	3	compare	bucket cgroup	limit	1048576
+fixture	3	compare	bucket cgroup	events_max	0
+fixture	3	compare	bucket cgroup	events_oom	0
+fixture	3	compare	bucket cgroup	events_oom_kill	0
+fixture	3	idle-after	ace cgroup	memory.peak	43100
+fixture	3	idle-after	ace cgroup	limit	1048576
+fixture	3	idle-after	ace cgroup	events_max	0
+fixture	3	idle-after	ace cgroup	events_oom	0
+fixture	3	idle-after	ace cgroup	events_oom_kill	0
+fixture	3	idle-after	parsers cgroup	memory.peak	18560
+fixture	3	idle-after	parsers cgroup	limit	4194304
+fixture	3	idle-after	parsers cgroup	events_max	0
+fixture	3	idle-after	parsers cgroup	events_oom	0
+fixture	3	idle-after	parsers cgroup	events_oom_kill	0
+fixture	3	idle-after	lookups cgroup	memory.peak	14992
+fixture	3	idle-after	lookups cgroup	limit	1048576
+fixture	3	idle-after	lookups cgroup	events_max	0
+fixture	3	idle-after	lookups cgroup	events_oom	0
+fixture	3	idle-after	lookups cgroup	events_oom_kill	0
+fixture	3	idle-after	postgres cgroup	memory.peak	144684
+fixture	3	idle-after	postgres cgroup	limit	1048576
+fixture	3	idle-after	postgres cgroup	events_max	0
+fixture	3	idle-after	postgres cgroup	events_oom	0
+fixture	3	idle-after	postgres cgroup	events_oom_kill	0
+fixture	3	idle-after	bucket cgroup	memory.peak	385584
+fixture	3	idle-after	bucket cgroup	limit	1048576
+fixture	3	idle-after	bucket cgroup	events_max	0
+fixture	3	idle-after	bucket cgroup	events_oom	0
+fixture	3	idle-after	bucket cgroup	events_oom_kill	0
+fixture	3	container-life	ace cgroup	memory.peak	43292
+fixture	3	container-life	ace cgroup	limit	1048576
+fixture	3	container-life	ace cgroup	events_max	0
+fixture	3	container-life	ace cgroup	events_oom	0
+fixture	3	container-life	ace cgroup	events_oom_kill	0
+fixture	3	container-life	parsers cgroup	memory.peak	25712
+fixture	3	container-life	parsers cgroup	limit	4194304
+fixture	3	container-life	parsers cgroup	events_max	0
+fixture	3	container-life	parsers cgroup	events_oom	0
+fixture	3	container-life	parsers cgroup	events_oom_kill	0
+fixture	3	container-life	lookups cgroup	memory.peak	16888
+fixture	3	container-life	lookups cgroup	limit	1048576
+fixture	3	container-life	lookups cgroup	events_max	0
+fixture	3	container-life	lookups cgroup	events_oom	0
+fixture	3	container-life	lookups cgroup	events_oom_kill	0
+fixture	3	container-life	postgres cgroup	memory.peak	151220
+fixture	3	container-life	postgres cgroup	limit	1048576
+fixture	3	container-life	postgres cgroup	events_max	0
+fixture	3	container-life	postgres cgroup	events_oom	0
+fixture	3	container-life	postgres cgroup	events_oom_kill	0
+fixture	3	container-life	bucket cgroup	memory.peak	385584
+fixture	3	container-life	bucket cgroup	limit	1048576
+fixture	3	container-life	bucket cgroup	events_max	0
+fixture	3	container-life	bucket cgroup	events_oom	0
+fixture	3	container-life	bucket cgroup	events_oom_kill	0
+fixture	3	compare	parsers task process	exit records	946
+fixture	3	compare	parsers task process	sampled	941
+fixture	3	compare	parsers task process	non-zero exits	0
+fixture	3	compare	parsers task process	dropped exit records	0
+fixture	3	compare	parsers task process	lifetime ms median	3.9
+fixture	3	compare	parsers task process	lifetime ms peak	25.4
+fixture	3	compare	parsers task process	cpu ms median	3.0
+fixture	3	compare	parsers task process	cpu ms peak	13.0
+fixture	3	compare	parsers task process	exit peak rss median	18484.0
+fixture	3	compare	parsers task process	exit peak rss p95	20160
+fixture	3	compare	parsers task process	exit peak rss peak	24508
+fixture	3	compare	parsers task process	private median	2656
+fixture	3	compare	parsers task process	private p95	4320
+fixture	3	compare	parsers task process	private peak	8636
+fixture	3	compare	parsers task process	private_dirty median	2316
+fixture	3	compare	parsers task process	private_dirty p95	2404
+fixture	3	compare	parsers task process	private_dirty peak	6960
+fixture	3	compare	parsers task process	pss median	8569
+fixture	3	compare	parsers task process	pss p95	11228
+fixture	3	compare	parsers task process	pss peak	15576
+fixture	3	compare	parsers task process	anon median	2316
+fixture	3	compare	parsers task process	anon p95	2404
+fixture	3	compare	parsers task process	anon peak	6960
+fixture	3	compare	parsers task process	rss shortfall median	308
+fixture	3	compare	parsers task process	rss shortfall p95	664
+fixture	3	compare	parsers task process	rss shortfall peak	19548
+fixture	3	compare	parsers task process	sampled tasks more than 1 MB short (count)	29
+fixture	3	compare	parsers task process	samples per task median	24
+fixture	3	compare	load	parser task attempts	946
+fixture	3	compare	load	lookup task attempts	24
+fixture	3	compare	load	other task attempts	0
+fixture	3	compare	load	tasks not done	0
+fixture	3	compare	load	roots	54
+fixture	3	compare	load	results	71
+fixture	3	compare	load	seconds	31.0
+fixture	3	compare	load	exit	0
+fixture	3	compare	load	report samples	54
+fixture	3	compare	sampler	tick ms median	0.011
+fixture	4	idle-before	parsers supervisor	private median	18332
+fixture	4	idle-before	parsers supervisor	private peak	18336
+fixture	4	idle-before	parsers supervisor	private_dirty median	3076
+fixture	4	idle-before	parsers supervisor	private_dirty peak	3080
+fixture	4	idle-before	parsers supervisor	pss median	19363
+fixture	4	idle-before	parsers supervisor	pss peak	19367
+fixture	4	idle-before	parsers supervisor	rss median	21948
+fixture	4	idle-before	parsers supervisor	rss peak	21952
+fixture	4	idle-before	parsers supervisor	anon median	3076
+fixture	4	idle-before	parsers supervisor	anon peak	3080
+fixture	4	idle-before	parsers supervisor	processes	1
+fixture	4	idle-before	lookups main	private median	12340
+fixture	4	idle-before	lookups main	private peak	12492
+fixture	4	idle-before	lookups main	private_dirty median	2588
+fixture	4	idle-before	lookups main	private_dirty peak	2612
+fixture	4	idle-before	lookups main	pss median	13371
+fixture	4	idle-before	lookups main	pss peak	13740
+fixture	4	idle-before	lookups main	rss median	15956
+fixture	4	idle-before	lookups main	rss peak	17508
+fixture	4	idle-before	lookups main	anon median	2588
+fixture	4	idle-before	lookups main	anon peak	2704
+fixture	4	idle-before	lookups main	processes	2
+fixture	4	idle-before	ace main	private median	35376
+fixture	4	idle-before	ace main	private peak	38076
+fixture	4	idle-before	ace main	private_dirty median	6128
+fixture	4	idle-before	ace main	private_dirty peak	6408
+fixture	4	idle-before	ace main	pss median	36403
+fixture	4	idle-before	ace main	pss peak	39294
+fixture	4	idle-before	ace main	rss median	38984
+fixture	4	idle-before	ace main	rss peak	43128
+fixture	4	idle-before	ace main	anon median	6128
+fixture	4	idle-before	ace main	anon peak	6408
+fixture	4	idle-before	ace main	processes	2
+fixture	4	idle-before	postgres main	private median	26664
+fixture	4	idle-before	postgres main	private peak	26776
+fixture	4	idle-before	postgres main	private_dirty median	18388
+fixture	4	idle-before	postgres main	private_dirty peak	18500
+fixture	4	idle-before	postgres main	pss median	50478
+fixture	4	idle-before	postgres main	pss peak	50478
+fixture	4	idle-before	postgres main	rss median	162856
+fixture	4	idle-before	postgres main	rss peak	162984
+fixture	4	idle-before	postgres main	anon median	33484
+fixture	4	idle-before	postgres main	anon peak	33484
+fixture	4	idle-before	postgres main	processes	13
+fixture	4	idle-before	bucket main	private median	203628
+fixture	4	idle-before	bucket main	private peak	205676
+fixture	4	idle-before	bucket main	private_dirty median	117692
+fixture	4	idle-before	bucket main	private_dirty peak	119740
+fixture	4	idle-before	bucket main	pss median	203628
+fixture	4	idle-before	bucket main	pss peak	205676
+fixture	4	idle-before	bucket main	rss median	203632
+fixture	4	idle-before	bucket main	rss peak	205680
+fixture	4	idle-before	bucket main	anon median	117692
+fixture	4	idle-before	bucket main	anon peak	119740
+fixture	4	idle-before	bucket main	processes	1
+fixture	4	idle-before	parsers supervisor and tasks	private peak	18336
+fixture	4	idle-before	parsers supervisor and tasks	private_dirty peak	3080
+fixture	4	idle-before	parsers supervisor and tasks	pss peak	19367
+fixture	4	idle-before	parsers tasks	running at once	0
+fixture	4	compare	parsers supervisor	private median	25656.0
+fixture	4	compare	parsers supervisor	private peak	27288
+fixture	4	compare	parsers supervisor	private_dirty median	10208.0
+fixture	4	compare	parsers supervisor	private_dirty peak	11840
+fixture	4	compare	parsers supervisor	pss median	26468.0
+fixture	4	compare	parsers supervisor	pss peak	28100
+fixture	4	compare	parsers supervisor	rss median	29274.0
+fixture	4	compare	parsers supervisor	rss peak	30904
+fixture	4	compare	parsers supervisor	anon median	10210.0
+fixture	4	compare	parsers supervisor	anon peak	11840
+fixture	4	compare	parsers supervisor	processes	1
+fixture	4	compare	lookups main	private median	15224.0
+fixture	4	compare	lookups main	private peak	15900
+fixture	4	compare	lookups main	private_dirty median	4896.0
+fixture	4	compare	lookups main	private_dirty peak	5060
+fixture	4	compare	lookups main	pss median	16032.0
+fixture	4	compare	lookups main	pss peak	16712
+fixture	4	compare	lookups main	rss median	18840.0
+fixture	4	compare	lookups main	rss peak	19516
+fixture	4	compare	lookups main	anon median	4896.0
+fixture	4	compare	lookups main	anon peak	5060
+fixture	4	compare	lookups main	processes	1
+fixture	4	compare	ace main	private median	46864.0
+fixture	4	compare	ace main	private peak	49192
+fixture	4	compare	ace main	private_dirty median	30448.0
+fixture	4	compare	ace main	private_dirty peak	32776
+fixture	4	compare	ace main	pss median	63656.0
+fixture	4	compare	ace main	pss peak	65984
+fixture	4	compare	ace main	rss median	89928.0
+fixture	4	compare	ace main	rss peak	94752
+fixture	4	compare	ace main	anon median	30448.0
+fixture	4	compare	ace main	anon peak	32776
+fixture	4	compare	ace main	processes	1
+fixture	4	compare	postgres main	private median	48676.0
+fixture	4	compare	postgres main	private peak	57052
+fixture	4	compare	postgres main	private_dirty median	40976.0
+fixture	4	compare	postgres main	private_dirty peak	49276
+fixture	4	compare	postgres main	pss median	75093.5
+fixture	4	compare	postgres main	pss peak	84823
+fixture	4	compare	postgres main	rss median	318690.0
+fixture	4	compare	postgres main	rss peak	387912
+fixture	4	compare	postgres main	anon median	63654.0
+fixture	4	compare	postgres main	anon peak	74452
+fixture	4	compare	postgres main	processes	21
+fixture	4	compare	bucket main	private median	331224.0
+fixture	4	compare	bucket main	private peak	464300
+fixture	4	compare	bucket main	private_dirty median	244800.0
+fixture	4	compare	bucket main	private_dirty peak	377492
+fixture	4	compare	bucket main	pss median	331224.0
+fixture	4	compare	bucket main	pss peak	467324
+fixture	4	compare	bucket main	rss median	331228.0
+fixture	4	compare	bucket main	rss peak	470800
+fixture	4	compare	bucket main	anon median	244800.0
+fixture	4	compare	bucket main	anon peak	377236
+fixture	4	compare	bucket main	processes	2
+fixture	4	compare	parsers supervisor and tasks	private peak	39360
+fixture	4	compare	parsers supervisor and tasks	private_dirty peak	21168
+fixture	4	compare	parsers supervisor and tasks	pss peak	50999
+fixture	4	compare	parsers tasks	running at once	4
+fixture	4	idle-after	parsers supervisor	private median	27288
+fixture	4	idle-after	parsers supervisor	private peak	27288
+fixture	4	idle-after	parsers supervisor	private_dirty median	11840
+fixture	4	idle-after	parsers supervisor	private_dirty peak	11840
+fixture	4	idle-after	parsers supervisor	pss median	28319
+fixture	4	idle-after	parsers supervisor	pss peak	28319
+fixture	4	idle-after	parsers supervisor	rss median	30904
+fixture	4	idle-after	parsers supervisor	rss peak	30904
+fixture	4	idle-after	parsers supervisor	anon median	11840
+fixture	4	idle-after	parsers supervisor	anon peak	11840
+fixture	4	idle-after	parsers supervisor	processes	1
+fixture	4	idle-after	lookups main	private median	15900
+fixture	4	idle-after	lookups main	private peak	15900
+fixture	4	idle-after	lookups main	private_dirty median	5060
+fixture	4	idle-after	lookups main	private_dirty peak	5060
+fixture	4	idle-after	lookups main	pss median	16931
+fixture	4	idle-after	lookups main	pss peak	16931
+fixture	4	idle-after	lookups main	rss median	19516
+fixture	4	idle-after	lookups main	rss peak	19516
+fixture	4	idle-after	lookups main	anon median	5060
+fixture	4	idle-after	lookups main	anon peak	5060
+fixture	4	idle-after	lookups main	processes	1
+fixture	4	idle-after	ace main	private median	61192
+fixture	4	idle-after	ace main	private peak	61192
+fixture	4	idle-after	ace main	private_dirty median	32776
+fixture	4	idle-after	ace main	private_dirty peak	32776
+fixture	4	idle-after	ace main	pss median	72203
+fixture	4	idle-after	ace main	pss peak	72203
+fixture	4	idle-after	ace main	rss median	94752
+fixture	4	idle-after	ace main	rss peak	94752
+fixture	4	idle-after	ace main	anon median	32776
+fixture	4	idle-after	ace main	anon peak	32776
+fixture	4	idle-after	ace main	processes	1
+fixture	4	idle-after	postgres main	private median	50536
+fixture	4	idle-after	postgres main	private peak	52484
+fixture	4	idle-after	postgres main	private_dirty median	42760
+fixture	4	idle-after	postgres main	private_dirty peak	44708
+fixture	4	idle-after	postgres main	pss median	78173
+fixture	4	idle-after	postgres main	pss peak	80135
+fixture	4	idle-after	postgres main	rss median	328784
+fixture	4	idle-after	postgres main	rss peak	346240
+fixture	4	idle-after	postgres main	anon median	63368
+fixture	4	idle-after	postgres main	anon peak	66888
+fixture	4	idle-after	postgres main	processes	19
+fixture	4	idle-after	bucket main	private median	460068
+fixture	4	idle-after	bucket main	private peak	460068
+fixture	4	idle-after	bucket main	private_dirty median	373132
+fixture	4	idle-after	bucket main	private_dirty peak	373132
+fixture	4	idle-after	bucket main	pss median	460068
+fixture	4	idle-after	bucket main	pss peak	460068
+fixture	4	idle-after	bucket main	rss median	460072
+fixture	4	idle-after	bucket main	rss peak	460072
+fixture	4	idle-after	bucket main	anon median	373132
+fixture	4	idle-after	bucket main	anon peak	373132
+fixture	4	idle-after	bucket main	processes	1
+fixture	4	idle-after	parsers supervisor and tasks	private peak	27288
+fixture	4	idle-after	parsers supervisor and tasks	private_dirty peak	11840
+fixture	4	idle-after	parsers supervisor and tasks	pss peak	28319
+fixture	4	idle-after	parsers tasks	running at once	0
+fixture	4	idle-before	ace cgroup	anon median	6128
+fixture	4	idle-before	ace cgroup	anon peak	6204
+fixture	4	idle-before	ace cgroup	file median	100
+fixture	4	idle-before	ace cgroup	file peak	100
+fixture	4	idle-before	ace cgroup	kernel median	1412
+fixture	4	idle-before	ace cgroup	kernel peak	1692
+fixture	4	idle-before	ace cgroup	current median	8120
+fixture	4	idle-before	ace cgroup	current peak	9344
+fixture	4	idle-before	parsers cgroup	anon median	3100
+fixture	4	idle-before	parsers cgroup	anon peak	9128
+fixture	4	idle-before	parsers cgroup	file median	80
+fixture	4	idle-before	parsers cgroup	file peak	80
+fixture	4	idle-before	parsers cgroup	kernel median	1300
+fixture	4	idle-before	parsers cgroup	kernel peak	1732
+fixture	4	idle-before	parsers cgroup	current median	4500
+fixture	4	idle-before	parsers cgroup	current peak	11888
+fixture	4	idle-before	lookups cgroup	anon median	2612
+fixture	4	idle-before	lookups cgroup	anon peak	9212
+fixture	4	idle-before	lookups cgroup	file median	4
+fixture	4	idle-before	lookups cgroup	file peak	4
+fixture	4	idle-before	lookups cgroup	kernel median	1260
+fixture	4	idle-before	lookups cgroup	kernel peak	1664
+fixture	4	idle-before	lookups cgroup	current median	3880
+fixture	4	idle-before	lookups cgroup	current peak	11948
+fixture	4	idle-before	bucket cgroup	anon median	117692
+fixture	4	idle-before	bucket cgroup	anon peak	119740
+fixture	4	idle-before	bucket cgroup	file median	528
+fixture	4	idle-before	bucket cgroup	file peak	528
+fixture	4	idle-before	bucket cgroup	kernel median	1784
+fixture	4	idle-before	bucket cgroup	kernel peak	1788
+fixture	4	idle-before	bucket cgroup	current median	121624
+fixture	4	idle-before	bucket cgroup	current peak	124332
+fixture	4	idle-before	postgres cgroup	anon median	14144
+fixture	4	idle-before	postgres cgroup	anon peak	14160
+fixture	4	idle-before	postgres cgroup	file median	66196
+fixture	4	idle-before	postgres cgroup	file peak	66384
+fixture	4	idle-before	postgres cgroup	kernel median	7572
+fixture	4	idle-before	postgres cgroup	kernel peak	7744
+fixture	4	idle-before	postgres cgroup	current median	88476
+fixture	4	idle-before	postgres cgroup	current peak	89640
+fixture	4	compare	ace cgroup	anon median	30448.0
+fixture	4	compare	ace cgroup	anon peak	32776
+fixture	4	compare	ace cgroup	file median	100.0
+fixture	4	compare	ace cgroup	file peak	840
+fixture	4	compare	ace cgroup	kernel median	1560.0
+fixture	4	compare	ace cgroup	kernel peak	1684
+fixture	4	compare	ace cgroup	current median	33112.0
+fixture	4	compare	ace cgroup	current peak	36400
+fixture	4	compare	parsers cgroup	anon median	10236.0
+fixture	4	compare	parsers cgroup	anon peak	16308
+fixture	4	compare	parsers cgroup	file median	80.0
+fixture	4	compare	parsers cgroup	file peak	2732
+fixture	4	compare	parsers cgroup	kernel median	1556.0
+fixture	4	compare	parsers cgroup	kernel peak	3584
+fixture	4	compare	parsers cgroup	current median	12992.0
+fixture	4	compare	parsers cgroup	current peak	21692
+fixture	4	compare	lookups cgroup	anon median	4916.0
+fixture	4	compare	lookups cgroup	anon peak	5084
+fixture	4	compare	lookups cgroup	file median	4.0
+fixture	4	compare	lookups cgroup	file peak	4
+fixture	4	compare	lookups cgroup	kernel median	1276.0
+fixture	4	compare	lookups cgroup	kernel peak	1288
+fixture	4	compare	lookups cgroup	current median	6368.0
+fixture	4	compare	lookups cgroup	current peak	8012
+fixture	4	compare	bucket cgroup	anon median	244796.0
+fixture	4	compare	bucket cgroup	anon peak	377236
+fixture	4	compare	bucket cgroup	file median	7800.0
+fixture	4	compare	bucket cgroup	file peak	10968
+fixture	4	compare	bucket cgroup	kernel median	2296.0
+fixture	4	compare	bucket cgroup	kernel peak	3024
+fixture	4	compare	bucket cgroup	current median	257074.0
+fixture	4	compare	bucket cgroup	current peak	394172
+fixture	4	compare	postgres cgroup	anon median	35614.0
+fixture	4	compare	postgres cgroup	anon peak	45520
+fixture	4	compare	postgres cgroup	file median	71448.0
+fixture	4	compare	postgres cgroup	file peak	91152
+fixture	4	compare	postgres cgroup	kernel median	9224.0
+fixture	4	compare	postgres cgroup	kernel peak	10268
+fixture	4	compare	postgres cgroup	current median	117482.0
+fixture	4	compare	postgres cgroup	current peak	146596
+fixture	4	idle-after	ace cgroup	anon median	32776
+fixture	4	idle-after	ace cgroup	anon peak	32776
+fixture	4	idle-after	ace cgroup	file median	100
+fixture	4	idle-after	ace cgroup	file peak	100
+fixture	4	idle-after	ace cgroup	kernel median	1560
+fixture	4	idle-after	ace cgroup	kernel peak	1732
+fixture	4	idle-after	ace cgroup	current median	34708
+fixture	4	idle-after	ace cgroup	current peak	36044
+fixture	4	idle-after	parsers cgroup	anon median	11864
+fixture	4	idle-after	parsers cgroup	anon peak	11864
+fixture	4	idle-after	parsers cgroup	file median	80
+fixture	4	idle-after	parsers cgroup	file peak	80
+fixture	4	idle-after	parsers cgroup	kernel median	1540
+fixture	4	idle-after	parsers cgroup	kernel peak	1624
+fixture	4	idle-after	parsers cgroup	current median	13564
+fixture	4	idle-after	parsers cgroup	current peak	15012
+fixture	4	idle-after	lookups cgroup	anon median	5084
+fixture	4	idle-after	lookups cgroup	anon peak	5084
+fixture	4	idle-after	lookups cgroup	file median	4
+fixture	4	idle-after	lookups cgroup	file peak	4
+fixture	4	idle-after	lookups cgroup	kernel median	1276
+fixture	4	idle-after	lookups cgroup	kernel peak	1284
+fixture	4	idle-after	lookups cgroup	current median	6604
+fixture	4	idle-after	lookups cgroup	current peak	7384
+fixture	4	idle-after	bucket cgroup	anon median	373132
+fixture	4	idle-after	bucket cgroup	anon peak	373132
+fixture	4	idle-after	bucket cgroup	file median	10996
+fixture	4	idle-after	bucket cgroup	file peak	11000
+fixture	4	idle-after	bucket cgroup	kernel median	2636
+fixture	4	idle-after	bucket cgroup	kernel peak	2648
+fixture	4	idle-after	bucket cgroup	current median	388028
+fixture	4	idle-after	bucket cgroup	current peak	389348
+fixture	4	idle-after	postgres cgroup	anon median	36864
+fixture	4	idle-after	postgres cgroup	anon peak	38788
+fixture	4	idle-after	postgres cgroup	file median	91892
+fixture	4	idle-after	postgres cgroup	file peak	91892
+fixture	4	idle-after	postgres cgroup	kernel median	9536
+fixture	4	idle-after	postgres cgroup	kernel peak	9780
+fixture	4	idle-after	postgres cgroup	current median	138576
+fixture	4	idle-after	postgres cgroup	current peak	141216
+fixture	4	idle-before	ace cgroup	memory.peak	17028
+fixture	4	idle-before	ace cgroup	limit	1048576
+fixture	4	idle-before	ace cgroup	events_max	0
+fixture	4	idle-before	ace cgroup	events_oom	0
+fixture	4	idle-before	ace cgroup	events_oom_kill	0
+fixture	4	idle-before	parsers cgroup	memory.peak	12732
+fixture	4	idle-before	parsers cgroup	limit	4194304
+fixture	4	idle-before	parsers cgroup	events_max	0
+fixture	4	idle-before	parsers cgroup	events_oom	0
+fixture	4	idle-before	parsers cgroup	events_oom_kill	0
+fixture	4	idle-before	lookups cgroup	memory.peak	12324
+fixture	4	idle-before	lookups cgroup	limit	1048576
+fixture	4	idle-before	lookups cgroup	events_max	0
+fixture	4	idle-before	lookups cgroup	events_oom	0
+fixture	4	idle-before	lookups cgroup	events_oom_kill	0
+fixture	4	idle-before	postgres cgroup	memory.peak	100324
+fixture	4	idle-before	postgres cgroup	limit	1048576
+fixture	4	idle-before	postgres cgroup	events_max	0
+fixture	4	idle-before	postgres cgroup	events_oom	0
+fixture	4	idle-before	postgres cgroup	events_oom_kill	0
+fixture	4	idle-before	bucket cgroup	memory.peak	132516
+fixture	4	idle-before	bucket cgroup	limit	1048576
+fixture	4	idle-before	bucket cgroup	events_max	0
+fixture	4	idle-before	bucket cgroup	events_oom	0
+fixture	4	idle-before	bucket cgroup	events_oom_kill	0
+fixture	4	compare	ace cgroup	memory.peak	42676
+fixture	4	compare	ace cgroup	limit	1048576
+fixture	4	compare	ace cgroup	events_max	0
+fixture	4	compare	ace cgroup	events_oom	0
+fixture	4	compare	ace cgroup	events_oom_kill	0
+fixture	4	compare	parsers cgroup	memory.peak	27580
+fixture	4	compare	parsers cgroup	limit	4194304
+fixture	4	compare	parsers cgroup	events_max	0
+fixture	4	compare	parsers cgroup	events_oom	0
+fixture	4	compare	parsers cgroup	events_oom_kill	0
+fixture	4	compare	lookups cgroup	memory.peak	15000
+fixture	4	compare	lookups cgroup	limit	1048576
+fixture	4	compare	lookups cgroup	events_max	0
+fixture	4	compare	lookups cgroup	events_oom	0
+fixture	4	compare	lookups cgroup	events_oom_kill	0
+fixture	4	compare	postgres cgroup	memory.peak	152864
+fixture	4	compare	postgres cgroup	limit	1048576
+fixture	4	compare	postgres cgroup	events_max	0
+fixture	4	compare	postgres cgroup	events_oom	0
+fixture	4	compare	postgres cgroup	events_oom_kill	0
+fixture	4	compare	bucket cgroup	memory.peak	395384
+fixture	4	compare	bucket cgroup	limit	1048576
+fixture	4	compare	bucket cgroup	events_max	0
+fixture	4	compare	bucket cgroup	events_oom	0
+fixture	4	compare	bucket cgroup	events_oom_kill	0
+fixture	4	idle-after	ace cgroup	memory.peak	44320
+fixture	4	idle-after	ace cgroup	limit	1048576
+fixture	4	idle-after	ace cgroup	events_max	0
+fixture	4	idle-after	ace cgroup	events_oom	0
+fixture	4	idle-after	ace cgroup	events_oom_kill	0
+fixture	4	idle-after	parsers cgroup	memory.peak	24188
+fixture	4	idle-after	parsers cgroup	limit	4194304
+fixture	4	idle-after	parsers cgroup	events_max	0
+fixture	4	idle-after	parsers cgroup	events_oom	0
+fixture	4	idle-after	parsers cgroup	events_oom_kill	0
+fixture	4	idle-after	lookups cgroup	memory.peak	16980
+fixture	4	idle-after	lookups cgroup	limit	1048576
+fixture	4	idle-after	lookups cgroup	events_max	0
+fixture	4	idle-after	lookups cgroup	events_oom	0
+fixture	4	idle-after	lookups cgroup	events_oom_kill	0
+fixture	4	idle-after	postgres cgroup	memory.peak	149428
+fixture	4	idle-after	postgres cgroup	limit	1048576
+fixture	4	idle-after	postgres cgroup	events_max	0
+fixture	4	idle-after	postgres cgroup	events_oom	0
+fixture	4	idle-after	postgres cgroup	events_oom_kill	0
+fixture	4	idle-after	bucket cgroup	memory.peak	398436
+fixture	4	idle-after	bucket cgroup	limit	1048576
+fixture	4	idle-after	bucket cgroup	events_max	0
+fixture	4	idle-after	bucket cgroup	events_oom	0
+fixture	4	idle-after	bucket cgroup	events_oom_kill	0
+fixture	4	container-life	ace cgroup	memory.peak	44320
+fixture	4	container-life	ace cgroup	limit	1048576
+fixture	4	container-life	ace cgroup	events_max	0
+fixture	4	container-life	ace cgroup	events_oom	0
+fixture	4	container-life	ace cgroup	events_oom_kill	0
+fixture	4	container-life	parsers cgroup	memory.peak	27580
+fixture	4	container-life	parsers cgroup	limit	4194304
+fixture	4	container-life	parsers cgroup	events_max	0
+fixture	4	container-life	parsers cgroup	events_oom	0
+fixture	4	container-life	parsers cgroup	events_oom_kill	0
+fixture	4	container-life	lookups cgroup	memory.peak	16980
+fixture	4	container-life	lookups cgroup	limit	1048576
+fixture	4	container-life	lookups cgroup	events_max	0
+fixture	4	container-life	lookups cgroup	events_oom	0
+fixture	4	container-life	lookups cgroup	events_oom_kill	0
+fixture	4	container-life	postgres cgroup	memory.peak	152864
+fixture	4	container-life	postgres cgroup	limit	1048576
+fixture	4	container-life	postgres cgroup	events_max	0
+fixture	4	container-life	postgres cgroup	events_oom	0
+fixture	4	container-life	postgres cgroup	events_oom_kill	0
+fixture	4	container-life	bucket cgroup	memory.peak	398436
+fixture	4	container-life	bucket cgroup	limit	1048576
+fixture	4	container-life	bucket cgroup	events_max	0
+fixture	4	container-life	bucket cgroup	events_oom	0
+fixture	4	container-life	bucket cgroup	events_oom_kill	0
+fixture	4	compare	parsers task process	exit records	946
+fixture	4	compare	parsers task process	sampled	937
+fixture	4	compare	parsers task process	non-zero exits	0
+fixture	4	compare	parsers task process	dropped exit records	0
+fixture	4	compare	parsers task process	lifetime ms median	3.9
+fixture	4	compare	parsers task process	lifetime ms peak	26.0
+fixture	4	compare	parsers task process	cpu ms median	3.0
+fixture	4	compare	parsers task process	cpu ms peak	12.0
+fixture	4	compare	parsers task process	exit peak rss median	18484.0
+fixture	4	compare	parsers task process	exit peak rss p95	20160
+fixture	4	compare	parsers task process	exit peak rss peak	24500
+fixture	4	compare	parsers task process	private median	2656
+fixture	4	compare	parsers task process	private p95	4320
+fixture	4	compare	parsers task process	private peak	8628
+fixture	4	compare	parsers task process	private_dirty median	2316
+fixture	4	compare	parsers task process	private_dirty p95	2404
+fixture	4	compare	parsers task process	private_dirty peak	6952
+fixture	4	compare	parsers task process	pss median	8674
+fixture	4	compare	parsers task process	pss p95	11226
+fixture	4	compare	parsers task process	pss peak	15566
+fixture	4	compare	parsers task process	anon median	2316
+fixture	4	compare	parsers task process	anon p95	2404
+fixture	4	compare	parsers task process	anon peak	6952
+fixture	4	compare	parsers task process	rss shortfall median	308
+fixture	4	compare	parsers task process	rss shortfall p95	632
+fixture	4	compare	parsers task process	rss shortfall peak	17308
+fixture	4	compare	parsers task process	sampled tasks more than 1 MB short (count)	20
+fixture	4	compare	parsers task process	samples per task median	25
+fixture	4	compare	load	parser task attempts	946
+fixture	4	compare	load	lookup task attempts	24
+fixture	4	compare	load	other task attempts	0
+fixture	4	compare	load	tasks not done	0
+fixture	4	compare	load	roots	54
+fixture	4	compare	load	results	71
+fixture	4	compare	load	seconds	31.0
+fixture	4	compare	load	exit	0
+fixture	4	compare	load	report samples	54
+fixture	4	compare	sampler	tick ms median	0.011
+fixture	5	idle-before	parsers supervisor	private median	18344
+fixture	5	idle-before	parsers supervisor	private peak	18344
+fixture	5	idle-before	parsers supervisor	private_dirty median	3088
+fixture	5	idle-before	parsers supervisor	private_dirty peak	3088
+fixture	5	idle-before	parsers supervisor	pss median	19375
+fixture	5	idle-before	parsers supervisor	pss peak	19375
+fixture	5	idle-before	parsers supervisor	rss median	21956
+fixture	5	idle-before	parsers supervisor	rss peak	21956
+fixture	5	idle-before	parsers supervisor	anon median	3088
+fixture	5	idle-before	parsers supervisor	anon peak	3088
+fixture	5	idle-before	parsers supervisor	processes	1
+fixture	5	idle-before	lookups main	private median	12340
+fixture	5	idle-before	lookups main	private peak	12348
+fixture	5	idle-before	lookups main	private_dirty median	2588
+fixture	5	idle-before	lookups main	private_dirty peak	2596
+fixture	5	idle-before	lookups main	pss median	13373
+fixture	5	idle-before	lookups main	pss peak	13381
+fixture	5	idle-before	lookups main	rss median	15956
+fixture	5	idle-before	lookups main	rss peak	15964
+fixture	5	idle-before	lookups main	anon median	2588
+fixture	5	idle-before	lookups main	anon peak	2596
+fixture	5	idle-before	lookups main	processes	1
+fixture	5	idle-before	ace main	private median	35504
+fixture	5	idle-before	ace main	private peak	41176
+fixture	5	idle-before	ace main	private_dirty median	6256
+fixture	5	idle-before	ace main	private_dirty peak	11928
+fixture	5	idle-before	ace main	pss median	36533
+fixture	5	idle-before	ace main	pss peak	44980
+fixture	5	idle-before	ace main	rss median	39112
+fixture	5	idle-before	ace main	rss peak	50768
+fixture	5	idle-before	ace main	anon median	6256
+fixture	5	idle-before	ace main	anon peak	11928
+fixture	5	idle-before	ace main	processes	2
+fixture	5	idle-before	postgres main	private median	28860
+fixture	5	idle-before	postgres main	private peak	31088
+fixture	5	idle-before	postgres main	private_dirty median	20556
+fixture	5	idle-before	postgres main	private_dirty peak	22784
+fixture	5	idle-before	postgres main	pss median	52902
+fixture	5	idle-before	postgres main	pss peak	55320
+fixture	5	idle-before	postgres main	rss median	184268
+fixture	5	idle-before	postgres main	rss peak	199932
+fixture	5	idle-before	postgres main	anon median	37148
+fixture	5	idle-before	postgres main	anon peak	41260
+fixture	5	idle-before	postgres main	processes	15
+fixture	5	idle-before	bucket main	private median	207964
+fixture	5	idle-before	bucket main	private peak	207968
+fixture	5	idle-before	bucket main	private_dirty median	122020
+fixture	5	idle-before	bucket main	private_dirty peak	122024
+fixture	5	idle-before	bucket main	pss median	207964
+fixture	5	idle-before	bucket main	pss peak	207968
+fixture	5	idle-before	bucket main	rss median	207968
+fixture	5	idle-before	bucket main	rss peak	207972
+fixture	5	idle-before	bucket main	anon median	122020
+fixture	5	idle-before	bucket main	anon peak	122024
+fixture	5	idle-before	bucket main	processes	1
+fixture	5	idle-before	parsers supervisor and tasks	private peak	18344
+fixture	5	idle-before	parsers supervisor and tasks	private_dirty peak	3088
+fixture	5	idle-before	parsers supervisor and tasks	pss peak	19375
+fixture	5	idle-before	parsers tasks	running at once	0
+fixture	5	compare	parsers supervisor	private median	23856.0
+fixture	5	compare	parsers supervisor	private peak	25000
+fixture	5	compare	parsers supervisor	private_dirty median	8664.0
+fixture	5	compare	parsers supervisor	private_dirty peak	9552
+fixture	5	compare	parsers supervisor	pss median	24668.0
+fixture	5	compare	parsers supervisor	pss peak	25812
+fixture	5	compare	parsers supervisor	rss median	27724.0
+fixture	5	compare	parsers supervisor	rss peak	28612
+fixture	5	compare	parsers supervisor	anon median	8664.0
+fixture	5	compare	parsers supervisor	anon peak	9552
+fixture	5	compare	parsers supervisor	processes	1
+fixture	5	compare	lookups main	private median	15080.0
+fixture	5	compare	lookups main	private peak	16012
+fixture	5	compare	lookups main	private_dirty median	4752.0
+fixture	5	compare	lookups main	private_dirty peak	5172
+fixture	5	compare	lookups main	pss median	15881.0
+fixture	5	compare	lookups main	pss peak	16825
+fixture	5	compare	lookups main	rss median	18696.0
+fixture	5	compare	lookups main	rss peak	19628
+fixture	5	compare	lookups main	anon median	4752.0
+fixture	5	compare	lookups main	anon peak	5172
+fixture	5	compare	lookups main	processes	1
+fixture	5	compare	ace main	private median	44646.0
+fixture	5	compare	ace main	private peak	47156
+fixture	5	compare	ace main	private_dirty median	28230.0
+fixture	5	compare	ace main	private_dirty peak	30740
+fixture	5	compare	ace main	pss median	61437.0
+fixture	5	compare	ace main	pss peak	63949
+fixture	5	compare	ace main	rss median	87326.0
+fixture	5	compare	ace main	rss peak	92716
+fixture	5	compare	ace main	anon median	28230.0
+fixture	5	compare	ace main	anon peak	30740
+fixture	5	compare	ace main	processes	1
+fixture	5	compare	postgres main	private median	49646.0
+fixture	5	compare	postgres main	private peak	53652
+fixture	5	compare	postgres main	private_dirty median	41886.0
+fixture	5	compare	postgres main	private_dirty peak	45892
+fixture	5	compare	postgres main	pss median	76261.0
+fixture	5	compare	postgres main	pss peak	81708
+fixture	5	compare	postgres main	rss median	324716.0
+fixture	5	compare	postgres main	rss peak	368168
+fixture	5	compare	postgres main	anon median	64574.0
+fixture	5	compare	postgres main	anon peak	69552
+fixture	5	compare	postgres main	processes	20
+fixture	5	compare	bucket main	private median	345910.0
+fixture	5	compare	bucket main	private peak	480360
+fixture	5	compare	bucket main	private_dirty median	259478.0
+fixture	5	compare	bucket main	private_dirty peak	393672
+fixture	5	compare	bucket main	pss median	345910.0
+fixture	5	compare	bucket main	pss peak	480360
+fixture	5	compare	bucket main	rss median	345914.0
+fixture	5	compare	bucket main	rss peak	480364
+fixture	5	compare	bucket main	anon median	259478.0
+fixture	5	compare	bucket main	anon peak	393672
+fixture	5	compare	bucket main	processes	2
+fixture	5	compare	parsers supervisor and tasks	private peak	36976
+fixture	5	compare	parsers supervisor and tasks	private_dirty peak	18520
+fixture	5	compare	parsers supervisor and tasks	pss peak	49076
+fixture	5	compare	parsers tasks	running at once	4
+fixture	5	idle-after	parsers supervisor	private median	25000
+fixture	5	idle-after	parsers supervisor	private peak	25000
+fixture	5	idle-after	parsers supervisor	private_dirty median	9552
+fixture	5	idle-after	parsers supervisor	private_dirty peak	9552
+fixture	5	idle-after	parsers supervisor	pss median	26030
+fixture	5	idle-after	parsers supervisor	pss peak	26030
+fixture	5	idle-after	parsers supervisor	rss median	28612
+fixture	5	idle-after	parsers supervisor	rss peak	28612
+fixture	5	idle-after	parsers supervisor	anon median	9552
+fixture	5	idle-after	parsers supervisor	anon peak	9552
+fixture	5	idle-after	parsers supervisor	processes	1
+fixture	5	idle-after	lookups main	private median	16012
+fixture	5	idle-after	lookups main	private peak	16012
+fixture	5	idle-after	lookups main	private_dirty median	5172
+fixture	5	idle-after	lookups main	private_dirty peak	5172
+fixture	5	idle-after	lookups main	pss median	17043
+fixture	5	idle-after	lookups main	pss peak	17043
+fixture	5	idle-after	lookups main	rss median	19628
+fixture	5	idle-after	lookups main	rss peak	19628
+fixture	5	idle-after	lookups main	anon median	5172
+fixture	5	idle-after	lookups main	anon peak	5172
+fixture	5	idle-after	lookups main	processes	1
+fixture	5	idle-after	ace main	private median	59156
+fixture	5	idle-after	ace main	private peak	59156
+fixture	5	idle-after	ace main	private_dirty median	30740
+fixture	5	idle-after	ace main	private_dirty peak	30740
+fixture	5	idle-after	ace main	pss median	70167
+fixture	5	idle-after	ace main	pss peak	70167
+fixture	5	idle-after	ace main	rss median	92716
+fixture	5	idle-after	ace main	rss peak	92716
+fixture	5	idle-after	ace main	anon median	30740
+fixture	5	idle-after	ace main	anon peak	30740
+fixture	5	idle-after	ace main	processes	1
+fixture	5	idle-after	postgres main	private median	46980
+fixture	5	idle-after	postgres main	private peak	48504
+fixture	5	idle-after	postgres main	private_dirty median	39220
+fixture	5	idle-after	postgres main	private_dirty peak	40744
+fixture	5	idle-after	postgres main	pss median	74811
+fixture	5	idle-after	postgres main	pss peak	76394
+fixture	5	idle-after	postgres main	rss median	306520
+fixture	5	idle-after	postgres main	rss peak	323324
+fixture	5	idle-after	postgres main	anon median	58384
+fixture	5	idle-after	postgres main	anon peak	61520
+fixture	5	idle-after	postgres main	processes	18
+fixture	5	idle-after	bucket main	private median	482568
+fixture	5	idle-after	bucket main	private peak	482568
+fixture	5	idle-after	bucket main	private_dirty median	395752
+fixture	5	idle-after	bucket main	private_dirty peak	395752
+fixture	5	idle-after	bucket main	pss median	482568
+fixture	5	idle-after	bucket main	pss peak	482568
+fixture	5	idle-after	bucket main	rss median	482572
+fixture	5	idle-after	bucket main	rss peak	482572
+fixture	5	idle-after	bucket main	anon median	395752
+fixture	5	idle-after	bucket main	anon peak	395752
+fixture	5	idle-after	bucket main	processes	1
+fixture	5	idle-after	parsers supervisor and tasks	private peak	25000
+fixture	5	idle-after	parsers supervisor and tasks	private_dirty peak	9552
+fixture	5	idle-after	parsers supervisor and tasks	pss peak	26030
+fixture	5	idle-after	parsers tasks	running at once	0
+fixture	5	idle-before	ace cgroup	anon median	6252
+fixture	5	idle-before	ace cgroup	anon peak	12060
+fixture	5	idle-before	ace cgroup	file median	100
+fixture	5	idle-before	ace cgroup	file peak	100
+fixture	5	idle-before	ace cgroup	kernel median	1412
+fixture	5	idle-before	ace cgroup	kernel peak	1848
+fixture	5	idle-before	ace cgroup	current median	8044
+fixture	5	idle-before	ace cgroup	current peak	15156
+fixture	5	idle-before	parsers cgroup	anon median	3112
+fixture	5	idle-before	parsers cgroup	anon peak	4316
+fixture	5	idle-before	parsers cgroup	file median	80
+fixture	5	idle-before	parsers cgroup	file peak	80
+fixture	5	idle-before	parsers cgroup	kernel median	1304
+fixture	5	idle-before	parsers cgroup	kernel peak	1640
+fixture	5	idle-before	parsers cgroup	current median	4736
+fixture	5	idle-before	parsers cgroup	current peak	6868
+fixture	5	idle-before	lookups cgroup	anon median	2608
+fixture	5	idle-before	lookups cgroup	anon peak	6756
+fixture	5	idle-before	lookups cgroup	file median	4
+fixture	5	idle-before	lookups cgroup	file peak	4
+fixture	5	idle-before	lookups cgroup	kernel median	1264
+fixture	5	idle-before	lookups cgroup	kernel peak	1688
+fixture	5	idle-before	lookups cgroup	current median	3884
+fixture	5	idle-before	lookups cgroup	current peak	9968
+fixture	5	idle-before	bucket cgroup	anon median	122016
+fixture	5	idle-before	bucket cgroup	anon peak	122024
+fixture	5	idle-before	bucket cgroup	file median	528
+fixture	5	idle-before	bucket cgroup	file peak	528
+fixture	5	idle-before	bucket cgroup	kernel median	1812
+fixture	5	idle-before	bucket cgroup	kernel peak	1816
+fixture	5	idle-before	bucket cgroup	current median	124596
+fixture	5	idle-before	bucket cgroup	current peak	125624
+fixture	5	idle-before	postgres cgroup	anon median	16340
+fixture	5	idle-before	postgres cgroup	anon peak	18804
+fixture	5	idle-before	postgres cgroup	file median	66204
+fixture	5	idle-before	postgres cgroup	file peak	66392
+fixture	5	idle-before	postgres cgroup	kernel median	7716
+fixture	5	idle-before	postgres cgroup	kernel peak	7932
+fixture	5	idle-before	postgres cgroup	current median	90824
+fixture	5	idle-before	postgres cgroup	current peak	93920
+fixture	5	compare	ace cgroup	anon median	28228.0
+fixture	5	compare	ace cgroup	anon peak	30740
+fixture	5	compare	ace cgroup	file median	100.0
+fixture	5	compare	ace cgroup	file peak	840
+fixture	5	compare	ace cgroup	kernel median	1540.0
+fixture	5	compare	ace cgroup	kernel peak	1664
+fixture	5	compare	ace cgroup	current median	31174.0
+fixture	5	compare	ace cgroup	current peak	34288
+fixture	5	compare	parsers cgroup	anon median	8688.0
+fixture	5	compare	parsers cgroup	anon peak	15556
+fixture	5	compare	parsers cgroup	file median	80.0
+fixture	5	compare	parsers cgroup	file peak	2732
+fixture	5	compare	parsers cgroup	kernel median	1528.0
+fixture	5	compare	parsers cgroup	kernel peak	3000
+fixture	5	compare	parsers cgroup	current median	11186.0
+fixture	5	compare	parsers cgroup	current peak	20024
+fixture	5	compare	lookups cgroup	anon median	4748.0
+fixture	5	compare	lookups cgroup	anon peak	5192
+fixture	5	compare	lookups cgroup	file median	4.0
+fixture	5	compare	lookups cgroup	file peak	4
+fixture	5	compare	lookups cgroup	kernel median	1284.0
+fixture	5	compare	lookups cgroup	kernel peak	1292
+fixture	5	compare	lookups cgroup	current median	6390.0
+fixture	5	compare	lookups cgroup	current peak	7992
+fixture	5	compare	bucket cgroup	anon median	259476.0
+fixture	5	compare	bucket cgroup	anon peak	393640
+fixture	5	compare	bucket cgroup	file median	7804.0
+fixture	5	compare	bucket cgroup	file peak	10980
+fixture	5	compare	bucket cgroup	kernel median	2316.0
+fixture	5	compare	bucket cgroup	kernel peak	3076
+fixture	5	compare	bucket cgroup	current median	271038.0
+fixture	5	compare	bucket cgroup	current peak	409188
+fixture	5	compare	postgres cgroup	anon median	36526.0
+fixture	5	compare	postgres cgroup	anon peak	40012
+fixture	5	compare	postgres cgroup	file median	71512.0
+fixture	5	compare	postgres cgroup	file peak	91068
+fixture	5	compare	postgres cgroup	kernel median	9058.0
+fixture	5	compare	postgres cgroup	kernel peak	9836
+fixture	5	compare	postgres cgroup	current median	118288.0
+fixture	5	compare	postgres cgroup	current peak	142628
+fixture	5	idle-after	ace cgroup	anon median	30740
+fixture	5	idle-after	ace cgroup	anon peak	36932
+fixture	5	idle-after	ace cgroup	file median	100
+fixture	5	idle-after	ace cgroup	file peak	100
+fixture	5	idle-after	ace cgroup	kernel median	1540
+fixture	5	idle-after	ace cgroup	kernel peak	1888
+fixture	5	idle-after	ace cgroup	current median	32692
+fixture	5	idle-after	ace cgroup	current peak	39496
+fixture	5	idle-after	parsers cgroup	anon median	9576
+fixture	5	idle-after	parsers cgroup	anon peak	13924
+fixture	5	idle-after	parsers cgroup	file median	80
+fixture	5	idle-after	parsers cgroup	file peak	80
+fixture	5	idle-after	parsers cgroup	kernel median	1524
+fixture	5	idle-after	parsers cgroup	kernel peak	1968
+fixture	5	idle-after	parsers cgroup	current median	11428
+fixture	5	idle-after	parsers cgroup	current peak	17332
+fixture	5	idle-after	lookups cgroup	anon median	5192
+fixture	5	idle-after	lookups cgroup	anon peak	5192
+fixture	5	idle-after	lookups cgroup	file median	4
+fixture	5	idle-after	lookups cgroup	file peak	4
+fixture	5	idle-after	lookups cgroup	kernel median	1284
+fixture	5	idle-after	lookups cgroup	kernel peak	1288
+fixture	5	idle-after	lookups cgroup	current median	6480
+fixture	5	idle-after	lookups cgroup	current peak	7612
+fixture	5	idle-after	bucket cgroup	anon median	395748
+fixture	5	idle-after	bucket cgroup	anon peak	395752
+fixture	5	idle-after	bucket cgroup	file median	11000
+fixture	5	idle-after	bucket cgroup	file peak	11004
+fixture	5	idle-after	bucket cgroup	kernel median	2656
+fixture	5	idle-after	bucket cgroup	kernel peak	2680
+fixture	5	idle-after	bucket cgroup	current median	409416
+fixture	5	idle-after	bucket cgroup	current peak	410724
+fixture	5	idle-after	postgres cgroup	anon median	33324
+fixture	5	idle-after	postgres cgroup	anon peak	34880
+fixture	5	idle-after	postgres cgroup	file median	91808
+fixture	5	idle-after	postgres cgroup	file peak	91808
+fixture	5	idle-after	postgres cgroup	kernel median	9160
+fixture	5	idle-after	postgres cgroup	kernel peak	9380
+fixture	5	idle-after	postgres cgroup	current median	134500
+fixture	5	idle-after	postgres cgroup	current peak	137156
+fixture	5	idle-before	ace cgroup	memory.peak	18840
+fixture	5	idle-before	ace cgroup	limit	1048576
+fixture	5	idle-before	ace cgroup	events_max	0
+fixture	5	idle-before	ace cgroup	events_oom	0
+fixture	5	idle-before	ace cgroup	events_oom_kill	0
+fixture	5	idle-before	parsers cgroup	memory.peak	14788
+fixture	5	idle-before	parsers cgroup	limit	4194304
+fixture	5	idle-before	parsers cgroup	events_max	0
+fixture	5	idle-before	parsers cgroup	events_oom	0
+fixture	5	idle-before	parsers cgroup	events_oom_kill	0
+fixture	5	idle-before	lookups cgroup	memory.peak	12180
+fixture	5	idle-before	lookups cgroup	limit	1048576
+fixture	5	idle-before	lookups cgroup	events_max	0
+fixture	5	idle-before	lookups cgroup	events_oom	0
+fixture	5	idle-before	lookups cgroup	events_oom_kill	0
+fixture	5	idle-before	postgres cgroup	memory.peak	100416
+fixture	5	idle-before	postgres cgroup	limit	1048576
+fixture	5	idle-before	postgres cgroup	events_max	0
+fixture	5	idle-before	postgres cgroup	events_oom	0
+fixture	5	idle-before	postgres cgroup	events_oom_kill	0
+fixture	5	idle-before	bucket cgroup	memory.peak	133528
+fixture	5	idle-before	bucket cgroup	limit	1048576
+fixture	5	idle-before	bucket cgroup	events_max	0
+fixture	5	idle-before	bucket cgroup	events_oom	0
+fixture	5	idle-before	bucket cgroup	events_oom_kill	0
+fixture	5	compare	ace cgroup	memory.peak	41856
+fixture	5	compare	ace cgroup	limit	1048576
+fixture	5	compare	ace cgroup	events_max	0
+fixture	5	compare	ace cgroup	events_oom	0
+fixture	5	compare	ace cgroup	events_oom_kill	0
+fixture	5	compare	parsers cgroup	memory.peak	25948
+fixture	5	compare	parsers cgroup	limit	4194304
+fixture	5	compare	parsers cgroup	events_max	0
+fixture	5	compare	parsers cgroup	events_oom	0
+fixture	5	compare	parsers cgroup	events_oom_kill	0
+fixture	5	compare	lookups cgroup	memory.peak	14704
+fixture	5	compare	lookups cgroup	limit	1048576
+fixture	5	compare	lookups cgroup	events_max	0
+fixture	5	compare	lookups cgroup	events_oom	0
+fixture	5	compare	lookups cgroup	events_oom_kill	0
+fixture	5	compare	postgres cgroup	memory.peak	150760
+fixture	5	compare	postgres cgroup	limit	1048576
+fixture	5	compare	postgres cgroup	events_max	0
+fixture	5	compare	postgres cgroup	events_oom	0
+fixture	5	compare	postgres cgroup	events_oom_kill	0
+fixture	5	compare	bucket cgroup	memory.peak	409444
+fixture	5	compare	bucket cgroup	limit	1048576
+fixture	5	compare	bucket cgroup	events_max	0
+fixture	5	compare	bucket cgroup	events_oom	0
+fixture	5	compare	bucket cgroup	events_oom_kill	0
+fixture	5	idle-after	ace cgroup	memory.peak	42056
+fixture	5	idle-after	ace cgroup	limit	1048576
+fixture	5	idle-after	ace cgroup	events_max	0
+fixture	5	idle-after	ace cgroup	events_oom	0
+fixture	5	idle-after	ace cgroup	events_oom_kill	0
+fixture	5	idle-after	parsers cgroup	memory.peak	19640
+fixture	5	idle-after	parsers cgroup	limit	4194304
+fixture	5	idle-after	parsers cgroup	events_max	0
+fixture	5	idle-after	parsers cgroup	events_oom	0
+fixture	5	idle-after	parsers cgroup	events_oom_kill	0
+fixture	5	idle-after	lookups cgroup	memory.peak	14864
+fixture	5	idle-after	lookups cgroup	limit	1048576
+fixture	5	idle-after	lookups cgroup	events_max	0
+fixture	5	idle-after	lookups cgroup	events_oom	0
+fixture	5	idle-after	lookups cgroup	events_oom_kill	0
+fixture	5	idle-after	postgres cgroup	memory.peak	144496
+fixture	5	idle-after	postgres cgroup	limit	1048576
+fixture	5	idle-after	postgres cgroup	events_max	0
+fixture	5	idle-after	postgres cgroup	events_oom	0
+fixture	5	idle-after	postgres cgroup	events_oom_kill	0
+fixture	5	idle-after	bucket cgroup	memory.peak	418368
+fixture	5	idle-after	bucket cgroup	limit	1048576
+fixture	5	idle-after	bucket cgroup	events_max	0
+fixture	5	idle-after	bucket cgroup	events_oom	0
+fixture	5	idle-after	bucket cgroup	events_oom_kill	0
+fixture	5	container-life	ace cgroup	memory.peak	42056
+fixture	5	container-life	ace cgroup	limit	1048576
+fixture	5	container-life	ace cgroup	events_max	0
+fixture	5	container-life	ace cgroup	events_oom	0
+fixture	5	container-life	ace cgroup	events_oom_kill	0
+fixture	5	container-life	parsers cgroup	memory.peak	25948
+fixture	5	container-life	parsers cgroup	limit	4194304
+fixture	5	container-life	parsers cgroup	events_max	0
+fixture	5	container-life	parsers cgroup	events_oom	0
+fixture	5	container-life	parsers cgroup	events_oom_kill	0
+fixture	5	container-life	lookups cgroup	memory.peak	14864
+fixture	5	container-life	lookups cgroup	limit	1048576
+fixture	5	container-life	lookups cgroup	events_max	0
+fixture	5	container-life	lookups cgroup	events_oom	0
+fixture	5	container-life	lookups cgroup	events_oom_kill	0
+fixture	5	container-life	postgres cgroup	memory.peak	150760
+fixture	5	container-life	postgres cgroup	limit	1048576
+fixture	5	container-life	postgres cgroup	events_max	0
+fixture	5	container-life	postgres cgroup	events_oom	0
+fixture	5	container-life	postgres cgroup	events_oom_kill	0
+fixture	5	container-life	bucket cgroup	memory.peak	418368
+fixture	5	container-life	bucket cgroup	limit	1048576
+fixture	5	container-life	bucket cgroup	events_max	0
+fixture	5	container-life	bucket cgroup	events_oom	0
+fixture	5	container-life	bucket cgroup	events_oom_kill	0
+fixture	5	compare	parsers task process	exit records	946
+fixture	5	compare	parsers task process	sampled	940
+fixture	5	compare	parsers task process	non-zero exits	0
+fixture	5	compare	parsers task process	dropped exit records	0
+fixture	5	compare	parsers task process	lifetime ms median	4.0
+fixture	5	compare	parsers task process	lifetime ms peak	31.7
+fixture	5	compare	parsers task process	cpu ms median	4.0
+fixture	5	compare	parsers task process	cpu ms peak	13.0
+fixture	5	compare	parsers task process	exit peak rss median	18484.0
+fixture	5	compare	parsers task process	exit peak rss p95	20160
+fixture	5	compare	parsers task process	exit peak rss peak	24400
+fixture	5	compare	parsers task process	private median	2656.0
+fixture	5	compare	parsers task process	private p95	4320
+fixture	5	compare	parsers task process	private peak	8644
+fixture	5	compare	parsers task process	private_dirty median	2316.0
+fixture	5	compare	parsers task process	private_dirty p95	2428
+fixture	5	compare	parsers task process	private_dirty peak	6968
+fixture	5	compare	parsers task process	pss median	8592.5
+fixture	5	compare	parsers task process	pss p95	11226
+fixture	5	compare	parsers task process	pss peak	15582
+fixture	5	compare	parsers task process	anon median	2316.0
+fixture	5	compare	parsers task process	anon p95	2428
+fixture	5	compare	parsers task process	anon peak	6968
+fixture	5	compare	parsers task process	rss shortfall median	308.0
+fixture	5	compare	parsers task process	rss shortfall p95	704
+fixture	5	compare	parsers task process	rss shortfall peak	19404
+fixture	5	compare	parsers task process	sampled tasks more than 1 MB short (count)	31
+fixture	5	compare	parsers task process	samples per task median	24.0
+fixture	5	compare	load	parser task attempts	946
+fixture	5	compare	load	lookup task attempts	24
+fixture	5	compare	load	other task attempts	0
+fixture	5	compare	load	tasks not done	0
+fixture	5	compare	load	roots	54
+fixture	5	compare	load	results	71
+fixture	5	compare	load	seconds	31.0
+fixture	5	compare	load	exit	0
+fixture	5	compare	load	report samples	54
+fixture	5	compare	sampler	tick ms median	0.011
+signatures	1	idle-before	parsers supervisor	private median	33696
+signatures	1	idle-before	parsers supervisor	private peak	33708
+signatures	1	idle-before	parsers supervisor	private_dirty median	17872
+signatures	1	idle-before	parsers supervisor	private_dirty peak	17884
+signatures	1	idle-before	parsers supervisor	pss median	34727
+signatures	1	idle-before	parsers supervisor	pss peak	34739
+signatures	1	idle-before	parsers supervisor	rss median	37312
+signatures	1	idle-before	parsers supervisor	rss peak	37324
+signatures	1	idle-before	parsers supervisor	anon median	17872
+signatures	1	idle-before	parsers supervisor	anon peak	17884
+signatures	1	idle-before	parsers supervisor	processes	1
+signatures	1	idle-before	lookups main	private median	12332
+signatures	1	idle-before	lookups main	private peak	18944
+signatures	1	idle-before	lookups main	private_dirty median	2580
+signatures	1	idle-before	lookups main	private_dirty peak	9192
+signatures	1	idle-before	lookups main	pss median	13362
+signatures	1	idle-before	lookups main	pss peak	23009
+signatures	1	idle-before	lookups main	rss median	15944
+signatures	1	idle-before	lookups main	rss peak	29028
+signatures	1	idle-before	lookups main	anon median	2580
+signatures	1	idle-before	lookups main	anon peak	9040
+signatures	1	idle-before	lookups main	processes	2
+signatures	1	idle-before	ace main	private median	64252
+signatures	1	idle-before	ace main	private peak	70204
+signatures	1	idle-before	ace main	private_dirty median	33640
+signatures	1	idle-before	ace main	private_dirty peak	39592
+signatures	1	idle-before	ace main	pss median	65279
+signatures	1	idle-before	ace main	pss peak	74261
+signatures	1	idle-before	ace main	rss median	67860
+signatures	1	idle-before	ace main	rss peak	80352
+signatures	1	idle-before	ace main	anon median	33640
+signatures	1	idle-before	ace main	anon peak	39508
+signatures	1	idle-before	ace main	processes	2
+signatures	1	idle-before	postgres main	private median	27320
+signatures	1	idle-before	postgres main	private peak	27436
+signatures	1	idle-before	postgres main	private_dirty median	18796
+signatures	1	idle-before	postgres main	private_dirty peak	18912
+signatures	1	idle-before	postgres main	pss median	51098
+signatures	1	idle-before	postgres main	pss peak	51110
+signatures	1	idle-before	postgres main	rss median	164204
+signatures	1	idle-before	postgres main	rss peak	164344
+signatures	1	idle-before	postgres main	anon median	33728
+signatures	1	idle-before	postgres main	anon peak	33740
+signatures	1	idle-before	postgres main	processes	13
+signatures	1	idle-before	bucket main	private median	214164
+signatures	1	idle-before	bucket main	private peak	214180
+signatures	1	idle-before	bucket main	private_dirty median	128164
+signatures	1	idle-before	bucket main	private_dirty peak	128180
+signatures	1	idle-before	bucket main	pss median	214164
+signatures	1	idle-before	bucket main	pss peak	214180
+signatures	1	idle-before	bucket main	rss median	214168
+signatures	1	idle-before	bucket main	rss peak	214184
+signatures	1	idle-before	bucket main	anon median	128164
+signatures	1	idle-before	bucket main	anon peak	128180
+signatures	1	idle-before	bucket main	processes	1
+signatures	1	idle-before	parsers supervisor and tasks	private peak	33708
+signatures	1	idle-before	parsers supervisor and tasks	private_dirty peak	17884
+signatures	1	idle-before	parsers supervisor and tasks	pss peak	34739
+signatures	1	idle-before	parsers tasks	running at once	0
+signatures	1	compare	parsers supervisor	private median	33696.0
+signatures	1	compare	parsers supervisor	private peak	44600
+signatures	1	compare	parsers supervisor	private_dirty median	27888.0
+signatures	1	compare	parsers supervisor	private_dirty peak	28584
+signatures	1	compare	parsers supervisor	pss median	36455.5
+signatures	1	compare	parsers supervisor	pss peak	45413
+signatures	1	compare	parsers supervisor	rss median	47520.0
+signatures	1	compare	parsers supervisor	rss peak	48216
+signatures	1	compare	parsers supervisor	anon median	27888.0
+signatures	1	compare	parsers supervisor	anon peak	28584
+signatures	1	compare	parsers supervisor	processes	1
+signatures	1	compare	lookups main	private median	15368.0
+signatures	1	compare	lookups main	private peak	16224
+signatures	1	compare	lookups main	private_dirty median	5040.0
+signatures	1	compare	lookups main	private_dirty peak	5384
+signatures	1	compare	lookups main	pss median	15902.0
+signatures	1	compare	lookups main	pss peak	17036
+signatures	1	compare	lookups main	rss median	18980.0
+signatures	1	compare	lookups main	rss peak	19836
+signatures	1	compare	lookups main	anon median	5040.0
+signatures	1	compare	lookups main	anon peak	5384
+signatures	1	compare	lookups main	processes	1
+signatures	1	compare	ace main	private median	72932.0
+signatures	1	compare	ace main	private peak	74796
+signatures	1	compare	ace main	private_dirty median	55412.0
+signatures	1	compare	ace main	private_dirty peak	57276
+signatures	1	compare	ace main	pss median	89493.0
+signatures	1	compare	ace main	pss peak	91593
+signatures	1	compare	ace main	rss median	118120.0
+signatures	1	compare	ace main	rss peak	120368
+signatures	1	compare	ace main	anon median	55412.0
+signatures	1	compare	ace main	anon peak	57276
+signatures	1	compare	ace main	processes	1
+signatures	1	compare	postgres main	private median	50106.0
+signatures	1	compare	postgres main	private peak	60144
+signatures	1	compare	postgres main	private_dirty median	42070.0
+signatures	1	compare	postgres main	private_dirty peak	52108
+signatures	1	compare	postgres main	pss median	76833.0
+signatures	1	compare	postgres main	pss peak	88278
+signatures	1	compare	postgres main	rss median	323252.0
+signatures	1	compare	postgres main	rss peak	411480
+signatures	1	compare	postgres main	anon median	64860.0
+signatures	1	compare	postgres main	anon peak	78772
+signatures	1	compare	postgres main	processes	22
+signatures	1	compare	bucket main	private median	386966.0
+signatures	1	compare	bucket main	private peak	441072
+signatures	1	compare	bucket main	private_dirty median	300286.0
+signatures	1	compare	bucket main	private_dirty peak	354264
+signatures	1	compare	bucket main	pss median	386966.0
+signatures	1	compare	bucket main	pss peak	441072
+signatures	1	compare	bucket main	rss median	386970.0
+signatures	1	compare	bucket main	rss peak	441076
+signatures	1	compare	bucket main	anon median	300286.0
+signatures	1	compare	bucket main	anon peak	354264
+signatures	1	compare	bucket main	processes	3
+signatures	1	compare	parsers supervisor and tasks	private peak	117164
+signatures	1	compare	parsers supervisor and tasks	private_dirty peak	101152
+signatures	1	compare	parsers supervisor and tasks	pss peak	128408
+signatures	1	compare	parsers tasks	running at once	4
+signatures	1	idle-after	parsers supervisor	private median	44600.0
+signatures	1	idle-after	parsers supervisor	private peak	44600
+signatures	1	idle-after	parsers supervisor	private_dirty median	28584.0
+signatures	1	idle-after	parsers supervisor	private_dirty peak	28584
+signatures	1	idle-after	parsers supervisor	pss median	45631.0
+signatures	1	idle-after	parsers supervisor	pss peak	45631
+signatures	1	idle-after	parsers supervisor	rss median	48216.0
+signatures	1	idle-after	parsers supervisor	rss peak	48216
+signatures	1	idle-after	parsers supervisor	anon median	28584.0
+signatures	1	idle-after	parsers supervisor	anon peak	28584
+signatures	1	idle-after	parsers supervisor	processes	1
+signatures	1	idle-after	lookups main	private median	16224.0
+signatures	1	idle-after	lookups main	private peak	16224
+signatures	1	idle-after	lookups main	private_dirty median	5384.0
+signatures	1	idle-after	lookups main	private_dirty peak	5384
+signatures	1	idle-after	lookups main	pss median	17254.0
+signatures	1	idle-after	lookups main	pss peak	17254
+signatures	1	idle-after	lookups main	rss median	19836.0
+signatures	1	idle-after	lookups main	rss peak	19836
+signatures	1	idle-after	lookups main	anon median	5384.0
+signatures	1	idle-after	lookups main	anon peak	5384
+signatures	1	idle-after	lookups main	processes	1
+signatures	1	idle-after	ace main	private median	86796.0
+signatures	1	idle-after	ace main	private peak	93188
+signatures	1	idle-after	ace main	private_dirty median	57276.0
+signatures	1	idle-after	ace main	private_dirty peak	63668
+signatures	1	idle-after	ace main	pss median	97811.0
+signatures	1	idle-after	ace main	pss peak	107228
+signatures	1	idle-after	ace main	rss median	120368.0
+signatures	1	idle-after	ace main	rss peak	133252
+signatures	1	idle-after	ace main	anon median	57276.0
+signatures	1	idle-after	ace main	anon peak	63604
+signatures	1	idle-after	ace main	processes	2
+signatures	1	idle-after	postgres main	private median	51864.0
+signatures	1	idle-after	postgres main	private peak	51972
+signatures	1	idle-after	postgres main	private_dirty median	43828.0
+signatures	1	idle-after	postgres main	private_dirty peak	43936
+signatures	1	idle-after	postgres main	pss median	80202.0
+signatures	1	idle-after	postgres main	pss peak	80221
+signatures	1	idle-after	postgres main	rss median	333904.0
+signatures	1	idle-after	postgres main	rss peak	334028
+signatures	1	idle-after	postgres main	anon median	64608.0
+signatures	1	idle-after	postgres main	anon peak	64624
+signatures	1	idle-after	postgres main	processes	18
+signatures	1	idle-after	bucket main	private median	441072.0
+signatures	1	idle-after	bucket main	private peak	441072
+signatures	1	idle-after	bucket main	private_dirty median	354264.0
+signatures	1	idle-after	bucket main	private_dirty peak	354264
+signatures	1	idle-after	bucket main	pss median	441072.0
+signatures	1	idle-after	bucket main	pss peak	441072
+signatures	1	idle-after	bucket main	rss median	441076.0
+signatures	1	idle-after	bucket main	rss peak	441076
+signatures	1	idle-after	bucket main	anon median	354264.0
+signatures	1	idle-after	bucket main	anon peak	354264
+signatures	1	idle-after	bucket main	processes	1
+signatures	1	idle-after	parsers supervisor and tasks	private peak	44600
+signatures	1	idle-after	parsers supervisor and tasks	private_dirty peak	28584
+signatures	1	idle-after	parsers supervisor and tasks	pss peak	45631
+signatures	1	idle-after	parsers tasks	running at once	0
+signatures	1	idle-before	parsers cgroup	anon median	17896
+signatures	1	idle-before	parsers cgroup	anon peak	22092
+signatures	1	idle-before	parsers cgroup	file median	1724
+signatures	1	idle-before	parsers cgroup	file peak	1724
+signatures	1	idle-before	parsers cgroup	kernel median	1396
+signatures	1	idle-before	parsers cgroup	kernel peak	1692
+signatures	1	idle-before	parsers cgroup	current median	21288
+signatures	1	idle-before	parsers cgroup	current peak	26644
+signatures	1	idle-before	lookups cgroup	anon median	2600
+signatures	1	idle-before	lookups cgroup	anon peak	9060
+signatures	1	idle-before	lookups cgroup	file median	4
+signatures	1	idle-before	lookups cgroup	file peak	4
+signatures	1	idle-before	lookups cgroup	kernel median	1260
+signatures	1	idle-before	lookups cgroup	kernel peak	1708
+signatures	1	idle-before	lookups cgroup	current median	3872
+signatures	1	idle-before	lookups cgroup	current peak	11568
+signatures	1	idle-before	bucket cgroup	anon median	128164
+signatures	1	idle-before	bucket cgroup	anon peak	128176
+signatures	1	idle-before	bucket cgroup	file median	2172
+signatures	1	idle-before	bucket cgroup	file peak	2172
+signatures	1	idle-before	bucket cgroup	kernel median	1868
+signatures	1	idle-before	bucket cgroup	kernel peak	1876
+signatures	1	idle-before	bucket cgroup	current median	132452
+signatures	1	idle-before	bucket cgroup	current peak	133620
+signatures	1	idle-before	postgres cgroup	anon median	14388
+signatures	1	idle-before	postgres cgroup	anon peak	14400
+signatures	1	idle-before	postgres cgroup	file median	66236
+signatures	1	idle-before	postgres cgroup	file peak	66424
+signatures	1	idle-before	postgres cgroup	kernel median	7580
+signatures	1	idle-before	postgres cgroup	kernel peak	7592
+signatures	1	idle-before	postgres cgroup	current median	88772
+signatures	1	idle-before	postgres cgroup	current peak	89528
+signatures	1	idle-before	ace cgroup	anon median	33640
+signatures	1	idle-before	ace cgroup	anon peak	39512
+signatures	1	idle-before	ace cgroup	file median	3308
+signatures	1	idle-before	ace cgroup	file peak	3308
+signatures	1	idle-before	ace cgroup	kernel median	1528
+signatures	1	idle-before	ace cgroup	kernel peak	1980
+signatures	1	idle-before	ace cgroup	current median	38952
+signatures	1	idle-before	ace cgroup	current peak	45820
+signatures	1	compare	parsers cgroup	anon median	28608.0
+signatures	1	compare	parsers cgroup	anon peak	101176
+signatures	1	compare	parsers cgroup	file median	6560.0
+signatures	1	compare	parsers cgroup	file peak	9200
+signatures	1	compare	parsers cgroup	kernel median	1966.0
+signatures	1	compare	parsers cgroup	kernel peak	3580
+signatures	1	compare	parsers cgroup	current median	38736.0
+signatures	1	compare	parsers cgroup	current peak	111904
+signatures	1	compare	lookups cgroup	anon median	5060.0
+signatures	1	compare	lookups cgroup	anon peak	5404
+signatures	1	compare	lookups cgroup	file median	4.0
+signatures	1	compare	lookups cgroup	file peak	4
+signatures	1	compare	lookups cgroup	kernel median	1304.0
+signatures	1	compare	lookups cgroup	kernel peak	1316
+signatures	1	compare	lookups cgroup	current median	6604.0
+signatures	1	compare	lookups cgroup	current peak	7768
+signatures	1	compare	bucket cgroup	anon median	300286.0
+signatures	1	compare	bucket cgroup	anon peak	354264
+signatures	1	compare	bucket cgroup	file median	9462.0
+signatures	1	compare	bucket cgroup	file peak	12612
+signatures	1	compare	bucket cgroup	kernel median	2440.0
+signatures	1	compare	bucket cgroup	kernel peak	2824
+signatures	1	compare	bucket cgroup	current median	313172.0
+signatures	1	compare	bucket cgroup	current peak	371444
+signatures	1	compare	postgres cgroup	anon median	36812.0
+signatures	1	compare	postgres cgroup	anon peak	50528
+signatures	1	compare	postgres cgroup	file median	71728.0
+signatures	1	compare	postgres cgroup	file peak	91940
+signatures	1	compare	postgres cgroup	kernel median	9188.0
+signatures	1	compare	postgres cgroup	kernel peak	10824
+signatures	1	compare	postgres cgroup	current median	118908.0
+signatures	1	compare	postgres cgroup	current peak	153424
+signatures	1	compare	ace cgroup	anon median	55412.0
+signatures	1	compare	ace cgroup	anon peak	57276
+signatures	1	compare	ace cgroup	file median	3308.0
+signatures	1	compare	ace cgroup	file peak	4048
+signatures	1	compare	ace cgroup	kernel median	1672.0
+signatures	1	compare	ace cgroup	kernel peak	1800
+signatures	1	compare	ace cgroup	current median	61304.0
+signatures	1	compare	ace cgroup	current peak	64524
+signatures	1	idle-after	parsers cgroup	anon median	28608.0
+signatures	1	idle-after	parsers cgroup	anon peak	32972
+signatures	1	idle-after	parsers cgroup	file median	6548.0
+signatures	1	idle-after	parsers cgroup	file peak	6548
+signatures	1	idle-after	parsers cgroup	kernel median	1636.0
+signatures	1	idle-after	parsers cgroup	kernel peak	2024
+signatures	1	idle-after	parsers cgroup	current median	37028.0
+signatures	1	idle-after	parsers cgroup	current peak	42420
+signatures	1	idle-after	lookups cgroup	anon median	5404.0
+signatures	1	idle-after	lookups cgroup	anon peak	9828
+signatures	1	idle-after	lookups cgroup	file median	4.0
+signatures	1	idle-after	lookups cgroup	file peak	4
+signatures	1	idle-after	lookups cgroup	kernel median	1288.0
+signatures	1	idle-after	lookups cgroup	kernel peak	1560
+signatures	1	idle-after	lookups cgroup	current median	6716.0
+signatures	1	idle-after	lookups cgroup	current peak	12528
+signatures	1	idle-after	bucket cgroup	anon median	354264.0
+signatures	1	idle-after	bucket cgroup	anon peak	354264
+signatures	1	idle-after	bucket cgroup	file median	12616.0
+signatures	1	idle-after	bucket cgroup	file peak	12932
+signatures	1	idle-after	bucket cgroup	kernel median	2616.0
+signatures	1	idle-after	bucket cgroup	kernel peak	2632
+signatures	1	idle-after	bucket cgroup	current median	369752.0
+signatures	1	idle-after	bucket cgroup	current peak	370900
+signatures	1	idle-after	postgres cgroup	anon median	38100.0
+signatures	1	idle-after	postgres cgroup	anon peak	38116
+signatures	1	idle-after	postgres cgroup	file median	91940.0
+signatures	1	idle-after	postgres cgroup	file peak	91988
+signatures	1	idle-after	postgres cgroup	kernel median	9524.0
+signatures	1	idle-after	postgres cgroup	kernel peak	9532
+signatures	1	idle-after	postgres cgroup	current median	140294.0
+signatures	1	idle-after	postgres cgroup	current peak	141148
+signatures	1	idle-after	ace cgroup	anon median	57276.0
+signatures	1	idle-after	ace cgroup	anon peak	63612
+signatures	1	idle-after	ace cgroup	file median	3308.0
+signatures	1	idle-after	ace cgroup	file peak	3308
+signatures	1	idle-after	ace cgroup	kernel median	1680.0
+signatures	1	idle-after	ace cgroup	kernel peak	2100
+signatures	1	idle-after	ace cgroup	current median	62742.0
+signatures	1	idle-after	ace cgroup	current peak	69788
+signatures	1	idle-before	ace cgroup	memory.peak	48416
+signatures	1	idle-before	ace cgroup	limit	1048576
+signatures	1	idle-before	ace cgroup	events_max	0
+signatures	1	idle-before	ace cgroup	events_oom	0
+signatures	1	idle-before	ace cgroup	events_oom_kill	0
+signatures	1	idle-before	parsers cgroup	memory.peak	31160
+signatures	1	idle-before	parsers cgroup	limit	4194304
+signatures	1	idle-before	parsers cgroup	events_max	0
+signatures	1	idle-before	parsers cgroup	events_oom	0
+signatures	1	idle-before	parsers cgroup	events_oom_kill	0
+signatures	1	idle-before	lookups cgroup	memory.peak	12488
+signatures	1	idle-before	lookups cgroup	limit	1048576
+signatures	1	idle-before	lookups cgroup	events_max	0
+signatures	1	idle-before	lookups cgroup	events_oom	0
+signatures	1	idle-before	lookups cgroup	events_oom_kill	0
+signatures	1	idle-before	postgres cgroup	memory.peak	98600
+signatures	1	idle-before	postgres cgroup	limit	1048576
+signatures	1	idle-before	postgres cgroup	events_max	0
+signatures	1	idle-before	postgres cgroup	events_oom	0
+signatures	1	idle-before	postgres cgroup	events_oom_kill	0
+signatures	1	idle-before	bucket cgroup	memory.peak	140972
+signatures	1	idle-before	bucket cgroup	limit	1048576
+signatures	1	idle-before	bucket cgroup	events_max	0
+signatures	1	idle-before	bucket cgroup	events_oom	0
+signatures	1	idle-before	bucket cgroup	events_oom_kill	0
+signatures	1	compare	ace cgroup	memory.peak	72808
+signatures	1	compare	ace cgroup	limit	1048576
+signatures	1	compare	ace cgroup	events_max	0
+signatures	1	compare	ace cgroup	events_oom	0
+signatures	1	compare	ace cgroup	events_oom_kill	0
+signatures	1	compare	parsers cgroup	memory.peak	118392
+signatures	1	compare	parsers cgroup	limit	4194304
+signatures	1	compare	parsers cgroup	events_max	0
+signatures	1	compare	parsers cgroup	events_oom	0
+signatures	1	compare	parsers cgroup	events_oom_kill	0
+signatures	1	compare	lookups cgroup	memory.peak	16412
+signatures	1	compare	lookups cgroup	limit	1048576
+signatures	1	compare	lookups cgroup	events_max	0
+signatures	1	compare	lookups cgroup	events_oom	0
+signatures	1	compare	lookups cgroup	events_oom_kill	0
+signatures	1	compare	postgres cgroup	memory.peak	154912
+signatures	1	compare	postgres cgroup	limit	1048576
+signatures	1	compare	postgres cgroup	events_max	0
+signatures	1	compare	postgres cgroup	events_oom	0
+signatures	1	compare	postgres cgroup	events_oom_kill	0
+signatures	1	compare	bucket cgroup	memory.peak	377360
+signatures	1	compare	bucket cgroup	limit	1048576
+signatures	1	compare	bucket cgroup	events_max	0
+signatures	1	compare	bucket cgroup	events_oom	0
+signatures	1	compare	bucket cgroup	events_oom_kill	0
+signatures	1	idle-after	ace cgroup	memory.peak	71768
+signatures	1	idle-after	ace cgroup	limit	1048576
+signatures	1	idle-after	ace cgroup	events_max	0
+signatures	1	idle-after	ace cgroup	events_oom	0
+signatures	1	idle-after	ace cgroup	events_oom_kill	0
+signatures	1	idle-after	parsers cgroup	memory.peak	46924
+signatures	1	idle-after	parsers cgroup	limit	4194304
+signatures	1	idle-after	parsers cgroup	events_max	0
+signatures	1	idle-after	parsers cgroup	events_oom	0
+signatures	1	idle-after	parsers cgroup	events_oom_kill	0
+signatures	1	idle-after	lookups cgroup	memory.peak	15044
+signatures	1	idle-after	lookups cgroup	limit	1048576
+signatures	1	idle-after	lookups cgroup	events_max	0
+signatures	1	idle-after	lookups cgroup	events_oom	0
+signatures	1	idle-after	lookups cgroup	events_oom_kill	0
+signatures	1	idle-after	postgres cgroup	memory.peak	149888
+signatures	1	idle-after	postgres cgroup	limit	1048576
+signatures	1	idle-after	postgres cgroup	events_max	0
+signatures	1	idle-after	postgres cgroup	events_oom	0
+signatures	1	idle-after	postgres cgroup	events_oom_kill	0
+signatures	1	idle-after	bucket cgroup	memory.peak	378732
+signatures	1	idle-after	bucket cgroup	limit	1048576
+signatures	1	idle-after	bucket cgroup	events_max	0
+signatures	1	idle-after	bucket cgroup	events_oom	0
+signatures	1	idle-after	bucket cgroup	events_oom_kill	0
+signatures	1	container-life	ace cgroup	memory.peak	72808
+signatures	1	container-life	ace cgroup	limit	1048576
+signatures	1	container-life	ace cgroup	events_max	0
+signatures	1	container-life	ace cgroup	events_oom	0
+signatures	1	container-life	ace cgroup	events_oom_kill	0
+signatures	1	container-life	parsers cgroup	memory.peak	118392
+signatures	1	container-life	parsers cgroup	limit	4194304
+signatures	1	container-life	parsers cgroup	events_max	0
+signatures	1	container-life	parsers cgroup	events_oom	0
+signatures	1	container-life	parsers cgroup	events_oom_kill	0
+signatures	1	container-life	lookups cgroup	memory.peak	16412
+signatures	1	container-life	lookups cgroup	limit	1048576
+signatures	1	container-life	lookups cgroup	events_max	0
+signatures	1	container-life	lookups cgroup	events_oom	0
+signatures	1	container-life	lookups cgroup	events_oom_kill	0
+signatures	1	container-life	postgres cgroup	memory.peak	154912
+signatures	1	container-life	postgres cgroup	limit	1048576
+signatures	1	container-life	postgres cgroup	events_max	0
+signatures	1	container-life	postgres cgroup	events_oom	0
+signatures	1	container-life	postgres cgroup	events_oom_kill	0
+signatures	1	container-life	bucket cgroup	memory.peak	378732
+signatures	1	container-life	bucket cgroup	limit	1048576
+signatures	1	container-life	bucket cgroup	events_max	0
+signatures	1	container-life	bucket cgroup	events_oom	0
+signatures	1	container-life	bucket cgroup	events_oom_kill	0
+signatures	1	compare	parsers task process	exit records	946
+signatures	1	compare	parsers task process	sampled	946
+signatures	1	compare	parsers task process	non-zero exits	0
+signatures	1	compare	parsers task process	dropped exit records	0
+signatures	1	compare	parsers task process	lifetime ms median	80.6
+signatures	1	compare	parsers task process	lifetime ms peak	105.4
+signatures	1	compare	parsers task process	cpu ms median	79.0
+signatures	1	compare	parsers task process	cpu ms peak	93.0
+signatures	1	compare	parsers task process	exit peak rss median	32444.0
+signatures	1	compare	parsers task process	exit peak rss p95	34752
+signatures	1	compare	parsers task process	exit peak rss peak	36416
+signatures	1	compare	parsers task process	private median	18144.0
+signatures	1	compare	parsers task process	private p95	18384
+signatures	1	compare	parsers task process	private peak	20044
+signatures	1	compare	parsers task process	private_dirty median	18140.0
+signatures	1	compare	parsers task process	private_dirty p95	18144
+signatures	1	compare	parsers task process	private_dirty peak	18144
+signatures	1	compare	parsers task process	pss median	21680.0
+signatures	1	compare	parsers task process	pss p95	25482
+signatures	1	compare	parsers task process	pss peak	26156
+signatures	1	compare	parsers task process	anon median	18140.0
+signatures	1	compare	parsers task process	anon p95	18144
+signatures	1	compare	parsers task process	anon peak	18144
+signatures	1	compare	parsers task process	rss shortfall median	-104.0
+signatures	1	compare	parsers task process	rss shortfall p95	376
+signatures	1	compare	parsers task process	rss shortfall peak	2204
+signatures	1	compare	parsers task process	sampled tasks more than 1 MB short (count)	3
+signatures	1	compare	parsers task process	samples per task median	212.0
+signatures	1	compare	load	parser task attempts	946
+signatures	1	compare	load	lookup task attempts	24
+signatures	1	compare	load	other task attempts	1
+signatures	1	compare	load	tasks not done	0
+signatures	1	compare	load	roots	54
+signatures	1	compare	load	results	71
+signatures	1	compare	load	seconds	45.5
+signatures	1	compare	load	exit	0
+signatures	1	compare	load	report samples	54
+signatures	1	compare	sampler	tick ms median	0.011
+signatures	2	idle-before	parsers supervisor	private median	33488
+signatures	2	idle-before	parsers supervisor	private peak	33508
+signatures	2	idle-before	parsers supervisor	private_dirty median	17656
+signatures	2	idle-before	parsers supervisor	private_dirty peak	17676
+signatures	2	idle-before	parsers supervisor	pss median	34520
+signatures	2	idle-before	parsers supervisor	pss peak	34540
+signatures	2	idle-before	parsers supervisor	rss median	37104
+signatures	2	idle-before	parsers supervisor	rss peak	37124
+signatures	2	idle-before	parsers supervisor	anon median	17656
+signatures	2	idle-before	parsers supervisor	anon peak	17676
+signatures	2	idle-before	parsers supervisor	processes	1
+signatures	2	idle-before	lookups main	private median	12344
+signatures	2	idle-before	lookups main	private peak	18788
+signatures	2	idle-before	lookups main	private_dirty median	2592
+signatures	2	idle-before	lookups main	private_dirty peak	9036
+signatures	2	idle-before	lookups main	pss median	13376
+signatures	2	idle-before	lookups main	pss peak	22856
+signatures	2	idle-before	lookups main	rss median	15960
+signatures	2	idle-before	lookups main	rss peak	28964
+signatures	2	idle-before	lookups main	anon median	2592
+signatures	2	idle-before	lookups main	anon peak	8780
+signatures	2	idle-before	lookups main	processes	2
+signatures	2	idle-before	ace main	private median	64404
+signatures	2	idle-before	ace main	private peak	69220
+signatures	2	idle-before	ace main	private_dirty median	33784
+signatures	2	idle-before	ace main	private_dirty peak	34996
+signatures	2	idle-before	ace main	pss median	65427
+signatures	2	idle-before	ace main	pss peak	70315
+signatures	2	idle-before	ace main	rss median	67996
+signatures	2	idle-before	ace main	rss peak	73340
+signatures	2	idle-before	ace main	anon median	33784
+signatures	2	idle-before	ace main	anon peak	34996
+signatures	2	idle-before	ace main	processes	2
+signatures	2	idle-before	postgres main	private median	29136
+signatures	2	idle-before	postgres main	private peak	29236
+signatures	2	idle-before	postgres main	private_dirty median	20976
+signatures	2	idle-before	postgres main	private_dirty peak	21076
+signatures	2	idle-before	postgres main	pss median	53074
+signatures	2	idle-before	postgres main	pss peak	53094
+signatures	2	idle-before	postgres main	rss median	183668
+signatures	2	idle-before	postgres main	rss peak	183816
+signatures	2	idle-before	postgres main	anon median	37404
+signatures	2	idle-before	postgres main	anon peak	37424
+signatures	2	idle-before	postgres main	processes	14
+signatures	2	idle-before	bucket main	private median	206528
+signatures	2	idle-before	bucket main	private peak	206532
+signatures	2	idle-before	bucket main	private_dirty median	120072
+signatures	2	idle-before	bucket main	private_dirty peak	120076
+signatures	2	idle-before	bucket main	pss median	206528
+signatures	2	idle-before	bucket main	pss peak	206532
+signatures	2	idle-before	bucket main	rss median	206532
+signatures	2	idle-before	bucket main	rss peak	206536
+signatures	2	idle-before	bucket main	anon median	120072
+signatures	2	idle-before	bucket main	anon peak	120076
+signatures	2	idle-before	bucket main	processes	1
+signatures	2	idle-before	parsers supervisor and tasks	private peak	33508
+signatures	2	idle-before	parsers supervisor and tasks	private_dirty peak	17676
+signatures	2	idle-before	parsers supervisor and tasks	pss peak	34540
+signatures	2	idle-before	parsers tasks	running at once	0
+signatures	2	compare	parsers supervisor	private median	32336.0
+signatures	2	compare	parsers supervisor	private peak	43592
+signatures	2	compare	parsers supervisor	private_dirty median	26340.0
+signatures	2	compare	parsers supervisor	private_dirty peak	27568
+signatures	2	compare	parsers supervisor	pss median	34952.0
+signatures	2	compare	parsers supervisor	pss peak	44406
+signatures	2	compare	parsers supervisor	rss median	45980.0
+signatures	2	compare	parsers supervisor	rss peak	47208
+signatures	2	compare	parsers supervisor	anon median	26340.0
+signatures	2	compare	parsers supervisor	anon peak	27568
+signatures	2	compare	parsers supervisor	processes	1
+signatures	2	compare	lookups main	private median	15100.0
+signatures	2	compare	lookups main	private peak	15748
+signatures	2	compare	lookups main	private_dirty median	4772.0
+signatures	2	compare	lookups main	private_dirty peak	4908
+signatures	2	compare	lookups main	pss median	15643.0
+signatures	2	compare	lookups main	pss peak	16562
+signatures	2	compare	lookups main	rss median	18716.0
+signatures	2	compare	lookups main	rss peak	19364
+signatures	2	compare	lookups main	anon median	4772.0
+signatures	2	compare	lookups main	anon peak	4908
+signatures	2	compare	lookups main	processes	1
+signatures	2	compare	ace main	private median	76384.0
+signatures	2	compare	ace main	private peak	77348
+signatures	2	compare	ace main	private_dirty median	58864.0
+signatures	2	compare	ace main	private_dirty peak	59828
+signatures	2	compare	ace main	pss median	92925.0
+signatures	2	compare	ace main	pss peak	94149
+signatures	2	compare	ace main	rss median	121952.0
+signatures	2	compare	ace main	rss peak	122916
+signatures	2	compare	ace main	anon median	58864.0
+signatures	2	compare	ace main	anon peak	59828
+signatures	2	compare	ace main	processes	1
+signatures	2	compare	postgres main	private median	49618.0
+signatures	2	compare	postgres main	private peak	57728
+signatures	2	compare	postgres main	private_dirty median	42002.0
+signatures	2	compare	postgres main	private_dirty peak	50112
+signatures	2	compare	postgres main	pss median	76447.0
+signatures	2	compare	postgres main	pss peak	88755
+signatures	2	compare	postgres main	rss median	325516.0
+signatures	2	compare	postgres main	rss peak	371244
+signatures	2	compare	postgres main	anon median	64782.0
+signatures	2	compare	postgres main	anon peak	72072
+signatures	2	compare	postgres main	processes	20
+signatures	2	compare	bucket main	private median	395736.0
+signatures	2	compare	bucket main	private peak	429060
+signatures	2	compare	bucket main	private_dirty median	308536.0
+signatures	2	compare	bucket main	private_dirty peak	341736
+signatures	2	compare	bucket main	pss median	395736.0
+signatures	2	compare	bucket main	pss peak	429060
+signatures	2	compare	bucket main	rss median	395740.0
+signatures	2	compare	bucket main	rss peak	429064
+signatures	2	compare	bucket main	anon median	308536.0
+signatures	2	compare	bucket main	anon peak	341736
+signatures	2	compare	bucket main	processes	2
+signatures	2	compare	parsers supervisor and tasks	private peak	115520
+signatures	2	compare	parsers supervisor and tasks	private_dirty peak	100140
+signatures	2	compare	parsers supervisor and tasks	pss peak	127740
+signatures	2	compare	parsers tasks	running at once	4
+signatures	2	idle-after	parsers supervisor	private median	43592.0
+signatures	2	idle-after	parsers supervisor	private peak	43592
+signatures	2	idle-after	parsers supervisor	private_dirty median	27568.0
+signatures	2	idle-after	parsers supervisor	private_dirty peak	27568
+signatures	2	idle-after	parsers supervisor	pss median	44624.0
+signatures	2	idle-after	parsers supervisor	pss peak	44624
+signatures	2	idle-after	parsers supervisor	rss median	47208.0
+signatures	2	idle-after	parsers supervisor	rss peak	47208
+signatures	2	idle-after	parsers supervisor	anon median	27568.0
+signatures	2	idle-after	parsers supervisor	anon peak	27568
+signatures	2	idle-after	parsers supervisor	processes	1
+signatures	2	idle-after	lookups main	private median	15748.0
+signatures	2	idle-after	lookups main	private peak	15748
+signatures	2	idle-after	lookups main	private_dirty median	4908.0
+signatures	2	idle-after	lookups main	private_dirty peak	4908
+signatures	2	idle-after	lookups main	pss median	16780.0
+signatures	2	idle-after	lookups main	pss peak	16780
+signatures	2	idle-after	lookups main	rss median	19364.0
+signatures	2	idle-after	lookups main	rss peak	19364
+signatures	2	idle-after	lookups main	anon median	4908.0
+signatures	2	idle-after	lookups main	anon peak	4908
+signatures	2	idle-after	lookups main	processes	1
+signatures	2	idle-after	ace main	private median	89348.0
+signatures	2	idle-after	ace main	private peak	89348
+signatures	2	idle-after	ace main	private_dirty median	59828.0
+signatures	2	idle-after	ace main	private_dirty peak	59828
+signatures	2	idle-after	ace main	pss median	100367.0
+signatures	2	idle-after	ace main	pss peak	100367
+signatures	2	idle-after	ace main	rss median	122916.0
+signatures	2	idle-after	ace main	rss peak	122916
+signatures	2	idle-after	ace main	anon median	59828.0
+signatures	2	idle-after	ace main	anon peak	59828
+signatures	2	idle-after	ace main	processes	1
+signatures	2	idle-after	postgres main	private median	47484.0
+signatures	2	idle-after	postgres main	private peak	47556
+signatures	2	idle-after	postgres main	private_dirty median	39868.0
+signatures	2	idle-after	postgres main	private_dirty peak	39940
+signatures	2	idle-after	postgres main	pss median	75910.0
+signatures	2	idle-after	postgres main	pss peak	75959
+signatures	2	idle-after	postgres main	rss median	307960.0
+signatures	2	idle-after	postgres main	rss peak	308080
+signatures	2	idle-after	postgres main	anon median	59212.0
+signatures	2	idle-after	postgres main	anon peak	59212
+signatures	2	idle-after	postgres main	processes	17
+signatures	2	idle-after	bucket main	private median	429072.0
+signatures	2	idle-after	bucket main	private peak	431132
+signatures	2	idle-after	bucket main	private_dirty median	341748.0
+signatures	2	idle-after	bucket main	private_dirty peak	343808
+signatures	2	idle-after	bucket main	pss median	429072.0
+signatures	2	idle-after	bucket main	pss peak	431132
+signatures	2	idle-after	bucket main	rss median	429076.0
+signatures	2	idle-after	bucket main	rss peak	431136
+signatures	2	idle-after	bucket main	anon median	341748.0
+signatures	2	idle-after	bucket main	anon peak	343808
+signatures	2	idle-after	bucket main	processes	1
+signatures	2	idle-after	parsers supervisor and tasks	private peak	43592
+signatures	2	idle-after	parsers supervisor and tasks	private_dirty peak	27568
+signatures	2	idle-after	parsers supervisor and tasks	pss peak	44624
+signatures	2	idle-after	parsers tasks	running at once	0
+signatures	2	idle-before	parsers cgroup	anon median	17680
+signatures	2	idle-before	parsers cgroup	anon peak	23948
+signatures	2	idle-before	parsers cgroup	file median	1720
+signatures	2	idle-before	parsers cgroup	file peak	1720
+signatures	2	idle-before	parsers cgroup	kernel median	1392
+signatures	2	idle-before	parsers cgroup	kernel peak	1844
+signatures	2	idle-before	parsers cgroup	current median	20832
+signatures	2	idle-before	parsers cgroup	current peak	28288
+signatures	2	idle-before	lookups cgroup	anon median	2616
+signatures	2	idle-before	lookups cgroup	anon peak	8804
+signatures	2	idle-before	lookups cgroup	file median	8
+signatures	2	idle-before	lookups cgroup	file peak	8
+signatures	2	idle-before	lookups cgroup	kernel median	1260
+signatures	2	idle-before	lookups cgroup	kernel peak	1568
+signatures	2	idle-before	lookups cgroup	current median	3884
+signatures	2	idle-before	lookups cgroup	current peak	11532
+signatures	2	idle-before	bucket cgroup	anon median	120072
+signatures	2	idle-before	bucket cgroup	anon peak	120076
+signatures	2	idle-before	bucket cgroup	file median	2172
+signatures	2	idle-before	bucket cgroup	file peak	2172
+signatures	2	idle-before	bucket cgroup	kernel median	1880
+signatures	2	idle-before	bucket cgroup	kernel peak	2028
+signatures	2	idle-before	bucket cgroup	current median	124360
+signatures	2	idle-before	bucket cgroup	current peak	125432
+signatures	2	idle-before	postgres cgroup	anon median	16588
+signatures	2	idle-before	postgres cgroup	anon peak	16608
+signatures	2	idle-before	postgres cgroup	file median	66244
+signatures	2	idle-before	postgres cgroup	file peak	66432
+signatures	2	idle-before	postgres cgroup	kernel median	7640
+signatures	2	idle-before	postgres cgroup	kernel peak	7652
+signatures	2	idle-before	postgres cgroup	current median	90912
+signatures	2	idle-before	postgres cgroup	current peak	91948
+signatures	2	idle-before	ace cgroup	anon median	33784
+signatures	2	idle-before	ace cgroup	anon peak	41204
+signatures	2	idle-before	ace cgroup	file median	3308
+signatures	2	idle-before	ace cgroup	file peak	3308
+signatures	2	idle-before	ace cgroup	kernel median	1508
+signatures	2	idle-before	ace cgroup	kernel peak	1936
+signatures	2	idle-before	ace cgroup	current median	39056
+signatures	2	idle-before	ace cgroup	current peak	47916
+signatures	2	compare	parsers cgroup	anon median	45528.0
+signatures	2	compare	parsers cgroup	anon peak	100164
+signatures	2	compare	parsers cgroup	file median	1736.0
+signatures	2	compare	parsers cgroup	file peak	4376
+signatures	2	compare	parsers cgroup	kernel median	2132.0
+signatures	2	compare	parsers cgroup	kernel peak	3640
+signatures	2	compare	parsers cgroup	current median	51146.0
+signatures	2	compare	parsers cgroup	current peak	105828
+signatures	2	compare	lookups cgroup	anon median	4796.0
+signatures	2	compare	lookups cgroup	anon peak	4932
+signatures	2	compare	lookups cgroup	file median	4.0
+signatures	2	compare	lookups cgroup	file peak	8
+signatures	2	compare	lookups cgroup	kernel median	1276.0
+signatures	2	compare	lookups cgroup	kernel peak	1288
+signatures	2	compare	lookups cgroup	current median	6192.0
+signatures	2	compare	lookups cgroup	current peak	8356
+signatures	2	compare	bucket cgroup	anon median	308536.0
+signatures	2	compare	bucket cgroup	anon peak	341724
+signatures	2	compare	bucket cgroup	file median	9462.0
+signatures	2	compare	bucket cgroup	file peak	12612
+signatures	2	compare	bucket cgroup	kernel median	2496.0
+signatures	2	compare	bucket cgroup	kernel peak	2904
+signatures	2	compare	bucket cgroup	current median	321964.0
+signatures	2	compare	bucket cgroup	current peak	358516
+signatures	2	compare	postgres cgroup	anon median	36734.0
+signatures	2	compare	postgres cgroup	anon peak	44024
+signatures	2	compare	postgres cgroup	file median	71674.0
+signatures	2	compare	postgres cgroup	file peak	91976
+signatures	2	compare	postgres cgroup	kernel median	9026.0
+signatures	2	compare	postgres cgroup	kernel peak	9864
+signatures	2	compare	postgres cgroup	current median	118726.0
+signatures	2	compare	postgres cgroup	current peak	146060
+signatures	2	compare	ace cgroup	anon median	58864.0
+signatures	2	compare	ace cgroup	anon peak	59828
+signatures	2	compare	ace cgroup	file median	3308.0
+signatures	2	compare	ace cgroup	file peak	4048
+signatures	2	compare	ace cgroup	kernel median	1644.0
+signatures	2	compare	ace cgroup	kernel peak	1772
+signatures	2	compare	ace cgroup	current median	64744.0
+signatures	2	compare	ace cgroup	current peak	67048
+signatures	2	idle-after	parsers cgroup	anon median	27592.0
+signatures	2	idle-after	parsers cgroup	anon peak	27592
+signatures	2	idle-after	parsers cgroup	file median	1724.0
+signatures	2	idle-after	parsers cgroup	file peak	1724
+signatures	2	idle-after	parsers cgroup	kernel median	1626.0
+signatures	2	idle-after	parsers cgroup	kernel peak	1716
+signatures	2	idle-after	parsers cgroup	current median	31184.0
+signatures	2	idle-after	parsers cgroup	current peak	32484
+signatures	2	idle-after	lookups cgroup	anon median	4932.0
+signatures	2	idle-after	lookups cgroup	anon peak	11392
+signatures	2	idle-after	lookups cgroup	file median	4.0
+signatures	2	idle-after	lookups cgroup	file peak	4
+signatures	2	idle-after	lookups cgroup	kernel median	1280.0
+signatures	2	idle-after	lookups cgroup	kernel peak	1664
+signatures	2	idle-after	lookups cgroup	current median	6220.0
+signatures	2	idle-after	lookups cgroup	current peak	14040
+signatures	2	idle-after	bucket cgroup	anon median	341748.0
+signatures	2	idle-after	bucket cgroup	anon peak	343808
+signatures	2	idle-after	bucket cgroup	file median	12616.0
+signatures	2	idle-after	bucket cgroup	file peak	12924
+signatures	2	idle-after	bucket cgroup	kernel median	2620.0
+signatures	2	idle-after	bucket cgroup	kernel peak	2636
+signatures	2	idle-after	bucket cgroup	current median	357268.0
+signatures	2	idle-after	bucket cgroup	current peak	360788
+signatures	2	idle-after	postgres cgroup	anon median	34156.0
+signatures	2	idle-after	postgres cgroup	anon peak	34156
+signatures	2	idle-after	postgres cgroup	file median	91976.0
+signatures	2	idle-after	postgres cgroup	file peak	92024
+signatures	2	idle-after	postgres cgroup	kernel median	9128.0
+signatures	2	idle-after	postgres cgroup	kernel peak	9144
+signatures	2	idle-after	postgres cgroup	current median	135988.0
+signatures	2	idle-after	postgres cgroup	current peak	136824
+signatures	2	idle-after	ace cgroup	anon median	59828.0
+signatures	2	idle-after	ace cgroup	anon peak	59828
+signatures	2	idle-after	ace cgroup	file median	3320.0
+signatures	2	idle-after	ace cgroup	file peak	3320
+signatures	2	idle-after	ace cgroup	kernel median	1652.0
+signatures	2	idle-after	ace cgroup	kernel peak	1900
+signatures	2	idle-after	ace cgroup	current median	65294.0
+signatures	2	idle-after	ace cgroup	current peak	66260
+signatures	2	idle-before	ace cgroup	memory.peak	48428
+signatures	2	idle-before	ace cgroup	limit	1048576
+signatures	2	idle-before	ace cgroup	events_max	0
+signatures	2	idle-before	ace cgroup	events_oom	0
+signatures	2	idle-before	ace cgroup	events_oom_kill	0
+signatures	2	idle-before	parsers cgroup	memory.peak	28640
+signatures	2	idle-before	parsers cgroup	limit	4194304
+signatures	2	idle-before	parsers cgroup	events_max	0
+signatures	2	idle-before	parsers cgroup	events_oom	0
+signatures	2	idle-before	parsers cgroup	events_oom_kill	0
+signatures	2	idle-before	lookups cgroup	memory.peak	12376
+signatures	2	idle-before	lookups cgroup	limit	1048576
+signatures	2	idle-before	lookups cgroup	events_max	0
+signatures	2	idle-before	lookups cgroup	events_oom	0
+signatures	2	idle-before	lookups cgroup	events_oom_kill	0
+signatures	2	idle-before	postgres cgroup	memory.peak	102696
+signatures	2	idle-before	postgres cgroup	limit	1048576
+signatures	2	idle-before	postgres cgroup	events_max	0
+signatures	2	idle-before	postgres cgroup	events_oom	0
+signatures	2	idle-before	postgres cgroup	events_oom_kill	0
+signatures	2	idle-before	bucket cgroup	memory.peak	133048
+signatures	2	idle-before	bucket cgroup	limit	1048576
+signatures	2	idle-before	bucket cgroup	events_max	0
+signatures	2	idle-before	bucket cgroup	events_oom	0
+signatures	2	idle-before	bucket cgroup	events_oom_kill	0
+signatures	2	compare	ace cgroup	memory.peak	76480
+signatures	2	compare	ace cgroup	limit	1048576
+signatures	2	compare	ace cgroup	events_max	0
+signatures	2	compare	ace cgroup	events_oom	0
+signatures	2	compare	ace cgroup	events_oom_kill	0
+signatures	2	compare	parsers cgroup	memory.peak	114672
+signatures	2	compare	parsers cgroup	limit	4194304
+signatures	2	compare	parsers cgroup	events_max	0
+signatures	2	compare	parsers cgroup	events_oom	0
+signatures	2	compare	parsers cgroup	events_oom_kill	0
+signatures	2	compare	lookups cgroup	memory.peak	16000
+signatures	2	compare	lookups cgroup	limit	1048576
+signatures	2	compare	lookups cgroup	events_max	0
+signatures	2	compare	lookups cgroup	events_oom	0
+signatures	2	compare	lookups cgroup	events_oom_kill	0
+signatures	2	compare	postgres cgroup	memory.peak	151036
+signatures	2	compare	postgres cgroup	limit	1048576
+signatures	2	compare	postgres cgroup	events_max	0
+signatures	2	compare	postgres cgroup	events_oom	0
+signatures	2	compare	postgres cgroup	events_oom_kill	0
+signatures	2	compare	bucket cgroup	memory.peak	358976
+signatures	2	compare	bucket cgroup	limit	1048576
+signatures	2	compare	bucket cgroup	events_max	0
+signatures	2	compare	bucket cgroup	events_oom	0
+signatures	2	compare	bucket cgroup	events_oom_kill	0
+signatures	2	idle-after	ace cgroup	memory.peak	74648
+signatures	2	idle-after	ace cgroup	limit	1048576
+signatures	2	idle-after	ace cgroup	events_max	0
+signatures	2	idle-after	ace cgroup	events_oom	0
+signatures	2	idle-after	ace cgroup	events_oom_kill	0
+signatures	2	idle-after	parsers cgroup	memory.peak	39368
+signatures	2	idle-after	parsers cgroup	limit	4194304
+signatures	2	idle-after	parsers cgroup	events_max	0
+signatures	2	idle-after	parsers cgroup	events_oom	0
+signatures	2	idle-after	parsers cgroup	events_oom_kill	0
+signatures	2	idle-after	lookups cgroup	memory.peak	14648
+signatures	2	idle-after	lookups cgroup	limit	1048576
+signatures	2	idle-after	lookups cgroup	events_max	0
+signatures	2	idle-after	lookups cgroup	events_oom	0
+signatures	2	idle-after	lookups cgroup	events_oom_kill	0
+signatures	2	idle-after	postgres cgroup	memory.peak	145536
+signatures	2	idle-after	postgres cgroup	limit	1048576
+signatures	2	idle-after	postgres cgroup	events_max	0
+signatures	2	idle-after	postgres cgroup	events_oom	0
+signatures	2	idle-after	postgres cgroup	events_oom_kill	0
+signatures	2	idle-after	bucket cgroup	memory.peak	367596
+signatures	2	idle-after	bucket cgroup	limit	1048576
+signatures	2	idle-after	bucket cgroup	events_max	0
+signatures	2	idle-after	bucket cgroup	events_oom	0
+signatures	2	idle-after	bucket cgroup	events_oom_kill	0
+signatures	2	container-life	ace cgroup	memory.peak	76480
+signatures	2	container-life	ace cgroup	limit	1048576
+signatures	2	container-life	ace cgroup	events_max	0
+signatures	2	container-life	ace cgroup	events_oom	0
+signatures	2	container-life	ace cgroup	events_oom_kill	0
+signatures	2	container-life	parsers cgroup	memory.peak	114672
+signatures	2	container-life	parsers cgroup	limit	4194304
+signatures	2	container-life	parsers cgroup	events_max	0
+signatures	2	container-life	parsers cgroup	events_oom	0
+signatures	2	container-life	parsers cgroup	events_oom_kill	0
+signatures	2	container-life	lookups cgroup	memory.peak	16000
+signatures	2	container-life	lookups cgroup	limit	1048576
+signatures	2	container-life	lookups cgroup	events_max	0
+signatures	2	container-life	lookups cgroup	events_oom	0
+signatures	2	container-life	lookups cgroup	events_oom_kill	0
+signatures	2	container-life	postgres cgroup	memory.peak	151036
+signatures	2	container-life	postgres cgroup	limit	1048576
+signatures	2	container-life	postgres cgroup	events_max	0
+signatures	2	container-life	postgres cgroup	events_oom	0
+signatures	2	container-life	postgres cgroup	events_oom_kill	0
+signatures	2	container-life	bucket cgroup	memory.peak	367596
+signatures	2	container-life	bucket cgroup	limit	1048576
+signatures	2	container-life	bucket cgroup	events_max	0
+signatures	2	container-life	bucket cgroup	events_oom	0
+signatures	2	container-life	bucket cgroup	events_oom_kill	0
+signatures	2	compare	parsers task process	exit records	946
+signatures	2	compare	parsers task process	sampled	946
+signatures	2	compare	parsers task process	non-zero exits	0
+signatures	2	compare	parsers task process	dropped exit records	0
+signatures	2	compare	parsers task process	lifetime ms median	80.8
+signatures	2	compare	parsers task process	lifetime ms peak	103.0
+signatures	2	compare	parsers task process	cpu ms median	80.0
+signatures	2	compare	parsers task process	cpu ms peak	95.0
+signatures	2	compare	parsers task process	exit peak rss median	32440.0
+signatures	2	compare	parsers task process	exit peak rss p95	34752
+signatures	2	compare	parsers task process	exit peak rss peak	36404
+signatures	2	compare	parsers task process	private median	18144.0
+signatures	2	compare	parsers task process	private p95	18376
+signatures	2	compare	parsers task process	private peak	19980
+signatures	2	compare	parsers task process	private_dirty median	18140.0
+signatures	2	compare	parsers task process	private_dirty p95	18144
+signatures	2	compare	parsers task process	private_dirty peak	18144
+signatures	2	compare	parsers task process	pss median	21508.0
+signatures	2	compare	parsers task process	pss p95	25477
+signatures	2	compare	parsers task process	pss peak	26150
+signatures	2	compare	parsers task process	anon median	18140.0
+signatures	2	compare	parsers task process	anon p95	18144
+signatures	2	compare	parsers task process	anon peak	18144
+signatures	2	compare	parsers task process	rss shortfall median	-104.0
+signatures	2	compare	parsers task process	rss shortfall p95	352
+signatures	2	compare	parsers task process	rss shortfall peak	2204
+signatures	2	compare	parsers task process	sampled tasks more than 1 MB short (count)	5
+signatures	2	compare	parsers task process	samples per task median	212.0
+signatures	2	compare	load	parser task attempts	946
+signatures	2	compare	load	lookup task attempts	24
+signatures	2	compare	load	other task attempts	1
+signatures	2	compare	load	tasks not done	0
+signatures	2	compare	load	roots	54
+signatures	2	compare	load	results	71
+signatures	2	compare	load	seconds	45.5
+signatures	2	compare	load	exit	0
+signatures	2	compare	load	report samples	54
+signatures	2	compare	sampler	tick ms median	0.011
+signatures	3	idle-before	parsers supervisor	private median	32388
+signatures	3	idle-before	parsers supervisor	private peak	32412
+signatures	3	idle-before	parsers supervisor	private_dirty median	16556
+signatures	3	idle-before	parsers supervisor	private_dirty peak	16580
+signatures	3	idle-before	parsers supervisor	pss median	33420
+signatures	3	idle-before	parsers supervisor	pss peak	33444
+signatures	3	idle-before	parsers supervisor	rss median	36004
+signatures	3	idle-before	parsers supervisor	rss peak	36028
+signatures	3	idle-before	parsers supervisor	anon median	16556
+signatures	3	idle-before	parsers supervisor	anon peak	16580
+signatures	3	idle-before	parsers supervisor	processes	1
+signatures	3	idle-before	lookups main	private median	12340
+signatures	3	idle-before	lookups main	private peak	12344
+signatures	3	idle-before	lookups main	private_dirty median	2588
+signatures	3	idle-before	lookups main	private_dirty peak	2592
+signatures	3	idle-before	lookups main	pss median	13372
+signatures	3	idle-before	lookups main	pss peak	13376
+signatures	3	idle-before	lookups main	rss median	15956
+signatures	3	idle-before	lookups main	rss peak	15960
+signatures	3	idle-before	lookups main	anon median	2588
+signatures	3	idle-before	lookups main	anon peak	2592
+signatures	3	idle-before	lookups main	processes	1
+signatures	3	idle-before	ace main	private median	64704
+signatures	3	idle-before	ace main	private peak	71032
+signatures	3	idle-before	ace main	private_dirty median	34084
+signatures	3	idle-before	ace main	private_dirty peak	40412
+signatures	3	idle-before	ace main	pss median	65732
+signatures	3	idle-before	ace main	pss peak	75084
+signatures	3	idle-before	ace main	rss median	68312
+signatures	3	idle-before	ace main	rss peak	81144
+signatures	3	idle-before	ace main	anon median	34084
+signatures	3	idle-before	ace main	anon peak	40292
+signatures	3	idle-before	ace main	processes	2
+signatures	3	idle-before	postgres main	private median	28992
+signatures	3	idle-before	postgres main	private peak	29120
+signatures	3	idle-before	postgres main	private_dirty median	20664
+signatures	3	idle-before	postgres main	private_dirty peak	20792
+signatures	3	idle-before	postgres main	pss median	53075
+signatures	3	idle-before	postgres main	pss peak	53087
+signatures	3	idle-before	postgres main	rss median	183172
+signatures	3	idle-before	postgres main	rss peak	183312
+signatures	3	idle-before	postgres main	anon median	37220
+signatures	3	idle-before	postgres main	anon peak	37232
+signatures	3	idle-before	postgres main	processes	14
+signatures	3	idle-before	bucket main	private median	214364
+signatures	3	idle-before	bucket main	private peak	214372
+signatures	3	idle-before	bucket main	private_dirty median	128172
+signatures	3	idle-before	bucket main	private_dirty peak	128180
+signatures	3	idle-before	bucket main	pss median	214364
+signatures	3	idle-before	bucket main	pss peak	214372
+signatures	3	idle-before	bucket main	rss median	214368
+signatures	3	idle-before	bucket main	rss peak	214376
+signatures	3	idle-before	bucket main	anon median	128172
+signatures	3	idle-before	bucket main	anon peak	128180
+signatures	3	idle-before	bucket main	processes	1
+signatures	3	idle-before	parsers supervisor and tasks	private peak	32412
+signatures	3	idle-before	parsers supervisor and tasks	private_dirty peak	16580
+signatures	3	idle-before	parsers supervisor and tasks	pss peak	33444
+signatures	3	idle-before	parsers tasks	running at once	0
+signatures	3	compare	parsers supervisor	private median	32396.0
+signatures	3	compare	parsers supervisor	private peak	43684
+signatures	3	compare	parsers supervisor	private_dirty median	27392.0
+signatures	3	compare	parsers supervisor	private_dirty peak	27660
+signatures	3	compare	parsers supervisor	pss median	35270.5
+signatures	3	compare	parsers supervisor	pss peak	44716
+signatures	3	compare	parsers supervisor	rss median	47034.0
+signatures	3	compare	parsers supervisor	rss peak	47300
+signatures	3	compare	parsers supervisor	anon median	27394.0
+signatures	3	compare	parsers supervisor	anon peak	27660
+signatures	3	compare	parsers supervisor	processes	1
+signatures	3	compare	lookups main	private median	15444.0
+signatures	3	compare	lookups main	private peak	16412
+signatures	3	compare	lookups main	private_dirty median	5116.0
+signatures	3	compare	lookups main	private_dirty peak	5572
+signatures	3	compare	lookups main	pss median	16020.0
+signatures	3	compare	lookups main	pss peak	17444
+signatures	3	compare	lookups main	rss median	19060.0
+signatures	3	compare	lookups main	rss peak	20028
+signatures	3	compare	lookups main	anon median	5116.0
+signatures	3	compare	lookups main	anon peak	5572
+signatures	3	compare	lookups main	processes	1
+signatures	3	compare	ace main	private median	72052.0
+signatures	3	compare	ace main	private peak	86396
+signatures	3	compare	ace main	private_dirty median	54532.0
+signatures	3	compare	ace main	private_dirty peak	56876
+signatures	3	compare	ace main	pss median	88754.5
+signatures	3	compare	ace main	pss peak	97420
+signatures	3	compare	ace main	rss median	117648.0
+signatures	3	compare	ace main	rss peak	119992
+signatures	3	compare	ace main	anon median	54532.0
+signatures	3	compare	ace main	anon peak	56876
+signatures	3	compare	ace main	processes	1
+signatures	3	compare	postgres main	private median	49330.0
+signatures	3	compare	postgres main	private peak	55564
+signatures	3	compare	postgres main	private_dirty median	41530.0
+signatures	3	compare	postgres main	private_dirty peak	47764
+signatures	3	compare	postgres main	pss median	76136.5
+signatures	3	compare	postgres main	pss peak	83805
+signatures	3	compare	postgres main	rss median	324640.0
+signatures	3	compare	postgres main	rss peak	386016
+signatures	3	compare	postgres main	anon median	64274.0
+signatures	3	compare	postgres main	anon peak	72924
+signatures	3	compare	postgres main	processes	21
+signatures	3	compare	bucket main	private median	385198.0
+signatures	3	compare	bucket main	private peak	441520
+signatures	3	compare	bucket main	private_dirty median	298134.0
+signatures	3	compare	bucket main	private_dirty peak	354332
+signatures	3	compare	bucket main	pss median	385198.0
+signatures	3	compare	bucket main	pss peak	441520
+signatures	3	compare	bucket main	rss median	385202.0
+signatures	3	compare	bucket main	rss peak	441524
+signatures	3	compare	bucket main	anon median	298134.0
+signatures	3	compare	bucket main	anon peak	354332
+signatures	3	compare	bucket main	processes	2
+signatures	3	compare	parsers supervisor and tasks	private peak	116260
+signatures	3	compare	parsers supervisor and tasks	private_dirty peak	100236
+signatures	3	compare	parsers supervisor and tasks	pss peak	127493
+signatures	3	compare	parsers tasks	running at once	4
+signatures	3	idle-after	parsers supervisor	private median	43684.0
+signatures	3	idle-after	parsers supervisor	private peak	43684
+signatures	3	idle-after	parsers supervisor	private_dirty median	27660.0
+signatures	3	idle-after	parsers supervisor	private_dirty peak	27660
+signatures	3	idle-after	parsers supervisor	pss median	44716.0
+signatures	3	idle-after	parsers supervisor	pss peak	44716
+signatures	3	idle-after	parsers supervisor	rss median	47300.0
+signatures	3	idle-after	parsers supervisor	rss peak	47300
+signatures	3	idle-after	parsers supervisor	anon median	27660.0
+signatures	3	idle-after	parsers supervisor	anon peak	27660
+signatures	3	idle-after	parsers supervisor	processes	1
+signatures	3	idle-after	lookups main	private median	16412.0
+signatures	3	idle-after	lookups main	private peak	16640
+signatures	3	idle-after	lookups main	private_dirty median	5572.0
+signatures	3	idle-after	lookups main	private_dirty peak	5672
+signatures	3	idle-after	lookups main	pss median	17444.0
+signatures	3	idle-after	lookups main	pss peak	17832
+signatures	3	idle-after	lookups main	rss median	20028.0
+signatures	3	idle-after	lookups main	rss peak	21572
+signatures	3	idle-after	lookups main	anon median	5572.0
+signatures	3	idle-after	lookups main	anon peak	5672
+signatures	3	idle-after	lookups main	processes	2
+signatures	3	idle-after	ace main	private median	86396.0
+signatures	3	idle-after	ace main	private peak	93152
+signatures	3	idle-after	ace main	private_dirty median	56876.0
+signatures	3	idle-after	ace main	private_dirty peak	63632
+signatures	3	idle-after	ace main	pss median	97420.0
+signatures	3	idle-after	ace main	pss peak	107203
+signatures	3	idle-after	ace main	rss median	119992.0
+signatures	3	idle-after	ace main	rss peak	133204
+signatures	3	idle-after	ace main	anon median	56876.0
+signatures	3	idle-after	ace main	anon peak	63336
+signatures	3	idle-after	ace main	processes	2
+signatures	3	idle-after	postgres main	private median	47496.0
+signatures	3	idle-after	postgres main	private peak	47628
+signatures	3	idle-after	postgres main	private_dirty median	39696.0
+signatures	3	idle-after	postgres main	private_dirty peak	39828
+signatures	3	idle-after	postgres main	pss median	75867.0
+signatures	3	idle-after	postgres main	pss peak	75914
+signatures	3	idle-after	postgres main	rss median	307584.0
+signatures	3	idle-after	postgres main	rss peak	307832
+signatures	3	idle-after	postgres main	anon median	58952.0
+signatures	3	idle-after	postgres main	anon peak	58956
+signatures	3	idle-after	postgres main	processes	17
+signatures	3	idle-after	bucket main	private median	441520.0
+signatures	3	idle-after	bucket main	private peak	441524
+signatures	3	idle-after	bucket main	private_dirty median	354332.0
+signatures	3	idle-after	bucket main	private_dirty peak	354336
+signatures	3	idle-after	bucket main	pss median	441520.0
+signatures	3	idle-after	bucket main	pss peak	441524
+signatures	3	idle-after	bucket main	rss median	441524.0
+signatures	3	idle-after	bucket main	rss peak	441528
+signatures	3	idle-after	bucket main	anon median	354332.0
+signatures	3	idle-after	bucket main	anon peak	354336
+signatures	3	idle-after	bucket main	processes	1
+signatures	3	idle-after	parsers supervisor and tasks	private peak	43684
+signatures	3	idle-after	parsers supervisor and tasks	private_dirty peak	27660
+signatures	3	idle-after	parsers supervisor and tasks	pss peak	44716
+signatures	3	idle-after	parsers tasks	running at once	0
+signatures	3	idle-before	parsers cgroup	anon median	16576
+signatures	3	idle-before	parsers cgroup	anon peak	22768
+signatures	3	idle-before	parsers cgroup	file median	1724
+signatures	3	idle-before	parsers cgroup	file peak	1724
+signatures	3	idle-before	parsers cgroup	kernel median	1384
+signatures	3	idle-before	parsers cgroup	kernel peak	1764
+signatures	3	idle-before	parsers cgroup	current median	19728
+signatures	3	idle-before	parsers cgroup	current peak	27312
+signatures	3	idle-before	lookups cgroup	anon median	2608
+signatures	3	idle-before	lookups cgroup	anon peak	6752
+signatures	3	idle-before	lookups cgroup	file median	4
+signatures	3	idle-before	lookups cgroup	file peak	4
+signatures	3	idle-before	lookups cgroup	kernel median	1264
+signatures	3	idle-before	lookups cgroup	kernel peak	1644
+signatures	3	idle-before	lookups cgroup	current median	3880
+signatures	3	idle-before	lookups cgroup	current peak	10484
+signatures	3	idle-before	bucket cgroup	anon median	128172
+signatures	3	idle-before	bucket cgroup	anon peak	128180
+signatures	3	idle-before	bucket cgroup	file median	2172
+signatures	3	idle-before	bucket cgroup	file peak	2172
+signatures	3	idle-before	bucket cgroup	kernel median	1892
+signatures	3	idle-before	bucket cgroup	kernel peak	1900
+signatures	3	idle-before	bucket cgroup	current median	132232
+signatures	3	idle-before	bucket cgroup	current peak	133436
+signatures	3	idle-before	postgres cgroup	anon median	16436
+signatures	3	idle-before	postgres cgroup	anon peak	16464
+signatures	3	idle-before	postgres cgroup	file median	66236
+signatures	3	idle-before	postgres cgroup	file peak	66424
+signatures	3	idle-before	postgres cgroup	kernel median	7736
+signatures	3	idle-before	postgres cgroup	kernel peak	7740
+signatures	3	idle-before	postgres cgroup	current median	90904
+signatures	3	idle-before	postgres cgroup	current peak	92244
+signatures	3	idle-before	ace cgroup	anon median	34084
+signatures	3	idle-before	ace cgroup	anon peak	40296
+signatures	3	idle-before	ace cgroup	file median	3308
+signatures	3	idle-before	ace cgroup	file peak	3308
+signatures	3	idle-before	ace cgroup	kernel median	1516
+signatures	3	idle-before	ace cgroup	kernel peak	1948
+signatures	3	idle-before	ace cgroup	current median	39216
+signatures	3	idle-before	ace cgroup	current peak	46672
+signatures	3	compare	parsers cgroup	anon median	27774.0
+signatures	3	compare	parsers cgroup	anon peak	100252
+signatures	3	compare	parsers cgroup	file median	1736.0
+signatures	3	compare	parsers cgroup	file peak	7008
+signatures	3	compare	parsers cgroup	kernel median	2122.0
+signatures	3	compare	parsers cgroup	kernel peak	3220
+signatures	3	compare	parsers cgroup	current median	33532.0
+signatures	3	compare	parsers cgroup	current peak	105968
+signatures	3	compare	lookups cgroup	anon median	5124.0
+signatures	3	compare	lookups cgroup	anon peak	5592
+signatures	3	compare	lookups cgroup	file median	4.0
+signatures	3	compare	lookups cgroup	file peak	4
+signatures	3	compare	lookups cgroup	kernel median	1312.0
+signatures	3	compare	lookups cgroup	kernel peak	1328
+signatures	3	compare	lookups cgroup	current median	6710.0
+signatures	3	compare	lookups cgroup	current peak	8456
+signatures	3	compare	bucket cgroup	anon median	298134.0
+signatures	3	compare	bucket cgroup	anon peak	354332
+signatures	3	compare	bucket cgroup	file median	9462.0
+signatures	3	compare	bucket cgroup	file peak	12612
+signatures	3	compare	bucket cgroup	kernel median	2460.0
+signatures	3	compare	bucket cgroup	kernel peak	2800
+signatures	3	compare	bucket cgroup	current median	311024.0
+signatures	3	compare	bucket cgroup	current peak	371740
+signatures	3	compare	postgres cgroup	anon median	36286.0
+signatures	3	compare	postgres cgroup	anon peak	43244
+signatures	3	compare	postgres cgroup	file median	71760.0
+signatures	3	compare	postgres cgroup	file peak	91876
+signatures	3	compare	postgres cgroup	kernel median	9126.0
+signatures	3	compare	postgres cgroup	kernel peak	10140
+signatures	3	compare	postgres cgroup	current median	118472.0
+signatures	3	compare	postgres cgroup	current peak	144884
+signatures	3	compare	ace cgroup	anon median	54532.0
+signatures	3	compare	ace cgroup	anon peak	56876
+signatures	3	compare	ace cgroup	file median	3308.0
+signatures	3	compare	ace cgroup	file peak	4192
+signatures	3	compare	ace cgroup	kernel median	1660.0
+signatures	3	compare	ace cgroup	kernel peak	1724
+signatures	3	compare	ace cgroup	current median	60772.0
+signatures	3	compare	ace cgroup	current peak	63808
+signatures	3	idle-after	parsers cgroup	anon median	27680.0
+signatures	3	idle-after	parsers cgroup	anon peak	33856
+signatures	3	idle-after	parsers cgroup	file median	1724.0
+signatures	3	idle-after	parsers cgroup	file peak	1724
+signatures	3	idle-after	parsers cgroup	kernel median	1624.0
+signatures	3	idle-after	parsers cgroup	kernel peak	2044
+signatures	3	idle-after	parsers cgroup	current median	31292.0
+signatures	3	idle-after	parsers cgroup	current peak	38900
+signatures	3	idle-after	lookups cgroup	anon median	5592.0
+signatures	3	idle-after	lookups cgroup	anon peak	11944
+signatures	3	idle-after	lookups cgroup	file median	4.0
+signatures	3	idle-after	lookups cgroup	file peak	4
+signatures	3	idle-after	lookups cgroup	kernel median	1292.0
+signatures	3	idle-after	lookups cgroup	kernel peak	1804
+signatures	3	idle-after	lookups cgroup	current median	6912.0
+signatures	3	idle-after	lookups cgroup	current peak	14632
+signatures	3	idle-after	bucket cgroup	anon median	354332.0
+signatures	3	idle-after	bucket cgroup	anon peak	354336
+signatures	3	idle-after	bucket cgroup	file median	12616.0
+signatures	3	idle-after	bucket cgroup	file peak	12932
+signatures	3	idle-after	bucket cgroup	kernel median	2640.0
+signatures	3	idle-after	bucket cgroup	kernel peak	2660
+signatures	3	idle-after	bucket cgroup	current median	369844.0
+signatures	3	idle-after	bucket cgroup	current peak	371496
+signatures	3	idle-after	postgres cgroup	anon median	33948.0
+signatures	3	idle-after	postgres cgroup	anon peak	33952
+signatures	3	idle-after	postgres cgroup	file median	91876.0
+signatures	3	idle-after	postgres cgroup	file peak	91924
+signatures	3	idle-after	postgres cgroup	kernel median	9208.0
+signatures	3	idle-after	postgres cgroup	kernel peak	9224
+signatures	3	idle-after	postgres cgroup	current median	135708.0
+signatures	3	idle-after	postgres cgroup	current peak	136584
+signatures	3	idle-after	ace cgroup	anon median	56876.0
+signatures	3	idle-after	ace cgroup	anon peak	63336
+signatures	3	idle-after	ace cgroup	file median	3308.0
+signatures	3	idle-after	ace cgroup	file peak	3308
+signatures	3	idle-after	ace cgroup	kernel median	1664.0
+signatures	3	idle-after	ace cgroup	kernel peak	2004
+signatures	3	idle-after	ace cgroup	current median	62432.0
+signatures	3	idle-after	ace cgroup	current peak	70180
+signatures	3	idle-before	ace cgroup	memory.peak	50108
+signatures	3	idle-before	ace cgroup	limit	1048576
+signatures	3	idle-before	ace cgroup	events_max	0
+signatures	3	idle-before	ace cgroup	events_oom	0
+signatures	3	idle-before	ace cgroup	events_oom_kill	0
+signatures	3	idle-before	parsers cgroup	memory.peak	28188
+signatures	3	idle-before	parsers cgroup	limit	4194304
+signatures	3	idle-before	parsers cgroup	events_max	0
+signatures	3	idle-before	parsers cgroup	events_oom	0
+signatures	3	idle-before	parsers cgroup	events_oom_kill	0
+signatures	3	idle-before	lookups cgroup	memory.peak	14532
+signatures	3	idle-before	lookups cgroup	limit	1048576
+signatures	3	idle-before	lookups cgroup	events_max	0
+signatures	3	idle-before	lookups cgroup	events_oom	0
+signatures	3	idle-before	lookups cgroup	events_oom_kill	0
+signatures	3	idle-before	postgres cgroup	memory.peak	102428
+signatures	3	idle-before	postgres cgroup	limit	1048576
+signatures	3	idle-before	postgres cgroup	events_max	0
+signatures	3	idle-before	postgres cgroup	events_oom	0
+signatures	3	idle-before	postgres cgroup	events_oom_kill	0
+signatures	3	idle-before	bucket cgroup	memory.peak	141908
+signatures	3	idle-before	bucket cgroup	limit	1048576
+signatures	3	idle-before	bucket cgroup	events_max	0
+signatures	3	idle-before	bucket cgroup	events_oom	0
+signatures	3	idle-before	bucket cgroup	events_oom_kill	0
+signatures	3	compare	ace cgroup	memory.peak	71056
+signatures	3	compare	ace cgroup	limit	1048576
+signatures	3	compare	ace cgroup	events_max	0
+signatures	3	compare	ace cgroup	events_oom	0
+signatures	3	compare	ace cgroup	events_oom_kill	0
+signatures	3	compare	parsers cgroup	memory.peak	111220
+signatures	3	compare	parsers cgroup	limit	4194304
+signatures	3	compare	parsers cgroup	events_max	0
+signatures	3	compare	parsers cgroup	events_oom	0
+signatures	3	compare	parsers cgroup	events_oom_kill	0
+signatures	3	compare	lookups cgroup	memory.peak	15272
+signatures	3	compare	lookups cgroup	limit	1048576
+signatures	3	compare	lookups cgroup	events_max	0
+signatures	3	compare	lookups cgroup	events_oom	0
+signatures	3	compare	lookups cgroup	events_oom_kill	0
+signatures	3	compare	postgres cgroup	memory.peak	150752
+signatures	3	compare	postgres cgroup	limit	1048576
+signatures	3	compare	postgres cgroup	events_max	0
+signatures	3	compare	postgres cgroup	events_oom	0
+signatures	3	compare	postgres cgroup	events_oom_kill	0
+signatures	3	compare	bucket cgroup	memory.peak	380784
+signatures	3	compare	bucket cgroup	limit	1048576
+signatures	3	compare	bucket cgroup	events_max	0
+signatures	3	compare	bucket cgroup	events_oom	0
+signatures	3	compare	bucket cgroup	events_oom_kill	0
+signatures	3	idle-after	ace cgroup	memory.peak	72812
+signatures	3	idle-after	ace cgroup	limit	1048576
+signatures	3	idle-after	ace cgroup	events_max	0
+signatures	3	idle-after	ace cgroup	events_oom	0
+signatures	3	idle-after	ace cgroup	events_oom_kill	0
+signatures	3	idle-after	parsers cgroup	memory.peak	39680
+signatures	3	idle-after	parsers cgroup	limit	4194304
+signatures	3	idle-after	parsers cgroup	events_max	0
+signatures	3	idle-after	parsers cgroup	events_oom	0
+signatures	3	idle-after	parsers cgroup	events_oom_kill	0
+signatures	3	idle-after	lookups cgroup	memory.peak	15276
+signatures	3	idle-after	lookups cgroup	limit	1048576
+signatures	3	idle-after	lookups cgroup	events_max	0
+signatures	3	idle-after	lookups cgroup	events_oom	0
+signatures	3	idle-after	lookups cgroup	events_oom_kill	0
+signatures	3	idle-after	postgres cgroup	memory.peak	146612
+signatures	3	idle-after	postgres cgroup	limit	1048576
+signatures	3	idle-after	postgres cgroup	events_max	0
+signatures	3	idle-after	postgres cgroup	events_oom	0
+signatures	3	idle-after	postgres cgroup	events_oom_kill	0
+signatures	3	idle-after	bucket cgroup	memory.peak	379152
+signatures	3	idle-after	bucket cgroup	limit	1048576
+signatures	3	idle-after	bucket cgroup	events_max	0
+signatures	3	idle-after	bucket cgroup	events_oom	0
+signatures	3	idle-after	bucket cgroup	events_oom_kill	0
+signatures	3	container-life	ace cgroup	memory.peak	72812
+signatures	3	container-life	ace cgroup	limit	1048576
+signatures	3	container-life	ace cgroup	events_max	0
+signatures	3	container-life	ace cgroup	events_oom	0
+signatures	3	container-life	ace cgroup	events_oom_kill	0
+signatures	3	container-life	parsers cgroup	memory.peak	111220
+signatures	3	container-life	parsers cgroup	limit	4194304
+signatures	3	container-life	parsers cgroup	events_max	0
+signatures	3	container-life	parsers cgroup	events_oom	0
+signatures	3	container-life	parsers cgroup	events_oom_kill	0
+signatures	3	container-life	lookups cgroup	memory.peak	15276
+signatures	3	container-life	lookups cgroup	limit	1048576
+signatures	3	container-life	lookups cgroup	events_max	0
+signatures	3	container-life	lookups cgroup	events_oom	0
+signatures	3	container-life	lookups cgroup	events_oom_kill	0
+signatures	3	container-life	postgres cgroup	memory.peak	150752
+signatures	3	container-life	postgres cgroup	limit	1048576
+signatures	3	container-life	postgres cgroup	events_max	0
+signatures	3	container-life	postgres cgroup	events_oom	0
+signatures	3	container-life	postgres cgroup	events_oom_kill	0
+signatures	3	container-life	bucket cgroup	memory.peak	380784
+signatures	3	container-life	bucket cgroup	limit	1048576
+signatures	3	container-life	bucket cgroup	events_max	0
+signatures	3	container-life	bucket cgroup	events_oom	0
+signatures	3	container-life	bucket cgroup	events_oom_kill	0
+signatures	3	compare	parsers task process	exit records	946
+signatures	3	compare	parsers task process	sampled	946
+signatures	3	compare	parsers task process	non-zero exits	0
+signatures	3	compare	parsers task process	dropped exit records	0
+signatures	3	compare	parsers task process	lifetime ms median	81.4
+signatures	3	compare	parsers task process	lifetime ms peak	105.8
+signatures	3	compare	parsers task process	cpu ms median	80.0
+signatures	3	compare	parsers task process	cpu ms peak	95.0
+signatures	3	compare	parsers task process	exit peak rss median	32444.0
+signatures	3	compare	parsers task process	exit peak rss p95	34752
+signatures	3	compare	parsers task process	exit peak rss peak	36412
+signatures	3	compare	parsers task process	private median	18144.0
+signatures	3	compare	parsers task process	private p95	18380
+signatures	3	compare	parsers task process	private peak	19976
+signatures	3	compare	parsers task process	private_dirty median	18140.0
+signatures	3	compare	parsers task process	private_dirty p95	18144
+signatures	3	compare	parsers task process	private_dirty peak	18144
+signatures	3	compare	parsers task process	pss median	21701.0
+signatures	3	compare	parsers task process	pss p95	25478
+signatures	3	compare	parsers task process	pss peak	26142
+signatures	3	compare	parsers task process	anon median	18140.0
+signatures	3	compare	parsers task process	anon p95	18144
+signatures	3	compare	parsers task process	anon peak	18144
+signatures	3	compare	parsers task process	rss shortfall median	-104.0
+signatures	3	compare	parsers task process	rss shortfall p95	416
+signatures	3	compare	parsers task process	rss shortfall peak	2204
+signatures	3	compare	parsers task process	sampled tasks more than 1 MB short (count)	8
+signatures	3	compare	parsers task process	samples per task median	209.0
+signatures	3	compare	load	parser task attempts	946
+signatures	3	compare	load	lookup task attempts	24
+signatures	3	compare	load	other task attempts	1
+signatures	3	compare	load	tasks not done	0
+signatures	3	compare	load	roots	54
+signatures	3	compare	load	results	71
+signatures	3	compare	load	seconds	45.8
+signatures	3	compare	load	exit	0
+signatures	3	compare	load	report samples	54
+signatures	3	compare	sampler	tick ms median	0.01

@@ -1,0 +1,192 @@
+#!/usr/bin/env python3
+"""PLAN.md 3.5: measures each pool's private memory while `ace compare` runs.
+
+Each run brings up the end-to-end test's stack under project ace4-e2e from nothing, waits for the
+parser pool to load its ruleset, starts tools/memory/sample.py, and then goes through three phases:
+
+  idle-before   IDLE seconds with nothing queued
+  compare       `ace compare` over the sample set, with the threshold not enforced
+  idle-after    IDLE seconds, to show what stays
+
+It then counts the run's tasks from the database, takes the stack down with its volumes and moves
+to the next run. The stack, the signatures fixture and the comparison are tests/e2e/run's own, so
+the load is the one that test enforces.
+
+With --signatures PATH, the core builds its ruleset from that signatures checkout, read-only, in
+place of the end-to-end test's one rule. Differences from ace3 then mean nothing, so the report
+only counts as load.
+
+Usage: tools/memory/measure OUT_DIR [--runs N] [--idle SECONDS] [--signatures PATH]
+Writes OUT_DIR/run-N/. tools/memory/summarize.py OUT_DIR reads them. Needs docker compose and
+python3 on the host, and runs the helper container from image ace4-dev:latest.
+"""
+
+import argparse
+import importlib.machinery
+import importlib.util
+import json
+import os
+import shutil
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+ROOT = HERE.parent.parent
+HELPER_IMAGE = "ace4-dev:latest"
+HELPER = "ace4-e2e-memory-sampler"
+# the responder is the test's and restarts during the comparison, so its cgroup goes away
+SAMPLED = ["ace", "parsers", "lookups", "postgres", "bucket"]
+
+
+def load_e2e():
+    """tests/e2e/run as a module: its compose, make_signatures, wait_for and comparison."""
+    sys.dont_write_bytecode = True
+    path = str(ROOT / "tests" / "e2e" / "run")
+    loader = importlib.machinery.SourceFileLoader("e2e_run", path)
+    spec = importlib.util.spec_from_loader("e2e_run", loader)
+    module = importlib.util.module_from_spec(spec)
+    loader.exec_module(module)
+    return module
+
+
+def docker(*args, check=True):
+    return subprocess.run(["docker", *args], check=check, capture_output=True, text=True).stdout
+
+
+def set_phase(phase):
+    done = subprocess.run(
+        ["docker", "exec", HELPER, "sh", "-c",
+         f"echo {phase} > /tmp/memory-phase.new && mv /tmp/memory-phase.new /tmp/memory-phase"],
+        capture_output=True, text=True,
+    )
+    if done.returncode != 0:
+        raise SystemExit(f"the sampler has stopped:\n{docker('logs', HELPER, check=False)}")
+
+
+def start_sampler(e2e, out):
+    ids = [f"{name}={e2e.compose('ps', '-q', name, capture=True).strip()}" for name in SAMPLED]
+    docker("rm", "-f", HELPER, check=False)
+    docker(
+        # taskstats sends exit records only to sockets in the VM's own network namespace
+        "run", "-d", "--name", HELPER, "--privileged", "--pid=host", "--cgroupns=host",
+        "--network=host",
+        "--entrypoint", "python3",
+        "-v", f"{HERE}:/tool:ro", "-v", f"{out}:/out", HELPER_IMAGE, "-B", "/tool/sample.py", "/out",
+        "/tmp/memory-phase", *ids,
+    )
+    for _ in range(100):
+        if (out / "peaks.tsv").exists():
+            return
+        time.sleep(0.1)
+    raise SystemExit(f"the sampler didn't start:\n{docker('logs', HELPER, check=False)}")
+
+
+def stop_sampler(out):
+    set_phase("stop")
+    for _ in range(600):
+        if (out / "meta.json").exists():
+            break
+        time.sleep(0.1)
+    else:
+        print(docker("logs", HELPER, check=False), file=sys.stderr)
+        raise SystemExit("the sampler didn't finish")
+    docker("rm", "-f", HELPER, check=False)
+
+
+def record_load(e2e, out, seconds, exit_code):
+    tasks = e2e.sql(
+        """SELECT module, state::text, count(*), sum(attempts) FROM queue.tasks
+           GROUP BY module, state ORDER BY module, state"""
+    )
+    roots = e2e.sql("SELECT count(*) FROM analysis.roots")[0][0]
+    results = e2e.sql("SELECT count(*) FROM analysis.results")[0][0]
+    ruleset_bytes = e2e.compose(
+        "exec", "-T", "parsers", "sh", "-c",
+        "find /var/lib/ace4/rulesets -type f -printf '%s %p\\n' | sort -n | tail -1",
+        capture=True,
+    ).strip()
+    report = {}
+    report_file = e2e.WORK / "compare" / "report.json"
+    if report_file.exists():
+        whole = json.loads(report_file.read_text())
+        report = {"totals": whole.get("totals"), "samples": len(whole.get("samples", []))}
+    load = {
+        "compare_seconds": round(seconds, 1),
+        "compare_exit": exit_code,
+        "roots": int(roots),
+        "results": int(results),
+        "largest_ruleset_file": ruleset_bytes,
+        "tasks": [
+            {"module": m, "state": s, "count": int(c), "attempts": int(a)} for m, s, c, a in tasks
+        ],
+        "report": report,
+    }
+    (out / "load.json").write_text(json.dumps(load, indent=2) + "\n")
+    return load
+
+
+def one_run(e2e, out, idle, signatures):
+    out.mkdir(parents=True)
+    if signatures:
+        commit = subprocess.run(
+            ["git", "-C", str(signatures), "rev-parse", "HEAD"],
+            check=True, capture_output=True, text=True,
+        ).stdout.strip()
+    else:
+        commit = e2e.make_signatures()
+    e2e.compose("down", "-v", "--remove-orphans", check=False)
+    e2e.compose("up", "-d", "--build", "--wait", *e2e.SERVICES)
+    try:
+        e2e.wait_for(
+            "the core to build the ruleset",
+            lambda: e2e.sql(f"SELECT 1 FROM yara.rulesets WHERE commit = '{commit}'"),
+            within=300,
+        )
+        e2e.wait_for(
+            "the parser pool to load it",
+            lambda: "the first ruleset loaded" in e2e.compose("logs", "parsers", capture=True),
+            within=120,
+        )
+        start_sampler(e2e, out)
+        e2e.log(f"idle for {idle}s")
+        time.sleep(idle)
+        set_phase("compare")
+        started = time.monotonic()
+        exit_code = e2e.compare_with_ace3()
+        seconds = time.monotonic() - started
+        set_phase("idle-after")
+        e2e.log(f"the comparison took {seconds:.1f}s and exited {exit_code}; idle for {idle}s")
+        time.sleep(idle)
+        stop_sampler(out)
+        load = record_load(e2e, out, seconds, exit_code)
+        report = e2e.WORK / "compare" / "report.md"
+        if report.exists():
+            shutil.copy(report, out / "report.md")
+        e2e.log(f"{load['roots']} roots, {load['results']} results")
+    finally:
+        docker("rm", "-f", HELPER, check=False)
+        e2e.compose("down", "-v", "--remove-orphans", check=False)
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("out_dir", type=Path)
+    parser.add_argument("--runs", type=int, default=5)
+    parser.add_argument("--idle", type=int, default=30)
+    parser.add_argument("--signatures", type=Path)
+    args = parser.parse_args()
+    e2e = load_e2e()
+    signatures = args.signatures.resolve() if args.signatures else None
+    if signatures:
+        e2e.ENV[e2e.PREFIX + "SIGNATURES"] = str(signatures)
+    os.makedirs(args.out_dir, exist_ok=True)
+    out_dir = args.out_dir.resolve()
+    for run in range(1, args.runs + 1):
+        e2e.log(f"--- memory run {run} of {args.runs}")
+        one_run(e2e, out_dir / f"run-{run}", args.idle, signatures)
+
+
+if __name__ == "__main__":
+    main()
