@@ -1,0 +1,8 @@
+# Tools the Python pool's supervisor runs on a worker, which no worker imports or can reach. The image
+# installs them apart from the libraries, under /opt/ace4/tools, outside a worker's Landlock paths.
+# py-spy has no dependencies. docker/dev/Dockerfile installs the same version for cargo test; keep it
+# in step.
+#
+# 0.4.3 rather than 0.4.2, which also reads Python 3.14, for its fixes to frames on 3.12+ and to line
+# numbers. To change a pin, edit this file, then run tools/python/lock.
+py-spy==0.4.3

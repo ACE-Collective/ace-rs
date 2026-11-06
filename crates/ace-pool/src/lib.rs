@@ -21,5 +21,6 @@ pub mod telemetry;
 pub mod testing;
 
 pub use containment::{
-    Contained, ContainmentError, SandboxProfile, contain, contain_before_exec, contain_pool,
+    Contained, ContainmentError, SandboxProfile, ToolConfinement, contain, contain_before_exec,
+    contain_pool,
 };

@@ -316,6 +316,11 @@ async fn a_submission_without_the_submit_token_or_with_an_unknown_mode_writes_no
     assert_eq!(response.status(), 400);
     let error: Value = response.json().await.expect("a body");
     assert_eq!(error["error"], "no analysis mode \"no_such_mode\"");
+    let nul = json!({"description": "a\0b"});
+    let response = post(&server, SUBMIT_TOKEN, form(&nul, &[("a.txt", b"hello")])).await;
+    assert_eq!(response.status(), 400);
+    let error: Value = response.json().await.expect("a body");
+    assert_eq!(error["error"], "a submission can't hold a NUL character");
     let extra = json!({"description": "x", "colour": "red"});
     assert_eq!(
         post(&server, SUBMIT_TOKEN, form(&extra, &[]))

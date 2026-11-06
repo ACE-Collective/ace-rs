@@ -140,7 +140,7 @@ Landlock doesn't cover UDP, so a DNS query sent straight to a resolver's address
 
 A process that can't have children dies completely when its PID is killed, which avoids #981's problem without cgroups. The pool container's `mem_limit` bounds the pool as a whole. External tools that start children keep ACE's existing sandbox runner. Workers start by exec, so the at-fork repair hooks behind #982 aren't needed.
 
-A failed or hung task leaves a row with its error and the hashes of its inputs, which are already in the bucket, so the task can be replayed under a debugger. Before killing a hung Python task, the pool supervisor captures its stacks with `py-spy dump`, which needs ptrace permission on the pool's processes.
+A failed or hung task leaves a row with its error and the hashes of its inputs, which are already in the bucket, so the task can be replayed under a debugger. Before killing a hung Python task, the pool supervisor captures its stacks with `py-spy dump` into the row's `stacks` column. py-spy runs as the worker's own user, which the worker has named to Yama as allowed, so the pool's container needs no added capability, and Landlock still stops one worker reading another.
 
 ### Postgres and an object store, and nothing else that holds state
 

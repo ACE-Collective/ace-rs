@@ -93,6 +93,14 @@ RUN pip install --no-cache-dir --disable-pip-version-check --no-deps --require-h
     && pip check --disable-pip-version-check \
     && python -c "import msoffcrypto, oletools.olevba, pcodedmp.pcodedmp, pyxlsb2, xlrd2, XLMMacroDeobfuscator.deobfuscator" \
     && rm -rf /tmp/requirements
+# py-spy, which the supervisor runs on a hung worker (PLAN.md 4.3). It goes apart from the libraries,
+# so a worker can't import it, and its directory isn't in a worker's Landlock paths, so a worker
+# can't read or run it. pip --target leaves its files writable by anyone unless it's told.
+COPY python/tool-requirements.txt /tmp/tool-requirements.txt
+RUN pip install --no-cache-dir --disable-pip-version-check --no-deps --require-hashes \
+        --only-binary :all: --target /opt/ace4/tools -r /tmp/tool-requirements.txt \
+    && chmod -R u=rwX,go=rX /opt/ace4/tools \
+    && rm /tmp/tool-requirements.txt
 # The supervisor runs as root so it can start each worker as ace4-task, like the parser pool's
 # (PLAN.md 2.17). Workers write no .pyc files, so these are compiled here.
 COPY python /opt/ace4/python

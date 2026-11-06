@@ -23,8 +23,14 @@
 //! exits, and a new worker starts at once, so the next task doesn't wait for the imports.
 //!
 //! A worker that dies, breaks the protocol, passes its deadline or is stopped for a cancelled task
-//! is replaced too. It has no children, so killing its PID ends all of it (#981). The supervisor
-//! outlives it, which is what lets 4.3 run `py-spy dump` on a hung worker before the kill.
+//! is replaced too. It has no children, so killing its PID ends all of it (#981).
+//!
+//! # A hung worker
+//!
+//! At a task's deadline, and only there, the supervisor runs `py-spy dump` on the worker before the
+//! kill, and the failed row keeps the stacks, or the reason there are none (`stacks`). A cancelled
+//! task's worker, a lost lease's and one stopping at shutdown aren't hung, so they're killed with
+//! no dump, and a cancellation that arrives during a dump ends it.
 //!
 //! One worker's tasks share a process until it's recycled, so a hostile file that takes over a
 //! worker can affect that worker's later tasks, though it can't reach the token, the network or
@@ -36,6 +42,8 @@
 //! A Rust module can't get the result's own fields wrong, but a Python one can, and then the reply
 //! doesn't read as a `TaskEnd` and never reaches the core. So the supervisor runs the same check on
 //! such a reply, and the failed task's row names the field just as the core's would.
+
+mod stacks;
 
 use std::collections::VecDeque;
 use std::os::unix::fs::PermissionsExt;
@@ -61,6 +69,9 @@ use crate::modules::{Modules, PythonModule};
 use crate::pool::{PoolStats, Runner, SHUTDOWN_GRACE, lease_loop};
 use crate::run::{LeaseKeeper, TaskDir, fetch_input, finish};
 use crate::supervisor::{EXIT_SETUP, open_to_task_user, signal_name};
+
+use stacks::StackDumper;
+pub use stacks::{DUMP_TIMEOUT, MAX_STACKS};
 
 /// How long a worker may take to start: its imports, on a machine that may be busy.
 const START_TIMEOUT: Duration = Duration::from_secs(60);
@@ -110,6 +121,10 @@ pub struct PythonConfig {
     /// How many workers run, each one task at a time.
     pub concurrency: usize,
     pub limits: RecycleLimits,
+    /// The py-spy binary, which a worker can't read or run, so outside its Landlock paths.
+    pub py_spy: PathBuf,
+    /// How long a hung worker's dump may take; see `DUMP_TIMEOUT`.
+    pub dump_timeout: Duration,
 }
 
 /// What a worker's `python-worker` process contains itself with and then runs.
@@ -133,6 +148,7 @@ pub fn exec_worker(spec: &str) -> ExitCode {
         Ok(spec) => spec,
         Err(e) => return setup_failed(format!("the worker's spec doesn't read: {e}")),
     };
+    allow_the_supervisors_children_to_read_this_process();
     if let Err(e) = contain_before_exec(&spec.profile, &spec.exec_paths) {
         return setup_failed(format!("containment: {e}"));
     }
@@ -141,6 +157,23 @@ pub fn exec_worker(spec: &str) -> ExitCode {
     };
     let error = std::process::Command::new(program).args(args).exec();
     setup_failed(format!("running {program}: {error}"))
+}
+
+/// Names the supervisor to Yama (`stacks`' module docs), so py-spy, its child, may read this process
+/// at `ptrace_scope` 1. It lasts through the exec. Other workers are the supervisor's children too,
+/// but Landlock still refuses them. A kernel without Yama answers EINVAL and has nothing to allow.
+fn allow_the_supervisors_children_to_read_this_process() {
+    // SAFETY: getppid and PR_SET_PTRACER take and return integers only
+    let declared = unsafe {
+        let supervisor = libc::c_ulong::try_from(libc::getppid()).unwrap_or_default();
+        libc::prctl(libc::PR_SET_PTRACER, supervisor, 0_u64, 0_u64, 0_u64)
+    };
+    if declared != 0 {
+        eprintln!(
+            "PR_SET_PTRACER: {}, so py-spy may not read this worker",
+            std::io::Error::last_os_error()
+        );
+    }
 }
 
 /// The worker's private memory in bytes: `RssAnon` in its `/proc/<pid>/status`.
@@ -272,6 +305,7 @@ impl Worker {
         output: AnalysisTypeInfo,
         cancel: &CancellationToken,
         deadline: Duration,
+        dumper: &StackDumper,
     ) -> (TaskEnd, Option<&'static str>) {
         const BROKEN: Option<&str> = Some("it broke the protocol");
         let mut bytes = match serde_json::to_vec(request) {
@@ -293,17 +327,36 @@ impl Worker {
             read = exchange => read,
             () = cancel.cancelled() => return (TaskEnd::Cancelled, Some("the task stopped")),
             () = tokio::time::sleep(deadline) => {
-                // 4.3 runs py-spy on the worker here, before it goes
                 tracing::error!(pid = self.pid, ?deadline, "a task ran past its deadline");
                 let error = format!(
                     "the Python worker ran past the task's deadline of {}s and was killed",
                     deadline.as_secs_f64(),
                 );
-                return (TaskEnd::Failed { error }, Some("it passed a deadline"));
+                let dump = tokio::select! {
+                    dump = dumper.dump(self.pid) => dump,
+                    () = cancel.cancelled() => {
+                        return (TaskEnd::Cancelled, Some("the task stopped"));
+                    }
+                };
+                let end = match dump {
+                    Ok(stacks) => TaskEnd::Hung { error, stacks },
+                    Err(why) => {
+                        tracing::warn!(pid = self.pid, "no stacks from a hung worker: {why}");
+                        let error = format!("{error}; no stack could be taken: {why}");
+                        TaskEnd::Failed { error }
+                    }
+                };
+                return (end, Some("it passed a deadline"));
             }
         };
         match answered {
             Ok(n) if n > 0 => match serde_json::from_str::<TaskEnd>(&line) {
+                // only this supervisor's account of a worker it killed says this
+                Ok(TaskEnd::Hung { .. }) => {
+                    let error = "the Python worker said it had hung, which it can't know";
+                    let error = error.to_owned();
+                    (TaskEnd::Failed { error }, BROKEN)
+                }
                 Ok(end) => (end, None),
                 Err(e) => match failed_fields(output, &line) {
                     // the module's result was wrong, and the worker is fine
@@ -631,8 +684,8 @@ async fn run_task(
         }
     };
     let dir = TaskDir::new_in(slot.dir.path())?;
-    let user = slot.starter.config.user;
-    let outcome = fetch_and_run(client, user, module, &mut worker, &task, &dir, &keeper).await;
+    let config = &slot.starter.config;
+    let outcome = fetch_and_run(client, config, module, &mut worker, &task, &dir, &keeper).await;
     drop(keeper);
     let (end, broken) = match outcome {
         Ok(outcome) => outcome,
@@ -648,7 +701,7 @@ async fn run_task(
 
 async fn fetch_and_run(
     client: &LeaseClient,
-    user: Option<(u32, u32)>,
+    config: &PythonConfig,
     module: &PythonModule,
     worker: &mut Worker,
     task: &LeasedTask,
@@ -656,7 +709,12 @@ async fn fetch_and_run(
     keeper: &LeaseKeeper,
 ) -> Result<(TaskEnd, Option<&'static str>), ClientError> {
     let input = fetch_input(client, task, dir).await?;
-    open_to_task_user(dir, input.as_deref(), user)?;
+    open_to_task_user(dir, input.as_deref(), config.user)?;
+    let dumper = StackDumper {
+        program: config.py_spy.clone(),
+        user: config.user,
+        timeout: config.dump_timeout,
+    };
     let manifest = module.manifest;
     let outputs = dir.outputs();
     let request = WorkerRequest {
@@ -674,6 +732,7 @@ async fn fetch_and_run(
             manifest.output,
             keeper.token(),
             manifest.resources.timeout,
+            &dumper,
         )
         .await)
 }

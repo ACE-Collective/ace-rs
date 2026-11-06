@@ -517,3 +517,328 @@ async fn a_python_pool_whose_workers_cant_start_leases_nothing() {
     assert!(stderr.contains("the Python pool didn't start"), "{stderr}");
     assert_eq!(task_of(&core, root, "python_probe").await.0, "queued");
 }
+
+// PLAN.md 4.3: a hung worker's stacks, from the real py-spy on a real contained worker, in the row.
+
+/// Each probe action's state, error and stacks, once they've all ended.
+async fn hung_rows(
+    core: &Core,
+    root: uuid::Uuid,
+) -> std::collections::HashMap<String, (String, String, Option<String>)> {
+    let rows: Vec<(String, String, Option<String>, Option<String>)> = sqlx::query_as(
+        "SELECT o.value, t.state::text, t.error, t.stacks FROM queue.tasks t
+         JOIN analysis.observables o ON o.id = t.observable_id WHERE t.root_id = $1",
+    )
+    .bind(root)
+    .fetch_all(core.test_db.db().pool())
+    .await
+    .expect("the tasks");
+    rows.into_iter()
+        .map(|(value, state, error, stacks)| {
+            let action = value.trim_end_matches(".example.com").to_owned();
+            (action, (state, error.unwrap_or_default(), stacks))
+        })
+        .collect()
+}
+
+/// The Done check. Each hung action names its own function in its row, and no other row does, so
+/// the frame can only have come from that worker at that moment.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_hung_python_task_leaves_its_stack_in_its_row() {
+    let core = python_core().await;
+    let hangs = [
+        ("hang", "_hang_in_python"),
+        ("hang-sleep", "_hang_in_sleep"),
+        ("hang-select", "_hang_in_select"),
+        ("hang-regex", "_hang_in_regex"),
+        ("hang-hostile", "_hang_hostile"),
+        // py-spy can't pause a stopped process, so this one comes from --nonblocking
+        ("hang-stopped", "_hang_stopped"),
+    ];
+    let mut actions: Vec<&str> = hangs.iter().map(|(action, _)| *action).collect();
+    actions.extend(["hang-closed", "after"]);
+    let root = probe(&core, &actions).await;
+    let mut pool = python_pool(&core, &["--concurrency", "4"]);
+    wait_until_idle(&core, root, Duration::from_secs(60)).await;
+    assert!(pool.running(), "the supervisor kept running");
+    let stderr = pool.stop();
+
+    let rows = hung_rows(&core, root).await;
+    for (action, function) in hangs {
+        let (state, error, stacks) = &rows[action];
+        let stacks = stacks.as_deref().unwrap_or_default();
+        println!("--- {action}: {error}\n{stacks}");
+        assert_eq!(state, "failed", "{action}: {stderr}");
+        assert!(error.contains("deadline of 5s and was killed"), "{error}");
+        assert!(!error.contains("no stack"), "{error}");
+        assert!(stacks.contains(function), "{action}: {stacks}\n{stderr}");
+        assert!(
+            stacks.contains("python_probe.py"),
+            "{action} names the file: {stacks}"
+        );
+        assert!(stacks.contains("worker.py"), "{action} has the whole stack");
+        for (other, other_function) in hangs {
+            assert!(
+                other == action || !stacks.contains(other_function),
+                "{action}'s row names {other_function}: {stacks}"
+            );
+        }
+    }
+    let stopped = rows["hang-stopped"].2.as_deref().unwrap_or_default();
+    assert!(
+        stopped.starts_with("(read while the process ran"),
+        "{stopped}"
+    );
+    let hostile = rows["hang-hostile"].2.as_deref().unwrap_or_default();
+    assert!(
+        !hostile.contains(|c: char| c.is_control() && c != '\n' && c != '\t'),
+        "{hostile:?}"
+    );
+
+    // a worker that refuses to be read still dies at its deadline, and the row says why
+    let (state, error, stacks) = &rows["hang-closed"];
+    println!("--- hang-closed: {error}");
+    assert_eq!(state, "failed");
+    assert!(error.contains("deadline of 5s and was killed"), "{error}");
+    assert!(
+        error.contains("no stack could be taken: py-spy exited 1"),
+        "{error}"
+    );
+    assert_eq!(stacks, &None);
+    assert_eq!(rows["after"].0, "done", "the pool went on: {stderr}");
+}
+
+/// A script in a directory ace4-task can read, in place of py-spy.
+fn fake_tool(dir: &std::path::Path, name: &str, script: &str) -> String {
+    let path = dir.join(name);
+    std::fs::write(&path, script).expect("the script");
+    std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755)).expect("its mode");
+    path.display().to_string()
+}
+
+/// A hung task's row and how long its pool took over it, with `tool` as py-spy.
+async fn hung_with(tool: &str, extra: &[&str]) -> ((String, String, Option<String>), Duration) {
+    let core = python_core().await;
+    let root = probe(&core, &["hang"]).await;
+    let mut args = vec!["--py-spy", tool];
+    args.extend_from_slice(extra);
+    let mut pool = python_pool(&core, &args);
+    let started = std::time::Instant::now();
+    wait_until_idle(&core, root, Duration::from_secs(60)).await;
+    let elapsed = started.elapsed();
+    assert!(pool.running(), "the supervisor kept running");
+    let rows = hung_rows(&core, root).await;
+    (rows["hang"].clone(), elapsed)
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn a_py_spy_that_fails_hangs_or_floods_still_leaves_a_row_at_the_deadline() {
+    let dir = tempfile::tempdir().expect("a directory");
+    std::fs::set_permissions(dir.path(), std::fs::Permissions::from_mode(0o755)).expect("mode");
+    let hangs = fake_tool(dir.path(), "hangs", "#!/bin/sh\nexec sleep 1000\n");
+    let floods = fake_tool(dir.path(), "floods", "#!/bin/sh\nexec yes frame\n");
+    // a shell's builtins only, because the filter kills a fork
+    let reports = fake_tool(
+        dir.path(),
+        "reports",
+        "#!/bin/sh\n\
+         while read -r line; do\n\
+             case \"$line\" in Uid:*|NoNewPrivs:*|Seccomp:*) echo \"$line\" ;; esac\n\
+         done < /proc/self/status\n\
+         echo \"args: $*\"\n\
+         set\n",
+    );
+    // -S, because the dev image's site directory makes a socket; the write shows it got this far
+    let connects = fake_tool(
+        dir.path(),
+        "connects",
+        "#!/usr/bin/python3 -IS\n\
+         import socket, sys\n\
+         print('about to make a socket', file=sys.stderr, flush=True)\n\
+         socket.socket()\n",
+    );
+
+    let (hung, flooded, reported, connected, missing) = tokio::join!(
+        hung_with(&hangs, &["--dump-timeout-ms", "1000"]),
+        hung_with(&floods, &[]),
+        hung_with(&reports, &[]),
+        hung_with(&connects, &[]),
+        hung_with("/nonexistent/py-spy", &[]),
+    );
+
+    // its own bound: both attempts, half each, and the task fails regardless
+    let ((state, error, stacks), elapsed) = hung;
+    println!("hangs, {elapsed:?}: {error}");
+    assert_eq!(state, "failed");
+    assert!(error.contains("no stack could be taken"), "{error}");
+    assert!(
+        error.contains("py-spy didn't finish within 500ms"),
+        "{error}"
+    );
+    assert!(error.contains("with --nonblocking"), "{error}");
+    assert_eq!(stacks, None);
+    assert!(elapsed >= Duration::from_secs(6), "{elapsed:?}");
+    assert!(elapsed < Duration::from_secs(30), "{elapsed:?}");
+
+    // the row's text is capped, and says it was cut
+    let ((state, error, stacks), _) = flooded;
+    let stacks = stacks.expect("what it wrote");
+    assert_eq!(state, "failed", "{error}");
+    assert!(
+        stacks.len() <= ace_pool::python::MAX_STACKS,
+        "{}",
+        stacks.len()
+    );
+    assert!(
+        stacks.len() > ace_pool::python::MAX_STACKS / 2,
+        "{}",
+        stacks.len()
+    );
+    assert!(stacks.starts_with("frame\n"));
+    assert!(stacks.contains("the stacks are longer than the row keeps"));
+
+    // how narrowly it ran: the workers' user, nothing of the supervisor's environment, no new
+    // privileges, and a seccomp filter
+    let ((_, error, stacks), _) = reported;
+    let stacks = stacks.unwrap_or_else(|| panic!("no report: {error}"));
+    println!("reports: {stacks}");
+    assert!(stacks.contains("Uid:\t10001\t10001"), "{stacks}");
+    assert!(stacks.contains("NoNewPrivs:\t1"), "{stacks}");
+    assert!(stacks.contains("Seccomp:\t2"), "{stacks}");
+    assert!(
+        stacks.contains("args: dump --full-filenames --pid "),
+        "{stacks}"
+    );
+    assert!(!stacks.contains("ACE4_"), "{stacks}");
+
+    // the filter refuses it a socket, which kills it
+    let ((_, error, stacks), _) = connected;
+    println!("connects: {error}");
+    assert_eq!(stacks, None);
+    assert!(error.contains("killed by SIGSYS"), "{error}");
+    assert!(error.contains("about to make a socket"), "{error}");
+
+    let ((state, error, stacks), _) = missing;
+    println!("missing: {error}");
+    assert_eq!(state, "failed");
+    assert_eq!(stacks, None);
+    assert!(
+        error.contains("no stack could be taken: running /nonexistent/py-spy failed"),
+        "{error}"
+    );
+}
+
+/// A cancelled task isn't hung, so its worker goes at once, with no dump, well before its deadline.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_cancelled_python_task_is_killed_without_a_dump() {
+    // a 3-second lease renews each second, which is how the pool hears of the cancellation
+    let core = Core::start(
+        vec![ace_mod_python::PROBE_MANIFEST],
+        &["python_probe"],
+        Duration::from_secs(3),
+    )
+    .await;
+    let root = probe(&core, &["hang-sleep"]).await;
+    let mut pool = python_pool(&core, &[]);
+    let started = std::time::Instant::now();
+    while task_of(&core, root, "python_probe").await.0 != "running" {
+        assert!(
+            started.elapsed() < Duration::from_secs(4),
+            "it never started"
+        );
+        tokio::time::sleep(Duration::from_millis(50)).await;
+    }
+    let cancelled = std::time::Instant::now();
+    let db = core.test_db.db();
+    let mut tx = db.begin().await.expect("begins");
+    ace_core::queue::cancel_root(&mut tx, root)
+        .await
+        .expect("cancels");
+    tx.commit().await.expect("commits");
+    while task_of(&core, root, "python_probe").await.0 == "running" {
+        assert!(
+            cancelled.elapsed() < Duration::from_secs(4),
+            "it never stopped"
+        );
+        tokio::time::sleep(Duration::from_millis(50)).await;
+    }
+    let stderr = pool.stop();
+    let rows = hung_rows(&core, root).await;
+    assert_eq!(rows["hang-sleep"].0, "cancelled", "{stderr}");
+    assert_eq!(rows["hang-sleep"].2, None);
+    assert!(!stderr.contains("ran past its deadline"), "{stderr}");
+}
+
+/// The processes `pool` started whose command line holds worker.py.
+fn workers_of(pool: u32) -> Vec<u32> {
+    let mut workers = Vec::new();
+    for entry in std::fs::read_dir("/proc").expect("/proc").flatten() {
+        let Some(pid) = entry.file_name().to_str().and_then(|n| n.parse().ok()) else {
+            continue;
+        };
+        let stat = std::fs::read_to_string(entry.path().join("stat")).unwrap_or_default();
+        // the fields after the command's closing parenthesis: state, then parent
+        let parent = stat
+            .rsplit_once(')')
+            .and_then(|(_, fields)| fields.split_whitespace().nth(1))
+            .and_then(|parent| parent.parse().ok());
+        let command = std::fs::read(entry.path().join("cmdline")).unwrap_or_default();
+        if parent == Some(pool) && String::from_utf8_lossy(&command).contains("worker.py") {
+            workers.push(pid);
+        }
+    }
+    workers
+}
+
+/// What py-spy may do to a worker, a worker may not do to another, or to the supervisor, though
+/// they share a user and the supervisor's name for Yama; and it can't reach py-spy or forge a dump.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_python_worker_cant_read_another_or_reach_py_spy() {
+    let core = python_core().await;
+    let mut pool = python_pool(&core, &["--concurrency", "2"]);
+    let started = std::time::Instant::now();
+    let workers = loop {
+        let workers = workers_of(pool.pid());
+        if workers.len() == 2 {
+            break workers;
+        }
+        assert!(started.elapsed() < Duration::from_secs(30), "{workers:?}");
+        tokio::time::sleep(Duration::from_millis(50)).await;
+    };
+    let targets = [workers[0], workers[1], pool.pid(), 1];
+    let actions: Vec<String> = targets.iter().map(|pid| format!("ptrace-{pid}")).collect();
+    let mut all: Vec<&str> = actions.iter().map(String::as_str).collect();
+    all.extend(["tool", "forge"]);
+    let root = probe(&core, &all).await;
+    wait_until_idle(&core, root, Duration::from_secs(60)).await;
+    let stderr = pool.stop();
+
+    let names: Vec<&str> = all[..4].to_vec();
+    let details = reports(&core, root, &names).await;
+    let mut others = 0;
+    for (report, target) in details.iter().zip(targets) {
+        let note = report["note"].as_str().expect("a note");
+        println!("{target}, from {}: {note}", pid(report));
+        if pid(report) == i64::from(target) {
+            continue; // the worker it ran on was its own target
+        }
+        others += 1;
+        assert!(note.contains("ptrace: refused"), "{note}: {stderr}");
+        assert!(note.contains("process_vm_readv: refused"), "{note}");
+        assert!(note.contains("/proc mem: refused"), "{note}");
+    }
+    assert!(others >= 3, "{details:?}");
+
+    let tool = reports(&core, root, &["tool"]).await;
+    let note = tool[0]["note"].as_str().expect("a note");
+    println!("tool: {note}");
+    assert!(note.contains("import: None"), "{note}");
+    assert!(note.contains("read: refused"), "{note}");
+    assert!(note.contains("run: refused"), "{note}");
+
+    let rows = hung_rows(&core, root).await;
+    let (state, error, stacks) = &rows["forge"];
+    assert_eq!(state, "failed");
+    assert!(error.contains("which it can't know"), "{error}");
+    assert_eq!(stacks, &None);
+}

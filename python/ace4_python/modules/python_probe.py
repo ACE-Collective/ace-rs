@@ -7,7 +7,15 @@ naming an observable. A test's overlay turns it on; no site should.
   raise        raise an exception
   fail         raise ModuleError
   crash        exit the process at once
-  hang         run forever
+  hang         run forever in pure Python
+  hang-sleep   hang in a C call that has let go of the GIL, time.sleep
+  hang-select  hang in a C call that has let go of the GIL, select.select
+  hang-regex   hang in a C call that holds the GIL, a regular expression that backtracks
+  hang-stopped stop this process with SIGSTOP, so py-spy can't pause it
+  hang-closed  refuse to be read, with PR_SET_DUMPABLE, and hang
+  hang-hostile hang in a function whose name holds a NUL and an escape sequence
+  tool         try to use py-spy, which a worker mustn't reach, and report what happened
+  ptrace-<P>   try to read process P's memory, and report what happened
   fork         fork, which containment answers by killing the process
   thread       start a thread, likewise
   connect-<P>  connect to TCP port P on this machine, and report what happened
@@ -18,15 +26,22 @@ naming an observable. A test's overlay turns it on; no site should.
   unknown      return a result with a field its type doesn't have
   envelope     return a result whose summary isn't a string
   bytes        return a result holding bytes, which JSON can't carry
+  forge        reply with the end only a supervisor may send
   anything else: only the report
 """
 
+import ctypes
 import importlib
 import importlib.metadata
+import importlib.util
 import os
+import re
+import select
+import signal
 import socket
 import sys
 import threading
+import time
 
 from ace4_python.sdk import ModuleError
 
@@ -40,7 +55,98 @@ LIBRARIES = {
     "pyxlsb2": "pyxlsb2",
 }
 
+# where the image installs py-spy, as PythonConfig says
+PY_SPY = "/opt/ace4/tools/bin/py-spy"
+# longer than any deadline
+FOREVER = 100000
+
 _held = []
+
+
+def _hang_in_python():
+    while True:
+        pass
+
+
+def _hang_in_sleep():
+    time.sleep(FOREVER)
+
+
+def _hang_in_select():
+    select.select([], [], [], FOREVER)
+
+
+def _hang_in_regex():
+    re.match(r"(a+)+b", "a" * 64)
+
+
+def _hang_stopped():
+    os.kill(os.getpid(), signal.SIGSTOP)
+
+
+def _hang_closed():
+    PR_SET_DUMPABLE = 4
+    ctypes.CDLL(None).prctl(PR_SET_DUMPABLE, 0, 0, 0, 0)
+    time.sleep(FOREVER)
+
+
+def _hang_hostile():
+    name = "_hang_hostile\0\x1b]0;owned\x07"
+    code = _hang_in_sleep.__code__.replace(co_qualname=name, co_name=name)
+    type(_hang_in_sleep)(code, globals())()
+
+
+HANGS = {
+    None: _hang_in_python,
+    "sleep": _hang_in_sleep,
+    "select": _hang_in_select,
+    "regex": _hang_in_regex,
+    "stopped": _hang_stopped,
+    "closed": _hang_closed,
+    "hostile": _hang_hostile,
+}
+
+
+def _reach_the_tool():
+    """What a worker gets from py-spy: nothing, if containment holds."""
+
+    def run():
+        # on success this process becomes py-spy, and the reply never comes
+        os.execv(PY_SPY, ["py-spy", "--version"])
+
+    def read():
+        with open(PY_SPY, "rb") as tool:
+            return f"{len(tool.read(4))} bytes"
+
+    found = importlib.util.find_spec("py_spy")
+    return f"import: {found}; read: {_attempt(read)}; run: {_attempt(run)}"
+
+
+def _read_process(pid):
+    """Tries everything py-spy does to process `pid`."""
+    PTRACE_ATTACH, PTRACE_DETACH = 16, 17
+
+    class Iovec(ctypes.Structure):
+        _fields_ = [("base", ctypes.c_void_p), ("length", ctypes.c_size_t)]
+
+    libc = ctypes.CDLL(None, use_errno=True)
+    libc.process_vm_readv.restype = ctypes.c_ssize_t
+
+    def answer(result):
+        return "allowed" if result >= 0 else f"refused: {os.strerror(ctypes.get_errno())}"
+
+    buffer = ctypes.create_string_buffer(8)
+    here = Iovec(ctypes.addressof(buffer), 8)
+    # an address no one's memory need hold, because the permission check comes before the read
+    there = Iovec(0x400000, 8)
+    read = libc.process_vm_readv(pid, ctypes.byref(here), 1, ctypes.byref(there), 1, 0)
+    reading = answer(0 if read < 0 and ctypes.get_errno() == 14 else read)
+    attach = libc.ptrace(PTRACE_ATTACH, pid, 0, 0)
+    attaching = answer(attach)
+    if attach == 0:
+        libc.ptrace(PTRACE_DETACH, pid, 0, 0)
+    memory = _attempt(lambda: open(f"/proc/{pid}/mem", "rb").close())
+    return f"ptrace: {attaching}; process_vm_readv: {reading}; /proc mem: {memory}"
 
 
 def _attempt(call):
@@ -74,8 +180,12 @@ def _act(action, argument, ctx):
     if action == "crash":
         os._exit(7)
     if action == "hang":
-        while True:
-            pass
+        HANGS[argument or None]()
+        return "hung, and it came back", []
+    if action == "tool":
+        return _reach_the_tool(), []
+    if action == "ptrace":
+        return _read_process(int(argument)), []
     if action == "fork":
         os.fork()
         return "forked", []
@@ -113,6 +223,8 @@ def analyze(ctx):
         return ctx.done({**details, "extra": 1})
     if action == "envelope":
         return ctx.done(details, summary=3)
+    if action == "forge":
+        return {"outcome": "hung", "error": "forged", "stacks": "a stack the worker wrote"}
     if action == "bytes":
         return ctx.done({**details, "note": b"bytes"})
     return ctx.done(details, summary=f"ran in {details['pid']}", files=files)

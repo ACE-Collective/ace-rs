@@ -28,6 +28,8 @@ a worker is recycled at its limit, and the next task runs on its replacement, in
 The same module imports the image's libraries inside a contained worker and reports their versions,
 and a task that raises must leave a failed row. So is PLAN.md 4.2's: a result with a wrong field, from
 a worker on that image, fails its task with the field's path in the row, and nothing from it lands.
+And PLAN.md 4.3's: a hung task's row holds its stack, a frame naming the function it hung in, for a
+worker in pure Python and in C calls without the GIL, and a worker can't reach py-spy.
 
 It then runs `ace compare` (PLAN.md 3.3, crates/ace-app/src/compare.rs) over the sample set, each
 sample in the cli mode against ace3's tree in tools/ace3/trees/reference/ (3.2), and writes the
@@ -357,8 +359,11 @@ def check_python_pool(failures):
 
     started = time.monotonic()
     compose("up", "-d", "--build", "--wait", "python")
-    actions = ["one", "two", "three", "four", "hold-200", "after", "libraries", "raise", "wrong"]
-    ran = actions[:-2]  # the last two fail
+    # each hung action's row must name its own function, and only its own
+    hangs = {"hang": "_hang_in_python", "hang-sleep": "_hang_in_sleep",
+             "hang-select": "_hang_in_select", "hang-regex": "_hang_in_regex"}
+    ran = ["one", "two", "three", "four", "hold-200", "after", "libraries", "tool"]
+    actions = [*ran, "raise", "wrong", *hangs]
     values = [f"{action}.example.com" for action in actions]
     root = submit(None, observables=[{"type": "fqdn", "value": value} for value in values])
     # no mode runs the probe, so the test queues it, in this order; a concurrency of 1 keeps it
@@ -379,7 +384,8 @@ def check_python_pool(failures):
     rows = {row[0]: row[1:] for row in sql(
         f"""SELECT o.value, t.state::text, replace(coalesce(t.error, ''), chr(10), ' '),
                    coalesce(r.details->>'pid', ''), coalesce(r.details->>'tasks_in_process', ''),
-                   coalesce(r.details->>'uid', ''), coalesce(r.details->>'note', '')
+                   coalesce(r.details->>'uid', ''), coalesce(r.details->>'note', ''),
+                   replace(coalesce(t.stacks, ''), chr(10), ' | ')
             FROM queue.tasks t JOIN analysis.observables o ON o.id = t.observable_id
             LEFT JOIN analysis.results r ON r.root_id = t.root_id
               AND r.observable_id = t.observable_id AND r.module = t.module
@@ -389,11 +395,11 @@ def check_python_pool(failures):
         log(f"  {action}: {' | '.join(rows.get(value, ['no task']))[:300]}")
 
     def field(action, index):
-        return rows.get(f"{action}.example.com", [""] * 6)[index]
+        return rows.get(f"{action}.example.com", [""] * 7)[index]
 
     pid = lambda action: field(action, 2)  # noqa: E731
     count = lambda action: field(action, 3)  # noqa: E731
-    expect(all(field(a, 0) == "done" for a in ran), "every task but the last two is done")
+    expect(all(field(a, 0) == "done" for a in ran), "every task that should finish is done")
     expect(pid("one") == pid("two") == pid("three") != "", "the first three ran in one process")
     expect(count("three") == "3", "that process ran three tasks, its limit")
     expect(pid("four") not in ("", pid("three")) and count("four") == "1",
@@ -423,6 +429,21 @@ def check_python_pool(failures):
                     WHERE root_id = '{root}' AND path = 'rejected.txt')"""
     )[0][0]
     expect(landed == "0", "nothing from that result landed")
+    note = field("tool", 5)
+    expect("import: None" in note and "read: refused" in note and "run: refused" in note,
+           f"a worker can't import, read or run py-spy: {note}")
+    for action, function in hangs.items():
+        stacks = field(action, 6)
+        log(f"  {action}'s stacks: {stacks[:300]}")
+        expect(field(action, 0) == "failed" and "deadline of 5s and was killed" in field(action, 1),
+               f"{action} failed at its deadline: {field(action, 1)[:200]}")
+        expect(function in stacks and "python_probe.py" in stacks,
+               f"{action}'s row holds a frame naming {function}")
+        expect(not any(f in stacks for f in hangs.values() if f != function),
+               f"{action}'s row names no other hung function")
+    capabilities = compose("exec", "-T", "python", "grep", "CapBnd", "/proc/self/status",
+                           capture=True).split()[1]
+    expect(int(capabilities, 16) & (1 << 19) == 0, "the pool's container has no CAP_SYS_PTRACE")
     log(f"the Python pool's stage took {time.monotonic() - started:.1f}s")
 
 

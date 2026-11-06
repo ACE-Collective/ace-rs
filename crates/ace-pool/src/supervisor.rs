@@ -329,9 +329,16 @@ pub fn end_of(status: ExitStatus, stdout: &[u8], stderr: &str) -> TaskEnd {
     let tail = || last_lines(stderr, 5);
     match status.code() {
         Some(EXIT_DONE | EXIT_MODULE) => {
-            serde_json::from_slice(stdout).unwrap_or_else(|e| TaskEnd::Failed {
-                error: format!("the task process's reply doesn't read ({e}): {}", tail()),
-            })
+            match serde_json::from_slice(stdout) {
+                // only a supervisor's account of a process it killed says this
+                Ok(TaskEnd::Hung { .. }) => TaskEnd::Failed {
+                    error: "the task process said it had hung, which it can't know".to_owned(),
+                },
+                Ok(end) => end,
+                Err(e) => TaskEnd::Failed {
+                    error: format!("the task process's reply doesn't read ({e}): {}", tail()),
+                },
+            }
         }
         Some(EXIT_SETUP) => TaskEnd::Failed {
             error: format!("the task process couldn't set up: {}", tail()),

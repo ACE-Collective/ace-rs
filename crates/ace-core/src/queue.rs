@@ -589,6 +589,34 @@ impl Worker {
         self.finish(task, TaskState::Failed, Some(error)).await
     }
 
+    /// Ends a task the worker owns: its pool killed a hung worker, and `stacks` is what py-spy saw
+    /// in it first (PLAN.md 4.3). It's text from a hostile process, so nothing reads it as more.
+    pub async fn fail_hung(
+        &self,
+        task: TaskId,
+        error: &str,
+        stacks: &str,
+    ) -> Result<(), QueueError> {
+        self.db
+            .transaction(Isolation::ReadCommitted, |tx| {
+                Box::pin(async move {
+                    let root = self
+                        .finish_in(tx, task, TaskState::Failed, Some(error))
+                        .await?;
+                    sqlx::query!(
+                        "UPDATE queue.tasks SET stacks = $2 WHERE id = $1",
+                        task as TaskId,
+                        stacks,
+                    )
+                    .execute(tx.conn())
+                    .await?;
+                    check_completion(tx, root).await?;
+                    Ok::<_, QueueError>(())
+                })
+            })
+            .await
+    }
+
     /// Ends a task the worker owns: the module stopped because the task was cancelled.
     pub async fn cancelled(&self, task: TaskId) -> Result<(), QueueError> {
         self.finish(task, TaskState::Cancelled, None).await

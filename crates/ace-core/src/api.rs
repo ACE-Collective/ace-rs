@@ -729,7 +729,7 @@ async fn end_in(
             // checked as JSON, so each field that fails is named
             let result = serde_json::to_value(result)
                 .map_err(|e| Failure::Internal(format!("re-encoding a result: {e}")))?;
-            api.land(&worker, task, result).await?
+            api.land(&worker, task, without_nul(result)).await?
         }
         TaskEnd::Skipped { reason } => {
             tracing::info!(%task, "skipped: {reason}");
@@ -741,12 +741,36 @@ async fn end_in(
         } => {
             let after = Duration::try_from_secs_f64(after_seconds)
                 .map_err(|e| Failure::BadRequest(format!("after_seconds: {e}")))?;
-            worker.delay(task, after, &state).await?;
+            worker.delay(task, after, &without_nul(state)).await?;
         }
-        TaskEnd::Failed { error } => worker.fail(task, &error).await?,
+        TaskEnd::Failed { error } => worker.fail(task, &text_without_nul(&error)).await?,
+        TaskEnd::Hung { error, stacks } => {
+            let (error, stacks) = (text_without_nul(&error), text_without_nul(&stacks));
+            worker.fail_hung(task, &error, &stacks).await?
+        }
         TaskEnd::Cancelled => worker.cancelled(task).await?,
     }
     Ok(StatusCode::NO_CONTENT)
+}
+
+/// A task's end can quote a hostile file, and Postgres refuses a NUL in text and in JSONB. Without
+/// this one NUL in, say, an email's subject would stop its result landing on every attempt. Bytes
+/// that matter are base64 in a result (ace3 #999), so nothing is lost but the character itself.
+fn text_without_nul(text: &str) -> String {
+    text.replace('\0', "\u{fffd}")
+}
+
+fn without_nul(value: Value) -> Value {
+    match value {
+        Value::String(text) if text.contains('\0') => Value::String(text_without_nul(&text)),
+        Value::Array(items) => Value::Array(items.into_iter().map(without_nul).collect()),
+        Value::Object(map) => Value::Object(
+            map.into_iter()
+                .map(|(key, value)| (text_without_nul(&key), without_nul(value)))
+                .collect(),
+        ),
+        other => other,
+    }
 }
 
 /// The ruleset YARA pools should scan with, for any pool's token.

@@ -131,7 +131,11 @@ async fn a_running_module_sees_the_cancel_within_one_poll_interval() {
         "{outcome:?}"
     );
     assert!(to_token < Duration::from_millis(100), "{to_token:?}");
-    assert!(to_module <= POLL + to_token, "{to_module:?}");
+    // a poll is a sleep, which can overrun: it took 250.67 ms for a POLL of 250 ms
+    assert!(
+        to_module <= POLL + to_token + Duration::from_millis(50),
+        "{to_module:?}"
+    );
 
     worker.cancelled(task.id).await.expect("ends the task");
     assert_eq!(

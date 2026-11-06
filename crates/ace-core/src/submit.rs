@@ -116,6 +116,13 @@ pub async fn submit(
     if modes.mode(&mode).is_none() {
         return Err(SubmitError::Invalid(format!("no analysis mode {mode:?}")));
     }
+    // Postgres refuses a NUL in text. A submitter can change what it sends, unlike a task's end
+    // (`without_nul` in `api`), so it's told, rather than a value in the alert being altered.
+    if serde_json::to_string(submission).is_ok_and(|json| json.contains("\\u0000")) {
+        return Err(SubmitError::Invalid(
+            "a submission can't hold a NUL character".to_owned(),
+        ));
+    }
     if let Some(path) = submission
         .file_yara_meta
         .keys()

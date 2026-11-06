@@ -26,7 +26,7 @@
 //! A Python pool reads `ACE4_API_URL`, `ACE4_POOL_TOKEN`, `ACE4_OVERLAY`, `ACE4_TASK_USER`
 //! (`ace4-task`, whom workers run as), `ACE4_CONCURRENCY` (2), `ACE4_PYTHON` (`/usr/local/bin/python3`),
 //! `ACE4_PYTHON_SOURCE` (`/opt/ace4/python`), `ACE4_PYTHON_MAX_TASKS` (200),
-//! `ACE4_PYTHON_MAX_MEMORY_MB` (512) and `ACE4_HEALTH_FILE`. It starts each worker as
+//! `ACE4_PYTHON_MAX_MEMORY_MB` (512), `ACE4_PY_SPY` (`/opt/ace4/tools/bin/py-spy`) and `ACE4_HEALTH_FILE`. It starts each worker as
 //!
 //! ```text
 //! <binary> python-worker SPEC
@@ -481,6 +481,8 @@ pub fn python_main(pool: &PythonPool) -> ExitCode {
             max_tasks: number("ACE4_PYTHON_MAX_TASKS", 200) as u64,
             max_private_bytes: number("ACE4_PYTHON_MAX_MEMORY_MB", 512) as u64 * 1024 * 1024,
         },
+        py_spy: var("ACE4_PY_SPY", "/opt/ace4/tools/bin/py-spy").into(),
+        dump_timeout: ace_pool::python::DUMP_TIMEOUT,
     };
     let pool = ace_pool::python::PythonPool::new(client, modules, config);
     with_runtime(async move {

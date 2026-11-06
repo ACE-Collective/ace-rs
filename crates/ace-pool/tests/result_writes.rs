@@ -269,3 +269,106 @@ async fn a_leased_task_says_what_its_observable_redirects_to() {
         Some(target)
     );
 }
+
+/// Postgres refuses a NUL in text and in JSONB, and a module's output and errors can quote what a
+/// hostile file holds. A task must still end, with the NUL replaced, not fail to land and wait out
+/// its lease on every attempt.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_nul_from_a_hostile_file_doesnt_stop_a_task_ending() {
+    let core = Core::start(
+        vec![ace_mod_archive::MANIFEST],
+        &["archive"],
+        Duration::from_secs(30),
+    )
+    .await;
+    let client = LeaseClient::new(&core.url, TOKEN, "checker").expect("a client");
+    let db = core.test_db.db();
+
+    let (root, _, _) = core
+        .root_with_file("file", "ace3/archive/test.zip", "test.zip")
+        .await;
+    let task = client
+        .lease(&[], Duration::ZERO)
+        .await
+        .expect("leases")
+        .expect("the task");
+    let result = json!({
+        "analysis_type": "archive_analysis",
+        "schema_version": 1,
+        "details": {"file_count": 1, "extracted_files": ["a\0b"]},
+        "summary": "sum\0mary",
+        "tags": ["ta\0g"],
+        "observables": [{"type": "fqdn", "value": "evil\0.example.com"}],
+    });
+    client
+        .end(
+            task.id,
+            &TaskEnd::Done {
+                result: serde_json::from_value(result).expect("an envelope"),
+            },
+        )
+        .await
+        .expect("the result lands");
+    let (extracted, summary, tag): (String, String, String) = sqlx::query_as(
+        "SELECT details->'extracted_files'->>0, summary, tags[1] FROM analysis.results
+         WHERE root_id = $1",
+    )
+    .bind(root)
+    .fetch_one(db.pool())
+    .await
+    .expect("the result");
+    assert_eq!(
+        (extracted.as_str(), summary.as_str(), tag.as_str()),
+        ("a\u{fffd}b", "sum\u{fffd}mary", "ta\u{fffd}g")
+    );
+    let observed: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM analysis.observables WHERE root_id = $1 AND value = $2",
+    )
+    .bind(root)
+    .bind("evil\u{fffd}.example.com")
+    .fetch_one(db.pool())
+    .await
+    .expect("counts");
+    assert_eq!(observed, 1);
+
+    let (root, _, _) = core
+        .root_with_file("file", "ace3/archive/test.jar", "test.jar")
+        .await;
+    let task = client
+        .lease(&[], Duration::ZERO)
+        .await
+        .expect("leases")
+        .expect("the task");
+    client
+        .end(
+            task.id,
+            &TaskEnd::Failed {
+                error: "couldn't read evil\0.exe".to_owned(),
+            },
+        )
+        .await
+        .expect("the failure lands");
+    let (state, error) = task_of(&core, root, "archive").await;
+    assert_eq!(state, "failed");
+    assert_eq!(error.as_deref(), Some("couldn't read evil\u{fffd}.exe"));
+
+    let (root, _, _) = core
+        .root_with_file("file", "ace3/archive/evil.zip", "evil.zip")
+        .await;
+    let task = client
+        .lease(&[], Duration::ZERO)
+        .await
+        .expect("leases")
+        .expect("the task");
+    client
+        .end(
+            task.id,
+            &TaskEnd::Delay {
+                after_seconds: 0.0,
+                state: json!({"note\0": "st\0ate"}),
+            },
+        )
+        .await
+        .expect("the delay lands");
+    assert_eq!(task_of(&core, root, "archive").await.0, "delayed");
+}

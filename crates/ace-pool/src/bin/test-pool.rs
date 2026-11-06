@@ -12,7 +12,7 @@
 //!     --rulesets, keep DIR on the core's current YARA ruleset, and lease nothing until the
 //!     first has loaded
 //! test-pool python --python PATH --source DIR [--task-user NAME] [--concurrency N]
-//!                  [--max-tasks N] [--max-memory-mb N]
+//!                  [--max-tasks N] [--max-memory-mb N] [--py-spy PATH] [--dump-timeout-ms N]
 //!     run as the Python pool's supervisor until SIGTERM, with workers from DIR on PATH
 //! test-pool python-worker SPEC
 //!     a Python worker's first process: contain, and exec Python as SPEC says
@@ -53,6 +53,8 @@ struct Args {
     source: Option<std::path::PathBuf>,
     max_tasks: u64,
     max_memory_mb: u64,
+    py_spy: std::path::PathBuf,
+    dump_timeout: Duration,
 }
 
 fn parse() -> Result<Args, String> {
@@ -75,6 +77,8 @@ fn parse() -> Result<Args, String> {
         source: None,
         max_tasks: 1000,
         max_memory_mb: 1024,
+        py_spy: "/opt/ace4/tools/bin/py-spy".into(),
+        dump_timeout: ace_pool::python::DUMP_TIMEOUT,
     };
     while let Some(arg) = args.next() {
         match arg.as_str() {
@@ -119,6 +123,14 @@ fn parse() -> Result<Args, String> {
                     .next()
                     .and_then(|n| n.parse().ok())
                     .ok_or("--max-memory-mb takes a number")?;
+            }
+            "--py-spy" => parsed.py_spy = args.next().ok_or("--py-spy takes a path")?.into(),
+            "--dump-timeout-ms" => {
+                parsed.dump_timeout = Duration::from_millis(
+                    args.next()
+                        .and_then(|n| n.parse().ok())
+                        .ok_or("--dump-timeout-ms takes a number")?,
+                );
             }
             other => return Err(format!("unknown argument {other}")),
         }
@@ -265,6 +277,8 @@ fn main() -> ExitCode {
                     max_tasks: args.max_tasks,
                     max_private_bytes: args.max_memory_mb * 1024 * 1024,
                 },
+                py_spy: args.py_spy,
+                dump_timeout: args.dump_timeout,
             };
             with_runtime(python_pool(PythonPool::new(client, modules, config)))
         }
@@ -423,7 +437,7 @@ fn outcome_name(end: &ace_sdk::wire::TaskEnd) -> &'static str {
         TaskEnd::Done { .. } => "done",
         TaskEnd::Skipped { .. } => "skipped",
         TaskEnd::Delay { .. } => "delayed",
-        TaskEnd::Failed { .. } => "failed",
+        TaskEnd::Failed { .. } | TaskEnd::Hung { .. } => "failed",
         TaskEnd::Cancelled => "cancelled",
     }
 }

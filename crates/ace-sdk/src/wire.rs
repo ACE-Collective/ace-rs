@@ -175,6 +175,11 @@ pub enum TaskEnd {
     },
     /// The module or its setup failed.
     Failed { error: String },
+    /// A pool's supervisor killed a hung worker, and took its stacks first (PLAN.md 4.3). The task
+    /// fails as with `Failed`, and its row keeps `stacks` too. Only a supervisor sends it. A reply
+    /// from a worker or a task process that says this is refused, because the stacks are the
+    /// supervisor's account of the worker.
+    Hung { error: String, stacks: String },
     /// The module stopped because the task was cancelled.
     Cancelled,
 }

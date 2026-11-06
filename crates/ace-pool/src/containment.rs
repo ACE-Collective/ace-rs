@@ -45,6 +45,11 @@
 //! a worker runs many tasks and that limit counts its whole life; the supervisor's deadline bounds
 //! each task instead.
 //!
+//! `ToolConfinement` is for a tool the supervisor runs on a worker's behalf, py-spy for now. It gets
+//! no Landlock domain, because Landlock lets a process trace only inside its own domain and the
+//! tool must read a worker's. So it has the rest: `no_new_privs`, the address-space and core-file
+//! limits, and a seccomp filter that also refuses making a socket.
+//!
 //! # Libraries that start threads
 //!
 //! A library that starts a thread after `contain` kills the task with SIGSYS. Known ones:
@@ -244,6 +249,34 @@ pub fn contain_before_exec(
     let contained = restrict(profile, exec_paths)?;
     seccomp::install_keeping_exec().map_err(ContainmentError::Seccomp)?;
     Ok(contained)
+}
+
+/// Narrows a tool the supervisor starts, between its fork and its exec. See the module docs.
+#[derive(Debug, Clone)]
+pub struct ToolConfinement {
+    address_space_bytes: u64,
+    filter: Vec<libc::sock_filter>,
+}
+
+impl ToolConfinement {
+    pub fn new(address_space_bytes: u64) -> ToolConfinement {
+        ToolConfinement {
+            address_space_bytes,
+            filter: seccomp::tool_filter(),
+        }
+    }
+
+    /// Applies it to this process. It makes system calls and allocates nothing, so a `pre_exec`
+    /// hook can call it, and it runs after the hook's process has dropped to the tool's user.
+    pub fn apply(&self) -> io::Result<()> {
+        let bytes = self.address_space_bytes;
+        // each of these only fails with the errno of the call that failed
+        let errno = |_| io::Error::last_os_error();
+        set_rlimit(libc::RLIMIT_AS, "RLIMIT_AS", bytes, bytes).map_err(errno)?;
+        set_rlimit(libc::RLIMIT_CORE, "RLIMIT_CORE", 0, 0).map_err(errno)?;
+        set_no_new_privs().map_err(errno)?;
+        seccomp::install_filter(&self.filter)
+    }
 }
 
 /// The `Threads:` count in `/proc/self/status`.
