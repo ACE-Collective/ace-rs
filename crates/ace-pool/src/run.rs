@@ -77,6 +77,15 @@ impl TaskDir {
         Ok(TaskDir { dir })
     }
 
+    /// A task's directory inside `parent`.
+    pub fn new_in(parent: &Path) -> std::io::Result<TaskDir> {
+        let dir = tempfile::Builder::new()
+            .prefix("task-")
+            .tempdir_in(parent)?;
+        std::fs::create_dir(dir.path().join("outputs"))?;
+        Ok(TaskDir { dir })
+    }
+
     pub fn path(&self) -> &Path {
         self.dir.path()
     }

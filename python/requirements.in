@@ -1,0 +1,31 @@
+# What the Python pool's image installs (PLAN.md 4.1, decision 8): only the libraries with no Rust
+# equivalent yet, each pinned, and everything they need at the version ace3's virtualenv has, so
+# 3.3's comparison with ace3 isn't comparing library versions.
+#
+# requirements.txt is this file resolved, with a hash for every file. To change a pin, edit this
+# file, then run tools/python/lock.
+#
+# ace3/installer/requirements-pinned.txt
+oletools==0.60.2
+msoffcrypto-tool==6.0.0
+pcodedmp==1.2.6
+cryptography==50.0.2
+olefile==0.47
+
+# ace3/Dockerfile installs these from each repository's master archive. These are the commits
+# master was at on 2026-11-06, where master has been since 2021 and 2022: tag v1.3.4; version 0.0.9,
+# which has no tag; and tag v0.2.7. Their files are the same as those in ace3's virtualenv.
+xlrd2 @ https://github.com/DissectMalware/xlrd2/archive/74cd5302f9007f6cf9389f8819cf1676a1e2a717.zip
+pyxlsb2 @ https://github.com/DissectMalware/pyxlsb2/archive/0a1ff1be329aa282ecbc347ff44fc6c07351685b.zip
+XLMMacroDeobfuscator @ https://github.com/DissectMalware/XLMMacroDeobfuscator/archive/43114164d89b8b3b426144f1fdfeb2ca75d28b92.zip
+
+# What those need, at the versions in ace3's virtualenv on 2026-11-06 (ace3 f72f8946).
+cffi==2.1.1
+colorclass==2.2.2
+defusedxml==0.7.1
+easygui==0.98.3
+lark-parser==0.12.0
+pycparser==3.12
+pyparsing==3.3.3
+roman==5.2
+untangle==1.2.1

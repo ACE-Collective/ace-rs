@@ -46,7 +46,12 @@ pub fn modules(settings: &Value) -> Result<Modules, SetupError> {
             &secrets,
         )?)
         .with_parser(Entry::<Spin>::parser(block(Spin::NAME), &secrets)?)
-        .with_lookup(Entry::<Hung>::lookup(block(Hung::NAME), &secrets)?))
+        .with_lookup(Entry::<Hung>::lookup(block(Hung::NAME), &secrets)?)
+        .with_python(crate::modules::PythonModule {
+            manifest: ace_mod_python::PROBE_MANIFEST,
+            key: ace_mod_python::PROBE_MANIFEST.name.to_owned(),
+            settings: None,
+        }))
 }
 
 /// The manifests of the test modules, for a core's catalog.

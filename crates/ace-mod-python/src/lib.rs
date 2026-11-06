@@ -1,0 +1,62 @@
+//! What the core knows about the modules the Python pool runs (PLAN.md 4.1): each one's manifest
+//! and analysis type, as a Rust type. So the core's catalog, its eligibility rules and `ace schema
+//! export` treat them like any other module, and the core can check their results against the
+//! exported schema (4.2) with nothing from Python.
+//!
+//! A module's code is in `python/ace4_python/modules/`, under the manifest's name, and this crate
+//! never runs. To add one: a `Module` here with its analysis type, `.module::<M>()` in
+//! `ace::python_pool`, and its file and line in `python/ace4_python/registry.py`.
+
+use std::time::Duration;
+
+use ace_results::{AnalysisType, ObservableKind};
+use ace_sdk::{Manifest, Module, ModuleError, Resources};
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
+
+/// A module for testing the pool itself: it reports the process it ran in, and does what the first
+/// part of its fqdn says (`python/ace4_python/modules/python_probe.py`). Nothing analyzes anything
+/// with it, so it runs only as an instance a test's overlay names.
+pub struct PythonProbe;
+
+/// What a probe reports.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct ProbeAnalysis {
+    /// The worker process the task ran in.
+    pub pid: u32,
+    pub uid: u32,
+    /// How many tasks this process has been given, this one included.
+    pub tasks_in_process: u64,
+    pub python: String,
+    /// The names of the variables in the worker's environment.
+    pub environment: Vec<String>,
+    /// What the probe's action found.
+    #[serde(default)]
+    pub note: Option<String>,
+}
+
+impl AnalysisType for ProbeAnalysis {
+    const NAME: &'static str = "python_probe_analysis";
+    const VERSION: u32 = 1;
+    const MODULE: &'static str = PythonProbe::NAME;
+}
+
+impl Module for PythonProbe {
+    const NAME: &'static str = "python_probe";
+    const INPUTS: &'static [ObservableKind] = &[ObservableKind::Fqdn];
+    const INSTANCES_ONLY: bool = true;
+    // short, so a test of a hung task doesn't wait long
+    const RESOURCES: Resources = Resources {
+        timeout: Duration::from_secs(5),
+        ..Resources::DEFAULT
+    };
+    type Output = ProbeAnalysis;
+    type Settings = ();
+
+    fn init(_: &()) -> Result<Self, ModuleError> {
+        Ok(PythonProbe)
+    }
+}
+
+pub const PROBE_MANIFEST: Manifest = Manifest::python::<PythonProbe>();

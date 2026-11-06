@@ -214,7 +214,7 @@ pub async fn run_task_process(
 }
 
 /// Lets the task's user read the task's directory and input and write its outputs.
-fn open_to_task_user(
+pub(crate) fn open_to_task_user(
     dir: &TaskDir,
     input: Option<&std::path::Path>,
     user: Option<(u32, u32)>,

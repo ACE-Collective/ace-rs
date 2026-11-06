@@ -70,7 +70,17 @@ const X32_SYSCALL_BIT: u32 = 0x4000_0000;
 /// Installs the filter on the process. It must be the last step of containment: the filter stays
 /// for the life of the process.
 pub(super) fn install() -> io::Result<()> {
-    let mut filter = program(&NATIVE);
+    install_program(program(&NATIVE))
+}
+
+/// Installs the filter without its block on `execve`, for a process that contains itself and then
+/// becomes a Python worker (`contain_before_exec`). The worker's Landlock rules decide what it could
+/// run, and everything else stays blocked, so it still can't start a thread or a process.
+pub(super) fn install_keeping_exec() -> io::Result<()> {
+    install_program(program_keeping_exec(&NATIVE))
+}
+
+fn install_program(mut filter: Vec<sock_filter>) -> io::Result<()> {
     let program = sock_fprog {
         len: u16::try_from(filter.len()).expect("the filter is a few instructions long"),
         filter: filter.as_mut_ptr(),
@@ -97,10 +107,25 @@ pub(super) fn install() -> io::Result<()> {
 /// Load the architecture, kill on a foreign one, load the call number, kill on x32 (x86_64 only)
 /// or on a blocked call, and allow everything else.
 fn program(arch: &Arch) -> Vec<sock_filter> {
+    program_blocking(arch, arch.blocked)
+}
+
+/// `program` with `execve` allowed.
+fn program_keeping_exec(arch: &Arch) -> Vec<sock_filter> {
+    let blocked: Vec<_> = arch
+        .blocked
+        .iter()
+        .copied()
+        .filter(|&(name, _)| name != "execve")
+        .collect();
+    program_blocking(arch, &blocked)
+}
+
+fn program_blocking(arch: &Arch, calls: &[(&'static str, u32)]) -> Vec<sock_filter> {
     let to_kill = |instructions_between: usize| {
         u8::try_from(instructions_between).expect("the filter blocks a few calls")
     };
-    let blocked = arch.blocked.len();
+    let blocked = calls.len();
     let mut program = vec![
         load(offset_of!(seccomp_data, arch)),
         jump(BPF_JEQ, arch.audit_arch, 1, 0),
@@ -111,7 +136,7 @@ fn program(arch: &Arch) -> Vec<sock_filter> {
         // past the blocked calls and the allow, to the kill
         program.push(jump(BPF_JGE, X32_SYSCALL_BIT, to_kill(blocked + 1), 0));
     }
-    for (index, &(_, number)) in arch.blocked.iter().enumerate() {
+    for (index, &(_, number)) in calls.iter().enumerate() {
         // past the rest of the blocked calls and the allow, to the kill
         program.push(jump(BPF_JEQ, number, to_kill(blocked - index), 0));
     }
@@ -238,6 +263,25 @@ mod tests {
     fn aarch64_blocks_new_processes_and_threads_and_allows_the_rest() {
         // read, write, mmap, openat, connect, exit_group
         check(&AARCH64, &[63, 64, 222, 56, 203, 94]);
+    }
+
+    #[test]
+    fn keeping_exec_allows_only_execve_of_the_blocked_calls() {
+        for arch in [&X86_64, &AARCH64] {
+            let program = program_keeping_exec(arch);
+            for &(name, number) in arch.blocked {
+                let expected = if name == "execve" {
+                    SECCOMP_RET_ALLOW
+                } else {
+                    SECCOMP_RET_KILL_PROCESS
+                };
+                assert_eq!(
+                    verdict(&program, arch.audit_arch, number),
+                    expected,
+                    "{name}"
+                );
+            }
+        }
     }
 
     #[test]

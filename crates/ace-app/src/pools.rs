@@ -23,7 +23,18 @@
 //! `ACE4_HEALTH_FILE`. It contains itself before its runtime starts a thread: it may connect only
 //! to its modules' TCP ports, the lease API's and the collector's.
 //!
-//! Both run until SIGTERM.
+//! A Python pool reads `ACE4_API_URL`, `ACE4_POOL_TOKEN`, `ACE4_OVERLAY`, `ACE4_TASK_USER`
+//! (`ace4-task`, whom workers run as), `ACE4_CONCURRENCY` (2), `ACE4_PYTHON` (`/usr/local/bin/python3`),
+//! `ACE4_PYTHON_SOURCE` (`/opt/ace4/python`), `ACE4_PYTHON_MAX_TASKS` (200),
+//! `ACE4_PYTHON_MAX_MEMORY_MB` (512) and `ACE4_HEALTH_FILE`. It starts each worker as
+//!
+//! ```text
+//! <binary> python-worker SPEC
+//! ```
+//!
+//! which contains itself and execs Python (`ace_pool::python`).
+//!
+//! All of them run until SIGTERM.
 
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
@@ -33,12 +44,13 @@ use std::time::Duration;
 use ace_pool::client::LeaseClient;
 use ace_pool::modules::{Modules, Registry, StartError};
 use ace_pool::pool::{AsyncPool, POOL_ADDRESS_SPACE, PoolDefinition};
+use ace_pool::python::{PythonConfig, RecycleLimits};
 use ace_pool::rulesets::RulesetWatcher;
 use ace_pool::supervisor::{EXIT_SETUP, Supervisor, SupervisorConfig};
 use ace_sdk::{Component, Overlay};
 use tokio_util::sync::CancellationToken;
 
-use crate::{LookupPool, ParserPool, Rulesets};
+use crate::{LookupPool, ParserPool, PythonPool, Rulesets};
 
 /// The overlay at `path`, or none.
 fn overlay(path: Option<&Path>) -> Result<Overlay, String> {
@@ -402,6 +414,90 @@ pub fn lookup_main(pool: &LookupPool) -> ExitCode {
         tracing::info!(tasks = stats.tasks, errors = stats.errors, "stopped");
         join_all(vec![("heartbeat", beating)]).await;
         ExitCode::SUCCESS
+    })
+}
+
+/// A Python pool's binary: its supervisor, or a worker's first process when the first argument is
+/// `python-worker`.
+pub fn python_main(pool: &PythonPool) -> ExitCode {
+    let mut args = std::env::args().skip(1);
+    if args.next().as_deref() == Some("python-worker") {
+        return match args.next() {
+            Some(spec) => ace_pool::python::exec_worker(&spec),
+            None => {
+                eprintln!("setup failed: python-worker takes a spec");
+                ExitCode::from(u8::try_from(EXIT_SETUP).unwrap_or(u8::MAX))
+            }
+        };
+    }
+    let mut telemetry = ace_pool::telemetry::init(&format!("ace4-{}", pool.name), "info");
+    let built = overlay(overlay_path().as_deref()).and_then(|overlay| {
+        modules(
+            &pool.name,
+            &pool.registry,
+            &overlay,
+            None,
+            &ace_pool::secrets::process_env,
+        )
+        .map_err(|e| e.to_string())
+    });
+    let modules = match built {
+        Ok(modules) => Arc::new(modules),
+        Err(e) => {
+            eprintln!("setup failed: {e}");
+            return ExitCode::from(2);
+        }
+    };
+    let user_name = var("ACE4_TASK_USER", "ace4-task");
+    let Some(user) = ace_pool::supervisor::user_ids(&user_name) else {
+        eprintln!("no user {user_name} for workers");
+        return ExitCode::from(2);
+    };
+    let program = match std::env::current_exe() {
+        Ok(program) => program,
+        Err(e) => {
+            eprintln!("this binary's path: {e}");
+            return ExitCode::from(2);
+        }
+    };
+    let client = match LeaseClient::from_env(&worker_name()) {
+        Ok(client) => client,
+        Err(e) => {
+            eprintln!("{e}");
+            return ExitCode::from(2);
+        }
+    };
+    if let Err(e) = telemetry.start_export() {
+        eprintln!("no span export: {e}");
+    }
+    let config = PythonConfig {
+        program,
+        args: vec!["python-worker".to_owned()],
+        python: var("ACE4_PYTHON", "/usr/local/bin/python3").into(),
+        source: var("ACE4_PYTHON_SOURCE", "/opt/ace4/python").into(),
+        user: Some(user),
+        concurrency: number("ACE4_CONCURRENCY", 2),
+        limits: RecycleLimits {
+            max_tasks: number("ACE4_PYTHON_MAX_TASKS", 200) as u64,
+            max_private_bytes: number("ACE4_PYTHON_MAX_MEMORY_MB", 512) as u64 * 1024 * 1024,
+        },
+    };
+    let pool = ace_pool::python::PythonPool::new(client, modules, config);
+    with_runtime(async move {
+        let stop = stop_on_signal();
+        let beating = tokio::spawn(heartbeat(health_file(), stop.clone()));
+        let code = match pool.run(stop).await {
+            Ok(stats) => {
+                tracing::info!(tasks = stats.tasks, errors = stats.errors, "stopped");
+                ExitCode::SUCCESS
+            }
+            Err(e) => {
+                eprintln!("the Python pool didn't start: {e}");
+                ExitCode::from(2)
+            }
+        };
+        join_all(vec![("heartbeat", beating)]).await;
+        code
     })
 }
 

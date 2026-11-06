@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+#
+# Writes python/requirements.txt and python/build-requirements.txt from their .in files, with a
+# hash for every file of every platform, in a throwaway container on the pool image's Python.
+# uv is only used here and isn't in the image.
+
+set -euo pipefail
+
+root=$(cd "$(dirname "$0")/../.." && pwd)
+# keep in step with docker/ace4/Dockerfile's python target
+image="python:3.14.10-slim-trixie@sha256:af8a5aa14780025dbfbcfbc81bd8a91ebd87711dd5b0f48ed71090949dd7cb1d"
+
+docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp -v "$root/python:/python" -w /python "$image" sh -c '
+    python -m venv /tmp/tools
+    /tmp/tools/bin/pip install --quiet --disable-pip-version-check uv==0.13.7
+    for name in build-requirements requirements; do
+        /tmp/tools/bin/uv pip compile --quiet --generate-hashes --no-header --python-version 3.14 \
+            --output-file "$name.txt" "$name.in"
+    done
+'

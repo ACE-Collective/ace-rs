@@ -22,5 +22,11 @@ modules:
           query: index=proxy hostname="<O_VALUE>"
           observable_mapping:
             - {field: user, type: email_address}
+  # What the end-to-end test's Python pool stage runs (tests/e2e/run). It's in no module group, so
+  # no analysis mode runs it, and the test queues its tasks itself.
+  python_probe:
+    instances:
+      e2e_python_probe:
+        inputs: [fqdn]
 secrets:
   splunk_password: env:ACE4_SPLUNK_PASSWORD

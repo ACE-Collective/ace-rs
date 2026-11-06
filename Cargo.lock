@@ -9,6 +9,7 @@ dependencies = [
  "ace-app",
  "ace-mod-archive",
  "ace-mod-email",
+ "ace-mod-python",
  "ace-mod-rdap",
  "ace-mod-splunk",
  "ace-mod-yara",
@@ -120,6 +121,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "ace-mod-python"
+version = "0.1.0"
+dependencies = [
+ "ace-results",
+ "ace-sdk",
+ "schemars 1.2.3",
+ "serde",
+]
+
+[[package]]
 name = "ace-mod-rdap"
 version = "0.1.0"
 dependencies = [
@@ -182,6 +193,7 @@ dependencies = [
  "ace-core",
  "ace-mod-archive",
  "ace-mod-email",
+ "ace-mod-python",
  "ace-mod-splunk",
  "ace-mod-yara",
  "ace-pool",

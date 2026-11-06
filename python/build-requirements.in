@@ -1,0 +1,6 @@
+# What builds the three GitHub archives in requirements.in, whose setup.py files need setuptools.
+# pip's own build isolation would fetch the newest setuptools, unhashed, so the image installs this
+# first and builds with --no-build-isolation. These are ace3's versions. setuptools stays in the image,
+# because XLMMacroDeobfuscator imports distutils, which only setuptools provides since Python 3.12.
+setuptools==84.2.1
+wheel==0.48.0

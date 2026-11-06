@@ -21,6 +21,13 @@ results from all five modules and complete; the second only later. The same emai
 times, so their trees in the normal form (PLAN.md 3.1) must be the same text, which goes to
 <work>/normal-form.json.
 
+Then it starts the Python pool (PLAN.md 4.1), from its own image, and queues tasks of a probe module
+on it, one at a time, through the real core and bucket. Limits of 3 tasks and 128 MB make each kind
+of recycling happen, and each task's result names the process it ran in. So this is 4.1's Done check:
+a worker is recycled at its limit, and the next task runs on its replacement, in a different process.
+The same module imports the image's libraries inside a contained worker and reports their versions,
+and a task that raises must leave a failed row.
+
 It then runs `ace compare` (PLAN.md 3.3, crates/ace-app/src/compare.rs) over the sample set, each
 sample in the cli mode against ace3's tree in tools/ace3/trees/reference/ (3.2), and writes the
 report to <work>/compare/. It enforces the acceptance threshold in docs/acceptance.md: a difference
@@ -48,7 +55,8 @@ A site repository runs the same scenario, without the comparison with ace3, agai
 - ACE4_E2E_PORT: the host port, as for ace4;
 - ACE4_E2E_ACE_COMMAND: the ace service's binary, in place of ace.
 
-Its modules differ from ace3's by design, so setting ACE4_E2E_SITE skips the comparison.
+Its modules differ from ace3's by design, so setting ACE4_E2E_SITE skips the comparison, and the
+Python pool's stage, whose probe is this overlay's.
 """
 
 import json
@@ -83,6 +91,12 @@ MODULES = [
     "clicker_detection_splunk",
 ]
 PARSER_MODULES = ["email_analyzer", "archive", "yara_scanner_v3_4"]
+PYTHON_PROBE = "e2e_python_probe"
+# what python/requirements.in pins
+PYTHON_LIBRARIES = [
+    "oletools 0.60.2", "msoffcrypto-tool 6.0.0", "pcodedmp 1.2.6", "XLMMacroDeobfuscator 0.2.7",
+    "xlrd2 1.3.4", "pyxlsb2 0.0.9",
+]
 
 ENV = {
     **os.environ,
@@ -97,6 +111,9 @@ ENV = {
             "RULESET_POLL_SECONDS": "2",
             "POOL_RULESET_POLL_SECONDS": "2",
             "SUBMIT_TOKEN": SUBMIT_TOKEN,
+            "PYTHON_CONCURRENCY": "1",
+            "PYTHON_MAX_TASKS": "3",
+            "PYTHON_MAX_MEMORY_MB": "128",
             # the recorded Splunk takes any password
             "SPLUNK_PASSWORD": "ace4-fake-password",
         }.items()
@@ -160,14 +177,24 @@ def make_signatures():
     ).stdout.strip()
 
 
-def submit(email, mode="email"):
+def submit(email, mode="email", observables=()):
+    """Submits a root, with the email as its file if there is one, and returns its uuid."""
     boundary = f"ace4-e2e-{uuid.uuid4().hex}"
-    analysis = json.dumps({"description": "ace4 end-to-end test", "analysis_mode": mode})
+    analysis = json.dumps({
+        "description": "ace4 end-to-end test",
+        "analysis_mode": mode,
+        "observables": list(observables),
+    })
     body = (
         f"--{boundary}\r\nContent-Disposition: form-data; name=\"analysis\"\r\n\r\n"
-        f"{analysis}\r\n--{boundary}\r\nContent-Disposition: form-data; name=\"file\"; "
-        f"filename=\"email.rfc822\"\r\nContent-Type: message/rfc822\r\n\r\n"
-    ).encode() + email + f"\r\n--{boundary}--\r\n".encode()
+        f"{analysis}\r\n"
+    ).encode()
+    if email is not None:
+        body += (
+            f"--{boundary}\r\nContent-Disposition: form-data; name=\"file\"; "
+            f"filename=\"email.rfc822\"\r\nContent-Type: message/rfc822\r\n\r\n"
+        ).encode() + email + b"\r\n"
+    body += f"--{boundary}--\r\n".encode()
     request = urllib.request.Request(
         f"http://127.0.0.1:{PORT}/api/analysis/v1/submit",
         data=body,
@@ -319,6 +346,72 @@ def check_normal_form(text, failures):
            "it holds no row timestamp")
 
 
+def check_python_pool(failures):
+    """PLAN.md 4.1's Done check, against the Python pool's image: see this file's docstring."""
+
+    def expect(ok, message):
+        log(("ok    " if ok else "FAIL  ") + message)
+        if not ok:
+            failures.append(f"the Python pool: {message}")
+
+    started = time.monotonic()
+    compose("up", "-d", "--build", "--wait", "python")
+    actions = ["one", "two", "three", "four", "hold-200", "after", "libraries", "raise"]
+    values = [f"{action}.example.com" for action in actions]
+    root = submit(None, observables=[{"type": "fqdn", "value": value} for value in values])
+    # no mode runs the probe, so the test queues it, in this order; a concurrency of 1 keeps it
+    for value in values:
+        sql(
+            f"""INSERT INTO queue.tasks (root_id, observable_id, module, max_attempts, input_hashes)
+                SELECT root_id, id, '{PYTHON_PROBE}', 1, '{{}}' FROM analysis.observables
+                WHERE root_id = '{root}' AND value = '{value}'"""
+        )
+    wait_for(
+        "the Python pool's tasks to end",
+        lambda: sql(
+            f"""SELECT count(*) FROM queue.tasks WHERE root_id = '{root}'
+                AND module = '{PYTHON_PROBE}' AND state IN ('queued', 'delayed', 'running')"""
+        )[0][0] == "0",
+        within=120,
+    )
+    rows = {row[0]: row[1:] for row in sql(
+        f"""SELECT o.value, t.state::text, replace(coalesce(t.error, ''), chr(10), ' '),
+                   coalesce(r.details->>'pid', ''), coalesce(r.details->>'tasks_in_process', ''),
+                   coalesce(r.details->>'uid', ''), coalesce(r.details->>'note', '')
+            FROM queue.tasks t JOIN analysis.observables o ON o.id = t.observable_id
+            LEFT JOIN analysis.results r ON r.root_id = t.root_id
+              AND r.observable_id = t.observable_id AND r.module = t.module
+            WHERE t.root_id = '{root}' AND t.module = '{PYTHON_PROBE}'"""
+    )}
+    for action, value in zip(actions, values):
+        log(f"  {action}: {' | '.join(rows.get(value, ['no task']))[:300]}")
+
+    def field(action, index):
+        return rows.get(f"{action}.example.com", [""] * 6)[index]
+
+    pid = lambda action: field(action, 2)  # noqa: E731
+    count = lambda action: field(action, 3)  # noqa: E731
+    expect(all(field(a, 0) == "done" for a in actions[:-1]), "every task but the last is done")
+    expect(pid("one") == pid("two") == pid("three") != "", "the first three ran in one process")
+    expect(count("three") == "3", "that process ran three tasks, its limit")
+    expect(pid("four") not in ("", pid("three")) and count("four") == "1",
+           f"the task after the task count ran on a replacement: {pid('three')} then {pid('four')}")
+    expect(pid("hold-200") == pid("four") and count("hold-200") == "2",
+           "the replacement held 200 MB on its second task, under the task count")
+    expect(pid("after") not in ("", pid("hold-200")) and count("after") == "1",
+           "the task after the memory limit ran on a replacement: "
+           f"{pid('hold-200')} then {pid('after')}")
+    logs = compose("logs", "--no-color", "python", capture=True)
+    expect('"task count"' in logs, "the supervisor logged a recycling for the task count")
+    expect('"memory limit"' in logs, "the supervisor logged a recycling for the memory limit")
+    expect(all(field(a, 4) == "10001" for a in actions[:-1]), "every task ran as ace4-task")
+    missing = [lib for lib in PYTHON_LIBRARIES if lib not in field("libraries", 5)]
+    expect(not missing, f"a contained worker imports the image's pinned libraries: {missing or 'all'}")
+    expect(field("raise", 0) == "failed" and "ValueError" in field("raise", 1),
+           "a task that raises leaves a failed row with the error")
+    log(f"the Python pool's stage took {time.monotonic() - started:.1f}s")
+
+
 def compare_with_ace3(threshold=False):
     """Runs `ace compare` over the sample set in a one-off ace container, with the report under
     <work>/compare. Returns its exit code."""
@@ -436,6 +529,7 @@ def main(argv):
             log("FAIL  the roots' normal forms differ; see normal-form*.json in " + str(WORK))
             failures.append("the same email's two roots have different normal forms")
         if "ACE4_E2E_SITE" not in os.environ:
+            check_python_pool(failures)
             if compare_with_ace3(threshold=True) != 0:
                 failures.append("the acceptance threshold (docs/acceptance.md) isn't met; see "
                                 "above and target/e2e/compare/report.md")
@@ -444,7 +538,7 @@ def main(argv):
                     "in differences.md, and every row matched one")
     finally:
         if failures or keep:
-            for service in ("ace", "parsers", "lookups", "responder"):
+            for service in ("ace", "parsers", "lookups", "python", "responder"):
                 print(f"----- {service} logs (last 40 lines)")
                 print(compose("logs", "--no-color", "--tail", "40", service, capture=True,
                               check=False))

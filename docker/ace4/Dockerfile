@@ -1,8 +1,8 @@
 # syntax=docker/dockerfile:1
 #
 # The images of ace4's Compose stack (PLAN.md 2.29): ace4-ace, the core; ace4-parsers, the
-# parser pool; ace4-lookups, the network pool; and ace4-responder, the recorded-response server
-# of the end-to-end test. One build stage compiles every binary once, and each image is a
+# parser pool; ace4-lookups, the network pool; ace4-python, the Python pool (4.1); and
+# ace4-responder, the recorded-response server of the end-to-end test. One build stage compiles every binary once, and each image is a
 # target of this file. The build's target directory is a BuildKit cache, so a rebuild compiles
 # only what changed; it isn't the dev container's target/ volume.
 
@@ -30,7 +30,7 @@ RUN --mount=type=cache,id=ace4-images-registry,target=/usr/local/cargo/registry 
     cargo build --release --locked -p ace -p ace-testkit --bins \
     && mkdir -p /out \
     && cp target/release/ace target/release/ace-parsers target/release/ace-lookups \
-        target/release/replay-server /out/
+        target/release/ace-python target/release/replay-server /out/
 
 # What every image runs on: Debian with the pinned libmagic and its database, which the core's
 # mime types and the YARA module's mime_type filter read.
@@ -69,6 +69,36 @@ FROM runtime AS lookups
 COPY --from=build /out/ace-lookups /usr/local/bin/ace-lookups
 USER ace4
 CMD ["ace-lookups"]
+
+# The Python pool (PLAN.md 4.1): the libraries with no Rust equivalent yet, and nothing else.
+# Python is ace3's, 3.14 on trixie, so the libraries behave as they do there. The base is pinned by
+# digest and every file pip installs by hash, so a build gets these bytes or fails. python/requirements.in
+# says what's pinned and why, and tools/python/lock regenerates the hashes. The three GitHub archives
+# need setuptools to build, so it's installed first, pinned. It stays, because XLMMacroDeobfuscator
+# imports distutils, which Python 3.12 removed and setuptools now provides. wheel goes.
+FROM python:3.14.10-slim-trixie@sha256:af8a5aa14780025dbfbcfbc81bd8a91ebd87711dd5b0f48ed71090949dd7cb1d AS python
+# ace-python links libmagic, as every binary over ace-app does; the pool never calls it
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        ca-certificates libmagic-mgc=1:5.46-5 libmagic1t64=1:5.46-5 \
+    && rm -rf /var/lib/apt/lists/*
+RUN useradd --system --uid 10001 --user-group --no-create-home --home-dir /nonexistent \
+        --shell /usr/sbin/nologin ace4-task
+COPY python/build-requirements.txt python/requirements.txt /tmp/requirements/
+RUN pip install --no-cache-dir --disable-pip-version-check --no-deps --require-hashes \
+        -r /tmp/requirements/build-requirements.txt \
+    && pip install --no-cache-dir --disable-pip-version-check --no-deps --require-hashes \
+        --no-build-isolation -r /tmp/requirements/requirements.txt \
+    && pip uninstall -y --disable-pip-version-check wheel packaging \
+    && pip check --disable-pip-version-check \
+    && python -c "import msoffcrypto, oletools.olevba, pcodedmp.pcodedmp, pyxlsb2, xlrd2, XLMMacroDeobfuscator.deobfuscator" \
+    && rm -rf /tmp/requirements
+# The supervisor runs as root so it can start each worker as ace4-task, like the parser pool's
+# (PLAN.md 2.17). Workers write no .pyc files, so these are compiled here.
+COPY python /opt/ace4/python
+RUN python -m compileall -q /opt/ace4/python
+COPY --from=build /out/ace-python /usr/local/bin/ace-python
+CMD ["ace-python"]
 
 # The end-to-end test's recorded RDAP and Splunk APIs (tools/ace3/dumps/reference).
 FROM runtime AS responder
