@@ -232,7 +232,8 @@ def tree_form(root):
         return {item: True for item in items}
 
     observables = {}
-    for observable in root.all_observables:
+    # ace3's own order changes from run to run, and two observables can merge below
+    for observable in sorted(root.all_observables, key=lambda o: o.file_path if o.type == "file" else ""):
         entry = {
             "tags": members(str(tag) for tag in observable.tags),
             "directives": members(d for d in observable.directives if not d.startswith("yara_meta:")),
@@ -276,8 +277,33 @@ def tree_form(root):
             entry["redirection"] = f"{observable.redirection.type}:{observable.redirection.value}"
         if observable.type == "file":
             entry["paths"] = {observable.file_path: members(sorted(observable.yara_meta_tags))}
-        observables[f"{observable.type}:{observable.value}"] = entry
+        key = f"{observable.type}:{observable.value}"
+        if key in observables:
+            merge_tree_entry(observables[key], entry)
+        else:
+            observables[key] = entry
     return {"form": 1, "observables": observables}
+
+
+def merge_tree_entry(entry, later):
+    """The form has one entry per (type, value), and ace3 has an observable per sha256 and path
+    (FileObservable.__eq__), each analyzed on its own. So an entry gets every path and the union
+    of what its observables hold. A module's result is that of the path that sorts first, because
+    the form has one per module and ace3's two can differ, by the names they derive from their
+    path."""
+    for field in ("tags", "directives", "excluded_analysis", "relationships"):
+        entry[field].update(later[field])
+    for path, tags in later.get("paths", {}).items():
+        entry["paths"].setdefault(path, {}).update(tags)
+    for description, details in later["detections"].items():
+        known = entry["detections"].setdefault(description, [])
+        known.extend(d for d in details if d not in known)
+        known.sort(key=lambda d: json.dumps(d, sort_keys=True, ensure_ascii=False, separators=(",", ":")))
+    for module, result in later["results"].items():
+        entry["results"].setdefault(module, result)
+    for field in ("time", "redirection"):
+        if field in later:
+            entry.setdefault(field, later[field])
 
 
 def prepare_work_dir(work):

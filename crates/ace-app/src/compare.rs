@@ -50,18 +50,22 @@
 //!   doesn't exist can't have added anything in ace4.
 //! - *harness*: a row under `## Harness limits`. The two runs didn't see the same world, so the
 //!   difference says nothing about the port.
-//! - *unexplained*: no row. These are what 3.4 sets a threshold on.
+//! - *unexplained*: no row. A port isn't accepted with any of these (`docs/acceptance.md`).
 //!
 //! A row's fourth cell narrows it: `ace4 only` matches only what ace3 doesn't have, and
 //! `ace3 holds <text>` only a value of ace3's with that text in it.
 //!
 //! # What makes it fail
 //!
-//! Differences don't. It exits non-zero when a sample can't be read, submitted or finished in
-//! `--sample-timeout`, or its tree can't be read or compared, naming the sample; the report is
-//! still written. Samples the manifest says are git-ignored are reported as absent when they aren't
-//! on this machine. `--require-clean <sample>` also fails on an unexplained difference in that
-//! sample, or on a row of `differences.md` that matched nothing, so the list stays true.
+//! Without `--threshold`, differences don't. It exits non-zero when a sample can't be read,
+//! submitted or finished in `--sample-timeout`, or its tree can't be read or compared, naming the
+//! sample; the report is still written. Samples the manifest says are git-ignored are reported as
+//! absent when they aren't on this machine.
+//!
+//! `--threshold` enforces PLAN.md 3.4's threshold, which `docs/acceptance.md` sets out. It also
+//! fails on any unexplained difference, `(tree)` included, on a row of `differences.md` that
+//! matched nothing, so the list stays true, and on an absent sample. `--allow-absent` lets samples
+//! be absent, for CI, which doesn't have the git-ignored ones.
 //!
 //! # The report
 //!
@@ -113,8 +117,8 @@ const TREE: &str = "(tree)";
 /// already up. It needs ACE4_DATABASE_URL, and ACE4_SUBMIT_TOKEN and ACE4_OVERLAY as the stack has
 /// them.
 ///
-/// Differences don't fail it. It fails when a sample can't be submitted or doesn't finish in time,
-/// naming the sample, and with --require-clean.
+/// Differences don't fail it unless --threshold says so. It fails when a sample can't be submitted
+/// or doesn't finish in time, naming the sample.
 #[derive(Args)]
 pub struct CompareArgs {
     /// The samples directory, which holds manifest.json.
@@ -138,10 +142,15 @@ pub struct CompareArgs {
     /// How long the whole run may take, in seconds. Samples left at the end fail as not run.
     #[arg(long, default_value_t = 3600)]
     timeout: u64,
-    /// Fail on an unexplained difference in this sample, and on a row of differences.md that
-    /// matched nothing.
-    #[arg(long)]
-    require_clean: Vec<String>,
+    /// Enforce docs/acceptance.md's threshold over the whole sample set: fail on an unexplained
+    /// difference in any sample, on a row of differences.md that matched nothing, and on an absent
+    /// sample.
+    #[arg(long, conflicts_with = "only")]
+    threshold: bool,
+    /// With --threshold, let the samples the manifest says are git-ignored be absent. It holds
+    /// over those compared, and the report says so.
+    #[arg(long, requires = "threshold")]
+    allow_absent: bool,
 }
 
 #[derive(Debug, Deserialize)]
@@ -568,6 +577,7 @@ struct Outcome {
     failures: Vec<Failure>,
     rows: Rows,
     seconds: f64,
+    allow_absent: bool,
 }
 
 impl Outcome {
@@ -667,6 +677,10 @@ impl Outcome {
                 .map(|f| json!({"sample": f.sample, "why": f.why}))
                 .collect::<Vec<_>>(),
             "seconds": self.seconds,
+            "threshold": {
+                "unmet": threshold_failures(self),
+                "allow_absent": self.allow_absent,
+            },
             "totals": self.totals().json(),
             "modules": self.modules().iter()
                 .map(|(module, counts)| (module.clone(), counts.json()))
@@ -713,6 +727,27 @@ impl Outcome {
             totals.unported,
             totals.explained,
         )?;
+        let unmet = threshold_failures(self);
+        if unmet.is_empty() && self.absent.is_empty() {
+            writeln!(
+                out,
+                "The threshold (`docs/acceptance.md`) is met over the whole sample set.\n"
+            )?;
+        } else if unmet.is_empty() {
+            writeln!(
+                out,
+                "The threshold (`docs/acceptance.md`) is met over the {} samples compared. It says \
+                 nothing about the {} absent.\n",
+                self.results.len(),
+                self.absent.len()
+            )?;
+        } else {
+            writeln!(
+                out,
+                "The threshold (`docs/acceptance.md`) isn't met, for {} reasons.\n",
+                unmet.len()
+            )?;
+        }
         if !self.failures.is_empty() {
             writeln!(out, "## Samples that failed\n")?;
             for failure in &self.failures {
@@ -867,33 +902,35 @@ fn escape_cell(text: &str) -> String {
     text.replace('|', "\\|")
 }
 
-/// Why the run should fail, beyond the samples that did.
-fn clean_failures(outcome: &Outcome, require_clean: &[String]) -> Vec<String> {
+/// Why the threshold isn't met (`docs/acceptance.md`), beyond the samples that failed to run, which
+/// fail any run.
+fn threshold_failures(outcome: &Outcome) -> Vec<String> {
     let mut failures = Vec::new();
-    for sample in require_clean {
-        match outcome.results.iter().find(|r| &r.path == sample) {
-            None => failures.push(format!("{sample} wasn't compared")),
-            Some(result) => {
-                for found in result
-                    .found
-                    .iter()
-                    .filter(|f| f.class == Class::Unexplained)
-                {
-                    failures.push(format!(
-                        "{sample}: not in differences.md: {}\n    ace3: {}\n    ace4: {}",
-                        found.difference.path,
-                        shown(&found.difference.ace3, 300),
-                        shown(&found.difference.ace4, 300)
-                    ));
-                }
-            }
+    for result in &outcome.results {
+        for found in result
+            .found
+            .iter()
+            .filter(|f| f.class == Class::Unexplained)
+        {
+            failures.push(format!(
+                "{}: not in differences.md: {}\n    ace3: {}\n    ace4: {}",
+                result.path,
+                found.difference.path,
+                shown(&found.difference.ace3, 300),
+                shown(&found.difference.ace4, 300)
+            ));
         }
     }
-    if !require_clean.is_empty() {
-        for row in outcome.rows.stale(&outcome.compared()) {
+    for row in outcome.rows.stale(&outcome.compared()) {
+        failures.push(format!(
+            "a row of differences.md matched nothing: {} {}",
+            row.dumps, row.path
+        ));
+    }
+    if !outcome.allow_absent {
+        for sample in &outcome.absent {
             failures.push(format!(
-                "a row of differences.md matched nothing: {} {}",
-                row.dumps, row.path
+                "{sample} is absent, so the threshold can't hold over the whole sample set"
             ));
         }
     }
@@ -916,7 +953,6 @@ pub fn run(app: &App, args: CompareArgs) -> Result<ExitCode> {
     let unknown: Vec<&String> = args
         .only
         .iter()
-        .chain(&args.require_clean)
         .filter(|name| !manifest.samples.iter().any(|s| &s.path == *name))
         .collect();
     if !unknown.is_empty() {
@@ -961,6 +997,7 @@ pub fn run(app: &App, args: CompareArgs) -> Result<ExitCode> {
             failures: Vec::new(),
             rows,
             seconds: 0.0,
+            allow_absent: args.allow_absent,
         };
         let started = Instant::now();
         let deadline = Duration::from_secs(args.timeout);
@@ -1030,14 +1067,18 @@ pub fn run(app: &App, args: CompareArgs) -> Result<ExitCode> {
             totals.explained,
             args.report.display()
         );
-        let clean = clean_failures(&outcome, &args.require_clean);
-        for line in &clean {
+        let unmet = if args.threshold {
+            threshold_failures(&outcome)
+        } else {
+            Vec::new()
+        };
+        for line in &unmet {
             eprintln!("ace compare: {line}");
         }
         for failure in &outcome.failures {
             eprintln!("ace compare: {}: {}", failure.sample, failure.why);
         }
-        if outcome.failures.is_empty() && clean.is_empty() {
+        if outcome.failures.is_empty() && unmet.is_empty() {
             Ok(ExitCode::SUCCESS)
         } else {
             Ok(ExitCode::FAILURE)
@@ -1354,6 +1395,7 @@ mod tests {
             }],
             rows,
             seconds: 1.0,
+            allow_absent: false,
         }
     }
 
@@ -1394,8 +1436,33 @@ mod tests {
     }
 
     #[test]
-    fn require_clean_fails_on_unexplained_and_on_a_stale_row() {
+    fn the_threshold_fails_on_unexplained_anywhere_a_stale_row_and_an_absent_sample() {
         let mut rows = listed(&[("*", "/never", None)]);
+        let result = compare_forms(
+            "ace3/a",
+            // a difference outside any module's result counts as one in a module's does
+            form(json!({"file:a": {"tags": {"t": true}}})),
+            form(json!({"file:a": {"tags": {}}})),
+            &ported(&[]),
+            &mut rows,
+        )
+        .expect("compares");
+        assert_eq!(result.found[0].module, TREE);
+        let mut outcome = outcome(vec![result], rows);
+        let failures = threshold_failures(&outcome);
+        assert_eq!(failures.len(), 3, "{failures:?}");
+        assert!(failures[0].contains("ace3/a: not in differences.md"));
+        assert!(failures[0].contains("/observables/file:a/tags/t"));
+        assert!(failures[1].contains("/never"));
+        assert!(failures[2].contains("local/x is absent"));
+
+        outcome.allow_absent = true;
+        assert_eq!(threshold_failures(&outcome).len(), 2);
+    }
+
+    #[test]
+    fn the_threshold_is_met_when_every_difference_has_a_row() {
+        let mut rows = listed(&[("*", "/observables/*/tags/t", None)]);
         let result = compare_forms(
             "ace3/a",
             form(json!({"file:a": {"tags": {"t": true}}})),
@@ -1404,15 +1471,17 @@ mod tests {
             &mut rows,
         )
         .expect("compares");
-        let outcome = outcome(vec![result], rows);
-        assert!(clean_failures(&outcome, &[]).is_empty());
-        let failures = clean_failures(&outcome, &["ace3/a".to_owned()]);
-        assert_eq!(failures.len(), 2, "{failures:?}");
-        assert!(failures[0].contains("/observables/file:a/tags/t"));
-        assert!(failures[1].contains("/never"));
+        let mut outcome = outcome(vec![result], rows);
+        outcome.allow_absent = true;
+        assert_eq!(threshold_failures(&outcome), Vec::<String>::new());
+        let text = outcome.to_markdown().expect("writes");
         assert!(
-            clean_failures(&outcome, &["ace3/other".to_owned()])[0].contains("wasn't compared")
+            text.contains("is met over the 1 samples compared. It says nothing about the 1 absent"),
+            "{text}"
         );
+        outcome.absent.clear();
+        let text = outcome.to_markdown().expect("writes");
+        assert!(text.contains("is met over the whole sample set"), "{text}");
     }
 
     #[test]

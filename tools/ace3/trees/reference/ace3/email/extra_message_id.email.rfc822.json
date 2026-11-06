@@ -296,6 +296,10 @@
         "email_analyzer": true
       },
       "paths": {
+        "email.rfc822.email.rfc822.email.rfc822.headers": {
+          "type=email": true,
+          "type=email.headers": true
+        },
         "email.rfc822.email_000.rfc822.headers": {
           "type=email": true,
           "type=email.headers": true
@@ -336,6 +340,10 @@
       "excluded_analysis": {},
       "paths": {
         "email.rfc822.email.rfc822.unknown_text_html_000.html": {
+          "type=document.html": true,
+          "type=email.attachment": true
+        },
+        "email.rfc822.unknown_text_html_001.html": {
           "type=document.html": true,
           "type=email.attachment": true
         }
@@ -1625,6 +1633,9 @@
       },
       "excluded_analysis": {},
       "paths": {
+        "email.rfc822.email.rfc822.unknown_text_plain_000.txt": {
+          "type=email.attachment": true
+        },
         "email.rfc822.unknown_text_plain_001.txt": {
           "type=email.attachment": true
         }
@@ -1664,6 +1675,11 @@
           "type=document.html": true,
           "type=email": true,
           "type=email.combined": true
+        },
+        "email.rfc822.email_000.rfc822.combined": {
+          "type=document.html": true,
+          "type=email": true,
+          "type=email.combined": true
         }
       },
       "relationships": {},
@@ -1700,7 +1716,19 @@
       },
       "excluded_analysis": {},
       "paths": {
+        "email.rfc822.email.rfc822.email.rfc822.unknown_text_html_000.html": {
+          "type=document.html": true,
+          "type=email.attachment": true
+        },
+        "email.rfc822.email.rfc822.unknown_text_html_001.html": {
+          "type=document.html": true,
+          "type=email.attachment": true
+        },
         "email.rfc822.email_000.rfc822.unknown_text_html_000.html": {
+          "type=document.html": true,
+          "type=email.attachment": true
+        },
+        "email.rfc822.unknown_text_html_002.html": {
           "type=document.html": true,
           "type=email.attachment": true
         }
@@ -1738,6 +1766,11 @@
       "excluded_analysis": {},
       "paths": {
         "email.rfc822.email.rfc822.email.rfc822": {
+          "type=document.html": true,
+          "type=email": true,
+          "type=email.attachment": true
+        },
+        "email.rfc822.email_000.rfc822": {
           "type=document.html": true,
           "type=email": true,
           "type=email.attachment": true

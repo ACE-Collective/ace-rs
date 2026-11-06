@@ -15,7 +15,7 @@ For now ace4 is a proof of concept that runs on one laptop beside ace3. ace3 sen
 - A step is one change, with its tests in the same change.
 - A step needs the steps above it in its phase, unless it names its own dependencies.
 - A measurement records the command, the number of runs, the median and the range, and what else the number could include, such as cached work, errors or skipped steps.
-- A ported module is done when its output matches ace3's: on reference dumps in phase 1 (1.24), and in 3.3's comparison over the local samples from phase 3 on. From phase 5 on, a port also brings its analysis template.
+- A ported module is done when its output matches ace3's: on reference dumps in phase 1 (1.24), and in 3.3's comparison over the local samples from phase 3 on, by the threshold in `docs/acceptance.md`. From phase 5 on, a port also brings its analysis template.
 - No step changes ace3's checkout, the signatures repository or the site_ace repository. Scripts that need ace3's code live in `tools/ace3/` and run in ace3's dev container through `docker exec`.
 - A step that ports something ace3 integrations can extend also adds it to `ace-app` (2.31), so site_ace can extend it too.
 - A step that changes a Compose file keeps ace4's stack able to run beside ace3's, following *Running beside ace3* below. 0.6's check enforces it.
@@ -191,7 +191,7 @@ DESIGN.md's Sequence step 3 sends production traffic to both systems. For the pr
 - [x] **3.1 Normal form.** A JSON form of an alert's tree that both systems can write: observables by (type, value), results by module, a fixed order, and no timestamps or absolute paths. Done when ace4 writes it for 2.30's root.
 - [x] **3.2 ace3 trees.** A script in `tools/ace3/` runs each sample through ace3's `cli` analysis mode in ace3's dev container and writes its tree in the same form. Done when both systems' forms of one sample agree on the five phase 1 modules.
 - [x] **3.3 Comparison command.** `ace compare` runs the sample set through ace4, diffs each tree against 3.2's output per module, skipping modules not yet ported, and writes the differences to a report. Done when it runs over the whole sample set.
-- [ ] **3.4 Acceptance threshold.** Write down the threshold for accepting a port, such as no unexplained difference over the sample set. Done when the five phase 1 modules meet it.
+- [x] **3.4 Acceptance threshold.** Write down the threshold for accepting a port, such as no unexplained difference over the sample set. Done when the five phase 1 modules meet it. It's in `docs/acceptance.md`, and `tests/e2e/run` enforces it.
 - [ ] **3.5 Memory.** Measure each pool's private memory while 3.3 runs. ace3's figures come from production load: 365 to 491 MB on correlation workers, 597 to 1,028 MB on a busy email scanner, about 230 MB for a fresh worker, and 2.57 GB for `http-api-v2`'s 12 workers. Done when `docs/measurements/memory.md` has ace4's numbers and says what load they came from.
 
 ## Phase 4: libraries with no Rust equivalent

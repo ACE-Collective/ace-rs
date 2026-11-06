@@ -95,6 +95,97 @@ fn files_that_arent_archives_are_skipped() {
     }
 }
 
+/// A zip of one member, encrypted as `options` says, holding `b"the payload"`.
+fn encrypted_zip(name: &str, options: zip::write::SimpleFileOptions) -> Vec<u8> {
+    let mut writer = zip::ZipWriter::new(std::io::Cursor::new(Vec::new()));
+    writer.start_file(name, options).expect("starts");
+    writer.write_all(b"the payload").expect("writes");
+    writer.finish().expect("finishes").into_inner()
+}
+
+fn zipcrypto(password: &'static [u8]) -> zip::write::SimpleFileOptions {
+    use zip::unstable::write::FileOptionsExt as _;
+    zip::write::SimpleFileOptions::default()
+        .with_deprecated_encryption(password)
+        .expect("a password")
+}
+
+fn aes(password: &'static str) -> zip::write::SimpleFileOptions {
+    zip::write::SimpleFileOptions::default().with_aes_encryption(zip::AesMode::Aes256, password)
+}
+
+/// ace3's `7z -pinfected` leaves an empty file for a zip member that password doesn't open, and
+/// ace3 lists it as extracted. That file's name still decides the single-file tags and detections.
+#[test]
+fn a_zip_member_the_password_doesnt_open_is_written_empty_as_7z_leaves_it() {
+    for bytes in [
+        encrypted_zip("invoice.txt", zipcrypto(b"Secr3tPw")),
+        encrypted_zip("invoice.txt", aes("Secr3tPw")),
+    ] {
+        let harness = Harness::<ArchiveAnalyzer>::new().expect("harness");
+        let file = harness.file_bytes("a.zip", &bytes, &[]).expect("fixture");
+        let Outcome::Done(result) = harness.run_parser(file).expect("runs") else {
+            panic!("expected a result");
+        };
+        assert_eq!(result.details.extracted_files, ["invoice.txt"]);
+        assert_eq!(result.tags, ["single_file_zip"]);
+        let [file] = result.files.as_slice() else {
+            panic!("expected one file, got {:?}", result.files);
+        };
+        assert_eq!(harness.read_output(file).expect("reads"), b"");
+        assert_eq!(file.directives, ["sandbox"]);
+        assert!(file.detections.is_empty(), "{:?}", file.detections);
+    }
+
+    let bytes = encrypted_zip("evil.exe", zipcrypto(b"Secr3tPw"));
+    let harness = Harness::<ArchiveAnalyzer>::new().expect("harness");
+    let file = harness.file_bytes("a.zip", &bytes, &[]).expect("fixture");
+    let Outcome::Done(result) = harness.run_parser(file).expect("runs") else {
+        panic!("expected a result");
+    };
+    assert_eq!(result.tags, ["single_file_zip", "exe_in_zip"]);
+    assert_eq!(
+        result.files[0].detections[0].description,
+        "An archive contained a single file that was an executable"
+    );
+}
+
+#[test]
+fn a_zip_member_the_password_opens_keeps_its_bytes() {
+    for bytes in [
+        encrypted_zip("invoice.txt", zipcrypto(b"infected")),
+        encrypted_zip("invoice.txt", aes("infected")),
+    ] {
+        let harness = Harness::<ArchiveAnalyzer>::new().expect("harness");
+        let file = harness.file_bytes("a.zip", &bytes, &[]).expect("fixture");
+        let Outcome::Done(result) = harness.run_parser(file).expect("runs") else {
+            panic!("expected a result");
+        };
+        assert_eq!(
+            harness.read_output(&result.files[0]).expect("reads"),
+            b"the payload"
+        );
+    }
+}
+
+/// 7z leaves nothing for a 7z archive's member the password doesn't open (checked with 7-Zip 25.01,
+/// ace3's), so here the member is counted and not extracted. This one's password is `Secr3t`.
+#[test]
+fn a_7z_member_the_password_doesnt_open_is_not_written() {
+    let hex = "377abcaf271c0004641a7fdb100000000000000072000000000000009625bdcf46bef2e9eb630ff7160f7621d23d50a00104060001091000070b0100022406f1070112530f99994dced419c263c9fc0c40932166952121010001000c100c00080a017557db390000050119010011190069006e0076006f006900630065002e00740078007400000019020000140a01003978f3fc336edd01150601002080b6810000";
+    let bytes: Vec<u8> = (0..hex.len())
+        .step_by(2)
+        .map(|i| u8::from_str_radix(&hex[i..i + 2], 16).expect("hex"))
+        .collect();
+    let harness = Harness::<ArchiveAnalyzer>::new().expect("harness");
+    let file = harness.file_bytes("a.7z", &bytes, &[]).expect("fixture");
+    let Outcome::Done(result) = harness.run_parser(file).expect("runs") else {
+        panic!("expected a result");
+    };
+    assert_eq!(result.details.file_count, 1);
+    assert!(result.files.is_empty(), "{:?}", result.files);
+}
+
 #[test]
 fn unknown_settings_keys_fail() {
     let err = Harness::<ArchiveAnalyzer>::with_settings(json!({"max_files": 3}))

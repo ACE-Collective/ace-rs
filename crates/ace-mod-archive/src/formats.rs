@@ -211,13 +211,22 @@ pub fn extract(
                 } else {
                     archive.by_index(index)
                 };
-                let result = entry.map_err(|e| e.to_string()).and_then(|entry| {
-                    let mut entry = KeepBadChecksum {
-                        inner: entry,
-                        index,
-                    };
-                    sink(index, &mut entry).map_err(|e| e.to_string())
-                });
+                let result = match entry {
+                    // ace3's 7z leaves an empty file for a zip member the password doesn't open,
+                    // which ace3 then counts, tags and flags like any member. Its unzip and
+                    // zipfile, which read an xlsx and a JAR, write nothing for one.
+                    Err(zip::result::ZipError::InvalidPassword) if format == Format::Zip => {
+                        tracing::info!(index, "the password doesn't open this zip entry");
+                        sink(index, &mut io::empty()).map_err(|e| e.to_string())
+                    }
+                    entry => entry.map_err(|e| e.to_string()).and_then(|entry| {
+                        let mut entry = KeepBadChecksum {
+                            inner: entry,
+                            index,
+                        };
+                        sink(index, &mut entry).map_err(|e| e.to_string())
+                    }),
+                };
                 if let Err(e) = result {
                     failed(index, e);
                 }

@@ -23,14 +23,17 @@ times, so their trees in the normal form (PLAN.md 3.1) must be the same text, wh
 
 It then runs `ace compare` (PLAN.md 3.3, crates/ace-app/src/compare.rs) over the sample set, each
 sample in the cli mode against ace3's tree in tools/ace3/trees/reference/ (3.2), and writes the
-report to <work>/compare/. Other samples' differences are reported and don't fail the test. This
-email's have to be listed in tools/ace3/trees/differences.md, and a row that matches nothing fails
-too, so the list stays true.
+report to <work>/compare/. It enforces the acceptance threshold in docs/acceptance.md: a difference
+in any sample that tools/ace3/trees/differences.md doesn't list fails the test, and so does a row
+that matches nothing, so the list stays true. So does a sample absent from this machine, unless CI
+is set: CI doesn't have the git-ignored samples/local/, so there it holds over the tracked samples,
+and the report says how many were absent.
 
 Usage: tests/e2e/run [--keep] [--compare]
   --keep      leaves the stack up
   --compare   only brings up the stack and runs `ace compare` over the sample set, reporting
-              differences without failing on them, and fails only when a sample can't be run
+              differences without enforcing the threshold, and fails only when a sample can't be
+              run
 
 Exits 0 when every check passes. Needs docker compose and python3 on the host.
 
@@ -316,7 +319,7 @@ def check_normal_form(text, failures):
            "it holds no row timestamp")
 
 
-def compare_with_ace3(require_clean=()):
+def compare_with_ace3(threshold=False):
     """Runs `ace compare` over the sample set in a one-off ace container, with the report under
     <work>/compare. Returns its exit code."""
     report = WORK / "compare"
@@ -332,8 +335,10 @@ def compare_with_ace3(require_clean=()):
         "ace", ACE_COMMAND, "compare", "--samples", "/compare/samples", "--trees", "/compare/trees",
         "--report", "/compare/report",
     ]
-    for sample in require_clean:
-        command += ["--require-clean", sample]
+    if threshold:
+        command.append("--threshold")
+        if os.environ.get("CI"):
+            command.append("--allow-absent")
     code = compose(*command, check=False, exit_code=True)
     log(f"the comparison's report is in {report}")
     return code
@@ -431,12 +436,12 @@ def main(argv):
             log("FAIL  the roots' normal forms differ; see normal-form*.json in " + str(WORK))
             failures.append("the same email's two roots have different normal forms")
         if "ACE4_E2E_SITE" not in os.environ:
-            if compare_with_ace3(require_clean=[SAMPLE]) != 0:
-                failures.append(f"ace compare failed, or {SAMPLE} differs from ace3 "
-                                "unexplained; see above")
+            if compare_with_ace3(threshold=True) != 0:
+                failures.append("the acceptance threshold (docs/acceptance.md) isn't met; see "
+                                "above and target/e2e/compare/report.md")
             else:
-                log(f"ok    ace4's tree of {SAMPLE} differs from ace3's only as differences.md "
-                    "explains, and every sample ran")
+                log("ok    the acceptance threshold is met: every difference from ace3 is listed "
+                    "in differences.md, and every row matched one")
     finally:
         if failures or keep:
             for service in ("ace", "parsers", "lookups", "responder"):

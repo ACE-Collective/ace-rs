@@ -365,11 +365,19 @@ impl Parser for ArchiveAnalyzer {
                 let Some(path) = order.iter().find(|p| by_path[*p].index == index) else {
                     return Ok(());
                 };
-                match ctx.write_file_from(path, reader, &[]) {
+                let mut reader = NotesReadError {
+                    inner: reader,
+                    failed: false,
+                };
+                match ctx.write_file_from(path, &mut reader, &[]) {
                     Ok(new_file) => {
                         written.insert(index, new_file);
                         Ok(())
                     }
+                    // the member, such as an encrypted one with the wrong password: only this
+                    // file is lost
+                    Err(e) if reader.failed => Err(std::io::Error::other(e.to_string())),
+                    // this node's disk or the file limit, which fails the task
                     Err(e) => {
                         let message = e.to_string();
                         failure.get_or_insert(ModuleError::from(e));
@@ -436,6 +444,20 @@ impl Parser for ArchiveAnalyzer {
         result.summary = summary(&analysis);
         result.details = analysis;
         Ok(Outcome::Done(result))
+    }
+}
+
+/// Says whether a read failed, because a failed write of a file doesn't say which side it was.
+struct NotesReadError<'a> {
+    inner: &'a mut dyn Read,
+    failed: bool,
+}
+
+impl Read for NotesReadError<'_> {
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+        let result = self.inner.read(buf);
+        self.failed |= result.is_err();
+        result
     }
 }
 

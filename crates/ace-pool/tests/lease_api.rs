@@ -9,6 +9,7 @@ use std::time::Duration;
 use ace_core::bucket::ALERT_FILES;
 use ace_results::Sha256;
 use ace_store::Store;
+use sha2::Digest as _;
 
 use common::{Core, test_pool};
 
@@ -105,6 +106,85 @@ async fn a_worker_with_only_an_api_token_runs_a_task_end_to_end() {
             .expect("deletes");
     }
     assert!(Store::key(ALERT_FILES, &member).is_ok());
+}
+
+/// A zero-byte output, such as a zip's empty member, is uploaded like any other: its presigned URL
+/// signs `content-length`, so a request without that header is refused with a 403.
+#[tokio::test]
+async fn an_empty_file_uploads_to_its_presigned_url() {
+    let core = Core::start(
+        vec![ace_mod_archive::MANIFEST],
+        &["archive"],
+        Duration::from_secs(30),
+    )
+    .await;
+    let client = ace_pool::client::LeaseClient::new(&core.url, common::TOKEN, "w").expect("client");
+    let dir = tempfile::tempdir().expect("a directory");
+    let path = dir.path().join("empty");
+    std::fs::write(&path, b"").expect("writes");
+    let sha256 = Sha256(sha2::Sha256::digest(b"").into());
+    let key = format!(
+        "uploads/test-{}/{}",
+        uuid::Uuid::new_v4().simple(),
+        sha256.to_hex()
+    );
+    let store = core.bucket.store();
+    let url = store
+        .presign_put(&key, 0, Duration::from_secs(60))
+        .await
+        .expect("presigns");
+    let url = ace_sdk::wire::Presigned {
+        url: url.url,
+        headers: url.headers,
+    };
+    client.upload(&url, &path).await.expect("uploads");
+    let spooled = store.spool_key(&key, &sha256).await.expect("the object");
+    assert_eq!(spooled.size, 0);
+    store.delete_key(&key).await.expect("deletes");
+}
+
+/// evil.zip's one member is empty. The module's task ends done, the member reaches the tree and
+/// the bucket, and its own task can download it.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn an_archive_with_an_empty_member_runs_end_to_end() {
+    let core = Core::start(
+        vec![ace_mod_archive::MANIFEST],
+        &["archive"],
+        Duration::from_secs(30),
+    )
+    .await;
+    let (root, _, zip) = core
+        .root_with_file("file", "ace3/archive/evil.zip", "evil.zip")
+        .await;
+    let empty = Sha256(sha2::Sha256::digest(b"").into());
+    for _ in 0..2 {
+        let mut worker = test_pool(&core, &["once"]);
+        let output = tokio::task::spawn_blocking(move || worker.output())
+            .await
+            .expect("joins")
+            .expect("the worker runs");
+        assert!(
+            output.status.success(),
+            "{}\n{}\n{}",
+            output.status,
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+    assert_eq!(
+        core.tasks(root).await,
+        [
+            ("archive".to_owned(), zip.to_hex(), "done".to_owned()),
+            ("archive".to_owned(), empty.to_hex(), "done".to_owned()),
+        ]
+    );
+    let object = core
+        .bucket
+        .object(ALERT_FILES, &empty)
+        .await
+        .expect("reads")
+        .expect("the empty member is in the bucket");
+    assert_eq!(object.size, 0);
 }
 
 #[tokio::test]

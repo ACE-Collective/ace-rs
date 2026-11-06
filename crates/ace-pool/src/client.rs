@@ -244,11 +244,10 @@ impl LeaseClient {
             .request(reqwest::Method::PUT, &url.url)
             .timeout(TRANSFER_TIMEOUT)
             .body(bytes);
+        // these include content-length, which the URL's signature covers: the client wouldn't
+        // send one for an empty body, and the bucket would answer 403
         for (name, value) in &url.headers {
-            // the client sets the length from the body
-            if !name.eq_ignore_ascii_case("content-length") {
-                request = request.header(name, value);
-            }
+            request = request.header(name, value);
         }
         let response = self.http.send(request).await?;
         if !response.status().is_success() {

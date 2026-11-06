@@ -31,10 +31,14 @@ In the Dumps column, `*` matches any text in a dump's name. In the Path column, 
 
 ## Behaviour the dumps don't exercise
 
+These follow ace3 on purpose, so they aren't differences, but they're easy to get wrong:
+
+- A zip member the password `infected` doesn't open, ZipCrypto or AES, is written as an empty file, and counts, tags and flags as a member. ace3's `7z -pinfected` leaves that empty file (checked with 7-Zip 25.01, ace3's), and ace3 lists what's in the directory. So a single encrypted `evil.exe` is still a detection. A 7z archive's member gets no file, in 7z and here: it's counted and not extracted.
+
 These depart from ace3:
 
 - Formats: zip (and JAR and the Office formats built on it), 7z, RAR and gzip are read. ace3's `7z` also opens cab, tar, ISO, MSI, bzip2, xz, arj, lzh and others, and `unace` ACE archives; those are skipped until a port needs them.
 - A RAR's members are tried with the password `infected` too. ace3 passes `unrar` no password, so it extracts nothing from an encrypted RAR.
-- An entry that fails to extract is logged and the others are still extracted. ace3's JAR extraction stops at the first entry that fails, and its other tools carry on.
-- When two entries extract to the same path, the later one wins, as 7z's `-y` and unrar's `-o+` overwrite. Each extracted file is its own result file, even when two have the same bytes; ace3 keeps one observable per sha256.
+- An entry that fails to extract, other than a password's, is logged and the others are still extracted. ace3's JAR extraction stops at the first entry that fails, and its other tools carry on.
+- When two entries extract to the same path, the later one wins, as 7z's `-y` and unrar's `-o+` overwrite. Each extracted file is its own result file, even when two have the same bytes.
 - unrar is built with `RAR_SMP` and may start threads for a RAR 5 archive, and sevenz-rust2's LZMA2 decoder is set to one thread. The single-threaded containment of PLAN.md 2.18 will need unrar built without `RAR_SMP`.
