@@ -30,6 +30,7 @@
 
 mod cli;
 mod pools;
+mod root;
 mod schema;
 mod serve;
 mod task;

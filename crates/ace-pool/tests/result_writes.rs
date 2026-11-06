@@ -5,7 +5,9 @@ mod common;
 
 use std::time::Duration;
 
+use ace_core::tree::{self, NewRoot};
 use ace_pool::client::{ClientError, LeaseClient};
+use ace_results::{NewObservable, ObservableKind, ObservableRef};
 use ace_sdk::wire::TaskEnd;
 use serde_json::json;
 use uuid::Uuid;
@@ -141,4 +143,43 @@ async fn an_invalid_result_is_rejected_with_its_fields_path_and_nothing_is_writt
         .delete(ace_core::bucket::ALERT_FILES, &zip)
         .await
         .expect("tidies the bucket");
+}
+
+/// A module sees what its input redirects to: the YARA module needs it to sandbox the document a
+/// part came out of (PLAN.md 3.1).
+#[tokio::test]
+async fn a_leased_task_says_what_its_observable_redirects_to() {
+    let core = Core::start(
+        vec![ace_mod_archive::MANIFEST],
+        &["archive"],
+        Duration::from_secs(30),
+    )
+    .await;
+    let db = core.test_db.db();
+    let root = NewRoot::new("analysis");
+    let target = ObservableRef::new(ObservableKind::File, "aa".repeat(32));
+    let mut part = NewObservable::new(ObservableKind::Fqdn, "part.example.com");
+    part.redirection = Some(target.clone());
+    let mut tx = db.begin().await.expect("begins");
+    tree::create_root(&mut tx, &root).await.expect("creates");
+    let id = tree::upsert_observable(&mut tx, root.id, &part)
+        .await
+        .expect("adds")
+        .id;
+    ace_core::queue::enqueue(&mut tx, root.id, id, "archive")
+        .await
+        .expect("queues");
+    tx.commit().await.expect("commits");
+
+    let client = LeaseClient::new(&core.url, TOKEN, "checker").expect("a client");
+    let task = client
+        .lease(&[], Duration::ZERO)
+        .await
+        .expect("leases")
+        .expect("the task");
+    assert_eq!(task.observable.redirection.as_ref(), Some(&target));
+    assert_eq!(
+        task.observable.to_observable(None).redirection,
+        Some(target)
+    );
 }

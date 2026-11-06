@@ -13,7 +13,7 @@ use ace_core::modes::{AnalysisMode, Modes};
 use ace_core::orchestrator::{Orchestrator, Scope};
 use ace_core::testing::TestDb;
 use ace_core::tree;
-use ace_results::ObservableKind;
+use ace_results::{ObservableKind, ObservableRef};
 use serde_json::json;
 
 use common::{manifests, result, root_with, tasks_of, worker};
@@ -385,4 +385,105 @@ async fn a_result_makes_its_dependents_eligible_and_a_cancelled_dependency_fails
         state_of(&tasks, "test_depends_on_archive").as_deref(),
         Some("queued")
     );
+}
+
+/// A file's relationships and redirection reach the tree, and what a module adds to the
+/// redirection lands on the file it redirects to, with its `yara_meta` tags on that file's path.
+#[tokio::test]
+async fn a_result_links_observables_and_adds_to_what_one_redirects_to() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let document = "aa".repeat(32);
+    let part = "bb".repeat(32);
+    let (root, ids) = root_with(db, "test", &[(ObservableKind::File, &document)]).await;
+    let orchestrator = Orchestrator::new(Catalog::new(manifests()), modes());
+    let mut tx = db.begin().await.expect("begins");
+    tree::add_file(&mut tx, root, ids[0], "a.docx", &[])
+        .await
+        .expect("adds");
+    orchestrator.start(&mut tx, root).await.expect("starts");
+    tx.commit().await.expect("commits");
+
+    // the archive module decomposes the document into a part that redirects to it
+    let archiver = worker(&test_db, "archiver", &["archive"], Duration::from_secs(60)).await;
+    let task = archiver.claim().await.expect("claims").expect("a task");
+    let reference = json!({"type": "file", "value": document});
+    let mut tx = db.begin().await.expect("begins");
+    orchestrator
+        .land_result(
+            &mut tx,
+            &archiver,
+            &task,
+            &result(json!({
+                "analysis_type": "archive_analysis",
+                "schema_version": 1,
+                "details": {},
+                "files": [{
+                    "path": "a.docx.extracted/word/document.xml",
+                    "sha256": part,
+                    "size": 1,
+                    "relationships": [{"type": "extracted_from", "target": reference}],
+                    "redirection": reference,
+                }],
+            })),
+        )
+        .await
+        .expect("lands");
+    tx.commit().await.expect("commits");
+
+    let part_ref = ObservableRef::new(ObservableKind::File, part.as_str());
+    let part_id = tree::find_observable(db.pool(), root, &part_ref)
+        .await
+        .expect("finds")
+        .expect("is there");
+    let document_ref = ObservableRef::new(ObservableKind::File, document.as_str());
+    assert_eq!(
+        tree::redirection(db.pool(), root, part_id)
+            .await
+            .expect("reads"),
+        Some(document_ref)
+    );
+
+    // a module on the part sandboxes the document, as YARA does; the part stays as it was
+    let task = archiver.claim().await.expect("claims").expect("a task");
+    assert_eq!(task.observable.id, part_id);
+    let mut tx = db.begin().await.expect("begins");
+    orchestrator
+        .land_result(
+            &mut tx,
+            &archiver,
+            &task,
+            &result(json!({
+                "analysis_type": "archive_analysis",
+                "schema_version": 1,
+                "details": {},
+                "analyzed": {"yara_meta": ["seen=part"]},
+                "redirected": {"directives": ["sandbox"], "yara_meta": ["seen=document"]},
+            })),
+        )
+        .await
+        .expect("lands");
+    tx.commit().await.expect("commits");
+
+    let form = ace_core::normal::normal_form(db.pool(), root)
+        .await
+        .expect("reads")
+        .expect("exists");
+    let on_document = &form["observables"][format!("file:{document}")];
+    let on_part = &form["observables"][format!("file:{part}")];
+    assert_eq!(on_document["directives"], json!({"sandbox": true}));
+    assert_eq!(
+        on_document["paths"]["a.docx"],
+        json!({"seen=document": true})
+    );
+    assert_eq!(on_part["directives"], json!({}));
+    assert_eq!(
+        on_part["paths"]["a.docx.extracted/word/document.xml"],
+        json!({"seen=part": true})
+    );
+    assert_eq!(
+        on_part["relationships"],
+        json!({format!("extracted_from file:{document}"): true})
+    );
+    assert_eq!(on_part["redirection"], json!(format!("file:{document}")));
 }

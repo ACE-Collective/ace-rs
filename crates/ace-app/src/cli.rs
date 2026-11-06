@@ -27,6 +27,9 @@ enum Command {
     /// Tools for one task, such as replaying it.
     #[command(subcommand)]
     Task(crate::task::TaskCommand),
+    /// Tools for one root, such as writing its tree in the normal form.
+    #[command(subcommand)]
+    Root(crate::root::RootCommand),
 }
 
 pub fn main(app: &App) -> ExitCode {
@@ -40,6 +43,7 @@ pub fn main(app: &App) -> ExitCode {
         Command::Yara(command) => crate::yara::run(command),
         Command::Serve => crate::serve::run(app, &mut telemetry),
         Command::Task(command) => crate::task::run(app, command),
+        Command::Root(command) => crate::root::run(command),
     };
     match result {
         Ok(code) => code,

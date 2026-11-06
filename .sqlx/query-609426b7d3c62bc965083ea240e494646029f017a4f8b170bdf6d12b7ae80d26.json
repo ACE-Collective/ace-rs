@@ -1,0 +1,43 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO analysis.observables AS o\n               (root_id, type, value, time, tags, directives, exclude_modules, redirection_type,\n                redirection_value)\n           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)\n           ON CONFLICT (root_id, type, value_hash) DO UPDATE SET\n               time = COALESCE(o.time, EXCLUDED.time),\n               redirection_type = COALESCE(o.redirection_type, EXCLUDED.redirection_type),\n               redirection_value = COALESCE(o.redirection_value, EXCLUDED.redirection_value),\n               tags = analysis.merged(o.tags, EXCLUDED.tags),\n               directives = analysis.merged(o.directives, EXCLUDED.directives),\n               exclude_modules = analysis.merged(o.exclude_modules, EXCLUDED.exclude_modules)\n           RETURNING id AS \"id: ObservableId\", (xmax = 0) AS \"inserted!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id: ObservableId",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "analysis.observables",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "inserted!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Timestamptz",
+        "TextArray",
+        "TextArray",
+        "TextArray",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      null
+    ]
+  },
+  "hash": "609426b7d3c62bc965083ea240e494646029f017a4f8b170bdf6d12b7ae80d26"
+}

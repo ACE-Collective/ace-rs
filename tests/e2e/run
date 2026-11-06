@@ -16,7 +16,9 @@ email mode; the YARA match on the attachment makes the root an alert in correlat
 runs RDAP and the Splunk instance, the delayed module, on the domain. The second time the
 parser pool is frozen before the submission, so the core leases it a task it never answers, and
 it is killed with SIGKILL while it holds that lease, then started again. Both roots must have
-results from all five modules and complete; the second only later.
+results from all five modules and complete; the second only later. The same email goes in both
+times, so their trees in the normal form (PLAN.md 3.1) must be the same text, which goes to
+<work>/normal-form.json.
 
 Usage: tests/e2e/run [--keep]   (--keep leaves the stack up)
 Exits 0 when every check passes. Needs docker compose and python3 on the host.
@@ -29,12 +31,14 @@ A site repository runs the same scenario against its own images (PLAN.md 2.32) b
 - ACE4_E2E_PROJECT: the Compose project the test runs under, in place of ace4-e2e;
 - ACE4_E2E_SITE: the site overlay directory, in place of tests/e2e/site;
 - ACE4_E2E_WORK: where the signatures repository goes, in place of target/e2e;
-- ACE4_E2E_PORT: the host port, as for ace4.
+- ACE4_E2E_PORT: the host port, as for ace4;
+- ACE4_E2E_ACE_COMMAND: the ace service's binary, in place of ace.
 """
 
 import io
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -52,6 +56,7 @@ WORK = Path(os.environ.get("ACE4_E2E_WORK", ROOT / "target" / "e2e")).resolve()
 SITE = Path(os.environ.get("ACE4_E2E_SITE", ROOT / "tests" / "e2e" / "site")).resolve()
 PROJECT = os.environ.get("ACE4_E2E_PROJECT", "ace4-e2e")
 PORT = os.environ.get("ACE4_E2E_PORT", "7444")
+ACE_COMMAND = os.environ.get("ACE4_E2E_ACE_COMMAND", "ace")
 SUBMIT_TOKEN = "ace4-e2e-submit-token"
 LEASE_SECONDS = 15
 MARKER = "ACE4-E2E-MARKER-6c1f"
@@ -152,7 +157,7 @@ def make_signatures():
     ).stdout.strip()
 
 
-def make_email(n):
+def make_email():
     """An email with a DKIM signing domain and a stored zip attachment holding the marker,
     which the extracted file holds too, untagged."""
     archive = io.BytesIO()
@@ -164,9 +169,9 @@ def make_email(n):
     message = EmailMessage()
     message["From"] = "Alice <alice@example.com>"
     message["To"] = "bob@example.net"
-    message["Subject"] = f"ace4 end-to-end {n}"
+    message["Subject"] = "ace4 end-to-end"
     message["Date"] = "Sun, 01 Nov 2026 12:00:00 +0000"
-    message["Message-ID"] = f"<ace4-e2e-{n}-{uuid.uuid4()}@example.com>"
+    message["Message-ID"] = "<ace4-e2e@example.com>"
     message["DKIM-Signature"] = (
         "v=1; a=rsa-sha256; c=relaxed/relaxed; d=example.com; s=e2e; "
         "h=from:to:subject; bh=AAAA; b=BBBB"
@@ -301,7 +306,43 @@ def check_root(root, failures):
     expect(delays != "0", "the Splunk task was delayed before its result")
 
 
-def run(n, kill, failures):
+def normal_form(root):
+    """The root's tree in the normal form, as text."""
+    return compose("exec", "-T", "ace", ACE_COMMAND, "root", "normal-form", root, capture=True)
+
+
+def check_normal_form(text, failures):
+    """Checks what the form of a root from this test has to say."""
+
+    def expect(ok, message):
+        log(("ok    " if ok else "FAIL  ") + message)
+        if not ok:
+            failures.append(f"the normal form: {message}")
+
+    form = json.loads(text)
+    observables = form["observables"]
+    modules = {m for o in observables.values() for m in o["results"]}
+    expect(modules >= set(MODULES), f"it has results from all five modules: {sorted(modules)}")
+    expect(text == json.dumps(form, indent=2, sort_keys=True, ensure_ascii=False) + "\n",
+           "its text is what Python's json.dumps writes, so ace3's script can write the same")
+    paths = {p: tags for o in observables.values() for p, tags in o.get("paths", {}).items()}
+    expect(paths.get("email.rfc822") is not None and any(
+        p.endswith("invoice.zip") and "type=email.attachment" in tags for p, tags in paths.items()
+    ), f"files keep their paths and yara_meta tags: {sorted(paths)}")
+    extracted = [o for o in observables.values()
+                 if any(p.endswith("invoice.txt") for p in o.get("paths", {}))]
+    expect(len(extracted) == 1 and any(
+        r.startswith("extracted_from file:") for r in extracted[0]["relationships"]
+    ), "the extracted file says what it was extracted from")
+    expect(any(RULE in json.dumps(o["detections"]) or o["detections"]
+               for o in observables.values()), "the YARA match's detection is on an observable")
+    expect(not re.search(r'"/(tmp|var|opt|home|root|usr|workspace)/', text),
+           "it holds no absolute path")
+    expect(not re.search(r'"(created_at|completed_at|lease_expires_at|updated_at)"', text),
+           "it holds no row timestamp")
+
+
+def run(email, kill, failures):
     """Submits the email and waits for its root to complete. With kill, freezes the parser pool
     first, kills it once it holds a lease, and starts it again. Returns the root and seconds to
     completion."""
@@ -311,7 +352,7 @@ def run(n, kill, failures):
     compose("up", "-d", "--wait", "responder")
     if kill:
         compose("pause", "parsers")
-    root = submit(make_email(n))
+    root = submit(email)
     log(f"submitted root {root}{' with the parser pool frozen' if kill else ''}")
     if kill:
         held = wait_for(
@@ -360,12 +401,23 @@ def main(argv):
             lambda: "the first ruleset loaded" in compose("logs", "parsers", capture=True),
             within=60,
         )
-        _, undisturbed = run(1, kill=False, failures=failures)
-        _, killed = run(2, kill=True, failures=failures)
+        email = make_email()
+        first, undisturbed = run(email, kill=False, failures=failures)
+        second, killed = run(email, kill=True, failures=failures)
         log(f"completion: {undisturbed:.2f}s undisturbed, {killed:.2f}s with the parser pool "
             f"killed mid-run (lease {LEASE_SECONDS}s)")
         if killed <= undisturbed:
             failures.append("the run with the kill wasn't slower; did the kill land?")
+        form = normal_form(first)
+        (WORK / "normal-form.json").write_text(form)
+        check_normal_form(form, failures)
+        killed_form = normal_form(second)
+        (WORK / "normal-form-killed.json").write_text(killed_form)
+        if form == killed_form:
+            log("ok    both roots have the same normal form, killed pool and all")
+        else:
+            log("FAIL  the roots' normal forms differ; see normal-form*.json in " + str(WORK))
+            failures.append("the same email's two roots have different normal forms")
     finally:
         if failures or keep:
             for service in ("ace", "parsers", "lookups", "responder"):

@@ -1,11 +1,15 @@
 //! PLAN.md 2.4: roots with an event time and its source, observables unique on (root, type,
 //! value), and results unique on (root, observable, module) with JSONB details under a GIN index.
 
+use ace_core::normal::{normal_form, to_text};
 use ace_core::testing::TestDb;
 use ace_core::tree::{
     self, EventTime, EventTimeSource, NewRoot, insert_result, observables, upsert_observable,
 };
-use ace_results::{NewObservable, ObservableKind, ResultEnvelope};
+use ace_results::{
+    Detection, NewObservable, ObservableAdditions, ObservableKind, ObservableRef, Relationship,
+    RelationshipKind, ResultEnvelope, YaraMeta,
+};
 use chrono::{TimeZone, Utc};
 use serde_json::{Value, json};
 
@@ -191,4 +195,156 @@ async fn one_result_per_module_with_details_under_a_gin_index() {
         .expect("explains");
     let plan = plan.join("\n");
     assert!(plan.contains("results_details"), "{plan}");
+}
+
+const ZIP: &str = "aa00000000000000000000000000000000000000000000000000000000000000";
+const PART: &str = "bb00000000000000000000000000000000000000000000000000000000000000";
+
+/// One root with a file extracted from another, a detection and a result, written in the order
+/// `reversed` says, so a test can see the order not matter.
+async fn sample_root(db: &ace_core::Db, reversed: bool) -> uuid::Uuid {
+    let mut tx = db.begin().await.expect("begins");
+    let root = NewRoot::new("analysis");
+    tree::create_root(&mut tx, &root).await.expect("creates");
+
+    let archive = NewObservable::new(ObservableKind::File, ZIP);
+    let mut part = NewObservable::new(ObservableKind::File, PART);
+    part.tags = vec!["z".to_owned(), "a".to_owned()];
+    part.directives = vec!["sandbox".to_owned()];
+    part.exclude_modules = vec!["archive".to_owned()];
+    part.time = Some(
+        Utc.with_ymd_and_hms(2026, 11, 1, 12, 0, 0)
+            .single()
+            .expect("a time"),
+    );
+    part.redirection = Some(ObservableRef::new(ObservableKind::File, ZIP));
+    part.relationships = vec![Relationship::new(
+        RelationshipKind::ExtractedFrom,
+        ObservableRef::new(ObservableKind::File, ZIP),
+    )];
+    let order = if reversed {
+        [part, archive]
+    } else {
+        [archive, part]
+    };
+    for observable in &order {
+        upsert_observable(&mut tx, root.id, observable)
+            .await
+            .expect("adds");
+    }
+    let find = |value: &str| ObservableRef::new(ObservableKind::File, value);
+    let zip = tree::find_observable(tx.conn(), root.id, &find(ZIP))
+        .await
+        .expect("finds")
+        .expect("is there");
+    let part = tree::find_observable(tx.conn(), root.id, &find(PART))
+        .await
+        .expect("finds")
+        .expect("is there");
+
+    tree::add_file(&mut tx, root.id, zip, "a.zip", &[])
+        .await
+        .expect("adds");
+    tree::add_file(&mut tx, root.id, part, "a.zip.extracted/b", &[])
+        .await
+        .expect("adds");
+    let additions = ObservableAdditions {
+        yara_meta: vec![YaraMeta::new("type", "archive").expect("a tag")],
+        ..ObservableAdditions::default()
+    };
+    tree::add_to_observable(&mut tx, root.id, zip, &additions)
+        .await
+        .expect("adds");
+
+    let mut envelope = result(json!({"z": 1, "a": [{"y": 2, "b": 3}]}));
+    envelope.tags = vec!["single_file_zip".to_owned()];
+    let result_id = insert_result(&mut tx, root.id, zip, "archive", &envelope)
+        .await
+        .expect("stores");
+    let detection = |details: Value| Detection {
+        details: Some(details),
+        ..Detection::new("a rule matched")
+    };
+    let details = [json!({"n": 2}), json!({"n": 1})];
+    let details = if reversed {
+        [details[1].clone(), details[0].clone()]
+    } else {
+        details
+    };
+    for d in details {
+        tree::add_detection(&mut tx, root.id, zip, Some(result_id), &detection(d))
+            .await
+            .expect("adds");
+    }
+    tx.commit().await.expect("commits");
+    root.id
+}
+
+#[tokio::test]
+async fn the_normal_form_holds_the_tree_in_a_fixed_order() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let one = sample_root(db, false).await;
+    let two = sample_root(db, true).await;
+
+    let form = normal_form(db.pool(), one)
+        .await
+        .expect("reads")
+        .expect("exists");
+    assert_eq!(
+        form,
+        json!({
+            "form": 1,
+            "observables": {
+                format!("file:{ZIP}"): {
+                    "tags": {},
+                    "directives": {},
+                    "excluded_analysis": {},
+                    "relationships": {},
+                    "detections": {"a rule matched": [{"n": 1}, {"n": 2}]},
+                    "paths": {"a.zip": {"type=archive": true}},
+                    "results": {
+                        "archive": {
+                            "summary": "3 lines",
+                            "tags": {"single_file_zip": true},
+                            "details": {"z": 1, "a": [{"y": 2, "b": 3}]},
+                        },
+                    },
+                },
+                format!("file:{PART}"): {
+                    "tags": {"a": true, "z": true},
+                    "directives": {"sandbox": true},
+                    "excluded_analysis": {"archive": true},
+                    "relationships": {format!("extracted_from file:{ZIP}"): true},
+                    "detections": {},
+                    "time": "2026-11-01T12:00:00Z",
+                    "redirection": format!("file:{ZIP}"),
+                    "paths": {"a.zip.extracted/b": {}},
+                    "results": {},
+                },
+            },
+        })
+    );
+
+    // the same tree written in another order, in another root, is the same text: no id or time
+    // of the run reaches it
+    let text = to_text(&form).expect("writes");
+    let other = normal_form(db.pool(), two)
+        .await
+        .expect("reads")
+        .expect("exists");
+    assert_eq!(text, to_text(&other).expect("writes"));
+    assert!(!text.contains(&one.to_string()), "{text}");
+    assert!(
+        text.find("\"a\": [").expect("details") < text.find("\"z\": 1").expect("details"),
+        "keys are sorted inside details: {text}"
+    );
+    assert!(text.ends_with("}\n"), "{text}");
+
+    assert_eq!(
+        normal_form(db.pool(), uuid::Uuid::new_v4())
+            .await
+            .expect("reads"),
+        None
+    );
 }

@@ -1,8 +1,8 @@
 //! The orchestrator: what happens when a result lands, and when a root's mode changes.
 //!
 //! A result lands in one transaction with its task's end: the result row, the observables it
-//! adds, what it adds to the observable it analyzed, its detections, and the tasks that just
-//! became eligible. A detection in a detectable mode turns the root into an alert in
+//! adds, what it adds to the observable it analyzed and to the one that redirects to, its
+//! detections, and the tasks that just became eligible. A detection in a detectable mode turns the root into an alert in
 //! correlation mode, as ace3's engine does (`analysis_orchestrator.py`, `_handle_detection_points`),
 //! and a mode change reruns eligibility over every observable the root has.
 //!
@@ -344,14 +344,7 @@ impl Orchestrator {
         let mode = locked.mode;
         worker.finish_in(tx, task.id, TaskState::Done, None).await?;
         let result_id = tree::insert_result(tx, root, analyzed, &task.module, result).await?;
-        tree::add_to_observable(
-            tx,
-            root,
-            analyzed,
-            &result.analyzed.tags,
-            &result.analyzed.directives,
-        )
-        .await?;
+        tree::add_to_observable(tx, root, analyzed, &result.analyzed).await?;
 
         let mut touched = vec![analyzed];
         let mut detections: Vec<(ObservableId, &Detection)> = result
@@ -370,6 +363,8 @@ impl Orchestrator {
             observable.tags = file.tags.clone();
             observable.directives = file.directives.clone();
             observable.exclude_modules = file.exclude_modules.clone();
+            observable.relationships = file.relationships.clone();
+            observable.redirection = file.redirection.clone();
             let id = tree::upsert_observable(tx, root, &observable).await?.id;
             let yara_meta: Vec<String> = file
                 .yara_meta
@@ -379,6 +374,25 @@ impl Orchestrator {
             tree::add_file(tx, root, id, file.path.as_str(), &yara_meta).await?;
             touched.push(id);
             detections.extend(file.detections.iter().map(|d| (id, d)));
+        }
+        if !result.redirected.is_empty() {
+            let target = match tree::redirection(tx.conn(), root, analyzed).await? {
+                Some(target) => tree::find_observable(tx.conn(), root, &target).await?,
+                None => None,
+            };
+            if let Some(id) = target {
+                tree::add_to_observable(tx, root, id, &result.redirected).await?;
+                touched.push(id);
+                detections.extend(result.redirected.detections.iter().map(|d| (id, d)));
+            } else {
+                // a module only writes these for an input that has a redirection, and its target
+                // is an observable an earlier result named
+                tracing::warn!(
+                    %root,
+                    module = %task.module,
+                    "a result added to a redirection that isn't in the root; those additions are dropped"
+                );
+            }
         }
         for (observable, detection) in &detections {
             tree::add_detection(tx, root, *observable, Some(result_id), detection).await?;

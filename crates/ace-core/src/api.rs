@@ -32,7 +32,7 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use ace_results::{AlertPath, ObservableKind, ResultEnvelope, Sha256, YaraMeta};
+use ace_results::{AlertPath, ObservableKind, ObservableRef, ResultEnvelope, Sha256, YaraMeta};
 use ace_sdk::wire::{
     ApiError, CurrentRuleset, FieldError as WireFieldError, LeaseRequest, LeasedTask, Presigned,
     Renewal, TaskEnd, TaskFile, TaskObservable, UploadRequest, paths,
@@ -379,10 +379,17 @@ impl Api {
         } else {
             None
         };
-        Ok(Some(self.wire_task(task, file)))
+        let redirection =
+            tree::redirection(self.inner.db.pool(), task.root, task.observable.id).await?;
+        Ok(Some(self.wire_task(task, file, redirection)))
     }
 
-    fn wire_task(&self, task: Task, file: Option<TaskFile>) -> LeasedTask {
+    fn wire_task(
+        &self,
+        task: Task,
+        file: Option<TaskFile>,
+        redirection: Option<ObservableRef>,
+    ) -> LeasedTask {
         LeasedTask {
             id: task.id.0,
             root: task.root,
@@ -396,6 +403,7 @@ impl Api {
                 time: task.observable.time,
                 directives: task.observable.directives,
                 file,
+                redirection,
             },
             delayed: task.delayed,
             input_hashes: task.input_hashes,
@@ -754,7 +762,8 @@ async fn replay(
     } else {
         None
     };
-    Ok(Json(api.wire_task(task, file)))
+    let redirection = tree::redirection(api.inner.db.pool(), task.root, task.observable.id).await?;
+    Ok(Json(api.wire_task(task, file, redirection)))
 }
 
 /// A submission: the `analysis` field's JSON and each `file` field, spooled as it arrives.

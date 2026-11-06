@@ -1,10 +1,12 @@
 //! The alert tree in Postgres: roots, their observables and the results about them.
 //!
 //! An observable is unique on (root, type, value), so adding one that is already there merges
-//! its tags, directives and excluded modules into the existing row. A result is unique on
-//! (root, observable, module).
+//! its tags, directives, excluded modules and relationships into the existing row. A result is
+//! unique on (root, observable, module).
 
-use ace_results::{Detection, NewObservable, ObservableKind, ResultEnvelope};
+use ace_results::{
+    Detection, NewObservable, ObservableAdditions, ObservableKind, ObservableRef, ResultEnvelope,
+};
 use chrono::{DateTime, Utc};
 use serde_json::Value;
 use sqlx::PgExecutor;
@@ -163,8 +165,8 @@ pub async fn root<'e>(executor: impl PgExecutor<'e>, id: Uuid) -> Result<Option<
 }
 
 /// Adds an observable to a root, or merges it into the one with the same type and value: the
-/// stored time is kept if it has one, and tags, directives and excluded modules it lacks are
-/// appended.
+/// stored time and redirection are kept if it has them, and tags, directives, excluded modules
+/// and relationships it lacks are added.
 pub async fn upsert_observable(
     tx: &mut Tx<'_>,
     root: Uuid,
@@ -172,10 +174,13 @@ pub async fn upsert_observable(
 ) -> Result<Upserted, DbError> {
     let row = sqlx::query!(
         r#"INSERT INTO analysis.observables AS o
-               (root_id, type, value, time, tags, directives, exclude_modules)
-           VALUES ($1, $2, $3, $4, $5, $6, $7)
+               (root_id, type, value, time, tags, directives, exclude_modules, redirection_type,
+                redirection_value)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
            ON CONFLICT (root_id, type, value_hash) DO UPDATE SET
                time = COALESCE(o.time, EXCLUDED.time),
+               redirection_type = COALESCE(o.redirection_type, EXCLUDED.redirection_type),
+               redirection_value = COALESCE(o.redirection_value, EXCLUDED.redirection_value),
                tags = analysis.merged(o.tags, EXCLUDED.tags),
                directives = analysis.merged(o.directives, EXCLUDED.directives),
                exclude_modules = analysis.merged(o.exclude_modules, EXCLUDED.exclude_modules)
@@ -187,9 +192,30 @@ pub async fn upsert_observable(
         &observable.tags,
         &observable.directives,
         &observable.exclude_modules,
+        observable.redirection.as_ref().map(|r| r.kind.as_str()),
+        observable.redirection.as_ref().map(|r| r.value.as_str()),
     )
     .fetch_one(tx.conn())
     .await?;
+    for relationship in &observable.relationships {
+        let kind = serde_json::to_value(relationship.kind)
+            .ok()
+            .and_then(|kind| kind.as_str().map(str::to_owned))
+            .ok_or_else(|| DbError::Decode(format!("{:?}", relationship.kind)))?;
+        sqlx::query!(
+            "INSERT INTO analysis.relationships
+                 (root_id, observable_id, kind, target_type, target_value)
+             VALUES ($1, $2, $3, $4, $5)
+             ON CONFLICT DO NOTHING",
+            root,
+            row.id as ObservableId,
+            kind,
+            relationship.target.kind.as_str(),
+            relationship.target.value,
+        )
+        .execute(tx.conn())
+        .await?;
+    }
     Ok(Upserted {
         id: row.id,
         inserted: row.inserted,
@@ -257,14 +283,14 @@ pub async fn insert_result(
     Ok(id)
 }
 
-/// Appends tags and directives an observable doesn't have yet, as a result's additions to the
-/// observable it analyzed.
+/// What a result adds to an observable already in the root: tags and directives it doesn't have
+/// yet, and `yara_meta` tags on each path it has if it is a file. Detections are recorded apart,
+/// with the result that raised them.
 pub async fn add_to_observable(
     tx: &mut Tx<'_>,
     root: Uuid,
     observable: ObservableId,
-    tags: &[String],
-    directives: &[String],
+    additions: &ObservableAdditions,
 ) -> Result<(), DbError> {
     sqlx::query!(
         "UPDATE analysis.observables
@@ -272,12 +298,67 @@ pub async fn add_to_observable(
          WHERE root_id = $1 AND id = $2",
         root,
         observable as ObservableId,
-        tags,
-        directives,
+        &additions.tags,
+        &additions.directives,
+    )
+    .execute(tx.conn())
+    .await?;
+    let yara_meta: Vec<String> = additions
+        .yara_meta
+        .iter()
+        .map(|tag| tag.as_str().to_owned())
+        .collect();
+    sqlx::query!(
+        "UPDATE analysis.files SET yara_meta = analysis.merged(yara_meta, $3)
+         WHERE root_id = $1 AND observable_id = $2",
+        root,
+        observable as ObservableId,
+        &yara_meta,
     )
     .execute(tx.conn())
     .await?;
     Ok(())
+}
+
+/// The observable this one redirects to, as a result named it.
+pub async fn redirection<'e>(
+    executor: impl PgExecutor<'e>,
+    root: Uuid,
+    observable: ObservableId,
+) -> Result<Option<ObservableRef>, DbError> {
+    let row = sqlx::query!(
+        "SELECT redirection_type, redirection_value FROM analysis.observables
+         WHERE root_id = $1 AND id = $2",
+        root,
+        observable as ObservableId,
+    )
+    .fetch_optional(executor)
+    .await?;
+    let Some((Some(kind), Some(value))) = row.map(|r| (r.redirection_type, r.redirection_value))
+    else {
+        return Ok(None);
+    };
+    let kind = kind
+        .parse()
+        .map_err(|e| DbError::Decode(format!("observable {}: {e}", observable.0)))?;
+    Ok(Some(ObservableRef::new(kind, value)))
+}
+
+/// The row of the observable with this type and value, if it is in the root.
+pub async fn find_observable<'e>(
+    executor: impl PgExecutor<'e>,
+    root: Uuid,
+    target: &ObservableRef,
+) -> Result<Option<ObservableId>, DbError> {
+    Ok(sqlx::query_scalar!(
+        r#"SELECT id AS "id: ObservableId" FROM analysis.observables
+           WHERE root_id = $1 AND type = $2 AND value_hash = analysis.value_hash($3)"#,
+        root,
+        target.kind.as_str(),
+        target.value,
+    )
+    .fetch_optional(executor)
+    .await?)
 }
 
 /// Records a detection on an observable, raised by `result`.

@@ -8,6 +8,7 @@ pub mod bucket;
 pub mod db;
 pub mod eligibility;
 pub mod modes;
+pub mod normal;
 pub mod orchestrator;
 pub mod queue;
 pub mod rulesets;

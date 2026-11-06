@@ -7,7 +7,7 @@
 
 use std::path::Path;
 
-use ace_results::{AlertPath, ObservableKind, ResultEnvelope, Sha256, YaraMeta};
+use ace_results::{AlertPath, ObservableKind, ObservableRef, ResultEnvelope, Sha256, YaraMeta};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -85,6 +85,9 @@ pub struct TaskObservable {
     /// Set when the observable is a file.
     #[serde(default)]
     pub file: Option<TaskFile>,
+    /// The observable this one stands in for, such as the document a part came out of.
+    #[serde(default)]
+    pub redirection: Option<ObservableRef>,
 }
 
 impl TaskObservable {
@@ -107,7 +110,7 @@ impl TaskObservable {
             time: self.time,
             file,
             directives: self.directives.clone(),
-            redirection: None,
+            redirection: self.redirection.clone(),
         }
     }
 }
