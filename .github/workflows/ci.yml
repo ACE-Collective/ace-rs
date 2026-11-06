@@ -57,3 +57,11 @@ jobs:
 
       - name: End-to-end test
         run: tests/e2e/run
+
+      # ace compare's report over the tracked samples; the local ones aren't in git (PLAN.md 3.3)
+      - name: Keep the comparison's report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: compare-report
+          path: target/e2e/compare/

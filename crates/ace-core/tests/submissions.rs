@@ -244,6 +244,58 @@ async fn a_submitted_file_is_in_the_bucket_and_its_tasks_are_queued() {
 }
 
 #[tokio::test]
+async fn a_submission_can_say_what_its_files_are_for_yara() {
+    let server = server().await;
+    let analysis = json!({
+        "description": "x",
+        "analysis_mode": "email",
+        "file_yara_meta": {"a.zip": ["type=email.attachment"]},
+    });
+    let response = post(
+        &server,
+        SUBMIT_TOKEN,
+        form(&analysis, &[("a.zip", b"zip"), ("b.txt", b"text")]),
+    )
+    .await;
+    assert_eq!(response.status(), 201);
+    let submitted: Submitted = response.json().await.expect("a body");
+    let files: Vec<(String, Vec<String>)> = sqlx::query_as(
+        "SELECT path, yara_meta FROM analysis.files WHERE root_id = $1 ORDER BY path",
+    )
+    .bind(submitted.uuid)
+    .fetch_all(server.test_db.db().pool())
+    .await
+    .expect("the files");
+    assert_eq!(
+        files,
+        [
+            ("a.zip".to_owned(), vec!["type=email.attachment".to_owned()]),
+            ("b.txt".to_owned(), vec![]),
+        ]
+    );
+
+    // a path that wasn't submitted, or a tag that isn't one, writes nothing
+    let before = roots(&server).await;
+    let not_submitted = json!({"description": "x", "file_yara_meta": {"c.zip": ["type=x"]}});
+    let response = post(
+        &server,
+        SUBMIT_TOKEN,
+        form(&not_submitted, &[("a.zip", b"zip")]),
+    )
+    .await;
+    assert_eq!(response.status(), 400);
+    let not_a_tag = json!({"description": "x", "file_yara_meta": {"a.zip": ["no equals"]}});
+    let response = post(
+        &server,
+        SUBMIT_TOKEN,
+        form(&not_a_tag, &[("a.zip", b"zip")]),
+    )
+    .await;
+    assert_eq!(response.status(), 400);
+    assert_eq!(roots(&server).await, before);
+}
+
+#[tokio::test]
 async fn a_submission_without_the_submit_token_or_with_an_unknown_mode_writes_nothing() {
     let server = server().await;
     let analysis = json!({"description": "x", "analysis_mode": "email"});

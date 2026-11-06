@@ -30,6 +30,7 @@ enum Command {
     /// Tools for one root, such as writing its tree in the normal form.
     #[command(subcommand)]
     Root(crate::root::RootCommand),
+    Compare(crate::compare::CompareArgs),
 }
 
 pub fn main(app: &App) -> ExitCode {
@@ -44,6 +45,7 @@ pub fn main(app: &App) -> ExitCode {
         Command::Serve => crate::serve::run(app, &mut telemetry),
         Command::Task(command) => crate::task::run(app, command),
         Command::Root(command) => crate::root::run(command),
+        Command::Compare(args) => crate::compare::run(app, args),
     };
     match result {
         Ok(code) => code,

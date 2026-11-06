@@ -996,6 +996,48 @@ impl std::fmt::Debug for Completions {
     }
 }
 
+/// Whether the root is idle: its last pass completed, or nothing ever ran on it. A root with
+/// work queued or a pass still open isn't.
+pub async fn root_is_idle(db: &Db, root: Uuid) -> Result<bool, QueueError> {
+    Ok(sqlx::query_scalar!(
+        r#"SELECT completed_pass = pass AS "idle!" FROM analysis.roots WHERE id = $1"#,
+        root,
+    )
+    .fetch_optional(db.pool())
+    .await?
+    .unwrap_or(false))
+}
+
+/// A task of a root that ended in failure, with the observable it ran on.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FailedTask {
+    pub module: String,
+    pub observable: String,
+    pub error: String,
+}
+
+/// The tasks of the root that failed, or were cancelled, so whatever reads its tree can say why a
+/// result is missing.
+pub async fn failed_tasks(db: &Db, root: Uuid) -> Result<Vec<FailedTask>, QueueError> {
+    Ok(sqlx::query!(
+        r#"SELECT t.module, o.type || ':' || o.value AS "observable!",
+                  t.state::text AS "state!", coalesce(t.error, '') AS "error!"
+           FROM queue.tasks t JOIN analysis.observables o ON o.id = t.observable_id
+           WHERE t.root_id = $1 AND t.state IN ('failed', 'cancelled')
+           ORDER BY t.module, 2"#,
+        root,
+    )
+    .fetch_all(db.pool())
+    .await?
+    .into_iter()
+    .map(|row| FailedTask {
+        module: row.module,
+        observable: row.observable,
+        error: format!("{}: {}", row.state, row.error),
+    })
+    .collect())
+}
+
 /// The root's completed passes, oldest first.
 pub async fn completions(db: &Db, root: Uuid) -> Result<Vec<Completion>, QueueError> {
     Ok(sqlx::query_scalar!(

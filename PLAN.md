@@ -190,7 +190,7 @@ DESIGN.md's Sequence step 3 sends production traffic to both systems. For the pr
 
 - [x] **3.1 Normal form.** A JSON form of an alert's tree that both systems can write: observables by (type, value), results by module, a fixed order, and no timestamps or absolute paths. Done when ace4 writes it for 2.30's root.
 - [x] **3.2 ace3 trees.** A script in `tools/ace3/` runs each sample through ace3's `cli` analysis mode in ace3's dev container and writes its tree in the same form. Done when both systems' forms of one sample agree on the five phase 1 modules.
-- [ ] **3.3 Comparison command.** `ace compare` runs the sample set through ace4, diffs each tree against 3.2's output per module, skipping modules not yet ported, and writes the differences to a report. Done when it runs over the whole sample set.
+- [x] **3.3 Comparison command.** `ace compare` runs the sample set through ace4, diffs each tree against 3.2's output per module, skipping modules not yet ported, and writes the differences to a report. Done when it runs over the whole sample set.
 - [ ] **3.4 Acceptance threshold.** Write down the threshold for accepting a port, such as no unexplained difference over the sample set. Done when the five phase 1 modules meet it.
 - [ ] **3.5 Memory.** Measure each pool's private memory while 3.3 runs. ace3's figures come from production load: 365 to 491 MB on correlation workers, 597 to 1,028 MB on a busy email scanner, about 230 MB for a fresh worker, and 2.57 GB for `http-api-v2`'s 12 workers. Done when `docs/measurements/memory.md` has ace4's numbers and says what load they came from.
 

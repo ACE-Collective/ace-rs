@@ -5,6 +5,7 @@
 //! reading an alert never loads analyzer code. `ace-layering` enforces that.
 
 pub mod bytes;
+pub mod differences;
 pub mod envelope;
 pub mod file;
 pub mod links;

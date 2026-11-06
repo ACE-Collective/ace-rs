@@ -3,12 +3,15 @@
 //!
 //! The lease API takes them at `POST /api/analysis/v1/submit` as ace3's `/api/analysis/submit`
 //! does: a multipart form with the submission as JSON in its `analysis` field and each file in a
-//! `file` field, whose file name is the file's path in the alert. One transaction creates the
+//! `file` field, whose file name is the file's path in the alert. The submission's
+//! `file_yara_meta` can give a file `yara_meta` tags. One transaction creates the
 //! root, puts each file in the bucket's `alert_files` pool held by the root, adds the
 //! observables and the file observables, and queues what is eligible in the root's mode
 //! (`Orchestrator::start`).
 
-use ace_results::{AlertPath, NewObservable, ObservableKind};
+use std::collections::BTreeMap;
+
+use ace_results::{AlertPath, NewObservable, ObservableKind, YaraMeta};
 use ace_store::Spooled;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -32,6 +35,11 @@ pub struct Submission {
     pub event_time: Option<DateTime<Utc>>,
     #[serde(default)]
     pub observables: Vec<SubmittedObservable>,
+    /// `yara_meta` tags for submitted files, by the file's path in the alert: what a submitter
+    /// that took the file from something else already knows it is, such as an email's
+    /// attachment (`type=email.attachment`). YARA rules with `meta_tags` scan by these.
+    #[serde(default)]
+    pub file_yara_meta: BTreeMap<String, Vec<YaraMeta>>,
 }
 
 /// An observable the submission adds.
@@ -108,6 +116,15 @@ pub async fn submit(
     if modes.mode(&mode).is_none() {
         return Err(SubmitError::Invalid(format!("no analysis mode {mode:?}")));
     }
+    if let Some(path) = submission
+        .file_yara_meta
+        .keys()
+        .find(|path| !files.iter().any(|f| f.path.as_str() == path.as_str()))
+    {
+        return Err(SubmitError::Invalid(format!(
+            "file_yara_meta names {path:?}, which isn't a submitted file"
+        )));
+    }
     let root = NewRoot {
         description: submission.description.clone(),
         event_time: match submission.event_time {
@@ -137,7 +154,14 @@ pub async fn submit(
                     let new =
                         NewObservable::new(ObservableKind::File, file.spooled.sha256.to_hex());
                     let id = tree::upsert_observable(tx, root.id, &new).await?.id;
-                    tree::add_file(tx, root.id, id, file.path.as_str(), &[]).await?;
+                    let yara_meta: Vec<String> = submission
+                        .file_yara_meta
+                        .get(file.path.as_str())
+                        .into_iter()
+                        .flatten()
+                        .map(|tag| tag.as_str().to_owned())
+                        .collect();
+                    tree::add_file(tx, root.id, id, file.path.as_str(), &yara_meta).await?;
                 }
                 Ok::<_, SubmitError>(orchestrator.start(tx, root.id).await?)
             })

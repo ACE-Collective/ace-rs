@@ -21,11 +21,17 @@ results from all five modules and complete; the second only later. The same emai
 times, so their trees in the normal form (PLAN.md 3.1) must be the same text, which goes to
 <work>/normal-form.json.
 
-It then submits the email once more in the cli mode and compares the root's form with ace3's tree
-of the same email (PLAN.md 3.2, tools/ace3/trees/reference/). Every difference has to be listed in
-tools/ace3/trees/differences.md, and a row that matches nothing fails too, so the list stays true.
+It then runs `ace compare` (PLAN.md 3.3, crates/ace-app/src/compare.rs) over the sample set, each
+sample in the cli mode against ace3's tree in tools/ace3/trees/reference/ (3.2), and writes the
+report to <work>/compare/. Other samples' differences are reported and don't fail the test. This
+email's have to be listed in tools/ace3/trees/differences.md, and a row that matches nothing fails
+too, so the list stays true.
 
-Usage: tests/e2e/run [--keep]   (--keep leaves the stack up)
+Usage: tests/e2e/run [--keep] [--compare]
+  --keep      leaves the stack up
+  --compare   only brings up the stack and runs `ace compare` over the sample set, reporting
+              differences without failing on them, and fails only when a sample can't be run
+
 Exits 0 when every check passes. Needs docker compose and python3 on the host.
 
 A site repository runs the same scenario, without the comparison with ace3, against its own images (PLAN.md 2.32) by setting:
@@ -42,7 +48,6 @@ A site repository runs the same scenario, without the comparison with ace3, agai
 Its modules differ from ace3's by design, so setting ACE4_E2E_SITE skips the comparison.
 """
 
-import fnmatch
 import json
 import os
 import re
@@ -103,10 +108,12 @@ def log(message):
     print(f"e2e: {message}", flush=True)
 
 
-def compose(*args, check=True, capture=False):
+def compose(*args, check=True, capture=False, exit_code=False):
     result = subprocess.run(
         [*COMPOSE, *args], env=ENV, cwd=COMPOSE_FILE.parent, text=True, capture_output=capture
     )
+    if exit_code:
+        return result.returncode
     if check and result.returncode != 0:
         raise SystemExit(
             f"e2e: docker compose {' '.join(args)} failed ({result.returncode})\n"
@@ -309,76 +316,27 @@ def check_normal_form(text, failures):
            "it holds no row timestamp")
 
 
-def listed_differences():
-    """The rows of differences.md: (sample glob, path pattern). In a path, a `*` segment is any
-    one segment, `**` any number of them, and `*` inside a segment any text."""
-    rows = []
-    for line in (TREES / "differences.md").read_text().splitlines():
-        if line.startswith("| `"):
-            cells = [cell.strip().strip("`") for cell in line.strip("|").split("|")]
-            rows.append((cells[0], cells[1]))
-    return rows
-
-
-def path_regex(pattern):
-    parts = []
-    for segment in pattern.split("/")[1:]:
-        if segment == "**":
-            parts.append("(/[^/]*)*")
-        else:
-            parts.append("/" + "[^/]*".join(re.escape(part) for part in segment.split("*")))
-    return re.compile("".join(parts))
-
-
-def tree_differences(ace3, ace4, path=""):
-    """Every place two forms differ, as (JSON pointer, ace3's value, ace4's)."""
-    if isinstance(ace3, dict) and isinstance(ace4, dict):
-        for key in sorted(ace3.keys() | ace4.keys()):
-            escaped = key.replace("~", "~0").replace("/", "~1")
-            if key not in ace3:
-                yield f"{path}/{escaped}", "<absent>", ace4[key]
-            elif key not in ace4:
-                yield f"{path}/{escaped}", ace3[key], "<absent>"
-            else:
-                yield from tree_differences(ace3[key], ace4[key], f"{path}/{escaped}")
-    elif isinstance(ace3, list) and isinstance(ace4, list) and len(ace3) == len(ace4):
-        for index, (a, b) in enumerate(zip(ace3, ace4)):
-            yield from tree_differences(a, b, f"{path}/{index}")
-    elif ace3 != ace4:
-        yield path, ace3, ace4
-
-
-def compare_with_ace3(email, failures):
-    """Runs the sample in the cli mode, as ace3's tree ran, and compares the two forms."""
+def compare_with_ace3(require_clean=()):
+    """Runs `ace compare` over the sample set in a one-off ace container, with the report under
+    <work>/compare. Returns its exit code."""
+    report = WORK / "compare"
+    report.mkdir(parents=True, exist_ok=True)
+    # the recorded Splunk job counts requests from when the responder started
     compose("restart", "responder")
     compose("up", "-d", "--wait", "responder")
-    root = submit(email, mode="cli")
-    wait_for(f"root {root} to complete", lambda: completed_after(root), within=300)
-    text = normal_form(root)
-    (WORK / "normal-form-cli.json").write_text(text)
-    rows = listed_differences()
-    regexes = [(glob, path_regex(pattern)) for glob, pattern in rows]
-    used = set()
-    unexplained = []
-    ace3 = json.loads((TREES / "reference" / f"{SAMPLE}.json").read_text())
-    for path, a, b in tree_differences(ace3, json.loads(text)):
-        matched = [i for i, (glob, regex) in enumerate(regexes)
-                   if fnmatch.fnmatchcase(SAMPLE, glob) and regex.fullmatch(path)]
-        used.update(matched)
-        if not matched:
-            unexplained.append(f"{path}\n    ace3: {json.dumps(a)[:300]}\n    ace4: {json.dumps(b)[:300]}")
-    stale = [f"{rows[i][1]}" for i, (glob, _) in enumerate(regexes)
-             if i not in used and fnmatch.fnmatchcase(SAMPLE, glob)]
-    for line in unexplained:
-        log("FAIL  not in differences.md: " + line)
-    for row in stale:
-        log("FAIL  a row of differences.md matched nothing: " + row)
-    if unexplained or stale:
-        failures.append(f"{len(unexplained)} unexplained differences from ace3 and {len(stale)} "
-                        "stale rows; see above")
-    else:
-        log(f"ok    ace4's tree of {SAMPLE} differs from ace3's only as differences.md explains, "
-            f"by {len(used)} rows")
+    command = [
+        "run", "--rm", "--no-deps", "--user", f"{os.getuid()}:{os.getgid()}",
+        "-v", f"{ROOT / 'samples'}:/compare/samples:ro",
+        "-v", f"{TREES}:/compare/trees:ro",
+        "-v", f"{report}:/compare/report",
+        "ace", ACE_COMMAND, "compare", "--samples", "/compare/samples", "--trees", "/compare/trees",
+        "--report", "/compare/report",
+    ]
+    for sample in require_clean:
+        command += ["--require-clean", sample]
+    code = compose(*command, check=False, exit_code=True)
+    log(f"the comparison's report is in {report}")
+    return code
 
 
 def run(email, kill, failures):
@@ -422,8 +380,19 @@ def run(email, kill, failures):
     return root, seconds
 
 
+def finish(failures):
+    if failures:
+        log(f"{len(failures)} check(s) failed:")
+        for failure in failures:
+            log(f"  {failure}")
+        return 1
+    log("every check passed")
+    return 0
+
+
 def main(argv):
     keep = "--keep" in argv
+    compare_only = "--compare" in argv
     WORK.mkdir(parents=True, exist_ok=True)
     commit = make_signatures()
     log(f"signatures at {WORK / 'signatures'}, commit {commit}")
@@ -440,6 +409,10 @@ def main(argv):
             lambda: "the first ruleset loaded" in compose("logs", "parsers", capture=True),
             within=60,
         )
+        if compare_only:
+            if compare_with_ace3() != 0:
+                failures.append("ace compare couldn't run every sample; see above")
+            return finish(failures)
         email = (ROOT / "samples" / SAMPLE).read_bytes()
         first, undisturbed = run(email, kill=False, failures=failures)
         second, killed = run(email, kill=True, failures=failures)
@@ -458,7 +431,12 @@ def main(argv):
             log("FAIL  the roots' normal forms differ; see normal-form*.json in " + str(WORK))
             failures.append("the same email's two roots have different normal forms")
         if "ACE4_E2E_SITE" not in os.environ:
-            compare_with_ace3(email, failures)
+            if compare_with_ace3(require_clean=[SAMPLE]) != 0:
+                failures.append(f"ace compare failed, or {SAMPLE} differs from ace3 "
+                                "unexplained; see above")
+            else:
+                log(f"ok    ace4's tree of {SAMPLE} differs from ace3's only as differences.md "
+                    "explains, and every sample ran")
     finally:
         if failures or keep:
             for service in ("ace", "parsers", "lookups", "responder"):
@@ -467,13 +445,7 @@ def main(argv):
                               check=False))
         if not keep:
             compose("down", "-v", "--remove-orphans", check=False)
-    if failures:
-        log(f"{len(failures)} check(s) failed:")
-        for failure in failures:
-            log(f"  {failure}")
-        return 1
-    log("every check passed")
-    return 0
+    return finish(failures)
 
 
 if __name__ == "__main__":

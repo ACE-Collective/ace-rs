@@ -62,6 +62,12 @@ pub enum HarnessError {
     Io(#[from] io::Error),
 }
 
+impl From<ace_results::differences::UnreadableList> for HarnessError {
+    fn from(error: ace_results::differences::UnreadableList) -> Self {
+        HarnessError::Fixture(error.to_string())
+    }
+}
+
 /// One module, its settings and secrets, and a file store, ready to run tasks.
 pub struct Harness<M: Module> {
     module: M,

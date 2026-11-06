@@ -29,6 +29,7 @@
 //! runs the same way.
 
 mod cli;
+mod compare;
 mod pools;
 mod root;
 mod schema;
