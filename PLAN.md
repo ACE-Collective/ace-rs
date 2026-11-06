@@ -189,7 +189,7 @@ Site integrations live in their own repositories (decision 9), so this workspace
 DESIGN.md's Sequence step 3 sends production traffic to both systems. For the proof of concept, both systems run 0.8's sample set on the laptop instead, and ace3 sends ace4 nothing. From here on, this comparison is the acceptance test for every module port.
 
 - [x] **3.1 Normal form.** A JSON form of an alert's tree that both systems can write: observables by (type, value), results by module, a fixed order, and no timestamps or absolute paths. Done when ace4 writes it for 2.30's root.
-- [ ] **3.2 ace3 trees.** A script in `tools/ace3/` runs each sample through ace3's `cli` analysis mode in ace3's dev container and writes its tree in the same form. Done when both systems' forms of one sample agree on the five phase 1 modules.
+- [x] **3.2 ace3 trees.** A script in `tools/ace3/` runs each sample through ace3's `cli` analysis mode in ace3's dev container and writes its tree in the same form. Done when both systems' forms of one sample agree on the five phase 1 modules.
 - [ ] **3.3 Comparison command.** `ace compare` runs the sample set through ace4, diffs each tree against 3.2's output per module, skipping modules not yet ported, and writes the differences to a report. Done when it runs over the whole sample set.
 - [ ] **3.4 Acceptance threshold.** Write down the threshold for accepting a port, such as no unexplained difference over the sample set. Done when the five phase 1 modules meet it.
 - [ ] **3.5 Memory.** Measure each pool's private memory while 3.3 runs. ace3's figures come from production load: 365 to 491 MB on correlation workers, 597 to 1,028 MB on a busy email scanner, about 230 MB for a fresh worker, and 2.57 GB for `http-api-v2`'s 12 workers. Done when `docs/measurements/memory.md` has ace4's numbers and says what load they came from.
@@ -287,6 +287,7 @@ Made on 2026-10-29, where DESIGN.md left a gap or didn't match ace3.
 11. **ace4's stack runs beside ace3's on one machine.** It takes its own project name, `ACE4_` variables, one fixed host port that ace3 doesn't use, and `ace4-*` image names. (*Running beside ace3*, 0.6, 2.1, 2.29)
 12. **Samples come from the laptop.** The local ace3 has no SVS corpus, so the comparisons use ace3's test fixtures and files added by hand. The YARA check compiles the whole signatures repo with both scanners and compares matches only on those files. (0.8, 1.11, 3.3, 4.8)
 13. **Other repositories don't change.** Scripts that need ace3's code live in `tools/ace3/` and run in ace3's dev container. The signatures and site_ace repositories stay as they are. (1.9, 1.10, 1.24, 2.32, 3.2)
+14. **The comparison follows the newest ace3.** Made on 2026-11-06. `tools/ace3/trees/make-trees` runs on ace3's latest commit rather than a pinned one, and `reference/index.json` records which. A new difference is either ported or listed in `differences.md`. (3.2, 3.3)
 
 ## Not in this plan
 

@@ -1,0 +1,93 @@
+{
+  "form": 1,
+  "observables": {
+    "file:2d507223962cab653edbbfb4b4efec226b0e07b81ba3f3f26f26e3a78146bf0a": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "evil.zip": {
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "archive": {
+          "details": {
+            "extracted_files": [
+              "evil.one"
+            ],
+            "extraction_error": null,
+            "file_count": 1
+          },
+          "summary": "Archive Analysis: extracted 1 of 1 files: (evil.one)",
+          "tags": {
+            "one_in_zip": true,
+            "single_file_zip": true
+          }
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": true,
+            "mime": "application/zip",
+            "type": "Zip archive data, made by v3.0 UNIX, extract using at least v1.0, last modified Feb 02 2023 15:56:56, uncompressed size 0, method=store"
+          },
+          "summary": "File Type Analysis: Zip archive data, made by v3.0 UNIX, extract using at least v1.0, last modified Feb 02 2023 15:56:56, uncompressed size 0, method=store (application/zip) (zip archive)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "zip": true
+      }
+    },
+    "file:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855": {
+      "detections": {
+        "An archive contained a single file that was a OneNote document": [
+          null
+        ]
+      },
+      "directives": {
+        "sandbox": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "evil.zip.extracted/evil.one": {}
+      },
+      "relationships": {
+        "extracted_from file:2d507223962cab653edbbfb4b4efec226b0e07b81ba3f3f26f26e3a78146bf0a": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "inode/x-empty",
+            "type": "empty"
+          },
+          "summary": "File Type Analysis: empty (inode/x-empty)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    }
+  }
+}

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Gathers the local sample set for PLAN.md step 0.8 and writes samples/manifest.json.
 
-Copies test fixtures from ace3's checkout into samples/ace3/, which is in git, and makes
-benign samples that ace3's repository doesn't hold as files into samples/local/, which
+Copies test fixtures from ace3's checkout into samples/ace3/, which is in git, makes the
+end-to-end test's email in samples/ace4/, which is too, and makes benign samples that ace3's repository doesn't hold as files into samples/local/, which
 .gitignore keeps out of git. The local ones follow the fixtures ace3's tests build in
 code, so both systems see the same shapes.
 
@@ -22,6 +22,7 @@ script rather than editing the manifest by hand.
 import argparse
 import email.message
 import hashlib
+import io
 import json
 import os
 import shutil
@@ -263,6 +264,35 @@ def make_local(local, work):
     return made
 
 
+def make_e2e_email(path):
+    """The email tests/e2e/run submits and PLAN.md 3.2 compares: a DKIM signing domain the recorded
+    RDAP answers for, and a stored zip attachment holding the marker tools/ace3/trees/signatures
+    matches. Every byte is fixed, so it stays one sample across runs of this script."""
+    archive = io.BytesIO()
+    with zipfile.ZipFile(archive, "w", zipfile.ZIP_STORED) as z:
+        z.writestr(
+            zipfile.ZipInfo("invoice.txt", date_time=(2026, 1, 1, 0, 0, 0)),
+            "Invoice 1001\nACE4-E2E-MARKER-6c1f\n",
+        )
+    message = email.message.EmailMessage()
+    message["From"] = "Alice <alice@example.com>"
+    message["To"] = "bob@example.net"
+    message["Subject"] = "ace4 end-to-end"
+    message["Date"] = "Sun, 01 Nov 2026 12:00:00 +0000"
+    message["Message-ID"] = "<ace4-e2e@example.com>"
+    message["DKIM-Signature"] = (
+        "v=1; a=rsa-sha256; c=relaxed/relaxed; d=example.com; s=e2e; "
+        "h=from:to:subject; bh=AAAA; b=BBBB"
+    )
+    message.set_content("The invoice is attached.\n")
+    message.add_attachment(
+        archive.getvalue(), maintype="application", subtype="zip", filename="invoice.zip"
+    )
+    message.set_boundary("ace4-e2e-boundary")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(message.as_bytes())
+
+
 def entry(path, kinds, source, note=None):
     data = path.read_bytes()
     relative = path.relative_to(SAMPLES).as_posix()
@@ -273,7 +303,7 @@ def entry(path, kinds, source, note=None):
         "size": len(data),
         "kinds": kinds,
         "source": source,
-        "in_git": relative.startswith("ace3/"),
+        "in_git": not relative.startswith("local/"),
         "alert_path": "email.rfc822" if is_email else path.name,
         "meta_tags": [] if is_email else ["type=email.attachment"],
     }
@@ -305,6 +335,12 @@ def main():
     with tempfile.TemporaryDirectory() as work:
         for path, kinds, how in make_local(SAMPLES / "local", Path(work)):
             samples.append(entry(path, kinds, f"made by tools/samples/gather: {how}"))
+
+    e2e_email = SAMPLES / "ace4" / "email" / "e2e.email.rfc822"
+    make_e2e_email(e2e_email)
+    samples.append(
+        entry(e2e_email, ["email", "archive/zip"], "made by tools/samples/gather: Python email")
+    )
 
     covered = {kind for sample in samples for kind in sample["kinds"]}
     missing = [kind for kind in REQUIRED_KINDS if kind not in covered]

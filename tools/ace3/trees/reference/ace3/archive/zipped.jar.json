@@ -1,0 +1,90 @@
+{
+  "form": 1,
+  "observables": {
+    "file:074f5a6892903f7a2d3c7f9b646881a44eb4a8ce6e3b128bf543daf963f7b0c9": {
+      "detections": {},
+      "directives": {
+        "sandbox": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "zipped.jar.extracted/META-INF/MANIFEST.MF": {}
+      },
+      "relationships": {
+        "extracted_from file:fbee0b3554a7617e94dcc22e7eb17198ff0c66f10476ee3de62b23c9db75b3ba": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "JAR Manifest, ASCII text, with CRLF line terminators"
+          },
+          "summary": "File Type Analysis: JAR Manifest, ASCII text, with CRLF line terminators (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:fbee0b3554a7617e94dcc22e7eb17198ff0c66f10476ee3de62b23c9db75b3ba": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "zipped.jar": {
+          "type=archive.jar": true,
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "archive": {
+          "details": {
+            "extracted_files": [
+              "META-INF/MANIFEST.MF"
+            ],
+            "extraction_error": null,
+            "file_count": 1
+          },
+          "summary": "Archive Analysis: extracted 1 of 1 files: (META-INF/MANIFEST.MF)",
+          "tags": {
+            "single_file_zip": true
+          }
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": true,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": true,
+            "mime": "application/zip",
+            "type": "Zip archive data, made by v3.0 UNIX, extract using at least v2.0, last modified Jun 30 2021 10:13:32, uncompressed size 301, method=deflate"
+          },
+          "summary": "File Type Analysis: Zip archive data, made by v3.0 UNIX, extract using at least v2.0, last modified Jun 30 2021 10:13:32, uncompressed size 301, method=deflate (application/zip) (zip archive) (java archive)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "jar": true,
+        "zip": true
+      }
+    }
+  }
+}

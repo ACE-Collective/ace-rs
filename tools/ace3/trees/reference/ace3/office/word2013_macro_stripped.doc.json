@@ -1,0 +1,42 @@
+{
+  "form": 1,
+  "observables": {
+    "file:1dff27c2897cd3d48c589166d8f33ae160c3d249c7456c0421aa9a0a6ed1e3c5": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "word2013_macro_stripped.doc": {
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": true,
+            "is_office_ext": true,
+            "is_ole_file": true,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": true,
+            "mime": "application/msword",
+            "type": "Composite Document File V2 Document, Little Endian, Os: Windows, Version 10.0, Code page: 1251, Author: Vesselin Bontchev, Template: Normal.dotm, Last Saved By: Dimitrina Polimirova, Revision Number: 2, Name of Creating Application: Microsoft Office Word, Total Editing Time: 02:00, Create Time/Date: Wed Sep 21 13:54:00 2016, Last Saved Time/Date: Thu Sep 22 20:23:00 2016, Number of Pages: 1, Number of Words: 0, Number of Characters: 0, Security: 0"
+          },
+          "summary": "File Type Analysis: Composite Document File V2 Document, Little Endian, Os: Windows, Version 10.0, Code page: 1251, Author: Vesselin Bontchev, Template: Normal.dotm, Last Saved By: Dimitrina Polimirova, Revision Number: 2, Name of Creating Application: Microsoft Office Word, Total Editing Time: 02:00, Create Time/Date: Wed Sep 21 13:54:00 2016, Last Saved Time/Date: Thu Sep 22 20:23:00 2016, Number of Pages: 1, Number of Words: 0, Number of Characters: 0, Security: 0 (application/msword) (ms office document) (ole compound file) (zip archive)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "microsoft_office": true,
+        "ole": true,
+        "zip": true
+      }
+    }
+  }
+}

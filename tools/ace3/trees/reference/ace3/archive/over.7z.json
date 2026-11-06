@@ -1,0 +1,87 @@
+{
+  "form": 1,
+  "observables": {
+    "file:8ea2de3451c69656305e2b7058441f122790ba2029edc5060f452917fb4a84d9": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "over.7z": {
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "archive": {
+          "details": {
+            "extracted_files": [
+              "hello_world_9.txt",
+              "hello_world_8.txt",
+              "hello_world_7.txt",
+              "hello_world_6.txt",
+              "hello_world_5.txt",
+              "hello_world_4.txt"
+            ],
+            "extraction_error": null,
+            "file_count": 11
+          },
+          "summary": "Archive Analysis: extracted 6 of 11 files: (hello_world_9.txt, hello_world_8.txt, hello_world_7.txt, hello_world_6.txt, hello_world_5.txt, hello_world_4.txt)",
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/x-7z-compressed",
+            "type": "7-zip archive data, version 0.4"
+          },
+          "summary": "File Type Analysis: 7-zip archive data, version 0.4 (application/x-7z-compressed)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:b82333088c3ea38e20cf16916773626f1f7966a3f08ef065240337882ada3ad4": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "over.7z.extracted/hello_world_7.txt": {}
+      },
+      "relationships": {
+        "extracted_from file:8ea2de3451c69656305e2b7058441f122790ba2029edc5060f452917fb4a84d9": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    }
+  }
+}

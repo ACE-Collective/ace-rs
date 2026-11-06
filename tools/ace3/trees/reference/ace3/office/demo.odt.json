@@ -1,0 +1,491 @@
+{
+  "form": 1,
+  "observables": {
+    "file:4c7bdf9f166e5e04b028e847d7511d9ccf3d66b8470e9e07653b006a8af114a7": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "demo.odt.extracted/meta.xml": {}
+      },
+      "redirection": "file:8495d37825dab8744f7d2c8049fc6b70b1777b9184f0abe69ce314795480ce39",
+      "relationships": {
+        "extracted_from file:8495d37825dab8744f7d2c8049fc6b70b1777b9184f0abe69ce314795480ce39": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/xml",
+            "type": "XML 1.0 document, ASCII text, with very long lines (1011)"
+          },
+          "summary": "File Type Analysis: XML 1.0 document, ASCII text, with very long lines (1011) (text/xml)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:50b1641c28ceca5c3a8e17d999570cf447acacf89bacb657e1b10910c2c2b4a4": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "demo.odt.extracted/styles.xml": {}
+      },
+      "redirection": "file:8495d37825dab8744f7d2c8049fc6b70b1777b9184f0abe69ce314795480ce39",
+      "relationships": {
+        "extracted_from file:8495d37825dab8744f7d2c8049fc6b70b1777b9184f0abe69ce314795480ce39": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/xml",
+            "type": "XML 1.0 document, ASCII text, with very long lines (10804)"
+          },
+          "summary": "File Type Analysis: XML 1.0 document, ASCII text, with very long lines (10804) (text/xml)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:714dbe370b0a7063669217d91b287566fe8babbc8599b629b24476ff81b83593": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "demo.odt.extracted/mimetype": {}
+      },
+      "redirection": "file:8495d37825dab8744f7d2c8049fc6b70b1777b9184f0abe69ce314795480ce39",
+      "relationships": {
+        "extracted_from file:8495d37825dab8744f7d2c8049fc6b70b1777b9184f0abe69ce314795480ce39": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text, with no line terminators"
+          },
+          "summary": "File Type Analysis: ASCII text, with no line terminators (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:794c54d4ee981c01d8c5fac416b652025795c6640842382315c9ebafe3aad704": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "demo.odt.extracted/META-INF/manifest.xml": {}
+      },
+      "redirection": "file:8495d37825dab8744f7d2c8049fc6b70b1777b9184f0abe69ce314795480ce39",
+      "relationships": {
+        "extracted_from file:8495d37825dab8744f7d2c8049fc6b70b1777b9184f0abe69ce314795480ce39": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/xml",
+            "type": "XML 1.0 document, ASCII text"
+          },
+          "summary": "File Type Analysis: XML 1.0 document, ASCII text (text/xml)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:8495d37825dab8744f7d2c8049fc6b70b1777b9184f0abe69ce314795480ce39": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "demo.odt": {
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "archive": {
+          "details": {
+            "extracted_files": [
+              "settings.xml",
+              "styles.xml",
+              "content.xml",
+              "meta.xml",
+              "Basic/script-lc.xml",
+              "Basic/Standard/script-lb.xml",
+              "Basic/Standard/Module1.xml",
+              "META-INF/manifest.xml",
+              "Configurations2/accelerator/current.xml",
+              "manifest.rdf",
+              "mimetype",
+              "Thumbnails/thumbnail.png"
+            ],
+            "extraction_error": null,
+            "file_count": 12
+          },
+          "summary": "Archive Analysis: extracted 12 of 12 files: (settings.xml, styles.xml, content.xml, meta.xml, Basic/script-lc.xml, Basic/Standard/script-lb.xml, Basic/Standard/Module1.xml, META-INF/manifest.xml, Configurations2/accelerator/current.xml, manifest.rdf, mimetype, Thumbnails/thumbnail.png)",
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": true,
+            "is_office_ext": true,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": true,
+            "mime": "application/vnd.oasis.opendocument.text",
+            "type": "OpenDocument Text"
+          },
+          "summary": "File Type Analysis: OpenDocument Text (application/vnd.oasis.opendocument.text) (ms office document) (zip archive)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "microsoft_office": true,
+        "zip": true
+      }
+    },
+    "file:8fbddec35c26494c0b123a5900c32e1cbb8de7e6e5f5e235dd9bc6b470170d3f": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "demo.odt.extracted/content.xml": {}
+      },
+      "redirection": "file:8495d37825dab8744f7d2c8049fc6b70b1777b9184f0abe69ce314795480ce39",
+      "relationships": {
+        "extracted_from file:8495d37825dab8744f7d2c8049fc6b70b1777b9184f0abe69ce314795480ce39": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/xml",
+            "type": "XML 1.0 document, ASCII text, with very long lines (3257)"
+          },
+          "summary": "File Type Analysis: XML 1.0 document, ASCII text, with very long lines (3257) (text/xml)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:a7d92762c204620923a88c490da6793b006f099f676f84601ab9eb6b711b6642": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "demo.odt.extracted/Basic/Standard/Module1.xml": {}
+      },
+      "redirection": "file:8495d37825dab8744f7d2c8049fc6b70b1777b9184f0abe69ce314795480ce39",
+      "relationships": {
+        "extracted_from file:8495d37825dab8744f7d2c8049fc6b70b1777b9184f0abe69ce314795480ce39": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/xml",
+            "type": "XML 1.0 document, ASCII text"
+          },
+          "summary": "File Type Analysis: XML 1.0 document, ASCII text (text/xml)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:a8e67ea1bd9c0ba9514cb3a9324069e46565274cfd7e62ec27bd4baf28554757": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "demo.odt.extracted/Basic/script-lc.xml": {}
+      },
+      "redirection": "file:8495d37825dab8744f7d2c8049fc6b70b1777b9184f0abe69ce314795480ce39",
+      "relationships": {
+        "extracted_from file:8495d37825dab8744f7d2c8049fc6b70b1777b9184f0abe69ce314795480ce39": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/xml",
+            "type": "XML 1.0 document, ASCII text"
+          },
+          "summary": "File Type Analysis: XML 1.0 document, ASCII text (text/xml)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:ab665847ae84db8c1eea7fdd676b24d8dbc9299bad8fa743d5cb0be18ca4ecd2": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "demo.odt.extracted/Thumbnails/thumbnail.png": {
+          "type=image": true
+        }
+      },
+      "redirection": "file:8495d37825dab8744f7d2c8049fc6b70b1777b9184f0abe69ce314795480ce39",
+      "relationships": {
+        "extracted_from file:8495d37825dab8744f7d2c8049fc6b70b1777b9184f0abe69ce314795480ce39": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "image/png",
+            "type": "PNG image data, 198 x 256, 8-bit/color RGB, non-interlaced"
+          },
+          "summary": "File Type Analysis: PNG image data, 198 x 256, 8-bit/color RGB, non-interlaced (image/png)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:aeb297984b26a30bd9a26f304b39bc7d91a2645749b35e7bf3f44c4b9511dc75": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "demo.odt.extracted/manifest.rdf": {}
+      },
+      "redirection": "file:8495d37825dab8744f7d2c8049fc6b70b1777b9184f0abe69ce314795480ce39",
+      "relationships": {
+        "extracted_from file:8495d37825dab8744f7d2c8049fc6b70b1777b9184f0abe69ce314795480ce39": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/xml",
+            "type": "XML 1.0 document, ASCII text"
+          },
+          "summary": "File Type Analysis: XML 1.0 document, ASCII text (text/xml)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:c0c0f1355237046cbbd4aa1c7077d4e73788ebf39c3f26950876efc19c9b20fc": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "demo.odt.extracted/settings.xml": {}
+      },
+      "redirection": "file:8495d37825dab8744f7d2c8049fc6b70b1777b9184f0abe69ce314795480ce39",
+      "relationships": {
+        "extracted_from file:8495d37825dab8744f7d2c8049fc6b70b1777b9184f0abe69ce314795480ce39": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/xml",
+            "type": "XML 1.0 document, ASCII text, with very long lines (8500)"
+          },
+          "summary": "File Type Analysis: XML 1.0 document, ASCII text, with very long lines (8500) (text/xml)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "demo.odt.extracted/Configurations2/accelerator/current.xml": {}
+      },
+      "redirection": "file:8495d37825dab8744f7d2c8049fc6b70b1777b9184f0abe69ce314795480ce39",
+      "relationships": {
+        "extracted_from file:8495d37825dab8744f7d2c8049fc6b70b1777b9184f0abe69ce314795480ce39": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "inode/x-empty",
+            "type": "empty"
+          },
+          "summary": "File Type Analysis: empty (inode/x-empty)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:f7c24c1bf8a2ab6179bf25628e053192ea03e226fe784dd762e7ab3b9e2c7fc6": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "demo.odt.extracted/Basic/Standard/script-lb.xml": {}
+      },
+      "redirection": "file:8495d37825dab8744f7d2c8049fc6b70b1777b9184f0abe69ce314795480ce39",
+      "relationships": {
+        "extracted_from file:8495d37825dab8744f7d2c8049fc6b70b1777b9184f0abe69ce314795480ce39": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/xml",
+            "type": "XML 1.0 document, ASCII text"
+          },
+          "summary": "File Type Analysis: XML 1.0 document, ASCII text (text/xml)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    }
+  }
+}

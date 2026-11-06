@@ -1,0 +1,150 @@
+#!/usr/bin/env python3
+"""Write ace3's tree of each sample in the normal form (PLAN.md 3.2).
+
+Each sample runs through ace3's cli analysis mode, in ace3's dev container, with the five modules
+ace4 has ported and file_type, which ace3's email and archive modules depend on. So that both
+systems see the same world, as tests/e2e/run gives ace4:
+
+- RDAP is answered from the recording tests/e2e/run's responder replays, and WHOIS fails;
+- the Splunk module has the same query as tests/e2e/site/overlay.yaml's instance, against
+  fake_splunk.py with the rows the responder's recording holds, for any search as it answers;
+- YARA scans with tools/ace3/trees/signatures, the rule tests/e2e/run gives the stack.
+
+    tools/ace3/trees/make-trees                     every sample
+    tools/ace3/trees/make-trees ace4/email/e2e...   the samples named, by path under samples/
+
+The trees go to tools/ace3/trees/reference/<sample>.json, with index.json naming ace3's commit.
+The comparison follows the newest ace3 (PLAN.md decision 14), so rerun this after ace3 moves.
+Everything runs under the container's /tmp/ace4-dumps; nothing is written under /opt/ace. Samples
+under samples/local/ are git-ignored, so make them or copy them in first.
+"""
+
+import importlib.machinery
+import importlib.util
+import json
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+REPO = HERE.parents[2]
+DUMPS = HERE.parent / "dumps"
+OUT = HERE / "reference"
+
+_loader = importlib.machinery.SourceFileLoader("make_dumps", str(DUMPS / "make-dumps"))
+_spec = importlib.util.spec_from_loader("make_dumps", _loader)
+dumps = importlib.util.module_from_spec(_spec)
+_loader.exec_module(dumps)
+
+CONTAINER, REMOTE, docker, put = dumps.CONTAINER, dumps.REMOTE, dumps.docker, dumps.put
+ENABLE = ["file_type", "archive", "yara_scanner_v3_4", "rdap_analyzer", "ace4_proxy_splunk"]
+RDAP_RECORDING = DUMPS / "reference" / "rdap_analyzer" / "fqdn_example.com.http"
+FAKE = f"{REMOTE}/fake/trees"
+# tests/e2e/site/overlay.yaml's clicker_detection_splunk. ace3 has a module of that name, which its
+# own config file defines, so this one has a name of its own. run_module.py writes any Splunk
+# module's results under ace4's name.
+SPLUNK_INSTANCE = """\
+analysis_module_ace4_proxy_splunk:
+  name: ace4_proxy_splunk
+  python_module: saq.modules.splunk
+  python_class: SplunkAPIAnalyzer
+  enabled: true
+  api_name: ace4_fake
+  valid_observable_types: [fqdn]
+  question: Was this domain seen in proxy logs?
+  summary: Proxy correlation
+  query: index=proxy hostname="<O_VALUE>"
+  use_index_time: true
+  observable_mapping:
+    - field: user
+      type: email_address
+"""
+
+
+def splunk_config():
+    """make-dumps' fake Splunk connection and defaults, with this instance in place of its query."""
+    config = dumps.SPLUNK_CONFIG.format(port=dumps.SPLUNK_PORT, query_timeout="")
+    return config[: config.index("analysis_module_proxy_domain_lookup:")] + SPLUNK_INSTANCE
+
+
+def copy_tree(source, target):
+    archive = subprocess.run(
+        ["tar", "--no-xattrs", "-C", str(source), "-cf", "-", "."],
+        capture_output=True, check=True, env={"COPYFILE_DISABLE": "1"},
+    ).stdout
+    docker("exec", CONTAINER, "mkdir", "-p", target)
+    docker("exec", "-i", CONTAINER, "tar", "-C", target, "-xf", "-", stdin=archive)
+
+
+def start_fake():
+    docker("exec", CONTAINER, "mkdir", "-p", f"{FAKE}/http")
+    put(f"{FAKE}/saq.yaml", splunk_config().encode())
+    docker(
+        "exec", "-d", CONTAINER, "sh", "-c",
+        f"exec /venv/bin/python3 -I {REMOTE}/fake_splunk.py "
+        f"--rows {REMOTE}/fixtures/splunk/proxy_rows.json --cert {REMOTE}/fake/cert.pem "
+        f"--key {REMOTE}/fake/key.pem --port {dumps.SPLUNK_PORT} --record {FAKE}/http "
+        f"--pid-file {FAKE}/pid --running-polls 4 --any-hostname 2> {FAKE}/fake.log",
+    )
+    for _ in range(100):
+        if docker("exec", CONTAINER, "test", "-e", f"{FAKE}/pid", check=False).returncode == 0:
+            return
+        time.sleep(0.1)
+    raise SystemExit("fake_splunk.py did not start")
+
+
+def stop_fake():
+    docker("exec", CONTAINER, "sh", "-c", f'kill "$(cat {FAKE}/pid)" 2>/dev/null || true', check=False)
+
+
+def run(sample):
+    work = f"{REMOTE}/runs/trees/{sample['path']}"
+    command = [
+        "docker", "exec", "-i", "-e", "PYTHONDONTWRITEBYTECODE=1", "-e", "SAQ_SKIP_LOCAL_SAQ_YAML=1",
+        "-e", "NO_PROXY=127.0.0.1,localhost", "-e", "no_proxy=127.0.0.1,localhost",
+        CONTAINER, "/venv/bin/python3", "-", "--work", work, "--module", "email_analyzer",
+        "--label", sample["path"], "--file", f"{REMOTE}/samples/{sample['path']}",
+        "--alert-path", sample["alert_path"], "--yara-rules", f"{REMOTE}/signatures",
+        "--config", f"{FAKE}/saq.yaml", "--replay-http", f"{REMOTE}/rdap", "--tree",
+    ]
+    for tag in sample["meta_tags"]:
+        command += ["--meta-tag", tag]
+    for module in ENABLE:
+        command += ["--enable", module]
+    result = subprocess.run(command, input=(DUMPS / "run_module.py").read_bytes(), capture_output=True)
+    if result.returncode != 0:
+        sys.stderr.write(result.stderr.decode(errors="replace")[-4000:])
+        raise SystemExit(f"run_module.py failed for {sample['path']}")
+    target = OUT / f"{sample['path']}.json"
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_bytes(docker("exec", CONTAINER, "cat", f"{work}/tree.json").stdout)
+    docker("exec", CONTAINER, "rm", "-rf", work)
+
+
+def main():
+    manifest = json.loads((REPO / "samples" / "manifest.json").read_text())
+    wanted = sys.argv[1:]
+    samples = [s for s in manifest["samples"] if not wanted or s["path"] in wanted]
+    missing = set(wanted) - {s["path"] for s in samples}
+    if missing:
+        raise SystemExit(f"not in the manifest: {sorted(missing)}")
+    dumps.copy_in(["splunk"])
+    copy_tree(HERE / "signatures", f"{REMOTE}/signatures")
+    copy_tree(RDAP_RECORDING, f"{REMOTE}/rdap")
+    start_fake()
+    try:
+        for sample in samples:
+            print(sample["path"], flush=True)
+            run(sample)
+    finally:
+        stop_fake()
+    commit = docker(
+        "exec", CONTAINER, "git", "-C", "/opt/ace", "rev-parse", "--short=8", "HEAD"
+    ).stdout.decode().strip()
+    (OUT / "index.json").write_text(json.dumps({"ace3_commit": commit}, indent=2) + "\n")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

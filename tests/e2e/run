@@ -4,14 +4,15 @@
 It brings up postgres, bucket, ace, the parser and network pools and the e2e profile's
 responder under a project of its own (ace4-e2e), with:
 
-- a signatures repository it makes under target/e2e/, holding one rule that matches a marker
-  string only in a file tagged type=email.attachment (its meta_tags directive);
+- a signatures repository it makes under target/e2e/ from tools/ace3/trees/signatures, holding
+  one rule that matches a marker string only in a file tagged type=email.attachment (its meta_tags
+  directive);
 - tests/e2e/site/overlay.yaml, which points the RDAP module and the clicker_detection_splunk
   instance of the Splunk module at the responder's recordings, so nothing reaches the internet;
 - a 15-second lease, so a task a killed pool held comes back quickly.
 
-Then it submits an email with a DKIM signing domain (example.com) in its headers and a zip
-attachment holding the marker, twice. Each time, the email, archive and YARA modules run in
+Then it submits samples/ace4/email/e2e.email.rfc822, an email with a DKIM signing domain
+(example.com) in its headers and a zip attachment holding the marker, twice. Each time, the email, archive and YARA modules run in
 email mode; the YARA match on the attachment makes the root an alert in correlation mode, which
 runs RDAP and the Splunk instance, the delayed module, on the domain. The second time the
 parser pool is frozen before the submission, so the core leases it a task it never answers, and
@@ -20,10 +21,14 @@ results from all five modules and complete; the second only later. The same emai
 times, so their trees in the normal form (PLAN.md 3.1) must be the same text, which goes to
 <work>/normal-form.json.
 
+It then submits the email once more in the cli mode and compares the root's form with ace3's tree
+of the same email (PLAN.md 3.2, tools/ace3/trees/reference/). Every difference has to be listed in
+tools/ace3/trees/differences.md, and a row that matches nothing fails too, so the list stays true.
+
 Usage: tests/e2e/run [--keep]   (--keep leaves the stack up)
 Exits 0 when every check passes. Needs docker compose and python3 on the host.
 
-A site repository runs the same scenario against its own images (PLAN.md 2.32) by setting:
+A site repository runs the same scenario, without the comparison with ace3, against its own images (PLAN.md 2.32) by setting:
 
 - ACE4_E2E_COMPOSE: its Compose file, whose services have this file's names (postgres, bucket,
   ace, parsers, lookups and the e2e profile's responder);
@@ -33,9 +38,11 @@ A site repository runs the same scenario against its own images (PLAN.md 2.32) b
 - ACE4_E2E_WORK: where the signatures repository goes, in place of target/e2e;
 - ACE4_E2E_PORT: the host port, as for ace4;
 - ACE4_E2E_ACE_COMMAND: the ace service's binary, in place of ace.
+
+Its modules differ from ace3's by design, so setting ACE4_E2E_SITE skips the comparison.
 """
 
-import io
+import fnmatch
 import json
 import os
 import re
@@ -45,8 +52,6 @@ import sys
 import time
 import urllib.request
 import uuid
-import zipfile
-from email.message import EmailMessage
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent.parent
@@ -59,8 +64,9 @@ PORT = os.environ.get("ACE4_E2E_PORT", "7444")
 ACE_COMMAND = os.environ.get("ACE4_E2E_ACE_COMMAND", "ace")
 SUBMIT_TOKEN = "ace4-e2e-submit-token"
 LEASE_SECONDS = 15
-MARKER = "ACE4-E2E-MARKER-6c1f"
 RULE = "ace4_e2e_attachment"
+SAMPLE = "ace4/email/e2e.email.rfc822"
+TREES = ROOT / "tools" / "ace3" / "trees"
 MODULES = [
     "email_analyzer",
     "archive",
@@ -130,24 +136,11 @@ def git(*args):
 
 
 def make_signatures():
-    """A repository with the one fixture rule, committed. Returns its commit."""
+    """A repository with tools/ace3/trees/signatures' one fixture rule, the rule ace3's trees
+    scanned with, committed. Returns its commit."""
     repo = WORK / "signatures"
     shutil.rmtree(repo, ignore_errors=True)
-    (repo / "yara" / "e2e").mkdir(parents=True)
-    (repo / "yara" / "e2e" / "attachment.yar").write_text(
-        f"""rule {RULE}
-{{
-    meta:
-        uuid = "4f6e2b9a-0d3c-4e5f-9a8b-7c6d5e4f3a2b"
-        // kept only for a file the email module tagged as an attachment
-        meta_tags = "type=email.attachment"
-    strings:
-        $marker = "{MARKER}"
-    condition:
-        $marker
-}}
-"""
-    )
+    shutil.copytree(ROOT / "tools" / "ace3" / "trees" / "signatures", repo / "yara")
     git("init", "-q")
     git("add", ".")
     git("commit", "-q", "-m", "the end-to-end test's rule")
@@ -157,35 +150,9 @@ def make_signatures():
     ).stdout.strip()
 
 
-def make_email():
-    """An email with a DKIM signing domain and a stored zip attachment holding the marker,
-    which the extracted file holds too, untagged."""
-    archive = io.BytesIO()
-    with zipfile.ZipFile(archive, "w", zipfile.ZIP_STORED) as z:
-        z.writestr(
-            zipfile.ZipInfo("invoice.txt", date_time=(2026, 1, 1, 0, 0, 0)),
-            f"Invoice 1001\n{MARKER}\n",
-        )
-    message = EmailMessage()
-    message["From"] = "Alice <alice@example.com>"
-    message["To"] = "bob@example.net"
-    message["Subject"] = "ace4 end-to-end"
-    message["Date"] = "Sun, 01 Nov 2026 12:00:00 +0000"
-    message["Message-ID"] = "<ace4-e2e@example.com>"
-    message["DKIM-Signature"] = (
-        "v=1; a=rsa-sha256; c=relaxed/relaxed; d=example.com; s=e2e; "
-        "h=from:to:subject; bh=AAAA; b=BBBB"
-    )
-    message.set_content("The invoice is attached.\n")
-    message.add_attachment(
-        archive.getvalue(), maintype="application", subtype="zip", filename="invoice.zip"
-    )
-    return message.as_bytes()
-
-
-def submit(email):
+def submit(email, mode="email"):
     boundary = f"ace4-e2e-{uuid.uuid4().hex}"
-    analysis = json.dumps({"description": "ace4 end-to-end test", "analysis_mode": "email"})
+    analysis = json.dumps({"description": "ace4 end-to-end test", "analysis_mode": mode})
     body = (
         f"--{boundary}\r\nContent-Disposition: form-data; name=\"analysis\"\r\n\r\n"
         f"{analysis}\r\n--{boundary}\r\nContent-Disposition: form-data; name=\"file\"; "
@@ -342,6 +309,78 @@ def check_normal_form(text, failures):
            "it holds no row timestamp")
 
 
+def listed_differences():
+    """The rows of differences.md: (sample glob, path pattern). In a path, a `*` segment is any
+    one segment, `**` any number of them, and `*` inside a segment any text."""
+    rows = []
+    for line in (TREES / "differences.md").read_text().splitlines():
+        if line.startswith("| `"):
+            cells = [cell.strip().strip("`") for cell in line.strip("|").split("|")]
+            rows.append((cells[0], cells[1]))
+    return rows
+
+
+def path_regex(pattern):
+    parts = []
+    for segment in pattern.split("/")[1:]:
+        if segment == "**":
+            parts.append("(/[^/]*)*")
+        else:
+            parts.append("/" + "[^/]*".join(re.escape(part) for part in segment.split("*")))
+    return re.compile("".join(parts))
+
+
+def tree_differences(ace3, ace4, path=""):
+    """Every place two forms differ, as (JSON pointer, ace3's value, ace4's)."""
+    if isinstance(ace3, dict) and isinstance(ace4, dict):
+        for key in sorted(ace3.keys() | ace4.keys()):
+            escaped = key.replace("~", "~0").replace("/", "~1")
+            if key not in ace3:
+                yield f"{path}/{escaped}", "<absent>", ace4[key]
+            elif key not in ace4:
+                yield f"{path}/{escaped}", ace3[key], "<absent>"
+            else:
+                yield from tree_differences(ace3[key], ace4[key], f"{path}/{escaped}")
+    elif isinstance(ace3, list) and isinstance(ace4, list) and len(ace3) == len(ace4):
+        for index, (a, b) in enumerate(zip(ace3, ace4)):
+            yield from tree_differences(a, b, f"{path}/{index}")
+    elif ace3 != ace4:
+        yield path, ace3, ace4
+
+
+def compare_with_ace3(email, failures):
+    """Runs the sample in the cli mode, as ace3's tree ran, and compares the two forms."""
+    compose("restart", "responder")
+    compose("up", "-d", "--wait", "responder")
+    root = submit(email, mode="cli")
+    wait_for(f"root {root} to complete", lambda: completed_after(root), within=300)
+    text = normal_form(root)
+    (WORK / "normal-form-cli.json").write_text(text)
+    rows = listed_differences()
+    regexes = [(glob, path_regex(pattern)) for glob, pattern in rows]
+    used = set()
+    unexplained = []
+    ace3 = json.loads((TREES / "reference" / f"{SAMPLE}.json").read_text())
+    for path, a, b in tree_differences(ace3, json.loads(text)):
+        matched = [i for i, (glob, regex) in enumerate(regexes)
+                   if fnmatch.fnmatchcase(SAMPLE, glob) and regex.fullmatch(path)]
+        used.update(matched)
+        if not matched:
+            unexplained.append(f"{path}\n    ace3: {json.dumps(a)[:300]}\n    ace4: {json.dumps(b)[:300]}")
+    stale = [f"{rows[i][1]}" for i, (glob, _) in enumerate(regexes)
+             if i not in used and fnmatch.fnmatchcase(SAMPLE, glob)]
+    for line in unexplained:
+        log("FAIL  not in differences.md: " + line)
+    for row in stale:
+        log("FAIL  a row of differences.md matched nothing: " + row)
+    if unexplained or stale:
+        failures.append(f"{len(unexplained)} unexplained differences from ace3 and {len(stale)} "
+                        "stale rows; see above")
+    else:
+        log(f"ok    ace4's tree of {SAMPLE} differs from ace3's only as differences.md explains, "
+            f"by {len(used)} rows")
+
+
 def run(email, kill, failures):
     """Submits the email and waits for its root to complete. With kill, freezes the parser pool
     first, kills it once it holds a lease, and starts it again. Returns the root and seconds to
@@ -401,7 +440,7 @@ def main(argv):
             lambda: "the first ruleset loaded" in compose("logs", "parsers", capture=True),
             within=60,
         )
-        email = make_email()
+        email = (ROOT / "samples" / SAMPLE).read_bytes()
         first, undisturbed = run(email, kill=False, failures=failures)
         second, killed = run(email, kill=True, failures=failures)
         log(f"completion: {undisturbed:.2f}s undisturbed, {killed:.2f}s with the parser pool "
@@ -418,6 +457,8 @@ def main(argv):
         else:
             log("FAIL  the roots' normal forms differ; see normal-form*.json in " + str(WORK))
             failures.append("the same email's two roots have different normal forms")
+        if "ACE4_E2E_SITE" not in os.environ:
+            compare_with_ace3(email, failures)
     finally:
         if failures or keep:
             for service in ("ace", "parsers", "lookups", "responder"):

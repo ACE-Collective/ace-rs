@@ -1,0 +1,42 @@
+{
+  "form": 1,
+  "observables": {
+    "file:3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "DOC_PO_10142020EX.doc": {
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": true,
+            "is_office_ext": true,
+            "is_ole_file": true,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": true,
+            "mime": "application/msword",
+            "type": "Composite Document File V2 Document, Little Endian, Os: Windows, Version 6.2, Code page: 1252, Title: Iure., Author: Adrien Perrot, Template: Normal.dotm, Revision Number: 1, Name of Creating Application: Microsoft Office Word, Create Time/Date: Wed Oct 14 12:13:00 2020, Last Saved Time/Date: Wed Oct 14 12:14:00 2020, Number of Pages: 1, Number of Words: 1544, Number of Characters: 8807, Security: 8"
+          },
+          "summary": "File Type Analysis: Composite Document File V2 Document, Little Endian, Os: Windows, Version 6.2, Code page: 1252, Title: Iure., Author: Adrien Perrot, Template: Normal.dotm, Revision Number: 1, Name of Creating Application: Microsoft Office Word, Create Time/Date: Wed Oct 14 12:13:00 2020, Last Saved Time/Date: Wed Oct 14 12:14:00 2020, Number of Pages: 1, Number of Words: 1544, Number of Characters: 8807, Security: 8 (application/msword) (ms office document) (ole compound file) (zip archive)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "microsoft_office": true,
+        "ole": true,
+        "zip": true
+      }
+    }
+  }
+}

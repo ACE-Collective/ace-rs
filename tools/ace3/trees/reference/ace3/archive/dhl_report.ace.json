@@ -1,0 +1,144 @@
+{
+  "form": 1,
+  "observables": {
+    "file:2f3aaf99afb1f4ee8d3b7770fd4ed6df2896f811e8192b8f3f8fa128ec609fa9": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "dhl_report.ace": {
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "archive": {
+          "details": {
+            "extracted_files": [
+              "DHL EXPRESS ONLINE DELIVERY REPORT.scr"
+            ],
+            "extraction_error": null,
+            "file_count": 1
+          },
+          "summary": "Archive Analysis: extracted 1 of 1 files: (DHL EXPRESS ONLINE DELIVERY REPORT.scr)",
+          "tags": {
+            "exe_in_zip": true,
+            "single_file_zip": true
+          }
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/x-ace-compressed",
+            "type": "ACE archive data version 20, from Win/32, version 20 to extract, contains AV-String (unregistered), solid"
+          },
+          "summary": "File Type Analysis: ACE archive data version 20, from Win/32, version 20 to extract, contains AV-String (unregistered), solid (application/x-ace-compressed)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:75f1d5b69ef6ecfb89c7ff6af1535cc7ad603ba1b72b489dc4c75ba77efab91e": {
+      "detections": {
+        "An archive contained a single file that was an executable": [
+          null
+        ]
+      },
+      "directives": {
+        "sandbox": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "dhl_report.ace.extracted/DHL EXPRESS ONLINE DELIVERY REPORT.scr": {
+          "type=executable": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:2f3aaf99afb1f4ee8d3b7770fd4ed6df2896f811e8192b8f3f8fa128ec609fa9": true
+      },
+      "results": {
+        "archive": {
+          "details": {
+            "extracted_files": [
+              ".rsrc",
+              ".reloc",
+              ".rdata",
+              ".tls",
+              ".idata",
+              "BSS"
+            ],
+            "extraction_error": null,
+            "file_count": 8
+          },
+          "summary": "Archive Analysis: extracted 6 of 8 files: (.rsrc, .reloc, .rdata, .tls, .idata, BSS)",
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": true,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/vnd.microsoft.portable-executable",
+            "type": "PE32 executable for MS Windows 4.00 (GUI), Intel i386, 8 sections"
+          },
+          "summary": "File Type Analysis: PE32 executable for MS Windows 4.00 (GUI), Intel i386, 8 sections (application/vnd.microsoft.portable-executable) (portable executable)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "executable": true
+      }
+    },
+    "file:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "dhl_report.ace.extracted/DHL EXPRESS ONLINE DELIVERY REPORT.scr.extracted/.idata": {}
+      },
+      "relationships": {
+        "extracted_from file:75f1d5b69ef6ecfb89c7ff6af1535cc7ad603ba1b72b489dc4c75ba77efab91e": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "inode/x-empty",
+            "type": "empty"
+          },
+          "summary": "File Type Analysis: empty (inode/x-empty)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    }
+  }
+}

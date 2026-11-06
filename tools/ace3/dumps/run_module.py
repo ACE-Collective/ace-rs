@@ -20,7 +20,11 @@ does (saq/cli/commands/correlate.py) with all modules disabled except the ones n
 - with --record-http, every request made through `requests` is written to http.json with its
   response, so a port can replay them;
 - with --config, ace3 loads that YAML file over its own configuration, as `ace -c` does, which is
-  how the Splunk dumps point a module at tools/ace3/dumps/fake_splunk.py for one run.
+  how the Splunk dumps point a module at tools/ace3/dumps/fake_splunk.py for one run;
+- with --replay-http, requests made through `requests` get the answers recorded in that directory
+  and fail when none was, and WHOIS fails, so the run reaches nothing outside the container;
+- with --tree, it also writes tree.json, the whole root in the normal form of PLAN.md 3.1
+  (crates/ace-core/src/normal.rs), which tools/ace3/trees/make-trees collects.
 
 The dump lists every analysis on the observable (the module's and its dependencies'), with the
 observables each one added, and what the module did to the observable itself (tags, directives,
@@ -71,6 +75,8 @@ def parse_args():
     parser.add_argument("--yara-rules", help="scan with the local YARA scanner over this signature directory")
     parser.add_argument("--record-http", action="store_true", help="record HTTP requests made through requests")
     parser.add_argument("--config", action="append", default=[], help="a YAML file ace3 loads over its configuration")
+    parser.add_argument("--replay-http", action="append", default=[], help="a directory of recorded HTTP to answer from")
+    parser.add_argument("--tree", action="store_true", help="also write the root in the normal form to tree.json")
     parser.add_argument("--label", default="", help="a name for the input, written into the dump")
     args = parser.parse_args(sys.argv[1:])
     if bool(args.file) == bool(args.observable):
@@ -122,6 +128,156 @@ class HttpRecorder:
             return response
 
         requests.Session.send = send
+
+
+def replay_http(directories):
+    """Answers requests from recordings HttpRecorder wrote, by method and URL, in order, so a URL
+    recorded twice gives each answer once and then keeps giving the last. Nothing else goes out."""
+    import io
+
+    import requests
+    import whois
+    from whois.exceptions import PywhoisError
+
+    recorded = {}
+    for directory in directories:
+        with open(os.path.join(directory, "http.json")) as fp:
+            for exchange in json.load(fp)["exchanges"]:
+                if "body_file" in exchange:
+                    with open(os.path.join(directory, exchange["body_file"]), "rb") as body:
+                        recorded.setdefault((exchange["method"], exchange["url"]), []).append(
+                            (exchange["status"], body.read())
+                        )
+
+    def send(session, request, **kwargs):
+        answers = recorded.get((request.method, request.url))
+        if not answers:
+            raise requests.ConnectionError(f"nothing recorded for {request.method} {request.url}")
+        status, body = answers.pop(0) if len(answers) > 1 else answers[0]
+        response = requests.Response()
+        response.status_code = status
+        response.raw = io.BytesIO(body)
+        response.url = request.url
+        response.request = request
+        return response
+
+    requests.Session.send = send
+
+    def no_whois(*_args, **_kwargs):
+        raise PywhoisError("no WHOIS in a replay")
+
+    whois.whois = no_whois
+
+
+# What the normal form calls each ace3 analysis, and the fields of a result that describe the run
+# rather than the sample: RUN_FIELDS in crates/ace-core/src/normal.rs, by ace3's class.
+TREE_MODULES = {
+    "EmailAnalysis": "email_analyzer",
+    "FileTypeAnalysis": "file_type",
+    "ArchiveAnalysis": "archive",
+    "RdapAnalysis": "rdap_analyzer",
+    "YaraScanResults_v3_4": "yara_scanner_v3_4",
+    "SplunkAPIAnalysis": "clicker_detection_splunk",
+}
+TREE_RUN_FIELDS = {
+    "EmailAnalysis": ["details/email/log_entry/date"],
+    "RdapAnalysis": [
+        "summary",
+        "details/age_created_in_days",
+        "details/age_last_updated_in_days",
+        "details/datetime_of_analysis",
+    ],
+    "SplunkAPIAnalysis": [
+        "details/end_time",
+        "details/query_start",
+        "details/running_start_time",
+        "details/search_id",
+        "details/start_time",
+    ],
+    "YaraScanResults_v3_4": ["details/scan_results/*/commit", "details/scan_results/*/ruleset"],
+}
+# ace3's excluded_analysis holds `module:<class ...>` strings
+TREE_EXCLUDED = {
+    "EmailAnalyzer": "email_analyzer",
+    "MessageIDAnalyzerV2": "message_id_analyzer_v2",
+    "ArchiveAnalyzer": "archive",
+    "YaraScanner_v3_4": "yara_scanner_v3_4",
+}
+
+
+def remove_at(value, segments):
+    if isinstance(value, dict) and len(segments) == 1:
+        value.pop(segments[0], None)
+    elif isinstance(value, dict):
+        if segments[0] in value:
+            remove_at(value[segments[0]], segments[1:])
+    elif isinstance(value, list) and segments[0] == "*":
+        for item in value:
+            remove_at(item, segments[1:])
+
+
+def tree_time(time):
+    """As chrono's to_rfc3339_opts(AutoSi, true) writes it."""
+    import datetime
+
+    time = time.astimezone(datetime.timezone.utc)
+    text = time.strftime("%Y-%m-%dT%H:%M:%S")
+    if time.microsecond:
+        text += f".{time.microsecond // 1000:03d}" if time.microsecond % 1000 == 0 else f".{time.microsecond:06d}"
+    return text + "Z"
+
+
+def tree_form(root):
+    def members(items):
+        return {item: True for item in items}
+
+    observables = {}
+    for observable in root.all_observables:
+        entry = {
+            "tags": members(str(tag) for tag in observable.tags),
+            "directives": members(d for d in observable.directives if not d.startswith("yara_meta:")),
+            "excluded_analysis": members(
+                TREE_EXCLUDED.get(class_name, class_name)
+                for class_name in (
+                    excluded.rsplit(".", 1)[-1].removesuffix("'>") for excluded in observable.excluded_analysis
+                )
+            ),
+            "relationships": members(
+                f"{r.r_type} {r.target.type}:{r.target.value}" for r in observable.relationships
+            ),
+            "detections": {},
+            "results": {},
+        }
+        detections = list(observable.detections)
+        for analysis in observable.all_analysis:
+            analysis.load_details()
+            class_name = type(analysis).__name__
+            detections.extend(analysis.detections)
+            result = {
+                "summary": analysis.summary,
+                "tags": members(str(tag) for tag in analysis.tags),
+                "details": json_safe(analysis.details),
+            }
+            for path in TREE_RUN_FIELDS.get(class_name, []):
+                remove_at(result, path.split("/"))
+            # ace3 writes this with json.dumps' spaces and ace4 with serde_json, so it's compared
+            # as the same compact text, which any change to its content still shows
+            raw = result["details"].get("rdap_raw_json") if class_name == "RdapAnalysis" else None
+            if isinstance(raw, str):
+                result["details"]["rdap_raw_json"] = json.dumps(json.loads(raw), separators=(",", ":"), ensure_ascii=False)
+            entry["results"][TREE_MODULES.get(class_name, class_name)] = result
+        for detection in detections:
+            entry["detections"].setdefault(detection.description, []).append(json_safe(detection.details))
+        for details in entry["detections"].values():
+            details.sort(key=lambda d: json.dumps(d, sort_keys=True, ensure_ascii=False, separators=(",", ":")))
+        if observable.time is not None:
+            entry["time"] = tree_time(observable.time)
+        if observable.redirection is not None:
+            entry["redirection"] = f"{observable.redirection.type}:{observable.redirection.value}"
+        if observable.type == "file":
+            entry["paths"] = {observable.file_path: members(sorted(observable.yara_meta_tags))}
+        observables[f"{observable.type}:{observable.value}"] = entry
+    return {"form": 1, "observables": observables}
 
 
 def prepare_work_dir(work):
@@ -206,6 +362,8 @@ def main():
     sys.path.insert(0, ACE3)
 
     recorder = None
+    if args.replay_http:
+        replay_http(args.replay_http)
     if args.record_http:
         recorder = HttpRecorder(os.path.join(work, "http"))
         recorder.install()
@@ -312,6 +470,11 @@ def main():
         "observable_after": dump_observable(target),
         "analyses": [dump_analysis(a) for a in target.all_analysis],
     }
+    if args.tree:
+        tree = relative_paths(tree_form(root), [(root_dir, "<root>"), (work, "<work>")])
+        with open(os.path.join(work, "tree.json"), "w") as fp:
+            json.dump(tree, fp, indent=2, sort_keys=True, ensure_ascii=False)
+            fp.write("\n")
     if recorder is not None:
         dump["http_exchanges"] = len(recorder.exchanges)
         recording = {

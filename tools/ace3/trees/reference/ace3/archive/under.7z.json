@@ -1,0 +1,86 @@
+{
+  "form": 1,
+  "observables": {
+    "file:78f3bd13c31a185a52c3a85a68045c0b89a6b6f2278b9066ef785ecb4a277f27": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "under.7z": {
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "archive": {
+          "details": {
+            "extracted_files": [
+              "hello_world.txt"
+            ],
+            "extraction_error": null,
+            "file_count": 1
+          },
+          "summary": "Archive Analysis: extracted 1 of 1 files: (hello_world.txt)",
+          "tags": {
+            "single_file_zip": true
+          }
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/x-7z-compressed",
+            "type": "7-zip archive data, version 0.4"
+          },
+          "summary": "File Type Analysis: 7-zip archive data, version 0.4 (application/x-7z-compressed)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:b82333088c3ea38e20cf16916773626f1f7966a3f08ef065240337882ada3ad4": {
+      "detections": {},
+      "directives": {
+        "sandbox": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "under.7z.extracted/hello_world.txt": {}
+      },
+      "relationships": {
+        "extracted_from file:78f3bd13c31a185a52c3a85a68045c0b89a6b6f2278b9066ef785ecb4a277f27": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    }
+  }
+}

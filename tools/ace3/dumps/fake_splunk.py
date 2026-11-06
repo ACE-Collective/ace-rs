@@ -101,8 +101,9 @@ class Job:
 
 
 class FakeSplunk:
-    def __init__(self, rows, running_polls, record_dir):
+    def __init__(self, rows, running_polls, record_dir, any_hostname=False):
         self.rows = rows
+        self.any_hostname = any_hostname
         self.running_polls = running_polls
         self.record_dir = record_dir
         self.jobs = {}
@@ -112,7 +113,7 @@ class FakeSplunk:
     def rows_for(self, search):
         """The fixture rows for the hostname the search quotes."""
         for entry in self.rows["searches"]:
-            if f'hostname="{entry["hostname"]}"' in search:
+            if self.any_hostname or f'hostname="{entry["hostname"]}"' in search:
                 return entry["rows"]
         return []
 
@@ -336,6 +337,7 @@ def main():
     parser.add_argument("--key", required=True)
     parser.add_argument("--record", required=True, help="directory for http.json and the bodies")
     parser.add_argument("--port", type=int, default=8089, help="the port on 127.0.0.1, 8089 as splunkd's")
+    parser.add_argument("--any-hostname", action="store_true", help="every search gets the first rows, as a replayed recording does")
     parser.add_argument("--pid-file", required=True, help="written with the process id once the server listens")
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--running-polls", type=int, help="status reads that report RUNNING before DONE")
@@ -345,7 +347,7 @@ def main():
     with open(args.rows) as fp:
         rows = json.load(fp)
     os.makedirs(args.record, exist_ok=True)
-    fake = FakeSplunk(rows, None if args.never_done else args.running_polls, args.record)
+    fake = FakeSplunk(rows, None if args.never_done else args.running_polls, args.record, args.any_hostname)
 
     server = http.server.ThreadingHTTPServer(("127.0.0.1", args.port), make_handler(fake, args.port))
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)

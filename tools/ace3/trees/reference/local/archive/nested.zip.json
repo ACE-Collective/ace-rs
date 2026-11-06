@@ -1,0 +1,138 @@
+{
+  "form": 1,
+  "observables": {
+    "file:49f5d35b7bdd85850e771564dabdd2dd45bfcf88c70feb72472a07cba8f2a5bd": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "nested.zip": {
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "archive": {
+          "details": {
+            "extracted_files": [
+              "inner.zip"
+            ],
+            "extraction_error": null,
+            "file_count": 1
+          },
+          "summary": "Archive Analysis: extracted 1 of 1 files: (inner.zip)",
+          "tags": {
+            "single_file_zip": true
+          }
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": true,
+            "mime": "application/zip",
+            "type": "Zip archive data, made by v2.0 UNIX, extract using at least v2.0, last modified Oct 29 2026 00:00:00, uncompressed size 157, method=deflate"
+          },
+          "summary": "File Type Analysis: Zip archive data, made by v2.0 UNIX, extract using at least v2.0, last modified Oct 29 2026 00:00:00, uncompressed size 157, method=deflate (application/zip) (zip archive)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "zip": true
+      }
+    },
+    "file:f53d8796244d2c39d94ca1f1cdef0c8450aa17de6a222f899a1bbfeeb6886844": {
+      "detections": {},
+      "directives": {
+        "sandbox": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "nested.zip.extracted/inner.zip.extracted/readme.txt": {}
+      },
+      "relationships": {
+        "extracted_from file:ff4a85333bcc3cd27d002229a6f163713e77111dc4a8f953ccfe1944941d1ff9": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:ff4a85333bcc3cd27d002229a6f163713e77111dc4a8f953ccfe1944941d1ff9": {
+      "detections": {},
+      "directives": {
+        "sandbox": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "nested.zip.extracted/inner.zip": {}
+      },
+      "relationships": {
+        "extracted_from file:49f5d35b7bdd85850e771564dabdd2dd45bfcf88c70feb72472a07cba8f2a5bd": true
+      },
+      "results": {
+        "archive": {
+          "details": {
+            "extracted_files": [
+              "readme.txt"
+            ],
+            "extraction_error": null,
+            "file_count": 1
+          },
+          "summary": "Archive Analysis: extracted 1 of 1 files: (readme.txt)",
+          "tags": {
+            "single_file_zip": true
+          }
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": true,
+            "mime": "application/zip",
+            "type": "Zip archive data, made by v2.0 UNIX, extract using at least v2.0, last modified Oct 29 2026 00:00:00, uncompressed size 37, method=deflate"
+          },
+          "summary": "File Type Analysis: Zip archive data, made by v2.0 UNIX, extract using at least v2.0, last modified Oct 29 2026 00:00:00, uncompressed size 37, method=deflate (application/zip) (zip archive)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "zip": true
+      }
+    }
+  }
+}

@@ -1,0 +1,95 @@
+{
+  "form": 1,
+  "observables": {
+    "file:1f0e8019d2bc4dadef1395af870b509adf4e8a226dee0fb7716cc5d8c3a4d147": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "test.zip": {
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "archive": {
+          "details": {
+            "extracted_files": [
+              "Faktura.FS.17.9.20_2018_2_13_AI02668779.pdf.js"
+            ],
+            "extraction_error": null,
+            "file_count": 1
+          },
+          "summary": "Archive Analysis: extracted 1 of 1 files: (Faktura.FS.17.9.20_2018_2_13_AI02668779.pdf.js)",
+          "tags": {
+            "script_in_zip": true,
+            "single_file_zip": true
+          }
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": true,
+            "mime": "application/zip",
+            "type": "Zip archive data, made by v3.1, extract using at least v2.0, last modified Dec 25 2006 06:29:14, uncompressed size 23405, method=deflate"
+          },
+          "summary": "File Type Analysis: Zip archive data, made by v3.1, extract using at least v2.0, last modified Dec 25 2006 06:29:14, uncompressed size 23405, method=deflate (application/zip) (zip archive)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "zip": true
+      }
+    },
+    "file:2e981fb20ec03bb5bf767e61069d4ceca975dabb333a958d45df74bbe6bf1bcb": {
+      "detections": {
+        "An archive contained a single file that was a script": [
+          null
+        ]
+      },
+      "directives": {
+        "sandbox": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "test.zip.extracted/Faktura.FS.17.9.20_2018_2_13_AI02668779.pdf.js": {
+          "type=script.javascript": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:1f0e8019d2bc4dadef1395af870b509adf4e8a226dee0fb7716cc5d8c3a4d147": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text, with very long lines (23405), with no line terminators"
+          },
+          "summary": "File Type Analysis: ASCII text, with very long lines (23405), with no line terminators (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    }
+  }
+}

@@ -1,0 +1,27 @@
+From: Alice <alice@example.com>
+To: bob@example.net
+Subject: ace4 end-to-end
+Date: Sun, 01 Nov 2026 12:00:00 +0000
+Message-ID: <ace4-e2e@example.com>
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=example.com; s=e2e;
+ h=from:to:subject; bh=AAAA; b=BBBB
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="ace4-e2e-boundary"
+
+--ace4-e2e-boundary
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+The invoice is attached.
+
+--ace4-e2e-boundary
+Content-Type: application/zip
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename="invoice.zip"
+MIME-Version: 1.0
+
+UEsDBBQAAAAAAAAAIVyTN3SfIgAAACIAAAALAAAAaW52b2ljZS50eHRJbnZvaWNlIDEwMDEKQUNF
+NC1FMkUtTUFSS0VSLTZjMWYKUEsBAhQDFAAAAAAAAAAhXJM3dJ8iAAAAIgAAAAsAAAAAAAAAAAAA
+AIABAAAAAGludm9pY2UudHh0UEsFBgAAAAABAAEAOQAAAEsAAAAAAA==
+
+--ace4-e2e-boundary--
