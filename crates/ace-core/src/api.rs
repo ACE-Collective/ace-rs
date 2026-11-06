@@ -11,7 +11,9 @@
 //!   wrote, under the task's own key in the bucket.
 //! - `POST /api/worker/v1/tasks/<id>/end`: the task's end, a `TaskEnd`. A result's files must
 //!   be uploaded first; the core checks each one's bytes against its sha256 and moves it into
-//!   the `alert_files` pool, held by the root.
+//!   the `alert_files` pool, held by the root. A result that fails its check is answered 422 with
+//!   each field that failed, and that ends the task as failed, because the same module would write
+//!   the same result again. The row's error says why.
 //!
 //! - `POST /api/worker/v1/tasks/<id>/release`: gives the task back to the queue without
 //!   counting the attempt, as a pool does at shutdown.
@@ -37,6 +39,7 @@ use ace_sdk::wire::{
     ApiError, CurrentRuleset, FieldError as WireFieldError, LeaseRequest, LeasedTask, Presigned,
     Renewal, TaskEnd, TaskFile, TaskObservable, UploadRequest, paths,
 };
+use axum::extract::rejection::JsonRejection;
 use axum::extract::{Path, State};
 use axum::http::{HeaderMap, StatusCode};
 use axum::response::{IntoResponse, Response};
@@ -54,7 +57,7 @@ use tracing::Instrument;
 
 use crate::bucket::{ALERT_FILES, Bucket, BucketError, Hold};
 use crate::db::{Db, DbError, Isolation, Retryable};
-use crate::orchestrator::{Orchestrator, OrchestratorError};
+use crate::orchestrator::{Orchestrator, OrchestratorError, Rejected};
 use crate::queue::{QueueError, TASKS_CHANNEL, Task, TaskId, Worker};
 use crate::submit::{Submission, SubmitError, SubmittedFile};
 use crate::tree;
@@ -472,28 +475,16 @@ impl Api {
     }
 
     /// Lands a module's result (PLAN.md 2.15). It is checked against its type's schema before
-    /// anything is written, and each file it adds must have been uploaded with bytes that
-    /// match its sha256. Then one transaction puts the files in the `alert_files` pool, held by
+    /// anything is written, which rejects it for good (`reject`), and each file it adds must have
+    /// been uploaded with bytes that match its sha256. Then one transaction puts the files in the `alert_files` pool, held by
     /// the root, and writes the result, its observables, its file records and the tasks that
     /// became eligible. The uploads go once that has committed.
     async fn land(&self, worker: &Worker, task: TaskId, result: Value) -> Result<(), Failure> {
         let task = worker.owned(task).await?.ok_or(Failure::LeaseLost(task))?;
         let orchestrator = &self.inner.orchestrator;
-        orchestrator
-            .check_result(&task.module, &result)
-            .map_err(|rejected| {
-                Failure::Invalid(ApiError {
-                    error: rejected.error,
-                    fields: rejected
-                        .fields
-                        .into_iter()
-                        .map(|f| WireFieldError {
-                            path: f.path,
-                            message: f.message,
-                        })
-                        .collect(),
-                })
-            })?;
+        if let Err(rejected) = orchestrator.check_result(&task.module, &result) {
+            return Err(self.reject(worker, &task, &result, rejected).await);
+        }
         let result: ResultEnvelope<Value> = serde_json::from_value(result)
             .map_err(|e| Failure::BadRequest(format!("the result doesn't read: {e}")))?;
         let bucket = &self.inner.bucket;
@@ -519,6 +510,41 @@ impl Api {
             bucket.remove_upload(task.id.0, &file.sha256).await?;
         }
         Ok(())
+    }
+
+    /// Ends the task of a result that failed its check, whichever pool it came from. The module
+    /// would write the same result on another attempt, so the task fails now, with the fields in
+    /// its row, rather than waiting out its lease up to `max_attempts` times and failing with no
+    /// reason. The result's uploads go too: no later attempt can use them. If the failure can't be
+    /// written, the worker gets that error and the lease decides, as for any other.
+    async fn reject(
+        &self,
+        worker: &Worker,
+        task: &Task,
+        result: &Value,
+        rejected: Rejected,
+    ) -> Failure {
+        if let Err(e) = worker.fail(task.id, &rejected.error).await {
+            return e.into();
+        }
+        tracing::warn!(task = %task.id, module = %task.module, "rejected a result: {}", rejected.error);
+        let uploads = result["files"].as_array().into_iter().flatten();
+        for sha256 in uploads.filter_map(|file| file["sha256"].as_str()?.parse::<Sha256>().ok()) {
+            if let Err(e) = self.inner.bucket.remove_upload(task.id.0, &sha256).await {
+                tracing::warn!(task = %task.id, "removing a rejected result's upload: {e}");
+            }
+        }
+        Failure::Invalid(ApiError {
+            error: rejected.error,
+            fields: rejected
+                .fields
+                .into_iter()
+                .map(|f| WireFieldError {
+                    path: f.path,
+                    message: f.message,
+                })
+                .collect(),
+        })
     }
 }
 
@@ -682,8 +708,10 @@ async fn end(
     State(api): State<Api>,
     Path(id): Path<i64>,
     headers: HeaderMap,
-    Json(end): Json<TaskEnd>,
+    end: Result<Json<TaskEnd>, JsonRejection>,
 ) -> Result<StatusCode, Failure> {
+    // axum answers a body it can't read with 422, which here means only a rejected result
+    let Json(end) = end.map_err(|e| Failure::BadRequest(e.body_text()))?;
     let span = request_span("end", Some(id), &headers);
     end_in(api, id, headers, end).instrument(span).await
 }
@@ -849,7 +877,7 @@ pub enum Failure {
     LeaseLost(TaskId),
     /// The task's root was cancelled.
     Cancelled(TaskId),
-    /// A result that failed its schema, with each field that failed.
+    /// A result that failed its check, with each field that failed. Its task has failed.
     Invalid(ApiError),
     /// Something to try again shortly.
     Unavailable(String),

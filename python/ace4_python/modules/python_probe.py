@@ -14,6 +14,10 @@ naming an observable. A test's overlay turns it on; no site should.
   read         try to read a file outside the worker's paths, and report what happened
   file         write a file, whose path in the alert is probe.txt
   libraries    import every library the pool's image exists for, and report their versions
+  wrong        return a result whose pid isn't a number, adding an observable and a file
+  unknown      return a result with a field its type doesn't have
+  envelope     return a result whose summary isn't a string
+  bytes        return a result holding bytes, which JSON can't carry
   anything else: only the report
 """
 
@@ -100,4 +104,15 @@ def analyze(ctx):
         "environment": sorted(os.environ),
         "note": note,
     }
+    if action == "wrong":
+        # a result the core must refuse, with things in it that must not land
+        rejected = ctx.write_file("rejected.txt", b"from a rejected result\n")
+        observables = [{"type": "fqdn", "value": "rejected.example.com"}]
+        return ctx.done({**details, "pid": "not a pid"}, observables=observables, files=[rejected])
+    if action == "unknown":
+        return ctx.done({**details, "extra": 1})
+    if action == "envelope":
+        return ctx.done(details, summary=3)
+    if action == "bytes":
+        return ctx.done({**details, "note": b"bytes"})
     return ctx.done(details, summary=f"ran in {details['pid']}", files=files)

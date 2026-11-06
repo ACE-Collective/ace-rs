@@ -26,7 +26,8 @@ on it, one at a time, through the real core and bucket. Limits of 3 tasks and 12
 of recycling happen, and each task's result names the process it ran in. So this is 4.1's Done check:
 a worker is recycled at its limit, and the next task runs on its replacement, in a different process.
 The same module imports the image's libraries inside a contained worker and reports their versions,
-and a task that raises must leave a failed row.
+and a task that raises must leave a failed row. So is PLAN.md 4.2's: a result with a wrong field, from
+a worker on that image, fails its task with the field's path in the row, and nothing from it lands.
 
 It then runs `ace compare` (PLAN.md 3.3, crates/ace-app/src/compare.rs) over the sample set, each
 sample in the cli mode against ace3's tree in tools/ace3/trees/reference/ (3.2), and writes the
@@ -356,7 +357,8 @@ def check_python_pool(failures):
 
     started = time.monotonic()
     compose("up", "-d", "--build", "--wait", "python")
-    actions = ["one", "two", "three", "four", "hold-200", "after", "libraries", "raise"]
+    actions = ["one", "two", "three", "four", "hold-200", "after", "libraries", "raise", "wrong"]
+    ran = actions[:-2]  # the last two fail
     values = [f"{action}.example.com" for action in actions]
     root = submit(None, observables=[{"type": "fqdn", "value": value} for value in values])
     # no mode runs the probe, so the test queues it, in this order; a concurrency of 1 keeps it
@@ -391,7 +393,7 @@ def check_python_pool(failures):
 
     pid = lambda action: field(action, 2)  # noqa: E731
     count = lambda action: field(action, 3)  # noqa: E731
-    expect(all(field(a, 0) == "done" for a in actions[:-1]), "every task but the last is done")
+    expect(all(field(a, 0) == "done" for a in ran), "every task but the last two is done")
     expect(pid("one") == pid("two") == pid("three") != "", "the first three ran in one process")
     expect(count("three") == "3", "that process ran three tasks, its limit")
     expect(pid("four") not in ("", pid("three")) and count("four") == "1",
@@ -404,11 +406,23 @@ def check_python_pool(failures):
     logs = compose("logs", "--no-color", "python", capture=True)
     expect('"task count"' in logs, "the supervisor logged a recycling for the task count")
     expect('"memory limit"' in logs, "the supervisor logged a recycling for the memory limit")
-    expect(all(field(a, 4) == "10001" for a in actions[:-1]), "every task ran as ace4-task")
+    expect(all(field(a, 4) == "10001" for a in ran), "every task ran as ace4-task")
     missing = [lib for lib in PYTHON_LIBRARIES if lib not in field("libraries", 5)]
     expect(not missing, f"a contained worker imports the image's pinned libraries: {missing or 'all'}")
     expect(field("raise", 0) == "failed" and "ValueError" in field("raise", 1),
            "a task that raises leaves a failed row with the error")
+    expect(field("wrong", 0) == "failed" and "/details/pid" in field("wrong", 1),
+           f"a result with a wrong field fails its task, naming the field: {field('wrong', 1)[:200]}")
+    landed = sql(
+        f"""SELECT (SELECT count(*) FROM analysis.results r
+                    JOIN analysis.observables o ON o.id = r.observable_id
+                    WHERE r.root_id = '{root}' AND o.value = 'wrong.example.com')
+                 + (SELECT count(*) FROM analysis.observables
+                    WHERE root_id = '{root}' AND value = 'rejected.example.com')
+                 + (SELECT count(*) FROM analysis.files
+                    WHERE root_id = '{root}' AND path = 'rejected.txt')"""
+    )[0][0]
+    expect(landed == "0", "nothing from that result landed")
     log(f"the Python pool's stage took {time.monotonic() - started:.1f}s")
 
 

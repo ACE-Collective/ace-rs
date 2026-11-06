@@ -1,5 +1,6 @@
 //! PLAN.md 2.15's Done check: an invalid result is rejected with the field's path and nothing
-//! from it is written. The worker here is this test, through the lease API's client.
+//! from it is written. PLAN.md 4.2: the rejection also fails its task at once. The worker here is
+//! this test, through the lease API's client.
 
 mod common;
 
@@ -12,7 +13,7 @@ use ace_sdk::wire::TaskEnd;
 use serde_json::json;
 use uuid::Uuid;
 
-use common::{Core, TOKEN};
+use common::{Core, TOKEN, task_of};
 
 /// Rows a result could have written for the root.
 async fn written(core: &Core, root: Uuid) -> (i64, i64, i64, i64) {
@@ -28,8 +29,18 @@ async fn written(core: &Core, root: Uuid) -> (i64, i64, i64, i64) {
     .expect("counts")
 }
 
+/// The attempts a root's only task has used.
+async fn attempts(core: &Core, root: Uuid) -> i32 {
+    sqlx::query_scalar("SELECT attempts FROM queue.tasks WHERE root_id = $1")
+        .bind(root)
+        .fetch_one(core.test_db.db().pool())
+        .await
+        .expect("the task")
+}
+
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn an_invalid_result_is_rejected_with_its_fields_path_and_nothing_is_written() {
+async fn an_invalid_result_is_rejected_with_its_fields_path_nothing_is_written_and_its_task_fails()
+{
     let core = Core::start(
         vec![ace_mod_archive::MANIFEST],
         &["archive"],
@@ -55,14 +66,10 @@ async fn an_invalid_result_is_rejected_with_its_fields_path_and_nothing_is_writt
         "details": {"file_count": 1, "extracted_files": "not a list"},
         "observables": [{"type": "fqdn", "value": "evil.example.com"}],
     });
-    let refused = client
-        .end(
-            task.id,
-            &TaskEnd::Done {
-                result: serde_json::from_value(invalid).expect("an envelope"),
-            },
-        )
-        .await;
+    let done = TaskEnd::Done {
+        result: serde_json::from_value(invalid).expect("an envelope"),
+    };
+    let refused = client.end(task.id, &done).await;
     let Err(ClientError::Api { status, error }) = refused else {
         panic!("expected a refusal, got {refused:?}");
     };
@@ -76,8 +83,32 @@ async fn an_invalid_result_is_rejected_with_its_fields_path_and_nothing_is_writt
         "{error:?}"
     );
     assert_eq!(written(&core, root).await, before, "nothing was written");
+    // it won't be different next time, so the task fails now and its row says why
+    let (state, row) = task_of(&core, root, "archive").await;
+    assert_eq!(state, "failed");
+    assert!(
+        row.as_deref()
+            .is_some_and(|row| row.contains("/details/extracted_files")),
+        "{row:?}"
+    );
+    assert_eq!(attempts(&core, root).await, 1);
+    assert!(
+        matches!(
+            client.end(task.id, &done).await,
+            Err(ClientError::LeaseLost(_))
+        ),
+        "the task is over"
+    );
 
-    // a result of another module's type is refused too
+    // a result of another module's type is refused for good too
+    let (root, _, _) = core
+        .root_with_file("file", "ace3/archive/test.zip", "test.zip")
+        .await;
+    let task = client
+        .lease(&[], Duration::ZERO)
+        .await
+        .expect("leases")
+        .expect("the second archive task");
     let wrong_type = json!({
         "analysis_type": "email_analysis",
         "schema_version": 1,
@@ -96,7 +127,25 @@ async fn an_invalid_result_is_rejected_with_its_fields_path_and_nothing_is_writt
             if error.error.contains("archive writes archive_analysis")),
         "{refused:?}"
     );
-    // and so is a result naming a file that was never uploaded, before anything is written
+    let (state, row) = task_of(&core, root, "archive").await;
+    assert_eq!(state, "failed");
+    assert!(
+        row.as_deref()
+            .is_some_and(|row| row.contains("archive writes archive_analysis")),
+        "{row:?}"
+    );
+
+    // a result naming a file that was never uploaded could still be put right, so the task stays
+    // the worker's, with nothing written
+    let (root, _, _) = core
+        .root_with_file("file", "ace3/archive/test.zip", "test.zip")
+        .await;
+    let task = client
+        .lease(&[], Duration::ZERO)
+        .await
+        .expect("leases")
+        .expect("the third archive task");
+    let before = written(&core, root).await;
     let missing = json!({
         "analysis_type": "archive_analysis",
         "schema_version": 1,
@@ -120,8 +169,9 @@ async fn an_invalid_result_is_rejected_with_its_fields_path_and_nothing_is_writt
         "{refused:?}"
     );
     assert_eq!(written(&core, root).await, before, "still nothing written");
+    assert_eq!(task_of(&core, root, "archive").await.0, "running");
 
-    // the task is still the worker's, and a valid result lands
+    // and a valid result lands
     let valid = json!({
         "analysis_type": "archive_analysis",
         "schema_version": 1,
@@ -143,6 +193,42 @@ async fn an_invalid_result_is_rejected_with_its_fields_path_and_nothing_is_writt
         .delete(ace_core::bucket::ALERT_FILES, &zip)
         .await
         .expect("tidies the bucket");
+}
+
+/// The end route answers 422 only for a rejected result, because a pool takes that as the task's
+/// end: a body the API can't read is the pool's bug, and the task keeps its lease.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_task_end_the_api_cant_read_doesnt_end_the_task() {
+    let core = Core::start(
+        vec![ace_mod_archive::MANIFEST],
+        &["archive"],
+        Duration::from_secs(30),
+    )
+    .await;
+    let (root, _, _) = core
+        .root_with_file("file", "ace3/archive/test.zip", "test.zip")
+        .await;
+    let client = LeaseClient::new(&core.url, TOKEN, "checker").expect("a client");
+    let task = client
+        .lease(&[], Duration::ZERO)
+        .await
+        .expect("leases")
+        .expect("the archive task");
+    let http = ace_sdk::http::HttpClient::builder()
+        .build()
+        .expect("a client");
+    let request = http
+        .post(&format!(
+            "{}{}",
+            core.url,
+            ace_sdk::wire::paths::task(task.id, "end")
+        ))
+        .bearer_auth(TOKEN)
+        .header("x-ace4-worker", "checker")
+        .json(&json!({"outcome": "no such end"}));
+    let response = http.send(request).await.expect("an answer");
+    assert_eq!(response.status().as_u16(), 400);
+    assert_eq!(task_of(&core, root, "archive").await.0, "running");
 }
 
 /// A module sees what its input redirects to: the YARA module needs it to sandbox the document a

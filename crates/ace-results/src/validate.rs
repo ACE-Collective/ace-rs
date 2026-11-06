@@ -15,6 +15,9 @@ use crate::registry::result_schema;
 /// Messages longer than this are cut, because a failed check prints the value it failed on, and
 /// details can hold a whole email body.
 const MAX_MESSAGE_LEN: usize = 300;
+/// The most an error says about all a result's fields together, because a failed task's row holds
+/// it and one bad list can fail thousands of fields.
+const MAX_FIELDS_LEN: usize = 4000;
 
 /// A compiled result schema.
 #[derive(Debug)]
@@ -47,7 +50,7 @@ impl ResultValidator {
                 }
                 _ => fields.push(FieldError {
                     path: path.to_owned(),
-                    message: truncate(error.to_string()),
+                    message: truncate(error.to_string(), MAX_MESSAGE_LEN),
                 }),
             }
         }
@@ -109,11 +112,12 @@ impl InvalidResult {
 pub struct InvalidSchema(String);
 
 fn join(fields: &[FieldError]) -> String {
-    fields
+    let joined = fields
         .iter()
         .map(FieldError::to_string)
         .collect::<Vec<_>>()
-        .join("; ")
+        .join("; ");
+    truncate(joined, MAX_FIELDS_LEN)
 }
 
 /// A property name as one JSON pointer segment (RFC 6901).
@@ -121,9 +125,9 @@ fn escape_pointer(name: &str) -> String {
     name.replace('~', "~0").replace('/', "~1")
 }
 
-fn truncate(mut message: String) -> String {
-    if message.len() > MAX_MESSAGE_LEN {
-        let mut end = MAX_MESSAGE_LEN;
+fn truncate(mut message: String, max: usize) -> String {
+    if message.len() > max {
+        let mut end = max;
         while !message.is_char_boundary(end) {
             end -= 1;
         }
@@ -144,8 +148,23 @@ mod tests {
 
     #[test]
     fn long_messages_are_cut_on_a_char_boundary() {
-        let message = truncate("é".repeat(400));
+        let message = truncate("é".repeat(400), MAX_MESSAGE_LEN);
         assert!(message.ends_with("..."));
         assert!(message.len() <= MAX_MESSAGE_LEN + 3);
+    }
+
+    #[test]
+    fn what_a_results_many_failed_fields_say_together_is_bounded() {
+        let field = FieldError {
+            path: "/details/items/0".to_owned(),
+            message: "x".repeat(MAX_MESSAGE_LEN),
+        };
+        let error = InvalidResult::Fields(vec![field; 1000]).to_string();
+        assert!(error.starts_with("invalid result: /details/items/0: x"));
+        assert!(
+            error.len() <= "invalid result: ".len() + MAX_FIELDS_LEN + 3,
+            "{}",
+            error.len()
+        );
     }
 }

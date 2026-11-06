@@ -3,7 +3,12 @@
 A module is a file with `analyze(ctx)`, which returns ctx.done(...), ctx.skip(...) or ctx.delay(...),
 and raises ModuleError or anything else to fail its task. The supervisor reads what it returns as a
 TaskEnd, and the core checks a result against the JSON Schema of the module's Rust analysis type
-(crates/ace-mod-python, `ace schema export`), so nothing here validates it.
+(crates/ace-mod-python), so nothing here validates it. A result that fails ends its task as failed
+at once, with each failing field's path in the row, and nothing from it lands.
+
+`ace schema export <dir>` writes the schemas. To try a result before it reaches a pool, write
+`ctx.done(...)["result"]` to a file with json.dump and run `ace schema check <file>`, which is the
+core's own check, so this image needs no JSON Schema library.
 """
 
 import hashlib

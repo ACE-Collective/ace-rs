@@ -32,15 +32,16 @@ def load(names):
 
 
 def run_one(request, modules, tasks_in_process):
-    """Runs one request and returns its TaskEnd. Whatever the module raises fails the task, not the
-    worker, even SystemExit, which some of these libraries' code paths raise."""
+    """Runs one request and returns its TaskEnd as JSON. Whatever the module raises fails the task,
+    not the worker, even SystemExit, which some of these libraries' code paths raise. So does a
+    result JSON can't carry, such as bytes or a NaN."""
     try:
         ctx = Context(request, tasks_in_process)
-        return modules[request["module"]].analyze(ctx)
+        return json.dumps(modules[request["module"]].analyze(ctx), allow_nan=False)
     except ModuleError as error:
-        return failed(str(error))
+        return json.dumps(failed(str(error)))
     except BaseException:
-        return failed(traceback.format_exc()[-MAX_ERROR:])
+        return json.dumps(failed(traceback.format_exc()[-MAX_ERROR:]))
 
 
 def main(names):
@@ -61,7 +62,7 @@ def main(names):
     for line in requests:
         tasks_in_process += 1
         end = run_one(json.loads(line), modules, tasks_in_process)
-        replies.write(json.dumps(end).encode() + b"\n")
+        replies.write(end.encode() + b"\n")
         replies.flush()
     return 0
 

@@ -369,6 +369,111 @@ async fn a_python_task_that_fails_says_why_and_the_pool_keeps_running() {
     assert_eq!(paths, ["probe.txt"], "the file reached the core");
 }
 
+/// PLAN.md 4.2's Done check, on a real worker through the real API: the wrong fields come from
+/// `python_probe.py` and only the core's check stops them reaching the tree.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_python_result_with_a_wrong_field_is_rejected_and_a_correct_one_from_the_module_lands() {
+    let core = python_core().await;
+    let actions = ["wrong", "unknown", "envelope", "bytes", "right"];
+    let root = probe(&core, &actions).await;
+    let mut pool = python_pool(&core, &[]);
+    // each is its first attempt's answer: the lease is 30 seconds and nothing here reaps one
+    wait_until_idle(&core, root, Duration::from_secs(20)).await;
+    assert!(pool.running(), "the supervisor kept running");
+    let stderr = pool.stop();
+
+    let db = core.test_db.db().pool();
+    let rows: Vec<(String, i64, String, i32, Option<String>)> = sqlx::query_as(
+        "SELECT o.value, t.id, t.state::text, t.attempts, t.error FROM queue.tasks t
+         JOIN analysis.observables o ON o.id = t.observable_id
+         WHERE t.root_id = $1 ORDER BY t.id",
+    )
+    .bind(root)
+    .fetch_all(db)
+    .await
+    .expect("the tasks");
+    println!("{rows:#?}");
+    let row = |action: &str| {
+        let row = rows
+            .iter()
+            .find(|row| row.0 == format!("{action}.example.com"))
+            .unwrap_or_else(|| panic!("no task for {action}"));
+        assert_eq!(row.2, "failed", "{action}: {stderr}");
+        assert_eq!(row.3, 1, "{action} ran once: {stderr}");
+        row.4.clone().unwrap_or_default()
+    };
+    // the core names the field's path, in the failed task's row
+    let wrong = row("wrong");
+    assert!(
+        wrong.starts_with("invalid result: /details/pid: "),
+        "{wrong}"
+    );
+    assert_eq!(
+        row("unknown"),
+        "invalid result: /details/extra: unknown field"
+    );
+    // these two stop in the supervisor, since they never read as a result: the same check, or
+    // the worker's own error
+    let envelope = row("envelope");
+    assert!(
+        envelope.starts_with("invalid result: /summary: "),
+        "{envelope}"
+    );
+    let bytes = row("bytes");
+    assert!(bytes.contains("TypeError: Object of type bytes"), "{bytes}");
+    assert!(!stderr.contains("wasn't sent"), "{stderr}");
+
+    // nothing from the rejected results landed, and only the correct one's report did
+    let results: Vec<String> = sqlx::query_scalar(
+        "SELECT o.value FROM analysis.results r
+         JOIN analysis.observables o ON o.id = r.observable_id WHERE r.root_id = $1",
+    )
+    .bind(root)
+    .fetch_all(db)
+    .await
+    .expect("the results");
+    assert_eq!(results, ["right.example.com"], "{stderr}");
+    let (observables, files, tasks): (i64, i64, i64) = sqlx::query_as(
+        "SELECT (SELECT count(*) FROM analysis.observables WHERE root_id = $1),
+                (SELECT count(*) FROM analysis.files WHERE root_id = $1),
+                (SELECT count(*) FROM queue.tasks WHERE root_id = $1)",
+    )
+    .bind(root)
+    .fetch_one(db)
+    .await
+    .expect("the counts");
+    assert_eq!((observables, files, tasks), (5, 0, 5));
+    // the file the rejected result uploaded is gone, and never reached the pool
+    let sha256: ace_results::Sha256 =
+        "1e9b1e46c978519479871a402d21ac3175f1cbc5964e9040cd9e87030c05615e"
+            .parse()
+            .expect("a sha256");
+    let wrong_task = rows
+        .iter()
+        .find(|row| row.0.starts_with("wrong."))
+        .expect("its task");
+    assert!(
+        matches!(
+            core.bucket.fetch_upload(wrong_task.1, &sha256).await,
+            Err(ace_core::bucket::BucketError::Store(
+                ace_store::StoreError::NotFound { .. }
+            ))
+        ),
+        "the upload is gone"
+    );
+    assert!(
+        core.bucket
+            .object(ace_core::bucket::ALERT_FILES, &sha256)
+            .await
+            .expect("looks")
+            .is_none()
+    );
+
+    // none of that cost the worker: the correct result came from the process they all ran in
+    let right = reports(&core, root, &["right"]).await;
+    assert_eq!(right[0]["tasks_in_process"], 5, "{right:?}");
+}
+
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn a_python_pool_gives_a_running_task_back_at_shutdown() {
     let core = python_core().await;

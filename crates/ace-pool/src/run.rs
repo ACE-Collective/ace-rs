@@ -113,7 +113,8 @@ pub async fn fetch_input(
     Ok(Some(path))
 }
 
-/// Uploads each file a result adds from the task's output directory, then ends the task.
+/// Uploads each file a result adds from the task's output directory, then ends the task. A 422 is
+/// an end too: the core rejected the result and failed the task, and its row says why.
 pub async fn send_end(
     client: &LeaseClient,
     task: &LeasedTask,
@@ -126,7 +127,17 @@ pub async fn send_end(
             client.upload(&url, &outputs.path_of(&file.sha256)).await?;
         }
     }
-    client.end(task.id, end).await
+    match client.end(task.id, end).await {
+        Err(ClientError::Api { status: 422, error }) => {
+            tracing::error!(
+                task = task.id,
+                "the core rejected the result: {}",
+                error.error
+            );
+            Ok(())
+        }
+        sent => sent,
+    }
 }
 
 /// Ends the task as the module did, or, when the module stopped because the pool is shutting

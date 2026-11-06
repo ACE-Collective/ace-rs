@@ -29,6 +29,13 @@
 //! One worker's tasks share a process until it's recycled, so a hostile file that takes over a
 //! worker can affect that worker's later tasks, though it can't reach the token, the network or
 //! another slot's files. `ACE4_PYTHON_MAX_TASKS=1` gives every task a new process.
+//!
+//! # Results
+//!
+//! The core checks a result's details against the schema, as it does a Rust module's (PLAN.md 4.2).
+//! A Rust module can't get the result's own fields wrong, but a Python one can, and then the reply
+//! doesn't read as a `TaskEnd` and never reaches the core. So the supervisor runs the same check on
+//! such a reply, and the failed task's row names the field just as the core's would.
 
 use std::collections::VecDeque;
 use std::os::unix::fs::PermissionsExt;
@@ -38,6 +45,7 @@ use std::process::{ExitCode, Stdio};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
+use ace_results::{AnalysisTypeInfo, ResultValidator};
 use ace_sdk::LocalFileStore;
 use ace_sdk::wire::{LeasedTask, TaskEnd};
 use serde::{Deserialize, Serialize};
@@ -261,6 +269,7 @@ impl Worker {
     async fn run(
         &mut self,
         request: &WorkerRequest<'_>,
+        output: AnalysisTypeInfo,
         cancel: &CancellationToken,
         deadline: Duration,
     ) -> (TaskEnd, Option<&'static str>) {
@@ -296,10 +305,14 @@ impl Worker {
         match answered {
             Ok(n) if n > 0 => match serde_json::from_str::<TaskEnd>(&line) {
                 Ok(end) => (end, None),
-                Err(e) => {
-                    let error = format!("the Python worker's reply doesn't read: {e}");
-                    (TaskEnd::Failed { error }, BROKEN)
-                }
+                Err(e) => match failed_fields(output, &line) {
+                    // the module's result was wrong, and the worker is fine
+                    Some(error) => (TaskEnd::Failed { error }, None),
+                    None => {
+                        let error = format!("the Python worker's reply doesn't read: {e}");
+                        (TaskEnd::Failed { error }, BROKEN)
+                    }
+                },
             },
             // EOF or a broken pipe: it died
             _ => {
@@ -357,6 +370,15 @@ impl Worker {
             tracing::warn!(pid = self.pid, "killing a worker: {e}");
         }
     }
+}
+
+/// What the result's schema says about a reply that didn't read as a `TaskEnd`, if it holds a
+/// result that fails it.
+fn failed_fields(output: AnalysisTypeInfo, reply: &str) -> Option<String> {
+    let reply: Value = serde_json::from_str(reply).ok()?;
+    let result = reply.get("result")?;
+    let validator = ResultValidator::new(&output.schema()).ok()?;
+    validator.validate(result).err().map(|e| e.to_string())
 }
 
 /// Logs a worker's stderr and keeps its last lines for a failed task's error.
@@ -647,7 +669,12 @@ async fn fetch_and_run(
         outputs: &outputs,
     };
     Ok(worker
-        .run(&request, keeper.token(), manifest.resources.timeout)
+        .run(
+            &request,
+            manifest.output,
+            keeper.token(),
+            manifest.resources.timeout,
+        )
         .await)
 }
 

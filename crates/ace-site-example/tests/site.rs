@@ -123,6 +123,56 @@ fn the_site_binary_exports_its_types_schemas() {
     assert!(dir.path().join("rdap_analysis.v1.schema.json").exists());
 }
 
+/// `ace schema check` (PLAN.md 4.2) says what the core would, for an author with no pool running.
+#[test]
+fn the_site_binary_checks_a_result_against_its_types_schema() {
+    let dir = tempfile::tempdir().expect("a directory");
+    let check = |name: &str, result: &Value| {
+        let path = dir.path().join(name);
+        std::fs::write(&path, result.to_string()).expect("writes the result");
+        let output = Command::new(env!("CARGO_BIN_EXE_example-ace"))
+            .args(["schema", "check"])
+            .arg(&path)
+            .output()
+            .expect("ace runs");
+        let stdout = String::from_utf8_lossy(&output.stdout).into_owned();
+        (output.status.code(), stdout)
+    };
+    let (code, stdout) = check(
+        "wrong.json",
+        &json!({
+            "analysis_type": "rdap_analysis",
+            "schema_version": 1,
+            "details": {"not_a_field": 1},
+            "summary": 3,
+        }),
+    );
+    assert_eq!(code, Some(1), "{stdout}");
+    assert!(
+        stdout.contains("/details/not_a_field: unknown field"),
+        "{stdout}"
+    );
+    assert!(stdout.contains("/summary: "), "{stdout}");
+    let (code, stdout) = check(
+        "right.json",
+        &json!({
+            "analysis_type": "example_ticket_analysis",
+            "schema_version": 1,
+            "details": {"tickets": ["T-1"]},
+        }),
+    );
+    assert_eq!(code, Some(0), "{stdout}");
+    let (code, stdout) = check(
+        "unknown.json",
+        &json!({"analysis_type": "no_such_type", "schema_version": 1, "details": {}}),
+    );
+    assert_eq!(code, Some(1), "{stdout}");
+    assert!(
+        stdout.contains("unknown analysis type no_such_type"),
+        "{stdout}"
+    );
+}
+
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn a_site_module_adds_an_observable_of_the_sites_type() {
     let test_db = TestDb::new().await;
