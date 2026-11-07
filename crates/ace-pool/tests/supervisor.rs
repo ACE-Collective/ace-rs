@@ -1,7 +1,8 @@
 //! PLAN.md 2.17's Done check: a panicking parser leaves a failed-task row and the supervisor
 //! keeps leasing, a task process has no capabilities, and the archive module (on test.r07, a
 //! RAR 5 file) and the YARA module each run contained. The supervisor is the test pool binary
-//! in its parsers mode, running task processes as the dev image's ace4-task user.
+//! in its parsers mode, running task processes as the dev image's ace4-task user. Also: a cancel
+//! and a shutdown each kill a running task process. `hung_tasks.rs` covers the deadline.
 
 mod common;
 
@@ -633,6 +634,181 @@ async fn the_yara_module_scans_in_a_contained_task_process() {
     .await
     .expect("the scan's result");
     assert_eq!(rule, "contained_evil");
+}
+
+/// `/proc/PID/stat`'s fields after the command, which can hold spaces and parentheses. Index 0 is
+/// the state, 1 the parent, 11 and 12 the CPU ticks, 19 the start time.
+fn proc_stat(pid: u32) -> Option<Vec<String>> {
+    let stat = std::fs::read_to_string(format!("/proc/{pid}/stat")).ok()?;
+    let (_, fields) = stat.rsplit_once(')')?;
+    Some(fields.split_whitespace().map(str::to_owned).collect())
+}
+
+/// One process, told apart by its start time from a later one that reuses its pid.
+#[derive(Debug)]
+struct TaskProcess {
+    pid: u32,
+    started: String,
+}
+
+impl TaskProcess {
+    /// False once the process is gone and reaped. A zombie still counts: a supervisor that left
+    /// one would collect them for as long as it runs.
+    fn exists(&self) -> bool {
+        proc_stat(self.pid).is_some_and(|stat| stat[19] == self.started)
+    }
+
+    fn cpu_ticks(&self) -> u64 {
+        proc_stat(self.pid)
+            .map(|stat| {
+                let ticks = |at: usize| stat[at].parse::<u64>().expect("a tick count");
+                ticks(11) + ticks(12)
+            })
+            .unwrap_or_default()
+    }
+}
+
+/// The supervisor's child that has contained itself, so it's past exec and setup.
+fn contained_child(supervisor: u32) -> Option<TaskProcess> {
+    let parent = supervisor.to_string();
+    std::fs::read_dir("/proc")
+        .expect("/proc")
+        .flatten()
+        .filter_map(|entry| entry.file_name().to_str()?.parse::<u32>().ok())
+        .find_map(|pid| {
+            let stat = proc_stat(pid)?;
+            let status = std::fs::read_to_string(format!("/proc/{pid}/status")).ok()?;
+            (stat[1] == parent && status.lines().any(|line| line == "Seccomp:\t2")).then(|| {
+                TaskProcess {
+                    pid,
+                    started: stat[19].clone(),
+                }
+            })
+        })
+}
+
+/// Waits for the pool's task process to be in `test_stuck`: contained, then a fifth of a second of
+/// CPU, far more than the little between containment and the module's loop.
+async fn stuck_task_process(pool: &PoolProcess) -> TaskProcess {
+    let waiting = Instant::now();
+    let limit = Duration::from_secs(30);
+    let process = loop {
+        if let Some(process) = contained_child(pool.pid()) {
+            break process;
+        }
+        assert!(waiting.elapsed() < limit, "no contained task process");
+        tokio::time::sleep(Duration::from_millis(20)).await;
+    };
+    let contained = process.cpu_ticks();
+    while process.cpu_ticks() < contained + 20 {
+        assert!(waiting.elapsed() < limit, "{process:?} isn't spinning");
+        tokio::time::sleep(Duration::from_millis(20)).await;
+    }
+    process
+}
+
+/// A cancelled root's running task process is killed within one renewal of the lease, which is
+/// how a cancel reaches a supervisor, plus this margin for a loaded machine. The module can't
+/// stop itself: it never returns and nothing in its process can see the cancel.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn cancelling_a_root_kills_its_running_task_process_and_the_task_ends_cancelled() {
+    const RENEWAL: Duration = Duration::from_secs(1);
+    const MARGIN: Duration = Duration::from_secs(5);
+    let core = Core::start(
+        testing::test_manifests(),
+        &["test_stuck"],
+        RENEWAL * 3, // the lease; a keeper renews it every third
+    )
+    .await;
+    let root = root_with_tasks(&core, &["stuck.example.com".to_owned()], "test_stuck").await;
+    let mut pool = supervisor(&core, &[]);
+    let process = stuck_task_process(&pool).await;
+
+    let mut tx = core.test_db.db().begin().await.expect("begins");
+    let cancelled = ace_core::queue::cancel_root(&mut tx, root)
+        .await
+        .expect("cancels");
+    tx.commit().await.expect("commits");
+    let committed = Instant::now();
+    assert_eq!(cancelled.signalled.len(), 1, "{cancelled:?}");
+
+    while process.exists() {
+        assert!(
+            committed.elapsed() < RENEWAL + MARGIN,
+            "{process:?} is still there after {:?}",
+            committed.elapsed()
+        );
+        tokio::time::sleep(Duration::from_millis(10)).await;
+    }
+    println!(
+        "{process:?} was gone {:?} after the cancel",
+        committed.elapsed()
+    );
+
+    let (state, error, _) = task_state(&core, root, "test_stuck", Duration::from_secs(10)).await;
+    assert!(pool.running(), "the supervisor kept running");
+    let stderr = pool.stop();
+    assert_eq!((state.as_str(), error), ("cancelled", None), "{stderr}");
+    assert!(stderr.contains("the task was cancelled"), "{stderr}");
+    assert!(stderr.contains("test_stuck: stuck on"), "{stderr}");
+}
+
+/// SIGTERM with a task running: the process dies, the lease goes back at once rather than by
+/// expiring, the next worker can take the task, and the supervisor exits inside its grace period,
+/// so it never had to abandon anything.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn shutdown_kills_a_running_task_process_and_gives_its_lease_back_in_time() {
+    let core = Core::start(
+        testing::test_manifests(),
+        &["test_stuck"],
+        Duration::from_secs(30),
+    )
+    .await;
+    let root = root_with_tasks(&core, &["stuck.example.com".to_owned()], "test_stuck").await;
+    let mut pool = supervisor(&core, &[]);
+    let process = stuck_task_process(&pool).await;
+
+    let stopping = Instant::now();
+    // past the grace, `terminate` kills it, and `took` shows that
+    let stderr = pool.terminate(ace_pool::pool::SHUTDOWN_GRACE + Duration::from_secs(5));
+    let took = stopping.elapsed();
+    println!("shut down in {took:?}");
+    assert!(took < ace_pool::pool::SHUTDOWN_GRACE, "{took:?}\n{stderr}");
+    assert!(!process.exists(), "{process:?} outlived shutdown\n{stderr}");
+    assert!(
+        stderr.contains("shutting down; giving the task back"),
+        "{stderr}"
+    );
+    assert!(!stderr.contains("abandoning"), "{stderr}");
+
+    let db = core.test_db.db().pool();
+    let (id, state, owner, attempts): (i64, String, Option<String>, i32) = sqlx::query_as(
+        "SELECT id, state::text, lease_owner, attempts FROM queue.tasks WHERE root_id = $1",
+    )
+    .bind(root)
+    .fetch_one(db)
+    .await
+    .expect("the task");
+    assert_eq!(
+        (state.as_str(), owner, attempts),
+        ("queued", None, 0),
+        "{stderr}"
+    );
+
+    let next = ace_pool::client::LeaseClient::new(&core.url, common::TOKEN, "the-next-worker")
+        .expect("a client")
+        .lease(&[], Duration::from_secs(5))
+        .await
+        .expect("leases")
+        .expect("the task, given back");
+    assert_eq!(next.id, id);
+    let owner: Option<String> =
+        sqlx::query_scalar("SELECT lease_owner FROM queue.tasks WHERE id = $1")
+            .bind(id)
+            .fetch_one(db)
+            .await
+            .expect("the task");
+    assert_eq!(owner.as_deref(), Some("test/the-next-worker"));
 }
 
 /// A result whose uploads outlast the lease lands on its first attempt, because the lease stays

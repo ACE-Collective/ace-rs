@@ -70,6 +70,7 @@ pub fn modules(settings: &Value) -> Result<Modules, SetupError> {
             &secrets,
         )?)
         .with_parser(Entry::<Spin>::parser(block(Spin::NAME), &secrets)?)
+        .with_parser(Entry::<Stuck>::parser(block(Stuck::NAME), &secrets)?)
         .with_parser(Entry::<WritesFiles>::parser(
             block(WritesFiles::NAME),
             &secrets,
@@ -86,6 +87,7 @@ pub fn test_manifests() -> Vec<ace_sdk::Manifest> {
         ace_sdk::Manifest::parser::<Capabilities>(),
         ace_sdk::Manifest::parser::<PanickingParser>(),
         ace_sdk::Manifest::parser::<Spin>(),
+        ace_sdk::Manifest::parser::<Stuck>(),
         ace_sdk::Manifest::parser::<WritesFiles>(),
         ace_sdk::Manifest::lookup::<Hung>(),
     ]
@@ -111,6 +113,7 @@ macro_rules! note_type {
 note_type!(CountedNote, "test_counted_note", "test_counted");
 note_type!(PanickyNote, "test_panicky_note", "test_panicky");
 note_type!(SpinNote, "test_spin_note", "test_spin");
+note_type!(StuckNote, "test_stuck_note", "test_stuck");
 note_type!(
     WritesFilesNote,
     "test_writes_files_note",
@@ -313,6 +316,36 @@ impl ace_sdk::Parser for Spin {
         );
         loop {
             std::hint::black_box(first);
+            std::hint::spin_loop();
+        }
+    }
+}
+
+/// A parser that never returns, with a deadline too far off to matter, so only a kill from its
+/// supervisor stops it. `test_spin`'s 2-second deadline would race a test's cancel or shutdown.
+/// The CPU-time limit ends it if a failed test leaves it behind.
+pub struct Stuck;
+
+impl Module for Stuck {
+    const NAME: &'static str = "test_stuck";
+    const INPUTS: &'static [ObservableKind] = &[ObservableKind::Fqdn];
+    const RESOURCES: ace_sdk::Resources = ace_sdk::Resources {
+        timeout: Duration::from_secs(300),
+        memory_mb: 1024,
+        cpu_seconds: 60,
+    };
+    type Output = StuckNote;
+    type Settings = ();
+
+    fn init(_: &()) -> Result<Self, ModuleError> {
+        Ok(Stuck)
+    }
+}
+
+impl ace_sdk::Parser for Stuck {
+    fn analyze(&self, ctx: &TaskContext<()>) -> Result<Outcome<StuckNote>, ModuleError> {
+        eprintln!("test_stuck: stuck on {}", ctx.observable().value);
+        loop {
             std::hint::spin_loop();
         }
     }
