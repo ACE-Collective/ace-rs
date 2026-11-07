@@ -1,13 +1,16 @@
 //! Submissions (PLAN.md 2.28): a new root with its observables, files and analysis mode, and
 //! its first tasks.
 //!
-//! The lease API takes them at `POST /api/analysis/v1/submit` as ace3's `/api/analysis/submit`
-//! does: a multipart form with the submission as JSON in its `analysis` field and each file in a
-//! `file` field, whose file name is the file's path in the alert. The submission's
-//! `file_yara_meta` can give a file `yara_meta` tags. One transaction creates the
-//! root, puts each file in the bucket's `alert_files` pool held by the root, adds the
-//! observables and the file observables, and queues what is eligible in the root's mode
-//! (`Orchestrator::start`).
+//! `ace-api` takes them at `POST /api/analysis/v1/submit` (PLAN.md 5.5), and
+//! `ace_service::Service::submit` records who made one, in the transaction this module writes in.
+//! The core keeps what a submission does to the tree and the queue, as it keeps what a disposition
+//! does (`Orchestrator::stop_for_disposition`), and can't make a root from a submission on its own.
+//!
+//! `prepare` checks a submission before anything is written. `create` then, in the caller's
+//! transaction, creates the root, puts each file in the bucket's `alert_files` pool held by the
+//! root, adds the observables and the file observables, and queues what is eligible in the root's
+//! mode (`Orchestrator::start`). A file's path in the alert is the name it was sent with, and the
+//! submission's `file_yara_meta` can give a file `yara_meta` tags.
 
 use std::collections::BTreeMap;
 
@@ -18,8 +21,9 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::bucket::{ALERT_FILES, Bucket, BucketError, Hold};
-use crate::db::{Db, DbError, Isolation, Retryable};
+use crate::db::{DbError, Retryable, Tx};
 use crate::orchestrator::{Orchestrator, OrchestratorError};
+use crate::queue::TaskId;
 use crate::tree::{self, EventTime, NewRoot};
 
 /// What a submitter sends in the `analysis` field.
@@ -100,14 +104,13 @@ impl Retryable for SubmitError {
     }
 }
 
-/// Creates the root and queues its first tasks, all in one transaction.
-pub async fn submit(
-    db: &Db,
-    bucket: &Bucket,
+/// Checks a submission and makes the root it would create, in its mode or the default one. Nothing
+/// is written.
+pub fn prepare(
     orchestrator: &Orchestrator,
     submission: &Submission,
     files: &[SubmittedFile],
-) -> Result<Submitted, SubmitError> {
+) -> Result<NewRoot, SubmitError> {
     let modes = orchestrator.modes();
     let mode = submission
         .analysis_mode
@@ -132,57 +135,50 @@ pub async fn submit(
             "file_yara_meta names {path:?}, which isn't a submitted file"
         )));
     }
-    let root = NewRoot {
+    Ok(NewRoot {
         description: submission.description.clone(),
         event_time: match submission.event_time {
             Some(time) => EventTime::Event(time),
             None => EventTime::Now(Utc::now()),
         },
         ..NewRoot::new(mode)
-    };
-    let hold = Hold::root(root.id);
-    let (root, hold) = (&root, &hold);
-    let queued = db
-        .transaction(Isolation::ReadCommitted, |tx| {
-            Box::pin(async move {
-                tree::create_root(tx, root).await?;
-                for observable in &submission.observables {
-                    let mut new = NewObservable::new(observable.kind, observable.value.clone());
-                    new.time = observable.time;
-                    new.tags = observable.tags.clone();
-                    new.directives = observable.directives.clone();
-                    new.exclude_modules = observable.exclude_modules.clone();
-                    tree::upsert_observable(tx, root.id, &new).await?;
-                }
-                for file in files {
-                    bucket
-                        .put_in(tx, ALERT_FILES, &file.spooled, Some(hold))
-                        .await?;
-                    let new =
-                        NewObservable::new(ObservableKind::File, file.spooled.sha256.to_hex());
-                    let id = tree::upsert_observable(tx, root.id, &new).await?.id;
-                    let yara_meta: Vec<String> = submission
-                        .file_yara_meta
-                        .get(file.path.as_str())
-                        .into_iter()
-                        .flatten()
-                        .map(|tag| tag.as_str().to_owned())
-                        .collect();
-                    tree::add_file(tx, root.id, id, file.path.as_str(), &yara_meta).await?;
-                }
-                Ok::<_, SubmitError>(orchestrator.start(tx, root.id).await?)
-            })
-        })
-        .await?;
-    tracing::info!(
-        root = %root.id,
-        mode = %root.analysis_mode,
-        files = files.len(),
-        tasks = queued.len(),
-        "a submission created a root"
-    );
-    Ok(Submitted {
-        uuid: root.id,
-        queued: queued.into_iter().map(|id| id.0).collect(),
     })
+}
+
+/// Creates `prepare`'s root in the caller's transaction with the submission's observables and
+/// files, and queues its first tasks. The caller commits, and may run this again on a retry.
+pub async fn create(
+    tx: &mut Tx<'_>,
+    bucket: &Bucket,
+    orchestrator: &Orchestrator,
+    root: &NewRoot,
+    submission: &Submission,
+    files: &[SubmittedFile],
+) -> Result<Vec<TaskId>, SubmitError> {
+    let hold = Hold::root(root.id);
+    tree::create_root(tx, root).await?;
+    for observable in &submission.observables {
+        let mut new = NewObservable::new(observable.kind, observable.value.clone());
+        new.time = observable.time;
+        new.tags = observable.tags.clone();
+        new.directives = observable.directives.clone();
+        new.exclude_modules = observable.exclude_modules.clone();
+        tree::upsert_observable(tx, root.id, &new).await?;
+    }
+    for file in files {
+        bucket
+            .put_in(tx, ALERT_FILES, &file.spooled, Some(&hold))
+            .await?;
+        let new = NewObservable::new(ObservableKind::File, file.spooled.sha256.to_hex());
+        let id = tree::upsert_observable(tx, root.id, &new).await?.id;
+        let yara_meta: Vec<String> = submission
+            .file_yara_meta
+            .get(file.path.as_str())
+            .into_iter()
+            .flatten()
+            .map(|tag| tag.as_str().to_owned())
+            .collect();
+        tree::add_file(tx, root.id, id, file.path.as_str(), &yara_meta).await?;
+    }
+    Ok(orchestrator.start(tx, root.id).await?)
 }

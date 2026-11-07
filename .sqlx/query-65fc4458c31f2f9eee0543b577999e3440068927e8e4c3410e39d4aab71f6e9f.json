@@ -1,0 +1,64 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT n AS \"n!\", id AS \"id!\", disposition, alerted_at AS \"alerted_at!\"\n                               FROM (SELECT w.n, r.id, r.disposition, r.alerted_at,\n                                            row_number() OVER (PARTITION BY w.n\n                                                ORDER BY r.alerted_at DESC, r.id DESC) AS rank\n                                     FROM unnest($1::text[], $2::text[], $3::bigint[]) AS w(type, value, n)\n                                     JOIN analysis.observables o\n                                       ON o.type = w.type AND o.value_hash = analysis.value_hash(w.value)\n                                      AND o.value = w.value\n                                     JOIN analysis.roots r ON r.id = o.root_id\n                                     WHERE r.alerted_at IS NOT NULL AND r.id <> ALL ($4::uuid[])\n                                       AND ($5::timestamptz IS NULL OR r.alerted_at >= $5)) ranked\n                               WHERE rank <= $6\n                               ORDER BY n, rank",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "n!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "id!",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "analysis.roots",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "disposition",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.roots",
+            "name": "disposition"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "alerted_at!",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "analysis.roots",
+            "name": "alerted_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "TextArray",
+        "TextArray",
+        "Int8Array",
+        "UuidArray",
+        "Timestamptz",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      null,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "65fc4458c31f2f9eee0543b577999e3440068927e8e4c3410e39d4aab71f6e9f"
+}

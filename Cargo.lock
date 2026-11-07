@@ -19,9 +19,38 @@ dependencies = [
 ]
 
 [[package]]
+name = "ace-api"
+version = "0.1.0"
+dependencies = [
+ "ace-core",
+ "ace-results",
+ "ace-sdk",
+ "ace-service",
+ "ace-store",
+ "axum",
+ "chrono",
+ "futures-util",
+ "hex",
+ "reqwest",
+ "schemars 1.2.3",
+ "serde",
+ "serde_json",
+ "sha2 0.11.1",
+ "sqlx",
+ "tempfile",
+ "tokio",
+ "tokio-util",
+ "tracing",
+ "utoipa",
+ "uuid",
+ "zip",
+]
+
+[[package]]
 name = "ace-app"
 version = "0.1.0"
 dependencies = [
+ "ace-api",
  "ace-core",
  "ace-mod-email",
  "ace-mod-yara",
@@ -61,7 +90,6 @@ dependencies = [
  "ace-yara",
  "axum",
  "chrono",
- "futures-util",
  "opentelemetry",
  "opentelemetry_sdk",
  "reqwest",
@@ -353,6 +381,7 @@ dependencies = [
  "ace-core",
  "ace-results",
  "ace-sdk",
+ "ace-store",
  "argon2",
  "chrono",
  "getrandom 0.4.3",
@@ -364,6 +393,7 @@ dependencies = [
  "sha2 0.11.1",
  "sqlx",
  "subtle",
+ "tempfile",
  "thiserror 2.0.21",
  "tokio",
  "tracing",
@@ -5850,6 +5880,30 @@ name = "utf_types"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3a3b425286980a367278453f3b6d28cdcb134b574e5a35824a6ff5eebad50bb6"
+
+[[package]]
+name = "utoipa"
+version = "6.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8765fe27aeff71012a3f90fa474cf1df863a7d0dd81ed25de4e63fff2544994f"
+dependencies = [
+ "indexmap",
+ "serde",
+ "serde_json",
+ "utoipa-gen",
+]
+
+[[package]]
+name = "utoipa-gen"
+version = "6.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d935f1c83fdf8b88f09bbe050d0cea78ea4afee6d7b0317403228c1200b2c8ab"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 3.0.9",
+ "uuid",
+]
 
 [[package]]
 name = "uuid"

@@ -1,0 +1,37 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n                             (SELECT count(*) FROM analysis.observables WHERE root_id = $1) AS \"observables!\",\n                             (SELECT count(*) FROM analysis.files WHERE root_id = $1) AS \"files!\",\n                             (SELECT count(*) FROM analysis.detections WHERE root_id = $1) AS \"detections!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "observables!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "files!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "detections!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "a2c63b519622eebfe04bf148b9dbaca9f885e3e33432d89085d9a6a8fe604795"
+}

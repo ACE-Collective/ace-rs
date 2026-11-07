@@ -23,10 +23,11 @@
 //! `every_write_function_has_an_audit_test` and `every_write_fails_when_its_audit_fails` in
 //! `tests/service.rs`, which read this crate's source and fail until both cover it.
 //!
-//! Not here yet from ace3's audit: what it logs for reads, such as a download or a viewed file, which
-//! go through `Gate::write` with their routes (5.5, 5.6), and `src_ip`, which only ace3's hunt and AI
-//! records have, and which an adapter knows. Nothing reads `service.audit` until a route does. ace3's
-//! reader is Splunk searching log lines, and `Gate::write`'s log line keeps that search working.
+//! Reads go through `Gate::read`, which checks a permission the same way and writes no row: `alerts` and
+//! `observables`. A read ace3 audits, such as a file's download, goes through `Gate::write` with a row
+//! that says what was read. A row records the request's source address when an adapter gives one
+//! (`source`). Nothing reads `service.audit` yet. ace3's reader is Splunk searching log lines, and
+//! `Gate::write`'s log line keeps that search working.
 //!
 //! Not here yet from ace3's permissions: the catalog of known names, which warns about a typo and
 //! feeds the management screens, group management and API key scopes, all with the `users` router in
@@ -34,9 +35,6 @@
 //! typo allows nothing.
 //!
 //! Writes outside this crate today:
-//! - `POST /api/analysis/v1/submit` (`ace_core::api`, `ace_core::submit`) carries a shared token and
-//!   records no actor. `ace-core` can't call this crate, so it moves with its route to `ace-api` in
-//!   PLAN.md 5.5, using 5.4's actors.
 //! - `Orchestrator::set_mode` and `queue::cancel_root` have no caller outside the core's own flows
 //!   and tests. Each gets a function here when a route for it appears (5.5, 5.6).
 //! - The lease API, `Orchestrator::land_result`, the reaper, the ruleset builder and the QA recorder
@@ -44,10 +42,15 @@
 //!   its token, and a task's row names its `lease_owner`.
 
 mod actor;
+mod alerts;
 mod auth;
 mod gate;
+mod observables;
 mod permission;
+mod source;
+mod submit;
 
+use ace_core::bucket::BucketError;
 use ace_core::db::{Db, DbError, Retryable};
 use ace_core::orchestrator::{Dispositioned, Orchestrator, OrchestratorError};
 use chrono::{DateTime, Utc};
@@ -59,15 +62,24 @@ use uuid::Uuid;
 use gate::{Audited, Change, Gate, Recorded, TITLE_LIMIT, Target};
 
 pub use actor::{Actor, ApiKeyId, Component, InvalidComponent, UserId};
+pub use alerts::{
+    Alert, AlertDetection, AlertFile, AlertObservable, AlertPage, AlertSummary, AnalysisState,
+    FileDownload, MAX_ALERTS_PAGE, MAX_OBSERVABLES_PAGE, ModuleResult, ObservablePage,
+    RecordedActor, Relationship,
+};
 pub use auth::{
     InvalidUsername, IssuedToken, MAX_PASSWORD_BYTES, MIN_PASSWORD_CHARS, NewApiKey, NewSession,
     Password, RequestParts, SESSION_LIFETIME_SECONDS, SessionCookie, Transport, Username,
 };
 pub use gate::Holder;
-pub use permission::{
-    ALERT_WRITE, Effect, InvalidPermission, PermissionName, PermissionPattern, USER_SELF,
-    USER_WRITE,
+pub use observables::{
+    Lookup, MAX_EXCLUDED_ALERTS, MAX_LOOKUP_PAIRS, MAX_RECENT_ALERTS, OPEN, Prevalence, RecentAlert,
 };
+pub use permission::{
+    ALERT_CREATE, ALERT_READ, ALERT_WRITE, Effect, InvalidPermission, OBSERVABLE_READ,
+    PermissionName, PermissionPattern, USER_SELF, USER_WRITE,
+};
+pub use source::with_source_ip;
 
 /// A group's id. Groups hold users, and their rows apply to their members.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -112,6 +124,15 @@ pub enum ServiceError {
     /// Hashing failed, or there was no randomness to do it with. It holds no password.
     #[error("hashing a credential: {0}")]
     Hashing(String),
+    /// A request the service can't take as it is, such as a submission naming a mode that doesn't exist
+    /// or a page that's too large. Nothing was written.
+    #[error("{0}")]
+    InvalidRequest(String),
+    /// What a request names isn't there, or isn't what it says, such as a root that isn't an alert.
+    #[error("{0}")]
+    NotFound(String),
+    #[error(transparent)]
+    Bucket(#[from] BucketError),
 }
 
 impl From<DbError> for ServiceError {
@@ -130,7 +151,11 @@ impl Retryable for ServiceError {
     fn is_retryable(&self) -> bool {
         match self {
             ServiceError::Orchestrator(e) => e.is_retryable(),
-            ServiceError::PermissionDenied { .. }
+            ServiceError::Bucket(BucketError::Db(e)) => e.is_retryable(),
+            ServiceError::Bucket(_)
+            | ServiceError::InvalidRequest(_)
+            | ServiceError::NotFound(_)
+            | ServiceError::PermissionDenied { .. }
             | ServiceError::InvalidPermission(_)
             | ServiceError::AuditEncoding(_)
             | ServiceError::NotAuthenticated
@@ -210,13 +235,26 @@ impl Service {
     /// to dispositioned mode, all in one transaction. A later disposition replaces the earlier one
     /// and its actor, as in ace3, where an analyst, an API key and SVS's maintenance timers all
     /// call `set_dispositions`. It needs `alert:write`, as ace3's route does, and an actor without
-    /// it learns nothing about the alert.
+    /// it learns nothing about the alert. A disposition is a name such as `FALSE_POSITIVE`: up to 64
+    /// uppercase ASCII letters, digits and `_`, the shape of ace3's. Which names a site uses isn't
+    /// checked yet: ace3 reads them from its configuration, which nothing here ports.
     pub async fn disposition(
         &self,
         actor: &Actor,
         root: Uuid,
         disposition: &str,
     ) -> Result<Dispositioned, ServiceError> {
+        let shaped = disposition.len() <= 64
+            && disposition.starts_with(|c: char| c.is_ascii_uppercase())
+            && disposition
+                .bytes()
+                .all(|b| b.is_ascii_uppercase() || b.is_ascii_digit() || b == b'_');
+        if !shaped {
+            return Err(ServiceError::InvalidRequest(
+                "a disposition is up to 64 uppercase ASCII letters, digits and _, starting with a letter"
+                    .to_owned(),
+            ));
+        }
         self.gate
             .write(actor, "disposition", &ALERT_WRITE, &|tx| {
                 Box::pin(async move {

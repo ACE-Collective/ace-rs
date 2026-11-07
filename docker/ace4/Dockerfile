@@ -52,7 +52,8 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 COPY --from=build /out/ace /usr/local/bin/ace
 USER ace4
-EXPOSE 8080
+# the lease API for the pools, and the JSON API for people (crates/ace-app/src/serve.rs)
+EXPOSE 8080 8000
 CMD ["ace", "serve"]
 
 # The parser pool. Its supervisor runs as root so it can start each task process as ace4-task,

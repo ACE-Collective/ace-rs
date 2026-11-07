@@ -1,0 +1,46 @@
+[package]
+name = "ace-api"
+version = "0.1.0"
+description = "The JSON API: an axum adapter over the service layer, with its OpenAPI document"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+# Its tests are tests/api.rs, so the crate adds one test binary (PLAN.md 2.33).
+[lib]
+test = false
+doctest = false
+
+[dependencies]
+ace-core = { path = "../ace-core" }
+ace-results = { path = "../ace-results" }
+ace-service = { path = "../ace-service" }
+axum = { version = "0.8.9", features = ["multipart"] }
+chrono = { version = "0.4.45", default-features = false, features = ["std", "serde"] }
+# A submitted file streams from its form field into the spool.
+futures-util = { version = "0.3.34", default-features = false }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+tempfile = "3.27.0"
+tokio = { version = "1.54.1", features = ["fs", "io-util", "net", "rt"] }
+tokio-util = { version = "0.7.20", features = ["io"] }
+tracing = "0.1.44"
+utoipa = { version = "6.0.0", features = ["chrono", "uuid"] }
+uuid = { version = "1.29.0", features = ["serde"] }
+# A download is a zip with ace3's password, so a scanner on the analyst's machine leaves it alone.
+zip = { version = "9.2.2", default-features = false, features = ["aes-crypto", "deflate-flate2"] }
+
+[dev-dependencies]
+ace-core = { path = "../ace-core", features = ["testing"] }
+ace-sdk = { path = "../ace-sdk" }
+ace-store = { path = "../ace-store" }
+hex = "0.4.3"
+reqwest = { version = "0.13.5", default-features = false, features = ["json"] }
+schemars = "1.2.3"
+sha2 = "0.11.1"
+sqlx = { version = "0.9.0", default-features = false, features = ["json", "postgres", "runtime-tokio", "uuid", "chrono"] }
+tokio = { version = "1.54.1", features = ["macros", "rt-multi-thread"] }
+
+[lints]
+workspace = true

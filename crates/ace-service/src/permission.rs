@@ -233,8 +233,14 @@ pub(crate) fn allows<'g>(
     allowed
 }
 
+/// Read an alert and its files: ace3's `alert:read`.
+pub const ALERT_READ: PermissionName = PermissionName::known("alert", "read");
 /// Change an alert: ace3's `alert:write`, which its disposition route requires.
 pub const ALERT_WRITE: PermissionName = PermissionName::known("alert", "write");
+/// Submit analysis: ace3's `alert:create`, which its submit route requires.
+pub const ALERT_CREATE: PermissionName = PermissionName::known("alert", "create");
+/// Look observables up across alerts: ace3's `observable:read`.
+pub const OBSERVABLE_READ: PermissionName = PermissionName::known("observable", "read");
 /// Change users, groups and grants: ace3's `user:write`.
 pub const USER_WRITE: PermissionName = PermissionName::known("user", "write");
 /// Manage your own API keys: ace3's `user:self`.

@@ -178,10 +178,13 @@ services:
       start_period: 20s
       retries: 5
 
-  # The core (PLAN.md 2.29): `ace serve`, with the lease API, the submit endpoint, the reaper,
+  # The core (PLAN.md 2.29): `ace serve`, with the lease API, the JSON API (5.5), the reaper,
   # the QA recorder and, when ACE4_SIGNATURES names a signatures checkout on the host, the
-  # ruleset builder. Its API is on the stack's one fixed host port, ACE4_PORT_HTTPS, over plain
-  # HTTP for now. It reads the site overlay from ACE4_SITE's overlay.yaml.
+  # ruleset builder. The JSON API, for people and their scripts, is on the stack's one fixed host
+  # port, ACE4_PORT_HTTPS, over plain HTTP for now. The lease API, for the pools, stays on the
+  # stack's network on 8080, so its tokens' dev defaults aren't reachable from the host. A script
+  # submits with an API key: `docker compose exec ace ace user create-key NAME --grant alert:create`
+  # prints one; there's no default key. It reads the site overlay from ACE4_SITE's overlay.yaml.
   ace:
     build:
       context: .
@@ -202,6 +205,7 @@ services:
       ACE4_BUCKET_ACCESS_KEY: ${ACE4_BUCKET_ACCESS_KEY:-ace4-dev}
       ACE4_BUCKET_SECRET_KEY: ${ACE4_BUCKET_SECRET_KEY:-ace4-dev-secret}
       ACE4_API_LISTEN: 0.0.0.0:8080
+      ACE4_WEB_LISTEN: 0.0.0.0:8000
       ACE4_OVERLAY: /etc/ace4/overlay.yaml
       # set only when ACE4_SIGNATURES names a checkout; without one nothing builds rulesets
       ACE4_SIGNATURES_REPO: ${ACE4_SIGNATURES:+/signatures}
@@ -210,7 +214,6 @@ services:
       ACE4_POOL_TOKEN_PARSERS: ${ACE4_POOL_TOKEN_PARSERS:-ace4-dev-parsers-token}
       ACE4_POOL_TOKEN_LOOKUPS: ${ACE4_POOL_TOKEN_LOOKUPS:-ace4-dev-lookups-token}
       ACE4_ADMIN_TOKEN: ${ACE4_ADMIN_TOKEN:-ace4-dev-admin-token}
-      ACE4_SUBMIT_TOKEN: ${ACE4_SUBMIT_TOKEN:-ace4-dev-submit-token}
       ACE4_LOG: ${ACE4_LOG:-info}
       NO_PROXY: localhost,127.0.0.1,postgres,bucket,collector
       no_proxy: localhost,127.0.0.1,postgres,bucket,collector
@@ -219,7 +222,7 @@ services:
       # read-only; the builder reads the checkout's git objects and changes nothing
       - ${ACE4_SIGNATURES:-./docker/site}:/signatures:ro
     ports:
-      - "${ACE4_BIND_ADDRESS:-127.0.0.1}:${ACE4_PORT_HTTPS:-7443}:8080"
+      - "${ACE4_BIND_ADDRESS:-127.0.0.1}:${ACE4_PORT_HTTPS:-7443}:8000"
     mem_limit: ${ACE4_ACE_MEM_LIMIT:-1g}
     restart: unless-stopped
     healthcheck:

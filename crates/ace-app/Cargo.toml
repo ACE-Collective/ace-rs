@@ -14,6 +14,7 @@ publish.workspace = true
 svs = ["ace-yara/rules-profiling"]
 
 [dependencies]
+ace-api = { path = "../ace-api" }
 ace-core = { path = "../ace-core" }
 ace-pool = { path = "../ace-pool" }
 ace-results = { path = "../ace-results" }
@@ -23,7 +24,7 @@ ace-store = { path = "../ace-store" }
 ace-yara = { path = "../ace-yara" }
 anyhow = "1.0.104"
 clap = { version = "4.6.7", features = ["derive"] }
-# `ace compare` posts each sample to the core's submit endpoint. ace-sdk picks reqwest's features.
+# `ace compare` posts each sample to the JSON API's submit endpoint. ace-sdk picks reqwest's features.
 reqwest = { version = "0.13.5", default-features = false }
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.154"

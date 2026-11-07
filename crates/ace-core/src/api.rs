@@ -21,10 +21,10 @@
 //!   core built (PLAN.md 2.26), with a presigned URL for its bytes; 204 before the first build.
 //! - `GET /api/admin/v1/tasks/<id>/replay`: any task in its leased form, with a fresh download
 //!   URL, for `ace task replay`. It takes the admin token, and takes no lease.
-//! - `POST /api/analysis/v1/submit`: a submission (PLAN.md 2.28, `crate::submit`), with the
-//!   submit token. It answers 201 with the new root's uuid and the tasks it queued.
 //! - `GET /healthz`: 200 when the database answers, for the stack's healthcheck. It takes no
 //!   token.
+//!
+//! Submissions moved to `ace-api` in PLAN.md 5.5, which serves people on a listener of its own.
 //!
 //! Every request carries `Authorization: Bearer <token>`, and the token says which pool the
 //! worker is in. A task-scoped request also names the worker in `x-ace4-worker`. A task's lease
@@ -59,7 +59,6 @@ use crate::bucket::{ALERT_FILES, Bucket, BucketError, Hold};
 use crate::db::{Db, DbError, Isolation, Retryable};
 use crate::orchestrator::{Orchestrator, OrchestratorError, Rejected};
 use crate::queue::{QueueError, TASKS_CHANNEL, Task, TaskId, Worker};
-use crate::submit::{Submission, SubmitError, SubmittedFile};
 use crate::tree;
 
 /// The header a task-scoped request names its worker in.
@@ -106,10 +105,6 @@ pub struct ApiConfig {
     pub pools: Vec<PoolAccess>,
     /// The hash of the token for admin calls, such as `ace task replay`. None turns them off.
     admin_token_sha256: Option<[u8; 32]>,
-    /// The hash of the token submissions carry. None turns them off.
-    submit_token_sha256: Option<[u8; 32]>,
-    /// The largest submission body, files included.
-    pub max_submission_bytes: usize,
     /// The largest task end, a result's details and text included. A file's bytes go to the bucket
     /// and don't count. A hostile file can choose how much text its result holds: a task past this
     /// fails at once, and its row says why.
@@ -127,8 +122,6 @@ impl ApiConfig {
         ApiConfig {
             pools,
             admin_token_sha256: None,
-            submit_token_sha256: None,
-            max_submission_bytes: 1 << 30,
             max_end_bytes: 64 << 20,
             lease: Duration::from_secs(60),
             max_wait: Duration::from_secs(20),
@@ -141,19 +134,14 @@ impl ApiConfig {
         self
     }
 
-    pub fn submit_token(mut self, token: &str) -> Self {
-        self.submit_token_sha256 = Some(sha256(token));
-        self
-    }
-
     pub fn lease(mut self, lease: Duration) -> Self {
         self.lease = lease;
         self
     }
 
     /// The pools in `ACE4_POOLS`, as `<pool>:<module>,<module>;<pool>:...`, each with the
-    /// token in `ACE4_POOL_TOKEN_<POOL>`, the admin token in `ACE4_ADMIN_TOKEN` and the submit
-    /// token in `ACE4_SUBMIT_TOKEN`, and the lease's length in `ACE4_LEASE_SECONDS` (60). Each has a
+    /// token in `ACE4_POOL_TOKEN_<POOL>`, the admin token in `ACE4_ADMIN_TOKEN`, and the lease's
+    /// length in `ACE4_LEASE_SECONDS` (60). Each has a
     /// dev default: `default_pools`, the binary's own pools and their modules in the same form,
     /// and tokens named `ace4-dev-<pool>-token`.
     pub fn from_env(default_pools: &str) -> Self {
@@ -175,11 +163,7 @@ impl ApiConfig {
             .collect();
         let admin =
             std::env::var("ACE4_ADMIN_TOKEN").unwrap_or_else(|_| "ace4-dev-admin-token".to_owned());
-        let submit = std::env::var("ACE4_SUBMIT_TOKEN")
-            .unwrap_or_else(|_| "ace4-dev-submit-token".to_owned());
-        let mut config = ApiConfig::new(pools)
-            .admin_token(&admin)
-            .submit_token(&submit);
+        let mut config = ApiConfig::new(pools).admin_token(&admin);
         if let Some(seconds) = std::env::var("ACE4_LEASE_SECONDS")
             .ok()
             .and_then(|s| s.parse::<u64>().ok())
@@ -297,12 +281,6 @@ impl Api {
             .route(paths::RULESET, get(current_ruleset))
             .route("/api/admin/v1/tasks/{id}/replay", get(replay))
             .route("/healthz", get(health))
-            .route(
-                "/api/analysis/v1/submit",
-                post(submit).layer(axum::extract::DefaultBodyLimit::max(
-                    self.inner.config.max_submission_bytes,
-                )),
-            )
             .with_state(self.clone())
     }
 
@@ -525,15 +503,6 @@ impl Api {
     fn admin(&self, headers: &HeaderMap) -> Result<(), Failure> {
         let token = bearer(headers).ok_or(Failure::Unauthorized)?;
         match self.inner.config.admin_token_sha256 {
-            Some(hash) if hash == sha256(token) => Ok(()),
-            _ => Err(Failure::Unauthorized),
-        }
-    }
-
-    /// Checks that a request carries the submit token.
-    fn submitter(&self, headers: &HeaderMap) -> Result<(), Failure> {
-        let token = bearer(headers).ok_or(Failure::Unauthorized)?;
-        match self.inner.config.submit_token_sha256 {
             Some(hash) if hash == sha256(token) => Ok(()),
             _ => Err(Failure::Unauthorized),
         }
@@ -961,69 +930,6 @@ async fn replay(
     // what the task read when it ran, if its email has been parsed by now, as it usually has
     leased.carrying_email = carrying_email;
     Ok(Json(leased))
-}
-
-/// A submission: the `analysis` field's JSON and each `file` field, spooled as it arrives.
-async fn submit(
-    State(api): State<Api>,
-    headers: HeaderMap,
-    mut form: axum::extract::Multipart,
-) -> Result<Response, Failure> {
-    api.submitter(&headers)?;
-    let bad = |why: String| Failure::BadRequest(why);
-    let mut submission: Option<Submission> = None;
-    let mut files = Vec::new();
-    while let Some(field) = form
-        .next_field()
-        .await
-        .map_err(|e| bad(format!("the form doesn't read: {e}")))?
-    {
-        match field.name() {
-            Some("analysis") => {
-                let text = field
-                    .text()
-                    .await
-                    .map_err(|e| bad(format!("the analysis field: {e}")))?;
-                submission = Some(
-                    serde_json::from_str(&text)
-                        .map_err(|e| bad(format!("the analysis field isn't a submission: {e}")))?,
-                );
-            }
-            Some("file") => {
-                let name = field.file_name().unwrap_or_default().to_owned();
-                let path = AlertPath::new(name.clone())
-                    .map_err(|e| bad(format!("file name {name:?}: {e}")))?;
-                use futures_util::TryStreamExt;
-                let stream = field.map_err(std::io::Error::other);
-                let mut reader = tokio_util::io::StreamReader::new(stream);
-                let spooled = api
-                    .inner
-                    .bucket
-                    .store()
-                    .spool_reader(&mut reader)
-                    .await
-                    .map_err(|e| bad(format!("file {name:?} didn't arrive: {e}")))?;
-                files.push(SubmittedFile { path, spooled });
-            }
-            other => return Err(bad(format!("an unexpected form field {other:?}"))),
-        }
-    }
-    let submission = submission.ok_or_else(|| bad("no analysis field".to_owned()))?;
-    let inner = &api.inner;
-    match crate::submit::submit(
-        &inner.db,
-        &inner.bucket,
-        &inner.orchestrator,
-        &submission,
-        &files,
-    )
-    .await
-    {
-        Ok(submitted) => Ok((StatusCode::CREATED, Json(submitted)).into_response()),
-        Err(SubmitError::Invalid(why)) => Err(bad(why)),
-        Err(SubmitError::Bucket(e)) => Err(Failure::from(e)),
-        Err(SubmitError::Orchestrator(e)) => Err(Failure::from(e)),
-    }
 }
 
 /// 200 when the database answers, for the stack's healthcheck.

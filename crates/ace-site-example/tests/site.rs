@@ -1,7 +1,9 @@
 //! PLAN.md 2.31's Done check: a site's binaries, built through ace-app from the open-source pools
 //! plus one module and one observable type of the site's own, run a submission. The site's
 //! `ace serve` runs on a test database and the stack's bucket, and the site's network pool runs
-//! as its own contained process with only the lease API's URL and its token, as in Compose.
+//! as its own contained process with only the lease API's URL and its token, as in Compose. The
+//! submission goes to the JSON API's listener with a key the site's `ace user create-key` made
+//! (PLAN.md 5.5).
 //!
 //! The ticket lookup's result on the submitted fqdn adds an `example_ticket` observable. The
 //! core checks the result against the type's schema, which lists the site's type, stores the
@@ -18,7 +20,6 @@ use ace_core::testing::TestDb;
 use serde_json::{Value, json};
 use uuid::Uuid;
 
-const SUBMIT_TOKEN: &str = "ace4-site-test-submit-token";
 const POOL_TOKEN: &str = "ace4-site-test-lookups-token";
 const BOUNDARY: &str = "ace4-site-test-boundary";
 
@@ -279,6 +280,24 @@ async fn a_site_module_adds_an_observable_of_the_sites_type() {
     let dir = tempfile::tempdir().expect("a directory");
     let port = free_port();
     let api = format!("http://127.0.0.1:{port}");
+    let web_port = free_port();
+    let web = format!("http://127.0.0.1:{web_port}");
+    let made = Command::new(env!("CARGO_BIN_EXE_example-ace"))
+        .args(["user", "create-key", "site-test", "--grant", "alert:create"])
+        .env("ACE4_DATABASE_URL", database_url(test_db.name()))
+        .output()
+        .expect("runs");
+    let stdout = String::from_utf8_lossy(&made.stdout);
+    assert!(
+        made.status.success(),
+        "{stdout}{}",
+        String::from_utf8_lossy(&made.stderr)
+    );
+    let token = stdout
+        .lines()
+        .find_map(|line| line.strip_prefix("token (shown once): "))
+        .expect("the token")
+        .to_owned();
 
     let mut serve = Command::new(env!("CARGO_BIN_EXE_example-ace"));
     serve
@@ -287,7 +306,7 @@ async fn a_site_module_adds_an_observable_of_the_sites_type() {
         .env("ACE4_API_LISTEN", format!("127.0.0.1:{port}"))
         .env("ACE4_CACHE_DIR", dir.path().join("cache"))
         .env("ACE4_POOL_TOKEN_LOOKUPS", POOL_TOKEN)
-        .env("ACE4_SUBMIT_TOKEN", SUBMIT_TOKEN)
+        .env("ACE4_WEB_LISTEN", format!("127.0.0.1:{web_port}"))
         .env("ACE4_LOG", "info")
         // the site's own pool list, and nothing else of the dev container's
         .env_remove("ACE4_POOLS")
@@ -324,8 +343,8 @@ async fn a_site_module_adds_an_observable_of_the_sites_type() {
         "--{BOUNDARY}\r\nContent-Disposition: form-data; name=\"analysis\"\r\n\r\n{analysis}\r\n--{BOUNDARY}--\r\n"
     );
     let response = http
-        .post(format!("{api}/api/analysis/v1/submit"))
-        .bearer_auth(SUBMIT_TOKEN)
+        .post(format!("{web}/api/analysis/v1/submit"))
+        .bearer_auth(&token)
         .header(
             "content-type",
             format!("multipart/form-data; boundary={BOUNDARY}"),
@@ -336,7 +355,7 @@ async fn a_site_module_adds_an_observable_of_the_sites_type() {
         .expect("the submission is answered");
     assert_eq!(response.status(), 201, "{:?}", response.text().await);
     let submitted: Value = response.json().await.expect("JSON");
-    let root: Uuid = submitted["uuid"]
+    let root: Uuid = submitted["id"]
         .as_str()
         .and_then(|s| s.parse().ok())
         .expect("the root's uuid");

@@ -1,0 +1,1358 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "ACE",
+    "description": "ACE's JSON API. A request authenticates with an API key as `Authorization: Bearer <token>`, or with a GUI session's cookie from ACE's own pages.",
+    "license": {
+      "name": "Apache-2.0",
+      "identifier": "Apache-2.0"
+    },
+    "version": "1"
+  },
+  "paths": {
+    "/api/alerts/v1/alerts": {
+      "get": {
+        "tags": [
+          "alerts"
+        ],
+        "summary": "The alerts, newest first, a page at a time. Follow `next` until it's null: an alert that arrives\nmeanwhile is on the first page and never shifts a later one.",
+        "operationId": "list",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "How many alerts, 1 to 1000; 100 when left out.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "description": "The `next` of the previous page.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of alerts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlertPageBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A limit out of range, or a cursor that names no alert",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold alert:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/alerts/v1/alerts/{id}": {
+      "get": {
+        "tags": [
+          "alerts"
+        ],
+        "summary": "One alert, with how many observables, files and detections it holds.",
+        "operationId": "one",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The alert's id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The alert",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlertDetailBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An id that isn't a uuid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold alert:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such alert",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/alerts/v1/alerts/{id}/disposition": {
+      "put": {
+        "tags": [
+          "alerts"
+        ],
+        "summary": "Records an analyst's verdict on the alert. Its analysis is cancelled and it moves to the\ndispositioned mode. A later disposition replaces the earlier one and who made it. A root that no\ndetection made an alert can be dispositioned too, as the service allows.",
+        "operationId": "disposition",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The alert's id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DispositionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The disposition is recorded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DispositionedBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A disposition of the wrong shape, or a body that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold alert:write, or a session's request came from another site",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such root",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/alerts/v1/alerts/{id}/observables": {
+      "get": {
+        "tags": [
+          "alerts"
+        ],
+        "summary": "An alert's observables in the order they were added, each with its files, relationships, results\nand detections, a page at a time.",
+        "operationId": "observables",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The alert's id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "How many observables, 1 to 500; 100 when left out.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "description": "The `next` of the previous page.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of observables",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObservablePageBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A limit out of range, or an id that isn't a uuid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold alert:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such alert",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/alerts/v1/alerts/{id}/observables/{observable}/file": {
+      "get": {
+        "tags": [
+          "alerts"
+        ],
+        "summary": "A file observable's bytes, as a zip encrypted with AES-256 and the password `infected`, as ace3's\ndownloads are, holding the file under its name in the alert. The download is in the audit record.",
+        "operationId": "file",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The alert's id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "observable",
+            "in": "path",
+            "description": "The file observable's id in the alert",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The zip",
+            "content": {
+              "application/zip": {
+                "schema": {
+                  "$ref": "#/components/schemas/ZipBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An observable that isn't a file, or an id that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold alert:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such alert or observable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/analysis/v1/submit": {
+      "post": {
+        "tags": [
+          "analysis"
+        ],
+        "summary": "Creates a root from a submission and queues its first tasks. Its files are spooled on this node as\nthey arrive, and the root records who submitted it.",
+        "operationId": "submit",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitForm"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "The root is created and its tasks queued",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmittedBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A form or submission that can't be taken, such as a mode that doesn't exist; nothing was written",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold alert:create, or a session's request came from another site",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The form, or its analysis field, is too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/observables/v1/lookup": {
+      "post": {
+        "tags": [
+          "observables"
+        ],
+        "summary": "How often each observable has been in an alert, when, with what dispositions, and the newest few. A\npair that can't be looked up gets its error at its index, and the rest are still answered.",
+        "operationId": "lookup",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LookupRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Each pair's prevalence",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LookupBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A lookup outside its limits, or a body that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold observable:read, or a session's request came from another site",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ActorBody": {
+        "type": "object",
+        "description": "Who did something, as the row recorded them then.",
+        "required": [
+          "kind",
+          "id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "description": "`user`, `api_key` or `internal`."
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The user's or key's name at the time. An internal component's id is its name."
+          }
+        }
+      },
+      "AlertBody": {
+        "type": "object",
+        "description": "An alert: a root that a detection made worth an analyst's time.",
+        "required": [
+          "id",
+          "title",
+          "analysis_mode",
+          "event_time_source",
+          "created_at",
+          "alerted_at",
+          "analysis"
+        ],
+        "properties": {
+          "alerted_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When a detection made the root an alert."
+          },
+          "analysis": {
+            "$ref": "#/components/schemas/AnalysisBody"
+          },
+          "analysis_mode": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "disposition": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "dispositioned_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "dispositioned_by": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ActorBody"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "event_time": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "event_time_source": {
+            "type": "string",
+            "description": "`event`, `query_time`, `now` or `unset`: where `event_time` came from."
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "submitted_by": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ActorBody"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "title": {
+            "type": "string",
+            "description": "The submission's description, as its sender wrote it. Show it as text."
+          }
+        }
+      },
+      "AlertDetailBody": {
+        "type": "object",
+        "required": [
+          "alert",
+          "observables",
+          "files",
+          "detections"
+        ],
+        "properties": {
+          "alert": {
+            "$ref": "#/components/schemas/AlertBody"
+          },
+          "detections": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "files": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "observables": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "AlertPageBody": {
+        "type": "object",
+        "required": [
+          "alerts"
+        ],
+        "properties": {
+          "alerts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AlertBody"
+            }
+          },
+          "next": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "Pass as `after` for the next page; null on the last."
+          }
+        }
+      },
+      "AnalysisBody": {
+        "type": "string",
+        "enum": [
+          "running",
+          "complete",
+          "cancelled"
+        ]
+      },
+      "DetectionBody": {
+        "type": "object",
+        "required": [
+          "description"
+        ],
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "details": {},
+          "module": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The module whose result raised it."
+          }
+        }
+      },
+      "DispositionRequest": {
+        "type": "object",
+        "required": [
+          "disposition"
+        ],
+        "properties": {
+          "disposition": {
+            "type": "string",
+            "description": "Such as `FALSE_POSITIVE`: up to 64 uppercase ASCII letters, digits and `_`."
+          }
+        },
+        "additionalProperties": false
+      },
+      "DispositionedBody": {
+        "type": "object",
+        "description": "What the disposition did to the alert's analysis.",
+        "required": [
+          "cancelled",
+          "stopped",
+          "queued"
+        ],
+        "properties": {
+          "cancelled": {
+            "type": "integer",
+            "description": "Queued and delayed tasks it cancelled.",
+            "minimum": 0
+          },
+          "queued": {
+            "type": "integer",
+            "description": "The dispositioned mode's tasks it queued.",
+            "minimum": 0
+          },
+          "stopped": {
+            "type": "integer",
+            "description": "Running tasks it asked to stop.",
+            "minimum": 0
+          }
+        }
+      },
+      "ErrorBody": {
+        "type": "object",
+        "description": "The body of every failure.",
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "What went wrong, for a person to read."
+          }
+        }
+      },
+      "FileBody": {
+        "type": "object",
+        "required": [
+          "path",
+          "yara_meta"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "The file's path in the alert, such as `email.rfc822.parts/invoice.zip`."
+          },
+          "yara_meta": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "LookupBody": {
+        "type": "object",
+        "required": [
+          "results"
+        ],
+        "properties": {
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PrevalenceBody"
+            }
+          }
+        }
+      },
+      "LookupRequest": {
+        "type": "object",
+        "required": [
+          "observables"
+        ],
+        "properties": {
+          "exclude_alerts": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Up to 100 alerts to leave out, such as the caller's own."
+          },
+          "observables": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PairBody"
+            },
+            "description": "1 to 1000 pairs."
+          },
+          "recent_alerts": {
+            "type": "integer",
+            "format": "int32",
+            "description": "How many of the newest alerts to list for each, 0 to 20.",
+            "default": 5,
+            "minimum": 0
+          },
+          "since": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "Count only alerts made at or after this."
+          }
+        },
+        "additionalProperties": false
+      },
+      "ObservableBody": {
+        "type": "object",
+        "description": "An observable of an alert and everything recorded about it.",
+        "required": [
+          "id",
+          "type",
+          "value",
+          "tags",
+          "directives",
+          "exclude_modules",
+          "files",
+          "relationships",
+          "results",
+          "detections"
+        ],
+        "properties": {
+          "detections": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DetectionBody"
+            }
+          },
+          "directives": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "exclude_modules": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FileBody"
+            }
+          },
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "description": "The observable's id in this alert, for `after` and for its file."
+          },
+          "redirection": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/RedirectionBody",
+                "description": "The observable an analyst should look at instead."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "relationships": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RelationshipBody"
+            }
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResultBody"
+            }
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "time": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "type": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string",
+            "description": "A file's value is its sha256."
+          }
+        }
+      },
+      "ObservablePageBody": {
+        "type": "object",
+        "required": [
+          "observables"
+        ],
+        "properties": {
+          "next": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Pass as `after` for the next page; null on the last."
+          },
+          "observables": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ObservableBody"
+            }
+          }
+        }
+      },
+      "PairBody": {
+        "type": "object",
+        "required": [
+          "type",
+          "value"
+        ],
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string",
+            "description": "The value as an observable holds it; a file's is its sha256."
+          }
+        },
+        "additionalProperties": false
+      },
+      "PrevalenceBody": {
+        "type": "object",
+        "description": "One pair's prevalence, at its index in the request.",
+        "required": [
+          "index",
+          "type",
+          "alerts",
+          "dispositions",
+          "recent"
+        ],
+        "properties": {
+          "alerts": {
+            "type": "integer",
+            "format": "int64",
+            "description": "How many alerts hold it."
+          },
+          "dispositions": {
+            "type": "object",
+            "description": "Those alerts by disposition, `OPEN` for none yet.",
+            "additionalProperties": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "propertyNames": {
+              "type": "string"
+            }
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Why the pair couldn't be looked up, such as a type that doesn't exist."
+          },
+          "first_seen": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "index": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "last_seen": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "recent": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RecentAlertBody"
+            },
+            "description": "The newest of them."
+          },
+          "type": {
+            "type": "string"
+          },
+          "value": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The value as it was matched, such as a lowercased sha256; null when the pair was refused."
+          }
+        }
+      },
+      "RecentAlertBody": {
+        "type": "object",
+        "required": [
+          "id",
+          "alerted_at"
+        ],
+        "properties": {
+          "alerted_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "disposition": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "RedirectionBody": {
+        "type": "object",
+        "required": [
+          "type",
+          "value"
+        ],
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          }
+        }
+      },
+      "RelationshipBody": {
+        "type": "object",
+        "required": [
+          "kind",
+          "target_type",
+          "target_value"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "target_type": {
+            "type": "string"
+          },
+          "target_value": {
+            "type": "string"
+          }
+        }
+      },
+      "ResultBody": {
+        "type": "object",
+        "required": [
+          "module",
+          "analysis_type",
+          "schema_version",
+          "tags",
+          "details",
+          "created_at"
+        ],
+        "properties": {
+          "analysis_type": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "details": {
+            "description": "The result's details, as the analysis type's JSON Schema (`ace schema export`) says."
+          },
+          "module": {
+            "type": "string"
+          },
+          "schema_version": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "summary": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "SubmissionBody": {
+        "type": "object",
+        "description": "The submission in the `analysis` field. This is `ace_core::submit::Submission` as the document shows\nit, and `tests/api.rs` checks that the two take the same fields.",
+        "required": [
+          "description"
+        ],
+        "properties": {
+          "analysis_mode": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The root's analysis mode, such as `email` or `correlation`; the default mode when left out."
+          },
+          "description": {
+            "type": "string",
+            "description": "The root's title."
+          },
+          "event_time": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "When the event happened; the time of the submission when left out."
+          },
+          "file_yara_meta": {
+            "type": "object",
+            "description": "`yara_meta` tags for submitted files, by the file's path in the alert, such as\n`{\"invoice.zip\": [\"type=email.attachment\"]}`.",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "propertyNames": {
+              "type": "string"
+            }
+          },
+          "observables": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SubmittedObservableBody"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "SubmitForm": {
+        "type": "object",
+        "description": "The form, as the document shows it.",
+        "required": [
+          "analysis"
+        ],
+        "properties": {
+          "analysis": {
+            "$ref": "#/components/schemas/SubmissionBody",
+            "description": "The submission, as JSON text."
+          },
+          "file": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string",
+              "format": "binary"
+            },
+            "description": "Each file, repeated; its file name is its path in the alert."
+          }
+        }
+      },
+      "SubmittedBody": {
+        "type": "object",
+        "required": [
+          "id",
+          "queued"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The new root's id."
+          },
+          "queued": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "description": "The tasks it queued."
+          }
+        }
+      },
+      "SubmittedObservableBody": {
+        "type": "object",
+        "required": [
+          "type",
+          "value"
+        ],
+        "properties": {
+          "directives": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "exclude_modules": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Modules that must not analyze it."
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "time": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "type": {
+            "type": "string",
+            "description": "An observable type, such as `fqdn` or `ipv4`."
+          },
+          "value": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ZipBody": {
+        "type": "string",
+        "format": "binary",
+        "description": "A download's bytes, as the document shows them."
+      }
+    },
+    "securitySchemes": {
+      "api_key": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "An API key, `ace4k_...`, shown once when it was made."
+      },
+      "session": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "ace4_session",
+        "description": "A GUI session's cookie, `__Host-ace4_session` under TLS. A request that could change something must also come from ACE's own pages."
+      }
+    }
+  },
+  "security": [
+    {
+      "api_key": []
+    },
+    {
+      "session": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "alerts",
+      "description": "Alerts, what modules found in them, and their dispositions"
+    },
+    {
+      "name": "analysis",
+      "description": "Submitting analysis"
+    },
+    {
+      "name": "observables",
+      "description": "Observables across alerts"
+    }
+  ]
+}

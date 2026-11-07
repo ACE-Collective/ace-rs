@@ -1,16 +1,23 @@
-//! `ace serve`: the lease API workers call (PLAN.md 2.14) and the submit endpoint (2.28), the
-//! reaper that takes back tasks
-//! whose lease expired, the recorder of YARA QA matches (2.27), and the ruleset builder (2.25)
-//! when `ACE4_SIGNATURES_REPO` names the
-//! signatures repository's checkout (`SignatureRepo::from_env`), every
-//! `ACE4_RULESET_POLL_SECONDS` (60).
+//! `ace serve`: the lease API workers call (PLAN.md 2.14), the JSON API people and their scripts call
+//! (5.5, `ace-api`), the reaper that takes back tasks whose lease expired, the recorder of YARA QA
+//! matches (2.27), and the ruleset builder (2.25) when `ACE4_SIGNATURES_REPO` names the signatures
+//! repository's checkout (`SignatureRepo::from_env`), every `ACE4_RULESET_POLL_SECONDS` (60).
 //!
 //! It reads `ACE4_DATABASE_URL`, the `ACE4_BUCKET_*` variables, the pools and their tokens
-//! (`ACE4_POOLS`, by default the binary's own; `ACE4_POOL_TOKEN_<POOL>`, see
-//! `ApiConfig::from_env`), the submit token
-//! (`ACE4_SUBMIT_TOKEN`), `ACE4_API_LISTEN`
-//! (default `0.0.0.0:8080`), `ACE4_CACHE_DIR` for the node's bucket cache, and the site overlay
-//! at `ACE4_OVERLAY` (`site`).
+//! (`ACE4_POOLS`, by default the binary's own; `ACE4_POOL_TOKEN_<POOL>`, see `ApiConfig::from_env`),
+//! `ACE4_API_LISTEN` for the lease API (default `0.0.0.0:8080`), `ACE4_WEB_LISTEN` for the JSON API
+//! (default `0.0.0.0:8000`), `ACE4_MAX_SUBMISSION_BYTES` (1 GiB), `ACE4_CACHE_DIR` for the node's bucket
+//! cache, and the site overlay at `ACE4_OVERLAY` (`site`).
+//!
+//! The two APIs listen apart. A pool holds a token for the lease API and nothing else, and the lease
+//! API's dev tokens are defaults in this repository, while the JSON API takes 5.4's keys and sessions.
+//! So Compose publishes only the JSON API's port, and the lease API is reachable only on the stack's
+//! own network; a deployment can put TLS and a proxy in front of the one people use, and keep the
+//! other private. The cost is a second port and a second server to stop. One listener with two path
+//! prefixes would expose the lease API, and its `/api/admin/v1` replay, wherever people reach ACE.
+//! 5.7's GUI joins the JSON API's listener, so its pages and the API share an origin and a cookie. Its
+//! session cookie is `Transport::Plain` until TLS comes (PLAN.md's Deferred), and then
+//! `WebConfig::transport` turns on `Secure`.
 
 use std::process::ExitCode;
 use std::time::Duration;
@@ -66,6 +73,8 @@ async fn serve(app: &App) -> Result<ExitCode> {
     for pool in &config.pools {
         tracing::info!(pool = %pool.name, modules = ?pool.modules, "serving a pool");
     }
+    let service = ace_service::Service::new(db.clone(), orchestrator.clone());
+    let web = ace_api::Web::new(service, bucket.clone(), ace_api::WebConfig::from_env());
     let api = Api::new(db.clone(), bucket.clone(), orchestrator, config).await?;
     let stopping_api = api.clone();
     let listen = std::env::var("ACE4_API_LISTEN").unwrap_or_else(|_| "0.0.0.0:8080".to_owned());
@@ -73,6 +82,11 @@ async fn serve(app: &App) -> Result<ExitCode> {
         .await
         .with_context(|| format!("binding {listen}"))?;
     eprintln!("ace: the lease API listens on {listen}");
+    let web_listen = std::env::var("ACE4_WEB_LISTEN").unwrap_or_else(|_| "0.0.0.0:8000".to_owned());
+    let web_listener = tokio::net::TcpListener::bind(&web_listen)
+        .await
+        .with_context(|| format!("binding {web_listen}"))?;
+    eprintln!("ace: the JSON API listens on {web_listen}");
 
     let stop = CancellationToken::new();
     let reaper = tokio::spawn(run_reaper(db.clone(), Duration::from_secs(5), stop.clone()));
@@ -100,6 +114,10 @@ async fn serve(app: &App) -> Result<ExitCode> {
     let server = tokio::spawn(ace_core::api::serve(listener, api, async move {
         stopping.cancelled().await;
     }));
+    let stopping = stop.clone();
+    let web_server = tokio::spawn(ace_api::serve(web_listener, web.router(), async move {
+        stopping.cancelled().await;
+    }));
     // Compose and Docker stop a container with SIGTERM, a terminal with SIGINT
     wait_for_stop().await;
     stopping_api.shut_down();
@@ -110,6 +128,12 @@ async fn serve(app: &App) -> Result<ExitCode> {
         Ok(Ok(Err(e))) => tracing::error!("serving failed: {e}"),
         Ok(Err(e)) => tracing::error!("the server's task failed: {e}"),
         Err(_) => tracing::warn!("requests were still open at the shutdown deadline"),
+    }
+    match tokio::time::timeout(Duration::from_secs(5), web_server).await {
+        Ok(Ok(Ok(()))) => {}
+        Ok(Ok(Err(e))) => tracing::error!("serving the JSON API failed: {e}"),
+        Ok(Err(e)) => tracing::error!("the JSON API's task failed: {e}"),
+        Err(_) => tracing::warn!("JSON API requests were still open 5 seconds after the deadline"),
     }
     if tokio::time::timeout(Duration::from_secs(5), reaper)
         .await

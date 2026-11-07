@@ -5,7 +5,9 @@
 //! the two commit or roll back together, and a failure to store it fails the write.
 //!
 //! A row is who (`actor`), what (`action`, the service function's name), when (`created_at`, the
-//! transaction's time), the target, and the before, after and details below. As in ace3:
+//! transaction's time), from where (`src_ip`, when an adapter gave one: `crate::source`), the target,
+//! and the before, after and details below. A read that ace3 audits, such as a file's download, is a row
+//! with only details (`Change::read`). As in ace3:
 //! - A write that changed nothing has no row, because in ace3's words a no-op "must not look like an
 //!   event". `Audited::unchanged` is the claim, and only review and a test catch a body that wrote and
 //!   claims it didn't. A repeated disposition isn't one here: it replaces the actor and the time, where
@@ -62,6 +64,14 @@ impl Target {
         Target {
             kind: "session",
             id: id.to_string(),
+        }
+    }
+
+    /// An observable of a root, as `<root>/<observable id>`, since an observable's id is only its row's.
+    pub(crate) fn observable(root: Uuid, observable: i64) -> Self {
+        Target {
+            kind: "observable",
+            id: format!("{root}/{observable}"),
         }
     }
 
@@ -123,6 +133,16 @@ impl Change {
         })
     }
 
+    /// A read that's audited, such as a download: what was read, and nothing changed.
+    pub(crate) fn read(target: Target, what: &impl Recorded) -> Result<Self, ServiceError> {
+        Ok(Change {
+            target,
+            before: None,
+            after: None,
+            details: Some(serde_json::to_value(what)?),
+        })
+    }
+
     pub(crate) fn details(mut self, details: &impl Recorded) -> Result<Self, ServiceError> {
         self.details = Some(serde_json::to_value(details)?);
         Ok(self)
@@ -160,9 +180,11 @@ pub(super) async fn record(
     action: &str,
     change: Change,
 ) -> Result<Target, ServiceError> {
+    let src_ip = crate::source::source_ip().map(|ip| ip.to_string());
     sqlx::query!(
-        "INSERT INTO service.audit (actor, action, target_kind, target_id, before, after, details)
-         VALUES ($1::jsonb, $2, $3, $4, $5, $6, COALESCE($7, '{}'::jsonb))",
+        "INSERT INTO service.audit
+             (actor, action, target_kind, target_id, before, after, details, src_ip)
+         VALUES ($1::jsonb, $2, $3, $4, $5, $6, COALESCE($7, '{}'::jsonb), $8::text::inet)",
         Json(actor) as _,
         action,
         change.target.kind,
@@ -170,6 +192,7 @@ pub(super) async fn record(
         change.before,
         change.after,
         change.details,
+        src_ip,
     )
     .execute(conn)
     .await?;

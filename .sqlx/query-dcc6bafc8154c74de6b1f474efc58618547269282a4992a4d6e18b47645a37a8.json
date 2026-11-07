@@ -1,0 +1,126 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, type, value, time, tags, directives, exclude_modules,\n                                redirection_type, redirection_value\n                         FROM analysis.observables\n                         WHERE root_id = $1 AND id > $2\n                         ORDER BY id LIMIT $3",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "analysis.observables",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "type",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.observables",
+            "name": "type"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "value",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.observables",
+            "name": "value"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "time",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "analysis.observables",
+            "name": "time"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "tags",
+        "type_info": "TextArray",
+        "origin": {
+          "Table": {
+            "table": "analysis.observables",
+            "name": "tags"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "directives",
+        "type_info": "TextArray",
+        "origin": {
+          "Table": {
+            "table": "analysis.observables",
+            "name": "directives"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "exclude_modules",
+        "type_info": "TextArray",
+        "origin": {
+          "Table": {
+            "table": "analysis.observables",
+            "name": "exclude_modules"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "redirection_type",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.observables",
+            "name": "redirection_type"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "redirection_value",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.observables",
+            "name": "redirection_value"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "dcc6bafc8154c74de6b1f474efc58618547269282a4992a4d6e18b47645a37a8"
+}

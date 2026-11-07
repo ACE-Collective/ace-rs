@@ -14,6 +14,7 @@ doctest = false
 
 [dependencies]
 ace-core = { path = "../ace-core" }
+ace-results = { path = "../ace-results" }
 argon2 = "0.6.0"
 chrono = { version = "0.4.45", default-features = false, features = ["std", "serde"] }
 getrandom = "0.4.3"
@@ -31,10 +32,11 @@ uuid = { version = "1.29.0", features = ["serde", "v4"] }
 
 [dev-dependencies]
 ace-core = { path = "../ace-core", features = ["testing"] }
-ace-results = { path = "../ace-results" }
 ace-sdk = { path = "../ace-sdk" }
+ace-store = { path = "../ace-store" }
 regex = "1.13.1"
 schemars = "1.2.3"
+tempfile = "3.27.0"
 tokio = { version = "1.54.1", features = ["macros", "rt-multi-thread"] }
 tracing-subscriber = { version = "0.3.23", default-features = false, features = ["fmt", "std"] }
 

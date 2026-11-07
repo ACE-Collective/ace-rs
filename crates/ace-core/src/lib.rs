@@ -1,4 +1,5 @@
-//! The core: the database schema, the task queue, eligibility, the lease API and submissions.
+//! The core: the database schema, the task queue, eligibility, the lease API and what a submission
+//! writes.
 //!
 //! The schema is SQL migrations in `migrations/`, one Postgres schema per area (`db::AREAS`).
 //! Workers reach the queue through the lease API (`api`), never the database.

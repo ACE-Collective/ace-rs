@@ -22,7 +22,8 @@ enum Command {
     /// YARA rulesets and scans.
     #[command(subcommand)]
     Yara(crate::yara::YaraCommand),
-    /// Serve the lease API to workers, and take back tasks whose lease expired.
+    /// Serve the lease API to workers and the JSON API to people, and take back tasks whose lease
+    /// expired.
     Serve,
     /// Tools for one task, such as replaying it.
     #[command(subcommand)]
@@ -30,7 +31,7 @@ enum Command {
     /// Tools for one root, such as writing its tree in the normal form.
     #[command(subcommand)]
     Root(crate::root::RootCommand),
-    /// Accounts, starting with the first admin.
+    /// Accounts and keys an operator makes, starting with the first admin.
     #[command(subcommand)]
     User(crate::user::UserCommand),
     Compare(crate::compare::CompareArgs),

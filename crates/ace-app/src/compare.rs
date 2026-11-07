@@ -15,12 +15,14 @@
 //!
 //! The report goes to `target/e2e/compare/`. With the stack left up, the command runs again in a
 //! one-off `ace` container, with the checkout's directories mounted and the variables that script
-//! gives the stack. Without `ACE4_SITE`, the overlay has no Splunk instance, and that module would
-//! be skipped.
+//! gives the stack, and an API key that can submit in `ACE4_API_KEY`, which `ace user create-key` makes.
+//! Without `ACE4_SITE`, the overlay has no Splunk instance, and that module would be skipped.
 //!
 //! ```text
-//! ACE4_STACK=ace4-e2e ACE4_SITE="$PWD/tests/e2e/site" ACE4_SUBMIT_TOKEN=ace4-e2e-submit-token \
-//! docker compose --profile e2e run --rm --no-deps --user "$(id -u):$(id -g)" \
+//! export ACE4_STACK=ace4-e2e ACE4_SITE="$PWD/tests/e2e/site"
+//! export ACE4_API_KEY=$(docker compose exec -T ace ace user create-key compare --grant alert:create \
+//!     | sed -n 's/^token (shown once): //p')
+//! docker compose --profile e2e run --rm --no-deps --user "$(id -u):$(id -g)" -e ACE4_API_KEY \
 //!     -v "$PWD/samples:/compare/samples:ro" -v "$PWD/tools/ace3/trees:/compare/trees:ro" \
 //!     -v "$PWD/target/compare:/compare/report" \
 //!     ace ace compare --samples /compare/samples --trees /compare/trees --report /compare/report
@@ -28,7 +30,7 @@
 //!
 //! # What it compares
 //!
-//! Each sample goes to `POST /api/analysis/v1/submit` in the `cli` mode, under the path in the alert
+//! Each sample goes to the JSON API's `POST /api/analysis/v1/submit` in the `cli` mode, under the path in the alert
 //! and with the `yara_meta` tags `samples/manifest.json` gives it, which is what `make-trees` gives
 //! ace3. Once the root is idle, its normal form (`ace_core::normal`) is diffed with ace3's tree by
 //! JSON pointer.
@@ -114,8 +116,8 @@ const TREE: &str = "(tree)";
 ///
 /// Run it with `tests/e2e/run --compare`, which sets up the stack it needs and writes the report
 /// to target/e2e/compare/. See crates/ace-app/src/compare.rs for running it against a stack that's
-/// already up. It needs ACE4_DATABASE_URL, and ACE4_SUBMIT_TOKEN and ACE4_OVERLAY as the stack has
-/// them.
+/// already up. It needs ACE4_DATABASE_URL, ACE4_OVERLAY as the stack has it, and in ACE4_API_KEY an
+/// API key holding alert:create, which `ace user create-key` makes.
 ///
 /// Differences don't fail it unless --threshold says so. It fails when a sample can't be submitted
 /// or doesn't finish in time, naming the sample.
@@ -130,8 +132,8 @@ pub struct CompareArgs {
     /// Where report.md and report.json go.
     #[arg(long, default_value = "compare-report")]
     report: PathBuf,
-    /// The core's API.
-    #[arg(long, default_value = "http://ace:8080")]
+    /// The core's JSON API.
+    #[arg(long, default_value = "http://ace:8000")]
     api: String,
     /// Only these samples, by path under the samples directory.
     #[arg(long)]
@@ -525,10 +527,10 @@ impl Stack {
             bail!("the submission answered {status}: {text}");
         }
         let answer: Value = serde_json::from_str(&text).context("reading the answer")?;
-        answer["uuid"]
+        answer["id"]
             .as_str()
-            .and_then(|uuid| uuid.parse().ok())
-            .ok_or_else(|| anyhow!("the submission's answer has no uuid: {text}"))
+            .and_then(|id| id.parse().ok())
+            .ok_or_else(|| anyhow!("the submission's answer has no id: {text}"))
     }
 
     /// Submits a sample, waits until its root is idle and returns the root and its normal form.
@@ -1040,8 +1042,9 @@ pub fn run(app: &App, args: CompareArgs) -> Result<ExitCode> {
     std::fs::create_dir_all(&args.report)
         .with_context(|| format!("making {}", args.report.display()))?;
 
-    let token =
-        std::env::var("ACE4_SUBMIT_TOKEN").unwrap_or_else(|_| "ace4-dev-submit-token".to_owned());
+    let token = std::env::var("ACE4_API_KEY").context(
+        "ACE4_API_KEY isn't set: make a key with `ace user create-key NAME --grant alert:create`",
+    )?;
     let runtime = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()

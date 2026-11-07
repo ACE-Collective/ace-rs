@@ -19,6 +19,10 @@
 //! Whether a user is enabled, and whether an API key is still valid, is decided by authentication
 //! (5.4) before an `Actor` exists, as in ace3.
 //!
+//! A read goes through `Gate::read`, which checks the same way and writes no row. ace3 audits some reads,
+//! such as a download: those go through `Gate::write` with `Change::read`, so they have a row like any
+//! write and the audit tests cover them.
+//!
 //! Three writes are a person's own and ask for no permission, because a user with no grants still has
 //! to be able to do them: `login`, `logout` and `change_own_password`, through `Gate::write_own`. Each
 //! still has its audit row, and `tests/service.rs` fails if a fourth function calls it.
@@ -142,6 +146,39 @@ impl Gate {
             None => tracing::info!(%actor, action, "a write changed nothing"),
         }
         Ok(value)
+    }
+
+    /// Runs `body` in a read-only snapshot once `actor` holds `permission`, so a read of several
+    /// queries sees one moment. A refusal is `ServiceError::PermissionDenied` before `body` runs, and
+    /// `action` names the function in its log line.
+    pub(crate) async fn read<'a, T, F>(
+        &'a self,
+        actor: &'a Actor,
+        action: &'static str,
+        permission: &'a PermissionName,
+        body: &'a F,
+    ) -> Result<T, ServiceError>
+    where
+        T: Send + 'a,
+        F: for<'t> Fn(&'t mut Tx<'a>) -> TxFuture<'t, T, ServiceError> + Sync,
+    {
+        self.db
+            .transaction(Isolation::RepeatableRead, |tx| {
+                Box::pin(async move {
+                    sqlx::raw_sql("SET TRANSACTION READ ONLY")
+                        .execute(tx.conn())
+                        .await?;
+                    if !holds(tx.conn(), actor, permission).await? {
+                        tracing::warn!(%actor, %permission, action, "permission denied");
+                        return Err(ServiceError::PermissionDenied {
+                            actor: actor.to_string(),
+                            permission: permission.clone(),
+                        });
+                    }
+                    body(tx).await
+                })
+            })
+            .await
     }
 
     pub(crate) async fn allowed(

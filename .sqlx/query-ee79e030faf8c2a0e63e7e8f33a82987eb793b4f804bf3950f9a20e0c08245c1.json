@@ -1,0 +1,65 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT d.observable_id, d.description, d.details,\n                                  r.module AS \"module?\"\n                           FROM analysis.detections d\n                           LEFT JOIN analysis.results r ON r.id = d.result_id\n                           WHERE d.root_id = $1 AND d.observable_id = ANY($2)\n                           ORDER BY d.id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "observable_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "analysis.detections",
+            "name": "observable_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "description",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.detections",
+            "name": "description"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "details",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "analysis.detections",
+            "name": "details"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "module?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.results",
+            "name": "module"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int8Array"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "ee79e030faf8c2a0e63e7e8f33a82987eb793b4f804bf3950f9a20e0c08245c1"
+}

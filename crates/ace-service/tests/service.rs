@@ -9,6 +9,9 @@
 //!
 //! PLAN.md 5.4: a GUI session and an API key each reach the service layer as the right actor, where
 //! 5.2's check and 5.3's audit hold, and a failure to authenticate says and logs nothing useful.
+//!
+//! PLAN.md 5.5: a submission records its actor on the root and in its row, and a download is a row of
+//! what was read, each with the source address an adapter gives. The API's own tests are `ace-api`'s.
 
 use std::collections::BTreeSet;
 use std::io::Write;
@@ -16,20 +19,23 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
+use ace_core::bucket::{Bucket, BucketSettings};
 use ace_core::eligibility::Catalog;
 use ace_core::modes::Modes;
 use ace_core::orchestrator::{Orchestrator, OrchestratorError};
+use ace_core::submit::{Submission, SubmittedFile};
 use ace_core::testing::TestDb;
 use ace_core::tree::{self, NewRoot};
 use ace_core::{Db, queue};
-use ace_results::{AnalysisType, NewObservable, ObservableKind};
+use ace_results::{AlertPath, AnalysisType, NewObservable, ObservableKind};
 use ace_sdk::{Lookup, Manifest, Module, ModuleError, Outcome, TaskContext};
 use ace_service::{
     ALERT_WRITE, Actor, ApiKeyId, Component, Effect, GroupId, Holder, MIN_PASSWORD_CHARS,
     NewSession, Password, PermissionName, PermissionPattern, RequestParts,
     SESSION_LIFETIME_SECONDS, Service, ServiceError, SessionCookie, Transport, USER_SELF,
-    USER_WRITE, UserId, Username,
+    USER_WRITE, UserId, Username, with_source_ip,
 };
+use ace_store::{BucketConfig, NodeCache, Store};
 use schemars::JsonSchema;
 use serde::Serialize;
 use serde_json::{Value, json};
@@ -91,6 +97,71 @@ fn orchestrator() -> Orchestrator {
 
 fn service(db: &Db) -> Service {
     Service::new(db.clone(), orchestrator())
+}
+
+/// The stack's bucket, with a node cache of the test's own, which goes when the directory does.
+fn bucket(db: &Db) -> (Bucket, tempfile::TempDir) {
+    let cache = tempfile::tempdir().expect("a cache directory");
+    let store = Store::new(
+        &BucketConfig::from_env().expect("the ACE4_BUCKET_* variables"),
+        NodeCache::new(cache.path(), 1 << 30).expect("a cache"),
+    );
+    (
+        Bucket::new(db.clone(), store, BucketSettings::default()),
+        cache,
+    )
+}
+
+/// A submission in correlation mode with one fqdn, and one file spooled for it.
+async fn submission(bucket: &Bucket, bytes: &[u8]) -> (Submission, Vec<SubmittedFile>) {
+    let submission = serde_json::from_value(json!({
+        "description": "a submission",
+        "analysis_mode": "correlation",
+        "observables": [{"type": "fqdn", "value": "evil.example.com"}],
+    }))
+    .expect("a submission");
+    let file = SubmittedFile {
+        path: AlertPath::new("mail/a.txt".to_owned()).expect("a path"),
+        spooled: bucket.store().spool_bytes(bytes).await.expect("spools"),
+    };
+    (submission, vec![file])
+}
+
+/// A submitted alert with a file: the root and the file's observable.
+async fn file_alert(db: &Db, bucket: &Bucket) -> (Uuid, i64) {
+    let (submission, files) = submission(bucket, b"some file").await;
+    let root = service(db)
+        .submit(&admin(db).await, bucket, &submission, &files)
+        .await
+        .expect("submits")
+        .uuid;
+    sqlx::query("UPDATE analysis.roots SET alerted_at = now() WHERE id = $1")
+        .bind(root)
+        .execute(db.pool())
+        .await
+        .expect("makes it an alert");
+    let observable = sqlx::query_scalar(
+        "SELECT id FROM analysis.observables WHERE root_id = $1 AND type = 'file'",
+    )
+    .bind(root)
+    .fetch_one(db.pool())
+    .await
+    .expect("the file");
+    (root, observable)
+}
+
+async fn root_count(db: &Db) -> i64 {
+    sqlx::query_scalar("SELECT count(*) FROM analysis.roots")
+        .fetch_one(db.pool())
+        .await
+        .expect("counts")
+}
+
+async fn src_ip_of_last(db: &Db) -> Option<String> {
+    sqlx::query_scalar("SELECT host(src_ip) FROM service.audit ORDER BY id DESC LIMIT 1")
+        .fetch_one(db.pool())
+        .await
+        .expect("reads")
 }
 
 /// An alert with one observable and its first task queued.
@@ -1356,8 +1427,116 @@ async fn every_write_function_has_an_audit_test() {
         revoke_api_key_records_its_row(db).await,
         login_records_its_row(db).await,
         logout_records_its_row(db).await,
+        submit_records_its_row(db).await,
+        download_file_records_its_row(db).await,
     ]);
     assert_eq!(covered, write_functions(), "{WRITES_NEED_A_TEST}");
+}
+
+async fn submit_records_its_row(db: &Db) -> String {
+    let (bucket, _cache) = bucket(db);
+    let actor = admin(db).await;
+    let (submission, files) = submission(&bucket, b"hello").await;
+    let source = "192.0.2.7".parse().expect("an address");
+    let submitted = with_source_ip(
+        Some(source),
+        service(db).submit(&actor, &bucket, &submission, &files),
+    )
+    .await
+    .expect("submits");
+    let row = last_audit(db).await;
+    let after = row.after.clone().expect("an after");
+    assert!(after["event_time"].is_string(), "{after}");
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: boss_json(),
+            action: "submit".to_owned(),
+            target: ("root".to_owned(), submitted.uuid.to_string()),
+            before: None,
+            after: Some(json!({
+                "analysis_mode": "correlation",
+                "event_time": after["event_time"],
+                "observables": 1,
+                "files": 1,
+                "queued": submitted.queued.len(),
+            })),
+            details: json!({"title": "a submission"}),
+        }
+    );
+    assert_eq!(src_ip_of_last(db).await.as_deref(), Some("192.0.2.7"));
+    let by: Value =
+        sqlx::query_scalar("SELECT submitted_by::jsonb FROM analysis.roots WHERE id = $1")
+            .bind(submitted.uuid)
+            .fetch_one(db.pool())
+            .await
+            .expect("the root");
+    assert_eq!(by, boss_json(), "the root records who submitted it");
+
+    // an actor without alert:create submits nothing and learns nothing, not even that a mode is wrong
+    let outsider = user(UserId(Uuid::from_u128(0x5B)));
+    let unknown: Submission = serde_json::from_value(json!({
+        "description": "x",
+        "analysis_mode": "no_such_mode",
+    }))
+    .expect("a submission");
+    let roots = root_count(db).await;
+    assert!(matches!(
+        service(db).submit(&outsider, &bucket, &unknown, &[]).await,
+        Err(ServiceError::PermissionDenied { .. })
+    ));
+    assert!(matches!(
+        service(db).submit(&actor, &bucket, &unknown, &[]).await,
+        Err(ServiceError::InvalidRequest(why)) if why == "no analysis mode \"no_such_mode\""
+    ));
+    assert_eq!(root_count(db).await, roots);
+    row.action
+}
+
+async fn download_file_records_its_row(db: &Db) -> String {
+    let (bucket, _cache) = bucket(db);
+    let (root, observable) = file_alert(db, &bucket).await;
+    let actor = admin(db).await;
+    let download = service(db)
+        .download_file(&actor, root, observable)
+        .await
+        .expect("may download");
+    let sha256 = hex::encode(Sha256::digest(b"some file"));
+    assert_eq!(
+        (download.sha256.as_str(), download.path.as_str()),
+        (sha256.as_str(), "mail/a.txt")
+    );
+    let row = last_audit(db).await;
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: boss_json(),
+            action: "download_file".to_owned(),
+            target: ("observable".to_owned(), format!("{root}/{observable}")),
+            before: None,
+            after: None,
+            details: json!({"sha256": sha256, "path": "mail/a.txt"}),
+        }
+    );
+    assert_eq!(
+        src_ip_of_last(db).await,
+        None,
+        "a call outside a request has no address"
+    );
+
+    // a read needs alert:read, and a refusal has no row
+    let rows = audit_rows(db).await.len();
+    let outsider = user(UserId(Uuid::from_u128(0x5C)));
+    assert!(matches!(
+        service(db).download_file(&outsider, root, observable).await,
+        Err(ServiceError::PermissionDenied { .. })
+    ));
+    assert!(matches!(
+        service(db).alerts(&outsider, None, None).await,
+        Err(ServiceError::PermissionDenied { .. })
+    ));
+    assert_eq!(audit_rows(db).await.len(), rows);
+    row.action
 }
 
 async fn disposition_records_its_row(db: &Db) -> String {
@@ -1523,12 +1702,16 @@ async fn every_write_fails_when_its_audit_fails() {
         .create_api_key(&actor, "triage", None)
         .await
         .expect("makes a key");
+    let (bucket, _cache) = bucket(db);
+    let (file_root, file) = file_alert(db, &bucket).await;
+    let (submitted, files) = submission(&bucket, b"another file").await;
     let before = (
         row(db, root).await,
         tasks(db, root).await,
         permission_rows(db).await,
         audit_rows(db).await,
         credential_rows(db).await,
+        root_count(db).await,
     );
 
     sqlx::raw_sql("ALTER TABLE service.audit ADD CONSTRAINT broken CHECK (false) NOT VALID")
@@ -1638,6 +1821,22 @@ async fn every_write_fails_when_its_audit_fails() {
                 .map(|_| ())
                 .expect_err("refused"),
         ),
+        (
+            "submit",
+            service
+                .submit(&actor, &bucket, &submitted, &files)
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "download_file",
+            service
+                .download_file(&actor, file_root, file)
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
     ];
     let mut covered = BTreeSet::new();
     for (function, error) in &attempts {
@@ -1652,6 +1851,7 @@ async fn every_write_fails_when_its_audit_fails() {
         permission_rows(db).await,
         audit_rows(db).await,
         credential_rows(db).await,
+        root_count(db).await,
     );
     assert_eq!(after, before);
     assert_eq!(

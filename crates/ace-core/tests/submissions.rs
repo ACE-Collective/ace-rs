@@ -1,42 +1,33 @@
-//! PLAN.md 2.28's Done check: a submission through the lease API's submit endpoint creates a
-//! root in its mode with its observables and files, each file is in the bucket held by the root,
-//! and the root's first tasks are queued. A request without the submit token, or with a mode
-//! that doesn't exist, writes nothing. The same server answers the stack's healthcheck (2.29).
+//! PLAN.md 2.28's Done check, from the core's side since 5.5: a submission creates a root in its mode
+//! with its observables and files, each file is in the bucket held by the root, and the root's first
+//! tasks are queued. One that names a mode that doesn't exist, or can't be stored, writes nothing.
+//! The HTTP endpoint, its key and who is recorded are `ace-api`'s and `ace-service`'s tests. The
+//! lease API's server answers the stack's healthcheck (2.29).
 
 use std::path::Path;
-use std::time::Duration;
 
 use ace_core::api::{Api, ApiConfig, PoolAccess};
 use ace_core::bucket::{ALERT_FILES, Bucket, BucketSettings};
+use ace_core::db::Isolation;
 use ace_core::eligibility::Catalog;
 use ace_core::modes::Modes;
 use ace_core::orchestrator::Orchestrator;
-use ace_core::submit::Submitted;
+use ace_core::submit::{self, Submission, SubmitError, SubmittedFile};
 use ace_core::testing::TestDb;
-use ace_results::Sha256;
+use ace_results::{AlertPath, Sha256};
 use ace_store::{BucketConfig, NodeCache, Store};
 use serde_json::{Value, json};
 use sha2::Digest;
+use uuid::Uuid;
 
-const SUBMIT_TOKEN: &str = "ace4-test-submit-token";
-const POOL_TOKEN: &str = "ace4-test-pool-token";
-const BOUNDARY: &str = "ace4-test-boundary-7f3a";
-
-struct Server {
+struct Stack {
     test_db: TestDb,
     bucket: Bucket,
-    url: String,
-    task: tokio::task::JoinHandle<()>,
+    orchestrator: Orchestrator,
     _cache: tempfile::TempDir,
 }
 
-impl Drop for Server {
-    fn drop(&mut self) {
-        self.task.abort();
-    }
-}
-
-async fn server() -> Server {
+async fn stack() -> Stack {
     let test_db = TestDb::new().await;
     let cache = tempfile::tempdir().expect("a cache directory");
     let store = Store::new(
@@ -50,80 +41,60 @@ async fn server() -> Server {
         ace_mod_yara::MANIFEST,
         ace_mod_rdap::MANIFEST,
     ]);
-    let config = ApiConfig::new(vec![PoolAccess::new(
-        "parsers",
-        POOL_TOKEN,
-        vec!["email_analyzer".to_owned()],
-    )])
-    .submit_token(SUBMIT_TOKEN);
-    let api = Api::new(
-        test_db.db().clone(),
-        bucket.clone(),
-        Orchestrator::new(catalog, Modes::ace3()),
-        config,
-    )
-    .await
-    .expect("the API starts");
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
-        .await
-        .expect("binds");
-    let url = format!("http://{}", listener.local_addr().expect("an address"));
-    let task = tokio::spawn(async move {
-        if let Err(e) = ace_core::api::serve(listener, api, std::future::pending()).await {
-            eprintln!("the API stopped: {e}");
-        }
-    });
-    Server {
+    Stack {
         test_db,
         bucket,
-        url,
-        task,
+        orchestrator: Orchestrator::new(catalog, Modes::ace3()),
         _cache: cache,
     }
 }
 
-/// A multipart form with the `analysis` field and one `file` field per (name, bytes).
-fn form(analysis: &Value, files: &[(&str, &[u8])]) -> Vec<u8> {
-    let mut body = Vec::new();
-    body.extend_from_slice(
-        format!(
-            "--{BOUNDARY}\r\nContent-Disposition: form-data; name=\"analysis\"\r\n\r\n{analysis}\r\n"
-        )
-        .as_bytes(),
-    );
+/// What `ace_service::Service::submit` does with the core, without the actor: parse the submission
+/// as the endpoint does, spool the files, then prepare and create the root in one transaction.
+async fn submit(
+    stack: &Stack,
+    analysis: &Value,
+    files: &[(&str, &[u8])],
+) -> Result<(Uuid, Vec<i64>), SubmitError> {
+    let submission: Submission = serde_json::from_value(analysis.clone())
+        .map_err(|e| SubmitError::Invalid(e.to_string()))?;
+    let mut spooled = Vec::new();
     for (name, bytes) in files {
-        body.extend_from_slice(
-            format!(
-                "--{BOUNDARY}\r\nContent-Disposition: form-data; name=\"file\"; \
-                 filename=\"{name}\"\r\nContent-Type: application/octet-stream\r\n\r\n"
-            )
-            .as_bytes(),
-        );
-        body.extend_from_slice(bytes);
-        body.extend_from_slice(b"\r\n");
+        spooled.push(SubmittedFile {
+            path: AlertPath::new((*name).to_owned()).expect("a path"),
+            spooled: stack
+                .bucket
+                .store()
+                .spool_bytes(bytes)
+                .await
+                .expect("spools"),
+        });
     }
-    body.extend_from_slice(format!("--{BOUNDARY}--\r\n").as_bytes());
-    body
+    let root = submit::prepare(&stack.orchestrator, &submission, &spooled)?;
+    let (root, submission, spooled) = (&root, &submission, &spooled);
+    let queued = stack
+        .test_db
+        .db()
+        .transaction(Isolation::ReadCommitted, |tx| {
+            Box::pin(async move {
+                submit::create(
+                    tx,
+                    &stack.bucket,
+                    &stack.orchestrator,
+                    root,
+                    submission,
+                    spooled,
+                )
+                .await
+            })
+        })
+        .await?;
+    Ok((root.id, queued.into_iter().map(|id| id.0).collect()))
 }
 
-async fn post(server: &Server, token: &str, body: Vec<u8>) -> reqwest::Response {
-    reqwest::Client::new()
-        .post(format!("{}/api/analysis/v1/submit", server.url))
-        .bearer_auth(token)
-        .header(
-            "content-type",
-            format!("multipart/form-data; boundary={BOUNDARY}"),
-        )
-        .body(body)
-        .timeout(Duration::from_secs(30))
-        .send()
-        .await
-        .expect("the request is answered")
-}
-
-async fn roots(server: &Server) -> i64 {
+async fn roots(stack: &Stack) -> i64 {
     sqlx::query_scalar("SELECT count(*) FROM analysis.roots")
-        .fetch_one(server.test_db.db().pool())
+        .fetch_one(stack.test_db.db().pool())
         .await
         .expect("counts")
 }
@@ -139,7 +110,7 @@ fn sample(name: &str) -> Vec<u8> {
 
 #[tokio::test]
 async fn a_submitted_file_is_in_the_bucket_and_its_tasks_are_queued() {
-    let server = server().await;
+    let stack = stack().await;
     let email = sample("email/pdf_attachment.email.rfc822");
     let sha256 = Sha256(sha2::Sha256::digest(&email).into());
     let analysis = json!({
@@ -150,21 +121,16 @@ async fn a_submitted_file_is_in_the_bucket_and_its_tasks_are_queued() {
             {"type": "fqdn", "value": "www.example.com", "tags": ["submitted"]},
         ],
     });
-    let response = post(
-        &server,
-        SUBMIT_TOKEN,
-        form(&analysis, &[("email.rfc822", &email)]),
-    )
-    .await;
-    assert_eq!(response.status(), 201);
-    let submitted: Submitted = response.json().await.expect("a body");
+    let (root, queued) = submit(&stack, &analysis, &[("email.rfc822", &email)])
+        .await
+        .expect("submits");
 
-    let pool = server.test_db.db().pool();
+    let pool = stack.test_db.db().pool();
     let (mode, description, event_time_source): (String, String, String) = sqlx::query_as(
         "SELECT analysis_mode, description, event_time_source::text FROM analysis.roots
          WHERE id = $1",
     )
-    .bind(submitted.uuid)
+    .bind(root)
     .fetch_one(pool)
     .await
     .expect("the root");
@@ -179,7 +145,7 @@ async fn a_submitted_file_is_in_the_bucket_and_its_tasks_are_queued() {
 
     // the file: in the bucket, its row in alert_files held by the root, at its path
     assert!(
-        server
+        stack
             .bucket
             .store()
             .exists(ALERT_FILES, &sha256)
@@ -195,9 +161,9 @@ async fn a_submitted_file_is_in_the_bucket_and_its_tasks_are_queued() {
     .fetch_all(pool)
     .await
     .expect("the holds");
-    assert_eq!(holds, [("root".to_owned(), submitted.uuid.to_string())]);
+    assert_eq!(holds, [("root".to_owned(), root.to_string())]);
     let path: String = sqlx::query_scalar("SELECT path FROM analysis.files WHERE root_id = $1")
-        .bind(submitted.uuid)
+        .bind(root)
         .fetch_one(pool)
         .await
         .expect("the file's record");
@@ -209,7 +175,7 @@ async fn a_submitted_file_is_in_the_bucket_and_its_tasks_are_queued() {
          JOIN analysis.observables o ON o.id = t.observable_id
          WHERE t.root_id = $1 ORDER BY t.module",
     )
-    .bind(submitted.uuid)
+    .bind(root)
     .fetch_all(pool)
     .await
     .expect("the tasks");
@@ -226,14 +192,14 @@ async fn a_submitted_file_is_in_the_bucket_and_its_tasks_are_queued() {
         ]
     );
     let mut ids: Vec<i64> = tasks.iter().map(|(id, ..)| *id).collect();
-    let mut queued = submitted.queued.clone();
+    let mut queued = queued;
     ids.sort_unstable();
     queued.sort_unstable();
     assert_eq!(queued, ids, "the answer lists the queued tasks");
     let observable: (String, Vec<String>) = sqlx::query_as(
         "SELECT value, tags FROM analysis.observables WHERE root_id = $1 AND type = 'fqdn'",
     )
-    .bind(submitted.uuid)
+    .bind(root)
     .fetch_one(pool)
     .await
     .expect("the fqdn");
@@ -245,25 +211,20 @@ async fn a_submitted_file_is_in_the_bucket_and_its_tasks_are_queued() {
 
 #[tokio::test]
 async fn a_submission_can_say_what_its_files_are_for_yara() {
-    let server = server().await;
+    let stack = stack().await;
     let analysis = json!({
         "description": "x",
         "analysis_mode": "email",
         "file_yara_meta": {"a.zip": ["type=email.attachment"]},
     });
-    let response = post(
-        &server,
-        SUBMIT_TOKEN,
-        form(&analysis, &[("a.zip", b"zip"), ("b.txt", b"text")]),
-    )
-    .await;
-    assert_eq!(response.status(), 201);
-    let submitted: Submitted = response.json().await.expect("a body");
+    let (root, _) = submit(&stack, &analysis, &[("a.zip", b"zip"), ("b.txt", b"text")])
+        .await
+        .expect("submits");
     let files: Vec<(String, Vec<String>)> = sqlx::query_as(
         "SELECT path, yara_meta FROM analysis.files WHERE root_id = $1 ORDER BY path",
     )
-    .bind(submitted.uuid)
-    .fetch_all(server.test_db.db().pool())
+    .bind(root)
+    .fetch_all(stack.test_db.db().pool())
     .await
     .expect("the files");
     assert_eq!(
@@ -275,63 +236,45 @@ async fn a_submission_can_say_what_its_files_are_for_yara() {
     );
 
     // a path that wasn't submitted, or a tag that isn't one, writes nothing
-    let before = roots(&server).await;
+    let before = roots(&stack).await;
     let not_submitted = json!({"description": "x", "file_yara_meta": {"c.zip": ["type=x"]}});
-    let response = post(
-        &server,
-        SUBMIT_TOKEN,
-        form(&not_submitted, &[("a.zip", b"zip")]),
-    )
-    .await;
-    assert_eq!(response.status(), 400);
+    let refused = submit(&stack, &not_submitted, &[("a.zip", b"zip")]).await;
+    assert!(
+        matches!(&refused, Err(SubmitError::Invalid(why)) if why.contains("c.zip")),
+        "{refused:?}"
+    );
     let not_a_tag = json!({"description": "x", "file_yara_meta": {"a.zip": ["no equals"]}});
-    let response = post(
-        &server,
-        SUBMIT_TOKEN,
-        form(&not_a_tag, &[("a.zip", b"zip")]),
-    )
-    .await;
-    assert_eq!(response.status(), 400);
-    assert_eq!(roots(&server).await, before);
+    let refused = submit(&stack, &not_a_tag, &[("a.zip", b"zip")]).await;
+    assert!(
+        matches!(refused, Err(SubmitError::Invalid(_))),
+        "{refused:?}"
+    );
+    assert_eq!(roots(&stack).await, before);
 }
 
 #[tokio::test]
-async fn a_submission_without_the_submit_token_or_with_an_unknown_mode_writes_nothing() {
-    let server = server().await;
-    let analysis = json!({"description": "x", "analysis_mode": "email"});
-    let body = || form(&analysis, &[("a.txt", b"hello")]);
-    assert_eq!(post(&server, "wrong", body()).await.status(), 401);
-    assert_eq!(
-        post(&server, POOL_TOKEN, body()).await.status(),
-        401,
-        "a pool's token can't submit"
-    );
+async fn a_submission_with_an_unknown_mode_or_a_nul_writes_nothing() {
+    let stack = stack().await;
     let unknown = json!({"description": "x", "analysis_mode": "no_such_mode"});
-    let response = post(
-        &server,
-        SUBMIT_TOKEN,
-        form(&unknown, &[("a.txt", b"hello")]),
-    )
-    .await;
-    assert_eq!(response.status(), 400);
-    let error: Value = response.json().await.expect("a body");
-    assert_eq!(error["error"], "no analysis mode \"no_such_mode\"");
-    let nul = json!({"description": "a\0b"});
-    let response = post(&server, SUBMIT_TOKEN, form(&nul, &[("a.txt", b"hello")])).await;
-    assert_eq!(response.status(), 400);
-    let error: Value = response.json().await.expect("a body");
-    assert_eq!(error["error"], "a submission can't hold a NUL character");
-    let extra = json!({"description": "x", "colour": "red"});
+    let refused = submit(&stack, &unknown, &[("a.txt", b"hello")]).await;
     assert_eq!(
-        post(&server, SUBMIT_TOKEN, form(&extra, &[]))
-            .await
-            .status(),
-        400,
+        refused.map_err(|e| e.to_string()),
+        Err("no analysis mode \"no_such_mode\"".to_owned())
+    );
+    let nul = json!({"description": "a\0b"});
+    let refused = submit(&stack, &nul, &[("a.txt", b"hello")]).await;
+    assert_eq!(
+        refused.map_err(|e| e.to_string()),
+        Err("a submission can't hold a NUL character".to_owned())
+    );
+    let extra = json!({"description": "x", "colour": "red"});
+    assert!(
+        submit(&stack, &extra, &[]).await.is_err(),
         "an unknown key is refused"
     );
-    assert_eq!(roots(&server).await, 0);
+    assert_eq!(roots(&stack).await, 0);
     let objects: i64 = sqlx::query_scalar("SELECT count(*) FROM store.objects")
-        .fetch_one(server.test_db.db().pool())
+        .fetch_one(stack.test_db.db().pool())
         .await
         .expect("counts");
     assert_eq!(objects, 0);
@@ -339,25 +282,23 @@ async fn a_submission_without_the_submit_token_or_with_an_unknown_mode_writes_no
 
 #[tokio::test]
 async fn a_submission_without_a_mode_gets_the_default_mode() {
-    let server = server().await;
+    let stack = stack().await;
     let analysis = json!({
         "description": "just an fqdn",
         "observables": [{"type": "fqdn", "value": "example.com"}],
     });
-    let response = post(&server, SUBMIT_TOKEN, form(&analysis, &[])).await;
-    assert_eq!(response.status(), 201);
-    let submitted: Submitted = response.json().await.expect("a body");
+    let (root, _) = submit(&stack, &analysis, &[]).await.expect("submits");
     let mode: String = sqlx::query_scalar("SELECT analysis_mode FROM analysis.roots WHERE id = $1")
-        .bind(submitted.uuid)
-        .fetch_one(server.test_db.db().pool())
+        .bind(root)
+        .fetch_one(stack.test_db.db().pool())
         .await
         .expect("the root");
     assert_eq!(mode, "analysis");
     // RDAP runs on an fqdn in the analysis mode, which has the correlation group
     let tasks: Vec<String> =
         sqlx::query_scalar("SELECT module FROM queue.tasks WHERE root_id = $1")
-            .bind(submitted.uuid)
-            .fetch_all(server.test_db.db().pool())
+            .bind(root)
+            .fetch_all(stack.test_db.db().pool())
             .await
             .expect("the tasks");
     assert_eq!(tasks, ["rdap_analyzer"]);
@@ -365,9 +306,33 @@ async fn a_submission_without_a_mode_gets_the_default_mode() {
 
 #[tokio::test]
 async fn the_health_endpoint_answers_without_a_token() {
-    let server = server().await;
-    let response = reqwest::get(format!("{}/healthz", server.url))
+    let stack = stack().await;
+    let api = Api::new(
+        stack.test_db.db().clone(),
+        stack.bucket.clone(),
+        stack.orchestrator.clone(),
+        ApiConfig::new(vec![PoolAccess::new("parsers", "a-token", Vec::new())]),
+    )
+    .await
+    .expect("the API starts");
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
+        .await
+        .expect("binds");
+    let url = format!("http://{}", listener.local_addr().expect("an address"));
+    let server = tokio::spawn(ace_core::api::serve(listener, api, std::future::pending()));
+    let response = reqwest::get(format!("{url}/healthz"))
         .await
         .expect("answers");
     assert_eq!(response.status(), 200);
+    let gone = reqwest::Client::new()
+        .post(format!("{url}/api/analysis/v1/submit"))
+        .send()
+        .await
+        .expect("answers");
+    assert_eq!(
+        gone.status(),
+        404,
+        "submissions are ace-api's, on its own listener"
+    );
+    server.abort();
 }

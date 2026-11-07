@@ -11,7 +11,9 @@ responder under a project of its own (ace4-e2e), with:
   instance of the Splunk module at the responder's recordings, so nothing reaches the internet;
 - a 15-second lease, so a task a killed pool held comes back quickly.
 
-Then it submits samples/ace4/email/e2e.email.rfc822, an email with a DKIM signing domain
+It makes an API key holding alert:create with `ace user create-key` in the ace container, since the
+stack has no default key (PLAN.md 5.5), and submits through the JSON API with it, as `ace compare`
+does below. Then it submits samples/ace4/email/e2e.email.rfc822, an email with a DKIM signing domain
 (example.com) in its headers and a zip attachment holding the marker, twice. Each time, the email, archive and YARA modules run in
 email mode; the YARA match on the attachment makes the root an alert in correlation mode, which
 runs RDAP and the Splunk instance, the delayed module, on the domain. The second time the
@@ -72,7 +74,6 @@ SITE = Path(os.environ.get("ACE4_E2E_SITE", ROOT / "tests" / "e2e" / "site")).re
 PROJECT = os.environ.get("ACE4_E2E_PROJECT", "ace4-e2e")
 PORT = os.environ.get("ACE4_E2E_PORT", "7444")
 ACE_COMMAND = os.environ.get("ACE4_E2E_ACE_COMMAND", "ace")
-SUBMIT_TOKEN = "ace4-e2e-submit-token"
 LEASE_SECONDS = 15
 RULE = "ace4_e2e_attachment"
 SAMPLE = "ace4/email/e2e.email.rfc822"
@@ -98,7 +99,6 @@ ENV = {
             "LEASE_SECONDS": str(LEASE_SECONDS),
             "RULESET_POLL_SECONDS": "2",
             "POOL_RULESET_POLL_SECONDS": "2",
-            "SUBMIT_TOKEN": SUBMIT_TOKEN,
             # the recorded Splunk takes any password
             "SPLUNK_PASSWORD": "ace4-fake-password",
         }.items()
@@ -168,6 +168,24 @@ def make_signatures():
     ).stdout.strip()
 
 
+def make_key():
+    """An API key that can submit, made in the ace container, which holds the database. The key goes
+    to `ace compare` through ACE4_API_KEY in this process's environment, not its command line."""
+    out = compose(
+        "exec", "-T", "ace", ACE_COMMAND, "user", "create-key", "e2e-submitter",
+        "--grant", "alert:create", capture=True,
+    )
+    token = next(
+        (line.split(": ", 1)[1] for line in out.splitlines()
+         if line.startswith("token (shown once): ")),
+        None,
+    )
+    if not token:
+        raise SystemExit(f"e2e: `ace user create-key` printed no token:\n{out}")
+    ENV["ACE4_API_KEY"] = token
+    return token
+
+
 def submit(email, mode="email", observables=()):
     """Submits a root, with the email as its file if there is one, and returns its uuid."""
     boundary = f"ace4-e2e-{uuid.uuid4().hex}"
@@ -191,14 +209,14 @@ def submit(email, mode="email", observables=()):
         data=body,
         method="POST",
         headers={
-            "Authorization": f"Bearer {SUBMIT_TOKEN}",
+            "Authorization": f"Bearer {ENV['ACE4_API_KEY']}",
             "Content-Type": f"multipart/form-data; boundary={boundary}",
         },
     )
     with urllib.request.urlopen(request, timeout=30) as response:
         if response.status != 201:
             raise SystemExit(f"e2e: the submission answered {response.status}")
-        return json.load(response)["uuid"]
+        return json.load(response)["id"]
 
 
 def wait_for(what, check, within, every=0.25):
@@ -367,7 +385,7 @@ def compare_with_ace3(threshold=False):
     compose("restart", "responder")
     compose("up", "-d", "--wait", "responder")
     command = [
-        "run", "--rm", "--no-deps", "--user", f"{os.getuid()}:{os.getgid()}",
+        "run", "--rm", "--no-deps", "--user", f"{os.getuid()}:{os.getgid()}", "-e", "ACE4_API_KEY",
         "-v", f"{ROOT / 'samples'}:/compare/samples:ro",
         "-v", f"{TREES}:/compare/trees:ro",
         "-v", f"{report}:/compare/report",
@@ -443,6 +461,7 @@ def main(argv):
     compose("up", "-d", "--build", "--wait", *SERVICES)
     failures = []
     try:
+        make_key()
         wait_for(
             "the core to build the fixture's ruleset",
             lambda: sql(f"SELECT 1 FROM yara.rulesets WHERE commit = '{commit}'"),
