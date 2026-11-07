@@ -239,7 +239,7 @@ pub const ALERT_READ: PermissionName = PermissionName::known("alert", "read");
 pub const ALERT_WRITE: PermissionName = PermissionName::known("alert", "write");
 /// Submit analysis: ace3's `alert:create`, which its submit route requires.
 pub const ALERT_CREATE: PermissionName = PermissionName::known("alert", "create");
-/// Look observables up across alerts: ace3's `observable:read`.
+/// Look observables up across alerts, and list the observable types: ace3's `observable:read`.
 pub const OBSERVABLE_READ: PermissionName = PermissionName::known("observable", "read");
 /// See users, groups, grants and keys: ace3's `user:read`.
 pub const USER_READ: PermissionName = PermissionName::known("user", "read");
@@ -275,7 +275,7 @@ pub static CATALOG: &[CatalogEntry] = &[
     },
     CatalogEntry {
         name: OBSERVABLE_READ,
-        description: "Look observables up across alerts.",
+        description: "Look observables up across alerts, and list the observable types.",
     },
     CatalogEntry {
         name: USER_READ,

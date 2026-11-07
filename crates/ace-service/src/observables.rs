@@ -10,6 +10,11 @@
 //!   alert type yet, so every alert counts.
 //! - ace3 lists the events each alert belongs to. Events come with 5.6's events router.
 //! - Seen is when the root became an alert, where ace3's is when its alert row was inserted.
+//!
+//! `observable_types` is ace3's `GET /api/v2/observable-types/`, under the same permission: the types this
+//! binary was built with (`ObservableKind::all`), a site's own among them (PLAN.md 2.31). ace3 reads its
+//! YAML registry, which can change while it runs; ace4's list is fixed when the binary is built, so
+//! there's nothing to reload or cache, and no database row adds a type, as in ace3.
 
 use std::collections::BTreeMap;
 
@@ -82,6 +87,18 @@ fn normalized(kind: &str, value: &str) -> Result<(ObservableKind, String), Strin
 }
 
 impl Service {
+    /// This binary's observable types, in name order, deprecated ones included, as ace3 lists them.
+    pub async fn observable_types(
+        &self,
+        actor: &crate::Actor,
+    ) -> Result<&'static [ObservableKind], ServiceError> {
+        self.gate
+            .read(actor, "observable_types", &OBSERVABLE_READ, &|_tx| {
+                Box::pin(async { Ok(ObservableKind::all()) })
+            })
+            .await
+    }
+
     pub async fn lookup_observables(
         &self,
         actor: &crate::Actor,

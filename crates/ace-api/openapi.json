@@ -592,6 +592,47 @@
         }
       }
     },
+    "/api/observables/v1/types": {
+      "get": {
+        "tags": [
+          "observables"
+        ],
+        "summary": "The observable types this node knows, in name order: the open-source ones and the site's own,\ndeprecated ones included.",
+        "operationId": "observable_types",
+        "responses": {
+          "200": {
+            "description": "Every observable type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObservableTypesBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold observable:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/users/v1/catalog": {
       "get": {
         "tags": [
@@ -3101,6 +3142,58 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ObservableBody"
+            }
+          }
+        }
+      },
+      "ObservableTypeBody": {
+        "type": "object",
+        "description": "One observable type.",
+        "required": [
+          "name",
+          "deprecated"
+        ],
+        "properties": {
+          "default_display_type": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The label shown when nothing sets one on the observable."
+          },
+          "deprecated": {
+            "type": "boolean",
+            "description": "Recognized, but not offered to analysts."
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "description": "The type's name, as an observable's `type` holds it."
+          },
+          "parent": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The type this one extends: a module that accepts the parent also accepts this type."
+          }
+        }
+      },
+      "ObservableTypesBody": {
+        "type": "object",
+        "required": [
+          "types"
+        ],
+        "properties": {
+          "types": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ObservableTypeBody"
             }
           }
         }

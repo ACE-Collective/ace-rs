@@ -81,6 +81,19 @@
 //! | `GET /health/ping`, `{"result": "pong"}` with no credential | `GET /api/health/v1/ping`, the same |
 //!
 //! Nothing is left out. Like ace3's, it checks no database or bucket (`health`'s docs say why).
+//!
+//! ace3's `observable_types` router (PLAN.md 5.6), under `observable:read` as there:
+//!
+//! | ace3 | here |
+//! |---|---|
+//! | `GET /observable-types/`, `{"data": [{"name": ...}]}` | `GET /api/observables/v1/types`, `{"types": [...]}` |
+//!
+//! ace3 gives each type's name. Here each also has its parent, deprecated flag, default display type
+//! and description, which ace3 keeps in the same registry but doesn't serve. The list is the running
+//! binary's, a site's own types among them (PLAN.md 2.31), sorted by name with deprecated types
+//! included, as ace3's is. Left out: ace3's 60-second cache and its `Cache-Control: private, max-age=60`,
+//! which exist because ace3 reloads its YAML while it runs; ace4's list is fixed when the binary is
+//! built. The GUI's observable actions are 5.9's (ace3 #1032), not this router's.
 
 use std::net::SocketAddr;
 
@@ -190,6 +203,10 @@ impl Web {
                 "/api/observables/v1/lookup",
                 post(observables::lookup).layer(json_limit),
             )
+            .route(
+                "/api/observables/v1/types",
+                get(observables::observable_types),
+            )
             .merge(self.users_router())
             .layer(axum::middleware::from_fn(auth::with_source))
             .with_state(self.clone())
@@ -264,6 +281,7 @@ impl Web {
         alerts::disposition,
         analysis::submit,
         observables::lookup,
+        observables::observable_types,
         users::list_users,
         users::create_user,
         users::user,

@@ -326,6 +326,7 @@ const FILE: &str = "/api/alerts/v1/alerts/{id}/observables/{observable}/file";
 const DISPOSITION: &str = "/api/alerts/v1/alerts/{id}/disposition";
 const SUBMIT: &str = "/api/analysis/v1/submit";
 const LOOKUP: &str = "/api/observables/v1/lookup";
+const TYPES: &str = "/api/observables/v1/types";
 const USERS: &str = "/api/users/v1/users";
 const USER: &str = "/api/users/v1/users/{id}";
 const ENABLED: &str = "/api/users/v1/users/{id}/enabled";
@@ -415,7 +416,7 @@ async fn refuses_without_a_credential_or_a_permission(
         .map(|(method, route, _)| (method, route))
         .filter(|route| !public.contains(route))
         .collect();
-    assert_eq!(routes.len(), 32, "{routes:?}");
+    assert_eq!(routes.len(), 33, "{routes:?}");
     for (method, route) in routes {
         let method: Method = method.to_uppercase().parse().expect("a method");
         let path = fill(&route, id, file);
@@ -2016,6 +2017,49 @@ async fn pings(client: &mut Client<'_>, token: &str) {
     assert_eq!(body, pong, "with the database closed");
 }
 
+/// ace3's `observable_types` router: every type the binary has, in name order, with what the registry
+/// says of each. This process installs no list, so it's `BUILTIN`; `ace-site-example`'s test sees a
+/// site's own type through its binary.
+async fn lists_types(client: &mut Client<'_>, token: &str) {
+    let body = client
+        .json(
+            Method::GET,
+            TYPES,
+            TYPES,
+            Some(token),
+            Send::Nothing,
+            StatusCode::OK,
+        )
+        .await;
+    let types = body["types"].as_array().expect("types");
+    let names: Vec<&str> = types.iter().filter_map(|t| t["name"].as_str()).collect();
+    let builtin: Vec<&str> = ObservableKind::BUILTIN.iter().map(|k| k.as_str()).collect();
+    assert_eq!(names, builtin, "every built-in type, in name order");
+    let named = |name: &str| {
+        types
+            .iter()
+            .find(|t| t["name"] == name)
+            .cloned()
+            .unwrap_or_else(|| panic!("{name} is listed"))
+    };
+    assert_eq!(
+        named("email_cc"),
+        json!({
+            "name": "email_cc",
+            "parent": "email_address",
+            "deprecated": false,
+            "default_display_type": "Mail CC",
+            "description": ObservableKind::EmailCc.description(),
+        })
+    );
+    assert_eq!(
+        named("cidr")["deprecated"],
+        true,
+        "deprecated types are listed"
+    );
+    assert_eq!(named("fqdn")["parent"], Value::Null);
+}
+
 /// The Done check.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn every_documented_status_is_tested() {
@@ -2042,6 +2086,7 @@ async fn every_documented_status_is_tested() {
     downloads(&mut client, &token, id, file, &bytes).await;
     dispositions(&mut client, &token).await;
     looks_up(&mut client, &token, id, &bytes).await;
+    lists_types(&mut client, &token).await;
     let admin = key(&stack, &["user:read", "user:write"]).await;
     manages_users(&mut client, &admin).await;
     serves_me(&mut client).await;

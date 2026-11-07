@@ -1,7 +1,8 @@
-//! `/api/observables/v1`: an observable's prevalence across alerts.
+//! `/api/observables/v1`: an observable's prevalence across alerts, and the observable types.
 
 use std::collections::BTreeMap;
 
+use ace_results::ObservableKind;
 use ace_service::{Lookup, Prevalence};
 use axum::Json;
 use axum::extract::State;
@@ -135,5 +136,62 @@ pub(crate) async fn lookup(
     let results = web.service.lookup_observables(&actor, &lookup).await?;
     Ok(Json(LookupBody {
         results: results.into_iter().map(PrevalenceBody::from).collect(),
+    }))
+}
+
+/// One observable type.
+#[derive(Debug, Serialize, ToSchema)]
+pub(crate) struct ObservableTypeBody {
+    /// The type's name, as an observable's `type` holds it.
+    name: &'static str,
+    /// The type this one extends: a module that accepts the parent also accepts this type.
+    parent: Option<&'static str>,
+    /// Recognized, but not offered to analysts.
+    deprecated: bool,
+    /// The label shown when nothing sets one on the observable.
+    default_display_type: Option<&'static str>,
+    description: Option<&'static str>,
+}
+
+impl From<ObservableKind> for ObservableTypeBody {
+    fn from(kind: ObservableKind) -> Self {
+        ObservableTypeBody {
+            name: kind.as_str(),
+            parent: kind.parent().map(ObservableKind::as_str),
+            deprecated: kind.is_deprecated(),
+            default_display_type: kind.default_display_type(),
+            description: kind.description(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub(crate) struct ObservableTypesBody {
+    types: Vec<ObservableTypeBody>,
+}
+
+/// The observable types this node knows, in name order: the open-source ones and the site's own,
+/// deprecated ones included.
+#[utoipa::path(
+    get,
+    path = "/api/observables/v1/types",
+    tag = "observables",
+    responses(
+        (status = 200, description = "Every observable type", body = ObservableTypesBody),
+        (status = 401, description = "No credential, or one that isn't valid", body = ErrorBody),
+        (status = 403, description = "The actor doesn't hold observable:read", body = ErrorBody),
+    )
+)]
+pub(crate) async fn observable_types(
+    Authenticated(actor): Authenticated,
+    State(web): State<Web>,
+) -> Result<Json<ObservableTypesBody>, ApiError> {
+    let kinds = web.service.observable_types(&actor).await?;
+    Ok(Json(ObservableTypesBody {
+        types: kinds
+            .iter()
+            .copied()
+            .map(ObservableTypeBody::from)
+            .collect(),
     }))
 }

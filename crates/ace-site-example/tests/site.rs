@@ -283,7 +283,15 @@ async fn a_site_module_adds_an_observable_of_the_sites_type() {
     let web_port = free_port();
     let web = format!("http://127.0.0.1:{web_port}");
     let made = Command::new(env!("CARGO_BIN_EXE_example-ace"))
-        .args(["user", "create-key", "site-test", "--grant", "alert:create"])
+        .args([
+            "user",
+            "create-key",
+            "site-test",
+            "--grant",
+            "alert:create",
+            "--grant",
+            "observable:read",
+        ])
         .env("ACE4_DATABASE_URL", database_url(test_db.name()))
         .output()
         .expect("runs");
@@ -320,6 +328,35 @@ async fn a_site_module_adds_an_observable_of_the_sites_type() {
         async move { request.await.ok().filter(|r| r.status().is_success()) }
     })
     .await;
+
+    // The JSON API lists the site's type beside the open-source ones (PLAN.md 5.6's observable_types).
+    let types: Value = http
+        .get(format!("{web}/api/observables/v1/types"))
+        .bearer_auth(&token)
+        .send()
+        .await
+        .expect("answered")
+        .error_for_status()
+        .expect("listed")
+        .json()
+        .await
+        .expect("JSON");
+    let types = types["types"].as_array().expect("types");
+    let ticket = types
+        .iter()
+        .find(|t| t["name"] == "example_ticket")
+        .expect("the site's type is listed");
+    assert_eq!(
+        *ticket,
+        json!({
+            "name": "example_ticket",
+            "parent": null,
+            "deprecated": false,
+            "default_display_type": "Ticket",
+            "description": "a ticket in the example site's ticket system",
+        })
+    );
+    assert!(types.iter().any(|t| t["name"] == "fqdn"));
 
     let mut lookups = Command::new(env!("CARGO_BIN_EXE_example-lookups"));
     lookups
