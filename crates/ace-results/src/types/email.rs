@@ -28,6 +28,42 @@ impl AnalysisType for EmailAnalysis {
     const MODULE: &'static str = "email_analyzer";
 }
 
+impl EmailAnalysis {
+    /// Which of the files an email result added is the email's body, given their names in the order
+    /// it added them: ace3's `EmailAnalysis.body` (`saq/modules/email/rfc822.py`). A lone plain text
+    /// part with no HTML is the body. Otherwise the first HTML part, then the first plain text part
+    /// that isn't numbered 000.
+    pub fn body_of(names: &[&str]) -> Option<usize> {
+        let plain = names
+            .iter()
+            .position(|name| name.contains("unknown_text_plain"));
+        let plains = names
+            .iter()
+            .filter(|name| name.contains("unknown_text_plain"))
+            .count();
+        let any_html = names.iter().any(|name| name.contains("unknown_text_html"));
+        let mut first_html = None;
+        let mut first_plain = None;
+        for (index, name) in names.iter().enumerate() {
+            if !name.contains(".unknown_") {
+                continue;
+            }
+            if plains == 1 && !any_html {
+                return plain;
+            }
+            if name.contains(".unknown_text_plain_000") {
+                continue;
+            }
+            if first_html.is_none() && name.contains("unknown_text_html") {
+                first_html = Some(index);
+            } else if first_plain.is_none() && name.contains("unknown_text_plain") {
+                first_plain = Some(index);
+            }
+        }
+        first_html.or(first_plain)
+    }
+}
+
 /// A MIME part that failed to extract.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -199,4 +235,37 @@ pub struct LogEntry {
     pub authentication_failed: bool,
     pub mail_from_is_local: bool,
     pub spoofed_internal: bool,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::EmailAnalysis as Email;
+
+    #[test]
+    fn the_body_is_ace3s_choice() {
+        // a lone plain part, where it is among the rest
+        let names = ["a.headers", "a.unknown_text_plain_000.txt", "x.docx"];
+        assert_eq!(Email::body_of(&names), Some(1));
+        // HTML first, whichever way round
+        let names = [
+            "a.unknown_text_plain_000.txt",
+            "a.unknown_text_html_000.html",
+        ];
+        assert_eq!(Email::body_of(&names), Some(1));
+        let names = [
+            "a.unknown_text_html_000.html",
+            "a.unknown_text_html_001.html",
+        ];
+        assert_eq!(Email::body_of(&names), Some(0));
+        // two plain parts: 000 is skipped
+        let names = [
+            "a.unknown_text_plain_000.txt",
+            "a.unknown_text_plain_001.txt",
+        ];
+        assert_eq!(Email::body_of(&names), Some(1));
+        // an attachment isn't a body, by name alone
+        assert_eq!(Email::body_of(&["unknown_text_plain.txt", "x.docx"]), None);
+        assert_eq!(Email::body_of(&["a.headers", "x.docx"]), None);
+        assert_eq!(Email::body_of(&[]), None);
+    }
 }

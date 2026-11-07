@@ -44,6 +44,9 @@ pub trait Module: Sized + Send + Sync + 'static {
     /// module, which needs its query: it runs only as the site overlay's named instances
     /// (PLAN.md 2.23), never as itself on its defaults.
     const INSTANCES_ONLY: bool = false;
+    /// True for a module that reads the body of the email that carried its observable, as ace3's
+    /// modules for encrypted attachments do. The core adds it to the module's tasks.
+    const READS_CARRYING_EMAIL: bool = false;
 
     /// The analysis type the module writes.
     type Output: AnalysisType;

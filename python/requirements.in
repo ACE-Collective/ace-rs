@@ -11,6 +11,8 @@ msoffcrypto-tool==6.0.0
 pcodedmp==1.2.6
 cryptography==50.0.2
 olefile==0.47
+# ace3's wordlist_from_email reads a body through it, and its text is in the result
+html2text==2025.4.15
 
 # ace3/Dockerfile installs these from each repository's master archive. These are the commits
 # master was at on 2026-11-06, where master has been since 2021 and 2022: tag v1.3.4; version 0.0.9,

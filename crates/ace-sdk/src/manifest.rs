@@ -79,6 +79,8 @@ pub struct Manifest {
     pub secrets: &'static [&'static str],
     /// The module runs only as named instances (`Module::INSTANCES_ONLY`).
     pub instances_only: bool,
+    /// The module reads its carrying email (`Module::READS_CARRYING_EMAIL`).
+    pub reads_carrying_email: bool,
     settings_schema: fn() -> Schema,
     check_settings: fn(Option<&Value>) -> Result<(), SettingsError>,
 }
@@ -115,6 +117,7 @@ impl Manifest {
             sandbox,
             secrets: M::SECRETS,
             instances_only: M::INSTANCES_ONLY,
+            reads_carrying_email: M::READS_CARRYING_EMAIL,
             settings_schema: settings_schema::<M::Settings>,
             check_settings: check_settings::<M::Settings>,
         }

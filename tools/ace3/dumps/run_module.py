@@ -176,6 +176,7 @@ TREE_MODULES = {
     "FileTypeAnalysis": "file_type",
     "ArchiveAnalysis": "archive",
     "OLEVBA_Analysis_v1_2": "olevba_v1_2",
+    "MSOfficeEncryptionAnalysis": "msoffice_encryption_analyzer",
     "RdapAnalysis": "rdap_analyzer",
     "RTFOLEObjectAnalysis": "rtfole",
     "YaraScanResults_v3_4": "yara_scanner_v3_4",
@@ -205,6 +206,7 @@ TREE_EXCLUDED = {
     "ArchiveAnalyzer": "archive",
     "OLEVBA_Analyzer_v1_2": "olevba_v1_2",
     "RTFOLEObjectAnalyzer": "rtfole",
+    "MSOfficeEncryptionAnalyzer": "msoffice_encryption_analyzer",
     "YaraScanner_v3_4": "yara_scanner_v3_4",
 }
 
@@ -249,6 +251,19 @@ def rtfole_in_alert_paths(result, files_dir):
         )
 
 
+def msoffice_in_alert_paths(result, files_dir):
+    """The candidates from the body come out of a set, in an order that changes from run to run, and
+    office2john.py names the file by the path it was given, on the node. The port sorts them and
+    writes the path in the alert. Those two things are put the same here."""
+    details = result["details"]
+    details["word_list"] = details["word_list"][:2] + sorted(details["word_list"][2:])
+    for field in ("error",):
+        if isinstance(details[field], str):
+            details[field] = details[field].replace(files_dir + "/", "")
+    if isinstance(result["summary"], str):
+        result["summary"] = result["summary"].replace(files_dir + "/", "")
+
+
 def tree_form(root):
     def members(items):
         return {item: True for item in items}
@@ -290,6 +305,8 @@ def tree_form(root):
                 result["details"]["rdap_raw_json"] = json.dumps(json.loads(raw), separators=(",", ":"), ensure_ascii=False)
             if class_name == "RTFOLEObjectAnalysis":
                 rtfole_in_alert_paths(result, observable.full_path.removesuffix("/" + observable.file_path))
+            if class_name == "MSOfficeEncryptionAnalysis":
+                msoffice_in_alert_paths(result, observable.full_path.removesuffix("/" + observable.file_path))
             entry["results"][TREE_MODULES.get(class_name, class_name)] = result
         for detection in detections:
             entry["detections"].setdefault(detection.description, []).append(json_safe(detection.details))

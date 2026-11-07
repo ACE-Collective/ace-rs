@@ -15,7 +15,8 @@
     "an encrypted RAR: making one needs RARLAB's non-free rar tool",
     "a legacy .xls (BIFF8) with an Excel 4.0 macro sheet: nothing here writes one",
     "PowerPoint and Excel files with VBA macros: ace3's tests hold Word ones only",
-    "an encrypted PDF: ace3's tests build theirs with pikepdf at test time"
+    "an encrypted PDF: ace3's tests build theirs with pikepdf at test time",
+    "an encrypted .ppt, and an RC4 .doc: msoffcrypto writes neither, only ace3's RC4 .xls is here"
   ],
   "samples": [
     {
@@ -625,6 +626,180 @@
       "meta_tags": []
     },
     {
+      "path": "ace4/email/encrypted_html_body.email.rfc822",
+      "sha256": "2c6e33fe687ee606eee311749939e05a8a0d45a5db14481a6dcbf8250f45ba1e",
+      "size": 25200,
+      "kinds": [
+        "email",
+        "office/encrypted"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-encrypted-office",
+      "in_git": true,
+      "alert_path": "email.rfc822",
+      "meta_tags": []
+    },
+    {
+      "path": "ace4/email/encrypted_in_body.email.rfc822",
+      "sha256": "ca062095e0cfe6cee8ca98148724c7985518b88f28d0f9030590ee5b516b17db",
+      "size": 107850,
+      "kinds": [
+        "email",
+        "office/encrypted"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-encrypted-office",
+      "in_git": true,
+      "alert_path": "email.rfc822",
+      "meta_tags": []
+    },
+    {
+      "path": "ace4/email/encrypted_in_zip.email.rfc822",
+      "sha256": "f3f6fd0c273ad0b537425f565f21aba80170c566655e85b0b18f998169f7a5d0",
+      "size": 108010,
+      "kinds": [
+        "email",
+        "office/encrypted"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-encrypted-office",
+      "in_git": true,
+      "alert_path": "email.rfc822",
+      "meta_tags": []
+    },
+    {
+      "path": "ace4/email/encrypted_nested.email.rfc822",
+      "sha256": "64ec9c66249ca330fc3afadd035bedd06d17429e598e03a8a761284b15f6079b",
+      "size": 25456,
+      "kinds": [
+        "email",
+        "office/encrypted"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-encrypted-office",
+      "in_git": true,
+      "alert_path": "email.rfc822",
+      "meta_tags": []
+    },
+    {
+      "path": "ace4/email/encrypted_nested_html.email.rfc822",
+      "sha256": "36b755d7aae792af4dd8bb418c68386b2643888ec18bfb7c546cebe4dfeff252",
+      "size": 25826,
+      "kinds": [
+        "email",
+        "office/encrypted"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-encrypted-office",
+      "in_git": true,
+      "alert_path": "email.rfc822",
+      "meta_tags": []
+    },
+    {
+      "path": "ace4/email/encrypted_no_body.email.rfc822",
+      "sha256": "08c8ec0e31ee31eda476f156869bf56d507558632d8a8068ccf6087593dd06bd",
+      "size": 24694,
+      "kinds": [
+        "email",
+        "office/encrypted"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-encrypted-office",
+      "in_git": true,
+      "alert_path": "email.rfc822",
+      "meta_tags": []
+    },
+    {
+      "path": "ace4/email/encrypted_standard.email.rfc822",
+      "sha256": "151155f82d0fea3dede02224ed7a4c1da00f5a1689521263a068024e116c9e12",
+      "size": 106465,
+      "kinds": [
+        "email",
+        "office/encrypted"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-encrypted-office",
+      "in_git": true,
+      "alert_path": "email.rfc822",
+      "meta_tags": []
+    },
+    {
+      "path": "ace4/email/encrypted_wrong_password.email.rfc822",
+      "sha256": "aaddc420cfcb36babb33fb1183f4c3fc19b82f89fad7448ef506109b15b5d948",
+      "size": 24859,
+      "kinds": [
+        "email",
+        "office/encrypted"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-encrypted-office",
+      "in_git": true,
+      "alert_path": "email.rfc822",
+      "meta_tags": []
+    },
+    {
+      "path": "ace4/office/encrypted_extensible.docx",
+      "sha256": "cc805cc69baa7721aefd1eb2d1f8eccf5ab163226407b13c05dcadda1657ba47",
+      "size": 8192,
+      "kinds": [
+        "office/encrypted"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-encrypted-office",
+      "in_git": true,
+      "alert_path": "encrypted_extensible.docx",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/encrypted_no_email.docx",
+      "sha256": "331bbc4db116c378b57566005a5070982edc6206e29d7dd45e87603efe32936a",
+      "size": 17920,
+      "kinds": [
+        "office/encrypted"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-encrypted-office",
+      "in_git": true,
+      "alert_path": "encrypted_no_email.docx",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/encrypted_velvet.docx",
+      "sha256": "cf8e19f41bc41f7a5de92c96b15f30e8b9ad9a6effb87d936d1d864059db09c7",
+      "size": 17920,
+      "kinds": [
+        "office/encrypted"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-encrypted-office",
+      "in_git": true,
+      "alert_path": "encrypted_velvet.docx",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/encrypted_xor.doc",
+      "sha256": "bcedd34c04ce0ddfcf20cd56b183fd07ffafdb6cbca6f5737412ce8fc129167d",
+      "size": 22528,
+      "kinds": [
+        "office/encrypted"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-encrypted-office",
+      "in_git": true,
+      "alert_path": "encrypted_xor.doc",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/encrypted_xor.xls",
+      "sha256": "74df8a6cc0be1a600c6b4e15e7ca82957ccd6790a26c60374fbd26b5501d4bcb",
+      "size": 69125,
+      "kinds": [
+        "office/encrypted"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-encrypted-office",
+      "in_git": true,
+      "alert_path": "encrypted_xor.xls",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
       "path": "ace4/office/garbage.doc",
       "sha256": "10fc3c51a152e90e5b90319b601d92ccf37290ef53c35ff92507687d8a911a08",
       "size": 2048,
@@ -695,16 +870,16 @@
       ]
     },
     {
-      "path": "ace4/rtf/objects.rtf",
-      "sha256": "0d652dc8b0cc3ecb9d3111ea218e2f1f78fbe553fac50594a1aafc80e81a000b",
-      "size": 443613,
+      "path": "ace4/rtf/backslash_start.rtf",
+      "sha256": "22aa7d6f015f886b817cae96fb99fcee9d93e6132825c7a3bc27a572d7562c3b",
+      "size": 264,
       "kinds": [
         "rtf",
         "rtf/edge"
       ],
       "source": "made by tools/samples/gather: by hand",
       "in_git": true,
-      "alert_path": "objects.rtf",
+      "alert_path": "backslash_start.rtf",
       "meta_tags": [
         "type=email.attachment"
       ]
@@ -725,21 +900,6 @@
       ]
     },
     {
-      "path": "ace4/rtf/long_name.rtf",
-      "sha256": "425846d005aa14f4e2bbd18ddbe33c1c80f5be23786538abac31c636b8c525d7",
-      "size": 2544,
-      "kinds": [
-        "rtf",
-        "rtf/edge"
-      ],
-      "source": "made by tools/samples/gather: by hand",
-      "in_git": true,
-      "alert_path": "long_name.rtf",
-      "meta_tags": [
-        "type=email.attachment"
-      ]
-    },
-    {
       "path": "ace4/rtf/bracket[1].rtf",
       "sha256": "4532a9df01925fcd7da833b5d7c56f491d3a5b9d64c7204a2dac5623a335e730",
       "size": 380,
@@ -750,6 +910,21 @@
       "source": "made by tools/samples/gather: by hand",
       "in_git": true,
       "alert_path": "bracket[1].rtf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/rtf/long_name.rtf",
+      "sha256": "425846d005aa14f4e2bbd18ddbe33c1c80f5be23786538abac31c636b8c525d7",
+      "size": 2544,
+      "kinds": [
+        "rtf",
+        "rtf/edge"
+      ],
+      "source": "made by tools/samples/gather: by hand",
+      "in_git": true,
+      "alert_path": "long_name.rtf",
       "meta_tags": [
         "type=email.attachment"
       ]
@@ -770,16 +945,16 @@
       ]
     },
     {
-      "path": "ace4/rtf/backslash_start.rtf",
-      "sha256": "22aa7d6f015f886b817cae96fb99fcee9d93e6132825c7a3bc27a572d7562c3b",
-      "size": 264,
+      "path": "ace4/rtf/objects.rtf",
+      "sha256": "0d652dc8b0cc3ecb9d3111ea218e2f1f78fbe553fac50594a1aafc80e81a000b",
+      "size": 443613,
       "kinds": [
         "rtf",
         "rtf/edge"
       ],
       "source": "made by tools/samples/gather: by hand",
       "in_git": true,
-      "alert_path": "backslash_start.rtf",
+      "alert_path": "objects.rtf",
       "meta_tags": [
         "type=email.attachment"
       ]

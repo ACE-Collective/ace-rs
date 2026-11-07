@@ -416,6 +416,108 @@ def make_office_edges(directory, macro_docm):
     return [directory / name for name in files]
 
 
+def encrypted_email(path, body, attachments=(), html=None, nested=None):
+    """An email for ace3's msoffice module, with fixed headers, so only the files' salts change."""
+    message = email.message.EmailMessage()
+    message["From"] = "sender@example.com"
+    message["To"] = "recipient@example.com"
+    message["Subject"] = "the attached file"
+    message["Date"] = "Fri, 06 Nov 2026 12:00:00 +0000"
+    message["Message-ID"] = f"<{path.name}@example.com>"
+    if body is not None:
+        message.set_content(body)
+    if html is not None:
+        message.add_alternative(html, subtype="html")
+    if body is None and html is None:
+        message.make_mixed()
+    for name, data in attachments:
+        message.add_attachment(data, maintype="application", subtype="octet-stream", filename=name)
+    if nested is not None:
+        message.add_attachment(nested)
+    return message
+
+
+def make_encrypted_office(directory, email_directory):
+    """Encrypted Office files, and the emails that carry them, for what ace3's msoffice module does:
+    a password found in a body, in HTML, in a nested email and from an email past a zip, none found,
+    no email, no body, a default password, and formats John doesn't take. The files' encryption is
+    tools/samples/make-encrypted-office's, in the Python pool's image."""
+    with tempfile.TemporaryDirectory(dir=REPO / "target") as work:
+        subprocess.run(
+            ["docker", "run", "--rm", "-u", f"{os.getuid()}:{os.getgid()}", "--entrypoint", "python3",
+             "-v", f"{REPO}:/repo:ro", "-v", f"{work}:/out", "ace4-python:latest", "-I",
+             "/repo/tools/samples/make-encrypted-office", "/out",
+             "/repo/samples/ace3/office/mortgage_payment-0873821-0565.docm",
+             "/repo/samples/ace3/office/doc.docx", "/repo/samples/ace3/office/doc.doc",
+             "/repo/samples/ace3/email/encrypted_msoffice.email.rfc822"],
+            check=True,
+        )
+        made = {path.name: path.read_bytes() for path in Path(work).iterdir()}
+    directory.mkdir(parents=True, exist_ok=True)
+    email_directory.mkdir(parents=True, exist_ok=True)
+    files = []
+    for source, name in [
+        ("velvet.docx", "encrypted_velvet.docx"),
+        ("agile_not_in_body.docx", "encrypted_no_email.docx"),
+        ("extensible.docx", "encrypted_extensible.docx"),
+        ("xor.doc", "encrypted_xor.doc"),
+        ("xor.xls", "encrypted_xor.xls"),
+    ]:
+        (directory / name).write_bytes(made[source])
+        files.append(directory / name)
+
+    inner_zip = io.BytesIO()
+    with zipfile.ZipFile(inner_zip, "w") as z:
+        z.writestr(zipfile.ZipInfo("invoice.docm", (2020, 1, 1, 0, 0, 0)), made["agile_in_body.docm"])
+    inner = encrypted_email(
+        email_directory / "inner.email.rfc822",
+        "The inner password is InnerPw1\n",
+        [("invoice.docx", made["agile_inner.docx"])],
+    )
+    emails = {
+        "encrypted_in_body.email.rfc822": encrypted_email(
+            email_directory / "encrypted_in_body.email.rfc822",
+            "The password is Secr3tPw\n", [("invoice.docm", made["agile_in_body.docm"])],
+        ),
+        "encrypted_standard.email.rfc822": encrypted_email(
+            email_directory / "encrypted_standard.email.rfc822",
+            "The password is St4ndard\n", [("invoice.docm", made["standard_in_body.docm"])],
+        ),
+        "encrypted_wrong_password.email.rfc822": encrypted_email(
+            email_directory / "encrypted_wrong_password.email.rfc822",
+            "The password is Wr0ngOne\n", [("invoice.docx", made["agile_not_in_body.docx"])],
+        ),
+        "encrypted_html_body.email.rfc822": encrypted_email(
+            email_directory / "encrypted_html_body.email.rfc822",
+            "See the HTML part\n", [("invoice.docx", made["agile_in_html.docx"])],
+            html="<html><body><p>Use <b>H7mlPass</b></p></body></html>\n",
+        ),
+        "encrypted_no_body.email.rfc822": encrypted_email(
+            email_directory / "encrypted_no_body.email.rfc822",
+            None, [("invoice.docx", made["agile_not_in_body.docx"])],
+        ),
+        "encrypted_in_zip.email.rfc822": encrypted_email(
+            email_directory / "encrypted_in_zip.email.rfc822",
+            "The password is Secr3tPw\n", [("invoice.zip", inner_zip.getvalue())],
+        ),
+        "encrypted_nested.email.rfc822": encrypted_email(
+            email_directory / "encrypted_nested.email.rfc822",
+            "The outer email has no password\n", nested=inner,
+        ),
+        # the outer email's HTML is its body, so only the nested email's body has the password, and
+        # the outer email adds the attachment before the nested one has been parsed
+        "encrypted_nested_html.email.rfc822": encrypted_email(
+            email_directory / "encrypted_nested_html.email.rfc822",
+            "The outer email has no password\n",
+            html="<html><body><p>The outer email has no password</p></body></html>\n",
+            nested=inner,
+        ),
+    }
+    for name, message in emails.items():
+        (email_directory / name).write_bytes(message.as_bytes())
+    return files, [email_directory / name for name in emails]
+
+
 def entry(path, kinds, source, note=None):
     data = path.read_bytes()
     relative = path.relative_to(SAMPLES).as_posix()
@@ -473,6 +575,13 @@ def main():
     for path in make_rtf_edges(SAMPLES / "ace4" / "rtf", macro_doc):
         samples.append(entry(path, ["rtf", "rtf/edge"], "made by tools/samples/gather: by hand"))
 
+    office_files, office_emails = make_encrypted_office(SAMPLES / "ace4" / "office", SAMPLES / "ace4" / "email")
+    how = "made by tools/samples/gather: tools/samples/make-encrypted-office"
+    for path in office_files:
+        samples.append(entry(path, ["office/encrypted"], how))
+    for path in office_emails:
+        samples.append(entry(path, ["email", "office/encrypted"], how))
+
     covered = {kind for sample in samples for kind in sample["kinds"]}
     missing = [kind for kind in REQUIRED_KINDS if kind not in covered]
     manifest = {
@@ -490,6 +599,7 @@ def main():
             "a legacy .xls (BIFF8) with an Excel 4.0 macro sheet: nothing here writes one",
             "PowerPoint and Excel files with VBA macros: ace3's tests hold Word ones only",
             "an encrypted PDF: ace3's tests build theirs with pikepdf at test time",
+            "an encrypted .ppt, and an RC4 .doc: msoffcrypto writes neither, only ace3's RC4 .xls is here",
         ],
         "samples": sorted(samples, key=lambda sample: sample["path"]),
     }

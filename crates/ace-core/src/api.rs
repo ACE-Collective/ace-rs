@@ -36,8 +36,8 @@ use std::time::Duration;
 
 use ace_results::{AlertPath, ObservableKind, ObservableRef, ResultEnvelope, Sha256, YaraMeta};
 use ace_sdk::wire::{
-    ApiError, CurrentRuleset, FieldError as WireFieldError, LeaseRequest, LeasedTask, Presigned,
-    Renewal, TaskEnd, TaskFile, TaskObservable, UploadRequest, paths,
+    ApiError, CarryingEmail, CurrentRuleset, FieldError as WireFieldError, LeaseRequest,
+    LeasedTask, Presigned, Renewal, TaskEnd, TaskFile, TaskObservable, UploadRequest, paths,
 };
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{Path, State};
@@ -64,6 +64,9 @@ use crate::tree;
 
 /// The header a task-scoped request names its worker in.
 pub const WORKER_HEADER: &str = "x-ace4-worker";
+
+/// How long a task that reads its carrying email first waits for the root's emails to be parsed.
+const EMAILS_PENDING_DELAY: Duration = Duration::from_secs(1);
 
 /// A pool's access to the API: its name, the hash of its token and the modules it may lease.
 #[derive(Clone)]
@@ -392,9 +395,81 @@ impl Api {
         } else {
             None
         };
+        let reads_email = self
+            .inner
+            .orchestrator
+            .catalog()
+            .iter()
+            .any(|c| c.key == task.module && c.manifest.reads_carrying_email);
+        // An outer email adds a nested email's attachments too, before the nested one has been
+        // parsed, and that's the email whose body has the password. ace3 analyzes the attachment
+        // once per path, and ace4 once, so it waits for the root's emails. The email module takes
+        // every file, so a root with many has its tasks back here, less often each time.
+        if reads_email && tree::emails_pending(self.inner.db.pool(), task.root).await? {
+            let delays = task.delayed.as_ref().map_or(0, |d| d.delays);
+            let after = EMAILS_PENDING_DELAY.saturating_mul(2u32.saturating_pow(delays.min(5)));
+            match worker.delay(task.id, after, &Value::Null).await {
+                Ok(_) | Err(QueueError::Cancelled(_)) => return Ok(None),
+                Err(e) => return Err(e.into()),
+            }
+        }
+        let carrying_email = if reads_email {
+            match self.carrying_email(&task).await? {
+                Ok(email) => email,
+                Err(why) => {
+                    tracing::error!(task = %task.id, "{why}");
+                    worker.fail(task.id, &why).await?;
+                    return Ok(None);
+                }
+            }
+        } else {
+            None
+        };
         let redirection =
             tree::redirection(self.inner.db.pool(), task.root, task.observable.id).await?;
-        Ok(Some(self.wire_task(task, file, redirection)))
+        let mut leased = self.wire_task(task, file, redirection);
+        leased.carrying_email = carrying_email;
+        Ok(Some(leased))
+    }
+
+    /// The email that carried a task's observable, or why the task can't run.
+    async fn carrying_email(
+        &self,
+        task: &Task,
+    ) -> Result<Result<Option<CarryingEmail>, String>, Failure> {
+        let email =
+            tree::carrying_email(self.inner.db.pool(), task.root, task.observable.id).await?;
+        let Some(body) = email else {
+            return Ok(Ok(None));
+        };
+        let Some(body) = body else {
+            return Ok(Ok(Some(CarryingEmail { body: None })));
+        };
+        let Ok(sha256) = body.sha256.parse::<Sha256>() else {
+            return Ok(Err(format!(
+                "the email body's value {:?} isn't a sha256",
+                body.sha256
+            )));
+        };
+        if self
+            .inner
+            .bucket
+            .object(ALERT_FILES, &sha256)
+            .await?
+            .is_none()
+        {
+            return Ok(Err(format!("email body {sha256} isn't in the bucket")));
+        }
+        let download = self
+            .inner
+            .bucket
+            .store()
+            .presign_get(ALERT_FILES, &sha256, self.inner.config.url_expiry)
+            .await
+            .map_err(BucketError::from)?;
+        Ok(Ok(Some(CarryingEmail {
+            body: Some(wire_presigned(download)),
+        })))
     }
 
     fn wire_task(
@@ -420,6 +495,7 @@ impl Api {
             },
             delayed: task.delayed,
             input_hashes: task.input_hashes,
+            carrying_email: None,
         }
     }
 

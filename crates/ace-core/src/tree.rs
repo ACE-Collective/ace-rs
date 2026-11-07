@@ -4,12 +4,14 @@
 //! its tags, directives, excluded modules and relationships into the existing row. A result is
 //! unique on (root, observable, module).
 
+use ace_results::types::email::EmailAnalysis;
 use ace_results::{
-    Detection, NewObservable, ObservableAdditions, ObservableKind, ObservableRef, ResultEnvelope,
+    AnalysisType, Detection, NewObservable, ObservableAdditions, ObservableKind, ObservableRef,
+    ResultEnvelope,
 };
 use chrono::{DateTime, Utc};
 use serde_json::Value;
-use sqlx::PgExecutor;
+use sqlx::{PgExecutor, PgPool};
 use uuid::Uuid;
 
 use crate::db::{DbError, Tx};
@@ -446,4 +448,105 @@ pub async fn first_file<'e>(
     )
     .fetch_optional(executor)
     .await?)
+}
+
+/// Records that a result added an observable, and under what path if it's a file.
+pub async fn add_result_addition(
+    tx: &mut Tx<'_>,
+    root: Uuid,
+    result: ResultId,
+    observable: ObservableId,
+    path: Option<&str>,
+) -> Result<(), DbError> {
+    sqlx::query!(
+        "INSERT INTO analysis.result_additions (root_id, result_id, observable_id, path)
+         VALUES ($1, $2, $3, $4)",
+        root,
+        result as ResultId,
+        observable as ObservableId,
+        path,
+    )
+    .execute(tx.conn())
+    .await?;
+    Ok(())
+}
+
+/// The body of the email that carried an observable: what `Module::READS_CARRYING_EMAIL` asks for.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EmailBodyFile {
+    pub path: String,
+    /// The file observable's value.
+    pub sha256: String,
+}
+
+/// Whether an email in the root hasn't been parsed yet.
+pub async fn emails_pending(pool: &PgPool, root: Uuid) -> Result<bool, DbError> {
+    Ok(sqlx::query_scalar!(
+        r#"SELECT EXISTS (
+               SELECT 1 FROM queue.tasks
+               WHERE root_id = $1 AND module = $2 AND state IN ('queued', 'delayed', 'running')
+           ) AS "pending!""#,
+        root,
+        EmailAnalysis::MODULE,
+    )
+    .fetch_one(pool)
+    .await?)
+}
+
+/// The email an observable came out of, as ace3's `search_down` finds its `EmailAnalysis`: up
+/// through the results that added it, by any route, to the nearest email result that parsed a
+/// message. A result lands after the one that added what it analyzed, so the highest id is the
+/// nearest. None means no email carried it, and an inner None that one did but has no body.
+pub async fn carrying_email(
+    pool: &PgPool,
+    root: Uuid,
+    observable: ObservableId,
+) -> Result<Option<Option<EmailBodyFile>>, DbError> {
+    let email = sqlx::query_scalar!(
+        r#"WITH RECURSIVE ancestors (observable_id) AS (
+               SELECT $2::bigint
+               UNION
+               SELECT r.observable_id
+               FROM ancestors
+               JOIN analysis.result_additions a
+                 ON a.root_id = $1 AND a.observable_id = ancestors.observable_id
+               JOIN analysis.results r ON r.id = a.result_id
+           )
+           SELECT r.id AS "id: ResultId"
+           FROM ancestors
+           JOIN analysis.result_additions a
+             ON a.root_id = $1 AND a.observable_id = ancestors.observable_id
+           JOIN analysis.results r ON r.id = a.result_id
+           WHERE r.analysis_type = $3 AND jsonb_typeof(r.details -> 'email') = 'object'
+           ORDER BY r.id DESC
+           LIMIT 1"#,
+        root,
+        observable as ObservableId,
+        EmailAnalysis::NAME,
+    )
+    .fetch_optional(pool)
+    .await?;
+    let Some(email) = email else {
+        return Ok(None);
+    };
+    let files = sqlx::query!(
+        r#"SELECT a.path AS "path!", o.value
+           FROM analysis.result_additions a
+           JOIN analysis.observables o ON o.root_id = a.root_id AND o.id = a.observable_id
+           WHERE a.result_id = $1 AND a.path IS NOT NULL
+           ORDER BY a.id"#,
+        email as ResultId,
+    )
+    .fetch_all(pool)
+    .await?;
+    let names: Vec<&str> = files
+        .iter()
+        .map(|file| file.path.rsplit('/').next().unwrap_or_default())
+        .collect();
+    Ok(Some(EmailAnalysis::body_of(&names).map(|index| {
+        EmailBodyFile {
+            path: files[index].path.clone(),
+            sha256: files[index].value.clone(),
+        }
+    })))
 }

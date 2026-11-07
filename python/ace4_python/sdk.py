@@ -55,6 +55,10 @@ class Context:
         self.settings = request.get("settings")
         # the input's bytes, for a file task
         self.input = request.get("input")
+        # the email that carried the file, for a module whose manifest reads it
+        # (READS_CARRYING_EMAIL): whether there is one, and its body's bytes if it has a body
+        self.carried_by_email = task.get("carrying_email") is not None
+        self.email_body = request.get("email_body")
         self.tasks_in_process = tasks_in_process
         self._outputs = request["outputs"]
         # the one place a worker can write, for libraries that use tempfile; its directory goes with

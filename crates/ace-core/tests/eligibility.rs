@@ -425,6 +425,210 @@ async fn an_observables_redirection_doesnt_depend_on_which_result_landed_first()
     }
 }
 
+/// A result of `analysis_type` on `on`, which added `added` under these paths.
+async fn add_result(
+    db: &ace_core::db::Db,
+    root: uuid::Uuid,
+    on: tree::ObservableId,
+    analysis_type: &str,
+    details: serde_json::Value,
+    added: &[(tree::ObservableId, Option<&str>)],
+) {
+    let mut tx = db.begin().await.expect("begins");
+    let envelope = result(json!({
+        "analysis_type": analysis_type, "schema_version": 1, "details": details,
+    }));
+    let id = tree::insert_result(&mut tx, root, on, analysis_type, &envelope)
+        .await
+        .expect("inserts");
+    for (observable, path) in added {
+        tree::add_result_addition(&mut tx, root, id, *observable, *path)
+            .await
+            .expect("adds");
+    }
+    tx.commit().await.expect("commits");
+}
+
+/// The walk ace3's `search_down` does: past an archive to the nearest email, by any route, to the
+/// email's body. A cycle ends, an email with no body is one, and nothing above a root is none.
+#[tokio::test]
+async fn a_file_finds_the_body_of_the_email_that_carried_it() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let hash = |c: &str| c.repeat(64);
+    let (outer, nested, zip, doc, body, inner_body) = (
+        hash("a"),
+        hash("b"),
+        hash("c"),
+        hash("d"),
+        hash("e"),
+        hash("f"),
+    );
+    let values = [&outer, &nested, &zip, &doc, &body, &inner_body];
+    let files: Vec<(ObservableKind, &str)> = values
+        .iter()
+        .map(|value| (ObservableKind::File, value.as_str()))
+        .collect();
+    let (root, ids) = root_with(db, "test", &files).await;
+    let (outer_id, nested_id, zip_id, doc_id, body_id, inner_id) =
+        (ids[0], ids[1], ids[2], ids[3], ids[4], ids[5]);
+    let message = json!({"email": {}});
+
+    // the outer email adds the nested one, its body, and the nested one's zip, as ace3's does
+    add_result(
+        db,
+        root,
+        outer_id,
+        "email_analysis",
+        message.clone(),
+        &[
+            (body_id, Some("email.rfc822.unknown_text_plain_000.txt")),
+            (nested_id, Some("email.rfc822.email_000.rfc822")),
+            (zip_id, Some("a_000.zip")),
+        ],
+    )
+    .await;
+    let outer_body = tree::EmailBodyFile {
+        path: "email.rfc822.unknown_text_plain_000.txt".to_owned(),
+        sha256: body.clone(),
+    };
+    assert_eq!(
+        tree::carrying_email(db.pool(), root, zip_id)
+            .await
+            .expect("reads"),
+        Some(Some(outer_body))
+    );
+
+    // the nested email is nearer than the outer one, by the route through its own zip
+    add_result(
+        db,
+        root,
+        nested_id,
+        "email_analysis",
+        message.clone(),
+        &[
+            (inner_id, Some("x/email.rfc822.unknown_text_html_000.html")),
+            (zip_id, Some("a.zip")),
+        ],
+    )
+    .await;
+    add_result(
+        db,
+        root,
+        zip_id,
+        "archive_analysis",
+        json!({}),
+        &[(doc_id, Some("a.zip.extracted/a.docx"))],
+    )
+    .await;
+    let inner = tree::EmailBodyFile {
+        path: "x/email.rfc822.unknown_text_html_000.html".to_owned(),
+        sha256: inner_body.clone(),
+    };
+    assert_eq!(
+        tree::carrying_email(db.pool(), root, doc_id)
+            .await
+            .expect("reads"),
+        Some(Some(inner.clone()))
+    );
+
+    // a file that contains its own ancestor ends the walk
+    add_result(
+        db,
+        root,
+        doc_id,
+        "archive_analysis",
+        json!({}),
+        &[(zip_id, Some("a.docx.extracted/a.zip"))],
+    )
+    .await;
+    assert_eq!(
+        tree::carrying_email(db.pool(), root, doc_id)
+            .await
+            .expect("reads"),
+        Some(Some(inner))
+    );
+
+    // no route to an email, and an email that couldn't be parsed isn't one
+    assert_eq!(
+        tree::carrying_email(db.pool(), root, outer_id)
+            .await
+            .expect("reads"),
+        None
+    );
+    let (other_root, other) = root_with(
+        db,
+        "test",
+        &[
+            (ObservableKind::File, outer.as_str()),
+            (ObservableKind::File, doc.as_str()),
+        ],
+    )
+    .await;
+    add_result(
+        db,
+        other_root,
+        other[0],
+        "email_analysis",
+        json!({"email": null}),
+        &[(other[1], Some("c.docx"))],
+    )
+    .await;
+    assert_eq!(
+        tree::carrying_email(db.pool(), other_root, other[1])
+            .await
+            .expect("reads"),
+        None
+    );
+
+    // an email with no text part is still an email
+    let (third_root, third) = root_with(
+        db,
+        "test",
+        &[
+            (ObservableKind::File, outer.as_str()),
+            (ObservableKind::File, doc.as_str()),
+        ],
+    )
+    .await;
+    add_result(
+        db,
+        third_root,
+        third[0],
+        "email_analysis",
+        message,
+        &[(third[1], Some("c.docx"))],
+    )
+    .await;
+    assert_eq!(
+        tree::carrying_email(db.pool(), third_root, third[1])
+            .await
+            .expect("reads"),
+        Some(None)
+    );
+}
+
+/// An email still to be parsed holds back what reads its carrying email.
+#[tokio::test]
+async fn an_unfinished_email_is_pending_and_a_failed_one_isnt() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let hash = "a".repeat(64);
+    let (root, ids) = root_with(db, "test", &[(ObservableKind::File, hash.as_str())]).await;
+    assert!(!tree::emails_pending(db.pool(), root).await.expect("reads"));
+    let mut tx = db.begin().await.expect("begins");
+    ace_core::queue::enqueue(&mut tx, root, ids[0], "email_analyzer")
+        .await
+        .expect("queues");
+    tx.commit().await.expect("commits");
+    assert!(tree::emails_pending(db.pool(), root).await.expect("reads"));
+    let worker = worker(&test_db, "w", &["email_analyzer"], Duration::from_secs(30)).await;
+    let task = worker.claim().await.expect("claims").expect("the task");
+    assert!(tree::emails_pending(db.pool(), root).await.expect("reads"));
+    worker.fail(task.id, "broke").await.expect("fails");
+    assert!(!tree::emails_pending(db.pool(), root).await.expect("reads"));
+}
+
 /// A file's relationships and redirection reach the tree, and what a module adds to the
 /// redirection lands on the file it redirects to, with its `yara_meta` tags on that file's path.
 #[tokio::test]

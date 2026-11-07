@@ -77,6 +77,18 @@ A module ace4 doesn't have, such as `file_type` (7.5), isn't listed: the command
 | `ace4/rtf/bracket[1].rtf` | `/observables/*/results/rtfole/details/extracted_files/0` | The object ace3 didn't extract, from the same bug. | `ace4 only` |
 | `ace4/rtf/bracket[1].rtf` | `/observables/*/results/rtfole/summary` | The same object, in the summary, where ace3's is null. |  |
 | `ace4/rtf/bracket[1].rtf` | `/observables/file:*` | The same object, in the tree. | `ace4 only` |
+| `ace4/email/encrypted_*` | `/observables/*/results/archive/details/extracted_files/*` | A decrypted document's files in another order: ace4 in archive order, ace3 in the filesystem's (`os.walk`). Its bytes, so its sha256, are the same on both sides. |  |
+| `ace4/email/encrypted_*` | `/observables/*/results/archive/summary` | The summary lists them in the same order. |  |
+| `ace4/office/encrypted_velvet.docx` | `/observables/*/results/archive/details/extracted_files/*` | The same order. |  |
+| `ace4/office/encrypted_velvet.docx` | `/observables/*/results/archive/summary` | The summary lists them in the same order. |  |
+| `ace4/email/encrypted_nested*` | `/observables/file:*/paths/invoice_000.docx*` | The outer email and the nested one both write the attachment. ace3's file manager gives the second write of a taken name `_000` even for the same bytes, and ace3 then has an observable per path, each analyzed, so everything under it has both names. ace4's second is the same file under the same path, one row. |  |
+| `ace4/email/encrypted_nested*` | `/observables/*/results/email_analyzer/details/email/log_entry/attachment_names/1` | The nested email's name for it, from the same `_000`. | `ace3 holds invoice_000` |
+| `ace4/email/encrypted_nested_html.email.rfc822` | `/observables/*/results/msoffice_encryption_analyzer/details/email_body` | ace3 has two observables of this file, one per path. `invoice.docx` is the outer email's, whose HTML body has no password. `invoice_000.docx` is the nested email's, which cracks, and makes the same decrypted file, `file:6a65fb99...`, with the same tag and detection. The form holds the result of the path that sorts first, which is the failure. ace4 has one observable and analyzes it once it can read the nearest email, the nested one. | `ace3 holds The outer email` |
+| `ace4/email/encrypted_nested_html.email.rfc822` | `/observables/*/results/msoffice_encryption_analyzer/details/word_list/*` | The same two analyses: these are from the outer email's body. |  |
+| `ace4/email/encrypted_nested_html.email.rfc822` | `/observables/*/results/msoffice_encryption_analyzer/details/password` | The same two analyses. ace4 has the password ace3's other analysis found, where ace3's is null. |  |
+| `ace4/email/encrypted_nested_html.email.rfc822` | `/observables/*/results/msoffice_encryption_analyzer/details/error` | The same two analyses. | `ace3 holds could not crack` |
+| `ace4/email/encrypted_nested_html.email.rfc822` | `/observables/*/results/msoffice_encryption_analyzer/summary` | The same two analyses. | `ace3 holds could not crack` |
+| `ace4/email/encrypted_nested_html.email.rfc822` | `/observables/file:*/paths/invoice.docx.decrypted*` | The same decrypted file under the one name ace4 gives it. ace3's is `invoice_000.docx.decrypted`, because only its second analysis decrypted it. | `ace4 only` |
 
 ## Effects of modules not ported
 

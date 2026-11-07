@@ -133,6 +133,20 @@ pub struct LeasedTask {
     pub delayed: Option<DelayedRun>,
     #[serde(default)]
     pub input_hashes: Vec<String>,
+    /// The email that carried the task's observable, for a module that reads it
+    /// (`Module::READS_CARRYING_EMAIL`). None when the module doesn't, or no email carried it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub carrying_email: Option<CarryingEmail>,
+}
+
+/// What a module may read of the email that carried its observable (PLAN.md 4.6). A worker holds no
+/// database credentials, so the core looks it up when it hands out the task. PLAN.md 7.2's read
+/// endpoints are the general form of this.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CarryingEmail {
+    /// The email's body, which a message with no text part doesn't have.
+    pub body: Option<Presigned>,
 }
 
 /// The ruleset a YARA pool should scan with: the latest the core built (PLAN.md 2.26), and

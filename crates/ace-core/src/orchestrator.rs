@@ -355,6 +355,7 @@ impl Orchestrator {
             .collect();
         for observable in &result.observables {
             let id = tree::upsert_observable(tx, root, observable).await?.id;
+            tree::add_result_addition(tx, root, result_id, id, None).await?;
             touched.push(id);
             detections.extend(observable.detections.iter().map(|d| (id, d)));
         }
@@ -372,6 +373,7 @@ impl Orchestrator {
                 .map(|tag| tag.as_str().to_owned())
                 .collect();
             tree::add_file(tx, root, id, file.path.as_str(), &yara_meta).await?;
+            tree::add_result_addition(tx, root, result_id, id, Some(file.path.as_str())).await?;
             touched.push(id);
             detections.extend(file.detections.iter().map(|d| (id, d)));
         }

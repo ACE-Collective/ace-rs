@@ -1,0 +1,64 @@
+{
+  "form": 1,
+  "observables": {
+    "file:74df8a6cc0be1a600c6b4e15e7ca82957ccd6790a26c60374fbd26b5501d4bcb": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "encrypted_xor.xls": {
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": true,
+            "is_office_ext": true,
+            "is_ole_file": true,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": true,
+            "mime": "application/vnd.ms-excel",
+            "type": "Composite Document File V2 Document, Little Endian, Os: Windows, Version 10.0, Code page: 1252, Name of Creating Application: Microsoft Excel, Create Time/Date: Fri Jun  5 18:17:20 2015, Last Saved Time/Date: Mon Sep  7 15:00:28 2020, Security: 1"
+          },
+          "summary": "File Type Analysis: Composite Document File V2 Document, Little Endian, Os: Windows, Version 10.0, Code page: 1252, Name of Creating Application: Microsoft Excel, Create Time/Date: Fri Jun  5 18:17:20 2015, Last Saved Time/Date: Mon Sep  7 15:00:28 2020, Security: 1 (application/vnd.ms-excel) (ms office document) (ole compound file) (zip archive)",
+          "tags": {}
+        },
+        "msoffice_encryption_analyzer": {
+          "details": {
+            "email": false,
+            "email_body": null,
+            "encryption_info": null,
+            "error": "office2john.py failed: encrypted_xor.xls : XOR obfuscation detected, key : b'cdab', hash : b'3412'\n",
+            "password": null,
+            "word_list": []
+          },
+          "summary": "MSOffice Encryption Analysis: office2john.py failed: encrypted_xor.xls : XOR obfuscation detected, key : b'cdab', hash : b'3412'\n",
+          "tags": {}
+        },
+        "olevba_v1_2": {
+          "details": {
+            "keyword_summary": {},
+            "macros": [],
+            "type": "OLE"
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "encrypted_msoffice": true,
+        "microsoft_office": true,
+        "ole": true,
+        "zip": true
+      }
+    }
+  }
+}

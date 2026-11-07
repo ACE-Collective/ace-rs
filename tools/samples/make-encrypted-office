@@ -1,0 +1,137 @@
+#!/usr/bin/env python3
+"""Makes samples/ace4's encrypted Office files, for tools/samples/gather. It runs in the Python pool's
+image, which has msoffcrypto and cryptography, and needs a plain .docm, .docx and .doc, and an email
+holding ace3's encrypted .xls, which gives it a plain one:
+
+    make-encrypted-office <out dir> <plain.docm> <plain.docx> <plain.doc> <encrypted_msoffice.email.rfc822>
+
+msoffcrypto only writes Office 2013's Agile encryption. So Office 2007's Standard encryption is written
+here by hand from MS-OFFCRYPTO in msoffcrypto's own container, and XOR obfuscation is flags and a record
+put into a plain file in place. Their salts are random, so a file's sha256 changes on every run.
+"""
+
+import email
+import email.policy
+import hashlib
+import io
+import os
+import struct
+import sys
+
+import msoffcrypto
+import olefile
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from msoffcrypto.format.ooxml import OOXMLFile
+from msoffcrypto.method.container.ecma376_encrypted import ECMA376Encrypted
+from msoffcrypto.method.ecma376_standard import ECMA376Standard
+
+
+
+def plain_xls(email_path):
+    """ace3's info_3805.xls, decrypted with its password. msoffcrypto keeps a blanked FilePass's place."""
+    with open(email_path, "rb") as fp:
+        message = email.message_from_binary_file(fp, policy=email.policy.default)
+    attachment = next(message.iter_attachments()).get_content()
+    office = msoffcrypto.OfficeFile(io.BytesIO(attachment))
+    office.load_key(password="709384")
+    out = io.BytesIO()
+    office.decrypt(out)
+    return out.getvalue()
+
+
+def agile(plain, password):
+    out = io.BytesIO()
+    OOXMLFile(io.BytesIO(plain)).encrypt(password, out)
+    return out.getvalue()
+
+
+def standard(plain, password):
+    salt = os.urandom(16)
+    key = ECMA376Standard.makekey_from_password(password, 0x660E, 0x8004, 0x18, 128, 16, salt)
+    def ecb(data):
+        encryptor = Cipher(algorithms.AES(key), modes.ECB()).encryptor()
+        return encryptor.update(data) + encryptor.finalize()
+    verifier = os.urandom(16)
+    verifier_hash = hashlib.sha1(verifier).digest().ljust(32, b"\0")
+    provider = "Microsoft Enhanced RSA and AES Cryptographic Provider\0".encode("utf-16-le")
+    header = struct.pack("<IIIIIIII", 0x24, 0, 0x660E, 0x8004, 128, 0x18, 0, 0) + provider
+    info = (
+        struct.pack("<HHI", 4, 2, 0x24)
+        + struct.pack("<I", len(header))
+        + header
+        + struct.pack("<I", 16)
+        + salt
+        + ecb(verifier)
+        + struct.pack("<I", 20)
+        + ecb(verifier_hash)
+    )
+    padded = plain + b"\0" * (-len(plain) % 16)
+    package = struct.pack("<Q", len(plain)) + ecb(padded)
+    out = io.BytesIO()
+    ECMA376Encrypted(package, info).write_to(out)
+    return out.getvalue()
+
+
+def extensible():
+    """Agile's container with the EncryptionInfo version of Extensible Encryption, which msoffcrypto
+    refuses when it opens the file."""
+    out = io.BytesIO()
+    ECMA376Encrypted(b"\0" * 4096, struct.pack("<HHI", 4, 3, 0x24) + b"\0" * 256).write_to(out)
+    return out.getvalue()
+
+
+def xor_doc(plain, path):
+    with open(path, "wb") as fp:
+        fp.write(plain)
+    ole = olefile.OleFileIO(path, write_mode=True)
+    word = bytearray(ole.openstream("WordDocument").read())
+    flags = struct.unpack_from("<H", word, 0x0A)[0]
+    struct.pack_into("<H", word, 0x0A, flags | 0x0100 | 0x8000)
+    struct.pack_into("<I", word, 0x0E, 0x12345678)
+    ole.write_stream("WordDocument", bytes(word))
+    ole.close()
+
+
+def xor_xls(plain, path):
+    """Replaces the record after BOF with a FilePass of the same size, keeping the rest of the
+    stream."""
+    with open(path, "wb") as fp:
+        fp.write(plain)
+    ole = olefile.OleFileIO(path, write_mode=True)
+    stream = bytearray(ole.openstream("Workbook").read())
+    _, size = struct.unpack_from("<HH", stream, 0)
+    next_record = 4 + size
+    _, next_size = struct.unpack_from("<HH", stream, next_record)
+    if next_size < 6:
+        raise SystemExit("the record after BOF is too small for a FilePass")
+    struct.pack_into("<HHHHH", stream, next_record, 0x2F, next_size, 0, 0xABCD, 0x1234)
+    ole.write_stream("Workbook", bytes(stream))
+    ole.close()
+
+
+def main(out, docm, docx, doc, xls_email):
+    with open(docm, "rb") as fp:
+        macros = fp.read()
+    with open(docx, "rb") as fp:
+        ooxml = fp.read()
+    with open(doc, "rb") as fp:
+        word = fp.read()
+    files = {
+        "agile_in_body.docm": agile(macros, "Secr3tPw"),
+        "standard_in_body.docm": standard(macros, "St4ndard"),
+        "agile_in_html.docx": agile(ooxml, "H7mlPass"),
+        "agile_not_in_body.docx": agile(ooxml, "NotInTheBody99"),
+        "agile_inner.docx": agile(ooxml, "InnerPw1"),
+        "velvet.docx": agile(ooxml, "VelvetSweatshop"),
+        "extensible.docx": extensible(),
+    }
+    os.makedirs(out, exist_ok=True)
+    for name, data in files.items():
+        with open(os.path.join(out, name), "wb") as fp:
+            fp.write(data)
+    xor_doc(word, os.path.join(out, "xor.doc"))
+    xor_xls(plain_xls(xls_email), os.path.join(out, "xor.xls"))
+
+
+if __name__ == "__main__":
+    main(*sys.argv[1:])

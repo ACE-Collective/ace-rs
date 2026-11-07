@@ -18,6 +18,7 @@ import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from ace4_python.modules import msoffice_encryption_analyzer as msoffice  # noqa: E402
 from ace4_python.modules import olevba_v1_2, rtfole  # noqa: E402
 from ace4_python.sdk import Context, text_or_bytes  # noqa: E402
 
@@ -29,9 +30,19 @@ with open(os.path.join(SAMPLES, DOC_WITH_MACROS), "rb") as _fp:
 DOC_SHA256 = hashlib.sha256(DOC_BYTES).hexdigest()
 
 
-def run(module, sample=None, data=None, name=None, mime="application/msword", settings=None):
+def run(
+    module,
+    sample=None,
+    data=None,
+    name=None,
+    mime="application/msword",
+    settings=None,
+    email_body=None,
+    carried_by_email=False,
+):
     """Runs a module's analyze on a file in a directory like a task's, and returns its end and that
-    directory's outputs, as a contained worker would see them."""
+    directory's outputs, as a contained worker would see them. email_body is the bytes of the body of
+    the email that carried it."""
     work = tempfile.mkdtemp()
     os.mkdir(os.path.join(work, "outputs"))
     path = os.path.join(work, "input")
@@ -41,6 +52,12 @@ def run(module, sample=None, data=None, name=None, mime="application/msword", se
     with open(path, "wb") as fp:
         fp.write(data)
     name = name or os.path.basename(sample)
+    body_path = None
+    if email_body is not None:
+        body_path = os.path.join(work, "email_body")
+        with open(body_path, "wb") as fp:
+            fp.write(email_body)
+        carried_by_email = True
     request = {
         "task": {
             "id": 1,
@@ -54,10 +71,13 @@ def run(module, sample=None, data=None, name=None, mime="application/msword", se
         },
         "settings": settings,
         "input": path,
+        "email_body": body_path,
         "outputs": os.path.join(work, "outputs"),
         "analysis_type": "olevba_analysis",
         "schema_version": 1,
     }
+    if carried_by_email:
+        request["task"]["carrying_email"] = {"body": None}
     end = module.analyze(Context(request, 1))
     # what the worker does with an end, so what JSON can't carry fails here
     json.dumps(end, allow_nan=False).encode("utf-8")
@@ -229,6 +249,90 @@ class RtfOle(unittest.TestCase):
             rtfole.summarize(names),
             "RTF OLE Object Analysis: extracted " + ", ".join(names[:20]) + " + 2 more",
         )
+
+
+class MsofficeEncryption(unittest.TestCase):
+    NO_EMAIL = "ace4/office/encrypted_no_email.docx"
+
+    def details(self, sample, **kwargs):
+        return run(msoffice, sample=sample, **kwargs)[0]["result"]["details"]
+
+    def test_a_password_in_the_body_decrypts_the_file_and_it_goes_on_with_ace3s_names(self):
+        sample = "ace4/office/encrypted_velvet.docx"
+        end, outputs = run(msoffice, sample=sample, name="a.docx", email_body=b"nothing useful\n")
+        result = end["result"]
+        self.assertEqual(result["summary"], "MSOffice Encryption Analysis: password VelvetSweatshop")
+        self.assertEqual(result["analyzed"], {"tags": ["encrypted_msoffice"]})
+        file = result["files"][0]
+        self.assertEqual(file["path"], "a.docx.decrypted")
+        self.assertEqual(file["tags"], ["decrypted_msoffice"])
+        self.assertEqual(file["yara_meta"], ["type=document.office"])
+        self.assertEqual(
+            file["detections"][0]["signature_uuid"], "ef715326-081e-4ece-97ba-02817b5a28cd"
+        )
+        with open(os.path.join(outputs, file["sha256"]), "rb") as stored:
+            self.assertEqual(stored.read(2), b"PK")
+
+    def test_a_password_the_body_doesnt_hold_is_a_result_with_no_file(self):
+        end = run(msoffice, sample=self.NO_EMAIL, email_body=b"The password is wrong\n")[0]
+        result = end["result"]
+        self.assertEqual(result["details"]["error"], "could not crack password")
+        self.assertIsNone(result["details"]["password"])
+        self.assertEqual(result["files"], [])
+        self.assertEqual(result["details"]["email_body"], "The password is wrong\n\n")
+
+    def test_what_the_email_gives_it(self):
+        details = self.details(self.NO_EMAIL)
+        self.assertFalse(details["email"])
+        self.assertIsNone(details["email_body"])
+        self.assertEqual(details["word_list"], msoffice.DEFAULT_PASSWORDS)
+        details = self.details(self.NO_EMAIL, carried_by_email=True)
+        self.assertTrue(details["email"])
+        self.assertIsNone(details["email_body"])
+
+    def test_the_word_list_is_ace3s_set(self):
+        words = msoffice.generate_wordlist("ab cdef\nghij", 4, 5, 1024, 5000)
+        self.assertEqual(words, ["cdef", "ghij"])
+        # a limit stops on the same words whatever the order, and the byte limit cuts the text
+        self.assertEqual(msoffice.generate_wordlist("abcdefgh", 4, 5, 1024, 2), ["abcd", "bcde"])
+        self.assertEqual(msoffice.generate_wordlist("abcdefgh", 4, 5, 4, 5000), ["abcd"])
+        self.assertEqual(msoffice.generate_wordlist("", 4, 5, 1024, 5000), [])
+
+    def test_a_file_it_cant_read_or_that_isnt_encrypted_is_skipped(self):
+        for sample in ("ace3/office/doc.docx", "ace3/office/doc.doc", "ace4/office/encrypted_extensible.docx"):
+            self.assertEqual(run(msoffice, sample=sample)[0]["outcome"], "skipped", sample)
+        self.assertEqual(run(msoffice, data=b"plain text", name="a")[0]["outcome"], "skipped")
+        self.assertEqual(run(msoffice, data=b"", name="empty")[0]["outcome"], "skipped")
+
+    def test_john_has_no_format_for_xor_so_nothing_is_tried(self):
+        for sample, verifier in (
+            ("ace4/office/encrypted_xor.doc", "Password Verifier : b'78563412'"),
+            ("ace4/office/encrypted_xor.xls", "key : b'cdab', hash : b'3412'"),
+        ):
+            details = self.details(sample, name="x", email_body=b"The password is whatever\n")
+            self.assertEqual(
+                details["error"], f"office2john.py failed: x : XOR obfuscation detected, {verifier}\n"
+            )
+            self.assertEqual(details["word_list"], [])
+
+    def test_a_spin_count_past_the_time_stops_with_the_result_ace3_gets(self):
+        real_office_file = msoffice.msoffcrypto.OfficeFile
+        real_time = msoffice.TIME_TO_CRACK
+
+        def huge_spin(fp):
+            office = real_office_file(fp)
+            office.info["spinValue"] = 2**31 - 1
+            return office
+
+        msoffice.msoffcrypto.OfficeFile = huge_spin
+        msoffice.TIME_TO_CRACK = 0.2
+        try:
+            details = self.details(self.NO_EMAIL, email_body=b"The password is Secr3tPw\n")
+        finally:
+            msoffice.msoffcrypto.OfficeFile = real_office_file
+            msoffice.TIME_TO_CRACK = real_time
+        self.assertEqual(details["error"], "could not crack password")
+        self.assertIn("Secr3tPw", details["word_list"])
 
 
 if __name__ == "__main__":

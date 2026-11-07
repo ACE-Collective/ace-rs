@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT a.path AS \"path!\", o.value\n           FROM analysis.result_additions a\n           JOIN analysis.observables o ON o.root_id = a.root_id AND o.id = a.observable_id\n           WHERE a.result_id = $1 AND a.path IS NOT NULL\n           ORDER BY a.id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "path!",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.result_additions",
+            "name": "path"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "value",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.observables",
+            "name": "value"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      true,
+      false
+    ]
+  },
+  "hash": "fe7f2bbc137b7b62d72f83e9962a51862631df86874f6289bbb9733e90cd8bb8"
+}
