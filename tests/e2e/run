@@ -132,7 +132,9 @@ PROBE_LIMITS = {
 }
 # Ported modules on the Python pool: each must have results from both systems, because a comparison
 # with nothing compared passes.
-PYTHON_PORTS = ["msoffice_encryption_analyzer", "olevba_v1_2", "pcodedmp", "rtfole", "xlmdeobfuscator"]
+PYTHON_PORTS = ["msoffice_encryption_analyzer", "pcodedmp", "xlmdeobfuscator"]
+# What has moved off that pool: a comparison with nothing compared passes for them too.
+LIBRARY_PORTS = ["olevba_v1_2", "pdf_analyzer", "rtfole"]
 
 
 def log(message):
@@ -489,7 +491,7 @@ def check_library_diff(failures):
 def check_ports_compared(failures):
     """A port that replaces a Python library must have been compared with something."""
     compared = json.loads((WORK / "compare" / "report.json").read_text())["compared_by_module"]
-    for module in [*PYTHON_PORTS, "pdf_analyzer"]:
+    for module in [*PYTHON_PORTS, *LIBRARY_PORTS]:
         counts = compared.get(module, {})
         log(f"{module}: {counts}")
         if not counts.get("ace3_results") or not counts.get("ace4_results"):

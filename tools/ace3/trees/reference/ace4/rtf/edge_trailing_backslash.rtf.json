@@ -1,0 +1,52 @@
+{
+  "form": 1,
+  "observables": {
+    "file:693a9ec384dea3d26f390adeaa1649c0d2e1ead842c064f48670267c79abb8c4": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "edge_trailing_backslash.rtf": {
+          "type=document.rtf": true,
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": true,
+            "is_office_ext": true,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": true,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/rtf",
+            "type": "Rich Text Format data, version 1"
+          },
+          "summary": "File Type Analysis: Rich Text Format data, version 1 (text/rtf) (ms office document) (rtf document)",
+          "tags": {}
+        },
+        "rtfole": {
+          "details": {
+            "extracted_files": [],
+            "return_code": 1,
+            "stderr": "Traceback (most recent call last):\n  File \"/venv/bin/rtfobj\", line 6, in <module>\n    sys.exit(main())\n             ~~~~^^\n  File \"/venv/lib/python3.14/site-packages/oletools/rtfobj.py\", line 1079, in main\n    process_file(container, filename, data, output_dir=options.output_dir,\n    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n                 save_object=options.save_object)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/venv/lib/python3.14/site-packages/oletools/rtfobj.py\", line 877, in process_file\n    rtfp.parse()\n    ~~~~~~~~~~^^\n  File \"/venv/lib/python3.14/site-packages/oletools/rtfobj.py\", line 488, in parse\n    raise RuntimeError('Should not have reached this point - index=%Xh' % self.index)\nRuntimeError: Should not have reached this point - index=14h\n",
+            "stdout": "rtfobj 0.60.1 on Python 3.14.10 - http://decalage.info/python/oletools\nTHIS IS WORK IN PROGRESS - Check updates regularly!\nPlease report any issue at https://github.com/decalage2/oletools/issues\n\n===============================================================================\nFile: 'edge_trailing_backslash.rtf' - size: 21 bytes\n---+----------+---------------------------------------------------------------\nid |index     |OLE Object                                                     \n---+----------+---------------------------------------------------------------\n"
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "microsoft_office": true,
+        "rtf": true
+      }
+    }
+  }
+}

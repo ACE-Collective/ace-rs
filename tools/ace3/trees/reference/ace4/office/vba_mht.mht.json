@@ -1,0 +1,38 @@
+{
+  "form": 1,
+  "observables": {
+    "file:a39385604f7dc5756d199a0a7d611dd8d65f5c14f7aef305abbe4896f37d24a5": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "vba_mht.mht": {
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "MIME entity, ASCII text, with very long lines (1192), with CRLF line terminators"
+          },
+          "summary": "File Type Analysis: MIME entity, ASCII text, with very long lines (1192), with CRLF line terminators (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    }
+  }
+}

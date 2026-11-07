@@ -1,0 +1,100 @@
+{
+  "form": 1,
+  "observables": {
+    "file:5dc9b93612f39c1cd2c501104e04f2ecc503bf04104a94a4af6a4f13ae303a7e": {
+      "detections": {},
+      "directives": {
+        "sandbox": true
+      },
+      "excluded_analysis": {
+        "olevba_v1_2": true
+      },
+      "paths": {
+        "vba_codepage_932.doc.olevba/macro_0.bas": {
+          "type=script.macro.vba": true
+        }
+      },
+      "redirection": "file:cbe71154dd4a588ba57aa21e8338b03186877f087b77c389735832ffd13d7926",
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "Unicode text, UTF-8 text"
+          },
+          "summary": "File Type Analysis: Unicode text, UTF-8 text (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "macro": true
+      }
+    },
+    "file:cbe71154dd4a588ba57aa21e8338b03186877f087b77c389735832ffd13d7926": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "vba_codepage_932.doc": {
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": true,
+            "is_office_ext": true,
+            "is_ole_file": true,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/x-ole-storage",
+            "type": "Composite Document File V2 Document, Cannot read section info"
+          },
+          "summary": "File Type Analysis: Composite Document File V2 Document, Cannot read section info (application/x-ole-storage) (ms office document) (ole compound file)",
+          "tags": {}
+        },
+        "olevba_v1_2": {
+          "details": {
+            "keyword_summary": {
+              "suspicious": 1
+            },
+            "macros": [
+              {
+                "file_name": "<root>/files/vba_codepage_932.doc",
+                "local_path": "5dc9b93612f39c1cd2c501104e04f2ecc503bf04104a94a4af6a4f13ae303a7e",
+                "stream_path": "Macros/VBA/モジュール1",
+                "vba_code": "Sub A()\n MsgBox \"テスト\" & Chr(65)\nEnd Sub",
+                "vba_filename": "モジュール1.bas"
+              }
+            ],
+            "type": "OLE"
+          },
+          "summary": "OLEVBA Analysis: (1 macro files) (OLE) | suspicious=1",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "microsoft_office": true,
+        "ole": true
+      }
+    }
+  }
+}

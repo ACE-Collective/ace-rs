@@ -30,6 +30,14 @@ pub fn modules(settings: &Value) -> Result<Modules, SetupError> {
             block("pdf_analyzer"),
             &secrets,
         )?)
+        .with_parser(Entry::<ace_mod_oletools::Olevba>::parser(
+            block("olevba_v1_2"),
+            &secrets,
+        )?)
+        .with_parser(Entry::<ace_mod_oletools::RtfOle>::parser(
+            block("rtfole"),
+            &secrets,
+        )?)
         .with_parser(Entry::<ace_mod_archive::ArchiveAnalyzer>::parser(
             block("archive"),
             &secrets,
@@ -166,9 +174,9 @@ impl Lookup for Panicky {
 }
 
 /// The TCP port `test_connect`'s manifest allows.
-pub const ALLOWED_PORT: u16 = 47011;
+pub const ALLOWED_PORT: u16 = 29011;
 /// A port it doesn't.
-pub const OTHER_PORT: u16 = 47012;
+pub const OTHER_PORT: u16 = 29012;
 
 /// A lookup that connects to 127.0.0.1 on the port its manifest allows and on one it doesn't,
 /// and says how each went.

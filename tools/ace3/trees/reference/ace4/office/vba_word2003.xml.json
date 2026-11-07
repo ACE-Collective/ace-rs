@@ -1,0 +1,38 @@
+{
+  "form": 1,
+  "observables": {
+    "file:3394858feef1bae73d8fc9c85dacda9d9fd3cbdce7606e1f5b8a40f49fa380ef": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "vba_word2003.xml": {
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/xml",
+            "type": "XML 1.0 document, ASCII text, with very long lines (1381), with no line terminators"
+          },
+          "summary": "File Type Analysis: XML 1.0 document, ASCII text, with very long lines (1381), with no line terminators (text/xml)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    }
+  }
+}

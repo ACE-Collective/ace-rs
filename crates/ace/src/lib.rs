@@ -3,13 +3,15 @@
 
 use ace_app::{App, LookupPool, ParserPool, PythonPool};
 
-/// The parser pool: the email, archive, PDF and YARA modules, with the YARA module on the core's
+/// The parser pool: the email, archive, PDF, olevba, rtfole and YARA modules, with the YARA module on the core's
 /// current ruleset (2.26).
 pub fn parser_pool() -> ParserPool {
     ParserPool::new("parsers")
         .module::<ace_mod_email::EmailAnalyzer>()
         .module::<ace_mod_archive::ArchiveAnalyzer>()
         .module::<ace_mod_pdf::PdfAnalyzer>()
+        .module::<ace_mod_oletools::Olevba>()
+        .module::<ace_mod_oletools::RtfOle>()
         .module::<ace_mod_yara::YaraScanner>()
         .yara_rulesets::<ace_mod_yara::YaraScanner>(ace_mod_yara::check_ruleset)
 }
@@ -26,8 +28,6 @@ pub fn lookup_pool() -> LookupPool {
 pub fn python_pool() -> PythonPool {
     PythonPool::new("python")
         .module::<ace_mod_python::PythonProbe>()
-        .module::<ace_mod_python::Olevba>()
-        .module::<ace_mod_python::RtfOle>()
         .module::<ace_mod_python::MsofficeEncryption>()
         .module::<ace_mod_python::PCode>()
         .module::<ace_mod_python::XlmDeobfuscator>()

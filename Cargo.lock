@@ -9,6 +9,7 @@ dependencies = [
  "ace-app",
  "ace-mod-archive",
  "ace-mod-email",
+ "ace-mod-oletools",
  "ace-mod-pdf",
  "ace-mod-python",
  "ace-mod-rdap",
@@ -122,6 +123,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "ace-mod-oletools"
+version = "0.1.0"
+dependencies = [
+ "ace-results",
+ "ace-sdk",
+ "ace-testkit",
+ "base64 0.22.1",
+ "bzip2",
+ "crc32fast",
+ "encoding_rs",
+ "flate2",
+ "md-5",
+ "memchr",
+ "regex",
+ "schemars 1.2.3",
+ "serde",
+ "serde_json",
+ "tracing",
+]
+
+[[package]]
 name = "ace-mod-pdf"
 version = "0.1.0"
 dependencies = [
@@ -211,6 +233,7 @@ dependencies = [
  "ace-core",
  "ace-mod-archive",
  "ace-mod-email",
+ "ace-mod-oletools",
  "ace-mod-pdf",
  "ace-mod-python",
  "ace-mod-splunk",

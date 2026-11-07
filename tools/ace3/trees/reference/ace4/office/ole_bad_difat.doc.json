@@ -1,0 +1,53 @@
+{
+  "form": 1,
+  "observables": {
+    "file:a45b20b1257c9fc8ac0827e733cfb51c218fd794739c35c2afc0c01c94c6173a": {
+      "detections": {},
+      "directives": {
+        "sandbox": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "ole_bad_difat.doc": {
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": true,
+            "is_office_ext": true,
+            "is_ole_file": true,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/x-ole-storage",
+            "type": "Composite Document File V2 Document, Can't read SAT"
+          },
+          "summary": "File Type Analysis: Composite Document File V2 Document, Can't read SAT (application/x-ole-storage) (ms office document) (ole compound file)",
+          "tags": {}
+        },
+        "olevba_v1_2": {
+          "details": {
+            "keyword_summary": {},
+            "macros": [],
+            "type": null
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "microsoft_office": true,
+        "ole": true,
+        "olevba_failed": true
+      }
+    }
+  }
+}

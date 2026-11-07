@@ -1,0 +1,61 @@
+#!/usr/bin/env python3
+"""Writes crates/ace-mod-oletools/src/tables.rs from oletools' own tables, so the port's keywords, CLSIDs
+and file types can't drift from them by a typo.
+
+    docker run --rm -i -v "$PWD:/w" -w /w ace4-python:latest python -I tools/oletools/make-tables
+"""
+
+import inspect
+import json
+
+from oletools import ftguess, olevba, rtfobj
+from oletools.common.clsid import KNOWN_CLSIDS
+
+
+def rust(text):
+    return json.dumps(text, ensure_ascii=False).replace("\\u0008", "\\u{8}")
+
+
+def keyword_table(name, table):
+    out = [f"pub(crate) static {name}: &[(&str, &[&str])] = &["]
+    for description, keywords in table.items():
+        out.append(f"    ({rust(description)}, &[{', '.join(rust(k) for k in keywords)}]),")
+    out.append("];\n")
+    return "\n".join(out)
+
+
+def is_excel(cls):
+    return "true" if issubclass(cls, ftguess.FType_Excel) else "false"
+
+
+lines = ["// Written by tools/oletools/make-tables.\n"]
+lines.append(keyword_table("AUTOEXEC_KEYWORDS", olevba.AUTOEXEC_KEYWORDS))
+lines.append(keyword_table("AUTOEXEC_KEYWORDS_REGEX", olevba.AUTOEXEC_KEYWORDS_REGEX))
+lines.append(keyword_table("SUSPICIOUS_KEYWORDS", olevba.SUSPICIOUS_KEYWORDS))
+lines.append(keyword_table("SUSPICIOUS_KEYWORDS_REGEX", olevba.SUSPICIOUS_KEYWORDS_REGEX))
+lines.append("pub(crate) static DESTINATIONS: &[&str] = &[")
+for word in sorted(rtfobj.DESTINATION_CONTROL_WORDS):
+    lines.append(f"    {rust(word.decode())},")
+lines.append("];\n")
+lines.append("pub(crate) static KNOWN_CLSIDS: &[(&str, &str)] = &[")
+for clsid, name in sorted(KNOWN_CLSIDS.items()):
+    lines.append(f"    ({rust(clsid)}, {rust(name)}),")
+lines.append("];\n")
+lines.append("/// A CLSID's type: name, and whether it's Excel.")
+lines.append("pub(crate) static CLSID_FTYPES: &[(&str, &str, bool)] = &[")
+for clsid, cls in ftguess.clsid_ftypes.items():
+    lines.append(f"    ({rust(clsid)}, {rust(cls.name)}, {is_excel(cls)}),")
+lines.append("];\n")
+lines.append("/// A main part's content type: its file type's name, and whether it's Excel.")
+lines.append("pub(crate) static OPENXML_FTYPES: &[(&str, &str, bool)] = &[")
+for content_type, cls in ftguess.openxml_ftypes.items():
+    lines.append(f"    ({rust(content_type)}, {rust(cls.name)}, {is_excel(cls)}),")
+lines.append("];\n")
+for name, cls in (
+    ("UNKNOWN", ftguess.FType_Unknown), ("RTF", ftguess.FType_RTF), ("GENERIC_OLE", ftguess.FType_Generic_OLE),
+    ("GENERIC_ZIP", ftguess.FType_Generic_Zip), ("GENERIC_OPENXML", ftguess.FType_Generic_OpenXML),
+    ("ONENOTE", ftguess.FType_OneNote), ("PNG", ftguess.FType_PNG), ("EXE_PE", ftguess.FType_EXE_PE),
+):
+    lines.append(f"pub(crate) const FTYPE_{name}: &str = {rust(cls.name)};")
+with open("crates/ace-mod-oletools/src/tables.rs", "w") as fp:
+    fp.write("\n".join(lines) + "\n")

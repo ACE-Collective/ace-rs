@@ -1,0 +1,209 @@
+{
+  "form": 1,
+  "observables": {
+    "file:1b64a7354e519be9704767a735fc623c0eff61205ab257fb75985ab648a2c4b2": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "zip_bad_deflate.docm.extracted/[Content_Types].xml": {}
+      },
+      "redirection": "file:d100fd50935e779f722a91518cdad9487e0e7a370a174d849192c44563f39fe8",
+      "relationships": {
+        "extracted_from file:d100fd50935e779f722a91518cdad9487e0e7a370a174d849192c44563f39fe8": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/xml",
+            "type": "XML 1.0 document, ASCII text, with very long lines (348), with no line terminators"
+          },
+          "summary": "File Type Analysis: XML 1.0 document, ASCII text, with very long lines (348), with no line terminators (text/xml)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:29114363f749a0226b6988dda3ca2492a954117ab6b5f382706c20300dabc079": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "zip_bad_deflate.docm.extracted/word/document.xml": {}
+      },
+      "redirection": "file:d100fd50935e779f722a91518cdad9487e0e7a370a174d849192c44563f39fe8",
+      "relationships": {
+        "extracted_from file:d100fd50935e779f722a91518cdad9487e0e7a370a174d849192c44563f39fe8": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text, with no line terminators"
+          },
+          "summary": "File Type Analysis: ASCII text, with no line terminators (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:d100fd50935e779f722a91518cdad9487e0e7a370a174d849192c44563f39fe8": {
+      "detections": {},
+      "directives": {
+        "sandbox": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "zip_bad_deflate.docm": {
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "archive": {
+          "details": {
+            "extracted_files": [
+              "[Content_Types].xml",
+              "word/document.xml",
+              "word/vbaProject.bin",
+              "_rels/.rels"
+            ],
+            "extraction_error": null,
+            "file_count": 4
+          },
+          "summary": "Archive Analysis: extracted 4 of 4 files: ([Content_Types].xml, word/document.xml, word/vbaProject.bin, _rels/.rels)",
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": true,
+            "is_office_ext": true,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": true,
+            "mime": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "type": "Microsoft Word 2007+"
+          },
+          "summary": "File Type Analysis: Microsoft Word 2007+ (application/vnd.openxmlformats-officedocument.wordprocessingml.document) (ms office document) (zip archive)",
+          "tags": {}
+        },
+        "olevba_v1_2": {
+          "details": {
+            "keyword_summary": {},
+            "macros": [],
+            "type": null
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "microsoft_office": true,
+        "olevba_failed": true,
+        "zip": true
+      }
+    },
+    "file:d91fa571c7e58d33e48db1a3dcb270c137acf6a9ec1cb6d447f3b8890e1574df": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "zip_bad_deflate.docm.extracted/_rels/.rels": {}
+      },
+      "redirection": "file:d100fd50935e779f722a91518cdad9487e0e7a370a174d849192c44563f39fe8",
+      "relationships": {
+        "extracted_from file:d100fd50935e779f722a91518cdad9487e0e7a370a174d849192c44563f39fe8": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/xml",
+            "type": "XML 1.0 document, ASCII text, with no line terminators"
+          },
+          "summary": "File Type Analysis: XML 1.0 document, ASCII text, with no line terminators (text/xml)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "zip_bad_deflate.docm.extracted/word/vbaProject.bin": {}
+      },
+      "redirection": "file:d100fd50935e779f722a91518cdad9487e0e7a370a174d849192c44563f39fe8",
+      "relationships": {
+        "extracted_from file:d100fd50935e779f722a91518cdad9487e0e7a370a174d849192c44563f39fe8": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "inode/x-empty",
+            "type": "empty"
+          },
+          "summary": "File Type Analysis: empty (inode/x-empty)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    }
+  }
+}

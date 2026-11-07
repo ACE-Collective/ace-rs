@@ -13,8 +13,10 @@
   ],
   "gaps": [
     "an encrypted RAR: making one needs RARLAB's non-free rar tool",
-    "PowerPoint and Excel files with VBA macros: ace3's tests hold Word ones only",
-    "an encrypted .ppt, and an RC4 .doc: msoffcrypto writes neither, only ace3's RC4 .xls is here"
+    "an encrypted .ppt, and an RC4 .doc: msoffcrypto writes neither, only ace3's RC4 .xls is here",
+    "PowerPoint and Excel files with VBA written by Office itself: tools/samples/make-oletools hand-makes the containers around a Word project",
+    "PowerPoint and Excel files with VBA written by Office itself: tools/samples/make-oletools hand-makes the containers around a Word project",
+    "PowerPoint and Excel files with VBA written by Office itself: tools/samples/make-oletools hand-makes the containers around a Word project"
   ],
   "samples": [
     {
@@ -826,6 +828,300 @@
       ]
     },
     {
+      "path": "ace4/office/ole_bad_difat.doc",
+      "sha256": "a45b20b1257c9fc8ac0827e733cfb51c218fd794739c35c2afc0c01c94c6173a",
+      "size": 3584,
+      "kinds": [
+        "office/hand-made"
+      ],
+      "source": "tools/samples/make-oletools",
+      "in_git": true,
+      "alert_path": "ole_bad_difat.doc",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/ole_bad_difat_count.doc",
+      "sha256": "22188d815b3b0db9952c970cbb7680e3002ce63ebc91284260751eed5768f5aa",
+      "size": 3584,
+      "kinds": [
+        "office/hand-made"
+      ],
+      "source": "tools/samples/make-oletools",
+      "in_git": true,
+      "alert_path": "ole_bad_difat_count.doc",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/ole_bad_directory_start.doc",
+      "sha256": "aa918e32da49653769bdd4e94382fd2dfcb25a45bfab0a7f80233bde9af8087a",
+      "size": 3584,
+      "kinds": [
+        "office/hand-made"
+      ],
+      "source": "tools/samples/make-oletools",
+      "in_git": true,
+      "alert_path": "ole_bad_directory_start.doc",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/ole_bad_name_length.doc",
+      "sha256": "62e712a65f3f7e5e54ad9361795e93b0d79cdb1eecd90c65f3d25c7ac3f75c00",
+      "size": 3584,
+      "kinds": [
+        "office/hand-made"
+      ],
+      "source": "tools/samples/make-oletools",
+      "in_git": true,
+      "alert_path": "ole_bad_name_length.doc",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/ole_bad_sector_shift.doc",
+      "sha256": "b39a8fc9109b90c708b97466ccd03d69130d80029c89f6c28cefc80abb813d0c",
+      "size": 3584,
+      "kinds": [
+        "office/hand-made"
+      ],
+      "source": "tools/samples/make-oletools",
+      "in_git": true,
+      "alert_path": "ole_bad_sector_shift.doc",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/ole_broken_minifat.doc",
+      "sha256": "ef55398e3ea7f174e47cec4e0cb143d2e74f8de63416d9e16b046f8678e56836",
+      "size": 3584,
+      "kinds": [
+        "office/hand-made"
+      ],
+      "source": "tools/samples/make-oletools",
+      "in_git": true,
+      "alert_path": "ole_broken_minifat.doc",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/ole_deep_directory.doc",
+      "sha256": "d398d2b59b94270cf3fbd62f954f627f5d9c54e0d09dbfbb76369f4e29e1f377",
+      "size": 238592,
+      "kinds": [
+        "office/hand-made"
+      ],
+      "source": "tools/samples/make-oletools",
+      "in_git": true,
+      "alert_path": "ole_deep_directory.doc",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/ole_dir_cycle.doc",
+      "sha256": "1e446899e5036a3fb6e2ca40fd4c7d73c2401e293707190ddf009544b92610c9",
+      "size": 3584,
+      "kinds": [
+        "office/hand-made"
+      ],
+      "source": "tools/samples/make-oletools",
+      "in_git": true,
+      "alert_path": "ole_dir_cycle.doc",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/ole_fat_loop.doc",
+      "sha256": "d1986a474dbd4f7e5013cfd251c001fba105130ddcf592a2ee53806283def922",
+      "size": 12288,
+      "kinds": [
+        "office/hand-made"
+      ],
+      "source": "tools/samples/make-oletools",
+      "in_git": true,
+      "alert_path": "ole_fat_loop.doc",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/ole_header_only.doc",
+      "sha256": "63995805e5182be49b81d77a923a66cc70c09375801443ff07c1238941c470eb",
+      "size": 512,
+      "kinds": [
+        "office/hand-made"
+      ],
+      "source": "tools/samples/make-oletools",
+      "in_git": true,
+      "alert_path": "ole_header_only.doc",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/ole_huge_sector_shift.doc",
+      "sha256": "011ceac3c01a40b8857ecd483b0f6a15af10516c887c9961633c3e6cb4a6b448",
+      "size": 3584,
+      "kinds": [
+        "office/hand-made"
+      ],
+      "source": "tools/samples/make-oletools",
+      "in_git": true,
+      "alert_path": "ole_huge_sector_shift.doc",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/ole_orphan_module.doc",
+      "sha256": "6f4208bad09e45239811d43e149d9285c926a064cafa8adb614335157740ae7b",
+      "size": 3584,
+      "kinds": [
+        "office/hand-made"
+      ],
+      "source": "tools/samples/make-oletools",
+      "in_git": true,
+      "alert_path": "ole_orphan_module.doc",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/ole_short.doc",
+      "sha256": "6c52a15a08fe628a6cd3a9c6c9f9c38a841fe8f9e11f09c4aaf78ab19704453e",
+      "size": 300,
+      "kinds": [
+        "office/hand-made"
+      ],
+      "source": "tools/samples/make-oletools",
+      "in_git": true,
+      "alert_path": "ole_short.doc",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/ole_small_sector_shift.doc",
+      "sha256": "20be2cfb3f239910aca67d4548feeb9f31e3fb327039980afd09714622bb52be",
+      "size": 3584,
+      "kinds": [
+        "office/hand-made"
+      ],
+      "source": "tools/samples/make-oletools",
+      "in_git": true,
+      "alert_path": "ole_small_sector_shift.doc",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/ole_truncated.doc",
+      "sha256": "aa0861f737e1a0472508daa4449d56ad38fe89186f49bf990c7d78575af8b353",
+      "size": 1024,
+      "kinds": [
+        "office/hand-made"
+      ],
+      "source": "tools/samples/make-oletools",
+      "in_git": true,
+      "alert_path": "ole_truncated.doc",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/ole_wide_directory.doc",
+      "sha256": "60ac6b02726e1b36f9d674f8982e80d61c6e05e155a2b89b8143e3e5efe78e47",
+      "size": 80896,
+      "kinds": [
+        "office/hand-made"
+      ],
+      "source": "tools/samples/make-oletools",
+      "in_git": true,
+      "alert_path": "ole_wide_directory.doc",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/ppt_bad_info.ppt",
+      "sha256": "1015c2bf2724c015bbb5e6f9296fa1f861a370dd2f1ea32d6e29a26cbcefa651",
+      "size": 2560,
+      "kinds": [
+        "office/hand-made"
+      ],
+      "source": "tools/samples/make-oletools",
+      "in_git": true,
+      "alert_path": "ppt_bad_info.ppt",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/ppt_bad_zlib.ppt",
+      "sha256": "89cda29aedc3344557e064ea49951df36164f64a841f78706bae0a231c5cc7d9",
+      "size": 2560,
+      "kinds": [
+        "office/hand-made"
+      ],
+      "source": "tools/samples/make-oletools",
+      "in_git": true,
+      "alert_path": "ppt_bad_zlib.ppt",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/ppt_junk_storage.ppt",
+      "sha256": "7590c212e4152ea350b0e8f76dbc75fd02729269a8313baa1aba6ee63139c43d",
+      "size": 2560,
+      "kinds": [
+        "office/hand-made"
+      ],
+      "source": "tools/samples/make-oletools",
+      "in_git": true,
+      "alert_path": "ppt_junk_storage.ppt",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/scanner_keywords.bas",
+      "sha256": "00ff0b42fd332f10b93cbea6fb0d35b0c556cd6002a972496d588e7976f67022",
+      "size": 512,
+      "kinds": [
+        "office/hand-made"
+      ],
+      "source": "tools/samples/make-oletools",
+      "in_git": true,
+      "alert_path": "scanner_keywords.bas",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/slk.slk",
+      "sha256": "3f33a9afa5ba4d38cbbfa5b1947f80958ebb61a351b529aeb55e469f2c13903e",
+      "size": 80,
+      "kinds": [
+        "office/hand-made"
+      ],
+      "source": "tools/samples/make-oletools",
+      "in_git": true,
+      "alert_path": "slk.slk",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
       "path": "ace4/office/source.doc",
       "sha256": "6bf5d5bcf09fa01ccd96afff48a129551aec278d450d96357f8f05677616918f",
       "size": 71,
@@ -863,6 +1159,314 @@
       "source": "made by tools/samples/gather: by hand",
       "in_git": true,
       "alert_path": "text_named.doc",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/vba_codepage_1251.doc",
+      "sha256": "55d17544e04a5ad10a2968fb37c12ac9709f5352329ac713afc6bbdea987b507",
+      "size": 3584,
+      "kinds": [
+        "office/hand-made"
+      ],
+      "source": "tools/samples/make-oletools",
+      "in_git": true,
+      "alert_path": "vba_codepage_1251.doc",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/vba_codepage_932.doc",
+      "sha256": "cbe71154dd4a588ba57aa21e8338b03186877f087b77c389735832ffd13d7926",
+      "size": 3584,
+      "kinds": [
+        "office/hand-made"
+      ],
+      "source": "tools/samples/make-oletools",
+      "in_git": true,
+      "alert_path": "vba_codepage_932.doc",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/vba_codepage_unknown.doc",
+      "sha256": "215d0ac0c460504e67fc536f5965260addfddda8cc8f92d19914bd859d05088a",
+      "size": 3584,
+      "kinds": [
+        "office/hand-made"
+      ],
+      "source": "tools/samples/make-oletools",
+      "in_git": true,
+      "alert_path": "vba_codepage_unknown.doc",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/vba_excel.xls",
+      "sha256": "b3cc32f1f58086b8c0ffd7a164e8c39d6631e26c9971495bdc7ae670e0142432",
+      "size": 28160,
+      "kinds": [
+        "office/hand-made"
+      ],
+      "source": "tools/samples/make-oletools",
+      "in_git": true,
+      "alert_path": "vba_excel.xls",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/vba_excel.xlsb",
+      "sha256": "4558d5fd273bce9b9251c4b3b8abec915d5256936c215997408e84f504759325",
+      "size": 11470,
+      "kinds": [
+        "office/hand-made"
+      ],
+      "source": "tools/samples/make-oletools",
+      "in_git": true,
+      "alert_path": "vba_excel.xlsb",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/vba_excel.xlsm",
+      "sha256": "95981e1be1514afe910b0e0c98b45f7a72399a189dd3823f7366873bbf5b8a02",
+      "size": 11473,
+      "kinds": [
+        "office/hand-made"
+      ],
+      "source": "tools/samples/make-oletools",
+      "in_git": true,
+      "alert_path": "vba_excel.xlsm",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/vba_excel_bad_biff.xls",
+      "sha256": "713376c89836c2a00399cd35ad60e4aa11054b05f1619628370587b8a9590dfe",
+      "size": 4608,
+      "kinds": [
+        "office/hand-made"
+      ],
+      "source": "tools/samples/make-oletools",
+      "in_git": true,
+      "alert_path": "vba_excel_bad_biff.xls",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/vba_excel_macro_sheet.xlsm",
+      "sha256": "f50d459cdb507027309bc0e674295160e43d28c339e0b11b1b74451063d445d8",
+      "size": 11674,
+      "kinds": [
+        "office/hand-made"
+      ],
+      "source": "tools/samples/make-oletools",
+      "in_git": true,
+      "alert_path": "vba_excel_macro_sheet.xlsm",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/vba_excel_small.xls",
+      "sha256": "a504530541f94fd4ff2f10d0525f5c9b4b1f4fdd724204a9f302c81b8d4fbcb9",
+      "size": 8192,
+      "kinds": [
+        "office/hand-made"
+      ],
+      "source": "tools/samples/make-oletools",
+      "in_git": true,
+      "alert_path": "vba_excel_small.xls",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/vba_flatopc.xml",
+      "sha256": "6991f57fafd63a746b55f93c38e487c3ce07552f072c2eb2a6373c2964e3c21a",
+      "size": 5033,
+      "kinds": [
+        "office/hand-made"
+      ],
+      "source": "tools/samples/make-oletools",
+      "in_git": true,
+      "alert_path": "vba_flatopc.xml",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/vba_flatopc_broken.xml",
+      "sha256": "586d581a1449af4646c4980fd8ecc080c7645ef9ec90c5da83b2c9fb40e7ecc4",
+      "size": 86,
+      "kinds": [
+        "office/hand-made"
+      ],
+      "source": "tools/samples/make-oletools",
+      "in_git": true,
+      "alert_path": "vba_flatopc_broken.xml",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/vba_form_strings.doc",
+      "sha256": "cb9b4fbce26078135c8fd041589c04f7bbdfc7dacae6f5d950c1d9e10b0d8a73",
+      "size": 4608,
+      "kinds": [
+        "office/hand-made"
+      ],
+      "source": "tools/samples/make-oletools",
+      "in_git": true,
+      "alert_path": "vba_form_strings.doc",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/vba_mht.mht",
+      "sha256": "a39385604f7dc5756d199a0a7d611dd8d65f5c14f7aef305abbe4896f37d24a5",
+      "size": 1483,
+      "kinds": [
+        "office/hand-made"
+      ],
+      "source": "tools/samples/make-oletools",
+      "in_git": true,
+      "alert_path": "vba_mht.mht",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/vba_mht_bad_mso.mht",
+      "sha256": "53d025637a192bc60bb1d121917fe14b5e62e15f39517dfc961de2bdd32fbfad",
+      "size": 193,
+      "kinds": [
+        "office/hand-made"
+      ],
+      "source": "tools/samples/make-oletools",
+      "in_git": true,
+      "alert_path": "vba_mht_bad_mso.mht",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/vba_powerpoint.ppt",
+      "sha256": "8dcf7a426180ccef025629b4e523a8a49fe25c4ccb1486578eaab4a5ef72b2bd",
+      "size": 13312,
+      "kinds": [
+        "office/hand-made"
+      ],
+      "source": "tools/samples/make-oletools",
+      "in_git": true,
+      "alert_path": "vba_powerpoint.ppt",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/vba_powerpoint.pptm",
+      "sha256": "51033c0fde249aea99d9ed95904de1c3558d84a3b865e93f7e21e6cde33a2887",
+      "size": 11485,
+      "kinds": [
+        "office/hand-made"
+      ],
+      "source": "tools/samples/make-oletools",
+      "in_git": true,
+      "alert_path": "vba_powerpoint.pptm",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/vba_powerpoint_raw.ppt",
+      "sha256": "2f45d1313c776ad2a0d0c3c75b0f549a3cf2775725f0906b34ebc09d61e48d13",
+      "size": 26624,
+      "kinds": [
+        "office/hand-made"
+      ],
+      "source": "tools/samples/make-oletools",
+      "in_git": true,
+      "alert_path": "vba_powerpoint_raw.ppt",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/vba_stomped.doc",
+      "sha256": "5197a148421ecdc0f499e91c0dd7d9b865e5d6c78a403cc30f8a513ced225238",
+      "size": 20480,
+      "kinds": [
+        "office/hand-made"
+      ],
+      "source": "tools/samples/make-oletools",
+      "in_git": true,
+      "alert_path": "vba_stomped.doc",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/vba_stomped.docm",
+      "sha256": "9317501fcf3e1f4d13c4396777ed2da61133e409911f15c8c5e705787ad36c8e",
+      "size": 7783,
+      "kinds": [
+        "office/hand-made"
+      ],
+      "source": "tools/samples/make-oletools",
+      "in_git": true,
+      "alert_path": "vba_stomped.docm",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/vba_word2003.xml",
+      "sha256": "3394858feef1bae73d8fc9c85dacda9d9fd3cbdce7606e1f5b8a40f49fa380ef",
+      "size": 1381,
+      "kinds": [
+        "office/hand-made"
+      ],
+      "source": "tools/samples/make-oletools",
+      "in_git": true,
+      "alert_path": "vba_word2003.xml",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/vba_xlm_biff8.xls",
+      "sha256": "691dba66dbcf8e2426d636d273e8f6fc8e8d0f5008169543424d08d6aa71117e",
+      "size": 8192,
+      "kinds": [
+        "office/hand-made"
+      ],
+      "source": "tools/samples/make-oletools",
+      "in_git": true,
+      "alert_path": "vba_xlm_biff8.xls",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/vba_xlm_obfuscated.xlsm",
+      "sha256": "c592e2e50f387766a4e6505e74c566be4ca69dbb2aa919d2fd3a043c35548412",
+      "size": 12848,
+      "kinds": [
+        "office/hand-made"
+      ],
+      "source": "tools/samples/make-oletools",
+      "in_git": true,
+      "alert_path": "vba_xlm_obfuscated.xlsm",
       "meta_tags": [
         "type=email.attachment"
       ]
@@ -998,6 +1602,90 @@
       "source": "made by tools/samples/gather: tools/samples/make-xlm",
       "in_git": true,
       "alert_path": "xlm_yara_rule.zip",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/zip_bad_deflate.docm",
+      "sha256": "d100fd50935e779f722a91518cdad9487e0e7a370a174d849192c44563f39fe8",
+      "size": 11478,
+      "kinds": [
+        "office/hand-made"
+      ],
+      "source": "tools/samples/make-oletools",
+      "in_git": true,
+      "alert_path": "zip_bad_deflate.docm",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/zip_bad_rels.docm",
+      "sha256": "c94cfed2698aa66dd0391b667aa09c44cabe28dacf9de5e13c8641a492e037bb",
+      "size": 11223,
+      "kinds": [
+        "office/hand-made"
+      ],
+      "source": "tools/samples/make-oletools",
+      "in_git": true,
+      "alert_path": "zip_bad_rels.docm",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/zip_bad_types.docm",
+      "sha256": "537160beef312d6a731b54d143fd5af4bfad45f5309622a6faa9685484285ac0",
+      "size": 11164,
+      "kinds": [
+        "office/hand-made"
+      ],
+      "source": "tools/samples/make-oletools",
+      "in_git": true,
+      "alert_path": "zip_bad_types.docm",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/zip_junk_ole_member.docm",
+      "sha256": "d8289946067ea027b9d49334a5fa2a519a5a61e456760954ba8af236f7af1153",
+      "size": 914,
+      "kinds": [
+        "office/hand-made"
+      ],
+      "source": "tools/samples/make-oletools",
+      "in_git": true,
+      "alert_path": "zip_junk_ole_member.docm",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/zip_no_part_name.docm",
+      "sha256": "aa870e220274ab9616f844e51f7097f13098b5958d2549d36cb35e704232ee24",
+      "size": 481,
+      "kinds": [
+        "office/hand-made"
+      ],
+      "source": "tools/samples/make-oletools",
+      "in_git": true,
+      "alert_path": "zip_no_part_name.docm",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/zip_no_types.docm",
+      "sha256": "2b5c81c62a6c5781da0b77ae88b4199f90b508ebe5c4c1dd1053f151a6d29d27",
+      "size": 11042,
+      "kinds": [
+        "office/hand-made"
+      ],
+      "source": "tools/samples/make-oletools",
+      "in_git": true,
+      "alert_path": "zip_no_types.docm",
       "meta_tags": [
         "type=email.attachment"
       ]
@@ -2858,6 +3546,132 @@
       "source": "made by tools/samples/gather: by hand",
       "in_git": true,
       "alert_path": "bracket[1].rtf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/rtf/edge_duplicate_names.rtf",
+      "sha256": "1b01733f3052bf6cb22e87433888f36196a0e7f46441277126ee38a360b12a20",
+      "size": 321,
+      "kinds": [
+        "rtf/hand-made"
+      ],
+      "source": "tools/samples/make-oletools",
+      "in_git": true,
+      "alert_path": "edge_duplicate_names.rtf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/rtf/edge_empty_class.rtf",
+      "sha256": "e8b4896c6bae3bffc82f3d3ed9ed74f01b7953d34368bb3a6a9a6a68151eb9e0",
+      "size": 96,
+      "kinds": [
+        "rtf/hand-made"
+      ],
+      "source": "tools/samples/make-oletools",
+      "in_git": true,
+      "alert_path": "edge_empty_class.rtf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/rtf/edge_long_digits.rtf",
+      "sha256": "145c307de52de795fce4439b06dfe58db8e2fbe7859a8a9bcd28de60c7f1410c",
+      "size": 322,
+      "kinds": [
+        "rtf/hand-made"
+      ],
+      "source": "tools/samples/make-oletools",
+      "in_git": true,
+      "alert_path": "edge_long_digits.rtf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/rtf/edge_long_word.rtf",
+      "sha256": "6f8b4f9fe71e95d7c8436b73ce40e772213c11475cc3b710f390232a521a8714",
+      "size": 311,
+      "kinds": [
+        "rtf/hand-made"
+      ],
+      "source": "tools/samples/make-oletools",
+      "in_git": true,
+      "alert_path": "edge_long_word.rtf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/rtf/edge_objects.rtf",
+      "sha256": "82604257d8761eea937b4f4bd0af298cff24b76a80d483dcc8f45abd236ad3c8",
+      "size": 12588,
+      "kinds": [
+        "rtf/hand-made"
+      ],
+      "source": "tools/samples/make-oletools",
+      "in_git": true,
+      "alert_path": "edge_objects.rtf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/rtf/edge_parser.rtf",
+      "sha256": "9fa7c6a57a205b19887f4f25c05999f7fb6738a3621bfa1af925e0d95f53b780",
+      "size": 257,
+      "kinds": [
+        "rtf/hand-made"
+      ],
+      "source": "tools/samples/make-oletools",
+      "in_git": true,
+      "alert_path": "edge_parser.rtf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/rtf/edge_trailing_backslash.rtf",
+      "sha256": "693a9ec384dea3d26f390adeaa1649c0d2e1ead842c064f48670267c79abb8c4",
+      "size": 21,
+      "kinds": [
+        "rtf/hand-made"
+      ],
+      "source": "tools/samples/make-oletools",
+      "in_git": true,
+      "alert_path": "edge_trailing_backslash.rtf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/rtf/edge_unclosed.rtf",
+      "sha256": "8f9a78539b7e9743551b09459652c16ad52999f7d39163f9e535099792d5e916",
+      "size": 30,
+      "kinds": [
+        "rtf/hand-made"
+      ],
+      "source": "tools/samples/make-oletools",
+      "in_git": true,
+      "alert_path": "edge_unclosed.rtf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/rtf/edge_vba_inside.rtf",
+      "sha256": "2d2b2127b3e3b8cfc06d46ece6d346d15560246da69711231a5d719094f271c0",
+      "size": 47224,
+      "kinds": [
+        "rtf/hand-made"
+      ],
+      "source": "tools/samples/make-oletools",
+      "in_git": true,
+      "alert_path": "edge_vba_inside.rtf",
       "meta_tags": [
         "type=email.attachment"
       ]

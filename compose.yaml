@@ -299,7 +299,7 @@ services:
   # The Python pool (PLAN.md 4.1): modules on libraries with no Rust equivalent yet, on workers
   # that a supervisor replaces after ACE4_PYTHON_MAX_TASKS tasks or past ACE4_PYTHON_MAX_MEMORY_MB
   # of private memory. Each worker runs as ace4-task and holds no token. A root's file tasks wait
-  # for it (olevba_v1_2 is in the file group), so the stack needs it running.
+  # for it (pcodedmp is in the file group), so the stack needs it running.
   python:
     build:
       context: .

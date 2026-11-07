@@ -1,0 +1,50 @@
+{
+  "form": 1,
+  "observables": {
+    "file:1015c2bf2724c015bbb5e6f9296fa1f861a370dd2f1ea32d6e29a26cbcefa651": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "ppt_bad_info.ppt": {
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": true,
+            "is_office_ext": true,
+            "is_ole_file": true,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/x-ole-storage",
+            "type": "Composite Document File V2 Document, Cannot read section info"
+          },
+          "summary": "File Type Analysis: Composite Document File V2 Document, Cannot read section info (application/x-ole-storage) (ms office document) (ole compound file)",
+          "tags": {}
+        },
+        "olevba_v1_2": {
+          "details": {
+            "keyword_summary": {},
+            "macros": [],
+            "type": "OLE"
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "microsoft_office": true,
+        "ole": true
+      }
+    }
+  }
+}

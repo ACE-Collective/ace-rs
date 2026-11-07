@@ -8,13 +8,10 @@
 //! real module's is), `.module::<M>()` in `ace::python_pool`, and its file and line in
 //! `python/ace4_python/registry.py`.
 
-use std::collections::BTreeMap;
 use std::time::Duration;
 
 use ace_results::types::msoffice::MsofficeEncryptionAnalysis;
-use ace_results::types::olevba::OlevbaAnalysis;
 use ace_results::types::pcode::PCodeAnalysis;
-use ace_results::types::rtf::RtfOleObjectAnalysis;
 use ace_results::types::xlm::XlmDeobfuscatorAnalysis;
 use ace_results::{AnalysisType, ObservableKind};
 use ace_sdk::{Manifest, Module, ModuleError, Resources};
@@ -67,69 +64,6 @@ impl Module for PythonProbe {
 }
 
 pub const PROBE_MANIFEST: Manifest = Manifest::python::<PythonProbe>();
-
-/// ace3's `OLEVBA_Analyzer_v1_2`, on oletools (`python/ace4_python/modules/olevba_v1_2.py`).
-pub struct Olevba;
-
-/// ace3's settings of the module. Its `timeout` is gone: ace3 never read it, and the manifest's
-/// deadline is what stops a task here.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize, JsonSchema)]
-#[serde(deny_unknown_fields, default)]
-pub struct OlevbaSettings {
-    /// Merge a file's macros into one `macros.bas`.
-    pub merge_macros: bool,
-    /// The fewest of each kind in oletools' scan for a file to be tagged `olevba`. ace3 writes
-    /// these as `threshold_<kind>` keys.
-    pub thresholds: BTreeMap<String, u64>,
-}
-
-impl Default for OlevbaSettings {
-    fn default() -> Self {
-        OlevbaSettings {
-            merge_macros: false,
-            thresholds: BTreeMap::from([("autoexec".to_owned(), 1), ("suspicious".to_owned(), 1)]),
-        }
-    }
-}
-
-impl Module for Olevba {
-    const NAME: &'static str = OlevbaAnalysis::MODULE;
-    const INPUTS: &'static [ObservableKind] = &[ObservableKind::File];
-    // ace3's global maximum_analysis_time, which is what stops this module there. oletools' two XLM
-    // passes each stop themselves at 30 s.
-    const RESOURCES: Resources = Resources {
-        timeout: Duration::from_secs(60),
-        ..Resources::DEFAULT
-    };
-    type Output = OlevbaAnalysis;
-    type Settings = OlevbaSettings;
-
-    fn init(_: &OlevbaSettings) -> Result<Self, ModuleError> {
-        Ok(Olevba)
-    }
-}
-
-/// ace3's `RTFOLEObjectAnalyzer`, on oletools' rtfobj (`python/ace4_python/modules/rtfole.py`). Its
-/// settings aren't ported: ace3 reads none of them but the command's path. The other two modules
-/// in `rtf.py` don't use oletools, so they aren't on this pool.
-pub struct RtfOle;
-
-impl Module for RtfOle {
-    const NAME: &'static str = RtfOleObjectAnalysis::MODULE;
-    const INPUTS: &'static [ObservableKind] = &[ObservableKind::File];
-    // ace3's global maximum_analysis_time. Its run_tool stops the command 5 s before that and keeps
-    // an empty result; here the task fails at the deadline, with its stack in the row.
-    const RESOURCES: Resources = Resources {
-        timeout: Duration::from_secs(60),
-        ..Resources::DEFAULT
-    };
-    type Output = RtfOleObjectAnalysis;
-    type Settings = ();
-
-    fn init(_: &()) -> Result<Self, ModuleError> {
-        Ok(RtfOle)
-    }
-}
 
 /// ace3's `MSOfficeEncryptionAnalyzer` (`python/ace4_python/modules/msoffice_encryption_analyzer.py`),
 /// on msoffcrypto. It reads the carrying email's body for candidate passwords, and tries them with

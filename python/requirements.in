@@ -5,7 +5,9 @@
 # requirements.txt is this file resolved, with a hash for every file. To change a pin, edit this
 # file, then run tools/python/lock.
 #
-# ace3/installer/requirements-pinned.txt
+# ace3/installer/requirements-pinned.txt. Nothing here calls olevba or rtfobj since PLAN.md 4.10, but
+# pcodedmp imports oletools.olevba and oletools.common.codepages, and msoffcrypto needs olefile, so
+# oletools stays until 4.12.
 oletools==0.60.2
 msoffcrypto-tool==6.0.0
 pcodedmp==1.2.6

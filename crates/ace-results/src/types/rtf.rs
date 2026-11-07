@@ -1,5 +1,5 @@
 //! `rtf_ole_object_analysis`: the objects in an RTF file (ace3's `RTFOLEObjectAnalysis`,
-//! `saq/modules/file_analysis/rtf.py`). The Python pool writes it (PLAN.md 4.5).
+//! `saq/modules/file_analysis/rtf.py`), which `ace-mod-oletools` writes.
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -12,7 +12,7 @@ use crate::envelope::AnalysisType;
 pub struct RtfOleObjectAnalysis {
     /// rtfobj's report, with the file and its objects named by their paths in the alert.
     pub stdout: String,
-    /// The traceback, when rtfobj raised.
+    /// What rtfobj raised, as a traceback's last line.
     pub stderr: String,
     /// 0, or 1 when rtfobj raised. What it wrote before that is still in `extracted_files`.
     pub return_code: i32,

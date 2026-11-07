@@ -1,0 +1,49 @@
+{
+  "form": 1,
+  "observables": {
+    "file:3f33a9afa5ba4d38cbbfa5b1947f80958ebb61a351b529aeb55e469f2c13903e": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "slk.slk": {
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": true,
+            "is_office_ext": true,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/x-sylk",
+            "type": "spreadsheet interchange document, created by Excel"
+          },
+          "summary": "File Type Analysis: spreadsheet interchange document, created by Excel (application/x-sylk) (ms office document)",
+          "tags": {}
+        },
+        "olevba_v1_2": {
+          "details": {
+            "keyword_summary": {},
+            "macros": [],
+            "type": "SLK"
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "microsoft_office": true
+      }
+    }
+  }
+}

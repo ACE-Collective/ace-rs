@@ -1,0 +1,633 @@
+#!/usr/bin/env python3
+"""Makes the samples PLAN.md 4.10 adds to 4.8's comparison of olevba and rtfobj: VBA in Excel and
+PowerPoint containers, the other containers olevba opens, malformed compound files, and RTF edge
+cases. No Office was involved: each container is written here, byte by byte. The VBA project inside
+is the real one in ace3's mortgage_payment-0873821-0565.docm, so its p-code is genuine, and only its
+container is hand-made. It needs only Python, and writes the same bytes each time.
+
+    tools/samples/make-oletools          writes samples/ace4/office and samples/ace4/rtf, and the manifest
+"""
+
+import base64
+import hashlib
+import io
+import json
+import struct
+import zipfile
+import zlib
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent.parent
+SAMPLES = ROOT / "samples"
+OFFICE = SAMPLES / "ace4" / "office"
+RTF = SAMPLES / "ace4" / "rtf"
+SOURCE_DOCM = SAMPLES / "ace3" / "office" / "mortgage_payment-0873821-0565.docm"
+
+FREE = 0xFFFFFFFF
+END = 0xFFFFFFFE
+FATSECT = 0xFFFFFFFD
+NOSTREAM = 0xFFFFFFFF
+EXCEL_CLSID = bytes.fromhex("2008020000000000C000000000000046")
+PPT_CLSID = bytes.fromhex("108D81649B4FCF1186EA00AA00B929E8")
+WORD_CLSID = bytes.fromhex("0609020000000000C000000000000046")
+EPOCH = (2026, 1, 1, 0, 0, 0)
+
+
+class Cfb:
+    """A version 3 compound file, built from a tree of {name: bytes or {name: ...}}. Each storage's
+    children hang off a chain of right siblings, which olefile reads like any tree."""
+
+    def __init__(self, tree, clsid=bytes(16), mini_cutoff=4096):
+        self.entries = []
+        self.sectors = []
+        self.fat = []
+        self.ministream = bytearray()
+        self.minifat = []
+        self.clsid = clsid
+        self.cutoff = mini_cutoff
+        self.add(("Root Entry", tree), 5)
+
+    def alloc(self, data):
+        if not data:
+            return END
+        count = (len(data) + 511) // 512
+        first = len(self.sectors)
+        for index in range(count):
+            self.sectors.append(data[index * 512:(index + 1) * 512].ljust(512, b"\0"))
+            self.fat.append(first + index + 1 if index + 1 < count else END)
+        return first
+
+    def alloc_mini(self, data):
+        if not data:
+            return END
+        count = (len(data) + 63) // 64
+        first = len(self.minifat)
+        for index in range(count):
+            self.ministream += data[index * 64:(index + 1) * 64].ljust(64, b"\0")
+            self.minifat.append(first + index + 1 if index + 1 < count else END)
+        return first
+
+    def add(self, item, kind=None):
+        name, value = item
+        sid = len(self.entries)
+        entry = {"name": name, "left": NOSTREAM, "right": NOSTREAM, "child": NOSTREAM, "start": END, "size": 0}
+        self.entries.append(entry)
+        if isinstance(value, dict):
+            entry["type"] = kind or 1
+            previous = None
+            # by length and name, as a compound file sorts them
+            for child_item in sorted(value.items(), key=lambda kv: (len(kv[0]), kv[0].upper())):
+                child = self.add(child_item)
+                if previous is None:
+                    entry["child"] = child
+                else:
+                    self.entries[previous]["right"] = child
+                previous = child
+        else:
+            entry["type"] = 2
+            entry["size"] = len(value)
+            entry["data"] = value
+        return sid
+
+    def build(self, mutate=None):
+        for entry in self.entries:
+            if entry["type"] == 2:
+                data = entry.pop("data")
+                entry["start"] = self.alloc_mini(data) if len(data) < self.cutoff else self.alloc(data)
+        root = self.entries[0]
+        root["size"] = len(self.ministream)
+        root["start"] = self.alloc(bytes(self.ministream))
+        minifat_raw = b"".join(struct.pack("<I", v) for v in self.minifat)
+        minifat_raw += struct.pack("<I", FREE) * (-(len(self.minifat)) % 128)
+        minifat_start = self.alloc(minifat_raw)
+        minifat_sectors = len(minifat_raw) // 512
+        if mutate:
+            mutate(self)
+        directory = b"".join(self.direntry(e, sid) for sid, e in enumerate(self.entries))
+        directory += self.direntry(None, 0) * (-len(self.entries) % 4)
+        dir_start = self.alloc(directory)
+        # the FAT covers itself
+        fat_sectors = 1
+        while True:
+            total = len(self.sectors) + fat_sectors
+            if total <= fat_sectors * 128:
+                break
+            fat_sectors += 1
+        first_fat = len(self.sectors)
+        fat = list(self.fat) + [FATSECT] * fat_sectors
+        fat += [FREE] * (-len(fat) % 128)
+        fat_raw = struct.pack(f"<{len(fat)}I", *fat)
+        difat = [first_fat + i for i in range(fat_sectors)] + [FREE] * (109 - fat_sectors)
+        header = b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1" + bytes(16)
+        header += struct.pack("<HHHHH", 0x3E, 3, 0xFFFE, 9, 6) + bytes(6)
+        header += struct.pack("<IIIIIIIII", 0, fat_sectors, dir_start, 0, 4096, minifat_start, minifat_sectors, END, 0)
+        header += struct.pack("<109I", *difat)
+        self.header_fields = {"dir_start": dir_start}
+        return header + b"".join(self.sectors) + fat_raw
+
+    def direntry(self, entry, sid):
+        if entry is None:
+            return bytes(64) + struct.pack("<HBB", 0, 0, 0) + struct.pack("<III", NOSTREAM, NOSTREAM, NOSTREAM) + bytes(36) + struct.pack("<IQ", 0, 0)[:12]
+        name = entry["name"].encode("utf-16-le")
+        length = entry.get("name_length", len(name) + 2)
+        clsid = self.clsid if sid == 0 else bytes(16)
+        raw = name[:64].ljust(64, b"\0") + struct.pack("<HBB", length, entry["type"], 1)
+        raw += struct.pack("<III", entry["left"], entry["right"], entry["child"])
+        raw += clsid + bytes(4) + bytes(16) + struct.pack("<II", entry["start"], entry["size"]) + bytes(4)
+        assert len(raw) == 128
+        return raw
+
+
+def tree_of(ole_bytes):
+    """Reads a compound file back into a tree, simply: enough for a well-formed project."""
+    sector = 512
+    fat = []
+    difat = struct.unpack("<109I", ole_bytes[76:512])
+    for index in difat:
+        if index >= 0xFFFFFFFE:
+            continue
+        fat += struct.unpack("<128I", ole_bytes[(index + 1) * 512:(index + 2) * 512])
+
+    def chain(start):
+        out = bytearray()
+        while start < 0xFFFFFFFA:
+            out += ole_bytes[(start + 1) * sector:(start + 2) * sector]
+            start = fat[start]
+        return bytes(out)
+
+    dir_raw = chain(struct.unpack("<I", ole_bytes[48:52])[0])
+    entries = [dir_raw[i:i + 128] for i in range(0, len(dir_raw), 128)]
+    mini_raw = chain(struct.unpack("<I", ole_bytes[60:64])[0])
+    minifat = struct.unpack(f"<{len(mini_raw) // 4}I", mini_raw)
+    root = entries[0]
+    ministream = chain(struct.unpack("<I", root[116:120])[0])
+
+    def read(entry):
+        start, size = struct.unpack("<II", entry[116:124])
+        if size < 4096:
+            out = bytearray()
+            while start < 0xFFFFFFFA:
+                out += ministream[start * 64:(start + 1) * 64]
+                start = minifat[start]
+            return bytes(out[:size])
+        return chain(start)[:size]
+
+    def children(sid, out):
+        if sid == NOSTREAM:
+            return
+        entry = entries[sid]
+        left, right, child = struct.unpack("<III", entry[68:80])
+        children(left, out)
+        length = struct.unpack("<H", entry[64:66])[0]
+        name = entry[:length - 2].decode("utf-16-le")
+        if entry[66] == 1:
+            sub = {}
+            children(child, sub)
+            out[name] = sub
+        elif entry[66] == 2:
+            out[name] = read(entry)
+        children(right, out)
+
+    tree = {}
+    children(struct.unpack("<I", root[76:80])[0], tree)
+    return tree
+
+
+def compress_literal(data):
+    """MS-OVBA compression with no copy tokens: valid, and simple."""
+    out = bytearray(b"\x01")
+    for start in range(0, max(len(data), 1), 4096):
+        chunk = data[start:start + 4096]
+        body = bytearray()
+        for at in range(0, len(chunk), 8):
+            piece = chunk[at:at + 8]
+            body.append(0)
+            body += piece
+        header = 0xB000 | (len(body) + 2 - 3)
+        out += struct.pack("<H", header) + body
+    return bytes(out)
+
+
+def dir_stream(modules, codepage=1252):
+    """A dir stream, with the records VBA_Project reads. modules is (name, stream, offset)."""
+
+    def record(rid, data):
+        return struct.pack("<HI", rid, len(data)) + data
+
+    out = record(1, struct.pack("<I", 1))
+    out += record(2, struct.pack("<I", 0x409))
+    out += record(0x14, struct.pack("<I", 0x409))
+    out += record(3, struct.pack("<H", codepage))
+    out += record(4, b"VBAProject")
+    out += record(5, b"") + record(0x40, b"")
+    out += record(6, b"") + record(0x3D, b"")
+    out += record(7, struct.pack("<I", 0))
+    out += record(8, struct.pack("<I", 0))
+    out += struct.pack("<HIIH", 9, 4, 1, 0)
+    out += record(0x0C, b"") + record(0x3C, b"")
+    out += record(0x0F, struct.pack("<H", len(modules)))
+    out += record(0x13, struct.pack("<H", 0xFFFF))
+    for name, stream, offset in modules:
+        raw = name.encode("latin1") if codepage == 1252 else name
+        out += record(0x19, raw)
+        stream_raw = stream.encode("latin1") if codepage == 1252 else stream
+        unicode_name = (stream if isinstance(stream, str) else stream.decode("cp932")).encode("utf-16-le")
+        out += struct.pack("<HI", 0x1A, len(stream_raw)) + stream_raw
+        out += struct.pack("<HI", 0x32, len(unicode_name)) + unicode_name
+        out += record(0x1C, b"") + record(0x48, b"")
+        out += record(0x31, struct.pack("<I", offset))
+        out += record(0x1E, struct.pack("<I", 0))
+        out += record(0x2C, struct.pack("<H", 0xFFFF))
+        out += struct.pack("<HI", 0x21, 0)
+        out += struct.pack("<HI", 0x2B, 0)
+    out += struct.pack("<HI", 0x10, 0)
+    return out
+
+
+def project(source, codepage=1252, name="Module1"):
+    """A minimal VBA project tree holding one module with no p-code."""
+    raw_name = name if codepage == 1252 else name.encode("cp932")
+    return {
+        "PROJECT": b'ID="{00000000-0000-0000-0000-000000000000}"\r\nModule=' + (raw_name.encode() if isinstance(raw_name, str) else raw_name) + b'\r\nName="VBAProject"\r\n',
+        "PROJECTwm": b"",
+        "VBA": {
+            "_VBA_PROJECT": struct.pack("<HHBH", 0x61CC, 0xFFFF, 0, 0),
+            "dir": compress_literal(dir_stream([(raw_name, raw_name, 0)], codepage)),
+            name: compress_literal(source),
+        },
+    }
+
+
+def biff(sheets):
+    """A Workbook stream: BOF, a BOUNDSHEET for each (name, type), EOF."""
+
+    def record(kind, data):
+        return struct.pack("<HH", kind, len(data)) + data
+
+    out = record(0x0809, struct.pack("<HHHHII", 0x0600, 5, 0x1FFF, 0x07CD, 0, 6))
+    for name, sheet_type in sheets:
+        out += record(0x85, struct.pack("<IBB", 0, 0, sheet_type) + bytes([len(name), 0]) + name.encode())
+    out += record(0x0A, b"")
+    return out
+
+
+def plain_sheets(stream):
+    """The same BIFF records, with each macro sheet a worksheet."""
+    out = bytearray(stream)
+    at = 0
+    while at + 4 <= len(out):
+        kind, size = struct.unpack_from("<HH", out, at)
+        if kind == 0x85:
+            out[at + 9] = 0
+        if kind == 0x0809 and struct.unpack_from("<H", out, at + 6)[0] == 0x40:
+            struct.pack_into("<H", out, at + 6, 0x10)
+        at += 4 + size
+    return bytes(out)
+
+
+def office_zip(entries):
+    out = io.BytesIO()
+    with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as archive:
+        for name, data in entries:
+            info = zipfile.ZipInfo(name, EPOCH)
+            info.compress_type = zipfile.ZIP_DEFLATED
+            info.create_system = 0
+            archive.writestr(info, data)
+    return out.getvalue()
+
+
+RELS = '<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="%s"/></Relationships>'
+TYPES = '<?xml version="1.0"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="bin" ContentType="application/vnd.ms-office.vbaProject"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/%s" ContentType="%s"/></Types>'
+
+
+def ooxml(main_part, content_type, vba_path, vba, extra=()):
+    return office_zip(
+        [
+            ("[Content_Types].xml", TYPES % (main_part, content_type)),
+            ("_rels/.rels", RELS % main_part),
+            (main_part, "<a/>"),
+            (vba_path, vba),
+            *extra,
+        ]
+    )
+
+
+def activemime(ole):
+    compressed = zlib.compress(ole)
+    return b"ActiveMime" + bytes(20) + struct.pack("<H", 4) + bytes(18) + compressed
+
+
+def ppt_record(version, instance, kind, data):
+    return struct.pack("<HHI", version | instance << 4, kind, len(data)) + data
+
+
+def ppt(storages, info=(0, 1, 2)):
+    """A PowerPoint Document stream with a VBAInfoContainer, and each of its (compressed, data)."""
+    atom = ppt_record(2, 0, 0x400, struct.pack("<III", *info))
+    stream = ppt_record(0xF, 1, 0x3FF, atom)
+    for compressed, data in storages:
+        if compressed:
+            stream += ppt_record(0, 1, 0x1011, struct.pack("<I", len(data)) + zlib.compress(data))
+        else:
+            stream += ppt_record(0, 0, 0x1011, data)
+    return stream
+
+
+def current_user():
+    name = b"a"
+    atom = struct.pack("<IIIHHBB", 0x14, 0xE391C05F, 0, len(name), 0x3F4, 3, 0) + bytes(2) + name + struct.pack("<I", 8)
+    return ppt_record(0, 0, 0xFF6, atom)
+
+
+def macro_text():
+    return (
+        b'Attribute VB_Name = "Module1"\r\n'
+        b"Sub AutoOpen()\r\n"
+        b'  x = CreateObject("WScript.Shell").Run("powershell -enc 4D5A9000 aHR0cDovL2V4YW1wbGUuY29tL3g=")\r\n'
+        b'  y = "http://example.com/payload.exe" & "http://192.0.2.1:8080/a b.vbs"\r\n'
+        b'  z = "VGhpcyBwcm9ncmFtIGNhbm5vdCBiZSBydW4=" & "68747470733a2f2f6578616d706c652e6f72672f"\r\n'
+        b'  a = StrReverse("6578652e") & Chr(65) & "ab" & vbHide & "\x08"\r\n'
+        b"  Button1_Click: Workbook_Open\r\n"
+        b'  .Variables("a")\r\n'
+        b"End Sub\r\n"
+    )
+
+
+def fat_loop(cfb):
+    """A stream that claims more than it has, in a FAT that goes in a circle."""
+    first = next(e for e in cfb.entries if e["name"] == "big")
+    cfb.fat[first["start"]] = first["start"]
+    first["size"] = 1 << 20
+
+
+def dir_cycle(cfb):
+    cfb.entries[1]["right"] = 1
+    cfb.entries[1]["child"] = 0
+
+
+def bad_name_length(cfb):
+    cfb.entries[1]["name_length"] = 0
+    cfb.entries[2]["name_length"] = 1
+    cfb.entries[3]["name_length"] = 500
+
+
+def broken_mini(cfb):
+    module = next(e for e in cfb.entries if e["name"] == "Module1")
+    cfb.minifat[module["start"]] = 0xFFFFFF00
+
+
+def orphan(cfb):
+    """Leaves the module stream with no parent: VBA's chain skips it."""
+    vba = next(e for e in cfb.entries if e["name"] == "VBA")
+    sids = {e["name"]: sid for sid, e in enumerate(cfb.entries)}
+    vba["child"] = sids["dir"]
+    cfb.entries[sids["dir"]]["right"] = sids["_VBA_PROJECT"]
+    cfb.entries[sids["_VBA_PROJECT"]]["right"] = NOSTREAM
+
+
+def deep_directory(count):
+    """A compound file whose directory is one chain of right siblings, deeper than Python's stack."""
+    return Cfb({f"s{i}": b"x" for i in range(count)})
+
+
+def office_samples(real_vba):
+    real_tree = tree_of(real_vba)
+    source = macro_text()
+    samples = {}
+    add = samples.__setitem__
+
+    # make-xlm's workbook, whose BIFF XLMMacroDeobfuscator reads, and the same with a plain sheet
+    macro_workbook = tree_of((OFFICE / "xlm_biff8.xls").read_bytes())["Workbook"]
+    workbook = plain_sheets(macro_workbook)
+    add("vba_excel.xls", Cfb({"Workbook": workbook, "_VBA_PROJECT_CUR": real_tree}, EXCEL_CLSID).build())
+    add("vba_excel_small.xls", Cfb({"Workbook": workbook, "_VBA_PROJECT_CUR": project(source)}, EXCEL_CLSID).build())
+    add("vba_xlm_biff8.xls", Cfb({"Workbook": macro_workbook, "_VBA_PROJECT_CUR": project(source)}, EXCEL_CLSID).build())
+    # a workbook XLMMacroDeobfuscator refuses, which sends olevba to plugin_biff
+    add("vba_excel_bad_biff.xls", Cfb({"Workbook": biff([("Sheet1", 0), ("Macro1", 1)]), "_VBA_PROJECT_CUR": project(source)}, EXCEL_CLSID).build())
+    xlsm = "application/vnd.ms-excel.sheet.macroEnabled.main+xml"
+    add("vba_excel.xlsm", ooxml("xl/workbook.xml", xlsm, "xl/vbaProject.bin", real_vba))
+    add(
+        "vba_excel_macro_sheet.xlsm",
+        ooxml(
+            "xl/workbook.xml", xlsm, "xl/vbaProject.bin", real_vba,
+            [("xl/macrosheets/sheet1.xml", '<xm:macrosheet xmlns:xm="http://schemas.microsoft.com/office/excel/2006/main"/>')],
+        ),
+    )
+    with zipfile.ZipFile(OFFICE / "xlm_obfuscated.xlsm") as archive:
+        members = [(name, archive.read(name)) for name in archive.namelist()]
+    add("vba_xlm_obfuscated.xlsm", office_zip([*members, ("xl/vbaProject.bin", real_vba)]))
+    add("vba_excel.xlsb", ooxml("xl/workbook.bin", "application/vnd.ms-excel.sheet.binary.macroEnabled.main", "xl/vbaProject.bin", real_vba))
+    pptm = "application/vnd.ms-powerpoint.presentation.macroEnabled.main+xml"
+    add("vba_powerpoint.pptm", ooxml("ppt/presentation.xml", pptm, "ppt/vbaProject.bin", real_vba))
+    vba_small = Cfb(project(source)).build()
+    for name, compressed in (("vba_powerpoint.ppt", True), ("vba_powerpoint_raw.ppt", False)):
+        add(name, Cfb({"Current User": current_user(), "PowerPoint Document": ppt([(compressed, real_vba)])}, PPT_CLSID).build())
+    add("ppt_bad_info.ppt", Cfb({"Current User": current_user(), "PowerPoint Document": ppt([], info=(0, 9, 2))}, PPT_CLSID).build())
+    add("ppt_junk_storage.ppt", Cfb({"Current User": current_user(), "PowerPoint Document": ppt([(False, b"\0junk")])}, PPT_CLSID).build())
+    bad_zlib = ppt_record(0, 1, 0x1011, struct.pack("<I", 8) + b"notzlib!")
+    add("ppt_bad_zlib.ppt", Cfb({"Current User": current_user(), "PowerPoint Document": ppt([]) + bad_zlib}, PPT_CLSID).build())
+
+    docm = "application/vnd.ms-word.document.macroEnabled.main+xml"
+    # stomped: the source is replaced, and the p-code and offset stay
+    add("vba_stomped.doc", Cfb({"WordDocument": b"\0" * 8, "Macros": stomp(real_tree)}, WORD_CLSID).build())
+    add("vba_stomped.docm", ooxml("word/document.xml", docm, "word/vbaProject.bin", Cfb(stomp(real_tree)).build()))
+
+    encoded = base64.b64encode(activemime(vba_small)).decode()
+    add(
+        "vba_word2003.xml",
+        (
+            '<?xml version="1.0"?><w:wordDocument xmlns:w="http://schemas.microsoft.com/office/word/2003/wordml">'
+            f'<w:binData w:name="editdata.mso">{encoded}</w:binData><w:binData>QUJD</w:binData></w:wordDocument>'
+        ).encode(),
+    )
+    flat = base64.b64encode(vba_small).decode()
+    add(
+        "vba_flatopc.xml",
+        (
+            '<?xml version="1.0"?><pkg:package xmlns:pkg="http://schemas.microsoft.com/office/2006/xmlPackage">'
+            '<pkg:part pkg:name="/word/vbaProject.bin" pkg:contentType="application/vnd.ms-office.vbaProject">'
+            f"<pkg:binaryData>{flat}</pkg:binaryData></pkg:part></pkg:package>"
+        ).encode(),
+    )
+    add("vba_flatopc_broken.xml", b'<pkg:package xmlns:pkg="http://schemas.microsoft.com/office/2006/xmlPackage"><pkg:part')
+    add(
+        "vba_mht.mht",
+        (
+            'MIME-Version: 1.0\r\nContent-Type: multipart/related; boundary="b"\r\n\r\n--b\r\n'
+            "Content-Type: text/html\r\n\r\n<html/>\r\n--b\r\n"
+            "Content-Location: file:///editdata.mso\r\nContent-Transfer-Encoding: base64\r\n"
+            'Content-Type: application/x-mso\r\nContent-Disposition: attachment; filename="editdata.mso"\r\n\r\n'
+            f"{encoded}\r\n--b--\r\n"
+        ).encode(),
+    )
+    bad_mso = base64.b64encode(b"ActiveMime" + bytes(40) + b"notzlib").decode()
+    add("vba_mht_bad_mso.mht", (f"MIME-Version: 1.0\r\nContent-Type: multipart/related; boundary=b\r\n\r\n--b\r\nContent-Transfer-Encoding: base64\r\n\r\n{bad_mso}\r\n--b--\r\n").encode())
+    add("slk.slk", b"ID;PWXL;N;E\r\nP;PGeneral\r\nO;E\r\nNN;NAuto_Open;ER1C1\r\nC;Y1;X1;K0;EEXEC(\"calc\")\r\nE\r\n")
+    add("scanner_keywords.bas", source + b"\xd0\xbf\xd1\x80\xd0\xb8 Shell \xe2\x84\xaaill exec\xcc\x81 EnumDateFormatsExEx a@b.example\x08 admin@EXAMPLE.org\x08\r\n")
+
+    add("vba_codepage_932.doc", Cfb({"Macros": project('Sub A()\r\n MsgBox "テスト" & Chr(65)\r\nEnd Sub\r\n'.encode("cp932"), 932, "モジュール1")}).build())
+    add("vba_codepage_1251.doc", Cfb({"Macros": project('Sub A()\r\n MsgBox "тест"\r\nEnd Sub\r\n'.encode("cp1251"), 1251)}).build())
+    add("vba_codepage_unknown.doc", Cfb({"Macros": project(b"Sub A()\r\nEnd Sub\r\n\xff", 7777)}).build())
+    forms = project(source)
+    forms["Form1"] = {"f": b"\0\0\0\0", "o": b"\0\0Tahoma\0\0http://example.com/form.exe\0\0Shell\0"}
+    add("vba_form_strings.doc", Cfb({"Macros": forms}).build())
+
+    big_tree = {"Macros": project(source), "big": b"A" * 8192}
+    add("ole_fat_loop.doc", Cfb(big_tree).build(fat_loop))
+    add("ole_dir_cycle.doc", Cfb({"Macros": project(source)}).build(dir_cycle))
+    add("ole_bad_name_length.doc", Cfb({"Macros": project(source)}).build(bad_name_length))
+    add("ole_broken_minifat.doc", Cfb({"Macros": project(source)}).build(broken_mini))
+    add("ole_orphan_module.doc", Cfb({"Macros": project(source)}).build(orphan))
+    add("ole_deep_directory.doc", deep_directory(1200).build())
+    add("ole_wide_directory.doc", deep_directory(400).build())
+    good = Cfb({"Macros": project(source)}).build()
+    add("ole_truncated.doc", good[:1024])
+    add("ole_header_only.doc", good[:512])
+    add("ole_short.doc", good[:300])
+    add("ole_bad_sector_shift.doc", good[:30] + struct.pack("<H", 16) + good[32:])
+    add("ole_huge_sector_shift.doc", good[:30] + struct.pack("<H", 70) + good[32:])
+    add("ole_small_sector_shift.doc", good[:30] + struct.pack("<H", 1) + good[32:])
+    add("ole_bad_difat.doc", good[:68] + struct.pack("<II", 1, 1) + good[76:])
+    add("ole_bad_difat_count.doc", good[:44] + struct.pack("<I", 200) + good[48:68] + struct.pack("<II", 1, 1) + good[76:])
+    add("ole_bad_directory_start.doc", good[:48] + struct.pack("<I", 0xFFFFFF00) + good[52:])
+
+    rels, types = RELS % "word/document.xml", TYPES % ("word/document.xml", docm)
+    add("zip_no_types.docm", office_zip([("_rels/.rels", rels), ("word/vbaProject.bin", real_vba)]))
+    add("zip_bad_rels.docm", office_zip([("_rels/.rels", "<not xml"), ("[Content_Types].xml", types), ("word/vbaProject.bin", real_vba)]))
+    add("zip_bad_types.docm", office_zip([("_rels/.rels", rels), ("[Content_Types].xml", "<Types"), ("word/vbaProject.bin", real_vba)]))
+    add("zip_no_part_name.docm", office_zip([("_rels/.rels", rels), ("[Content_Types].xml", '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Override ContentType="a"/></Types>')]))
+    corrupt = bytearray(ooxml("word/document.xml", docm, "word/vbaProject.bin", real_vba))
+    at = corrupt.index(b"word/vbaProject.bin") + len("word/vbaProject.bin")
+    corrupt[at:at + 40] = b"\xff" * 40
+    add("zip_bad_deflate.docm", bytes(corrupt))
+    add("zip_junk_ole_member.docm", ooxml("word/document.xml", docm, "word/vbaProject.bin", real_vba[:600]))
+    return samples
+
+
+def stomp(real_tree):
+    """The same project with each module's source replaced, keeping its p-code."""
+    tree = json_copy(real_tree)
+    vba = tree["VBA"]
+    for name, data in list(vba.items()):
+        if isinstance(data, bytes) and name not in ("dir", "_VBA_PROJECT", "__SRP_0", "__SRP_1", "__SRP_2", "__SRP_3"):
+            at = data.rfind(b"\x01")
+            offset = find_source(data)
+            if offset is not None:
+                vba[name] = data[:offset] + compress_literal(b'Attribute VB_Name = "' + name.encode() + b'"\r\n')
+    return tree
+
+
+def find_source(data):
+    at = data.find(b"Attribut")
+    while at != -1:
+        if at >= 4 and data[at - 4] == 1:
+            return at - 4
+        at = data.find(b"Attribut", at + 1)
+    return None
+
+
+def json_copy(tree):
+    return {key: json_copy(value) if isinstance(value, dict) else value for key, value in tree.items()}
+
+
+def ole1(class_name, data, format_id=2):
+    def lp(text):
+        return struct.pack("<I", len(text) + 1) + text + b"\0" if text is not None else struct.pack("<I", 0)
+
+    head = struct.pack("<II", 0x501, format_id) + lp(class_name) + lp(b"") + lp(b"")
+    return head + struct.pack("<I", len(data)) + data if format_id == 2 else head
+
+
+def package(filename, src, temp, data):
+    return struct.pack("<H", 2) + filename + b"\0" + src + b"\0" + bytes(8) + temp + b"\0" + struct.pack("<I", len(data)) + data
+
+
+def objdata(raw, wrap=None):
+    hexed = raw.hex()
+    if wrap:
+        hexed = "\n".join(hexed[i:i + wrap] for i in range(0, len(hexed), wrap))
+    return "{\\object\\objemb{\\*\\objdata " + hexed + "}}"
+
+
+def rtf_samples(real_vba):
+    pk = package
+    ole_with_clsid = Cfb({"x": b"y"}, bytes.fromhex("00000300000000 00C000000000000046".replace(" ", ""))).build()
+    ole_cve = Cfb({"Equation Native": b"z" * 64}, bytes.fromhex("0200F00300000000C000000000000046")).build()
+    link_text = "http://example.com/evil.hta".encode("utf-16-le")
+    xlsx = office_zip([("a.txt", "b")])
+    samples = {}
+    add = samples.__setitem__
+    add(
+        "edge_objects.rtf",
+        (
+            "{\\rtf1\\ansi"
+            + objdata(ole1(b"Package", pk(b"run-me-now-please-a-very-long-file-name-with-many-hyphens.exe", b"C:\\a\\b-c-d.txt", b"C:\\t\\run.txt", b"MZ\x90payload")), 64)
+            + objdata(ole1(b"Package", pk(b"\xe9t\xe9'x\".zip", b"", b"", xlsx)))
+            + objdata(ole1(b"package\0", pk(b"", b"p", b"t", b"plain")))
+            + objdata(ole1(b"Package", pk(b"nodata", b"s", b"t", b"")[:-4]))
+            + objdata(ole1(b"Package", b"\x02\x00noterminator"))
+            + objdata(ole1(b"Word.Document.8", ole_with_clsid))
+            + objdata(ole1(b"Unknown", ole_cve))
+            + objdata(ole1(b"OLE2Link", b"\0\0" + link_text + b"\0\0" + "no-url".encode("utf-16-le")))
+            + objdata(ole1(b"Equation.3", b"eq"))
+            + objdata(ole1(b"EQUATION.3x", b"eq"))
+            + objdata(ole1(b"Paint.Picture", b"short")[:-2])
+            + objdata(ole1(b"Linked", b"", format_id=1))
+            + objdata(b"\x01\x05\x00\x00\x09\x00\x00\x00rest")
+            + objdata(ole1(b"bad\xffname-" + b"x" * 100, b"d"))
+            + "}"
+        ).encode("latin1"),
+    )
+    add(
+        "edge_parser.rtf",
+        (
+            b"{\\rtf1 {\\object{\\objdata 4142\\'z343 44 \\bin3 ABC {\\*\\foo 5} 4 5 \\'41 46}}"
+            b"{\\objdata 41\\unknown123 42\\-43 \\~44}"
+            b"{\\objclass Package}\\objdata 4142}"
+            b"}}} text \\objdata 5152 {\\objdata 6162}"
+            b"{\\*\\objdata 7172 {\\pict 7374} 75 76}"
+            b"\\bin-5 \\bin \\bin99999999999999999999 tail"
+        ),
+    )
+    add("edge_unclosed.rtf", b"{\\rtf1{\\object{\\objdata 414243")
+    add("edge_long_word.rtf", b"{\\rtf1 \\" + b"a" * 300 + b" x}")
+    add("edge_long_digits.rtf", b"{\\rtf1 \\objdata" + b"4" * 300 + b" 4142 }")
+    add("edge_trailing_backslash.rtf", b"{\\rtf1 {\\objdata 41}\\")
+    add("edge_empty_class.rtf", ("{\\rtf1" + objdata(ole1(None, b"data")) + "}").encode())
+    add("edge_duplicate_names.rtf", ("{\\rtf1" + objdata(ole1(b"Package", pk(b"same.txt", b"a", b"b", b"one"))) + objdata(ole1(b"Package", pk(b"same.txt", b"a", b"b", b"two"))) + "}").encode())
+    add("edge_vba_inside.rtf", ("{\\rtf1" + objdata(ole1(b"Word.Document.8", real_vba)) + "}").encode())
+    return samples
+
+
+def main():
+    with zipfile.ZipFile(SOURCE_DOCM) as archive:
+        real_vba = archive.read("word/vbaProject.bin")
+    manifest_path = SAMPLES / "manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    kept = [s for s in manifest["samples"] if not s.get("source", "").startswith("tools/samples/make-oletools")]
+    made = []
+    for folder, samples, kind in ((OFFICE, office_samples(real_vba), "office"), (RTF, rtf_samples(real_vba), "rtf")):
+        folder.mkdir(parents=True, exist_ok=True)
+        for name, data in samples.items():
+            (folder / name).write_bytes(data)
+            made.append(
+                {
+                    "path": f"ace4/{folder.name}/{name}",
+                    "sha256": hashlib.sha256(data).hexdigest(),
+                    "size": len(data),
+                    "kinds": [f"{kind}/hand-made"],
+                    "source": "tools/samples/make-oletools",
+                    "in_git": True,
+                    "alert_path": name,
+                    "meta_tags": ["type=email.attachment"],
+                }
+            )
+    manifest["samples"] = sorted(kept + made, key=lambda s: s["path"])
+    manifest["gaps"] = [
+        gap for gap in manifest["gaps"] if not gap.startswith("PowerPoint and Excel files with VBA macros")
+    ] + ["PowerPoint and Excel files with VBA written by Office itself: tools/samples/make-oletools hand-makes the containers around a Word project"]
+    manifest_path.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n")
+    print(f"{len(made)} samples")
+
+
+main()

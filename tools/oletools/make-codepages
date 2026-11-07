@@ -1,0 +1,81 @@
+#!/usr/bin/env python3
+"""Writes crates/ace-mod-oletools/src/codepage_tables.{rs,bin}: what Python's codecs say of every code
+page oletools can name, so the port decodes a VBA project's text as Python does, 'replace' included.
+
+    docker run --rm -i -v "$PWD:/w" -w /w ace4-python:latest python -I tools/oletools/make-codepages
+
+Each byte of a single-byte codec maps to a BMP character or to U+FFFD. Each lead byte of a multibyte
+codec has 256 entries, by trail byte: a BMP character, or 0xFFFF where Python's error covers one byte
+and 0xFFFE where it covers both.
+"""
+
+import codecs
+import struct
+import zlib
+
+from oletools.common.codepages import codepage2codec
+
+OUT = "crates/ace-mod-oletools/src/codepage_tables"
+SPECIAL = {"utf-8", "utf-16-le", "utf-16-be", "utf-32-le", "utf-32-be", "utf-7"}
+MULTI = {"cp932", "gbk", "cp949", "cp950", "johab", "shift_jis", "big5", "gb2312"}
+LEAD = 0xFFFE
+INVALID = 0xFFFD
+
+
+def single_entry(name, byte):
+    try:
+        out = bytes([byte]).decode(name)
+    except UnicodeDecodeError as error:
+        return LEAD if "incomplete" in error.reason else INVALID
+    assert len(out) == 1 and ord(out) < 0xFFFD, (name, byte, out)
+    return ord(out)
+
+
+def pair_entry(name, lead, trail):
+    try:
+        out = bytes([lead, trail]).decode(name)
+    except UnicodeDecodeError as error:
+        return 0xFFFE if error.end - error.start == 2 else 0xFFFF
+    assert len(out) == 1 and ord(out) < 0xFFFD, (name, lead, trail, out)
+    return ord(out)
+
+
+def main():
+    pages = {}
+    for page in range(65536):
+        codec = codepage2codec(page)
+        name = codecs.lookup(codec).name
+        if name != "utf-8" or page == 65001:
+            pages[page] = name
+    names = sorted(set(pages.values()))
+    blob = bytearray()
+    rows = []
+    for name in names:
+        if name in SPECIAL:
+            rows.append(f'    Codec {{ name: "{name}", kind: Kind::Special, offset: 0 }},')
+            continue
+        offset = len(blob)
+        singles = [single_entry(name, byte) for byte in range(256)]
+        blob += struct.pack("<256H", *singles)
+        if name in MULTI:
+            for lead in range(256):
+                if singles[lead] == LEAD:
+                    blob += struct.pack("<256H", *[pair_entry(name, lead, t) for t in range(256)])
+            rows.append(f'    Codec {{ name: "{name}", kind: Kind::Multi, offset: {offset} }},')
+        else:
+            assert LEAD not in singles, name
+            rows.append(f'    Codec {{ name: "{name}", kind: Kind::Single, offset: {offset} }},')
+    with open(OUT + ".bin", "wb") as fp:
+        fp.write(zlib.compress(bytes(blob), 9))
+    index = {name: at for at, name in enumerate(names)}
+    with open(OUT + ".rs", "w") as fp:
+        fp.write("// Written by tools/oletools/make-codepages.\n\n")
+        fp.write("pub(crate) static CODECS: &[Codec] = &[\n" + "\n".join(rows) + "\n];\n\n")
+        fp.write("/// The code pages, in order, each with its index in CODECS.\n")
+        fp.write("pub(crate) static PAGES: &[(u16, u8)] = &[\n")
+        for page, name in pages.items():
+            fp.write(f"    ({page}, {index[name]}),\n")
+        fp.write("];\n")
+
+
+main()

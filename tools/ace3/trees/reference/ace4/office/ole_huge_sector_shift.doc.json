@@ -1,0 +1,53 @@
+{
+  "form": 1,
+  "observables": {
+    "file:011ceac3c01a40b8857ecd483b0f6a15af10516c887c9961633c3e6cb4a6b448": {
+      "detections": {},
+      "directives": {
+        "sandbox": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "ole_huge_sector_shift.doc": {
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": true,
+            "is_office_ext": true,
+            "is_ole_file": true,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "OLE 2 Compound Document, v3.62, SecID 0x3, Mini FAT start sector 0x2"
+          },
+          "summary": "File Type Analysis: OLE 2 Compound Document, v3.62, SecID 0x3, Mini FAT start sector 0x2 (application/octet-stream) (ms office document) (ole compound file)",
+          "tags": {}
+        },
+        "olevba_v1_2": {
+          "details": {
+            "keyword_summary": {},
+            "macros": [],
+            "type": null
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "microsoft_office": true,
+        "ole": true,
+        "olevba_failed": true
+      }
+    }
+  }
+}

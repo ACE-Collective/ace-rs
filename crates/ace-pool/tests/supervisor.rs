@@ -274,6 +274,119 @@ async fn measure_hostile_pdfs() {
     let _ = pool.stop();
 }
 
+/// The state and error of a module's task, with the module left to finish.
+async fn task_state(
+    core: &Core,
+    root: uuid::Uuid,
+    module: &str,
+    limit: Duration,
+) -> (String, Option<String>, f64) {
+    let started = std::time::Instant::now();
+    loop {
+        let (state, error) = task_of(core, root, module).await;
+        if state != "queued" && state != "running" {
+            return (state, error, started.elapsed().as_secs_f64());
+        }
+        assert!(started.elapsed() < limit, "{module} still {state}");
+        tokio::time::sleep(Duration::from_millis(50)).await;
+    }
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn olevba_and_rtfobj_finish_in_contained_task_processes() {
+    let core = Core::start(
+        vec![
+            ace_mod_oletools::OLEVBA_MANIFEST,
+            ace_mod_oletools::RTFOLE_MANIFEST,
+        ],
+        &["olevba_v1_2", "rtfole"],
+        Duration::from_secs(60),
+    )
+    .await;
+    let mut pool = supervisor(&core, &[]);
+    for (sample, module, name) in [
+        (
+            "ace3/office/word2013_macro_stripped.doc",
+            "olevba_v1_2",
+            "a.doc",
+        ),
+        (
+            "ace3/office/mortgage_payment-0873821-0565.docm",
+            "olevba_v1_2",
+            "b.docm",
+        ),
+        ("ace4/office/vba_powerpoint.ppt", "olevba_v1_2", "c.ppt"),
+        ("ace4/rtf/objects.rtf", "rtfole", "d.rtf"),
+    ] {
+        let bytes = std::fs::read(ace_testkit::samples_dir().join(sample)).expect("the sample");
+        let (root, _) = root_with_bytes(&core, "file", &bytes, name).await;
+        let (state, error, _) = task_state(&core, root, module, Duration::from_secs(50)).await;
+        assert_eq!(state, "done", "{sample}: {error:?}");
+        let files: i64 =
+            sqlx::query_scalar("SELECT count(*) FROM analysis.files WHERE root_id = $1")
+                .bind(root)
+                .fetch_one(core.test_db.db().pool())
+                .await
+                .expect("counts");
+        assert!(files > 1, "{sample} wrote nothing");
+    }
+    let _ = pool.stop();
+}
+
+/// A measurement rather than a test (docs/measurements/oletools-hostile.md): each file in the
+/// directory `ACE4_OLETOOLS_HOSTILE` names, as a task with the modules' real limits.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[ignore = "a measurement, with files tools/samples/make-oletools-hostile makes"]
+async fn measure_hostile_oletools() {
+    let dir = std::env::var("ACE4_OLETOOLS_HOSTILE").expect("ACE4_OLETOOLS_HOSTILE");
+    let core = Core::start(
+        vec![
+            ace_mod_oletools::OLEVBA_MANIFEST,
+            ace_mod_oletools::RTFOLE_MANIFEST,
+        ],
+        &["olevba_v1_2", "rtfole"],
+        Duration::from_secs(300),
+    )
+    .await;
+    let mut names: Vec<_> = std::fs::read_dir(&dir)
+        .expect("the directory")
+        .map(|entry| {
+            entry
+                .expect("an entry")
+                .file_name()
+                .into_string()
+                .expect("a name")
+        })
+        .collect();
+    names.sort();
+    let mut pool = supervisor(&core, &[]);
+    for name in names {
+        let bytes = std::fs::read(format!("{dir}/{name}")).expect("the file");
+        let (root, _) = root_with_bytes(&core, "file", &bytes, &name).await;
+        let module = if name.ends_with(".rtf") {
+            "rtfole"
+        } else {
+            "olevba_v1_2"
+        };
+        let (state, error, seconds) =
+            task_state(&core, root, module, Duration::from_secs(200)).await;
+        let error: String = error.unwrap_or_default().chars().take(120).collect();
+        let files: i64 =
+            sqlx::query_scalar("SELECT count(*) FROM analysis.files WHERE root_id = $1")
+                .bind(root)
+                .fetch_one(core.test_db.db().pool())
+                .await
+                .expect("counts");
+        println!(
+            "{name}\t{}\t{state}\t{seconds:.1}\t{}\t{error}",
+            bytes.len(),
+            files - 1
+        );
+        assert!(pool.running(), "the supervisor kept running after {name}");
+    }
+    let _ = pool.stop();
+}
+
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn the_yara_module_scans_in_a_contained_task_process() {
     let rules = tempfile::tempdir().expect("a rules directory");

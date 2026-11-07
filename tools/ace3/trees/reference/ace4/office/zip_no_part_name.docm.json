@@ -1,0 +1,137 @@
+{
+  "form": 1,
+  "observables": {
+    "file:2216d9fff221a56e50e6fee2cefcc44b91fc4ceb916f94dcb00430d93b413e54": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "zip_no_part_name.docm.extracted/[Content_Types].xml": {}
+      },
+      "redirection": "file:aa870e220274ab9616f844e51f7097f13098b5958d2549d36cb35e704232ee24",
+      "relationships": {
+        "extracted_from file:aa870e220274ab9616f844e51f7097f13098b5958d2549d36cb35e704232ee24": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text, with no line terminators"
+          },
+          "summary": "File Type Analysis: ASCII text, with no line terminators (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:aa870e220274ab9616f844e51f7097f13098b5958d2549d36cb35e704232ee24": {
+      "detections": {},
+      "directives": {
+        "sandbox": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "zip_no_part_name.docm": {
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "archive": {
+          "details": {
+            "extracted_files": [
+              "[Content_Types].xml",
+              "_rels/.rels"
+            ],
+            "extraction_error": null,
+            "file_count": 2
+          },
+          "summary": "Archive Analysis: extracted 2 of 2 files: ([Content_Types].xml, _rels/.rels)",
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": true,
+            "is_office_ext": true,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": true,
+            "mime": "application/zip",
+            "type": "Zip archive data, made by v2.0, extract using at least v2.0, last modified Jan 01 2026 00:00:00, uncompressed size 263, method=deflate"
+          },
+          "summary": "File Type Analysis: Zip archive data, made by v2.0, extract using at least v2.0, last modified Jan 01 2026 00:00:00, uncompressed size 263, method=deflate (application/zip) (ms office document) (zip archive)",
+          "tags": {}
+        },
+        "olevba_v1_2": {
+          "details": {
+            "keyword_summary": {},
+            "macros": [],
+            "type": null
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "microsoft_office": true,
+        "olevba_failed": true,
+        "zip": true
+      }
+    },
+    "file:d91fa571c7e58d33e48db1a3dcb270c137acf6a9ec1cb6d447f3b8890e1574df": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "zip_no_part_name.docm.extracted/_rels/.rels": {}
+      },
+      "redirection": "file:aa870e220274ab9616f844e51f7097f13098b5958d2549d36cb35e704232ee24",
+      "relationships": {
+        "extracted_from file:aa870e220274ab9616f844e51f7097f13098b5958d2549d36cb35e704232ee24": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/xml",
+            "type": "XML 1.0 document, ASCII text, with no line terminators"
+          },
+          "summary": "File Type Analysis: XML 1.0 document, ASCII text, with no line terminators (text/xml)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    }
+  }
+}

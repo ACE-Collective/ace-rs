@@ -58,6 +58,10 @@ A module ace4 doesn't have, such as `file_type` (7.5), isn't listed: the command
 | `ace3/office/word2013_macro_stripped.doc` | `/observables/*/results/olevba_v1_2/details/macros/1/vba_code` | pcodedmp's first line names the path it read. ace3's is on its node; the port puts the path in the alert there, because a task's directory would give the file a new sha256 each run. Checked: with `<root>/files/` taken out, ace3's text is ace4's. | `ace3 holds Processing file: <root>/files/` |
 | `ace3/office/word2013_macro_stripped.doc` | `/observables/*/results/olevba_v1_2/details/macros/1/local_path` | The sha256 of that text, so it differs too. |  |
 | `ace3/office/word2013_macro_stripped.doc` | `/observables/file:*` | The macro file holding that text, in ace3. Its hash changes with the node's path. | `ace3 holds macro_1.bas` |
+| `ace4/office/vba_stomped.doc*` | `/observables/*/results/olevba_v1_2/details/macros/*/vba_code` | pcodedmp's first line names the path it read, as for `word2013_macro_stripped.doc`. Checked: ace3's text in the reference tree with `<root>/files/` taken out hashes to ace4's macro file. | `ace3 holds <root>/files/` |
+| `ace4/office/vba_stomped.doc*` | `/observables/*/results/olevba_v1_2/details/macros/*/local_path` | The sha256 of that text. |  |
+| `ace4/office/vba_stomped.doc*` | `/observables/file:*` | The macro file holding that text, in ace3. Its hash changes with the node's path. | `ace3 holds macro_0.bas` |
+| `ace4/office/vba_stomped.doc*` | `/observables/file:*` | The same file, in ace4. | `ace4 only` |
 | `ace3/office/word2013_macro_stripped.doc` | `/observables/file:bea576fbf76f1f0e8cfa2048545de5e5d08126a3737623543ecaf93cf2367526` | The same file in ace4. |  |
 | `ace3/email/extra_message_id*` | `/observables/file:65551fd054a53e746d7d76c5c164bc69dbaed932c36a973b953dba2f13c36d99` | A nested message is written as its bytes appear in the email. ace3 writes `Message.as_bytes()`, Python's re-serialization of the parsed message (`crates/ace-mod-email/tests/differences.md`). This is ace3's bytes. |  |
 | `ace3/email/extra_message_id*` | `/observables/file:40c99b06194a67e0a9c07603ed8819695ba48d8ea505c2f32130812d9f016c10` | The same message: ace4's bytes. |  |
@@ -71,14 +75,19 @@ A module ace4 doesn't have, such as `file_type` (7.5), isn't listed: the command
 | `ace3/email/nested_rfc822_bom*` | `/observables/file:f007e1d587b9403795d169002b2b9dded64f0b110c651e7a4a6fb8256a17b4d5` | The same message: ace4's bytes. |  |
 | `ace3/email/nested_rfc822_bom*` | `/observables/*/results/email_analyzer/details/email/log_entry/attachment_hashes/1` | The same message, in the log entry. |  |
 | `ace3/email/nested_rfc822_bom*` | `/observables/*/results/email_analyzer/details/email/log_entry/attachment_sizes/1` | The same message, in the log entry. |  |
-| `ace4/rtf/bin_at_end.rtf` | `/observables/*/results/rtfole/details/stderr` | rtfobj raises at the same line on both sides, `_bin`'s `ord()` of nothing, with `return_code` 1. A traceback names the frames it came through: ace3's start at the `rtfobj` command, and the port's at `rtfole.py`, which calls `process_file` itself. Checked: the frames from `process_file` down and the error are the same lines, apart from where each image keeps oletools. | `ace3 holds Traceback` |
+| `ace4/rtf/bin_at_end.rtf` | `/observables/*/results/rtfole/details/stderr` | rtfobj raises at the same place on both sides, `_bin`'s `ord()` of nothing, with `return_code` 1. ace3 holds the whole traceback, whose frames name its command and its virtualenv. The port has no Python frames, so it keeps the traceback's last line, the exception. Checked: ace3's text ends with ace4's. | `ace3 holds Traceback` |
 | `ace4/rtf/long_name.rtf` | `/observables/*/results/rtfole/details/stderr` | The same, for the `open()` that fails with `File name too long`. The name in the error is the alert's on both sides, once `make-trees` takes ace3's node path out. | `ace3 holds Traceback` |
+| `ace4/rtf/edge_*` | `/observables/*/results/rtfole/details/stderr` | The same, for `edge_empty_class.rtf`, `edge_long_word.rtf` and `edge_trailing_backslash.rtf`, which raise TypeError, and the RuntimeError of a word too long and a lone backslash. Checked: ace3's text ends with ace4's. | `ace3 holds Traceback` |
 | `ace4/rtf/bracket[1].rtf` | `/observables/*/results/rtfole/details/stdout` | A bug in ace3 that the port doesn't keep. ace3 passes the file's path on rtfobj's command line, where `xglob` reads `[1]` as a glob. It matches nothing, so rtfobj reports no file, exits 0 and extracts nothing, and any object in a file named like `invoice[1].rtf` goes unseen. The port names the file it read. Its report is the one ace3 gives under any other name. | `ace3 holds rtfobj 0.60.1` |
 | `ace4/rtf/bracket[1].rtf` | `/observables/*/results/rtfole/details/extracted_files/0` | The object ace3 didn't extract, from the same bug. | `ace4 only` |
 | `ace4/rtf/bracket[1].rtf` | `/observables/*/results/rtfole/summary` | The same object, in the summary, where ace3's is null. |  |
 | `ace4/rtf/bracket[1].rtf` | `/observables/file:*` | The same object, in the tree. | `ace4 only` |
 | `ace4/office/xlm_*` | `/observables/*/results/archive/details/extracted_files/*` | The same files in another order: ace4 in archive order, ace3 in the filesystem's (`os.walk`). |  |
 | `ace4/office/xlm_*` | `/observables/*/results/archive/summary` | The summary lists them in the same order. |  |
+| `ace4/office/zip_*` | `/observables/*/results/archive/details/extracted_files/*` | The same files in another order, as for `xlm_*`: these zips are hand-made too (`tools/samples/make-oletools`). |  |
+| `ace4/office/zip_*` | `/observables/*/results/archive/summary` | The summary lists them in the same order. |  |
+| `ace4/office/vba_*` | `/observables/*/results/archive/details/extracted_files/*` | The same files in another order, as for `xlm_*`: these zips are hand-made too (`tools/samples/make-oletools`). |  |
+| `ace4/office/vba_*` | `/observables/*/results/archive/summary` | The summary lists them in the same order. |  |
 | `ace4/email/encrypted_*` | `/observables/*/results/archive/details/extracted_files/*` | A decrypted document's files in another order: ace4 in archive order, ace3 in the filesystem's (`os.walk`). Its bytes, so its sha256, are the same on both sides. |  |
 | `ace4/email/encrypted_*` | `/observables/*/results/archive/summary` | The summary lists them in the same order. |  |
 | `ace4/office/encrypted_velvet.docx` | `/observables/*/results/archive/details/extracted_files/*` | The same order. |  |
@@ -95,6 +104,11 @@ A module ace4 doesn't have, such as `file_type` (7.5), isn't listed: the command
 | `ace3/pdf/ComplaintApril_424256637.pdf` | `/observables/file:*` | The same two files, as the port writes them. | `ace4 only` |
 | `ace4/pdf/encrypted_with_xmp.pdf` | `/observables/file:*` | The same, on a sample made to have padded XMP. | `ace3 holds .decrypted.pdf` |
 | `ace4/pdf/encrypted_with_xmp.pdf` | `/observables/file:*` | The same two files, as the port writes them. | `ace4 only` |
+| `ace4/office/vba_xlm_*` | `/observables/*/results/olevba_v1_2/summary` | The count of macro files, and of kinds, with the `xlm_macro` macro missing from the port until 4.12. |  |
+| `ace4/office/vba_excel_bad_biff.xls` | `/observables/*/results/olevba_v1_2/summary` | The same. |  |
+| `ace4/office/zip_bad_deflate.docm` | `/observables/*/results/archive/details/extracted_files/*` | A member whose deflate stream is corrupt. ace3's 7z leaves an empty file for it and counts it (`archive.py`, on what 7z's exit leaves). The port's archive module reports it as not extracted, as it does for any member it can't read. | |
+| `ace4/office/zip_bad_deflate.docm` | `/observables/*/results/archive/summary` | The same count and list. | |
+| `ace4/office/zip_bad_deflate.docm` | `/observables/file:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` | That empty file, in ace3. | |
 
 ## Effects of modules not ported
 
@@ -102,6 +116,11 @@ What a module ace4 doesn't have added outside its own result. The form doesn't s
 
 | Samples | Path | Why | When |
 |---|---|---|---|
+| `ace4/office/vba_xlm_*` | `/observables/*/results/olevba_v1_2/details/macros/*` | A macro sheet beside VBA. olevba yields XLMMacroDeobfuscator's whole text as a macro named `xlm_macro`, and PLAN.md 4.12 ports that library. The `xlmdeobfuscator` module, on the Python pool until then, gives that text in its own result. | `ace3 holds xlm_macro` |
+| `ace4/office/vba_xlm_*` | `/observables/*/results/olevba_v1_2/details/keyword_summary/*` | Kinds olevba's scan only found in that text. |  |
+| `ace4/office/vba_xlm_*` | `/observables/file:*` | The macro file holding that text. | `ace3 holds macro_1.bas` |
+| `ace4/office/vba_excel_bad_biff.xls` | `/observables/*/results/olevba_v1_2/details/macros/*` | A workbook XLMMacroDeobfuscator refuses sends olevba to oledump's `plugin_biff`, whose list of sheets it yields as `xlm_macro`, which 4.12 owns as well. | `ace3 holds xlm_macro` |
+| `ace4/office/vba_excel_bad_biff.xls` | `/observables/file:*` | The macro file holding that list. | `ace3 holds macro_1.bas` |
 | `*` | `/observables/file:*` | `<file>.gs.pdf`, Ghostscript's rewrite of a PDF, which ace3's `PDFAnalyzer` scans for URLs. It's a process, which a contained task can't start, and PLAN.md 4.9 names only pikepdf and `pdf-parser.py`. It's also new bytes each run, from gs's dates and `/ID`, so a port would be listed anyway. 7.3's inventory has to decide it, and doesn't name it yet. | `ace3 holds .gs.pdf` |
 | `*` | `/observables/file:*/tags/email` | file_type's tag. |  |
 | `*` | `/observables/file:*/tags/zip` | file_type's tag. |  |

@@ -1,0 +1,98 @@
+{
+  "form": 1,
+  "observables": {
+    "file:215d0ac0c460504e67fc536f5965260addfddda8cc8f92d19914bd859d05088a": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "vba_codepage_unknown.doc": {
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": true,
+            "is_office_ext": true,
+            "is_ole_file": true,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/x-ole-storage",
+            "type": "Composite Document File V2 Document, Cannot read section info"
+          },
+          "summary": "File Type Analysis: Composite Document File V2 Document, Cannot read section info (application/x-ole-storage) (ms office document) (ole compound file)",
+          "tags": {}
+        },
+        "olevba_v1_2": {
+          "details": {
+            "keyword_summary": {},
+            "macros": [
+              {
+                "file_name": "<root>/files/vba_codepage_unknown.doc",
+                "local_path": "a2982fd01877e34c3240428597204753c26397cb08e18522ec8783b5ef17d5bb",
+                "stream_path": "Macros/VBA/Module1",
+                "vba_code": "Sub A()\nEnd Sub\n�",
+                "vba_filename": "Module1.bas"
+              }
+            ],
+            "type": "OLE"
+          },
+          "summary": "OLEVBA Analysis: (1 macro files) (OLE) | ",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "microsoft_office": true,
+        "ole": true
+      }
+    },
+    "file:a2982fd01877e34c3240428597204753c26397cb08e18522ec8783b5ef17d5bb": {
+      "detections": {},
+      "directives": {
+        "sandbox": true
+      },
+      "excluded_analysis": {
+        "olevba_v1_2": true
+      },
+      "paths": {
+        "vba_codepage_unknown.doc.olevba/macro_0.bas": {
+          "type=script.macro.vba": true
+        }
+      },
+      "redirection": "file:215d0ac0c460504e67fc536f5965260addfddda8cc8f92d19914bd859d05088a",
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "Unicode text, UTF-8 text"
+          },
+          "summary": "File Type Analysis: Unicode text, UTF-8 text (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "macro": true
+      }
+    }
+  }
+}

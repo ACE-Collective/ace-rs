@@ -1,0 +1,230 @@
+#!/usr/bin/env python3
+"""Makes the crafted files docs/measurements/oletools-hostile.md measures: what a hostile file can make
+the olevba and rtfobj ports do against a task's deadline and limits. They aren't samples, on purpose.
+
+    make-oletools-hostile <out dir>
+"""
+
+import importlib.machinery
+import importlib.util
+import base64
+import io
+import struct
+import sys
+import zipfile
+import zlib
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+LOADER = importlib.machinery.SourceFileLoader("make_oletools", str(HERE / "make-oletools"))
+SPEC = importlib.util.spec_from_loader("make_oletools", LOADER)
+BASE = importlib.util.module_from_spec(SPEC)
+# its last line runs main(), which this doesn't want
+SOURCE = (HERE / "make-oletools").read_text().rsplit("\nmain()", 1)[0]
+exec(compile(SOURCE, "make-oletools", "exec"), BASE.__dict__)
+Cfb, project, compress_literal, dir_stream = BASE.Cfb, BASE.project, BASE.compress_literal, BASE.dir_stream
+ooxml, office_zip, ppt, ppt_record, current_user = BASE.ooxml, BASE.office_zip, BASE.ppt, BASE.ppt_record, BASE.current_user
+activemime = BASE.activemime
+
+LIMIT = 4 * 1024 * 1024 - 128 * 1024
+
+
+def bomb_chunk():
+    """A chunk that says as much as a chunk can: one literal, then copy tokens that each repeat the
+    last byte, up to where olevba's bit count stops them."""
+    body = bytearray()
+    # the flag byte's first bit is a literal, and every other a copy token
+    body += bytes([0xFE]) + b"A"
+    tokens = 0
+    while len(body) < 4090:
+        body += struct.pack("<H", 0x0FFF if tokens < 64 else 0x000F)
+        tokens += 1
+        if tokens % 8 == 7 and len(body) < 4090:
+            body.append(0xFF)
+    return struct.pack("<H", 0xB000 | (len(body) + 2 - 3)) + bytes(body)
+
+
+def vba_bomb():
+    module = b"\x01" + bomb_chunk() * ((LIMIT - 8192) // 4100)
+    tree = project(b"Sub A()\r\nEnd Sub\r\n")
+    tree["VBA"]["Module1"] = module
+    return Cfb({"Macros": tree}).build()
+
+
+def attribut_storm():
+    """Each hit starts a stream that runs to the end, so olevba's search is quadratic in this."""
+    unit = b"\x01" + struct.pack("<H", 0xB000 | (12 + 2 - 3)) + b"\x00Attribut\x00xyz"[:12]
+    data = unit * ((LIMIT - 8192) // len(unit))
+    return Cfb({"Macros": project(b"Sub A()\r\nEnd Sub\r\n"), "s": data}).build()
+
+
+def fat_loop_4gib():
+    def mutate(cfb):
+        first = next(e for e in cfb.entries if e["name"] == "big")
+        cfb.fat[first["start"]] = first["start"]
+        first["size"] = 0xFFFFF000
+
+    return Cfb({"Macros": project(b"Sub A()\r\nEnd Sub\r\n"), "big": b"A" * 8192}).build(mutate)
+
+
+def mini_loop():
+    def mutate(cfb):
+        module = next(e for e in cfb.entries if e["name"] == "Module1")
+        cfb.minifat[module["start"]] = module["start"]
+        module["size"] = 4095
+
+    return Cfb({"Macros": project(b"Sub A()\r\nEnd Sub\r\n")}).build(mutate)
+
+
+def difat_loop():
+    """A DIFAT sector that points at itself, for as long as the header says."""
+    good = bytearray(Cfb({"Macros": project(b"Sub A()\r\nEnd Sub\r\n")}).build())
+    sector = len(good) // 512 - 1
+    good += struct.pack("<128I", *([0] * 127 + [sector]))
+    count = (1 << 24)
+    struct.pack_into("<I", good, 44, 109 + count * 127)
+    struct.pack_into("<II", good, 68, sector, count)
+    return bytes(good)
+
+
+def deep_directory():
+    return Cfb({f"s{i}": b"x" for i in range(20000)}).build()
+
+
+def wide_storages():
+    tree = {}
+    node = tree
+    for _ in range(900):
+        node["d"] = {}
+        node = node["d"]
+    return Cfb(tree).build()
+
+
+def directory_cycles():
+    def mutate(cfb):
+        count = len(cfb.entries)
+        for sid, entry in enumerate(cfb.entries):
+            entry["left"] = (sid * 7 + 1) % count
+            entry["right"] = (sid * 13 + 5) % count
+            entry["child"] = (sid * 3 + 2) % count
+
+    return Cfb({f"s{i}": b"x" for i in range(20000)}).build(mutate)
+
+
+def zip_bomb():
+    out = io.BytesIO()
+    with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as archive:
+        with archive.open("word/vbaProject.bin", "w", force_zip64=True) as member:
+            member.write(BASE.Cfb({"a": b"b"}).build()[:512])
+            chunk = bytes(1 << 20)
+            for _ in range(3800):
+                member.write(chunk)
+    return out.getvalue()
+
+
+def zip_many_members():
+    ole = Cfb({"Macros": project(b"Sub A()\r\nEnd Sub\r\n")}).build()
+    entries = [(f"m{i}.bin", ole) for i in range(1500)]
+    return office_zip(entries)
+
+
+def ppt_many_storages():
+    storage = ppt_record(0, 0, 0x1011, b"plain text macro\r\n")
+    return Cfb({"Current User": current_user(), "PowerPoint Document": ppt([]) + storage * ((LIMIT - 8192) // len(storage))}).build()
+
+
+def ppt_zlib_bomb():
+    data = zlib.compress(bytes(1 << 30), 9)
+    return Cfb({"Current User": current_user(), "PowerPoint Document": ppt([]) + ppt_record(0, 1, 0x1011, struct.pack("<I", 1 << 30) + data)}).build()
+
+
+def nested_multipart():
+    out = bytearray(b"MIME-Version: 1.0\r\nContent-Type: multipart/related; boundary=0\r\n\r\n")
+    depth = 0
+    while len(out) < LIMIT // 2:
+        depth += 1
+        out += b"--%d\r\nContent-Type: multipart/related; boundary=%d\r\n\r\n" % (depth - 1, depth)
+    return bytes(out)
+
+
+def mso_bomb():
+    mso = b"ActiveMime" + bytes(20) + struct.pack("<H", 4) + bytes(18) + zlib.compress(bytes(2 << 30), 9)
+    return (
+        b'<w:wordDocument xmlns:w="http://schemas.microsoft.com/office/word/2003/wordml"><w:binData>'
+        + base64.b64encode(mso)
+        + b"</w:binData></w:wordDocument>"
+    )
+
+
+def xml_deep():
+    open_tags = b"<a>" * (LIMIT // 8)
+    return b'<w:d xmlns:w="http://schemas.microsoft.com/office/word/2003/wordml">' + open_tags + b"</a>" * (LIMIT // 8) + b"</w:d>"
+
+
+def xml_laughs():
+    body = b'<!DOCTYPE x [<!ENTITY a "aaaaaaaaaa">'
+    last = b"a"
+    for index in range(1, 12):
+        name = b"e%d" % index
+        body += b'<!ENTITY ' + name + b' "' + (b"&" + last + b";") * 10 + b'">'
+        last = name
+    return body + b']><w:d xmlns:w="http://schemas.microsoft.com/office/word/2003/wordml">&' + last + b";</w:d>"
+
+
+def text(unit, size=LIMIT):
+    return unit * (size // len(unit))
+
+
+def macro_text(unit):
+    """What olevba reads as source code, which ace3's mime check lets through as XML."""
+    return b'<?xml version="1.0"?>\n' + text(unit)
+
+
+def rtf_objects(size):
+    unit = b"{\\object{\\objdata 41}}"
+    return b"{\\rtf1 " + unit * (size // len(unit)) + b"}"
+
+
+def main(out):
+    out = Path(out)
+    out.mkdir(parents=True, exist_ok=True)
+    made = {
+        "vba_bomb.doc": vba_bomb(),
+        "attribut_storm.doc": attribut_storm(),
+        "fat_loop_4gib.doc": fat_loop_4gib(),
+        "mini_loop.doc": mini_loop(),
+        "difat_loop.doc": difat_loop(),
+        "deep_directory.doc": deep_directory(),
+        "nested_storages.doc": wide_storages(),
+        "directory_cycles.doc": directory_cycles(),
+        "zip_bomb_3gib.docm": zip_bomb(),
+        "zip_many_members.docm": zip_many_members(),
+        "ppt_many_storages.ppt": ppt_many_storages(),
+        "ppt_zlib_bomb_1gib.ppt": ppt_zlib_bomb(),
+        "nested_multipart.doc": nested_multipart(),
+        "mso_bomb_2gib.doc": mso_bomb(),
+        "xml_deep.doc": xml_deep(),
+        "xml_laughs.doc": xml_laughs(),
+        "text_hex.doc": macro_text(b"41"),
+        "text_many_hex.doc": macro_text(b'"4142434445464748" '),
+        "text_base64.doc": macro_text(b'"QUJDREVGR0hJSktMTU5PUA==" '),
+        "text_urls.doc": macro_text(b"http://a.example/x "),
+        "text_dots_no_at.doc": macro_text(b"a.") ,
+        "text_keywords.doc": macro_text(b"Shell CreateObject AutoOpen Button1_Click "),
+        "text_underscores.doc": macro_text(b"a_"),
+        "text_non_ascii.doc": macro_text("Жы ".encode()),
+        "rtf_objects_1mib.rtf": rtf_objects(1 << 20),
+        "rtf_objects_64mib.rtf": rtf_objects(64 << 20),
+        "rtf_hex_128mib.rtf": b"{\\rtf1{\\object{\\objdata " + text(b"41", 128 << 20) + b"}}}",
+        "rtf_quote_64mib.rtf": b"{\\rtf1{\\object{\\objdata " + text(b"4\\'zz", 64 << 20) + b"}}}",
+        "rtf_braces_64mib.rtf": b"{\\rtf1 " + b"{" * (64 << 20),
+        "rtf_destinations_64mib.rtf": b"{\\rtf1 " + text(b"\\objdata ", 64 << 20),
+        "rtf_bin_64mib.rtf": b"{\\rtf1{\\objdata " + text(b"\\bin0 ", 64 << 20) + b"}}",
+        "rtf_bin_hex_256mib.rtf": b"{\\rtf1{\\objdata \\bin134217728 " + bytes(128 << 20) + b"}}",
+    }
+    for name, data in made.items():
+        (out / name).write_bytes(data)
+        print(name, len(data))
+
+
+main(sys.argv[1])

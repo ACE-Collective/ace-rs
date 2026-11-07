@@ -1,0 +1,92 @@
+{
+  "form": 1,
+  "observables": {
+    "file:1b01733f3052bf6cb22e87433888f36196a0e7f46441277126ee38a360b12a20": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "edge_duplicate_names.rtf": {
+          "type=document.rtf": true,
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": true,
+            "is_office_ext": true,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": true,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/rtf",
+            "type": "Rich Text Format data, version 1"
+          },
+          "summary": "File Type Analysis: Rich Text Format data, version 1 (text/rtf) (ms office document) (rtf document)",
+          "tags": {}
+        },
+        "rtfole": {
+          "details": {
+            "extracted_files": [
+              "edge_duplicate_names.rtf.rtfobj/edge_duplicate_names.rtf_same.txt"
+            ],
+            "return_code": 0,
+            "stderr": "",
+            "stdout": "rtfobj 0.60.1 on Python 3.14.10 - http://decalage.info/python/oletools\nTHIS IS WORK IN PROGRESS - Check updates regularly!\nPlease report any issue at https://github.com/decalage2/oletools/issues\n\n===============================================================================\nFile: 'edge_duplicate_names.rtf' - size: 321 bytes\n---+----------+---------------------------------------------------------------\nid |index     |OLE Object                                                     \n---+----------+---------------------------------------------------------------\n0  |00000020h |format_id: 2 (Embedded)                                        \n   |          |class name: b'Package'                                         \n   |          |data size: 30                                                  \n   |          |OLE Package object:                                            \n   |          |Filename: 'same.txt'                                           \n   |          |Source path: 'a'                                               \n   |          |Temp path = 'b'                                                \n   |          |MD5 = 'f97c5d29941bfb1b2fdab0874906ab82'                       \n   |          |MODIFIED FILE EXTENSION                                        \n   |          |File Type: Unknown file type                                   \n---+----------+---------------------------------------------------------------\n1  |000000BDh |format_id: 2 (Embedded)                                        \n   |          |class name: b'Package'                                         \n   |          |data size: 30                                                  \n   |          |OLE Package object:                                            \n   |          |Filename: 'same.txt'                                           \n   |          |Source path: 'a'                                               \n   |          |Temp path = 'b'                                                \n   |          |MD5 = 'b8a9f715dbb64fd5c56e7783c6820a61'                       \n   |          |MODIFIED FILE EXTENSION                                        \n   |          |File Type: Unknown file type                                   \n---+----------+---------------------------------------------------------------\nSaving file from OLE Package in object #0:\n  Filename = 'same.txt'\n  Source path = 'a'\n  Temp path = 'b'\n  saving to file edge_duplicate_names.rtf.rtfobj/edge_duplicate_names.rtf_same.txt\n  md5 f97c5d29941bfb1b2fdab0874906ab82\nSaving file from OLE Package in object #1:\n  Filename = 'same.txt'\n  Source path = 'a'\n  Temp path = 'b'\n  saving to file edge_duplicate_names.rtf.rtfobj/edge_duplicate_names.rtf_same.txt\n  md5 b8a9f715dbb64fd5c56e7783c6820a61\n"
+          },
+          "summary": "RTF OLE Object Analysis: extracted edge_duplicate_names.rtf.rtfobj/edge_duplicate_names.rtf_same.txt",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "microsoft_office": true,
+        "rtf": true
+      }
+    },
+    "file:3fc4ccfe745870e2c0d99f71f30ff0656c8dedd41cc1d7d3d376b0dbe685e2f3": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "edge_duplicate_names.rtf.rtfobj/edge_duplicate_names.rtf_same.txt": {
+          "type=document.rtf.object": true
+        }
+      },
+      "redirection": "file:1b01733f3052bf6cb22e87433888f36196a0e7f46441277126ee38a360b12a20",
+      "relationships": {
+        "extracted_from file:1b01733f3052bf6cb22e87433888f36196a0e7f46441277126ee38a360b12a20": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text, with no line terminators"
+          },
+          "summary": "File Type Analysis: ASCII text, with no line terminators (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "extracted_rtf": true
+      }
+    }
+  }
+}

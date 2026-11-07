@@ -1,0 +1,38 @@
+{
+  "form": 1,
+  "observables": {
+    "file:6991f57fafd63a746b55f93c38e487c3ce07552f072c2eb2a6373c2964e3c21a": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "vba_flatopc.xml": {
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/xml",
+            "type": "XML 1.0 document, ASCII text, with very long lines (5033), with no line terminators"
+          },
+          "summary": "File Type Analysis: XML 1.0 document, ASCII text, with very long lines (5033), with no line terminators (text/xml)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    }
+  }
+}

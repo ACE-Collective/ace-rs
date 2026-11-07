@@ -1,5 +1,5 @@
 //! `olevba_analysis`: the VBA macros in an Office document (ace3's `OLEVBA_Analysis_v1_2`,
-//! `saq/modules/file_analysis/olevba.py`). The Python pool writes it (PLAN.md 4.4).
+//! `saq/modules/file_analysis/olevba.py`), which `ace-mod-oletools` writes.
 
 use std::collections::BTreeMap;
 
@@ -26,8 +26,9 @@ pub struct OlevbaAnalysis {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct OlevbaMacro {
-    /// The OLE file the macro is in: the file's path in the alert, or a part's name inside it.
-    pub file_name: TextOrBytes,
+    /// The OLE file the macro is in: the file's path in the alert, or a part's name inside it. Null
+    /// for a PowerPoint 97 storage, which olevba gives no name.
+    pub file_name: Option<TextOrBytes>,
     pub stream_path: TextOrBytes,
     pub vba_filename: TextOrBytes,
     pub vba_code: String,
