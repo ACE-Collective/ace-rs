@@ -55,10 +55,6 @@ class Context:
         self.settings = request.get("settings")
         # the input's bytes, for a file task
         self.input = request.get("input")
-        # the email that carried the file, for a module whose manifest reads it
-        # (READS_CARRYING_EMAIL): whether there is one, and its body's bytes if it has a body
-        self.carried_by_email = task.get("carrying_email") is not None
-        self.email_body = request.get("email_body")
         # the YARA rules that matched the file or anything under it, for a module that runs last
         # (Module::RUNS_LAST)
         self.yara_rules_below = task.get("yara_rules_below") or []

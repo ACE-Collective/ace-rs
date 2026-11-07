@@ -1,6 +1,5 @@
 //! `msoffice_encryption_analysis`: an encrypted Office file and the passwords tried on it (ace3's
-//! `MSOfficeEncryptionAnalysis`, `saq/modules/email/encryption/msoffice.py`). The Python pool writes
-//! it (PLAN.md 4.6).
+//! `MSOfficeEncryptionAnalysis`, `saq/modules/email/encryption/msoffice.py`).
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};

@@ -1,4 +1,4 @@
-# pikepdf for tools/library-diff/run, so 4.9's port is compared with what ace3 uses. Not the pool's: it
+# pikepdf and html2text for tools/library-diff/run, so 4.9's port and 4.11's are compared with what ace3 uses. Not the pool's: it
 # has no Python stage, and decision 8 keeps this out of ace4-python. To change a pin, edit this file,
 # then run tools/python/lock.
 #
@@ -8,3 +8,5 @@ Pillow==13.0.0
 lxml==6.1.3
 # at the version in ace3's virtualenv
 packaging==26.3
+# html2text for tools/library-diff/run, since 4.11 has crates/ace-mod-msoffice in its place. Same reason.
+html2text==2025.4.15

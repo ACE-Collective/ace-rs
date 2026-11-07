@@ -42,6 +42,7 @@ pub async fn replay_task(
         }
         None => None,
     };
+    let email_body = crate::run::fetch_email_body(client, task, dir).await?;
     let outputs = Arc::new(LocalFileStore::new(dir.join("outputs"))?);
     eprintln!(
         "replaying task {} ({} on {} {}) uncontained, in process {}, from {}",
@@ -55,6 +56,7 @@ pub async fn replay_task(
     let run = Run {
         task,
         input: input.as_deref(),
+        email_body: email_body.as_deref(),
         outputs,
         cancel: CancellationToken::new(),
         contained: false,

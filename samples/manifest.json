@@ -13,7 +13,7 @@
   ],
   "gaps": [
     "an encrypted RAR: making one needs RARLAB's non-free rar tool",
-    "an encrypted .ppt, and an RC4 .doc: msoffcrypto writes neither, only ace3's RC4 .xls is here",
+    "binary RC4 without CryptoAPI as Office 97 wrote it: tools/samples/make-encrypted-binary writes it from MS-OFFCRYPTO",
     "PowerPoint and Excel files with VBA written by Office itself: tools/samples/make-oletools hand-makes the containers around a Word project",
     "PowerPoint and Excel files with VBA written by Office itself: tools/samples/make-oletools hand-makes the containers around a Word project",
     "PowerPoint and Excel files with VBA written by Office itself: tools/samples/make-oletools hand-makes the containers around a Word project"
@@ -626,6 +626,71 @@
       "meta_tags": []
     },
     {
+      "path": "ace4/email/encrypted_agile_sha1.email.rfc822",
+      "sha256": "ff5afa436c7f30a3e713002877993c80cc39226157ea4a8a939a019c04fcfd2c",
+      "size": 24855,
+      "kinds": [
+        "email",
+        "office/encrypted"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-encrypted-binary",
+      "in_git": true,
+      "alert_path": "email.rfc822",
+      "meta_tags": []
+    },
+    {
+      "path": "ace4/email/encrypted_agile_sha256.email.rfc822",
+      "sha256": "dc3a0a5df81d628324a0b7fe8198497ab67c815efb7171ec8e119498608c287f",
+      "size": 24857,
+      "kinds": [
+        "email",
+        "office/encrypted"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-encrypted-binary",
+      "in_git": true,
+      "alert_path": "email.rfc822",
+      "meta_tags": []
+    },
+    {
+      "path": "ace4/email/encrypted_body_raises.email.rfc822",
+      "sha256": "a88e14b5bfae3b53ca4b2a42c5b2bb3773fb266e48206e8e3eb73d9aa0821fc5",
+      "size": 24849,
+      "kinds": [
+        "email",
+        "office/encrypted"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-encrypted-binary",
+      "in_git": true,
+      "alert_path": "email.rfc822",
+      "meta_tags": []
+    },
+    {
+      "path": "ace4/email/encrypted_cryptoapi_doc.email.rfc822",
+      "sha256": "eebd080c8748bc2d19a0273ac2f84bb8222e8b1e9fef26f08933053cb9e94218",
+      "size": 31083,
+      "kinds": [
+        "email",
+        "office/encrypted"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-encrypted-binary",
+      "in_git": true,
+      "alert_path": "email.rfc822",
+      "meta_tags": []
+    },
+    {
+      "path": "ace4/email/encrypted_cryptoapi_ppt.email.rfc822",
+      "sha256": "b9dcfd7416f848594008e5eaf4542b857535e01c2d5a4051de9b06f26f88b827",
+      "size": 4108,
+      "kinds": [
+        "email",
+        "office/encrypted"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-encrypted-binary",
+      "in_git": true,
+      "alert_path": "email.rfc822",
+      "meta_tags": []
+    },
+    {
       "path": "ace4/email/encrypted_html_body.email.rfc822",
       "sha256": "2c6e33fe687ee606eee311749939e05a8a0d45a5db14481a6dcbf8250f45ba1e",
       "size": 25200,
@@ -634,6 +699,19 @@
         "office/encrypted"
       ],
       "source": "made by tools/samples/gather: tools/samples/make-encrypted-office",
+      "in_git": true,
+      "alert_path": "email.rfc822",
+      "meta_tags": []
+    },
+    {
+      "path": "ace4/email/encrypted_html_markup.email.rfc822",
+      "sha256": "57c4c7fc92db1bbad4ddad360d30971f86e43a43691f2e6d0df8d74c6fc9e5fc",
+      "size": 25422,
+      "kinds": [
+        "email",
+        "office/encrypted"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-encrypted-binary",
       "in_git": true,
       "alert_path": "email.rfc822",
       "meta_tags": []
@@ -704,6 +782,71 @@
       "meta_tags": []
     },
     {
+      "path": "ace4/email/encrypted_not_zip.email.rfc822",
+      "sha256": "d2c8dc59ea1eac81c424b04be2705e540c35e42a3aa453dbe8a2554296d41955",
+      "size": 14477,
+      "kinds": [
+        "email",
+        "office/encrypted"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-encrypted-binary",
+      "in_git": true,
+      "alert_path": "email.rfc822",
+      "meta_tags": []
+    },
+    {
+      "path": "ace4/email/encrypted_ppt_wrong.email.rfc822",
+      "sha256": "43cd67834ed3a745948301637e2854cbf927ed86fcffc6e53db70066516d10a5",
+      "size": 4103,
+      "kinds": [
+        "email",
+        "office/encrypted"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-encrypted-binary",
+      "in_git": true,
+      "alert_path": "email.rfc822",
+      "meta_tags": []
+    },
+    {
+      "path": "ace4/email/encrypted_rc4_doc.email.rfc822",
+      "sha256": "edfe9cb24ad06153aaf690983d81ae36e7bbef7bacc9c47be64b16e8ce0bf06d",
+      "size": 31077,
+      "kinds": [
+        "email",
+        "office/encrypted"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-encrypted-binary",
+      "in_git": true,
+      "alert_path": "email.rfc822",
+      "meta_tags": []
+    },
+    {
+      "path": "ace4/email/encrypted_rc4_wrong.email.rfc822",
+      "sha256": "862437859ec47756adefe6ba01ca7c01e227b65bb20c1377bb8c120525db548d",
+      "size": 31078,
+      "kinds": [
+        "email",
+        "office/encrypted"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-encrypted-binary",
+      "in_git": true,
+      "alert_path": "email.rfc822",
+      "meta_tags": []
+    },
+    {
+      "path": "ace4/email/encrypted_rc4_xls.email.rfc822",
+      "sha256": "530447bfc5b037d358c144717a5d35f9922c9f59985ae75b3c8dbcd4178603f1",
+      "size": 94022,
+      "kinds": [
+        "email",
+        "office/encrypted"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-encrypted-binary",
+      "in_git": true,
+      "alert_path": "email.rfc822",
+      "meta_tags": []
+    },
+    {
       "path": "ace4/email/encrypted_standard.email.rfc822",
       "sha256": "151155f82d0fea3dede02224ed7a4c1da00f5a1689521263a068024e116c9e12",
       "size": 106465,
@@ -730,6 +873,440 @@
       "meta_tags": []
     },
     {
+      "path": "ace4/html/html2text_long.txt",
+      "sha256": "6a65653a34bbc2acd7a7d2e30f310c53779b2c8571b9885e0be2a3090e20d66f",
+      "size": 983,
+      "kinds": [
+        "html/body"
+      ],
+      "source": "made by tools/samples/gather: HTML_BODIES",
+      "in_git": true,
+      "alert_path": "html2text_long.txt",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/html/html2text_malformed.html",
+      "sha256": "5e93ca75a0b116676441e3ba3c6cb281f6ea6b0d3161f394c06b34179d3bb89b",
+      "size": 1087,
+      "kinds": [
+        "html/body"
+      ],
+      "source": "made by tools/samples/gather: HTML_BODIES",
+      "in_git": true,
+      "alert_path": "html2text_malformed.html",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/html/html2text_markup.html",
+      "sha256": "9f67a3577a9a1af1962ce7b3eea179dec361d2e51b78c1fb2a0577de1b3006b2",
+      "size": 1960,
+      "kinds": [
+        "html/body"
+      ],
+      "source": "made by tools/samples/gather: HTML_BODIES",
+      "in_git": true,
+      "alert_path": "html2text_markup.html",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/html/html2text_raises_reference.html",
+      "sha256": "ee26d647439a361e3dd25f07155b764404ef30259972a90d92f3bdd95b876e2e",
+      "size": 24,
+      "kinds": [
+        "html/body"
+      ],
+      "source": "made by tools/samples/gather: HTML_BODIES",
+      "in_git": true,
+      "alert_path": "html2text_raises_reference.html",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/html/html2text_raises_start.html",
+      "sha256": "7e08bed5fd7646145fbd6dccdda24effeb4c30f00ce336f911e8f40a7d3264c3",
+      "size": 41,
+      "kinds": [
+        "html/body"
+      ],
+      "source": "made by tools/samples/gather: HTML_BODIES",
+      "in_git": true,
+      "alert_path": "html2text_raises_start.html",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/html/html2text_unicode.html",
+      "sha256": "0b8eece2671a6881236437e43b51b71bb40c030b973c61f7e751a80683212f09",
+      "size": 222,
+      "kinds": [
+        "html/body"
+      ],
+      "source": "made by tools/samples/gather: HTML_BODIES",
+      "in_git": true,
+      "alert_path": "html2text_unicode.html",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/encrypted_agile.docx",
+      "sha256": "7a11e1342e44371796a4cdaa5906d4c67c84eb7303ab1b63dc38fd2333e1fee7",
+      "size": 17920,
+      "kinds": [
+        "office/encrypted"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-encrypted-binary",
+      "in_git": true,
+      "alert_path": "encrypted_agile.docx",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/encrypted_agile_sha1.docx",
+      "sha256": "3c32d3d78324204d11407d30c736a71564c75a9d4582aa6215cac2379ee44cbd",
+      "size": 17920,
+      "kinds": [
+        "office/encrypted"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-encrypted-binary",
+      "in_git": true,
+      "alert_path": "encrypted_agile_sha1.docx",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/encrypted_agile_sha256.docx",
+      "sha256": "a1040eae21a229a1435b0bf019fd65887811abcac9ae900e41e3a3fa8cab8dc4",
+      "size": 17920,
+      "kinds": [
+        "office/encrypted"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-encrypted-binary",
+      "in_git": true,
+      "alert_path": "encrypted_agile_sha256.docx",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/encrypted_agile_sha384.docx",
+      "sha256": "b9e770383258d57dfebd40d8963e20ca1ff832aacc107b12d8cfccf6335973bf",
+      "size": 17920,
+      "kinds": [
+        "office/encrypted"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-encrypted-binary",
+      "in_git": true,
+      "alert_path": "encrypted_agile_sha384.docx",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/encrypted_bad_hash_name.docx",
+      "sha256": "b9bc3f38d05479fe01fcab2ef38311388c1f115a621dacfeb9135c261d53f56d",
+      "size": 9216,
+      "kinds": [
+        "office/encrypted"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-encrypted-binary",
+      "in_git": true,
+      "alert_path": "encrypted_bad_hash_name.docx",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/encrypted_bad_key_bits.docx",
+      "sha256": "be7e30f02c9bb2c3593693ab2ed399950d9dd8871b4e58337a2ff705883304c4",
+      "size": 9216,
+      "kinds": [
+        "office/encrypted"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-encrypted-binary",
+      "in_git": true,
+      "alert_path": "encrypted_bad_key_bits.docx",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/encrypted_bad_key_bits_text.docx",
+      "sha256": "b2d86de806a7206544731228a12f2e30956e15b7d004b512dd98b465f6020ac8",
+      "size": 9216,
+      "kinds": [
+        "office/encrypted"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-encrypted-binary",
+      "in_git": true,
+      "alert_path": "encrypted_bad_key_bits_text.docx",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/encrypted_bad_kind.xls",
+      "sha256": "2327b48641a7d1d1deb4198f2521692a727f9815ed4d8300706d964a0d512b1b",
+      "size": 69125,
+      "kinds": [
+        "office/encrypted"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-encrypted-binary",
+      "in_git": true,
+      "alert_path": "encrypted_bad_kind.xls",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/encrypted_bad_no_encrypted_key.docx",
+      "sha256": "423b8a2208b9434f9adccc6397297bbed56ec439eefcbee0be6a310f69ecf6b5",
+      "size": 9216,
+      "kinds": [
+        "office/encrypted"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-encrypted-binary",
+      "in_git": true,
+      "alert_path": "encrypted_bad_no_encrypted_key.docx",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/encrypted_bad_no_key_data.docx",
+      "sha256": "70248c875bc8b174c33d493732238ad6b138762305f2cad09d91f816da83d771",
+      "size": 9216,
+      "kinds": [
+        "office/encrypted"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-encrypted-binary",
+      "in_git": true,
+      "alert_path": "encrypted_bad_no_key_data.docx",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/encrypted_bad_prefixed_key_data.docx",
+      "sha256": "18b458f901e0a51db334db3b0eb4e004ee847ddd294d9aae638d9fd18c58b15d",
+      "size": 9216,
+      "kinds": [
+        "office/encrypted"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-encrypted-binary",
+      "in_git": true,
+      "alert_path": "encrypted_bad_prefixed_key_data.docx",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/encrypted_bad_salt.docx",
+      "sha256": "ddb6c71704f1015796b5d5ac67a837abdbaeb9b978701079cc9d22bc3df93909",
+      "size": 9216,
+      "kinds": [
+        "office/encrypted"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-encrypted-binary",
+      "in_git": true,
+      "alert_path": "encrypted_bad_salt.docx",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/encrypted_bad_short_info.docx",
+      "sha256": "91d89bb3a69d90f2fff990a8fbfe281f03c01fd1b9027034334c0c48e1d1a3ab",
+      "size": 8192,
+      "kinds": [
+        "office/encrypted"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-encrypted-binary",
+      "in_git": true,
+      "alert_path": "encrypted_bad_short_info.docx",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/encrypted_bad_spin.docx",
+      "sha256": "9b46a92cd6181756de863f1f551a1825055bb88790a881493910101f38f4f9c1",
+      "size": 9216,
+      "kinds": [
+        "office/encrypted"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-encrypted-binary",
+      "in_git": true,
+      "alert_path": "encrypted_bad_spin.docx",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/encrypted_bad_standard_name.docx",
+      "sha256": "b3ec160f5339033e6e381a190364b063bc67095b6c855e42ec45e3785f1bce22",
+      "size": 8192,
+      "kinds": [
+        "office/encrypted"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-encrypted-binary",
+      "in_git": true,
+      "alert_path": "encrypted_bad_standard_name.docx",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/encrypted_bad_standard_short.docx",
+      "sha256": "e91f85165caf9756998b6c922f4463ff99ebb2a75c76d390ad8787b686912485",
+      "size": 8192,
+      "kinds": [
+        "office/encrypted"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-encrypted-binary",
+      "in_git": true,
+      "alert_path": "encrypted_bad_standard_short.docx",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/encrypted_bad_version.doc",
+      "sha256": "1a7adb002d2801989845ecc25e1887e30acf29520b10194820357046a46afc4d",
+      "size": 22528,
+      "kinds": [
+        "office/encrypted"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-encrypted-binary",
+      "in_git": true,
+      "alert_path": "encrypted_bad_version.doc",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/encrypted_bad_version.docx",
+      "sha256": "dc27508854fe8e33a7319b53b6d01a2c4f3fd7131a28660ab298f085b99b6faf",
+      "size": 8192,
+      "kinds": [
+        "office/encrypted"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-encrypted-binary",
+      "in_git": true,
+      "alert_path": "encrypted_bad_version.docx",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/encrypted_bad_version.xls",
+      "sha256": "2d7dbed842f3fe4850ba1f4d7445fa7815272f1127ac527bc621d14bf6e7ca4b",
+      "size": 69125,
+      "kinds": [
+        "office/encrypted"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-encrypted-binary",
+      "in_git": true,
+      "alert_path": "encrypted_bad_version.xls",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/encrypted_bad_xml.docx",
+      "sha256": "c527dc9e446dbf48b28a871b500590128899250c71ccd5caf592fe369855b0e4",
+      "size": 9216,
+      "kinds": [
+        "office/encrypted"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-encrypted-binary",
+      "in_git": true,
+      "alert_path": "encrypted_bad_xml.docx",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/encrypted_cryptoapi.doc",
+      "sha256": "2933e69bd26f61b99ba7b81487bee95fa954ef7ad19996e5bfbc0f57e635624d",
+      "size": 22528,
+      "kinds": [
+        "office/encrypted"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-encrypted-binary",
+      "in_git": true,
+      "alert_path": "encrypted_cryptoapi.doc",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/encrypted_cryptoapi.ppt",
+      "sha256": "560f5ccd8b5c88d60634dceef0382d47d39756d195ff1e0602cec3b2994ebfe2",
+      "size": 2560,
+      "kinds": [
+        "office/encrypted"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-encrypted-binary",
+      "in_git": true,
+      "alert_path": "encrypted_cryptoapi.ppt",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/encrypted_cryptoapi.xls",
+      "sha256": "bfaf3e11ba55bd415768ec8ae682c2f4635d9a794a3d852ba182ff4e0275633c",
+      "size": 69125,
+      "kinds": [
+        "office/encrypted"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-encrypted-binary",
+      "in_git": true,
+      "alert_path": "encrypted_cryptoapi.xls",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/encrypted_cryptoapi_40.doc",
+      "sha256": "e57ac91ceb6200f95a8200282ddda1b76331ed08d2784ed6ad5eb0d8ab23be27",
+      "size": 22528,
+      "kinds": [
+        "office/encrypted"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-encrypted-binary",
+      "in_git": true,
+      "alert_path": "encrypted_cryptoapi_40.doc",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/encrypted_cryptoapi_large.ppt",
+      "sha256": "c41dfb9f640d4986971b5495cc2bd74999b8cd7f14209c547ded916f400f54da",
+      "size": 11264,
+      "kinds": [
+        "office/encrypted"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-encrypted-binary",
+      "in_git": true,
+      "alert_path": "encrypted_cryptoapi_large.ppt",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
       "path": "ace4/office/encrypted_extensible.docx",
       "sha256": "cc805cc69baa7721aefd1eb2d1f8eccf5ab163226407b13c05dcadda1657ba47",
       "size": 8192,
@@ -753,6 +1330,90 @@
       "source": "made by tools/samples/gather: tools/samples/make-encrypted-office",
       "in_git": true,
       "alert_path": "encrypted_no_email.docx",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/encrypted_not_zip.docx",
+      "sha256": "07976a449bfc5f9679812800d40f5f0afecb30afcedfb6c3e039728efcb22e80",
+      "size": 10240,
+      "kinds": [
+        "office/encrypted"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-encrypted-binary",
+      "in_git": true,
+      "alert_path": "encrypted_not_zip.docx",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/encrypted_ppt_no_session.ppt",
+      "sha256": "a0c29a98583606e74bb159e759443eaf8f6874639510f0b4e0b8f8263745511d",
+      "size": 2560,
+      "kinds": [
+        "office/encrypted"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-encrypted-binary",
+      "in_git": true,
+      "alert_path": "encrypted_ppt_no_session.ppt",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/encrypted_rc4.doc",
+      "sha256": "2f881ed02b6b7a84fcb77a001472d84331d76a99e7e5eb3e51dca0312f49fc76",
+      "size": 22528,
+      "kinds": [
+        "office/encrypted"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-encrypted-binary",
+      "in_git": true,
+      "alert_path": "encrypted_rc4.doc",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/encrypted_rc4.xls",
+      "sha256": "8ff8e52eb1b97ac21b0b4348d81f143f6f25d0ea817d7748b7f8ddae27637857",
+      "size": 69125,
+      "kinds": [
+        "office/encrypted"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-encrypted-binary",
+      "in_git": true,
+      "alert_path": "encrypted_rc4.xls",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/encrypted_rc4_not_in_list.doc",
+      "sha256": "3e3f189ac36ec0c2a480bfa7ac4d80ef8dd2ca8d91b4f4a8697df966afd0784b",
+      "size": 22528,
+      "kinds": [
+        "office/encrypted"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-encrypted-binary",
+      "in_git": true,
+      "alert_path": "encrypted_rc4_not_in_list.doc",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/encrypted_standard.docx",
+      "sha256": "0e88befa9e436792bd8db2fa153862621c18ee33c3ea5fb56cd595357f566df3",
+      "size": 16896,
+      "kinds": [
+        "office/encrypted"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-encrypted-binary",
+      "in_git": true,
+      "alert_path": "encrypted_standard.docx",
       "meta_tags": [
         "type=email.attachment"
       ]
@@ -800,6 +1461,48 @@
       ]
     },
     {
+      "path": "ace4/office/encrypted_xor_even.xls",
+      "sha256": "c547ac83bd3a093ddc9acb76125b18ea9b35522038cea4f0ff02306d88706f63",
+      "size": 69125,
+      "kinds": [
+        "office/encrypted"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-encrypted-binary",
+      "in_git": true,
+      "alert_path": "encrypted_xor_even.xls",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/encrypted_xor_odd.xls",
+      "sha256": "93c2cf0568f10152f37d3ebb83e6bc2b2ddd37cb515d2a08c1671f93dcff7b80",
+      "size": 69125,
+      "kinds": [
+        "office/encrypted"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-encrypted-binary",
+      "in_git": true,
+      "alert_path": "encrypted_xor_odd.xls",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/encrypted_xor_velvet.xls",
+      "sha256": "8a11042aaed553905bf28fcd0815b926cc7245104b1a332258e93b62441ff637",
+      "size": 69125,
+      "kinds": [
+        "office/encrypted"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-encrypted-binary",
+      "in_git": true,
+      "alert_path": "encrypted_xor_velvet.xls",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
       "path": "ace4/office/garbage.doc",
       "sha256": "10fc3c51a152e90e5b90319b601d92ccf37290ef53c35ff92507687d8a911a08",
       "size": 2048,
@@ -823,6 +1526,146 @@
       "source": "made by tools/samples/gather: by hand",
       "in_git": true,
       "alert_path": "html_named.doc",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/msoffcrypto_ecma376standard_password.docx",
+      "sha256": "d265dcf02f7d552486229b8c67a627ef3752fe6802b02fd2d2d485fcfbbac5de",
+      "size": 7168,
+      "kinds": [
+        "office/encrypted"
+      ],
+      "source": "msoffcrypto-tool v6.0.0 tests/inputs/ecma376standard_password.docx, written by Office",
+      "in_git": true,
+      "alert_path": "msoffcrypto_ecma376standard_password.docx",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/msoffcrypto_example_password.docx",
+      "sha256": "0605624697328060fdc75ca9929ea20b9d63ebed9387ff1a97aaf9979757234a",
+      "size": 18432,
+      "kinds": [
+        "office/encrypted"
+      ],
+      "source": "msoffcrypto-tool v6.0.0 tests/inputs/example_password.docx, written by Office",
+      "in_git": true,
+      "alert_path": "msoffcrypto_example_password.docx",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/msoffcrypto_example_password.xlsx",
+      "sha256": "3f792e3902a615bf0e91771f3f3016b80d59098b8e492efcdc0752748e15b997",
+      "size": 14848,
+      "kinds": [
+        "office/encrypted"
+      ],
+      "source": "msoffcrypto-tool v6.0.0 tests/inputs/example_password.xlsx, written by Office",
+      "in_git": true,
+      "alert_path": "msoffcrypto_example_password.xlsx",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/msoffcrypto_plain.doc",
+      "sha256": "290f71ddd3f6d940dc3569fc410cf5f167df4cb91b9274f4408d3f1bdaa83736",
+      "size": 22528,
+      "kinds": [
+        "office/encrypted"
+      ],
+      "source": "msoffcrypto-tool v6.0.0 tests/inputs/plain.doc, written by Office",
+      "in_git": true,
+      "alert_path": "msoffcrypto_plain.doc",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/msoffcrypto_plain.ppt",
+      "sha256": "18555251635eaab62a1fce9886026156d375615bd96f5639df7dc005e2488347",
+      "size": 43008,
+      "kinds": [
+        "office/encrypted"
+      ],
+      "source": "msoffcrypto-tool v6.0.0 tests/inputs/plain.ppt, written by Office",
+      "in_git": true,
+      "alert_path": "msoffcrypto_plain.ppt",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/msoffcrypto_plain.xls",
+      "sha256": "0d57ed3cb8f9e09b0986a7d8d76407de6cb2dce84a2f30048eab9103225437f5",
+      "size": 25600,
+      "kinds": [
+        "office/encrypted"
+      ],
+      "source": "msoffcrypto-tool v6.0.0 tests/inputs/plain.xls, written by Office",
+      "in_git": true,
+      "alert_path": "msoffcrypto_plain.xls",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/msoffcrypto_rc4cryptoapi_password.doc",
+      "sha256": "9c5217bea80fb1a7811ad7709dd9bb35f6c639bac7154580dd4c99d54e1fc0e0",
+      "size": 23040,
+      "kinds": [
+        "office/encrypted"
+      ],
+      "source": "msoffcrypto-tool v6.0.0 tests/inputs/rc4cryptoapi_password.doc, written by Office",
+      "in_git": true,
+      "alert_path": "msoffcrypto_rc4cryptoapi_password.doc",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/msoffcrypto_rc4cryptoapi_password.ppt",
+      "sha256": "17a57bcbe7cb517c088410fed763ccc58b9b10d23258571c1ab67830d2591a49",
+      "size": 43008,
+      "kinds": [
+        "office/encrypted"
+      ],
+      "source": "msoffcrypto-tool v6.0.0 tests/inputs/rc4cryptoapi_password.ppt, written by Office",
+      "in_git": true,
+      "alert_path": "msoffcrypto_rc4cryptoapi_password.ppt",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/msoffcrypto_rc4cryptoapi_password.xls",
+      "sha256": "b804cba40c27ea88f2ea994b6b7d75145661532f9356e7246d2499f63d58abfe",
+      "size": 25600,
+      "kinds": [
+        "office/encrypted"
+      ],
+      "source": "msoffcrypto-tool v6.0.0 tests/inputs/rc4cryptoapi_password.xls, written by Office",
+      "in_git": true,
+      "alert_path": "msoffcrypto_rc4cryptoapi_password.xls",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/msoffcrypto_xor_password_123456789012345.xls",
+      "sha256": "c75375186933e2413325c4e64ce76903452d51413816d0df1d5fd677ea4dd76d",
+      "size": 91136,
+      "kinds": [
+        "office/encrypted"
+      ],
+      "source": "msoffcrypto-tool v6.0.0 tests/inputs/xor_password_123456789012345.xls, written by Office",
+      "in_git": true,
+      "alert_path": "msoffcrypto_xor_password_123456789012345.xls",
       "meta_tags": [
         "type=email.attachment"
       ]

@@ -49,7 +49,7 @@ the next.
 
 The images. A library's side runs on a stage of docker/ace4/Dockerfile that holds only libraries:
 python-libraries has what the pool has, and pdf-libraries has pikepdf, which PLAN.md decision 8 keeps
-out of the pool. A Rust side runs on python-libraries, which is the dev image's Debian. They're tagged
+out of the pool, and html2text, which 4.11 took out of it. A Rust side runs on python-libraries, which is the dev image's Debian. They're tagged
 by what they're built from (ace4-library-diff-*:<hash>), and adapters are mounted, so no checkout
 changes another's. Nothing needs the stack up.
 
@@ -83,6 +83,7 @@ LIBRARIES = {
     "msoffcrypto": "python-libraries",
     "pcodedmp": "python-libraries",
     "xlmdeobfuscator": "python-libraries",
+    "html2text": "pdf-libraries",
     "pikepdf": "pdf-libraries",
     "pdf-parser": "pdf-libraries",
 }
@@ -271,7 +272,8 @@ def compare(library, left, right, args):
     differences = args.differences or HERE / "differences" / f"{library}.md"
     mounts = [f"{work}:/work", f"{tool.parent}:/tool:ro"]
     command = ["/tool/library-diff", "/work"]
-    if differences.exists():
+    # a library's rows describe it against its port, so they can't match it against itself
+    if differences.exists() and (args.differences or left != right):
         # a copy, because a bind mount of one file can show what it held before an edit
         shutil.copyfile(differences, work / "differences.md")
         command.append("/work/differences.md")

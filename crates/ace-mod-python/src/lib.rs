@@ -10,7 +10,6 @@
 
 use std::time::Duration;
 
-use ace_results::types::msoffice::MsofficeEncryptionAnalysis;
 use ace_results::types::pcode::PCodeAnalysis;
 use ace_results::types::xlm::XlmDeobfuscatorAnalysis;
 use ace_results::{AnalysisType, ObservableKind};
@@ -64,56 +63,6 @@ impl Module for PythonProbe {
 }
 
 pub const PROBE_MANIFEST: Manifest = Manifest::python::<PythonProbe>();
-
-/// ace3's `MSOfficeEncryptionAnalyzer` (`python/ace4_python/modules/msoffice_encryption_analyzer.py`),
-/// on msoffcrypto. It reads the carrying email's body for candidate passwords, and tries them with
-/// msoffcrypto where ace3 runs John the Ripper.
-pub struct MsofficeEncryption;
-
-/// ace3's settings of the module. Its `john_bin_path` is gone: a worker can't start a process.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
-#[serde(deny_unknown_fields, default)]
-pub struct MsofficeEncryptionSettings {
-    /// The shortest password to try.
-    pub range_low: usize,
-    /// The longest password to try.
-    pub range_high: usize,
-    /// How much of the email's body to look at.
-    pub byte_limit: usize,
-    /// The most passwords to try from the email.
-    pub list_limit: usize,
-}
-
-impl Default for MsofficeEncryptionSettings {
-    fn default() -> Self {
-        MsofficeEncryptionSettings {
-            range_low: 4,
-            range_high: 11,
-            byte_limit: 1024,
-            list_limit: 5000,
-        }
-    }
-}
-
-impl Module for MsofficeEncryption {
-    const NAME: &'static str = MsofficeEncryptionAnalysis::MODULE;
-    const INPUTS: &'static [ObservableKind] = &[ObservableKind::File];
-    const READS_CARRYING_EMAIL: bool = true;
-    // Four times ace3's global maximum_analysis_time. John tries a full list of an Office 2013
-    // file's passwords in about 10 s on ten threads, within ace3's 60 s. One thread of Python takes
-    // about 169 s. The module stops itself at 225 s and says it couldn't crack the password, as ace3
-    // does when John is stopped.
-    const RESOURCES: Resources = Resources {
-        timeout: Duration::from_secs(240),
-        ..Resources::DEFAULT
-    };
-    type Output = MsofficeEncryptionAnalysis;
-    type Settings = MsofficeEncryptionSettings;
-
-    fn init(_: &MsofficeEncryptionSettings) -> Result<Self, ModuleError> {
-        Ok(MsofficeEncryption)
-    }
-}
 
 /// ace3's `PCodeAnalyzer` in `vbs.py`, on pcodedmp (`python/ace4_python/modules/pcodedmp.py`). Its
 /// `pcodedmp_path` is gone: a worker can't start a process. `VBScriptAnalyzer` in that file doesn't

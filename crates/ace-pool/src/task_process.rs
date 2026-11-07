@@ -51,6 +51,7 @@ pub fn main(modules: &Modules) -> ExitCode {
     let end = parser.run(Run {
         task: &request.task,
         input: request.input.as_deref(),
+        email_body: request.email_body.as_deref(),
         outputs,
         // the supervisor kills the process instead
         cancel: CancellationToken::new(),

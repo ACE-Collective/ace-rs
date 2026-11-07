@@ -1,0 +1,66 @@
+{
+  "form": 1,
+  "observables": {
+    "file:ddb6c71704f1015796b5d5ac67a837abdbaeb9b978701079cc9d22bc3df93909": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "encrypted_bad_salt.docx": {
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": true,
+            "is_office_ext": true,
+            "is_ole_file": true,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/encrypted",
+            "type": "CDFV2 Encrypted"
+          },
+          "summary": "File Type Analysis: CDFV2 Encrypted (application/encrypted) (ms office document) (ole compound file)",
+          "tags": {}
+        },
+        "msoffice_encryption_analyzer": {
+          "details": {
+            "email": false,
+            "email_body": null,
+            "encryption_info": null,
+            "error": "could not crack password",
+            "password": null,
+            "word_list": [
+              "VelvetSweatshop",
+              "/01Hannes Ruescher/01"
+            ]
+          },
+          "summary": "MSOffice Encryption Analysis: could not crack password",
+          "tags": {}
+        },
+        "olevba_v1_2": {
+          "details": {
+            "keyword_summary": {},
+            "macros": [],
+            "type": "OLE"
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "encrypted_msoffice": true,
+        "microsoft_office": true,
+        "ole": true
+      }
+    }
+  }
+}

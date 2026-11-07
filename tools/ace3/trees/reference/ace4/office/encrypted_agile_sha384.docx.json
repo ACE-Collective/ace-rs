@@ -1,0 +1,63 @@
+{
+  "form": 1,
+  "observables": {
+    "file:b9e770383258d57dfebd40d8963e20ca1ff832aacc107b12d8cfccf6335973bf": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "encrypted_agile_sha384.docx": {
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": true,
+            "is_office_ext": true,
+            "is_ole_file": true,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/encrypted",
+            "type": "CDFV2 Encrypted"
+          },
+          "summary": "File Type Analysis: CDFV2 Encrypted (application/encrypted) (ms office document) (ole compound file)",
+          "tags": {}
+        },
+        "msoffice_encryption_analyzer": {
+          "details": {
+            "email": false,
+            "email_body": null,
+            "encryption_info": null,
+            "error": "office2john.py failed: encrypted_agile_sha384.docx uses un-supported hashing algorithm SHA384, please file a bug! \n",
+            "password": null,
+            "word_list": []
+          },
+          "summary": "MSOffice Encryption Analysis: office2john.py failed: encrypted_agile_sha384.docx uses un-supported hashing algorithm SHA384, please file a bug! \n",
+          "tags": {}
+        },
+        "olevba_v1_2": {
+          "details": {
+            "keyword_summary": {},
+            "macros": [],
+            "type": "OLE"
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "encrypted_msoffice": true,
+        "microsoft_office": true,
+        "ole": true
+      }
+    }
+  }
+}

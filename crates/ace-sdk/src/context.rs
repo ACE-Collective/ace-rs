@@ -163,6 +163,22 @@ pub struct DelayedRun {
     pub delays: u32,
 }
 
+/// The email that carried a task's observable, for a module that reads it
+/// (`Module::READS_CARRYING_EMAIL`).
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub enum CarryingEmail {
+    /// An email in the root hasn't been parsed yet, and it may be this one. The module delays if it
+    /// needs to know.
+    Pending,
+    /// No email carried it, or the module doesn't read one.
+    #[default]
+    Absent,
+    /// An email carried it, and it has no body.
+    NoBody,
+    /// An email carried it, and its body's bytes are here on this machine.
+    Body(PathBuf),
+}
+
 /// What a module gets for one task: the observable, its settings, the secrets it declared, a
 /// cancellation token, its deadline, and the state of a delayed run.
 pub struct TaskContext<S> {
@@ -178,6 +194,7 @@ pub struct TaskContext<S> {
     files: Option<Arc<dyn FileStore>>,
     contained: bool,
     task: Option<i64>,
+    carrying_email: CarryingEmail,
 }
 
 impl<S> TaskContext<S> {
@@ -201,6 +218,7 @@ impl<S> TaskContext<S> {
             files: None,
             contained: false,
             task: None,
+            carrying_email: CarryingEmail::Absent,
         }
     }
 
@@ -258,6 +276,16 @@ impl<S> TaskContext<S> {
 
     pub fn task_id(&self) -> Option<i64> {
         self.task
+    }
+
+    pub fn with_carrying_email(mut self, email: CarryingEmail) -> Self {
+        self.carrying_email = email;
+        self
+    }
+
+    /// The email that carried the observable, for a module that reads it.
+    pub fn carrying_email(&self) -> &CarryingEmail {
+        &self.carrying_email
     }
 
     /// The root (alert) the observable is in.

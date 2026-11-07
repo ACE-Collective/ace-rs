@@ -16,6 +16,8 @@ use crate::py::{PyErr, PyResult, memory_error};
 #[derive(Default)]
 pub struct Element {
     pub tag: String,
+    /// The tag's namespace prefix as written, which ElementTree drops and minidom's names keep.
+    pub prefix: Option<String>,
     pub attrib: Vec<(String, String)>,
     pub text: Option<String>,
     pub children: Vec<Element>,
@@ -54,6 +56,7 @@ impl Element {
     fn shallow(&self) -> Element {
         Element {
             tag: self.tag.clone(),
+            prefix: self.prefix.clone(),
             attrib: self.attrib.clone(),
             text: self.text.clone(),
             children: Vec::with_capacity(self.children.len()),
@@ -3509,6 +3512,7 @@ struct Tag {
 /// What `storeAtts` gives the start handler.
 struct Started {
     tag: String,
+    prefix: Option<String>,
     attrib: Vec<(String, String)>,
 }
 
@@ -4473,6 +4477,7 @@ impl<'a> Parser<'a> {
     fn on_start(&mut self, started: Started) {
         self.open.push(Element {
             tag: started.tag,
+            prefix: started.prefix,
             attrib: started.attrib,
             text: None,
             children: Vec::new(),
@@ -4973,6 +4978,11 @@ impl<'a> Parser<'a> {
             self.attribute_ids[id as usize].flag = 0;
         }
         // expand the element type name
+        let written = name
+            .iter()
+            .position(|c| *c == b':')
+            .filter(|_| self.types[element_type as usize].prefix.is_some())
+            .map(|colon| String::from_utf8_lossy(&name[..colon]).into_owned());
         let tag = if let Some(prefix) = self.types[element_type as usize].prefix {
             let Some(binding) = self.prefixes[prefix as usize].binding else {
                 return Err(XmlError::UnboundPrefix.into());
@@ -4984,7 +4994,11 @@ impl<'a> Parser<'a> {
         } else {
             String::from_utf8_lossy(name).into_owned()
         };
-        Ok(Started { tag, attrib })
+        Ok(Started {
+            tag,
+            prefix: written,
+            attrib,
+        })
     }
 
     /// `makeuniversal` of `uri}local`.

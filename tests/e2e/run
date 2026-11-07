@@ -132,9 +132,9 @@ PROBE_LIMITS = {
 }
 # Ported modules on the Python pool: each must have results from both systems, because a comparison
 # with nothing compared passes.
-PYTHON_PORTS = ["msoffice_encryption_analyzer", "pcodedmp", "xlmdeobfuscator"]
+PYTHON_PORTS = ["pcodedmp", "xlmdeobfuscator"]
 # What has moved off that pool: a comparison with nothing compared passes for them too.
-LIBRARY_PORTS = ["olevba_v1_2", "pdf_analyzer", "rtfole"]
+LIBRARY_PORTS = ["msoffice_encryption_analyzer", "olevba_v1_2", "pdf_analyzer", "rtfole"]
 
 
 def log(message):

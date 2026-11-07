@@ -19,7 +19,7 @@ pub mod module;
 pub mod overlay;
 pub mod wire;
 
-pub use context::{DelayedRun, InputFile, Observable, Secret, Secrets, TaskContext};
+pub use context::{CarryingEmail, DelayedRun, InputFile, Observable, Secret, Secrets, TaskContext};
 pub use files::{FileOutputError, FileStore, LocalFileStore};
 pub use manifest::{Manifest, ModuleKind, Resources, Sandbox, SettingsError, load_settings};
 pub use module::{

@@ -45,7 +45,9 @@ pub trait Module: Sized + Send + Sync + 'static {
     /// (PLAN.md 2.23), never as itself on its defaults.
     const INSTANCES_ONLY: bool = false;
     /// True for a module that reads the body of the email that carried its observable, as ace3's
-    /// modules for encrypted attachments do. The core adds it to the module's tasks.
+    /// modules for encrypted attachments do. The core adds it to the module's tasks, which read it
+    /// with `TaskContext::carrying_email`, or says an email in the root isn't parsed yet, and a
+    /// module that needs to know then delays itself.
     const READS_CARRYING_EMAIL: bool = false;
     /// True for a module that runs once everything else in its root has finished, as ace3's
     /// `execute_final_analysis`, and reads the YARA rules that matched its observable or anything

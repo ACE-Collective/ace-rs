@@ -9,6 +9,7 @@ dependencies = [
  "ace-app",
  "ace-mod-archive",
  "ace-mod-email",
+ "ace-mod-msoffice",
  "ace-mod-oletools",
  "ace-mod-pdf",
  "ace-mod-python",
@@ -123,6 +124,30 @@ dependencies = [
 ]
 
 [[package]]
+name = "ace-mod-msoffice"
+version = "0.1.0"
+dependencies = [
+ "ace-mod-oletools",
+ "ace-results",
+ "ace-sdk",
+ "ace-testkit",
+ "aes",
+ "cbc",
+ "cipher",
+ "digest 0.11.3",
+ "md-5",
+ "rc4",
+ "regex",
+ "schemars 1.2.3",
+ "serde",
+ "serde_json",
+ "sha1",
+ "sha2 0.11.1",
+ "tempfile",
+ "tracing",
+]
+
+[[package]]
 name = "ace-mod-oletools"
 version = "0.1.0"
 dependencies = [
@@ -233,6 +258,7 @@ dependencies = [
  "ace-core",
  "ace-mod-archive",
  "ace-mod-email",
+ "ace-mod-msoffice",
  "ace-mod-oletools",
  "ace-mod-pdf",
  "ace-mod-python",
@@ -243,6 +269,7 @@ dependencies = [
  "ace-sdk",
  "ace-store",
  "ace-testkit",
+ "base64 0.22.1",
  "chrono",
  "flate2",
  "form_urlencoded",
@@ -1303,6 +1330,7 @@ version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e8cf2a2c93cd704877c0858356ed03480ff301ee950b43f1cbe4573b088bfa6c"
 dependencies = [
+ "block-buffer 0.12.1",
  "crypto-common 0.2.2",
  "inout",
 ]
@@ -4144,6 +4172,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "498cd0dc59d73224351ee52a95fee0f1a617a2eae0e7d9d720cc622c73a54186"
 dependencies = [
  "bitflags",
+]
+
+[[package]]
+name = "rc4"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "840038b674daa9f7a7957440d937951d15c0143c056e631e529141fd780e0c92"
+dependencies = [
+ "cipher",
 ]
 
 [[package]]

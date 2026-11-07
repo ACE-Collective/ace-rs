@@ -1,6 +1,7 @@
 //! Running one leased task: keeping its lease, fetching its input, running the module, sending
 //! back what it wrote, and ending the task.
 
+use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
@@ -113,6 +114,25 @@ pub async fn fetch_input(
     Ok(Some(path))
 }
 
+/// Downloads the body of the email that carried the task's file, for the task's user to read.
+pub async fn fetch_email_body(
+    client: &LeaseClient,
+    task: &LeasedTask,
+    dir: &Path,
+) -> Result<Option<PathBuf>, ClientError> {
+    let Some(download) = task
+        .carrying_email
+        .as_ref()
+        .and_then(|email| email.body.as_ref())
+    else {
+        return Ok(None);
+    };
+    let path = dir.join("email_body");
+    client.download(download, &path).await?;
+    std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o644))?;
+    Ok(Some(path))
+}
+
 /// Uploads each file a result adds from the task's output directory, then ends the task. A 422 is
 /// an end too: the core rejected the result and failed the task, and its row says why.
 pub async fn send_end(
@@ -170,6 +190,7 @@ pub async fn run_in_process(
     let input = fetch_input(client, &task, &dir)
         .instrument(tracing::info_span!("fetch_input"))
         .await?;
+    let email_body = fetch_email_body(client, &task, dir.path()).await?;
     let outputs = Arc::new(LocalFileStore::new(dir.outputs())?);
     // the module's own span (ace_sdk::module::task_span) is a child of this task's
     let span = tracing::Span::current();
@@ -183,6 +204,7 @@ pub async fn run_in_process(
                 parser.run(Run {
                     task: &owned_task,
                     input: input.as_deref(),
+                    email_body: email_body.as_deref(),
                     outputs: owned_outputs,
                     cancel,
                     contained: false,
@@ -200,6 +222,7 @@ pub async fn run_in_process(
                             .run(Run {
                                 task: &owned_task,
                                 input: input.as_deref(),
+                                email_body: email_body.as_deref(),
                                 outputs: owned_outputs,
                                 cancel,
                                 contained: false,

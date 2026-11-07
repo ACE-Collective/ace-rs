@@ -114,6 +114,17 @@ fn next_chunk(text: &[char], start: usize) -> usize {
 
 /// `textwrap.wrap(text, width)`.
 pub fn wrap(text: &str, width: usize) -> Vec<String> {
+    wrap_with(text, width, true, "")
+}
+
+/// `textwrap.wrap(text, width, break_long_words=..., subsequent_indent=...)`.
+pub fn wrap_with(
+    text: &str,
+    full_width: usize,
+    break_long_words: bool,
+    subsequent_indent: &str,
+) -> Vec<String> {
+    let indent_length = subsequent_indent.chars().count();
     let munged: Vec<char> = expand_tabs(text)
         .chars()
         .map(|c| if is_ws(c) { ' ' } else { c })
@@ -131,6 +142,11 @@ pub fn wrap(text: &str, width: usize) -> Vec<String> {
     while !chunks.is_empty() {
         let mut line: Vec<Vec<char>> = Vec::new();
         let mut length = 0;
+        let width = if lines.is_empty() {
+            full_width
+        } else {
+            full_width.saturating_sub(indent_length)
+        };
         if !lines.is_empty() {
             chunks.pop_if(|chunk| blank(chunk));
         }
@@ -143,7 +159,11 @@ pub fn wrap(text: &str, width: usize) -> Vec<String> {
             }
         }
         let too_long = chunks.last().is_some_and(|chunk| chunk.len() > width);
-        if too_long {
+        if too_long && !break_long_words {
+            if line.is_empty() {
+                line.push(chunks.pop().expect("there's a last"));
+            }
+        } else if too_long {
             let space_left = if width < 1 { 1 } else { width - length };
             if space_left > 0 {
                 let chunk = chunks.last_mut().expect("there's a last");
@@ -165,7 +185,15 @@ pub fn wrap(text: &str, width: usize) -> Vec<String> {
         }
         line.pop_if(|chunk| blank(chunk));
         if !line.is_empty() {
-            lines.push(line.iter().flatten().collect::<String>());
+            let indent = if lines.is_empty() {
+                ""
+            } else {
+                subsequent_indent
+            };
+            lines.push(format!(
+                "{indent}{}",
+                line.iter().flatten().collect::<String>()
+            ));
         }
     }
     lines

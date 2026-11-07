@@ -65,9 +65,6 @@ use crate::tree;
 /// The header a task-scoped request names its worker in.
 pub const WORKER_HEADER: &str = "x-ace4-worker";
 
-/// How long a task that reads its carrying email first waits for the root's emails to be parsed.
-const EMAILS_PENDING_DELAY: Duration = Duration::from_secs(1);
-
 /// How long a task that runs last first waits for the rest of its root, doubling up to 32 s. Every file
 /// has one, so it starts low: most roots are done in a moment.
 const OTHERS_PENDING_DELAY: Duration = Duration::from_millis(250);
@@ -424,19 +421,12 @@ impl Api {
         let reads_email = catalog
             .iter()
             .any(|c| c.key == task.module && c.manifest.reads_carrying_email);
-        // An outer email adds a nested email's attachments too, before the nested one has been
-        // parsed, and that's the email whose body has the password. ace3 analyzes the attachment
-        // once per path, and ace4 once, so it waits for the root's emails. The email module takes
-        // every file, so a root with many has its tasks back here, less often each time.
-        if reads_email && tree::emails_pending(self.inner.db.pool(), task.root).await? {
-            let delays = task.delayed.as_ref().map_or(0, |d| d.delays);
-            let after = EMAILS_PENDING_DELAY.saturating_mul(2u32.saturating_pow(delays.min(5)));
-            match worker.delay(task.id, after, &Value::Null).await {
-                Ok(_) | Err(QueueError::Cancelled(_)) => return Ok(None),
-                Err(e) => return Err(e.into()),
-            }
-        }
-        let carrying_email = if reads_email {
+        // The email module takes every file, so a root's email task is likely still pending when one
+        // of its files is leased. Most files don't need the email, and the module knows which, so it
+        // gets told and delays itself if it must.
+        let emails_pending =
+            reads_email && tree::emails_pending(self.inner.db.pool(), task.root).await?;
+        let carrying_email = if reads_email && !emails_pending {
             match self.carrying_email(&task).await? {
                 Ok(email) => email,
                 Err(why) => {
@@ -457,6 +447,7 @@ impl Api {
         };
         let mut leased = self.wire_task(task, file, redirection);
         leased.carrying_email = carrying_email;
+        leased.emails_pending = emails_pending;
         leased.yara_rules_below = yara_rules_below;
         Ok(Some(leased))
     }
@@ -525,6 +516,7 @@ impl Api {
             delayed: task.delayed,
             input_hashes: task.input_hashes,
             carrying_email: None,
+            emails_pending: false,
             yara_rules_below: Vec::new(),
         }
     }
@@ -956,7 +948,23 @@ async fn replay(
         None
     };
     let redirection = tree::redirection(api.inner.db.pool(), task.root, task.observable.id).await?;
-    Ok(Json(api.wire_task(task, file, redirection)))
+    let reads_email = api
+        .inner
+        .orchestrator
+        .catalog()
+        .iter()
+        .any(|c| c.key == task.module && c.manifest.reads_carrying_email);
+    let carrying_email = if reads_email {
+        api.carrying_email(&task)
+            .await?
+            .map_err(Failure::BadRequest)?
+    } else {
+        None
+    };
+    let mut leased = api.wire_task(task, file, redirection);
+    // what the task read when it ran, if its email has been parsed by now, as it usually has
+    leased.carrying_email = carrying_email;
+    Ok(Json(leased))
 }
 
 /// A submission: the `analysis` field's JSON and each `file` field, spooled as it arrives.

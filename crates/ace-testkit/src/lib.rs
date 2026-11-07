@@ -26,8 +26,9 @@ use ace_results::{
     ResultValidator, Sha256, YaraMeta, sort_json_keys,
 };
 use ace_sdk::{
-    Delay, DelayedRun, FileStore, InputFile, LocalFileStore, Lookup, Module, ModuleError,
-    Observable, Outcome, Parser, Secret, Secrets, SettingsError, TaskContext, load_settings,
+    CarryingEmail, Delay, DelayedRun, FileStore, InputFile, LocalFileStore, Lookup, Module,
+    ModuleError, Observable, Outcome, Parser, Secret, Secrets, SettingsError, TaskContext,
+    load_settings,
 };
 use chrono::{DateTime, Utc};
 use serde_json::{Value, json};
@@ -78,6 +79,8 @@ pub struct Harness<M: Module> {
     // the directory goes when the harness does
     _dir: tempfile::TempDir,
     store: Arc<LocalFileStore>,
+    carrying_email: CarryingEmail,
+    timeout: Option<Duration>,
 }
 
 impl<M: Module> Harness<M> {
@@ -103,7 +106,21 @@ impl<M: Module> Harness<M> {
             now: fixed_now(),
             _dir: dir,
             store,
+            carrying_email: CarryingEmail::Absent,
+            timeout: None,
         })
+    }
+
+    /// What a module that reads its carrying email is told of it.
+    pub fn carrying_email(mut self, email: CarryingEmail) -> Self {
+        self.carrying_email = email;
+        self
+    }
+
+    /// A deadline in place of the manifest's, for a module that watches its own.
+    pub fn timeout(mut self, timeout: Duration) -> Self {
+        self.timeout = Some(timeout);
+        self
     }
 
     pub fn secret(mut self, name: &str, value: &str) -> Self {
@@ -205,7 +222,12 @@ impl<M: Module> Harness<M> {
         let ctx = TaskContext::new::<M>(ROOT, observable, self.settings.clone())
             .with_secrets(&self.secrets)
             .with_now(self.now)
-            .with_file_store(self.store.clone());
+            .with_file_store(self.store.clone())
+            .with_carrying_email(self.carrying_email.clone());
+        let ctx = match self.timeout {
+            Some(timeout) => ctx.with_timeout(timeout),
+            None => ctx,
+        };
         match delayed {
             Some(delayed) => ctx.with_delayed(delayed),
             None => ctx,

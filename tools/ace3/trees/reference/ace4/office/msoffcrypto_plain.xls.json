@@ -1,0 +1,51 @@
+{
+  "form": 1,
+  "observables": {
+    "file:0d57ed3cb8f9e09b0986a7d8d76407de6cb2dce84a2f30048eab9103225437f5": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "msoffcrypto_plain.xls": {
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": true,
+            "is_office_ext": true,
+            "is_ole_file": true,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": true,
+            "mime": "application/vnd.ms-excel",
+            "type": "Composite Document File V2 Document, Little Endian, Os: MacOS, Version 13.10, Code page: 10000, Name of Creating Application: Microsoft Macintosh Excel, Create Time/Date: Tue Sep 11 09:53:58 2018, Last Saved Time/Date: Tue Sep 11 09:55:27 2018, Security: 0"
+          },
+          "summary": "File Type Analysis: Composite Document File V2 Document, Little Endian, Os: MacOS, Version 13.10, Code page: 10000, Name of Creating Application: Microsoft Macintosh Excel, Create Time/Date: Tue Sep 11 09:53:58 2018, Last Saved Time/Date: Tue Sep 11 09:55:27 2018, Security: 0 (application/vnd.ms-excel) (ms office document) (ole compound file) (zip archive)",
+          "tags": {}
+        },
+        "olevba_v1_2": {
+          "details": {
+            "keyword_summary": {},
+            "macros": [],
+            "type": "OLE"
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "microsoft_office": true,
+        "ole": true,
+        "zip": true
+      }
+    }
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "form": 1,
+  "observables": {
+    "file:6a65653a34bbc2acd7a7d2e30f310c53779b2c8571b9885e0be2a3090e20d66f": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "html2text_long.txt": {
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text, with very long lines (317)"
+          },
+          "summary": "File Type Analysis: ASCII text, with very long lines (317) (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    }
+  }
+}

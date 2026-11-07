@@ -16,6 +16,7 @@ const ENDOFCHAIN: u32 = 0xFFFF_FFFE;
 const NOSTREAM: u32 = 0xFFFF_FFFF;
 pub const STGTY_STORAGE: u8 = 1;
 pub const STGTY_STREAM: u8 = 2;
+const STGTY_ROOT: u8 = 5;
 const UNKNOWN_SIZE: u64 = 0x7FFF_FFFF;
 const MINIMAL_OLEFILE_SIZE: usize = 1536;
 /// Where olefile's `seek` stops being possible: BytesIO and a file both take a C long.
@@ -23,6 +24,8 @@ const SEEK_MAX: u128 = i64::MAX as u128;
 /// The most one stream may read. olefile reads what a FAT loop and a declared size say, up to
 /// memory, and this is that memory: past it a read raises MemoryError, as Python would.
 pub const MAX_STREAM: usize = 256 * 1024 * 1024;
+/// How far a write may reach. A sector past this is one a chain with the right size never names.
+const MAX_WRITE_END: u128 = 1 << 40;
 
 /// Python's limit on nested calls, as the frames the port's recursive functions cost.
 const RECURSION_LIMIT: usize = 1000;
@@ -61,6 +64,8 @@ pub struct OleFile {
     mini_sector_size: u128,
     num_mini_fat_sectors: u32,
     first_mini_fat_sector: u32,
+    /// `minisectorcutoff`, the header's, which a crafted file can set to anything.
+    mini_cutoff: u32,
     fat: Vec<u32>,
     minifat: Option<Vec<u32>>,
     ministream: Option<Vec<u8>>,
@@ -185,6 +190,7 @@ impl OleFile {
             mini_sector_size,
             num_mini_fat_sectors: u32_at(header, 64),
             first_mini_fat_sector: u32_at(header, 60),
+            mini_cutoff: u32_at(header, 56),
             fat: Vec::new(),
             minifat: None,
             ministream: None,
@@ -498,7 +504,7 @@ impl OleFile {
 
     /// `_open(start, size).read()`.
     pub fn open_chain(&mut self, start: u32, size: u64) -> PyResult<Vec<u8>> {
-        if size < 0x1000 {
+        if size < u64::from(self.mini_cutoff) {
             self.ensure_ministream()?;
             read_chain(
                 self.ministream.as_deref().unwrap_or_default(),
@@ -518,6 +524,142 @@ impl OleFile {
                 &self.fat,
             )
         }
+    }
+
+    /// `build_sect_chain`, which follows a table to its end marker, and on a loop follows it forever.
+    /// A chain longer than its table has looped, and this stops there.
+    fn sect_chain(start: u32, table: &[u32]) -> PyResult<Vec<u32>> {
+        let mut chain = Vec::new();
+        let mut next = start;
+        while next != ENDOFCHAIN {
+            chain.push(next);
+            if chain.len() > table.len() {
+                return Err(memory_error());
+            }
+            next = *table
+                .get(next as usize)
+                .ok_or_else(|| PyErr::new("IndexError", "array index out of range"))?;
+        }
+        Ok(chain)
+    }
+
+    /// `write_sect`, on `out`, a copy of the file that this parsed. A short sector is padded with zeros.
+    fn write_sector(out: &mut Vec<u8>, at: u128, size: u128, data: &[u8]) -> PyResult<()> {
+        if at.saturating_add(size) > MAX_WRITE_END {
+            return Err(memory_error());
+        }
+        let (at, size) = (at as usize, size as usize);
+        if out.len() < at + size {
+            out.resize(at + size, 0);
+        }
+        out[at..at + data.len()].copy_from_slice(data);
+        out[at + data.len()..at + size].fill(0);
+        Ok(())
+    }
+
+    fn write_mini_stream(
+        &mut self,
+        out: &mut Vec<u8>,
+        start: u32,
+        size: u64,
+        data: &[u8],
+    ) -> PyResult<()> {
+        if size == 0 {
+            // `build_sect_chain` leaves it None
+            return Err(PyErr::new(
+                "TypeError",
+                "object of type 'NoneType' has no len()",
+            ));
+        }
+        self.ensure_ministream()?;
+        let chain = Self::sect_chain(start, self.minifat.as_deref().unwrap_or_default())?;
+        let root = self.entry(0);
+        let (root_type, root_start, root_size) = (root.entry_type, root.start, root.size);
+        // the same for a root entry whose type a crafted file changed, or that's empty
+        let root_chain = if !matches!(root_type, STGTY_ROOT | STGTY_STREAM) || root_size == 0 {
+            None
+        } else if root_type == STGTY_STREAM && root_size < u64::from(self.mini_cutoff) {
+            Some(Self::sect_chain(
+                root_start,
+                self.minifat.as_deref().unwrap_or_default(),
+            )?)
+        } else {
+            Some(Self::sect_chain(root_start, &self.fat)?)
+        };
+        let mini = self.mini_sector_size;
+        let block = self.sector_size / mini;
+        if block == 0 && !chain.is_empty() {
+            return Err(PyErr::new("ZeroDivisionError", "division by zero"));
+        }
+        for (index, &sect) in chain.iter().enumerate() {
+            let base = u128::from(sect) / block;
+            let offset = u128::from(sect) % block;
+            let Some(root_chain) = &root_chain else {
+                return Err(PyErr::new(
+                    "TypeError",
+                    "'NoneType' object is not subscriptable",
+                ));
+            };
+            let holder = *root_chain
+                .get(base as usize)
+                .ok_or_else(|| PyErr::new("IndexError", "list index out of range"))?;
+            let at = (u128::from(holder) + 1) * self.sector_size + offset * mini;
+            let from = (index as u128 * mini).min(data.len() as u128) as usize;
+            let piece = if index + 1 < chain.len() {
+                let to = ((index as u128 + 1) * mini).min(data.len() as u128) as usize;
+                &data[from..to]
+            } else {
+                &data[from..]
+            };
+            if piece.len() as u128 > mini {
+                return Err(PyErr::new("ValueError", "Data is larger than sector size"));
+            }
+            Self::write_sector(out, at, mini, piece)?;
+        }
+        Ok(())
+    }
+
+    /// `write_stream(path, data)`, on `out`, a copy of the file that this parsed. It only replaces a
+    /// stream with data of its own size, in place, as olefile does.
+    pub fn write_stream(&mut self, out: &mut Vec<u8>, path: &str, data: &[u8]) -> PyResult<()> {
+        let sid = self.find(path)?;
+        let entry = self.entry(sid);
+        if entry.entry_type != STGTY_STREAM {
+            return Err(PyErr::new("OSError", "this is not a stream"));
+        }
+        let (start, size) = (entry.start, entry.size);
+        if size != data.len() as u64 {
+            return Err(PyErr::new(
+                "ValueError",
+                "write_stream: data must be the same size as the existing stream",
+            ));
+        }
+        if size < u64::from(self.mini_cutoff) {
+            return self.write_mini_stream(out, start, size, data);
+        }
+        let sector = self.sector_size;
+        let sectors = u128::from(size).div_ceil(sector);
+        let mut sect = start;
+        for index in 0..sectors {
+            let from = (index * sector) as usize;
+            let to = ((index + 1) * sector).min(u128::from(size)) as usize;
+            Self::write_sector(
+                out,
+                sector * (u128::from(sect) + 1),
+                sector,
+                &data[from..to],
+            )?;
+            sect = *self.fat.get(sect as usize).ok_or_else(|| {
+                PyErr::new("OSError", "incorrect OLE FAT, sector index out of range")
+            })?;
+        }
+        if sect != ENDOFCHAIN {
+            return Err(PyErr::new(
+                "OSError",
+                "incorrect last sector index in OLE stream",
+            ));
+        }
+        Ok(())
     }
 
     fn ensure_ministream(&mut self) -> PyResult<()> {

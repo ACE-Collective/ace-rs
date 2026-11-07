@@ -12,6 +12,7 @@ pub fn parser_pool() -> ParserPool {
         .module::<ace_mod_pdf::PdfAnalyzer>()
         .module::<ace_mod_oletools::Olevba>()
         .module::<ace_mod_oletools::RtfOle>()
+        .module::<ace_mod_msoffice::MsofficeEncryption>()
         .module::<ace_mod_yara::YaraScanner>()
         .yara_rulesets::<ace_mod_yara::YaraScanner>(ace_mod_yara::check_ruleset)
 }
@@ -28,7 +29,6 @@ pub fn lookup_pool() -> LookupPool {
 pub fn python_pool() -> PythonPool {
     PythonPool::new("python")
         .module::<ace_mod_python::PythonProbe>()
-        .module::<ace_mod_python::MsofficeEncryption>()
         .module::<ace_mod_python::PCode>()
         .module::<ace_mod_python::XlmDeobfuscator>()
 }

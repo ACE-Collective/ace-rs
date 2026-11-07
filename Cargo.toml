@@ -33,3 +33,26 @@ debug = "line-tables-only"
 
 [profile.dev.package."*"]
 debug = false
+
+# A password's key derivation is 100,000 hashes and a module has a deadline, so these are optimized
+# even where nothing else is, or the library diff and the module's tests time out.
+[profile.dev.package.sha2]
+opt-level = 3
+[profile.dev.package.sha1]
+opt-level = 3
+[profile.dev.package.md-5]
+opt-level = 3
+[profile.dev.package.aes]
+opt-level = 3
+[profile.dev.package.cbc]
+opt-level = 3
+[profile.dev.package.rc4]
+opt-level = 3
+[profile.dev.package.digest]
+opt-level = 3
+[profile.dev.package.block-buffer]
+opt-level = 3
+[profile.dev.package.cipher]
+opt-level = 3
+[profile.dev.package.hybrid-array]
+opt-level = 3

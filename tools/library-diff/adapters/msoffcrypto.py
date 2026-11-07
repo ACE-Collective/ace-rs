@@ -1,8 +1,9 @@
 """msoffcrypto, as python/ace4_python/modules/msoffice_encryption_analyzer.py calls it: what it says
 of the file and, for each password, whether it opens it and what it decrypts to.
 
-The passwords are ace3's two defaults and those of tools/samples/make-encrypted-office and ace3's
-info_3805.xls, so a port is compared on the right ones and the wrong ones.
+The passwords are ace3's two defaults and those of tools/samples/make-encrypted-office and -binary, ace3's
+info_3805.xls and msoffcrypto-tool's own tests, so a port is compared on the right ones and the wrong ones: every file gets them all,
+and some of its samples open with none of them.
 """
 
 import io
@@ -21,6 +22,12 @@ PASSWORDS = [
     "H7mlPass",
     "NotInTheBody99",
     "InnerPw1",
+    "R4Binary1",
+    "CryptoAp1",
+    "x0rPass",
+    "x0rPass8",
+    "Password1234_",
+    "123456789012345",
 ]
 
 

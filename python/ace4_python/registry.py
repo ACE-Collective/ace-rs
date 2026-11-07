@@ -5,7 +5,6 @@ here stops the worker at startup, and so the pool, before it leases anything.
 """
 
 MODULES = {
-    "msoffice_encryption_analyzer": "ace4_python.modules.msoffice_encryption_analyzer",
     "pcodedmp": "ace4_python.modules.pcodedmp",
     "python_probe": "ace4_python.modules.python_probe",
     "xlmdeobfuscator": "ace4_python.modules.xlmdeobfuscator",

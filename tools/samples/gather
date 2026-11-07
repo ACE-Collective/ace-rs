@@ -31,6 +31,7 @@ import struct
 import subprocess
 import sys
 import tempfile
+import urllib.request
 import zlib
 import zipfile
 from pathlib import Path
@@ -518,6 +519,158 @@ def make_encrypted_office(directory, email_directory):
     return files, [email_directory / name for name in emails]
 
 
+MSOFFCRYPTO_INPUTS = "https://raw.githubusercontent.com/nolze/msoffcrypto-tool/v6.0.0/tests/inputs/"
+# msoffcrypto-tool's own test files, which Office wrote. It's MIT licensed.
+MSOFFCRYPTO_FILES = {
+    "ecma376standard_password.docx": "d265dcf02f7d55248622",
+    "example_password.docx": "0605624697328060fdc7",
+    "example_password.xlsx": "3f792e3902a615bf0e91",
+    "plain.doc": "290f71ddd3f6d940dc35",
+    "plain.ppt": "18555251635eaab62a1f",
+    "plain.xls": "0d57ed3cb8f9e09b0986",
+    "rc4cryptoapi_password.doc": "9c5217bea80fb1a7811a",
+    "rc4cryptoapi_password.ppt": "17a57bcbe7cb517c0884",
+    "rc4cryptoapi_password.xls": "b804cba40c27ea88f2ea",
+    "xor_password_123456789012345.xls": "c75375186933e2413325",
+}
+
+# What html2text does with a body: tools/library-diff/run html2text compares every sample, and these
+# are the branches an email's body can reach.
+HTML_BODIES = {
+    "markup.html": """<html><head><title>not shown</title><style>p {color: red}</style></head>
+<body><h1>Heading one</h1><h2>Two <a href="http://x.test/h">linked</a></h2>
+<p>A paragraph with <b>bold</b>, <strong>strong</strong>, <i>italic</i>, x<em>glued</em>y, <u>under</u>,
+<del>gone</del>, <s>struck</s>, <code>some_code</code>, <kbd>k</kbd>, <tt>t</tt> and <q>quoted</q> text.
+**<b>after stars</b> ~~<del>after tildes</del><b> spaced </b>next<i></i>.</p>
+<p>Line one<br>line two<br/>line three</p><hr>
+<ul><li>one<ul><li>nested <b>bold</b></li><li>nested two</li></ul></li><li>two</li></ul>
+<ol start="3"><li>three<ol><li>inner</li></ol></li><li>four</li></ol>
+<ol start="x"><li>bad start</li></ol><li>loose item</li>
+<blockquote>Quoted text<br>over lines<blockquote>deeper</blockquote></blockquote>
+<pre>  keep
+    this   spacing &amp; so</pre>
+<ul><li><pre>in a list
+second</pre></li></ul>
+<table><tr><th>A</th><th>B</th></tr><tr><td>1</td><td><p>2</p></td></tr></table>
+<dl><dt>term</dt><dd>definition</dd></dl>
+<a href="http://x.test/">http://x.test/</a> <a href="http://x.test/t" title="A (title)">titled</a>
+<a href="#local">internal</a> <a href="mailto:a@x.test">mail</a> <a href="http://x.test/e"></a>
+<a href="http://x.test/[b]">br(ack)ets</a> <a>no href</a> <a href="http://x.test/d"><div>in a div</div></a>
+<a href="http://x.test/h"><h3>in a heading</h3></a> <a href=""><b>empty href</b></a>
+<img src="http://x.test/i.png" alt="An (image)"> <img alt="no src"> <img src="http://x.test/n.png">
+<a href="http://x.test/l"><img src="http://x.test/li.png" alt="in link"></a>
+<abbr title="HyperText">HT</abbr> and <abbr>none</abbr> <abbr title="Again">HT</abbr>
+1. not a list 2. really
++ plus
+- dash
+-- two
+\\* slash \\_ under
+&copy; &mdash; &rarr; &nbsp;x&nbsp; &lrm;&rlm; &eacute; &unknown; &amp; &lt;tag&gt; &#65; &#x41; &#8217; &#150; &#0; &#xD800; &#1114112;
+<sup>up</sup><sub>down</sub> <script>var a = "</' + 'script>";</script><span>after script</span>
+</body></html>
+""",
+    "malformed.html": """<!doctype html><!-- a comment --><!--> abrupt <!---> abrupt <!-- open --!> <![CDATA[ cdata ]]> <?pi here?>
+<! bogus> </ bogus> </> <p class=a id='b' title="c" d = e f=g/ h = 'i' j= "k" l=>m</p>
+<a href=http://x.test/bare>bare</a> <a href='http://x.test/q?a=1&amp;b=2&copy=3&notit;'>amps</a>
+<a href="http://x.test/&#65;&#x42;&#128;&#xD800;&#1;&#0;">numeric</a>
+<a href = 'http://x.test/sp' title = "t">spaced</a> <b / class=x>slash</b> <br/ > <img src=a alt=b/>
+<p title= 'unterminated>text</p> <p a='b>more</p>
+1 < 2 & 3 > 2 &amp &nosemi x&y; &#; &#x; &#xZZ; &# &
+<title>a &amp; <b>b</b></title> <textarea>c &lt; <i>d</i></textarea> <xmp><b>raw</b> &amp;</xmp>
+<iframe>inside</iframe> <noframes>x</noframes><noembed>y</noembed>
+<style>p {} </STYLE > after <SCRIPT>x</script foo>
+<DIV CLASS=X>upper</DIV> <h7>h7</h7> <h0>h0</h0> <hx>hx</hx>
+<b>unclosed <i>tags <table><tr><td>cell<td>next</table> </li> </ul> </ol> </blockquote> </a> </pre>
+<body>quiet ended <head>head again<body>body again
+<a href="http://x.test/open">left open <plaintext><b>all raw</b> &amp; </plaintext> to the end
+""",
+    "long.txt": """The password for the attached document is in this rather long line of text, which goes on past the width html2text wraps at, so it wraps with hyphen-ated words and a-very-long-hyphenated-token-that-keeps-going and http://x.test/a/very/long/url/that/can/not/be/broken/because/break_long_words/is/off/and/keeps/on/going
+> A quoted line that is also long enough that it has to wrap and so its next line gets the greater than sign in front of it again
+
+  * a list-looking line that is long enough to wrap but isn't wrapped because of what it starts with, and this is its long tail
+    four spaces is a code block, which isn't wrapped, whatever its length is, and this is its long tail, on and on and on
+\ttab first
+| a | table | line | that is long enough to wrap but is not wrapped because of the pipes in it, and this is its long tail ok
+12. a numbered line that is long enough to wrap but isn't wrapped because of what it starts with, and this is its long tail
+
+trailing spaces  
+next
+""",
+    "raises_reference.html": "<p>before &#1a after</p>",
+    "raises_start.html": "<p>before</p><ol start><li>item</li></ol>",
+    "unicode.html": "<p>café 中文 \U0001F600 a b c d\x85e\x1cf</p><ol start=\"٣\"><li>arabic</li></ol>"
+    "<ol start=\"1_0\"><li>underscore</li></ol><ol start=\" -2 \"><li>minus</li></ol>"
+    "<p>٣. arabic number</p>\r\n<p>crlf\r\nbreak\rcr</p>٣٤. digits\n٣. nbsp",
+}
+
+
+def make_encrypted_binary(directory, email_directory, html_directory):
+    """Each kind of encryption msoffcrypto reads, on its own at the top level as well as in an email: Office's
+    own files from msoffcrypto-tool's tests, and tools/samples/make-encrypted-binary's for what those
+    don't cover, broken ones included. A top-level file gets only the two default passwords, as it
+    has no email; tools/library-diff tries its whole list on every file."""
+    for name, digest in MSOFFCRYPTO_FILES.items():
+        with urllib.request.urlopen(MSOFFCRYPTO_INPUTS + name) as response:
+            data = response.read()
+        if hashlib.sha256(data).hexdigest()[:20] != digest:
+            raise SystemExit(f"{name} isn't the file this was written for")
+        (directory / f"msoffcrypto_{name}").write_bytes(data)
+    with tempfile.TemporaryDirectory(dir=REPO / "target") as work:
+        subprocess.run(
+            ["docker", "run", "--rm", "-u", f"{os.getuid()}:{os.getgid()}", "--entrypoint", "python3",
+             "-v", f"{REPO}:/repo:ro", "-v", f"{work}:/out", "ace4-python:latest", "-I", "-B",
+             "/repo/tools/samples/make-encrypted-binary", "/out",
+             "/repo/samples/ace3/office/doc.doc", "/repo/samples/ace3/office/doc.docx",
+             "/repo/samples/ace3/email/encrypted_msoffice.email.rfc822"],
+            check=True, stdout=subprocess.DEVNULL,
+        )
+        made = {path.name: path.read_bytes() for path in Path(work).iterdir()}
+    files = []
+    for name, data in made.items():
+        (directory / f"encrypted_{name}").write_bytes(data)
+        files.append(directory / f"encrypted_{name}")
+    html_directory.mkdir(parents=True, exist_ok=True)
+    bodies = []
+    for name, text in HTML_BODIES.items():
+        path = html_directory / f"html2text_{name}"
+        path.write_bytes(text.encode())
+        bodies.append(path)
+    emails = {
+        "encrypted_rc4_doc.email.rfc822": ("The password is R4Binary1\n", "invoice.doc", "rc4.doc", None),
+        "encrypted_cryptoapi_doc.email.rfc822": ("The password is CryptoAp1\n", "invoice.doc", "cryptoapi.doc", None),
+        "encrypted_rc4_xls.email.rfc822": ("The password is R4Binary1\n", "invoice.xls", "rc4.xls", None),
+        "encrypted_cryptoapi_ppt.email.rfc822": ("The password is CryptoAp1\n", "invoice.ppt", "cryptoapi.ppt", None),
+        "encrypted_rc4_wrong.email.rfc822": ("The password is Wr0ngOne\n", "invoice.doc", "rc4_not_in_list.doc", None),
+        "encrypted_ppt_wrong.email.rfc822": ("The password is Wr0ngOne\n", "invoice.ppt", "cryptoapi.ppt", None),
+        "encrypted_not_zip.email.rfc822": ("The password is Secr3tPw\n", "invoice.docx", "not_zip.docx", None),
+        "encrypted_html_markup.email.rfc822": (
+            "See the HTML part\n", "invoice.docx", "agile.docx",
+            '<html><head><title>x</title></head><body><h2>Your &amp; document</h2><ol start="2"><li>Open it</li>'
+            '<li>Use <a href="http://x.test/help">the <b>password</b></a>: <code>Secr3tPw</code></li></ol>'
+            "<table><tr><td>a</td><td>b</td></tr></table></body></html>\n",
+        ),
+        "encrypted_body_raises.email.rfc822": ("before &#1a after\n", "invoice.docx", "agile.docx", None),
+        "encrypted_agile_sha1.email.rfc822": ("The password is Secr3tPw\n", "invoice.docx", "agile_sha1.docx", None),
+        "encrypted_agile_sha256.email.rfc822": ("The password is Secr3tPw\n", "invoice.docx", "agile_sha256.docx", None),
+    }
+    paths = []
+    for name, (body, attachment, source, html) in emails.items():
+        path = email_directory / name
+        message = encrypted_email(path, body, [(attachment, made[source])], html=html)
+        path.write_bytes(message.as_bytes())
+        paths.append(path)
+    how = "made by tools/samples/gather: tools/samples/make-encrypted-binary"
+    records = [
+        entry(directory / f"msoffcrypto_{name}", ["office/encrypted"],
+              f"msoffcrypto-tool v6.0.0 tests/inputs/{name}, written by Office")
+        for name in MSOFFCRYPTO_FILES
+    ]
+    records += [entry(path, ["office/encrypted"], how) for path in files]
+    records += [entry(path, ["email", "office/encrypted"], how) for path in paths]
+    records += [entry(path, ["html/body"], "made by tools/samples/gather: HTML_BODIES") for path in bodies]
+    return records
+
+
 def pdf_libraries_image():
     """The Dockerfile's pdf-libraries stage, which has pikepdf, as an image id."""
     return subprocess.run(
@@ -589,6 +742,9 @@ def main():
         samples.append(entry(path, ["office/encrypted"], how))
     for path in office_emails:
         samples.append(entry(path, ["email", "office/encrypted"], how))
+    samples.extend(
+        make_encrypted_binary(SAMPLES / "ace4" / "office", SAMPLES / "ace4" / "email", SAMPLES / "ace4" / "html")
+    )
 
     xlm = subprocess.run(
         [sys.executable, "-I", str(REPO / "tools" / "samples" / "make-xlm"), str(SAMPLES / "ace4" / "office")],
@@ -628,7 +784,7 @@ def main():
         "gaps": [
             "an encrypted RAR: making one needs RARLAB's non-free rar tool",
             "PowerPoint and Excel files with VBA macros: ace3's tests hold Word ones only",
-            "an encrypted .ppt, and an RC4 .doc: msoffcrypto writes neither, only ace3's RC4 .xls is here",
+            "binary RC4 without CryptoAPI as Office 97 wrote it: tools/samples/make-encrypted-binary writes it from MS-OFFCRYPTO",
         ],
         "samples": sorted(samples, key=lambda sample: sample["path"]),
     }

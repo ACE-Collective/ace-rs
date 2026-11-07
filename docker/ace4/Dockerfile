@@ -113,8 +113,8 @@ RUN python -m compileall -q /opt/ace4/python
 COPY --from=build /out/ace-python /usr/local/bin/ace-python
 CMD ["ace-python"]
 
-# pikepdf for tools/library-diff/run (PLAN.md 4.9's comparison). Decision 8 keeps it out of the pool,
-# so nothing in the stack runs this. Same Python, wheels only, by hash.
+# pikepdf and html2text for tools/library-diff/run (PLAN.md 4.9's and 4.11's comparisons). Decision 8
+# keeps pikepdf out of the pool and 4.11's port replaced html2text there, so nothing in the stack runs this. Same Python, wheels only, by hash.
 FROM python:3.14.10-slim-trixie@sha256:af8a5aa14780025dbfbcfbc81bd8a91ebd87711dd5b0f48ed71090949dd7cb1d AS pdf-libraries
 COPY python/pdf-requirements.txt /tmp/pdf-requirements.txt
 RUN pip install --no-cache-dir --disable-pip-version-check --no-deps --require-hashes \

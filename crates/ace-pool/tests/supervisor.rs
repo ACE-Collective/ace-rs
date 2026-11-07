@@ -387,6 +387,116 @@ async fn measure_hostile_oletools() {
     let _ = pool.stop();
 }
 
+/// The email module and the Office one, on real emails, as the parser pool runs them.
+async fn email_and_office_core() -> Core {
+    Core::start(
+        vec![ace_mod_email::MANIFEST, ace_mod_msoffice::MANIFEST],
+        &["email_analyzer", "msoffice_encryption_analyzer"],
+        Duration::from_secs(400),
+    )
+    .await
+}
+
+async fn msoffice_details(core: &Core, root: uuid::Uuid) -> serde_json::Value {
+    sqlx::query_scalar(
+        "SELECT details FROM analysis.results
+         WHERE root_id = $1 AND analysis_type = 'msoffice_encryption_analysis'",
+    )
+    .bind(root)
+    .fetch_one(core.test_db.db().pool())
+    .await
+    .expect("a result")
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn an_attachment_opens_with_its_emails_body_in_a_contained_task_process() {
+    let core = email_and_office_core().await;
+    let mut pool = supervisor(&core, &[]);
+    for (sample, password) in [
+        (
+            "ace4/email/encrypted_rc4_doc.email.rfc822",
+            Some("R4Binary1"),
+        ),
+        (
+            "ace4/email/encrypted_cryptoapi_ppt.email.rfc822",
+            Some("CryptoAp1"),
+        ),
+        (
+            "ace4/email/encrypted_nested_html.email.rfc822",
+            Some("InnerPw1"),
+        ),
+        ("ace4/email/encrypted_wrong_password.email.rfc822", None),
+    ] {
+        let bytes = std::fs::read(ace_testkit::samples_dir().join(sample)).expect("the sample");
+        let (root, _) = root_with_bytes(&core, "email", &bytes, "email.rfc822").await;
+        wait_until_idle(&core, root, Duration::from_secs(60)).await;
+        let details = msoffice_details(&core, root).await;
+        assert_eq!(
+            details["password"].as_str(),
+            password,
+            "{sample}: {details}"
+        );
+        assert_eq!(details["email"], json!(true), "{sample}: {details}");
+    }
+    let _ = pool.stop();
+}
+
+/// What docs/measurements/msoffice.md records: a full list of passwords on Office 2013's encryption, and
+/// a spin count of 2^31-1, in a real task process with the module's real limits.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[ignore = "a measurement, which takes the module's whole deadline"]
+async fn measure_msoffice() {
+    use base64::Engine;
+    let core = email_and_office_core().await;
+    let mut pool = supervisor(&core, &[]);
+    let office =
+        std::fs::read(ace_testkit::samples_dir().join("ace4/office/encrypted_no_email.docx"))
+            .expect("the sample");
+    // no whitespace, so every window is a password, up to the list's limit of 5,000
+    let mut seed = 0x2545_F491_u32;
+    let body: String = (0..1200)
+        .map(|_| {
+            seed ^= seed << 13;
+            seed ^= seed >> 17;
+            seed ^= seed << 5;
+            char::from(b'a' + (seed % 26) as u8)
+        })
+        .collect();
+    let email = |office: &[u8]| {
+        format!(
+            "From: a@example.com\r\nTo: b@example.com\r\nSubject: s\r\nMIME-Version: 1.0\r\n\
+             Content-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\nContent-Type: text/plain\r\n\r\n\
+             {body}\r\n--b\r\nContent-Type: application/octet-stream\r\n\
+             Content-Disposition: attachment; filename=a.docx\r\n\
+             Content-Transfer-Encoding: base64\r\n\r\n{}\r\n--b--\r\n",
+            base64::engine::general_purpose::STANDARD.encode(office)
+        )
+    };
+    let from = b"    <p:encryptedKey spinCount=\"100000\"";
+    let to = b"<p:encryptedKey spinCount=\"2147483647\"";
+    let at = office
+        .windows(from.len())
+        .position(|window| window == from)
+        .expect("the attribute");
+    let mut huge = office.clone();
+    huge[at..at + to.len()].copy_from_slice(to);
+    for (name, file) in [("5,000 passwords", &office), ("spin count 2^31-1", &huge)] {
+        let (root, _) =
+            root_with_bytes(&core, "email", email(file).as_bytes(), "email.rfc822").await;
+        let started = std::time::Instant::now();
+        wait_until_idle(&core, root, Duration::from_secs(300)).await;
+        let details = msoffice_details(&core, root).await;
+        let words = details["word_list"].as_array().map_or(0, Vec::len);
+        println!(
+            "{name}: {:.1} s, {words} in the list, error {}",
+            started.elapsed().as_secs_f64(),
+            details["error"]
+        );
+    }
+    assert!(pool.running());
+    let _ = pool.stop();
+}
+
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn the_yara_module_scans_in_a_contained_task_process() {
     let rules = tempfile::tempdir().expect("a rules directory");

@@ -12,8 +12,8 @@ use std::sync::Arc;
 use ace_results::AnalysisType;
 use ace_sdk::wire::{LeasedTask, TaskEnd};
 use ace_sdk::{
-    Component, FileStore, Lookup, Manifest, ModuleError, Outcome, Parser, Secrets, SettingsError,
-    TaskContext, load_settings, run_lookup, run_parser,
+    CarryingEmail, Component, FileStore, Lookup, Manifest, ModuleError, Outcome, Parser, Secrets,
+    SettingsError, TaskContext, load_settings, run_lookup, run_parser,
 };
 use serde_json::Value;
 use tokio_util::sync::CancellationToken;
@@ -50,12 +50,28 @@ pub struct Run<'a> {
     pub task: &'a LeasedTask,
     /// The input file's bytes on this machine, for a file task.
     pub input: Option<&'a Path>,
+    /// The body of the email that carried the task's file, for a module that reads it.
+    pub email_body: Option<&'a Path>,
     /// Where the module's output files go.
     pub outputs: Arc<dyn FileStore>,
     pub cancel: CancellationToken,
     /// True when the task runs contained (PLAN.md 2.18), so the module avoids what starts
     /// threads.
     pub contained: bool,
+}
+
+impl Run<'_> {
+    /// What the task's leased form and its fetched file say of the email that carried it.
+    fn carrying_email(&self) -> CarryingEmail {
+        if self.task.emails_pending {
+            return CarryingEmail::Pending;
+        }
+        match (&self.task.carrying_email, self.email_body) {
+            (None, _) => CarryingEmail::Absent,
+            (Some(_), Some(body)) => CarryingEmail::Body(body.to_owned()),
+            (Some(_), None) => CarryingEmail::NoBody,
+        }
+    }
 }
 
 /// A parser a pool runs, built with its settings.
@@ -127,7 +143,8 @@ impl<M: ace_sdk::Module> Entry<M> {
         .with_cancel(run.cancel.clone())
         .with_file_store(run.outputs.clone())
         .with_contained(run.contained)
-        .with_task_id(run.task.id);
+        .with_task_id(run.task.id)
+        .with_carrying_email(run.carrying_email());
         match &run.task.delayed {
             Some(delayed) => ctx.with_delayed(delayed.clone()),
             None => ctx,
@@ -384,5 +401,65 @@ impl Registry {
                     .ok_or_else(|| SetupError::Unknown(component.manifest.name.to_owned()))?;
                 build(component, secrets, modules)
             })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ace_results::ObservableKind;
+    use ace_sdk::LocalFileStore;
+    use ace_sdk::wire::{CarryingEmail as WireEmail, TaskObservable};
+    use uuid::Uuid;
+
+    fn task(carrying_email: Option<WireEmail>, emails_pending: bool) -> LeasedTask {
+        LeasedTask {
+            id: 1,
+            root: Uuid::nil(),
+            module: "m".to_owned(),
+            attempts: 1,
+            lease_expires_at: chrono::Utc::now(),
+            lease_seconds: 1.0,
+            observable: TaskObservable {
+                kind: ObservableKind::File,
+                value: String::new(),
+                time: None,
+                directives: Vec::new(),
+                file: None,
+                redirection: None,
+            },
+            delayed: None,
+            input_hashes: Vec::new(),
+            carrying_email,
+            emails_pending,
+            yara_rules_below: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn a_module_is_told_what_its_lease_and_its_fetched_file_say_of_the_email() {
+        let dir = tempfile::tempdir().expect("a directory");
+        let store: Arc<dyn FileStore> =
+            Arc::new(LocalFileStore::new(dir.path().join("o")).expect("a store"));
+        let body = dir.path().join("email_body");
+        let state = |task: &LeasedTask, email_body: Option<&Path>| {
+            Run {
+                task,
+                input: None,
+                email_body,
+                outputs: store.clone(),
+                cancel: CancellationToken::new(),
+                contained: false,
+            }
+            .carrying_email()
+        };
+        let no_body = task(Some(WireEmail { body: None }), false);
+        assert_eq!(state(&task(None, true), None), CarryingEmail::Pending);
+        assert_eq!(state(&task(None, false), None), CarryingEmail::Absent);
+        assert_eq!(state(&no_body, None), CarryingEmail::NoBody);
+        assert_eq!(
+            state(&no_body, Some(&body)),
+            CarryingEmail::Body(body.clone())
+        );
     }
 }

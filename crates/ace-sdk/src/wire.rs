@@ -137,6 +137,10 @@ pub struct LeasedTask {
     /// (`Module::READS_CARRYING_EMAIL`). None when the module doesn't, or no email carried it.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub carrying_email: Option<CarryingEmail>,
+    /// For a module that reads its carrying email: an email in the root hasn't been parsed yet, so
+    /// `carrying_email` can't be told yet. A module that needs it delays itself.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub emails_pending: bool,
     /// The YARA rules that matched the task's observable or anything below it, by name, for a module
     /// that runs last (`Module::RUNS_LAST`). Empty for any other.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]

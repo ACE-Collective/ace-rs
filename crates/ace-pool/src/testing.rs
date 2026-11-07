@@ -38,6 +38,10 @@ pub fn modules(settings: &Value) -> Result<Modules, SetupError> {
             block("rtfole"),
             &secrets,
         )?)
+        .with_parser(Entry::<ace_mod_msoffice::MsofficeEncryption>::parser(
+            block("msoffice_encryption_analyzer"),
+            &secrets,
+        )?)
         .with_parser(Entry::<ace_mod_archive::ArchiveAnalyzer>::parser(
             block("archive"),
             &secrets,

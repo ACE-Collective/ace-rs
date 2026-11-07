@@ -205,8 +205,6 @@ struct WorkerRequest<'a> {
     schema_version: u32,
     settings: Option<&'a Value>,
     input: Option<&'a Path>,
-    /// The body of the email that carried the task's file, for a module that reads it.
-    email_body: Option<&'a Path>,
     outputs: &'a Path,
 }
 
@@ -714,7 +712,6 @@ async fn fetch_and_run(
 ) -> Result<(TaskEnd, Option<&'static str>), ClientError> {
     let input = fetch_input(client, task, dir).await?;
     open_to_task_user(dir, input.as_deref(), config.user)?;
-    let email_body = fetch_email_body(client, task, dir).await?;
     let dumper = StackDumper {
         program: config.py_spy.clone(),
         user: config.user,
@@ -729,7 +726,6 @@ async fn fetch_and_run(
         schema_version: manifest.output.version,
         settings: module.settings.as_ref(),
         input: input.as_deref(),
-        email_body: email_body.as_deref(),
         outputs: &outputs,
     };
     Ok(worker
@@ -741,25 +737,6 @@ async fn fetch_and_run(
             &dumper,
         )
         .await)
-}
-
-/// Downloads the body of the email that carried the task's file, for the worker's user to read.
-async fn fetch_email_body(
-    client: &LeaseClient,
-    task: &LeasedTask,
-    dir: &TaskDir,
-) -> Result<Option<PathBuf>, ClientError> {
-    let Some(download) = task
-        .carrying_email
-        .as_ref()
-        .and_then(|email| email.body.as_ref())
-    else {
-        return Ok(None);
-    };
-    let path = dir.path().join("email_body");
-    client.download(download, &path).await?;
-    std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o644))?;
-    Ok(Some(path))
 }
 
 /// Puts the slot right after a task: the worker back if it stays, or a replacement starting.

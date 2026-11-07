@@ -1,0 +1,414 @@
+#!/usr/bin/env python3
+"""Makes samples/ace4's encrypted binary Office files and the broken encrypted ones, for tools/samples/gather.
+It runs in the Python pool's image, which has msoffcrypto, olefile and cryptography, and imports
+tools/samples/make-oletools and make-encrypted-office from beside it:
+
+    make-encrypted-binary <out dir> <plain.doc> <plain.docx> <encrypted_msoffice.email.rfc822>
+
+msoffcrypto reads these formats and writes none of them, so each is written here from MS-OFFCRYPTO, in place
+in a plain file, and read back with msoffcrypto before it's kept. So they aren't Office's own: the samples
+called msoffcrypto_* are, for the kinds Office still writes (tools/samples/gather downloads them). Office's
+own binary RC4, without CryptoAPI, is a format of Office 97, and no sample here is written by it.
+
+The password of each is in tools/library-diff/adapters/msoffcrypto.py's list, except NeverInList5. Salts are
+random, so a file's sha256 changes on every run.
+"""
+
+import importlib.machinery
+import importlib.util
+import io
+import os
+import struct
+import sys
+from hashlib import md5, sha1
+from pathlib import Path
+
+import msoffcrypto
+import olefile
+from cryptography.hazmat.decrepit.ciphers.algorithms import ARC4
+from cryptography.hazmat.primitives.ciphers import Cipher
+from msoffcrypto.format import xls97
+from msoffcrypto.method.container.ecma376_encrypted import ECMA376Encrypted
+from msoffcrypto.method import ecma376_agile
+from msoffcrypto.method.xor_obfuscation import DocumentXOR
+
+
+def load(name):
+    """A script beside this one, by path, since it has no .py."""
+    path = str(Path(__file__).resolve().parent / name)
+    loader = importlib.machinery.SourceFileLoader(name.replace("-", "_"), path)
+    spec = importlib.util.spec_from_loader(loader.name, loader)
+    module = importlib.util.module_from_spec(spec)
+    loader.exec_module(module)
+    return module
+
+
+oletools = load("make-oletools")
+office = load("make-encrypted-office")
+
+
+def utf16(password):
+    return password.encode("utf-16-le")
+
+
+def arc4(key, data):
+    return Cipher(ARC4(key), mode=None).encryptor().update(data)
+
+
+class Rc4:
+    """Office 97's RC4 with MD5, with its EncryptionVersionInfo-less header at `header()`."""
+
+    version = (1, 1)
+
+    def __init__(self, password):
+        self.salt = os.urandom(16)
+        first = md5(utf16(password)).digest()[:5]
+        self.stem = md5((first + self.salt) * 16).digest()[:5]
+
+    def key(self, block):
+        return md5(self.stem + struct.pack("<I", block)).digest()
+
+    def header(self):
+        verifier = os.urandom(16)
+        hashed = md5(verifier).digest()
+        sealed = arc4(self.key(0), verifier + hashed)
+        return struct.pack("<HH", *self.version) + self.salt + sealed
+
+
+class CryptoApi:
+    """RC4 with CryptoAPI."""
+
+    version = (2, 2)
+
+    def __init__(self, password, bits=128):
+        self.salt = os.urandom(16)
+        self.bits = bits
+        self.first = sha1(self.salt + utf16(password)).digest()
+
+    def key(self, block):
+        last = sha1(self.first + struct.pack("<I", block)).digest()
+        if self.bits == 40:
+            return last[:5] + bytes(11)
+        return last[: self.bits // 8]
+
+    def header(self):
+        provider = "Microsoft Enhanced Cryptographic Provider v1.0\0".encode("utf-16-le")
+        header = struct.pack("<IIIIIIII", 4, 0, 0x6801, 0x8004, self.bits, 1, 0, 0) + provider
+        verifier = os.urandom(16)
+        hashed = sha1(verifier).digest()
+        sealed = arc4(self.key(0), verifier + hashed)
+        return (
+            struct.pack("<HH", *self.version)
+            + struct.pack("<II", 4, len(header))
+            + header
+            + struct.pack("<I", 16)
+            + self.salt
+            + sealed[:16]
+            + struct.pack("<I", 20)
+            + sealed[16:]
+        )
+
+
+def blocks(cipher, data, size=0x200, first=0):
+    """RC4 rekeyed every `size` bytes."""
+    out = bytearray()
+    for index in range(0, len(data), size):
+        out += arc4(cipher.key(first + index // size), data[index : index + size])
+    return bytes(out)
+
+
+def rewrite(plain, streams):
+    """`plain` with each stream replaced by bytes of its own size."""
+    buffer = io.BytesIO(plain)
+    ole = olefile.OleFileIO(buffer, write_mode=True)
+    for name, data in streams.items():
+        ole.write_stream(name, data)
+    return buffer.getvalue()
+
+
+def checked(data, password, wrong="NeverInList5"):
+    """Refuses a file msoffcrypto doesn't open with its password, or does with another."""
+    if password:
+        opened = msoffcrypto.OfficeFile(io.BytesIO(data))
+        assert opened.is_encrypted()
+        opened.load_key(password=password)
+        opened.decrypt(io.BytesIO())
+        shut = msoffcrypto.OfficeFile(io.BytesIO(data))
+        try:
+            if shut.format == "ooxml":
+                shut.load_key(password=wrong, verify_password=True)
+            else:
+                shut.load_key(password=wrong)
+        except msoffcrypto.exceptions.InvalidKeyError:
+            return data
+        raise SystemExit(f"{password} isn't the only password that opens it")
+    return data
+
+
+def encrypted_doc(plain, cipher):
+    """The FIB says encrypted and how long the header is, the table's start holds that header, and all
+    but the first 0x44 bytes of WordDocument are encrypted, with the table and Data."""
+    ole = olefile.OleFileIO(io.BytesIO(plain))
+    word = bytearray(ole.openstream("WordDocument").read())
+    flags = struct.unpack_from("<H", word, 0x0A)[0]
+    table = "1Table" if flags & 0x0200 else "0Table"
+    header = cipher.header()
+    plain_table = ole.openstream(table).read()
+    assert len(header) <= len(plain_table)
+    streams = {}
+    sealed = bytearray(blocks(cipher, bytes(word)))
+    sealed[:0x44] = word[:0x44]
+    struct.pack_into("<H", sealed, 0x0A, flags | 0x0100)
+    struct.pack_into("<I", sealed, 0x0E, len(header))
+    streams["WordDocument"] = bytes(sealed)
+    streams[table] = header + blocks(cipher, plain_table)[len(header):]
+    if ole.exists("Data"):
+        streams["Data"] = blocks(cipher, ole.openstream("Data").read())
+    return rewrite(plain, streams)
+
+
+def plain_workbook(plain):
+    """The FilePass msoffcrypto's decryption blanks is the one record with number 0."""
+    workbook = bytearray(olefile.OleFileIO(io.BytesIO(plain)).openstream("Workbook").read())
+    at = 0
+    while at < len(workbook):
+        kind, size = struct.unpack_from("<HH", workbook, at)
+        if kind == 0:
+            return workbook, at, size
+        at += 4 + size
+    raise SystemExit("this workbook has no blanked FilePass")
+
+
+def records(workbook):
+    """(kind, size, where its payload is), in order."""
+    at = 0
+    while at < len(workbook):
+        kind, size = struct.unpack_from("<HH", workbook, at)
+        yield kind, size, at + 4
+        at += 4 + size
+
+
+KEPT = {
+    xls97.recordNameNum[name]
+    for name in ("BOF", "FilePass", "UsrExcl", "FileLock", "InterfaceHdr", "RRDInfo", "RRDHead")
+}
+
+
+def payload_mask(workbook):
+    """Which bytes of the stream are encrypted, by offset."""
+    mask = bytearray(len(workbook))
+    for kind, size, at in records(workbook):
+        if kind in KEPT:
+            continue
+        skip = 4 if kind == xls97.recordNameNum["BoundSheet8"] else 0
+        mask[at + skip : at + size] = b"\1" * max(size - skip, 0)
+    return mask
+
+
+def encrypted_xls_rc4(plain, cipher):
+    workbook, at, size = plain_workbook(plain)
+    info = struct.pack("<H", 1) + cipher.header()
+    assert len(info) <= size
+    struct.pack_into("<H", workbook, at, xls97.recordNameNum["FilePass"])
+    workbook[at + 4 : at + 4 + size] = info.ljust(size, b"\0")
+    mask = payload_mask(workbook)
+    stream = blocks(cipher, bytes(b if m else 0 for b, m in zip(workbook, mask)), size=1024)
+    sealed = bytes(s if m else b for s, b, m in zip(stream, workbook, mask))
+    return rewrite(plain, {"Workbook": sealed})
+
+
+def verifier_of(password):
+    chars = [ord(c) for c in password]
+    value = 0
+    for byte in [*reversed(chars), len(chars)]:
+        value = (((value & 0x4000) != 0) ^ ((value * 2) & 0x7FFF)) ^ byte
+    return value ^ 0xCE4B
+
+
+def encrypted_xls_xor(plain, password):
+    """Method 1, which rotates each byte and XORs it with a 16-byte array by its place in the stream."""
+    workbook, at, size = plain_workbook(plain)
+    array = DocumentXOR.create_xor_array_method1(password)
+    key = DocumentXOR.create_xor_key_method1(password)
+    assert size >= 6
+    struct.pack_into("<H", workbook, at, xls97.recordNameNum["FilePass"])
+    workbook[at + 4 : at + 4 + size] = struct.pack("<HHH", 0, key, verifier_of(password)).ljust(size, b"\0")
+    mask = payload_mask(workbook)
+    sealed = bytearray(workbook)
+    index = 0
+    while index < len(workbook):
+        if not mask[index]:
+            index += 1
+            continue
+        end = index
+        while end < len(workbook) and mask[end]:
+            end += 1
+        sheet = any(
+            kind == xls97.recordNameNum["BoundSheet8"] and payload + 4 == index
+            for kind, _, payload in records(workbook)
+        )
+        count = end - index
+        place = (index + count + (4 if sheet else 0)) % 16
+        for offset in range(index, end):
+            rotated = DocumentXOR.rol(workbook[offset], 5, 8)
+            sealed[offset] = rotated ^ array[place]
+            place = (place + 1) % 16
+        index = end
+    return rewrite(plain, {"Workbook": bytes(sealed)})
+
+
+def ppt_record(version, instance, kind, data):
+    return struct.pack("<HHI", version | instance << 4, kind, len(data)) + data
+
+
+def encrypted_ppt(password, padding=0, session=True):
+    """A PowerPoint file with a document, a slide and the encryption session, its objects each RC4'd
+    under its persist id. No Office wrote it: msoffcrypto_rc4cryptoapi_password.ppt is Office's."""
+    cipher = CryptoApi(password)
+    document = ppt_record(0xF, 0, 0x3E8, b"document " * 8)
+    slide = ppt_record(0xF, 0, 0x3EE, b"slide " * 8 + bytes(padding))
+    crypt = ppt_record(0xF, 0, 0x2F14, cipher.header())
+    objects = [(1, document), (2, slide), (3, crypt)]
+    stream = bytearray()
+    offsets = []
+    for persist, data in objects:
+        offsets.append(len(stream))
+        if persist == 3:
+            stream += data
+        else:
+            sealed = arc4(cipher.key(persist), data)
+            stream += sealed
+    edit_at = len(stream)
+    directory_at = edit_at + 40
+    edit = (
+        struct.pack("<IHBB", 1, 0, 0, 3)
+        + struct.pack("<IIII", 0, directory_at, 1, 4)
+        + struct.pack("<H", 1)
+        + bytes(2)
+        + struct.pack("<I", 3 if session else 99)
+    )
+    stream += ppt_record(0, 0, 0xFF5, edit)
+    entry = struct.pack("<I", 1 | len(offsets) << 20) + b"".join(struct.pack("<I", o) for o in offsets)
+    stream += ppt_record(0, 0, 0x1772, entry)
+    name = b"a"
+    user = ppt_record(
+        0,
+        0,
+        0xFF6,
+        struct.pack("<IIIHHBB", 0x14, 0xF3D1C4DF, edit_at, len(name), 0x3F4, 3, 0)
+        + bytes(2)
+        + name
+        + struct.pack("<I", 8),
+    )
+    return oletools.Cfb({"Current User": user, "PowerPoint Document": bytes(stream)}).build()
+
+
+def agile_with(plain, password, hash_name, bits):
+    """Agile with another hash and key size than msoffcrypto writes, as Office 2010 did."""
+    real = ecma376_agile.ECMA376AgileCipherParams.__init__
+
+    def params(self):
+        real(self)
+        self.hashName = hash_name
+        self.keyBits = bits
+        self.hashSize = {"SHA1": 20, "SHA256": 32, "SHA384": 48, "SHA512": 64}[hash_name]
+
+    def integrity(*_):
+        # msoffcrypto's writer takes a 64-byte hash for granted, and nothing here reads these
+        return os.urandom(64), os.urandom(64)
+
+    real_integrity = ecma376_agile.ECMA376Agile.generate_integrity_parameter
+    ecma376_agile.ECMA376AgileCipherParams.__init__ = params
+    ecma376_agile.ECMA376Agile.generate_integrity_parameter = staticmethod(integrity)
+    try:
+        return office.agile(plain, password)
+    finally:
+        ecma376_agile.ECMA376AgileCipherParams.__init__ = real
+        ecma376_agile.ECMA376Agile.generate_integrity_parameter = staticmethod(real_integrity)
+
+
+def info_container(info, package=b"\0" * 4096):
+    out = io.BytesIO()
+    ECMA376Encrypted(package, info).write_to(out)
+    return out.getvalue()
+
+
+def agile_info(replace=()):
+    """EncryptionInfo of a real Agile file, changed by text."""
+    source = ecma376_agile.ECMA376Agile.encrypt("Secr3tPw", io.BytesIO(b"PK\5\6" + bytes(18)))
+    info = olefile.OleFileIO(io.BytesIO(source)).openstream("EncryptionInfo").read()
+    xml = info[8:].decode()
+    for before, after in replace:
+        assert before in xml, before
+        xml = xml.replace(before, after)
+    return info[:8] + xml.encode()
+
+
+def main(out, doc_path, docx_path, xls_email):
+    with open(doc_path, "rb") as fp:
+        doc = fp.read()
+    with open(docx_path, "rb") as fp:
+        docx = fp.read()
+    xls = office.plain_xls(xls_email)
+    files = {
+        "rc4.doc": checked(encrypted_doc(doc, Rc4("R4Binary1")), "R4Binary1"),
+        "rc4_not_in_list.doc": checked(encrypted_doc(doc, Rc4("NeverInList5")), "NeverInList5", "R4Binary1"),
+        "cryptoapi.doc": checked(encrypted_doc(doc, CryptoApi("CryptoAp1")), "CryptoAp1"),
+        "cryptoapi_40.doc": checked(encrypted_doc(doc, CryptoApi("CryptoAp1", 40)), "CryptoAp1"),
+        "rc4.xls": checked(encrypted_xls_rc4(xls, Rc4("R4Binary1")), "R4Binary1"),
+        "cryptoapi.xls": checked(encrypted_xls_rc4(xls, CryptoApi("CryptoAp1")), "CryptoAp1"),
+        "xor_odd.xls": checked(encrypted_xls_xor(xls, "x0rPass"), "x0rPass"),
+        "xor_even.xls": checked(encrypted_xls_xor(xls, "x0rPass8"), "x0rPass8"),
+        "xor_velvet.xls": checked(encrypted_xls_xor(xls, "VelvetSweatshop"), "VelvetSweatshop"),
+        "cryptoapi.ppt": checked(encrypted_ppt("CryptoAp1"), "CryptoAp1"),
+        "cryptoapi_large.ppt": checked(encrypted_ppt("CryptoAp1", padding=8192), "CryptoAp1"),
+        "ppt_no_session.ppt": encrypted_ppt("CryptoAp1", session=False),
+        "agile.docx": checked(office.agile(docx, "Secr3tPw"), "Secr3tPw"),
+        # msoffcrypto compares SHA-1's 20 bytes with a verifier padded to 32, so no password verifies
+        "agile_sha1.docx": agile_with(docx, "Secr3tPw", "SHA1", 128),
+        "agile_sha256.docx": checked(agile_with(docx, "Secr3tPw", "SHA256", 256), "Secr3tPw"),
+        "agile_sha384.docx": checked(agile_with(docx, "Secr3tPw", "SHA384", 256), "Secr3tPw"),
+        "standard.docx": office.standard(docx, "St4ndard"),
+        "not_zip.docx": ecma376_agile.ECMA376Agile.encrypt("Secr3tPw", io.BytesIO(b"not a zip " * 500)),
+        "bad_xml.docx": info_container(agile_info([("</encryption>", "<")])),
+        "bad_no_key_data.docx": info_container(agile_info([("<keyData ", "<keyDatum ")])),
+        "bad_prefixed_key_data.docx": info_container(
+            agile_info([("<keyData ", '<x:keyData xmlns:x="urn:x" ')])
+        ),
+        "bad_no_encrypted_key.docx": info_container(agile_info([("p:encryptedKey", "p:encryptedKeyish")])),
+        "bad_key_bits.docx": info_container(agile_info([('keyBits="256"\n', 'keyBits="100"\n')])),
+        "bad_key_bits_text.docx": info_container(agile_info([('keyBits="256"\n', 'keyBits="many"\n')])),
+        "bad_spin.docx": info_container(agile_info([('spinCount="100000"', 'spinCount="-5"')])),
+        "bad_salt.docx": info_container(agile_info([('saltValue="', 'saltValue="A')])),
+        "bad_hash_name.docx": info_container(agile_info([('hashAlgorithm="SHA512"', 'hashAlgorithm="WHIRLPOOL"')])),
+        "bad_version.docx": info_container(struct.pack("<HHI", 5, 5, 0) + bytes(64)),
+        "bad_short_info.docx": info_container(b"\x04"),
+        "bad_standard_short.docx": info_container(struct.pack("<HHI", 4, 2, 0x24) + struct.pack("<I", 8)),
+        "bad_standard_name.docx": info_container(
+            struct.pack("<HHII", 4, 2, 0x24, 33) + struct.pack("<8I", 0, 0, 0x660E, 0x8004, 128, 0x18, 0, 0) + b"a"
+        ),
+    }
+    os.makedirs(out, exist_ok=True)
+    # a table header that isn't one of the versions, and an Excel FilePass of another kind or cut short
+    ole = olefile.OleFileIO(io.BytesIO(files["cryptoapi.doc"]))
+    flags = struct.unpack_from("<H", ole.openstream("WordDocument").read(), 0x0A)[0]
+    table = "1Table" if flags & 0x0200 else "0Table"
+    data = bytearray(ole.openstream(table).read())
+    data[:4] = struct.pack("<HH", 9, 9)
+    files["bad_version.doc"] = rewrite(files["cryptoapi.doc"], {table: bytes(data)})
+    workbook, at, size = plain_workbook(xls)
+    bad = bytearray(workbook)
+    struct.pack_into("<HH", bad, at, xls97.recordNameNum["FilePass"], size)
+    bad[at + 4 : at + 6] = struct.pack("<H", 2)
+    files["bad_kind.xls"] = rewrite(xls, {"Workbook": bytes(bad)})
+    bad[at + 4 : at + 6] = struct.pack("<H", 1)
+    bad[at + 6 : at + 10] = struct.pack("<HH", 9, 9)
+    files["bad_version.xls"] = rewrite(xls, {"Workbook": bytes(bad)})
+    for name, data in files.items():
+        with open(os.path.join(out, name), "wb") as fp:
+            fp.write(data)
+    print("\n".join(files))
+
+
+if __name__ == "__main__":
+    main(*sys.argv[1:])

@@ -81,3 +81,44 @@ async fn replaying_the_hung_task_reproduces_the_hang() {
         .expect("reads");
     assert_eq!(state, "failed");
 }
+
+/// A task whose module reads its carrying email gets it on a replay too, or a password from the body
+/// wouldn't be found again.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn replaying_a_task_reads_the_body_of_its_carrying_email() {
+    let core = Core::start(
+        vec![ace_mod_email::MANIFEST, ace_mod_msoffice::MANIFEST],
+        &["email_analyzer", "msoffice_encryption_analyzer"],
+        Duration::from_secs(60),
+    )
+    .await;
+    let bytes =
+        std::fs::read(ace_testkit::samples_dir().join("ace4/email/encrypted_rc4_doc.email.rfc822"))
+            .expect("the sample");
+    let (root, _) = root_with_bytes(&core, "email", &bytes, "email.rfc822").await;
+    let mut pool = PoolProcess::start(test_pool(
+        &core,
+        &["parsers", "--task-user", "ace4-task", "--concurrency", "1"],
+    ));
+    wait_until_idle(&core, root, Duration::from_secs(60)).await;
+    pool.stop();
+    let id: i64 = sqlx::query_scalar(
+        "SELECT t.id FROM queue.tasks t
+         JOIN analysis.results r ON r.root_id = t.root_id AND r.observable_id = t.observable_id
+         WHERE t.root_id = $1 AND t.module = 'msoffice_encryption_analyzer'
+           AND r.analysis_type = 'msoffice_encryption_analysis'",
+    )
+    .bind(root)
+    .fetch_one(core.test_db.db().pool())
+    .await
+    .expect("the task");
+    let mut replay = test_pool(&core, &["replay", &id.to_string()]);
+    let output = replay
+        .env_remove("ACE4_POOL_TOKEN")
+        .env("ACE4_ADMIN_TOKEN", ADMIN_TOKEN)
+        .output()
+        .expect("runs");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(output.status.success(), "{stdout}");
+    assert!(stdout.contains("\"password\":\"R4Binary1\""), "{stdout}");
+}

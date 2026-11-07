@@ -31,7 +31,7 @@ use crate::client::{ClientError, LeaseClient};
 use crate::containment::SandboxProfile;
 use crate::modules::Modules;
 use crate::pool::{PoolStats, Runner, SHUTDOWN_GRACE, lease_loop};
-use crate::run::{LeaseKeeper, TaskDir, fetch_input, finish};
+use crate::run::{LeaseKeeper, TaskDir, fetch_email_body, fetch_input, finish};
 
 /// The task's end is on stdout.
 pub const EXIT_DONE: i32 = 0;
@@ -53,6 +53,9 @@ pub struct TaskRequest {
     pub task: LeasedTask,
     /// The input's bytes, for a file task.
     pub input: Option<PathBuf>,
+    /// The body of the email that carried the task's file, for a module that reads it.
+    #[serde(default)]
+    pub email_body: Option<PathBuf>,
     /// Where the module writes its files.
     pub outputs: PathBuf,
     /// What the task process may touch once it contains itself.
@@ -186,10 +189,14 @@ pub async fn run_task_process(
     let dir = TaskDir::new()?;
     let input = fetch_input(client, &task, &dir).await?;
     open_to_task_user(&dir, input.as_deref(), config.user)?;
+    let email_body = fetch_email_body(client, &task, dir.path()).await?;
 
     let mut profile = SandboxProfile::for_manifest(&manifest).allow_write(dir.outputs());
     if let Some(input) = &input {
         profile = profile.allow_read(input);
+    }
+    if let Some(body) = &email_body {
+        profile = profile.allow_read(body);
     }
     for path in &config.read_paths {
         profile = profile.allow_read(path);
@@ -197,6 +204,7 @@ pub async fn run_task_process(
     let request = TaskRequest {
         task: task.clone(),
         input,
+        email_body,
         outputs: dir.outputs(),
         profile,
     };
