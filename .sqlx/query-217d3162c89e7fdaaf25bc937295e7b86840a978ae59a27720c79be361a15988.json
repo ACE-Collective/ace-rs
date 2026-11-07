@@ -1,0 +1,31 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO service.permissions\n                             (user_id, group_id, api_key_id, component, major, minor, effect, created_by)\n                         VALUES ($1, $2, $3, $4, $5::text, $6::text, $7, $8::jsonb)\n                         ON CONFLICT ON CONSTRAINT permissions_are_unique DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Text",
+        "Text",
+        {
+          "Custom": {
+            "name": "service.permission_effect",
+            "kind": {
+              "Enum": [
+                "allow",
+                "deny"
+              ]
+            }
+          }
+        },
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "217d3162c89e7fdaaf25bc937295e7b86840a978ae59a27720c79be361a15988"
+}
