@@ -2,7 +2,8 @@
 //! OpenAPI document. `every_documented_status_is_tested` drives each endpoint through every status its
 //! document lists, records what it saw, and fails when the two differ, so a new endpoint or status needs
 //! its test. Every endpoint is also refused without a credential (401) and without its permission (403),
-//! from the document's own list of routes. The committed `openapi.json` must be what utoipa derives.
+//! from the document's own list of routes, but those the document marks as taking no credential, which
+//! must be exactly the ping. The committed `openapi.json` must be what utoipa derives.
 //!
 //! The server runs on a test database and the stack's bucket, over TCP, so a request has a peer address
 //! as it does in `ace serve`. This crate can't depend on an ace-mod-* crate, so its modules are stubs.
@@ -303,6 +304,21 @@ fn documented() -> BTreeSet<(String, String, u16)> {
     found
 }
 
+/// The (method, route) of each operation the document says takes no credential: `security: [{}]`.
+fn public() -> BTreeSet<(String, String)> {
+    let document: Value = serde_json::from_str(&ace_api::openapi_json()).expect("JSON");
+    let mut found = BTreeSet::new();
+    for (route, item) in document["paths"].as_object().expect("paths") {
+        for (method, operation) in item.as_object().expect("an item") {
+            if operation["security"] == json!([{}]) {
+                found.insert((method.clone(), route.clone()));
+            }
+        }
+    }
+    found
+}
+
+const PING: &str = "/api/health/v1/ping";
 const LIST: &str = "/api/alerts/v1/alerts";
 const ONE: &str = "/api/alerts/v1/alerts/{id}";
 const OBSERVABLES: &str = "/api/alerts/v1/alerts/{id}/observables";
@@ -388,9 +404,16 @@ async fn refuses_without_a_credential_or_a_permission(
     let nothing = key(client.stack, &[]).await;
     let before = audit_count(client.stack).await;
     let roots = root_count(client.stack).await;
+    let public = public();
+    assert_eq!(
+        public,
+        BTreeSet::from([("get".to_owned(), PING.to_owned())]),
+        "only the ping takes no credential"
+    );
     let routes: BTreeSet<(String, String)> = documented()
         .into_iter()
         .map(|(method, route, _)| (method, route))
+        .filter(|route| !public.contains(route))
         .collect();
     assert_eq!(routes.len(), 32, "{routes:?}");
     for (method, route) in routes {
@@ -1965,6 +1988,34 @@ async fn serves_me(client: &mut Client<'_>) {
         .await;
 }
 
+/// The ping answers with no credential, with one that isn't valid and with a valid one, and with the
+/// database gone, so it checks nothing but that the API answers. It closes the stack's pool, so it
+/// goes last.
+async fn pings(client: &mut Client<'_>, token: &str) {
+    let pong = json!({"result": "pong"});
+    let wrong = "ace4k_00000000-0000-0000-0000-000000000000_x";
+    for credential in [None, Some(wrong), Some(token)] {
+        let body = client
+            .json(
+                Method::GET,
+                PING,
+                PING,
+                credential,
+                Send::Nothing,
+                StatusCode::OK,
+            )
+            .await;
+        assert_eq!(body, pong, "with {credential:?}");
+    }
+    let pool = client.stack.test_db.db().pool();
+    pool.close().await;
+    assert!(pool.is_closed());
+    let body = client
+        .json(Method::GET, PING, PING, None, Send::Nothing, StatusCode::OK)
+        .await;
+    assert_eq!(body, pong, "with the database closed");
+}
+
 /// The Done check.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn every_documented_status_is_tested() {
@@ -1994,6 +2045,7 @@ async fn every_documented_status_is_tested() {
     let admin = key(&stack, &["user:read", "user:write"]).await;
     manages_users(&mut client, &admin).await;
     serves_me(&mut client).await;
+    pings(&mut client, &token).await;
 
     assert_eq!(
         client.seen,

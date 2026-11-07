@@ -11,7 +11,8 @@
 //! `/api/<area>/v1/` paths, and `GET /api/openapi.json` serves the document utoipa derives from them,
 //! which `openapi.json` in this crate holds and `tests/api.rs` keeps current. Every route takes an API key
 //! as `Authorization: Bearer <token>`, or a GUI session's cookie with the same-origin check
-//! (`Service::authenticate_request`).
+//! (`Service::authenticate_request`), but the document itself and `GET /api/health/v1/ping`, which the
+//! document marks as taking none.
 //!
 //! What ace3's alerts, analysis and observables routers do (PLAN.md 5.5), and where each went:
 //!
@@ -72,6 +73,14 @@
 //! - Login and logout are ace3's Flask views, and come with the GUI's login page (5.7), which sets the
 //!   cookie this API reads. ace3's held catalog, the scope picker of a user's own keys, has no route in
 //!   its router: it comes with the preferences page (5.11).
+//!
+//! ace3's `health` router (PLAN.md 5.6):
+//!
+//! | ace3 | here |
+//! |---|---|
+//! | `GET /health/ping`, `{"result": "pong"}` with no credential | `GET /api/health/v1/ping`, the same |
+//!
+//! Nothing is left out. Like ace3's, it checks no database or bucket (`health`'s docs say why).
 
 use std::net::SocketAddr;
 
@@ -86,6 +95,7 @@ mod alerts;
 mod analysis;
 mod auth;
 mod error;
+mod health;
 mod observables;
 mod users;
 
@@ -156,6 +166,7 @@ impl Web {
         let json_limit = DefaultBodyLimit::max(self.config.max_json_bytes);
         Router::new()
             .route("/api/openapi.json", get(openapi))
+            .route("/api/health/v1/ping", get(health::ping))
             .route("/api/alerts/v1/alerts", get(alerts::list))
             .route("/api/alerts/v1/alerts/{id}", get(alerts::one))
             .route(
@@ -236,7 +247,8 @@ impl Web {
     }
 }
 
-/// The OpenAPI document of every route above but its own, which needs no credential.
+/// The OpenAPI document of every route above but its own, which needs no credential. A route that needs
+/// none either says `security(())`.
 #[derive(OpenApi)]
 #[openapi(
     info(
@@ -277,6 +289,7 @@ impl Web {
         users::create_my_key,
         users::update_my_key,
         users::revoke_my_key,
+        health::ping,
     ),
     modifiers(&Schemes),
     security(("api_key" = []), ("session" = [])),
@@ -285,6 +298,7 @@ impl Web {
         (name = "analysis", description = "Submitting analysis"),
         (name = "observables", description = "Observables across alerts"),
         (name = "users", description = "Users, groups, grants and API keys, and the caller's own account"),
+        (name = "health", description = "Whether the API answers"),
     )
 )]
 pub struct ApiDoc;

@@ -498,6 +498,29 @@
         }
       }
     },
+    "/api/health/v1/ping": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "operationId": "ping",
+        "responses": {
+          "200": {
+            "description": "The API answers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PingBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {}
+        ]
+      }
+    },
     "/api/observables/v1/lookup": {
       "post": {
         "tags": [
@@ -3148,6 +3171,19 @@
         },
         "additionalProperties": false
       },
+      "PingBody": {
+        "type": "object",
+        "description": "The answer to a ping.",
+        "required": [
+          "result"
+        ],
+        "properties": {
+          "result": {
+            "type": "string",
+            "description": "Always `pong`."
+          }
+        }
+      },
       "PrevalenceBody": {
         "type": "object",
         "description": "One pair's prevalence, at its index in the request.",
@@ -3617,6 +3653,10 @@
     {
       "name": "users",
       "description": "Users, groups, grants and API keys, and the caller's own account"
+    },
+    {
+      "name": "health",
+      "description": "Whether the API answers"
     }
   ]
 }
