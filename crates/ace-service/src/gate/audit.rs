@@ -75,6 +75,14 @@ impl Target {
         }
     }
 
+    /// A task in the queue, by its id.
+    pub(crate) fn task(id: i64) -> Self {
+        Target {
+            kind: "task",
+            id: id.to_string(),
+        }
+    }
+
     pub(crate) fn holder(holder: &Holder) -> Self {
         let (kind, id) = match holder {
             Holder::User(id) => ("user", id.0.to_string()),

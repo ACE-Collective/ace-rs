@@ -30,10 +30,10 @@ use ace_core::{Db, queue};
 use ace_results::{AlertPath, AnalysisType, NewObservable, ObservableKind};
 use ace_sdk::{Lookup, Manifest, Module, ModuleError, Outcome, TaskContext};
 use ace_service::{
-    ALERT_WRITE, Actor, ApiKeyId, CATALOG, Component, Effect, GroupId, Holder, MIN_PASSWORD_CHARS,
-    NewSession, Password, PermissionName, PermissionPattern, Profile, RequestParts,
-    SESSION_LIFETIME_SECONDS, Service, ServiceError, SessionCookie, Transport, USER_SELF,
-    USER_WRITE, UserId, Username, with_source_ip,
+    ALERT_WRITE, Actor, ApiKeyId, CATALOG, Component, CrashFilter, CrashInput, Effect, GroupId,
+    Holder, MAX_CRASHES_PAGE, MIN_PASSWORD_CHARS, NewSession, Password, PermissionName,
+    PermissionPattern, Profile, RequestParts, SESSION_LIFETIME_SECONDS, Service, ServiceError,
+    SessionCookie, Transport, USER_SELF, USER_WRITE, UserId, Username, with_source_ip,
 };
 use ace_store::{BucketConfig, NodeCache, Store};
 use schemars::JsonSchema;
@@ -1430,6 +1430,7 @@ async fn every_write_function_has_an_audit_test() {
         logout_records_its_row(db).await,
         submit_records_its_row(db).await,
         download_file_records_its_row(db).await,
+        download_crash_records_its_row(db).await,
         update_user_records_its_row(db).await,
         update_own_profile_records_its_row(db).await,
         create_group_records_its_row(db).await,
@@ -1548,6 +1549,224 @@ async fn download_file_records_its_row(db: &Db) -> String {
     ));
     assert_eq!(audit_rows(db).await.len(), rows);
     row.action
+}
+
+/// A task of `crasher` on the file alert's file that failed with `error`, reading the file and a hash the
+/// bucket never had, as the pool's supervisor ends one.
+async fn failed_task(db: &Db, root: Uuid, observable: i64, module: &str, error: &str) -> i64 {
+    sqlx::query_scalar(
+        "INSERT INTO queue.tasks (root_id, observable_id, module, state, attempts, error, input_hashes)
+         SELECT o.root_id, o.id, $3, 'failed', 3, $4, ARRAY[o.value, repeat('0', 64)]
+         FROM analysis.observables o WHERE o.root_id = $1 AND o.id = $2
+         RETURNING id",
+    )
+    .bind(root)
+    .bind(observable)
+    .bind(module)
+    .bind(error)
+    .fetch_one(db.pool())
+    .await
+    .expect("a failed task")
+}
+
+async fn download_crash_records_its_row(db: &Db) -> String {
+    let (bucket, _cache) = bucket(db);
+    let (root, observable) = file_alert(db, &bucket).await;
+    let id = failed_task(db, root, observable, "crasher", "the module panicked: boom").await;
+    let actor = admin(db).await;
+    let source = "192.0.2.9".parse().expect("an address");
+    let detail = with_source_ip(Some(source), service(db).download_crash(&actor, id))
+        .await
+        .expect("may download");
+    let sha256 = hex::encode(Sha256::digest(b"some file"));
+    assert_eq!(detail.crash.input_hashes, [sha256.clone(), "0".repeat(64)]);
+    let row = last_audit(db).await;
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: boss_json(),
+            action: "download_crash".to_owned(),
+            target: ("task".to_owned(), id.to_string()),
+            before: None,
+            after: None,
+            details: json!({
+                "root": root,
+                "module": "crasher",
+                "inputs": [sha256, "0".repeat(64)],
+            }),
+        }
+    );
+    assert_eq!(src_ip_of_last(db).await.as_deref(), Some("192.0.2.9"));
+
+    // it needs crash:read, which alert:read isn't, and a refusal or a missing task has no row
+    let reader = UserId(Uuid::from_u128(0x5D));
+    grant(db, &Holder::User(reader), "alert", "read", Effect::Allow).await;
+    let rows = audit_rows(db).await.len();
+    for refused in [
+        service(db).download_crash(&user(reader), id).await,
+        service(db).crash(&user(reader), id).await,
+    ] {
+        assert!(
+            matches!(refused, Err(ServiceError::PermissionDenied { ref permission, .. })
+                if permission.to_string() == "crash:read"),
+            "{refused:?}"
+        );
+    }
+    assert!(matches!(
+        service(db).download_crash(&actor, id + 1000).await,
+        Err(ServiceError::NotFound(why)) if why == format!("no failed task {}", id + 1000)
+    ));
+    assert_eq!(audit_rows(db).await.len(), rows);
+    row.action
+}
+
+/// ace3's crash listing: failed tasks newest first, filtered by root and module, in pages, with one
+/// task's inputs as the bucket has them. Tasks in other states aren't crashes.
+#[tokio::test]
+async fn crashes_are_failed_tasks() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let (bucket, _cache) = bucket(db);
+    let actor = admin(db).await;
+    let (root, file) = file_alert(db, &bucket).await;
+    let (other, other_file) = file_alert(db, &bucket).await;
+    let hostile = "the module panicked: <script>alert(1)</script> in \"../../etc/passwd\"";
+    let first = failed_task(db, root, file, "crasher", hostile).await;
+    let second = failed_task(db, other, other_file, "crasher", "killed by SIGKILL").await;
+    let third = failed_task(db, root, file, "hanger", "ran past its deadline").await;
+    // a task that isn't failed isn't listed
+    let done: i64 = sqlx::query_scalar(
+        "INSERT INTO queue.tasks (root_id, observable_id, module, state, error)
+         VALUES ($1, $2, 'fine', 'done', 'an error a done task kept') RETURNING id",
+    )
+    .bind(root)
+    .bind(file)
+    .fetch_one(db.pool())
+    .await
+    .expect("a done task");
+    // the oldest failure first, so the order is by when each failed and not by id
+    for (id, ago) in [(second, 3), (first, 2), (third, 1)] {
+        sqlx::query(
+            "UPDATE queue.tasks SET updated_at = now() - make_interval(mins => $2) WHERE id = $1",
+        )
+        .bind(id)
+        .bind(ago)
+        .execute(db.pool())
+        .await
+        .expect("ages");
+    }
+    let ids = |page: &ace_service::CrashPage| page.crashes.iter().map(|c| c.id).collect::<Vec<_>>();
+    let all = service
+        .crashes(&actor, &CrashFilter::default(), None, None)
+        .await
+        .expect("lists");
+    assert_eq!(ids(&all), [third, first, second]);
+    assert_eq!(all.next, None);
+    let listed = &all.crashes[1];
+    assert_eq!(listed.error, hostile, "the error is data, unchanged");
+    assert_eq!(
+        (
+            listed.root,
+            listed.module.as_str(),
+            listed.observable_type.as_str()
+        ),
+        (root, "crasher", "file")
+    );
+    assert!(listed.alerted);
+    assert_eq!((listed.attempts, listed.max_attempts), (3, 3));
+
+    let by_root = CrashFilter {
+        root: Some(root),
+        ..CrashFilter::default()
+    };
+    let page = service
+        .crashes(&actor, &by_root, None, None)
+        .await
+        .expect("lists");
+    assert_eq!(ids(&page), [third, first]);
+    let by_module = CrashFilter {
+        module: Some("crasher".to_owned()),
+        ..CrashFilter::default()
+    };
+    let page = service
+        .crashes(&actor, &by_module, None, None)
+        .await
+        .expect("lists");
+    assert_eq!(ids(&page), [first, second]);
+    let both = CrashFilter {
+        root: Some(other),
+        module: Some("hanger".to_owned()),
+    };
+    let page = service
+        .crashes(&actor, &both, None, None)
+        .await
+        .expect("lists");
+    assert_eq!(ids(&page), Vec::<i64>::new());
+
+    let page = service
+        .crashes(&actor, &CrashFilter::default(), Some(2), None)
+        .await
+        .expect("lists");
+    assert_eq!((ids(&page), page.next), (vec![third, first], Some(first)));
+    let page = service
+        .crashes(&actor, &CrashFilter::default(), Some(2), page.next)
+        .await
+        .expect("lists");
+    assert_eq!((ids(&page), page.next), (vec![second], None));
+    for limit in [0, MAX_CRASHES_PAGE + 1] {
+        assert!(matches!(
+            service
+                .crashes(&actor, &CrashFilter::default(), Some(limit), None)
+                .await,
+            Err(ServiceError::InvalidRequest(_))
+        ));
+    }
+    assert!(matches!(
+        service.crashes(&actor, &CrashFilter::default(), None, Some(done)).await,
+        Err(ServiceError::InvalidRequest(why)) if why == format!("the cursor {done} names no failed task")
+    ));
+
+    let detail = service.crash(&actor, first).await.expect("reads");
+    assert_eq!(detail.crash, all.crashes[1]);
+    assert_eq!(detail.paths, ["mail/a.txt"]);
+    assert_eq!(detail.root_title, "a submission");
+    assert_eq!(detail.analysis_mode, "correlation");
+    let sha256 = hex::encode(Sha256::digest(b"some file"));
+    assert_eq!(
+        detail.inputs,
+        [
+            CrashInput {
+                sha256,
+                size: Some(9),
+                mime_type: Some("text/plain".to_owned()),
+            },
+            CrashInput {
+                sha256: "0".repeat(64),
+                size: None,
+                mime_type: None,
+            },
+        ]
+    );
+    assert!(matches!(
+        service.crash(&actor, done).await,
+        Err(ServiceError::NotFound(why)) if why == format!("no failed task {done}")
+    ));
+
+    // reads need crash:read and write no row
+    let rows = audit_rows(db).await.len();
+    let outsider = user(UserId(Uuid::from_u128(0x5E)));
+    assert!(matches!(
+        service
+            .crashes(&outsider, &CrashFilter::default(), None, None)
+            .await,
+        Err(ServiceError::PermissionDenied { .. })
+    ));
+    assert!(matches!(
+        service.crash(&outsider, first).await,
+        Err(ServiceError::PermissionDenied { .. })
+    ));
+    assert_eq!(audit_rows(db).await.len(), rows);
 }
 
 async fn disposition_records_its_row(db: &Db) -> String {
@@ -1734,6 +1953,7 @@ async fn every_write_fails_when_its_audit_fails() {
         .expect("a group");
     let (bucket, _cache) = bucket(db);
     let (file_root, file) = file_alert(db, &bucket).await;
+    let crash = failed_task(db, file_root, file, "crasher", "the module panicked").await;
     let (submitted, files) = submission(&bucket, b"another file").await;
     let before = (
         row(db, root).await,
@@ -1869,6 +2089,14 @@ async fn every_write_fails_when_its_audit_fails() {
             "download_file",
             service
                 .download_file(&actor, file_root, file)
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "download_crash",
+            service
+                .download_crash(&actor, crash)
                 .await
                 .map(|_| ())
                 .expect_err("refused"),

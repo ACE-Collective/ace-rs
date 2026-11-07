@@ -94,6 +94,30 @@
 //! included, as ace3's is. Left out: ace3's 60-second cache and its `Cache-Control: private, max-age=60`,
 //! which exist because ace3 reloads its YAML while it runs; ace4's list is fixed when the binary is
 //! built. The GUI's observable actions are 5.9's (ace3 #1032), not this router's.
+//!
+//! ace3's `crashes` router (PLAN.md 5.6), under `crash:read` as there. An ace3 crash report is a failed
+//! task here (`ace_service`'s `crashes` docs), and its crash id is the task's id:
+//!
+//! | ace3 | here |
+//! |---|---|
+//! | `GET /crashes/?root_uuid=&module=&limit=&offset=` | `GET /api/crashes/v1/crashes?root=&module=&limit=&after=`, newest failure first, a page at a time |
+//! | `GET /crashes/{crash_id}` | `GET /api/crashes/v1/crashes/{id}`, with the file's paths and whether the bucket has each input |
+//! | `GET /crashes/{crash_id}/download` | `GET /api/crashes/v1/crashes/{id}/download`, the same zip and password with AES-256, audited |
+//!
+//! What differs, or is left out, and why:
+//! - ace3's `crash_type` filter and field (`exception`, `timeout`, `killed`): a failed task has no type
+//!   column, and its error says which, as "the module panicked", "ran past its deadline" or "killed by".
+//! - The `node` filter, `local`, `remote`, `downloadable` and the 409 `wrong_node`: every node reads one
+//!   bucket and one queue, so any node serves any failed task.
+//! - `offset`: a cursor, as the alert list has, so a page doesn't shift while tasks fail.
+//! - `module` matches a module's key. ace3 also matches a Python module path, which ace4 doesn't have.
+//! - ace3's report holds the traceback, the hung thread's stacks and the analysis tree. A task's error is
+//!   its whole record, and the tree is the alert's, at `/api/alerts/v1`. `complete` and `omitted` are
+//!   about a report written while its worker died: a row is written in one transaction, and the zip's
+//!   `task.json` lists as `omitted` an input the bucket no longer has.
+//! - No write. ace3's router has none, and neither does its GUI. A failed task is final in the queue, so
+//!   a retry would need the queue to allow one; `ace task replay` runs one again on a laptop and changes
+//!   nothing. ace3's `ace crash prune` and `sync` are the bucket's GC and its single store.
 
 use std::net::SocketAddr;
 
@@ -107,6 +131,7 @@ use utoipa::OpenApi;
 mod alerts;
 mod analysis;
 mod auth;
+mod crashes;
 mod error;
 mod health;
 mod observables;
@@ -206,6 +231,12 @@ impl Web {
             .route(
                 "/api/observables/v1/types",
                 get(observables::observable_types),
+            )
+            .route("/api/crashes/v1/crashes", get(crashes::list))
+            .route("/api/crashes/v1/crashes/{id}", get(crashes::one))
+            .route(
+                "/api/crashes/v1/crashes/{id}/download",
+                get(crashes::download),
             )
             .merge(self.users_router())
             .layer(axum::middleware::from_fn(auth::with_source))
@@ -308,6 +339,9 @@ impl Web {
         users::update_my_key,
         users::revoke_my_key,
         health::ping,
+        crashes::list,
+        crashes::one,
+        crashes::download,
     ),
     modifiers(&Schemes),
     security(("api_key" = []), ("session" = [])),
@@ -317,6 +351,7 @@ impl Web {
         (name = "observables", description = "Observables across alerts"),
         (name = "users", description = "Users, groups, grants and API keys, and the caller's own account"),
         (name = "health", description = "Whether the API answers"),
+        (name = "crashes", description = "Failed tasks, their errors and their inputs"),
     )
 )]
 pub struct ApiDoc;

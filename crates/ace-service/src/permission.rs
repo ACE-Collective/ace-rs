@@ -241,6 +241,8 @@ pub const ALERT_WRITE: PermissionName = PermissionName::known("alert", "write");
 pub const ALERT_CREATE: PermissionName = PermissionName::known("alert", "create");
 /// Look observables up across alerts, and list the observable types: ace3's `observable:read`.
 pub const OBSERVABLE_READ: PermissionName = PermissionName::known("observable", "read");
+/// List failed tasks and download them with their inputs: ace3's `crash:read`.
+pub const CRASH_READ: PermissionName = PermissionName::known("crash", "read");
 /// See users, groups, grants and keys: ace3's `user:read`.
 pub const USER_READ: PermissionName = PermissionName::known("user", "read");
 /// Change users, groups and grants: ace3's `user:write`.
@@ -272,6 +274,10 @@ pub static CATALOG: &[CatalogEntry] = &[
     CatalogEntry {
         name: ALERT_WRITE,
         description: "Change alerts, such as their disposition.",
+    },
+    CatalogEntry {
+        name: CRASH_READ,
+        description: "List failed tasks and download them; the archive holds the file the module failed on.",
     },
     CatalogEntry {
         name: OBSERVABLE_READ,

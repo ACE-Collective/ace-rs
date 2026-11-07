@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT EXISTS (SELECT FROM queue.tasks\n                                              WHERE id = $1 AND state = 'failed') AS \"known!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "known!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "fefe8040760a11eaa4ffeb23f8fcaed277dfa64c1eb5d6277e69805eda5809cc"
+}

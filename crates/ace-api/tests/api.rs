@@ -343,9 +343,17 @@ const ME: &str = "/api/users/v1/me";
 const MY_PASSWORD: &str = "/api/users/v1/me/password";
 const MY_KEYS: &str = "/api/users/v1/me/keys";
 const MY_KEY: &str = "/api/users/v1/me/keys/{id}";
+const CRASHES: &str = "/api/crashes/v1/crashes";
+const CRASH: &str = "/api/crashes/v1/crashes/{id}";
+const CRASH_DOWNLOAD: &str = "/api/crashes/v1/crashes/{id}/download";
 const OTHER_PASSWORD: &str = "a different long passphrase";
 
+/// A route with its `{...}` filled: a crash's `{id}` is a task's, which `observable` stands in for, since a
+/// refusal comes before the id is looked up.
 fn fill(route: &str, id: Uuid, observable: i64) -> String {
+    if route.starts_with("/api/crashes/") {
+        return route.replace("{id}", &observable.to_string());
+    }
     route
         .replace("{id}", &id.to_string())
         .replace("{observable}", &observable.to_string())
@@ -416,7 +424,7 @@ async fn refuses_without_a_credential_or_a_permission(
         .map(|(method, route, _)| (method, route))
         .filter(|route| !public.contains(route))
         .collect();
-    assert_eq!(routes.len(), 33, "{routes:?}");
+    assert_eq!(routes.len(), 36, "{routes:?}");
     for (method, route) in routes {
         let method: Method = method.to_uppercase().parse().expect("a method");
         let path = fill(&route, id, file);
@@ -2060,6 +2068,209 @@ async fn lists_types(client: &mut Client<'_>, token: &str) {
     assert_eq!(named("fqdn")["parent"], Value::Null);
 }
 
+/// ace3's `crashes` router: failed tasks, one with its inputs, and its download as ace3's zip. The error
+/// quotes a hostile file name, and comes back as the string it is.
+async fn crashes(client: &mut Client<'_>, token: &str, root: Uuid, file: i64, bytes: &[u8]) {
+    let hostile =
+        "the module panicked: \"<img src=x onerror=alert(1)>/../../etc/passwd\"\n\u{fffd}";
+    let pool = client.stack.test_db.db().pool();
+    let id: i64 = sqlx::query_scalar(
+        "INSERT INTO queue.tasks (root_id, observable_id, module, state, attempts, error, input_hashes)
+         SELECT o.root_id, o.id, 'crasher', 'failed', 3, $3, ARRAY[o.value, repeat('0', 64)]
+         FROM analysis.observables o WHERE o.root_id = $1 AND o.id = $2
+         RETURNING id",
+    )
+    .bind(root)
+    .bind(file)
+    .bind(hostile)
+    .fetch_one(pool)
+    .await
+    .expect("a failed task");
+    let sha256 = sha256_hex(bytes);
+
+    let page = client
+        .json(
+            Method::GET,
+            CRASHES,
+            CRASHES,
+            Some(token),
+            Send::Nothing,
+            StatusCode::OK,
+        )
+        .await;
+    assert_eq!(page["next"], Value::Null);
+    let listed = &page["crashes"][0];
+    assert_eq!(listed["id"], id);
+    assert_eq!(listed["error"], hostile);
+    assert_eq!(listed["root"], root.to_string());
+    assert_eq!(listed["alerted"], true);
+    assert_eq!(listed["module"], "crasher");
+    assert_eq!(
+        listed["observable"],
+        json!({"id": file, "type": "file", "value": sha256})
+    );
+    assert_eq!(listed["input_hashes"], json!([sha256, "0".repeat(64)]));
+    for query in [
+        format!("?root={root}&module=crasher&limit=1"),
+        "?module=crasher".to_owned(),
+    ] {
+        let page = client
+            .json(
+                Method::GET,
+                CRASHES,
+                &format!("{CRASHES}{query}"),
+                Some(token),
+                Send::Nothing,
+                StatusCode::OK,
+            )
+            .await;
+        assert_eq!(page["crashes"][0]["id"], id, "{query}");
+    }
+    let page = client
+        .json(
+            Method::GET,
+            CRASHES,
+            &format!("{CRASHES}?module=nothing"),
+            Some(token),
+            Send::Nothing,
+            StatusCode::OK,
+        )
+        .await;
+    assert_eq!(page["crashes"], json!([]));
+    for query in ["?limit=0", "?limit=501", "?after=0", "?root=x"] {
+        client
+            .json(
+                Method::GET,
+                CRASHES,
+                &format!("{CRASHES}{query}"),
+                Some(token),
+                Send::Nothing,
+                StatusCode::BAD_REQUEST,
+            )
+            .await;
+    }
+
+    let detail = client
+        .json(
+            Method::GET,
+            CRASH,
+            &format!("{CRASHES}/{id}"),
+            Some(token),
+            Send::Nothing,
+            StatusCode::OK,
+        )
+        .await;
+    assert_eq!(&detail["crash"], listed);
+    assert_eq!(detail["paths"], json!(["mail/invoice.zip"]));
+    assert_eq!(detail["root_title"], "a file to download");
+    assert_eq!(detail["inputs"][0]["sha256"], sha256);
+    assert_eq!(detail["inputs"][0]["present"], true);
+    assert_eq!(detail["inputs"][0]["size"], bytes.len());
+    assert_eq!(
+        detail["inputs"][1],
+        json!({"sha256": "0".repeat(64), "present": false, "size": null, "mime_type": null})
+    );
+    for route in [CRASH, CRASH_DOWNLOAD] {
+        client
+            .json(
+                Method::GET,
+                route,
+                &route.replace("{id}", "x"),
+                Some(token),
+                Send::Nothing,
+                StatusCode::BAD_REQUEST,
+            )
+            .await;
+        let error = client
+            .json(
+                Method::GET,
+                route,
+                &route.replace("{id}", &(id + 1000).to_string()),
+                Some(token),
+                Send::Nothing,
+                StatusCode::NOT_FOUND,
+            )
+            .await;
+        assert_eq!(error["error"], format!("no failed task {}", id + 1000));
+    }
+
+    let rows = audit_count(client.stack).await;
+    let response = client
+        .call(
+            Method::GET,
+            CRASH_DOWNLOAD,
+            &format!("{CRASHES}/{id}/download"),
+            Some(token),
+            Send::Nothing,
+        )
+        .await;
+    assert_eq!(response.status(), 200);
+    assert_eq!(response.headers()["content-type"], "application/zip");
+    assert_eq!(
+        response.headers()["content-disposition"],
+        format!("attachment; filename=\"crash-{id}.zip\"")
+    );
+    let zipped = response.bytes().await.expect("the zip");
+    let mut archive = zip::ZipArchive::new(Cursor::new(zipped.to_vec())).expect("a zip");
+    let names: BTreeSet<String> = archive
+        .file_names()
+        .map(|name| name.expect("a name").into_owned())
+        .collect();
+    assert_eq!(
+        names,
+        BTreeSet::from([
+            format!("task-{id}/task.json"),
+            format!("task-{id}/inputs/{sha256}"),
+        ])
+    );
+    assert!(archive.by_index(0).is_err(), "it needs the password");
+    let mut read = |name: String| {
+        let at = archive.index_for_name(&name).expect("an entry");
+        let mut entry = archive.by_index_decrypt(at, b"infected").expect("opens");
+        let mut unzipped = Vec::new();
+        entry.read_to_end(&mut unzipped).expect("reads");
+        unzipped
+    };
+    assert_eq!(read(format!("task-{id}/inputs/{sha256}")), bytes);
+    let manifest: Value =
+        serde_json::from_slice(&read(format!("task-{id}/task.json"))).expect("JSON");
+    assert_eq!(manifest["crash"]["error"], hostile);
+    assert_eq!(
+        manifest["omitted"],
+        json!([{"sha256": "0".repeat(64), "reason": "the bucket doesn't have it"}])
+    );
+    assert_eq!(
+        audit_count(client.stack).await,
+        rows + 1,
+        "the download has a row"
+    );
+    let (action, target): (String, String) =
+        sqlx::query_as("SELECT action, target_id FROM service.audit ORDER BY id DESC LIMIT 1")
+            .fetch_one(pool)
+            .await
+            .expect("the download's row");
+    assert_eq!(
+        (action.as_str(), target),
+        ("download_crash", id.to_string())
+    );
+
+    // alert:read alone doesn't read crashes
+    let reader = key(client.stack, &["alert:read"]).await;
+    for route in [CRASHES, CRASH, CRASH_DOWNLOAD] {
+        let error = client
+            .json(
+                Method::GET,
+                route,
+                &route.replace("{id}", &id.to_string()),
+                Some(&reader),
+                Send::Nothing,
+                StatusCode::FORBIDDEN,
+            )
+            .await;
+        assert_eq!(error["error"], "this needs crash:read");
+    }
+}
+
 /// The Done check.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn every_documented_status_is_tested() {
@@ -2072,6 +2283,7 @@ async fn every_documented_status_is_tested() {
             "alert:write",
             "alert:create",
             "observable:read",
+            "crash:read",
         ],
     )
     .await;
@@ -2090,6 +2302,7 @@ async fn every_documented_status_is_tested() {
     let admin = key(&stack, &["user:read", "user:write"]).await;
     manages_users(&mut client, &admin).await;
     serves_me(&mut client).await;
+    crashes(&mut client, &token, id, file, &bytes).await;
     pings(&mut client, &token).await;
 
     assert_eq!(

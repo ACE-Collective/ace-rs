@@ -498,6 +498,245 @@
         }
       }
     },
+    "/api/crashes/v1/crashes": {
+      "get": {
+        "tags": [
+          "crashes"
+        ],
+        "summary": "Failed tasks, newest failure first, a page at a time. Follow `next` until it's null.",
+        "operationId": "list",
+        "parameters": [
+          {
+            "name": "root",
+            "in": "query",
+            "description": "Only this root's failed tasks.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "module",
+            "in": "query",
+            "description": "Only this module's failed tasks, by its key, such as `yara`.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "How many, 1 to 500; 50 when left out.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "description": "The `next` of the previous page.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of failed tasks",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CrashPageBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A limit out of range, or a cursor that names no failed task",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold crash:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/crashes/v1/crashes/{id}": {
+      "get": {
+        "tags": [
+          "crashes"
+        ],
+        "summary": "One failed task, with its file's paths in the root and whether the bucket still has each input.",
+        "operationId": "one",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The task's id",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The failed task",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CrashDetailBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An id that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold crash:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No failed task with that id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/crashes/v1/crashes/{id}/download": {
+      "get": {
+        "tags": [
+          "crashes"
+        ],
+        "summary": "The failed task as a zip encrypted with AES-256 and the password `infected`, as ace3's crash report\ndownload is: `task-<id>/task.json`, which is this task's detail and the inputs left out, and each input\nthe bucket has as `task-<id>/inputs/<sha256>`. The download is in the audit record.",
+        "operationId": "download",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The task's id",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The zip",
+            "content": {
+              "application/zip": {
+                "schema": {
+                  "$ref": "#/components/schemas/ZipBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An id that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold crash:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No failed task with that id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/health/v1/ping": {
       "get": {
         "tags": [
@@ -2653,6 +2892,180 @@
           }
         }
       },
+      "CrashBody": {
+        "type": "object",
+        "description": "A task that failed: its module raised, panicked, hung past its deadline or was killed, or its lease\nexpired on every attempt.",
+        "required": [
+          "id",
+          "root",
+          "alerted",
+          "module",
+          "observable",
+          "attempts",
+          "max_attempts",
+          "error",
+          "input_hashes",
+          "created_at",
+          "failed_at"
+        ],
+        "properties": {
+          "alerted": {
+            "type": "boolean",
+            "description": "Whether the root is an alert."
+          },
+          "attempts": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "error": {
+            "type": "string",
+            "description": "Why it failed, as the pool or the core wrote it. It can quote a file the module read, such as its\nname: show it as text."
+          },
+          "failed_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "description": "The task's id, which `ace task replay` takes."
+          },
+          "input_hashes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The sha256 of each input it read from the bucket."
+          },
+          "max_attempts": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "module": {
+            "type": "string",
+            "description": "The module's key."
+          },
+          "observable": {
+            "$ref": "#/components/schemas/CrashObservableBody"
+          },
+          "root": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "CrashDetailBody": {
+        "type": "object",
+        "description": "Everything recorded about a failed task.",
+        "required": [
+          "crash",
+          "root_title",
+          "analysis_mode",
+          "paths",
+          "inputs"
+        ],
+        "properties": {
+          "analysis_mode": {
+            "type": "string"
+          },
+          "crash": {
+            "$ref": "#/components/schemas/CrashBody"
+          },
+          "inputs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CrashInputBody"
+            }
+          },
+          "paths": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The paths a file observable has in its root."
+          },
+          "root_title": {
+            "type": "string",
+            "description": "The root's description, up to 1024 characters. Show it as text."
+          }
+        }
+      },
+      "CrashInputBody": {
+        "type": "object",
+        "required": [
+          "sha256",
+          "present"
+        ],
+        "properties": {
+          "mime_type": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "present": {
+            "type": "boolean",
+            "description": "Whether the bucket still has its bytes, which a download then holds."
+          },
+          "sha256": {
+            "type": "string"
+          },
+          "size": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          }
+        }
+      },
+      "CrashObservableBody": {
+        "type": "object",
+        "required": [
+          "id",
+          "type",
+          "value"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "type": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string",
+            "description": "As the observable holds it; a file's is its sha256."
+          }
+        }
+      },
+      "CrashPageBody": {
+        "type": "object",
+        "required": [
+          "crashes"
+        ],
+        "properties": {
+          "crashes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CrashBody"
+            }
+          },
+          "next": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Pass as `after` for the next page; null on the last."
+          }
+        }
+      },
       "CreatedBody": {
         "type": "object",
         "required": [
@@ -3750,6 +4163,10 @@
     {
       "name": "health",
       "description": "Whether the API answers"
+    },
+    {
+      "name": "crashes",
+      "description": "Failed tasks, their errors and their inputs"
     }
   ]
 }

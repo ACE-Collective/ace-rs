@@ -33,6 +33,8 @@
 //! router. `permission::CATALOG` is ace3's catalog of the names ACE checks. Not here from ace3: a 403
 //! saying which half of a key's check refused.
 //!
+//! `crashes` reads failed tasks for 5.6's `crashes` router, and audits their download as a read.
+//!
 //! Writes outside this crate today:
 //! - `Orchestrator::set_mode` and `queue::cancel_root` have no caller outside the core's own flows
 //!   and tests. Each gets a function here when a route for it appears (5.5, 5.6).
@@ -43,6 +45,7 @@
 mod actor;
 mod alerts;
 mod auth;
+mod crashes;
 mod gate;
 mod observables;
 mod permission;
@@ -71,13 +74,15 @@ pub use auth::{
     InvalidUsername, IssuedToken, MAX_PASSWORD_BYTES, MIN_PASSWORD_CHARS, NewApiKey, NewSession,
     Password, RequestParts, SESSION_LIFETIME_SECONDS, SessionCookie, Transport, Username,
 };
+pub use crashes::{Crash, CrashDetail, CrashFilter, CrashInput, CrashPage, MAX_CRASHES_PAGE};
 pub use gate::Holder;
 pub use observables::{
     Lookup, MAX_EXCLUDED_ALERTS, MAX_LOOKUP_PAIRS, MAX_RECENT_ALERTS, OPEN, Prevalence, RecentAlert,
 };
 pub use permission::{
-    ALERT_CREATE, ALERT_READ, ALERT_WRITE, CATALOG, CatalogEntry, Effect, InvalidPermission,
-    OBSERVABLE_READ, PermissionName, PermissionPattern, USER_READ, USER_SELF, USER_WRITE,
+    ALERT_CREATE, ALERT_READ, ALERT_WRITE, CATALOG, CRASH_READ, CatalogEntry, Effect,
+    InvalidPermission, OBSERVABLE_READ, PermissionName, PermissionPattern, USER_READ, USER_SELF,
+    USER_WRITE,
 };
 pub use source::with_source_ip;
 pub use users::{ApiKey, Grant, Group, MAX_KEY_SCOPE, Profile, User, UserDetail};
