@@ -12,7 +12,7 @@ Bytes stay bytes: in JSON they're {"base64": "..."}, as ace_results::Bytes write
 string that isn't valid Unicode, the form of ace_results::TextOrBytes. A port's side writes the same.
 
 Libraries print, some of them when imported, so the protocol keeps stdout to itself and points
-descriptor 1 at stderr first, as python/worker.py does.
+descriptor 1 at stderr first, as the Python pool's worker did.
 """
 
 import base64

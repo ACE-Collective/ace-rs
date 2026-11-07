@@ -58,8 +58,6 @@ pub enum Sandbox {
 pub enum ModuleKind {
     Parser,
     Lookup,
-    /// A module whose code is in `python/`, which the Python pool's workers run (PLAN.md 4.1).
-    Python,
 }
 
 /// What the core and the pools know about a module without building it.
@@ -99,12 +97,6 @@ impl Manifest {
                 tcp_ports: M::TCP_PORTS,
             },
         )
-    }
-
-    /// A module the Python pool runs. Its Rust side declares what the core needs, the manifest and
-    /// the analysis type whose schema `ace schema export` writes, and never runs.
-    pub const fn python<M: Module>() -> Self {
-        Manifest::of::<M>(ModuleKind::Python, Sandbox::Contained)
     }
 
     const fn of<M: Module>(kind: ModuleKind, sandbox: Sandbox) -> Self {
@@ -161,7 +153,6 @@ impl Manifest {
             "kind": match self.kind {
                 ModuleKind::Parser => "parser",
                 ModuleKind::Lookup => "lookup",
-                ModuleKind::Python => "python",
             },
             "inputs": self.inputs,
             "output": {"analysis_type": self.output.name, "schema_version": self.output.version},

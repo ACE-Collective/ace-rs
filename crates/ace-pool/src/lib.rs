@@ -9,7 +9,6 @@ pub mod client;
 pub mod containment;
 pub mod modules;
 pub mod pool;
-pub mod python;
 pub mod replay;
 pub mod rulesets;
 pub mod run;
@@ -20,7 +19,4 @@ pub mod telemetry;
 #[cfg(feature = "test-pools")]
 pub mod testing;
 
-pub use containment::{
-    Contained, ContainmentError, SandboxProfile, ToolConfinement, contain, contain_before_exec,
-    contain_pool,
-};
+pub use containment::{Contained, ContainmentError, SandboxProfile, contain, contain_pool};

@@ -126,7 +126,7 @@ What this supports:
 
 What it doesn't support:
 
-- That ace4 will use less than ace3 under production load. Phase 4 adds Python workers with oletools and friends, and phase 7 adds about 85 modules to these binaries. Production email is larger than these samples, these runs didn't test how scan memory grows with input size, and the production ruleset wasn't measured.
+- That ace4 will use less than ace3 under production load. Phase 4 ended with no Python workers (PLAN.md 4.13): its libraries' ports run in the parser binary and aren't in these numbers. Phase 7 adds about 85 modules to these binaries. Production email is larger than these samples, these runs didn't test how scan memory grows with input size, and the production ruleset wasn't measured.
 - A total for the system. ace3 runs dozens of services, and ace4 has only a few of them so far.
 - Anything about ace4 under concurrency higher than 4, or lookups beyond 24 tasks.
 

@@ -1,4 +1,4 @@
-"""oletools' rtfobj, as python/ace4_python/modules/rtfole.py calls it: the report it prints, with its
+"""oletools' rtfobj, as 4.5's Python module called it: the report it prints, with its
 logging, and the files it writes."""
 
 import logging

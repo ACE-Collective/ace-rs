@@ -1,6 +1,6 @@
 //! Checking a result in JSON against its type's schema.
 //!
-//! The core checks every result before it writes it, whether a Rust or a Python module wrote it.
+//! The core checks every result before it writes it.
 //! An error names the path of each field that failed, as a JSON pointer such as
 //! `/details/attachment_count`. A field the schema doesn't declare is named by its own path.
 

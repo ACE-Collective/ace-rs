@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """PLAN.md 2.30: the end-to-end test, against the Compose stack's own images.
 
-It brings up postgres, bucket, ace, the parser, network and Python pools and the e2e profile's
+It brings up postgres, bucket, ace, the parser and network pools and the e2e profile's
 responder under a project of its own (ace4-e2e), with:
 
 - a signatures repository it makes under target/e2e/ from tools/ace3/trees/signatures, holding
@@ -21,16 +21,6 @@ results from all five modules and complete; the second only later. The same emai
 times, so their trees in the normal form (PLAN.md 3.1) must be the same text, which goes to
 <work>/normal-form.json.
 
-Then it restarts the Python pool (PLAN.md 4.1), from its own image, at small limits, and queues tasks
-of a probe module on it, one at a time, through the real core and bucket. Limits of 3 tasks and 128 MB make each kind
-of recycling happen, and each task's result names the process it ran in. So this is 4.1's Done check:
-a worker is recycled at its limit, and the next task runs on its replacement, in a different process.
-The same module imports the image's libraries inside a contained worker and reports their versions,
-and a task that raises must leave a failed row. So is PLAN.md 4.2's: a result with a wrong field, from
-a worker on that image, fails its task with the field's path in the row, and nothing from it lands.
-And PLAN.md 4.3's: a hung task's row holds its stack, a frame naming the function it hung in, for a
-worker in pure Python and in C calls without the GIL, and a worker can't reach py-spy. Then the pool
-goes back to its usual limits, and the Python modules' tests run on the image with the samples.
 Then the library diff's self-test runs (PLAN.md 4.8).
 
 It then runs `ace compare` (PLAN.md 3.3, crates/ace-app/src/compare.rs) over the sample set, each
@@ -52,7 +42,7 @@ Exits 0 when every check passes. Needs docker compose and python3 on the host.
 A site repository runs the same scenario, without the comparison with ace3, against its own images (PLAN.md 2.32) by setting:
 
 - ACE4_E2E_COMPOSE: its Compose file, whose services have this file's names (postgres, bucket,
-  ace, parsers, lookups, python and the e2e profile's responder);
+  ace, parsers, lookups and the e2e profile's responder);
 - ACE4_E2E_PREFIX: the prefix of that file's variables, such as SITE_PORT_, in place of ACE4_;
 - ACE4_E2E_PROJECT: the Compose project the test runs under, in place of ace4-e2e;
 - ACE4_E2E_SITE: the site overlay directory, in place of tests/e2e/site;
@@ -60,8 +50,7 @@ A site repository runs the same scenario, without the comparison with ace3, agai
 - ACE4_E2E_PORT: the host port, as for ace4;
 - ACE4_E2E_ACE_COMMAND: the ace service's binary, in place of ace.
 
-Its modules differ from ace3's by design, so setting ACE4_E2E_SITE skips the comparison, and the
-Python pool's stage, whose probe is this overlay's.
+Its modules differ from ace3's by design, so setting ACE4_E2E_SITE skips the comparison.
 """
 
 import json
@@ -96,12 +85,6 @@ MODULES = [
     "clicker_detection_splunk",
 ]
 PARSER_MODULES = ["email_analyzer", "archive", "yara_scanner_v3_4"]
-PYTHON_PROBE = "e2e_python_probe"
-# what python/requirements.in pins
-PYTHON_LIBRARIES = [
-    "oletools 0.60.2", "msoffcrypto-tool 6.0.0", "pcodedmp 1.2.6", "XLMMacroDeobfuscator 0.2.7",
-    "xlrd2 1.3.4", "pyxlsb2 0.0.9",
-]
 
 ENV = {
     **os.environ,
@@ -123,18 +106,13 @@ ENV = {
 }
 ENV.pop("COMPOSE_PROJECT_NAME", None)
 COMPOSE = ["docker", "compose", "-f", str(COMPOSE_FILE), "--profile", "e2e"]
-SERVICES = ["postgres", "bucket", "ace", "parsers", "lookups", "python", "responder"]
-# What the Python pool's stage runs it under, so a worker is recycled soon and on one thing at a time.
-PROBE_LIMITS = {
-    PREFIX + "PYTHON_CONCURRENCY": "1",
-    PREFIX + "PYTHON_MAX_TASKS": "3",
-    PREFIX + "PYTHON_MAX_MEMORY_MB": "128",
-}
-# Ported modules on the Python pool: each must have results from both systems, because a comparison
-# with nothing compared passes.
-PYTHON_PORTS = ["pcodedmp", "xlmdeobfuscator"]
-# What has moved off that pool: a comparison with nothing compared passes for them too.
-LIBRARY_PORTS = ["msoffice_encryption_analyzer", "olevba_v1_2", "pdf_analyzer", "rtfole"]
+SERVICES = ["postgres", "bucket", "ace", "parsers", "lookups", "responder"]
+# Ports of Python libraries: each must have results from both systems, because a comparison with
+# nothing compared passes.
+LIBRARY_PORTS = [
+    "msoffice_encryption_analyzer", "olevba_v1_2", "pcodedmp", "pdf_analyzer", "rtfole",
+    "xlmdeobfuscator",
+]
 
 
 def log(message):
@@ -359,124 +337,6 @@ def check_normal_form(text, failures):
            "it holds no row timestamp")
 
 
-def check_python_pool(failures):
-    """PLAN.md 4.1's Done check, against the Python pool's image: see this file's docstring."""
-
-    def expect(ok, message):
-        log(("ok    " if ok else "FAIL  ") + message)
-        if not ok:
-            failures.append(f"the Python pool: {message}")
-
-    started = time.monotonic()
-    # a new pool, at the stage's limits, with no tasks behind it
-    ENV.update(PROBE_LIMITS)
-    compose("up", "-d", "--force-recreate", "--wait", "python")
-    # each hung action's row must name its own function, and only its own
-    hangs = {"hang": "_hang_in_python", "hang-sleep": "_hang_in_sleep",
-             "hang-select": "_hang_in_select", "hang-regex": "_hang_in_regex"}
-    ran = ["one", "two", "three", "four", "hold-200", "after", "libraries", "tool"]
-    actions = [*ran, "raise", "wrong", *hangs]
-    values = [f"{action}.example.com" for action in actions]
-    root = submit(None, observables=[{"type": "fqdn", "value": value} for value in values])
-    # no mode runs the probe, so the test queues it, in this order; a concurrency of 1 keeps it
-    for value in values:
-        sql(
-            f"""INSERT INTO queue.tasks (root_id, observable_id, module, max_attempts, input_hashes)
-                SELECT root_id, id, '{PYTHON_PROBE}', 1, '{{}}' FROM analysis.observables
-                WHERE root_id = '{root}' AND value = '{value}'"""
-        )
-    wait_for(
-        "the Python pool's tasks to end",
-        lambda: sql(
-            f"""SELECT count(*) FROM queue.tasks WHERE root_id = '{root}'
-                AND module = '{PYTHON_PROBE}' AND state IN ('queued', 'delayed', 'running')"""
-        )[0][0] == "0",
-        within=120,
-    )
-    rows = {row[0]: row[1:] for row in sql(
-        f"""SELECT o.value, t.state::text, replace(coalesce(t.error, ''), chr(10), ' '),
-                   coalesce(r.details->>'pid', ''), coalesce(r.details->>'tasks_in_process', ''),
-                   coalesce(r.details->>'uid', ''), coalesce(r.details->>'note', ''),
-                   replace(coalesce(t.stacks, ''), chr(10), ' | ')
-            FROM queue.tasks t JOIN analysis.observables o ON o.id = t.observable_id
-            LEFT JOIN analysis.results r ON r.root_id = t.root_id
-              AND r.observable_id = t.observable_id AND r.module = t.module
-            WHERE t.root_id = '{root}' AND t.module = '{PYTHON_PROBE}'"""
-    )}
-    for action, value in zip(actions, values):
-        log(f"  {action}: {' | '.join(rows.get(value, ['no task']))[:300]}")
-
-    def field(action, index):
-        return rows.get(f"{action}.example.com", [""] * 7)[index]
-
-    pid = lambda action: field(action, 2)  # noqa: E731
-    count = lambda action: field(action, 3)  # noqa: E731
-    expect(all(field(a, 0) == "done" for a in ran), "every task that should finish is done")
-    expect(pid("one") == pid("two") == pid("three") != "", "the first three ran in one process")
-    expect(count("three") == "3", "that process ran three tasks, its limit")
-    expect(pid("four") not in ("", pid("three")) and count("four") == "1",
-           f"the task after the task count ran on a replacement: {pid('three')} then {pid('four')}")
-    expect(pid("hold-200") == pid("four") and count("hold-200") == "2",
-           "the replacement held 200 MB on its second task, under the task count")
-    expect(pid("after") not in ("", pid("hold-200")) and count("after") == "1",
-           "the task after the memory limit ran on a replacement: "
-           f"{pid('hold-200')} then {pid('after')}")
-    logs = compose("logs", "--no-color", "python", capture=True)
-    expect('"task count"' in logs, "the supervisor logged a recycling for the task count")
-    expect('"memory limit"' in logs, "the supervisor logged a recycling for the memory limit")
-    expect(all(field(a, 4) == "10001" for a in ran), "every task ran as ace4-task")
-    missing = [lib for lib in PYTHON_LIBRARIES if lib not in field("libraries", 5)]
-    expect(not missing, f"a contained worker imports the image's pinned libraries: {missing or 'all'}")
-    expect(field("raise", 0) == "failed" and "ValueError" in field("raise", 1),
-           "a task that raises leaves a failed row with the error")
-    expect(field("wrong", 0) == "failed" and "/details/pid" in field("wrong", 1),
-           f"a result with a wrong field fails its task, naming the field: {field('wrong', 1)[:200]}")
-    landed = sql(
-        f"""SELECT (SELECT count(*) FROM analysis.results r
-                    JOIN analysis.observables o ON o.id = r.observable_id
-                    WHERE r.root_id = '{root}' AND o.value = 'wrong.example.com')
-                 + (SELECT count(*) FROM analysis.observables
-                    WHERE root_id = '{root}' AND value = 'rejected.example.com')
-                 + (SELECT count(*) FROM analysis.files
-                    WHERE root_id = '{root}' AND path = 'rejected.txt')"""
-    )[0][0]
-    expect(landed == "0", "nothing from that result landed")
-    note = field("tool", 5)
-    expect("import: None" in note and "read: refused" in note and "run: refused" in note,
-           f"a worker can't import, read or run py-spy: {note}")
-    for action, function in hangs.items():
-        stacks = field(action, 6)
-        log(f"  {action}'s stacks: {stacks[:300]}")
-        expect(field(action, 0) == "failed" and "deadline of 5s and was killed" in field(action, 1),
-               f"{action} failed at its deadline: {field(action, 1)[:200]}")
-        expect(function in stacks and "python_probe.py" in stacks,
-               f"{action}'s row holds a frame naming {function}")
-        expect(not any(f in stacks for f in hangs.values() if f != function),
-               f"{action}'s row names no other hung function")
-    capabilities = compose("exec", "-T", "python", "grep", "CapBnd", "/proc/self/status",
-                           capture=True).split()[1]
-    expect(int(capabilities, 16) & (1 << 19) == 0, "the pool's container has no CAP_SYS_PTRACE")
-    for name in PROBE_LIMITS:
-        del ENV[name]
-    compose("up", "-d", "--force-recreate", "--wait", "python")
-    log(f"the Python pool's stage took {time.monotonic() - started:.1f}s")
-
-
-def check_python_module_tests(failures):
-    """The tests of the Python pool's modules, on the image's libraries and the real samples. cargo
-    test can't run them: the dev image's Python has only the standard library."""
-    started = time.monotonic()
-    code = compose(
-        "run", "--rm", "--no-deps", "-T", "-v", f"{ROOT / 'samples'}:/samples:ro",
-        "python", "python3", "-I", "-B", "/opt/ace4/python/tests/run.py", "/samples",
-        exit_code=True,
-    )
-    log(("ok    " if code == 0 else "FAIL  ") + "the Python modules' tests "
-        f"({time.monotonic() - started:.1f}s)")
-    if code != 0:
-        failures.append("the Python modules' tests failed; see above")
-
-
 def check_library_diff(failures):
     """That the library diff (PLAN.md 4.8) has teeth. Its full run over the sample set is a separate
     invocation, tools/library-diff/run --all, since it takes as long as the comparison."""
@@ -491,7 +351,7 @@ def check_library_diff(failures):
 def check_ports_compared(failures):
     """A port that replaces a Python library must have been compared with something."""
     compared = json.loads((WORK / "compare" / "report.json").read_text())["compared_by_module"]
-    for module in [*PYTHON_PORTS, *LIBRARY_PORTS]:
+    for module in LIBRARY_PORTS:
         counts = compared.get(module, {})
         log(f"{module}: {counts}")
         if not counts.get("ace3_results") or not counts.get("ace4_results"):
@@ -615,8 +475,6 @@ def main(argv):
             log("FAIL  the roots' normal forms differ; see normal-form*.json in " + str(WORK))
             failures.append("the same email's two roots have different normal forms")
         if "ACE4_E2E_SITE" not in os.environ:
-            check_python_pool(failures)
-            check_python_module_tests(failures)
             check_library_diff(failures)
             compare_failed = compare_with_ace3(threshold=True) != 0
             check_ports_compared(failures)
@@ -628,7 +486,7 @@ def main(argv):
                     "in differences.md, and every row matched one")
     finally:
         if failures or keep:
-            for service in ("ace", "parsers", "lookups", "python", "responder"):
+            for service in ("ace", "parsers", "lookups", "responder"):
                 print(f"----- {service} logs (last 40 lines)")
                 print(compose("logs", "--no-color", "--tail", "40", service, capture=True,
                               check=False))

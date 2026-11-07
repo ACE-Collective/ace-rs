@@ -9,7 +9,7 @@ For now the rebuild, ace4, is a proof of concept that runs on one laptop beside 
 ## Recommendation
 
 - Rust for the core (orchestrator, API, GUI, ingest, scheduler and CLI) and for most analysis modules.
-- A Python module pool only for libraries that have no complete Rust equivalent yet. Each one moves to Rust once a port matches it on ACE's sample corpus.
+- A Python module pool only for libraries that had no complete Rust equivalent. Each one moved to Rust once a port matched it on ACE's sample corpus, and the pool went at [PLAN.md](PLAN.md) 4.13.
 - ACE's YARA scanner layers, the team's `yara_scanner_v2` library and ACE's own meta directives, ported to Rust on yara-x and checked against today's scanner on the same corpus.
 - Postgres and an S3-compatible bucket as the only systems that hold state.
 - A versioned result schema, in a crate of its own, as the contract between the core and the modules.
@@ -56,7 +56,7 @@ The language still matters more than nine issues suggest, because of who writes 
 
 ### A result schema in its own crate
 
-Each analysis type declares its details as a versioned Rust type in a results crate. The core checks every result against its type when it is written, keeps bytes as bytes, and stores the result under the analysis type's name rather than a code path. `schemars` exports each type as JSON Schema, which is what the core checks the Python pool's results against.
+Each analysis type declares its details as a versioned Rust type in a results crate. The core checks every result against its type when it is written, keeps bytes as bytes, and stores the result under the analysis type's name rather than a code path. `schemars` exports each type as JSON Schema, which is what the core checks each result against.
 
 The API, the GUI and the search indexer depend on the results crate and on no analyzer crate, so reading an alert never loads analyzer code, and a dependency from the API on an analyzer fails the build. That removes the cause of #1029, #999, [#827](https://github.com/ACE-Collective/ace3/issues/827) and #1032.
 
@@ -76,7 +76,7 @@ A pool is a container image that hosts a set of modules and declares its resourc
 
 - Network lookups (DNS, RDAP, a mail API, Splunk, LogScale) run as async tasks inside one pool process, many at a time.
 - Parsers of hostile files run one process per task, contained as described in *Containing hostile tasks*.
-- pcodedmp and XLMMacroDeobfuscator ran on a Python pool until their ports matched, and every module has now moved to a Rust pool. The pool itself goes at PLAN.md 4.13.
+- pcodedmp and XLMMacroDeobfuscator ran on a Python pool until their ports matched, and every module has now moved to a Rust pool. The pool itself went at PLAN.md 4.13.
 - PDFs go through libqpdf, the C++ library under pikepdf, by way of the qpdf crate, in-process inside a contained task. ace3 uses pikepdf to pull annotation URIs, form fields and JavaScript, and runs pdf-parser.py beside it. The Rust module replaces both.
 - phishkit (SeleniumBase's anti-detection) and js_deobfuscator (node:vm) stay as they are, since they are already separate services with narrow interfaces. tshark stays in the sandbox runner.
 
@@ -140,7 +140,7 @@ Landlock doesn't cover UDP, so a DNS query sent straight to a resolver's address
 
 A process that can't have children dies completely when its PID is killed, which avoids #981's problem without cgroups. The pool container's `mem_limit` bounds the pool as a whole. External tools that start children keep ACE's existing sandbox runner. Workers start by exec, so the at-fork repair hooks behind #982 aren't needed.
 
-A failed or hung task leaves a row with its error and the hashes of its inputs, which are already in the bucket, so the task can be replayed under a debugger. Before killing a hung Python task, the pool supervisor captures its stacks with `py-spy dump` into the row's `stacks` column. py-spy runs as the worker's own user, which the worker has named to Yama as allowed, so the pool's container needs no added capability, and Landlock still stops one worker reading another.
+A failed or hung task leaves a row with its error and the hashes of its inputs, which are already in the bucket, so the task can be replayed under a debugger.
 
 ### Postgres and an object store, and nothing else that holds state
 
@@ -210,7 +210,7 @@ Today's [`ace3/docker-compose.yml`](../ace3/docker-compose.yml) has 31 services.
 - `postgres`
 - `bucket`, SeaweedFS's S3 server, for dev and single-node installs; production in AWS uses S3. MinIO stopped publishing community images in October 2025.
 - `ace`, one binary for the API, GUI, orchestrator and scheduler, or an engine container and an API container if they should restart separately
-- one container per module pool, scaled with `replicas`: Rust parsers, network lookups, and the Python pool
+- one container per module pool, scaled with `replicas`: Rust parsers and network lookups
 - `phishkit` and `js-deobfuscator`, unchanged
 - `fluent-bit`, if logs still ship to Splunk
 - a TLS proxy, or rustls inside the `ace` binary
@@ -262,7 +262,7 @@ Kubernetes would add per-task cgroups and autoscaling on queue depth. At ACE's v
 1. Build the results crate, the module SDK and the module test harness. Port five modules that cover the main shapes: email parsing with mail-parser, an RDAP lookup, a delayed module, archive extraction (which writes files), and YARA with the ported scanner layer on yara-x. Measure the build loop and run the YARA comparison here, since either result could change the language pick. On the laptop the comparison compiles the whole signatures repo with both scanners and compares matches on local sample files.
 2. Build the core with the queue and the bucket, and run those five end to end from a submission. Build `ace-app` and start the site_ace workspace on it here, so the boundary between the two repositories is tested from the start.
 3. Compare with ace3 on the laptop's sample files: run each one through both systems and compare the trees. That comparison is the acceptance test for every module ported after this point. Shadow mode, with production traffic sent to both systems, waits until ace4 goes past a proof of concept.
-4. Port the libraries without a Rust equivalent against the local sample files, running the Python pool until each port matches.
+4. Port the libraries without a Rust equivalent against the local sample files, running the Python pool until each port matched, and then retire it.
 5. Build the API and the alert view, then a site's journal email collector and the hunter, then port the remaining modules one pool at a time. Alert routing, detection verdicts and AI query port as they are.
 
 Most of the work is the roughly 90 analysis modules and the GUI. The core is the small part.

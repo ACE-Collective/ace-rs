@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Makes samples/ace4's encrypted Office files, for tools/samples/gather. It runs in the Python pool's
+"""Makes samples/ace4's encrypted Office files, for tools/samples/gather. It runs in the python-libraries
 image, which has msoffcrypto and cryptography, and needs a plain .docm, .docx and .doc, and an email
 holding ace3's encrypted .xls, which gives it a plain one:
 

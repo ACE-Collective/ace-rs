@@ -29,7 +29,6 @@ pub fn app() -> App {
         .observable_types(OBSERVABLE_TYPES)
         .parser_pool(ace::parser_pool())
         .lookup_pool(ace::lookup_pool().module::<TicketLookup>())
-        .python_pool(ace::python_pool())
         .module_in_group("correlation", TicketLookup::NAME)
 }
 

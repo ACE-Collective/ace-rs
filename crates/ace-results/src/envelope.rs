@@ -1,8 +1,7 @@
 //! The record every result shares.
 //!
 //! A module's result is a `ResultEnvelope<D>`, where `D` is its analysis type's details. The core
-//! reads results it hasn't a Rust type for, such as the Python pool's, as
-//! `ResultEnvelope<serde_json::Value>`.
+//! reads results as `ResultEnvelope<serde_json::Value>`, since it has no Rust type for a site's.
 
 use chrono::{DateTime, Utc};
 use schemars::JsonSchema;

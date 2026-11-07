@@ -22,8 +22,6 @@ struct Arch {
     /// The calls that start a process or a thread, or that make the kernel start worker threads
     /// for the process (io_uring), with their numbers on this architecture.
     blocked: &'static [(&'static str, u32)],
-    /// The calls that make a socket, which only a tool's filter also blocks (`tool_program`).
-    sockets: &'static [(&'static str, u32)],
     /// x86_64 only: kill any call with the x32 bit set. x32 calls carry the x86_64 audit arch but
     /// their own numbers, so a deny list that didn't check would let x32's execve through.
     kill_x32: bool,
@@ -42,7 +40,6 @@ const X86_64: Arch = Arch {
         ("io_uring_setup", 425),
         ("clone3", 435),
     ],
-    sockets: &[("socket", 41), ("socketpair", 53)],
     kill_x32: true,
 };
 
@@ -58,7 +55,6 @@ const AARCH64: Arch = Arch {
         ("io_uring_setup", 425),
         ("clone3", 435),
     ],
-    sockets: &[("socket", 198), ("socketpair", 199)],
     kill_x32: false,
 };
 
@@ -74,29 +70,7 @@ const X32_SYSCALL_BIT: u32 = 0x4000_0000;
 /// Installs the filter on the process. It must be the last step of containment: the filter stays
 /// for the life of the process.
 pub(super) fn install() -> io::Result<()> {
-    install_program(program(&NATIVE))
-}
-
-/// Installs the filter without its block on `execve`, for a process that contains itself and then
-/// becomes a Python worker (`contain_before_exec`). The worker's Landlock rules decide what it could
-/// run, and everything else stays blocked, so it still can't start a thread or a process.
-pub(super) fn install_keeping_exec() -> io::Result<()> {
-    install_program(program_keeping_exec(&NATIVE))
-}
-
-/// The filter for a tool the pool runs on a worker's behalf (`ToolConfinement`), built before the
-/// fork that applies it.
-pub(super) fn tool_filter() -> Vec<sock_filter> {
-    tool_program(&NATIVE)
-}
-
-fn install_program(filter: Vec<sock_filter>) -> io::Result<()> {
-    install_filter(&filter)
-}
-
-/// Installs a filter. It allocates only to report a thread that couldn't take the filter, which a
-/// child between fork and exec doesn't have, so `ToolConfinement` can call it there.
-pub(super) fn install_filter(filter: &[sock_filter]) -> io::Result<()> {
+    let filter = program(&NATIVE);
     let program = sock_fprog {
         len: u16::try_from(filter.len()).expect("the filter is a few instructions long"),
         // the kernel only reads it, and the field is `*mut` because the struct is C's
@@ -124,34 +98,7 @@ pub(super) fn install_filter(filter: &[sock_filter]) -> io::Result<()> {
 /// Load the architecture, kill on a foreign one, load the call number, kill on x32 (x86_64 only)
 /// or on a blocked call, and allow everything else.
 fn program(arch: &Arch) -> Vec<sock_filter> {
-    program_blocking(arch, arch.blocked)
-}
-
-/// `program` with `execve` allowed.
-fn program_keeping_exec(arch: &Arch) -> Vec<sock_filter> {
-    let blocked: Vec<_> = arch
-        .blocked
-        .iter()
-        .copied()
-        .filter(|&(name, _)| name != "execve")
-        .collect();
-    program_blocking(arch, &blocked)
-}
-
-/// `program_keeping_exec` that also blocks making a socket: a tool has no reason to reach the
-/// network, and it has no Landlock domain to stop it (`ToolConfinement` says why).
-fn tool_program(arch: &Arch) -> Vec<sock_filter> {
-    let blocked: Vec<_> = arch
-        .blocked
-        .iter()
-        .chain(arch.sockets)
-        .copied()
-        .filter(|&(name, _)| name != "execve")
-        .collect();
-    program_blocking(arch, &blocked)
-}
-
-fn program_blocking(arch: &Arch, calls: &[(&'static str, u32)]) -> Vec<sock_filter> {
+    let calls = arch.blocked;
     let to_kill = |instructions_between: usize| {
         u8::try_from(instructions_between).expect("the filter blocks a few calls")
     };
@@ -296,54 +243,6 @@ mod tests {
     }
 
     #[test]
-    fn keeping_exec_allows_only_execve_of_the_blocked_calls() {
-        for arch in [&X86_64, &AARCH64] {
-            let program = program_keeping_exec(arch);
-            for &(name, number) in arch.blocked {
-                let expected = if name == "execve" {
-                    SECCOMP_RET_ALLOW
-                } else {
-                    SECCOMP_RET_KILL_PROCESS
-                };
-                assert_eq!(
-                    verdict(&program, arch.audit_arch, number),
-                    expected,
-                    "{name}"
-                );
-            }
-        }
-    }
-
-    #[test]
-    fn a_tool_can_exec_once_but_cant_start_anything_or_make_a_socket() {
-        for arch in [&X86_64, &AARCH64] {
-            let program = tool_program(arch);
-            for &(name, number) in arch.blocked.iter().chain(arch.sockets) {
-                let expected = if name == "execve" {
-                    SECCOMP_RET_ALLOW
-                } else {
-                    SECCOMP_RET_KILL_PROCESS
-                };
-                assert_eq!(
-                    verdict(&program, arch.audit_arch, number),
-                    expected,
-                    "{name}"
-                );
-            }
-        }
-        // ptrace and process_vm_readv, which py-spy needs, on each
-        for (arch, calls) in [(&X86_64, [101, 310]), (&AARCH64, [117, 270])] {
-            let program = tool_program(arch);
-            for number in calls {
-                assert_eq!(
-                    verdict(&program, arch.audit_arch, number),
-                    SECCOMP_RET_ALLOW
-                );
-            }
-        }
-    }
-
-    #[test]
     fn the_native_numbers_match_libc() {
         #[cfg(target_arch = "x86_64")]
         let fork = [("fork", libc::SYS_fork), ("vfork", libc::SYS_vfork)];
@@ -360,13 +259,6 @@ mod tests {
         .chain(fork)
         .collect();
         assert_eq!(NATIVE.blocked.len(), expected.len());
-        assert_eq!(
-            NATIVE.sockets,
-            [
-                ("socket", libc::SYS_socket as u32),
-                ("socketpair", libc::SYS_socketpair as u32),
-            ]
-        );
         for (name, number) in expected {
             let ours = NATIVE.blocked.iter().find(|&&(n, _)| n == name);
             assert_eq!(ours.map(|&(_, n)| i64::from(n)), Some(number), "{name}");

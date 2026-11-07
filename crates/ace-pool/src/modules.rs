@@ -89,16 +89,6 @@ pub trait PoolLookup: Send + Sync {
     fn run<'a>(&'a self, run: Run<'a>) -> Pin<Box<dyn Future<Output = TaskEnd> + Send + 'a>>;
 }
 
-/// A module the Python pool runs (PLAN.md 4.1). Its code is in `python/`, so this holds what the
-/// supervisor tells a worker about it.
-#[derive(Debug, Clone)]
-pub struct PythonModule {
-    pub manifest: Manifest,
-    /// The name its tasks carry: the module's, or its instance's.
-    pub key: String,
-    pub settings: Option<Value>,
-}
-
 /// A module, its settings and the secrets it declared, under its component's key.
 pub struct Entry<M: ace_sdk::Module> {
     module: M,
@@ -223,7 +213,6 @@ pub fn task_end<D: AnalysisType>(outcome: Result<Outcome<D>, ModuleError>) -> Ta
 pub struct Modules {
     parsers: BTreeMap<String, Box<dyn PoolParser>>,
     lookups: BTreeMap<String, Box<dyn PoolLookup>>,
-    python: BTreeMap<String, PythonModule>,
 }
 
 impl Modules {
@@ -243,22 +232,6 @@ impl Modules {
         self
     }
 
-    pub fn with_python(mut self, module: PythonModule) -> Self {
-        self.python.insert(module.key.clone(), module);
-        self
-    }
-
-    pub fn python(&self, name: &str) -> Option<&PythonModule> {
-        self.python.get(name)
-    }
-
-    /// The Python modules a worker imports, each once however many instances it has.
-    pub fn python_names(&self) -> Vec<&'static str> {
-        let names: std::collections::BTreeSet<&'static str> =
-            self.python.values().map(|m| m.manifest.name).collect();
-        names.into_iter().collect()
-    }
-
     pub fn parser(&self, name: &str) -> Option<&dyn PoolParser> {
         self.parsers.get(name).map(|p| p.as_ref())
     }
@@ -272,7 +245,6 @@ impl Modules {
         self.parsers
             .keys()
             .chain(self.lookups.keys())
-            .chain(self.python.keys())
             .cloned()
             .collect()
     }
@@ -282,7 +254,6 @@ impl Modules {
             .values()
             .map(|p| p.manifest())
             .chain(self.lookups.values().map(|l| l.manifest()))
-            .chain(self.python.values().map(|m| m.manifest))
             .collect()
     }
 }
@@ -318,18 +289,6 @@ fn build_lookup<M: Lookup>(
     Ok(modules.with_lookup(entry))
 }
 
-fn build_python(
-    component: &Component,
-    _: &Secrets,
-    modules: Modules,
-) -> Result<Modules, SetupError> {
-    Ok(modules.with_python(PythonModule {
-        manifest: component.manifest,
-        key: component.key.clone(),
-        settings: component.settings.clone(),
-    }))
-}
-
 /// The module types a binary links, so it can build the components a site overlay makes of
 /// them without knowing their types.
 #[derive(Default)]
@@ -351,13 +310,6 @@ impl Registry {
     pub fn lookup<M: Lookup>(mut self) -> Self {
         self.modules
             .push((Manifest::lookup::<M>(), build_lookup::<M>));
-        self
-    }
-
-    /// A module whose code is in `python/`: the core knows it by this manifest, and the Python
-    /// pool's workers run it.
-    pub fn python<M: ace_sdk::Module>(mut self) -> Self {
-        self.modules.push((Manifest::python::<M>(), build_python));
         self
     }
 

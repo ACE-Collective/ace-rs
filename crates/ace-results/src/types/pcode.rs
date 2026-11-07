@@ -1,5 +1,5 @@
 //! `pcode_analysis`: what pcodedmp disassembled in a file (ace3's `PCodeAnalysis`,
-//! `saq/modules/file_analysis/vbs.py`). The Python pool writes it (PLAN.md 4.7).
+//! `saq/modules/file_analysis/vbs.py`). `ace-mod-xlm` writes it (PLAN.md 4.12).
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};

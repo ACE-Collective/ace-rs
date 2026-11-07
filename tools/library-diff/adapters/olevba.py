@@ -1,4 +1,4 @@
-"""oletools' olevba, as python/ace4_python/modules/olevba_v1_2.py calls it."""
+"""oletools' olevba, as 4.4's Python module called it."""
 
 from oletools.olevba import VBA_Parser, filter_vba
 

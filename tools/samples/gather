@@ -438,15 +438,26 @@ def encrypted_email(path, body, attachments=(), html=None, nested=None):
     return message
 
 
+def library_image():
+    """The image with the libraries the files' encryption comes from, built if it has changed."""
+    image = "ace4-python-libraries:latest"
+    subprocess.run(
+        ["docker", "build", "-q", "-f", REPO / "docker" / "ace4" / "Dockerfile",
+         "--target", "python-libraries", "-t", image, REPO],
+        check=True, stdout=subprocess.DEVNULL,
+    )
+    return image
+
+
 def make_encrypted_office(directory, email_directory):
     """Encrypted Office files, and the emails that carry them, for what ace3's msoffice module does:
     a password found in a body, in HTML, in a nested email and from an email past a zip, none found,
     no email, no body, a default password, and formats John doesn't take. The files' encryption is
-    tools/samples/make-encrypted-office's, in the Python pool's image."""
+    tools/samples/make-encrypted-office's, in the python-libraries image."""
     with tempfile.TemporaryDirectory(dir=REPO / "target") as work:
         subprocess.run(
             ["docker", "run", "--rm", "-u", f"{os.getuid()}:{os.getgid()}", "--entrypoint", "python3",
-             "-v", f"{REPO}:/repo:ro", "-v", f"{work}:/out", "ace4-python:latest", "-I",
+             "-v", f"{REPO}:/repo:ro", "-v", f"{work}:/out", library_image(), "-I",
              "/repo/tools/samples/make-encrypted-office", "/out",
              "/repo/samples/ace3/office/mortgage_payment-0873821-0565.docm",
              "/repo/samples/ace3/office/doc.docx", "/repo/samples/ace3/office/doc.doc",
@@ -619,7 +630,7 @@ def make_encrypted_binary(directory, email_directory, html_directory):
     with tempfile.TemporaryDirectory(dir=REPO / "target") as work:
         subprocess.run(
             ["docker", "run", "--rm", "-u", f"{os.getuid()}:{os.getgid()}", "--entrypoint", "python3",
-             "-v", f"{REPO}:/repo:ro", "-v", f"{work}:/out", "ace4-python:latest", "-I", "-B",
+             "-v", f"{REPO}:/repo:ro", "-v", f"{work}:/out", library_image(), "-I", "-B",
              "/repo/tools/samples/make-encrypted-binary", "/out",
              "/repo/samples/ace3/office/doc.doc", "/repo/samples/ace3/office/doc.docx",
              "/repo/samples/ace3/email/encrypted_msoffice.email.rfc822"],

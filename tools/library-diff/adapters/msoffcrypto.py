@@ -1,4 +1,4 @@
-"""msoffcrypto, as python/ace4_python/modules/msoffice_encryption_analyzer.py calls it: what it says
+"""msoffcrypto, as 4.6's Python module called it: what it says
 of the file and, for each password, whether it opens it and what it decrypts to.
 
 The passwords are ace3's two defaults and those of tools/samples/make-encrypted-office and -binary, ace3's

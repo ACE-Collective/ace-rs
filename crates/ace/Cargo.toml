@@ -1,7 +1,7 @@
 [package]
 name = "ace"
 version = "0.1.0"
-description = "The open-source binaries over ace-app: ace, and the ace-parsers, ace-lookups and ace-python pools"
+description = "The open-source binaries over ace-app: ace, and the ace-parsers and ace-lookups pools"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
@@ -27,10 +27,6 @@ path = "src/bin/ace-parsers.rs"
 name = "ace-lookups"
 path = "src/bin/ace-lookups.rs"
 
-[[bin]]
-name = "ace-python"
-path = "src/bin/ace-python.rs"
-
 [dependencies]
 ace-app = { path = "../ace-app" }
 ace-mod-archive = { path = "../ace-mod-archive" }
@@ -38,7 +34,6 @@ ace-mod-email = { path = "../ace-mod-email" }
 ace-mod-msoffice = { path = "../ace-mod-msoffice" }
 ace-mod-oletools = { path = "../ace-mod-oletools" }
 ace-mod-pdf = { path = "../ace-mod-pdf" }
-ace-mod-python = { path = "../ace-mod-python" }
 ace-mod-rdap = { path = "../ace-mod-rdap" }
 ace-mod-splunk = { path = "../ace-mod-splunk" }
 ace-mod-xlm = { path = "../ace-mod-xlm" }

@@ -1,13 +1,12 @@
-# What the Python pool's image installs (PLAN.md 4.1, decision 8): only the libraries with no Rust
-# equivalent yet, each pinned, and everything they need at the version ace3's virtualenv has, so
-# 3.3's comparison with ace3 isn't comparing library versions.
+# What the python-libraries image installs, the left side of tools/library-diff/run: the libraries the
+# Python pool ran until its modules were ported (PLAN.md 4.1, 4.13), each pinned, and everything they
+# need at the version ace3's virtualenv has, so the diff isn't comparing library versions.
 #
 # requirements.txt is this file resolved, with a hash for every file. To change a pin, edit this
 # file, then run tools/python/lock.
 #
 # ace3/installer/requirements-pinned.txt. No module runs these since PLAN.md 4.12. They stay because
-# tools/library-diff runs each library against its port on this image (python-libraries); 4.13 decides
-# what the pool's own image keeps.
+# tools/library-diff runs each library against its port on this image.
 oletools==0.60.2
 msoffcrypto-tool==6.0.0
 pcodedmp==1.2.6

@@ -36,20 +36,6 @@
 //!   the process (SIGABRT, "memory allocation of N bytes failed").
 //! - running past the CPU-time limit: SIGXCPU.
 //!
-//! `contain_before_exec` is the variant for a Python worker (PLAN.md 4.1), which can't contain
-//! itself: Python has no Landlock or seccomp without a library. The pool's binary, exec'd as the
-//! worker's user and running one thread, contains itself and then execs Python, and all of it
-//! holds through that exec. It applies the address-space and core-file limits, `no_new_privs`, the
-//! Landlock rules and the seccomp filter, with two changes. `execve` stays allowed, since it is the
-//! next call, and Landlock allows running only `exec_paths`. And it sets no CPU-time limit, because
-//! a worker runs many tasks and that limit counts its whole life; the supervisor's deadline bounds
-//! each task instead.
-//!
-//! `ToolConfinement` is for a tool the supervisor runs on a worker's behalf, py-spy for now. It gets
-//! no Landlock domain, because Landlock lets a process trace only inside its own domain and the
-//! tool must read a worker's. So it has the rest: `no_new_privs`, the address-space and core-file
-//! limits, and a seccomp filter that also refuses making a socket.
-//!
 //! # Libraries that start threads
 //!
 //! A library that starts a thread after `contain` kills the task with SIGSYS. Known ones:
@@ -231,54 +217,6 @@ pub fn contain_pool(profile: &SandboxProfile) -> Result<Contained, ContainmentEr
     restrict_files_and_ports(profile)
 }
 
-/// Contains the calling process for the rest of its life, and through the `execve` it makes next,
-/// which may run only what's beneath `exec_paths` (see the module docs). A Python interpreter also
-/// needs the dynamic loader in `exec_paths`, because the kernel opens it for execution too.
-pub fn contain_before_exec(
-    profile: &SandboxProfile,
-    exec_paths: &[PathBuf],
-) -> Result<Contained, ContainmentError> {
-    let threads = count_threads().map_err(ContainmentError::CountThreads)?;
-    if threads != 1 {
-        return Err(ContainmentError::Threads(threads));
-    }
-    let bytes = profile.address_space_bytes;
-    set_rlimit(libc::RLIMIT_AS, "RLIMIT_AS", bytes, bytes)?;
-    set_rlimit(libc::RLIMIT_CORE, "RLIMIT_CORE", 0, 0)?;
-    set_no_new_privs()?;
-    let contained = restrict(profile, exec_paths)?;
-    seccomp::install_keeping_exec().map_err(ContainmentError::Seccomp)?;
-    Ok(contained)
-}
-
-/// Narrows a tool the supervisor starts, between its fork and its exec. See the module docs.
-#[derive(Debug, Clone)]
-pub struct ToolConfinement {
-    address_space_bytes: u64,
-    filter: Vec<libc::sock_filter>,
-}
-
-impl ToolConfinement {
-    pub fn new(address_space_bytes: u64) -> ToolConfinement {
-        ToolConfinement {
-            address_space_bytes,
-            filter: seccomp::tool_filter(),
-        }
-    }
-
-    /// Applies it to this process. It makes system calls and allocates nothing, so a `pre_exec`
-    /// hook can call it, and it runs after the hook's process has dropped to the tool's user.
-    pub fn apply(&self) -> io::Result<()> {
-        let bytes = self.address_space_bytes;
-        // each of these only fails with the errno of the call that failed
-        let errno = |_| io::Error::last_os_error();
-        set_rlimit(libc::RLIMIT_AS, "RLIMIT_AS", bytes, bytes).map_err(errno)?;
-        set_rlimit(libc::RLIMIT_CORE, "RLIMIT_CORE", 0, 0).map_err(errno)?;
-        set_no_new_privs().map_err(errno)?;
-        seccomp::install_filter(&self.filter)
-    }
-}
-
 /// The `Threads:` count in `/proc/self/status`.
 fn count_threads() -> io::Result<usize> {
     let status = fs::read_to_string("/proc/self/status")?;
@@ -360,13 +298,6 @@ fn write_access() -> BitFlags<AccessFs> {
 }
 
 fn restrict_files_and_ports(profile: &SandboxProfile) -> Result<Contained, ContainmentError> {
-    restrict(profile, &[])
-}
-
-fn restrict(
-    profile: &SandboxProfile,
-    exec_paths: &[PathBuf],
-) -> Result<Contained, ContainmentError> {
     // ABI 4's rights are a hard requirement. The newer ones apply where the kernel has them.
     let mut ruleset = Ruleset::default()
         .set_compatibility(CompatLevel::HardRequirement)
@@ -381,9 +312,6 @@ fn restrict(
     }
     for path in &profile.write_paths {
         ruleset = ruleset.add_rule(path_rule(path, write_access())?)?;
-    }
-    for path in exec_paths {
-        ruleset = ruleset.add_rule(path_rule(path, read_access() | AccessFs::Execute)?)?;
     }
     for &port in &profile.tcp_ports {
         ruleset = ruleset.add_rule(NetPort::new(port, AccessNet::ConnectTcp))?;

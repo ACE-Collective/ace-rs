@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 #
 # The images of ace4's Compose stack (PLAN.md 2.29): ace4-ace, the core; ace4-parsers, the
-# parser pool; ace4-lookups, the network pool; ace4-python, the Python pool (4.1); and
+# parser pool; ace4-lookups, the network pool; and
 # ace4-responder, the recorded-response server of the end-to-end test. One build stage compiles every binary once, and each image is a
 # target of this file. The build's target directory is a BuildKit cache, so a rebuild compiles
 # only what changed; it isn't the dev container's target/ volume.
@@ -30,7 +30,7 @@ RUN --mount=type=cache,id=ace4-images-registry,target=/usr/local/cargo/registry 
     cargo build --release --locked -p ace -p ace-testkit --bins \
     && mkdir -p /out \
     && cp target/release/ace target/release/ace-parsers target/release/ace-lookups \
-        target/release/ace-python target/release/replay-server /out/
+        target/release/replay-server /out/
 
 # What every image runs on: Debian with the pinned libmagic and its database, which the core's
 # mime types and the YARA module's mime_type filter read.
@@ -70,23 +70,22 @@ COPY --from=build /out/ace-lookups /usr/local/bin/ace-lookups
 USER ace4
 CMD ["ace-lookups"]
 
-# The Python pool (PLAN.md 4.1): the libraries with no Rust equivalent yet, and nothing else.
-# Python is ace3's, 3.14 on trixie, so the libraries behave as they do there. The base is pinned by
-# digest and every file pip installs by hash, so a build gets these bytes or fails. python/requirements.in
-# says what's pinned and why, and tools/python/lock regenerates the hashes. The three GitHub archives
-# need setuptools to build, so it's installed first, pinned. It stays, because XLMMacroDeobfuscator
-# imports distutils, which Python 3.12 removed and setuptools now provides. wheel goes.
+# The libraries tools/library-diff/run (PLAN.md 4.8) compares each Rust port with. Nothing in the
+# stack runs this: the Python pool that did went at PLAN.md 4.13. Python is ace3's, 3.14 on trixie,
+# so the libraries behave as they do there. The base is pinned by digest and every file pip installs
+# by hash, so a build gets these bytes or fails. python/requirements.in says what's pinned and why,
+# and tools/python/lock regenerates the hashes. The three GitHub archives need setuptools to build,
+# so it's installed first, pinned. It stays, because XLMMacroDeobfuscator imports distutils, which
+# Python 3.12 removed and setuptools now provides. wheel goes.
 #
-# python-libraries is the image without the pool, which needs no Rust built, so tools/library-diff/run
-# (PLAN.md 4.8) gets the same libraries from it.
+# Files in the tree that need these libraries, such as tools/oletools/make-tables, run on it as
+# ace4-python-libraries:latest.
 FROM python:3.14.10-slim-trixie@sha256:af8a5aa14780025dbfbcfbc81bd8a91ebd87711dd5b0f48ed71090949dd7cb1d AS python-libraries
-# ace-python links libmagic, as every binary over ace-app does; the pool never calls it
+# a Rust side of the diff runs here too, and ace-mod-xlm's links libmagic
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         ca-certificates libmagic-mgc=1:5.46-5 libmagic1t64=1:5.46-5 \
     && rm -rf /var/lib/apt/lists/*
-RUN useradd --system --uid 10001 --user-group --no-create-home --home-dir /nonexistent \
-        --shell /usr/sbin/nologin ace4-task
 COPY python/build-requirements.txt python/requirements.txt /tmp/requirements/
 RUN pip install --no-cache-dir --disable-pip-version-check --no-deps --require-hashes \
         -r /tmp/requirements/build-requirements.txt \
@@ -97,24 +96,8 @@ RUN pip install --no-cache-dir --disable-pip-version-check --no-deps --require-h
     && python -c "import msoffcrypto, oletools.olevba, pcodedmp.pcodedmp, pyxlsb2, xlrd2, XLMMacroDeobfuscator.deobfuscator" \
     && rm -rf /tmp/requirements
 
-FROM python-libraries AS python
-# py-spy, which the supervisor runs on a hung worker (PLAN.md 4.3). It goes apart from the libraries,
-# so a worker can't import it, and its directory isn't in a worker's Landlock paths, so a worker
-# can't read or run it. pip --target leaves its files writable by anyone unless it's told.
-COPY python/tool-requirements.txt /tmp/tool-requirements.txt
-RUN pip install --no-cache-dir --disable-pip-version-check --no-deps --require-hashes \
-        --only-binary :all: --target /opt/ace4/tools -r /tmp/tool-requirements.txt \
-    && chmod -R u=rwX,go=rX /opt/ace4/tools \
-    && rm /tmp/tool-requirements.txt
-# The supervisor runs as root so it can start each worker as ace4-task, like the parser pool's
-# (PLAN.md 2.17). Workers write no .pyc files, so these are compiled here.
-COPY python /opt/ace4/python
-RUN python -m compileall -q /opt/ace4/python
-COPY --from=build /out/ace-python /usr/local/bin/ace-python
-CMD ["ace-python"]
-
-# pikepdf and html2text for tools/library-diff/run (PLAN.md 4.9's and 4.11's comparisons). Decision 8
-# keeps pikepdf out of the pool and 4.11's port replaced html2text there, so nothing in the stack runs this. Same Python, wheels only, by hash.
+# pikepdf and html2text for tools/library-diff/run (PLAN.md 4.9's and 4.11's comparisons), apart
+# because decision 8 kept pikepdf out of the Python pool. Same Python, wheels only, by hash.
 FROM python:3.14.10-slim-trixie@sha256:af8a5aa14780025dbfbcfbc81bd8a91ebd87711dd5b0f48ed71090949dd7cb1d AS pdf-libraries
 COPY python/pdf-requirements.txt /tmp/pdf-requirements.txt
 RUN pip install --no-cache-dir --disable-pip-version-check --no-deps --require-hashes \

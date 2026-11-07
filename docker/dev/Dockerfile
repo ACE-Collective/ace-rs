@@ -54,20 +54,3 @@ CMD ["poll-host-changes"]
 # processes of the same user. It owns no files and has no shell or home.
 RUN useradd --system --uid 10001 --user-group --no-create-home --home-dir /nonexistent \
         --shell /usr/sbin/nologin ace4-task
-
-# py-spy for the Python pool's tests (PLAN.md 4.3), where the pool's image puts it, at the version
-# and hashes of python/tool-requirements.txt; keep them in step. Only the binary comes out of the
-# wheel, which pip isn't here to install.
-RUN case "$(dpkg --print-architecture)" in \
-        arm64) wheel=60/c3/c9384da6992d64e0dffab551cda3d1e990de1a2685fcfcc16fc8e5a98b18/py_spy-0.4.3-py2.py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl \
-            sha256=bbcec46930d464b3bfc142d6d02ade4dd8ad5627823263b3eff0280e80c7c132 ;; \
-        amd64) wheel=78/1f/651389a861f6148754443834a50dd576993257af5f645d4316ab94505267/py_spy-0.4.3-py2.py3-none-manylinux1_x86_64.manylinux_2_5_x86_64.whl \
-            sha256=8a4277225f470d394a85cca0cdd944bef87f0097b6f20150a6dd3ac2e92806b8 ;; \
-        *) echo "no py-spy for this architecture" >&2; exit 1 ;; \
-    esac \
-    && curl -fsSL -o /tmp/py-spy.whl "https://files.pythonhosted.org/packages/$wheel" \
-    && echo "$sha256  /tmp/py-spy.whl" | sha256sum -c - \
-    && mkdir -p /opt/ace4/tools/bin \
-    && python3 -c "import zipfile; open('/opt/ace4/tools/bin/py-spy', 'wb').write(zipfile.ZipFile('/tmp/py-spy.whl').read('py_spy-0.4.3.data/scripts/py-spy'))" \
-    && chmod 755 /opt/ace4/tools/bin/py-spy \
-    && rm /tmp/py-spy.whl

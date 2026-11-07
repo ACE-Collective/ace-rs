@@ -215,9 +215,10 @@ pub async fn run_task_process(
             error: format!("the task process didn't run: {e}"),
         },
     };
-    drop(keeper);
     let outputs = LocalFileStore::new(dir.outputs())?;
+    // the lease stays kept until the end lands: a result's uploads can outlast it
     finish(client, &task, &outputs, &end, shutdown).await?;
+    drop(keeper);
     Ok(end)
 }
 
@@ -336,18 +337,12 @@ fn seconds(duration: Duration) -> String {
 pub fn end_of(status: ExitStatus, stdout: &[u8], stderr: &str) -> TaskEnd {
     let tail = || last_lines(stderr, 5);
     match status.code() {
-        Some(EXIT_DONE | EXIT_MODULE) => {
-            match serde_json::from_slice(stdout) {
-                // only a supervisor's account of a process it killed says this
-                Ok(TaskEnd::Hung { .. }) => TaskEnd::Failed {
-                    error: "the task process said it had hung, which it can't know".to_owned(),
-                },
-                Ok(end) => end,
-                Err(e) => TaskEnd::Failed {
-                    error: format!("the task process's reply doesn't read ({e}): {}", tail()),
-                },
-            }
-        }
+        Some(EXIT_DONE | EXIT_MODULE) => match serde_json::from_slice(stdout) {
+            Ok(end) => end,
+            Err(e) => TaskEnd::Failed {
+                error: format!("the task process's reply doesn't read ({e}): {}", tail()),
+            },
+        },
         Some(EXIT_SETUP) => TaskEnd::Failed {
             error: format!("the task process couldn't set up: {}", tail()),
         },

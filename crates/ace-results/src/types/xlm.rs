@@ -1,6 +1,6 @@
 //! `xlm_deobfuscator_analysis`: what XLMMacroDeobfuscator found in a file's Excel 4.0 macros (ace3's
-//! `XLMMacroDeobfuscatorAnalysis`, `saq/modules/file_analysis/xlm.py`). The Python pool writes it
-//! (PLAN.md 4.7).
+//! `XLMMacroDeobfuscatorAnalysis`, `saq/modules/file_analysis/xlm.py`). `ace-mod-xlm` writes it
+//! (PLAN.md 4.12).
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};

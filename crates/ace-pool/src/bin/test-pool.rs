@@ -11,11 +11,6 @@
 //!     run as a parser pool's supervisor until SIGTERM, one task process per task; with
 //!     --rulesets, keep DIR on the core's current YARA ruleset, and lease nothing until the
 //!     first has loaded
-//! test-pool python --python PATH --source DIR [--task-user NAME] [--concurrency N]
-//!                  [--max-tasks N] [--max-memory-mb N] [--py-spy PATH] [--dump-timeout-ms N]
-//!     run as the Python pool's supervisor until SIGTERM, with workers from DIR on PATH
-//! test-pool python-worker SPEC
-//!     a Python worker's first process: contain, and exec Python as SPEC says
 //! test-pool task [--settings JSON]
 //!     a task process: read a task on stdin, contain, run it, write its end on stdout
 //! test-pool replay ID [--settings JSON]
@@ -31,7 +26,6 @@ use std::time::Duration;
 use ace_pool::client::LeaseClient;
 use ace_pool::modules::Modules;
 use ace_pool::pool::{AsyncPool, POOL_ADDRESS_SPACE, PoolDefinition};
-use ace_pool::python::{PythonConfig, PythonPool, RecycleLimits};
 use ace_pool::rulesets::RulesetWatcher;
 use ace_pool::run::run_in_process;
 use ace_pool::supervisor::{Supervisor, SupervisorConfig};
@@ -49,12 +43,6 @@ struct Args {
     read_paths: Vec<std::path::PathBuf>,
     rulesets: Option<std::path::PathBuf>,
     ruleset_poll: Duration,
-    python: Option<std::path::PathBuf>,
-    source: Option<std::path::PathBuf>,
-    max_tasks: u64,
-    max_memory_mb: u64,
-    py_spy: std::path::PathBuf,
-    dump_timeout: Duration,
 }
 
 fn parse() -> Result<Args, String> {
@@ -73,12 +61,6 @@ fn parse() -> Result<Args, String> {
         read_paths: Vec::new(),
         rulesets: None,
         ruleset_poll: ace_pool::rulesets::DEFAULT_EVERY,
-        python: None,
-        source: None,
-        max_tasks: 1000,
-        max_memory_mb: 1024,
-        py_spy: "/opt/ace4/tools/bin/py-spy".into(),
-        dump_timeout: ace_pool::python::DUMP_TIMEOUT,
     };
     while let Some(arg) = args.next() {
         match arg.as_str() {
@@ -110,28 +92,6 @@ fn parse() -> Result<Args, String> {
                     .and_then(|n| n.parse().ok())
                     .ok_or("--concurrency takes a number")?;
             }
-            "--python" => parsed.python = Some(args.next().ok_or("--python takes a path")?.into()),
-            "--source" => parsed.source = Some(args.next().ok_or("--source takes a path")?.into()),
-            "--max-tasks" => {
-                parsed.max_tasks = args
-                    .next()
-                    .and_then(|n| n.parse().ok())
-                    .ok_or("--max-tasks takes a number")?;
-            }
-            "--max-memory-mb" => {
-                parsed.max_memory_mb = args
-                    .next()
-                    .and_then(|n| n.parse().ok())
-                    .ok_or("--max-memory-mb takes a number")?;
-            }
-            "--py-spy" => parsed.py_spy = args.next().ok_or("--py-spy takes a path")?.into(),
-            "--dump-timeout-ms" => {
-                parsed.dump_timeout = Duration::from_millis(
-                    args.next()
-                        .and_then(|n| n.parse().ok())
-                        .ok_or("--dump-timeout-ms takes a number")?,
-                );
-            }
             other => return Err(format!("unknown argument {other}")),
         }
     }
@@ -139,13 +99,6 @@ fn parse() -> Result<Args, String> {
 }
 
 fn main() -> ExitCode {
-    // before anything else: this process becomes Python
-    if std::env::args().nth(1).as_deref() == Some("python-worker") {
-        return match std::env::args().nth(2) {
-            Some(spec) => ace_pool::python::exec_worker(&spec),
-            None => ExitCode::from(2),
-        };
-    }
     // logs now; span export, which starts threads, once any containment is in place
     let mut telemetry = ace_pool::telemetry::init("ace4-test-pool", "info");
     let args = match parse() {
@@ -249,55 +202,8 @@ fn main() -> ExitCode {
             });
             with_runtime(parsers(Supervisor::new(client, modules, config), watcher))
         }
-        "python" => {
-            let user = match &args.task_user {
-                Some(name) => match ace_pool::supervisor::user_ids(name) {
-                    Some(ids) => Some(ids),
-                    None => {
-                        eprintln!("no user {name}");
-                        return ExitCode::from(2);
-                    }
-                },
-                None => None,
-            };
-            let (Ok(program), Some(python), Some(source)) =
-                (std::env::current_exe(), args.python, args.source)
-            else {
-                eprintln!("python needs --python and --source");
-                return ExitCode::from(2);
-            };
-            let config = PythonConfig {
-                program,
-                args: vec!["python-worker".to_owned()],
-                python,
-                source,
-                user,
-                concurrency: args.concurrency,
-                limits: RecycleLimits {
-                    max_tasks: args.max_tasks,
-                    max_private_bytes: args.max_memory_mb * 1024 * 1024,
-                },
-                py_spy: args.py_spy,
-                dump_timeout: args.dump_timeout,
-            };
-            with_runtime(python_pool(PythonPool::new(client, modules, config)))
-        }
         other => {
             eprintln!("unknown mode {other}");
-            ExitCode::from(2)
-        }
-    }
-}
-
-async fn python_pool(pool: PythonPool) -> ExitCode {
-    let stop = stop_on_signal();
-    match pool.lease_wait(Duration::from_secs(2)).run(stop).await {
-        Ok(stats) => {
-            println!("ran {} tasks, {} errors", stats.tasks, stats.errors);
-            ExitCode::SUCCESS
-        }
-        Err(e) => {
-            eprintln!("the Python pool didn't start: {e}");
             ExitCode::from(2)
         }
     }
@@ -437,7 +343,7 @@ fn outcome_name(end: &ace_sdk::wire::TaskEnd) -> &'static str {
         TaskEnd::Done { .. } => "done",
         TaskEnd::Skipped { .. } => "skipped",
         TaskEnd::Delay { .. } => "delayed",
-        TaskEnd::Failed { .. } | TaskEnd::Hung { .. } => "failed",
+        TaskEnd::Failed { .. } => "failed",
         TaskEnd::Cancelled => "cancelled",
     }
 }

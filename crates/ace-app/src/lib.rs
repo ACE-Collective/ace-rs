@@ -52,7 +52,6 @@ pub struct App {
     observable_types: Vec<ObservableKind>,
     parser_pools: Vec<ParserPool>,
     lookup_pools: Vec<LookupPool>,
-    python_pools: Vec<PythonPool>,
     groups: Vec<(String, String)>,
 }
 
@@ -65,12 +64,6 @@ pub struct ParserPool {
 
 /// A network pool: lookups, many at a time as async tasks in one contained process (2.16).
 pub struct LookupPool {
-    name: String,
-    registry: Registry,
-}
-
-/// A Python pool: modules whose code is in `python/`, on recyclable worker processes (PLAN.md 4.1).
-pub struct PythonPool {
     name: String,
     registry: Registry,
 }
@@ -105,11 +98,6 @@ impl App {
         self
     }
 
-    pub fn python_pool(mut self, pool: PythonPool) -> App {
-        self.python_pools.push(pool);
-        self
-    }
-
     /// Puts `module`, or one of its overlay instances, in the module group `group` (ace3's
     /// `module_group_*`), so the analysis modes that run the group run it. ace3's groups name
     /// only ace3's own modules, so a site's module runs in no mode until it joins one.
@@ -138,9 +126,6 @@ impl App {
         if let Some(lookups) = self.lookup_pools.iter().find(|p| p.name == pool) {
             return pools::lookup_main(lookups);
         }
-        if let Some(python) = self.python_pools.iter().find(|p| p.name == pool) {
-            return pools::python_main(python);
-        }
         eprintln!("this binary has no pool {pool}");
         ExitCode::from(2)
     }
@@ -159,7 +144,6 @@ impl App {
             .iter()
             .map(|p| &p.registry)
             .chain(self.lookup_pools.iter().map(|p| &p.registry))
-            .chain(self.python_pools.iter().map(|p| &p.registry))
             .fold(Registry::new(), Registry::merge)
     }
 
@@ -182,7 +166,6 @@ impl App {
             .iter()
             .map(|p| pool(&p.name, &p.registry))
             .chain(self.lookup_pools.iter().map(|p| pool(&p.name, &p.registry)))
-            .chain(self.python_pools.iter().map(|p| pool(&p.name, &p.registry)))
             .collect::<Vec<_>>()
             .join(";")
     }
@@ -233,21 +216,6 @@ impl LookupPool {
     }
 }
 
-impl PythonPool {
-    pub fn new(name: &str) -> PythonPool {
-        PythonPool {
-            name: name.to_owned(),
-            registry: Registry::new(),
-        }
-    }
-
-    /// Adds a module whose code is in `python/`, by its Rust manifest.
-    pub fn module<M: ace_sdk::Module>(mut self) -> PythonPool {
-        self.registry = self.registry.python::<M>();
-        self
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -260,11 +228,10 @@ mod tests {
                     .module::<ace_mod_email::EmailAnalyzer>()
                     .module::<ace_mod_yara::YaraScanner>(),
             )
-            .lookup_pool(LookupPool::new("lookups"))
-            .python_pool(PythonPool::new("python"));
+            .lookup_pool(LookupPool::new("lookups"));
         assert_eq!(
             app.pool_list(),
-            "parsers:email_analyzer,yara_scanner_v3_4;lookups:;python:"
+            "parsers:email_analyzer,yara_scanner_v3_4;lookups:"
         );
         let names: Vec<&str> = app.registry().manifests().iter().map(|m| m.name).collect();
         assert_eq!(names, ["email_analyzer", "yara_scanner_v3_4"]);

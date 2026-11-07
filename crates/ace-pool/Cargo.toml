@@ -9,7 +9,7 @@ publish.workspace = true
 
 [features]
 # The test pool binary and its modules, for this crate's tests.
-test-pools = ["dep:ace-mod-archive", "dep:ace-mod-email", "dep:ace-mod-msoffice", "dep:ace-mod-oletools", "dep:ace-mod-pdf", "dep:ace-mod-python", "dep:ace-mod-xlm", "dep:ace-mod-yara", "dep:schemars"]
+test-pools = ["dep:ace-mod-archive", "dep:ace-mod-email", "dep:ace-mod-msoffice", "dep:ace-mod-oletools", "dep:ace-mod-pdf", "dep:ace-mod-xlm", "dep:ace-mod-yara", "dep:schemars"]
 
 [[bin]]
 name = "test-pool"
@@ -21,7 +21,6 @@ ace-mod-email = { path = "../ace-mod-email", optional = true }
 ace-mod-msoffice = { path = "../ace-mod-msoffice", optional = true }
 ace-mod-oletools = { path = "../ace-mod-oletools", optional = true }
 ace-mod-pdf = { path = "../ace-mod-pdf", optional = true }
-ace-mod-python = { path = "../ace-mod-python", optional = true }
 ace-mod-xlm = { path = "../ace-mod-xlm", optional = true }
 ace-mod-yara = { path = "../ace-mod-yara", optional = true }
 ace-results = { path = "../ace-results" }
@@ -54,7 +53,6 @@ base64 = "0.22.1"
 ace-core = { path = "../ace-core", features = ["testing"] }
 flate2 = "1.1.10"
 chrono = { version = "0.4.45", default-features = false, features = ["clock", "std"] }
-ace-mod-python = { path = "../ace-mod-python" }
 ace-mod-xlm = { path = "../ace-mod-xlm" }
 ace-mod-splunk = { path = "../ace-mod-splunk" }
 ace-pool = { path = ".", features = ["test-pools"] }

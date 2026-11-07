@@ -1,4 +1,4 @@
-"""pcodedmp, as python/ace4_python/modules/pcodedmp.py calls it, whole: what the module's filter keeps
+"""pcodedmp, as 4.7's Python module called it, whole: what the module's filter keeps
 is the port's business, and what it drops shows where the two part. processFile reports an error on
 sys.stderr and returns, so that's in the output too."""
 

@@ -12,7 +12,6 @@ dependencies = [
  "ace-mod-msoffice",
  "ace-mod-oletools",
  "ace-mod-pdf",
- "ace-mod-python",
  "ace-mod-rdap",
  "ace-mod-splunk",
  "ace-mod-xlm",
@@ -190,16 +189,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ace-mod-python"
-version = "0.1.0"
-dependencies = [
- "ace-results",
- "ace-sdk",
- "schemars 1.2.3",
- "serde",
-]
-
-[[package]]
 name = "ace-mod-rdap"
 version = "0.1.0"
 dependencies = [
@@ -281,7 +270,6 @@ dependencies = [
  "ace-mod-msoffice",
  "ace-mod-oletools",
  "ace-mod-pdf",
- "ace-mod-python",
  "ace-mod-splunk",
  "ace-mod-xlm",
  "ace-mod-yara",

@@ -70,12 +70,11 @@ pub fn modules(settings: &Value) -> Result<Modules, SetupError> {
             &secrets,
         )?)
         .with_parser(Entry::<Spin>::parser(block(Spin::NAME), &secrets)?)
-        .with_lookup(Entry::<Hung>::lookup(block(Hung::NAME), &secrets)?)
-        .with_python(crate::modules::PythonModule {
-            manifest: ace_mod_python::PROBE_MANIFEST,
-            key: ace_mod_python::PROBE_MANIFEST.name.to_owned(),
-            settings: None,
-        }))
+        .with_parser(Entry::<WritesFiles>::parser(
+            block(WritesFiles::NAME),
+            &secrets,
+        )?)
+        .with_lookup(Entry::<Hung>::lookup(block(Hung::NAME), &secrets)?))
 }
 
 /// The manifests of the test modules, for a core's catalog.
@@ -87,6 +86,7 @@ pub fn test_manifests() -> Vec<ace_sdk::Manifest> {
         ace_sdk::Manifest::parser::<Capabilities>(),
         ace_sdk::Manifest::parser::<PanickingParser>(),
         ace_sdk::Manifest::parser::<Spin>(),
+        ace_sdk::Manifest::parser::<WritesFiles>(),
         ace_sdk::Manifest::lookup::<Hung>(),
     ]
 }
@@ -111,6 +111,11 @@ macro_rules! note_type {
 note_type!(CountedNote, "test_counted_note", "test_counted");
 note_type!(PanickyNote, "test_panicky_note", "test_panicky");
 note_type!(SpinNote, "test_spin_note", "test_spin");
+note_type!(
+    WritesFilesNote,
+    "test_writes_files_note",
+    "test_writes_files"
+);
 note_type!(HungNote, "test_hung_note", "test_hung");
 note_type!(ConnectNote, "test_connect_note", "test_connect");
 note_type!(
@@ -310,6 +315,42 @@ impl ace_sdk::Parser for Spin {
             std::hint::black_box(first);
             std::hint::spin_loop();
         }
+    }
+}
+
+/// A parser that adds as many different files as the fqdn's first label says, so a test can make
+/// a result whose uploads take a while.
+pub struct WritesFiles;
+
+impl Module for WritesFiles {
+    const NAME: &'static str = "test_writes_files";
+    const INPUTS: &'static [ObservableKind] = &[ObservableKind::Fqdn];
+    type Output = WritesFilesNote;
+    type Settings = ();
+
+    fn init(_: &()) -> Result<Self, ModuleError> {
+        Ok(WritesFiles)
+    }
+}
+
+impl ace_sdk::Parser for WritesFiles {
+    fn analyze(&self, ctx: &TaskContext<()>) -> Result<Outcome<WritesFilesNote>, ModuleError> {
+        let value = &ctx.observable().value;
+        let count: usize = value
+            .split('.')
+            .next()
+            .and_then(|label| label.parse().ok())
+            .ok_or_else(|| ModuleError::other(format!("{value} doesn't start with a count")))?;
+        let mut result = ResultEnvelope::new(WritesFilesNote {
+            note: format!("{count} files"),
+        });
+        for index in 0..count {
+            let file = ctx
+                .write_file(&format!("file-{index}"), index.to_string().as_bytes(), &[])
+                .map_err(|e| ModuleError::other(e.to_string()))?;
+            result = result.with_file(file);
+        }
+        Ok(Outcome::Done(result))
     }
 }
 

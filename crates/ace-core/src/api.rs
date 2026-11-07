@@ -877,10 +877,6 @@ async fn end_in(
             worker.delay(task, after, &without_nul(state)).await?;
         }
         TaskEnd::Failed { error } => worker.fail(task, &text_without_nul(&error)).await?,
-        TaskEnd::Hung { error, stacks } => {
-            let (error, stacks) = (text_without_nul(&error), text_without_nul(&stacks));
-            worker.fail_hung(task, &error, &stacks).await?
-        }
         TaskEnd::Cancelled => worker.cancelled(task).await?,
     }
     Ok(StatusCode::NO_CONTENT)
