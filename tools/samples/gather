@@ -157,6 +157,97 @@ def ole1_package(filename, payload):
     return header + struct.pack("<I", len(native)) + native
 
 
+def ole1_object(class_name, data, format_id=2, topic=b"", item=b""):
+    """An OLE1 object (MS-OLEDS 2.2.4) of any class: `format_id` 2 is embedded, 1 linked."""
+
+    def prefixed(text):
+        text += b"\x00"
+        return struct.pack("<I", len(text)) + text
+
+    return (
+        struct.pack("<II", 0x00000501, format_id)
+        + prefixed(class_name)
+        + prefixed(topic)
+        + prefixed(item)
+        + struct.pack("<I", len(data))
+        + data
+    )
+
+
+def rtf_object(data):
+    """An object in an RTF file, hex-encoded as Word writes it."""
+    return b"{\\object\\objemb{\\*\\objdata " + data.hex().encode() + b"}}\r\n"
+
+
+def rtf_with(*objects):
+    return b"{\\rtf1\\ansi Hello \\par\r\n" + b"".join(objects) + b"}"
+
+
+def make_rtf_edges(directory, macro_doc):
+    """What ace3's rtfobj does with each kind of object and when it stops, which the one object in
+    samples/local/rtf/document.rtf doesn't reach. Every byte is fixed. `macro_doc` is a real OLE file
+    with macros, so olevba and YARA have something to pick up from an object."""
+    inner_zip = io.BytesIO()
+    with zipfile.ZipFile(inner_zip, "w") as z:
+        z.writestr(zipfile.ZipInfo("inner.txt", (2020, 1, 1, 0, 0, 0)), b"a file in a zip in an RTF\n")
+    payload = b"MZ" + b"\x90" * 64
+    nested = rtf_with(rtf_object(ole1_package(b"deep.txt", b"a file in an RTF in an RTF\n")))
+    objects = rtf_with(
+        rtf_object(ole1_package(b"payload.exe", payload)),
+        # the same name twice: rtfobj's second write replaces the first
+        rtf_object(ole1_package(b"notes.txt", b"the first notes\n")),
+        rtf_object(ole1_package(b"notes.txt", b"the second notes\n")),
+        # the same bytes under two names: one observable with two paths
+        rtf_object(ole1_package(b"copy.exe", payload)),
+        # no name, a name that climbs, and a name that isn't ASCII
+        rtf_object(ole1_package(b"", b"a package with no name\n")),
+        rtf_object(ole1_package(b"..\\..\\evil.exe", b"a name that climbs\n")),
+        rtf_object(ole1_package(b"caf\xe9.txt", b"a name in latin-1\n")),
+        # what other modules read
+        rtf_object(ole1_package(b"inner.zip", inner_zip.getvalue())),
+        rtf_object(ole1_package(b"inner.rtf", nested)),
+        rtf_object(ole1_object(b"Word.Document.8", macro_doc)),
+        # the two exploits rtfobj names, and a class it has no extension for
+        rtf_object(
+            ole1_object(b"OLE2Link", "http://example.com/a.hta".encode("utf-16-le") + b"\x00\x00")
+        ),
+        rtf_object(ole1_object(b"Equation.3", b"\x1c\x00" + b"A" * 30)),
+        rtf_object(ole1_object(b"Paint.Picture", b"not really a picture\n")),
+        # linked, so it has no data; a size past its end; not OLE; and nothing at all
+        rtf_object(ole1_object(b"Word.Document.8", b"", 1, b"C:\\linked.doc", b"item")),
+        rtf_object(ole1_object(b"Package", b"\x02\x00truncated")),
+        rtf_object(b"not an OLE object\n"),
+        rtf_object(b""),
+        # hex as Word's parser reads it: spaces and other bytes dropped, an odd digit cut, a \bin
+        # block added, and \' removing a digit
+        b"{\\object{\\*\\objdata 41 4z2\r\n43 4}}\r\n",
+        b"{\\object{\\*\\objdata 4142\\bin3 CDE}}\r\n",
+        b"{\\object{\\*\\objdata 41424\\'00343}}\r\n",
+    )
+    files = {
+        "objects.rtf": objects,
+        # \bin at the very end makes rtfobj raise before it saves anything
+        "bin_at_end.rtf": rtf_with(rtf_object(ole1_package(b"lost.exe", payload))) + b"\\bin",
+        # a 200-character name that's 400 bytes on disk stops rtfobj after what it already saved
+        "long_name.rtf": rtf_with(
+            rtf_object(ole1_package(b"saved.txt", b"saved before the long name\n")),
+            rtf_object(ole1_package(b"\xe9" * 300 + b".exe", b"too long to save\n")),
+            rtf_object(ole1_package(b"after.txt", b"never reached\n")),
+        ),
+        # ace3 hands this name to rtfobj on its command line, where it's a glob matching nothing
+        "bracket[1].rtf": rtf_with(rtf_object(ole1_package(b"payload.exe", payload))),
+        "no_objects.rtf": b"{\\rtf1\\ansi Hello from ace4.\\par}",
+        # what ace3's is_rtf_file takes
+        "backslash_start.rtf": b"\\rtx " + rtf_object(ole1_package(b"backslash.txt", b"read anyway\n")),
+        # what it doesn't, under the name
+        "text_named.rtf": b"This is plain text, not an RTF file.\n",
+    }
+    directory.mkdir(parents=True, exist_ok=True)
+    for name, data in files.items():
+        (directory / name).write_bytes(data)
+    return [directory / name for name in files]
+
+
 # The XLM workbook from ace3/tests/saq/modules/file_analysis/test_xlm.py: an auto-open
 # Excel 4.0 macro that would download from an example.com URL.
 XLSM_PARTS = {
@@ -377,6 +468,10 @@ def main():
     docm = SAMPLES / "ace3" / "office" / "mortgage_payment-0873821-0565.docm"
     for path in make_office_edges(SAMPLES / "ace4" / "office", docm):
         samples.append(entry(path, ["office/edge"], "made by tools/samples/gather: by hand"))
+
+    macro_doc = (SAMPLES / "ace3" / "office" / "receipt_687790.doc").read_bytes()
+    for path in make_rtf_edges(SAMPLES / "ace4" / "rtf", macro_doc):
+        samples.append(entry(path, ["rtf", "rtf/edge"], "made by tools/samples/gather: by hand"))
 
     covered = {kind for sample in samples for kind in sample["kinds"]}
     missing = [kind for kind in REQUIRED_KINDS if kind not in covered]

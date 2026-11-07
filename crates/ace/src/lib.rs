@@ -26,6 +26,7 @@ pub fn python_pool() -> PythonPool {
     PythonPool::new("python")
         .module::<ace_mod_python::PythonProbe>()
         .module::<ace_mod_python::Olevba>()
+        .module::<ace_mod_python::RtfOle>()
 }
 
 /// The open-source binaries' list: the three pools, and no observable types beyond ace3's.

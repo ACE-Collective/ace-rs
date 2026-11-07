@@ -71,6 +71,12 @@ A module ace4 doesn't have, such as `file_type` (7.5), isn't listed: the command
 | `ace3/email/nested_rfc822_bom*` | `/observables/file:f007e1d587b9403795d169002b2b9dded64f0b110c651e7a4a6fb8256a17b4d5` | The same message: ace4's bytes. |  |
 | `ace3/email/nested_rfc822_bom*` | `/observables/*/results/email_analyzer/details/email/log_entry/attachment_hashes/1` | The same message, in the log entry. |  |
 | `ace3/email/nested_rfc822_bom*` | `/observables/*/results/email_analyzer/details/email/log_entry/attachment_sizes/1` | The same message, in the log entry. |  |
+| `ace4/rtf/bin_at_end.rtf` | `/observables/*/results/rtfole/details/stderr` | rtfobj raises at the same line on both sides, `_bin`'s `ord()` of nothing, with `return_code` 1. A traceback names the frames it came through: ace3's start at the `rtfobj` command, and the port's at `rtfole.py`, which calls `process_file` itself. Checked: the frames from `process_file` down and the error are the same lines, apart from where each image keeps oletools. | `ace3 holds Traceback` |
+| `ace4/rtf/long_name.rtf` | `/observables/*/results/rtfole/details/stderr` | The same, for the `open()` that fails with `File name too long`. The name in the error is the alert's on both sides, once `make-trees` takes ace3's node path out. | `ace3 holds Traceback` |
+| `ace4/rtf/bracket[1].rtf` | `/observables/*/results/rtfole/details/stdout` | A bug in ace3 that the port doesn't keep. ace3 passes the file's path on rtfobj's command line, where `xglob` reads `[1]` as a glob. It matches nothing, so rtfobj reports no file, exits 0 and extracts nothing, and any object in a file named like `invoice[1].rtf` goes unseen. The port names the file it read. Its report is the one ace3 gives under any other name. | `ace3 holds rtfobj 0.60.1` |
+| `ace4/rtf/bracket[1].rtf` | `/observables/*/results/rtfole/details/extracted_files/0` | The object ace3 didn't extract, from the same bug. | `ace4 only` |
+| `ace4/rtf/bracket[1].rtf` | `/observables/*/results/rtfole/summary` | The same object, in the summary, where ace3's is null. |  |
+| `ace4/rtf/bracket[1].rtf` | `/observables/file:*` | The same object, in the tree. | `ace4 only` |
 
 ## Effects of modules not ported
 
@@ -84,13 +90,15 @@ What a module ace4 doesn't have added outside its own result. The form doesn't s
 | `*` | `/observables/file:*/tags/microsoft_office` | file_type's tag. |  |
 | `*` | `/observables/file:*/tags/ole` | file_type's tag. |  |
 | `*` | `/observables/file:*/tags/pdf` | file_type's tag. |  |
-| `local/rtf/*` | `/observables/file:*/tags/rtf` | file_type's tag. |  |
+| `*` | `/observables/file:*/tags/rtf` | file_type's tag. |  |
+| `*` | `/observables/file:*/tags/executable` | file_type's tag. |  |
 | `*` | `/observables/file:*/paths/*/type=email` | file_type's `yara_meta` tag. Until it's ported, a rule that needs this tag can't match in ace4. |  |
 | `*` | `/observables/file:*/paths/*/type=archive.jar` | file_type's `yara_meta` tag. |  |
 | `*` | `/observables/file:*/paths/*/type=document.html` | file_type's `yara_meta` tag. |  |
 | `*` | `/observables/file:*/paths/*/type=document.pdf` | file_type's `yara_meta` tag. |  |
 | `*` | `/observables/file:*/paths/*/type=image` | file_type's `yara_meta` tag. |  |
-| `local/rtf/*` | `/observables/file:*/paths/*/type=document.rtf` | file_type's `yara_meta` tag. |  |
+| `*` | `/observables/file:*/paths/*/type=document.rtf` | file_type's `yara_meta` tag. |  |
+| `*` | `/observables/file:*/paths/*/type=executable` | file_type's `yara_meta` tag. |  |
 | `ace3/archive/test.zip` | `/observables/file:*/paths/*/type=script.javascript` | file_type's `yara_meta` tag. |  |
 
 ## Harness limits

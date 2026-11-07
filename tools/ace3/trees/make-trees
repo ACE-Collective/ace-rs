@@ -40,6 +40,7 @@ _loader.exec_module(dumps)
 CONTAINER, REMOTE, docker, put = dumps.CONTAINER, dumps.REMOTE, dumps.docker, dumps.put
 ENABLE = [
     "file_type", "archive", "yara_scanner_v3_4", "rdap_analyzer", "ace4_proxy_splunk", "olevba_v1_2",
+    "rtfole",
 ]
 RDAP_RECORDING = DUMPS / "reference" / "rdap_analyzer" / "fqdn_example.com.http"
 FAKE = f"{REMOTE}/fake/trees"
@@ -105,6 +106,8 @@ def run(sample):
     command = [
         "docker", "exec", "-i", "-e", "PYTHONDONTWRITEBYTECODE=1", "-e", "SAQ_SKIP_LOCAL_SAQ_YAML=1",
         "-e", "NO_PROXY=127.0.0.1,localhost", "-e", "no_proxy=127.0.0.1,localhost",
+        # ace3's rtfole runs `python`, which has to be the virtualenv's, as in ace3's services
+        "-e", "PATH=/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
         CONTAINER, "/venv/bin/python3", "-", "--work", work, "--module", "email_analyzer",
         "--label", sample["path"], "--file", f"{REMOTE}/samples/{sample['path']}",
         "--alert-path", sample["alert_path"], "--yara-rules", f"{REMOTE}/signatures",

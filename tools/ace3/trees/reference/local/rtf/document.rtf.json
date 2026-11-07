@@ -31,11 +31,63 @@
           },
           "summary": "File Type Analysis: Rich Text Format data, version 1, ANSI (text/rtf) (ms office document) (rtf document)",
           "tags": {}
+        },
+        "rtfole": {
+          "details": {
+            "extracted_files": [
+              "document.rtf.rtfobj/document.rtf_payload.exe"
+            ],
+            "return_code": 0,
+            "stderr": "",
+            "stdout": "rtfobj 0.60.1 on Python 3.14.10 - http://decalage.info/python/oletools\nTHIS IS WORK IN PROGRESS - Check updates regularly!\nPlease report any issue at https://github.com/decalage2/oletools/issues\n\n===============================================================================\nFile: 'document.rtf' - size: 399 bytes\n---+----------+---------------------------------------------------------------\nid |index     |OLE Object                                                     \n---+----------+---------------------------------------------------------------\n0  |00000047h |format_id: 2 (Embedded)                                        \n   |          |class name: b'Package'                                         \n   |          |data size: 130                                                 \n   |          |OLE Package object:                                            \n   |          |Filename: 'payload.exe'                                        \n   |          |Source path: 'C:\\\\tmp\\\\payload.exe'                            \n   |          |Temp path = 'C:\\\\tmp\\\\payload.exe'                             \n   |          |MD5 = '7eee65bdd94bad1115362808f3ddc287'                       \n   |          |EXECUTABLE FILE                                                \n   |          |File Type: Windows PE Executable or DLL                        \n---+----------+---------------------------------------------------------------\nSaving file from OLE Package in object #0:\n  Filename = 'payload.exe'\n  Source path = 'C:\\\\tmp\\\\payload.exe'\n  Temp path = 'C:\\\\tmp\\\\payload.exe'\n  saving to file document.rtf.rtfobj/document.rtf_payload.exe\n  md5 7eee65bdd94bad1115362808f3ddc287\n"
+          },
+          "summary": "RTF OLE Object Analysis: extracted document.rtf.rtfobj/document.rtf_payload.exe",
+          "tags": {}
         }
       },
       "tags": {
         "microsoft_office": true,
         "rtf": true
+      }
+    },
+    "file:2bf0a9bb0aa6a233db45d8fb3b638beb0122581a392e3d6351c8e4b733a3b932": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "document.rtf.rtfobj/document.rtf_payload.exe": {
+          "type=document.rtf.object": true,
+          "type=executable": true
+        }
+      },
+      "redirection": "file:19aeb8172f8d0703224212c1eb31f7b9abde38ac115450b27bec4661b90c5ce5",
+      "relationships": {
+        "extracted_from file:19aeb8172f8d0703224212c1eb31f7b9abde38ac115450b27bec4661b90c5ce5": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": true,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "Non-ISO extended-ASCII text, with no line terminators"
+          },
+          "summary": "File Type Analysis: Non-ISO extended-ASCII text, with no line terminators (text/plain) (portable executable)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "executable": true,
+        "extracted_rtf": true
       }
     }
   }

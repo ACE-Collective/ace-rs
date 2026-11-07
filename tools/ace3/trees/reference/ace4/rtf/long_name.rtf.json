@@ -1,0 +1,92 @@
+{
+  "form": 1,
+  "observables": {
+    "file:3e430806b02d978f91b74f2ba41fcde60c00abd92df776a287efe2dda5826260": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "long_name.rtf.rtfobj/long_name.rtf_saved.txt": {
+          "type=document.rtf.object": true
+        }
+      },
+      "redirection": "file:425846d005aa14f4e2bbd18ddbe33c1c80f5be23786538abac31c636b8c525d7",
+      "relationships": {
+        "extracted_from file:425846d005aa14f4e2bbd18ddbe33c1c80f5be23786538abac31c636b8c525d7": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "extracted_rtf": true
+      }
+    },
+    "file:425846d005aa14f4e2bbd18ddbe33c1c80f5be23786538abac31c636b8c525d7": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "long_name.rtf": {
+          "type=document.rtf": true,
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": true,
+            "is_office_ext": true,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": true,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/rtf",
+            "type": "Rich Text Format data, version 1, ANSI"
+          },
+          "summary": "File Type Analysis: Rich Text Format data, version 1, ANSI (text/rtf) (ms office document) (rtf document)",
+          "tags": {}
+        },
+        "rtfole": {
+          "details": {
+            "extracted_files": [
+              "long_name.rtf.rtfobj/long_name.rtf_saved.txt"
+            ],
+            "return_code": 1,
+            "stderr": "Traceback (most recent call last):\n  File \"/venv/bin/rtfobj\", line 6, in <module>\n    sys.exit(main())\n             ~~~~^^\n  File \"/venv/lib/python3.14/site-packages/oletools/rtfobj.py\", line 1079, in main\n    process_file(container, filename, data, output_dir=options.output_dir,\n    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n                 save_object=options.save_object)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/venv/lib/python3.14/site-packages/oletools/rtfobj.py\", line 980, in process_file\n    open(fname, 'wb').write(rtfobj.olepkgdata)\n    ~~~~^^^^^^^^^^^^^\nOSError: [Errno 36] File name too long: 'long_name.rtf.rtfobj/long_name.rtf_éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé'\n",
+            "stdout": "rtfobj 0.60.1 on Python 3.14.10 - http://decalage.info/python/oletools\nTHIS IS WORK IN PROGRESS - Check updates regularly!\nPlease report any issue at https://github.com/decalage2/oletools/issues\n\n===============================================================================\nFile: 'long_name.rtf' - size: 2544 bytes\n---+----------+---------------------------------------------------------------\nid |index     |OLE Object                                                     \n---+----------+---------------------------------------------------------------\n0  |00000032h |format_id: 2 (Embedded)                                        \n   |          |class name: b'Package'                                         \n   |          |data size: 85                                                  \n   |          |OLE Package object:                                            \n   |          |Filename: 'saved.txt'                                          \n   |          |Source path: 'C:\\\\tmp\\\\saved.txt'                              \n   |          |Temp path = 'C:\\\\tmp\\\\saved.txt'                               \n   |          |MD5 = '4889d9d80452cebb86d26dfeec561591'                       \n   |          |File Type: Unknown file type                                   \n---+----------+---------------------------------------------------------------\n1  |0000013Bh |format_id: 2 (Embedded)                                        \n   |          |class name: b'Package'                                         \n   |          |data size: 960                                                 \n   |          |OLE Package object:                                            \n   |          |Filename: 'éééééééééééééééééééééééééééééééééééééééééééééééééééé\n   |          |ééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé\n   |          |ééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé\n   |          |ééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé\n   |          |ééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé.exe\n   |          |'                                                              \n   |          |Source path: 'C:\\\\tmp\\\\éééééééééééééééééééééééééééééééééééééééé\n   |          |ééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé\n   |          |ééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé\n   |          |ééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé\n   |          |ééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé\n   |          |éééééééé.exe'                                                  \n   |          |Temp path = 'C:\\\\tmp\\\\ééééééééééééééééééééééééééééééééééééééééé\n   |          |ééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé\n   |          |ééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé\n   |          |ééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé\n   |          |ééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé\n   |          |ééééééé.exe'                                                   \n   |          |MD5 = '142600f3b4ad76e159ed6e824b1b5ed2'                       \n   |          |EXECUTABLE FILE                                                \n   |          |File Type: Unknown file type                                   \n---+----------+---------------------------------------------------------------\n2  |0000091Ah |format_id: 2 (Embedded)                                        \n   |          |class name: b'Package'                                         \n   |          |data size: 72                                                  \n   |          |OLE Package object:                                            \n   |          |Filename: 'after.txt'                                          \n   |          |Source path: 'C:\\\\tmp\\\\after.txt'                              \n   |          |Temp path = 'C:\\\\tmp\\\\after.txt'                               \n   |          |MD5 = '1c77cffbcea05c36baf62dd26897d043'                       \n   |          |File Type: Unknown file type                                   \n---+----------+---------------------------------------------------------------\nSaving file from OLE Package in object #0:\n  Filename = 'saved.txt'\n  Source path = 'C:\\\\tmp\\\\saved.txt'\n  Temp path = 'C:\\\\tmp\\\\saved.txt'\n  saving to file long_name.rtf.rtfobj/long_name.rtf_saved.txt\n  md5 4889d9d80452cebb86d26dfeec561591\nSaving file from OLE Package in object #1:\n  Filename = 'éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé.exe'\n  Source path = 'C:\\\\tmp\\\\éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé.exe'\n  Temp path = 'C:\\\\tmp\\\\éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé.exe'\n  saving to file long_name.rtf.rtfobj/long_name.rtf_éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé\n  md5 142600f3b4ad76e159ed6e824b1b5ed2\n"
+          },
+          "summary": "RTF OLE Object Analysis: extracted long_name.rtf.rtfobj/long_name.rtf_saved.txt",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "microsoft_office": true,
+        "rtf": true
+      }
+    }
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "form": 1,
+  "observables": {
+    "file:5cc9cf9b25e852d4c4f29fee898f66ca3b087d819278f8aca0e0f0131f8e34ff": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "text_named.rtf": {
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": true,
+            "is_office_ext": true,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain) (ms office document)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "microsoft_office": true
+      }
+    }
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "form": 1,
+  "observables": {
+    "file:c6ee85326699c77abf5c526b69ed897b1ca2f8248f3d51d51bbd8f0b5bc1be2a": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "bin_at_end.rtf": {
+          "type=document.rtf": true,
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": true,
+            "is_office_ext": true,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": true,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/rtf",
+            "type": "Rich Text Format data, version 1, ANSI"
+          },
+          "summary": "File Type Analysis: Rich Text Format data, version 1, ANSI (text/rtf) (ms office document) (rtf document)",
+          "tags": {}
+        },
+        "rtfole": {
+          "details": {
+            "extracted_files": [],
+            "return_code": 1,
+            "stderr": "Traceback (most recent call last):\n  File \"/venv/bin/rtfobj\", line 6, in <module>\n    sys.exit(main())\n             ~~~~^^\n  File \"/venv/lib/python3.14/site-packages/oletools/rtfobj.py\", line 1079, in main\n    process_file(container, filename, data, output_dir=options.output_dir,\n    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n                 save_object=options.save_object)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/venv/lib/python3.14/site-packages/oletools/rtfobj.py\", line 877, in process_file\n    rtfp.parse()\n    ~~~~~~~~~~^^\n  File \"/venv/lib/python3.14/site-packages/oletools/rtfobj.py\", line 473, in parse\n    self._bin(m, param)\n    ~~~~~~~~~^^^^^^^^^^\n  File \"/venv/lib/python3.14/site-packages/oletools/rtfobj.py\", line 598, in _bin\n    if ord(self.data[self.index:self.index + 1]) == ord(' '):\n       ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nTypeError: ord() expected a character, but string of length 0 found\n",
+            "stdout": "rtfobj 0.60.1 on Python 3.14.10 - http://decalage.info/python/oletools\nTHIS IS WORK IN PROGRESS - Check updates regularly!\nPlease report any issue at https://github.com/decalage2/oletools/issues\n\n===============================================================================\nFile: 'bin_at_end.rtf' - size: 366 bytes\n---+----------+---------------------------------------------------------------\nid |index     |OLE Object                                                     \n---+----------+---------------------------------------------------------------\n"
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "microsoft_office": true,
+        "rtf": true
+      }
+    }
+  }
+}

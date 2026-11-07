@@ -22,6 +22,7 @@ naming an observable. A test's overlay turns it on; no site should.
   read         try to read a file outside the worker's paths, and report what happened
   temp         write a temporary file, as libraries do, and report what happened
   file         write a file, whose path in the alert is probe.txt
+  files-<N>    write N different files
   libraries    import every library the pool's image exists for, and report their versions
   wrong        return a result whose pid isn't a number, adding an observable and a file
   unknown      return a result with a field its type doesn't have
@@ -202,6 +203,10 @@ def _act(action, argument, ctx):
         return _attempt(lambda: tempfile.TemporaryFile().write(b"x")), []
     if action == "file":
         return "wrote a file", [ctx.write_file("probe.txt", b"from the probe\n")]
+    if action == "files":
+        return "wrote files", [
+            ctx.write_file(f"probe_{n}.txt", b"file %d\n" % n) for n in range(int(argument))
+        ]
     if action == "libraries":
         return _libraries(), []
     return None, []

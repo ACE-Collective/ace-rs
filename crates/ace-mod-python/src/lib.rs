@@ -12,6 +12,7 @@ use std::collections::BTreeMap;
 use std::time::Duration;
 
 use ace_results::types::olevba::OlevbaAnalysis;
+use ace_results::types::rtf::RtfOleObjectAnalysis;
 use ace_results::{AnalysisType, ObservableKind};
 use ace_sdk::{Manifest, Module, ModuleError, Resources};
 use schemars::JsonSchema;
@@ -102,5 +103,27 @@ impl Module for Olevba {
 
     fn init(_: &OlevbaSettings) -> Result<Self, ModuleError> {
         Ok(Olevba)
+    }
+}
+
+/// ace3's `RTFOLEObjectAnalyzer`, on oletools' rtfobj (`python/ace4_python/modules/rtfole.py`). Its
+/// settings aren't ported: ace3 reads none of them but the command's path. The other two modules
+/// in `rtf.py` don't use oletools, so they aren't on this pool.
+pub struct RtfOle;
+
+impl Module for RtfOle {
+    const NAME: &'static str = RtfOleObjectAnalysis::MODULE;
+    const INPUTS: &'static [ObservableKind] = &[ObservableKind::File];
+    // ace3's global maximum_analysis_time. Its run_tool stops the command 5 s before that and keeps
+    // an empty result; here the task fails at the deadline, with its stack in the row.
+    const RESOURCES: Resources = Resources {
+        timeout: Duration::from_secs(60),
+        ..Resources::DEFAULT
+    };
+    type Output = RtfOleObjectAnalysis;
+    type Settings = ();
+
+    fn init(_: &()) -> Result<Self, ModuleError> {
+        Ok(RtfOle)
     }
 }

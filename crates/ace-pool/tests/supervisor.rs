@@ -739,6 +739,51 @@ async fn a_py_spy_that_fails_hangs_or_floods_still_leaves_a_row_at_the_deadline(
 
 /// A cancelled task isn't hung, so its worker goes at once, with no dump, well before its deadline.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_python_result_whose_uploads_outlast_the_lease_lands_on_its_first_attempt() {
+    // a 3-second lease, and files enough that uploading them and landing them take longer
+    let core = Core::start(
+        vec![ace_mod_python::PROBE_MANIFEST],
+        &["python_probe"],
+        Duration::from_secs(3),
+    )
+    .await;
+    let reaper_stop = tokio_util::sync::CancellationToken::new();
+    let reaper = tokio::spawn(ace_core::queue::run_reaper(
+        core.test_db.db().clone(),
+        Duration::from_millis(200),
+        reaper_stop.clone(),
+    ));
+    let root = probe(&core, &["files-1500"]).await;
+    let mut pool = python_pool(&core, &[]);
+    let started = std::time::Instant::now();
+    wait_until_idle(&core, root, Duration::from_secs(240)).await;
+    let took = started.elapsed();
+    pool.stop();
+    reaper_stop.cancel();
+    reaper.await.expect("the reaper stops");
+    assert!(
+        took > Duration::from_secs(3),
+        "this took {took:?}, inside one lease"
+    );
+
+    let db = core.test_db.db().pool();
+    let (state, attempts): (String, i32) = sqlx::query_as(
+        "SELECT state::text, attempts FROM queue.tasks WHERE root_id = $1 AND module = 'python_probe'",
+    )
+    .bind(root)
+    .fetch_one(db)
+    .await
+    .expect("the task");
+    assert_eq!((state.as_str(), attempts), ("done", 1));
+    let files: i64 = sqlx::query_scalar("SELECT count(*) FROM analysis.files WHERE root_id = $1")
+        .bind(root)
+        .fetch_one(db)
+        .await
+        .expect("the files");
+    assert_eq!(files, 1500);
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn a_cancelled_python_task_is_killed_without_a_dump() {
     // a 3-second lease renews each second, which is how the pool hears of the cancellation
     let core = Core::start(

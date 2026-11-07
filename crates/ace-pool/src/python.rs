@@ -686,7 +686,6 @@ async fn run_task(
     let dir = TaskDir::new_in(slot.dir.path())?;
     let config = &slot.starter.config;
     let outcome = fetch_and_run(client, config, module, &mut worker, &task, &dir, &keeper).await;
-    drop(keeper);
     let (end, broken) = match outcome {
         Ok(outcome) => outcome,
         Err(e) => {
@@ -696,7 +695,10 @@ async fn run_task(
     };
     settle(slot, worker, broken, limits).await;
     let outputs = LocalFileStore::new(dir.outputs())?;
-    finish(client, &task, &outputs, &end, shutdown).await
+    // the lease stays kept until the end lands: a result's uploads can outlast it
+    let sent = finish(client, &task, &outputs, &end, shutdown).await;
+    drop(keeper);
+    sent
 }
 
 async fn fetch_and_run(

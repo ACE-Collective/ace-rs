@@ -1,0 +1,92 @@
+{
+  "form": 1,
+  "observables": {
+    "file:22aa7d6f015f886b817cae96fb99fcee9d93e6132825c7a3bc27a572d7562c3b": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "backslash_start.rtf": {
+          "type=document.rtf": true,
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": true,
+            "is_office_ext": true,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": true,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text, with CRLF line terminators"
+          },
+          "summary": "File Type Analysis: ASCII text, with CRLF line terminators (text/plain) (ms office document) (rtf document)",
+          "tags": {}
+        },
+        "rtfole": {
+          "details": {
+            "extracted_files": [
+              "backslash_start.rtf.rtfobj/backslash_start.rtf_backslash.txt"
+            ],
+            "return_code": 0,
+            "stderr": "",
+            "stdout": "rtfobj 0.60.1 on Python 3.14.10 - http://decalage.info/python/oletools\nTHIS IS WORK IN PROGRESS - Check updates regularly!\nPlease report any issue at https://github.com/decalage2/oletools/issues\n\n===============================================================================\nFile: 'backslash_start.rtf' - size: 264 bytes\n---+----------+---------------------------------------------------------------\nid |index     |OLE Object                                                     \n---+----------+---------------------------------------------------------------\n0  |0000001Fh |format_id: 2 (Embedded)                                        \n   |          |class name: b'Package'                                         \n   |          |data size: 82                                                  \n   |          |OLE Package object:                                            \n   |          |Filename: 'backslash.txt'                                      \n   |          |Source path: 'C:\\\\tmp\\\\backslash.txt'                          \n   |          |Temp path = 'C:\\\\tmp\\\\backslash.txt'                           \n   |          |MD5 = '33892bc1acb6b7e23128ea5fbb9afbbe'                       \n   |          |File Type: Unknown file type                                   \n---+----------+---------------------------------------------------------------\nSaving file from OLE Package in object #0:\n  Filename = 'backslash.txt'\n  Source path = 'C:\\\\tmp\\\\backslash.txt'\n  Temp path = 'C:\\\\tmp\\\\backslash.txt'\n  saving to file backslash_start.rtf.rtfobj/backslash_start.rtf_backslash.txt\n  md5 33892bc1acb6b7e23128ea5fbb9afbbe\n"
+          },
+          "summary": "RTF OLE Object Analysis: extracted backslash_start.rtf.rtfobj/backslash_start.rtf_backslash.txt",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "microsoft_office": true,
+        "rtf": true
+      }
+    },
+    "file:5437560581667e84a2bf2ba852a4bcc1ee8235779233b6a3b6993e11bcbce228": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "backslash_start.rtf.rtfobj/backslash_start.rtf_backslash.txt": {
+          "type=document.rtf.object": true
+        }
+      },
+      "redirection": "file:22aa7d6f015f886b817cae96fb99fcee9d93e6132825c7a3bc27a572d7562c3b",
+      "relationships": {
+        "extracted_from file:22aa7d6f015f886b817cae96fb99fcee9d93e6132825c7a3bc27a572d7562c3b": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "extracted_rtf": true
+      }
+    }
+  }
+}

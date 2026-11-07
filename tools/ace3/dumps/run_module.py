@@ -177,6 +177,7 @@ TREE_MODULES = {
     "ArchiveAnalysis": "archive",
     "OLEVBA_Analysis_v1_2": "olevba_v1_2",
     "RdapAnalysis": "rdap_analyzer",
+    "RTFOLEObjectAnalysis": "rtfole",
     "YaraScanResults_v3_4": "yara_scanner_v3_4",
     "SplunkAPIAnalysis": "clicker_detection_splunk",
 }
@@ -203,6 +204,7 @@ TREE_EXCLUDED = {
     "MessageIDAnalyzerV2": "message_id_analyzer_v2",
     "ArchiveAnalyzer": "archive",
     "OLEVBA_Analyzer_v1_2": "olevba_v1_2",
+    "RTFOLEObjectAnalyzer": "rtfole",
     "YaraScanner_v3_4": "yara_scanner_v3_4",
 }
 
@@ -227,6 +229,24 @@ def tree_time(time):
     if time.microsecond:
         text += f".{time.microsecond // 1000:03d}" if time.microsecond % 1000 == 0 else f".{time.microsecond:06d}"
     return text + "Z"
+
+
+def rtfole_in_alert_paths(result, files_dir):
+    """rtfobj's report names the file and its objects by the paths ace3 gave it, on its node, and
+    ace3 lists the objects in its filesystem's order. The port writes paths in the alert and sorts
+    them. So those two things, and nothing else in these fields, are put the same here, and any
+    other difference in the report shows."""
+    from saq.util.strings import format_item_list_for_summary
+
+    details = result["details"]
+    for field in ("stdout", "stderr"):
+        if isinstance(details[field], str):
+            details[field] = details[field].replace(files_dir + "/", "")
+    details["extracted_files"] = sorted(path.replace(files_dir + "/", "") for path in details["extracted_files"])
+    if details["extracted_files"]:
+        result["summary"] = (
+            "RTF OLE Object Analysis: extracted " + format_item_list_for_summary(details["extracted_files"])
+        )
 
 
 def tree_form(root):
@@ -268,6 +288,8 @@ def tree_form(root):
             raw = result["details"].get("rdap_raw_json") if class_name == "RdapAnalysis" else None
             if isinstance(raw, str):
                 result["details"]["rdap_raw_json"] = json.dumps(json.loads(raw), separators=(",", ":"), ensure_ascii=False)
+            if class_name == "RTFOLEObjectAnalysis":
+                rtfole_in_alert_paths(result, observable.full_path.removesuffix("/" + observable.file_path))
             entry["results"][TREE_MODULES.get(class_name, class_name)] = result
         for detection in detections:
             entry["detections"].setdefault(detection.description, []).append(json_safe(detection.details))

@@ -18,7 +18,8 @@ pub const WORKER_HEADER: &str = "x-ace4-worker";
 
 /// The timeout of each call that doesn't wait for a task or move a file.
 pub const CALL_TIMEOUT: Duration = Duration::from_secs(30);
-/// The timeout of a download or an upload of a file.
+/// The timeout of a download or an upload of a file, and of a task's end, whose transaction grows
+/// with the files in its result.
 pub const TRANSFER_TIMEOUT: Duration = Duration::from_secs(600);
 
 #[derive(Debug, thiserror::Error)]
@@ -155,7 +156,10 @@ impl LeaseClient {
     }
 
     pub async fn end(&self, task: i64, end: &TaskEnd) -> Result<(), ClientError> {
-        let request = self.post(&paths::task(task, "end")).json(end);
+        let request = self
+            .post(&paths::task(task, "end"))
+            .timeout(TRANSFER_TIMEOUT)
+            .json(end);
         let response = self.http.send(request).await?;
         expect_empty(response, task).await
     }
