@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO service.audit (actor, action, target_kind, target_id, before, after, details)\n         VALUES ($1::jsonb, $2, $3, $4, $5, $6, COALESCE($7, '{}'::jsonb))",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Jsonb",
+        "Text",
+        "Text",
+        "Text",
+        "Jsonb",
+        "Jsonb",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "dd87e2bdbe42e70a87cae6fe54e3534a726163f17d17bfe7aa0893b6c866941d"
+}

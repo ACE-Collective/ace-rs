@@ -14,6 +14,17 @@
 //! can only write through `Gate::write`, which refuses an actor without that permission before the
 //! write looks at anything. `gate`'s docs say who holds what, and `permission`'s say what a name is.
 //!
+//! Every write says what it changed too, because `Gate::write`'s body has to return `Audited`. The
+//! gate writes the row in the write's transaction (`gate::audit`). To add a write: call `Gate::write`
+//! once, with the function's own name as its action, and add the function to
+//! `every_write_function_has_an_audit_test` and `every_write_fails_when_its_audit_fails` in
+//! `tests/service.rs`, which read this crate's source and fail until both cover it.
+//!
+//! Not here yet from ace3's audit: what it logs for reads, such as a download or a viewed file, which
+//! go through `Gate::write` with their routes (5.5, 5.6), and `src_ip`, which only ace3's hunt and AI
+//! records have, and which an adapter knows. Nothing reads `service.audit` until a route does. ace3's
+//! reader is Splunk searching log lines, and `Gate::write`'s log line keeps that search working.
+//!
 //! Not here yet from ace3's permissions: the catalog of known names, which warns about a typo and
 //! feeds the management screens, group management and API key scopes, all with the `users` router in
 //! 5.6. A 403 saying which half of a key's check refused comes with the routes. A grant holding a
@@ -35,10 +46,13 @@ mod permission;
 
 use ace_core::db::{Db, DbError, Retryable};
 use ace_core::orchestrator::{Dispositioned, Orchestrator, OrchestratorError};
+use chrono::{DateTime, Utc};
+use serde::Serialize;
+use serde_json::Value;
 use sqlx::types::Json;
 use uuid::Uuid;
 
-use gate::Gate;
+use gate::{Audited, Change, Gate, Recorded, TITLE_LIMIT, Target};
 
 pub use actor::{Actor, ApiKeyId, Component, InvalidComponent, UserId};
 pub use gate::Holder;
@@ -63,6 +77,9 @@ pub enum ServiceError {
     /// A stored row that breaks the rules of a permission, which migration 0020 should prevent.
     #[error(transparent)]
     InvalidPermission(#[from] InvalidPermission),
+    /// A change that couldn't be encoded for its audit row, which fails the write.
+    #[error("recording the audit row: {0}")]
+    AuditEncoding(#[from] serde_json::Error),
 }
 
 impl From<DbError> for ServiceError {
@@ -81,10 +98,45 @@ impl Retryable for ServiceError {
     fn is_retryable(&self) -> bool {
         match self {
             ServiceError::Orchestrator(e) => e.is_retryable(),
-            ServiceError::PermissionDenied { .. } | ServiceError::InvalidPermission(_) => false,
+            ServiceError::PermissionDenied { .. }
+            | ServiceError::InvalidPermission(_)
+            | ServiceError::AuditEncoding(_) => false,
         }
     }
 }
+
+/// A disposition's audit row, before and after: what it replaced and what it did to the analysis.
+#[derive(Serialize)]
+struct DispositionState {
+    disposition: Option<String>,
+    dispositioned_by: Option<Value>,
+    analysis_mode: String,
+}
+
+impl Recorded for DispositionState {}
+
+/// What's needed to read a disposition's audit row after its alert is deleted. ace3 records these
+/// and the alert's type, tool, queue, company and owner, which ace4's roots don't have yet.
+#[derive(Serialize)]
+struct RootSnapshot {
+    title: String,
+    event_time: Option<DateTime<Utc>>,
+    root_created_at: DateTime<Utc>,
+}
+
+impl Recorded for RootSnapshot {}
+
+/// A permission row's audit: the row, and for a removed one who made it, since nothing else keeps that.
+#[derive(Serialize)]
+struct PermissionRecord<'a> {
+    major: &'a str,
+    minor: &'a str,
+    effect: Effect,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    created_by: Option<Value>,
+}
+
+impl Recorded for PermissionRecord<'_> {}
 
 /// The service layer over one database. The adapters hold one of these.
 #[derive(Debug, Clone)]
@@ -122,27 +174,56 @@ impl Service {
         root: Uuid,
         disposition: &str,
     ) -> Result<Dispositioned, ServiceError> {
-        let dispositioned = self
-            .gate
-            .write(actor, &ALERT_WRITE, &|tx| {
+        self.gate
+            .write(actor, "disposition", &ALERT_WRITE, &|tx| {
                 Box::pin(async move {
+                    // Locks first, so `before` is what this write replaces. The title is capped here,
+                    // not by the column: it's whatever the alert's sender wrote.
+                    let found = sqlx::query!(
+                        r#"SELECT disposition, dispositioned_by AS "dispositioned_by: Value",
+                                  analysis_mode, event_time, created_at,
+                                  left(description, $2) AS "title!"
+                           FROM analysis.roots WHERE id = $1 FOR UPDATE"#,
+                        root,
+                        TITLE_LIMIT,
+                    )
+                    .fetch_optional(tx.conn())
+                    .await?
+                    .ok_or(OrchestratorError::NoRoot(root))?;
                     let dispositioned = self.orchestrator.stop_for_disposition(tx, root).await?;
-                    sqlx::query!(
+                    let mode = sqlx::query_scalar!(
                         "UPDATE analysis.roots
                          SET disposition = $2, dispositioned_at = now(), dispositioned_by = $3::jsonb
-                         WHERE id = $1",
+                         WHERE id = $1
+                         RETURNING analysis_mode",
                         root,
                         disposition,
                         Json(actor) as _,
                     )
-                    .execute(tx.conn())
+                    .fetch_one(tx.conn())
                     .await?;
-                    Ok(dispositioned)
+                    let change = Change::updated(
+                        Target::root(root),
+                        &DispositionState {
+                            disposition: found.disposition,
+                            dispositioned_by: found.dispositioned_by,
+                            analysis_mode: found.analysis_mode,
+                        },
+                        &DispositionState {
+                            disposition: Some(disposition.to_owned()),
+                            dispositioned_by: Some(serde_json::to_value(actor)?),
+                            analysis_mode: mode,
+                        },
+                    )?
+                    .details(&RootSnapshot {
+                        title: found.title,
+                        event_time: found.event_time,
+                        root_created_at: found.created_at,
+                    })?;
+                    Ok(Audited::changed(dispositioned, change))
                 })
             })
-            .await?;
-        tracing::info!(%root, %actor, disposition, "an alert was dispositioned");
-        Ok(dispositioned)
+            .await
     }
 
     /// Adds a row giving a holder an effect on a pattern, as ace3's `add_user_permission`,
@@ -156,9 +237,8 @@ impl Service {
         effect: Effect,
     ) -> Result<bool, ServiceError> {
         let (user, group, api_key, component) = holder.columns();
-        let added = self
-            .gate
-            .write(actor, &USER_WRITE, &|tx| {
+        self.gate
+            .write(actor, "grant", &USER_WRITE, &|tx| {
                 Box::pin(async move {
                     let added = sqlx::query!(
                         "INSERT INTO service.permissions
@@ -176,12 +256,22 @@ impl Service {
                     )
                     .execute(tx.conn())
                     .await?;
-                    Ok(added.rows_affected() == 1)
+                    if added.rows_affected() == 0 {
+                        return Ok(Audited::unchanged(false));
+                    }
+                    let change = Change::added(
+                        Target::holder(holder),
+                        &PermissionRecord {
+                            major: pattern.major(),
+                            minor: pattern.minor(),
+                            effect,
+                            created_by: None,
+                        },
+                    )?;
+                    Ok(Audited::changed(true, change))
                 })
             })
-            .await?;
-        tracing::info!(%actor, ?holder, %pattern, ?effect, added, "a permission was granted");
-        Ok(added)
+            .await
     }
 
     /// Removes the row `grant` would add, as ace3's `delete_user_permission` and
@@ -194,17 +284,17 @@ impl Service {
         effect: Effect,
     ) -> Result<bool, ServiceError> {
         let (user, group, api_key, component) = holder.columns();
-        let removed = self
-            .gate
-            .write(actor, &USER_WRITE, &|tx| {
+        self.gate
+            .write(actor, "revoke", &USER_WRITE, &|tx| {
                 Box::pin(async move {
-                    let removed = sqlx::query!(
-                        "DELETE FROM service.permissions
-                         WHERE user_id IS NOT DISTINCT FROM $1
-                           AND group_id IS NOT DISTINCT FROM $2
-                           AND api_key_id IS NOT DISTINCT FROM $3
-                           AND component IS NOT DISTINCT FROM $4
-                           AND major = $5::text AND minor = $6::text AND effect = $7",
+                    let removed = sqlx::query_scalar!(
+                        r#"DELETE FROM service.permissions
+                           WHERE user_id IS NOT DISTINCT FROM $1
+                             AND group_id IS NOT DISTINCT FROM $2
+                             AND api_key_id IS NOT DISTINCT FROM $3
+                             AND component IS NOT DISTINCT FROM $4
+                             AND major = $5::text AND minor = $6::text AND effect = $7
+                           RETURNING created_by AS "created_by!: Value""#,
                         user,
                         group,
                         api_key,
@@ -213,13 +303,23 @@ impl Service {
                         pattern.minor(),
                         effect as Effect,
                     )
-                    .execute(tx.conn())
+                    .fetch_optional(tx.conn())
                     .await?;
-                    Ok(removed.rows_affected() == 1)
+                    let Some(created_by) = removed else {
+                        return Ok(Audited::unchanged(false));
+                    };
+                    let change = Change::removed(
+                        Target::holder(holder),
+                        &PermissionRecord {
+                            major: pattern.major(),
+                            minor: pattern.minor(),
+                            effect,
+                            created_by: Some(created_by),
+                        },
+                    )?;
+                    Ok(Audited::changed(true, change))
                 })
             })
-            .await?;
-        tracing::info!(%actor, ?holder, %pattern, ?effect, removed, "a permission was revoked");
-        Ok(removed)
+            .await
     }
 }

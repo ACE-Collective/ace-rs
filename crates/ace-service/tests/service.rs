@@ -3,6 +3,12 @@
 //!
 //! PLAN.md 5.2: one case rule for permissions, and a check every write goes through. A permission
 //! behaves the same in any case when stored and when checked, for every kind of actor.
+//!
+//! PLAN.md 5.3: every write records who changed what, atomically with the change. The two tests that
+//! read this crate's source fail until a new write function has an audit test.
+
+use std::collections::BTreeSet;
+use std::path::{Path, PathBuf};
 
 use ace_core::eligibility::Catalog;
 use ace_core::modes::Modes;
@@ -1147,4 +1153,607 @@ fn a_pattern_matches_as_ace3_s_fnmatch_does() {
             "{stored} against {value}, as a minor"
         );
     }
+}
+
+// PLAN.md 5.3: the audit record.
+
+#[derive(Debug, PartialEq)]
+struct AuditRow {
+    actor: Value,
+    action: String,
+    target: (String, String),
+    before: Option<Value>,
+    after: Option<Value>,
+    details: Value,
+}
+
+type RawAudit = (
+    Value,
+    String,
+    String,
+    String,
+    Option<Value>,
+    Option<Value>,
+    Value,
+);
+
+async fn audit_rows(db: &Db) -> Vec<AuditRow> {
+    let rows: Vec<RawAudit> = sqlx::query_as(
+        "SELECT actor::jsonb, action, target_kind, target_id, before, after, details
+         FROM service.audit ORDER BY id",
+    )
+    .fetch_all(db.pool())
+    .await
+    .expect("reads");
+    rows.into_iter()
+        .map(
+            |(actor, action, kind, id, before, after, details)| AuditRow {
+                actor,
+                action,
+                target: (kind, id),
+                before,
+                after,
+                details,
+            },
+        )
+        .collect()
+}
+
+async fn last_audit(db: &Db) -> AuditRow {
+    audit_rows(db).await.pop().expect("an audit row")
+}
+
+fn alice_json() -> Value {
+    json!({"kind": "user", "id": Uuid::from_u128(1), "name": "alice"})
+}
+
+/// A row in `service.permissions`, whole.
+async fn permission_rows(db: &Db) -> Vec<(i64, Option<Uuid>, String, String, String)> {
+    sqlx::query_as(
+        "SELECT id, user_id, major::text, minor::text, effect::text
+         FROM service.permissions ORDER BY id",
+    )
+    .fetch_all(db.pool())
+    .await
+    .expect("reads")
+}
+
+/// The functions in this crate's source that call `Gate::write`. Each must call it once, with its
+/// own name as the action, so one row's action always names one function. A function that holds the
+/// gate under another name isn't seen: this reads text.
+fn write_functions() -> BTreeSet<String> {
+    fn rust_files(directory: &Path, files: &mut Vec<PathBuf>) {
+        for entry in std::fs::read_dir(directory).expect("reads the source") {
+            let path = entry.expect("reads the source").path();
+            if path.is_dir() {
+                rust_files(&path, files);
+            } else if path.extension().is_some_and(|extension| extension == "rs") {
+                files.push(path);
+            }
+        }
+    }
+    let pattern = regex::Regex::new(r"\bfn\s+(\w+)|\bgate\s*\.\s*write\s*\(\s*\w+\s*,\s*([^,]*),")
+        .expect("a valid pattern");
+    let mut files = Vec::new();
+    rust_files(
+        &Path::new(env!("CARGO_MANIFEST_DIR")).join("src"),
+        &mut files,
+    );
+    let mut functions = BTreeSet::new();
+    for file in files {
+        let source = std::fs::read_to_string(&file).expect("reads the source");
+        let code: String = source
+            .lines()
+            .filter(|line| !line.trim_start().starts_with("//"))
+            .collect::<Vec<_>>()
+            .join("\n");
+        let mut current = String::new();
+        for found in pattern.captures_iter(&code) {
+            if let Some(name) = found.get(1) {
+                current = name.as_str().to_owned();
+            } else {
+                let action = found[2].trim();
+                assert_eq!(
+                    action,
+                    format!("\"{current}\""),
+                    "{}: {current} has to call Gate::write with its own name as the action",
+                    file.display()
+                );
+                assert!(
+                    functions.insert(current.clone()),
+                    "{current} calls Gate::write twice, or two functions share its name"
+                );
+            }
+        }
+    }
+    functions
+}
+
+const WRITES_NEED_A_TEST: &str = "a service function calls Gate::write without an audit test: add it \
+     to every_write_function_has_an_audit_test and every_write_fails_when_its_audit_fails";
+
+/// The Done check. Each function below runs one write and compares its whole row, and what it returns
+/// is the action read from that row, so a function counts only when a row with its name was compared.
+/// A new function that calls `Gate::write` fails this until it has one, and so does removing a line.
+#[tokio::test]
+async fn every_write_function_has_an_audit_test() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let covered = BTreeSet::from([
+        disposition_records_its_row(db).await,
+        grant_records_its_row(db).await,
+        revoke_records_its_row(db).await,
+    ]);
+    assert_eq!(covered, write_functions(), "{WRITES_NEED_A_TEST}");
+}
+
+async fn disposition_records_its_row(db: &Db) -> String {
+    let service = service(db);
+    let root = alert(db).await;
+    let alice = user(UserId(Uuid::from_u128(1)));
+    may_disposition(db, &[Holder::User(UserId(Uuid::from_u128(1)))]).await;
+    let scheduler = component("scheduler");
+    may_disposition(
+        db,
+        &[Holder::Component(
+            Component::new("scheduler").expect("valid"),
+        )],
+    )
+    .await;
+
+    service
+        .disposition(&alice, root, "FALSE_POSITIVE")
+        .await
+        .expect("dispositions");
+    let first = last_audit(db).await;
+    assert_eq!(first.actor, alice_json());
+    assert_eq!(first.action, "disposition");
+    assert_eq!(first.target, ("root".to_owned(), root.to_string()));
+    assert_eq!(
+        first.before,
+        Some(json!({
+            "disposition": null,
+            "dispositioned_by": null,
+            "analysis_mode": "correlation",
+        }))
+    );
+    assert_eq!(
+        first.after,
+        Some(json!({
+            "disposition": "FALSE_POSITIVE",
+            "dispositioned_by": alice_json(),
+            "analysis_mode": row(db, root).await.mode,
+        }))
+    );
+    let mut keys: Vec<&str> = first
+        .details
+        .as_object()
+        .expect("an object")
+        .keys()
+        .map(String::as_str)
+        .collect();
+    keys.sort_unstable();
+    assert_eq!(keys, ["event_time", "root_created_at", "title"]);
+
+    // the row's time and the disposition's are one transaction's
+    let (same,): (bool,) = sqlx::query_as(
+        "SELECT a.created_at = r.dispositioned_at FROM service.audit a, analysis.roots r
+         WHERE r.id = $1 AND a.target_id = $1::text",
+    )
+    .bind(root)
+    .fetch_one(db.pool())
+    .await
+    .expect("compares");
+    assert!(same);
+
+    // a later disposition says what it replaced, even when the disposition is the same
+    service
+        .disposition(&scheduler, root, "FALSE_POSITIVE")
+        .await
+        .expect("dispositions again");
+    let second = last_audit(db).await;
+    assert_eq!(
+        second.before.as_ref().expect("a before")["dispositioned_by"],
+        alice_json()
+    );
+    assert_eq!(second.actor, json!({"kind": "internal", "id": "scheduler"}));
+    second.action
+}
+
+async fn grant_records_its_row(db: &Db) -> String {
+    let actor = admin(db).await;
+    let holder = Holder::Component(Component::new("collector:journal").expect("valid"));
+    assert!(
+        service(db)
+            .grant(&actor, &holder, &pattern("ALERT", "Read"), Effect::Deny)
+            .await
+            .expect("grants")
+    );
+    let row = last_audit(db).await;
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: json!({"kind": "user", "id": Uuid::from_u128(0xAD), "name": "alice"}),
+            action: "grant".to_owned(),
+            target: ("component".to_owned(), "collector:journal".to_owned()),
+            before: None,
+            after: Some(json!({"major": "alert", "minor": "read", "effect": "deny"})),
+            details: json!({}),
+        }
+    );
+    row.action
+}
+
+async fn revoke_records_its_row(db: &Db) -> String {
+    let actor = admin(db).await;
+    let target = UserId(Uuid::from_u128(0xB0B));
+    grant(db, &Holder::User(target), "alert", "write", Effect::Allow).await;
+    assert!(
+        service(db)
+            .revoke(
+                &actor,
+                &Holder::User(target),
+                &pattern("alert", "write"),
+                Effect::Allow
+            )
+            .await
+            .expect("revokes")
+    );
+    let actor_json = json!({"kind": "user", "id": Uuid::from_u128(0xAD), "name": "alice"});
+    let row = last_audit(db).await;
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: actor_json.clone(),
+            action: "revoke".to_owned(),
+            target: ("user".to_owned(), target.0.to_string()),
+            before: Some(json!({
+                "major": "alert",
+                "minor": "write",
+                "effect": "allow",
+                "created_by": actor_json,
+            })),
+            after: None,
+            details: json!({}),
+        }
+    );
+    row.action
+}
+
+/// A write whose audit can't be stored fails and leaves no write. The constraint refuses every new row,
+/// whichever way a future bug would: this is the failure, not a stand-in for it.
+#[tokio::test]
+async fn every_write_fails_when_its_audit_fails() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let root = alert(db).await;
+    let actor = admin(db).await;
+    let held = Holder::User(UserId(Uuid::from_u128(2)));
+    let every = pattern("*", "*");
+    service
+        .grant(&actor, &held, &every, Effect::Allow)
+        .await
+        .expect("grants");
+    let before = (
+        row(db, root).await,
+        tasks(db, root).await,
+        permission_rows(db).await,
+        audit_rows(db).await,
+    );
+
+    sqlx::raw_sql("ALTER TABLE service.audit ADD CONSTRAINT broken CHECK (false) NOT VALID")
+        .execute(db.pool())
+        .await
+        .expect("breaks the audit");
+
+    let fresh = Holder::User(UserId(Uuid::from_u128(3)));
+    let attempts = [
+        (
+            "disposition",
+            service
+                .disposition(&actor, root, "IGNORE")
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "grant",
+            service
+                .grant(&actor, &fresh, &every, Effect::Allow)
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "revoke",
+            service
+                .revoke(&actor, &held, &every, Effect::Allow)
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+    ];
+    let mut covered = BTreeSet::new();
+    for (function, error) in &attempts {
+        assert!(error.to_string().contains("broken"), "{function}: {error}");
+        covered.insert((*function).to_owned());
+    }
+    assert_eq!(covered, write_functions(), "{WRITES_NEED_A_TEST}");
+
+    let after = (
+        row(db, root).await,
+        tasks(db, root).await,
+        permission_rows(db).await,
+        audit_rows(db).await,
+    );
+    assert_eq!(after, before);
+    assert_eq!(
+        queue::completions(db, root).await.expect("reads"),
+        [],
+        "nothing ended the pass"
+    );
+}
+
+/// As in ace3, a refusal is a log line and not a record, a failed write rolled its row back, and a
+/// write that found nothing to do isn't an event.
+#[tokio::test]
+async fn only_a_change_that_committed_has_a_row() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let root = alert(db).await;
+    let outsider = user(UserId(Uuid::from_u128(4)));
+    let actor = admin(db).await;
+    let holder = Holder::User(UserId(Uuid::from_u128(5)));
+    let every = pattern("*", "*");
+
+    service
+        .disposition(&outsider, root, "IGNORE")
+        .await
+        .expect_err("refused");
+    service
+        .grant(&outsider, &holder, &every, Effect::Allow)
+        .await
+        .expect_err("refused");
+    service
+        .revoke(&outsider, &holder, &every, Effect::Allow)
+        .await
+        .expect_err("refused");
+    service
+        .disposition(&actor, Uuid::from_u128(9), "IGNORE")
+        .await
+        .expect_err("no such root");
+    assert!(
+        !service
+            .revoke(&actor, &holder, &every, Effect::Allow)
+            .await
+            .expect("finds nothing")
+    );
+    assert_eq!(audit_rows(db).await, []);
+
+    assert!(
+        service
+            .grant(&actor, &holder, &every, Effect::Allow)
+            .await
+            .expect("grants")
+    );
+    assert!(
+        !service
+            .grant(&actor, &holder, &every, Effect::Allow)
+            .await
+            .expect("finds it there")
+    );
+    assert_eq!(audit_rows(db).await.len(), 1);
+}
+
+/// Each row's `before` is the state the last one left, since the write locks the root first.
+#[tokio::test]
+async fn concurrent_dispositions_each_record_what_they_replaced() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let root = alert(db).await;
+    let actor = admin(db).await;
+    let writes = ["A", "B", "C", "D", "E", "F"].map(|disposition| {
+        let (service, actor) = (service.clone(), actor.clone());
+        tokio::spawn(async move {
+            service
+                .disposition(&actor, root, disposition)
+                .await
+                .expect("dispositions");
+        })
+    });
+    for write in writes {
+        write.await.expect("runs");
+    }
+    let rows = audit_rows(db).await;
+    assert_eq!(rows.len(), 6);
+    let mut last = Value::Null;
+    for row in rows {
+        assert_eq!(row.before.expect("a before")["disposition"], last);
+        last = row.after.expect("an after")["disposition"].clone();
+    }
+    assert_eq!(
+        row(db, root).await.disposition,
+        last.as_str().map(str::to_owned)
+    );
+}
+
+/// A row can't change or go, whichever statement tries, and it still needs a whole actor.
+#[tokio::test]
+async fn the_audit_table_is_append_only() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let actor = admin(db).await;
+    service(db)
+        .grant(
+            &actor,
+            &Holder::User(UserId(Uuid::from_u128(5))),
+            &pattern("*", "*"),
+            Effect::Allow,
+        )
+        .await
+        .expect("grants");
+    let before = audit_rows(db).await;
+
+    for statement in [
+        "UPDATE service.audit SET action = 'forged'",
+        "UPDATE service.audit SET action = 'forged' WHERE false",
+        "DELETE FROM service.audit",
+        "TRUNCATE service.audit",
+    ] {
+        let error = sqlx::raw_sql(statement)
+            .execute(db.pool())
+            .await
+            .expect_err(statement);
+        assert!(error.to_string().contains("append-only"), "{error}");
+    }
+    assert_eq!(audit_rows(db).await, before);
+
+    for statement in [
+        "INSERT INTO service.audit (actor, action, target_kind, target_id, after)
+         VALUES (NULL, 'grant', 'user', 'x', '{}')",
+        "INSERT INTO service.audit (actor, action, target_kind, target_id, after)
+         VALUES ('{}', 'grant', 'user', 'x', '{}')",
+        r#"INSERT INTO service.audit (actor, action, target_kind, target_id, after)
+           VALUES ('{"kind": "wizard", "id": "x"}', 'grant', 'user', 'x', '{}')"#,
+        r#"INSERT INTO service.audit (actor, action, target_kind, target_id, after)
+           VALUES ('{"kind": "user", "id": ""}', 'grant', 'user', 'x', '{}')"#,
+    ] {
+        let error = sqlx::raw_sql(statement)
+            .execute(db.pool())
+            .await
+            .expect_err(statement);
+        assert!(error.as_database_error().is_some(), "{error}");
+    }
+}
+
+/// Deleting what a row describes leaves the row, and the row can still say what it was.
+#[tokio::test]
+async fn a_row_outlives_what_it_describes() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let actor = admin(db).await;
+    let mut new_root = NewRoot::new("correlation");
+    new_root.description = "Quarterly invoice".to_owned();
+    let mut tx = db.begin().await.expect("begins");
+    tree::create_root(&mut tx, &new_root)
+        .await
+        .expect("creates");
+    tx.commit().await.expect("commits");
+    service
+        .disposition(&actor, new_root.id, "IGNORE")
+        .await
+        .expect("dispositions");
+    let group = group_of(db, Uuid::from_u128(7), UserId(Uuid::from_u128(8))).await;
+    service
+        .grant(&actor, &group, &pattern("alert", "read"), Effect::Allow)
+        .await
+        .expect("grants");
+    let before = audit_rows(db).await;
+    assert_eq!(before.len(), 2);
+
+    sqlx::query("DELETE FROM analysis.roots WHERE id = $1")
+        .bind(new_root.id)
+        .execute(db.pool())
+        .await
+        .expect("deletes the alert");
+    sqlx::query("DELETE FROM service.groups WHERE id = $1")
+        .bind(Uuid::from_u128(7))
+        .execute(db.pool())
+        .await
+        .expect("deletes the group and its grants");
+
+    let after = audit_rows(db).await;
+    assert_eq!(after, before);
+    assert_eq!(after[0].details["title"], "Quarterly invoice");
+}
+
+/// What an alert's sender wrote is kept as they wrote it, up to the cap, and comes back as data. A row
+/// that names an API key holds its id and name and nothing else about it.
+#[tokio::test]
+async fn untrusted_text_is_data_and_no_credential_reaches_a_row() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let id = ApiKeyId(Uuid::from_u128(6));
+    let owner = UserId(Uuid::from_u128(1));
+    let actor = key(id, Some(owner));
+    may_disposition(db, &[Holder::ApiKey(id), Holder::User(owner)]).await;
+    let hostile = r#"'); DROP TABLE service.audit; -- <script>alert("x")</script> é"#;
+    let mut new_root = NewRoot::new("correlation");
+    new_root.description = hostile.repeat(100);
+    let mut tx = db.begin().await.expect("begins");
+    tree::create_root(&mut tx, &new_root)
+        .await
+        .expect("creates");
+    tx.commit().await.expect("commits");
+
+    service(db)
+        .disposition(&actor, new_root.id, "IGNORE")
+        .await
+        .expect("dispositions");
+
+    let row = last_audit(db).await;
+    let capped: String = new_root.description.chars().take(1024).collect();
+    assert_eq!(row.details["title"], capped);
+    assert_eq!(
+        row.actor,
+        json!({"kind": "api_key", "id": id.0, "name": "triage", "owner": owner.0}),
+        "the whole actor, so a new field holding a key would fail here"
+    );
+}
+
+/// ace3 #830's complaint: an operator couldn't search one field for what a user or key did. Here a
+/// user's own writes and their keys' come back from one identity, and a component is found the same way.
+#[tokio::test]
+async fn one_query_finds_what_an_identity_did() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let alice = UserId(Uuid::from_u128(1));
+    let alices_key = ApiKeyId(Uuid::from_u128(2));
+    let others_key = ApiKeyId(Uuid::from_u128(3));
+    let scheduler = Component::new("scheduler").expect("valid");
+    may_disposition(
+        db,
+        &[
+            Holder::User(alice),
+            Holder::ApiKey(alices_key),
+            Holder::ApiKey(others_key),
+            Holder::Component(scheduler.clone()),
+        ],
+    )
+    .await;
+    let setup = audit_rows(db).await.len();
+    for actor in [
+        user(alice),
+        key(alices_key, Some(alice)),
+        key(others_key, None),
+        component("scheduler"),
+    ] {
+        let root = alert(db).await;
+        service
+            .disposition(&actor, root, "IGNORE")
+            .await
+            .expect("dispositions");
+    }
+    assert_eq!(audit_rows(db).await.len(), setup + 4);
+
+    let did = |identity: String| async move {
+        let found: Vec<(String,)> = sqlx::query_as(
+            "SELECT actor ->> 'kind' FROM service.audit
+             WHERE action = 'disposition' AND (actor ->> 'id' = $1 OR actor ->> 'owner' = $1)
+             ORDER BY id",
+        )
+        .bind(identity)
+        .fetch_all(db.pool())
+        .await
+        .expect("reads");
+        found.into_iter().map(|(kind,)| kind).collect::<Vec<_>>()
+    };
+    assert_eq!(did(alice.0.to_string()).await, ["user", "api_key"]);
+    assert_eq!(did(others_key.0.to_string()).await, ["api_key"]);
+    assert_eq!(did("scheduler".to_owned()).await, ["internal"]);
 }

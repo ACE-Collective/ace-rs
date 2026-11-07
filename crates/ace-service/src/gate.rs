@@ -1,5 +1,6 @@
 //! The only holder of the database in this crate, so a function here can't write without naming a
-//! permission: `Gate::write` opens the transaction, and checks before anything else runs in it.
+//! permission and an action: `Gate::write` opens the transaction, checks before anything else runs
+//! in it, and records what the body says it changed before the commit (`audit`).
 //!
 //! Who holds what (PLAN.md 5.2), which is ace3's model plus a decision for components:
 //! - A user holds their own rows and their groups' rows.
@@ -25,6 +26,10 @@ use uuid::Uuid;
 use crate::actor::{Actor, ApiKeyId, Component, UserId};
 use crate::permission::{Effect, PermissionName, PermissionPattern, allows, is_people_only};
 use crate::{GroupId, ServiceError};
+
+mod audit;
+
+pub(crate) use audit::{Audited, Change, Recorded, TITLE_LIMIT, Target};
 
 /// Who a row belongs to.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -57,32 +62,50 @@ impl Gate {
         Gate { db }
     }
 
-    /// Runs `body` in a transaction once `actor` holds `permission`. A refusal is
-    /// `ServiceError::PermissionDenied`, before `body` has looked at anything.
+    /// Runs `body` in a transaction once `actor` holds `permission`, and records what it changed in
+    /// that transaction. A refusal is `ServiceError::PermissionDenied`, before `body` has looked at
+    /// anything, and leaves no audit row. `action` is the name of the service function calling this,
+    /// which `tests/service.rs` checks, so a new write has to bring its audit test.
     pub(crate) async fn write<'a, T, F>(
         &'a self,
         actor: &'a Actor,
+        action: &'static str,
         permission: &'a PermissionName,
         body: &'a F,
     ) -> Result<T, ServiceError>
     where
         T: Send + 'a,
-        F: for<'t> Fn(&'t mut Tx<'a>) -> TxFuture<'t, T, ServiceError> + Sync,
+        F: for<'t> Fn(&'t mut Tx<'a>) -> TxFuture<'t, Audited<T>, ServiceError> + Sync,
     {
-        self.db
+        let (value, target) = self
+            .db
             .transaction(Isolation::ReadCommitted, |tx| {
                 Box::pin(async move {
                     if !holds(tx.conn(), actor, permission).await? {
-                        tracing::warn!(%actor, %permission, "permission denied");
+                        tracing::warn!(%actor, %permission, action, "permission denied");
                         return Err(ServiceError::PermissionDenied {
                             actor: actor.to_string(),
                             permission: permission.clone(),
                         });
                     }
-                    body(tx).await
+                    let Audited { value, change } = body(tx).await?;
+                    let target = match change {
+                        Some(change) => {
+                            Some(audit::record(tx.conn(), actor, action, change).await?)
+                        }
+                        None => None,
+                    };
+                    Ok((value, target))
                 })
             })
-            .await
+            .await?;
+        // After the commit, so nothing is logged for a rollback or for a retried attempt. These are
+        // identities only: a row's text stays out of the log.
+        match target {
+            Some(target) => tracing::info!(%actor, action, %target, "AUDIT: a write was recorded"),
+            None => tracing::info!(%actor, action, "a write changed nothing"),
+        }
+        Ok(value)
     }
 
     pub(crate) async fn allowed(

@@ -208,7 +208,8 @@ fn class_matches(class: &[u8], byte: u8) -> bool {
 }
 
 /// What a row does when its pattern matches. A deny wins over any allow, whichever row it's on.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, sqlx::Type)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, sqlx::Type)]
+#[serde(rename_all = "snake_case")]
 #[sqlx(type_name = "service.permission_effect", rename_all = "snake_case")]
 pub enum Effect {
     Allow,
