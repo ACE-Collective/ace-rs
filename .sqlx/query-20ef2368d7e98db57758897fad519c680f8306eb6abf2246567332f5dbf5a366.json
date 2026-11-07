@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO service.permissions (user_id, major, minor, effect, created_by)\n                         VALUES ($1, $2::text, $3::text, $4, $5::jsonb)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        {
+          "Custom": {
+            "name": "service.permission_effect",
+            "kind": {
+              "Enum": [
+                "allow",
+                "deny"
+              ]
+            }
+          }
+        },
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "20ef2368d7e98db57758897fad519c680f8306eb6abf2246567332f5dbf5a366"
+}

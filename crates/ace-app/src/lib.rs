@@ -5,7 +5,7 @@
 //! and the module groups its modules join. Each binary is a short `main` over one:
 //!
 //! ```text
-//! // the core: `ace serve`, `ace task replay`, `ace schema export`, `ace yara ...`
+//! // the core: `ace serve`, `ace task replay`, `ace schema export`, `ace yara ...`, `ace user ...`
 //! fn main() -> std::process::ExitCode {
 //!     site::app().ace_main()
 //! }
@@ -35,6 +35,7 @@ mod root;
 mod schema;
 mod serve;
 mod task;
+mod user;
 mod yara;
 
 use std::path::Path;

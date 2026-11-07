@@ -18,6 +18,10 @@
 //!
 //! Whether a user is enabled, and whether an API key is still valid, is decided by authentication
 //! (5.4) before an `Actor` exists, as in ace3.
+//!
+//! Three writes are a person's own and ask for no permission, because a user with no grants still has
+//! to be able to do them: `login`, `logout` and `change_own_password`, through `Gate::write_own`. Each
+//! still has its audit row, and `tests/service.rs` fails if a fourth function calls it.
 
 use ace_core::db::{Db, Isolation, Tx, TxFuture};
 use sqlx::PgConnection;
@@ -28,6 +32,7 @@ use crate::permission::{Effect, PermissionName, PermissionPattern, allows, is_pe
 use crate::{GroupId, ServiceError};
 
 mod audit;
+mod lookup;
 
 pub(crate) use audit::{Audited, Change, Recorded, TITLE_LIMIT, Target};
 
@@ -77,11 +82,42 @@ impl Gate {
         T: Send + 'a,
         F: for<'t> Fn(&'t mut Tx<'a>) -> TxFuture<'t, Audited<T>, ServiceError> + Sync,
     {
+        self.run(actor, action, Some(permission), body).await
+    }
+
+    /// `write` for what an actor does to its own account, which no grant is needed for. The module's docs
+    /// list its callers.
+    pub(crate) async fn write_own<'a, T, F>(
+        &'a self,
+        actor: &'a Actor,
+        action: &'static str,
+        body: &'a F,
+    ) -> Result<T, ServiceError>
+    where
+        T: Send + 'a,
+        F: for<'t> Fn(&'t mut Tx<'a>) -> TxFuture<'t, Audited<T>, ServiceError> + Sync,
+    {
+        self.run(actor, action, None, body).await
+    }
+
+    async fn run<'a, T, F>(
+        &'a self,
+        actor: &'a Actor,
+        action: &'static str,
+        permission: Option<&'a PermissionName>,
+        body: &'a F,
+    ) -> Result<T, ServiceError>
+    where
+        T: Send + 'a,
+        F: for<'t> Fn(&'t mut Tx<'a>) -> TxFuture<'t, Audited<T>, ServiceError> + Sync,
+    {
         let (value, target) = self
             .db
             .transaction(Isolation::ReadCommitted, |tx| {
                 Box::pin(async move {
-                    if !holds(tx.conn(), actor, permission).await? {
+                    if let Some(permission) = permission
+                        && !holds(tx.conn(), actor, permission).await?
+                    {
                         tracing::warn!(%actor, %permission, action, "permission denied");
                         return Err(ServiceError::PermissionDenied {
                             actor: actor.to_string(),

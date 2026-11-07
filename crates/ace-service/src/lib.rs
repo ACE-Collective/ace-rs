@@ -14,6 +14,9 @@
 //! can only write through `Gate::write`, which refuses an actor without that permission before the
 //! write looks at anything. `gate`'s docs say who holds what, and `permission`'s say what a name is.
 //!
+//! `auth` turns a GUI session or an API key into an `Actor`, or refuses it, and an adapter calls it before
+//! anything else. It also holds the first admin and the writes on users and keys.
+//!
 //! Every write says what it changed too, because `Gate::write`'s body has to return `Audited`. The
 //! gate writes the row in the write's transaction (`gate::audit`). To add a write: call `Gate::write`
 //! once, with the function's own name as its action, and add the function to
@@ -41,6 +44,7 @@
 //!   its token, and a task's row names its `lease_owner`.
 
 mod actor;
+mod auth;
 mod gate;
 mod permission;
 
@@ -55,6 +59,10 @@ use uuid::Uuid;
 use gate::{Audited, Change, Gate, Recorded, TITLE_LIMIT, Target};
 
 pub use actor::{Actor, ApiKeyId, Component, InvalidComponent, UserId};
+pub use auth::{
+    InvalidUsername, IssuedToken, MAX_PASSWORD_BYTES, MIN_PASSWORD_CHARS, NewApiKey, NewSession,
+    Password, RequestParts, SESSION_LIFETIME_SECONDS, SessionCookie, Transport, Username,
+};
 pub use gate::Holder;
 pub use permission::{
     ALERT_WRITE, Effect, InvalidPermission, PermissionName, PermissionPattern, USER_SELF,
@@ -80,6 +88,30 @@ pub enum ServiceError {
     /// A change that couldn't be encoded for its audit row, which fails the write.
     #[error("recording the audit row: {0}")]
     AuditEncoding(#[from] serde_json::Error),
+    /// No actor: an unknown user, a wrong password or a disabled user at a login, or a credential that
+    /// is wrong, revoked or expired. It says nothing more, on purpose, and an adapter shouldn't either.
+    #[error("not authenticated")]
+    NotAuthenticated,
+    /// A session's request that another site's page could have made (`RequestParts::same_origin`).
+    #[error("this request came from another site")]
+    CrossSiteRequest,
+    #[error("that username is taken")]
+    UsernameTaken,
+    #[error("no user {0}")]
+    NoUser(Uuid),
+    #[error("a user exists already, so a first user needs forcing")]
+    UsersExist,
+    #[error("a user can't disable themselves: another user with user:write has to")]
+    CantDisableYourself,
+    #[error(
+        "a password has to be at least {MIN_PASSWORD_CHARS} characters and at most {MAX_PASSWORD_BYTES} bytes"
+    )]
+    WeakPassword,
+    #[error("an API key's name is 1 to 255 characters")]
+    InvalidKeyName,
+    /// Hashing failed, or there was no randomness to do it with. It holds no password.
+    #[error("hashing a credential: {0}")]
+    Hashing(String),
 }
 
 impl From<DbError> for ServiceError {
@@ -100,7 +132,16 @@ impl Retryable for ServiceError {
             ServiceError::Orchestrator(e) => e.is_retryable(),
             ServiceError::PermissionDenied { .. }
             | ServiceError::InvalidPermission(_)
-            | ServiceError::AuditEncoding(_) => false,
+            | ServiceError::AuditEncoding(_)
+            | ServiceError::NotAuthenticated
+            | ServiceError::CrossSiteRequest
+            | ServiceError::UsernameTaken
+            | ServiceError::NoUser(_)
+            | ServiceError::UsersExist
+            | ServiceError::CantDisableYourself
+            | ServiceError::WeakPassword
+            | ServiceError::InvalidKeyName
+            | ServiceError::Hashing(_) => false,
         }
     }
 }
@@ -143,6 +184,7 @@ impl Recorded for PermissionRecord<'_> {}
 pub struct Service {
     gate: Gate,
     orchestrator: Orchestrator,
+    passwords: auth::Passwords,
 }
 
 impl Service {
@@ -150,6 +192,7 @@ impl Service {
         Service {
             gate: Gate::new(db),
             orchestrator,
+            passwords: auth::Passwords::new(),
         }
     }
 

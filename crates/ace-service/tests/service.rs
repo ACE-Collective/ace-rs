@@ -6,9 +6,15 @@
 //!
 //! PLAN.md 5.3: every write records who changed what, atomically with the change. The two tests that
 //! read this crate's source fail until a new write function has an audit test.
+//!
+//! PLAN.md 5.4: a GUI session and an API key each reach the service layer as the right actor, where
+//! 5.2's check and 5.3's audit hold, and a failure to authenticate says and logs nothing useful.
 
 use std::collections::BTreeSet;
+use std::io::Write;
 use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
 
 use ace_core::eligibility::Catalog;
 use ace_core::modes::Modes;
@@ -19,12 +25,15 @@ use ace_core::{Db, queue};
 use ace_results::{AnalysisType, NewObservable, ObservableKind};
 use ace_sdk::{Lookup, Manifest, Module, ModuleError, Outcome, TaskContext};
 use ace_service::{
-    ALERT_WRITE, Actor, ApiKeyId, Component, Effect, GroupId, Holder, PermissionName,
-    PermissionPattern, Service, ServiceError, USER_SELF, USER_WRITE, UserId,
+    ALERT_WRITE, Actor, ApiKeyId, Component, Effect, GroupId, Holder, MIN_PASSWORD_CHARS,
+    NewSession, Password, PermissionName, PermissionPattern, RequestParts,
+    SESSION_LIFETIME_SECONDS, Service, ServiceError, SessionCookie, Transport, USER_SELF,
+    USER_WRITE, UserId, Username,
 };
 use schemars::JsonSchema;
 use serde::Serialize;
 use serde_json::{Value, json};
+use sha2::{Digest, Sha256};
 use uuid::Uuid;
 
 #[derive(Debug, Clone, PartialEq, Serialize, serde::Deserialize, JsonSchema)]
@@ -174,10 +183,43 @@ fn name(major: &str, minor: &str) -> PermissionName {
     PermissionName::new(major, minor).expect("a valid name")
 }
 
-/// An admin, as 5.4's first admin will be: `*:*` on a row the service didn't write, since nothing
+/// Gives a holder a row to stand on, since 5.4 gave a grant a foreign key on its holder. These can't
+/// log in: nothing hashes to this password.
+async fn exists(db: &Db, holder: &Holder) {
+    match holder {
+        Holder::User(id) => {
+            sqlx::query(
+                "INSERT INTO service.users (id, username, password_hash, created_by)
+                 VALUES ($1, $2, '$argon2id$none', '{\"kind\": \"internal\", \"id\": \"test\"}')
+                 ON CONFLICT DO NOTHING",
+            )
+            .bind(id.0)
+            .bind(format!("u{}", id.0.simple()))
+            .execute(db.pool())
+            .await
+            .expect("seeds a user");
+        }
+        Holder::ApiKey(id) => {
+            sqlx::query(
+                "INSERT INTO service.api_keys (id, name, secret_hash, created_by)
+                 VALUES ($1, 'triage', decode(repeat('00', 32), 'hex'),
+                         '{\"kind\": \"internal\", \"id\": \"test\"}')
+                 ON CONFLICT DO NOTHING",
+            )
+            .bind(id.0)
+            .execute(db.pool())
+            .await
+            .expect("seeds a key");
+        }
+        Holder::Group(_) | Holder::Component(_) => {}
+    }
+}
+
+/// An admin, as 5.4's first admin is: `*:*`, on a row the service didn't write here, since nothing
 /// can grant until someone holds `user:write`.
 async fn admin(db: &Db) -> Actor {
     let id = UserId(Uuid::from_u128(0xAD));
+    exists(db, &Holder::User(id)).await;
     sqlx::query(
         "INSERT INTO service.permissions (user_id, major, minor, effect, created_by)
          VALUES ($1, '*', '*', 'allow', '{\"kind\": \"internal\", \"id\": \"test\"}')
@@ -192,6 +234,7 @@ async fn admin(db: &Db) -> Actor {
 
 /// Grants through the service, as an admin.
 async fn grant(db: &Db, holder: &Holder, major: &str, minor: &str, effect: Effect) {
+    exists(db, holder).await;
     service(db)
         .grant(&admin(db).await, holder, &pattern(major, minor), effect)
         .await
@@ -212,6 +255,7 @@ async fn group_of(db: &Db, id: Uuid, member: UserId) -> Holder {
         .execute(db.pool())
         .await
         .expect("adds a group");
+    exists(db, &Holder::User(member)).await;
     sqlx::query("INSERT INTO service.group_members (group_id, user_id) VALUES ($1, $2)")
         .bind(id)
         .bind(member.0)
@@ -563,6 +607,7 @@ async fn a_permission_behaves_the_same_in_any_case_for_every_actor() {
             for (checked_case, check) in cases {
                 for who in everyone(db, &mut serial).await {
                     for holder in &who.holders {
+                        exists(db, holder).await;
                         for (major, minor, effect) in *rows {
                             service
                                 .grant(
@@ -811,10 +856,12 @@ async fn an_actor_with_no_grants_is_refused_every_write() {
 
     assert_eq!(row(db, root).await, before);
     assert_eq!(tasks(db, root).await, before_tasks);
-    let (rows,): (i64,) = sqlx::query_as("SELECT count(*) FROM service.permissions")
-        .fetch_one(db.pool())
-        .await
-        .expect("counts");
+    let (rows,): (i64,) = sqlx::query_as(
+        "SELECT count(*) FROM service.permissions WHERE component IS DISTINCT FROM 'bootstrap'",
+    )
+    .fetch_one(db.pool())
+    .await
+    .expect("counts");
     assert_eq!(rows, 0, "nothing was granted, and no admin was seeded");
 }
 
@@ -863,6 +910,7 @@ async fn case_variants_of_a_grant_are_one_row() {
     let service = service(db);
     let admin = admin(db).await;
     let alice = Holder::User(UserId(Uuid::from_u128(1)));
+    exists(db, &alice).await;
     let actor = user(UserId(Uuid::from_u128(1)));
     let added = async |major: &str, minor: &str, effect: Effect| {
         service
@@ -947,6 +995,20 @@ async fn a_grant_to_a_group_that_doesn_t_exist_is_an_error() {
         .await
         .expect_err("refused");
     assert!(error.to_string().contains("group_id"), "{error}");
+    // the same for the holders 5.4 gave a foreign key
+    for (holder, column) in [
+        (Holder::User(UserId(Uuid::from_u128(1))), "user_exists"),
+        (
+            Holder::ApiKey(ApiKeyId(Uuid::from_u128(1))),
+            "api_key_exists",
+        ),
+    ] {
+        let error = service(db)
+            .grant(&admin(db).await, &holder, &pattern("*", "*"), Effect::Allow)
+            .await
+            .expect_err("refused");
+        assert!(error.to_string().contains(column), "{error}");
+    }
 }
 
 /// A row written outside the type can't break the rule. This is the database's half of it.
@@ -956,6 +1018,7 @@ async fn the_database_refuses_a_row_that_breaks_the_rule() {
     let db = test_db.db();
     let by = json!({"kind": "internal", "id": "test"});
     let user_id = Uuid::from_u128(1);
+    exists(db, &Holder::User(UserId(user_id))).await;
     let insert = async |major: &str, minor: &str| {
         sqlx::query(
             "INSERT INTO service.permissions (user_id, major, minor, effect, created_by)
@@ -1218,7 +1281,7 @@ async fn permission_rows(db: &Db) -> Vec<(i64, Option<Uuid>, String, String, Str
     .expect("reads")
 }
 
-/// The functions in this crate's source that call `Gate::write`. Each must call it once, with its
+/// The functions in this crate's source that call `Gate::write` or `Gate::write_own`. Each must call it once, with its
 /// own name as the action, so one row's action always names one function. A function that holds the
 /// gate under another name isn't seen: this reads text.
 fn write_functions() -> BTreeSet<String> {
@@ -1232,8 +1295,9 @@ fn write_functions() -> BTreeSet<String> {
             }
         }
     }
-    let pattern = regex::Regex::new(r"\bfn\s+(\w+)|\bgate\s*\.\s*write\s*\(\s*\w+\s*,\s*([^,]*),")
-        .expect("a valid pattern");
+    let pattern =
+        regex::Regex::new(r"\bfn\s+(\w+)|\bgate\s*\.\s*write(?:_own)?\s*\(\s*&?\w+\s*,\s*([^,]*),")
+            .expect("a valid pattern");
     let mut files = Vec::new();
     rust_files(
         &Path::new(env!("CARGO_MANIFEST_DIR")).join("src"),
@@ -1283,6 +1347,15 @@ async fn every_write_function_has_an_audit_test() {
         disposition_records_its_row(db).await,
         grant_records_its_row(db).await,
         revoke_records_its_row(db).await,
+        create_first_user_records_its_row().await,
+        create_user_records_its_row(db).await,
+        set_user_enabled_records_its_row(db).await,
+        reset_password_records_its_row(db).await,
+        change_own_password_records_its_row(db).await,
+        create_api_key_records_its_row(db).await,
+        revoke_api_key_records_its_row(db).await,
+        login_records_its_row(db).await,
+        logout_records_its_row(db).await,
     ]);
     assert_eq!(covered, write_functions(), "{WRITES_NEED_A_TEST}");
 }
@@ -1430,16 +1503,32 @@ async fn every_write_fails_when_its_audit_fails() {
     let root = alert(db).await;
     let actor = admin(db).await;
     let held = Holder::User(UserId(Uuid::from_u128(2)));
+    exists(db, &held).await;
+    exists(db, &Holder::User(UserId(Uuid::from_u128(3)))).await;
     let every = pattern("*", "*");
     service
         .grant(&actor, &held, &every, Effect::Allow)
         .await
         .expect("grants");
+    let bob = new_user(&service, &actor, "bob").await;
+    let bob_actor = Actor::User {
+        id: bob,
+        name: "bob".to_owned(),
+    };
+    let bobs_session = service
+        .login("bob", Password::new(PASSWORD), None)
+        .await
+        .expect("logs in");
+    let key = service
+        .create_api_key(&actor, "triage", None)
+        .await
+        .expect("makes a key");
     let before = (
         row(db, root).await,
         tasks(db, root).await,
         permission_rows(db).await,
         audit_rows(db).await,
+        credential_rows(db).await,
     );
 
     sqlx::raw_sql("ALTER TABLE service.audit ADD CONSTRAINT broken CHECK (false) NOT VALID")
@@ -1473,6 +1562,82 @@ async fn every_write_fails_when_its_audit_fails() {
                 .map(|_| ())
                 .expect_err("refused"),
         ),
+        (
+            "create_first_user",
+            service
+                .create_first_user(&username("first"), Password::new(PASSWORD), true)
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "create_user",
+            service
+                .create_user(&actor, &username("carol"), Password::new(PASSWORD))
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "set_user_enabled",
+            service
+                .set_user_enabled(&actor, bob, false)
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "reset_password",
+            service
+                .reset_password(&actor, bob, Password::new(OTHER_PASSWORD))
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "change_own_password",
+            service
+                .change_own_password(
+                    &bob_actor,
+                    Password::new(PASSWORD),
+                    Password::new(OTHER_PASSWORD),
+                )
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "create_api_key",
+            service
+                .create_api_key(&actor, "another", None)
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "revoke_api_key",
+            service
+                .revoke_api_key(&actor, key.id)
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "login",
+            service
+                .login("bob", Password::new(PASSWORD), None)
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "logout",
+            service
+                .logout(bobs_session.token.expose())
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
     ];
     let mut covered = BTreeSet::new();
     for (function, error) in &attempts {
@@ -1486,6 +1651,7 @@ async fn every_write_fails_when_its_audit_fails() {
         tasks(db, root).await,
         permission_rows(db).await,
         audit_rows(db).await,
+        credential_rows(db).await,
     );
     assert_eq!(after, before);
     assert_eq!(
@@ -1506,6 +1672,7 @@ async fn only_a_change_that_committed_has_a_row() {
     let outsider = user(UserId(Uuid::from_u128(4)));
     let actor = admin(db).await;
     let holder = Holder::User(UserId(Uuid::from_u128(5)));
+    exists(db, &holder).await;
     let every = pattern("*", "*");
 
     service
@@ -1586,6 +1753,7 @@ async fn the_audit_table_is_append_only() {
     let test_db = TestDb::new().await;
     let db = test_db.db();
     let actor = admin(db).await;
+    exists(db, &Holder::User(UserId(Uuid::from_u128(5)))).await;
     service(db)
         .grant(
             &actor,
@@ -1756,4 +1924,1813 @@ async fn one_query_finds_what_an_identity_did() {
     assert_eq!(did(alice.0.to_string()).await, ["user", "api_key"]);
     assert_eq!(did(others_key.0.to_string()).await, ["api_key"]);
     assert_eq!(did("scheduler".to_owned()).await, ["internal"]);
+}
+
+// PLAN.md 5.4: authentication.
+
+const PASSWORD: &str = "correct horse battery staple";
+const OTHER_PASSWORD: &str = "a different long passphrase";
+
+fn username(name: &str) -> Username {
+    Username::new(name).expect("a valid username")
+}
+
+async fn new_user(service: &Service, actor: &Actor, name: &str) -> UserId {
+    service
+        .create_user(actor, &username(name), Password::new(PASSWORD))
+        .await
+        .expect("makes a user")
+}
+
+/// Every row that can authenticate, whole.
+async fn credential_rows(db: &Db) -> Vec<String> {
+    sqlx::query_scalar(
+        "SELECT row_to_json(u)::text FROM service.users u
+         UNION ALL SELECT row_to_json(k)::text FROM service.api_keys k
+         UNION ALL SELECT row_to_json(s)::text FROM service.sessions s
+         ORDER BY 1",
+    )
+    .fetch_all(db.pool())
+    .await
+    .expect("reads")
+}
+
+async fn sessions_of(db: &Db, user: UserId) -> i64 {
+    sqlx::query_scalar("SELECT count(*) FROM service.sessions WHERE user_id = $1")
+        .bind(user.0)
+        .fetch_one(db.pool())
+        .await
+        .expect("reads")
+}
+
+fn is_not_authenticated<T: std::fmt::Debug>(result: Result<T, ServiceError>) -> bool {
+    matches!(result, Err(ServiceError::NotAuthenticated))
+}
+
+/// The Done check. A session and a key each become their actor, and that actor reaches
+/// `Service::disposition`: 5.2's check refuses it until a grant allows it, and 5.3's row names it.
+#[tokio::test]
+async fn a_session_and_an_api_key_reach_the_service_layer_as_their_actors() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let boss = admin(db).await;
+    let alice = new_user(&service, &boss, "Alice").await;
+
+    let session = service
+        .login("ALICE", Password::new(PASSWORD), None)
+        .await
+        .expect("logs in, in any case");
+    let from_session = service
+        .authenticate_session(session.token.expose())
+        .await
+        .expect("authenticates");
+    let expected_user = Actor::User {
+        id: alice,
+        name: "alice".to_owned(),
+    };
+    assert_eq!(from_session, expected_user);
+    assert_eq!(session.actor, expected_user);
+
+    let owned = service
+        .create_api_key(&boss, "triage", Some(alice))
+        .await
+        .expect("makes a key");
+    let from_owned = service
+        .authenticate_api_key(owned.token.expose())
+        .await
+        .expect("authenticates");
+    assert_eq!(
+        from_owned,
+        Actor::ApiKey {
+            id: owned.id,
+            name: "triage".to_owned(),
+            owner: Some(alice),
+        }
+    );
+    let unowned = service
+        .create_api_key(&boss, "collector", None)
+        .await
+        .expect("makes a key");
+    let from_unowned = service
+        .authenticate_api_key(unowned.token.expose())
+        .await
+        .expect("authenticates");
+    assert_eq!(
+        from_unowned,
+        Actor::ApiKey {
+            id: unowned.id,
+            name: "collector".to_owned(),
+            owner: None,
+        }
+    );
+
+    // 5.2: nobody holds anything yet.
+    let root = alert(db).await;
+    for actor in [&from_session, &from_owned, &from_unowned] {
+        assert!(
+            matches!(
+                service.disposition(actor, root, "IGNORE").await,
+                Err(ServiceError::PermissionDenied { .. })
+            ),
+            "{actor}"
+        );
+    }
+
+    // Alice's grant reaches her session and not yet her key, which needs its own as well.
+    grant(db, &Holder::User(alice), "alert", "write", Effect::Allow).await;
+    service
+        .disposition(&from_session, root, "FALSE_POSITIVE")
+        .await
+        .expect("a session dispositions");
+    let by_session = last_audit(db).await;
+    assert_eq!(by_session.action, "disposition");
+    assert_eq!(
+        by_session.actor,
+        json!({"kind": "user", "id": alice.0, "name": "alice"})
+    );
+    assert!(matches!(
+        service.disposition(&from_owned, root, "IGNORE").await,
+        Err(ServiceError::PermissionDenied { .. })
+    ));
+
+    grant(db, &Holder::ApiKey(owned.id), "alert", "*", Effect::Allow).await;
+    service
+        .disposition(&from_owned, root, "IGNORE")
+        .await
+        .expect("a key dispositions");
+    let by_key = last_audit(db).await;
+    assert_eq!(
+        by_key.actor,
+        json!({"kind": "api_key", "id": owned.id.0, "name": "triage", "owner": alice.0})
+    );
+    assert_eq!(
+        row(db, root).await.by,
+        Some(json!({"kind": "api_key", "id": owned.id.0, "name": "triage", "owner": alice.0}))
+    );
+
+    // And the owner losing the grant stops the key at once, with the same token.
+    service
+        .revoke(
+            &boss,
+            &Holder::User(alice),
+            &pattern("alert", "write"),
+            Effect::Allow,
+        )
+        .await
+        .expect("revokes");
+    let still = service
+        .authenticate_api_key(owned.token.expose())
+        .await
+        .expect("still authenticates");
+    assert!(matches!(
+        service.disposition(&still, root, "IGNORE").await,
+        Err(ServiceError::PermissionDenied { .. })
+    ));
+}
+
+/// The same answer, in every word, whichever check failed.
+#[tokio::test]
+async fn every_failed_login_gets_the_same_answer() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let boss = admin(db).await;
+    let alice = new_user(&service, &boss, "alice").await;
+    let off = new_user(&service, &boss, "off").await;
+    service
+        .set_user_enabled(&boss, off, false)
+        .await
+        .expect("disables");
+
+    let too_long = format!("{PASSWORD}{}", "x".repeat(2000));
+    let attempts = [
+        ("alice", "wrong password wrong password"),
+        ("alice", ""),
+        ("alice", &too_long),
+        ("nobody", PASSWORD),
+        ("not a valid username!", PASSWORD),
+        ("", PASSWORD),
+        ("off", PASSWORD),
+    ];
+    for (name, password) in attempts {
+        let error = service
+            .login(name, Password::new(password), None)
+            .await
+            .expect_err("refused");
+        assert!(
+            matches!(error, ServiceError::NotAuthenticated),
+            "{name}: {error}"
+        );
+        assert_eq!(error.to_string(), "not authenticated", "{name}");
+    }
+    assert_eq!(sessions_of(db, alice).await, 0);
+    assert_eq!(sessions_of(db, off).await, 0);
+    assert_eq!(
+        audit_rows(db)
+            .await
+            .iter()
+            .filter(|row| row.action == "login")
+            .count(),
+        0,
+        "a failed login has no row, so nobody can fill the table from outside"
+    );
+}
+
+/// An unknown user costs what a wrong password costs: the median over interleaved attempts, within a
+/// factor far wider than noise and far narrower than what leaving out the dummy hash does, which
+/// is about a hundred times.
+#[tokio::test]
+async fn an_unknown_user_takes_as_long_as_a_wrong_password() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let boss = admin(db).await;
+    new_user(&service, &boss, "alice").await;
+    let off = new_user(&service, &boss, "off").await;
+    service
+        .set_user_enabled(&boss, off, false)
+        .await
+        .expect("disables");
+
+    async fn time(service: &Service, name: &str) -> Duration {
+        let started = Instant::now();
+        assert!(is_not_authenticated(
+            service
+                .login(name, Password::new("not this one, surely"), None)
+                .await
+        ));
+        started.elapsed()
+    }
+    // The dummy is made on first use.
+    time(&service, "nobody").await;
+
+    let names = ["alice", "nobody", "off", "not a valid username!"];
+    let mut timings = vec![Vec::new(); names.len()];
+    for _ in 0..15 {
+        for (name, times) in names.iter().zip(&mut timings) {
+            times.push(time(&service, name).await);
+        }
+    }
+    let medians: Vec<Duration> = timings
+        .iter_mut()
+        .map(|times| {
+            times.sort();
+            times[times.len() / 2]
+        })
+        .collect();
+    for (name, median) in names.iter().zip(&medians).skip(1) {
+        assert!(
+            *median < medians[0] * 4 && medians[0] < *median * 4,
+            "{name} took {median:?} and a wrong password {:?}",
+            medians[0]
+        );
+    }
+}
+
+/// Stored only as hashes: a token, a secret and a password appear nowhere, and the stored value is what
+/// the docs say it is.
+#[tokio::test]
+async fn credentials_are_stored_only_as_hashes() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let boss = admin(db).await;
+    let alice = new_user(&service, &boss, "alice").await;
+    let session = service
+        .login("alice", Password::new(PASSWORD), None)
+        .await
+        .expect("logs in");
+    let key = service
+        .create_api_key(&boss, "triage", Some(alice))
+        .await
+        .expect("makes a key");
+
+    let rows = credential_rows(db).await.join("\n");
+    let audit: String =
+        sqlx::query_scalar("SELECT string_agg(row_to_json(a)::text, ' ') FROM service.audit a")
+            .fetch_one(db.pool())
+            .await
+            .expect("reads");
+    for token in [session.token.expose(), key.token.expose()] {
+        let secret = token.rsplit('_').next().expect("a secret");
+        assert_eq!(secret.len(), 64, "256 bits as hex");
+        assert!(!rows.contains(secret));
+        assert!(!audit.contains(secret));
+    }
+    assert!(!rows.contains(PASSWORD));
+    assert!(!audit.contains(PASSWORD));
+    assert!(!audit.contains("argon2"), "not even a password's hash");
+
+    let (hash, stored_session, stored_key): (String, Vec<u8>, Vec<u8>) = sqlx::query_as(
+        "SELECT u.password_hash,
+                (SELECT secret_hash FROM service.sessions),
+                (SELECT secret_hash FROM service.api_keys WHERE name = 'triage')
+         FROM service.users u WHERE u.username = 'alice'",
+    )
+    .fetch_one(db.pool())
+    .await
+    .expect("reads");
+    assert!(
+        hash.starts_with("$argon2id$v=19$m=19456,t=2,p=1$"),
+        "{hash}"
+    );
+    assert_eq!(
+        stored_session,
+        Sha256::digest(session.token.expose()).to_vec()
+    );
+    assert_eq!(stored_key, Sha256::digest(key.token.expose()).to_vec());
+
+    // Two users with one password share no hash.
+    let bob = new_user(&service, &boss, "bob").await;
+    let bobs: String = sqlx::query_scalar("SELECT password_hash FROM service.users WHERE id = $1")
+        .bind(bob.0)
+        .fetch_one(db.pool())
+        .await
+        .expect("reads");
+    assert_ne!(hash, bobs);
+
+    // The database refuses a password that isn't a hash, whatever writes it.
+    let plaintext = sqlx::query("UPDATE service.users SET password_hash = $1 WHERE id = $2")
+        .bind(PASSWORD)
+        .bind(alice.0)
+        .execute(db.pool())
+        .await
+        .expect_err("refused");
+    assert!(
+        plaintext.to_string().contains("password_hash"),
+        "{plaintext}"
+    );
+
+    // Neither is printable by accident.
+    assert_eq!(
+        format!("{:?}", Password::new(PASSWORD)),
+        "Password([hidden])"
+    );
+    assert!(!format!("{session:?}").contains(session.token.expose()));
+    assert!(!format!("{key:?}").contains(key.token.expose()));
+}
+
+/// A wrong secret fails wherever it's wrong, and the right secret under another kind or id does too.
+#[tokio::test]
+async fn a_token_must_match_in_every_byte() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let boss = admin(db).await;
+    new_user(&service, &boss, "alice").await;
+    let session = service
+        .login("alice", Password::new(PASSWORD), None)
+        .await
+        .expect("logs in");
+    let key = service
+        .create_api_key(&boss, "triage", None)
+        .await
+        .expect("makes a key");
+    let other = service
+        .create_api_key(&boss, "other", None)
+        .await
+        .expect("makes a key");
+
+    fn flip(token: &str, index: usize) -> String {
+        let mut bytes = token.as_bytes().to_vec();
+        bytes[index] = if bytes[index] == b'0' { b'1' } else { b'0' };
+        String::from_utf8(bytes).expect("ASCII")
+    }
+    let secret_at = key.token.expose().rfind('_').expect("a secret") + 1;
+    let length = key.token.expose().len();
+    for index in [
+        secret_at,
+        secret_at + 1,
+        secret_at + 31,
+        length - 2,
+        length - 1,
+    ] {
+        assert!(
+            is_not_authenticated(
+                service
+                    .authenticate_api_key(&flip(key.token.expose(), index))
+                    .await
+            ),
+            "byte {index} of a key"
+        );
+        assert!(
+            is_not_authenticated(
+                service
+                    .authenticate_session(&flip(session.token.expose(), index))
+                    .await
+            ),
+            "byte {index} of a session"
+        );
+    }
+
+    let (key_kind, session_kind) = (key.token.expose(), session.token.expose());
+    let as_session = key_kind.replacen("ace4k", "ace4s", 1);
+    let as_key = session_kind.replacen("ace4s", "ace4k", 1);
+    let other_id = format!(
+        "ace4k_{}_{}",
+        other.id.0.simple(),
+        key_kind.rsplit('_').next().expect("a secret")
+    );
+    for (what, presented) in [
+        ("a key as a session", key_kind),
+        ("a key's kind changed", as_session.as_str()),
+        ("empty", ""),
+        ("no secret", "ace4s_0_"),
+        ("cut short", &session_kind[..session_kind.len() - 1]),
+    ] {
+        assert!(
+            is_not_authenticated(service.authenticate_session(presented).await),
+            "{what}"
+        );
+    }
+    for (what, presented) in [
+        ("a session as a key", session_kind),
+        ("a session's kind changed", as_key.as_str()),
+        ("another key's id", other_id.as_str()),
+        ("empty", ""),
+    ] {
+        assert!(
+            is_not_authenticated(service.authenticate_api_key(presented).await),
+            "{what}"
+        );
+    }
+    // A secret whose hash starts, or ends, with the same two bytes as the real one's. Comparing only
+    // part of the hash would let one through, and changing a byte above wouldn't show that.
+    let stored = Sha256::digest(key_kind.as_bytes());
+    let prefix = &key_kind[..key_kind.len() - 64];
+    let near_miss = |same: &dyn Fn(&[u8]) -> bool| {
+        (0_u64..)
+            .map(|n| format!("{prefix}{n:064x}"))
+            .find(|candidate| {
+                candidate != key_kind && same(Sha256::digest(candidate.as_bytes()).as_slice())
+            })
+            .expect("one exists")
+    };
+    let starts = near_miss(&|hash| hash[..2] == stored[..2]);
+    let ends = near_miss(&|hash| hash[30..] == stored[30..]);
+    for (what, presented) in [("starts", &starts), ("ends", &ends)] {
+        assert!(
+            is_not_authenticated(service.authenticate_api_key(presented).await),
+            "a hash that {what} the same"
+        );
+    }
+
+    // The originals still work, so the refusals above weren't for some other reason.
+    service
+        .authenticate_api_key(key_kind)
+        .await
+        .expect("authenticates");
+    service
+        .authenticate_session(session_kind)
+        .await
+        .expect("authenticates");
+}
+
+/// A session ends at its time, as the database's clock has it, and a login clears out the dead ones.
+#[tokio::test]
+async fn a_session_expires() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let boss = admin(db).await;
+    let alice = new_user(&service, &boss, "alice").await;
+    let session = service
+        .login("alice", Password::new(PASSWORD), None)
+        .await
+        .expect("logs in");
+    let left = session.expires_at - chrono::Utc::now();
+    assert!(
+        (left.num_seconds() - i64::from(SESSION_LIFETIME_SECONDS)).abs() < 60,
+        "{left}"
+    );
+    service
+        .authenticate_session(session.token.expose())
+        .await
+        .expect("authenticates");
+
+    sqlx::query("UPDATE service.sessions SET expires_at = now() - interval '1 second'")
+        .execute(db.pool())
+        .await
+        .expect("ages it");
+    assert!(is_not_authenticated(
+        service.authenticate_session(session.token.expose()).await
+    ));
+    assert!(
+        !service
+            .logout(session.token.expose())
+            .await
+            .expect("logs out"),
+        "an expired session has nothing to end"
+    );
+    assert_eq!(sessions_of(db, alice).await, 1, "the row is still there");
+
+    service
+        .login("alice", Password::new(PASSWORD), None)
+        .await
+        .expect("logs in");
+    assert_eq!(sessions_of(db, alice).await, 1, "the dead one went");
+}
+
+/// A login always ends in a new id, and stops the one it came with. Sessions don't otherwise affect
+/// each other, as with two browsers.
+#[tokio::test]
+async fn a_login_rotates_and_a_logout_revokes() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let boss = admin(db).await;
+    let alice = new_user(&service, &boss, "alice").await;
+    let login = |previous: Option<String>| {
+        let service = service.clone();
+        async move {
+            service
+                .login("alice", Password::new(PASSWORD), previous.as_deref())
+                .await
+                .expect("logs in")
+        }
+    };
+
+    let first = login(None).await;
+    let other_browser = login(None).await;
+    let second = login(Some(first.token.expose().to_owned())).await;
+    assert_ne!(first.token.expose(), second.token.expose());
+    assert!(is_not_authenticated(
+        service.authenticate_session(first.token.expose()).await
+    ));
+    service
+        .authenticate_session(other_browser.token.expose())
+        .await
+        .expect("still live");
+
+    // A cookie with the right id and a wrong secret ends nothing.
+    let forged = format!(
+        "{}{}",
+        &second.token.expose()[..second.token.expose().len() - 1],
+        if second.token.expose().ends_with('0') {
+            '1'
+        } else {
+            '0'
+        }
+    );
+    login(Some(forged)).await;
+    service
+        .authenticate_session(second.token.expose())
+        .await
+        .expect("still live");
+
+    assert!(
+        service
+            .logout(second.token.expose())
+            .await
+            .expect("logs out")
+    );
+    assert!(is_not_authenticated(
+        service.authenticate_session(second.token.expose()).await
+    ));
+    assert!(
+        !service
+            .logout(second.token.expose())
+            .await
+            .expect("no error"),
+        "a second logout is nothing"
+    );
+    assert!(!service.logout("rubbish").await.expect("no error"));
+    assert_eq!(sessions_of(db, alice).await, 2);
+}
+
+/// A disabled user gets no actor from anything, their live sessions die and stay dead, and their keys
+/// come back only with them. A key with no owner doesn't care.
+#[tokio::test]
+async fn a_disabled_user_has_no_actor_and_a_revoked_key_has_none() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let boss = admin(db).await;
+    let alice = new_user(&service, &boss, "alice").await;
+    let session = service
+        .login("alice", Password::new(PASSWORD), None)
+        .await
+        .expect("logs in");
+    let owned = service
+        .create_api_key(&boss, "owned", Some(alice))
+        .await
+        .expect("makes a key");
+    let unowned = service
+        .create_api_key(&boss, "unowned", None)
+        .await
+        .expect("makes a key");
+
+    assert!(
+        service
+            .set_user_enabled(&boss, alice, false)
+            .await
+            .expect("disables")
+    );
+    assert!(
+        !service
+            .set_user_enabled(&boss, alice, false)
+            .await
+            .expect("no-op"),
+        "already off"
+    );
+    assert_eq!(sessions_of(db, alice).await, 0);
+    assert!(is_not_authenticated(
+        service.authenticate_session(session.token.expose()).await
+    ));
+    assert!(is_not_authenticated(
+        service.authenticate_api_key(owned.token.expose()).await
+    ));
+    assert!(is_not_authenticated(
+        service.login("alice", Password::new(PASSWORD), None).await
+    ));
+    service
+        .authenticate_api_key(unowned.token.expose())
+        .await
+        .expect("no owner to be disabled");
+
+    assert!(
+        service
+            .set_user_enabled(&boss, alice, true)
+            .await
+            .expect("enables")
+    );
+    assert!(
+        is_not_authenticated(service.authenticate_session(session.token.expose()).await),
+        "enabling doesn't bring a session back"
+    );
+    service
+        .authenticate_api_key(owned.token.expose())
+        .await
+        .expect("the key is back with its owner");
+    service
+        .login("alice", Password::new(PASSWORD), None)
+        .await
+        .expect("logs in again");
+
+    // `enabled` is what's checked at each request, whatever turned it off.
+    let live = service
+        .login("alice", Password::new(PASSWORD), None)
+        .await
+        .expect("logs in");
+    sqlx::query("UPDATE service.users SET enabled = false WHERE id = $1")
+        .bind(alice.0)
+        .execute(db.pool())
+        .await
+        .expect("disables around the service");
+    assert!(is_not_authenticated(
+        service.authenticate_session(live.token.expose()).await
+    ));
+    sqlx::query("UPDATE service.users SET enabled = true WHERE id = $1")
+        .bind(alice.0)
+        .execute(db.pool())
+        .await
+        .expect("enables around the service");
+
+    // Revoked: the token is dead, and so are its grants.
+    grant(
+        db,
+        &Holder::ApiKey(owned.id),
+        "alert",
+        "write",
+        Effect::Allow,
+    )
+    .await;
+    assert!(
+        service
+            .revoke_api_key(&boss, owned.id)
+            .await
+            .expect("revokes")
+    );
+    assert!(
+        !service
+            .revoke_api_key(&boss, owned.id)
+            .await
+            .expect("no-op"),
+        "already gone"
+    );
+    assert!(is_not_authenticated(
+        service.authenticate_api_key(owned.token.expose()).await
+    ));
+    let grants: i64 =
+        sqlx::query_scalar("SELECT count(*) FROM service.permissions WHERE api_key_id = $1")
+            .bind(owned.id.0)
+            .fetch_one(db.pool())
+            .await
+            .expect("reads");
+    assert_eq!(grants, 0);
+}
+
+/// A login racing a disable, many times: however they fall, no session outlives the disable.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn no_session_survives_a_disable_it_raced() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let boss = admin(db).await;
+    let alice = new_user(&service, &boss, "alice").await;
+    for _ in 0..10 {
+        let login = {
+            let service = service.clone();
+            tokio::spawn(async move { service.login("alice", Password::new(PASSWORD), None).await })
+        };
+        let disable = {
+            let (service, boss) = (service.clone(), boss.clone());
+            tokio::spawn(async move { service.set_user_enabled(&boss, alice, false).await })
+        };
+        let login = login.await.expect("joins");
+        disable.await.expect("joins").expect("disables");
+        if let Ok(session) = &login {
+            assert!(is_not_authenticated(
+                service.authenticate_session(session.token.expose()).await
+            ));
+        }
+        assert_eq!(sessions_of(db, alice).await, 0);
+        service
+            .set_user_enabled(&boss, alice, true)
+            .await
+            .expect("enables");
+    }
+}
+
+#[tokio::test]
+async fn a_user_changes_their_own_password_and_only_their_own() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let boss = admin(db).await;
+    let alice = new_user(&service, &boss, "alice").await;
+    let session = service
+        .login("alice", Password::new(PASSWORD), None)
+        .await
+        .expect("logs in");
+    let owned = service
+        .create_api_key(&boss, "owned", Some(alice))
+        .await
+        .expect("makes a key");
+    let key_actor = service
+        .authenticate_api_key(owned.token.expose())
+        .await
+        .expect("authenticates");
+
+    // No grants are needed. A key can't, whatever it holds: a leak mustn't become an account.
+    grant(db, &Holder::ApiKey(owned.id), "*", "*", Effect::Allow).await;
+    let refused = service
+        .change_own_password(
+            &key_actor,
+            Password::new(PASSWORD),
+            Password::new(OTHER_PASSWORD),
+        )
+        .await
+        .expect_err("refused");
+    assert!(
+        matches!(&refused, ServiceError::PermissionDenied { permission, .. } if *permission == USER_SELF),
+        "{refused}"
+    );
+
+    assert!(is_not_authenticated(
+        service
+            .change_own_password(
+                &session.actor,
+                Password::new("not the right one"),
+                Password::new(OTHER_PASSWORD),
+            )
+            .await
+    ));
+    assert!(matches!(
+        service
+            .change_own_password(
+                &session.actor,
+                Password::new(PASSWORD),
+                Password::new("short"),
+            )
+            .await,
+        Err(ServiceError::WeakPassword)
+    ));
+    service
+        .authenticate_session(session.token.expose())
+        .await
+        .expect("nothing changed yet");
+
+    service
+        .change_own_password(
+            &session.actor,
+            Password::new(PASSWORD),
+            Password::new(OTHER_PASSWORD),
+        )
+        .await
+        .expect("changes");
+    assert!(is_not_authenticated(
+        service.authenticate_session(session.token.expose()).await
+    ));
+    assert!(is_not_authenticated(
+        service.login("alice", Password::new(PASSWORD), None).await
+    ));
+    service
+        .login("alice", Password::new(OTHER_PASSWORD), None)
+        .await
+        .expect("the new one works");
+    service
+        .authenticate_api_key(owned.token.expose())
+        .await
+        .expect("a key survives its owner's password change, as in ace3");
+
+    // An admin's reset needs no old password and needs user:write, and ends sessions.
+    assert!(matches!(
+        service
+            .reset_password(&session.actor, alice, Password::new(PASSWORD))
+            .await,
+        Err(ServiceError::PermissionDenied { .. })
+    ));
+    service
+        .reset_password(&boss, alice, Password::new(PASSWORD))
+        .await
+        .expect("resets");
+    assert_eq!(sessions_of(db, alice).await, 0);
+    service
+        .login("alice", Password::new(PASSWORD), None)
+        .await
+        .expect("logs in");
+    assert!(matches!(
+        service
+            .reset_password(&boss, UserId(Uuid::from_u128(77)), Password::new(PASSWORD))
+            .await,
+        Err(ServiceError::NoUser(_))
+    ));
+}
+
+/// Writes on users and keys need `user:write`, and refuse bad values before anything is stored.
+#[tokio::test]
+async fn account_writes_check_their_permission_and_their_values() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let boss = admin(db).await;
+    let alice = new_user(&service, &boss, "alice").await;
+    let session = service
+        .login("alice", Password::new(PASSWORD), None)
+        .await
+        .expect("logs in");
+    let nobody = session.actor.clone();
+    let before = credential_rows(db).await;
+    let audit_before = audit_rows(db).await;
+
+    let refusals = [
+        service
+            .create_user(&nobody, &username("bob"), Password::new(PASSWORD))
+            .await
+            .map(|_| ()),
+        service
+            .set_user_enabled(&nobody, alice, false)
+            .await
+            .map(|_| ()),
+        service
+            .create_api_key(&nobody, "mine", None)
+            .await
+            .map(|_| ()),
+        service
+            .revoke_api_key(&nobody, ApiKeyId(Uuid::from_u128(5)))
+            .await
+            .map(|_| ()),
+    ];
+    for refusal in refusals {
+        assert!(
+            matches!(
+                &refusal,
+                Err(ServiceError::PermissionDenied { permission, .. }) if *permission == USER_WRITE
+            ),
+            "{refusal:?}"
+        );
+    }
+
+    assert!(matches!(
+        service
+            .create_user(&boss, &username("ALICE"), Password::new(PASSWORD))
+            .await,
+        Err(ServiceError::UsernameTaken)
+    ));
+    for weak in [
+        "",
+        "short",
+        &"x".repeat(MIN_PASSWORD_CHARS - 1),
+        &"x".repeat(1025),
+    ] {
+        assert!(
+            matches!(
+                service
+                    .create_user(&boss, &username("carol"), Password::new(weak))
+                    .await,
+                Err(ServiceError::WeakPassword)
+            ),
+            "{} bytes",
+            weak.len()
+        );
+    }
+    for name in ["", "   ", &"x".repeat(256)] {
+        assert!(matches!(
+            service.create_api_key(&boss, name, None).await,
+            Err(ServiceError::InvalidKeyName)
+        ));
+    }
+    assert!(matches!(
+        service
+            .create_api_key(&boss, "orphan", Some(UserId(Uuid::from_u128(77))))
+            .await,
+        Err(ServiceError::NoUser(_))
+    ));
+    assert!(matches!(
+        service
+            .set_user_enabled(&boss, UserId(Uuid::from_u128(77)), false)
+            .await,
+        Err(ServiceError::NoUser(_))
+    ));
+    // As in ace3, nobody disables themselves, or through their own key.
+    let boss_id = match &boss {
+        Actor::User { id, .. } => *id,
+        _ => unreachable!("an admin is a user"),
+    };
+    assert!(matches!(
+        service.set_user_enabled(&boss, boss_id, false).await,
+        Err(ServiceError::CantDisableYourself)
+    ));
+    let own_key = Actor::ApiKey {
+        id: ApiKeyId(Uuid::from_u128(0xAE)),
+        name: "boss's".to_owned(),
+        owner: Some(boss_id),
+    };
+    grant(
+        db,
+        &Holder::ApiKey(ApiKeyId(Uuid::from_u128(0xAE))),
+        "*",
+        "*",
+        Effect::Allow,
+    )
+    .await;
+    assert!(matches!(
+        service.set_user_enabled(&own_key, boss_id, false).await,
+        Err(ServiceError::CantDisableYourself)
+    ));
+
+    assert_eq!(
+        credential_rows(db)
+            .await
+            .iter()
+            .filter(|row| !row.contains("triage"))
+            .cloned()
+            .collect::<Vec<_>>(),
+        before
+    );
+    assert_eq!(
+        audit_rows(db)
+            .await
+            .into_iter()
+            .filter(|row| row.action != "grant")
+            .count(),
+        audit_before.len()
+            - audit_before
+                .iter()
+                .filter(|row| row.action == "grant")
+                .count()
+    );
+}
+
+#[test]
+fn a_username_is_one_value_in_any_case() {
+    assert_eq!(
+        Username::new("Alice.B+1@Example.COM")
+            .expect("valid")
+            .as_str(),
+        "alice.b+1@example.com"
+    );
+    let too_long = "x".repeat(65);
+    for bad in ["", " ", "a b", "al\u{212A}ce", "a\nb", &too_long, "a:b"] {
+        let error = Username::new(bad).expect_err("refused");
+        assert!(
+            bad.trim().is_empty() || !error.to_string().contains(bad),
+            "an error doesn't repeat what was typed"
+        );
+    }
+}
+
+/// A grant goes with its holder. What records an actor stays: a row's `created_by`, a root's
+/// `dispositioned_by` and the audit table, none of which has a foreign key.
+#[tokio::test]
+async fn deleting_a_user_removes_what_they_could_do_and_not_what_they_did() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let boss = admin(db).await;
+    let alice = new_user(&service, &boss, "alice").await;
+    let bob = new_user(&service, &boss, "bob").await;
+    let key = service
+        .create_api_key(&boss, "alices", Some(alice))
+        .await
+        .expect("makes a key");
+    let session = service
+        .login("alice", Password::new(PASSWORD), None)
+        .await
+        .expect("logs in");
+    let member_of = group_of(db, Uuid::from_u128(40), alice).await;
+    for holder in [
+        Holder::User(alice),
+        Holder::ApiKey(key.id),
+        member_of.clone(),
+    ] {
+        grant(db, &holder, "*", "*", Effect::Allow).await;
+    }
+    let root = alert(db).await;
+    service
+        .disposition(&session.actor, root, "IGNORE")
+        .await
+        .expect("dispositions");
+    // Alice grants something to Bob, so a row of someone else's names her as its maker.
+    service
+        .grant(
+            &session.actor,
+            &Holder::User(bob),
+            &pattern("alert", "read"),
+            Effect::Allow,
+        )
+        .await
+        .expect("grants");
+    let audit_before = audit_rows(db).await;
+
+    sqlx::query("DELETE FROM service.users WHERE id = $1")
+        .bind(alice.0)
+        .execute(db.pool())
+        .await
+        .expect("deletes");
+
+    let counts: (i64, i64, i64, i64) = sqlx::query_as(
+        "SELECT (SELECT count(*) FROM service.permissions WHERE user_id = $1 OR api_key_id = $2),
+                (SELECT count(*) FROM service.group_members WHERE user_id = $1),
+                (SELECT count(*) FROM service.api_keys WHERE id = $2),
+                (SELECT count(*) FROM service.sessions WHERE user_id = $1)",
+    )
+    .bind(alice.0)
+    .bind(key.id.0)
+    .fetch_one(db.pool())
+    .await
+    .expect("reads");
+    assert_eq!(counts, (0, 0, 0, 0));
+
+    let by = json!({"kind": "user", "id": alice.0, "name": "alice"});
+    assert_eq!(row(db, root).await.by, Some(by.clone()));
+    let created_by: Value =
+        sqlx::query_scalar("SELECT created_by::jsonb FROM service.permissions WHERE user_id = $1")
+            .bind(bob.0)
+            .fetch_one(db.pool())
+            .await
+            .expect("reads");
+    assert_eq!(created_by, by);
+    assert_eq!(audit_rows(db).await, audit_before);
+
+    // The group's own grant stays: only the membership was hers.
+    assert!(matches!(member_of, Holder::Group(_)));
+    let group_grants: i64 =
+        sqlx::query_scalar("SELECT count(*) FROM service.permissions WHERE group_id = $1")
+            .bind(Uuid::from_u128(40))
+            .fetch_one(db.pool())
+            .await
+            .expect("reads");
+    assert_eq!(group_grants, 1);
+
+    // An actor kept past that point holds nothing.
+    assert!(
+        !service
+            .allowed(&session.actor, &ALERT_WRITE)
+            .await
+            .expect("checks")
+    );
+}
+
+/// The first admin: no account exists until an operator makes one, it holds everything, and a second
+/// needs forcing. The command itself is in `ace-site-example`'s test.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn the_first_user_is_an_admin_and_a_second_needs_forcing() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+
+    assert_eq!(
+        credential_rows(db).await,
+        Vec::<String>::new(),
+        "no default account"
+    );
+    let bootstrap = component("bootstrap");
+    assert!(
+        service
+            .allowed(&bootstrap, &USER_WRITE)
+            .await
+            .expect("checks")
+    );
+    assert!(
+        !service
+            .allowed(&bootstrap, &ALERT_WRITE)
+            .await
+            .expect("checks"),
+        "it can make accounts and nothing else"
+    );
+
+    // Two at once: one wins.
+    let attempts: Vec<_> = ["one", "two", "three", "four"]
+        .into_iter()
+        .map(|name| {
+            let service = service.clone();
+            tokio::spawn(async move {
+                service
+                    .create_first_user(&username(name), Password::new(PASSWORD), false)
+                    .await
+            })
+        })
+        .collect();
+    let mut winners = Vec::new();
+    for attempt in attempts {
+        match attempt.await.expect("joins") {
+            Ok(id) => winners.push(id),
+            Err(ServiceError::UsersExist) => {}
+            Err(error) => panic!("{error}"),
+        }
+    }
+    assert_eq!(winners.len(), 1);
+    let users_before = credential_rows(db).await;
+
+    assert!(matches!(
+        service
+            .create_first_user(&username("another"), Password::new(PASSWORD), false)
+            .await,
+        Err(ServiceError::UsersExist)
+    ));
+    assert_eq!(credential_rows(db).await, users_before);
+
+    let first = sqlx::query_scalar::<_, String>("SELECT username::text FROM service.users")
+        .fetch_one(db.pool())
+        .await
+        .expect("reads");
+    let session = service
+        .login(&first, Password::new(PASSWORD), None)
+        .await
+        .expect("logs in");
+    for permission in [&ALERT_WRITE, &USER_WRITE, &name("anything", "at-all")] {
+        assert!(
+            service
+                .allowed(&session.actor, permission)
+                .await
+                .expect("checks"),
+            "{permission}"
+        );
+    }
+    let created_by: Value =
+        sqlx::query_scalar("SELECT created_by::jsonb FROM service.permissions WHERE user_id = $1")
+            .bind(winners[0].0)
+            .fetch_one(db.pool())
+            .await
+            .expect("reads");
+    assert_eq!(created_by, json!({"kind": "internal", "id": "bootstrap"}));
+
+    let forced = service
+        .create_first_user(&username("rescue"), Password::new(PASSWORD), true)
+        .await
+        .expect("forced");
+    assert_ne!(forced, winners[0]);
+    assert!(matches!(
+        service
+            .create_first_user(&username("rescue"), Password::new(PASSWORD), true)
+            .await,
+        Err(ServiceError::UsernameTaken)
+    ));
+}
+
+/// What a browser gets told to keep.
+#[tokio::test]
+async fn the_session_cookie_has_its_attributes() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    new_user(&service, &admin(db).await, "alice").await;
+    let session: NewSession = service
+        .login("alice", Password::new(PASSWORD), None)
+        .await
+        .expect("logs in");
+    let token = session.token.expose();
+
+    let tls = SessionCookie::new(Transport::Tls);
+    assert_eq!(
+        tls.set(&session),
+        format!(
+            "__Host-ace4_session={token}; Max-Age={SESSION_LIFETIME_SECONDS}; \
+             Path=/; HttpOnly; SameSite=Lax; Secure"
+        )
+    );
+    assert_eq!(
+        tls.clear(),
+        "__Host-ace4_session=; Max-Age=0; Path=/; HttpOnly; SameSite=Lax; Secure"
+    );
+    let plain = SessionCookie::new(Transport::Plain);
+    assert_eq!(
+        plain.set(&session),
+        format!(
+            "ace4_session={token}; Max-Age={SESSION_LIFETIME_SECONDS}; Path=/; HttpOnly; SameSite=Lax"
+        )
+    );
+    assert_eq!(
+        plain.clear(),
+        "ace4_session=; Max-Age=0; Path=/; HttpOnly; SameSite=Lax"
+    );
+
+    let header = format!("session=ace3-flask-cookie; ace4_session={token}; other=1");
+    assert_eq!(plain.read(&header), Some(token));
+    assert_eq!(tls.read(&header), None, "not the name a TLS site uses");
+    assert_eq!(plain.read("session=ace3-flask-cookie"), None);
+}
+
+fn request<'a>(method: &'a str, cookie: Option<&'a str>) -> RequestParts<'a> {
+    RequestParts {
+        transport: Transport::Plain,
+        method,
+        authorization: None,
+        cookie,
+        sec_fetch_site: None,
+        origin: None,
+        host: Some("ace.example.com:7443"),
+    }
+}
+
+/// ace3's `_reject_cross_site_cookie_write`, plus the port, plus the extractor that applies it.
+#[tokio::test]
+async fn a_request_authenticates_by_its_key_or_its_same_origin_session() {
+    let safe = request("GET", None);
+    assert!(safe.same_origin());
+    assert!(
+        RequestParts {
+            method: "head",
+            ..safe
+        }
+        .same_origin()
+    );
+    assert!(
+        RequestParts {
+            method: "OPTIONS",
+            ..safe
+        }
+        .same_origin()
+    );
+
+    let write = request("POST", None);
+    assert!(!write.same_origin(), "says nothing: not a browser");
+    for (site, passes) in [
+        ("same-origin", true),
+        ("none", true),
+        ("same-site", false),
+        ("cross-site", false),
+        ("nonsense", false),
+    ] {
+        assert_eq!(
+            RequestParts {
+                sec_fetch_site: Some(site),
+                ..write
+            }
+            .same_origin(),
+            passes,
+            "{site}"
+        );
+    }
+    assert!(
+        !RequestParts {
+            sec_fetch_site: Some("cross-site"),
+            origin: Some("https://ace.example.com:7443"),
+            ..write
+        }
+        .same_origin(),
+        "Sec-Fetch-Site is what's believed when it's there"
+    );
+    for (origin, passes) in [
+        ("https://ace.example.com:7443", true),
+        ("https://ACE.example.com:7443", true),
+        ("https://ace.example.com:5000", false),
+        ("https://ace.example.com", false),
+        ("https://evil.example.com:7443", false),
+        ("https://ace.example.com:7443.evil.example", false),
+        ("null", false),
+    ] {
+        assert_eq!(
+            RequestParts {
+                origin: Some(origin),
+                ..write
+            }
+            .same_origin(),
+            passes,
+            "{origin}"
+        );
+    }
+    assert!(
+        !RequestParts {
+            origin: Some("https://x"),
+            host: None,
+            ..write
+        }
+        .same_origin()
+    );
+
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let boss = admin(db).await;
+    new_user(&service, &boss, "alice").await;
+    let session = service
+        .login("alice", Password::new(PASSWORD), None)
+        .await
+        .expect("logs in");
+    let key = service
+        .create_api_key(&boss, "triage", None)
+        .await
+        .expect("makes a key");
+    let key_actor = service
+        .authenticate_api_key(key.token.expose())
+        .await
+        .expect("authenticates");
+    let cookie = format!("ace4_session={}", session.token.expose());
+
+    let good_read = request("GET", Some(&cookie));
+    assert_eq!(
+        service
+            .authenticate_request(&good_read)
+            .await
+            .expect("a read"),
+        session.actor
+    );
+    let good_write = RequestParts {
+        sec_fetch_site: Some("same-origin"),
+        ..request("POST", Some(&cookie))
+    };
+    assert_eq!(
+        service
+            .authenticate_request(&good_write)
+            .await
+            .expect("a write"),
+        session.actor
+    );
+    let cross_site = RequestParts {
+        sec_fetch_site: Some("cross-site"),
+        ..good_write
+    };
+    assert!(matches!(
+        service.authenticate_request(&cross_site).await,
+        Err(ServiceError::CrossSiteRequest)
+    ));
+    let bare = request("POST", Some(&cookie));
+    assert!(matches!(
+        service.authenticate_request(&bare).await,
+        Err(ServiceError::CrossSiteRequest)
+    ));
+    assert!(is_not_authenticated(
+        service.authenticate_request(&request("GET", None)).await
+    ));
+
+    // A bearer token needs no CSRF check: no other site's page can make a browser send one.
+    let header = format!("bearer {}", key.token.expose());
+    let by_key = RequestParts {
+        authorization: Some(&header),
+        ..request("POST", None)
+    };
+    assert_eq!(
+        service.authenticate_request(&by_key).await.expect("a key"),
+        key_actor
+    );
+    // A bad key isn't rescued by a good cookie.
+    for authorization in ["Bearer rubbish", "Basic abc", "Bearer", "rubbish"] {
+        let bad = RequestParts {
+            authorization: Some(authorization),
+            sec_fetch_site: Some("same-origin"),
+            ..request("POST", Some(&cookie))
+        };
+        assert!(
+            is_not_authenticated(service.authenticate_request(&bad).await),
+            "{authorization}"
+        );
+    }
+}
+
+#[derive(Clone, Default)]
+struct Captured(Arc<Mutex<Vec<u8>>>);
+
+impl Write for Captured {
+    fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
+        self.0.lock().expect("a lock").extend_from_slice(bytes);
+        Ok(bytes.len())
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
+}
+
+impl tracing_subscriber::fmt::MakeWriter<'_> for Captured {
+    type Writer = Captured;
+
+    fn make_writer(&self) -> Captured {
+        self.clone()
+    }
+}
+
+/// Everything at TRACE, including sqlx's statements, through every path a credential takes, with no
+/// credential in it. The subscriber is global, because with a thread's own subscriber another test's
+/// thread can reach a log line first and leave it switched off for good: `tracing` asks only the thread
+/// that got there when one subscriber exists. So it also hears whichever other tests are running, which
+/// use the same password.
+#[tokio::test]
+async fn no_credential_reaches_the_log() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let boss = admin(db).await;
+
+    let captured = Captured::default();
+    let subscriber = tracing_subscriber::fmt()
+        .with_max_level(tracing::Level::TRACE)
+        .with_ansi(false)
+        .with_writer(captured.clone())
+        .finish();
+    tracing::subscriber::set_global_default(subscriber).expect("the only global subscriber here");
+
+    let alice = new_user(&service, &boss, "alice").await;
+    let in_the_wrong_box = "my-password-in-the-username-box";
+    let wrong = "a-wrong-password-for-alice";
+    assert!(is_not_authenticated(
+        service.login("alice", Password::new(wrong), None).await
+    ));
+    assert!(is_not_authenticated(
+        service
+            .login(in_the_wrong_box, Password::new(wrong), None)
+            .await
+    ));
+    let session = service
+        .login("alice", Password::new(PASSWORD), None)
+        .await
+        .expect("logs in");
+    let actor = service
+        .authenticate_session(session.token.expose())
+        .await
+        .expect("authenticates");
+    let key = service
+        .create_api_key(&boss, "triage", Some(alice))
+        .await
+        .expect("makes a key");
+    service
+        .authenticate_api_key(key.token.expose())
+        .await
+        .expect("authenticates");
+    assert!(is_not_authenticated(
+        service
+            .authenticate_api_key(&format!("{}x", key.token.expose()))
+            .await
+    ));
+    let second = service
+        .login(
+            "alice",
+            Password::new(PASSWORD),
+            Some(session.token.expose()),
+        )
+        .await
+        .expect("logs in");
+    service
+        .logout(second.token.expose())
+        .await
+        .expect("logs out");
+    service
+        .change_own_password(
+            &actor,
+            Password::new(PASSWORD),
+            Password::new(OTHER_PASSWORD),
+        )
+        .await
+        .expect("changes");
+    service
+        .reset_password(&boss, alice, Password::new("a third long passphrase"))
+        .await
+        .expect("resets");
+    let first = service
+        .create_first_user(
+            &username("rescue"),
+            Password::new("a fourth long passphrase"),
+            true,
+        )
+        .await
+        .expect("forced");
+    let cookie = format!("ace4_session={}", session.token.expose());
+    assert!(is_not_authenticated(
+        service
+            .authenticate_request(&request("POST", Some(&cookie)))
+            .await
+    ));
+
+    let log = String::from_utf8(captured.0.lock().expect("a lock").clone()).expect("text");
+
+    // It really was listening.
+    assert!(log.contains("a login failed"), "{log}");
+    assert!(
+        log.contains("a login failed for a name that isn't a user's"),
+        "{log}"
+    );
+    assert!(log.contains(&alice.0.to_string()), "{log}");
+    assert!(log.contains(&first.0.to_string()), "{log}");
+    assert!(log.contains("AUDIT"), "{log}");
+    assert!(log.contains("service.sessions"), "sqlx's statements: {log}");
+
+    let (session_secret, key_secret) = (
+        session.token.expose().rsplit('_').next().expect("a secret"),
+        key.token.expose().rsplit('_').next().expect("a secret"),
+    );
+    let (second_secret, stored) = (
+        second.token.expose().rsplit('_').next().expect("a secret"),
+        hex::encode(Sha256::digest(key.token.expose())),
+    );
+    for secret in [
+        PASSWORD,
+        OTHER_PASSWORD,
+        "a third long passphrase",
+        "a fourth long passphrase",
+        wrong,
+        in_the_wrong_box,
+        session_secret,
+        key_secret,
+        second_secret,
+        &stored,
+        // a real hash: this test binary's seeded users have '$argon2id$none'
+        "$argon2id$v=",
+    ] {
+        assert!(!log.contains(secret), "{secret} is in the log");
+    }
+}
+
+async fn create_first_user_records_its_row() -> String {
+    // Its own database, since it needs to find no users.
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let id = service(db)
+        .create_first_user(&username("root"), Password::new(PASSWORD), false)
+        .await
+        .expect("makes it");
+    let row = last_audit(db).await;
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: json!({"kind": "internal", "id": "bootstrap"}),
+            action: "create_first_user".to_owned(),
+            target: ("user".to_owned(), id.0.to_string()),
+            before: None,
+            after: Some(json!({"username": "root", "enabled": true})),
+            details: json!({"grants": "*:*", "forced": false}),
+        }
+    );
+    row.action
+}
+
+fn boss_json() -> Value {
+    json!({"kind": "user", "id": Uuid::from_u128(0xAD), "name": "alice"})
+}
+
+async fn create_user_records_its_row(db: &Db) -> String {
+    let service = service(db);
+    let id = new_user(&service, &admin(db).await, "audited-user").await;
+    let row = last_audit(db).await;
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: boss_json(),
+            action: "create_user".to_owned(),
+            target: ("user".to_owned(), id.0.to_string()),
+            before: None,
+            after: Some(json!({"username": "audited-user", "enabled": true})),
+            details: json!({}),
+        }
+    );
+    row.action
+}
+
+async fn set_user_enabled_records_its_row(db: &Db) -> String {
+    let service = service(db);
+    let boss = admin(db).await;
+    let id = new_user(&service, &boss, "audited-disable").await;
+    service
+        .login("audited-disable", Password::new(PASSWORD), None)
+        .await
+        .expect("logs in");
+    service
+        .set_user_enabled(&boss, id, false)
+        .await
+        .expect("disables");
+    let row = last_audit(db).await;
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: boss_json(),
+            action: "set_user_enabled".to_owned(),
+            target: ("user".to_owned(), id.0.to_string()),
+            before: Some(json!({"enabled": true})),
+            after: Some(json!({"enabled": false})),
+            details: json!({"sessions_ended": 1}),
+        }
+    );
+    let count = audit_rows(db).await.len();
+    service
+        .set_user_enabled(&boss, id, false)
+        .await
+        .expect("no-op");
+    assert_eq!(audit_rows(db).await.len(), count, "a no-op has no row");
+    row.action
+}
+
+async fn reset_password_records_its_row(db: &Db) -> String {
+    let service = service(db);
+    let boss = admin(db).await;
+    let id = new_user(&service, &boss, "audited-reset").await;
+    service
+        .reset_password(&boss, id, Password::new(OTHER_PASSWORD))
+        .await
+        .expect("resets");
+    let row = last_audit(db).await;
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: boss_json(),
+            action: "reset_password".to_owned(),
+            target: ("user".to_owned(), id.0.to_string()),
+            before: None,
+            after: Some(json!({"password_changed": true})),
+            details: json!({"sessions_ended": 0}),
+        }
+    );
+    row.action
+}
+
+async fn change_own_password_records_its_row(db: &Db) -> String {
+    let service = service(db);
+    let id = new_user(&service, &admin(db).await, "audited-change").await;
+    let session = service
+        .login("audited-change", Password::new(PASSWORD), None)
+        .await
+        .expect("logs in");
+    service
+        .change_own_password(
+            &session.actor,
+            Password::new(PASSWORD),
+            Password::new(OTHER_PASSWORD),
+        )
+        .await
+        .expect("changes");
+    let row = last_audit(db).await;
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: json!({"kind": "user", "id": id.0, "name": "audited-change"}),
+            action: "change_own_password".to_owned(),
+            target: ("user".to_owned(), id.0.to_string()),
+            before: None,
+            after: Some(json!({"password_changed": true})),
+            details: json!({"sessions_ended": 1}),
+        }
+    );
+    row.action
+}
+
+async fn create_api_key_records_its_row(db: &Db) -> String {
+    let service = service(db);
+    let boss = admin(db).await;
+    let owner = new_user(&service, &boss, "audited-owner").await;
+    let key = service
+        .create_api_key(&boss, "  audited key  ", Some(owner))
+        .await
+        .expect("makes a key");
+    let row = last_audit(db).await;
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: boss_json(),
+            action: "create_api_key".to_owned(),
+            target: ("api_key".to_owned(), key.id.0.to_string()),
+            before: None,
+            after: Some(json!({"name": "audited key", "owner": owner.0})),
+            details: json!({}),
+        }
+    );
+    row.action
+}
+
+async fn revoke_api_key_records_its_row(db: &Db) -> String {
+    let service = service(db);
+    let boss = admin(db).await;
+    let key = service
+        .create_api_key(&boss, "audited revoke", None)
+        .await
+        .expect("makes a key");
+    service
+        .revoke_api_key(&boss, key.id)
+        .await
+        .expect("revokes");
+    let row = last_audit(db).await;
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: boss_json(),
+            action: "revoke_api_key".to_owned(),
+            target: ("api_key".to_owned(), key.id.0.to_string()),
+            before: Some(json!({"name": "audited revoke", "owner": null})),
+            after: None,
+            details: json!({}),
+        }
+    );
+    row.action
+}
+
+/// The session's id out of its token: it's what a row names, and it can't authenticate alone.
+fn session_id(session: &NewSession) -> String {
+    let id = session.token.expose().split('_').nth(1).expect("an id");
+    Uuid::try_parse(id).expect("a uuid").to_string()
+}
+
+async fn login_records_its_row(db: &Db) -> String {
+    let service = service(db);
+    let id = new_user(&service, &admin(db).await, "audited-login").await;
+    let first = service
+        .login("audited-login", Password::new(PASSWORD), None)
+        .await
+        .expect("logs in");
+    let second = service
+        .login(
+            "audited-login",
+            Password::new(PASSWORD),
+            Some(first.token.expose()),
+        )
+        .await
+        .expect("logs in");
+    let row = last_audit(db).await;
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: json!({"kind": "user", "id": id.0, "name": "audited-login"}),
+            action: "login".to_owned(),
+            target: ("session".to_owned(), session_id(&second)),
+            before: None,
+            after: Some(json!({
+                "user": id.0,
+                "expires_at": second.expires_at,
+            })),
+            details: json!({"replaced_session": session_id(&first)}),
+        }
+    );
+    row.action
+}
+
+async fn logout_records_its_row(db: &Db) -> String {
+    let service = service(db);
+    let id = new_user(&service, &admin(db).await, "audited-logout").await;
+    let session = service
+        .login("audited-logout", Password::new(PASSWORD), None)
+        .await
+        .expect("logs in");
+    service
+        .logout(session.token.expose())
+        .await
+        .expect("logs out");
+    let row = last_audit(db).await;
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: json!({"kind": "user", "id": id.0, "name": "audited-logout"}),
+            action: "logout".to_owned(),
+            target: ("session".to_owned(), session_id(&session)),
+            before: Some(json!({
+                "user": id.0,
+                "expires_at": session.expires_at,
+            })),
+            after: None,
+            details: json!({}),
+        }
+    );
+    let count = audit_rows(db).await.len();
+    service.logout(session.token.expose()).await.expect("no-op");
+    assert_eq!(audit_rows(db).await.len(), count, "a no-op has no row");
+    row.action
+}
+
+/// `write_own` skips the permission check, so its callers are a short list, on purpose.
+#[test]
+fn only_a_person_s_own_writes_skip_the_permission_check() {
+    let source = |file: &str| {
+        std::fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("src").join(file))
+            .expect("reads the source")
+    };
+    let calls = regex::Regex::new(r#"\.write_own\(\s*&?\w+\s*,\s*"(\w+)""#).expect("a pattern");
+    let auth = source("auth.rs");
+    let found: BTreeSet<&str> = calls
+        .captures_iter(&auth)
+        .map(|call| call.get(1).expect("a name").as_str())
+        .collect();
+    assert_eq!(
+        found,
+        BTreeSet::from(["change_own_password", "login", "logout"])
+    );
+    assert!(!source("lib.rs").contains(".write_own("));
+    assert!(!source("permission.rs").contains(".write_own("));
 }

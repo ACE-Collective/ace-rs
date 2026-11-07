@@ -1,0 +1,52 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT k.name, k.owner_id, k.secret_hash\n               FROM service.api_keys k\n               LEFT JOIN service.users u ON u.id = k.owner_id\n               WHERE k.id = $1 AND (k.owner_id IS NULL OR u.enabled)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "service.api_keys",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "owner_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "service.api_keys",
+            "name": "owner_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "secret_hash",
+        "type_info": "Bytea",
+        "origin": {
+          "Table": {
+            "table": "service.api_keys",
+            "name": "secret_hash"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "08525b2fe53a03e71c224aed7cca79b9c31c3d815d0bd0a7585bd72a786a5960"
+}

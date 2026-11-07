@@ -56,3 +56,9 @@ opt-level = 3
 opt-level = 3
 [profile.dev.package.hybrid-array]
 opt-level = 3
+
+# A login hashes a password, and every test of one would otherwise take seconds.
+[profile.dev.package.argon2]
+opt-level = 3
+[profile.dev.package.blake2]
+opt-level = 3

@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE service.users SET password_hash = $2\n                         WHERE id = $1 AND enabled AND password_hash = $3",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "55ea25fb3ce0090aa76574e4069af79ca36f067ccf0e8cad9bf116a40fee0020"
+}

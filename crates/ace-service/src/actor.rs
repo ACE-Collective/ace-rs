@@ -13,8 +13,9 @@ use std::fmt;
 use serde::Serialize;
 use uuid::Uuid;
 
-/// A user's id. No users table exists until PLAN.md 5.4, so nothing here checks that one exists,
-/// and a row that names a user has no foreign key: it has to outlive the user.
+/// A user's id, the primary key of `service.users` (PLAN.md 5.4). A row that records a user as an actor
+/// has no foreign key, because it has to outlive the user. This type doesn't say the user exists: only
+/// `Service`'s authentication does, by returning an `Actor`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize)]
 #[serde(transparent)]
 pub struct UserId(pub Uuid);

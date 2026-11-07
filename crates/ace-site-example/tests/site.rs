@@ -123,6 +123,105 @@ fn the_site_binary_exports_its_types_schemas() {
     assert!(dir.path().join("rdap_analysis.v1.schema.json").exists());
 }
 
+/// PLAN.md 5.4's first admin, through a site's own binary, so the command comes with `ace-app` and a site
+/// lists nothing for it. `ACE4_LOG=trace`, so that what isn't in the log isn't there at any level.
+#[tokio::test]
+async fn an_operator_makes_the_first_admin_with_the_sites_binary() {
+    use std::io::Write;
+
+    let test_db = TestDb::new().await;
+    let url = database_url(test_db.name());
+    let ace = |args: &[&str], stdin: Option<&str>| {
+        let mut child = Command::new(env!("CARGO_BIN_EXE_example-ace"))
+            .args(["user", "create-first"])
+            .args(args)
+            .env("ACE4_DATABASE_URL", &url)
+            .env("ACE4_LOG", "trace")
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .expect("ace runs");
+        let mut pipe = child.stdin.take().expect("a pipe");
+        if let Some(text) = stdin {
+            pipe.write_all(text.as_bytes()).expect("writes");
+        }
+        drop(pipe);
+        let output = child.wait_with_output().expect("ace ends");
+        (
+            output.status.code(),
+            String::from_utf8_lossy(&output.stdout).into_owned(),
+            String::from_utf8_lossy(&output.stderr).into_owned(),
+        )
+    };
+    let service = ace_service::Service::new(
+        test_db.db().clone(),
+        ace_core::orchestrator::Orchestrator::new(
+            ace_core::eligibility::Catalog::new([]),
+            ace_core::modes::Modes::ace3(),
+        ),
+    );
+
+    // A generated password, printed once on standard output.
+    let (code, stdout, stderr) = ace(&["Root"], None);
+    assert_eq!(code, Some(0), "{stderr}");
+    let password = stdout
+        .lines()
+        .find_map(|line| line.strip_prefix("password (shown once): "))
+        .expect("the password");
+    assert_eq!(password.len(), 48, "{stdout}");
+    assert!(stderr.contains("service.users"), "it logged: {stderr}");
+    assert!(!stderr.contains(password), "the log holds the password");
+    assert!(!stderr.contains("$argon2id$"), "the log holds the hash");
+    let session = service
+        .login("root", ace_service::Password::new(password), None)
+        .await
+        .expect("the printed password logs in");
+    assert!(
+        service
+            .allowed(&session.actor, &ace_service::ALERT_WRITE)
+            .await
+            .expect("checks"),
+        "it holds everything"
+    );
+
+    // A user exists, so a second is refused, with no password printed and nobody added.
+    let (code, stdout, stderr) = ace(&["other"], None);
+    assert_eq!(code, Some(1), "{stderr}");
+    assert_eq!(stdout, "");
+    assert!(stderr.contains("needs forcing"), "{stderr}");
+    assert!(
+        service
+            .login("other", ace_service::Password::new(password), None)
+            .await
+            .is_err()
+    );
+
+    // Forced, from standard input, with the password in neither output.
+    let chosen = "an operator's chosen passphrase";
+    let (code, stdout, stderr) = ace(
+        &["rescue", "--force", "--password-stdin"],
+        Some(&format!("{chosen}\n")),
+    );
+    assert_eq!(code, Some(0), "{stderr}");
+    assert_eq!(stdout, "created user rescue\n");
+    assert!(!stderr.contains(chosen), "the log holds the password");
+    service
+        .login("rescue", ace_service::Password::new(chosen), None)
+        .await
+        .expect("the chosen password logs in");
+
+    // Too short, and nothing is made.
+    let (code, _, stderr) = ace(&["weak", "--force", "--password-stdin"], Some("short\n"));
+    assert_eq!(code, Some(1), "{stderr}");
+    assert!(stderr.contains("at least"), "{stderr}");
+
+    // There's no way to put a password on the command line.
+    let (code, _, stderr) = ace(&["third", "--password", "on-the-command-line"], None);
+    assert_eq!(code, Some(2), "{stderr}");
+    assert!(!stderr.contains("created"), "{stderr}");
+}
+
 /// `ace schema check` (PLAN.md 4.2) says what the core would, for an author with no pool running.
 #[test]
 fn the_site_binary_checks_a_result_against_its_types_schema() {

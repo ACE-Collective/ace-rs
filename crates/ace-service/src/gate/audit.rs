@@ -56,6 +56,15 @@ impl Target {
         }
     }
 
+    /// A session, by its public id. The id can't authenticate without the secret that only the browser
+    /// has, so it's safe to keep here.
+    pub(crate) fn session(id: Uuid) -> Self {
+        Target {
+            kind: "session",
+            id: id.to_string(),
+        }
+    }
+
     pub(crate) fn holder(holder: &Holder) -> Self {
         let (kind, id) = match holder {
             Holder::User(id) => ("user", id.0.to_string()),

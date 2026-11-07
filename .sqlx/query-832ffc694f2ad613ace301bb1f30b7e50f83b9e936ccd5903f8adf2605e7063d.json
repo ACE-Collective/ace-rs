@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO service.api_keys (id, name, owner_id, secret_hash, created_by)\n                         VALUES ($1, $2, $3, $4, $5::jsonb)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Uuid",
+        "Bytea",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "832ffc694f2ad613ace301bb1f30b7e50f83b9e936ccd5903f8adf2605e7063d"
+}
