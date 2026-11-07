@@ -1,0 +1,436 @@
+{
+  "form": 1,
+  "observables": {
+    "file:186be95480e770c5ed3be3ab35aa3ba69954c7d765c809c63e5b476314bbfe4e": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "xlm_book.xlsm.extracted/xl/sharedStrings.xml": {}
+      },
+      "redirection": "file:26626a5234836f7222738a4898cfce8bacd1d0fa898f4cc38eba8f6f228fae84",
+      "relationships": {
+        "extracted_from file:26626a5234836f7222738a4898cfce8bacd1d0fa898f4cc38eba8f6f228fae84": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/xml",
+            "type": "XML 1.0 document, ASCII text"
+          },
+          "summary": "File Type Analysis: XML 1.0 document, ASCII text (text/xml)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:1e9942d6c4142d34ecc68b3c7a0273b9c8844a1513c5f396bd55e7473e3cba6d": {
+      "detections": {},
+      "directives": {
+        "crawl_extracted_urls": true,
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "xlm_book.xlsm.xlmdeobfuscator/xlmdeobfuscator.stdout": {
+          "type=script.macro.xlm": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:2562af1baf2b54400c5add7a175160ceb10452b4cbd01df4cad671e8bc8f8628": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "xlm_book.xlsm.extracted/xl/worksheets/sheet2.xml": {}
+      },
+      "redirection": "file:26626a5234836f7222738a4898cfce8bacd1d0fa898f4cc38eba8f6f228fae84",
+      "relationships": {
+        "extracted_from file:26626a5234836f7222738a4898cfce8bacd1d0fa898f4cc38eba8f6f228fae84": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/xml",
+            "type": "XML 1.0 document, ASCII text"
+          },
+          "summary": "File Type Analysis: XML 1.0 document, ASCII text (text/xml)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:26626a5234836f7222738a4898cfce8bacd1d0fa898f4cc38eba8f6f228fae84": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "xlm_book.xlsm": {
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "archive": {
+          "details": {
+            "extracted_files": [
+              "[Content_Types].xml",
+              "xl/styles.xml",
+              "xl/sharedStrings.xml",
+              "xl/workbook.xml",
+              "xl/worksheets/sheet2.xml",
+              "xl/macrosheets/sheet1.xml",
+              "xl/_rels/workbook.xml.rels",
+              "_rels/.rels"
+            ],
+            "extraction_error": null,
+            "file_count": 8
+          },
+          "summary": "Archive Analysis: extracted 8 of 8 files: ([Content_Types].xml, xl/styles.xml, xl/sharedStrings.xml, xl/workbook.xml, xl/worksheets/sheet2.xml, xl/macrosheets/sheet1.xml, xl/_rels/workbook.xml.rels, _rels/.rels)",
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": true,
+            "is_office_ext": true,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": true,
+            "mime": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "type": "Microsoft Excel 2007+"
+          },
+          "summary": "File Type Analysis: Microsoft Excel 2007+ (application/vnd.openxmlformats-officedocument.spreadsheetml.sheet) (ms office document) (zip archive)",
+          "tags": {}
+        },
+        "olevba_v1_2": {
+          "details": {
+            "keyword_summary": {},
+            "macros": [],
+            "type": "OpenXML"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "xlmdeobfuscator": {
+          "details": {
+            "cell_count": 8
+          },
+          "summary": "XLMMacroDeobfuscator Analysis - analyzed 8 cells",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "microsoft_office": true,
+        "xlm4": true,
+        "zip": true
+      }
+    },
+    "file:2b7a1598d3929988edfc096869e75b21a934a00cf41fa80e8edf4b68ba9e8de0": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "xlm_book.xlsm.extracted/xl/macrosheets/sheet1.xml": {}
+      },
+      "redirection": "file:26626a5234836f7222738a4898cfce8bacd1d0fa898f4cc38eba8f6f228fae84",
+      "relationships": {
+        "extracted_from file:26626a5234836f7222738a4898cfce8bacd1d0fa898f4cc38eba8f6f228fae84": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/xml",
+            "type": "XML 1.0 document, ASCII text"
+          },
+          "summary": "File Type Analysis: XML 1.0 document, ASCII text (text/xml)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:63414f20523cc6365ae7d99f2ab1cf74a1283da212344d147e04579c45501a78": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "xlm_book.xlsm.extracted/[Content_Types].xml": {}
+      },
+      "redirection": "file:26626a5234836f7222738a4898cfce8bacd1d0fa898f4cc38eba8f6f228fae84",
+      "relationships": {
+        "extracted_from file:26626a5234836f7222738a4898cfce8bacd1d0fa898f4cc38eba8f6f228fae84": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/xml",
+            "type": "XML 1.0 document, ASCII text"
+          },
+          "summary": "File Type Analysis: XML 1.0 document, ASCII text (text/xml)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:771cb8cf178a51e600e7627c8323f60170bed761bc595cf0df1f9ac3874021e3": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "xlm_book.xlsm.extracted/xl/_rels/workbook.xml.rels": {}
+      },
+      "redirection": "file:26626a5234836f7222738a4898cfce8bacd1d0fa898f4cc38eba8f6f228fae84",
+      "relationships": {
+        "extracted_from file:26626a5234836f7222738a4898cfce8bacd1d0fa898f4cc38eba8f6f228fae84": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/xml",
+            "type": "XML 1.0 document, ASCII text"
+          },
+          "summary": "File Type Analysis: XML 1.0 document, ASCII text (text/xml)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:8000e940976640c5ae48764d860de56bd5a73cf27e54a4e82fe32cf2a2c6ba05": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "xlm_book.xlsm.extracted/_rels/.rels": {}
+      },
+      "redirection": "file:26626a5234836f7222738a4898cfce8bacd1d0fa898f4cc38eba8f6f228fae84",
+      "relationships": {
+        "extracted_from file:26626a5234836f7222738a4898cfce8bacd1d0fa898f4cc38eba8f6f228fae84": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/xml",
+            "type": "XML 1.0 document, ASCII text"
+          },
+          "summary": "File Type Analysis: XML 1.0 document, ASCII text (text/xml)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:91228360e7219d9485674daa302c1dde73ef529366465d33bf339ecfa5f33139": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "xlm_book.xlsm.extracted/xl/workbook.xml": {}
+      },
+      "redirection": "file:26626a5234836f7222738a4898cfce8bacd1d0fa898f4cc38eba8f6f228fae84",
+      "relationships": {
+        "extracted_from file:26626a5234836f7222738a4898cfce8bacd1d0fa898f4cc38eba8f6f228fae84": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/xml",
+            "type": "XML 1.0 document, ASCII text"
+          },
+          "summary": "File Type Analysis: XML 1.0 document, ASCII text (text/xml)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:a067a218c00b68296403ae156e2f240a71d351b277cf6fc7d91f48dfd54693de": {
+      "detections": {},
+      "directives": {
+        "crawl_extracted_urls": true,
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "xlm_book.xlsm.xlmdeobfuscator/xlmdeobfuscatorextractcells.stdout": {
+          "type=script.macro.xlm": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:cab6048f518cc5d97d69041ccfe307ad2cdd0b73fd7bf470fbc2d4de9228a0cc": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "xlm_book.xlsm.extracted/xl/styles.xml": {}
+      },
+      "redirection": "file:26626a5234836f7222738a4898cfce8bacd1d0fa898f4cc38eba8f6f228fae84",
+      "relationships": {
+        "extracted_from file:26626a5234836f7222738a4898cfce8bacd1d0fa898f4cc38eba8f6f228fae84": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/xml",
+            "type": "XML 1.0 document, ASCII text"
+          },
+          "summary": "File Type Analysis: XML 1.0 document, ASCII text (text/xml)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    }
+  }
+}

@@ -130,7 +130,11 @@ def main(out, docm, docx, doc, xls_email):
         with open(os.path.join(out, name), "wb") as fp:
             fp.write(data)
     xor_doc(word, os.path.join(out, "xor.doc"))
-    xor_xls(plain_xls(xls_email), os.path.join(out, "xor.xls"))
+    plain = plain_xls(xls_email)
+    xor_xls(plain, os.path.join(out, "xor.xls"))
+    # the one real Excel 4.0 macro the set has, at the top level, where tools/library-diff sees it
+    with open(os.path.join(out, "xlm_info_3805.xls"), "wb") as fp:
+        fp.write(plain)
 
 
 if __name__ == "__main__":

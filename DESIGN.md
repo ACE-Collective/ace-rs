@@ -76,7 +76,7 @@ A pool is a container image that hosts a set of modules and declares its resourc
 
 - Network lookups (DNS, RDAP, a mail API, Splunk, LogScale) run as async tasks inside one pool process, many at a time.
 - Parsers of hostile files run one process per task, contained as described in *Containing hostile tasks*.
-- The Python pool runs pcodedmp and XLMMacroDeobfuscator until their ports match. oletools stays in its image because pcodedmp imports it, though olevba and rtfobj have moved to `ace-mod-oletools`, and msoffcrypto stays because XLMMacroDeobfuscator imports it, though the Office decryption module has moved to `ace-mod-msoffice`. It imports only those libraries, pins each one (ace3 installs XLMMacroDeobfuscator from GitHub master), and recycles a worker after a task count or a memory limit.
+- pcodedmp and XLMMacroDeobfuscator ran on a Python pool until their ports matched, and every module has now moved to a Rust pool. The pool itself goes at PLAN.md 4.13.
 - PDFs go through libqpdf, the C++ library under pikepdf, by way of the qpdf crate, in-process inside a contained task. ace3 uses pikepdf to pull annotation URIs, form fields and JavaScript, and runs pdf-parser.py beside it. The Rust module replaces both.
 - phishkit (SeleniumBase's anti-detection) and js_deobfuscator (node:vm) stay as they are, since they are already separate services with narrow interfaces. tshark stays in the sandbox runner.
 

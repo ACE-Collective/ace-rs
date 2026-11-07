@@ -133,6 +133,18 @@ pub fn fromstring(data: &[u8]) -> PyResult<Element> {
     Parser::new(data).parse()
 }
 
+/// `untangle.parse(StringIO(text))`'s parse: `xml.sax` on defusedxml, so no namespaces, each name as
+/// written, an element's `text` all the text directly in it, the document's own encoding ignored because
+/// pyexpat is given a str, and an entity declaration refused.
+pub fn sax_parse(text: &str) -> PyResult<Element> {
+    if text.len() > i32::MAX as usize {
+        return Err(PyErr::new("OverflowError", "size does not fit in an int"));
+    }
+    let mut parser = Parser::new(text.as_bytes());
+    parser.sax = true;
+    parser.parse()
+}
+
 /// What expat's error code says, for `XML_ErrorString`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum XmlError {
@@ -3360,6 +3372,8 @@ const MAXIMUM_ALLOCATION_AMPLIFICATION: f32 = 100.0;
 /// `MemoryError`, which Python would at some point: the amplification limit alone allows a hundred
 /// times the input, and nothing limits defaulted attributes.
 const MAX_EXPANDED: usize = 1 << 30;
+/// Elements in a document `sax_parse` holds: each costs far more than the bytes that wrote it.
+const SAX_ELEMENT_LIMIT: usize = 4_000_000;
 
 /// The block sizes of an expat `STRING_POOL`, for its allocation tracker's sake. Attribute values
 /// are the only strings that entities can grow past what the input pays for, so only they run this.
@@ -3599,10 +3613,13 @@ struct Parser<'a> {
     open: Vec<Element>,
     text_open: bool,
     root: Option<Element>,
+    sax: bool,
+    elements: usize,
 }
 
 impl<'a> Parser<'a> {
     fn new(data: &'a [u8]) -> Parser<'a> {
+        let sax = false;
         let mut prefix_names = HashMap::new();
         prefix_names.insert(Box::from(&b"xml"[..]), 1);
         let mut xml_uri = XML_NAMESPACE.to_vec();
@@ -3666,6 +3683,8 @@ impl<'a> Parser<'a> {
             open: Vec::new(),
             text_open: false,
             root: None,
+            sax,
+            elements: 0,
         }
     }
 
@@ -3685,6 +3704,12 @@ impl<'a> Parser<'a> {
         let (mut line, mut column) = (0, 0);
         self.enc
             .update_position(self.data, 0, self.event_ptr, &mut line, &mut column);
+        if self.sax {
+            return PyErr::new(
+                "SAXParseException",
+                format!("<unknown>:{}:{column}: {message}", line + 1),
+            );
+        }
         PyErr::new(
             "ParseError",
             format!("{message}: line {}, column {column}", line + 1),
@@ -3895,6 +3920,13 @@ impl<'a> Parser<'a> {
                         result?;
                     }
                 }
+                Role::GeneralEntityName | Role::ParamEntityName if self.sax => {
+                    let name = text_of(self.stored(&enc, d, s, next));
+                    return Err(Stop::Py(PyErr::new(
+                        "EntitiesForbidden",
+                        format!("EntitiesForbidden(name='{name}', system_id=None, public_id=None)"),
+                    )));
+                }
                 Role::GeneralEntityName => {
                     if enc.predefined(d, s, next).is_some() {
                         self.decl_entity = None;
@@ -3991,6 +4023,9 @@ impl<'a> Parser<'a> {
         };
         if decl.standalone {
             self.standalone = true;
+        }
+        if self.sax {
+            return Ok(());
         }
         if let Some(named) = decl.new_encoding {
             let min = match named {
@@ -4475,6 +4510,7 @@ impl<'a> Parser<'a> {
     }
 
     fn on_start(&mut self, started: Started) {
+        self.elements += 1;
         self.open.push(Element {
             tag: started.tag,
             prefix: started.prefix,
@@ -4486,7 +4522,7 @@ impl<'a> Parser<'a> {
     }
 
     fn on_end(&mut self) {
-        self.text_open = false;
+        self.text_open = self.sax;
         let Some(done) = self.open.pop() else {
             return;
         };
@@ -4580,6 +4616,9 @@ impl<'a> Parser<'a> {
                     });
                     self.temp_pool.clear();
                     self.on_start(started);
+                    if self.sax && self.elements > SAX_ELEMENT_LIMIT {
+                        return Err(Stop::Py(memory_error()));
+                    }
                 }
                 TOK_EMPTY_ELEMENT_NO_ATTS | TOK_EMPTY_ELEMENT_WITH_ATTS => {
                     let raw_name = s + m;
@@ -4591,6 +4630,9 @@ impl<'a> Parser<'a> {
                         self.store_atts(enc, d, is_main, s, &name, &mut bindings, Account::None)?;
                     self.temp_pool.clear();
                     self.on_start(started);
+                    if self.sax && self.elements > SAX_ELEMENT_LIMIT {
+                        return Err(Stop::Py(memory_error()));
+                    }
                     if is_main {
                         self.event_ptr = next;
                     }
@@ -4909,6 +4951,7 @@ impl<'a> Parser<'a> {
             };
             let attribute = &self.attribute_ids[id as usize];
             match attribute.prefix {
+                _ if self.sax => app.push((id, Rc::from(value))),
                 Some(prefix) if attribute.xmlns => self.add_binding(prefix, &value, bindings)?,
                 Some(_) => {
                     self.attribute_ids[id as usize].flag = 2;
@@ -4933,6 +4976,11 @@ impl<'a> Parser<'a> {
                 return Err(Stop::Py(memory_error()));
             }
             match attribute.prefix {
+                _ if self.sax => {
+                    self.attribute_ids[id as usize].flag = 1;
+                    touched.push(id);
+                    app.push((id, value));
+                }
                 Some(prefix) if attribute.xmlns => self.add_binding(prefix, &value, bindings)?,
                 Some(_) => {
                     self.attribute_ids[id as usize].flag = 2;
@@ -4976,6 +5024,13 @@ impl<'a> Parser<'a> {
         }
         for id in touched {
             self.attribute_ids[id as usize].flag = 0;
+        }
+        if self.sax {
+            return Ok(Started {
+                tag: String::from_utf8_lossy(name).into_owned(),
+                prefix: None,
+                attrib,
+            });
         }
         // expand the element type name
         let written = name

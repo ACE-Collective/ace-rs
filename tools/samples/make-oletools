@@ -258,8 +258,8 @@ def project(source, codepage=1252, name="Module1"):
     }
 
 
-def biff(sheets):
-    """A Workbook stream: BOF, a BOUNDSHEET for each (name, type), EOF."""
+def biff(sheets, more=()):
+    """A Workbook stream: BOF, a BOUNDSHEET for each (name, type), `more` as (kind, data), EOF."""
 
     def record(kind, data):
         return struct.pack("<HH", kind, len(data)) + data
@@ -267,6 +267,8 @@ def biff(sheets):
     out = record(0x0809, struct.pack("<HHHHII", 0x0600, 5, 0x1FFF, 0x07CD, 0, 6))
     for name, sheet_type in sheets:
         out += record(0x85, struct.pack("<IBB", 0, 0, sheet_type) + bytes([len(name), 0]) + name.encode())
+    for kind, data in more:
+        out += record(kind, data)
     out += record(0x0A, b"")
     return out
 
@@ -404,6 +406,19 @@ def office_samples(real_vba):
     add("vba_xlm_biff8.xls", Cfb({"Workbook": macro_workbook, "_VBA_PROJECT_CUR": project(source)}, EXCEL_CLSID).build())
     # a workbook XLMMacroDeobfuscator refuses, which sends olevba to plugin_biff
     add("vba_excel_bad_biff.xls", Cfb({"Workbook": biff([("Sheet1", 0), ("Macro1", 1)]), "_VBA_PROJECT_CUR": project(source)}, EXCEL_CLSID).build())
+    # the same with a name and a formula, whose text the port of plugin_biff doesn't give (PLAN.md 4.12)
+    name = struct.pack("<HBBHHHHBBBBB", 0x20, 0, 1, 3, 0, 1, 0, 0, 0, 0, 0, 0) + b"\0\x01" + b"\x1e\x01\x00"
+    formula = struct.pack("<HHHdHI", 0, 0, 0, 0.0, 0, 0) + struct.pack("<H", 3) + b"\x1e\x01\x00"
+    add(
+        "vba_excel_bad_biff_formula.xls",
+        Cfb(
+            {
+                "Workbook": biff([("Sheet1", 0), ("Macro1", 1)], [(0x18, name), (0x06, formula)]),
+                "_VBA_PROJECT_CUR": project(source),
+            },
+            EXCEL_CLSID,
+        ).build(),
+    )
     xlsm = "application/vnd.ms-excel.sheet.macroEnabled.main+xml"
     add("vba_excel.xlsm", ooxml("xl/workbook.xml", xlsm, "xl/vbaProject.bin", real_vba))
     add(

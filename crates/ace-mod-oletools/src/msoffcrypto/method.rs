@@ -7,9 +7,9 @@ use digest::Digest;
 use sha1::Sha1;
 use sha2::{Sha256, Sha384, Sha512};
 
-use ace_mod_oletools::py::{PyErr, PyResult};
+use crate::py::{PyErr, PyResult};
 
-use crate::crypto::{Arc4, Hash, aes_cbc_decrypt, aes_ecb_decrypt, aes_ecb_update, md5, sha1};
+use super::crypto::{Arc4, Hash, aes_cbc_decrypt, aes_ecb_decrypt, aes_ecb_update, md5, sha1};
 
 /// The kind a [`PyErr`] has when [`Stop`] ended the work, which nothing in msoffcrypto raises.
 pub const OUT_OF_TIME: &str = "OutOfTime";
@@ -141,7 +141,7 @@ impl AgileInfo {
     pub fn decrypt(&self, key: &[u8], package: &[u8]) -> PyResult<Vec<u8>> {
         const SEGMENT: usize = 4096;
         let Ok(size) = <[u8; 8]>::try_from(package.get(..8).unwrap_or(package)) else {
-            return Err(ace_mod_oletools::py::unpack_requires(8));
+            return Err(crate::py::unpack_requires(8));
         };
         let hash = Hash::named(&self.key_data_hash);
         let mut remaining = u64::from_le_bytes(size) as u128;
@@ -198,7 +198,7 @@ pub fn standard_verify(key: &[u8], verifier: &[u8], verifier_hash: &[u8]) -> PyR
 /// `ECMA376Standard.decrypt`.
 pub fn standard_decrypt(key: &[u8], package: &[u8]) -> PyResult<Vec<u8>> {
     let Ok(size) = <[u8; 4]>::try_from(package.get(..4).unwrap_or(package)) else {
-        return Err(ace_mod_oletools::py::unpack_requires(4));
+        return Err(crate::py::unpack_requires(4));
     };
     let mut out = aes_ecb_decrypt(key, package.get(8..).unwrap_or_default())?;
     out.truncate(u32::from_le_bytes(size) as usize);

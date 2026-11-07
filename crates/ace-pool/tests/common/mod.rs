@@ -264,16 +264,30 @@ pub async fn task_of(core: &Core, root: Uuid, module: &str) -> (String, Option<S
 /// A running pool process, killed and reaped when dropped, whose stderr `stop` returns.
 pub struct PoolProcess {
     child: Option<std::process::Child>,
+    /// Reads its stderr as it comes. A pipe holds only 8 KiB once the VM's user is past
+    /// pipe-user-pages-soft, and a pool that fills one stops taking tasks.
+    stderr: Option<std::thread::JoinHandle<Vec<u8>>>,
 }
 
 impl PoolProcess {
     pub fn start(mut command: std::process::Command) -> PoolProcess {
-        let child = command
+        let mut child = command
             .stdout(std::process::Stdio::null())
             .stderr(std::process::Stdio::piped())
             .spawn()
             .expect("the pool starts");
-        PoolProcess { child: Some(child) }
+        let stderr = child.stderr.take().map(|mut pipe| {
+            std::thread::spawn(move || {
+                let mut text = Vec::new();
+                // what it managed to write is what's returned
+                std::io::Read::read_to_end(&mut pipe, &mut text).ok();
+                text
+            })
+        });
+        PoolProcess {
+            child: Some(child),
+            stderr,
+        }
     }
 
     pub fn pid(&self) -> u32 {
@@ -310,9 +324,12 @@ impl PoolProcess {
         if let Err(e) = child.kill() {
             eprintln!("killing the pool: {e}");
         }
-        match child.wait_with_output() {
-            Ok(output) => String::from_utf8_lossy(&output.stderr).into_owned(),
-            Err(e) => format!("no output: {e}"),
+        if let Err(e) = child.wait() {
+            return format!("no output: {e}");
+        }
+        match self.stderr.take().map(std::thread::JoinHandle::join) {
+            Some(Ok(text)) => String::from_utf8_lossy(&text).into_owned(),
+            _ => String::new(),
         }
     }
 }

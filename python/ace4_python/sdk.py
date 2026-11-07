@@ -55,9 +55,6 @@ class Context:
         self.settings = request.get("settings")
         # the input's bytes, for a file task
         self.input = request.get("input")
-        # the YARA rules that matched the file or anything under it, for a module that runs last
-        # (Module::RUNS_LAST)
-        self.yara_rules_below = task.get("yara_rules_below") or []
         self.tasks_in_process = tasks_in_process
         self._outputs = request["outputs"]
         # the one place a worker can write, for libraries that use tempfile; its directory goes with

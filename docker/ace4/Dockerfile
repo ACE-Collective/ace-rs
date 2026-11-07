@@ -94,7 +94,7 @@ RUN pip install --no-cache-dir --disable-pip-version-check --no-deps --require-h
         --no-build-isolation -r /tmp/requirements/requirements.txt \
     && pip uninstall -y --disable-pip-version-check wheel packaging \
     && pip check --disable-pip-version-check \
-    && python -c "import msoffcrypto, oletools.olevba, pcodedmp.pcodedmp, pyxlsb2, xlrd2, XLMMacroDeobfuscator.deobfuscator, yara_x" \
+    && python -c "import msoffcrypto, oletools.olevba, pcodedmp.pcodedmp, pyxlsb2, xlrd2, XLMMacroDeobfuscator.deobfuscator" \
     && rm -rf /tmp/requirements
 
 FROM python-libraries AS python

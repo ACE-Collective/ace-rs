@@ -1,0 +1,95 @@
+#!/usr/bin/env python3
+"""Writes crafted Excel 4.0 macros for docs/measurements/xlm-hostile.md, which aren't in the sample set:
+
+    make-xlm-hostile <out dir>
+
+Each is what a macro can do to the emulator's clock or memory, at up to the module's 10 MB file limit.
+"""
+
+import importlib.machinery
+import importlib.util
+import io
+import sys
+import zipfile
+from pathlib import Path
+
+loader = importlib.machinery.SourceFileLoader("make_xlm", str(Path(__file__).with_name("make-xlm")))
+spec = importlib.util.spec_from_loader("make_xlm", loader)
+make_xlm = importlib.util.module_from_spec(spec)
+loader.exec_module(make_xlm)
+xlsm = make_xlm.xlsm
+
+
+def deflated(parts):
+    out = io.BytesIO()
+    with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
+        for name, data in parts:
+            z.writestr(name, data)
+    return out.getvalue()
+
+
+def rows(*formulas):
+    return [(formula, None) for formula in formulas]
+
+
+def dense_sheet(cells):
+    """cells values, in rows of 100, with no formulas."""
+    parts = []
+    for row in range(cells // 100):
+        cols = "".join(f'<c r="{chr(65 + c // 26) if c >= 26 else ""}{chr(65 + c % 26)}{row + 1}"><v>1</v></c>' for c in range(100))
+        parts.append(f'<row r="{row + 1}">{cols}</row>')
+    sheet = make_xlm.macrosheet([]).replace("<sheetData>\n", "<sheetData>\n" + "\n".join(parts) + "\n")
+    return make_xlm.make_zip([
+        ("[Content_Types].xml", make_xlm.CONTENT_TYPES),
+        ("_rels/.rels", make_xlm.RELS),
+        ("xl/workbook.xml", make_xlm.workbook(make_xlm.AUTO_OPEN)),
+        ("xl/_rels/workbook.xml.rels", make_xlm.WORKBOOK_RELS),
+        ("xl/macrosheets/sheet1.xml", sheet),
+    ])
+
+
+FILES = {
+    # loops
+    "while_true.xlsm": xlsm(rows("WHILE(1=1)", 'CALL("spin")', "NEXT()", "HALT()")),
+    "while_big_lines.xlsm": xlsm(rows('FORMULA("' + "x" * 200 + '",B1)', "WHILE(1=1)", "FORMULA(B1&amp;\"y\",B2)", 'CALL(B1,B1,B1,B1,B1,B1,B1,B1)', "NEXT()", "HALT()")),
+    "goto_self.xlsm": xlsm(rows("GOTO(A1)")),
+    "run_ring.xlsm": xlsm(rows("RUN(A2)", "RUN(A3)", "RUN(A1)")),
+    "for_cell_huge.xlsm": xlsm(rows('FOR.CELL("x",A1:IV65536,TRUE)', 'CALL("each")', "NEXT()", "HALT()")),
+    "for_cell_absurd.xlsm": xlsm(rows('FOR.CELL("x",A1:ZZ999999,TRUE)', "NEXT()", "HALT()")),
+    # strings and memory
+    "doubling.xlsm": xlsm(rows('FORMULA("xxxxxxxxxxxxxxxx",B1)', "WHILE(1=1)", "FORMULA(B1&amp;B1,B1)", "NEXT()", "HALT()")),
+    "fill_range.xlsm": xlsm(rows('FORMULA("' + "x" * 1000 + '",A2:IV65536)', "HALT()")),
+    "virtual_alloc_16g.xlsm": xlsm(rows("Kernel32.VirtualAlloc(0,17179869184,4096,64)", "HALT()")),
+    "virtual_alloc_many.xlsm": xlsm(rows("FORMULA(1000,B1)", "WHILE(1=1)", "FORMULA(B1+300000000,B1)", "Kernel32.VirtualAlloc(B1,200000000,4096,64)", "NEXT()", "HALT()")),
+    "file_append.xlsm": xlsm(rows('FOPEN("f")', 'FORMULA("' + "x" * 100000 + '",B1)', "WHILE(1=1)", 'FWRITE("f",B1)', "NEXT()", "HALT()")),
+    "partial_if_copies.xlsm": xlsm(rows(*[f'IF(Z9,CALL("a{i}"),CALL("b{i}"))' for i in range(2000)], "HALT()")),
+    # recursion
+    "chain_5000.xlsm": xlsm(rows(*[f"A{i + 2}" for i in range(5000)], "1")),
+    "self_cell.xlsm": xlsm(rows("A1+1", "HALT()")),
+    "self_name.xlsm": make_xlm.xlsm(rows("loop", "HALT()"), names='<definedNames><definedName name="_xlnm.Auto_Open">Macro1!$A$1</definedName><definedName name="loop">loop&amp;loop</definedName></definedNames>'),
+    "parens_100k.xlsm": xlsm(rows("(" * 100000 + "1" + ")" * 100000, "HALT()")),
+    "calls_deep.xlsm": xlsm(rows("A1()")),
+    # size
+    "cells_150k.xlsm": dense_sheet(150_000),
+    # a sheet part of 256 MiB of empty rows, compressed to under 1 MB
+    "rows_bomb.xlsm": deflated([
+        ("[Content_Types].xml", make_xlm.CONTENT_TYPES),
+        ("_rels/.rels", make_xlm.RELS),
+        ("xl/workbook.xml", make_xlm.workbook(make_xlm.AUTO_OPEN)),
+        ("xl/_rels/workbook.xml.rels", make_xlm.WORKBOOK_RELS),
+        ("xl/macrosheets/sheet1.xml", make_xlm.macrosheet([]).replace("<sheetData>\n", "<sheetData>\n" + "<row/>" * 40_000_000)),
+    ]),
+    "one_formula_10mb.xlsm": xlsm(rows("CALL(" + '"x",' * 1_500_000 + '"x")', "HALT()")),
+}
+
+
+def main(out):
+    out = Path(out)
+    out.mkdir(parents=True, exist_ok=True)
+    for name, data in FILES.items():
+        (out / name).write_bytes(data)
+        print(name, len(data))
+
+
+if __name__ == "__main__":
+    main(sys.argv[1])

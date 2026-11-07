@@ -10,7 +10,7 @@ use rc4::Rc4;
 use sha1::Sha1;
 use sha2::{Sha256, Sha384, Sha512};
 
-use ace_mod_oletools::py::{PyErr, PyResult};
+use crate::py::{PyErr, PyResult};
 
 const BLOCK: usize = 16;
 

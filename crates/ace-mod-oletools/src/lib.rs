@@ -3,6 +3,7 @@
 
 pub mod codepage;
 pub mod ftguess;
+pub mod msoffcrypto;
 pub mod ole;
 pub mod olevba;
 pub mod pcode;
@@ -17,6 +18,7 @@ mod tables;
 pub mod textwrap;
 pub mod vba;
 mod xlm;
+pub mod xlmdeob;
 
 use std::collections::BTreeMap;
 use std::fs;
@@ -636,13 +638,23 @@ mod tests {
     }
 
     #[test]
-    fn a_macro_sheet_beside_vba_keeps_its_keyword() {
+    fn a_macro_sheet_beside_vba_is_a_macro_file_too() {
         let result = done(olevba(
             "ace4/office/vba_xlm_biff8.xls",
             OlevbaSettings::default(),
         ));
         assert_eq!(result.analyzed.tags, ["olevba"]);
-        assert_eq!(result.details.keyword_summary.get("suspicious"), Some(&1));
+        assert!(result.details.keyword_summary.contains_key("suspicious"));
+        let names: Vec<String> = result
+            .details
+            .macros
+            .iter()
+            .map(|item| format!("{:?}", item.vba_filename))
+            .collect();
+        assert!(
+            names.iter().any(|name| name.contains("xlm_macro.txt")),
+            "{names:?}"
+        );
     }
 
     #[test]

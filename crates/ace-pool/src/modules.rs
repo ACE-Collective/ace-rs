@@ -144,6 +144,7 @@ impl<M: ace_sdk::Module> Entry<M> {
         .with_file_store(run.outputs.clone())
         .with_contained(run.contained)
         .with_task_id(run.task.id)
+        .with_yara_rules_below(run.task.yara_rules_below.clone())
         .with_carrying_email(run.carrying_email());
         match &run.task.delayed {
             Some(delayed) => ctx.with_delayed(delayed.clone()),

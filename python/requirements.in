@@ -5,20 +5,14 @@
 # requirements.txt is this file resolved, with a hash for every file. To change a pin, edit this
 # file, then run tools/python/lock.
 #
-# ace3/installer/requirements-pinned.txt. Nothing here calls olevba or rtfobj since PLAN.md 4.10, but
-# pcodedmp imports oletools.olevba and oletools.common.codepages, and msoffcrypto needs olefile, so
-# oletools stays until 4.12. The module that called msoffcrypto left at 4.11, but
-# XLMMacroDeobfuscator imports it at its top and decrypts with it, and tools/library-diff compares with
-# it, so it stays until 4.12 too.
+# ace3/installer/requirements-pinned.txt. No module runs these since PLAN.md 4.12. They stay because
+# tools/library-diff runs each library against its port on this image (python-libraries); 4.13 decides
+# what the pool's own image keeps.
 oletools==0.60.2
 msoffcrypto-tool==6.0.0
 pcodedmp==1.2.6
 cryptography==50.0.2
 olefile==0.47
-# What ace3's xlmdeobfuscator module asks of its own rule file, python/ace4_python/xlmdeobfuscator.yar.
-# ace3 has yara-python, which has no wheel for this Python and this image has no compiler; this is the
-# engine ace-yara runs, at Cargo.lock's version. That goes beyond 4.1's rule.
-yara-x==1.22.1
 
 # ace3/Dockerfile installs these from each repository's master archive. These are the commits
 # master was at on 2026-11-06, where master has been since 2021 and 2022: tag v1.3.4; version 0.0.9,

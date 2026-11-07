@@ -4,11 +4,11 @@
 
 use std::sync::Arc;
 
-use ace_mod_oletools::ole::{self, OleFile};
-use ace_mod_oletools::py::{PyErr, PyResult, Reader, memory_error, repr_str, unpack_requires};
-use ace_mod_oletools::{pyxml, pyzip};
+use crate::ole::{self, OleFile};
+use crate::py::{PyErr, PyResult, Reader, memory_error, repr_str, unpack_requires};
+use crate::{pyxml, pyzip};
 
-use crate::method::{self, AgileInfo, Plain, Stop};
+use super::method::{self, AgileInfo, Plain, Stop};
 
 const CONTENT_TYPES_NS: &str = "http://schemas.openxmlformats.org/package/2006/content-types";
 const PASSWORD_NS: &str = "http://schemas.microsoft.com/office/2006/keyEncryptor/password";
@@ -282,7 +282,7 @@ fn py_int(text: &str) -> PyResult<i128> {
             ),
         )
     };
-    let trimmed = ace_mod_oletools::py::strip(text);
+    let trimmed = crate::py::strip(text);
     let (negative, digits) = match trimmed.strip_prefix('-') {
         Some(rest) => (true, rest),
         None => (false, trimmed.strip_prefix('+').unwrap_or(trimmed)),

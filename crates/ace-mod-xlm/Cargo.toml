@@ -1,0 +1,25 @@
+[package]
+name = "ace-mod-xlm"
+version = "0.1.0"
+description = "The xlmdeobfuscator and pcodedmp modules, on ace-mod-oletools' ports of XLMMacroDeobfuscator and pcodedmp"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+ace-mod-oletools = { path = "../ace-mod-oletools" }
+ace-results = { path = "../ace-results" }
+ace-sdk = { path = "../ace-sdk" }
+magic = "0.17.0"
+regex = "1.13.1"
+schemars = "1.2.3"
+serde = { version = "1.0.229", features = ["derive"] }
+yara-x = "1.22.1"
+
+[dev-dependencies]
+ace-testkit = { path = "../ace-testkit" }
+serde_json = "1.0.154"
+
+[lints]
+workspace = true

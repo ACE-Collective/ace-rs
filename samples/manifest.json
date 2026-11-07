@@ -16,6 +16,7 @@
     "binary RC4 without CryptoAPI as Office 97 wrote it: tools/samples/make-encrypted-binary writes it from MS-OFFCRYPTO",
     "PowerPoint and Excel files with VBA written by Office itself: tools/samples/make-oletools hand-makes the containers around a Word project",
     "PowerPoint and Excel files with VBA written by Office itself: tools/samples/make-oletools hand-makes the containers around a Word project",
+    "PowerPoint and Excel files with VBA written by Office itself: tools/samples/make-oletools hand-makes the containers around a Word project",
     "PowerPoint and Excel files with VBA written by Office itself: tools/samples/make-oletools hand-makes the containers around a Word project"
   ],
   "samples": [
@@ -2105,6 +2106,20 @@
       ]
     },
     {
+      "path": "ace4/office/vba_excel_bad_biff_formula.xls",
+      "sha256": "80f131942b7e835716a465a83c954fb906773bd9a42cb440366b7f0d65f36f43",
+      "size": 4608,
+      "kinds": [
+        "office/hand-made"
+      ],
+      "source": "tools/samples/make-oletools",
+      "in_git": true,
+      "alert_path": "vba_excel_bad_biff_formula.xls",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
       "path": "ace4/office/vba_excel_macro_sheet.xlsm",
       "sha256": "f50d459cdb507027309bc0e674295160e43d28c339e0b11b1b74451063d445d8",
       "size": 11674,
@@ -2330,6 +2345,516 @@
       ]
     },
     {
+      "path": "ace4/office/xlm_book.xlsm",
+      "sha256": "26626a5234836f7222738a4898cfce8bacd1d0fa898f4cc38eba8f6f228fae84",
+      "size": 5154,
+      "kinds": [
+        "office/macro",
+        "office/xlm"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-xlm",
+      "in_git": true,
+      "alert_path": "xlm_book.xlsm",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/xlm_branch_calls.xlsm",
+      "sha256": "6816399deb3249d935c1a5beee930aef531ba06ea65b8bbe7b7bf4c172fd884f",
+      "size": 2609,
+      "kinds": [
+        "office/macro",
+        "office/xlm"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-xlm",
+      "in_git": true,
+      "alert_path": "xlm_branch_calls.xlsm",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/xlm_branch_day.xlsm",
+      "sha256": "e85a3da642a3543632a891705023843145432c09a2be7bcc53b4b826e8677b2d",
+      "size": 2411,
+      "kinds": [
+        "office/macro",
+        "office/xlm"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-xlm",
+      "in_git": true,
+      "alert_path": "xlm_branch_day.xlsm",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/xlm_branch_err_alloc_twice.xlsm",
+      "sha256": "44e411822577b28a910c7be63d1843ecfd435ad498cfb2722e923061e39f6efd",
+      "size": 2500,
+      "kinds": [
+        "office/macro",
+        "office/xlm"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-xlm",
+      "in_git": true,
+      "alert_path": "xlm_branch_err_alloc_twice.xlsm",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/xlm_branch_err_arabic.xlsm",
+      "sha256": "ea1dfa266002f44272886724ea426f2e48e965749925951d22043f302a9c79f2",
+      "size": 2411,
+      "kinds": [
+        "office/macro",
+        "office/xlm"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-xlm",
+      "in_git": true,
+      "alert_path": "xlm_branch_err_arabic.xlsm",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/xlm_branch_err_args.xlsm",
+      "sha256": "e5b7eb63437808d51712c7bdc0047446637be1bf564bc5766d4a2fd9d5408d45",
+      "size": 2413,
+      "kinds": [
+        "office/macro",
+        "office/xlm"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-xlm",
+      "in_git": true,
+      "alert_path": "xlm_branch_err_args.xlsm",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/xlm_branch_err_float.xlsm",
+      "sha256": "0f457706b7621f4a2fa3dd8272e6ec5b2a94a3a1e66033dcf23b26cf8d18b925",
+      "size": 2415,
+      "kinds": [
+        "office/macro",
+        "office/xlm"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-xlm",
+      "in_git": true,
+      "alert_path": "xlm_branch_err_float.xlsm",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/xlm_branch_err_for_cell.xlsm",
+      "sha256": "ac9f4a03731d5cef06cd32da6717366df5d5d22193a994c61841d1f2281ce9fd",
+      "size": 2409,
+      "kinds": [
+        "office/macro",
+        "office/xlm"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-xlm",
+      "in_git": true,
+      "alert_path": "xlm_branch_err_for_cell.xlsm",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/xlm_branch_err_get_cell_partial.xlsm",
+      "sha256": "85520745c483f438dd341dab8fe55a47490bf404140b34a3f94880cf64ffecec",
+      "size": 2420,
+      "kinds": [
+        "office/macro",
+        "office/xlm"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-xlm",
+      "in_git": true,
+      "alert_path": "xlm_branch_err_get_cell_partial.xlsm",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/xlm_branch_err_goto_empty.xlsm",
+      "sha256": "27a0596f6fe2bff2568dff27c5978269f6c84bf67df958a6020b2ab824ce6fae",
+      "size": 2399,
+      "kinds": [
+        "office/macro",
+        "office/xlm"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-xlm",
+      "in_git": true,
+      "alert_path": "xlm_branch_err_goto_empty.xlsm",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/xlm_branch_err_int.xlsm",
+      "sha256": "07622d28e6dec0d26cbd163c46e1df3ebd06876cca54bd69f4b8cebbfb52a075",
+      "size": 2415,
+      "kinds": [
+        "office/macro",
+        "office/xlm"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-xlm",
+      "in_git": true,
+      "alert_path": "xlm_branch_err_int.xlsm",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/xlm_branch_err_memory.xlsm",
+      "sha256": "920f4926ede7a064982e6b0d162c3fd0352e941c908411705c6a225b8ffafed6",
+      "size": 2425,
+      "kinds": [
+        "office/macro",
+        "office/xlm"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-xlm",
+      "in_git": true,
+      "alert_path": "xlm_branch_err_memory.xlsm",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/xlm_branch_err_no_auto_cell.xlsm",
+      "sha256": "2d46c8f5aae95d6b33c28460f30a2fef5ef8ea532087e6e00cc3d55f18aa884b",
+      "size": 2357,
+      "kinds": [
+        "office/macro",
+        "office/xlm"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-xlm",
+      "in_git": true,
+      "alert_path": "xlm_branch_err_no_auto_cell.xlsm",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/xlm_branch_err_quotient.xlsm",
+      "sha256": "94e87f75f6b4a2c837fb32db6603942971c5926974bfb677dc85be7854944a7e",
+      "size": 2460,
+      "kinds": [
+        "office/macro",
+        "office/xlm"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-xlm",
+      "in_git": true,
+      "alert_path": "xlm_branch_err_quotient.xlsm",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/xlm_branch_err_randbetween.xlsm",
+      "sha256": "26b05eb692586b64ac163b75d87cfd255c13687cad5a1a081892e3650ff82d30",
+      "size": 2422,
+      "kinds": [
+        "office/macro",
+        "office/xlm"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-xlm",
+      "in_git": true,
+      "alert_path": "xlm_branch_err_randbetween.xlsm",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/xlm_branch_err_range_formula.xlsm",
+      "sha256": "df7d100a2d0c90c3e2fdede7a91d376acb7a9e23418821567915b109ef5daa00",
+      "size": 2408,
+      "kinds": [
+        "office/macro",
+        "office/xlm"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-xlm",
+      "in_git": true,
+      "alert_path": "xlm_branch_err_range_formula.xlsm",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/xlm_branch_err_register.xlsm",
+      "sha256": "3cb53880dde941753bea39a24dbc9d3f2b80b50b79fd6c98afcc7784d39575f1",
+      "size": 2406,
+      "kinds": [
+        "office/macro",
+        "office/xlm"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-xlm",
+      "in_git": true,
+      "alert_path": "xlm_branch_err_register.xlsm",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/xlm_branch_err_round.xlsm",
+      "sha256": "a71102cb3de6342897319dcd896e9bdb1ebbe284c57feb11d50783fba94120b5",
+      "size": 2416,
+      "kinds": [
+        "office/macro",
+        "office/xlm"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-xlm",
+      "in_git": true,
+      "alert_path": "xlm_branch_err_round.xlsm",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/xlm_branch_err_set_cell_formula.xlsm",
+      "sha256": "43356df97d8f792a57dc12a90116b938b0980519fcc0f757d201ef21bdcc276d",
+      "size": 2561,
+      "kinds": [
+        "office/macro",
+        "office/xlm"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-xlm",
+      "in_git": true,
+      "alert_path": "xlm_branch_err_set_cell_formula.xlsm",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/xlm_branch_err_sheet.xlsm",
+      "sha256": "568c5dcab0a3bb4f02025fc002e5367e19df5a645ffcd3a789b78115f195a72c",
+      "size": 2412,
+      "kinds": [
+        "office/macro",
+        "office/xlm"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-xlm",
+      "in_git": true,
+      "alert_path": "xlm_branch_err_sheet.xlsm",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/xlm_branch_err_sqrt.xlsm",
+      "sha256": "24b2aab401d1d847a264f1b5502de43bffcc53b5230c42ed2fb22f1a9f4f098b",
+      "size": 2401,
+      "kinds": [
+        "office/macro",
+        "office/xlm"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-xlm",
+      "in_git": true,
+      "alert_path": "xlm_branch_err_sqrt.xlsm",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/xlm_branch_err_str_minus.xlsm",
+      "sha256": "2562115cdff5f35bda33a12458235d7e6c3925ae0a8c27b966e8bea764377727",
+      "size": 2412,
+      "kinds": [
+        "office/macro",
+        "office/xlm"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-xlm",
+      "in_git": true,
+      "alert_path": "xlm_branch_err_str_minus.xlsm",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/xlm_branch_err_str_times.xlsm",
+      "sha256": "5fab2ee5ecbe032cb59c5705a4b081a3beea13aaf49d99ac1b514d404387ba25",
+      "size": 2412,
+      "kinds": [
+        "office/macro",
+        "office/xlm"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-xlm",
+      "in_git": true,
+      "alert_path": "xlm_branch_err_str_times.xlsm",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/xlm_branch_err_unbound.xlsm",
+      "sha256": "540f492ea1308871438ddb2dda828cffe4da9b6be0dd62aa2ec5f05bdec8295d",
+      "size": 2414,
+      "kinds": [
+        "office/macro",
+        "office/xlm"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-xlm",
+      "in_git": true,
+      "alert_path": "xlm_branch_err_unbound.xlsm",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/xlm_branch_err_zero.xlsm",
+      "sha256": "97334e91a299e452e634cb222ac887042f11f4eb0c79ba836c4c69030670b95d",
+      "size": 2408,
+      "kinds": [
+        "office/macro",
+        "office/xlm"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-xlm",
+      "in_git": true,
+      "alert_path": "xlm_branch_err_zero.xlsm",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/xlm_branch_flow.xlsm",
+      "sha256": "7f787d2170119c9ac6295a0cbf619d01c139041fd40493c01b6db8976f8544bf",
+      "size": 3791,
+      "kinds": [
+        "office/macro",
+        "office/xlm"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-xlm",
+      "in_git": true,
+      "alert_path": "xlm_branch_flow.xlsm",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/xlm_branch_loops.xlsm",
+      "sha256": "8ee420ccaa2b168dd39d9dd21e818076d395e7707b6d87316e57840bd95bfd59",
+      "size": 2988,
+      "kinds": [
+        "office/macro",
+        "office/xlm"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-xlm",
+      "in_git": true,
+      "alert_path": "xlm_branch_loops.xlsm",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/xlm_branch_math.xlsm",
+      "sha256": "c4de67899e48119dd9fbcef1792e25e563e82f41bc62a9fcadcc5d8cc38788ee",
+      "size": 4831,
+      "kinds": [
+        "office/macro",
+        "office/xlm"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-xlm",
+      "in_git": true,
+      "alert_path": "xlm_branch_math.xlsm",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/xlm_branch_names.xlsm",
+      "sha256": "ca3dbd4eec86aa3b7a87698c22b40436db71c7f119a4dbbdf653318e780182ff",
+      "size": 4397,
+      "kinds": [
+        "office/macro",
+        "office/xlm"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-xlm",
+      "in_git": true,
+      "alert_path": "xlm_branch_names.xlsm",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/xlm_branch_parse_chars.xlsm",
+      "sha256": "7933ef8c76bd4f3cf390201be54d9acb1fb495c76a3deedff45443b0435e3410",
+      "size": 2505,
+      "kinds": [
+        "office/macro",
+        "office/xlm"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-xlm",
+      "in_git": true,
+      "alert_path": "xlm_branch_parse_chars.xlsm",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/xlm_branch_parse_error.xlsm",
+      "sha256": "6cd9381b10f30dd2e86dead484d63eed10c0de367df1035ddb5460ac669f0bfe",
+      "size": 2503,
+      "kinds": [
+        "office/macro",
+        "office/xlm"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-xlm",
+      "in_git": true,
+      "alert_path": "xlm_branch_parse_error.xlsm",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/xlm_branch_r1c1.xlsm",
+      "sha256": "153565d69cd9d8463f3c4f7aace68bb690fb00ca741a0552b5a53ac0954b4030",
+      "size": 2591,
+      "kinds": [
+        "office/macro",
+        "office/xlm"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-xlm",
+      "in_git": true,
+      "alert_path": "xlm_branch_r1c1.xlsm",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/xlm_branch_text.xlsm",
+      "sha256": "32235cda032bd950cfe5ac97c27a8211d9d830ef90dde47a7cf88c5d121b2371",
+      "size": 4135,
+      "kinds": [
+        "office/macro",
+        "office/xlm"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-xlm",
+      "in_git": true,
+      "alert_path": "xlm_branch_text.xlsm",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/xlm_branch_unknown_function.xlsm",
+      "sha256": "112fc84b5d39284c1f916d9d14027c325279009766a8ef96a282e7239784a0ab",
+      "size": 2657,
+      "kinds": [
+        "office/macro",
+        "office/xlm"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-xlm",
+      "in_git": true,
+      "alert_path": "xlm_branch_unknown_function.xlsm",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
       "path": "ace4/office/xlm_broken.xlsm",
       "sha256": "0f2ad4aa51c6493b9c190b3bd80466bc971ceb7b38b473be2ea4fab288f9fe10",
       "size": 1712,
@@ -2340,6 +2865,21 @@
       "source": "made by tools/samples/gather: tools/samples/make-xlm",
       "in_git": true,
       "alert_path": "xlm_broken.xlsm",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/xlm_info_3805.xls",
+      "sha256": "ce3af53d22189d65f561fa45ff655a020c9ef96c17c83e748cd773eff8ef96e8",
+      "size": 69125,
+      "kinds": [
+        "office/macro",
+        "office/xlm"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-encrypted-office: ace3's info_3805.xls, decrypted",
+      "in_git": true,
+      "alert_path": "xlm_info_3805.xls",
       "meta_tags": [
         "type=email.attachment"
       ]

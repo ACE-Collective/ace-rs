@@ -193,6 +193,7 @@ pub struct TaskContext<S> {
     delayed: Option<DelayedRun>,
     files: Option<Arc<dyn FileStore>>,
     contained: bool,
+    yara_rules_below: Vec<String>,
     task: Option<i64>,
     carrying_email: CarryingEmail,
 }
@@ -217,6 +218,7 @@ impl<S> TaskContext<S> {
             delayed: None,
             files: None,
             contained: false,
+            yara_rules_below: Vec::new(),
             task: None,
             carrying_email: CarryingEmail::Absent,
         }
@@ -254,6 +256,18 @@ impl<S> TaskContext<S> {
     pub fn with_delayed(mut self, delayed: DelayedRun) -> Self {
         self.delayed = Some(delayed);
         self
+    }
+
+    /// The YARA rules that matched below the observable, for a module that runs last.
+    pub fn with_yara_rules_below(mut self, rules: Vec<String>) -> Self {
+        self.yara_rules_below = rules;
+        self
+    }
+
+    /// What the core says matched in the file and below it (`Module::RUNS_LAST`), as ace3's
+    /// `execute_final_analysis` could look. Empty for any other module.
+    pub fn yara_rules_below(&self) -> &[String] {
+        &self.yara_rules_below
     }
 
     /// Marks the task as running contained (PLAN.md 2.18): its process can't start a thread,

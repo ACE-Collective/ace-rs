@@ -6,10 +6,4 @@
 
 | Samples | Path | Why | When |
 |---|---|---|---|
-| `ace4/office/vba_xlm_biff8.xls` | `/output/macros/*` | A macro sheet beside VBA. olevba calls XLMMacroDeobfuscator (`_extract_xlm_xlmdeobf`) and yields its whole text as `xlm_macro`, and PLAN.md 4.12 ports that library. The port flags the sheet and leaves that text out: `XLM macro` is the same on both sides. The `xlmdeobfuscator` module still runs on the Python pool, on the same file, and gives the same text in its own result. Checked: the Python macro at this path is `xlm_macro`, and every VBA macro matches. | |
-| `ace4/office/vba_xlm_biff8.xls` | `/output/analysis/*/*` | The same: olevba scans that text for keywords, so `CALL`, `EXEC`, `URLDownloadToFileA` and IOCs from the XLM are in its list, which also shifts every later row of the list. The port's list is what the VBA gives, plus `XLM macro`. | |
-| `ace4/office/vba_xlm_obfuscated.xlsm` | `/output/macros/*` | The same as `vba_xlm_biff8.xls`, on an OpenXML workbook. | |
-| `ace4/office/vba_xlm_obfuscated.xlsm` | `/output/analysis/*/*` | The same. | |
-| `ace4/office/vba_xlm_biff8.xls` | `/output/analysis/*` | The rows past the end of the port's shorter list. | |
-| `ace4/office/vba_xlm_obfuscated.xlsm` | `/output/analysis/*` | The same. | |
-| `ace4/office/vba_excel_bad_biff.xls` | `/output/macros/1` | A workbook XLMMacroDeobfuscator refuses with an exception, which sends olevba to oledump's `plugin_biff`, whose `Analyze()` lists the workbook's BOUNDSHEET records. olevba yields that list even when, as here, it decides there's no macro sheet it can read. PLAN.md 4.12 owns that library. Checked: Python's macro at this path is the two BOUNDSHEET lines, with the VBA macro at 0 the same on both. | |
+| `ace4/office/vba_excel_bad_biff_formula.xls` | `/output/macros/1/*` | A workbook xlrd2 refuses, with a macro sheet, a LABEL and a FORMULA. olevba's fallback to oledump's `plugin_biff` asks for the LABEL record and the formulas as CSV as well as the sheets, and those need its formula parser, about 5,000 lines of Python that `xlm.rs` doesn't port (PLAN.md 4.12). Checked: Python's macro at this path has one more LABEL line and one more CSV row (`"",A1,1,""`) than the port's, and the sheets and heading are the same. | |

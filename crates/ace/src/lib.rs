@@ -13,6 +13,8 @@ pub fn parser_pool() -> ParserPool {
         .module::<ace_mod_oletools::Olevba>()
         .module::<ace_mod_oletools::RtfOle>()
         .module::<ace_mod_msoffice::MsofficeEncryption>()
+        .module::<ace_mod_xlm::XlmDeobfuscator>()
+        .module::<ace_mod_xlm::PCode>()
         .module::<ace_mod_yara::YaraScanner>()
         .yara_rulesets::<ace_mod_yara::YaraScanner>(ace_mod_yara::check_ruleset)
 }
@@ -27,10 +29,7 @@ pub fn lookup_pool() -> LookupPool {
 /// The Python pool: modules on libraries with no Rust equivalent yet (PLAN.md 4.1). The probe runs
 /// only as an instance a test's overlay names.
 pub fn python_pool() -> PythonPool {
-    PythonPool::new("python")
-        .module::<ace_mod_python::PythonProbe>()
-        .module::<ace_mod_python::PCode>()
-        .module::<ace_mod_python::XlmDeobfuscator>()
+    PythonPool::new("python").module::<ace_mod_python::PythonProbe>()
 }
 
 /// The open-source binaries' list: the three pools, and no observable types beyond ace3's.

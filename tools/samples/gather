@@ -457,6 +457,7 @@ def make_encrypted_office(directory, email_directory):
     directory.mkdir(parents=True, exist_ok=True)
     email_directory.mkdir(parents=True, exist_ok=True)
     files = []
+    (directory / "xlm_info_3805.xls").write_bytes(made["xlm_info_3805.xls"])
     for source, name in [
         ("velvet.docx", "encrypted_velvet.docx"),
         ("agile_not_in_body.docx", "encrypted_no_email.docx"),
@@ -746,6 +747,10 @@ def main():
         make_encrypted_binary(SAMPLES / "ace4" / "office", SAMPLES / "ace4" / "email", SAMPLES / "ace4" / "html")
     )
 
+    samples.append(
+        entry(SAMPLES / "ace4" / "office" / "xlm_info_3805.xls", ["office/macro", "office/xlm"],
+              "made by tools/samples/gather: tools/samples/make-encrypted-office: ace3's info_3805.xls, decrypted")
+    )
     xlm = subprocess.run(
         [sys.executable, "-I", str(REPO / "tools" / "samples" / "make-xlm"), str(SAMPLES / "ace4" / "office")],
         check=True, capture_output=True, text=True,

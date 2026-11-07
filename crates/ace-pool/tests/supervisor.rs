@@ -6,7 +6,7 @@
 mod common;
 
 use std::os::unix::fs::PermissionsExt;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use ace_pool::testing;
 use serde_json::json;
@@ -329,6 +329,105 @@ async fn olevba_and_rtfobj_finish_in_contained_task_processes() {
                 .await
                 .expect("counts");
         assert!(files > 1, "{sample} wrote nothing");
+    }
+    let _ = pool.stop();
+}
+
+/// `task_state` for a module that runs last, which is delayed while the rest of its root runs.
+async fn last_task_state(
+    core: &Core,
+    root: uuid::Uuid,
+    module: &str,
+) -> (String, Option<String>, f64) {
+    let started = Instant::now();
+    loop {
+        let (state, error, _) = task_state(core, root, module, Duration::from_secs(200)).await;
+        if state != "delayed" {
+            return (state, error, started.elapsed().as_secs_f64());
+        }
+        tokio::time::sleep(Duration::from_millis(50)).await;
+    }
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn xlm_and_pcode_finish_in_contained_task_processes() {
+    let core = Core::start(
+        vec![ace_mod_xlm::XLM_MANIFEST, ace_mod_xlm::PCODE_MANIFEST],
+        &["xlmdeobfuscator", "pcodedmp"],
+        Duration::from_secs(300),
+    )
+    .await;
+    let mut pool = supervisor(&core, &[]);
+    for (sample, module, files) in [
+        ("ace4/office/xlm_info_3805.xls", "xlmdeobfuscator", 2),
+        ("ace4/office/xlm_xlsb.xlsb", "xlmdeobfuscator", 2),
+        ("ace3/office/receipt_687790.doc", "pcodedmp", 1),
+    ] {
+        let path = format!("{}/../../samples/{sample}", env!("CARGO_MANIFEST_DIR"));
+        let bytes = std::fs::read(path).expect("a sample");
+        let name = sample.rsplit('/').next().expect("a name");
+        let (root, _) = root_with_bytes(&core, "file", &bytes, name).await;
+        let (state, error, _) = last_task_state(&core, root, module).await;
+        assert_eq!(state, "done", "{sample}: {error:?}");
+        let found: i64 =
+            sqlx::query_scalar("SELECT count(*) FROM analysis.files WHERE root_id = $1")
+                .bind(root)
+                .fetch_one(core.test_db.db().pool())
+                .await
+                .expect("counts");
+        assert_eq!(found - 1, files, "{sample}");
+    }
+    let _ = pool.stop();
+}
+
+/// A measurement rather than a test (docs/measurements/xlm-hostile.md): each file in the directory
+/// `ACE4_XLM_HOSTILE` names, as a task with the module's real limits.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[ignore = "a measurement, with files tools/samples/make-xlm-hostile makes"]
+async fn measure_hostile_xlm() {
+    let dir = std::env::var("ACE4_XLM_HOSTILE").expect("ACE4_XLM_HOSTILE");
+    let core = Core::start(
+        vec![ace_mod_xlm::XLM_MANIFEST],
+        &["xlmdeobfuscator"],
+        Duration::from_secs(1800),
+    )
+    .await;
+    let mut names: Vec<_> = std::fs::read_dir(&dir)
+        .expect("the directory")
+        .map(|entry| {
+            entry
+                .expect("an entry")
+                .file_name()
+                .into_string()
+                .expect("a name")
+        })
+        .collect();
+    names.sort();
+    let mut pool = supervisor(&core, &[]);
+    for name in names {
+        let bytes = std::fs::read(format!("{dir}/{name}")).expect("the file");
+        let (root, _) = root_with_bytes(&core, "file", &bytes, &name).await;
+        let (state, error, seconds) = last_task_state(&core, root, "xlmdeobfuscator").await;
+        let error: String = error.unwrap_or_default().chars().take(120).collect();
+        let details: Option<serde_json::Value> = sqlx::query_scalar(
+            "SELECT details FROM analysis.results WHERE root_id = $1 AND module = 'xlmdeobfuscator'",
+        )
+        .bind(root)
+        .fetch_optional(core.test_db.db().pool())
+        .await
+        .expect("a result");
+        let files: i64 =
+            sqlx::query_scalar("SELECT count(*) FROM analysis.files WHERE root_id = $1")
+                .bind(root)
+                .fetch_one(core.test_db.db().pool())
+                .await
+                .expect("counts");
+        println!(
+            "{name}\t{}\t{state}\t{seconds:.1}\t{}\t{details:?}\t{error}",
+            bytes.len(),
+            files - 1
+        );
+        assert!(pool.running(), "the supervisor kept running after {name}");
     }
     let _ = pool.stop();
 }

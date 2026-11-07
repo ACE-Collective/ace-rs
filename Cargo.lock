@@ -15,6 +15,7 @@ dependencies = [
  "ace-mod-python",
  "ace-mod-rdap",
  "ace-mod-splunk",
+ "ace-mod-xlm",
  "ace-mod-yara",
 ]
 
@@ -131,18 +132,10 @@ dependencies = [
  "ace-results",
  "ace-sdk",
  "ace-testkit",
- "aes",
- "cbc",
- "cipher",
- "digest 0.11.3",
- "md-5",
- "rc4",
  "regex",
  "schemars 1.2.3",
  "serde",
  "serde_json",
- "sha1",
- "sha2 0.11.1",
  "tempfile",
  "tracing",
 ]
@@ -154,17 +147,28 @@ dependencies = [
  "ace-results",
  "ace-sdk",
  "ace-testkit",
+ "ace-xlrd",
+ "ace-xlsb",
+ "aes",
  "base64 0.22.1",
  "bzip2",
+ "cbc",
+ "cipher",
  "crc32fast",
+ "digest 0.11.3",
  "encoding_rs",
+ "fancy-regex",
  "flate2",
+ "indexmap",
  "md-5",
  "memchr",
+ "rc4",
  "regex",
  "schemars 1.2.3",
  "serde",
  "serde_json",
+ "sha1",
+ "sha2 0.11.1",
  "tracing",
 ]
 
@@ -236,6 +240,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "ace-mod-xlm"
+version = "0.1.0"
+dependencies = [
+ "ace-mod-oletools",
+ "ace-results",
+ "ace-sdk",
+ "ace-testkit",
+ "magic",
+ "regex",
+ "schemars 1.2.3",
+ "serde",
+ "serde_json",
+ "yara-x",
+]
+
+[[package]]
 name = "ace-mod-yara"
 version = "0.1.0"
 dependencies = [
@@ -263,6 +283,7 @@ dependencies = [
  "ace-mod-pdf",
  "ace-mod-python",
  "ace-mod-splunk",
+ "ace-mod-xlm",
  "ace-mod-yara",
  "ace-pool",
  "ace-results",
@@ -388,6 +409,22 @@ dependencies = [
  "thiserror 2.0.21",
  "tokio",
  "uuid",
+]
+
+[[package]]
+name = "ace-xlrd"
+version = "0.1.0"
+dependencies = [
+ "encoding_rs",
+ "indexmap",
+]
+
+[[package]]
+name = "ace-xlsb"
+version = "0.1.0"
+dependencies = [
+ "indexmap",
+ "zip",
 ]
 
 [[package]]

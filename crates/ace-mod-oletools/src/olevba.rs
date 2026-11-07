@@ -1,7 +1,7 @@
 //! olevba's `VBA_Parser` with `relaxed=True`, as ace3's module and the library diff call it.
 //!
-//! Three things it calls aren't all here. XLMMacroDeobfuscator isn't ported until PLAN.md 4.12, so a
-//! macro sheet beside VBA gives the `XLM macro` keyword without the text olevba gets from it. pcodedmp
+//! Three things it calls aren't all here. XLMMacroDeobfuscator is ported (`xlmdeob`). oledump's
+//! plugin_biff only lists a workbook's sheets (`xlm.rs`). pcodedmp
 //! is ported (`pcode.rs`), because stomping is decided on its whole output. ftguess only answers
 //! whether a file is Excel.
 
@@ -74,6 +74,8 @@ pub struct VbaParser {
     vba_projects: Option<Vec<(String, String, String)>>,
     contains_vba: Option<bool>,
     contains_xlm: bool,
+    xlm_detected: bool,
+    xlm_macros: Vec<String>,
     vba_code_all_modules: Option<String>,
     modules: Option<Vec<Macro>>,
     modules_bytes: usize,
@@ -111,6 +113,8 @@ impl VbaParser {
             vba_projects: None,
             contains_vba: None,
             contains_xlm: false,
+            xlm_detected: false,
+            xlm_macros: Vec::new(),
             vba_code_all_modules: None,
             modules: None,
             modules_bytes: 0,
@@ -280,6 +284,11 @@ impl VbaParser {
         }
         if data.starts_with(b"ID") {
             self.kind = Some("SLK");
+            self.xlm_detected = true;
+            if let Some(lines) = crate::xlm::slk_macros(&data) {
+                self.xlm_macros = lines;
+                self.contains_xlm = true;
+            }
         }
         if self.kind.is_none() && !data.contains(&0) {
             self.vba_code_all_modules = Some(String::from_utf8_lossy(&data).into_owned());
@@ -425,14 +434,53 @@ impl VbaParser {
         Ok(contains)
     }
 
-    /// Whether a workbook holds a macro sheet, standing in for what XLMMacroDeobfuscator and
-    /// plugin_biff say until 4.12. Only an Excel file on disk gets this far in olevba.
+    /// `detect_xlm_macros`: XLMMacroDeobfuscator, then plugin_biff when that raises or the file isn't
+    /// on disk. Asked again it answers the same, so only the first asking does the work.
     fn detect_xlm(&mut self) -> PyResult<bool> {
-        if self.contains_xlm || !self.file_type.is_excel || !self.file_on_disk {
+        if self.xlm_detected {
             return Ok(self.contains_xlm);
         }
-        self.contains_xlm = crate::xlm::has_macro_sheet(&self.data, self.ole_file.as_mut());
+        self.xlm_detected = true;
+        if !self.file_type.is_excel {
+            return Ok(false);
+        }
+        if self.file_on_disk {
+            match crate::xlmdeob::olevba_macro_lines(&self.data, &name_text(self.filename.as_ref()))
+            {
+                Ok(Some(lines)) => {
+                    self.xlm_macros = lines;
+                    self.contains_xlm = true;
+                    return Ok(true);
+                }
+                Ok(None) => return Ok(false),
+                Err(_) => {}
+            }
+        }
+        if let Some(ole) = self.ole_file.as_mut() {
+            let (lines, found) = crate::xlm::plugin_biff(ole);
+            self.xlm_macros = lines;
+            self.contains_xlm = found;
+        }
         Ok(self.contains_xlm)
+    }
+
+    /// olevba's `xlm_macro` macro, from what `detect_xlm` kept.
+    fn push_xlm_macro(&mut self) -> PyResult<()> {
+        if self.xlm_macros.is_empty() {
+            return Ok(());
+        }
+        let mut code = String::new();
+        for line in &self.xlm_macros {
+            code.push_str("' ");
+            code.push_str(line);
+            code.push('\n');
+        }
+        self.push_macro(Macro {
+            file_name: Some(text("xlm_macro")),
+            stream_path: Some("xlm_macro".to_owned()),
+            vba_filename: Some(text("xlm_macro.txt")),
+            code: Some(code),
+        })
     }
 
     fn push_macro(&mut self, item: Macro) -> PyResult<()> {
@@ -473,7 +521,7 @@ impl VbaParser {
                 return self.push_macro(item);
             }
             if self.kind == Some("SLK") {
-                return Ok(());
+                return self.push_xlm_macro();
             }
             let mut subfiles = std::mem::take(&mut self.subfiles);
             let result = (|| {
@@ -491,7 +539,8 @@ impl VbaParser {
                 Ok(())
             })();
             self.subfiles = subfiles;
-            return result;
+            result?;
+            return self.push_xlm_macro();
         }
         let projects = self.find_vba_projects().unwrap_or_default();
         let filename = self.filename.clone();
@@ -546,6 +595,7 @@ impl VbaParser {
                 }
             }
         }
+        self.push_xlm_macro()?;
         if self.detect_vba_stomping()? {
             let mut code = String::new();
             for line in splitlines(self.pcode_output.as_deref().unwrap_or_default()) {

@@ -1,0 +1,17 @@
+[package]
+name = "ace-xlsb"
+version = "0.1.0"
+description = "What XLMMacroDeobfuscator reads of an XLSB workbook: a port of the parts of pyxlsb2 it calls"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+indexmap = "2"
+
+[dev-dependencies]
+zip = { version = "9", default-features = false, features = ["deflate"] }
+
+[lints]
+workspace = true

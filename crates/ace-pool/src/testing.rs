@@ -38,6 +38,14 @@ pub fn modules(settings: &Value) -> Result<Modules, SetupError> {
             block("rtfole"),
             &secrets,
         )?)
+        .with_parser(Entry::<ace_mod_xlm::XlmDeobfuscator>::parser(
+            block("xlmdeobfuscator"),
+            &secrets,
+        )?)
+        .with_parser(Entry::<ace_mod_xlm::PCode>::parser(
+            block("pcodedmp"),
+            &secrets,
+        )?)
         .with_parser(Entry::<ace_mod_msoffice::MsofficeEncryption>::parser(
             block("msoffice_encryption_analyzer"),
             &secrets,
