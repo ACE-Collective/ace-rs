@@ -13,7 +13,7 @@
 //! as `Authorization: Bearer <token>`, or a GUI session's cookie with the same-origin check
 //! (`Service::authenticate_request`).
 //!
-//! What ace3's alerts, analysis and observables routers do, and where each went:
+//! What ace3's alerts, analysis and observables routers do (PLAN.md 5.5), and where each went:
 //!
 //! | ace3 `/api/v2` | here |
 //! |---|---|
@@ -39,6 +39,39 @@
 //! - Detection points are their own router in 5.6.
 //! - `PATCH /observables/interesting` sets a flag in ace3's index of every observable, which ace4 doesn't
 //!   have: a flag an analyst sets across alerts is one of 5.14's analyst-edited lists.
+//!
+//! ace3's `users` router (PLAN.md 5.6), and its Flask password change, under `/api/users/v1`:
+//!
+//! | ace3 | here |
+//! |---|---|
+//! | `GET /users/management-view` | its parts: `GET /users`, `GET /groups` and `GET /catalog` |
+//! | `GET /users/details?user_ids=` | `GET /users/{id}`, one user, with their grants and groups |
+//! | `GET /users/catalog` | `GET /catalog` |
+//! | `POST /users/` | `POST /users`, with no grants or groups |
+//! | `PATCH /users/` | per user: `PATCH /users/{id}` for the profile, `PUT /users/{id}/enabled`, `PUT /users/{id}/password` |
+//! | the `groups` of `POST` and `PATCH /users/` | `PUT` and `DELETE /groups/{id}/members/{user}` |
+//! | the `permissions` of `POST` and `PATCH /users/`, and `POST /users/permissions` | `POST /grants`, to a user, group or key |
+//! | `POST /users/permissions/delete`, by row ids | `POST /grants/revoke`, by holder, pattern and effect |
+//! | `POST /users/groups`, `POST /users/groups/delete` | `POST /groups`, `DELETE /groups/{id}` |
+//! | `GET /users/{id}/apikeys` | `GET /keys?owner={id}`, or every key, ownerless ones included |
+//! | `POST /users/{id}/apikeys` | `POST /keys`, with an `owner` or none |
+//! | `PUT`, `DELETE /users/apikeys/{id}` | `PUT`, `DELETE /keys/{id}` |
+//! | `GET`, `PATCH /users/me` | `GET`, `PATCH /me` |
+//! | the Flask `/auth/login/change` | `PUT /me/password`, which also clears the session's cookie |
+//! | `GET`, `POST /users/me/apikeys`, `PUT`, `DELETE /users/me/apikeys/{id}` | the same under `/me/keys` |
+//!
+//! What differs, or is left out, and why:
+//! - ace3 changes many users in one `PATCH`, with their grants and groups. Here each change is its own
+//!   request and its own audit row, through the service functions 5.4 and this step made.
+//! - ace3's `inherit` flag on a key is a scope of `*:*` (`ace_service`'s gate docs), and a key's scope
+//!   update keeps any deny on it. A revoke of a key that isn't there, or isn't the caller's, is a 404
+//!   rather than ace3's `{"revoked": false}`.
+//! - ace3 lets an API key that inherits its owner's scope read and change its owner's `/me`. Here only a
+//!   user has an account, so every key gets 403.
+//! - A user's `queue`: alerts have no queues yet (PLAN.md 7.13).
+//! - Login and logout are ace3's Flask views, and come with the GUI's login page (5.7), which sets the
+//!   cookie this API reads. ace3's held catalog, the scope picker of a user's own keys, has no route in
+//!   its router: it comes with the preferences page (5.11).
 
 use std::net::SocketAddr;
 
@@ -46,7 +79,7 @@ use ace_core::bucket::Bucket;
 use ace_service::{Service, Transport};
 use axum::Router;
 use axum::extract::DefaultBodyLimit;
-use axum::routing::{get, post, put};
+use axum::routing::{delete, get, post, put};
 use utoipa::OpenApi;
 
 mod alerts;
@@ -54,6 +87,7 @@ mod analysis;
 mod auth;
 mod error;
 mod observables;
+mod users;
 
 use auth::Schemes;
 
@@ -145,8 +179,60 @@ impl Web {
                 "/api/observables/v1/lookup",
                 post(observables::lookup).layer(json_limit),
             )
+            .merge(self.users_router())
             .layer(axum::middleware::from_fn(auth::with_source))
             .with_state(self.clone())
+    }
+}
+
+impl Web {
+    /// `/api/users/v1`, every body held to `max_json_bytes`.
+    fn users_router(&self) -> Router<Web> {
+        Router::new()
+            .route(
+                "/api/users/v1/users",
+                get(users::list_users).post(users::create_user),
+            )
+            .route(
+                "/api/users/v1/users/{id}",
+                get(users::user).patch(users::update_user),
+            )
+            .route("/api/users/v1/users/{id}/enabled", put(users::set_enabled))
+            .route(
+                "/api/users/v1/users/{id}/password",
+                put(users::reset_password),
+            )
+            .route(
+                "/api/users/v1/groups",
+                get(users::list_groups).post(users::create_group),
+            )
+            .route("/api/users/v1/groups/{id}", delete(users::delete_group))
+            .route(
+                "/api/users/v1/groups/{id}/members/{user}",
+                put(users::add_member).delete(users::remove_member),
+            )
+            .route("/api/users/v1/grants", post(users::grant))
+            .route("/api/users/v1/grants/revoke", post(users::revoke))
+            .route("/api/users/v1/catalog", get(users::catalog))
+            .route(
+                "/api/users/v1/keys",
+                get(users::list_keys).post(users::create_key),
+            )
+            .route(
+                "/api/users/v1/keys/{id}",
+                put(users::update_key).delete(users::revoke_key),
+            )
+            .route("/api/users/v1/me", get(users::me).patch(users::update_me))
+            .route("/api/users/v1/me/password", put(users::change_password))
+            .route(
+                "/api/users/v1/me/keys",
+                get(users::my_keys).post(users::create_my_key),
+            )
+            .route(
+                "/api/users/v1/me/keys/{id}",
+                put(users::update_my_key).delete(users::revoke_my_key),
+            )
+            .layer(DefaultBodyLimit::max(self.config.max_json_bytes))
     }
 }
 
@@ -166,6 +252,31 @@ impl Web {
         alerts::disposition,
         analysis::submit,
         observables::lookup,
+        users::list_users,
+        users::create_user,
+        users::user,
+        users::update_user,
+        users::set_enabled,
+        users::reset_password,
+        users::list_groups,
+        users::create_group,
+        users::delete_group,
+        users::add_member,
+        users::remove_member,
+        users::grant,
+        users::revoke,
+        users::catalog,
+        users::list_keys,
+        users::create_key,
+        users::update_key,
+        users::revoke_key,
+        users::me,
+        users::update_me,
+        users::change_password,
+        users::my_keys,
+        users::create_my_key,
+        users::update_my_key,
+        users::revoke_my_key,
     ),
     modifiers(&Schemes),
     security(("api_key" = []), ("session" = [])),
@@ -173,6 +284,7 @@ impl Web {
         (name = "alerts", description = "Alerts, what modules found in them, and their dispositions"),
         (name = "analysis", description = "Submitting analysis"),
         (name = "observables", description = "Observables across alerts"),
+        (name = "users", description = "Users, groups, grants and API keys, and the caller's own account"),
     )
 )]
 pub struct ApiDoc;

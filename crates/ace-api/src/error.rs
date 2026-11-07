@@ -59,7 +59,9 @@ impl From<ServiceError> for ApiError {
             ServiceError::NotFound(_)
             | ServiceError::NoUser(_)
             | ServiceError::Orchestrator(OrchestratorError::NoRoot(_)) => StatusCode::NOT_FOUND,
-            ServiceError::UsernameTaken | ServiceError::UsersExist => StatusCode::CONFLICT,
+            ServiceError::UsernameTaken
+            | ServiceError::GroupNameTaken
+            | ServiceError::UsersExist => StatusCode::CONFLICT,
             ServiceError::Bucket(BucketError::Deleting { .. }) => StatusCode::SERVICE_UNAVAILABLE,
             error if error.is_retryable() => StatusCode::SERVICE_UNAVAILABLE,
             ServiceError::Orchestrator(_)

@@ -29,10 +29,9 @@
 //! (`source`). Nothing reads `service.audit` yet. ace3's reader is Splunk searching log lines, and
 //! `Gate::write`'s log line keeps that search working.
 //!
-//! Not here yet from ace3's permissions: the catalog of known names, which warns about a typo and
-//! feeds the management screens, group management and API key scopes, all with the `users` router in
-//! 5.6. A 403 saying which half of a key's check refused comes with the routes. A grant holding a
-//! typo allows nothing.
+//! `users` reads users, groups and keys, and changes profiles, groups and keys' scopes, for 5.6's `users`
+//! router. `permission::CATALOG` is ace3's catalog of the names ACE checks. Not here from ace3: a 403
+//! saying which half of a key's check refused.
 //!
 //! Writes outside this crate today:
 //! - `Orchestrator::set_mode` and `queue::cancel_root` have no caller outside the core's own flows
@@ -49,6 +48,7 @@ mod observables;
 mod permission;
 mod source;
 mod submit;
+mod users;
 
 use ace_core::bucket::BucketError;
 use ace_core::db::{Db, DbError, Retryable};
@@ -76,10 +76,11 @@ pub use observables::{
     Lookup, MAX_EXCLUDED_ALERTS, MAX_LOOKUP_PAIRS, MAX_RECENT_ALERTS, OPEN, Prevalence, RecentAlert,
 };
 pub use permission::{
-    ALERT_CREATE, ALERT_READ, ALERT_WRITE, Effect, InvalidPermission, OBSERVABLE_READ,
-    PermissionName, PermissionPattern, USER_SELF, USER_WRITE,
+    ALERT_CREATE, ALERT_READ, ALERT_WRITE, CATALOG, CatalogEntry, Effect, InvalidPermission,
+    OBSERVABLE_READ, PermissionName, PermissionPattern, USER_READ, USER_SELF, USER_WRITE,
 };
 pub use source::with_source_ip;
+pub use users::{ApiKey, Grant, Group, MAX_KEY_SCOPE, Profile, User, UserDetail};
 
 /// A group's id. Groups hold users, and their rows apply to their members.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -109,6 +110,8 @@ pub enum ServiceError {
     CrossSiteRequest,
     #[error("that username is taken")]
     UsernameTaken,
+    #[error("that group name is taken")]
+    GroupNameTaken,
     #[error("no user {0}")]
     NoUser(Uuid),
     #[error("a user exists already, so a first user needs forcing")]
@@ -119,7 +122,7 @@ pub enum ServiceError {
         "a password has to be at least {MIN_PASSWORD_CHARS} characters and at most {MAX_PASSWORD_BYTES} bytes"
     )]
     WeakPassword,
-    #[error("an API key's name is 1 to 255 characters")]
+    #[error("an API key's name is 1 to 255 characters with no control characters")]
     InvalidKeyName,
     /// Hashing failed, or there was no randomness to do it with. It holds no password.
     #[error("hashing a credential: {0}")]
@@ -161,6 +164,7 @@ impl Retryable for ServiceError {
             | ServiceError::NotAuthenticated
             | ServiceError::CrossSiteRequest
             | ServiceError::UsernameTaken
+            | ServiceError::GroupNameTaken
             | ServiceError::NoUser(_)
             | ServiceError::UsersExist
             | ServiceError::CantDisableYourself
@@ -318,6 +322,10 @@ impl Service {
         effect: Effect,
     ) -> Result<bool, ServiceError> {
         let (user, group, api_key, component) = holder.columns();
+        if permission::covered_by(pattern).next().is_none() {
+            // ace3 warns about a likely typo and grants it anyway, since a site may know better
+            tracing::warn!(%actor, %pattern, "a grant covers no permission ACE checks");
+        }
         self.gate
             .write(actor, "grant", &USER_WRITE, &|tx| {
                 Box::pin(async move {
@@ -336,7 +344,17 @@ impl Service {
                         Json(actor) as _,
                     )
                     .execute(tx.conn())
-                    .await?;
+                    .await
+                    .map_err(|error| {
+                        let missing = error
+                            .as_database_error()
+                            .is_some_and(|error| error.is_foreign_key_violation());
+                        if missing {
+                            ServiceError::NotFound(format!("no {}", Target::holder(holder)))
+                        } else {
+                            error.into()
+                        }
+                    })?;
                     if added.rows_affected() == 0 {
                         return Ok(Audited::unchanged(false));
                     }

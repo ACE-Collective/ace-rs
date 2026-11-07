@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT major::text AS \"major!\", minor::text AS \"minor!\"\n           FROM service.permissions WHERE api_key_id = $1 AND effect = 'allow'",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "major!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "minor!",
+        "type_info": "Text",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null,
+      null
+    ]
+  },
+  "hash": "669c2d486aee7a2fcfab621d2a41d510bddf4303d94043b2951c85a9369a1566"
+}

@@ -36,6 +36,7 @@ use uuid::Uuid;
 use crate::actor::{Actor, ApiKeyId, Component, UserId};
 use crate::gate::{Audited, Change, Holder, Recorded, Target};
 use crate::permission::{Effect, PermissionPattern, USER_SELF, USER_WRITE};
+use crate::users::{KeyRecord, Profile, insert_scope, key_allows, key_name, key_scope};
 use crate::{Service, ServiceError};
 
 mod password;
@@ -51,9 +52,6 @@ use token::Kind;
 
 /// How long a session lasts from its login: a long shift.
 pub const SESSION_LIFETIME_SECONDS: i32 = 12 * 60 * 60;
-
-/// ace3's column is `String(255)`.
-const MAX_KEY_NAME: usize = 255;
 
 /// A username: ASCII and lowercase, by the same reasoning as a permission's parts, with migration 0022
 /// holding a stored one to the same rule. ace3 leaves case to its database's collation.
@@ -103,6 +101,11 @@ pub struct NewApiKey {
 struct UserRecord<'a> {
     username: &'a str,
     enabled: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    display_name: Option<&'a str>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    email: Option<&'a str>,
+    timezone: &'a str,
 }
 
 impl Recorded for UserRecord<'_> {}
@@ -143,14 +146,6 @@ struct LoginDetails {
 }
 
 impl Recorded for LoginDetails {}
-
-#[derive(Serialize)]
-struct ApiKeyRecord<'a> {
-    name: &'a str,
-    owner: Option<Uuid>,
-}
-
-impl Recorded for ApiKeyRecord<'_> {}
 
 /// That a password changed. Nothing about the password is in a row, not even its hash.
 #[derive(Serialize)]
@@ -357,13 +352,16 @@ impl Service {
         Ok(actor)
     }
 
-    /// Adds a user with no grants. It needs `user:write`.
+    /// Adds a user with no grants and this profile. It needs `user:write`.
     pub async fn create_user(
         &self,
         actor: &Actor,
         username: &Username,
         password: Password,
+        profile: &Profile,
     ) -> Result<UserId, ServiceError> {
+        let profile = profile.checked()?;
+        let (display_name, email, timezone) = profile.initial();
         let password_hash = self.passwords.hash(password).await?;
         let id = Uuid::new_v4();
         let (name, hash) = (username.as_str(), password_hash.as_str());
@@ -371,11 +369,24 @@ impl Service {
             .write(actor, "create_user", &USER_WRITE, &|tx| {
                 Box::pin(async move {
                     insert_user(tx.conn(), id, name, hash, actor).await?;
+                    sqlx::query!(
+                        "UPDATE service.users SET display_name = $2, email = $3, timezone = $4
+                         WHERE id = $1",
+                        id,
+                        display_name,
+                        email,
+                        timezone,
+                    )
+                    .execute(tx.conn())
+                    .await?;
                     let change = Change::added(
                         Target::holder(&Holder::User(UserId(id))),
                         &UserRecord {
                             username: name,
                             enabled: true,
+                            display_name,
+                            email,
+                            timezone,
                         },
                     )?;
                     Ok(Audited::changed(UserId(id), change))
@@ -433,6 +444,9 @@ impl Service {
                         &UserRecord {
                             username: name,
                             enabled: true,
+                            display_name: None,
+                            email: None,
+                            timezone: "UTC",
                         },
                     )?
                     .details(&FirstUserDetails {
@@ -591,21 +605,20 @@ impl Service {
             .await
     }
 
-    /// Makes an API key, with an owner or standing for a service, and returns its token, once. It needs
-    /// `user:write`. A key holds nothing until `grant` gives it something, and with an owner it never
-    /// holds more than the owner does. ace3's self-service for one's own keys, under `user:self`, comes
-    /// with the users router (5.6).
+    /// Makes an API key, with an owner or standing for a service, holding an allow on each pattern of
+    /// `scope`, and returns its token, once. It needs `user:write`. A key with an empty scope holds
+    /// nothing until `grant` gives it something, and with an owner it never holds more than the owner
+    /// does. A user's own keys are `users`' `create_own_api_key`, under `user:self`.
     pub async fn create_api_key(
         &self,
         actor: &Actor,
         name: &str,
         owner: Option<UserId>,
+        scope: &[PermissionPattern],
     ) -> Result<NewApiKey, ServiceError> {
-        let name = name.trim();
-        if name.is_empty() || name.chars().count() > MAX_KEY_NAME {
-            return Err(ServiceError::InvalidKeyName);
-        }
-        let minted = token::mint(Kind::ApiKey)?;
+        let (name, scope) = (key_name(name)?, key_scope(scope)?);
+        let scope = &scope;
+        let minted = mint_api_key()?;
         let (id, hash) = (minted.id, minted.hash.as_bytes());
         let owner_id = owner.map(|owner| owner.0);
         self.gate
@@ -632,11 +645,13 @@ impl Service {
                     )
                     .execute(tx.conn())
                     .await?;
+                    insert_scope(tx.conn(), id, scope, actor).await?;
                     let change = Change::added(
                         Target::holder(&Holder::ApiKey(ApiKeyId(id))),
-                        &ApiKeyRecord {
-                            name,
+                        &KeyRecord {
+                            name: name.to_owned(),
                             owner: owner_id,
+                            scope: scope.iter().map(ToString::to_string).collect(),
                         },
                     )?;
                     Ok(Audited::changed((), change))
@@ -655,6 +670,7 @@ impl Service {
         self.gate
             .write(actor, "revoke_api_key", &USER_WRITE, &|tx| {
                 Box::pin(async move {
+                    let scope = key_allows(tx.conn(), key).await?;
                     let removed = sqlx::query!(
                         "DELETE FROM service.api_keys WHERE id = $1 RETURNING name, owner_id",
                         key.0,
@@ -666,9 +682,10 @@ impl Service {
                     };
                     let change = Change::removed(
                         Target::holder(&Holder::ApiKey(key)),
-                        &ApiKeyRecord {
-                            name: &removed.name,
+                        &KeyRecord {
+                            name: removed.name,
                             owner: removed.owner_id,
+                            scope,
                         },
                     )?;
                     Ok(Audited::changed(true, change))
@@ -676,6 +693,11 @@ impl Service {
             })
             .await
     }
+}
+
+/// A new API key's id, token and hash.
+pub(crate) fn mint_api_key() -> Result<token::Minted, ServiceError> {
+    token::mint(Kind::ApiKey)
 }
 
 async fn insert_user(

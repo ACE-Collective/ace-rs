@@ -20,7 +20,7 @@ use ace_core::tree::{self, NewRoot};
 use ace_results::{AnalysisType, NewObservable, ObservableKind};
 use ace_sdk::{Lookup, Manifest, Module, ModuleError, Outcome, TaskContext};
 use ace_service::{
-    Actor, Component, Effect, Holder, Password, PermissionPattern, Service, Username,
+    Actor, Component, Effect, Holder, Password, PermissionPattern, Profile, Service, Username,
 };
 use ace_store::{BucketConfig, NodeCache, Store};
 use reqwest::{Method, StatusCode};
@@ -130,7 +130,7 @@ fn bootstrap() -> Actor {
 async fn key(stack: &Stack, grants: &[&str]) -> String {
     let made = stack
         .service
-        .create_api_key(&bootstrap(), "test", None)
+        .create_api_key(&bootstrap(), "test", None, &[])
         .await
         .expect("makes a key");
     for grant in grants {
@@ -232,8 +232,15 @@ impl<'s> Client<'s> {
             .stack
             .http
             .request(method.clone(), format!("{}{path}", self.stack.url));
-        if let Some(token) = token {
-            request = request.bearer_auth(token);
+        // a session's token goes as its cookie, from this server's own origin
+        match token {
+            Some(token) if token.starts_with("ace4s_") => {
+                request = request
+                    .header("cookie", format!("ace4_session={token}"))
+                    .header("origin", &self.stack.url);
+            }
+            Some(token) => request = request.bearer_auth(token),
+            None => {}
         }
         request = match send {
             Send::Nothing => request,
@@ -303,11 +310,49 @@ const FILE: &str = "/api/alerts/v1/alerts/{id}/observables/{observable}/file";
 const DISPOSITION: &str = "/api/alerts/v1/alerts/{id}/disposition";
 const SUBMIT: &str = "/api/analysis/v1/submit";
 const LOOKUP: &str = "/api/observables/v1/lookup";
+const USERS: &str = "/api/users/v1/users";
+const USER: &str = "/api/users/v1/users/{id}";
+const ENABLED: &str = "/api/users/v1/users/{id}/enabled";
+const RESET: &str = "/api/users/v1/users/{id}/password";
+const GROUPS: &str = "/api/users/v1/groups";
+const GROUP: &str = "/api/users/v1/groups/{id}";
+const MEMBER: &str = "/api/users/v1/groups/{id}/members/{user}";
+const GRANTS: &str = "/api/users/v1/grants";
+const REVOKE: &str = "/api/users/v1/grants/revoke";
+const CATALOG: &str = "/api/users/v1/catalog";
+const KEYS: &str = "/api/users/v1/keys";
+const KEY: &str = "/api/users/v1/keys/{id}";
+const ME: &str = "/api/users/v1/me";
+const MY_PASSWORD: &str = "/api/users/v1/me/password";
+const MY_KEYS: &str = "/api/users/v1/me/keys";
+const MY_KEY: &str = "/api/users/v1/me/keys/{id}";
+const OTHER_PASSWORD: &str = "a different long passphrase";
 
 fn fill(route: &str, id: Uuid, observable: i64) -> String {
     route
         .replace("{id}", &id.to_string())
         .replace("{observable}", &observable.to_string())
+        .replace("{user}", &id.to_string())
+}
+
+/// A route with `{id}` and `{user}` filled.
+fn at(route: &str, id: impl std::fmt::Display, user: impl std::fmt::Display) -> String {
+    route
+        .replace("{id}", &id.to_string())
+        .replace("{user}", &user.to_string())
+}
+
+/// A JSON body over the limit.
+fn too_large() -> Send {
+    Send::Bytes(format!("{{\"name\": \"{}\"}}", "x".repeat(MAX_JSON)).into_bytes())
+}
+
+fn scope_body(name: &str, scope: &[(&str, &str)]) -> Value {
+    let scope: Vec<Value> = scope
+        .iter()
+        .map(|(major, minor)| json!({"major": major, "minor": minor}))
+        .collect();
+    json!({"name": name, "scope": scope})
 }
 
 /// A body each route would take, so a 401 or 403 is about the credential and nothing else.
@@ -316,6 +361,19 @@ fn good_body(route: &str) -> Send {
         DISPOSITION => Send::Json(json!({"disposition": "FALSE_POSITIVE"})),
         SUBMIT => Send::Form(form(&json!({"description": "x"}), &[])),
         LOOKUP => Send::Json(json!({"observables": [{"type": "fqdn", "value": "a.example"}]})),
+        USERS => Send::Json(json!({"username": "refused", "password": PASSWORD})),
+        USER | ME => Send::Json(json!({"display_name": "x"})),
+        ENABLED => Send::Json(json!({"enabled": true})),
+        RESET => Send::Json(json!({"password": PASSWORD})),
+        GROUPS => Send::Json(json!({"name": "refused"})),
+        GRANTS | REVOKE => Send::Json(json!({
+            "holder": {"kind": "user", "id": Uuid::nil()},
+            "major": "alert",
+            "minor": "read",
+            "effect": "allow",
+        })),
+        KEYS | KEY | MY_KEYS | MY_KEY => Send::Json(scope_body("refused", &[("alert", "read")])),
+        MY_PASSWORD => Send::Json(json!({"current": PASSWORD, "new": OTHER_PASSWORD})),
         _ => Send::Nothing,
     }
 }
@@ -334,12 +392,20 @@ async fn refuses_without_a_credential_or_a_permission(
         .into_iter()
         .map(|(method, route, _)| (method, route))
         .collect();
-    assert_eq!(routes.len(), 7, "{routes:?}");
+    assert_eq!(routes.len(), 32, "{routes:?}");
     for (method, route) in routes {
         let method: Method = method.to_uppercase().parse().expect("a method");
         let path = fill(&route, id, file);
+        // a GET's body is nothing
+        let send_for = |route: &str| {
+            if method == Method::GET {
+                Send::Nothing
+            } else {
+                good_body(route)
+            }
+        };
         let response = client
-            .call(method.clone(), &route, &path, None, good_body(&route))
+            .call(method.clone(), &route, &path, None, send_for(&route))
             .await;
         assert_eq!(response.status(), 401, "{route} without a credential");
         assert_eq!(
@@ -351,13 +417,7 @@ async fn refuses_without_a_credential_or_a_permission(
         assert_eq!(body, json!({"error": "not authenticated"}));
         for wrong in ["ace4k_00000000-0000-0000-0000-000000000000_x", "x"] {
             let response = client
-                .call(
-                    method.clone(),
-                    &route,
-                    &path,
-                    Some(wrong),
-                    good_body(&route),
-                )
+                .call(method.clone(), &route, &path, Some(wrong), send_for(&route))
                 .await;
             assert_eq!(response.status(), 401, "{route} with {wrong}");
         }
@@ -376,7 +436,7 @@ async fn refuses_without_a_credential_or_a_permission(
                 &route,
                 &path,
                 Some(&nothing),
-                good_body(&route),
+                send_for(&route),
             )
             .await;
         assert_eq!(response.status(), 403, "{route} with a key holding nothing");
@@ -1080,6 +1140,831 @@ fn sha256_hex(bytes: &[u8]) -> String {
     hex::encode(sha2::Sha256::digest(bytes))
 }
 
+fn id_of(value: &Value) -> Uuid {
+    value["id"]
+        .as_str()
+        .expect("an id")
+        .parse()
+        .expect("a uuid")
+}
+
+/// The users router's administration: users, groups, grants, the catalog and keys.
+async fn manages_users(client: &mut Client<'_>, token: &str) {
+    use Method as M;
+    use StatusCode as S;
+    let t = Some(token);
+    let missing = Uuid::from_u128(0xBAD);
+    let json = Send::Json;
+
+    // users
+    let rows = audit_count(client.stack).await;
+    let made = client
+        .json(
+            M::POST,
+            USERS,
+            USERS,
+            t,
+            json(json!({
+                "username": "Analyst",
+                "password": PASSWORD,
+                "display_name": "An Analyst",
+                "email": "analyst@example.com",
+                "timezone": "Europe/London",
+            })),
+            S::CREATED,
+        )
+        .await;
+    let analyst = id_of(&made);
+    assert_eq!(audit_count(client.stack).await, rows + 1, "the user's row");
+    for bad in [
+        json!({"username": "weak", "password": "short"}),
+        json!({"username": "no spaces", "password": PASSWORD}),
+        json!({"username": "zoned", "password": PASSWORD, "timezone": "Mars/Olympus"}),
+        json!({"username": "extra", "password": PASSWORD, "admin": true}),
+        json!({"password": PASSWORD}),
+    ] {
+        client
+            .json(M::POST, USERS, USERS, t, json(bad), S::BAD_REQUEST)
+            .await;
+    }
+    client
+        .json(
+            M::POST,
+            USERS,
+            USERS,
+            t,
+            json(json!({"username": "analyst", "password": PASSWORD})),
+            S::CONFLICT,
+        )
+        .await;
+    client
+        .json(M::POST, USERS, USERS, t, too_large(), S::PAYLOAD_TOO_LARGE)
+        .await;
+
+    let listed = client
+        .json(M::GET, USERS, USERS, t, Send::Nothing, S::OK)
+        .await;
+    let names: Vec<&str> = listed
+        .as_array()
+        .expect("users")
+        .iter()
+        .map(|user| user["username"].as_str().expect("a name"))
+        .collect();
+    assert!(names.contains(&"analyst"), "{names:?}");
+    client
+        .json(
+            M::GET,
+            USERS,
+            &format!("{USERS}?include_disabled=maybe"),
+            t,
+            Send::Nothing,
+            S::BAD_REQUEST,
+        )
+        .await;
+
+    let one = at(USER, analyst, "");
+    let detail = client
+        .json(M::GET, USER, &one, t, Send::Nothing, S::OK)
+        .await;
+    assert_eq!(detail["user"]["username"], "analyst");
+    assert_eq!(detail["user"]["display_name"], "An Analyst");
+    assert_eq!(detail["user"]["timezone"], "Europe/London");
+    assert!(detail["user"].get("password_hash").is_none());
+    client
+        .json(
+            M::GET,
+            USER,
+            &at(USER, "nope", ""),
+            t,
+            Send::Nothing,
+            S::BAD_REQUEST,
+        )
+        .await;
+    client
+        .json(
+            M::GET,
+            USER,
+            &at(USER, missing, ""),
+            t,
+            Send::Nothing,
+            S::NOT_FOUND,
+        )
+        .await;
+
+    let changed = client
+        .json(
+            M::PATCH,
+            USER,
+            &one,
+            t,
+            json(json!({"timezone": "Asia/Tokyo"})),
+            S::OK,
+        )
+        .await;
+    assert_eq!(changed, json!({"changed": true}));
+    let again = client
+        .json(
+            M::PATCH,
+            USER,
+            &one,
+            t,
+            json(json!({"timezone": "Asia/Tokyo"})),
+            S::OK,
+        )
+        .await;
+    assert_eq!(again, json!({"changed": false}));
+    client
+        .json(
+            M::PATCH,
+            USER,
+            &one,
+            t,
+            json(json!({"email": "nope"})),
+            S::BAD_REQUEST,
+        )
+        .await;
+    client
+        .json(
+            M::PATCH,
+            USER,
+            &at(USER, missing, ""),
+            t,
+            json(json!({"timezone": "UTC"})),
+            S::NOT_FOUND,
+        )
+        .await;
+    client
+        .json(M::PATCH, USER, &one, t, too_large(), S::PAYLOAD_TOO_LARGE)
+        .await;
+
+    let enabled = at(ENABLED, analyst, "");
+    let off = client
+        .json(
+            M::PUT,
+            ENABLED,
+            &enabled,
+            t,
+            json(json!({"enabled": false})),
+            S::OK,
+        )
+        .await;
+    assert_eq!(off, json!({"changed": true}));
+    client
+        .json(
+            M::PUT,
+            ENABLED,
+            &enabled,
+            t,
+            json(json!({"enabled": true})),
+            S::OK,
+        )
+        .await;
+    client
+        .json(
+            M::PUT,
+            ENABLED,
+            &enabled,
+            t,
+            json(json!({"enabled": "no"})),
+            S::BAD_REQUEST,
+        )
+        .await;
+    client
+        .json(
+            M::PUT,
+            ENABLED,
+            &at(ENABLED, missing, ""),
+            t,
+            json(json!({"enabled": true})),
+            S::NOT_FOUND,
+        )
+        .await;
+    client
+        .json(
+            M::PUT,
+            ENABLED,
+            &enabled,
+            t,
+            too_large(),
+            S::PAYLOAD_TOO_LARGE,
+        )
+        .await;
+
+    let reset = at(RESET, analyst, "");
+    let response = client
+        .call(
+            M::PUT,
+            RESET,
+            &reset,
+            t,
+            json(json!({"password": OTHER_PASSWORD})),
+        )
+        .await;
+    assert_eq!(response.status(), S::NO_CONTENT);
+    client
+        .stack
+        .service
+        .login("analyst", Password::new(OTHER_PASSWORD), None)
+        .await
+        .expect("the new password works");
+    client
+        .json(
+            M::PUT,
+            RESET,
+            &reset,
+            t,
+            json(json!({"password": "short"})),
+            S::BAD_REQUEST,
+        )
+        .await;
+    client
+        .json(
+            M::PUT,
+            RESET,
+            &at(RESET, missing, ""),
+            t,
+            json(json!({"password": PASSWORD})),
+            S::NOT_FOUND,
+        )
+        .await;
+    client
+        .json(M::PUT, RESET, &reset, t, too_large(), S::PAYLOAD_TOO_LARGE)
+        .await;
+
+    // groups, members and grants
+    let triage = id_of(
+        &client
+            .json(
+                M::POST,
+                GROUPS,
+                GROUPS,
+                t,
+                json(json!({"name": "triage"})),
+                S::CREATED,
+            )
+            .await,
+    );
+    client
+        .json(
+            M::POST,
+            GROUPS,
+            GROUPS,
+            t,
+            json(json!({"name": "triage"})),
+            S::CONFLICT,
+        )
+        .await;
+    client
+        .json(
+            M::POST,
+            GROUPS,
+            GROUPS,
+            t,
+            json(json!({"name": " "})),
+            S::BAD_REQUEST,
+        )
+        .await;
+    client
+        .json(
+            M::POST,
+            GROUPS,
+            GROUPS,
+            t,
+            too_large(),
+            S::PAYLOAD_TOO_LARGE,
+        )
+        .await;
+    let member = at(MEMBER, triage, analyst);
+    for _ in 0..2 {
+        let response = client.call(M::PUT, MEMBER, &member, t, Send::Nothing).await;
+        assert_eq!(
+            response.status(),
+            S::NO_CONTENT,
+            "putting a member in twice"
+        );
+    }
+    client
+        .json(
+            M::PUT,
+            MEMBER,
+            &at(MEMBER, missing, analyst),
+            t,
+            Send::Nothing,
+            S::NOT_FOUND,
+        )
+        .await;
+    client
+        .json(
+            M::PUT,
+            MEMBER,
+            &at(MEMBER, triage, "nope"),
+            t,
+            Send::Nothing,
+            S::BAD_REQUEST,
+        )
+        .await;
+    let to_triage = |effect: &str| {
+        json!({
+            "holder": {"kind": "group", "id": triage},
+            "major": "Alert",
+            "minor": "READ",
+            "effect": effect,
+        })
+    };
+    let granted = client
+        .json(M::POST, GRANTS, GRANTS, t, json(to_triage("allow")), S::OK)
+        .await;
+    assert_eq!(granted, json!({"changed": true}));
+    for bad in [
+        json!({"holder": {"kind": "group", "id": triage}, "major": "alert:x", "minor": "read", "effect": "allow"}),
+        json!({"holder": {"kind": "component", "id": triage}, "major": "alert", "minor": "read", "effect": "allow"}),
+        json!({"holder": {"kind": "group", "id": triage}, "major": "alert", "minor": "read", "effect": "maybe"}),
+    ] {
+        client
+            .json(M::POST, GRANTS, GRANTS, t, json(bad), S::BAD_REQUEST)
+            .await;
+    }
+    client
+        .json(
+            M::POST,
+            GRANTS,
+            GRANTS,
+            t,
+            json(json!({
+                "holder": {"kind": "user", "id": missing},
+                "major": "alert",
+                "minor": "read",
+                "effect": "allow",
+            })),
+            S::NOT_FOUND,
+        )
+        .await;
+    client
+        .json(
+            M::POST,
+            GRANTS,
+            GRANTS,
+            t,
+            too_large(),
+            S::PAYLOAD_TOO_LARGE,
+        )
+        .await;
+    let detail = client
+        .json(M::GET, USER, &one, t, Send::Nothing, S::OK)
+        .await;
+    assert_eq!(detail["groups"][0]["name"], "triage");
+    assert_eq!(detail["groups"][0]["members"], json!([analyst]));
+    assert_eq!(detail["groups"][0]["grants"][0]["major"], "alert");
+    assert_eq!(detail["groups"][0]["grants"][0]["minor"], "read");
+    let groups = client
+        .json(M::GET, GROUPS, GROUPS, t, Send::Nothing, S::OK)
+        .await;
+    assert_eq!(groups.as_array().expect("groups").len(), 1);
+
+    // keys: one for the analyst, which holds what both it and the analyst hold
+    let catalog = client
+        .json(M::GET, CATALOG, CATALOG, t, Send::Nothing, S::OK)
+        .await;
+    assert!(
+        catalog
+            .as_array()
+            .expect("entries")
+            .iter()
+            .any(|entry| entry["major"] == "user" && entry["minor"] == "self"),
+        "{catalog}"
+    );
+    let mut body = scope_body("analyst's", &[("alert", "read"), ("observable", "read")]);
+    body["owner"] = json!(analyst);
+    let response = client.call(M::POST, KEYS, KEYS, t, json(body)).await;
+    assert_eq!(response.status(), S::CREATED);
+    assert_eq!(response.headers()["cache-control"], "no-store");
+    let made: Value = response.json().await.expect("a key");
+    let (analysts_key, analysts_token) = (
+        id_of(&made),
+        made["token"].as_str().expect("a token").to_owned(),
+    );
+    let reads = client
+        .stack
+        .http
+        .get(format!("{}{LIST}", client.stack.url))
+        .bearer_auth(&analysts_token)
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(
+        reads.status(),
+        200,
+        "the analyst reads alerts through triage"
+    );
+    let looks = client
+        .stack
+        .http
+        .post(format!("{}{LOOKUP}", client.stack.url))
+        .bearer_auth(&analysts_token)
+        .json(&json!({"observables": [{"type": "fqdn", "value": "a.example"}]}))
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(
+        looks.status(),
+        403,
+        "the analyst doesn't hold observable:read"
+    );
+    let mut no_owner = scope_body("orphan", &[("alert", "read")]);
+    no_owner["owner"] = json!(missing);
+    client
+        .json(M::POST, KEYS, KEYS, t, json(no_owner), S::NOT_FOUND)
+        .await;
+    for bad in [
+        scope_body("selfish", &[("user", "self")]),
+        scope_body(" ", &[("alert", "read")]),
+        json!({"name": "x"}),
+    ] {
+        client
+            .json(M::POST, KEYS, KEYS, t, json(bad), S::BAD_REQUEST)
+            .await;
+    }
+    client
+        .json(M::POST, KEYS, KEYS, t, too_large(), S::PAYLOAD_TOO_LARGE)
+        .await;
+    let theirs = client
+        .json(
+            M::GET,
+            KEYS,
+            &format!("{KEYS}?owner={analyst}"),
+            t,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(theirs.as_array().expect("keys").len(), 1);
+    assert_eq!(theirs[0]["name"], "analyst's");
+    assert_eq!(theirs[0]["owner"], json!(analyst));
+    assert_eq!(theirs[0]["grants"].as_array().expect("grants").len(), 2);
+    assert!(theirs[0].get("token").is_none());
+    client
+        .json(
+            M::GET,
+            KEYS,
+            &format!("{KEYS}?owner=nope"),
+            t,
+            Send::Nothing,
+            S::BAD_REQUEST,
+        )
+        .await;
+
+    let key = at(KEY, analysts_key, "");
+    let rescoped = client
+        .json(
+            M::PUT,
+            KEY,
+            &key,
+            t,
+            json(scope_body("analyst's", &[("observable", "read")])),
+            S::OK,
+        )
+        .await;
+    assert_eq!(rescoped, json!({"changed": true}));
+    let reads = client
+        .stack
+        .http
+        .get(format!("{}{LIST}", client.stack.url))
+        .bearer_auth(&analysts_token)
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(reads.status(), 403, "the same token, with its new scope");
+    client
+        .json(
+            M::PUT,
+            KEY,
+            &key,
+            t,
+            json(scope_body("analyst's", &[("bad:part", "read")])),
+            S::BAD_REQUEST,
+        )
+        .await;
+    client
+        .json(
+            M::PUT,
+            KEY,
+            &at(KEY, missing, ""),
+            t,
+            json(scope_body("x", &[])),
+            S::NOT_FOUND,
+        )
+        .await;
+    client
+        .json(M::PUT, KEY, &key, t, too_large(), S::PAYLOAD_TOO_LARGE)
+        .await;
+
+    // revoking
+    let revoked = client
+        .json(M::POST, REVOKE, REVOKE, t, json(to_triage("allow")), S::OK)
+        .await;
+    assert_eq!(revoked, json!({"changed": true}));
+    client
+        .json(
+            M::POST,
+            REVOKE,
+            REVOKE,
+            t,
+            json(
+                json!({"holder": {"kind": "group"}, "major": "a", "minor": "b", "effect": "allow"}),
+            ),
+            S::BAD_REQUEST,
+        )
+        .await;
+    client
+        .json(
+            M::POST,
+            REVOKE,
+            REVOKE,
+            t,
+            too_large(),
+            S::PAYLOAD_TOO_LARGE,
+        )
+        .await;
+    let response = client.call(M::DELETE, KEY, &key, t, Send::Nothing).await;
+    assert_eq!(response.status(), S::NO_CONTENT);
+    client
+        .json(M::DELETE, KEY, &key, t, Send::Nothing, S::NOT_FOUND)
+        .await;
+    client
+        .json(
+            M::DELETE,
+            KEY,
+            &at(KEY, "nope", ""),
+            t,
+            Send::Nothing,
+            S::BAD_REQUEST,
+        )
+        .await;
+    let response = client
+        .call(M::DELETE, MEMBER, &member, t, Send::Nothing)
+        .await;
+    assert_eq!(response.status(), S::NO_CONTENT);
+    client
+        .json(M::DELETE, MEMBER, &member, t, Send::Nothing, S::NOT_FOUND)
+        .await;
+    client
+        .json(
+            M::DELETE,
+            MEMBER,
+            &at(MEMBER, "nope", analyst),
+            t,
+            Send::Nothing,
+            S::BAD_REQUEST,
+        )
+        .await;
+    let group = at(GROUP, triage, "");
+    let response = client
+        .call(M::DELETE, GROUP, &group, t, Send::Nothing)
+        .await;
+    assert_eq!(response.status(), S::NO_CONTENT);
+    client
+        .json(M::DELETE, GROUP, &group, t, Send::Nothing, S::NOT_FOUND)
+        .await;
+    client
+        .json(
+            M::DELETE,
+            GROUP,
+            &at(GROUP, "nope", ""),
+            t,
+            Send::Nothing,
+            S::BAD_REQUEST,
+        )
+        .await;
+}
+
+/// The caller's own account, password and keys, as a GUI session.
+async fn serves_me(client: &mut Client<'_>) {
+    use Method as M;
+    use StatusCode as S;
+    let json = Send::Json;
+    let stack = client.stack;
+    let me = stack
+        .service
+        .create_user(
+            &bootstrap(),
+            &Username::new("me").expect("a name"),
+            Password::new(PASSWORD),
+            &Profile::default(),
+        )
+        .await
+        .expect("makes a user");
+    for grant in ["user:self", "alert:read"] {
+        let (major, minor) = grant.split_once(':').expect("a grant");
+        stack
+            .service
+            .grant(
+                &bootstrap(),
+                &Holder::User(me),
+                &PermissionPattern::new(major, minor).expect("a pattern"),
+                Effect::Allow,
+            )
+            .await
+            .expect("grants");
+    }
+    let session = stack
+        .service
+        .login("me", Password::new(PASSWORD), None)
+        .await
+        .expect("logs in");
+    let token = session.token.expose().to_owned();
+    let t = Some(token.as_str());
+
+    let mine = client.json(M::GET, ME, ME, t, Send::Nothing, S::OK).await;
+    assert_eq!(mine["id"], json!(me.0));
+    assert_eq!(mine["username"], "me");
+    let changed = client
+        .json(
+            M::PATCH,
+            ME,
+            ME,
+            t,
+            json(json!({"display_name": "Me", "timezone": "Europe/Paris"})),
+            S::OK,
+        )
+        .await;
+    assert_eq!(changed["display_name"], "Me");
+    assert_eq!(changed["timezone"], "Europe/Paris");
+    client
+        .json(
+            M::PATCH,
+            ME,
+            ME,
+            t,
+            json(json!({"email": "me@example.com"})),
+            S::BAD_REQUEST,
+        )
+        .await;
+    client
+        .json(M::PATCH, ME, ME, t, too_large(), S::PAYLOAD_TOO_LARGE)
+        .await;
+    // a session's write from another site is refused
+    let refused = stack
+        .http
+        .patch(format!("{}{ME}", stack.url))
+        .header("cookie", format!("ace4_session={token}"))
+        .header("origin", "https://evil.example")
+        .json(&json!({"display_name": "Evil"}))
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(refused.status(), 403);
+
+    let made = client
+        .json(
+            M::POST,
+            MY_KEYS,
+            MY_KEYS,
+            t,
+            json(scope_body("mine", &[("alert", "read")])),
+            S::CREATED,
+        )
+        .await;
+    let key = id_of(&made);
+    for bad in [
+        scope_body("mine", &[("alert", "*")]),
+        scope_body("mine", &[]),
+        scope_body("mine", &[("nothing", "here")]),
+    ] {
+        client
+            .json(M::POST, MY_KEYS, MY_KEYS, t, json(bad), S::BAD_REQUEST)
+            .await;
+    }
+    client
+        .json(
+            M::POST,
+            MY_KEYS,
+            MY_KEYS,
+            t,
+            too_large(),
+            S::PAYLOAD_TOO_LARGE,
+        )
+        .await;
+    let listed = client
+        .json(M::GET, MY_KEYS, MY_KEYS, t, Send::Nothing, S::OK)
+        .await;
+    assert_eq!(listed.as_array().expect("keys").len(), 1);
+    assert_eq!(listed[0]["owner"], json!(me.0));
+
+    let one = at(MY_KEY, key, "");
+    let renamed = client
+        .json(
+            M::PUT,
+            MY_KEY,
+            &one,
+            t,
+            json(scope_body("renamed", &[("alert", "read")])),
+            S::OK,
+        )
+        .await;
+    assert_eq!(renamed, json!({"changed": true}));
+    client
+        .json(
+            M::PUT,
+            MY_KEY,
+            &one,
+            t,
+            json(scope_body("x", &[])),
+            S::BAD_REQUEST,
+        )
+        .await;
+    // another user's key is no key of mine
+    let theirs = stack
+        .service
+        .create_api_key(&bootstrap(), "theirs", None, &[])
+        .await
+        .expect("makes a key");
+    client
+        .json(
+            M::PUT,
+            MY_KEY,
+            &at(MY_KEY, theirs.id.0, ""),
+            t,
+            json(scope_body("mine now", &[("alert", "read")])),
+            S::NOT_FOUND,
+        )
+        .await;
+    client
+        .json(M::PUT, MY_KEY, &one, t, too_large(), S::PAYLOAD_TOO_LARGE)
+        .await;
+    client
+        .json(
+            M::DELETE,
+            MY_KEY,
+            &at(MY_KEY, theirs.id.0, ""),
+            t,
+            Send::Nothing,
+            S::NOT_FOUND,
+        )
+        .await;
+    client
+        .json(
+            M::DELETE,
+            MY_KEY,
+            &at(MY_KEY, "nope", ""),
+            t,
+            Send::Nothing,
+            S::BAD_REQUEST,
+        )
+        .await;
+    let response = client.call(M::DELETE, MY_KEY, &one, t, Send::Nothing).await;
+    assert_eq!(response.status(), S::NO_CONTENT);
+
+    // the password, last, since a change ends the session
+    client
+        .json(
+            M::PUT,
+            MY_PASSWORD,
+            MY_PASSWORD,
+            t,
+            json(json!({"current": PASSWORD, "new": "short"})),
+            S::BAD_REQUEST,
+        )
+        .await;
+    client
+        .json(
+            M::PUT,
+            MY_PASSWORD,
+            MY_PASSWORD,
+            t,
+            json(json!({"current": OTHER_PASSWORD, "new": OTHER_PASSWORD})),
+            S::UNAUTHORIZED,
+        )
+        .await;
+    client
+        .json(
+            M::PUT,
+            MY_PASSWORD,
+            MY_PASSWORD,
+            t,
+            too_large(),
+            S::PAYLOAD_TOO_LARGE,
+        )
+        .await;
+    let response = client
+        .call(
+            M::PUT,
+            MY_PASSWORD,
+            MY_PASSWORD,
+            t,
+            json(json!({"current": PASSWORD, "new": OTHER_PASSWORD})),
+        )
+        .await;
+    assert_eq!(response.status(), S::NO_CONTENT);
+    let cleared = response.headers()["set-cookie"].to_str().expect("text");
+    assert!(
+        cleared.starts_with("ace4_session=;") && cleared.contains("Max-Age=0"),
+        "{cleared}"
+    );
+    client
+        .json(M::GET, ME, ME, t, Send::Nothing, S::UNAUTHORIZED)
+        .await;
+}
+
 /// The Done check.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn every_documented_status_is_tested() {
@@ -1106,6 +1991,9 @@ async fn every_documented_status_is_tested() {
     downloads(&mut client, &token, id, file, &bytes).await;
     dispositions(&mut client, &token).await;
     looks_up(&mut client, &token, id, &bytes).await;
+    let admin = key(&stack, &["user:read", "user:write"]).await;
+    manages_users(&mut client, &admin).await;
+    serves_me(&mut client).await;
 
     assert_eq!(
         client.seen,
@@ -1245,6 +2133,7 @@ async fn a_session_reads_and_another_site_can_t_write_with_it() {
             &bootstrap(),
             &Username::new("analyst").expect("a name"),
             Password::new(PASSWORD),
+            &Profile::default(),
         )
         .await
         .expect("makes a user");

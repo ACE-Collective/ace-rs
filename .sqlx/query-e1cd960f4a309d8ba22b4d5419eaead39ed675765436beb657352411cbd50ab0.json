@@ -1,0 +1,64 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, major::text AS \"major!\", minor::text AS \"minor!\", effect AS \"effect: Effect\"\n           FROM service.permissions WHERE user_id = $1 ORDER BY major, minor, effect",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "service.permissions",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "major!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "minor!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "effect: Effect",
+        "type_info": {
+          "Custom": {
+            "name": "service.permission_effect",
+            "kind": {
+              "Enum": [
+                "allow",
+                "deny"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "service.permissions",
+            "name": "effect"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      null,
+      false
+    ]
+  },
+  "hash": "e1cd960f4a309d8ba22b4d5419eaead39ed675765436beb657352411cbd50ab0"
+}

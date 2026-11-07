@@ -23,9 +23,10 @@
 //! such as a download: those go through `Gate::write` with `Change::read`, so they have a row like any
 //! write and the audit tests cover them.
 //!
-//! Three writes are a person's own and ask for no permission, because a user with no grants still has
-//! to be able to do them: `login`, `logout` and `change_own_password`, through `Gate::write_own`. Each
-//! still has its audit row, and `tests/service.rs` fails if a fourth function calls it.
+//! Four writes are a person's own and ask for no permission, because a user with no grants still has
+//! to be able to do them: `login`, `logout`, `change_own_password` and `update_own_profile`, through
+//! `Gate::write_own`. Each still has its audit row, and `tests/service.rs` fails if a fifth function
+//! calls it. A user's reads of their own account go through `Gate::read_own`, which checks nothing.
 
 use ace_core::db::{Db, Isolation, Tx, TxFuture};
 use sqlx::PgConnection;
@@ -181,6 +182,25 @@ impl Gate {
             .await
     }
 
+    /// `read` for an actor's own account, which no grant is needed for: a read-only snapshot with no check.
+    /// Its callers refuse an actor that isn't a user before they call it.
+    pub(crate) async fn read_own<'a, T, F>(&'a self, body: &'a F) -> Result<T, ServiceError>
+    where
+        T: Send + 'a,
+        F: for<'t> Fn(&'t mut Tx<'a>) -> TxFuture<'t, T, ServiceError> + Sync,
+    {
+        self.db
+            .transaction(Isolation::RepeatableRead, |tx| {
+                Box::pin(async move {
+                    sqlx::raw_sql("SET TRANSACTION READ ONLY")
+                        .execute(tx.conn())
+                        .await?;
+                    body(tx).await
+                })
+            })
+            .await
+    }
+
     pub(crate) async fn allowed(
         &self,
         actor: &Actor,
@@ -191,7 +211,7 @@ impl Gate {
     }
 }
 
-async fn holds(
+pub(crate) async fn holds(
     conn: &mut PgConnection,
     actor: &Actor,
     name: &PermissionName,

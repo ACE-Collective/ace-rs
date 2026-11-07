@@ -30,7 +30,7 @@ pub struct RecordedActor {
 }
 
 impl RecordedActor {
-    fn from_row(value: Option<Value>) -> Result<Option<Self>, ServiceError> {
+    pub(crate) fn from_row(value: Option<Value>) -> Result<Option<Self>, ServiceError> {
         value
             .map(|value| {
                 serde_json::from_value(value).map_err(|e| {

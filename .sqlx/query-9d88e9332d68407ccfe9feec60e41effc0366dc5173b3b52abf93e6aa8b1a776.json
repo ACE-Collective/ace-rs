@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM service.permissions WHERE api_key_id = $1 AND effect = 'allow'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "9d88e9332d68407ccfe9feec60e41effc0366dc5173b3b52abf93e6aa8b1a776"
+}

@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n                             (SELECT count(*) FROM service.group_members WHERE group_id = $1) AS \"members!\",\n                             (SELECT count(*) FROM service.permissions WHERE group_id = $1) AS \"grants!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "members!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "grants!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null,
+      null
+    ]
+  },
+  "hash": "0560b4508b728193bbc2736e82cc942ffadf10f1ebc538e3ce04dcad18095af8"
+}

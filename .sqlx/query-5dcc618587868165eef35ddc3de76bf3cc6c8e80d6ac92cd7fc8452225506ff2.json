@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO service.permissions (api_key_id, major, minor, effect, created_by)\n             VALUES ($1, $2::text, $3::text, 'allow', $4::jsonb)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "5dcc618587868165eef35ddc3de76bf3cc6c8e80d6ac92cd7fc8452225506ff2"
+}

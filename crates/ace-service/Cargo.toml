@@ -17,6 +17,8 @@ ace-core = { path = "../ace-core" }
 ace-results = { path = "../ace-results" }
 argon2 = "0.6.0"
 chrono = { version = "0.4.45", default-features = false, features = ["std", "serde"] }
+# A user's timezone is checked against the IANA names.
+chrono-tz = "0.10.4"
 getrandom = "0.4.3"
 hex = "0.4.3"
 serde = { version = "1.0.229", features = ["derive"] }

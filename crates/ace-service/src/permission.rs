@@ -241,10 +241,66 @@ pub const ALERT_WRITE: PermissionName = PermissionName::known("alert", "write");
 pub const ALERT_CREATE: PermissionName = PermissionName::known("alert", "create");
 /// Look observables up across alerts: ace3's `observable:read`.
 pub const OBSERVABLE_READ: PermissionName = PermissionName::known("observable", "read");
+/// See users, groups, grants and keys: ace3's `user:read`.
+pub const USER_READ: PermissionName = PermissionName::known("user", "read");
 /// Change users, groups and grants: ace3's `user:write`.
 pub const USER_WRITE: PermissionName = PermissionName::known("user", "write");
 /// Manage your own API keys: ace3's `user:self`.
 pub const USER_SELF: PermissionName = PermissionName::known("user", "self");
+
+/// A permission ACE checks, and what it lets its holder do.
+#[derive(Debug)]
+pub struct CatalogEntry {
+    pub name: PermissionName,
+    pub description: &'static str,
+}
+
+/// Every permission this workspace checks, as ace3's `PERMISSION_CATALOG` is for ace3. It holds only
+/// what ace4 enforces, so a router that brings a permission adds it here, and `tests/service.rs` fails
+/// when a `PermissionName::known` in this crate isn't listed. ace3 keeps a copy in a table for its
+/// management page; the GUI here is in the same binary, so it reads this. A grant whose pattern covers
+/// nothing here is logged as a likely typo, as ace3 warns, and a key's own scope must cover something.
+pub static CATALOG: &[CatalogEntry] = &[
+    CatalogEntry {
+        name: ALERT_CREATE,
+        description: "Submit analysis, which may become alerts.",
+    },
+    CatalogEntry {
+        name: ALERT_READ,
+        description: "Read alerts, their observables, results and files.",
+    },
+    CatalogEntry {
+        name: ALERT_WRITE,
+        description: "Change alerts, such as their disposition.",
+    },
+    CatalogEntry {
+        name: OBSERVABLE_READ,
+        description: "Look observables up across alerts.",
+    },
+    CatalogEntry {
+        name: USER_READ,
+        description: "See users, groups, their grants, and API keys.",
+    },
+    CatalogEntry {
+        name: USER_SELF,
+        description: "Create, change and revoke your own API keys, limited to permissions you hold. \
+                      Only a person holds it, never a key.",
+    },
+    CatalogEntry {
+        name: USER_WRITE,
+        description: "Create and change users, groups, memberships, grants and API keys.",
+    },
+];
+
+/// The catalog's names a pattern covers.
+pub(crate) fn covered_by(
+    pattern: &PermissionPattern,
+) -> impl Iterator<Item = &'static PermissionName> {
+    CATALOG
+        .iter()
+        .map(|entry| &entry.name)
+        .filter(move |name| pattern.matches(name))
+}
 
 /// True for a permission only a person can hold, whatever a key's or a component's rows say. A key
 /// holding `user:self` could widen its own scope up to all its owner holds, as ace3's

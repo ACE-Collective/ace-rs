@@ -14,7 +14,7 @@ use std::process::ExitCode;
 use ace_core::db::{Db, DbConfig};
 use ace_core::eligibility::Catalog;
 use ace_core::orchestrator::Orchestrator;
-use ace_service::{Actor, Component, Effect, Password, PermissionPattern, Service, Username};
+use ace_service::{Actor, Component, Password, PermissionPattern, Service, Username};
 use anyhow::{Context, Result};
 use clap::Subcommand;
 
@@ -88,17 +88,9 @@ fn create_key(app: &App, name: &str, grants: &[String]) -> Result<ExitCode> {
     };
     let key = runtime()?.block_on(async {
         let service = service(app).await?;
-        let key = service.create_api_key(&bootstrap, name, None).await?;
-        for pattern in &patterns {
-            service
-                .grant(
-                    &bootstrap,
-                    &ace_service::Holder::ApiKey(key.id),
-                    pattern,
-                    Effect::Allow,
-                )
-                .await?;
-        }
+        let key = service
+            .create_api_key(&bootstrap, name, None, &patterns)
+            .await?;
         anyhow::Ok(key)
     })?;
     let mut out = std::io::stdout().lock();

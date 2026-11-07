@@ -44,14 +44,14 @@ impl std::fmt::Debug for IssuedToken {
 }
 
 /// A token's hash. It has no `PartialEq`, so `==` can't compare one: `matches` is the only way.
-pub(super) struct TokenHash([u8; 32]);
+pub(crate) struct TokenHash([u8; 32]);
 
 impl TokenHash {
     fn of(token: &str) -> Self {
         TokenHash(Sha256::digest(token.as_bytes()).into())
     }
 
-    pub(super) fn as_bytes(&self) -> &[u8] {
+    pub(crate) fn as_bytes(&self) -> &[u8] {
         &self.0
     }
 
@@ -60,10 +60,10 @@ impl TokenHash {
     }
 }
 
-pub(super) struct Minted {
-    pub(super) id: Uuid,
-    pub(super) token: IssuedToken,
-    pub(super) hash: TokenHash,
+pub(crate) struct Minted {
+    pub(crate) id: Uuid,
+    pub(crate) token: IssuedToken,
+    pub(crate) hash: TokenHash,
 }
 
 pub(super) fn mint(kind: Kind) -> Result<Minted, ServiceError> {

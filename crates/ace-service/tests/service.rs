@@ -30,8 +30,8 @@ use ace_core::{Db, queue};
 use ace_results::{AlertPath, AnalysisType, NewObservable, ObservableKind};
 use ace_sdk::{Lookup, Manifest, Module, ModuleError, Outcome, TaskContext};
 use ace_service::{
-    ALERT_WRITE, Actor, ApiKeyId, Component, Effect, GroupId, Holder, MIN_PASSWORD_CHARS,
-    NewSession, Password, PermissionName, PermissionPattern, RequestParts,
+    ALERT_WRITE, Actor, ApiKeyId, CATALOG, Component, Effect, GroupId, Holder, MIN_PASSWORD_CHARS,
+    NewSession, Password, PermissionName, PermissionPattern, Profile, RequestParts,
     SESSION_LIFETIME_SECONDS, Service, ServiceError, SessionCookie, Transport, USER_SELF,
     USER_WRITE, UserId, Username, with_source_ip,
 };
@@ -1065,20 +1065,21 @@ async fn a_grant_to_a_group_that_doesn_t_exist_is_an_error() {
         )
         .await
         .expect_err("refused");
-    assert!(error.to_string().contains("group_id"), "{error}");
+    let missing = "00000000-0000-0000-0000-000000000001";
+    assert!(
+        matches!(error, ServiceError::NotFound(ref what) if *what == format!("no group:{missing}")),
+        "{error}"
+    );
     // the same for the holders 5.4 gave a foreign key
-    for (holder, column) in [
-        (Holder::User(UserId(Uuid::from_u128(1))), "user_exists"),
-        (
-            Holder::ApiKey(ApiKeyId(Uuid::from_u128(1))),
-            "api_key_exists",
-        ),
+    for (holder, kind) in [
+        (Holder::User(UserId(Uuid::from_u128(1))), "user"),
+        (Holder::ApiKey(ApiKeyId(Uuid::from_u128(1))), "api_key"),
     ] {
         let error = service(db)
             .grant(&admin(db).await, &holder, &pattern("*", "*"), Effect::Allow)
             .await
             .expect_err("refused");
-        assert!(error.to_string().contains(column), "{error}");
+        assert_eq!(error.to_string(), format!("no {kind}:{missing}"));
     }
 }
 
@@ -1429,6 +1430,16 @@ async fn every_write_function_has_an_audit_test() {
         logout_records_its_row(db).await,
         submit_records_its_row(db).await,
         download_file_records_its_row(db).await,
+        update_user_records_its_row(db).await,
+        update_own_profile_records_its_row(db).await,
+        create_group_records_its_row(db).await,
+        delete_group_records_its_row(db).await,
+        add_group_member_records_its_row(db).await,
+        remove_group_member_records_its_row(db).await,
+        set_api_key_scope_records_its_row(db).await,
+        create_own_api_key_records_its_row(db).await,
+        set_own_api_key_scope_records_its_row(db).await,
+        revoke_own_api_key_records_its_row(db).await,
     ]);
     assert_eq!(covered, write_functions(), "{WRITES_NEED_A_TEST}");
 }
@@ -1699,9 +1710,28 @@ async fn every_write_fails_when_its_audit_fails() {
         .await
         .expect("logs in");
     let key = service
-        .create_api_key(&actor, "triage", None)
+        .create_api_key(&actor, "triage", None, &[])
         .await
         .expect("makes a key");
+    for grant in [pattern("user", "self"), pattern("alert", "read")] {
+        service
+            .grant(&actor, &Holder::User(bob), &grant, Effect::Allow)
+            .await
+            .expect("grants");
+    }
+    let bobs_key = service
+        .create_own_api_key(&bob_actor, "bob's", &[pattern("alert", "read")])
+        .await
+        .expect("makes bob's key");
+    let team = service.create_group(&actor, "team").await.expect("a group");
+    service
+        .add_group_member(&actor, team, bob)
+        .await
+        .expect("adds bob");
+    let other_team = service
+        .create_group(&actor, "other team")
+        .await
+        .expect("a group");
     let (bucket, _cache) = bucket(db);
     let (file_root, file) = file_alert(db, &bucket).await;
     let (submitted, files) = submission(&bucket, b"another file").await;
@@ -1712,6 +1742,7 @@ async fn every_write_fails_when_its_audit_fails() {
         audit_rows(db).await,
         credential_rows(db).await,
         root_count(db).await,
+        group_rows(db).await,
     );
 
     sqlx::raw_sql("ALTER TABLE service.audit ADD CONSTRAINT broken CHECK (false) NOT VALID")
@@ -1756,7 +1787,12 @@ async fn every_write_fails_when_its_audit_fails() {
         (
             "create_user",
             service
-                .create_user(&actor, &username("carol"), Password::new(PASSWORD))
+                .create_user(
+                    &actor,
+                    &username("carol"),
+                    Password::new(PASSWORD),
+                    &Profile::default(),
+                )
                 .await
                 .map(|_| ())
                 .expect_err("refused"),
@@ -1792,7 +1828,7 @@ async fn every_write_fails_when_its_audit_fails() {
         (
             "create_api_key",
             service
-                .create_api_key(&actor, "another", None)
+                .create_api_key(&actor, "another", None, &[])
                 .await
                 .map(|_| ())
                 .expect_err("refused"),
@@ -1837,6 +1873,91 @@ async fn every_write_fails_when_its_audit_fails() {
                 .map(|_| ())
                 .expect_err("refused"),
         ),
+        (
+            "update_user",
+            service
+                .update_user(&actor, bob, &display_name("Bob"))
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "update_own_profile",
+            service
+                .update_own_profile(&bob_actor, &display_name("Bobby"))
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "create_group",
+            service
+                .create_group(&actor, "a third team")
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "delete_group",
+            service
+                .delete_group(&actor, team)
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "add_group_member",
+            service
+                .add_group_member(&actor, other_team, bob)
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "remove_group_member",
+            service
+                .remove_group_member(&actor, team, bob)
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "set_api_key_scope",
+            service
+                .set_api_key_scope(&actor, key.id, "triage", &[pattern("alert", "read")])
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "create_own_api_key",
+            service
+                .create_own_api_key(&bob_actor, "another", &[pattern("alert", "read")])
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "set_own_api_key_scope",
+            service
+                .set_own_api_key_scope(
+                    &bob_actor,
+                    bobs_key.id,
+                    "renamed",
+                    &[pattern("alert", "read")],
+                )
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "revoke_own_api_key",
+            service
+                .revoke_own_api_key(&bob_actor, bobs_key.id)
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
     ];
     let mut covered = BTreeSet::new();
     for (function, error) in &attempts {
@@ -1852,6 +1973,7 @@ async fn every_write_fails_when_its_audit_fails() {
         audit_rows(db).await,
         credential_rows(db).await,
         root_count(db).await,
+        group_rows(db).await,
     );
     assert_eq!(after, before);
     assert_eq!(
@@ -2137,7 +2259,12 @@ fn username(name: &str) -> Username {
 
 async fn new_user(service: &Service, actor: &Actor, name: &str) -> UserId {
     service
-        .create_user(actor, &username(name), Password::new(PASSWORD))
+        .create_user(
+            actor,
+            &username(name),
+            Password::new(PASSWORD),
+            &Profile::default(),
+        )
         .await
         .expect("makes a user")
 }
@@ -2193,7 +2320,7 @@ async fn a_session_and_an_api_key_reach_the_service_layer_as_their_actors() {
     assert_eq!(session.actor, expected_user);
 
     let owned = service
-        .create_api_key(&boss, "triage", Some(alice))
+        .create_api_key(&boss, "triage", Some(alice), &[])
         .await
         .expect("makes a key");
     let from_owned = service
@@ -2209,7 +2336,7 @@ async fn a_session_and_an_api_key_reach_the_service_layer_as_their_actors() {
         }
     );
     let unowned = service
-        .create_api_key(&boss, "collector", None)
+        .create_api_key(&boss, "collector", None, &[])
         .await
         .expect("makes a key");
     let from_unowned = service
@@ -2402,7 +2529,7 @@ async fn credentials_are_stored_only_as_hashes() {
         .await
         .expect("logs in");
     let key = service
-        .create_api_key(&boss, "triage", Some(alice))
+        .create_api_key(&boss, "triage", Some(alice), &[])
         .await
         .expect("makes a key");
 
@@ -2484,11 +2611,11 @@ async fn a_token_must_match_in_every_byte() {
         .await
         .expect("logs in");
     let key = service
-        .create_api_key(&boss, "triage", None)
+        .create_api_key(&boss, "triage", None, &[])
         .await
         .expect("makes a key");
     let other = service
-        .create_api_key(&boss, "other", None)
+        .create_api_key(&boss, "other", None, &[])
         .await
         .expect("makes a key");
 
@@ -2713,11 +2840,11 @@ async fn a_disabled_user_has_no_actor_and_a_revoked_key_has_none() {
         .await
         .expect("logs in");
     let owned = service
-        .create_api_key(&boss, "owned", Some(alice))
+        .create_api_key(&boss, "owned", Some(alice), &[])
         .await
         .expect("makes a key");
     let unowned = service
-        .create_api_key(&boss, "unowned", None)
+        .create_api_key(&boss, "unowned", None, &[])
         .await
         .expect("makes a key");
 
@@ -2865,7 +2992,7 @@ async fn a_user_changes_their_own_password_and_only_their_own() {
         .await
         .expect("logs in");
     let owned = service
-        .create_api_key(&boss, "owned", Some(alice))
+        .create_api_key(&boss, "owned", Some(alice), &[])
         .await
         .expect("makes a key");
     let key_actor = service
@@ -2977,7 +3104,12 @@ async fn account_writes_check_their_permission_and_their_values() {
 
     let refusals = [
         service
-            .create_user(&nobody, &username("bob"), Password::new(PASSWORD))
+            .create_user(
+                &nobody,
+                &username("bob"),
+                Password::new(PASSWORD),
+                &Profile::default(),
+            )
             .await
             .map(|_| ()),
         service
@@ -2985,7 +3117,7 @@ async fn account_writes_check_their_permission_and_their_values() {
             .await
             .map(|_| ()),
         service
-            .create_api_key(&nobody, "mine", None)
+            .create_api_key(&nobody, "mine", None, &[])
             .await
             .map(|_| ()),
         service
@@ -3005,7 +3137,12 @@ async fn account_writes_check_their_permission_and_their_values() {
 
     assert!(matches!(
         service
-            .create_user(&boss, &username("ALICE"), Password::new(PASSWORD))
+            .create_user(
+                &boss,
+                &username("ALICE"),
+                Password::new(PASSWORD),
+                &Profile::default()
+            )
             .await,
         Err(ServiceError::UsernameTaken)
     ));
@@ -3018,7 +3155,12 @@ async fn account_writes_check_their_permission_and_their_values() {
         assert!(
             matches!(
                 service
-                    .create_user(&boss, &username("carol"), Password::new(weak))
+                    .create_user(
+                        &boss,
+                        &username("carol"),
+                        Password::new(weak),
+                        &Profile::default()
+                    )
                     .await,
                 Err(ServiceError::WeakPassword)
             ),
@@ -3028,13 +3170,13 @@ async fn account_writes_check_their_permission_and_their_values() {
     }
     for name in ["", "   ", &"x".repeat(256)] {
         assert!(matches!(
-            service.create_api_key(&boss, name, None).await,
+            service.create_api_key(&boss, name, None, &[]).await,
             Err(ServiceError::InvalidKeyName)
         ));
     }
     assert!(matches!(
         service
-            .create_api_key(&boss, "orphan", Some(UserId(Uuid::from_u128(77))))
+            .create_api_key(&boss, "orphan", Some(UserId(Uuid::from_u128(77))), &[])
             .await,
         Err(ServiceError::NoUser(_))
     ));
@@ -3123,7 +3265,7 @@ async fn deleting_a_user_removes_what_they_could_do_and_not_what_they_did() {
     let alice = new_user(&service, &boss, "alice").await;
     let bob = new_user(&service, &boss, "bob").await;
     let key = service
-        .create_api_key(&boss, "alices", Some(alice))
+        .create_api_key(&boss, "alices", Some(alice), &[])
         .await
         .expect("makes a key");
     let session = service
@@ -3442,7 +3584,7 @@ async fn a_request_authenticates_by_its_key_or_its_same_origin_session() {
         .await
         .expect("logs in");
     let key = service
-        .create_api_key(&boss, "triage", None)
+        .create_api_key(&boss, "triage", None, &[])
         .await
         .expect("makes a key");
     let key_actor = service
@@ -3573,7 +3715,7 @@ async fn no_credential_reaches_the_log() {
         .await
         .expect("authenticates");
     let key = service
-        .create_api_key(&boss, "triage", Some(alice))
+        .create_api_key(&boss, "triage", Some(alice), &[])
         .await
         .expect("makes a key");
     service
@@ -3679,7 +3821,7 @@ async fn create_first_user_records_its_row() -> String {
             action: "create_first_user".to_owned(),
             target: ("user".to_owned(), id.0.to_string()),
             before: None,
-            after: Some(json!({"username": "root", "enabled": true})),
+            after: Some(json!({"username": "root", "enabled": true, "timezone": "UTC"})),
             details: json!({"grants": "*:*", "forced": false}),
         }
     );
@@ -3692,7 +3834,20 @@ fn boss_json() -> Value {
 
 async fn create_user_records_its_row(db: &Db) -> String {
     let service = service(db);
-    let id = new_user(&service, &admin(db).await, "audited-user").await;
+    let profile = Profile {
+        display_name: Some(" Audited User ".to_owned()),
+        email: Some("audited@example.com".to_owned()),
+        timezone: Some("Europe/London".to_owned()),
+    };
+    let id = service
+        .create_user(
+            &admin(db).await,
+            &username("audited-user"),
+            Password::new(PASSWORD),
+            &profile,
+        )
+        .await
+        .expect("makes a user");
     let row = last_audit(db).await;
     assert_eq!(
         row,
@@ -3701,7 +3856,13 @@ async fn create_user_records_its_row(db: &Db) -> String {
             action: "create_user".to_owned(),
             target: ("user".to_owned(), id.0.to_string()),
             before: None,
-            after: Some(json!({"username": "audited-user", "enabled": true})),
+            after: Some(json!({
+                "username": "audited-user",
+                "enabled": true,
+                "display_name": "Audited User",
+                "email": "audited@example.com",
+                "timezone": "Europe/London",
+            })),
             details: json!({}),
         }
     );
@@ -3799,7 +3960,16 @@ async fn create_api_key_records_its_row(db: &Db) -> String {
     let boss = admin(db).await;
     let owner = new_user(&service, &boss, "audited-owner").await;
     let key = service
-        .create_api_key(&boss, "  audited key  ", Some(owner))
+        .create_api_key(
+            &boss,
+            "  audited key  ",
+            Some(owner),
+            &[
+                pattern("alert", "read"),
+                pattern("Alert", "READ"),
+                pattern("observable", "*"),
+            ],
+        )
         .await
         .expect("makes a key");
     let row = last_audit(db).await;
@@ -3810,7 +3980,11 @@ async fn create_api_key_records_its_row(db: &Db) -> String {
             action: "create_api_key".to_owned(),
             target: ("api_key".to_owned(), key.id.0.to_string()),
             before: None,
-            after: Some(json!({"name": "audited key", "owner": owner.0})),
+            after: Some(json!({
+                "name": "audited key",
+                "owner": owner.0,
+                "scope": ["alert:read", "observable:*"],
+            })),
             details: json!({}),
         }
     );
@@ -3821,7 +3995,7 @@ async fn revoke_api_key_records_its_row(db: &Db) -> String {
     let service = service(db);
     let boss = admin(db).await;
     let key = service
-        .create_api_key(&boss, "audited revoke", None)
+        .create_api_key(&boss, "audited revoke", None, &[pattern("alert", "read")])
         .await
         .expect("makes a key");
     service
@@ -3835,7 +4009,7 @@ async fn revoke_api_key_records_its_row(db: &Db) -> String {
             actor: boss_json(),
             action: "revoke_api_key".to_owned(),
             target: ("api_key".to_owned(), key.id.0.to_string()),
-            before: Some(json!({"name": "audited revoke", "owner": null})),
+            before: Some(json!({"name": "audited revoke", "owner": null, "scope": ["alert:read"]})),
             after: None,
             details: json!({}),
         }
@@ -3922,15 +4096,867 @@ fn only_a_person_s_own_writes_skip_the_permission_check() {
             .expect("reads the source")
     };
     let calls = regex::Regex::new(r#"\.write_own\(\s*&?\w+\s*,\s*"(\w+)""#).expect("a pattern");
-    let auth = source("auth.rs");
+    let (auth, users) = (source("auth.rs"), source("users.rs"));
     let found: BTreeSet<&str> = calls
         .captures_iter(&auth)
+        .chain(calls.captures_iter(&users))
         .map(|call| call.get(1).expect("a name").as_str())
         .collect();
     assert_eq!(
         found,
-        BTreeSet::from(["change_own_password", "login", "logout"])
+        BTreeSet::from([
+            "change_own_password",
+            "login",
+            "logout",
+            "update_own_profile"
+        ])
     );
     assert!(!source("lib.rs").contains(".write_own("));
     assert!(!source("permission.rs").contains(".write_own("));
+}
+
+// PLAN.md 5.6: the users router's reads and writes.
+
+fn display_name(name: &str) -> Profile {
+    Profile {
+        display_name: Some(name.to_owned()),
+        ..Profile::default()
+    }
+}
+
+/// Every group and membership, whole.
+async fn group_rows(db: &Db) -> Vec<String> {
+    sqlx::query_scalar(
+        "SELECT row_to_json(g)::text FROM service.groups g
+         UNION ALL SELECT row_to_json(m)::text FROM service.group_members m
+         ORDER BY 1",
+    )
+    .fetch_all(db.pool())
+    .await
+    .expect("reads")
+}
+
+/// A user who holds these, acting as themselves.
+async fn holding(service: &Service, db: &Db, name: &str, grants: &[(&str, &str)]) -> Actor {
+    let boss = admin(db).await;
+    let id = new_user(service, &boss, name).await;
+    for (major, minor) in grants {
+        service
+            .grant(
+                &boss,
+                &Holder::User(id),
+                &pattern(major, minor),
+                Effect::Allow,
+            )
+            .await
+            .expect("grants");
+    }
+    Actor::User {
+        id,
+        name: name.to_owned(),
+    }
+}
+
+fn actor_id(actor: &Actor) -> UserId {
+    match actor {
+        Actor::User { id, .. } => *id,
+        _ => panic!("a user"),
+    }
+}
+
+fn actor_json(actor: &Actor) -> Value {
+    serde_json::to_value(actor).expect("JSON")
+}
+
+async fn update_user_records_its_row(db: &Db) -> String {
+    let service = service(db);
+    let boss = admin(db).await;
+    let id = new_user(&service, &boss, "audited-profile").await;
+    let profile = Profile {
+        display_name: Some("Audited".to_owned()),
+        email: Some("a@example.com".to_owned()),
+        timezone: Some("Asia/Tokyo".to_owned()),
+    };
+    assert!(
+        service
+            .update_user(&boss, id, &profile)
+            .await
+            .expect("updates")
+    );
+    let row = last_audit(db).await;
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: boss_json(),
+            action: "update_user".to_owned(),
+            target: ("user".to_owned(), id.0.to_string()),
+            before: Some(json!({"display_name": null, "email": null, "timezone": "UTC"})),
+            after: Some(json!({
+                "display_name": "Audited",
+                "email": "a@example.com",
+                "timezone": "Asia/Tokyo",
+            })),
+            details: json!({}),
+        }
+    );
+    let count = audit_rows(db).await.len();
+    assert!(
+        !service
+            .update_user(&boss, id, &profile)
+            .await
+            .expect("a no-op")
+    );
+    assert_eq!(audit_rows(db).await.len(), count, "a no-op has no row");
+    row.action
+}
+
+async fn update_own_profile_records_its_row(db: &Db) -> String {
+    let service = service(db);
+    let me = holding(&service, db, "audited-own-profile", &[]).await;
+    let profile = Profile {
+        display_name: Some("Me".to_owned()),
+        timezone: Some("America/New_York".to_owned()),
+        ..Profile::default()
+    };
+    assert!(
+        service
+            .update_own_profile(&me, &profile)
+            .await
+            .expect("needs no grant")
+    );
+    let row = last_audit(db).await;
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: actor_json(&me),
+            action: "update_own_profile".to_owned(),
+            target: ("user".to_owned(), actor_id(&me).0.to_string()),
+            before: Some(json!({"display_name": null, "email": null, "timezone": "UTC"})),
+            after: Some(json!({
+                "display_name": "Me",
+                "email": null,
+                "timezone": "America/New_York",
+            })),
+            details: json!({}),
+        }
+    );
+    row.action
+}
+
+async fn create_group_records_its_row(db: &Db) -> String {
+    let service = service(db);
+    let group = service
+        .create_group(&admin(db).await, " audited group ")
+        .await
+        .expect("makes a group");
+    let row = last_audit(db).await;
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: boss_json(),
+            action: "create_group".to_owned(),
+            target: ("group".to_owned(), group.0.to_string()),
+            before: None,
+            after: Some(json!({"name": "audited group"})),
+            details: json!({}),
+        }
+    );
+    row.action
+}
+
+async fn delete_group_records_its_row(db: &Db) -> String {
+    let service = service(db);
+    let boss = admin(db).await;
+    let group = service
+        .create_group(&boss, "audited deletion")
+        .await
+        .expect("makes a group");
+    let member = new_user(&service, &boss, "audited-member").await;
+    service
+        .add_group_member(&boss, group, member)
+        .await
+        .expect("adds");
+    service
+        .grant(
+            &boss,
+            &Holder::Group(group),
+            &pattern("alert", "read"),
+            Effect::Allow,
+        )
+        .await
+        .expect("grants");
+    assert!(service.delete_group(&boss, group).await.expect("deletes"));
+    let row = last_audit(db).await;
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: boss_json(),
+            action: "delete_group".to_owned(),
+            target: ("group".to_owned(), group.0.to_string()),
+            before: Some(json!({"name": "audited deletion"})),
+            after: None,
+            details: json!({"members": 1, "grants": 1}),
+        }
+    );
+    let count = audit_rows(db).await.len();
+    assert!(!service.delete_group(&boss, group).await.expect("a no-op"));
+    assert_eq!(audit_rows(db).await.len(), count, "a no-op has no row");
+    row.action
+}
+
+async fn add_group_member_records_its_row(db: &Db) -> String {
+    let service = service(db);
+    let boss = admin(db).await;
+    let group = service
+        .create_group(&boss, "audited joining")
+        .await
+        .expect("makes a group");
+    let member = new_user(&service, &boss, "audited-joiner").await;
+    assert!(
+        service
+            .add_group_member(&boss, group, member)
+            .await
+            .expect("adds")
+    );
+    let row = last_audit(db).await;
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: boss_json(),
+            action: "add_group_member".to_owned(),
+            target: ("group".to_owned(), group.0.to_string()),
+            before: None,
+            after: Some(json!({"member": member.0})),
+            details: json!({}),
+        }
+    );
+    let count = audit_rows(db).await.len();
+    assert!(
+        !service
+            .add_group_member(&boss, group, member)
+            .await
+            .expect("a no-op")
+    );
+    assert_eq!(audit_rows(db).await.len(), count, "a no-op has no row");
+    row.action
+}
+
+async fn remove_group_member_records_its_row(db: &Db) -> String {
+    let service = service(db);
+    let boss = admin(db).await;
+    let group = service
+        .create_group(&boss, "audited leaving")
+        .await
+        .expect("makes a group");
+    let member = new_user(&service, &boss, "audited-leaver").await;
+    service
+        .add_group_member(&boss, group, member)
+        .await
+        .expect("adds");
+    assert!(
+        service
+            .remove_group_member(&boss, group, member)
+            .await
+            .expect("removes")
+    );
+    let row = last_audit(db).await;
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: boss_json(),
+            action: "remove_group_member".to_owned(),
+            target: ("group".to_owned(), group.0.to_string()),
+            before: Some(json!({"member": member.0})),
+            after: None,
+            details: json!({}),
+        }
+    );
+    let count = audit_rows(db).await.len();
+    assert!(
+        !service
+            .remove_group_member(&boss, group, member)
+            .await
+            .expect("a no-op")
+    );
+    assert_eq!(audit_rows(db).await.len(), count, "a no-op has no row");
+    row.action
+}
+
+async fn set_api_key_scope_records_its_row(db: &Db) -> String {
+    let service = service(db);
+    let boss = admin(db).await;
+    let key = service
+        .create_api_key(&boss, "audited scope", None, &[pattern("alert", "read")])
+        .await
+        .expect("makes a key");
+    let scope = [pattern("observable", "read"), pattern("alert", "*")];
+    assert!(
+        service
+            .set_api_key_scope(&boss, key.id, "rescoped", &scope)
+            .await
+            .expect("sets it")
+    );
+    let row = last_audit(db).await;
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: boss_json(),
+            action: "set_api_key_scope".to_owned(),
+            target: ("api_key".to_owned(), key.id.0.to_string()),
+            before: Some(json!({"name": "audited scope", "owner": null, "scope": ["alert:read"]})),
+            after: Some(json!({
+                "name": "rescoped",
+                "owner": null,
+                "scope": ["alert:*", "observable:read"],
+            })),
+            details: json!({}),
+        }
+    );
+    let count = audit_rows(db).await.len();
+    assert!(
+        !service
+            .set_api_key_scope(&boss, key.id, "rescoped", &scope)
+            .await
+            .expect("a no-op")
+    );
+    assert_eq!(audit_rows(db).await.len(), count, "a no-op has no row");
+    row.action
+}
+
+async fn create_own_api_key_records_its_row(db: &Db) -> String {
+    let service = service(db);
+    let me = holding(
+        &service,
+        db,
+        "audited-own-key",
+        &[("user", "self"), ("alert", "read")],
+    )
+    .await;
+    let key = service
+        .create_own_api_key(&me, "mine", &[pattern("alert", "read")])
+        .await
+        .expect("makes a key");
+    let row = last_audit(db).await;
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: actor_json(&me),
+            action: "create_own_api_key".to_owned(),
+            target: ("api_key".to_owned(), key.id.0.to_string()),
+            before: None,
+            after: Some(json!({
+                "name": "mine",
+                "owner": actor_id(&me).0,
+                "scope": ["alert:read"],
+            })),
+            details: json!({}),
+        }
+    );
+    row.action
+}
+
+async fn set_own_api_key_scope_records_its_row(db: &Db) -> String {
+    let service = service(db);
+    let me = holding(
+        &service,
+        db,
+        "audited-own-scope",
+        &[("user", "self"), ("alert", "*")],
+    )
+    .await;
+    let key = service
+        .create_own_api_key(&me, "mine", &[pattern("alert", "read")])
+        .await
+        .expect("makes a key");
+    assert!(
+        service
+            .set_own_api_key_scope(&me, key.id, "still mine", &[pattern("alert", "write")])
+            .await
+            .expect("sets it")
+    );
+    let row = last_audit(db).await;
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: actor_json(&me),
+            action: "set_own_api_key_scope".to_owned(),
+            target: ("api_key".to_owned(), key.id.0.to_string()),
+            before: Some(json!({
+                "name": "mine",
+                "owner": actor_id(&me).0,
+                "scope": ["alert:read"],
+            })),
+            after: Some(json!({
+                "name": "still mine",
+                "owner": actor_id(&me).0,
+                "scope": ["alert:write"],
+            })),
+            details: json!({}),
+        }
+    );
+    row.action
+}
+
+async fn revoke_own_api_key_records_its_row(db: &Db) -> String {
+    let service = service(db);
+    let me = holding(
+        &service,
+        db,
+        "audited-own-revoke",
+        &[("user", "self"), ("alert", "read")],
+    )
+    .await;
+    let key = service
+        .create_own_api_key(&me, "mine", &[pattern("alert", "read")])
+        .await
+        .expect("makes a key");
+    assert!(
+        service
+            .revoke_own_api_key(&me, key.id)
+            .await
+            .expect("revokes")
+    );
+    let row = last_audit(db).await;
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: actor_json(&me),
+            action: "revoke_own_api_key".to_owned(),
+            target: ("api_key".to_owned(), key.id.0.to_string()),
+            before: Some(json!({
+                "name": "mine",
+                "owner": actor_id(&me).0,
+                "scope": ["alert:read"],
+            })),
+            after: None,
+            details: json!({}),
+        }
+    );
+    let count = audit_rows(db).await.len();
+    assert!(
+        !service
+            .revoke_own_api_key(&me, key.id)
+            .await
+            .expect("a no-op")
+    );
+    assert_eq!(audit_rows(db).await.len(), count, "a no-op has no row");
+    row.action
+}
+
+/// ace3's `_check_scope_within_grants`: a key a user makes for themselves lists what it needs, each
+/// pattern covering something ACE checks that they hold, and never `user:self`. A key can't make one.
+#[tokio::test]
+async fn a_user_s_own_key_holds_only_what_they_do() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let me = holding(
+        &service,
+        db,
+        "keymaker",
+        &[("user", "self"), ("alert", "read")],
+    )
+    .await;
+    let before = (permission_rows(db).await, credential_rows(db).await);
+    for (scope, says) in [
+        (vec![], "has to list"),
+        (
+            vec![pattern("alret", "read")],
+            "alret:read matches no permission",
+        ),
+        (vec![pattern("alert", "*")], "alert:*"),
+        (vec![pattern("*", "*")], "which you don't hold"),
+        (
+            vec![pattern("user", "self")],
+            "user:self is only ever a person's",
+        ),
+    ] {
+        let error = service
+            .create_own_api_key(&me, "mine", &scope)
+            .await
+            .expect_err("refused");
+        assert!(
+            matches!(error, ServiceError::InvalidRequest(_)) && error.to_string().contains(says),
+            "{scope:?}: {error}"
+        );
+    }
+    let error = service
+        .create_own_api_key(&me, "mine", &[pattern("alert", "*")])
+        .await
+        .expect_err("refused");
+    assert_eq!(
+        error.to_string(),
+        "alert:* covers alert:create, alert:write, which you don't hold"
+    );
+    assert_eq!(
+        (permission_rows(db).await, credential_rows(db).await),
+        before,
+        "a refused scope made nothing"
+    );
+
+    // what it may hold, it gets, and a repeated pattern is one row
+    let key = service
+        .create_own_api_key(
+            &me,
+            "mine",
+            &[pattern("alert", "read"), pattern("ALERT", "Read")],
+        )
+        .await
+        .expect("makes a key");
+    let mine = service.own_api_keys(&me).await.expect("reads");
+    assert_eq!(mine.len(), 1);
+    assert_eq!(mine[0].id, key.id);
+    assert_eq!(mine[0].owner, Some(actor_id(&me)));
+    assert_eq!(
+        mine[0]
+            .grants
+            .iter()
+            .map(|grant| format!("{}:{}", grant.major, grant.minor))
+            .collect::<Vec<_>>(),
+        ["alert:read"]
+    );
+    let as_key = service
+        .authenticate_api_key(key.token.expose())
+        .await
+        .expect("authenticates");
+    assert!(
+        matches!(
+            service
+                .create_own_api_key(&as_key, "another", &[pattern("alert", "read")])
+                .await,
+            Err(ServiceError::PermissionDenied { ref permission, .. }) if *permission == USER_SELF
+        ),
+        "a key can't make a key"
+    );
+    assert!(matches!(
+        service.own_account(&as_key).await,
+        Err(ServiceError::PermissionDenied { .. })
+    ));
+
+    // someone else's key isn't there, to them
+    let other = holding(
+        &service,
+        db,
+        "other",
+        &[("user", "self"), ("alert", "read")],
+    )
+    .await;
+    let count = audit_rows(db).await.len();
+    assert!(matches!(
+        service
+            .set_own_api_key_scope(&other, key.id, "theirs", &[pattern("alert", "read")])
+            .await,
+        Err(ServiceError::NotFound(_))
+    ));
+    assert!(
+        !service
+            .revoke_own_api_key(&other, key.id)
+            .await
+            .expect("reads as missing")
+    );
+    assert_eq!(audit_rows(db).await.len(), count);
+    assert_eq!(service.own_api_keys(&other).await.expect("reads"), []);
+
+    // a scope the owner no longer holds has to go before the key changes
+    let boss = admin(db).await;
+    service
+        .revoke(
+            &boss,
+            &Holder::User(actor_id(&me)),
+            &pattern("alert", "read"),
+            Effect::Allow,
+        )
+        .await
+        .expect("revokes");
+    assert!(matches!(
+        service
+            .set_own_api_key_scope(&me, key.id, "renamed", &[pattern("alert", "read")])
+            .await,
+        Err(ServiceError::InvalidRequest(_))
+    ));
+}
+
+/// Setting a scope replaces a key's allows and leaves a deny, so an administrator's deny can't be lifted
+/// by rescoping.
+#[tokio::test]
+async fn a_scope_keeps_a_key_s_deny() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let boss = admin(db).await;
+    let key = service
+        .create_api_key(&boss, "scoped", None, &[pattern("alert", "*")])
+        .await
+        .expect("makes a key");
+    service
+        .grant(
+            &boss,
+            &Holder::ApiKey(key.id),
+            &pattern("alert", "write"),
+            Effect::Deny,
+        )
+        .await
+        .expect("denies");
+    service
+        .set_api_key_scope(&boss, key.id, "scoped", &[pattern("*", "*")])
+        .await
+        .expect("sets it");
+    let as_key = service
+        .authenticate_api_key(key.token.expose())
+        .await
+        .expect("authenticates");
+    assert!(
+        service
+            .allowed(&as_key, &name("observable", "read"))
+            .await
+            .expect("checks")
+    );
+    assert!(
+        !service
+            .allowed(&as_key, &ALERT_WRITE)
+            .await
+            .expect("checks")
+    );
+    let keys = service.api_keys(&boss, None).await.expect("lists");
+    let grants: Vec<String> = keys[0]
+        .grants
+        .iter()
+        .map(|grant| format!("{}:{}:{:?}", grant.major, grant.minor, grant.effect))
+        .collect();
+    assert_eq!(grants, ["*:*:Allow", "alert:write:Deny"]);
+    assert!(matches!(
+        service
+            .set_api_key_scope(&boss, ApiKeyId(Uuid::from_u128(99)), "x", &[])
+            .await,
+        Err(ServiceError::NotFound(_))
+    ));
+    assert!(matches!(
+        service
+            .create_api_key(&boss, "x", None, &[pattern("user", "self")])
+            .await,
+        Err(ServiceError::InvalidRequest(_))
+    ));
+}
+
+/// The management reads: what each user holds, through which group, and who may see it.
+#[tokio::test]
+async fn reading_users_and_groups_needs_user_read() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let boss = admin(db).await;
+    let reader = holding(&service, db, "reader", &[("user", "read")]).await;
+    let nobody = holding(&service, db, "nobody", &[]).await;
+    let member = new_user(&service, &boss, "member").await;
+    let group = service
+        .create_group(&boss, "triage")
+        .await
+        .expect("a group");
+    service
+        .add_group_member(&boss, group, member)
+        .await
+        .expect("adds");
+    service
+        .grant(
+            &boss,
+            &Holder::Group(group),
+            &pattern("alert", "read"),
+            Effect::Allow,
+        )
+        .await
+        .expect("grants");
+    service
+        .grant(
+            &boss,
+            &Holder::User(member),
+            &pattern("alert", "write"),
+            Effect::Deny,
+        )
+        .await
+        .expect("denies");
+    service
+        .set_user_enabled(&boss, member, false)
+        .await
+        .expect("disables");
+
+    let detail = service.user(&reader, member).await.expect("reads");
+    assert_eq!(detail.user.username, "member");
+    assert!(!detail.user.enabled);
+    assert_eq!(detail.grants.len(), 1);
+    assert_eq!(detail.grants[0].effect, Effect::Deny);
+    assert_eq!(detail.groups.len(), 1);
+    assert_eq!(detail.groups[0].id, group);
+    assert_eq!(detail.groups[0].members, [member]);
+    assert_eq!(detail.groups[0].grants[0].major, "alert");
+
+    let names = |users: Vec<ace_service::User>| -> Vec<String> {
+        users.into_iter().map(|user| user.username).collect()
+    };
+    let all = names(service.users(&reader, true).await.expect("lists"));
+    assert!(all.contains(&"member".to_owned()));
+    let enabled = names(service.users(&reader, false).await.expect("lists"));
+    assert!(!enabled.contains(&"member".to_owned()));
+    assert_eq!(service.groups(&reader).await.expect("lists").len(), 1);
+    assert!(
+        service
+            .permission_catalog(&reader)
+            .await
+            .expect("reads")
+            .iter()
+            .any(|entry| entry.name == ALERT_WRITE)
+    );
+    assert!(matches!(
+        service.user(&reader, UserId(Uuid::from_u128(98))).await,
+        Err(ServiceError::NoUser(_))
+    ));
+
+    for refused in [
+        service.users(&nobody, true).await.map(|_| ()),
+        service.user(&nobody, member).await.map(|_| ()),
+        service.groups(&nobody).await.map(|_| ()),
+        service.api_keys(&nobody, None).await.map(|_| ()),
+        service.permission_catalog(&nobody).await.map(|_| ()),
+    ] {
+        assert!(matches!(
+            refused,
+            Err(ServiceError::PermissionDenied { .. })
+        ));
+    }
+    let own = service.own_account(&nobody).await.expect("needs no grant");
+    assert_eq!(own.username, "nobody");
+    assert_eq!(own.timezone, "UTC");
+
+    service
+        .create_group(&boss, "Triage")
+        .await
+        .expect("a name in another case is another group");
+    assert!(matches!(
+        service.create_group(&boss, "triage").await,
+        Err(ServiceError::GroupNameTaken)
+    ));
+    assert!(matches!(
+        service
+            .add_group_member(&boss, GroupId(Uuid::from_u128(97)), member)
+            .await,
+        Err(ServiceError::NotFound(_))
+    ));
+    assert!(matches!(
+        service
+            .grant(
+                &boss,
+                &Holder::Group(GroupId(Uuid::from_u128(97))),
+                &pattern("a", "b"),
+                Effect::Allow
+            )
+            .await,
+        Err(ServiceError::NotFound(_))
+    ));
+}
+
+/// A profile's fields are checked before anything is written, and a user changes only their own name and
+/// timezone.
+#[tokio::test]
+async fn a_profile_is_checked() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let boss = admin(db).await;
+    let me = holding(&service, db, "profiled", &[]).await;
+    let id = actor_id(&me);
+    for bad in [
+        Profile {
+            timezone: Some("Mars/Olympus".to_owned()),
+            ..Profile::default()
+        },
+        Profile {
+            email: Some("no at sign".to_owned()),
+            ..Profile::default()
+        },
+        Profile {
+            email: Some("@example.com".to_owned()),
+            ..Profile::default()
+        },
+        display_name("a\u{7}bell"),
+        display_name(&"x".repeat(1025)),
+    ] {
+        assert!(
+            matches!(
+                service.update_user(&boss, id, &bad).await,
+                Err(ServiceError::InvalidRequest(_))
+            ),
+            "{bad:?}"
+        );
+    }
+    assert!(matches!(
+        service
+            .update_own_profile(
+                &me,
+                &Profile {
+                    email: Some("me@example.com".to_owned()),
+                    ..Profile::default()
+                }
+            )
+            .await,
+        Err(ServiceError::InvalidRequest(_))
+    ));
+    assert!(matches!(
+        service
+            .update_user(&boss, UserId(Uuid::from_u128(96)), &display_name("x"))
+            .await,
+        Err(ServiceError::NoUser(_))
+    ));
+    // an empty field clears it, and a timezone's name is the canonical one
+    service
+        .update_user(
+            &boss,
+            id,
+            &Profile {
+                display_name: Some("Shown".to_owned()),
+                email: Some("me@example.com".to_owned()),
+                timezone: Some(" US/Eastern ".to_owned()),
+            },
+        )
+        .await
+        .expect("updates");
+    service
+        .update_own_profile(&me, &display_name("  "))
+        .await
+        .expect("clears");
+    let own = service.own_account(&me).await.expect("reads");
+    assert_eq!(own.display_name, None);
+    assert_eq!(own.email.as_deref(), Some("me@example.com"));
+    assert_eq!(own.timezone, "US/Eastern");
+}
+
+/// The catalog lists every permission this crate checks, so a router that brings one has to add it.
+#[test]
+fn the_catalog_lists_every_permission_checked() {
+    let source =
+        std::fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("src/permission.rs"))
+            .expect("reads the source");
+    let known =
+        regex::Regex::new(r#"PermissionName::known\("(\w+)", "(\w+)"\)"#).expect("a pattern");
+    let checked: BTreeSet<String> = known
+        .captures_iter(&source)
+        .map(|found| format!("{}:{}", &found[1], &found[2]))
+        .collect();
+    let listed: BTreeSet<String> = CATALOG.iter().map(|entry| entry.name.to_string()).collect();
+    assert_eq!(listed.len(), CATALOG.len(), "each once");
+    assert_eq!(listed, checked);
+    let mut directories = vec![Path::new(env!("CARGO_MANIFEST_DIR")).join("src")];
+    while let Some(directory) = directories.pop() {
+        for entry in std::fs::read_dir(&directory).expect("reads the source") {
+            let path = entry.expect("reads the source").path();
+            if path.is_dir() {
+                directories.push(path);
+            } else if !path.ends_with("permission.rs") {
+                let text = std::fs::read_to_string(&path).expect("reads the source");
+                assert!(
+                    !text.contains("PermissionName::known("),
+                    "{}: a known permission belongs in permission.rs, beside the catalog",
+                    path.display()
+                );
+            }
+        }
+    }
 }
