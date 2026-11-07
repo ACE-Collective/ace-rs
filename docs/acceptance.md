@@ -39,6 +39,10 @@ A row says a difference is fine, so it needs a reason someone verified: read ace
 
 `tests/e2e/run --compare` reports without enforcing, for working through a port's differences. `report.md` and `report.json` under `target/e2e/compare/` have every difference, and `report.md` says whether the threshold is met.
 
+## A port of a library
+
+A Rust port of a library is compared with the library itself before its module moves (`PLAN.md` 4.9 to 4.12). `tools/library-diff/run LIBRARY --right rust:PACKAGE/BIN` runs each side on every file in `samples/manifest.json`, whatever its kind, and has the same threshold: a difference that `tools/library-diff/differences/LIBRARY.md` doesn't list fails, and so does a row that matches nothing. Rows follow *Listing a difference*. The top of that script has the contract. `tools/library-diff/run --all` runs each library on both sides, about 4.5 minutes, and `tests/e2e/run` runs only its `self-test`.
+
 ## Samples CI doesn't have
 
 `samples/local/` is git-ignored, so `ace compare` reports those samples as absent in CI. When the `CI` variable is set, `tests/e2e/run` passes `--allow-absent`, and the threshold holds over the tracked samples only. The report names each absent sample and says the threshold says nothing about them.

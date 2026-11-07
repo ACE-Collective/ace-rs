@@ -1,0 +1,315 @@
+#!/usr/bin/env python3
+"""PLAN.md 4.8: runs a Python library and its Rust port over every file in samples/manifest.json and
+diffs what they give. 4.9 to 4.12 are accepted on it. It's for development and acceptance, and nothing
+in the stack runs it, so it's a script like tests/e2e/run and not a subcommand of `ace`.
+
+    tools/library-diff/run LIBRARY [--left SIDE] [--right SIDE]    python on both by default
+    tools/library-diff/run --all                                   each library, python on both
+
+It exits 0 when every difference is listed and every row matched one, 1 when not, and 2 when it can't
+do the comparison at all, such as a side that breaks the contract below.
+
+SIDE is one of:
+
+    python                    tools/library-diff/adapters/LIBRARY.py, on the library's image
+    rust:PACKAGE/BIN          a binary built with the port, in the dev image
+    adapter:PATH              another Python adapter, such as self-test's
+
+The contract. A side is a command that takes one file's path and prints one JSON object on stdout, then
+exits 0:
+
+    {"output": ...}                                 what the library gave; it may add "content": false
+                                                    when that holds nothing from the file
+    {"error": {"type": "...", "message": "..."}}    the library refused the file
+
+A port has to give the same JSON for the same file. Bytes are {"base64": "..."}, which is
+ace_results::Bytes, and a string that isn't Unicode is too, which is ace_results::TextOrBytes. Files
+aren't renamed: each side sees the file at the same /samples/<path>. Each file gets a container of its
+own, so what this adds is the two cases a side can't report itself, which compare like any other:
+
+    {"timeout": true}            past --timeout
+    {"crashed": {"exit": N}}     it died with no answer: a signal, or the memory limit
+
+So every file runs whether or not it's the library's kind, and a library that raises is data. Each side
+runs --runs times (2 by default). The first runs of the two sides are compared under the sample's name,
+and each further run with its side's first under repeat/left/<sample> or repeat/right/<sample>. So what
+a library doesn't do the same twice fails until it's listed, and the report names it.
+
+The list. tools/library-diff/differences/LIBRARY.md, in the rows of tools/ace3/trees/differences.md,
+with ace_results::differences' meaning: an unlisted difference fails, and so does a row that matched
+nothing. A row needs a reason someone verified (docs/acceptance.md). The diffing and the list's rules
+are that module's, run by crates/ace-testkit's library-diff binary. A run also fails when a side has
+content on no file, since one that errors on everything, or finds nothing, proves nothing.
+
+Containment. Each file gets a container with no network, a read-only root, no capabilities, no new
+privileges, an unprivileged user, a memory and a process limit, the samples read-only and a small
+/tmp. That isn't the pool's Landlock and seccomp: those are in ace-pool's supervisor, tied to a lease,
+and the files are the repository's own samples. A container per file also stops one file affecting
+the next.
+
+The images. A library's side runs on a stage of docker/ace4/Dockerfile that holds only libraries:
+python-libraries has what the pool has, and pdf-libraries has pikepdf, which PLAN.md decision 8 keeps
+out of the pool. A Rust side runs on python-libraries, which is the dev image's Debian. They're tagged
+by what they're built from (ace4-library-diff-*:<hash>), and adapters are mounted, so no checkout
+changes another's. Nothing needs the stack up.
+
+Beside another copy. Nothing here has a fixed name, port or temporary path: containers are named
+afresh, the work directory is new under this checkout's target/library-diff/, and images are tagged by
+content. Rust builds run in the dev image under a Compose project of this checkout's own,
+ace4-libdiff-<hash of its path>, whose target volume stays between runs. Set ACE4_STACK to use a
+project you already have instead. So another worktree just runs it. Under one project, at most one
+build runs at a time, as cargo locks its target directory.
+"""
+
+import argparse
+import concurrent.futures
+import fnmatch
+import hashlib
+import json
+import os
+import shutil
+import subprocess
+import sys
+import tempfile
+import time
+import uuid
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent.parent
+HERE = ROOT / "tools" / "library-diff"
+LIBRARIES = {
+    "olevba": "python-libraries",
+    "rtfobj": "python-libraries",
+    "msoffcrypto": "python-libraries",
+    "pcodedmp": "python-libraries",
+    "xlmdeobfuscator": "python-libraries",
+    "pikepdf": "pdf-libraries",
+    "pdf-parser": "pdf-libraries",
+}
+# what the images are made from
+IMAGE_INPUTS = [
+    "docker/ace4/Dockerfile",
+    "python/build-requirements.txt",
+    "python/requirements.txt",
+    "python/pdf-requirements.txt",
+]
+# a container that doesn't end this long after its own timer is killed from here
+HOST_GRACE_SECONDS = 60
+DOCKER_RUN_FAILED = {125, 126, 127}
+TIMED_OUT = 124
+
+
+class CantCompare(Exception):
+    """The comparison itself failed, which says nothing of the library or its port."""
+
+
+def log(message):
+    print(f"library-diff: {message}", flush=True)
+
+
+def image_for(stage):
+    """The stage's image, built if this content has none yet."""
+    digest = hashlib.sha256()
+    for name in IMAGE_INPUTS:
+        digest.update((ROOT / name).read_bytes())
+    tag = f"ace4-library-diff-{stage}:{digest.hexdigest()[:16]}"
+    present = subprocess.run(["docker", "image", "inspect", tag], capture_output=True)
+    if present.returncode != 0:
+        log(f"building {tag}")
+        subprocess.run(
+            ["docker", "build", "-q", "-f", "docker/ace4/Dockerfile", "--target", stage, "-t", tag, "."],
+            cwd=ROOT, check=True, stdout=subprocess.DEVNULL,
+        )
+    return tag
+
+
+def build_rust(package, binary, sides):
+    """Builds a binary in the dev image, in this checkout's own target volume, and leaves it in sides."""
+    project = os.environ.get("ACE4_STACK") or "ace4-libdiff-" + hashlib.sha256(
+        str(ROOT).encode()
+    ).hexdigest()[:8]
+    env = {**os.environ, "ACE4_STACK": project}
+    env.pop("COMPOSE_PROJECT_NAME", None)
+    compose = ["docker", "compose", "-f", str(ROOT / "compose.yaml")]
+    sides.mkdir(parents=True, exist_ok=True)
+    started = time.monotonic()
+    done = subprocess.run(
+        [*compose, "run", "--rm", "--no-deps", "-T", "-v", f"{sides}:/sides", "dev", "sh", "-c",
+         f"cargo build --locked -q -p {package} --bin {binary} && cp target/debug/{binary} /sides/"],
+        env=env, cwd=ROOT, stdin=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True,
+    )
+    # takes down the network `run` made; the target volume stays. Not a project someone else named
+    if "ACE4_STACK" not in os.environ:
+        subprocess.run([*compose, "down"], env=env, cwd=ROOT, capture_output=True)
+    if done.returncode != 0:
+        raise CantCompare(f"cargo build -p {package} --bin {binary} failed:\n{done.stderr}")
+    log(f"built {binary} in {time.monotonic() - started:.1f}s, under Compose project {project}")
+    return sides / binary
+
+
+class Side:
+    """How to run one side on one file: the image, the mounts and the command."""
+
+    def __init__(self, spec, library, work):
+        self.spec = spec
+        self.mounts = [f"{HERE}:/library-diff:ro"]
+        side_py = ["python", "-I", "-B", "/library-diff/adapters/side.py"]
+        if spec == "python":
+            self.image = image_for(LIBRARIES[library])
+            self.command = [*side_py, f"/library-diff/adapters/{library}.py"]
+        elif spec.startswith("adapter:"):
+            path = Path(spec.removeprefix("adapter:")).resolve()
+            self.image = image_for(LIBRARIES.get(library, "python-libraries"))
+            self.mounts.append(f"{path.parent}:/side-adapter:ro")
+            self.command = [*side_py, f"/side-adapter/{path.name}"]
+        elif spec.startswith("rust:"):
+            package, slash, binary = spec.removeprefix("rust:").partition("/")
+            if not slash:
+                raise CantCompare(f"{spec}: a Rust side is rust:PACKAGE/BIN")
+            built = build_rust(package, binary, work / "sides")
+            self.image = image_for("python-libraries")
+            self.mounts.append(f"{built.parent}:/sides:ro")
+            self.command = [f"/sides/{binary}"]
+        else:
+            raise CantCompare(f"{spec}: a side is python, rust:PACKAGE/BIN or adapter:PATH")
+
+
+def contained(image, mounts, command, seconds, memory, user="65534:65534"):
+    """`docker run` for something that reads hostile input. Its name is new each time, so it can be
+    killed if it outlives its own timer."""
+    name = f"ace4-library-diff-{uuid.uuid4().hex}"
+    volumes = [arg for mount in mounts for arg in ("-v", mount)]
+    return name, [
+        "docker", "run", "--rm", "--name", name, "--network", "none", "--read-only",
+        "--cap-drop", "ALL", "--security-opt", "no-new-privileges", "--user", user,
+        "--pids-limit", "256", "--memory", memory, "--memory-swap", memory,
+        "--tmpfs", "/tmp:rw,size=1g,mode=1777", "--workdir", "/tmp", "-e", "HOME=/tmp", *volumes,
+        image, "timeout", "-k", "5", str(seconds), *command,
+    ]
+
+
+def run_one(side, sample, destination, args):
+    """Runs one side on one sample and writes what it gave to destination."""
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    name, command = contained(
+        side.image,
+        [*side.mounts, f"{ROOT / 'samples'}:/samples:ro"],
+        [*side.command, f"/samples/{sample}"],
+        args.timeout,
+        args.memory,
+    )
+    stdout_path = destination.with_name(destination.name + ".stdout")
+    stderr_path = destination.with_name(destination.name + ".stderr")
+    with open(stdout_path, "wb") as stdout, open(stderr_path, "wb") as stderr:
+        try:
+            code = subprocess.run(
+                command, stdin=subprocess.DEVNULL, stdout=stdout, stderr=stderr,
+                timeout=args.timeout + HOST_GRACE_SECONDS,
+            ).returncode
+        except subprocess.TimeoutExpired:
+            subprocess.run(["docker", "rm", "-f", name], capture_output=True)
+            code = TIMED_OUT
+    if code in DOCKER_RUN_FAILED:
+        raise CantCompare(f"{sample}: docker run exited {code}: {stderr_path.read_text(errors='replace')[-500:]}")
+    if code == TIMED_OUT:
+        result = {"timeout": True}
+    elif code != 0:
+        result = {"crashed": {"exit": code}}
+    else:
+        try:
+            result = json.loads(stdout_path.read_bytes())
+        except ValueError as error:
+            raise CantCompare(f"{side.spec} broke the contract on {sample}: its stdout isn't JSON: {error}")
+        if not (isinstance(result, dict) and ("output" in result or "error" in result)):
+            raise CantCompare(f"{side.spec} broke the contract on {sample}: not {{output}} or {{error}}")
+    destination.write_text(json.dumps(result))
+    stdout_path.unlink()
+
+
+def samples_in_manifest(patterns):
+    """The samples to run, those absent here, and those --sample left out."""
+    manifest = json.loads((ROOT / "samples" / "manifest.json").read_text())
+    chosen, absent, left_out = [], [], []
+    for sample in manifest["samples"]:
+        path = ROOT / "samples" / sample["path"]
+        if patterns and not any(fnmatch.fnmatch(sample["path"], p) for p in patterns):
+            left_out.append(sample["path"])
+        elif not path.exists():
+            absent.append(sample["path"])
+        elif hashlib.sha256(path.read_bytes()).hexdigest() != sample["sha256"]:
+            raise CantCompare(f"{sample['path']} isn't the file samples/manifest.json names")
+        else:
+            chosen.append(sample["path"])
+    return chosen, absent, left_out
+
+
+def compare(library, left, right, args):
+    samples, absent, left_out = samples_in_manifest(args.sample)
+    if absent and not os.environ.get("CI"):
+        raise CantCompare(f"{len(absent)} samples absent, such as {absent[0]}; tools/samples/gather makes them")
+    base = args.work or ROOT / "target" / "library-diff"
+    base.mkdir(parents=True, exist_ok=True)
+    work = Path(tempfile.mkdtemp(prefix=f"{library}-", dir=base))
+    tool = build_rust("ace-testkit", "library-diff", work / "tool")
+    sides = {"left": Side(left, library, work), "right": Side(right, library, work)}
+    log(f"{library}: {left} against {right}, {len(samples)} samples, {args.runs} runs a side, in {work}")
+    started = time.monotonic()
+    with concurrent.futures.ThreadPoolExecutor(args.concurrency) as pool:
+        jobs = [
+            pool.submit(run_one, side, sample, work / "outputs" / name / str(run) / f"{sample}.json", args)
+            for name, side in sides.items()
+            for run in range(args.runs)
+            for sample in samples
+        ]
+        for job in concurrent.futures.as_completed(jobs):
+            job.result()
+    log(f"the sides took {time.monotonic() - started:.1f}s")
+    (work / "run.json").write_text(json.dumps({
+        "library": library, "left": left, "right": right, "runs": args.runs, "samples": samples,
+        "skipped": absent + left_out,
+    }))
+    differences = args.differences or HERE / "differences" / f"{library}.md"
+    mounts = [f"{work}:/work", f"{tool.parent}:/tool:ro"]
+    command = ["/tool/library-diff", "/work"]
+    if differences.exists():
+        # a copy, because a bind mount of one file can show what it held before an edit
+        shutil.copyfile(differences, work / "differences.md")
+        command.append("/work/differences.md")
+    # it writes its report through the mount, so as the user who owns that directory
+    _, docker = contained(image_for("python-libraries"), mounts, command, 300, "4g",
+                          user=f"{os.getuid()}:{os.getgid()}")
+    code = subprocess.run(docker, stdin=subprocess.DEVNULL).returncode
+    if code not in (0, 1):
+        raise CantCompare(f"the diff exited {code}")
+    log(f"the report is in {work / 'report.json'}")
+    return code
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    parser.add_argument("library", nargs="?", help="|".join(LIBRARIES))
+    parser.add_argument("--all", action="store_true", help="every library, python on both sides")
+    parser.add_argument("--left", default="python")
+    parser.add_argument("--right", default="python")
+    parser.add_argument("--differences", type=Path, help="in place of differences/LIBRARY.md")
+    parser.add_argument("--sample", action="append", help="only these samples, by glob, for working on a port; "
+                        "it isn't the Done check")
+    parser.add_argument("--timeout", type=int, default=120, help="seconds a side gets on one file")
+    parser.add_argument("--memory", default="4g", help="memory a side gets on one file")
+    parser.add_argument("--runs", type=int, default=2, help="runs of each side on each file")
+    parser.add_argument("--concurrency", type=int, default=4)
+    parser.add_argument("--work", type=Path, help="in place of target/library-diff")
+    args = parser.parse_args()
+    if bool(args.all) == bool(args.library):
+        parser.error("give a library or --all")
+    try:
+        names = list(LIBRARIES) if args.all else [args.library]
+        codes = [compare(name, args.left, args.right, args) for name in names]
+    except CantCompare as error:
+        log(f"can't compare: {error}")
+        return 2
+    return 1 if any(codes) else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

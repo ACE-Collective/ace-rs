@@ -66,3 +66,16 @@ jobs:
         with:
           name: compare-report
           path: target/e2e/compare/
+
+  # PLAN.md 4.8: each library against itself over the tracked samples, about 5 minutes. It needs
+  # nothing up: its sides get a container each, and tests/e2e/run has only its self-test.
+  library-diff:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Each library on both sides
+        run: tools/library-diff/run --all
+        env:
+          CI: "true"

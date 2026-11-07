@@ -76,7 +76,10 @@ CMD ["ace-lookups"]
 # says what's pinned and why, and tools/python/lock regenerates the hashes. The three GitHub archives
 # need setuptools to build, so it's installed first, pinned. It stays, because XLMMacroDeobfuscator
 # imports distutils, which Python 3.12 removed and setuptools now provides. wheel goes.
-FROM python:3.14.10-slim-trixie@sha256:af8a5aa14780025dbfbcfbc81bd8a91ebd87711dd5b0f48ed71090949dd7cb1d AS python
+#
+# python-libraries is the image without the pool, which needs no Rust built, so tools/library-diff/run
+# (PLAN.md 4.8) gets the same libraries from it.
+FROM python:3.14.10-slim-trixie@sha256:af8a5aa14780025dbfbcfbc81bd8a91ebd87711dd5b0f48ed71090949dd7cb1d AS python-libraries
 # ace-python links libmagic, as every binary over ace-app does; the pool never calls it
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
@@ -93,6 +96,8 @@ RUN pip install --no-cache-dir --disable-pip-version-check --no-deps --require-h
     && pip check --disable-pip-version-check \
     && python -c "import msoffcrypto, oletools.olevba, pcodedmp.pcodedmp, pyxlsb2, xlrd2, XLMMacroDeobfuscator.deobfuscator, yara_x" \
     && rm -rf /tmp/requirements
+
+FROM python-libraries AS python
 # py-spy, which the supervisor runs on a hung worker (PLAN.md 4.3). It goes apart from the libraries,
 # so a worker can't import it, and its directory isn't in a worker's Landlock paths, so a worker
 # can't read or run it. pip --target leaves its files writable by anyone unless it's told.
@@ -107,6 +112,16 @@ COPY python /opt/ace4/python
 RUN python -m compileall -q /opt/ace4/python
 COPY --from=build /out/ace-python /usr/local/bin/ace-python
 CMD ["ace-python"]
+
+# pikepdf for tools/library-diff/run (PLAN.md 4.9's comparison). Decision 8 keeps it out of the pool,
+# so nothing in the stack runs this. Same Python, wheels only, by hash.
+FROM python:3.14.10-slim-trixie@sha256:af8a5aa14780025dbfbcfbc81bd8a91ebd87711dd5b0f48ed71090949dd7cb1d AS pdf-libraries
+COPY python/pdf-requirements.txt /tmp/pdf-requirements.txt
+RUN pip install --no-cache-dir --disable-pip-version-check --no-deps --require-hashes \
+        --only-binary :all: -r /tmp/pdf-requirements.txt \
+    && pip check --disable-pip-version-check \
+    && python -c "import pikepdf" \
+    && rm /tmp/pdf-requirements.txt
 
 # The end-to-end test's recorded RDAP and Splunk APIs (tools/ace3/dumps/reference).
 FROM runtime AS responder

@@ -1,0 +1,115 @@
+#!/usr/bin/env python3
+"""That tools/library-diff/run has teeth, on stand-in libraries and one real one, with no change to
+either: each case says what a run must do and what its report must hold. tests/e2e/run runs this.
+
+    tools/library-diff/self-test
+"""
+
+import json
+import re
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+ADAPTERS = HERE / "self-test-adapters"
+OFFICE = "ace4/office/"
+PLAIN = [OFFICE + name for name in ("surrogate_name.doc", "encrypted_xor.doc")]
+CLASSES = [OFFICE + name for name in ("garbage.doc", "text_named.doc", "html_named.doc")]
+RANDOM = [OFFICE + "source.doc"]
+FAILURES = []
+
+
+def side(name):
+    return f"adapter:{ADAPTERS / name}.py"
+
+
+def run(work, library, left, right, samples, rows=None):
+    """Runs the command and returns its exit code, what it printed and its report."""
+    differences = work / "differences.md"
+    differences.write_text("".join(f"| `{a}` | `{b}` | why |\n" for a, b in rows or []))
+    command = [
+        str(HERE / "run"), library, "--left", left, "--right", right, "--timeout", "3",
+        "--differences", str(differences), "--work", str(work), "--concurrency", "8",
+    ]
+    for sample in samples:
+        command += ["--sample", sample]
+    done = subprocess.run(command, capture_output=True, text=True, stdin=subprocess.DEVNULL)
+    match = re.search(r"the report is in (.+)", done.stdout)
+    report = None
+    if match:
+        report = json.loads(Path(match.group(1)).read_text())
+        report["work"] = Path(match.group(1)).parent
+    return done.returncode, done.stdout + done.stderr, report
+
+
+def expect(what, code, text, wanted_code, *wanted):
+    missing = [w for w in wanted if w not in text]
+    ok = code == wanted_code and not missing
+    print(("ok    " if ok else "FAIL  ") + what, flush=True)
+    if not ok:
+        print(f"  exit {code}, wanted {wanted_code}; missing {missing}\n{text}", flush=True)
+        FAILURES.append(what)
+
+
+def main():
+    target = HERE.parent.parent / "target"
+    target.mkdir(exist_ok=True)
+    with tempfile.TemporaryDirectory(dir=target) as name:
+        work = Path(name)
+        behaves, tampered = side("behaves"), side("tampered")
+
+        code, text, report = run(work, "testing", behaves, behaves, PLAIN + CLASSES)
+        expect("the same side twice reports no difference", code, text, 0, "0 differences")
+        counts = report["sides"]["left"] if report else {}
+        print(f"      counts: {counts}")
+        if counts.get("errors") != {"ValueError": 1} or counts.get("timeouts") != 1 or counts.get("crashes") != 1:
+            FAILURES.append(f"an exception, a timeout and a crash each count as data: {counts}")
+        output = (report["work"] / "outputs/left/0" / f"{PLAIN[0]}.json").read_text() if report else ""
+        expected = {"output": {"bytes": {"base64": "//4A"}, "broken_text": {"base64": "Y2Fm6Q=="}, "wide": "caf\xe9"}}
+        if not report or json.loads(output) != expected:
+            FAILURES.append(f"bytes stay bytes: {output}")
+
+        code, text, _ = run(work, "testing", behaves, tampered, PLAIN)
+        expect("a change on one side fails, and is named", code, text, 1,
+               f"{PLAIN[0]}: /output/bytes/base64", "//4A", "//4B")
+
+        rows = [(PLAIN[0], "/output/bytes/base64")]
+        code, text, _ = run(work, "testing", behaves, tampered, PLAIN, rows)
+        expect("a row explains it", code, text, 0, "1 differences")
+
+        code, text, _ = run(work, "testing", behaves, behaves, PLAIN, rows)
+        expect("that row fails when it matches nothing", code, text, 1, "matched nothing", rows[0][1])
+
+        code, text, _ = run(work, "testing", behaves, behaves, PLAIN, [("ace3/office/doc.doc", "/x")])
+        expect("a row for a sample this run left out isn't stale", code, text, 0)
+
+        code, text, report = run(work, "testing", behaves, behaves, RANDOM + PLAIN)
+        expect("a side that differs from itself fails, and is named", code, text, 1,
+               f"repeat/left/{RANDOM[0]}: /output/random/base64", "nondeterministic")
+
+        rows = [(f"repeat/*/{RANDOM[0]}", "/output/random/base64"), (RANDOM[0], "/output/random/base64")]
+        code, text, report = run(work, "testing", behaves, behaves, RANDOM + PLAIN, rows)
+        expect("listed, it passes and is still reported", code, text, 0, "nondeterministic")
+
+        code, text, _ = run(work, "testing", side("always_raises"), side("always_raises"), PLAIN)
+        expect("a library that errors on every file fails", code, text, 1, "content on no file")
+
+        code, text, _ = run(work, "testing", behaves, side("not_json"), PLAIN)
+        expect("a side that breaks the contract can't be compared", code, text, 2, "isn't JSON")
+
+        real = ["ace3/office/receipt_687790.doc"]
+        code, text, _ = run(work, "pcodedmp", "python", "python", real)
+        expect("the real pcodedmp on both sides reports no difference", code, text, 0, "0 differences")
+        code, text, _ = run(work, "pcodedmp", "python", side("tampered_pcodedmp"), real)
+        expect("a change to the real pcodedmp's output fails", code, text, 1, f"{real[0]}: /output/text")
+
+    if FAILURES:
+        print(f"{len(FAILURES)} failed: {FAILURES}")
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

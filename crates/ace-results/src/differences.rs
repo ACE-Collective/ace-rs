@@ -128,6 +128,17 @@ impl ListedDifferences {
         compared: &[(String, Vec<Difference>)],
         skipped: &[String],
     ) -> Result<(), String> {
+        self.check_between(compared, skipped, "ace3", "ace4")
+    }
+
+    /// `check`, for two sides that aren't ace3 and ace4, naming them in its report.
+    pub fn check_between(
+        &self,
+        compared: &[(String, Vec<Difference>)],
+        skipped: &[String],
+        left: &str,
+        right: &str,
+    ) -> Result<(), String> {
         let mut used = vec![false; self.rows.len()];
         let mut unexplained = Vec::new();
         for (dump, differences) in compared {
@@ -141,7 +152,7 @@ impl ListedDifferences {
                 }
                 if !explained {
                     unexplained.push(format!(
-                        "{dump}: {}\n    ace3: {}\n    ace4: {}",
+                        "{dump}: {}\n    {left}: {}\n    {right}: {}",
                         difference.path,
                         show(&difference.ace3),
                         show(&difference.ace4)

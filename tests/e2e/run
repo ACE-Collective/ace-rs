@@ -31,6 +31,7 @@ a worker on that image, fails its task with the field's path in the row, and not
 And PLAN.md 4.3's: a hung task's row holds its stack, a frame naming the function it hung in, for a
 worker in pure Python and in C calls without the GIL, and a worker can't reach py-spy. Then the pool
 goes back to its usual limits, and the Python modules' tests run on the image with the samples.
+Then the library diff's self-test runs (PLAN.md 4.8).
 
 It then runs `ace compare` (PLAN.md 3.3, crates/ace-app/src/compare.rs) over the sample set, each
 sample in the cli mode against ace3's tree in tools/ace3/trees/reference/ (3.2), and writes the
@@ -474,6 +475,17 @@ def check_python_module_tests(failures):
         failures.append("the Python modules' tests failed; see above")
 
 
+def check_library_diff(failures):
+    """That the library diff (PLAN.md 4.8) has teeth. Its full run over the sample set is a separate
+    invocation, tools/library-diff/run --all, since it takes as long as the comparison."""
+    started = time.monotonic()
+    code = subprocess.run([ROOT / "tools" / "library-diff" / "self-test"]).returncode
+    log(("ok    " if code == 0 else "FAIL  ") + "the library diff's self-test "
+        f"({time.monotonic() - started:.1f}s)")
+    if code != 0:
+        failures.append("the library diff's self-test failed; see above")
+
+
 def check_ports_compared(failures):
     """A port on the Python pool must have been compared with something."""
     compared = json.loads((WORK / "compare" / "report.json").read_text())["compared_by_module"]
@@ -603,6 +615,7 @@ def main(argv):
         if "ACE4_E2E_SITE" not in os.environ:
             check_python_pool(failures)
             check_python_module_tests(failures)
+            check_library_diff(failures)
             compare_failed = compare_with_ace3(threshold=True) != 0
             check_ports_compared(failures)
             if compare_failed:

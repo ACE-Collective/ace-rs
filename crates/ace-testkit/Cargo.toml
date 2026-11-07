@@ -11,6 +11,11 @@ publish.workspace = true
 [[bin]]
 name = "replay-server"
 
+# The diff of tools/library-diff/run (PLAN.md 4.8). Its tests are in the library.
+[[bin]]
+name = "library-diff"
+test = false
+
 [dependencies]
 ace-results = { path = "../ace-results" }
 ace-sdk = { path = "../ace-sdk" }
