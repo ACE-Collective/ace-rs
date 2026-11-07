@@ -518,6 +518,14 @@ def make_encrypted_office(directory, email_directory):
     return files, [email_directory / name for name in emails]
 
 
+def pdf_libraries_image():
+    """The Dockerfile's pdf-libraries stage, which has pikepdf, as an image id."""
+    return subprocess.run(
+        ["docker", "build", "-q", "-f", "docker/ace4/Dockerfile", "--target", "pdf-libraries", "."],
+        cwd=REPO, check=True, capture_output=True, text=True,
+    ).stdout.strip()
+
+
 def entry(path, kinds, source, note=None):
     data = path.read_bytes()
     relative = path.relative_to(SAMPLES).as_posix()
@@ -592,6 +600,19 @@ def main():
                   "made by tools/samples/gather: tools/samples/make-xlm")
         )
 
+    # on the pdf-libraries image, because the encrypted ones go through pikepdf
+    (SAMPLES / "ace4" / "pdf").mkdir(parents=True, exist_ok=True)
+    pdfs = subprocess.run(
+        ["docker", "run", "--rm", "--user", f"{os.getuid()}:{os.getgid()}", "-v", f"{REPO}:/repo:ro",
+         "-v", f"{SAMPLES / 'ace4' / 'pdf'}:/out", pdf_libraries_image(), "python", "-I",
+         "/repo/tools/samples/make-pdf", "/out"],
+        check=True, capture_output=True, text=True,
+    ).stdout.split()
+    for name in pdfs:
+        samples.append(
+            entry(SAMPLES / "ace4" / "pdf" / name, ["pdf", "pdf/made"], "made by tools/samples/gather: tools/samples/make-pdf")
+        )
+
     covered = {kind for sample in samples for kind in sample["kinds"]}
     missing = [kind for kind in REQUIRED_KINDS if kind not in covered]
     manifest = {
@@ -607,7 +628,6 @@ def main():
         "gaps": [
             "an encrypted RAR: making one needs RARLAB's non-free rar tool",
             "PowerPoint and Excel files with VBA macros: ace3's tests hold Word ones only",
-            "an encrypted PDF: ace3's tests build theirs with pikepdf at test time",
             "an encrypted .ppt, and an RC4 .doc: msoffcrypto writes neither, only ace3's RC4 .xls is here",
         ],
         "samples": sorted(samples, key=lambda sample: sample["path"]),

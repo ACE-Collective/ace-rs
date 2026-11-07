@@ -1,0 +1,38 @@
+{
+  "form": 1,
+  "observables": {
+    "file:fd03a45ab4149f512738804914bb0504a830951c954ee258ed733847d37eba8e": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "header_at_1024.pdf": {
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/pdf",
+            "type": "PDF document, version 1.7, 1 page(s), ISO-8859 text, with very long lines (1023)"
+          },
+          "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s), ISO-8859 text, with very long lines (1023) (application/pdf)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    }
+  }
+}

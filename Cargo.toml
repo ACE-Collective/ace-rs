@@ -2,10 +2,12 @@
 resolver = "3"
 members = ["crates/*"]
 # Vendored crates build as dependencies, not members (vendor/README.md).
-exclude = ["vendor/unrar_sys"]
+exclude = ["vendor/qpdf-sys", "vendor/unrar_sys"]
 
-# unrar_sys without RAR_SMP, so unrar unpacks RAR 5 on the calling thread (vendor/README.md).
+# qpdf-sys with bindings that compile on arm64 Linux (vendor/README.md).
 [patch.crates-io]
+qpdf-sys = { path = "vendor/qpdf-sys" }
+# unrar_sys without RAR_SMP, so unrar unpacks RAR 5 on the calling thread (vendor/README.md).
 unrar_sys = { path = "vendor/unrar_sys" }
 
 [workspace.package]

@@ -6,6 +6,7 @@ pub mod email;
 pub mod msoffice;
 pub mod olevba;
 pub mod pcode;
+pub mod pdf;
 pub mod rdap;
 pub mod rtf;
 pub mod splunk;

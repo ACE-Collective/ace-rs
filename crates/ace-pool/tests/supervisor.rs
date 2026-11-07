@@ -132,6 +132,148 @@ async fn the_archive_module_unpacks_rar_5_in_a_contained_task_process() {
     );
 }
 
+/// The states and errors of `pdf_analyzer` tasks, with the module left to finish.
+async fn pdf_task(
+    core: &Core,
+    root: uuid::Uuid,
+    within: Duration,
+) -> (String, Option<String>, f64) {
+    let started = std::time::Instant::now();
+    loop {
+        let (state, error) = task_of(core, root, "pdf_analyzer").await;
+        if state != "queued" && state != "running" {
+            return (state, error, started.elapsed().as_secs_f64());
+        }
+        assert!(started.elapsed() < within, "the PDF task is still {state}");
+        tokio::time::sleep(Duration::from_millis(50)).await;
+    }
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn the_pdf_module_reads_an_aes_pdf_in_a_contained_task_process() {
+    let core = Core::start(
+        vec![ace_mod_pdf::MANIFEST],
+        &["pdf_analyzer"],
+        Duration::from_secs(30),
+    )
+    .await;
+    let (root, _, _) = core
+        .root_with_file("file", "ace4/pdf/encrypted_aes_256_r6.pdf", "doc.pdf")
+        .await;
+    let mut pool = supervisor(&core, &[]);
+    let (state, error, _) = pdf_task(&core, root, Duration::from_secs(60)).await;
+    let stderr = pool.stop();
+    assert_eq!((state.as_str(), error), ("done", None), "{stderr}");
+    assert!(stderr.contains("contained: Contained"), "{stderr}");
+    let (method, paths): (Option<String>, Vec<String>) = sqlx::query_as(
+        "SELECT r.details->'encryption'->>'method',
+                ARRAY(SELECT path FROM analysis.files f
+                      WHERE f.root_id = r.root_id AND f.path <> 'doc.pdf' ORDER BY path)
+         FROM analysis.results r WHERE r.root_id = $1 AND r.module = 'pdf_analyzer'",
+    )
+    .bind(root)
+    .fetch_one(core.test_db.db().pool())
+    .await
+    .expect("the result");
+    assert_eq!(method.as_deref(), Some("aesv3"), "{stderr}");
+    assert_eq!(
+        paths,
+        [
+            "doc.pdf.annotation_uris.txt",
+            "doc.pdf.decrypted.pdf",
+            "doc.pdf.decrypted.pdf.pdfparser",
+            "doc.pdf.field_payload_decoded.bin",
+            "doc.pdf.js_script.js",
+            "doc.pdf.js_stream.js",
+            "doc.pdf.pdfparser",
+        ]
+    );
+}
+
+/// PLAN.md 4.9: a stream that decodes past the address-space limit inside libqpdf leaves a row, and
+/// the next task runs. A few MB of file decode to more than the limit.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_pdf_that_exhausts_a_task_leaves_a_row_and_the_supervisor_keeps_leasing() {
+    use std::io::Write;
+
+    let core = Core::start(
+        vec![ace_mod_pdf::MANIFEST],
+        &["pdf_analyzer"],
+        Duration::from_secs(30),
+    )
+    .await;
+    let mut encoder = flate2::write::ZlibEncoder::new(Vec::new(), flate2::Compression::fast());
+    let zeros = vec![0u8; 1 << 24];
+    for _ in 0..(3u64 << 30) / (1 << 24) {
+        encoder.write_all(&zeros).expect("compresses");
+    }
+    let bomb = encoder.finish().expect("compresses");
+    let mut file = b"%PDF-1.7\n1 0 obj\n<</Type/Catalog/Pages 2 0 R/Names<</JavaScript<</Names[(a)<</JS 4 0 R>>]>>>>>>\nendobj\n2 0 obj\n<</Type/Pages/Kids[3 0 R]/Count 1>>\nendobj\n3 0 obj\n<</Type/Page/Parent 2 0 R>>\nendobj\n4 0 obj\n<</Filter/FlateDecode/Length ".to_vec();
+    file.extend_from_slice(format!("{}>>\nstream\n", bomb.len()).as_bytes());
+    file.extend_from_slice(&bomb);
+    file.extend_from_slice(b"\nendstream\nendobj\ntrailer\n<</Root 1 0 R>>\n");
+    let (bomb_root, _) = root_with_bytes(&core, "file", &file, "bomb.pdf").await;
+    let (after, _, _) = core
+        .root_with_file("file", "ace3/pdf/Payment_Advice.pdf", "after.pdf")
+        .await;
+    let mut pool = supervisor(&core, &[]);
+    let (state, error, seconds) = pdf_task(&core, bomb_root, Duration::from_secs(120)).await;
+    println!("the bomb: {state} in {seconds:.1}s: {error:?}");
+    // the limit stops it either in libqpdf, which reports it and leaves the rest of the result, or
+    // in an allocation that can't be reported, which fails the task
+    assert!(state == "done" || state == "failed", "{state}");
+    let (state, error, _) = pdf_task(&core, after, Duration::from_secs(60)).await;
+    assert_eq!((state.as_str(), error), ("done", None));
+    assert!(pool.running(), "the supervisor kept running");
+    let _ = pool.stop();
+}
+
+/// A measurement rather than a test (docs/measurements/pdf-hostile.md): each file in the directory
+/// `ACE4_PDF_HOSTILE` names, as a task with the module's real limits, and what became of it.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[ignore = "a measurement, with files tools/samples/make-pdf-hostile makes"]
+async fn measure_hostile_pdfs() {
+    let dir = std::env::var("ACE4_PDF_HOSTILE").expect("ACE4_PDF_HOSTILE");
+    let core = Core::start(
+        vec![ace_mod_pdf::MANIFEST],
+        &["pdf_analyzer"],
+        Duration::from_secs(300),
+    )
+    .await;
+    let mut names: Vec<_> = std::fs::read_dir(&dir)
+        .expect("the directory")
+        .map(|entry| {
+            entry
+                .expect("an entry")
+                .file_name()
+                .into_string()
+                .expect("a name")
+        })
+        .collect();
+    names.sort();
+    let mut pool = supervisor(&core, &[]);
+    for name in names {
+        let bytes = std::fs::read(format!("{dir}/{name}")).expect("the file");
+        let (root, _) = root_with_bytes(&core, "file", &bytes, &name).await;
+        let (state, error, seconds) = pdf_task(&core, root, Duration::from_secs(200)).await;
+        let error = error.unwrap_or_default();
+        let error: String = error.chars().take(120).collect();
+        let files: i64 =
+            sqlx::query_scalar("SELECT count(*) FROM analysis.files WHERE root_id = $1")
+                .bind(root)
+                .fetch_one(core.test_db.db().pool())
+                .await
+                .expect("counts");
+        println!(
+            "{name}\t{}\t{state}\t{seconds:.1}\t{}\t{error}",
+            bytes.len(),
+            files - 1
+        );
+        assert!(pool.running(), "the supervisor kept running after {name}");
+    }
+    let _ = pool.stop();
+}
+
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn the_yara_module_scans_in_a_contained_task_process() {
     let rules = tempfile::tempdir().expect("a rules directory");

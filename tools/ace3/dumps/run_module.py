@@ -178,6 +178,7 @@ TREE_MODULES = {
     "OLEVBA_Analysis_v1_2": "olevba_v1_2",
     "MSOfficeEncryptionAnalysis": "msoffice_encryption_analyzer",
     "PCodeAnalysis": "pcodedmp",
+    "PDFAnalysis": "pdf_analyzer",
     "RdapAnalysis": "rdap_analyzer",
     "RTFOLEObjectAnalysis": "rtfole",
     "XLMMacroDeobfuscatorAnalysis": "xlmdeobfuscator",
@@ -210,6 +211,10 @@ TREE_EXCLUDED = {
     "RTFOLEObjectAnalyzer": "rtfole",
     "MSOfficeEncryptionAnalyzer": "msoffice_encryption_analyzer",
     "PCodeAnalyzer": "pcodedmp",
+    "PDFAnalyzer": "pdf_analyzer",
+    "PDFTextAnalyzer": "pdftotext",
+    "ExifAnalyzer": "exif",
+    "QRCodeAnalyzer": "qrcode",
     "XLMMacroDeobfuscatorAnalyzer": "xlmdeobfuscator",
     "YaraScanner_v3_4": "yara_scanner_v3_4",
 }

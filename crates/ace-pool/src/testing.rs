@@ -26,6 +26,10 @@ pub fn modules(settings: &Value) -> Result<Modules, SetupError> {
         )?);
     }
     Ok(modules
+        .with_parser(Entry::<ace_mod_pdf::PdfAnalyzer>::parser(
+            block("pdf_analyzer"),
+            &secrets,
+        )?)
         .with_parser(Entry::<ace_mod_archive::ArchiveAnalyzer>::parser(
             block("archive"),
             &secrets,

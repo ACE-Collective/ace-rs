@@ -1,0 +1,29 @@
+[package]
+name = "qpdf-sys"
+description = "Rust bindings to QPDF C++ library via FFI and bindgen"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+repository.workspace = true
+documentation.workspace = true
+readme.workspace = true
+keywords.workspace = true
+license.workspace = true
+exclude = [
+    'qpdf/qpdf/*',
+    'qpdf/appimage/*',
+    'qpdf/examples/*',
+    'qpdf/fuzz/*',
+    'qpdf/libtests/*'
+]
+
+[build-dependencies]
+cc = { version = "1", features = ["parallel"], optional = true }
+bindgen = "0.73"
+pkg-config = "0.3"
+
+[features]
+vendored = ["dep:cc"]
+
+[package.metadata.docs.rs]
+features = ["vendored"]

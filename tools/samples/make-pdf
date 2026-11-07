@@ -1,0 +1,471 @@
+#!/usr/bin/env python3
+"""Makes samples/ace4/pdf, for tools/samples/gather and PLAN.md 4.9: PDFs with what ace3's PDFAnalyzer
+reads, encrypted in each way it reports, and broken in the ways that decide what it and pdf-parser.py
+do. The real samples have none of the first and little of the second.
+
+    make-pdf <out dir>
+
+Run it on the pdf-libraries image, which has pikepdf (tools/library-diff/run builds that image):
+
+    docker run --rm -u "$(id -u)" -v "$PWD:/w" -w /w <image> python tools/samples/make-pdf samples/ace4/pdf
+
+Most are written by hand, byte by byte, because a library wouldn't write them. The encrypted ones go
+through pikepdf, which picks random keys, so those bytes differ each run. The manifest holds their
+hashes, and the files are in git. The URLs are example.com's.
+"""
+
+import base64
+import io
+import sys
+import zlib
+from pathlib import Path
+
+import pikepdf
+
+PAGES = {2: b"<</Type/Pages/Kids[3 0 R]/Count 1>>"}
+BASE64_A = (b"https://example.com/form-field-payload/" * 3).strip()
+LONG_NAME = base64.b64encode(BASE64_A)
+
+
+def stream(data, entries=b""):
+    return b"<<" + entries + b"/Length %d>>\nstream\n" % len(data) + data + b"\nendstream"
+
+
+def flate(data, entries=b""):
+    return stream(zlib.compress(data), b"/Filter/FlateDecode" + entries)
+
+
+def pdf(objects, root=1, version=b"1.7", trailer=b""):
+    """A correct file holding these objects, by number, as a classic cross-reference table."""
+    out = bytearray(b"%PDF-" + version + b"\n%\xe2\xe3\xcf\xd3\n")
+    offsets = {}
+    for number in sorted(objects):
+        offsets[number] = len(out)
+        out += b"%d 0 obj\n" % number + objects[number] + b"\nendobj\n"
+    start = len(out)
+    top = max(objects) + 1
+    out += b"xref\n0 %d\n0000000000 65535 f \n" % top
+    for number in range(1, top):
+        if number in offsets:
+            out += b"%010d 00000 n \n" % offsets[number]
+        else:
+            out += b"0000000000 00000 f \n"
+    out += b"trailer\n<</Size %d/Root %d 0 R%s>>\nstartxref\n%d\n%%%%EOF\n" % (top, root, trailer, start)
+    return bytes(out)
+
+
+def document(catalog=b"", page=b"", extra=None):
+    """A catalog, a page and whatever else. Objects 4 up are the caller's."""
+    objects = {
+        1: b"<</Type/Catalog/Pages 2 0 R" + catalog + b">>",
+        2: PAGES[2],
+        3: b"<</Type/Page/Parent 2 0 R/MediaBox[0 0 200 200]" + page + b">>",
+    }
+    objects.update(extra or {})
+    return pdf(objects)
+
+
+def link(uri):
+    return b"<</Type/Annot/Subtype/Link/Rect[0 0 9 9]/A<</S/URI/URI " + uri + b">>>>"
+
+
+URIS = document(
+    page=b"/Annots["
+    + link(b"(https://example.com/literal)")
+    + link(b"<68747470733a2f2f6578616d706c652e636f6d2f686578>")
+    # UTF-16 with a byte order mark, and PDFDocEncoding's bullet
+    + link(b"<FEFF00680074007400700073003A002F002F006500780061006D0070006C0065002E0063006F006D002F00FC>")
+    + link(b"(https://example.com/\\200bullet)")
+    + link(b"/https://example.com/name")
+    + link(b"12")
+    + link(b"()")
+    + b"<</Type/Annot/Subtype/Link/A<</S/GoTo/D[3 0 R]>>>>"
+    + b"<</Type/Annot/Subtype/Text>>"
+    + b"4 0 R]",
+    extra={4: link(b"(https://example.com/indirect)")},
+)
+
+FORM = document(
+    catalog=b"/AcroForm<</Fields["
+    # what ace3 keeps: a long name of base64 that decodes to enough
+    + b"<</T(payload one)/V/" + LONG_NAME + b">>"
+    + b"<</T(utf8-\xc3\xa9/name)/V/" + LONG_NAME + b"QUJD>>"
+    + b"<</V/" + base64.b64encode(BASE64_A + b"12") + b">>"
+    # what it reads and drops
+    + b"<</T(short)/V/QUJD>>"
+    + b"<</T(not base64)/V/" + b"A" * 70 + b"#21>>"
+    + b"<</T(too few bytes)/V/" + b"QUFB" + b"=" * 70 + b">>"
+    + b"<</T(one over)/V/" + b"A" * 65 + b">>"
+    + b"<</T(text)/V(https://example.com/string-value)>>"
+    + b"<</T(utf16)/V<FEFF0041>>>"
+    + b"<</T(number)/V 12>>"
+    + b"<</T(real)/V 1.50>>"
+    + b"<</T(flag)/V true>>"
+    + b"<</T(list)/V[(one)/two 3]>>"
+    + b"<</T(table)/V<</A 1/B(two)>>>>"
+    + b"<</T(no value)>>"
+    + b"<</T 12/V/name>>"
+    + b"<</T/name_title/V/name>>"
+    + b"<</T(stream)/V 5 0 R>>"
+    + b"4 0 R"
+    + b"]>>",
+    extra={
+        4: b"<</T(indirect field)/V/" + LONG_NAME + b">>",
+        5: flate(b"a value in a stream"),
+    },
+)
+
+JAVASCRIPT = document(
+    catalog=b"/OpenAction<</S/JavaScript/JS(app.alert('open action, which ace3 does not read'))>>"
+    + b"/Names<</JavaScript<</Names["
+    + b"(literal)<</S/JavaScript/JS(app.launchURL\\('https://example.com/literal'\\))>>"
+    + b"(name with: spaces\\051)<</S/JavaScript/JS 4 0 R>>"
+    + b"<FEFF0075>5 0 R"
+    + b"(blank)<</S/JavaScript/JS(  \\n )>>"
+    + b"(empty stream)<</S/JavaScript/JS 6 0 R>>"
+    + b"(no script)<</S/JavaScript>>"
+    + b"(utf16)<</S/JavaScript/JS<FEFF0061>>>"
+    + b"(not utf8)<</S/JavaScript/JS 7 0 R>>"
+    + b"(number)<</S/JavaScript/JS 12>>"
+    + b"(hanging)]>>>>",
+    extra={
+        4: flate(b"app.launchURL('https://example.com/stream');\n"),
+        5: b"<</S/JavaScript/JS(var indirect = 'https://example.com/indirect';)>>",
+        6: stream(b""),
+        7: stream(b"var bad = '\xff\xfe\xe2\x82';"),
+    },
+)
+
+JAVASCRIPT_KIDS = document(
+    catalog=b"/Names<</JavaScript<</Kids[4 0 R]>>>>",
+    extra={4: b"<</Limits[(a)(z)]/Names[(a)<</JS(in a kid, which ace3 does not read)>>]>>"},
+)
+
+XMP = (
+    b'<?xpacket begin="\xef\xbb\xbf" id="W5M0MpCehiHzreSzNTczkc9d"?>\n'
+    b'<x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">'
+    b'<rdf:Description rdf:about="" xmlns:pdf="http://ns.adobe.com/pdf/1.3/"><pdf:Producer>make-pdf</pdf:Producer>'
+    b"</rdf:Description></rdf:RDF></x:xmpmeta>\n" + b" " * 200 + b'\n<?xpacket end="w"?>'
+)
+
+
+def for_encryption(metadata=False):
+    """What every encrypted sample holds, so a sample shows each read works through the decryption."""
+    catalog = (
+        b"/AcroForm<</Fields[<</T(payload)/V/" + LONG_NAME + b">><</T(text)/V(secret value)>>]>>"
+        b"/Names<</JavaScript<</Names[(script)<</JS(var s = 'https://example.com/in-a-string';)>>"
+        b"(stream)<</JS 4 0 R>>]>>>>"
+    )
+    extra = {
+        4: flate(b"var t = 'https://example.com/in-a-stream';\n"),
+        5: flate(b"BT /F1 12 Tf 10 10 Td (hidden text) Tj ET\n"),
+    }
+    if metadata:
+        catalog += b"/Metadata 6 0 R"
+        extra[6] = stream(XMP, b"/Type/Metadata/Subtype/XML")
+    # two levels of page tree, an attribute to inherit and a wrong /Count, which pdf.save repairs
+    objects = {
+        1: b"<</Type/Catalog/Pages 2 0 R" + catalog + b">>",
+        2: b"<</Type/Pages/Kids[7 0 R]/Count 5/MediaBox[0 0 200 200]>>",
+        3: b"<</Type/Page/Parent 7 0 R/Contents 5 0 R/Annots["
+        + link(b"(https://example.com/encrypted-annotation)")
+        + b"]>>",
+        7: b"<</Type/Pages/Parent 2 0 R/Kids[3 0 R]/Count 1>>",
+    }
+    objects.update(extra)
+    return pdf(objects)
+
+
+def encrypted(source=None, **options):
+    """The source through pikepdf, with its encryption options."""
+    save = {key: options.pop(key) for key in ("object_stream_mode", "fix_metadata_version") if key in options}
+    options.setdefault("aes", options["R"] >= 4)
+    options.setdefault("metadata", options["aes"])
+    with pikepdf.open(io.BytesIO(source or for_encryption())) as document:
+        out = io.BytesIO()
+        document.save(out, encryption=pikepdf.Encryption(**options), **save)
+    return out.getvalue()
+
+
+NOTHING = pikepdf.Permissions(
+    accessibility=False,
+    extract=False,
+    modify_annotation=False,
+    modify_assembly=False,
+    modify_form=False,
+    modify_other=False,
+    print_lowres=False,
+    print_highres=False,
+)
+
+
+def encrypted_samples():
+    samples = {
+        "encrypted_rc4_40.pdf": encrypted(owner="owner", user="", R=2),
+        "encrypted_rc4_128.pdf": encrypted(owner="owner", user="", R=3),
+        "encrypted_rc4_crypt_filter.pdf": encrypted(owner="owner", user="", R=4, aes=False),
+        "encrypted_aes_128.pdf": encrypted(owner="owner", user="", R=4, aes=True),
+        "encrypted_aes_256_r5.pdf": encrypted(owner="owner", user="", R=5),
+        "encrypted_aes_256_r6.pdf": encrypted(owner="owner", user="", R=6),
+        "encrypted_owner_also_empty.pdf": encrypted(owner="", user="", R=6),
+        "encrypted_owner_also_empty_rc4.pdf": encrypted(owner="", user="", R=3),
+        "encrypted_no_permissions.pdf": encrypted(owner="owner", user="", R=6, allow=NOTHING),
+        "encrypted_no_permissions_aes_128.pdf": encrypted(owner="owner", user="", R=4, allow=NOTHING),
+        "encrypted_clear_metadata.pdf": encrypted(owner="owner", user="", R=4, metadata=False),
+        "encrypted_object_streams.pdf": encrypted(
+            owner="owner", user="", R=6, object_stream_mode=pikepdf.ObjectStreamMode.generate
+        ),
+        "encrypted_needs_password_rc4.pdf": encrypted(owner="owner", user="secret", R=3),
+        "encrypted_needs_password_aes_128.pdf": encrypted(owner="owner", user="secret", R=4),
+        "encrypted_needs_password_aes_256.pdf": encrypted(owner="owner", user="secret", R=6),
+        # pikepdf's save rewrites this XMP through lxml, and ace4's doesn't. So this save mustn't.
+        "encrypted_with_xmp.pdf": encrypted(
+            source=for_encryption(metadata=True), owner="owner", user="", R=6, fix_metadata_version=False
+        ),
+    }
+    # a stream method of none: /StmF names Identity. libqpdf repairs the offsets this moves.
+    samples["encrypted_identity_streams.pdf"] = samples["encrypted_rc4_crypt_filter.pdf"].replace(
+        b"/StmF /StdCF", b"/StmF /Identity"
+    )
+    samples["encrypted_truncated.pdf"] = samples["encrypted_aes_256_r6.pdf"][
+        : len(samples["encrypted_aes_256_r6.pdf"]) * 3 // 4
+    ]
+    return samples
+
+
+def nested(depth, key=b"/K"):
+    return b"<<" + key + b" " + (b"<<" + key + b" ") * depth + b"1" + b">>" * (depth + 1)
+
+
+def filters_sample():
+    """pdf-parser.py's filters, one object each. It stops at the first FlateDecode that fails, so that
+    has a sample of its own."""
+    # LZW codes in 9 bits: clear, A, B, 258 (AB), end of data
+    bits = 0
+    for code in (256, 65, 66, 258, 257):
+        bits = (bits << 9) | code
+    lzw = (bits << 3).to_bytes(6, "big")
+    items = [
+        stream(b"plain, with no filter"),
+        flate(b"flate 'single quote' and \"double\" and \\ and \xff\n"),
+        stream(b"68 65 78>", b"/Filter/ASCIIHexDecode"),
+        stream(b"6865", b"/Filter/AHx"),
+        stream(b"not hex", b"/Filter/ASCIIHexDecode"),
+        stream(b"686", b"/Filter/ASCIIHexDecode"),
+        stream(b"87cURDZ~>", b"/Filter/ASCII85Decode"),
+        stream(b"z87cUR~>", b"/Filter/A85"),
+        stream(b"8z", b"/Filter/ASCII85Decode"),
+        stream(b"uuuuu~>", b"/Filter/ASCII85Decode"),
+        stream(lzw, b"/Filter/LZWDecode"),
+        stream(b"\xff\xff\xff", b"/Filter/LZW"),
+        stream(b"\x01ab\xfex\x80", b"/Filter/RunLengthDecode"),
+        stream(b"\x01ab", b"/Filter/R"),
+        stream(b"\x00zero length", b"/Filter/RunLengthDecode"),
+        stream(zlib.compress(zlib.compress(b"flate twice")), b"/Filter[/FlateDecode/Fl]"),
+        stream(zlib.compress(b"68 65"), b"/Filter[/FlateDecode/ASCIIHexDecode]"),
+        stream(zlib.compress(b""), b"/Filter[/FlateDecode/AHx]"),
+        stream(zlib.compress(b"x"), b"/Filter[/FlateDecode/A85]"),
+        stream(zlib.compress(b"x"), b"/Filter[/FlateDecode/LZW]"),
+        stream(zlib.compress(b"x"), b"/Filter[/FlateDecode/R]"),
+        stream(base64.b16encode(zlib.compress(b"hex of flate")), b"/Filter[/AHx/Fl]"),
+        stream(b"\xff\xd8\xff", b"/Filter/DCTDecode"),
+        stream(b"x", b"/Filter[/DCTDecode/\xe9name]"),
+        stream(b"x", b"/F#69lter/Unknown"),
+        stream(zlib.compress(b"name in hex"), b"/F#69lter/Fl#61teDecode"),
+        stream(zlib.compress(b"trailing bytes") + b"after the stream", b"/Filter/FlateDecode"),
+    ]
+    return document(extra={4 + i: item for i, item in enumerate(items)})
+
+
+QUIRKS = (
+    b"%PDF-1.4\n%comment \xe9 with latin-1\r\n%two\r%three\n\n"
+    # what lies outside objects, which -v prints
+    b"stray /name ( ) < > [ ] { } 12 /\t(\n"
+    b"12 13 notobj\n"
+    b"12 notnumber\n"
+    b"1 0 obj\n<</Type/Catalog/Pages 2 0 R/Names#20X/#41B(c)/E[/F 1 0 R]/G<</H(i\\)j)/K%comment)\n/L 1>>>>\nendobj\n"
+    b"2 0 obj <</Type /Pages/Kids[3 0 R]/Count 1>> endobj\n"
+    b"3 0 obj\n<</Type/Page/Parent 2 0 R/MediaBox[0 0 9 9]/S(a%b(c)d)/T(a'b)/U(a\"b)/V(\xa0\xad\x7f)/W()/X[]/Y<<>>/Z<</A<<>>>>>>\nendobj\n"
+    b"007 00 obj\n(a string)\nendobj\n"
+    b"1_0 1_0 obj\n[1 2 3]\nendobj\n"
+    b"5 0 obj\n42\nendobj\n"
+    b"6 0 obj\nendobj\n"
+    b"7 0 obj\nstream\nfirst token\nendstream\nendobj\n"
+    b"8 0 obj\n<</Length 3>>\nstream\nabc\xe9endstream\nendobj\n"
+    b"9 0 obj\n<</Length 3>>stream\r\nabc\nendstream\nendobj\n"
+    b"10 0 obj\n<</Length 3>>\nstream\n\n\nabc\n%endstream\nendobj\n"
+    b"11 0 obj\n<</Filter/FlateDecode>>\nstream\nno end, so the filters come back\nendobj\n"
+    b"12 0 obj\n<</Filter[/A/B]>>\nstream\nno end\nendobj\n"
+    b"13 0 obj\n<</Type/Odd/Key>>\nendobj\n"
+    b"14 0 obj\n<</Unfinished <</Nested 1\nendobj\n"
+    b"15 0 obj\n<</A 1>> %>>\nendobj\n"
+    b"xref\n0 1\n0000000000 65535 f \n%comment in an xref\n"
+    b"trailer\n<</Size 3/Root 1 0 R/#49D[<00><01>]>>\n%comment in a trailer\n"
+    b"startxref\n0\n%%EOF\n"
+    b"startxref\nnot a number\n"
+    b"trailer\n"
+    b"xref\n"
+    b"trailer\n<</Size 3>>\nstartxref\n00012_3\n"
+    b"99 0 obj\n<</Never/Ends\n"
+)
+
+
+def type_confusions():
+    """What decides whether ace3's blocks raise, and so what each keeps. Each block has its own try,
+    so these stay apart."""
+    field = b"/AcroForm<</Fields[<</T(kept)/V/" + LONG_NAME + b">>"
+    script = b"/Names<</JavaScript<</Names[(kept)<</JS(var kept = 1;)>>"
+    extra_stream = {4: stream(b"data")}
+    return {
+        "annots_integer.pdf": document(page=b"/Annots 12"),
+        "annots_zero.pdf": document(page=b"/Annots 0"),
+        "annots_real.pdf": document(page=b"/Annots 1.5"),
+        "annots_true.pdf": document(page=b"/Annots true"),
+        "annots_name.pdf": document(page=b"/Annots/Name"),
+        "annots_string.pdf": document(page=b"/Annots(string)"),
+        "annots_dictionary.pdf": document(page=b"/Annots<</A 1>>"),
+        "annots_stream.pdf": document(page=b"/Annots 4 0 R", extra=extra_stream),
+        "annot_items.pdf": document(page=b"/Annots[" + link(b"(https://example.com/lost)") + b" 12]"),
+        "annot_null_item.pdf": document(page=b"/Annots[null " + link(b"(https://example.com/lost)") + b"]"),
+        "annot_array_item.pdf": document(page=b"/Annots[[1]" + link(b"(https://example.com/kept)") + b"]"),
+        "action_integer.pdf": document(page=b"/Annots[<</A 12>>]"),
+        "action_array.pdf": document(page=b"/Annots[<</A[1]>>" + link(b"(https://example.com/kept)") + b"]"),
+        "uri_array.pdf": document(page=b"/Annots[" + link(b"[(a)/b 1 null 1.5 true]") + b"]"),
+        "uri_dictionary.pdf": document(page=b"/Annots[" + link(b"<</Type/Thing/A(b)/C 4 0 R>>") + b"]", extra=extra_stream),
+        "uri_stream.pdf": document(page=b"/Annots[" + link(b"4 0 R") + b"]", extra={4: flate(b"https://example.com/in-a-uri-stream")}),
+        "uri_bad_name.pdf": document(page=b"/Annots[" + link(b"/caf#E9") + b"]"),
+        "uri_bad_name_multibyte.pdf": document(page=b"/Annots[" + link(b"/a#E2#82") + b"]"),
+        # the same name twice: ace3 writes the one path twice, and each observable is its bytes then
+        "duplicate_names.pdf": document(
+            catalog=b"/AcroForm<</Fields[<</T(same)/V/" + LONG_NAME + b">><</T(same)/V/" + LONG_NAME + b"QUJD>>]>>"
+            b"/Names<</JavaScript<</Names[(same)<</JS(var one = 1;)>>(same)<</JS(var two = 2;)>>]>>>>"
+        ),
+        "fields_integer.pdf": document(catalog=b"/AcroForm<</Fields 12>>"),
+        "fields_name.pdf": document(catalog=b"/AcroForm<</Fields/Name>>"),
+        "fields_dictionary.pdf": document(catalog=b"/AcroForm<</Fields<</T(a)>>>>"),
+        "field_items.pdf": document(catalog=field + b" 12]>>"),
+        "field_bad_title.pdf": document(catalog=field + b"<</T/caf#E9/V/name>>]>>"),
+        "field_bad_value.pdf": document(catalog=field + b"<</T(bad)/V/caf#E9>>]>>"),
+        "field_unfilterable.pdf": document(
+            catalog=field + b"<</T(image)/V 4 0 R>>]>>", extra={4: stream(b"\xff\xd8", b"/Filter/DCTDecode")}
+        ),
+        "acroform_integer.pdf": document(catalog=b"/AcroForm 12"),
+        "names_integer.pdf": document(catalog=b"/Names 12"),
+        "js_tree_integer.pdf": document(catalog=b"/Names<</JavaScript 12>>"),
+        "js_names_integer.pdf": document(catalog=b"/Names<</JavaScript<</Names 12>>>>"),
+        "js_names_name.pdf": document(catalog=b"/Names<</JavaScript<</Names/N>>>>"),
+        "js_names_string.pdf": document(catalog=b"/Names<</JavaScript<</Names(n)>>>>"),
+        "js_names_stream.pdf": document(
+            catalog=b"/Names<</JavaScript<</Names 4 0 R>>>>", extra=extra_stream
+        ),
+        "js_names_dictionary.pdf": document(catalog=b"/Names<</JavaScript<</Names<</A 1/B 2>>>>>>"),
+        "js_names_empty_dictionary.pdf": document(catalog=b"/Names<</JavaScript<</Names<<>>>>>>"),
+        "js_action_integer.pdf": document(catalog=script + b"(bad)12]>>>>"),
+        "js_action_null.pdf": document(catalog=script + b"(bad)null(after)<</JS(var after = 1;)>>]>>>>"),
+        "js_bad_name.pdf": document(catalog=script + b"/caf#E9<</JS(var a = 1;)>>]>>>>"),
+        "js_name_integer.pdf": document(catalog=script + b"12<</JS(var number = 1;)>>]>>>>"),
+        "js_unfilterable.pdf": document(
+            catalog=script + b"(image)<</JS 4 0 R>>]>>>>", extra={4: stream(b"\xff\xd8", b"/Filter/DCTDecode")}
+        ),
+        "js_bad_flate.pdf": document(
+            catalog=b"/Names<</JavaScript<</Names[(bad)<</JS 4 0 R>>]>>>>",
+            extra={4: stream(b"this isn't zlib", b"/Filter/FlateDecode")},
+        ),
+    }
+
+
+def broken():
+    good = URIS
+    start = good.rindex(b"xref\n0 ")
+    return {
+        # libqpdf repairs these
+        "broken_startxref.pdf": good.replace(b"startxref\n%d" % start, b"startxref\n99999"),
+        "broken_xref_offsets.pdf": good[:start] + good[start:].replace(b"0000000015", b"0000000099"),
+        "broken_no_xref.pdf": good[:start],
+        "broken_truncated.pdf": good[: len(good) * 2 // 3],
+        "broken_no_eof.pdf": good[: good.rindex(b"%%EOF")],
+        "broken_page_loop.pdf": pdf(
+            {
+                1: b"<</Type/Catalog/Pages 2 0 R>>",
+                2: b"<</Type/Pages/Kids[2 0 R 3 0 R]/Count 2>>",
+                3: b"<</Type/Page/Parent 2 0 R/Annots[" + link(b"(https://example.com/loop)") + b"]>>",
+            }
+        ),
+        "broken_missing_page.pdf": pdf(
+            {
+                1: b"<</Type/Catalog/Pages 2 0 R>>",
+                2: b"<</Type/Pages/Kids[9 0 R 3 0 R 12]/Count 3>>",
+                3: b"<</Type/Page/Parent 2 0 R>>",
+            }
+        ),
+        # libqpdf doesn't
+        "broken_header_only.pdf": b"%PDF-1.7\n",
+        "broken_no_root.pdf": b"%PDF-1.7\n1 0 obj\n<</A 1>>\nendobj\ntrailer\n<</Size 2>>\n",
+        "broken_root_integer.pdf": pdf({1: b"12"}),
+        "broken_no_pages.pdf": pdf({1: b"<</Type/Catalog>>"}),
+        "broken_garbage_after_header.pdf": b"%PDF-1.7\n" + bytes(range(256)) * 4,
+        # where the header is, which is what makes it a PDF to ace3
+        "header_at_1000.pdf": b"#" * 1000 + b"\n" + URIS,
+        "header_at_1024.pdf": b"#" * 1023 + b"\n" + URIS,
+        "name_only_pdf_not_a_pdf.pdf": b"This isn't one.\n",
+        # pdf-parser.py's own ends: each stops it with a traceback, after what it printed
+        "parser_bad_flate.pdf": document(
+            extra={
+                4: b"<</Before 1>>",
+                5: stream(b"this isn't zlib, and it's long enough", b"/Filter/FlateDecode"),
+                6: b"<</After 1>>",
+            }
+        ),
+        "parser_short_bad_flate.pdf": document(extra={4: stream(b"short", b"/Filter/FlateDecode")}),
+        "parser_empty_flate.pdf": document(extra={4: stream(b"", b"/Filter/FlateDecode")}),
+        "parser_truncated_flate.pdf": document(
+            extra={4: stream(zlib.compress(b"truncated data " * 50)[:-8], b"/Filter/FlateDecode")}
+        ),
+        "parser_bad_checksum_flate.pdf": document(
+            extra={4: stream(zlib.compress(b"data")[:-1] + b"\x00", b"/Filter/FlateDecode")}
+        ),
+        "parser_flate_then_bad_flate.pdf": document(
+            extra={4: stream(zlib.compress(b"not zlib inside"), b"/Filter[/Fl/Fl]")}
+        ),
+        "parser_ends_in_number.pdf": b"%PDF-1.7\n1 0 obj\n<<>>\nendobj\n12\n",
+        "parser_ends_in_two_numbers.pdf": b"%PDF-1.7\n1 0 obj\n<<>>\nendobj\n12 0\n",
+        "parser_ends_in_slash.pdf": b"%PDF-1.7\n/",
+        "parser_bad_object_number.pdf": b"%PDF-1.7\n1a 0 obj\n<<>>\nendobj\n",
+        "parser_huge_object_number.pdf": b"%PDF-1.7\n" + b"1" * 4300 + b" 0 obj\n<<>>\nendobj\n",
+        "parser_too_long_number.pdf": b"%PDF-1.7\n" + b"1" * 4301 + b" 0 obj\n<<>>\nendobj\n",
+        "parser_slash_filter.pdf": b"%PDF-1.7\n1 0 obj\n<</Filter/ >>\nstream\nno end\nendobj\n",
+        "parser_unfinished_nested.pdf": b"%PDF-1.7\n1 0 obj\n<</A<</B 1 %>>\nendobj\n",
+        "filters.pdf": filters_sample(),
+        "quirks.pdf": QUIRKS,
+        # around Python's recursion limit, which ends the script: parsing and printing fail at
+        # different depths, and in a trailer at others
+        **{
+            f"parser_nested_{depth}.pdf": b"%PDF-1.7\n1 0 obj\n" + nested(depth) + b"\nendobj\n"
+            for depth in (400, 490, 495, 496, 497, 498, 499, 500, 990, 991, 992, 993, 994, 995, 996, 997, 998)
+        },
+        **{
+            f"parser_nested_trailer_{depth}.pdf": b"%PDF-1.7\ntrailer\n" + nested(depth) + b"\nstartxref\n0\n"
+            for depth in (494, 495, 496, 497, 498, 499, 994, 995, 996, 997)
+        },
+    }
+
+
+def make(directory):
+    samples = {
+        "uris.pdf": URIS,
+        "form_fields.pdf": FORM,
+        "javascript.pdf": JAVASCRIPT,
+        "javascript_kids.pdf": JAVASCRIPT_KIDS,
+        **encrypted_samples(),
+        **type_confusions(),
+        **broken(),
+    }
+    directory.mkdir(parents=True, exist_ok=True)
+    for name, data in samples.items():
+        (directory / name).write_bytes(data)
+    return samples
+
+
+if __name__ == "__main__":
+    for name in sorted(make(Path(sys.argv[1]))):
+        print(name)

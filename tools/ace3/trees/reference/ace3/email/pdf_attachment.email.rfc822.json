@@ -903,6 +903,84 @@
         "email": true
       }
     },
+    "file:88189998c6e4e12af4dc59be588b299be6778bcb37cb9d784d19ff15a2336d69": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {
+        "pdf_analyzer": true
+      },
+      "paths": {
+        "spectre.pdf.annotation_uris.txt": {
+          "type=document.pdf.annotation_uris": true
+        }
+      },
+      "redirection": "file:d1a3c8c49faea6321bd01e706e0957012c18a94e1a187f1a5477c0e82270dc51",
+      "relationships": {
+        "extracted_from file:d1a3c8c49faea6321bd01e706e0957012c18a94e1a187f1a5477c0e82270dc51": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:a9824e9a088bd0e3b97aef48b8e1ea8a95389d5661abb030b4f73b1e55e03e9f": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "spectre.pdf.pdfparser": {
+          "type=document.pdf.object": true
+        }
+      },
+      "redirection": "file:d1a3c8c49faea6321bd01e706e0957012c18a94e1a187f1a5477c0e82270dc51",
+      "relationships": {
+        "extracted_from file:d1a3c8c49faea6321bd01e706e0957012c18a94e1a187f1a5477c0e82270dc51": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:b1e1cb135a54b1fdf13f1a49176cacad276b8916eb11541a41a5a85cb2655c3f": {
       "detections": {},
       "directives": {
@@ -976,6 +1054,49 @@
       },
       "tags": {}
     },
+    "file:bc6d65143f5cd2384f60c66746079e7fe39706cd23bbe55b1087cf6beb16517f": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {
+        "pdf_analyzer": true
+      },
+      "paths": {
+        "spectre.pdf.gs.pdf": {
+          "type=document.pdf": true,
+          "type=document.pdf.rendered": true
+        }
+      },
+      "redirection": "file:d1a3c8c49faea6321bd01e706e0957012c18a94e1a187f1a5477c0e82270dc51",
+      "relationships": {
+        "extracted_from file:d1a3c8c49faea6321bd01e706e0957012c18a94e1a187f1a5477c0e82270dc51": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": true,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/pdf",
+            "type": "PDF document, version 1.7, 16 page(s)"
+          },
+          "summary": "File Type Analysis: PDF document, version 1.7, 16 page(s) (application/pdf) (pdf document)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "pdf": true
+      }
+    },
     "file:d1a3c8c49faea6321bd01e706e0957012c18a94e1a187f1a5477c0e82270dc51": {
       "detections": {},
       "directives": {
@@ -1008,6 +1129,11 @@
             "type": "PDF document, version 1.5"
           },
           "summary": "File Type Analysis: PDF document, version 1.5 (application/pdf) (pdf document)",
+          "tags": {}
+        },
+        "pdf_analyzer": {
+          "details": {},
+          "summary": null,
           "tags": {}
         }
       },

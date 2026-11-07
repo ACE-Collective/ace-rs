@@ -14,7 +14,6 @@
   "gaps": [
     "an encrypted RAR: making one needs RARLAB's non-free rar tool",
     "PowerPoint and Excel files with VBA macros: ace3's tests hold Word ones only",
-    "an encrypted PDF: ace3's tests build theirs with pikepdf at test time",
     "an encrypted .ppt, and an RC4 .doc: msoffcrypto writes neither, only ace3's RC4 .xls is here"
   ],
   "samples": [
@@ -999,6 +998,1821 @@
       "source": "made by tools/samples/gather: tools/samples/make-xlm",
       "in_git": true,
       "alert_path": "xlm_yara_rule.zip",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/acroform_integer.pdf",
+      "sha256": "61e8beb57ec57c9431162adcbd25d290e61776606dd8ebc7120d3311f9e17efd",
+      "size": 328,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "acroform_integer.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/action_array.pdf",
+      "sha256": "b8db01f7fd8852da319690696e1ca9283fff9b94be48e4d84ff1804a9acb27b1",
+      "size": 419,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "action_array.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/action_integer.pdf",
+      "sha256": "f6a8d6c942561d07277b1876d929cabccef7f263c3510a80d87be252f37a7313",
+      "size": 334,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "action_integer.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/annot_array_item.pdf",
+      "sha256": "c4bd50e08b85480cadd48778c0f9c21270de59e2db86dafd3fb45890c64978db",
+      "size": 413,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "annot_array_item.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/annot_items.pdf",
+      "sha256": "b71791bc02c38045cdee798d3a15a85f06a9360cce488d066ad8d9eba9b06e70",
+      "size": 413,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "annot_items.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/annot_null_item.pdf",
+      "sha256": "e589b16ecbf55f5ca05e8cfc6752a8e6da8ab8ee293f3abb017eb32bcbdf11d3",
+      "size": 415,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "annot_null_item.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/annots_dictionary.pdf",
+      "sha256": "57f0712c519152c3e7c976e32db715e55f515adcf2cba65dd94c9c8d73f4c0d5",
+      "size": 331,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "annots_dictionary.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/annots_integer.pdf",
+      "sha256": "e0fca7da436c7742c93570806eac2e7e1c89465412f9ebe521d79e66206966dd",
+      "size": 326,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "annots_integer.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/annots_name.pdf",
+      "sha256": "cf4a8f14329c4626ad49b1931611a8673379710f5a47efc0b3111668ca5e458c",
+      "size": 328,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "annots_name.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/annots_real.pdf",
+      "sha256": "151cebaa36f99b2dc8bc3b5c1da79c446db268032424ae812e9f544fb9111d18",
+      "size": 327,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "annots_real.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/annots_stream.pdf",
+      "sha256": "58b5abc9e38adc0fd6dc83438567006036d6ea209424c1d876db8125c325b46f",
+      "size": 400,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "annots_stream.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/annots_string.pdf",
+      "sha256": "aad8a97acbe86d8911784138ac04b15b2ce42a23a94f96195524f88db94738aa",
+      "size": 331,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "annots_string.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/annots_true.pdf",
+      "sha256": "98d353c613e26b2b1ff6f33a2dbd905950ea69bf254aca47534dc7a17b4d6b99",
+      "size": 328,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "annots_true.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/annots_zero.pdf",
+      "sha256": "7001e7a78bee709fefaf747b0a9a18be7bcada8f1c8e2737505ec13eb97bd472",
+      "size": 325,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "annots_zero.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/broken_garbage_after_header.pdf",
+      "sha256": "9f3543ea87010d0416291b06834c62d9f8046b0b83d40168cafd13f163e41ad8",
+      "size": 1033,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "broken_garbage_after_header.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/broken_header_only.pdf",
+      "sha256": "0716f9264c9fe19f5d7455276107f3ddcc1d3497f63d60689a73558ae8a1bf5e",
+      "size": 9,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "broken_header_only.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/broken_missing_page.pdf",
+      "sha256": "0b545e3a7a4e59c3bb2950a2b43ce916627e543c83862ffe323606123ed14e54",
+      "size": 303,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "broken_missing_page.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/broken_no_eof.pdf",
+      "sha256": "4f953c7ea6baf349eb6d6e1fe503fec21c3cd7ffaacd53460bad74287280425d",
+      "size": 1169,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "broken_no_eof.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/broken_no_pages.pdf",
+      "sha256": "2129c62f1d72a64373b1fbfe7bad7e3e27588ef188793b42b1c5feff6f3660a7",
+      "size": 147,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "broken_no_pages.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/broken_no_root.pdf",
+      "sha256": "17f3d2e616df8f89774a0f65751c3145fc466483c33b2708b076d2ab6dcca6cf",
+      "size": 53,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "broken_no_root.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/broken_no_xref.pdf",
+      "sha256": "708f0eab73a3b2cccd362f333b41128f17a9452f6f187440594865d51e67680c",
+      "size": 1014,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "broken_no_xref.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/broken_page_loop.pdf",
+      "sha256": "337c032832677ec86f3dde3423b70d4751733de45680dda040e71dabb9fffcf9",
+      "size": 394,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "broken_page_loop.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/broken_root_integer.pdf",
+      "sha256": "cc8ef4ccc528982688e8ecec50c6a78d3af6a49ec4532c0f21bf72e7e4c889a8",
+      "size": 132,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "broken_root_integer.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/broken_startxref.pdf",
+      "sha256": "04078f3d66cfabdc6d48fd8ec0c2d63141df254a2a3acd63d9827da81aca1d6b",
+      "size": 1176,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "broken_startxref.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/broken_truncated.pdf",
+      "sha256": "09dbfb2461b10124e2695910b26c2907bfc1c851703cf15b0b8d9ff95289a94f",
+      "size": 783,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "broken_truncated.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/broken_xref_offsets.pdf",
+      "sha256": "22cfcfb3ffdc3490d1b5f360f8d86b8459b35cc3094b62927bb7624631945409",
+      "size": 1175,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "broken_xref_offsets.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/duplicate_names.pdf",
+      "sha256": "2d036fbaeb0bfcfd60e6cdb54dbdf293e5bb511c0ded41de270f423ea16b504e",
+      "size": 771,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "duplicate_names.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/encrypted_aes_128.pdf",
+      "sha256": "791d87354c9bed95eea05fb5bb235fed8fa74c741fc874a108d6a10fce11555e",
+      "size": 2220,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "encrypted_aes_128.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/encrypted_aes_256_r5.pdf",
+      "sha256": "de308323882d512dc816d216084b9b5bd59059b0e74c0d49c9ca1168218cc6cf",
+      "size": 2520,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "encrypted_aes_256_r5.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/encrypted_aes_256_r6.pdf",
+      "sha256": "50034e2333be065ab5004f7506ad055eb4d1e6dca0d0d32349369ab29d6146a5",
+      "size": 2520,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "encrypted_aes_256_r6.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/encrypted_clear_metadata.pdf",
+      "sha256": "9107f01f93ba9e4418aa7035a9465545637714d6dc18cf4c90e5ff9c56096a9c",
+      "size": 2243,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "encrypted_clear_metadata.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/encrypted_identity_streams.pdf",
+      "sha256": "d44931eb8d17e7ca79c5dcbf4c70349866b3b1536c61cf6347f68a4c5cb6be4e",
+      "size": 1855,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "encrypted_identity_streams.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/encrypted_needs_password_aes_128.pdf",
+      "sha256": "9addd176888f3c2c193dc3def92b687ceb0de9f5d2daf2ddb88c97cd6000399b",
+      "size": 2220,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "encrypted_needs_password_aes_128.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/encrypted_needs_password_aes_256.pdf",
+      "sha256": "b0dfb420406fa610b4a914a794900d3ba1e617701260984124a139ee453962f2",
+      "size": 2520,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "encrypted_needs_password_aes_256.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/encrypted_needs_password_rc4.pdf",
+      "sha256": "dd86c26711aab6336c37c3ddee05d0adb74e83b2f3ab6cca3f5f0fd906313a4d",
+      "size": 1703,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "encrypted_needs_password_rc4.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/encrypted_no_permissions.pdf",
+      "sha256": "5ac9650520c906337d8d01ccd8f66b377ce67c7db1163fd2050839c855a06c69",
+      "size": 2520,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "encrypted_no_permissions.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/encrypted_no_permissions_aes_128.pdf",
+      "sha256": "0b3c2c1590e9e5135f412902408d888a604cb7b2237191113e1a6791bf068094",
+      "size": 2220,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "encrypted_no_permissions_aes_128.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/encrypted_object_streams.pdf",
+      "sha256": "5d1750d419cbc04c7bd652b4e13aa041f0fe64aeadb9f2b53b7c3a47b38a0efe",
+      "size": 2385,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "encrypted_object_streams.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/encrypted_owner_also_empty.pdf",
+      "sha256": "a0cba71e914f5d0f70f81585a842b50f46590beda3b4fd3fea09e081ca3c047e",
+      "size": 2520,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "encrypted_owner_also_empty.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/encrypted_owner_also_empty_rc4.pdf",
+      "sha256": "6d1f2a809505cfc22b231c0678d1f58717ed621233c03f20b00a960ca054f186",
+      "size": 1726,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "encrypted_owner_also_empty_rc4.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/encrypted_rc4_128.pdf",
+      "sha256": "2cb12e385bef85af88c77ce1f145fddc15e8344e3236dcda3a28f3b4d48907c7",
+      "size": 1726,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "encrypted_rc4_128.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/encrypted_rc4_40.pdf",
+      "sha256": "40b7f5fd1afee612f6f3b43ee80bbcfb24eb7e2d3af12ffa7f9d62ba5023641c",
+      "size": 1723,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "encrypted_rc4_40.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/encrypted_rc4_crypt_filter.pdf",
+      "sha256": "277c468f2ca08eaa645073b6d83b403feb23220ace9cbf6c508b8e0c3a59887c",
+      "size": 1852,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "encrypted_rc4_crypt_filter.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/encrypted_truncated.pdf",
+      "sha256": "e2e708bda0b103f72bbc5973455e7e1772f472071b252ed569af431f99328060",
+      "size": 1890,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "encrypted_truncated.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/encrypted_with_xmp.pdf",
+      "sha256": "47cbea31a7e3df897df099a04f44e0f49503b5800168f745f0d31a86c84bbec3",
+      "size": 2916,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "encrypted_with_xmp.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/field_bad_title.pdf",
+      "sha256": "f399412c90d9329ed0603d16ca3910f282310ebbb8eaf2bd28a10cd0145319ac",
+      "size": 529,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "field_bad_title.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/field_bad_value.pdf",
+      "sha256": "3873ddd61761b0ac9e39a435798d8d3e3c84fd5e0ea6fdc2aa075b2e02525e5b",
+      "size": 529,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "field_bad_value.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/field_items.pdf",
+      "sha256": "d83c40af83739f3abea6a8c9af54ebf3a22f1510cfe35e2b915d28f6306f74bc",
+      "size": 512,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "field_items.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/field_unfilterable.pdf",
+      "sha256": "f78c1e97244ffd7f194306275d26d60ede94d9f33c3de8d59f4b49b513dfbcbb",
+      "size": 616,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "field_unfilterable.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/fields_dictionary.pdf",
+      "sha256": "a59ae1c17a97aa532baf46d33b0cc02aef556c577f48e4ab24d2562459643db6",
+      "size": 345,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "fields_dictionary.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/fields_integer.pdf",
+      "sha256": "cd6bd2e1f6ece4278636ee6193576480db2bff0a374054dc36cb65e9244d238d",
+      "size": 339,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "fields_integer.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/fields_name.pdf",
+      "sha256": "6e71a81c61ca2ab6bb714addbf6fab947d188821319dea1d14a4ab42518e6348",
+      "size": 341,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "fields_name.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/filters.pdf",
+      "sha256": "3805c728dae3cd9c018eae4afc575c609f9b8523c6398a8e5a20c43628e59e4e",
+      "size": 3009,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "filters.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/form_fields.pdf",
+      "sha256": "13bf1c5d8231274a2afdf57df33c500e40f553fcb590f9e92b33658afd9d994b",
+      "size": 1764,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "form_fields.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/header_at_1000.pdf",
+      "sha256": "c775e87edfb8f58488614b35c659ee403e1c56786b45067eb8a985d93e0b5a60",
+      "size": 2176,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "header_at_1000.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/header_at_1024.pdf",
+      "sha256": "fd03a45ab4149f512738804914bb0504a830951c954ee258ed733847d37eba8e",
+      "size": 2199,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "header_at_1024.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/javascript.pdf",
+      "sha256": "d25f2fec3e2cf494c8d78c469820c7e65e7265f7752c231f4f40252bca0099c5",
+      "size": 1184,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "javascript.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/javascript_kids.pdf",
+      "sha256": "b6ba798dc40cd67531cc0fc2df808e0215168a1ec02685917e6a076bc4db5d67",
+      "size": 462,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "javascript_kids.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/js_action_integer.pdf",
+      "sha256": "c6acae97feed553aa42b0e2b038cb5f3593b5f983730f56c2d02a6ba63269983",
+      "size": 384,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "js_action_integer.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/js_action_null.pdf",
+      "sha256": "9faf161d193fcc38645ed142a627fdb872feab791e1e1a341578a536eb2c3ae8",
+      "size": 416,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "js_action_null.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/js_bad_flate.pdf",
+      "sha256": "3e4ef625730876e28b291cdf20a51c47fee5e157840a62330252cb499f6ecb6d",
+      "size": 469,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "js_bad_flate.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/js_bad_name.pdf",
+      "sha256": "0d3c3ef6f0f5a3b8cc70f6635b89a32adfc92e2b188209def0862bfdb9f8d887",
+      "size": 403,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "js_bad_name.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/js_name_integer.pdf",
+      "sha256": "a0d62e515b9ce92d3759976bf925eae02fc6aab358d76e52dcf322d90a403b0f",
+      "size": 403,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "js_name_integer.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/js_names_dictionary.pdf",
+      "sha256": "921e1c1e60d06c37519c6a11f72a385552bb50b8c07d52e1ac195f92b10e4662",
+      "size": 359,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "js_names_dictionary.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/js_names_empty_dictionary.pdf",
+      "sha256": "8103c179892730f446a2522d3013feb3b386d2b33f32fdaa06278b8441a5880a",
+      "size": 351,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "js_names_empty_dictionary.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/js_names_integer.pdf",
+      "sha256": "27ab80c652542e7534ca6629df121bbb43d4791c10f78937e0ae9cd79ef5da15",
+      "size": 350,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "js_names_integer.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/js_names_name.pdf",
+      "sha256": "59f4fca7c91c06050dc2946f62f55d167f55c4d90e125922df864060453f087a",
+      "size": 349,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "js_names_name.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/js_names_stream.pdf",
+      "sha256": "b900fa95c5bc71450478cd36f9ac4a1c8191f479a7ef62ef10296d07bd1d4040",
+      "size": 424,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "js_names_stream.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/js_names_string.pdf",
+      "sha256": "0202f95c7870e23e5db16d3d2df2d5c3228f1e2994e485f44a244ec42c0f8b62",
+      "size": 350,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "js_names_string.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/js_tree_integer.pdf",
+      "sha256": "96abee93ca66cd3c1b767ebfb95c5dcea622aea283328567725dfaf7ca6d1cfb",
+      "size": 340,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "js_tree_integer.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/js_unfilterable.pdf",
+      "sha256": "dc7655b3e62c328574bc72585efced55186527141207442cb24dc043d74fd3f7",
+      "size": 483,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "js_unfilterable.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/name_only_pdf_not_a_pdf.pdf",
+      "sha256": "f2df5f5485a3067e5c9e72e25ead1232d91c5c2c287b7ebdc18d1aeb02c9d1b3",
+      "size": 16,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "name_only_pdf_not_a_pdf.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/names_integer.pdf",
+      "sha256": "462e8be9327ae12d745f044db0b05b37c7408946cfa34dbb9738a304f6ccb311",
+      "size": 325,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "names_integer.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/parser_bad_checksum_flate.pdf",
+      "sha256": "0d5adc5948ede561d996b846edb74301dc573f5b847d23da984c25f0095382a0",
+      "size": 415,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "parser_bad_checksum_flate.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/parser_bad_flate.pdf",
+      "sha256": "e080473bae571ffca13abc90177c3b3fa6ff1a7c429fad0222f4216fbd970496",
+      "size": 537,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "parser_bad_flate.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/parser_bad_object_number.pdf",
+      "sha256": "f4be9b5e5e1d9c4aacf342947c427462727a6ff7a284ca67f8ec5b429548aad9",
+      "size": 30,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "parser_bad_object_number.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/parser_empty_flate.pdf",
+      "sha256": "e152123e7268f5124d9c2d537f0a0955a10134dc88d50b6d6392ba0299ff3a5e",
+      "size": 402,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "parser_empty_flate.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/parser_ends_in_number.pdf",
+      "sha256": "521c6d8d7f9b5e166c000af75d1ed0aab02baa7564a4a44cf1da6957013e3434",
+      "size": 32,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "parser_ends_in_number.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/parser_ends_in_slash.pdf",
+      "sha256": "f91c2b18203152a2a84ce55c678650d48bab16856b5b2690fcf3cbc955826ae4",
+      "size": 10,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "parser_ends_in_slash.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/parser_ends_in_two_numbers.pdf",
+      "sha256": "772c2d23cb40c881cd064734c80718c614639608887d85b7feed01e1084d8fc0",
+      "size": 34,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "parser_ends_in_two_numbers.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/parser_flate_then_bad_flate.pdf",
+      "sha256": "ef7ae8d0dadaaf3005e205c08fdd117ad2a9064b7ef860cb75203deb227fd31a",
+      "size": 422,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "parser_flate_then_bad_flate.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/parser_huge_object_number.pdf",
+      "sha256": "ad01272032f04a7b45e49b52532c63c25687b9cde1d9de6dbe072cfbe6027ba4",
+      "size": 4328,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "parser_huge_object_number.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/parser_nested_400.pdf",
+      "sha256": "194614617c19c1e9feaae6724f038cb48fea5aa309a1bbc82116269514e4f3a7",
+      "size": 2833,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "parser_nested_400.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/parser_nested_490.pdf",
+      "sha256": "3346c0a8ff605c9bed65d96521e2d5285eefd91b7bb8263c1afe3ef7d57e8324",
+      "size": 3463,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "parser_nested_490.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/parser_nested_495.pdf",
+      "sha256": "6499c956c99e2c24d0310f9b08df11d782c0a93729984b69459d72060a475b6d",
+      "size": 3498,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "parser_nested_495.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/parser_nested_496.pdf",
+      "sha256": "a79efe03f271005b59c1ecc4737f70944b99c7b6ccccf9c649f75c3ee7d6a1e6",
+      "size": 3505,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "parser_nested_496.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/parser_nested_497.pdf",
+      "sha256": "4a867afcdb2ecce06175420c53606b9cf3c06cefab50e904333bdafa3dbb79b0",
+      "size": 3512,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "parser_nested_497.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/parser_nested_498.pdf",
+      "sha256": "50a3e587f4ca22bf35fb443b2775fd9ae98660341544fed93938d0d684d9d048",
+      "size": 3519,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "parser_nested_498.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/parser_nested_499.pdf",
+      "sha256": "289ecff20c8e4ebd8db0499107a0f956e74e3c9dc14e75dcd4ba7be9c3aaf110",
+      "size": 3526,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "parser_nested_499.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/parser_nested_500.pdf",
+      "sha256": "ff548ea15e8880d4b2c4d92d00d6d88acc88b64b158fbe94d0f968f6b501d1e3",
+      "size": 3533,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "parser_nested_500.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/parser_nested_990.pdf",
+      "sha256": "2480e583921c0d9eaeb560f3c35b1df8ab88283457c8a7afc142acca99e2e78f",
+      "size": 6963,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "parser_nested_990.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/parser_nested_991.pdf",
+      "sha256": "5eb6163af6cab514da77b1c924674ef1e0c8a54798e01c835866eb3d9503ad77",
+      "size": 6970,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "parser_nested_991.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/parser_nested_992.pdf",
+      "sha256": "0fc7aa2cd6d16a12aa4c31cc87ab826337dc1b994feea4d91bfc7c169a3ca073",
+      "size": 6977,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "parser_nested_992.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/parser_nested_993.pdf",
+      "sha256": "ca8c59628d55c3eca1b0dec6c506a88f9d759e081b82da8919e9c9164f1f2b28",
+      "size": 6984,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "parser_nested_993.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/parser_nested_994.pdf",
+      "sha256": "1d4708bec612e110285b0a0b242ad9d194ad2e8e15a310fca1cd4f0e989d47b8",
+      "size": 6991,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "parser_nested_994.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/parser_nested_995.pdf",
+      "sha256": "4671a09f8d4eba60e1c6050dff04e9b04846f8204262fd680f409393aae4e5af",
+      "size": 6998,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "parser_nested_995.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/parser_nested_996.pdf",
+      "sha256": "cf8ad610c8459c522337bece57d2bffa15499e1cc04ef6b1995f7e9e566c3461",
+      "size": 7005,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "parser_nested_996.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/parser_nested_997.pdf",
+      "sha256": "4c8f8f29f03faa21b76bf1fe7e26366d252083d5849fcf37db768bde32849c48",
+      "size": 7012,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "parser_nested_997.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/parser_nested_998.pdf",
+      "sha256": "855f9b8caafa5bbcd58483ca3829b633c65b76c531b7e1e0e100c4cd5f538a52",
+      "size": 7019,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "parser_nested_998.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/parser_nested_trailer_494.pdf",
+      "sha256": "958e39a49a3ebd0422366583d2641890edf404598ddfcad361f25ff4397062e8",
+      "size": 3496,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "parser_nested_trailer_494.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/parser_nested_trailer_495.pdf",
+      "sha256": "f8dcba4900bf5c623d9ba7460c150d61fdff2e9b4036c32c355d40a907b1f1f7",
+      "size": 3503,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "parser_nested_trailer_495.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/parser_nested_trailer_496.pdf",
+      "sha256": "6a2e05eba9bb9abdac123f36388f8ab8d9274c71cf7760d21447752bbc3c7094",
+      "size": 3510,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "parser_nested_trailer_496.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/parser_nested_trailer_497.pdf",
+      "sha256": "1c439ae2ddcb21c3b3ef94b3b6ce2c478b5c5168d3883456d9ab01bc6a6b2a92",
+      "size": 3517,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "parser_nested_trailer_497.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/parser_nested_trailer_498.pdf",
+      "sha256": "4fc0847ac86a7a101a0ef4fed9de4ccec31040cc999c9573d26f4ec1eab4d79e",
+      "size": 3524,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "parser_nested_trailer_498.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/parser_nested_trailer_499.pdf",
+      "sha256": "70dad84f62dd337a0760689cbd86e2e98c630336e8ed62abea18579ce3533fa7",
+      "size": 3531,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "parser_nested_trailer_499.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/parser_nested_trailer_994.pdf",
+      "sha256": "4b7d6cacc790cb2949a1abeb612a20fabeaf80fe919781124e3217f49d2ebf9e",
+      "size": 6996,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "parser_nested_trailer_994.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/parser_nested_trailer_995.pdf",
+      "sha256": "ddc73c0928562d528043b651f5dbac3d501ceb9b893ab8a8d2a04afe1eee693c",
+      "size": 7003,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "parser_nested_trailer_995.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/parser_nested_trailer_996.pdf",
+      "sha256": "f7e35e49cc79f17dd2a97a00dfdd18ff9564be8954e0f95a721c27447185f977",
+      "size": 7010,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "parser_nested_trailer_996.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/parser_nested_trailer_997.pdf",
+      "sha256": "4b566b32847d4c5252659fc39507d907bab14fb9bdf399ae73e5017791261365",
+      "size": 7017,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "parser_nested_trailer_997.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/parser_short_bad_flate.pdf",
+      "sha256": "27d74de7f9890843d29ecf0db765e6aab5fa57009de1eaa672dfc6c42f3e7645",
+      "size": 407,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "parser_short_bad_flate.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/parser_slash_filter.pdf",
+      "sha256": "eaff6e19a40b1d271069375b46a5ff943be52dd1ff17f38e254b75f8710e9cf1",
+      "size": 52,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "parser_slash_filter.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/parser_too_long_number.pdf",
+      "sha256": "e0a94ed6334a231b3449b382ab19e05dfdbfe213c55013560f10ff516d0d16cb",
+      "size": 4329,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "parser_too_long_number.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/parser_truncated_flate.pdf",
+      "sha256": "2662f17c706fc9d7f8e5aa2bf43785adf2cf3f99212d6d6ca88d090c5818d6cf",
+      "size": 425,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "parser_truncated_flate.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/parser_unfinished_nested.pdf",
+      "sha256": "1342c11a96b999e3309939cae1a21909bb97296b0a4df60bcefa6cfc357afd61",
+      "size": 39,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "parser_unfinished_nested.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/quirks.pdf",
+      "sha256": "01940d8e00316615efbbc86cc54902f0afb11fee57536db4f908c1c0fbda3aa4",
+      "size": 1136,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "quirks.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/uri_array.pdf",
+      "sha256": "b7e0ea2ab9a29fbf6060877a204f10a5ea37a3dd2f6da9f5244fe3650be112cb",
+      "size": 407,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "uri_array.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/uri_bad_name.pdf",
+      "sha256": "99e8b0352e7be9bcb1fa158fa681b0d23cd63610e135047926f2b6248215ef38",
+      "size": 391,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "uri_bad_name.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/uri_bad_name_multibyte.pdf",
+      "sha256": "5a758ce9d2d352f51dc9b0e3b7d36cd9a63d8076676df913ec61f4951bac3f0b",
+      "size": 392,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "uri_bad_name_multibyte.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/uri_dictionary.pdf",
+      "sha256": "5a7e675d771ef3439d5bf011557931d0a976f5d43435ae6d1a53ce5646907194",
+      "size": 483,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "uri_dictionary.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/uri_stream.pdf",
+      "sha256": "3ad35f1cd78c180adaf02d7616728e7730cbbd8662a9aafaf94533e9d9837d83",
+      "size": 519,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "uri_stream.pdf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/pdf/uris.pdf",
+      "sha256": "3c9e1da8404ecd61021fd13a29b7d8652a81ae9676bce526aaffeb4479c1247a",
+      "size": 1175,
+      "kinds": [
+        "pdf",
+        "pdf/made"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-pdf",
+      "in_git": true,
+      "alert_path": "uris.pdf",
       "meta_tags": [
         "type=email.attachment"
       ]

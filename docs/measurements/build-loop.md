@@ -1,19 +1,21 @@
 # Build loop
 
-PLAN.md step 0.5 times the build loop on a throwaway workspace that uses tokio, axum, sqlx, askama, the AWS S3 SDK and yara-x once each, before any ACE code exists. Step 1.31 repeats the measurements on the real workspace at the end of phase 1, and reruns the spike with the workspace's dev profile so the two compare like for like. Step 2.33 repeats 1.31's workspace measurements at the end of phase 2, with sqlx, axum and the AWS SDK in the workspace, and adds an edit in `ace-core`.
+PLAN.md step 0.5 times the build loop on a throwaway workspace that uses tokio, axum, sqlx, askama, the AWS S3 SDK and yara-x once each, before any ACE code exists. Step 1.31 repeats the measurements on the real workspace at the end of phase 1, and reruns the spike with the workspace's dev profile so the two compare like for like. Step 2.33 repeats 1.31's workspace measurements at the end of phase 2, with sqlx, axum and the AWS SDK in the workspace, and adds an edit in `ace-core`. Step 4.9 repeats them once libqpdf links, and measures the workspace without it beside them.
 
 ## Summary
 
 Medians of five runs each, in seconds, in the dev container on macOS. Each column names the dev profile it used, and the profile matters: 0.5's spike built with Cargo's default dev profile (full debug info everywhere), and since commit 9e79bad the workspace builds dependencies without debug info and its own crates with line tables only. A link-bound number such as the edit loop isn't comparable across profiles, so the spike was measured again with the workspace's profile.
 
-| Series | Spike, default profile (0.5) | Spike, ace4's profile (1.31) | Workspace, ace4's profile (1.31) | Workspace, ace4's profile (2.33) |
-|---|---|---|---|---|
-| clean-cold | 59.2 | 52.5 | 44.0 | 79.3 |
-| clean-warm | 11.3 | 9.2 | 15.7 | 34.6 |
-| noop | 0.2 | 0.1 | 0.2 | 0.2 |
-| edit in a leaf crate (in the workspace, `ace-mod-yara`) | 0.7 | 0.5 | 1.1 | 14.6 |
-| edit in `ace-results` | | | 2.8 | 15.7 |
-| edit in `ace-core` | | | | 12.3 |
+| Series | Spike, default profile (0.5) | Spike, ace4's profile (1.31) | Workspace, ace4's profile (1.31) | Workspace, ace4's profile (2.33) | Workspace, ace4's profile (4.9) |
+|---|---|---|---|---|---|
+| clean-cold | 59.2 | 52.5 | 44.0 | 79.3 | 67.8 |
+| clean-warm | 11.3 | 9.2 | 15.7 | 34.6 | 28.5 |
+| noop | 0.2 | 0.1 | 0.2 | 0.2 | 0.2 |
+| edit in a leaf crate (in the workspace, `ace-mod-yara`) | 0.7 | 0.5 | 1.1 | 14.6 | 10.9 |
+| edit in `ace-results` | | | 2.8 | 15.7 | 13.3 |
+| edit in `ace-core` | | | | 12.3 | 10.0 |
+
+4.9's column is faster than 2.33's with more in it because the VM has changed, from 8 CPUs to 10: see its section.
 
 `ace-mod-yara` was a leaf in 1.31. By 2.33 `ace-core` depends on it, so its edit recompiles five crates after it, and the row compares the same file, not the same kind of edit. `ace-results` had 7 crates depending on it in 1.31 and 13 in 2.33.
 
@@ -158,6 +160,39 @@ What else the 2.33 numbers include:
 - **No downloads.** `cargo fetch` ran before each invocation and isn't timed, and `--frozen` keeps every run offline.
 - **Warm file caches** after each series' first run. Run 1 is the slowest run of clean-cold.
 - **No failures.** Every run exited 0, and the crates-compiled column shows each series did the work it names. After the series, `cargo test -p ace-mod-yara -p ace-results` in the same target directory ran the rebuilt test binaries (36 tests passed), and `ace-core`'s rebuilt unit test binary ran with `--list`. `ace-core`'s and `ace-pool`'s tests need the stack's Postgres and bucket, which weren't running, so their binaries weren't run.
+
+## Dev container on macOS (4.9)
+
+Measured on 2026-11-07, with `crates/ace-mod-pdf` on `vendor/qpdf-sys` in the parser pool: Rancher Desktop's VM on Apple silicon (aarch64, Linux 6.18.60), **10 CPUs and 23.4 GB, where 2.33 had 8 CPUs and 31.3 GB**, mold 2.37.1 through clang, sccache 0.18.0, Rust 1.99.1. Raw data: [build-loop-4.9-workspace.tsv](build-loop-4.9-workspace.tsv). The series ran in 2.33's order and way, with the same markers. Compose's `bucket` and `postgres` were stopped.
+
+| Series | Runs | Median (s) | Range (s) | Failed runs | Crates compiled | sccache hits / misses, each run |
+|---|---|---|---|---|---|---|
+| clean-cold | 5 | 67.8 | 66.2 to 71.0 | 0 | 536 | 0 / 1172 |
+| clean-warm | 5 | 28.5 | 27.6 to 28.8 | 0 | 536 | 1172 / 0 |
+| noop | 5 | 0.2 | 0.2 to 0.3 | 0 | 0 | 0 / 0 |
+| edit | 5 | 10.9 | 10.1 to 11.0 | 0 | 6 | 0 / 0 |
+| edit-shared | 5 | 13.3 | 13.0 to 14.5 | 0 | 16 | 0 / 0 |
+| edit-core | 5 | 10.0 | 9.5 to 10.2 | 0 | 5 | 0 / 0 |
+
+The row to compare is the same machine without the module. Straight after those series, the commit before this step (4dd3e14), extracted with `git archive` and a marker added to `ace-core`, measured:
+
+| Series, without the PDF module | Runs | Median (s) | Range (s) | Crates compiled | sccache hits / misses, each run |
+|---|---|---|---|---|---|
+| clean-cold | 3 | 63.2 | 62.1 to 64.4 | 528 | 0 / 1012 |
+| edit-core | 5 | 9.5 | 9.4 to 10.2 | 5 | 0 / 0 |
+
+So on this machine:
+
+- **libqpdf adds about 4.6 s to a clean build, 7%**: 8 more crates and 160 more compilations, nearly all C++ and C. Built alone with no cache, `qpdf-sys`, bindgen and what they need take 9.9 s on ten cores, 52 s of CPU. This is plain `-O0`, because the dev profile builds it so. Nothing here measures a release image's build.
+- **An `ace-core` edit gains about 0.5 s**, from linking the C++ into the test binaries over `ace-app`.
+- **The threshold.** The median is 10.0 s, against PLAN.md 2.33's 10 seconds, and the runs fall on both sides of it. It's met or missed by the noise of the runs. That says nothing about 2.33's 12.3 s against this figure, because the CPU count changed. It's for the owner, and `docs/decisions/0001-language.md` isn't changed here.
+
+What else the 4.9 numbers include:
+
+- **ace3's and budge's stacks on the same VM**, running and not stopped. Just before the runs `budge-api-1` took about 14% of a CPU, `ace-http-debug-1` 5% and the rest less, by `docker stats --no-stream`. No sampler ran during the series.
+- **The baseline ran once, last**, with warm file caches. Run 1 of the workspace's clean-cold is its slowest, by about 3 s, for what its cold start costs, so the 4.6 s isn't exact to the tenth.
+- **sccache** as in 2.33: clean-cold empties the tool's own cache and includes writing to it, and clean-warm reads what it wrote. The workspace's crates aren't cached.
+- **No failures.** Every run exited 0.
 
 ## CI's Linux runner
 

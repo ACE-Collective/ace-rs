@@ -40,7 +40,7 @@ _loader.exec_module(dumps)
 CONTAINER, REMOTE, docker, put = dumps.CONTAINER, dumps.REMOTE, dumps.docker, dumps.put
 ENABLE = [
     "file_type", "archive", "yara_scanner_v3_4", "rdap_analyzer", "ace4_proxy_splunk", "olevba_v1_2",
-    "rtfole", "msoffice_encryption_analyzer", "xlmdeobfuscator", "pcodedmp",
+    "rtfole", "msoffice_encryption_analyzer", "xlmdeobfuscator", "pcodedmp", "pdf_analyzer",
 ]
 RDAP_RECORDING = DUMPS / "reference" / "rdap_analyzer" / "fqdn_example.com.http"
 FAKE = f"{REMOTE}/fake/trees"

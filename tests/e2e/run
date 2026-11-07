@@ -487,9 +487,9 @@ def check_library_diff(failures):
 
 
 def check_ports_compared(failures):
-    """A port on the Python pool must have been compared with something."""
+    """A port that replaces a Python library must have been compared with something."""
     compared = json.loads((WORK / "compare" / "report.json").read_text())["compared_by_module"]
-    for module in PYTHON_PORTS:
+    for module in [*PYTHON_PORTS, "pdf_analyzer"]:
         counts = compared.get(module, {})
         log(f"{module}: {counts}")
         if not counts.get("ace3_results") or not counts.get("ace4_results"):

@@ -91,6 +91,10 @@ A module ace4 doesn't have, such as `file_type` (7.5), isn't listed: the command
 | `ace4/email/encrypted_nested_html.email.rfc822` | `/observables/*/results/msoffice_encryption_analyzer/details/error` | The same two analyses. | `ace3 holds could not crack` |
 | `ace4/email/encrypted_nested_html.email.rfc822` | `/observables/*/results/msoffice_encryption_analyzer/summary` | The same two analyses. | `ace3 holds could not crack` |
 | `ace4/email/encrypted_nested_html.email.rfc822` | `/observables/file:*/paths/invoice.docx.decrypted*` | The same decrypted file under the one name ace4 gives it. ace3's is `invoice_000.docx.decrypted`, because only its second analysis decrypted it. | `ace4 only` |
+| `ace3/pdf/ComplaintApril_424256637.pdf` | `/observables/file:*` | The decrypted copy, and so its dump. pikepdf's `save` runs `update_xmp_pdfversion`, which rewrites the XMP through lxml, without its padding. The port leaves the stream as it is. Checked: pikepdf with `fix_metadata_version=False` writes the port's bytes exactly (`tools/library-diff/differences/pikepdf.md`). | `ace3 holds .decrypted.pdf` |
+| `ace3/pdf/ComplaintApril_424256637.pdf` | `/observables/file:*` | The same two files, as the port writes them. | `ace4 only` |
+| `ace4/pdf/encrypted_with_xmp.pdf` | `/observables/file:*` | The same, on a sample made to have padded XMP. | `ace3 holds .decrypted.pdf` |
+| `ace4/pdf/encrypted_with_xmp.pdf` | `/observables/file:*` | The same two files, as the port writes them. | `ace4 only` |
 
 ## Effects of modules not ported
 
@@ -98,6 +102,7 @@ What a module ace4 doesn't have added outside its own result. The form doesn't s
 
 | Samples | Path | Why | When |
 |---|---|---|---|
+| `*` | `/observables/file:*` | `<file>.gs.pdf`, Ghostscript's rewrite of a PDF, which ace3's `PDFAnalyzer` scans for URLs. It's a process, which a contained task can't start, and PLAN.md 4.9 names only pikepdf and `pdf-parser.py`. It's also new bytes each run, from gs's dates and `/ID`, so a port would be listed anyway. 7.3's inventory has to decide it, and doesn't name it yet. | `ace3 holds .gs.pdf` |
 | `*` | `/observables/file:*/tags/email` | file_type's tag. |  |
 | `*` | `/observables/file:*/tags/zip` | file_type's tag. |  |
 | `*` | `/observables/file:*/tags/jar` | file_type's tag. |  |
