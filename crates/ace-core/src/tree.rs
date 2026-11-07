@@ -165,8 +165,10 @@ pub async fn root<'e>(executor: impl PgExecutor<'e>, id: Uuid) -> Result<Option<
 }
 
 /// Adds an observable to a root, or merges it into the one with the same type and value: the
-/// stored time and redirection are kept if it has them, and tags, directives, excluded modules
-/// and relationships it lacks are added.
+/// stored time is kept if it has one, and tags, directives, excluded modules and relationships it
+/// lacks are added. Of two redirections the lowest is kept, so a tree doesn't depend on which task
+/// ended first: a macro in a `.docm` is in the `.docm` and in the `vbaProject.bin` taken out of it,
+/// each redirecting to where it was found.
 pub async fn upsert_observable(
     tx: &mut Tx<'_>,
     root: Uuid,
@@ -179,8 +181,16 @@ pub async fn upsert_observable(
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
            ON CONFLICT (root_id, type, value_hash) DO UPDATE SET
                time = COALESCE(o.time, EXCLUDED.time),
-               redirection_type = COALESCE(o.redirection_type, EXCLUDED.redirection_type),
-               redirection_value = COALESCE(o.redirection_value, EXCLUDED.redirection_value),
+               redirection_type = CASE
+                   WHEN o.redirection_value IS NULL
+                     OR (EXCLUDED.redirection_type, EXCLUDED.redirection_value)
+                        < (o.redirection_type, o.redirection_value)
+                   THEN EXCLUDED.redirection_type ELSE o.redirection_type END,
+               redirection_value = CASE
+                   WHEN o.redirection_value IS NULL
+                     OR (EXCLUDED.redirection_type, EXCLUDED.redirection_value)
+                        < (o.redirection_type, o.redirection_value)
+                   THEN EXCLUDED.redirection_value ELSE o.redirection_value END,
                tags = analysis.merged(o.tags, EXCLUDED.tags),
                directives = analysis.merged(o.directives, EXCLUDED.directives),
                exclude_modules = analysis.merged(o.exclude_modules, EXCLUDED.exclude_modules)

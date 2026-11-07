@@ -1,0 +1,104 @@
+{
+  "form": 1,
+  "observables": {
+    "file:6bf5d5bcf09fa01ccd96afff48a129551aec278d450d96357f8f05677616918f": {
+      "detections": {},
+      "directives": {
+        "sandbox": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "source.doc": {
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": true,
+            "is_office_ext": true,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/xml",
+            "type": "XML 1.0 document, ASCII text"
+          },
+          "summary": "File Type Analysis: XML 1.0 document, ASCII text (text/xml) (ms office document)",
+          "tags": {}
+        },
+        "olevba_v1_2": {
+          "details": {
+            "keyword_summary": {
+              "autoexec": 1,
+              "ioc": 1,
+              "suspicious": 1
+            },
+            "macros": [
+              {
+                "file_name": "<root>/files/source.doc",
+                "local_path": "9e1184bbfb440ac4aec16b48b4331a4686660f56373877829315a718f85057ad",
+                "stream_path": "",
+                "vba_code": "<?xml version=\"1.0\"?>\n<a>\nSub AutoOpen()\nShell \"calc.exe\"\nEnd Sub\n</a>",
+                "vba_filename": "<root>/files/source.doc"
+              }
+            ],
+            "type": "Text"
+          },
+          "summary": "OLEVBA Analysis: (1 macro files) (Text) | autoexec=1, suspicious=1, ioc=1",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "microsoft_office": true,
+        "olevba": true
+      }
+    },
+    "file:9e1184bbfb440ac4aec16b48b4331a4686660f56373877829315a718f85057ad": {
+      "detections": {},
+      "directives": {
+        "sandbox": true
+      },
+      "excluded_analysis": {
+        "olevba_v1_2": true
+      },
+      "paths": {
+        "source.doc.olevba/macro_0.bas": {
+          "type=script.macro.vba": true
+        }
+      },
+      "redirection": "file:6bf5d5bcf09fa01ccd96afff48a129551aec278d450d96357f8f05677616918f",
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/xml",
+            "type": "XML 1.0 document, ASCII text"
+          },
+          "summary": "File Type Analysis: XML 1.0 document, ASCII text (text/xml)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "macro": true
+      }
+    }
+  }
+}

@@ -3,6 +3,7 @@
 
 pub mod archive;
 pub mod email;
+pub mod olevba;
 pub mod rdap;
 pub mod splunk;
 pub mod yara;

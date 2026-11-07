@@ -1,0 +1,41 @@
+{
+  "form": 1,
+  "observables": {
+    "file:c7adecb278fcff407858c2be8ab67837370598bc1ff322673a29c9fefed472eb": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "html_named.doc": {
+          "type=document.html": true,
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": true,
+            "is_office_ext": true,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/html",
+            "type": "HTML document, ASCII text"
+          },
+          "summary": "File Type Analysis: HTML document, ASCII text (text/html) (ms office document)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "microsoft_office": true
+      }
+    }
+  }
+}

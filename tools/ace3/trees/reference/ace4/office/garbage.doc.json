@@ -1,0 +1,53 @@
+{
+  "form": 1,
+  "observables": {
+    "file:10fc3c51a152e90e5b90319b601d92ccf37290ef53c35ff92507687d8a911a08": {
+      "detections": {},
+      "directives": {
+        "sandbox": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "garbage.doc": {
+          "type=email.attachment": true,
+          "type=image": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": true,
+            "is_office_ext": true,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "image/x-tga",
+            "type": "Targa image data - RGBA (1027-1541) 3340 x 3854 x 16 +2312 +2826 - 1-bit alpha - right"
+          },
+          "summary": "File Type Analysis: Targa image data - RGBA (1027-1541) 3340 x 3854 x 16 +2312 +2826 - 1-bit alpha - right (image/x-tga) (ms office document)",
+          "tags": {}
+        },
+        "olevba_v1_2": {
+          "details": {
+            "keyword_summary": {},
+            "macros": [],
+            "type": null
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "microsoft_office": true,
+        "olevba_failed": true
+      }
+    }
+  }
+}

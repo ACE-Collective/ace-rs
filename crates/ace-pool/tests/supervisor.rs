@@ -305,6 +305,7 @@ async fn a_python_task_that_fails_says_why_and_the_pool_keeps_running() {
         "read",
         connect.as_str(),
         "file",
+        "temp",
     ];
     let root = root_with_tasks(
         &core,
@@ -345,7 +346,15 @@ async fn a_python_task_that_fails_says_why_and_the_pool_keeps_running() {
     assert!(error_of("thread.").contains("SIGSYS"));
     assert!(error_of("hang.").contains("deadline of 5s"));
 
-    let details = reports(&core, root, &["read", connect.as_str(), "file"]).await;
+    let details = reports(&core, root, &["read", connect.as_str(), "file", "temp"]).await;
+    // a library's temporary file works, in the task's own directory
+    assert!(
+        !details[3]["note"]
+            .as_str()
+            .expect("a note")
+            .contains("refused"),
+        "{details:?}"
+    );
     assert!(
         details[0]["note"]
             .as_str()

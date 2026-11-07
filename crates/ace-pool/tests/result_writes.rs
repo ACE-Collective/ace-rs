@@ -231,6 +231,46 @@ async fn a_task_end_the_api_cant_read_doesnt_end_the_task() {
     assert_eq!(task_of(&core, root, "archive").await.0, "running");
 }
 
+/// A hostile file chooses how much text its result holds. One far past axum's usual 2 MB lands, so a
+/// long macro can't lose its result, and one past the limit fails its task at once, saying why.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_large_result_lands_and_one_past_the_limit_fails_its_task_at_once() {
+    let core = Core::start(
+        vec![ace_mod_archive::MANIFEST],
+        &["archive"],
+        Duration::from_secs(30),
+    )
+    .await;
+    let client = LeaseClient::new(&core.url, TOKEN, "checker").expect("a client");
+    for (name, size, state) in [("a.zip", 3 << 20, "done"), ("b.zip", 65 << 20, "failed")] {
+        let (root, _, _) = core
+            .root_with_file("file", "ace3/archive/test.zip", name)
+            .await;
+        let task = client
+            .lease(&[], Duration::ZERO)
+            .await
+            .expect("leases")
+            .expect("the archive task");
+        let result =
+            ace_results::ResultEnvelope::new(ace_results::types::archive::ArchiveAnalysis {
+                file_count: 1,
+                extracted_files: vec!["x".repeat(size)],
+            })
+            .to_raw()
+            .expect("encodes");
+        let sent = client.end(task.id, &TaskEnd::Done { result }).await;
+        let (found, error) = task_of(&core, root, "archive").await;
+        println!("{name}: {sent:?} {found} {error:?}");
+        assert_eq!(found, state);
+        if state == "failed" {
+            assert!(matches!(sent, Err(ClientError::Api { status: 422, .. })));
+            assert!(error.unwrap_or_default().contains("byte limit"));
+        } else {
+            assert!(sent.is_ok());
+        }
+    }
+}
+
 /// A module sees what its input redirects to: the YARA module needs it to sandbox the document a
 /// part came out of (PLAN.md 3.1).
 #[tokio::test]

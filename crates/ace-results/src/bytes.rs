@@ -37,6 +37,15 @@ impl Bytes {
     }
 }
 
+/// A value that is usually text and may not be, such as a name out of a hostile file: a JSON string
+/// when it's text, otherwise `{"base64": "..."}`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(untagged)]
+pub enum TextOrBytes {
+    Text(String),
+    Bytes(Bytes),
+}
+
 impl Deref for Bytes {
     type Target = [u8];
 
@@ -140,6 +149,15 @@ mod tests {
             serde_json::from_value(serde_json::to_value(&original).expect("serializes"))
                 .expect("deserializes");
         assert_eq!(back, original);
+    }
+
+    #[test]
+    fn text_or_bytes_reads_either_form_and_nothing_else() {
+        let text: TextOrBytes = serde_json::from_value(json!("a")).expect("text");
+        assert_eq!(text, TextOrBytes::Text("a".to_owned()));
+        let bytes: TextOrBytes = serde_json::from_value(json!({"base64": "/w=="})).expect("bytes");
+        assert_eq!(bytes, TextOrBytes::Bytes(Bytes::new(vec![0xff])));
+        assert!(serde_json::from_value::<TextOrBytes>(json!(3)).is_err());
     }
 
     #[test]

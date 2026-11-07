@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """PLAN.md 2.30: the end-to-end test, against the Compose stack's own images.
 
-It brings up postgres, bucket, ace, the parser and network pools and the e2e profile's
+It brings up postgres, bucket, ace, the parser, network and Python pools and the e2e profile's
 responder under a project of its own (ace4-e2e), with:
 
 - a signatures repository it makes under target/e2e/ from tools/ace3/trees/signatures, holding
@@ -21,15 +21,16 @@ results from all five modules and complete; the second only later. The same emai
 times, so their trees in the normal form (PLAN.md 3.1) must be the same text, which goes to
 <work>/normal-form.json.
 
-Then it starts the Python pool (PLAN.md 4.1), from its own image, and queues tasks of a probe module
-on it, one at a time, through the real core and bucket. Limits of 3 tasks and 128 MB make each kind
+Then it restarts the Python pool (PLAN.md 4.1), from its own image, at small limits, and queues tasks
+of a probe module on it, one at a time, through the real core and bucket. Limits of 3 tasks and 128 MB make each kind
 of recycling happen, and each task's result names the process it ran in. So this is 4.1's Done check:
 a worker is recycled at its limit, and the next task runs on its replacement, in a different process.
 The same module imports the image's libraries inside a contained worker and reports their versions,
 and a task that raises must leave a failed row. So is PLAN.md 4.2's: a result with a wrong field, from
 a worker on that image, fails its task with the field's path in the row, and nothing from it lands.
 And PLAN.md 4.3's: a hung task's row holds its stack, a frame naming the function it hung in, for a
-worker in pure Python and in C calls without the GIL, and a worker can't reach py-spy.
+worker in pure Python and in C calls without the GIL, and a worker can't reach py-spy. Then the pool
+goes back to its usual limits, and the Python modules' tests run on the image with the samples.
 
 It then runs `ace compare` (PLAN.md 3.3, crates/ace-app/src/compare.rs) over the sample set, each
 sample in the cli mode against ace3's tree in tools/ace3/trees/reference/ (3.2), and writes the
@@ -50,7 +51,7 @@ Exits 0 when every check passes. Needs docker compose and python3 on the host.
 A site repository runs the same scenario, without the comparison with ace3, against its own images (PLAN.md 2.32) by setting:
 
 - ACE4_E2E_COMPOSE: its Compose file, whose services have this file's names (postgres, bucket,
-  ace, parsers, lookups and the e2e profile's responder);
+  ace, parsers, lookups, python and the e2e profile's responder);
 - ACE4_E2E_PREFIX: the prefix of that file's variables, such as SITE_PORT_, in place of ACE4_;
 - ACE4_E2E_PROJECT: the Compose project the test runs under, in place of ace4-e2e;
 - ACE4_E2E_SITE: the site overlay directory, in place of tests/e2e/site;
@@ -114,9 +115,6 @@ ENV = {
             "RULESET_POLL_SECONDS": "2",
             "POOL_RULESET_POLL_SECONDS": "2",
             "SUBMIT_TOKEN": SUBMIT_TOKEN,
-            "PYTHON_CONCURRENCY": "1",
-            "PYTHON_MAX_TASKS": "3",
-            "PYTHON_MAX_MEMORY_MB": "128",
             # the recorded Splunk takes any password
             "SPLUNK_PASSWORD": "ace4-fake-password",
         }.items()
@@ -124,7 +122,16 @@ ENV = {
 }
 ENV.pop("COMPOSE_PROJECT_NAME", None)
 COMPOSE = ["docker", "compose", "-f", str(COMPOSE_FILE), "--profile", "e2e"]
-SERVICES = ["postgres", "bucket", "ace", "parsers", "lookups", "responder"]
+SERVICES = ["postgres", "bucket", "ace", "parsers", "lookups", "python", "responder"]
+# What the Python pool's stage runs it under, so a worker is recycled soon and on one thing at a time.
+PROBE_LIMITS = {
+    PREFIX + "PYTHON_CONCURRENCY": "1",
+    PREFIX + "PYTHON_MAX_TASKS": "3",
+    PREFIX + "PYTHON_MAX_MEMORY_MB": "128",
+}
+# Ported modules on the Python pool: each must have results from both systems, because a comparison
+# with nothing compared passes.
+PYTHON_PORTS = ["olevba_v1_2"]
 
 
 def log(message):
@@ -358,7 +365,9 @@ def check_python_pool(failures):
             failures.append(f"the Python pool: {message}")
 
     started = time.monotonic()
-    compose("up", "-d", "--build", "--wait", "python")
+    # a new pool, at the stage's limits, with no tasks behind it
+    ENV.update(PROBE_LIMITS)
+    compose("up", "-d", "--force-recreate", "--wait", "python")
     # each hung action's row must name its own function, and only its own
     hangs = {"hang": "_hang_in_python", "hang-sleep": "_hang_in_sleep",
              "hang-select": "_hang_in_select", "hang-regex": "_hang_in_regex"}
@@ -444,7 +453,35 @@ def check_python_pool(failures):
     capabilities = compose("exec", "-T", "python", "grep", "CapBnd", "/proc/self/status",
                            capture=True).split()[1]
     expect(int(capabilities, 16) & (1 << 19) == 0, "the pool's container has no CAP_SYS_PTRACE")
+    for name in PROBE_LIMITS:
+        del ENV[name]
+    compose("up", "-d", "--force-recreate", "--wait", "python")
     log(f"the Python pool's stage took {time.monotonic() - started:.1f}s")
+
+
+def check_python_module_tests(failures):
+    """The tests of the Python pool's modules, on the image's libraries and the real samples. cargo
+    test can't run them: the dev image's Python has only the standard library."""
+    started = time.monotonic()
+    code = compose(
+        "run", "--rm", "--no-deps", "-T", "-v", f"{ROOT / 'samples'}:/samples:ro",
+        "python", "python3", "-I", "-B", "/opt/ace4/python/tests/run.py", "/samples",
+        exit_code=True,
+    )
+    log(("ok    " if code == 0 else "FAIL  ") + "the Python modules' tests "
+        f"({time.monotonic() - started:.1f}s)")
+    if code != 0:
+        failures.append("the Python modules' tests failed; see above")
+
+
+def check_ports_compared(failures):
+    """A port on the Python pool must have been compared with something."""
+    compared = json.loads((WORK / "compare" / "report.json").read_text())["compared_by_module"]
+    for module in PYTHON_PORTS:
+        counts = compared.get(module, {})
+        log(f"{module}: {counts}")
+        if not counts.get("ace3_results") or not counts.get("ace4_results"):
+            failures.append(f"{module} was compared with nothing: {counts}")
 
 
 def compare_with_ace3(threshold=False):
@@ -565,7 +602,10 @@ def main(argv):
             failures.append("the same email's two roots have different normal forms")
         if "ACE4_E2E_SITE" not in os.environ:
             check_python_pool(failures)
-            if compare_with_ace3(threshold=True) != 0:
+            check_python_module_tests(failures)
+            compare_failed = compare_with_ace3(threshold=True) != 0
+            check_ports_compared(failures)
+            if compare_failed:
                 failures.append("the acceptance threshold (docs/acceptance.md) isn't met; see "
                                 "above and target/e2e/compare/report.md")
             else:

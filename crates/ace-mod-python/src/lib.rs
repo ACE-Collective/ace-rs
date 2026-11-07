@@ -4,11 +4,14 @@
 //! exported schema (4.2) with nothing from Python.
 //!
 //! A module's code is in `python/ace4_python/modules/`, under the manifest's name, and this crate
-//! never runs. To add one: a `Module` here with its analysis type, `.module::<M>()` in
-//! `ace::python_pool`, and its file and line in `python/ace4_python/registry.py`.
+//! never runs. To add one: a `Module` here with its analysis type (in `ace_results::types`, as any
+//! real module's is), `.module::<M>()` in `ace::python_pool`, and its file and line in
+//! `python/ace4_python/registry.py`.
 
+use std::collections::BTreeMap;
 use std::time::Duration;
 
+use ace_results::types::olevba::OlevbaAnalysis;
 use ace_results::{AnalysisType, ObservableKind};
 use ace_sdk::{Manifest, Module, ModuleError, Resources};
 use schemars::JsonSchema;
@@ -60,3 +63,44 @@ impl Module for PythonProbe {
 }
 
 pub const PROBE_MANIFEST: Manifest = Manifest::python::<PythonProbe>();
+
+/// ace3's `OLEVBA_Analyzer_v1_2`, on oletools (`python/ace4_python/modules/olevba_v1_2.py`).
+pub struct Olevba;
+
+/// ace3's settings of the module. Its `timeout` is gone: ace3 never read it, and the manifest's
+/// deadline is what stops a task here.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields, default)]
+pub struct OlevbaSettings {
+    /// Merge a file's macros into one `macros.bas`.
+    pub merge_macros: bool,
+    /// The fewest of each kind in oletools' scan for a file to be tagged `olevba`. ace3 writes
+    /// these as `threshold_<kind>` keys.
+    pub thresholds: BTreeMap<String, u64>,
+}
+
+impl Default for OlevbaSettings {
+    fn default() -> Self {
+        OlevbaSettings {
+            merge_macros: false,
+            thresholds: BTreeMap::from([("autoexec".to_owned(), 1), ("suspicious".to_owned(), 1)]),
+        }
+    }
+}
+
+impl Module for Olevba {
+    const NAME: &'static str = OlevbaAnalysis::MODULE;
+    const INPUTS: &'static [ObservableKind] = &[ObservableKind::File];
+    // ace3's global maximum_analysis_time, which is what stops this module there. oletools' two XLM
+    // passes each stop themselves at 30 s.
+    const RESOURCES: Resources = Resources {
+        timeout: Duration::from_secs(60),
+        ..Resources::DEFAULT
+    };
+    type Output = OlevbaAnalysis;
+    type Settings = OlevbaSettings;
+
+    fn init(_: &OlevbaSettings) -> Result<Self, ModuleError> {
+        Ok(Olevba)
+    }
+}

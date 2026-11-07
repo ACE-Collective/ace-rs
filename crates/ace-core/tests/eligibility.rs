@@ -387,6 +387,44 @@ async fn a_result_makes_its_dependents_eligible_and_a_cancelled_dependency_fails
     );
 }
 
+/// A macro found in a document and in a part of it arrives with two redirections, and in either
+/// order the tree keeps the same one.
+#[tokio::test]
+async fn an_observables_redirection_doesnt_depend_on_which_result_landed_first() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let (low, high) = ("aa".repeat(32), "bb".repeat(32));
+    for (first, second) in [(&low, &high), (&high, &low)] {
+        let (root, _) = root_with(db, "test", &[(ObservableKind::Fqdn, "example.com")]).await;
+        let mut tx = db.begin().await.expect("begins");
+        for target in [first, second] {
+            let mut macro_file =
+                ace_results::NewObservable::new(ObservableKind::File, "cc".repeat(32));
+            macro_file.redirection =
+                Some(ObservableRef::new(ObservableKind::File, target.as_str()));
+            tree::upsert_observable(&mut tx, root, &macro_file)
+                .await
+                .expect("upserts");
+        }
+        let mut plain = ace_results::NewObservable::new(ObservableKind::File, "cc".repeat(32));
+        plain.redirection = None;
+        tree::upsert_observable(&mut tx, root, &plain)
+            .await
+            .expect("upserts");
+        tx.commit().await.expect("commits");
+        let macro_ref = ObservableRef::new(ObservableKind::File, "cc".repeat(32));
+        let id = tree::find_observable(db.pool(), root, &macro_ref)
+            .await
+            .expect("finds")
+            .expect("is there");
+        let target = tree::redirection(db.pool(), root, id).await.expect("reads");
+        assert_eq!(
+            target,
+            Some(ObservableRef::new(ObservableKind::File, low.as_str()))
+        );
+    }
+}
+
 /// A file's relationships and redirection reach the tree, and what a module adds to the
 /// redirection lands on the file it redirects to, with its `yara_meta` tags on that file's path.
 #[tokio::test]

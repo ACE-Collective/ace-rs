@@ -210,6 +210,8 @@ struct SampleResult {
     found: Vec<Found>,
     /// Results of modules not ported, by module.
     skipped: BTreeMap<String, u64>,
+    /// Results compared, by module: how many ace3's tree has and how many ace4's.
+    compared: BTreeMap<String, (u64, u64)>,
     failed_tasks: Vec<FailedTask>,
 }
 
@@ -367,6 +369,21 @@ fn remove_skipped(form: &mut Value, ported: &BTreeSet<String>) -> BTreeMap<Strin
     skipped
 }
 
+/// How many results a form holds, by module.
+fn results_by_module(form: &Value) -> BTreeMap<String, u64> {
+    let mut counts = BTreeMap::new();
+    let observables = form["observables"]
+        .as_object()
+        .into_iter()
+        .flat_map(|o| o.values());
+    for results in observables.filter_map(|observable| observable["results"].as_object()) {
+        for module in results.keys() {
+            *counts.entry(module.clone()).or_insert(0) += 1;
+        }
+    }
+    counts
+}
+
 /// The module a JSON pointer into a form belongs to.
 fn module_of(path: &str) -> &str {
     let segments: Vec<&str> = path.split('/').skip(1).collect();
@@ -429,6 +446,13 @@ fn compare_forms(
     for (module, count) in remove_skipped(&mut ace4, ported) {
         *skipped.entry(module).or_insert(0) += count;
     }
+    let mut compared: BTreeMap<String, (u64, u64)> = BTreeMap::new();
+    for (module, count) in results_by_module(&ace3) {
+        compared.entry(module).or_default().0 = count;
+    }
+    for (module, count) in results_by_module(&ace4) {
+        compared.entry(module).or_default().1 = count;
+    }
     let found = diff(&ace3, &ace4)
         .into_iter()
         .map(|difference| Found {
@@ -441,6 +465,7 @@ fn compare_forms(
         path: sample.to_owned(),
         found,
         skipped,
+        compared,
         ..SampleResult::default()
     })
 }
@@ -618,6 +643,25 @@ impl Outcome {
         skipped
     }
 
+    /// What was compared of each module on this run: results and the samples that had one, each as
+    /// (ace3's, ace4's). A module with no results on ace3's side was compared with nothing.
+    fn compared_by_module(&self) -> BTreeMap<String, [u64; 4]> {
+        let mut modules: BTreeMap<String, [u64; 4]> = BTreeMap::new();
+        for module in &self.ported {
+            modules.entry(module.clone()).or_default();
+        }
+        for result in &self.results {
+            for (module, (ace3, ace4)) in &result.compared {
+                let entry = modules.entry(module.clone()).or_default();
+                entry[0] += ace3;
+                entry[1] += ace4;
+                entry[2] += u64::from(*ace3 > 0);
+                entry[3] += u64::from(*ace4 > 0);
+            }
+        }
+        modules
+    }
+
     /// The differences of one class by category, most first, with how many samples each is in.
     fn categories(&self, class: Class) -> Vec<(String, u64, usize)> {
         let mut categories: BTreeMap<String, (u64, BTreeSet<&str>)> = BTreeMap::new();
@@ -686,6 +730,12 @@ impl Outcome {
                 .map(|(module, counts)| (module.clone(), counts.json()))
                 .collect::<Map<_, _>>(),
             "skipped": self.skipped(),
+            "compared_by_module": self.compared_by_module().iter().map(|(module, n)| {
+                (module.clone(), json!({
+                    "ace3_results": n[0], "ace4_results": n[1],
+                    "ace3_samples": n[2], "ace4_samples": n[3],
+                }))
+            }).collect::<Map<_, _>>(),
             "rows": self.rows.listed.iter().zip(&self.rows.matched).map(|(row, matched)| json!({
                 "samples": row.dumps,
                 "path": row.path,
@@ -779,6 +829,26 @@ impl Outcome {
                 out,
                 "| `{module}` | {} | {} | {} | {} |",
                 counts.unexplained, counts.harness, counts.unported, counts.explained
+            )?;
+        }
+        out.push('\n');
+
+        writeln!(out, "## Results compared\n")?;
+        writeln!(
+            out,
+            "A module with no results from ace3 here was compared with nothing, whatever the \
+             differences above say.\n"
+        )?;
+        writeln!(
+            out,
+            "| Module | ace3's results | ace4's results | Samples with one in ace3 | In ace4 |\n\
+             |---|---:|---:|---:|---:|"
+        )?;
+        for (module, n) in self.compared_by_module() {
+            writeln!(
+                out,
+                "| `{module}` | {} | {} | {} | {} |",
+                n[0], n[1], n[2], n[3]
             )?;
         }
         out.push('\n');
@@ -1168,6 +1238,22 @@ mod tests {
         assert_eq!(
             result.skipped,
             BTreeMap::from([("file_type".to_owned(), 1)])
+        );
+    }
+
+    #[test]
+    fn a_ported_modules_results_are_counted_on_each_side() {
+        let ace3 = json!({"form": 1, "observables": {
+            "file:a": {"results": {"archive": {}, "file_type": {}}},
+            "file:b": {"results": {"archive": {}}},
+        }});
+        let ace4 = json!({"form": 1, "observables": {"file:a": {"results": {"archive": {}}}}});
+        let mut rows = listed(&[]);
+        let result =
+            compare_forms("s", ace3, ace4, &ported(&["archive"]), &mut rows).expect("compares");
+        assert_eq!(
+            result.compared,
+            BTreeMap::from([("archive".to_owned(), (2, 1))])
         );
     }
 

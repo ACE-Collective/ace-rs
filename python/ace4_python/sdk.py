@@ -11,12 +11,30 @@ at once, with each failing field's path in the row, and nothing from it lands.
 core's own check, so this image needs no JSON Schema library.
 """
 
+import base64
 import hashlib
 import os
+import tempfile
 
 
 class ModuleError(Exception):
     """The module failed, for a reason its message says in full."""
+
+
+def text_or_bytes(value):
+    """A value that's usually text, as crates/ace-results' TextOrBytes writes it. JSON can't carry
+    bytes, and a str holding a lone surrogate, which a library's decoding of a hostile file can
+    leave, is JSON the core can't read. Either would lose the whole result, so these stay bytes."""
+    if isinstance(value, str):
+        try:
+            value.encode("utf-8")
+            return value
+        except UnicodeEncodeError:
+            try:
+                value = value.encode("utf-8", "surrogateescape")
+            except UnicodeEncodeError:
+                value = value.encode("utf-8", "surrogatepass")
+    return {"base64": base64.b64encode(bytes(value)).decode("ascii")}
 
 
 def failed(error):
@@ -39,6 +57,9 @@ class Context:
         self.input = request.get("input")
         self.tasks_in_process = tasks_in_process
         self._outputs = request["outputs"]
+        # the one place a worker can write, for libraries that use tempfile; its directory goes with
+        # the task, and only what write_file stored in it is uploaded
+        tempfile.tempdir = self._outputs
         self._analysis_type = request["analysis_type"]
         self._schema_version = request["schema_version"]
 
@@ -59,16 +80,12 @@ class Context:
     def delay(self, after_seconds, state=None):
         return {"outcome": "delay", "after_seconds": after_seconds, "state": state}
 
-    def write_file(self, path, data, yara_meta=(), tags=()):
+    def write_file(self, path, data, **fields):
         """Stores bytes the module produced and returns the record for done(files=[...]). `path` is
         the file's path in the alert; the supervisor refuses an absolute path or a `..` part, which
-        fails the task (#829)."""
+        fails the task (#829). `fields` holds any other NewFile field by name, such as yara_meta,
+        tags, directives, exclude_modules and redirection."""
         sha256 = hashlib.sha256(data).hexdigest()
         with open(os.path.join(self._outputs, sha256), "wb") as stored:
             stored.write(data)
-        record = {"path": path, "sha256": sha256, "size": len(data)}
-        if yara_meta:
-            record["yara_meta"] = list(yara_meta)
-        if tags:
-            record["tags"] = list(tags)
-        return record
+        return {"path": path, "sha256": sha256, "size": len(data), **fields}

@@ -106,6 +106,10 @@ pub struct ApiConfig {
     submit_token_sha256: Option<[u8; 32]>,
     /// The largest submission body, files included.
     pub max_submission_bytes: usize,
+    /// The largest task end, a result's details and text included. A file's bytes go to the bucket
+    /// and don't count. A hostile file can choose how much text its result holds: a task past this
+    /// fails at once, and its row says why.
+    pub max_end_bytes: usize,
     /// How long a lease, and each renewal, lasts.
     pub lease: Duration,
     /// The longest a lease request waits for a task.
@@ -121,6 +125,7 @@ impl ApiConfig {
             admin_token_sha256: None,
             submit_token_sha256: None,
             max_submission_bytes: 1 << 30,
+            max_end_bytes: 64 << 20,
             lease: Duration::from_secs(60),
             max_wait: Duration::from_secs(20),
             url_expiry: Duration::from_secs(900),
@@ -278,7 +283,12 @@ impl Api {
             .route(paths::LEASE, post(lease))
             .route("/api/worker/v1/tasks/{id}/renew", post(renew))
             .route("/api/worker/v1/tasks/{id}/uploads", post(uploads))
-            .route("/api/worker/v1/tasks/{id}/end", post(end))
+            .route(
+                "/api/worker/v1/tasks/{id}/end",
+                post(end).layer(axum::extract::DefaultBodyLimit::max(
+                    self.inner.config.max_end_bytes,
+                )),
+            )
             .route("/api/worker/v1/tasks/{id}/release", post(release))
             .route(paths::RULESET, get(current_ruleset))
             .route("/api/admin/v1/tasks/{id}/replay", get(replay))
@@ -548,6 +558,25 @@ impl Api {
     }
 }
 
+impl Api {
+    /// A task end too big to read. Another attempt would write the same, so the task fails now,
+    /// with a reason, like a result that fails its check. Nothing of it can be read, so it can't
+    /// say which uploads it made, and those stay in the bucket.
+    async fn end_too_large(&self, id: i64, headers: &HeaderMap) -> Result<StatusCode, Failure> {
+        let worker = self.worker(headers)?;
+        let error = format!(
+            "the task's end is over the {} byte limit, so its result was not read",
+            self.inner.config.max_end_bytes
+        );
+        worker.fail(TaskId(id), &error).await?;
+        tracing::warn!(task = id, "{error}");
+        Err(Failure::Invalid(ApiError {
+            error,
+            fields: Vec::new(),
+        }))
+    }
+}
+
 /// What can go wrong inside a result's transaction.
 #[derive(Debug, thiserror::Error)]
 enum LandError {
@@ -711,7 +740,13 @@ async fn end(
     end: Result<Json<TaskEnd>, JsonRejection>,
 ) -> Result<StatusCode, Failure> {
     // axum answers a body it can't read with 422, which here means only a rejected result
-    let Json(end) = end.map_err(|e| Failure::BadRequest(e.body_text()))?;
+    let Json(end) = match end {
+        Ok(end) => end,
+        Err(e) if e.status() == StatusCode::PAYLOAD_TOO_LARGE => {
+            return api.end_too_large(id, &headers).await;
+        }
+        Err(e) => return Err(Failure::BadRequest(e.body_text())),
+    };
     let span = request_span("end", Some(id), &headers);
     end_in(api, id, headers, end).instrument(span).await
 }

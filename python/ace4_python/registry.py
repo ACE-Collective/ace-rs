@@ -5,5 +5,6 @@ here stops the worker at startup, and so the pool, before it leases anything.
 """
 
 MODULES = {
+    "olevba_v1_2": "ace4_python.modules.olevba_v1_2",
     "python_probe": "ace4_python.modules.python_probe",
 }

@@ -23,7 +23,9 @@ pub fn lookup_pool() -> LookupPool {
 /// The Python pool: modules on libraries with no Rust equivalent yet (PLAN.md 4.1). The probe runs
 /// only as an instance a test's overlay names.
 pub fn python_pool() -> PythonPool {
-    PythonPool::new("python").module::<ace_mod_python::PythonProbe>()
+    PythonPool::new("python")
+        .module::<ace_mod_python::PythonProbe>()
+        .module::<ace_mod_python::Olevba>()
 }
 
 /// The open-source binaries' list: the three pools, and no observable types beyond ace3's.

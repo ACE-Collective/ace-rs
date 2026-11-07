@@ -20,6 +20,7 @@ script rather than editing the manifest by hand.
 """
 
 import argparse
+import base64
 import email.message
 import hashlib
 import io
@@ -30,6 +31,7 @@ import struct
 import subprocess
 import sys
 import tempfile
+import zlib
 import zipfile
 from pathlib import Path
 
@@ -293,6 +295,36 @@ def make_e2e_email(path):
     path.write_bytes(message.as_bytes())
 
 
+def make_office_edges(directory, macro_docm):
+    """Files for what ace3's olevba decides before it opens a file and when it can't, which ace3's
+    fixtures don't reach. Every byte is fixed. `macro_docm` gives the last one a real VBA project."""
+    with zipfile.ZipFile(macro_docm) as z:
+        project = z.read("word/vbaProject.bin")
+    mso = b"ActiveMime".ljust(0x32, b"\0") + zlib.compress(project, 9)
+    files = {
+        # the two mime types ace3's module leaves alone, under an Office extension
+        "html_named.doc": b"<html><body>not a Word document</body></html>\n",
+        "text_named.doc": b"This is plain text, not a Word document.\n",
+        # no format oletools knows, so an Office extension gets olevba_failed
+        "garbage.doc": bytes(range(256)) * 8,
+        # oletools reads anything without a NUL as source code: XML, so its mime type isn't plain
+        "source.doc": b'<?xml version="1.0"?>\n<a>\nSub AutoOpen()\nShell "calc.exe"\nEnd Sub\n</a>\n',
+        # a Word "single file web page" whose part's name decodes to a lone surrogate, which JSON
+        # text can't carry. oletools skips what's before MIME, which keeps its mime type off text/plain
+        "surrogate_name.doc": (
+            b"\x00\x01\xff\r\nMIME-Version: 1.0\r\nContent-Type: multipart/related; boundary=\"b\"\r\n\r\n--b\r\n"
+            b"Content-Type: application/x-mso\r\nContent-Transfer-Encoding: base64\r\n"
+            b"Content-Disposition: attachment; filename*=raw-unicode-escape''%5Cud800.mso\r\n\r\n"
+            + base64.encodebytes(mso).replace(b"\n", b"\r\n")
+            + b"\r\n--b--\r\n"
+        ),
+    }
+    directory.mkdir(parents=True, exist_ok=True)
+    for name, data in files.items():
+        (directory / name).write_bytes(data)
+    return [directory / name for name in files]
+
+
 def entry(path, kinds, source, note=None):
     data = path.read_bytes()
     relative = path.relative_to(SAMPLES).as_posix()
@@ -341,6 +373,10 @@ def main():
     samples.append(
         entry(e2e_email, ["email", "archive/zip"], "made by tools/samples/gather: Python email")
     )
+
+    docm = SAMPLES / "ace3" / "office" / "mortgage_payment-0873821-0565.docm"
+    for path in make_office_edges(SAMPLES / "ace4" / "office", docm):
+        samples.append(entry(path, ["office/edge"], "made by tools/samples/gather: by hand"))
 
     covered = {kind for sample in samples for kind in sample["kinds"]}
     missing = [kind for kind in REQUIRED_KINDS if kind not in covered]

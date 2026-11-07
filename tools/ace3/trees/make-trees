@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Write ace3's tree of each sample in the normal form (PLAN.md 3.2).
 
-Each sample runs through ace3's cli analysis mode, in ace3's dev container, with the five modules
-ace4 has ported and file_type, which ace3's email and archive modules depend on. So that both
+Each sample runs through ace3's cli analysis mode, in ace3's dev container, with the modules
+ace4 has ported and file_type, which ace3's email, archive and olevba modules depend on. So that both
 systems see the same world, as tests/e2e/run gives ace4:
 
 - RDAP is answered from the recording tests/e2e/run's responder replays, and WHOIS fails;
@@ -38,7 +38,9 @@ dumps = importlib.util.module_from_spec(_spec)
 _loader.exec_module(dumps)
 
 CONTAINER, REMOTE, docker, put = dumps.CONTAINER, dumps.REMOTE, dumps.docker, dumps.put
-ENABLE = ["file_type", "archive", "yara_scanner_v3_4", "rdap_analyzer", "ace4_proxy_splunk"]
+ENABLE = [
+    "file_type", "archive", "yara_scanner_v3_4", "rdap_analyzer", "ace4_proxy_splunk", "olevba_v1_2",
+]
 RDAP_RECORDING = DUMPS / "reference" / "rdap_analyzer" / "fqdn_example.com.http"
 FAKE = f"{REMOTE}/fake/trees"
 # tests/e2e/site/overlay.yaml's clicker_detection_splunk. ace3 has a module of that name, which its

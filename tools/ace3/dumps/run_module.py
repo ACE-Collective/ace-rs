@@ -175,6 +175,7 @@ TREE_MODULES = {
     "EmailAnalysis": "email_analyzer",
     "FileTypeAnalysis": "file_type",
     "ArchiveAnalysis": "archive",
+    "OLEVBA_Analysis_v1_2": "olevba_v1_2",
     "RdapAnalysis": "rdap_analyzer",
     "YaraScanResults_v3_4": "yara_scanner_v3_4",
     "SplunkAPIAnalysis": "clicker_detection_splunk",
@@ -201,6 +202,7 @@ TREE_EXCLUDED = {
     "EmailAnalyzer": "email_analyzer",
     "MessageIDAnalyzerV2": "message_id_analyzer_v2",
     "ArchiveAnalyzer": "archive",
+    "OLEVBA_Analyzer_v1_2": "olevba_v1_2",
     "YaraScanner_v3_4": "yara_scanner_v3_4",
 }
 
@@ -321,10 +323,21 @@ def prepare_work_dir(work):
 
 
 def json_safe(value):
-    """Round-trips a value through ace3's own JSON encoder, the way ace3 stores details."""
+    """Round-trips a value through ace3's own JSON encoder, the way ace3 stores details. A lone
+    surrogate from a hostile file's name stays visible as its escape, as text: a tree is UTF-8, and
+    JSON readers refuse it as `\\ud800`."""
     from saq.json_encoding import _JSONEncoder
 
-    return json.loads(json.dumps(value, cls=_JSONEncoder))
+    def visible(item):
+        if isinstance(item, str):
+            return item.encode("utf-8", "backslashreplace").decode("utf-8")
+        if isinstance(item, list):
+            return [visible(i) for i in item]
+        if isinstance(item, dict):
+            return {visible(k): visible(v) for k, v in item.items()}
+        return item
+
+    return visible(json.loads(json.dumps(value, cls=_JSONEncoder)))
 
 
 def dump_observable(observable):
