@@ -59,6 +59,9 @@ class Context:
         # (READS_CARRYING_EMAIL): whether there is one, and its body's bytes if it has a body
         self.carried_by_email = task.get("carrying_email") is not None
         self.email_body = request.get("email_body")
+        # the YARA rules that matched the file or anything under it, for a module that runs last
+        # (Module::RUNS_LAST)
+        self.yara_rules_below = task.get("yara_rules_below") or []
         self.tasks_in_process = tasks_in_process
         self._outputs = request["outputs"]
         # the one place a worker can write, for libraries that use tempfile; its directory goes with

@@ -177,8 +177,10 @@ TREE_MODULES = {
     "ArchiveAnalysis": "archive",
     "OLEVBA_Analysis_v1_2": "olevba_v1_2",
     "MSOfficeEncryptionAnalysis": "msoffice_encryption_analyzer",
+    "PCodeAnalysis": "pcodedmp",
     "RdapAnalysis": "rdap_analyzer",
     "RTFOLEObjectAnalysis": "rtfole",
+    "XLMMacroDeobfuscatorAnalysis": "xlmdeobfuscator",
     "YaraScanResults_v3_4": "yara_scanner_v3_4",
     "SplunkAPIAnalysis": "clicker_detection_splunk",
 }
@@ -207,6 +209,8 @@ TREE_EXCLUDED = {
     "OLEVBA_Analyzer_v1_2": "olevba_v1_2",
     "RTFOLEObjectAnalyzer": "rtfole",
     "MSOfficeEncryptionAnalyzer": "msoffice_encryption_analyzer",
+    "PCodeAnalyzer": "pcodedmp",
+    "XLMMacroDeobfuscatorAnalyzer": "xlmdeobfuscator",
     "YaraScanner_v3_4": "yara_scanner_v3_4",
 }
 
@@ -264,6 +268,20 @@ def msoffice_in_alert_paths(result, files_dir):
         result["summary"] = result["summary"].replace(files_dir + "/", "")
 
 
+def xlm_output_value(observable, files_dir):
+    """The sha256 of an xlmdeobfuscator output as the port writes it. ace3's holds its path on the node
+    and how long the pass took, which it can't have twice, so its sha256 is new each run and a row
+    could only say "some file". These two things, in the first and last lines, are put the same here,
+    so any other byte that differs shows as a file on one side only."""
+    import re
+
+    with open(observable.full_path, "rb") as fp:
+        stdout = fp.read()
+    stdout = stdout.replace(os.fsencode(files_dir + "/"), b"")
+    stdout = re.sub(rb"time elapsed: [0-9.e+-]+\n\Z", b"", stdout)
+    return hashlib.sha256(stdout).hexdigest()
+
+
 def tree_form(root):
     def members(items):
         return {item: True for item in items}
@@ -318,7 +336,11 @@ def tree_form(root):
             entry["redirection"] = f"{observable.redirection.type}:{observable.redirection.value}"
         if observable.type == "file":
             entry["paths"] = {observable.file_path: members(sorted(observable.yara_meta_tags))}
-        key = f"{observable.type}:{observable.value}"
+        value = observable.value
+        if observable.type == "file" and os.path.dirname(observable.file_path).endswith(".xlmdeobfuscator"):
+            if observable.file_name in ("xlmdeobfuscator.stdout", "xlmdeobfuscatorextractcells.stdout"):
+                value = xlm_output_value(observable, observable.full_path.removesuffix("/" + observable.file_path))
+        key = f"{observable.type}:{value}"
         if key in observables:
             merge_tree_entry(observables[key], entry)
         else:

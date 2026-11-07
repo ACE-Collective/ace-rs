@@ -194,6 +194,13 @@
           },
           "summary": "OLEVBA Analysis: (4 macro files) (OLE) | autoexec=1, suspicious=1, base64 string=1",
           "tags": {}
+        },
+        "pcodedmp": {
+          "details": {
+            "line_count": 3768
+          },
+          "summary": "PCode Analysis: decoded 3768 lines",
+          "tags": {}
         }
       },
       "tags": {
@@ -241,6 +248,40 @@
       "tags": {
         "macro": true
       }
+    },
+    "file:d1d63ec9ec3fcc356d5fc1a1dd7049c5c8c53c769f8cdff7ba9747872823413c": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "Past Due Invoices.doc.pcode.bas": {
+          "type=script.vbscript": true
+        }
+      },
+      "redirection": "file:b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f",
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {}
     }
   }
 }

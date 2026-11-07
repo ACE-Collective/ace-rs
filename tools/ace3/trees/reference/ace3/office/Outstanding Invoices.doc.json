@@ -1,6 +1,40 @@
 {
   "form": 1,
   "observables": {
+    "file:0ad6d92699ef58afc34e5d3dee661d9135be78b393f8de1aa234ac7fa4ddc603": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "Outstanding Invoices.doc.pcode.bas": {
+          "type=script.vbscript": true
+        }
+      },
+      "redirection": "file:e3b01e57c810dfdefc08e93b5131438d31ef4108834cfc11a6f6fd9b44a1f0ab",
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:4322d89fedaa55d42fd60ba18e03365a244a86e0107d46b11bf58acaa60115a3": {
       "detections": {},
       "directives": {
@@ -186,6 +220,13 @@
             "type": "OLE"
           },
           "summary": "OLEVBA Analysis: (3 macro files) (OLE) | autoexec=1, suspicious=1, base64 string=1",
+          "tags": {}
+        },
+        "pcodedmp": {
+          "details": {
+            "line_count": 4029
+          },
+          "summary": "PCode Analysis: decoded 4029 lines",
           "tags": {}
         }
       },

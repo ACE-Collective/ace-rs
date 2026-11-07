@@ -68,6 +68,10 @@ pub const WORKER_HEADER: &str = "x-ace4-worker";
 /// How long a task that reads its carrying email first waits for the root's emails to be parsed.
 const EMAILS_PENDING_DELAY: Duration = Duration::from_secs(1);
 
+/// How long a task that runs last first waits for the rest of its root, doubling up to 32 s. Every file
+/// has one, so it starts low: most roots are done in a moment.
+const OTHERS_PENDING_DELAY: Duration = Duration::from_millis(250);
+
 /// A pool's access to the API: its name, the hash of its token and the modules it may lease.
 #[derive(Clone)]
 pub struct PoolAccess {
@@ -395,10 +399,29 @@ impl Api {
         } else {
             None
         };
-        let reads_email = self
-            .inner
-            .orchestrator
-            .catalog()
+        let catalog = self.inner.orchestrator.catalog();
+        let runs_last = catalog
+            .iter()
+            .any(|c| c.key == task.module && c.manifest.runs_last);
+        // ace3's execute_final_analysis: what's below this file has all been found and scanned.
+        // Modules that run last don't wait for each other, and what they add can only hold them back
+        // again for as long as it takes to analyze.
+        if runs_last {
+            let last: Vec<String> = catalog
+                .iter()
+                .filter(|c| c.manifest.runs_last)
+                .map(|c| c.key.clone())
+                .collect();
+            if tree::others_pending(self.inner.db.pool(), task.root, &last).await? {
+                let delays = task.delayed.as_ref().map_or(0, |d| d.delays);
+                let after = OTHERS_PENDING_DELAY.saturating_mul(2u32.saturating_pow(delays.min(7)));
+                match worker.delay(task.id, after, &Value::Null).await {
+                    Ok(_) | Err(QueueError::Cancelled(_)) => return Ok(None),
+                    Err(e) => return Err(e.into()),
+                }
+            }
+        }
+        let reads_email = catalog
             .iter()
             .any(|c| c.key == task.module && c.manifest.reads_carrying_email);
         // An outer email adds a nested email's attachments too, before the nested one has been
@@ -427,8 +450,14 @@ impl Api {
         };
         let redirection =
             tree::redirection(self.inner.db.pool(), task.root, task.observable.id).await?;
+        let yara_rules_below = if runs_last {
+            tree::yara_rules_below(self.inner.db.pool(), task.root, task.observable.id).await?
+        } else {
+            Vec::new()
+        };
         let mut leased = self.wire_task(task, file, redirection);
         leased.carrying_email = carrying_email;
+        leased.yara_rules_below = yara_rules_below;
         Ok(Some(leased))
     }
 
@@ -496,6 +525,7 @@ impl Api {
             delayed: task.delayed,
             input_hashes: task.input_hashes,
             carrying_email: None,
+            yara_rules_below: Vec::new(),
         }
     }
 

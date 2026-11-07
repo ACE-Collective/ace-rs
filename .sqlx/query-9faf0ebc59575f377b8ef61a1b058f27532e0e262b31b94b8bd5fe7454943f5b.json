@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT EXISTS (\n               SELECT 1 FROM queue.tasks\n               WHERE root_id = $1\n                 AND state IN ('queued', 'delayed', 'running')\n                 AND module <> ALL($2)\n           ) AS \"pending!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "pending!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "TextArray"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "9faf0ebc59575f377b8ef61a1b058f27532e0e262b31b94b8bd5fe7454943f5b"
+}

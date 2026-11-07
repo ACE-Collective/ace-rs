@@ -13,7 +13,6 @@
   ],
   "gaps": [
     "an encrypted RAR: making one needs RARLAB's non-free rar tool",
-    "a legacy .xls (BIFF8) with an Excel 4.0 macro sheet: nothing here writes one",
     "PowerPoint and Excel files with VBA macros: ace3's tests hold Word ones only",
     "an encrypted PDF: ace3's tests build theirs with pikepdf at test time",
     "an encrypted .ppt, and an RC4 .doc: msoffcrypto writes neither, only ace3's RC4 .xls is here"
@@ -865,6 +864,141 @@
       "source": "made by tools/samples/gather: by hand",
       "in_git": true,
       "alert_path": "text_named.doc",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/xlm_biff8.xls",
+      "sha256": "6f6e50a6b29203c9e893782e92c340196c6447cc06051f5d3bfc8686236f4e70",
+      "size": 5632,
+      "kinds": [
+        "office/macro",
+        "office/xlm"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-xlm",
+      "in_git": true,
+      "alert_path": "xlm_biff8.xls",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/xlm_broken.xlsm",
+      "sha256": "0f2ad4aa51c6493b9c190b3bd80466bc971ceb7b38b473be2ea4fab288f9fe10",
+      "size": 1712,
+      "kinds": [
+        "office/macro",
+        "office/xlm"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-xlm",
+      "in_git": true,
+      "alert_path": "xlm_broken.xlsm",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/xlm_loop.xlsm",
+      "sha256": "64242fd48187204840adf59a1d4b7f8a7828ec1d0c5ef80845c5795f1921d843",
+      "size": 2545,
+      "kinds": [
+        "office/macro",
+        "office/xlm"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-xlm",
+      "in_git": true,
+      "alert_path": "xlm_loop.xlsm",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/xlm_no_cells.xlsm",
+      "sha256": "6d2eb4c7844ae7b87953cdd026d43fc4ec11ad6df0ba6a77d0c54f036472b556",
+      "size": 2309,
+      "kinds": [
+        "office/macro",
+        "office/xlm"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-xlm",
+      "in_git": true,
+      "alert_path": "xlm_no_cells.xlsm",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/xlm_no_entry.xlsm",
+      "sha256": "4cb2a78d910769f79faaa52fa9a3646b041edcc9fabca8e721f71a189b5d9c8b",
+      "size": 3681,
+      "kinds": [
+        "office/macro",
+        "office/xlm"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-xlm",
+      "in_git": true,
+      "alert_path": "xlm_no_entry.xlsm",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/xlm_obfuscated.xlsm",
+      "sha256": "58dbf5bcd8781bd3d43541a627cf913ea1416a504ac566ab4739077da75cfe0e",
+      "size": 3771,
+      "kinds": [
+        "office/macro",
+        "office/xlm"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-xlm",
+      "in_git": true,
+      "alert_path": "xlm_obfuscated.xlsm",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/xlm_unknown_cell.xlsm",
+      "sha256": "e0bdf818f85c6a6d29a8f403e70ea6c248170b78fcfa008d5162979f179d04a4",
+      "size": 2565,
+      "kinds": [
+        "office/macro",
+        "office/xlm"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-xlm",
+      "in_git": true,
+      "alert_path": "xlm_unknown_cell.xlsm",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/xlm_xlsb.xlsb",
+      "sha256": "a1021c3991487674597bfd9db6b9859d36e3b713ba220f381994caac53c12360",
+      "size": 2435,
+      "kinds": [
+        "office/macro",
+        "office/xlm"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-xlm",
+      "in_git": true,
+      "alert_path": "xlm_xlsb.xlsb",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/xlm_yara_rule.zip",
+      "sha256": "b225fef32857e80fe85e79841124dc68d8767967cb8811564127480717fdf603",
+      "size": 140,
+      "kinds": [
+        "office/macro",
+        "office/xlm"
+      ],
+      "source": "made by tools/samples/gather: tools/samples/make-xlm",
+      "in_git": true,
+      "alert_path": "xlm_yara_rule.zip",
       "meta_tags": [
         "type=email.attachment"
       ]

@@ -137,6 +137,10 @@ pub struct LeasedTask {
     /// (`Module::READS_CARRYING_EMAIL`). None when the module doesn't, or no email carried it.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub carrying_email: Option<CarryingEmail>,
+    /// The YARA rules that matched the task's observable or anything below it, by name, for a module
+    /// that runs last (`Module::RUNS_LAST`). Empty for any other.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub yara_rules_below: Vec<String>,
 }
 
 /// What a module may read of the email that carried its observable (PLAN.md 4.6). A worker holds no

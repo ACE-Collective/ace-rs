@@ -2,7 +2,11 @@
   "form": 1,
   "observables": {
     "file:07d430f63c363448ab0ff2b8cca02da59fcc09d3be421405b513421aa9fe0a44": {
-      "detections": {},
+      "detections": {
+        "A url was found in an Excel 4.0 macro.": [
+          null
+        ]
+      },
       "directives": {},
       "excluded_analysis": {},
       "paths": {
@@ -54,10 +58,18 @@
           },
           "summary": null,
           "tags": {}
+        },
+        "xlmdeobfuscator": {
+          "details": {
+            "cell_count": 2
+          },
+          "summary": "XLMMacroDeobfuscator Analysis - analyzed 2 cells",
+          "tags": {}
         }
       },
       "tags": {
         "microsoft_office": true,
+        "xlm4": true,
         "zip": true
       }
     },
@@ -205,6 +217,78 @@
       },
       "tags": {}
     },
+    "file:99fa7053f262e503bfbbec3caa3244e8830f8e8358d66174b783b399486e32fe": {
+      "detections": {},
+      "directives": {
+        "crawl_extracted_urls": true,
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "invoice.xlsm.xlmdeobfuscator/xlmdeobfuscator.stdout": {
+          "type=script.macro.xlm": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:a16340faf7fa3fee626e60172f78ef40d7dd34d60ed9a8f0579b52eeaae04797": {
+      "detections": {},
+      "directives": {
+        "crawl_extracted_urls": true,
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "invoice.xlsm.xlmdeobfuscator/xlmdeobfuscatorextractcells.stdout": {
+          "type=script.macro.xlm": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:fad6cc33adbceef8f1dfffc77512072d2bd024ae5e88264b4c5b83582de1e3bd": {
       "detections": {},
       "directives": {
@@ -239,6 +323,16 @@
           "tags": {}
         }
       },
+      "tags": {}
+    },
+    "url:http://xlm.example.com/payload.exe": {
+      "detections": {},
+      "directives": {
+        "crawl": true
+      },
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
       "tags": {}
     }
   }

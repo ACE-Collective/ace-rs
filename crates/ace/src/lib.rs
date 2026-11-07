@@ -28,6 +28,8 @@ pub fn python_pool() -> PythonPool {
         .module::<ace_mod_python::Olevba>()
         .module::<ace_mod_python::RtfOle>()
         .module::<ace_mod_python::MsofficeEncryption>()
+        .module::<ace_mod_python::PCode>()
+        .module::<ace_mod_python::XlmDeobfuscator>()
 }
 
 /// The open-source binaries' list: the three pools, and no observable types beyond ace3's.

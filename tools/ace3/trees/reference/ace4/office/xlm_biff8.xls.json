@@ -1,0 +1,144 @@
+{
+  "form": 1,
+  "observables": {
+    "file:4041a2c9fb218843de48925cf996cffb5a4cb91356a557362c475f03f5a9c0d1": {
+      "detections": {},
+      "directives": {
+        "crawl_extracted_urls": true,
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "xlm_biff8.xls.xlmdeobfuscator/xlmdeobfuscator.stdout": {
+          "type=script.macro.xlm": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:6f6e50a6b29203c9e893782e92c340196c6447cc06051f5d3bfc8686236f4e70": {
+      "detections": {
+        "A url was found in an Excel 4.0 macro.": [
+          null
+        ]
+      },
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "xlm_biff8.xls": {
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": true,
+            "is_office_ext": true,
+            "is_ole_file": true,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/vnd.ms-excel",
+            "type": "CDFV2 Microsoft Excel"
+          },
+          "summary": "File Type Analysis: CDFV2 Microsoft Excel (application/vnd.ms-excel) (ms office document) (ole compound file)",
+          "tags": {}
+        },
+        "olevba_v1_2": {
+          "details": {
+            "keyword_summary": {},
+            "macros": [],
+            "type": "OLE"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "xlmdeobfuscator": {
+          "details": {
+            "cell_count": 5
+          },
+          "summary": "XLMMacroDeobfuscator Analysis - analyzed 5 cells",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "microsoft_office": true,
+        "ole": true,
+        "xlm4": true
+      }
+    },
+    "file:f3ea3e2a0e77610d060e542476dbd305831d2c9ceb98bd317c382703139bd327": {
+      "detections": {},
+      "directives": {
+        "crawl_extracted_urls": true,
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "xlm_biff8.xls.xlmdeobfuscator/xlmdeobfuscatorextractcells.stdout": {
+          "type=script.macro.xlm": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text, with very long lines (557)"
+          },
+          "summary": "File Type Analysis: ASCII text, with very long lines (557) (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "url:http://xlm-biff8.example.com/stage2.exe": {
+      "detections": {},
+      "directives": {
+        "crawl": true
+      },
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
+    }
+  }
+}

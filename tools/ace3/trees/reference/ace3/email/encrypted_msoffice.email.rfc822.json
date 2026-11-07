@@ -127,6 +127,42 @@
       "results": {},
       "tags": {}
     },
+    "file:256504ada6a6ecc24ae46a4780b32a30070b0aeea011b2b920d3c32f7403becb": {
+      "detections": {},
+      "directives": {
+        "crawl_extracted_urls": true,
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "info_3805.xls.decrypted.xlmdeobfuscator/xlmdeobfuscatorextractcells.stdout": {
+          "type=script.macro.xlm": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text, with very long lines (421)"
+          },
+          "summary": "File Type Analysis: ASCII text, with very long lines (421) (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:26c514a15652cb61afb1a63b00ebbb64b7c991cc0bd64b693c606ba11918eb6d": {
       "detections": {},
       "directives": {},
@@ -164,6 +200,81 @@
       "tags": {
         "email": true
       }
+    },
+    "file:5afdbe5aa42339a6936769e916c7094d70eb370458480dcd1e36de8ce99106d6": {
+      "detections": {},
+      "directives": {
+        "crawl_extracted_urls": true,
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "info_3805.xls.decrypted.xlmdeobfuscator/xlmdeobfuscator.stdout": {
+          "type=script.macro.xlm": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:774137008718d77966b5cb59c8ba08bfb1f42261f5ea37fe0ce7d0ba8bf0581c": {
+      "detections": {},
+      "directives": {
+        "crawl_extracted_urls": true,
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "info_3805.xls.xlmdeobfuscator/xlmdeobfuscator.stdout": {
+          "type=script.macro.xlm": true
+        },
+        "info_3805.xls.xlmdeobfuscator/xlmdeobfuscatorextractcells.stdout": {
+          "type=script.macro.xlm": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {}
     },
     "file:a0ed8009073f3abdc1dc979ef137f6d69c62d1920902a29cd3baad0a0c16e747": {
       "detections": {},
@@ -467,6 +578,9 @@
     },
     "file:ce3af53d22189d65f561fa45ff655a020c9ef96c17c83e748cd773eff8ef96e8": {
       "detections": {
+        "A url was found in an Excel 4.0 macro.": [
+          null
+        ],
         "Was able to decrypt based on contents of email.": [
           null
         ]
@@ -507,12 +621,20 @@
           },
           "summary": null,
           "tags": {}
+        },
+        "xlmdeobfuscator": {
+          "details": {
+            "cell_count": 383
+          },
+          "summary": "XLMMacroDeobfuscator Analysis - analyzed 383 cells",
+          "tags": {}
         }
       },
       "tags": {
         "decrypted_msoffice": true,
         "microsoft_office": true,
         "ole": true,
+        "xlm4": true,
         "zip": true
       }
     },
@@ -1568,12 +1690,21 @@
           },
           "summary": null,
           "tags": {}
+        },
+        "xlmdeobfuscator": {
+          "details": {
+            "cell_count": 0
+          },
+          "summary": "XLMMacroDeobfuscator Analysis - analyzed 0 cells",
+          "tags": {}
         }
       },
       "tags": {
         "encrypted_msoffice": true,
         "microsoft_office": true,
-        "ole": true
+        "ole": true,
+        "xlm4:error": true,
+        "xlm4:no_cells": true
       }
     },
     "message_id:<272b53ff0e5579755277c19266a3e9e5c7283287@tovarioseni9.fun>": {
@@ -1586,6 +1717,26 @@
       "results": {},
       "tags": {},
       "time": "2020-09-07T15:47:06Z"
+    },
+    "url:https://component.pw/wp-index.php": {
+      "detections": {},
+      "directives": {
+        "crawl": true
+      },
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
+    },
+    "url:https://component.pw/wp-index.php,$BB$54": {
+      "detections": {},
+      "directives": {
+        "crawl": true
+      },
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
     }
   }
 }

@@ -491,6 +491,13 @@
           },
           "summary": "OLEVBA Analysis: (1 macro files) (OpenXML) | autoexec=1, suspicious=1, hex string=1",
           "tags": {}
+        },
+        "pcodedmp": {
+          "details": {
+            "line_count": 435
+          },
+          "summary": "PCode Analysis: decoded 435 lines",
+          "tags": {}
         }
       },
       "tags": {
@@ -1242,6 +1249,40 @@
             "type": "XML 1.0 document, ASCII text, with very long lines (472), with CRLF line terminators"
           },
           "summary": "File Type Analysis: XML 1.0 document, ASCII text, with very long lines (472), with CRLF line terminators (text/xml)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:fe0957024595307c9b083effc3231498bc7b7945d28bc1d5aa6d97d9e0729c25": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "invoice.docm.decrypted.pcode.bas": {
+          "type=script.vbscript": true
+        }
+      },
+      "redirection": "file:45cca7fd63944ca6b6ea4e4669078cf3520b3896956c183c9bfd0fb3d0bfaf4f",
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text, with very long lines (695)"
+          },
+          "summary": "File Type Analysis: ASCII text, with very long lines (695) (text/plain)",
           "tags": {}
         }
       },

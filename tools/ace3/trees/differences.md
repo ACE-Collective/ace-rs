@@ -77,6 +77,8 @@ A module ace4 doesn't have, such as `file_type` (7.5), isn't listed: the command
 | `ace4/rtf/bracket[1].rtf` | `/observables/*/results/rtfole/details/extracted_files/0` | The object ace3 didn't extract, from the same bug. | `ace4 only` |
 | `ace4/rtf/bracket[1].rtf` | `/observables/*/results/rtfole/summary` | The same object, in the summary, where ace3's is null. |  |
 | `ace4/rtf/bracket[1].rtf` | `/observables/file:*` | The same object, in the tree. | `ace4 only` |
+| `ace4/office/xlm_*` | `/observables/*/results/archive/details/extracted_files/*` | The same files in another order: ace4 in archive order, ace3 in the filesystem's (`os.walk`). |  |
+| `ace4/office/xlm_*` | `/observables/*/results/archive/summary` | The summary lists them in the same order. |  |
 | `ace4/email/encrypted_*` | `/observables/*/results/archive/details/extracted_files/*` | A decrypted document's files in another order: ace4 in archive order, ace3 in the filesystem's (`os.walk`). Its bytes, so its sha256, are the same on both sides. |  |
 | `ace4/email/encrypted_*` | `/observables/*/results/archive/summary` | The summary lists them in the same order. |  |
 | `ace4/office/encrypted_velvet.docx` | `/observables/*/results/archive/details/extracted_files/*` | The same order. |  |

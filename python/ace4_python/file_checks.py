@@ -5,11 +5,17 @@ file_type isn't ported (PLAN.md 7.5) and these aren't file_type: a task's file a
 file_type's mime_type would say (`ctx.observable["file"]["mime_type"]`), from the core's libmagic,
 the version ace3's `file` is. An extension here is the file's path in the alert, which ends the same
 as ace3's path on its node.
+
+A task doesn't carry `file -b`'s description, which is_office_file reads, so file_description asks the
+image's libmagic, the library the pool's binary links, with the database it was built to read. A
+hostile file meets libmagic here inside the worker's containment, which is better than in the core.
 """
 
+import ctypes
 import os
 import zipfile
 
+MAGIC_SYMLINK = 0x2
 KNOWN_OFFICE_EXTENSIONS = frozenset(
     "." + ext
     for ext in """
@@ -41,3 +47,37 @@ def is_zip_file(path):
             return bool(zfile.namelist())
     except Exception:
         return False
+
+
+_magic = None
+
+
+def file_description(path):
+    """What `file -b -L` says about the file."""
+    global _magic
+    if _magic is None:
+        library = ctypes.CDLL("libmagic.so.1")
+        library.magic_open.restype = ctypes.c_void_p
+        library.magic_open.argtypes = [ctypes.c_int]
+        library.magic_load.argtypes = [ctypes.c_void_p, ctypes.c_char_p]
+        library.magic_file.restype = ctypes.c_char_p
+        library.magic_file.argtypes = [ctypes.c_void_p, ctypes.c_char_p]
+        cookie = library.magic_open(MAGIC_SYMLINK)
+        if not cookie or library.magic_load(cookie, None) != 0:
+            raise RuntimeError("libmagic's database didn't load")
+        _magic = (library, cookie)
+    library, cookie = _magic
+    return (library.magic_file(cookie, os.fsencode(path)) or b"").decode("utf-8", "replace")
+
+
+def is_office_file(alert_path, path):
+    """is_office_file: by the extension, or by what libmagic calls the file."""
+    if is_office_ext(os.path.basename(alert_path)):
+        return True
+    description = file_description(path).lower()
+    return any(
+        name in description
+        for name in (
+            "microsoft powerpoint", "microsoft excel", "microsoft word", "microsoft ooxml", "opendocument",
+        )
+    )

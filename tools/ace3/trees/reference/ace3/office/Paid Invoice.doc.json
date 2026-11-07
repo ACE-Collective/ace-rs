@@ -121,6 +121,40 @@
         "macro": true
       }
     },
+    "file:a3e554d031ac29ce3b97e4f6d2cbdd82b8fc8493077a2b7ef3d06c8329798353": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "Paid Invoice.doc.pcode.bas": {
+          "type=script.vbscript": true
+        }
+      },
+      "redirection": "file:fb9fc26235d7b3f7465a6da2d0a60ebf395785372d06a16c9f558b773b0b2c01",
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:fb9fc26235d7b3f7465a6da2d0a60ebf395785372d06a16c9f558b773b0b2c01": {
       "detections": {},
       "directives": {
@@ -186,6 +220,13 @@
             "type": "OLE"
           },
           "summary": "OLEVBA Analysis: (3 macro files) (OLE) | autoexec=1, suspicious=1, base64 string=1",
+          "tags": {}
+        },
+        "pcodedmp": {
+          "details": {
+            "line_count": 3724
+          },
+          "summary": "PCode Analysis: decoded 3724 lines",
           "tags": {}
         }
       },

@@ -81,6 +81,8 @@ pub struct Manifest {
     pub instances_only: bool,
     /// The module reads its carrying email (`Module::READS_CARRYING_EMAIL`).
     pub reads_carrying_email: bool,
+    /// The module runs when the rest of its root is done (`Module::RUNS_LAST`).
+    pub runs_last: bool,
     settings_schema: fn() -> Schema,
     check_settings: fn(Option<&Value>) -> Result<(), SettingsError>,
 }
@@ -118,6 +120,7 @@ impl Manifest {
             secrets: M::SECRETS,
             instances_only: M::INSTANCES_ONLY,
             reads_carrying_email: M::READS_CARRYING_EMAIL,
+            runs_last: M::RUNS_LAST,
             settings_schema: settings_schema::<M::Settings>,
             check_settings: check_settings::<M::Settings>,
         }

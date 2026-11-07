@@ -629,6 +629,144 @@ async fn an_unfinished_email_is_pending_and_a_failed_one_isnt() {
     assert!(!tree::emails_pending(db.pool(), root).await.expect("reads"));
 }
 
+/// What a module that runs last waits for: anything in the root but modules that run last.
+#[tokio::test]
+async fn a_module_that_runs_last_waits_for_every_other_module() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let hash = "a".repeat(64);
+    let (root, ids) = root_with(db, "test", &[(ObservableKind::File, hash.as_str())]).await;
+    let last = ["xlmdeobfuscator".to_owned()];
+    assert!(
+        !tree::others_pending(db.pool(), root, &last)
+            .await
+            .expect("reads")
+    );
+    let mut tx = db.begin().await.expect("begins");
+    ace_core::queue::enqueue(&mut tx, root, ids[0], "xlmdeobfuscator")
+        .await
+        .expect("queues");
+    tx.commit().await.expect("commits");
+    assert!(
+        !tree::others_pending(db.pool(), root, &last)
+            .await
+            .expect("reads")
+    );
+
+    let mut tx = db.begin().await.expect("begins");
+    ace_core::queue::enqueue(&mut tx, root, ids[0], "archive")
+        .await
+        .expect("queues");
+    tx.commit().await.expect("commits");
+    assert!(
+        tree::others_pending(db.pool(), root, &last)
+            .await
+            .expect("reads")
+    );
+    let worker = worker(&test_db, "w", &["archive"], Duration::from_secs(30)).await;
+    let task = worker.claim().await.expect("claims").expect("the task");
+    assert!(
+        tree::others_pending(db.pool(), root, &last)
+            .await
+            .expect("reads")
+    );
+    worker.fail(task.id, "broke").await.expect("fails");
+    assert!(
+        !tree::others_pending(db.pool(), root, &last)
+            .await
+            .expect("reads")
+    );
+}
+
+/// The walk ace3's `recurse_tree` does: the file, what was added below it by any module, and no
+/// further than that. A cycle ends, and a result with no rules has none.
+#[tokio::test]
+async fn a_file_finds_the_yara_rules_of_what_is_below_it() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let hash = |c: &str| c.repeat(64);
+    let (outer, zip, doc, sibling) = (hash("a"), hash("b"), hash("c"), hash("d"));
+    let files: Vec<(ObservableKind, &str)> = [&outer, &zip, &doc, &sibling]
+        .iter()
+        .map(|value| (ObservableKind::File, value.as_str()))
+        .collect();
+    let (root, ids) = root_with(db, "test", &files).await;
+    let (outer_id, zip_id, doc_id, sibling_id) = (ids[0], ids[1], ids[2], ids[3]);
+    let yara = |rules: &[&str]| json!({"scan_results": rules.iter().map(|rule| json!({"rule": rule})).collect::<Vec<_>>()});
+
+    add_result(
+        db,
+        root,
+        outer_id,
+        "email_analysis",
+        json!({}),
+        &[(zip_id, Some("a.zip")), (sibling_id, Some("b.txt"))],
+    )
+    .await;
+    add_result(
+        db,
+        root,
+        zip_id,
+        "archive_analysis",
+        json!({}),
+        &[(doc_id, Some("a.zip.extracted/a.xlsm"))],
+    )
+    .await;
+    add_result(
+        db,
+        root,
+        outer_id,
+        "yara_scan_results",
+        yara(&["on_outer"]),
+        &[],
+    )
+    .await;
+    add_result(db, root, zip_id, "yara_scan_results", yara(&[]), &[]).await;
+    add_result(
+        db,
+        root,
+        doc_id,
+        "yara_scan_results",
+        yara(&["z_on_doc", "a_on_doc", "a_on_doc"]),
+        &[],
+    )
+    .await;
+    add_result(
+        db,
+        root,
+        sibling_id,
+        "yara_scan_results",
+        yara(&["on_sibling"]),
+        &[],
+    )
+    .await;
+
+    let rules = |id| async move {
+        tree::yara_rules_below(db.pool(), root, id)
+            .await
+            .expect("reads")
+    };
+    assert_eq!(rules(doc_id).await, ["a_on_doc", "z_on_doc"]);
+    assert_eq!(rules(zip_id).await, ["a_on_doc", "z_on_doc"]);
+    assert_eq!(rules(sibling_id).await, ["on_sibling"]);
+    assert_eq!(
+        rules(outer_id).await,
+        ["a_on_doc", "on_outer", "on_sibling", "z_on_doc"]
+    );
+
+    // a file that contains its own ancestor ends the walk
+    add_result(
+        db,
+        root,
+        doc_id,
+        "archive_analysis",
+        json!({}),
+        &[(zip_id, Some("a.xlsm.extracted/a.zip"))],
+    )
+    .await;
+    assert_eq!(rules(doc_id).await, ["a_on_doc", "z_on_doc"]);
+}
+
 /// A file's relationships and redirection reach the tree, and what a module adds to the
 /// redirection lands on the file it redirects to, with its `yara_meta` tags on that file's path.
 #[tokio::test]

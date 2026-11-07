@@ -47,6 +47,10 @@ pub trait Module: Sized + Send + Sync + 'static {
     /// True for a module that reads the body of the email that carried its observable, as ace3's
     /// modules for encrypted attachments do. The core adds it to the module's tasks.
     const READS_CARRYING_EMAIL: bool = false;
+    /// True for a module that runs once everything else in its root has finished, as ace3's
+    /// `execute_final_analysis`, and reads the YARA rules that matched its observable or anything
+    /// below it. The core holds its tasks back until then and adds those rules to them.
+    const RUNS_LAST: bool = false;
 
     /// The analysis type the module writes.
     type Output: AnalysisType;

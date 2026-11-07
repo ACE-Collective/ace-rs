@@ -5,6 +5,7 @@
 //! unique on (root, observable, module).
 
 use ace_results::types::email::EmailAnalysis;
+use ace_results::types::yara::YaraScanResults;
 use ace_results::{
     AnalysisType, Detection, NewObservable, ObservableAdditions, ObservableKind, ObservableRef,
     ResultEnvelope,
@@ -490,6 +491,52 @@ pub async fn emails_pending(pool: &PgPool, root: Uuid) -> Result<bool, DbError> 
         EmailAnalysis::MODULE,
     )
     .fetch_one(pool)
+    .await?)
+}
+
+/// Whether a module not in `except` has a task in the root that hasn't finished.
+pub async fn others_pending(pool: &PgPool, root: Uuid, except: &[String]) -> Result<bool, DbError> {
+    Ok(sqlx::query_scalar!(
+        r#"SELECT EXISTS (
+               SELECT 1 FROM queue.tasks
+               WHERE root_id = $1
+                 AND state IN ('queued', 'delayed', 'running')
+                 AND module <> ALL($2)
+           ) AS "pending!""#,
+        root,
+        except,
+    )
+    .fetch_one(pool)
+    .await?)
+}
+
+/// The names of the YARA rules that matched an observable or anything added below it, as ace3's
+/// `recurse_tree` finds them, sorted. A file that contains its own ancestor ends the walk.
+pub async fn yara_rules_below(
+    pool: &PgPool,
+    root: Uuid,
+    observable: ObservableId,
+) -> Result<Vec<String>, DbError> {
+    Ok(sqlx::query_scalar!(
+        r#"WITH RECURSIVE below (observable_id) AS (
+               SELECT $2::bigint
+               UNION
+               SELECT a.observable_id
+               FROM below
+               JOIN analysis.results r ON r.root_id = $1 AND r.observable_id = below.observable_id
+               JOIN analysis.result_additions a ON a.result_id = r.id
+           )
+           SELECT DISTINCT match ->> 'rule' AS "rule!"
+           FROM below
+           JOIN analysis.results r ON r.root_id = $1 AND r.observable_id = below.observable_id
+           CROSS JOIN LATERAL jsonb_array_elements(r.details -> 'scan_results') AS match
+           WHERE r.analysis_type = $3 AND match ->> 'rule' IS NOT NULL
+           ORDER BY 1"#,
+        root,
+        observable as ObservableId,
+        YaraScanResults::NAME,
+    )
+    .fetch_all(pool)
     .await?)
 }
 

@@ -582,6 +582,16 @@ def main():
     for path in office_emails:
         samples.append(entry(path, ["email", "office/encrypted"], how))
 
+    xlm = subprocess.run(
+        [sys.executable, "-I", str(REPO / "tools" / "samples" / "make-xlm"), str(SAMPLES / "ace4" / "office")],
+        check=True, capture_output=True, text=True,
+    ).stdout.split()
+    for name in xlm:
+        samples.append(
+            entry(SAMPLES / "ace4" / "office" / name, ["office/macro", "office/xlm"],
+                  "made by tools/samples/gather: tools/samples/make-xlm")
+        )
+
     covered = {kind for sample in samples for kind in sample["kinds"]}
     missing = [kind for kind in REQUIRED_KINDS if kind not in covered]
     manifest = {
@@ -596,7 +606,6 @@ def main():
         "required_kinds": REQUIRED_KINDS,
         "gaps": [
             "an encrypted RAR: making one needs RARLAB's non-free rar tool",
-            "a legacy .xls (BIFF8) with an Excel 4.0 macro sheet: nothing here writes one",
             "PowerPoint and Excel files with VBA macros: ace3's tests hold Word ones only",
             "an encrypted PDF: ace3's tests build theirs with pikepdf at test time",
             "an encrypted .ppt, and an RC4 .doc: msoffcrypto writes neither, only ace3's RC4 .xls is here",

@@ -122,6 +122,13 @@
           },
           "summary": "OLEVBA Analysis: (5 macro files) (OLE) | autoexec=1, suspicious=1, hex string=1, base64 string=1",
           "tags": {}
+        },
+        "pcodedmp": {
+          "details": {
+            "line_count": 1578
+          },
+          "summary": "PCode Analysis: decoded 1578 lines",
+          "tags": {}
         }
       },
       "tags": {
@@ -289,6 +296,40 @@
       "tags": {
         "macro": true
       }
+    },
+    "file:fd484a340e9e782cc7dc02e0a182a5e006bac244a139a2362c1173f127e901f3": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "receipt_687790.doc.pcode.bas": {
+          "type=script.vbscript": true
+        }
+      },
+      "redirection": "file:a363fb24edce3162326238d0152b99845d0dd0be53191183aad2ceba2d168a2a",
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {}
     }
   }
 }

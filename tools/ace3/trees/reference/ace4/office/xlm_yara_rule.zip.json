@@ -1,0 +1,366 @@
+{
+  "form": 1,
+  "observables": {
+    "file:22e66e0290da807723c3f8c9892d7fedc34f6292ffaae59db4b6bff401e3107a": {
+      "detections": {
+        "xlm_yara_rule.zip.extracted/note.txt matched yara rule XLM_Macrosheet_NonBin": [
+          {
+            "namespace": "e2e",
+            "rule": "XLM_Macrosheet_NonBin",
+            "rule_uuid": "b1c7a5f2-6d0e-4b8e-8a4d-2f3e1c9d7b60",
+            "sha256": "22e66e0290da807723c3f8c9892d7fedc34f6292ffaae59db4b6bff401e3107a"
+          }
+        ]
+      },
+      "directives": {
+        "sandbox": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "xlm_yara_rule.zip.extracted/note.txt": {}
+      },
+      "relationships": {
+        "extracted_from file:b225fef32857e80fe85e79841124dc68d8767967cb8811564127480717fdf603": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        },
+        "xlmdeobfuscator": {
+          "details": {
+            "cell_count": 0
+          },
+          "summary": "XLMMacroDeobfuscator Analysis - analyzed 0 cells",
+          "tags": {}
+        },
+        "yara_scanner_v3_4": {
+          "details": {
+            "scan_results": [
+              {
+                "context": [
+                  [
+                    0,
+                    "$marker",
+                    "ACE4-XLM-RULE-MARKER-9d2e",
+                    "00000000  41 43 45 34 2d 58 4c 4d  2d 52 55 4c 45 2d 4d 41  |ACE4-XLM-RULE-MA|\n00000010  52 4b 45 52 2d 39 64 32  65 0a                    |RKER-9d2e.|\n0000001a\n"
+                  ]
+                ],
+                "match_context": [
+                  {
+                    "data": "QUNFNC1YTE0tUlVMRS1NQVJLRVItOWQyZQo=",
+                    "match_length": 25,
+                    "match_offset": 0
+                  }
+                ],
+                "meta": {
+                  "uuid": "b1c7a5f2-6d0e-4b8e-8a4d-2f3e1c9d7b60"
+                },
+                "namespace": "<work>/signatures/e2e",
+                "rule": "XLM_Macrosheet_NonBin",
+                "rule_content_hash": "65b602fdd7a8c93b8de0022af603bb52df2a7d2c7f1e381d3f6e1cd2ded312ce",
+                "rule_source": {
+                  "file": "xlm.yar",
+                  "start_line": 3,
+                  "text": "rule XLM_Macrosheet_NonBin\n{\n    meta:\n        uuid = \"b1c7a5f2-6d0e-4b8e-8a4d-2f3e1c9d7b60\"\n    strings:\n        $marker = \"ACE4-XLM-RULE-MARKER-9d2e\"\n    condition:\n        $marker\n}\n"
+                },
+                "string_patterns": {
+                  "$marker": "\"ACE4-XLM-RULE-MARKER-9d2e\""
+                },
+                "strings": [
+                  [
+                    0,
+                    "$marker",
+                    "ACE4-XLM-RULE-MARKER-9d2e"
+                  ]
+                ],
+                "tags": [],
+                "target": "<root>/files/xlm_yara_rule.zip.extracted/note.txt"
+              }
+            ]
+          },
+          "summary": "Yara Scan Results: matched yara rules XLM_Macrosheet_NonBin",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "xlm4:error": true,
+        "xlm4:no_cells": true
+      }
+    },
+    "file:75dd5c1fdfe1df4241175d4dead57a5038bf2f3cbe0ec21e16406c5267470320": {
+      "detections": {},
+      "directives": {
+        "crawl_extracted_urls": true,
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "xlm_yara_rule.zip.xlmdeobfuscator/xlmdeobfuscatorextractcells.stdout": {
+          "type=script.macro.xlm": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:8951fdea7e79bcb6eff27d1c6d1dd8d98cbc5725a8f7a85c3c0dce8b19f960f4": {
+      "detections": {},
+      "directives": {
+        "crawl_extracted_urls": true,
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "xlm_yara_rule.zip.extracted/note.txt.xlmdeobfuscator/xlmdeobfuscator.stdout": {
+          "type=script.macro.xlm": true
+        },
+        "xlm_yara_rule.zip.extracted/note.txt.xlmdeobfuscator/xlmdeobfuscatorextractcells.stdout": {
+          "type=script.macro.xlm": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:b225fef32857e80fe85e79841124dc68d8767967cb8811564127480717fdf603": {
+      "detections": {
+        "xlm_yara_rule.zip matched yara rule XLM_Macrosheet_NonBin": [
+          {
+            "namespace": "e2e",
+            "rule": "XLM_Macrosheet_NonBin",
+            "rule_uuid": "b1c7a5f2-6d0e-4b8e-8a4d-2f3e1c9d7b60",
+            "sha256": "b225fef32857e80fe85e79841124dc68d8767967cb8811564127480717fdf603"
+          }
+        ]
+      },
+      "directives": {
+        "sandbox": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "xlm_yara_rule.zip": {
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "archive": {
+          "details": {
+            "extracted_files": [
+              "note.txt"
+            ],
+            "extraction_error": null,
+            "file_count": 1
+          },
+          "summary": "Archive Analysis: extracted 1 of 1 files: (note.txt)",
+          "tags": {
+            "single_file_zip": true
+          }
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": true,
+            "mime": "application/zip",
+            "type": "Zip archive data, made by v2.0 UNIX, extract using at least v2.0, last modified Jan 01 2020 00:00:00, uncompressed size 26, method=store"
+          },
+          "summary": "File Type Analysis: Zip archive data, made by v2.0 UNIX, extract using at least v2.0, last modified Jan 01 2020 00:00:00, uncompressed size 26, method=store (application/zip) (zip archive)",
+          "tags": {}
+        },
+        "olevba_v1_2": {
+          "details": {
+            "keyword_summary": {},
+            "macros": [],
+            "type": "OpenXML"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "xlmdeobfuscator": {
+          "details": {
+            "cell_count": 0
+          },
+          "summary": "XLMMacroDeobfuscator Analysis - analyzed 0 cells",
+          "tags": {}
+        },
+        "yara_scanner_v3_4": {
+          "details": {
+            "scan_results": [
+              {
+                "context": [
+                  [
+                    38,
+                    "$marker",
+                    "ACE4-XLM-RULE-MARKER-9d2e",
+                    "00000000  50 4b 03 04 14 00 00 00  00 00 00 00 21 50 8d 86  |PK..........!P..|\n00000010  fc 7e 1a 00 00 00 1a 00  00 00 08 00 00 00 6e 6f  |.~............no|\n00000020  74 65 2e 74 78 74 41 43  45 34 2d 58 4c 4d 2d 52  |te.txtACE4-XLM-R|\n00000030  55 4c 45 2d 4d 41 52 4b  45 52 2d 39 64 32 65 0a  |ULE-MARKER-9d2e.|\n00000040  50 4b 01 02 14 03 14 00  00 00 00 00 00 00 21 50  |PK............!P|\n00000050  8d 86 fc 7e 1a 00 00 00  1a 00 00 00 08 00 00 00  |...~............|\n00000060  00 00 00 00 00 00 00 00  80 01 00 00 00 00 6e 6f  |..............no|\n00000070  74 65 2e 74 78 74 50 4b  05 06 00 00 00 00 01 00  |te.txtPK........|\n00000080  01 00 36 00 00 00 40 00  00 00 00 00              |..6...@.....|\n0000008c\n"
+                  ]
+                ],
+                "match_context": [
+                  {
+                    "data": "UEsDBBQAAAAAAAAAIVCNhvx+GgAAABoAAAAIAAAAbm90ZS50eHRBQ0U0LVhMTS1SVUxFLU1BUktFUi05ZDJlClBLAQIUAxQAAAAAAAAAIVCNhvx+GgAAABoAAAAIAAAAAAAAAAAAAACAAQAAAABub3RlLnR4dFBLBQYAAAAAAQABADYAAABAAAAAAAA=",
+                    "match_length": 25,
+                    "match_offset": 38
+                  }
+                ],
+                "meta": {
+                  "uuid": "b1c7a5f2-6d0e-4b8e-8a4d-2f3e1c9d7b60"
+                },
+                "namespace": "<work>/signatures/e2e",
+                "rule": "XLM_Macrosheet_NonBin",
+                "rule_content_hash": "65b602fdd7a8c93b8de0022af603bb52df2a7d2c7f1e381d3f6e1cd2ded312ce",
+                "rule_source": {
+                  "file": "xlm.yar",
+                  "start_line": 3,
+                  "text": "rule XLM_Macrosheet_NonBin\n{\n    meta:\n        uuid = \"b1c7a5f2-6d0e-4b8e-8a4d-2f3e1c9d7b60\"\n    strings:\n        $marker = \"ACE4-XLM-RULE-MARKER-9d2e\"\n    condition:\n        $marker\n}\n"
+                },
+                "string_patterns": {
+                  "$marker": "\"ACE4-XLM-RULE-MARKER-9d2e\""
+                },
+                "strings": [
+                  [
+                    38,
+                    "$marker",
+                    "ACE4-XLM-RULE-MARKER-9d2e"
+                  ]
+                ],
+                "tags": [],
+                "target": "<root>/files/xlm_yara_rule.zip"
+              }
+            ]
+          },
+          "summary": "Yara Scan Results: matched yara rules XLM_Macrosheet_NonBin",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "xlm4:no_cells": true,
+        "zip": true
+      }
+    },
+    "file:c49b6008e89cff8cbf3e2c8c321caf05c9bfacf658408e740b804b5721d66259": {
+      "detections": {},
+      "directives": {
+        "crawl_extracted_urls": true,
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "xlm_yara_rule.zip.xlmdeobfuscator/xlmdeobfuscator.stdout": {
+          "type=script.macro.xlm": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "signature_id:b1c7a5f2-6d0e-4b8e-8a4d-2f3e1c9d7b60": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
+    },
+    "yara_rule:XLM_Macrosheet_NonBin": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
+    },
+    "yara_string:XLM_Macrosheet_NonBin:$marker": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
+    }
+  }
+}

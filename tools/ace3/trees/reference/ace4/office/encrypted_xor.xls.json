@@ -51,14 +51,62 @@
           },
           "summary": null,
           "tags": {}
+        },
+        "xlmdeobfuscator": {
+          "details": {
+            "cell_count": 0
+          },
+          "summary": "XLMMacroDeobfuscator Analysis - analyzed 0 cells",
+          "tags": {}
         }
       },
       "tags": {
         "encrypted_msoffice": true,
         "microsoft_office": true,
         "ole": true,
+        "xlm4:error": true,
+        "xlm4:no_cells": true,
         "zip": true
       }
+    },
+    "file:c35835ca0f89d736195c827339c221f7f4db096bfbc7988caf09a8ae75b74ea3": {
+      "detections": {},
+      "directives": {
+        "crawl_extracted_urls": true,
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "encrypted_xor.xls.xlmdeobfuscator/xlmdeobfuscator.stdout": {
+          "type=script.macro.xlm": true
+        },
+        "encrypted_xor.xls.xlmdeobfuscator/xlmdeobfuscatorextractcells.stdout": {
+          "type=script.macro.xlm": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {}
     }
   }
 }

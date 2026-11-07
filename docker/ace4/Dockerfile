@@ -91,7 +91,7 @@ RUN pip install --no-cache-dir --disable-pip-version-check --no-deps --require-h
         --no-build-isolation -r /tmp/requirements/requirements.txt \
     && pip uninstall -y --disable-pip-version-check wheel packaging \
     && pip check --disable-pip-version-check \
-    && python -c "import msoffcrypto, oletools.olevba, pcodedmp.pcodedmp, pyxlsb2, xlrd2, XLMMacroDeobfuscator.deobfuscator" \
+    && python -c "import msoffcrypto, oletools.olevba, pcodedmp.pcodedmp, pyxlsb2, xlrd2, XLMMacroDeobfuscator.deobfuscator, yara_x" \
     && rm -rf /tmp/requirements
 # py-spy, which the supervisor runs on a hung worker (PLAN.md 4.3). It goes apart from the libraries,
 # so a worker can't import it, and its directory isn't in a worker's Landlock paths, so a worker

@@ -93,12 +93,53 @@
           },
           "summary": "OLEVBA Analysis: (1 macro files) (MHTML) | autoexec=1, suspicious=1, hex string=1",
           "tags": {}
+        },
+        "pcodedmp": {
+          "details": {
+            "line_count": 435
+          },
+          "summary": "PCode Analysis: decoded 435 lines",
+          "tags": {}
         }
       },
       "tags": {
         "microsoft_office": true,
         "olevba": true
       }
+    },
+    "file:fe0957024595307c9b083effc3231498bc7b7945d28bc1d5aa6d97d9e0729c25": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "surrogate_name.doc.pcode.bas": {
+          "type=script.vbscript": true
+        }
+      },
+      "redirection": "file:ce1de06fb0126976a9e5504e5768812190ca3ece921467aaa2ef780b69d6cbf7",
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text, with very long lines (695)"
+          },
+          "summary": "File Type Analysis: ASCII text, with very long lines (695) (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {}
     }
   }
 }
