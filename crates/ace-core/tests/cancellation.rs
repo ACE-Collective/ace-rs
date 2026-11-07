@@ -240,9 +240,9 @@ async fn a_dispositioned_alert_runs_only_alert_added_to_event() {
 
     let mut tx = db.begin().await.expect("begins");
     let dispositioned = orchestrator
-        .disposition(&mut tx, root, "FALSE_POSITIVE")
+        .stop_for_disposition(&mut tx, root)
         .await
-        .expect("dispositions");
+        .expect("stops analysis");
     tx.commit().await.expect("commits");
     assert_eq!(dispositioned.cancelled.cancelled.len(), 3);
     assert_eq!(dispositioned.cancelled.signalled, [rdap.id]);

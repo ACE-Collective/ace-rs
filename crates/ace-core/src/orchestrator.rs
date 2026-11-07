@@ -68,7 +68,7 @@ pub struct Landed {
     pub mode_changed_to: Option<String>,
 }
 
-/// What dispositioning an alert did.
+/// What a disposition did to an alert's analysis.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Dispositioned {
     pub cancelled: queue::CancelledRoot,
@@ -305,23 +305,16 @@ impl Orchestrator {
             .await
     }
 
-    /// Records an analyst's disposition of an alert: cancels its analysis, then switches it
-    /// to dispositioned mode, which queues that mode's few modules, as ace3 does when
-    /// `stop_analysis_on_any_alert_disposition` is set.
-    pub async fn disposition(
+    /// What a disposition does to an alert's analysis: cancels it, then switches it to dispositioned
+    /// mode, which queues that mode's few modules, as ace3 does when
+    /// `stop_analysis_on_any_alert_disposition` is set. The disposition itself and who made it are
+    /// `ace_service::Service::disposition`'s, in the same transaction.
+    pub async fn stop_for_disposition(
         &self,
         tx: &mut Tx<'_>,
         root: Uuid,
-        disposition: &str,
     ) -> Result<Dispositioned, OrchestratorError> {
         let cancelled = queue::cancel_root(tx, root).await?;
-        sqlx::query!(
-            "UPDATE analysis.roots SET disposition = $2, dispositioned_at = now() WHERE id = $1",
-            root,
-            disposition,
-        )
-        .execute(tx.conn())
-        .await?;
         let queued = self.set_mode(tx, root, DISPOSITIONED).await?;
         queue::check_completion(tx, root).await?;
         Ok(Dispositioned { cancelled, queued })

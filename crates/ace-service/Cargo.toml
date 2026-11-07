@@ -1,0 +1,33 @@
+[package]
+name = "ace-service"
+version = "0.1.0"
+description = "The service layer: who is acting, and the writes that record it"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+# Its tests are tests/service.rs, so the crate adds one test binary (PLAN.md 2.33).
+[lib]
+test = false
+doctest = false
+
+[dependencies]
+ace-core = { path = "../ace-core" }
+serde = { version = "1.0.229", features = ["derive"] }
+# Queries are checked against the migrated schema at build time, as in ace-core.
+sqlx = { version = "0.9.0", default-features = false, features = ["runtime-tokio", "tls-rustls-aws-lc-rs", "postgres", "macros", "uuid", "json"] }
+thiserror = "2.0.21"
+tracing = "0.1.44"
+uuid = { version = "1.29.0", features = ["serde"] }
+
+[dev-dependencies]
+ace-core = { path = "../ace-core", features = ["testing"] }
+ace-results = { path = "../ace-results" }
+ace-sdk = { path = "../ace-sdk" }
+schemars = "1.2.3"
+serde_json = "1.0.154"
+tokio = { version = "1.54.1", features = ["macros", "rt-multi-thread"] }
+
+[lints]
+workspace = true

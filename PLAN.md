@@ -26,7 +26,7 @@ Each crate is added by the step in the last column.
 
 | Crate | Holds | Added in |
 |---|---|---|
-| `ace-layering` | the CI check that keeps `ace-results`, `ace-api`, `ace-gui` and `ace-search` off `ace-mod-*` crates | 0.4 |
+| `ace-layering` | the CI check that keeps `ace-results`, `ace-service`, `ace-api`, `ace-gui` and `ace-search` off `ace-mod-*` crates | 0.4 |
 | `ace-yara` | ACE's two YARA scanner layers on yara-x | 1.1 |
 | `ace` | the binary: CLI, API, GUI, orchestrator, scheduler | 1.8 |
 | `ace-results` | observable kinds, result types, the type registry, JSON Schema export | 1.14 |
@@ -212,11 +212,11 @@ DESIGN.md's Sequence step 3 sends production traffic to both systems. For the pr
 
 ## Phase 5: service layer, API and alert view
 
-- [ ] **5.1 Actors.** One actor type in `ace-service` for users, API keys and internal callers (#1089, #953), carried by every write. Done when a test writes through the same function as each kind of actor.
+- [x] **5.1 Actors.** One actor type in `ace-service` for users, API keys and internal callers (#1089, #953), carried by every write. Done when a test writes through the same function as each kind of actor. The first write is `Service::disposition`, which records the actor in `analysis.roots.dispositioned_by`, a `service.actor` jsonb column whose `kind` and `id` are the identity. The core keeps `Orchestrator::stop_for_disposition`, what a disposition does to the queue, and can no longer record a disposition. A user id is an opaque uuid until 5.4 adds the users table. `ace-service`'s docs list the writes still outside it.
 - [ ] **5.2 Permissions.** Permission checks live in the service layer, with one case rule for storing and checking names (#831). Done when a mixed-case permission behaves the same when stored and when checked.
 - [ ] **5.3 Audit.** One helper records the actor on each audited write (#830). Done when every write path in the service layer has an audit test.
 - [ ] **5.4 Authentication.** GUI sessions and API keys. Done when both reach the service layer as an actor.
-- [ ] **5.5 JSON API.** An axum adapter over the service layer, with its OpenAPI spec from utoipa. Start with the alerts, analysis and observables routers. The API keeps no `/api/v2` paths or payloads. Done when those endpoints have tests and appear in the spec.
+- [ ] **5.5 JSON API.** An axum adapter over the service layer, with its OpenAPI spec from utoipa. Start with the alerts, analysis and observables routers. The API keeps no `/api/v2` paths or payloads. `POST /api/analysis/v1/submit` moves out of `ace-core` to here, as a service function that takes an actor and records it on the root; `ACE4_SUBMIT_TOKEN` then has to become one of 5.4's API keys. Done when those endpoints have tests and appear in the spec.
 - [ ] **5.6 The other routers.** One step per remaining router in `ace3/aceapi_v2/`: auth, crashes, detection, detection_points, email, events, file_collection, filter_screens, health, hunt, observable_comments, observable_types, remediation, response, saved_filters, search, secrets, svs, threat_types, threats, user_preferences, users and yara_qa. The `engine` router's download, upload and clear endpoints go away with the bucket and the root lock, and its `cli` endpoint becomes 5.12. The `nodes` router's drain and resume become stopping and starting a node's pools. Done per router when its endpoints have tests.
 - [ ] **5.7 GUI base.** An askama base layout, with Datastar as one vendored file (ace3 vendors 1.0.4). Done when a template that uses a missing field fails the build.
 - [ ] **5.8 Alert view.** Render an alert's tree from Postgres. When Postgres notifies of a new result, a Datastar server-sent event stream pushes it to the open page as an HTML fragment. An observable a module adds can carry a display type in its result envelope, such as ace3's "Source IP", and the view shows it in place of the type name. Done when a test calls the view function directly, a browser test sees a result appear on an open page without a reload, and the Splunk module's IP observables show "Source IP" and "Destination IP" as they do in ace3.

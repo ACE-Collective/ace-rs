@@ -1,9 +1,9 @@
 //! The layering check from PLAN.md step 0.4.
 //!
 //! Cargo rejects cycles between crates, but not a one-way dependency from a crate that
-//! reads alerts on an analysis module. This command reads `cargo metadata` and fails when
-//! `ace-results`, `ace-api`, `ace-gui` or `ace-search` depends on an `ace-mod-*` crate,
-//! directly or through other crates.
+//! reads or writes alerts on an analysis module. This command reads `cargo metadata` and fails
+//! when `ace-results`, `ace-service`, `ace-api`, `ace-gui` or `ace-search` depends on an
+//! `ace-mod-*` crate, directly or through other crates.
 //!
 //! Usage: `cargo run -p ace-layering -- [cargo metadata options]`, for example
 //! `--manifest-path ../other/Cargo.toml` to check another workspace.
@@ -14,7 +14,13 @@ use std::process::{Command, ExitCode};
 use serde_json::Value;
 
 /// Crates that must never depend on an analysis module.
-const GUARDED: [&str; 4] = ["ace-results", "ace-api", "ace-gui", "ace-search"];
+const GUARDED: [&str; 5] = [
+    "ace-results",
+    "ace-service",
+    "ace-api",
+    "ace-gui",
+    "ace-search",
+];
 
 /// Every analysis module crate's name starts with this.
 const MODULE_PREFIX: &str = "ace-mod-";
@@ -225,6 +231,18 @@ mod tests {
     fn direct_dependency_fails() {
         let m = metadata(&["ace-api", "ace-mod-x"], &[("ace-api", "ace-mod-x", None)]);
         assert_eq!(violations(&m), ["ace-api -> ace-mod-x"]);
+    }
+
+    #[test]
+    fn the_service_layer_is_guarded() {
+        let m = metadata(
+            &["ace-service", "ace-core", "ace-mod-x"],
+            &[
+                ("ace-service", "ace-core", None),
+                ("ace-core", "ace-mod-x", None),
+            ],
+        );
+        assert_eq!(violations(&m), ["ace-service -> ace-core -> ace-mod-x"]);
     }
 
     #[test]

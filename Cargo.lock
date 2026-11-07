@@ -346,6 +346,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "ace-service"
+version = "0.1.0"
+dependencies = [
+ "ace-core",
+ "ace-results",
+ "ace-sdk",
+ "schemars 1.2.3",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "thiserror 2.0.21",
+ "tokio",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
 name = "ace-site-example"
 version = "0.1.0"
 dependencies = [

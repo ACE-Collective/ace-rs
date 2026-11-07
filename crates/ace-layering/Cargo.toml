@@ -1,7 +1,7 @@
 [package]
 name = "ace-layering"
 version = "0.1.0"
-description = "Fails when a crate that reads alerts depends on an analysis module crate"
+description = "Fails when a crate that reads or writes alerts depends on an analysis module crate"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
