@@ -245,6 +245,14 @@ impl Failure {
         };
         Failure::new(status, error.to_string(), parts)
     }
+
+    pub(crate) fn status(&self) -> StatusCode {
+        self.status
+    }
+
+    pub(crate) fn message(&self) -> &str {
+        &self.message
+    }
 }
 
 impl IntoResponse for Failure {

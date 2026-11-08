@@ -46,12 +46,13 @@ use ace_core::{Db, queue};
 use ace_results::{AlertPath, AnalysisType, NewObservable, ObservableKind};
 use ace_sdk::{Lookup, Manifest, Module, ModuleError, Outcome, TaskContext};
 use ace_service::{
-    ALERT_WRITE, Actor, ApiKeyId, CATALOG, Component, CrashFilter, CrashInput,
-    DetectionPointFilter, Effect, EventChoice, EventRef, EventTimes, GroupId, Holder,
-    MAX_CRASHES_PAGE, MIN_PASSWORD_CHARS, NewEvent, NewSession, Password, PermissionName,
-    PermissionPattern, PreferenceKey, PreferenceValue, Profile, QaPurge, QaRuleFilter, QaSort,
-    QaStatus, RequestParts, SESSION_LIFETIME_SECONDS, Service, ServiceError, SessionCookie, Theme,
-    ThemePreference, Transport, USER_SELF, USER_WRITE, UserId, Username, with_source_ip,
+    ALERT_WRITE, Actor, ApiKeyId, CATALOG, CampaignChoice, Component, CrashFilter, CrashInput,
+    DetectionPointFilter, Effect, EventChoice, EventEdit, EventRef, EventTimes, GroupId, Holder,
+    MAX_CRASHES_PAGE, MIN_PASSWORD_CHARS, MalwareChoice, NewEvent, NewSession, Password,
+    PermissionName, PermissionPattern, PreferenceKey, PreferenceValue, Profile, QaPurge,
+    QaRuleFilter, QaSort, QaStatus, RequestParts, SESSION_LIFETIME_SECONDS, Service, ServiceError,
+    SessionCookie, Theme, ThemePreference, Transport, USER_SELF, USER_WRITE, UserId, Username,
+    with_source_ip,
 };
 use ace_store::{BucketConfig, NodeCache, Store};
 use schemars::JsonSchema;
@@ -1483,6 +1484,9 @@ async fn every_write_function_has_an_audit_test() {
         add_threat_records_its_row(db).await,
         remove_threat_records_its_row(db).await,
         add_to_event_records_its_row(db).await,
+        edit_event_records_its_row(db).await,
+        remove_alerts_records_its_row(db).await,
+        add_event_tags_records_its_row(db).await,
     ]);
     assert_eq!(covered, write_functions(), "{WRITES_NEED_A_TEST}");
 }
@@ -2999,6 +3003,10 @@ async fn every_write_fails_when_its_audit_fails() {
         .create_threat_type(&actor, "other")
         .await
         .expect("adds a type");
+    let event_now = service
+        .event(&actor, EventRef::Id(event))
+        .await
+        .expect("reads the event");
     let before = (
         row(db, root).await,
         tasks(db, root).await,
@@ -3420,6 +3428,42 @@ async fn every_write_fails_when_its_audit_fails() {
                     &EventChoice::Existing(EventRef::Id(event)),
                     &[other_alert],
                 )
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "edit_event",
+            service
+                .edit_event(
+                    &actor,
+                    EventRef::Id(event),
+                    &EventEdit {
+                        name: "never renamed".to_owned(),
+                        campaign: CampaignChoice::New("never made".to_owned()),
+                        malware: vec![MalwareChoice::New {
+                            name: "never made".to_owned(),
+                            threat_types: vec![other_type.id],
+                        }],
+                        ..edit_of(db, &event_now).await
+                    },
+                )
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "remove_alerts",
+            service
+                .remove_alerts(&actor, EventRef::Id(event), &[root])
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "add_event_tags",
+            service
+                .add_event_tags(&actor, EventRef::Id(event), &["never".to_owned()])
                 .await
                 .map(|_| ())
                 .expect_err("refused"),
@@ -8806,6 +8850,10 @@ async fn event_rows(db: &Db) -> Vec<String> {
          UNION ALL SELECT 'type ' || row_to_json(t)::text FROM events.threat_types t
          UNION ALL SELECT 'threat ' || row_to_json(m)::text FROM events.malware_threats m
          UNION ALL SELECT 'in event ' || row_to_json(a)::text FROM events.event_alerts a
+         UNION ALL SELECT 'campaign ' || row_to_json(c)::text FROM events.campaigns c
+         UNION ALL SELECT 'malware ' || row_to_json(w)::text FROM events.malware w
+         UNION ALL SELECT 'event malware ' || row_to_json(em)::text FROM events.event_malware em
+         UNION ALL SELECT 'tag ' || row_to_json(g)::text FROM events.event_tags g
          ORDER BY 1",
     )
     .fetch_all(db.pool())
@@ -10338,5 +10386,961 @@ async fn the_event_list_filters_sorts_and_pages_as_ace3_does() {
             Err(ServiceError::PermissionDenied { ref permission, .. })
                 if permission.to_string() == "event:read"
         ));
+    }
+}
+
+// The events module's own checks, which were a `#[cfg(test)]` module in src/events.rs that never ran:
+// this crate's library tests are off (Cargo.toml), so they're here.
+
+#[test]
+fn an_event_rolls_its_alerts_dispositions_up_as_ace3_does() {
+    use ace_service::rolled_up;
+    assert_eq!(rolled_up([]), "DELIVERY", "no alerts");
+    assert_eq!(rolled_up([None, Some("OPEN")]), "OPEN");
+    assert_eq!(rolled_up([Some("IGNORE")]), "IGNORE");
+    assert_eq!(
+        rolled_up([Some("DAMAGE"), Some("FALSE_POSITIVE"), None]),
+        "DAMAGE"
+    );
+    assert_eq!(
+        rolled_up([Some("GRAYWARE"), Some("SIMULATED"), Some("REVIEWED")]),
+        "GRAYWARE"
+    );
+    assert_eq!(rolled_up([Some("SITE_OWN")]), "OPEN", "no rank never wins");
+    assert_eq!(rolled_up([Some("SITE_OWN"), Some("IGNORE")]), "IGNORE");
+}
+
+#[test]
+fn an_event_is_named_by_its_id_or_its_uuid() {
+    assert_eq!(EventRef::parse("42").expect("an id"), EventRef::Id(42));
+    let uuid = Uuid::from_u128(7);
+    assert_eq!(
+        EventRef::parse(&uuid.to_string()).expect("a uuid"),
+        EventRef::Uuid(uuid)
+    );
+    // ace3's warning: a uuid starting with digits isn't an id
+    assert!(matches!(
+        EventRef::parse("443c2e1a-719b-4f5d"),
+        Err(ServiceError::InvalidRequest(_))
+    ));
+    assert!(matches!(
+        EventRef::parse("99999999999999999999"),
+        Err(ServiceError::NotFound(_))
+    ));
+    assert!(matches!(
+        EventRef::parse(""),
+        Err(ServiceError::InvalidRequest(_))
+    ));
+}
+
+/// A threat type's name is 1 to 256 characters, not all whitespace, with no control characters, when
+/// it's made and when it's renamed, and a refused one writes nothing.
+#[tokio::test]
+async fn a_threat_type_name_is_checked() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let actor = admin(db).await;
+    let longest = "x".repeat(ace_service::MAX_THREAT_TYPE_CHARS);
+    let made = service
+        .create_threat_type(&actor, &longest)
+        .await
+        .expect("the longest fits");
+    let rows = audit_rows(db).await.len();
+    for bad in [
+        "",
+        "  ",
+        "a\nb",
+        "a\0b",
+        &"x".repeat(ace_service::MAX_THREAT_TYPE_CHARS + 1),
+    ] {
+        assert!(
+            matches!(
+                service.create_threat_type(&actor, bad).await,
+                Err(ServiceError::InvalidRequest(_))
+            ),
+            "{bad:?}"
+        );
+        assert!(
+            matches!(
+                service.rename_threat_type(&actor, made.id, bad).await,
+                Err(ServiceError::InvalidRequest(_))
+            ),
+            "{bad:?}"
+        );
+    }
+    assert_eq!(audit_rows(db).await.len(), rows);
+}
+
+// PLAN.md 5.11's events (6d): an event's edit, its alerts removed, its own tags.
+
+/// The edit that changes nothing about an event as it is now.
+async fn edit_of(db: &Db, event: &ace_service::Event) -> EventEdit {
+    let campaign = match &event.campaign {
+        Some(name) => CampaignChoice::Existing(
+            sqlx::query_scalar("SELECT id FROM events.campaigns WHERE name = $1")
+                .bind(name)
+                .fetch_one(db.pool())
+                .await
+                .expect("its campaign"),
+        ),
+        None => CampaignChoice::None,
+    };
+    EventEdit {
+        version: event.edit_version(),
+        name: event.name.clone(),
+        status: event.status.clone(),
+        owner: event.owner.as_ref().map(|owner| owner.id),
+        remediation: event.remediation.clone(),
+        kind: event.kind.clone(),
+        vector: event.vector.clone(),
+        risk_level: event.risk_level.clone(),
+        prevention_tool: event.prevention_tool.clone(),
+        comment: event.comment.clone(),
+        campaign,
+        times: EventTimes::default(),
+        malware: event
+            .malware
+            .iter()
+            .map(|m| MalwareChoice::Existing(m.id))
+            .collect(),
+    }
+}
+
+/// Every row an edit could make or change, whole: campaigns, malware, their threats, the event's malware
+/// and tags.
+async fn edit_rows(db: &Db) -> Vec<String> {
+    sqlx::query_scalar(
+        "SELECT 'campaign ' || row_to_json(c)::text FROM events.campaigns c
+         UNION ALL SELECT 'malware ' || row_to_json(m)::text FROM events.malware m
+         UNION ALL SELECT 'threat ' || row_to_json(t)::text FROM events.malware_threats t
+         UNION ALL SELECT 'event malware ' || row_to_json(em)::text FROM events.event_malware em
+         UNION ALL SELECT 'tag ' || row_to_json(g)::text FROM events.event_tags g
+         ORDER BY 1",
+    )
+    .fetch_all(db.pool())
+    .await
+    .expect("reads")
+}
+
+async fn edit_event_records_its_row(db: &Db) -> String {
+    let actor = admin(db).await;
+    let service = service(db);
+    let id = event_with(db, "<b>edit</b>", &[]).await;
+    sqlx::query("UPDATE events.events SET event_time = '2026-01-01T00:00:00Z' WHERE id = $1")
+        .bind(id)
+        .execute(db.pool())
+        .await
+        .expect("sets a time");
+    let kept = malware_named(db, "Kept").await;
+    let (rat, ransomware) = (
+        threat_type_id(db, "rat").await,
+        threat_type_id(db, "ransomware").await,
+    );
+    let before = service
+        .event(&actor, EventRef::Id(id))
+        .await
+        .expect("reads");
+    let edit = EventEdit {
+        name: "  <i>renamed</i> ".to_owned(),
+        status: "IGNORE".to_owned(),
+        owner: Some(actor_id(&actor)),
+        remediation: "reimaged".to_owned(),
+        kind: "recon".to_owned(),
+        vector: "usb".to_owned(),
+        risk_level: "2".to_owned(),
+        prevention_tool: "edr".to_owned(),
+        comment: Some("<script>why</script>".to_owned()),
+        campaign: CampaignChoice::New(" APT-<x> ".to_owned()),
+        times: EventTimes {
+            alert_time: Some(at("2026-01-02T00:00:00Z")),
+            ..EventTimes::default()
+        },
+        malware: vec![
+            MalwareChoice::Existing(kept),
+            MalwareChoice::New {
+                name: "Fresh".to_owned(),
+                threat_types: vec![ransomware, rat, rat],
+            },
+        ],
+        ..edit_of(db, &before).await
+    };
+    let after = service
+        .edit_event(&actor, EventRef::Uuid(before.uuid), &edit)
+        .await
+        .expect("edits");
+    assert_eq!(after.name, "<i>renamed</i>", "trimmed");
+    assert_eq!(after.campaign.as_deref(), Some("APT-<x>"));
+    assert_eq!(after.event_time, Some(at("2026-01-01T00:00:00Z")), "kept");
+    assert_eq!(after.alert_time, Some(at("2026-01-02T00:00:00Z")));
+    assert_ne!(after.edit_version(), before.edit_version());
+    let mut threats = vec!["ransomware".to_owned(), "rat".to_owned()];
+    threats.sort();
+    let mut added = [ransomware, rat];
+    added.sort_unstable();
+    let row = last_audit(db).await;
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: boss_json(),
+            action: "edit_event".to_owned(),
+            target: ("event".to_owned(), id.to_string()),
+            before: Some(json!({
+                "name": "<b>edit</b>",
+                "status": "OPEN",
+                "remediation": "not remediated",
+                "type": "phish",
+                "vector": "corporate email",
+                "risk_level": "0",
+                "prevention_tool": "response team",
+                "campaign": null,
+                "comment": null,
+                "event_time": "2026-01-01T00:00:00Z",
+                "alert_time": null,
+                "ownership_time": null,
+                "disposition_time": null,
+                "contain_time": null,
+                "remediation_time": null,
+                "owner": null,
+                "malware": [],
+            })),
+            after: Some(json!({
+                "name": "<i>renamed</i>",
+                "status": "IGNORE",
+                "remediation": "reimaged",
+                "type": "recon",
+                "vector": "usb",
+                "risk_level": "2",
+                "prevention_tool": "edr",
+                "campaign": "APT-<x>",
+                "comment": "<script>why</script>",
+                "event_time": "2026-01-01T00:00:00Z",
+                "alert_time": "2026-01-02T00:00:00Z",
+                "ownership_time": null,
+                "disposition_time": null,
+                "contain_time": null,
+                "remediation_time": null,
+                "owner": Uuid::from_u128(0xAD),
+                "malware": [
+                    {"name": "Fresh", "threat_types": threats},
+                    {"name": "Kept", "threat_types": []},
+                ],
+            })),
+            details: json!({
+                "uuid": before.uuid,
+                "made_campaign": "APT-<x>",
+                "made_malware": ["Fresh"],
+                "added_threats": [
+                    {"malware": "Fresh", "threat_type": added[0]},
+                    {"malware": "Fresh", "threat_type": added[1]},
+                ],
+            }),
+        }
+    );
+
+    // the same edit again, from the new version, changes nothing and has no row
+    let rows = audit_rows(db).await.len();
+    let same = EventEdit {
+        version: after.edit_version(),
+        ..edit_of(db, &after).await
+    };
+    assert_eq!(
+        service
+            .edit_event(&actor, EventRef::Id(id), &same)
+            .await
+            .expect("changes nothing"),
+        after
+    );
+    // a refusal has no row
+    assert!(matches!(
+        service
+            .edit_event(&no_events(db).await, EventRef::Id(id), &same)
+            .await,
+        Err(ServiceError::PermissionDenied { ref permission, .. })
+            if permission.to_string() == "event:write"
+    ));
+    assert_eq!(audit_rows(db).await.len(), rows);
+    row.action
+}
+
+/// ace3's rules: CLOSED only by Close Event; a closed event's times don't change; the times after an edit
+/// are in order; a campaign and malware are found by name before one is made, and malware found is given
+/// the types it lacks; and every value is checked. Each refusal writes nothing.
+#[tokio::test]
+async fn an_event_is_edited_by_ace3_s_rules() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let actor = admin(db).await;
+    let id = event_with(db, "rules", &[]).await;
+    let read = || async {
+        service
+            .event(&actor, EventRef::Id(id))
+            .await
+            .expect("reads")
+    };
+    let open = read().await;
+    let base = edit_of(db, &open).await;
+    let refused = |result: Result<ace_service::Event, ServiceError>| match result {
+        Err(error) => error,
+        Ok(event) => panic!("edited: {event:?}"),
+    };
+    let rows = (
+        audit_rows(db).await.len(),
+        edit_rows(db).await,
+        event_rows(db).await,
+    );
+
+    // an open event isn't given CLOSED by an edit, nor a status, type or other value that isn't one
+    for edit in [
+        EventEdit {
+            status: "CLOSED".to_owned(),
+            ..base.clone()
+        },
+        EventEdit {
+            status: "closed".to_owned(),
+            ..base.clone()
+        },
+        EventEdit {
+            kind: "<b>nope</b>".to_owned(),
+            ..base.clone()
+        },
+        EventEdit {
+            risk_level: "9".to_owned(),
+            ..base.clone()
+        },
+        EventEdit {
+            remediation: String::new(),
+            ..base.clone()
+        },
+        EventEdit {
+            name: " ".to_owned(),
+            ..base.clone()
+        },
+        EventEdit {
+            comment: Some("x".repeat(ace_service::MAX_EVENT_COMMENT_CHARS + 1)),
+            ..base.clone()
+        },
+        EventEdit {
+            campaign: CampaignChoice::New("  ".to_owned()),
+            ..base.clone()
+        },
+        // times out of order, the stored ones counted
+        EventEdit {
+            times: EventTimes {
+                event_time: Some(at("2026-02-01T00:00:00Z")),
+                alert_time: Some(at("2026-01-01T00:00:00Z")),
+                ..EventTimes::default()
+            },
+            ..base.clone()
+        },
+        // new malware needs a name and a type, where ace3 drops it
+        EventEdit {
+            malware: vec![MalwareChoice::New {
+                name: "no types".to_owned(),
+                threat_types: Vec::new(),
+            }],
+            ..base.clone()
+        },
+        EventEdit {
+            malware: vec![MalwareChoice::New {
+                name: String::new(),
+                threat_types: vec![1],
+            }],
+            ..base.clone()
+        },
+    ] {
+        assert!(
+            matches!(
+                refused(service.edit_event(&actor, EventRef::Id(id), &edit).await),
+                ServiceError::InvalidRequest(_)
+            ),
+            "{edit:?}"
+        );
+    }
+    // what's named and isn't there is a 404, too many a 413
+    let nobody = UserId(Uuid::from_u128(0x404));
+    for edit in [
+        EventEdit {
+            owner: Some(nobody),
+            ..base.clone()
+        },
+        EventEdit {
+            campaign: CampaignChoice::Existing(i32::MAX),
+            ..base.clone()
+        },
+        EventEdit {
+            malware: vec![MalwareChoice::Existing(i32::MAX)],
+            ..base.clone()
+        },
+        EventEdit {
+            malware: vec![MalwareChoice::New {
+                name: "typo".to_owned(),
+                threat_types: vec![i32::MAX],
+            }],
+            ..base.clone()
+        },
+    ] {
+        assert!(
+            matches!(
+                refused(service.edit_event(&actor, EventRef::Id(id), &edit).await),
+                ServiceError::NotFound(_)
+            ),
+            "{edit:?}"
+        );
+    }
+    assert!(matches!(
+        refused(
+            service
+                .edit_event(&actor, EventRef::Id(i64::MAX), &base)
+                .await
+        ),
+        ServiceError::NotFound(_)
+    ));
+    assert!(matches!(
+        refused(
+            service
+                .edit_event(
+                    &actor,
+                    EventRef::Id(id),
+                    &EventEdit {
+                        malware: vec![
+                            MalwareChoice::Existing(1);
+                            ace_service::MAX_EDIT_MALWARE + 1
+                        ],
+                        ..base.clone()
+                    },
+                )
+                .await
+        ),
+        ServiceError::TooLarge(_)
+    ));
+    // a disabled user isn't given the event
+    let disabled = UserId(Uuid::from_u128(0xD15));
+    exists(db, &Holder::User(disabled)).await;
+    sqlx::query("UPDATE service.users SET enabled = false WHERE id = $1")
+        .bind(disabled.0)
+        .execute(db.pool())
+        .await
+        .expect("disables");
+    assert!(matches!(
+        refused(
+            service
+                .edit_event(
+                    &actor,
+                    EventRef::Id(id),
+                    &EventEdit {
+                        owner: Some(disabled),
+                        ..base.clone()
+                    },
+                )
+                .await
+        ),
+        ServiceError::InvalidRequest(_)
+    ));
+    // a name another event has on its day
+    event_with(db, "taken", &[]).await;
+    assert!(matches!(
+        refused(
+            service
+                .edit_event(
+                    &actor,
+                    EventRef::Id(id),
+                    &EventEdit {
+                        name: "taken".to_owned(),
+                        ..base.clone()
+                    },
+                )
+                .await
+        ),
+        ServiceError::Conflict(_)
+    ));
+    let mut rows_after = (
+        audit_rows(db).await.len(),
+        edit_rows(db).await,
+        event_rows(db).await,
+    );
+    // only the event made for the name
+    rows_after.2.retain(|row| !row.contains("\"taken\""));
+    assert_eq!(rows_after, rows, "no refusal wrote anything");
+
+    // a campaign and malware by name: found if they're there, and malware found gains the types it lacks
+    let emotet = malware_named(db, "Emotet").await;
+    let (rat, wiper) = (
+        threat_type_id(db, "rat").await,
+        threat_type_id(db, "wiper").await,
+    );
+    sqlx::query("INSERT INTO events.malware_threats VALUES ($1, $2)")
+        .bind(emotet)
+        .bind(rat)
+        .execute(db.pool())
+        .await
+        .expect("a threat");
+    sqlx::query("INSERT INTO events.campaigns (name) VALUES ('APT-x')")
+        .execute(db.pool())
+        .await
+        .expect("a campaign");
+    let edited = service
+        .edit_event(
+            &actor,
+            EventRef::Id(id),
+            &EventEdit {
+                campaign: CampaignChoice::New("APT-x".to_owned()),
+                malware: vec![MalwareChoice::New {
+                    name: "Emotet".to_owned(),
+                    threat_types: vec![rat, wiper],
+                }],
+                times: EventTimes {
+                    event_time: Some(at("2026-01-01T00:00:00Z")),
+                    alert_time: Some(at("2026-01-01T00:00:00Z")),
+                    ..EventTimes::default()
+                },
+                ..base.clone()
+            },
+        )
+        .await
+        .expect("edits: two equal times are in order, as ace3's sort has it");
+    assert_eq!(edited.campaign.as_deref(), Some("APT-x"));
+    assert_eq!(edited.malware.len(), 1);
+    assert_eq!(edited.malware[0].id, emotet);
+    assert_eq!(edited.malware[0].threat_types, ["rat", "wiper"]);
+    assert_eq!(
+        sqlx_count(db, "SELECT count(*) FROM events.campaigns").await,
+        1,
+        "found, not made"
+    );
+    let details = last_audit(db).await.details;
+    assert_eq!(
+        details,
+        json!({
+            "uuid": edited.uuid,
+            "made_campaign": null,
+            "made_malware": [],
+            "added_threats": [{"malware": "Emotet", "threat_type": wiper}],
+        })
+    );
+
+    // an edit is drawn from a version: one the event has left is a conflict, and writes nothing
+    assert!(matches!(
+        refused(service.edit_event(&actor, EventRef::Id(id), &base).await),
+        ServiceError::Conflict(_)
+    ));
+    // adding an alert or a tag doesn't change the version
+    let version = edited.edit_version();
+    service
+        .add_event_tags(&actor, EventRef::Id(id), &["kit".to_owned()])
+        .await
+        .expect("tags");
+    let root = alert_at(db, "2026-01-01T00:00:00Z").await;
+    service
+        .add_to_event(&actor, &EventChoice::Existing(EventRef::Id(id)), &[root])
+        .await
+        .expect("adds");
+    assert_eq!(read().await.edit_version(), version);
+
+    // taking malware and the campaign off
+    let cleared = service
+        .edit_event(
+            &actor,
+            EventRef::Id(id),
+            &EventEdit {
+                campaign: CampaignChoice::None,
+                malware: Vec::new(),
+                ..edit_of(db, &read().await).await
+            },
+        )
+        .await
+        .expect("edits");
+    assert_eq!(cleared.campaign, None);
+    assert!(cleared.malware.is_empty());
+    assert_eq!(
+        sqlx_count(
+            db,
+            "SELECT count(*) FROM events.malware WHERE name = 'Emotet'"
+        )
+        .await,
+        1,
+        "the malware stays, only the event's mapping goes"
+    );
+
+    // a closed event: its times don't change, it keeps CLOSED or is reopened
+    let closed = service
+        .set_event_status(&actor, EventRef::Id(id), "CLOSED")
+        .await
+        .expect("closes");
+    let kept = service
+        .edit_event(
+            &actor,
+            EventRef::Id(id),
+            &EventEdit {
+                comment: Some("after the fact".to_owned()),
+                times: EventTimes {
+                    // out of order too, and ignored, as ace3 ignores a closed event's times
+                    event_time: Some(at("2027-01-01T00:00:00Z")),
+                    contain_time: Some(at("2020-01-01T00:00:00Z")),
+                    ..EventTimes::default()
+                },
+                ..edit_of(db, &closed).await
+            },
+        )
+        .await
+        .expect("edits a closed event");
+    assert_eq!(kept.status, "CLOSED");
+    assert_eq!(kept.comment.as_deref(), Some("after the fact"));
+    assert_eq!(kept.event_time, closed.event_time);
+    assert_eq!(kept.contain_time, None);
+    let reopened = service
+        .edit_event(
+            &actor,
+            EventRef::Id(id),
+            &EventEdit {
+                status: "OPEN".to_owned(),
+                times: EventTimes {
+                    contain_time: Some(at("2027-01-01T00:00:00Z")),
+                    ..EventTimes::default()
+                },
+                ..edit_of(db, &kept).await
+            },
+        )
+        .await
+        .expect("reopens");
+    assert_eq!(reopened.status, "OPEN");
+    assert_eq!(
+        reopened.contain_time, None,
+        "the status before the edit decides, as in ace3"
+    );
+}
+
+/// Two analysts saving one event's edit at once, from the version they both opened: the event's lock
+/// lets one through and the other gets a conflict, where ace3's last save wins and undoes the first's.
+/// Two making one new campaign and one new malware at once in different events both get the one made.
+#[tokio::test]
+async fn two_edits_at_once_one_saves_and_the_other_is_told() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let actor = admin(db).await;
+    for round in 0..4 {
+        let id = event_with(db, &format!("contested {round}"), &[]).await;
+        let opened = service
+            .event(&actor, EventRef::Id(id))
+            .await
+            .expect("reads");
+        let base = edit_of(db, &opened).await;
+        let saves = ["first", "second"].map(|comment| {
+            let (service, actor) = (service.clone(), actor.clone());
+            let edit = EventEdit {
+                comment: Some(comment.to_owned()),
+                ..base.clone()
+            };
+            tokio::spawn(async move { service.edit_event(&actor, EventRef::Id(id), &edit).await })
+        });
+        let mut saved = Vec::new();
+        let mut told = 0;
+        for save in saves {
+            match save.await.expect("runs") {
+                Ok(event) => saved.push(event.comment),
+                Err(ServiceError::Conflict(_)) => told += 1,
+                Err(error) => panic!("{error}"),
+            }
+        }
+        assert_eq!((saved.len(), told), (1, 1), "round {round}");
+        let now = service
+            .event(&actor, EventRef::Id(id))
+            .await
+            .expect("reads");
+        assert_eq!(now.comment, saved[0]);
+    }
+
+    let mut ids = Vec::new();
+    for n in 0..6 {
+        ids.push(event_with(db, &format!("shared {n}"), &[]).await);
+    }
+    let rat = threat_type_id(db, "rat").await;
+    let mut edits = Vec::new();
+    for id in &ids {
+        let event = service
+            .event(&actor, EventRef::Id(*id))
+            .await
+            .expect("reads");
+        edits.push((
+            *id,
+            EventEdit {
+                campaign: CampaignChoice::New("APT-shared".to_owned()),
+                malware: vec![MalwareChoice::New {
+                    name: "Shared".to_owned(),
+                    threat_types: vec![rat],
+                }],
+                ..edit_of(db, &event).await
+            },
+        ));
+    }
+    let writes: Vec<_> = edits
+        .into_iter()
+        .map(|(id, edit)| {
+            let (service, actor) = (service.clone(), actor.clone());
+            tokio::spawn(async move { service.edit_event(&actor, EventRef::Id(id), &edit).await })
+        })
+        .collect();
+    for write in writes {
+        let event = write.await.expect("runs").expect("edits");
+        assert_eq!(event.campaign.as_deref(), Some("APT-shared"));
+        assert_eq!(event.malware[0].threat_types, ["rat"]);
+    }
+    assert_eq!(
+        sqlx_count(
+            db,
+            "SELECT count(*) FROM events.campaigns WHERE name = 'APT-shared'"
+        )
+        .await,
+        1
+    );
+    assert_eq!(
+        sqlx_count(
+            db,
+            "SELECT count(*) FROM events.malware WHERE name = 'Shared'"
+        )
+        .await,
+        1
+    );
+    let made: Vec<Value> = audit_rows(db)
+        .await
+        .into_iter()
+        .filter(|row| row.action == "edit_event")
+        .filter_map(|row| row.details.get("made_campaign").cloned())
+        .filter(|made| !made.is_null())
+        .collect();
+    assert_eq!(made, [json!("APT-shared")], "one edit made it");
+}
+
+async fn remove_alerts_records_its_row(db: &Db) -> String {
+    let actor = admin(db).await;
+    let service = service(db);
+    let (one, two, other) = (alert(db).await, alert(db).await, alert(db).await);
+    let id = event_with(db, "<b>remove</b>", &[one, two]).await;
+    let removed = service
+        .remove_alerts(&actor, EventRef::Id(id), &[two, other, two])
+        .await
+        .expect("removes");
+    assert_eq!(removed.removed, [two]);
+    assert_eq!(removed.not_in, [other]);
+    assert_eq!(in_event(db, id).await, BTreeSet::from([one]));
+    let row = last_audit(db).await;
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: boss_json(),
+            action: "remove_alerts".to_owned(),
+            target: ("event".to_owned(), id.to_string()),
+            before: Some(json!({"alerts": [two]})),
+            after: None,
+            details: json!({"uuid": removed.event.uuid, "name": "<b>remove</b>"}),
+        }
+    );
+    let still: i64 = sqlx::query_scalar("SELECT count(*) FROM analysis.roots WHERE id = $1")
+        .bind(two)
+        .fetch_one(db.pool())
+        .await
+        .expect("counts");
+    assert_eq!(still, 1, "the alert stays, only its mapping goes");
+
+    // none in it, too many, no such event and a refusal have no row
+    let rows = audit_rows(db).await.len();
+    let none = service
+        .remove_alerts(&actor, EventRef::Id(id), &[other])
+        .await
+        .expect("removes nothing");
+    assert!(none.removed.is_empty());
+    assert!(matches!(
+        service
+            .remove_alerts(
+                &actor,
+                EventRef::Id(id),
+                &vec![one; ace_service::MAX_EVENT_ALERTS + 1]
+            )
+            .await,
+        Err(ServiceError::TooLarge(_))
+    ));
+    assert!(matches!(
+        service
+            .remove_alerts(&actor, EventRef::Id(i64::MAX), &[one])
+            .await,
+        Err(ServiceError::NotFound(_))
+    ));
+    assert!(matches!(
+        service
+            .remove_alerts(&no_events(db).await, EventRef::Id(id), &[one])
+            .await,
+        Err(ServiceError::PermissionDenied { ref permission, .. })
+            if permission.to_string() == "event:write"
+    ));
+    assert_eq!(audit_rows(db).await.len(), rows);
+    assert_eq!(in_event(db, id).await, BTreeSet::from([one]));
+    row.action
+}
+
+async fn add_event_tags_records_its_row(db: &Db) -> String {
+    let actor = admin(db).await;
+    let service = service(db);
+    let id = event_with(db, "<b>tags</b>", &[]).await;
+    let tags = |list: &[&str]| list.iter().map(|t| (*t).to_owned()).collect::<Vec<_>>();
+    service
+        .add_event_tags(&actor, EventRef::Id(id), &tags(&["old"]))
+        .await
+        .expect("tags");
+    let event = service
+        .add_event_tags(
+            &actor,
+            EventRef::Id(id),
+            &tags(&["<b>new</b>", "old", "<b>new</b>", "Kit"]),
+        )
+        .await
+        .expect("tags");
+    assert_eq!(event.tags, ["<b>new</b>", "Kit", "old"]);
+    let row = last_audit(db).await;
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: boss_json(),
+            action: "add_event_tags".to_owned(),
+            target: ("event".to_owned(), id.to_string()),
+            before: None,
+            after: Some(json!({"tags": ["<b>new</b>", "Kit"]})),
+            details: json!({"uuid": event.uuid, "name": "<b>tags</b>"}),
+        }
+    );
+
+    // tags it has, tags that aren't, none, too many, no such event and a refusal have no row
+    let rows = audit_rows(db).await.len();
+    service
+        .add_event_tags(&actor, EventRef::Id(id), &tags(&["old", "Kit"]))
+        .await
+        .expect("changes nothing");
+    for bad in [
+        tags(&[]),
+        tags(&["two words"]),
+        tags(&["tab\there"]),
+        tags(&["nul\0"]),
+        tags(&[""]),
+        vec!["x".repeat(ace_service::MAX_EVENT_TAG_CHARS + 1)],
+    ] {
+        assert!(
+            matches!(
+                service.add_event_tags(&actor, EventRef::Id(id), &bad).await,
+                Err(ServiceError::InvalidRequest(_))
+            ),
+            "{bad:?}"
+        );
+    }
+    assert!(matches!(
+        service
+            .add_event_tags(
+                &actor,
+                EventRef::Id(id),
+                &vec!["t".to_owned(); ace_service::MAX_EVENT_TAGS + 1]
+            )
+            .await,
+        Err(ServiceError::TooLarge(_))
+    ));
+    assert!(matches!(
+        service
+            .add_event_tags(&actor, EventRef::Id(i64::MAX), &tags(&["x"]))
+            .await,
+        Err(ServiceError::NotFound(_))
+    ));
+    assert!(matches!(
+        service
+            .add_event_tags(&no_events(db).await, EventRef::Id(id), &tags(&["x"]))
+            .await,
+        Err(ServiceError::PermissionDenied { ref permission, .. })
+            if permission.to_string() == "event:write"
+    ));
+    assert_eq!(audit_rows(db).await.len(), rows);
+    row.action
+}
+
+/// The edit form's lists: each reference table by value, the campaigns and malware with its threat
+/// types, the threat types, and the enabled users only; under event:read.
+#[tokio::test]
+async fn an_edit_s_choices_are_ace3_s_lists() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let actor = admin(db).await;
+    let emotet = malware_named(db, "Emotet").await;
+    sqlx::query("INSERT INTO events.malware_threats VALUES ($1, $2)")
+        .bind(emotet)
+        .bind(threat_type_id(db, "rat").await)
+        .execute(db.pool())
+        .await
+        .expect("a threat");
+    malware_named(db, "Alpha").await;
+    let disabled = UserId(Uuid::from_u128(0xD15));
+    exists(db, &Holder::User(disabled)).await;
+    sqlx::query("UPDATE service.users SET enabled = false WHERE id = $1")
+        .bind(disabled.0)
+        .execute(db.pool())
+        .await
+        .expect("disables");
+    let choices = service.event_edit_choices(&actor).await.expect("reads");
+    let values =
+        |list: &[ace_service::EventValue]| list.iter().map(|v| v.value.clone()).collect::<Vec<_>>();
+    assert_eq!(values(&choices.statuses), ["CLOSED", "IGNORE", "OPEN"]);
+    assert_eq!(values(&choices.risk_levels), ["0", "1", "2", "3"]);
+    assert_eq!(choices.remediations.len(), 10);
+    assert_eq!(choices.threat_types.len(), 13);
+    assert_eq!(
+        choices
+            .malware
+            .iter()
+            .map(|m| (m.name.as_str(), m.threat_types.clone()))
+            .collect::<Vec<_>>(),
+        [("Alpha", vec![]), ("Emotet", vec!["rat".to_owned()])]
+    );
+    assert_eq!(
+        choices.users.iter().map(|u| u.id).collect::<Vec<_>>(),
+        [actor_id(&actor)],
+        "enabled users only"
+    );
+    assert!(matches!(
+        service.event_edit_choices(&no_events(db).await).await,
+        Err(ServiceError::PermissionDenied { ref permission, .. })
+            if permission.to_string() == "event:read"
+    ));
+}
+
+async fn sqlx_count(db: &Db, query: &'static str) -> i64 {
+    sqlx::query_scalar(query)
+        .fetch_one(db.pool())
+        .await
+        .expect("counts")
+}
+
+/// ace-service, ace-api and ace-gui turn their library tests off (each Cargo.toml's `[lib] test = false`,
+/// PLAN.md 2.33), so a `#[cfg(test)]` module in their source would never run, as events.rs's didn't.
+/// Their tests go in their test binaries.
+#[test]
+fn no_library_test_module_hides_where_library_tests_are_off() {
+    let crates = Path::new(env!("CARGO_MANIFEST_DIR")).join("..");
+    for name in ["ace-service", "ace-api", "ace-gui"] {
+        let manifest = std::fs::read_to_string(crates.join(name).join("Cargo.toml"))
+            .expect("reads the manifest");
+        assert!(manifest.contains("[lib]\ntest = false"), "{name}");
+        let mut dirs = vec![crates.join(name).join("src")];
+        while let Some(dir) = dirs.pop() {
+            for entry in std::fs::read_dir(&dir).expect("reads the source") {
+                let path = entry.expect("an entry").path();
+                if path.is_dir() {
+                    dirs.push(path);
+                } else if path.extension().is_some_and(|e| e == "rs") {
+                    let source = std::fs::read_to_string(&path).expect("reads the source");
+                    assert!(
+                        !source.contains("#[cfg(test)]"),
+                        "{} has a test module that never runs: move it to the crate's tests/",
+                        path.display()
+                    );
+                }
+            }
+        }
     }
 }

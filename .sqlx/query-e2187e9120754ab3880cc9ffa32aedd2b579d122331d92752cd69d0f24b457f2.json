@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM events.event_malware WHERE event_id = $1 AND malware_id <> ALL($2)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int4Array"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e2187e9120754ab3880cc9ffa32aedd2b579d122331d92752cd69d0f24b457f2"
+}

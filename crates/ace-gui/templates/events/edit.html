@@ -1,0 +1,112 @@
+{#- An event's edit (PLAN.md 5.11's events area, 6d): ace3's events/event_edit.html and
+    new_malware_option.html as a page (src/events.rs). Every control is a form: Add a threat draws the
+    form again with one more row, where ace3's script fetches new_malware_option. -#}
+{% extends "base.html" %}
+{% block title %}Edit {{ view.name }} · Events · ACE{% endblock %}
+{% block content %}
+<section class="events event-edit">
+  <p><a href="/events">Events</a> / <a href="{{ view.href }}">{{ view.name }}</a></p>
+  <h1>Edit {{ view.label }}</h1>
+  {%- if let Some(error) = view.error %}
+  <p class="error" role="alert">The event wasn't saved: {{ error }}</p>
+  {%- endif %}
+  <form method="post" action="{{ view.action }}" class="edit-event">
+    <input type="hidden" name="version" value="{{ view.version }}">
+    <fieldset class="new-event">
+      <legend>The event</legend>
+      <label for="event_name">Name</label>
+      <textarea id="event_name" name="event_name" rows="2" maxlength="{{ view.max_name }}">{{ view.name }}</textarea>
+      <label for="event_status">Status</label>
+      <select id="event_status" name="event_status">
+        {%- for c in view.statuses %}
+        <option value="{{ c.value }}"{% if c.selected %} selected{% endif %}>{{ c.label }}</option>
+        {%- endfor %}
+      </select>
+      <label for="event_owner">Owner</label>
+      <select id="event_owner" name="event_owner">
+        {%- for c in view.owners %}
+        <option value="{{ c.value }}"{% if c.selected %} selected{% endif %}>{{ c.label }}</option>
+        {%- endfor %}
+      </select>
+      <label for="event_remediation">Remediation</label>
+      <select id="event_remediation" name="event_remediation">
+        {%- for c in view.remediations %}
+        <option value="{{ c.value }}"{% if c.selected %} selected{% endif %}>{{ c.label }}</option>
+        {%- endfor %}
+      </select>
+      <label for="event_type">Type</label>
+      <select id="event_type" name="event_type">
+        {%- for c in view.types %}
+        <option value="{{ c.value }}"{% if c.selected %} selected{% endif %}>{{ c.label }}</option>
+        {%- endfor %}
+      </select>
+      <label for="event_vector">Vector</label>
+      <select id="event_vector" name="event_vector">
+        {%- for c in view.vectors %}
+        <option value="{{ c.value }}"{% if c.selected %} selected{% endif %}>{{ c.label }}</option>
+        {%- endfor %}
+      </select>
+      <label for="event_risk_level">Severity</label>
+      <select id="event_risk_level" name="event_risk_level">
+        {%- for c in view.risk_levels %}
+        <option value="{{ c.value }}"{% if c.selected %} selected{% endif %}>{{ c.label }}</option>
+        {%- endfor %}
+      </select>
+      <label for="event_prevention">Prevention Tool</label>
+      <select id="event_prevention" name="event_prevention">
+        {%- for c in view.prevention_tools %}
+        <option value="{{ c.value }}"{% if c.selected %} selected{% endif %}>{{ c.label }}</option>
+        {%- endfor %}
+      </select>
+      <label for="event_comment">Comment</label>
+      <textarea id="event_comment" name="event_comment" rows="3" maxlength="{{ view.max_comment }}">{{ view.comment }}</textarea>
+      <label for="campaign_id">Threat Actor</label>
+      <select id="campaign_id" name="campaign_id">
+        {%- for c in view.campaigns %}
+        <option value="{{ c.value }}"{% if c.selected %} selected{% endif %}>{{ c.label }}</option>
+        {%- endfor %}
+      </select>
+      <label for="new_campaign">New threat actor's name, with NEW</label>
+      <input type="text" id="new_campaign" name="new_campaign" value="{{ view.new_campaign }}" maxlength="{{ view.max_catalog }}">
+    </fieldset>
+    {%- if view.closed %}
+    <p class="muted">The event is closed, so its times don't change.</p>
+    {%- else %}
+    <fieldset class="new-event">
+      <legend>Event Times (UTC)</legend>
+      <p class="muted">Each no earlier than the one before it. One left empty keeps the time it has.</p>
+      {%- for time in view.times %}
+      <label for="{{ time.name }}">{{ time.label }}</label>
+      <input type="datetime-local" step="1" id="{{ time.name }}" name="{{ time.name }}" value="{{ time.value }}">
+      {%- endfor %}
+    </fieldset>
+    {%- endif %}
+    <fieldset class="event-malware">
+      <legend>Threat</legend>
+      {%- for row in view.malware %}
+      <div class="malware-row">
+        <label for="malware_selection_{{ row.index }}">Malware</label>
+        <select id="malware_selection_{{ row.index }}" name="malware_selection_{{ row.index }}">
+          {%- for c in row.options %}
+          <option value="{{ c.value }}"{% if c.selected %} selected{% endif %}>{{ c.label }}</option>
+          {%- endfor %}
+        </select>
+        <details{% if row.new %} open{% endif %}>
+          <summary>New malware, with NEW</summary>
+          <label for="mal_name_{{ row.index }}">Name</label>
+          <input type="text" id="mal_name_{{ row.index }}" name="mal_name_{{ row.index }}" value="{{ row.name }}" maxlength="{{ view.max_catalog }}">
+          {%- for t in row.threat_types %}
+          <label class="choice"><input type="checkbox" name="threats_{{ row.index }}" value="{{ t.value }}"{% if t.selected %} checked{% endif %}> {{ t.label }}</label>
+          {%- endfor %}
+        </details>
+      </div>
+      {%- endfor %}
+      {%- if view.more %}
+      <button type="submit" name="action" value="more">Add a threat</button>
+      {%- endif %}
+    </fieldset>
+    <button type="submit" name="action" value="save">Save</button>
+  </form>
+  <p><a href="{{ view.href }}">Nevermind</a></p>
+</section>
+{% endblock %}

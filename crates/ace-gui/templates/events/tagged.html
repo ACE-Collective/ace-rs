@@ -1,0 +1,26 @@
+{#- What the event list's Add Tag(s) did (PLAN.md 5.11's events area, 6d): each ticked event went through
+    the service on its own, so some may have been refused. ace3 flashes that some failed instead. -#}
+{% extends "base.html" %}
+{% block title %}Add Tag(s) · Events · ACE{% endblock %}
+{% block content %}
+<section class="events bulk-result">
+  <h1>Add Tag(s):{% for tag in view.tags %} <span class="badge">{{ tag }}</span>{% endfor %}</h1>
+  <p>{{ view.done.len() }} event{% if view.done.len() != 1 %}s{% endif %} tagged{% if !view.failed.is_empty() %}, {{ view.failed.len() }} not{% endif %}.</p>
+  {%- if !view.done.is_empty() %}
+  <ul class="done">
+    {%- for event in view.done %}
+    <li><a href="{{ event.1 }}">{{ event.0 }}</a></li>
+    {%- endfor %}
+  </ul>
+  {%- endif %}
+  {%- if !view.failed.is_empty() %}
+  <h2>Not tagged</h2>
+  <ul class="failed">
+    {%- for failure in view.failed %}
+    <li>{{ failure.0 }}: {{ failure.1 }}</li>
+    {%- endfor %}
+  </ul>
+  {%- endif %}
+  <p><a href="{{ view.next }}">Back to the list</a></p>
+</section>
+{% endblock %}

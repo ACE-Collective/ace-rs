@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE events.events\n                         SET name = $2, status_id = $3, remediation_id = $4, type_id = $5,\n                             vector_id = $6, risk_level_id = $7, prevention_tool_id = $8,\n                             campaign_id = $9, comment = $10, event_time = $11, alert_time = $12,\n                             ownership_time = $13, disposition_time = $14, contain_time = $15,\n                             remediation_time = $16, owner_id = $17\n                         WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text",
+        "Int2",
+        "Int2",
+        "Int2",
+        "Int2",
+        "Int2",
+        "Int2",
+        "Int4",
+        "Text",
+        "Timestamptz",
+        "Timestamptz",
+        "Timestamptz",
+        "Timestamptz",
+        "Timestamptz",
+        "Timestamptz",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "0dfc8a8e305b2fc86f111641b9db16af931e9c4f211250b06cd960886b0f69b4"
+}

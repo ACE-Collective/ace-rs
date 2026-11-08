@@ -1,5 +1,6 @@
 {#- An event's page (PLAN.md 5.11's events area, 6c): ace3's events/index.html, event_details.html,
-    alert_summary.html, event_alerts.html and alerts_still_analyzing.html (src/events.rs). -#}
+    alert_summary.html, event_alerts.html and alerts_still_analyzing.html, with 6d's Edit Event, Add Tag(s),
+    Remove Alert(s) and Set Disposition (src/events.rs). Every control is a link or a form. -#}
 {% extends "base.html" %}
 {% block title %}{{ view.name }} · Events · ACE{% endblock %}
 {% block content %}
@@ -8,8 +9,16 @@
   <h1>{{ view.name }}</h1>
   <p class="controls">
     {%- if let Some(close) = view.close %}<a href="{{ close }}">Close Event</a>{% endif %}
+    {%- if let Some(edit) = view.edit %} <a href="{{ edit }}">Edit Event</a>{% endif %}
     {%- for tag in view.tags %} <span class="badge">{{ tag }}</span>{% endfor %}
   </p>
+  {%- if let Some(add_tags) = view.add_tags %}
+  <form method="post" action="{{ add_tags }}" class="inline">
+    <label for="event-tags">Add Tag(s), separated by spaces</label>
+    <input type="text" id="event-tags" name="tag" maxlength="{{ view.max_tag }}">
+    <button type="submit">Add Tag(s)</button>
+  </form>
+  {%- endif %}
   {%- if view.still_analyzing %}
   <p class="warning" role="status"><strong>ALERTS ARE STILL ANALYZING!</strong></p>
   {%- endif %}
@@ -41,18 +50,38 @@
     </table>
   </div>
   <h2 id="alerts">Alerts</h2>
+  {%- if view.ticks() %}
+  <form id="event-alerts" method="post" action="{% if let Some(remove) = view.remove_alerts %}{{ remove }}{% else %}/alerts/disposition{% endif %}" class="bulk">
+    <input type="hidden" name="next" value="{{ view.here }}">
+    {%- if let Some(remove) = view.remove_alerts %}
+    <button type="submit" formaction="{{ remove }}">Remove Alert(s)</button>
+    {%- endif %}
+    {%- if !view.dispositions.is_empty() %}
+    <label for="event-disposition">Set disposition of the ticked alerts</label>
+    <select id="event-disposition" name="disposition">
+      {%- for disposition in view.dispositions %}
+      <option value="{{ disposition }}">{{ disposition }}</option>
+      {%- endfor %}
+    </select>
+    <button type="submit" formaction="/alerts/disposition">Set Disposition</button>
+    {%- endif %}
+  </form>
+  {%- endif %}
   <table class="keys">
-    <thead><tr><th>Date (UTC)</th><th>Alert</th><th>Disposition</th><th>Status</th></tr></thead>
+    <thead><tr>{% if view.ticks() %}<th></th>{% endif %}<th>Date (UTC)</th><th>Alert</th><th>Disposition</th><th>Status</th></tr></thead>
     <tbody>
       {%- for alert in view.alerts %}
       <tr>
+        {%- if view.ticks() %}
+        <td><input type="checkbox" form="event-alerts" name="alert" value="{{ alert.id }}" aria-label="Tick alert {{ alert.id }}"></td>
+        {%- endif %}
         <td class="nowrap">{{ alert.date }}</td>
         <td><a href="{{ alert.href }}">{{ alert.title }}</a>{% for tag in alert.tags %} <span class="badge">{{ tag }}</span>{% endfor %}</td>
         <td>{{ alert.disposition }}</td>
         <td>{{ alert.status }}</td>
       </tr>
       {%- else %}
-      <tr><td colspan="4" class="muted">No alerts.</td></tr>
+      <tr><td colspan="5" class="muted">No alerts.</td></tr>
       {%- endfor %}
     </tbody>
   </table>

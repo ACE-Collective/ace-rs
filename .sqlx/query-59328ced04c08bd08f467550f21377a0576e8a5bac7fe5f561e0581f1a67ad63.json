@@ -1,0 +1,47 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT m.id, m.name,\n                                  COALESCE(array_agg(tt.name ORDER BY tt.name)\n                                           FILTER (WHERE tt.name IS NOT NULL), '{}') AS \"threat_types!\"\n                           FROM (SELECT id, name FROM events.malware ORDER BY name, id LIMIT $1) m\n                           LEFT JOIN events.malware_threats mt ON mt.malware_id = m.id\n                           LEFT JOIN events.threat_types tt ON tt.id = mt.threat_type_id\n                           GROUP BY m.id, m.name\n                           ORDER BY m.name, m.id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "events.malware",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "events.malware",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "threat_types!",
+        "type_info": "TextArray",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "59328ced04c08bd08f467550f21377a0576e8a5bac7fe5f561e0581f1a67ad63"
+}

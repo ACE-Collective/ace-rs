@@ -96,6 +96,14 @@
     </form>
   </details>
   <form id="export" method="get" action="/events/export" class="inline"></form>
+  {%- if view.can_write %}
+  <p class="controls">
+    <input type="hidden" form="export" name="next" value="{{ view.here }}">
+    <label for="event-tags">Add Tag(s) to the ticked events, separated by spaces</label>
+    <input type="text" id="event-tags" form="export" name="tag">
+    <button type="submit" form="export" formmethod="post" formaction="/events/tags">Add Tag(s)</button>
+  </p>
+  {%- endif %}
   <p class="muted">{{ view.total }} event{% if view.total != 1 %}s{% endif %}. Export takes at most {{ view.max_export }} ticked.</p>
   <table class="keys event-table">
     <thead>
@@ -110,7 +118,8 @@
     <tbody>
       {%- for row in view.rows %}
       <tr id="event-{{ row.id }}">
-        <td><input type="checkbox" form="export" name="id" value="{{ row.id }}" aria-label="Export event {{ row.id }}"></td>
+        <td><input type="checkbox" form="export" name="id" value="{{ row.id }}" aria-label="Tick event {{ row.id }}">
+          {%- if view.can_write %} <a href="{{ row.edit_href }}" title="Edit Event">Edit</a>{% endif %}</td>
         <td class="nowrap">{{ row.date }}</td>
         <td class="event-name">{{ row.kind }} - {{ row.vector }} - <a href="{{ row.href }}">{{ row.name }}</a>
           {%- for tag in row.tags %} <span class="badge">{{ tag }}</span>{% endfor %}</td>

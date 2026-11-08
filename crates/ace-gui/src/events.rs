@@ -1,7 +1,8 @@
 //! The events area (PLAN.md 5.11's `events` area): 6b, adding alerts to an event, ace3's
 //! `app/analysis/views/edit/event.py` and the event modal in `app/templates/base.html`, over
 //! `Service::add_to_event`; and 6c, the event list and an event's page, ace3's `app/events/views/manage.py`
-//! and `index.py`. An event's edit comes with 6d.
+//! and `index.py`; and 6d, an event's edit, ace3's `app/events/views/edit/`, with its alerts removed and
+//! dispositioned and its own tags.
 //!
 //! ace3's views and where they are here:
 //! - The modal `base.html` draws on the alert list, opened by its "Add to Event" button, is the page
@@ -54,8 +55,41 @@
 //!   `Service::set_event_status` to `CLOSED`, audited. That's all ace3's close does: its route sets the
 //!   status and nothing else, no disposition and no time. The answer goes back to the event's page.
 //!
-//! Every page here needs `event:read`, which the service checks, and the add page and Close Event
-//! `event:write` too; a visitor who isn't signed in goes to the login. Everything an event brings, its
+//! - `events.edit_event_modal` (`events/event_edit.html`), the modal ace3's pencil and Edit Event open, is
+//!   `GET /events/{event}/edit`, linked from the list's rows and the event's page for a viewer with
+//!   `event:write`: the name, status, owner, remediation, type, vector, severity, prevention tool,
+//!   comment, threat actor (none, one, or NEW with a name), the six times (UTC) and the threats, each a
+//!   malware select with NEW and its name and threat types, over `Service::event_edit_choices`. ace3's
+//!   status list leaves `CLOSED` out for an event that isn't closed, so it's closed by Close Event, and
+//!   its form leaves the times out for one that is, and so does this. ace3's script toggles the new
+//!   threat actor's and new malware's fields; here they're always there, the malware's in a `<details>`
+//!   open when NEW is chosen.
+//! - `events.new_malware_option` (`new_malware_option.html`), which ace3's Add button fetches to append a
+//!   malware row, is the form's Add a threat button: it posts the form, which draws it again as it was
+//!   sent with one more row, writing nothing, so what was typed isn't lost or put in the URL. Each form
+//!   has one empty row to begin with; a row set to `(none)` is ace3's delete button.
+//! - `events.edit_event` is `POST /events/{event}/edit`, a `SignedIn` post past the same-origin check,
+//!   through `Service::edit_event`, then back to the event's page. The form carries the event's
+//!   `Event::edit_version`, so a save over another analyst's is a 409 that says to open the edit again,
+//!   where ace3's last save wins (the service's docs). A refusal the form can fix, such as times out of
+//!   order or new malware without a type, draws the form again with what was typed and why, where ace3
+//!   flashes it on the list and loses the form.
+//! - `events.remove_alerts`, from ace3's Remove Alert(s) on the list's open rows and on the event's page,
+//!   is the event page's Remove Alert(s), since the list's open row is that page: `POST
+//!   /events/{event}/alerts/remove` of the ticked alerts, through `Service::remove_alerts`, back to the
+//!   page's alerts.
+//! - `events.add_tag` is Add Tag(s) on the event's page, `POST /events/{event}/tags`, back to the page,
+//!   and on the list for the ticked rows, `POST /events/tags`, each event through
+//!   `Service::add_event_tags`, whose answer lists the events tagged and those that weren't, where ace3
+//!   flashes that some failed. The text is split on whitespace, as ace3 splits it.
+//! - `events.bulk_set_disposition`, the event page's Set Disposition of the ticked alerts, is the alert
+//!   list's bulk form's own route, `POST /alerts/disposition` (5.10), each alert through
+//!   `Service::disposition` under `alert:write`, with the event's page as where it goes back to. It's
+//!   offered to a viewer with `alert:write`, as ace3 offers it. ace3's comment with a disposition is left
+//!   out, as on the alert list, since alerts have no comments yet.
+//!
+//! Every page here needs `event:read`, which the service checks, and the add page, Close Event, the edit,
+//! Remove Alert(s) and Add Tag(s) `event:write` too; a visitor who isn't signed in goes to the login. Everything an event brings, its
 //! name, comment, tags, type and vector, its malware and campaign, its owner's name and its alerts'
 //! titles, is text that askama escapes; an alert's id is a uuid, and an event's an integer.
 //!
@@ -63,20 +97,21 @@
 //! modal's form, which its `add_to_event` never reads; clearing the session's ticked alerts, since the
 //! ticked boxes here are the list page's own state; ace3's `redirect_to`, since the answer links back to
 //! where the form came from; and its company mapping and Companies filter, since roots have none. From
-//! the list and the event page, what 6d brings: the edit pencil and Edit Event, Remove Alert(s) and Add
-//! Tag(s), and the event page's bulk Set Disposition; and what waits for what writes it (PLAN.md 5.11's
-//! events item): the alerts' Add Tag, Remove Tag, Add Comment and Review Disposition, their comments,
-//! owners, priorities and remediation badges (7.9), and tag colours. ace3's `wiki` is always empty, its
+//! the list and the event page, what waits for what writes it (PLAN.md 5.11's events item): the alerts'
+//! Add Tag, Remove Tag, Add Comment and Review Disposition, their comments, owners, priorities and
+//! remediation badges (7.9), and tag colours. From the edit, ace3's `event_disposition` field, which its
+//! route never reads, and its date picker, a script; `datetime-local` takes its place. ace3's `wiki` is always empty, its
 //! copy-link button needs a script, and the owner filter offers the users who own an event, where ace3
 //! offers every user (`Service::event_choices`).
 
 use ace_service::filters::DISPOSITIONS;
 use ace_service::{
-    AddedToEvent, AnalysisState, CLOSED_EVENTS_PAGE, CLOSED_STATUS, EVENT_READ, EVENT_WRITE, Event,
-    EventChoice, EventChoices, EventFilters, EventListPage, EventOwner, EventOwnerFilter,
-    EventQuery, EventRef, EventSort, EventTimes, EventValue, MAX_EVENT_COMMENT_CHARS,
-    MAX_EVENT_NAME_CHARS, MAX_EVENTS_PAGE, MAX_EXPORT_EVENTS, NewEvent, OPEN, PermissionName,
-    ServiceError,
+    ALERT_WRITE, AddedToEvent, AnalysisState, CLOSED_EVENTS_PAGE, CLOSED_STATUS, CampaignChoice,
+    EVENT_READ, EVENT_WRITE, Event, EventChoice, EventChoices, EventEdit, EventEditChoices,
+    EventFilters, EventListPage, EventOwner, EventOwnerFilter, EventQuery, EventRef, EventSort,
+    EventTimes, EventValue, MAX_CATALOG_NAME_CHARS, MAX_EDIT_MALWARE, MAX_EVENT_COMMENT_CHARS,
+    MAX_EVENT_NAME_CHARS, MAX_EVENT_TAG_CHARS, MAX_EVENT_TAGS, MAX_EVENTS_PAGE, MAX_EXPORT_EVENTS,
+    MalwareChoice, NewEvent, OPEN, PermissionName, ServiceError, UserId,
 };
 use askama::Template;
 use axum::body::Bytes;
@@ -553,6 +588,8 @@ pub fn event_href(id: i64) -> String {
 pub struct EventRow {
     pub id: i64,
     pub href: String,
+    /// Its edit's path, which the list links for a viewer with `event:write`.
+    pub edit_href: String,
     /// Where its alerts are: its page's alerts, ace3's expanded row.
     pub alerts_href: String,
     pub alerts: usize,
@@ -577,6 +614,7 @@ impl EventRow {
         EventRow {
             id: event.id,
             href: event_href(event.id),
+            edit_href: format!("{}/edit", event_href(event.id)),
             alerts_href: format!("{}#alerts", event_href(event.id)),
             alerts: event.alerts.len(),
             date: event.creation_date.to_string(),
@@ -669,6 +707,9 @@ pub struct EventListView {
     pub malware: Vec<FilterChoice>,
     pub campaigns: Vec<FilterChoice>,
     pub max_export: usize,
+    /// The list's own URL, where Add Tag(s) of the ticked events comes back to.
+    pub here: String,
+    pub max_tags: usize,
 }
 
 /// A single select's options: `ANY`, then each value, the chosen one selected.
@@ -802,6 +843,8 @@ pub fn event_list_view(
         malware: by_id(&choices.malware, &f.malware),
         campaigns: by_id(&choices.campaigns, &f.campaigns),
         max_export: MAX_EXPORT_EVENTS,
+        here: query.url(q.sort, q.descending, query.after.as_deref()),
+        max_tags: MAX_EVENT_TAGS,
     }
 }
 
@@ -816,6 +859,7 @@ pub struct EventListPageHtml {
 /// One of an event's alerts, ace3's `event_alerts.html` row.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EventAlertRow {
+    pub id: Uuid,
     pub href: String,
     pub date: String,
     pub title: String,
@@ -858,9 +902,36 @@ pub struct EventView {
     pub alerts: Vec<EventAlertRow>,
     /// The Close Event confirm's path, for a viewer with `event:write` and an event that isn't closed.
     pub close: Option<String>,
+    /// The edit's path, Add Tag(s)' and Remove Alert(s)' actions, for a viewer with `event:write`.
+    pub edit: Option<String>,
+    pub add_tags: Option<String>,
+    pub remove_alerts: Option<String>,
+    /// The dispositions Set Disposition offers, for a viewer with `alert:write`, else none.
+    pub dispositions: &'static [&'static str],
+    /// The page's own path, where the alerts' forms come back to.
+    pub here: String,
+    pub max_tag: usize,
 }
 
-pub fn event_view(event: &Event, can_write: bool) -> EventView {
+impl EventView {
+    /// Whether the alerts are ticked for a form: Remove Alert(s) or Set Disposition.
+    pub fn ticks(&self) -> bool {
+        self.remove_alerts.is_some() || !self.dispositions.is_empty()
+    }
+}
+
+/// What the viewer may do on an event's page.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct EventMay {
+    /// `event:write`: Close Event, Edit Event, Add Tag(s) and Remove Alert(s).
+    pub write: bool,
+    /// `alert:write`: Set Disposition of the ticked alerts.
+    pub disposition: bool,
+}
+
+pub fn event_view(event: &Event, may: EventMay) -> EventView {
+    let can_write = may.write;
+    let href = event_href(event.id);
     let times = [
         event.event_time,
         event.alert_time,
@@ -907,6 +978,7 @@ pub fn event_view(event: &Event, can_write: bool) -> EventView {
             .alerts
             .iter()
             .map(|alert| EventAlertRow {
+                id: alert.id,
                 href: format!("/alerts/{}", alert.id),
                 date: utc(alert.alerted_at),
                 title: alert.title.clone(),
@@ -915,8 +987,13 @@ pub fn event_view(event: &Event, can_write: bool) -> EventView {
                 status: analysis_status(alert.analysis),
             })
             .collect(),
-        close: (can_write && event.status != CLOSED_STATUS)
-            .then(|| format!("{}/close", event_href(event.id))),
+        close: (can_write && event.status != CLOSED_STATUS).then(|| format!("{href}/close")),
+        edit: can_write.then(|| format!("{href}/edit")),
+        add_tags: can_write.then(|| format!("{href}/tags")),
+        remove_alerts: can_write.then(|| format!("{href}/alerts/remove")),
+        dispositions: if may.disposition { DISPOSITIONS } else { &[] },
+        here: href,
+        max_tag: MAX_EVENT_TAG_CHARS,
     }
 }
 
@@ -979,11 +1056,16 @@ async fn may(
 
 /// Whether the viewer may write events; false when that can't be read, so a page still draws.
 async fn can_write(gui: &Gui, viewer: &SignedIn) -> bool {
+    holds(gui, viewer, &EVENT_WRITE).await
+}
+
+/// Whether the viewer holds a permission, for what a page offers; false when that can't be read.
+async fn holds(gui: &Gui, viewer: &SignedIn, permission: &PermissionName) -> bool {
     gui.service
-        .allowed(&viewer.actor, &EVENT_WRITE)
+        .allowed(&viewer.actor, permission)
         .await
         .unwrap_or_else(|error| {
-            tracing::warn!(actor = %viewer.actor, "checking event:write failed: {error}");
+            tracing::warn!(actor = %viewer.actor, "checking {permission} failed: {error}");
             false
         })
 }
@@ -1111,7 +1193,11 @@ pub(crate) async fn event_page(
         Ok(event) => event,
         Err(failure) => return failure.into_response(),
     };
-    let view = event_view(&event, can_write(&gui, &viewer).await);
+    let may = EventMay {
+        write: can_write(&gui, &viewer).await,
+        disposition: holds(&gui, &viewer, &ALERT_WRITE).await,
+    };
+    let view = event_view(&event, may);
     render(&EventPageHtml {
         layout: viewer.layout,
         view,
@@ -1161,4 +1247,724 @@ pub(crate) async fn close(
         Ok(event) => see_other(&event_href(event.id), None),
         Err(error) => Failure::from_service(error, &parts).into_response(),
     }
+}
+
+// ---- 6d: an event's edit, its alerts removed, its own tags ----
+
+/// The largest edit form: a comment of `MAX_EVENT_COMMENT_CHARS` characters of up to 4 bytes, each
+/// percent-encoded to 3, and the rest.
+pub(crate) const MAX_EDIT_FORM_BYTES: usize = MAX_ADD_FORM_BYTES;
+
+/// One malware row of the edit form as it was sent, ace3's `malware_selection_<n>`, `mal_name_<n>` and
+/// `threats_<n>`: an existing malware's id, `NEW` with a name and threat types, or empty for none.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct MalwareRow {
+    pub selection: String,
+    pub name: String,
+    pub threat_types: Vec<String>,
+}
+
+impl MalwareRow {
+    /// A row for new malware, with nothing typed: the form's Add slot.
+    fn blank() -> Self {
+        MalwareRow {
+            selection: "NEW".to_owned(),
+            ..MalwareRow::default()
+        }
+    }
+}
+
+/// The edit form's fields as text, from the event or as sent, so a form that's sent back is drawn with
+/// what was typed.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct EditForm {
+    pub version: String,
+    pub name: String,
+    pub status: String,
+    /// A user's id, or `None`.
+    pub owner: String,
+    pub remediation: String,
+    pub kind: String,
+    pub vector: String,
+    pub risk_level: String,
+    pub prevention_tool: String,
+    pub comment: String,
+    /// ace3's `campaign_id`: `0` for none, `NEW`, or an id.
+    pub campaign: String,
+    pub new_campaign: String,
+    /// In `TIMES`' order.
+    pub times: Vec<String>,
+    pub malware: Vec<MalwareRow>,
+}
+
+/// A time as the edit form draws it, for a `datetime-local` input.
+fn local_time(time: Option<DateTime<Utc>>) -> String {
+    time.map(|time| time.format("%Y-%m-%dT%H:%M:%S").to_string())
+        .unwrap_or_default()
+}
+
+impl EditForm {
+    /// The form for an event as it is, with one Add slot for new malware.
+    pub fn of(event: &Event) -> Self {
+        let mut malware: Vec<MalwareRow> = event
+            .malware
+            .iter()
+            .map(|m| MalwareRow {
+                selection: m.id.to_string(),
+                ..MalwareRow::default()
+            })
+            .collect();
+        malware.push(MalwareRow::blank());
+        EditForm {
+            version: event.edit_version(),
+            name: event.name.clone(),
+            status: event.status.clone(),
+            owner: event
+                .owner
+                .as_ref()
+                .map_or_else(|| "None".to_owned(), |owner| owner.id.0.to_string()),
+            remediation: event.remediation.clone(),
+            kind: event.kind.clone(),
+            vector: event.vector.clone(),
+            risk_level: event.risk_level.clone(),
+            prevention_tool: event.prevention_tool.clone(),
+            comment: event.comment.clone().unwrap_or_default(),
+            campaign: match &event.campaign {
+                Some(_) => String::new(),
+                None => "0".to_owned(),
+            },
+            new_campaign: String::new(),
+            times: [
+                event.event_time,
+                event.alert_time,
+                event.ownership_time,
+                event.disposition_time,
+                event.contain_time,
+                event.remediation_time,
+            ]
+            .into_iter()
+            .map(local_time)
+            .collect(),
+            malware,
+        }
+    }
+
+    /// The form as it was sent. Its malware rows are in their numbers' order, at most
+    /// `MAX_EDIT_MALWARE` and the Add slot; more is an error.
+    pub fn parse(form: &[(String, String)]) -> Result<Self, String> {
+        let text = |name: &str| one(form, name).unwrap_or("").to_owned();
+        let mut rows: Vec<(u32, MalwareRow)> = Vec::new();
+        for (key, value) in form {
+            let Some(n) = key.strip_prefix("malware_selection_") else {
+                continue;
+            };
+            let n: u32 = n
+                .parse()
+                .map_err(|_| format!("{key:?} isn't a malware row."))?;
+            if rows.iter().any(|(m, _)| *m == n) {
+                continue;
+            }
+            if rows.len() > MAX_EDIT_MALWARE {
+                return Err(format!(
+                    "An event has at most {MAX_EDIT_MALWARE} malware in one edit."
+                ));
+            }
+            rows.push((
+                n,
+                MalwareRow {
+                    selection: value.trim().to_owned(),
+                    name: text(&format!("mal_name_{n}")),
+                    threat_types: all(form, &format!("threats_{n}")),
+                },
+            ));
+        }
+        rows.sort_by_key(|(n, _)| *n);
+        Ok(EditForm {
+            version: text("version"),
+            name: text("event_name"),
+            status: text("event_status"),
+            owner: text("event_owner"),
+            remediation: text("event_remediation"),
+            kind: text("event_type"),
+            vector: text("event_vector"),
+            risk_level: text("event_risk_level"),
+            prevention_tool: text("event_prevention"),
+            comment: text("event_comment"),
+            campaign: text("campaign_id"),
+            new_campaign: text("new_campaign"),
+            times: TIMES.iter().map(|(name, _)| text(name)).collect(),
+            malware: rows.into_iter().map(|(_, row)| row).collect(),
+        })
+    }
+
+    /// The edit the form asks for, or why it can't be read. An Add slot left as it was drawn, `NEW`
+    /// with no name and no type, is no malware; a row set to none is taken off.
+    pub fn edit(&self) -> Result<EventEdit, String> {
+        let owner = match self.owner.trim() {
+            "" | "None" => None,
+            id => Some(UserId(
+                id.parse()
+                    .map_err(|_| format!("{id:?} isn't a user's id or None."))?,
+            )),
+        };
+        let campaign = match self.campaign.trim() {
+            "0" => CampaignChoice::None,
+            "NEW" => CampaignChoice::New(self.new_campaign.clone()),
+            id => CampaignChoice::Existing(
+                id.parse()
+                    .map_err(|_| format!("{id:?} isn't a threat actor's id, 0 or NEW."))?,
+            ),
+        };
+        let time = |n: usize| form_time(self.times.get(n).map_or("", String::as_str));
+        let times = EventTimes {
+            event_time: time(0)?,
+            alert_time: time(1)?,
+            ownership_time: time(2)?,
+            disposition_time: time(3)?,
+            contain_time: time(4)?,
+            remediation_time: time(5)?,
+        };
+        let mut malware = Vec::new();
+        for row in &self.malware {
+            match row.selection.as_str() {
+                "" => {}
+                "NEW" if row.name.trim().is_empty() && row.threat_types.is_empty() => {}
+                "NEW" => malware.push(MalwareChoice::New {
+                    name: row.name.clone(),
+                    threat_types: row
+                        .threat_types
+                        .iter()
+                        .map(|id| {
+                            id.trim()
+                                .parse()
+                                .map_err(|_| format!("{id:?} isn't a threat type's id."))
+                        })
+                        .collect::<Result<_, _>>()?,
+                }),
+                id => malware
+                    .push(MalwareChoice::Existing(id.parse().map_err(|_| {
+                        format!("{id:?} isn't a malware's id, NEW or none.")
+                    })?)),
+            }
+        }
+        Ok(EventEdit {
+            version: self.version.clone(),
+            name: self.name.clone(),
+            status: self.status.clone(),
+            owner,
+            remediation: self.remediation.clone(),
+            kind: self.kind.clone(),
+            vector: self.vector.clone(),
+            risk_level: self.risk_level.clone(),
+            prevention_tool: self.prevention_tool.clone(),
+            comment: Some(self.comment.clone()),
+            campaign,
+            times,
+            malware,
+        })
+    }
+}
+
+/// One malware row as the page draws it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MalwareRowView {
+    pub index: usize,
+    pub options: Vec<FilterChoice>,
+    /// Whether `NEW` is chosen, so the new malware's fields are open.
+    pub new: bool,
+    pub name: String,
+    pub threat_types: Vec<FilterChoice>,
+}
+
+/// One of the six times as the page draws it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EditTime {
+    pub name: &'static str,
+    pub label: &'static str,
+    pub value: String,
+}
+
+/// What the edit page shows: the view function's answer.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EditView {
+    pub label: String,
+    pub href: String,
+    pub action: String,
+    pub version: String,
+    pub name: String,
+    pub comment: String,
+    pub statuses: Vec<FilterChoice>,
+    pub owners: Vec<FilterChoice>,
+    pub remediations: Vec<FilterChoice>,
+    pub types: Vec<FilterChoice>,
+    pub vectors: Vec<FilterChoice>,
+    pub risk_levels: Vec<FilterChoice>,
+    pub prevention_tools: Vec<FilterChoice>,
+    pub campaigns: Vec<FilterChoice>,
+    pub new_campaign: String,
+    /// Whether the event is closed, so its times aren't offered, as ace3's form leaves them out.
+    pub closed: bool,
+    pub times: Vec<EditTime>,
+    pub malware: Vec<MalwareRowView>,
+    /// Whether another malware row can be added.
+    pub more: bool,
+    /// Why the last save was refused.
+    pub error: Option<String>,
+    pub max_name: usize,
+    pub max_comment: usize,
+    pub max_catalog: usize,
+}
+
+/// Options of reference values by value, the chosen one selected, and the chosen one kept if the table
+/// no longer has it, so the form doesn't change it unasked.
+fn values(values: &[EventValue], chosen: &str) -> Vec<FilterChoice> {
+    let mut options: Vec<FilterChoice> = values
+        .iter()
+        .map(|v| FilterChoice::new(&v.value, &v.value, v.value == chosen))
+        .collect();
+    if !chosen.is_empty() && !values.iter().any(|v| v.value == chosen) {
+        options.push(FilterChoice::new(chosen, chosen, true));
+    }
+    options
+}
+
+fn malware_label(malware: &ace_service::EventMalware) -> String {
+    if malware.threat_types.is_empty() {
+        malware.name.clone()
+    } else {
+        format!("{}: {}", malware.name, malware.threat_types.join(", "))
+    }
+}
+
+/// The view function: the edit page for an event as the service read it, with the form's choices and
+/// the form's fields, from the event or as sent, and why a save was refused.
+pub fn edit_view(
+    event: &Event,
+    choices: &EventEditChoices,
+    form: &EditForm,
+    error: Option<String>,
+) -> EditView {
+    let closed = event.status == CLOSED_STATUS;
+    // ace3: an event that isn't closed isn't offered CLOSED, which is Close Event's
+    let statuses: Vec<EventValue> = choices
+        .statuses
+        .iter()
+        .filter(|s| closed || s.value != CLOSED_STATUS)
+        .cloned()
+        .collect();
+    let mut owners = vec![FilterChoice::new("None", "None", form.owner == "None")];
+    owners.extend(choices.users.iter().map(|user| {
+        let id = user.id.0.to_string();
+        let name = owner_name(Some(&EventOwner {
+            id: user.id,
+            username: user.username.clone(),
+            display_name: user.display_name.clone(),
+        }));
+        let selected = form.owner == id;
+        FilterChoice::new(id, name, selected)
+    }));
+    // a disabled owner isn't among the users, and stays the owner unless changed
+    if let Some(owner) = &event.owner {
+        let id = owner.id.0.to_string();
+        if !owners.iter().any(|o| o.value == id) {
+            owners.push(FilterChoice::new(
+                &id,
+                format!("{} (disabled)", owner_name(Some(owner))),
+                form.owner == id,
+            ));
+        }
+    }
+    let mut campaigns = vec![
+        FilterChoice::new("NEW", "NEW", form.campaign == "NEW"),
+        FilterChoice::new("0", "None", form.campaign == "0"),
+    ];
+    campaigns.extend(choices.campaigns.iter().map(|c| {
+        let id = c.id.to_string();
+        let selected = form.campaign == id
+            || (form.campaign.is_empty() && event.campaign.as_deref() == Some(c.value.as_str()));
+        FilterChoice::new(id, &c.value, selected)
+    }));
+    let malware = form
+        .malware
+        .iter()
+        .enumerate()
+        .map(|(index, row)| {
+            let mut options = vec![
+                FilterChoice::new("", "(none)", row.selection.is_empty()),
+                FilterChoice::new("NEW", "NEW", row.selection == "NEW"),
+            ];
+            options.extend(choices.malware.iter().map(|m| {
+                let id = m.id.to_string();
+                let selected = row.selection == id;
+                FilterChoice::new(id, malware_label(m), selected)
+            }));
+            // malware on the event that the choices' first page left out
+            if !options.iter().any(|o| o.selected)
+                && let Some(m) = event
+                    .malware
+                    .iter()
+                    .find(|m| m.id.to_string() == row.selection)
+            {
+                options.push(FilterChoice::new(m.id.to_string(), malware_label(m), true));
+            }
+            MalwareRowView {
+                index,
+                options,
+                new: row.selection == "NEW",
+                name: row.name.clone(),
+                threat_types: choices
+                    .threat_types
+                    .iter()
+                    .map(|t| {
+                        let id = t.id.to_string();
+                        let checked = row.threat_types.contains(&id);
+                        FilterChoice::new(id, &t.name, checked)
+                    })
+                    .collect(),
+            }
+        })
+        .collect::<Vec<_>>();
+    EditView {
+        label: EventOption::of(event).label,
+        href: event_href(event.id),
+        action: format!("{}/edit", event_href(event.id)),
+        version: form.version.clone(),
+        name: form.name.clone(),
+        comment: form.comment.clone(),
+        // a refused CLOSED isn't offered back to an event that isn't closed
+        statuses: values(
+            &statuses,
+            if !closed && form.status == CLOSED_STATUS {
+                ""
+            } else {
+                &form.status
+            },
+        ),
+        owners,
+        remediations: values(&choices.remediations, &form.remediation),
+        types: values(&choices.types, &form.kind),
+        vectors: values(&choices.vectors, &form.vector),
+        risk_levels: values(&choices.risk_levels, &form.risk_level),
+        prevention_tools: values(&choices.prevention_tools, &form.prevention_tool),
+        campaigns,
+        new_campaign: form.new_campaign.clone(),
+        closed,
+        times: TIMES
+            .iter()
+            .zip(form.times.iter().chain(std::iter::repeat(&String::new())))
+            .map(|((name, label), value)| EditTime {
+                name,
+                label,
+                value: value.clone(),
+            })
+            .collect(),
+        more: malware.len() <= MAX_EDIT_MALWARE,
+        malware,
+        error,
+        max_name: MAX_EVENT_NAME_CHARS,
+        max_comment: MAX_EVENT_COMMENT_CHARS,
+        max_catalog: MAX_CATALOG_NAME_CHARS,
+    }
+}
+
+/// `GET /events/{event}/edit`, ace3's `event_edit.html`.
+#[derive(Debug, Template)]
+#[template(path = "events/edit.html")]
+pub struct EventEditPage {
+    pub layout: Layout,
+    pub view: EditView,
+}
+
+/// The edit page drawn with a form, for an event read under `event:read`, and a status.
+async fn edit_response(
+    gui: &Gui,
+    viewer: SignedIn,
+    parts: &Parts,
+    event: &Result<Path<String>, PathRejection>,
+    form: Option<EditForm>,
+    error: Option<(StatusCode, String)>,
+) -> Response {
+    let event = match event_of(gui, &viewer, event, parts).await {
+        Ok(event) => event,
+        Err(failure) => return failure.into_response(),
+    };
+    let choices = match gui.service.event_edit_choices(&viewer.actor).await {
+        Ok(choices) => choices,
+        Err(error) => return Failure::from_service(error, parts).into_response(),
+    };
+    let form = form.unwrap_or_else(|| EditForm::of(&event));
+    let (status, why) = match error {
+        Some((status, why)) => (status, Some(why)),
+        None => (StatusCode::OK, None),
+    };
+    let mut response = render(&EventEditPage {
+        layout: viewer.layout,
+        view: edit_view(&event, &choices, &form, why),
+    });
+    *response.status_mut() = status;
+    response
+}
+
+/// `GET /events/{event}/edit`: the form, for a viewer with `event:write`, ace3's `edit_event_modal`.
+pub(crate) async fn edit_page(
+    State(gui): State<Gui>,
+    viewer: SignedIn,
+    parts: Parts,
+    event: Result<Path<String>, PathRejection>,
+) -> Response {
+    if let Err(refused) = may(&gui, &viewer, &EVENT_WRITE, &parts).await {
+        return refused.into_response();
+    }
+    edit_response(&gui, viewer, &parts, &event, None, None).await
+}
+
+/// `POST /events/{event}/edit`: Save, ace3's `edit_event`, through `Service::edit_event`, back to the
+/// event's page; or Add a threat, ace3's `new_malware_option`, which draws the form again as it was sent
+/// with one more row for new malware, and writes nothing. A refusal the form can fix draws it again with
+/// what was typed and why; a conflict says to open the edit again.
+pub(crate) async fn save_edit(
+    State(gui): State<Gui>,
+    viewer: SignedIn,
+    parts: Parts,
+    event: Result<Path<String>, PathRejection>,
+    body: Bytes,
+) -> Response {
+    let form = pairs(&body);
+    let mut edit_form = match EditForm::parse(&form) {
+        Ok(edit_form) => edit_form,
+        Err(why) => return bad_request(why, &parts),
+    };
+    if one(&form, "action") == Some("more") {
+        if let Err(refused) = may(&gui, &viewer, &EVENT_WRITE, &parts).await {
+            return refused.into_response();
+        }
+        if edit_form.malware.len() <= MAX_EDIT_MALWARE {
+            edit_form.malware.push(MalwareRow::blank());
+        }
+        return edit_response(&gui, viewer, &parts, &event, Some(edit_form), None).await;
+    }
+    let Ok(Path(raw)) = &event else {
+        return bad_request("An event is named by its numeric id or its uuid.", &parts);
+    };
+    let reference = match EventRef::parse(raw) {
+        Ok(reference) => reference,
+        Err(error) => return Failure::from_service(error, &parts).into_response(),
+    };
+    let edit = match edit_form.edit() {
+        Ok(edit) => edit,
+        Err(why) => {
+            if let Err(refused) = may(&gui, &viewer, &EVENT_WRITE, &parts).await {
+                return refused.into_response();
+            }
+            let error = Some((StatusCode::BAD_REQUEST, why));
+            return edit_response(&gui, viewer, &parts, &event, Some(edit_form), error).await;
+        }
+    };
+    match gui
+        .service
+        .edit_event(&viewer.actor, reference, &edit)
+        .await
+    {
+        Ok(event) => see_other(&event_href(event.id), None),
+        Err(
+            error @ (ServiceError::InvalidRequest(_)
+            | ServiceError::NotFound(_)
+            | ServiceError::TooLarge(_)),
+        ) => {
+            let failure = Failure::from_service(error, &parts);
+            let error = Some((failure.status(), failure.message().to_owned()));
+            edit_response(&gui, viewer, &parts, &event, Some(edit_form), error).await
+        }
+        Err(error) => Failure::from_service(error, &parts).into_response(),
+    }
+}
+
+/// The ticked alerts of an event's page.
+fn ticked_alerts(form: &[(String, String)]) -> Result<Vec<Uuid>, String> {
+    let raw = all(form, "alert");
+    if raw.is_empty() {
+        return Err("Tick one or more alerts.".to_owned());
+    }
+    if raw.len() > MAX_BULK {
+        return Err(format!("At most {MAX_BULK} alerts at once."));
+    }
+    raw.iter()
+        .map(|text| {
+            text.parse()
+                .map_err(|_| format!("{text:?} isn't an alert's id."))
+        })
+        .collect()
+}
+
+/// `POST /events/{event}/alerts/remove`: ace3's Remove Alert(s), `remove_alerts`, of the ticked alerts,
+/// through `Service::remove_alerts`, back to the event's alerts as ace3 goes back to its page.
+pub(crate) async fn remove_alerts(
+    State(gui): State<Gui>,
+    viewer: SignedIn,
+    parts: Parts,
+    event: Result<Path<String>, PathRejection>,
+    body: Bytes,
+) -> Response {
+    let Ok(Path(event)) = event else {
+        return bad_request("An event is named by its numeric id or its uuid.", &parts);
+    };
+    let event = match EventRef::parse(&event) {
+        Ok(event) => event,
+        Err(error) => return Failure::from_service(error, &parts).into_response(),
+    };
+    let alerts = match ticked_alerts(&pairs(&body)) {
+        Ok(alerts) => alerts,
+        Err(why) => return bad_request(why, &parts),
+    };
+    match gui
+        .service
+        .remove_alerts(&viewer.actor, event, &alerts)
+        .await
+    {
+        Ok(removed) => see_other(&format!("{}#alerts", event_href(removed.event.id)), None),
+        Err(error) => Failure::from_service(error, &parts).into_response(),
+    }
+}
+
+/// The tags a form's `tag` field names, split on whitespace as ace3's `add_tag` splits them.
+fn tags_of(form: &[(String, String)]) -> Result<Vec<String>, String> {
+    let tags: Vec<String> = one(form, "tag")
+        .unwrap_or("")
+        .split_whitespace()
+        .map(str::to_owned)
+        .collect();
+    if tags.is_empty() {
+        return Err("Enter one or more tags separated by spaces.".to_owned());
+    }
+    if tags.len() > MAX_EVENT_TAGS {
+        return Err(format!("At most {MAX_EVENT_TAGS} tags at once."));
+    }
+    Ok(tags)
+}
+
+/// `POST /events/{event}/tags`: the event page's Add Tag(s), ace3's `add_tag` with `redirect=analysis`,
+/// through `Service::add_event_tags`, back to the event's page.
+pub(crate) async fn add_tags(
+    State(gui): State<Gui>,
+    viewer: SignedIn,
+    parts: Parts,
+    event: Result<Path<String>, PathRejection>,
+    body: Bytes,
+) -> Response {
+    let Ok(Path(event)) = event else {
+        return bad_request("An event is named by its numeric id or its uuid.", &parts);
+    };
+    let event = match EventRef::parse(&event) {
+        Ok(event) => event,
+        Err(error) => return Failure::from_service(error, &parts).into_response(),
+    };
+    let tags = match tags_of(&pairs(&body)) {
+        Ok(tags) => tags,
+        Err(why) => return bad_request(why, &parts),
+    };
+    match gui
+        .service
+        .add_event_tags(&viewer.actor, event, &tags)
+        .await
+    {
+        Ok(event) => see_other(&event_href(event.id), None),
+        Err(error) => Failure::from_service(error, &parts).into_response(),
+    }
+}
+
+/// What the event list's Add Tag(s) did, event by event.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TaggedView {
+    pub tags: Vec<String>,
+    /// The events tagged, by their labels and paths.
+    pub done: Vec<(String, String)>,
+    /// The events not tagged, by id, and why.
+    pub failed: Vec<(i64, String)>,
+    pub next: String,
+}
+
+/// The answer to `POST /events/tags`.
+#[derive(Debug, Template)]
+#[template(path = "events/tagged.html")]
+pub struct TaggedPage {
+    pub layout: Layout,
+    pub view: TaggedView,
+}
+
+/// `POST /events/tags`: the event list's Add Tag(s) of the ticked events, ace3's `add_tag` with
+/// `redirect=management`, each event through `Service::add_event_tags` with its own row, as ace3 tags
+/// each in turn. The answer lists the events tagged and those that weren't, with why, where ace3 flashes
+/// that some failed.
+pub(crate) async fn tag_events(
+    State(gui): State<Gui>,
+    viewer: SignedIn,
+    parts: Parts,
+    body: Bytes,
+) -> Response {
+    let form = pairs(&body);
+    let next = one(&form, "next")
+        .and_then(local_path)
+        .unwrap_or("/events")
+        .to_owned();
+    let tags = match tags_of(&form) {
+        Ok(tags) => tags,
+        Err(why) => return bad_request(why, &parts),
+    };
+    let raw = all(&form, "id");
+    if raw.is_empty() {
+        return bad_request("Tick the events to tag.", &parts);
+    }
+    if raw.len() > MAX_BULK {
+        return bad_request(format!("At most {MAX_BULK} events at once."), &parts);
+    }
+    let mut ids: Vec<i64> = Vec::with_capacity(raw.len());
+    for text in &raw {
+        match text.trim().parse::<i64>() {
+            Ok(id) if !ids.contains(&id) => ids.push(id),
+            Ok(_) => {}
+            Err(_) => return bad_request(format!("{text:?} isn't an event's id."), &parts),
+        }
+    }
+    let mut done = Vec::new();
+    let mut failed = Vec::new();
+    for id in ids {
+        match gui
+            .service
+            .add_event_tags(&viewer.actor, EventRef::Id(id), &tags)
+            .await
+        {
+            Ok(event) => done.push((EventOption::of(&event).label, event_href(event.id))),
+            Err(ServiceError::InvalidRequest(why)) => return bad_request(why, &parts),
+            Err(error @ (ServiceError::PermissionDenied { .. } | ServiceError::NotFound(_))) => {
+                failed.push((id, error.to_string()));
+            }
+            Err(error) => {
+                tracing::warn!(actor = %viewer.actor, "tagging event {id} failed: {error}");
+                failed.push((id, "it couldn't be tagged".to_owned()));
+            }
+        }
+    }
+    let status = if done.is_empty() {
+        StatusCode::FORBIDDEN
+    } else {
+        StatusCode::OK
+    };
+    let status = if status == StatusCode::FORBIDDEN
+        && failed.iter().all(|(_, why)| why.starts_with("no event"))
+    {
+        StatusCode::NOT_FOUND
+    } else {
+        status
+    };
+    let mut response = render(&TaggedPage {
+        layout: viewer.layout,
+        view: TaggedView {
+            tags,
+            done,
+            failed,
+            next,
+        },
+    });
+    *response.status_mut() = status;
+    response
 }

@@ -41,8 +41,9 @@
 //! - `events`: the events area under `event:read` (5.11's events area): ace3's event list with its
 //!   filters, sorts and CSV export, an event's page with Close Event behind a confirm, and its
 //!   add-to-event modal as a page, opened from the alert list's bulk form, and Create Event, the same
-//!   page with no alerts, over `Service::add_to_event`. The base layout links to the list for whoever
-//!   holds `event:read`.
+//!   page with no alerts, over `Service::add_to_event`; an event's edit, its alerts removed or
+//!   dispositioned, and its own tags (6d). The base layout links to the list for whoever holds
+//!   `event:read`.
 //!
 //! From ace3's `app/templates/base.html` and `core.html`, and what differs: the layout keeps ace3's
 //! theme attribute on `<html>`, its five themes and its log out by POST. It has none of ace3's jQuery,
@@ -159,10 +160,28 @@ impl Gui {
                     .post(events::add)
                     .layer(DefaultBodyLimit::max(events::MAX_ADD_FORM_BYTES)),
             )
+            .route(
+                "/events/tags",
+                post(events::tag_events).layer(DefaultBodyLimit::max(list::MAX_BULK_FORM_BYTES)),
+            )
             .route("/events/{event}", get(events::event_page))
             .route(
                 "/events/{event}/close",
                 get(events::confirm_close).post(events::close),
+            )
+            .route(
+                "/events/{event}/edit",
+                get(events::edit_page)
+                    .post(events::save_edit)
+                    .layer(DefaultBodyLimit::max(events::MAX_EDIT_FORM_BYTES)),
+            )
+            .route(
+                "/events/{event}/alerts/remove",
+                post(events::remove_alerts).layer(DefaultBodyLimit::max(list::MAX_BULK_FORM_BYTES)),
+            )
+            .route(
+                "/events/{event}/tags",
+                post(events::add_tags).layer(DefaultBodyLimit::max(list::MAX_BULK_FORM_BYTES)),
             )
             .route(
                 "/filters/saved",

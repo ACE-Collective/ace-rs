@@ -43,8 +43,9 @@
 //! `observable_comments` keeps analysts' comments on an observable by its type and value, across alerts,
 //! for 5.6's `observable_comments` router, and reads an alert's for 5.8's alert view.
 //!
-//! `events` reads events, sets their status, and keeps the threat types and malware's threats, for 5.11's
-//! events area and ace3's `events`, `threat_types` and `threats` routers.
+//! `events` reads events, adds alerts to them, sets their status, edits them, takes alerts out and tags
+//! them, and keeps the threat types and malware's threats, for 5.11's events area and ace3's `events`,
+//! `threat_types` and `threats` routers.
 //!
 //! `alert_view` reads an alert's whole tree for 5.8's alert view, and watches an alert for results landing
 //! on it, so an open page can show them.
@@ -109,11 +110,13 @@ pub use detection_points::{
     DetectionPoint, DetectionPointFilter, DetectionPointPage, MAX_DETECTIONS_PAGE,
 };
 pub use events::{
-    AddedToEvent, CLOSED_EVENTS_PAGE, CLOSED_STATUS, DISPOSITION_RANKS, Event, EventAlert,
-    EventChoice, EventChoices, EventListPage, EventMalware, EventOwner, EventOwnerChoice,
-    EventPage, EventRef, EventTimes, EventValue, MAX_EVENT_ALERTS, MAX_EVENT_CHOICES,
-    MAX_EVENT_COMMENT_CHARS, MAX_EVENT_NAME_CHARS, MAX_EVENTS_PAGE, MAX_EXPORT_EVENTS,
-    MAX_THREAT_TYPE_CHARS, NewEvent, Threat, ThreatType, disposition_rank, rolled_up,
+    AddedToEvent, CLOSED_EVENTS_PAGE, CLOSED_STATUS, CampaignChoice, DISPOSITION_RANKS, Event,
+    EventAlert, EventChoice, EventChoices, EventEdit, EventEditChoices, EventListPage,
+    EventMalware, EventOwner, EventOwnerChoice, EventPage, EventRef, EventTimes, EventValue,
+    MAX_CATALOG_NAME_CHARS, MAX_EDIT_MALWARE, MAX_EVENT_ALERTS, MAX_EVENT_CHOICES,
+    MAX_EVENT_COMMENT_CHARS, MAX_EVENT_NAME_CHARS, MAX_EVENT_TAG_CHARS, MAX_EVENT_TAGS,
+    MAX_EVENTS_PAGE, MAX_EXPORT_EVENTS, MAX_NEW_MALWARE_THREATS, MAX_THREAT_TYPE_CHARS,
+    MalwareChoice, NewEvent, RemovedAlerts, Threat, ThreatType, disposition_rank, rolled_up,
 };
 pub use filters::events::{
     EventFilters, EventOwnerFilter, EventQuery, EventSort, MAX_EVENT_FILTER_IDS,

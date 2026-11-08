@@ -1,0 +1,63 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT (SELECT id FROM events.statuses WHERE value = $1) AS \"status?\",\n                                  (SELECT id FROM events.remediations WHERE value = $2) AS \"remediation?\",\n                                  (SELECT id FROM events.types WHERE value = $3) AS \"kind?\",\n                                  (SELECT id FROM events.vectors WHERE value = $4) AS \"vector?\",\n                                  (SELECT id FROM events.risk_levels WHERE value = $5) AS \"risk_level?\",\n                                  (SELECT id FROM events.prevention_tools WHERE value = $6)\n                                      AS \"prevention_tool?\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "status?",
+        "type_info": "Int2",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "remediation?",
+        "type_info": "Int2",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "kind?",
+        "type_info": "Int2",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "vector?",
+        "type_info": "Int2",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 4,
+        "name": "risk_level?",
+        "type_info": "Int2",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 5,
+        "name": "prevention_tool?",
+        "type_info": "Int2",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "f3e12a79bfe2592f65dbcf911e9be541bc0abe6560c2f14e4c5c5c3e7da4d314"
+}

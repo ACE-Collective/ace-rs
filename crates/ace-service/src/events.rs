@@ -1,4 +1,4 @@
-//! Events (PLAN.md 5.11's events area, 6a): ace3's `Event` and the three routers over it,
+//! Events (PLAN.md 5.11's events area, 6a to 6d): ace3's `Event` and the three routers over it,
 //! `aceapi_v2/events`, `threat_types` and `threats`. Migration 0031 holds the tables.
 //!
 //! An event groups alerts an analyst decided are one incident, with what they recorded about it: a status,
@@ -69,6 +69,47 @@
 //! `Service::event_choices` is what the filters offer. An event's alerts carry their analysis state and
 //! tags, for its page and ace3's "still analyzing" note (`Event::still_analyzing`). Close Event is
 //! `set_event_status` to `CLOSED_STATUS`, which is all ace3's does.
+//!
+//! An event's edit (6d), ace3's `edit_event` (`app/events/views/edit/modal.py`), is `Service::edit_event`,
+//! under `event:write` as ace3's route is, one transaction and one audit row whose `before` and `after`
+//! are everything an edit sets, and whose details name the campaign and malware it made and the threats it
+//! gave. As in ace3:
+//! - `CLOSED` is for Close Event: an event that isn't closed can't be given it by an edit, which ace3's
+//!   form enforces by not offering it, so an event is closed one way. A closed event keeps it, or is
+//!   reopened, by an edit.
+//! - The times change only while the event isn't closed, judged by its status before the edit. A time
+//!   given replaces the stored one and one left empty keeps it, as ace3's `none_values` do, so a time once
+//!   set isn't cleared here either; the six after the edit are in order, ace3's sorted check.
+//! - A campaign (threat actor) is none, one that exists, or a name, which is the campaign of that name if
+//!   there's one and a new one if not. Malware is the event's whole list: each one that exists, or a name
+//!   with its threat types, which is the malware of that name, made if it isn't there, given those of the
+//!   types it lacks, as ace3's loop does. Two edits making one name at once both get the one made.
+//! - The name, status, remediation, type, vector, risk level, prevention tool, comment and owner are set
+//!   as given; a reference value is one of its table's.
+//!
+//! What differs, each where ace3 fails or loses what was typed:
+//! - Concurrency: ace3's form has no version, so of two analysts editing one event the last save wins and
+//!   undoes the first's changes to fields the second didn't touch. Here the form carries
+//!   `Event::edit_version`, the event's edited state when the form was drawn, and the write locks the
+//!   event and refuses a version it has left with a 409, so the second analyst reopens the edit and sees
+//!   the first's changes. Adding alerts or tags doesn't change the version, so it doesn't refuse an edit.
+//! - ace3 accepts `CLOSED` from a hand-made POST; this refuses it (400).
+//! - A value that isn't in its table, a campaign, malware, threat type or owner that isn't there, and a
+//!   name another event has on its day are 400, 404 and 409, where ace3's `.one()` and its unique key
+//!   answer 500, or a campaign id that isn't there silently clears the event's.
+//! - New malware without a name or a threat type is refused, where ace3 skips it and drops what was
+//!   typed; a new campaign with no name is refused, where ace3 clears the event's campaign.
+//! - The owner is a user, or none, since an event made by a key without an owner has none; a disabled
+//!   user can be kept but not given an event, as ace3's form offers only enabled users.
+//! - Names are trimmed and checked as an event's are, an empty comment is none, and an edit that changes
+//!   nothing has no row. ace3's form also sends `event_disposition`, which its route never reads.
+//!
+//! `Service::remove_alerts`, ace3's `remove_alerts`, takes alerts out of one event, under `event:write`,
+//! one row listing those taken; one not in it is said, as ace3 skips it. ace3's form names
+//! `<event>_<alert>` pairs across the event list's open rows; here it's one event's page, since the list's
+//! open row is that page. `Service::add_event_tags`, ace3's `add_tag`, puts tags on an event itself, one
+//! row per event listing the tags it didn't have; ace3 splits its form's text on whitespace, so a tag has
+//! none. The event page's bulk Set Disposition of its alerts is 5.10's `Service::disposition` per alert.
 //!
 //! What adding an alert to an event does to its analysis: nothing, here or in ace3. ace3's GUI only
 //! writes the mapping (`app/analysis/views/edit/event.py`). Its `alert_added_to_event` module, which
@@ -881,6 +922,367 @@ async fn one_event(conn: &mut PgConnection, id: i64) -> Result<Event, ServiceErr
         .ok_or_else(|| no_event(EventRef::Id(id)))
 }
 
+// ---- 6d: an event's edit, its alerts removed and its own tags ----
+
+/// The most malware one edit names.
+pub const MAX_EDIT_MALWARE: usize = 100;
+/// The most threat types new malware takes in one edit.
+pub const MAX_NEW_MALWARE_THREATS: usize = 256;
+/// The longest campaign or malware name, in characters: ace3's columns.
+pub const MAX_CATALOG_NAME_CHARS: usize = 128;
+/// The longest event tag, in characters: the table's check, after ace3's `tags.name`.
+pub const MAX_EVENT_TAG_CHARS: usize = 256;
+/// The most tags one `add_event_tags` takes.
+pub const MAX_EVENT_TAGS: usize = 64;
+
+/// An edit's campaign, ace3's threat actor: none, one that exists, or one by name, made if it isn't there.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CampaignChoice {
+    None,
+    Existing(i32),
+    New(String),
+}
+
+/// One of an edit's malware: one that exists, or one by name with its threat types, made if it isn't
+/// there and given the types it lacks, as ace3's `edit_event` does.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum MalwareChoice {
+    Existing(i32),
+    New {
+        name: String,
+        threat_types: Vec<i32>,
+    },
+}
+
+/// What `Service::edit_event` sets, ace3's edit form: everything but the event's alerts and tags.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EventEdit {
+    /// The event's `Event::edit_version` when the form was drawn. Another edit since is a conflict.
+    pub version: String,
+    pub name: String,
+    pub status: String,
+    pub owner: Option<UserId>,
+    pub remediation: String,
+    pub kind: String,
+    pub vector: String,
+    pub risk_level: String,
+    pub prevention_tool: String,
+    pub comment: Option<String>,
+    pub campaign: CampaignChoice,
+    /// A time given replaces the stored one, and one not given leaves it, as in ace3, while the event
+    /// isn't closed. A closed event's times don't change.
+    pub times: EventTimes,
+    /// The event's malware after the edit, all of it, as ace3's form sends it.
+    pub malware: Vec<MalwareChoice>,
+}
+
+/// What an edit's form offers, ace3's `edit_event_modal`: each reference table by value, the campaigns
+/// and malware by name, the threat types, and the enabled users. Each list holds at most
+/// `MAX_EVENT_CHOICES`.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct EventEditChoices {
+    pub statuses: Vec<EventValue>,
+    pub remediations: Vec<EventValue>,
+    pub types: Vec<EventValue>,
+    pub vectors: Vec<EventValue>,
+    pub risk_levels: Vec<EventValue>,
+    pub prevention_tools: Vec<EventValue>,
+    pub campaigns: Vec<EventValue>,
+    /// With their threat types, as ace3's options label them.
+    pub malware: Vec<EventMalware>,
+    pub threat_types: Vec<ThreatType>,
+    pub users: Vec<EventOwnerChoice>,
+}
+
+/// What `remove_alerts` did.
+#[derive(Debug, Clone, PartialEq)]
+pub struct RemovedAlerts {
+    /// The event, as it is after.
+    pub event: Event,
+    /// The alerts taken out of it, in the order given.
+    pub removed: Vec<Uuid>,
+    /// Those given that weren't in it.
+    pub not_in: Vec<Uuid>,
+}
+
+impl Event {
+    /// A token of what an edit sets, for `EventEdit::version`: it changes when any of those does, by an
+    /// edit or Close Event, and not when alerts or tags are added. ace3 has none, so its last save wins.
+    pub fn edit_version(&self) -> String {
+        use sha2::{Digest, Sha256};
+        let mut malware: Vec<i32> = self.malware.iter().map(|m| m.id).collect();
+        malware.sort_unstable();
+        let state = serde_json::json!([
+            self.name,
+            self.status,
+            self.remediation,
+            self.kind,
+            self.vector,
+            self.risk_level,
+            self.prevention_tool,
+            self.campaign,
+            self.comment,
+            self.event_time,
+            self.alert_time,
+            self.ownership_time,
+            self.disposition_time,
+            self.contain_time,
+            self.remediation_time,
+            self.owner.as_ref().map(|owner| owner.id.0),
+            malware,
+        ]);
+        hex::encode(Sha256::digest(state.to_string().as_bytes()))
+    }
+
+    fn times(&self) -> EventTimes {
+        EventTimes {
+            event_time: self.event_time,
+            alert_time: self.alert_time,
+            ownership_time: self.ownership_time,
+            disposition_time: self.disposition_time,
+            contain_time: self.contain_time,
+            remediation_time: self.remediation_time,
+        }
+    }
+}
+
+/// Malware as an edit's row keeps it.
+#[derive(Debug, PartialEq, Serialize)]
+struct MalwareState {
+    name: String,
+    threat_types: Vec<String>,
+}
+
+/// An event's state as an edit's row keeps it, before and after: all an edit sets.
+#[derive(Debug, PartialEq, Serialize)]
+struct EditState {
+    name: String,
+    status: String,
+    remediation: String,
+    #[serde(rename = "type")]
+    kind: String,
+    vector: String,
+    risk_level: String,
+    prevention_tool: String,
+    campaign: Option<String>,
+    comment: Option<String>,
+    #[serde(flatten)]
+    times: EventTimes,
+    owner: Option<Uuid>,
+    malware: Vec<MalwareState>,
+}
+
+impl Recorded for EditState {}
+
+impl EditState {
+    fn of(event: &Event) -> Self {
+        EditState {
+            name: event.name.clone(),
+            status: event.status.clone(),
+            remediation: event.remediation.clone(),
+            kind: event.kind.clone(),
+            vector: event.vector.clone(),
+            risk_level: event.risk_level.clone(),
+            prevention_tool: event.prevention_tool.clone(),
+            campaign: event.campaign.clone(),
+            comment: event.comment.clone(),
+            times: event.times(),
+            owner: event.owner.as_ref().map(|owner| owner.id.0),
+            malware: event
+                .malware
+                .iter()
+                .map(|m| MalwareState {
+                    name: m.name.clone(),
+                    threat_types: m.threat_types.clone(),
+                })
+                .collect(),
+        }
+    }
+}
+
+/// A threat an edit gave malware, by the malware's name and the type's id.
+#[derive(Debug, Serialize)]
+struct ThreatGiven {
+    malware: String,
+    threat_type: i32,
+}
+
+/// What an edit's row says the event is, and what it made on the way.
+#[derive(Serialize)]
+struct EditDetails<'a> {
+    uuid: Uuid,
+    made_campaign: Option<&'a str>,
+    made_malware: &'a [String],
+    added_threats: &'a [ThreatGiven],
+}
+
+impl Recorded for EditDetails<'_> {}
+
+/// The alerts taken from an event.
+#[derive(Serialize)]
+struct AlertsInEvent<'a> {
+    alerts: &'a [Uuid],
+}
+
+impl Recorded for AlertsInEvent<'_> {}
+
+/// Tags put on an event.
+#[derive(Serialize)]
+struct TagsAdded<'a> {
+    tags: &'a [String],
+}
+
+impl Recorded for TagsAdded<'_> {}
+
+/// A campaign's or malware's name, trimmed, or why it can't be one.
+fn catalog_name<'a>(name: &'a str, what: &str) -> Result<&'a str, ServiceError> {
+    let name = name.trim();
+    let fits = !name.is_empty()
+        && name.chars().count() <= MAX_CATALOG_NAME_CHARS
+        && !name.chars().any(char::is_control);
+    if fits {
+        Ok(name)
+    } else {
+        Err(ServiceError::InvalidRequest(format!(
+            "{what}'s name is 1 to {MAX_CATALOG_NAME_CHARS} characters, not all whitespace, with no control characters"
+        )))
+    }
+}
+
+/// An event tag, or why it can't be one: as ace3's form splits them on whitespace, a tag has none.
+fn event_tag(tag: &str) -> Result<&str, ServiceError> {
+    let fits = !tag.is_empty()
+        && tag.chars().count() <= MAX_EVENT_TAG_CHARS
+        && !tag.chars().any(|c| c.is_control() || c.is_whitespace());
+    if fits {
+        Ok(tag)
+    } else {
+        Err(ServiceError::InvalidRequest(format!(
+            "a tag is 1 to {MAX_EVENT_TAG_CHARS} characters with no whitespace or control characters"
+        )))
+    }
+}
+
+/// An edit as it's stored, or why it can't be: names trimmed, an empty comment none, and the lists
+/// bounded. What needs the database is checked in the write.
+fn checked_edit(edit: &EventEdit) -> Result<EventEdit, ServiceError> {
+    let name = event_name(&edit.name)?.to_owned();
+    let comment = edit.comment.as_deref().filter(|c| !c.trim().is_empty());
+    if comment.is_some_and(|c| c.chars().count() > MAX_EVENT_COMMENT_CHARS) {
+        return Err(ServiceError::InvalidRequest(format!(
+            "an event's comment is at most {MAX_EVENT_COMMENT_CHARS} characters"
+        )));
+    }
+    let campaign = match &edit.campaign {
+        CampaignChoice::New(name) => {
+            CampaignChoice::New(catalog_name(name, "a threat actor")?.to_owned())
+        }
+        other => other.clone(),
+    };
+    if edit.malware.len() > MAX_EDIT_MALWARE {
+        return Err(ServiceError::TooLarge(format!(
+            "an event has at most {MAX_EDIT_MALWARE} malware in one edit"
+        )));
+    }
+    let mut malware = Vec::with_capacity(edit.malware.len());
+    for choice in &edit.malware {
+        malware.push(match choice {
+            MalwareChoice::Existing(id) => MalwareChoice::Existing(*id),
+            MalwareChoice::New { name, threat_types } => {
+                let name = catalog_name(name, "malware")?.to_owned();
+                // ace3 skips new malware without a type, and drops what was typed; this says so
+                if threat_types.is_empty() {
+                    return Err(ServiceError::InvalidRequest(format!(
+                        "new malware {name:?} needs at least one threat type"
+                    )));
+                }
+                if threat_types.len() > MAX_NEW_MALWARE_THREATS {
+                    return Err(ServiceError::TooLarge(format!(
+                        "new malware takes at most {MAX_NEW_MALWARE_THREATS} threat types"
+                    )));
+                }
+                let mut types = threat_types.clone();
+                types.sort_unstable();
+                types.dedup();
+                MalwareChoice::New {
+                    name,
+                    threat_types: types,
+                }
+            }
+        });
+    }
+    Ok(EventEdit {
+        version: edit.version.clone(),
+        name,
+        status: edit.status.clone(),
+        owner: edit.owner,
+        remediation: edit.remediation.clone(),
+        kind: edit.kind.clone(),
+        vector: edit.vector.clone(),
+        risk_level: edit.risk_level.clone(),
+        prevention_tool: edit.prevention_tool.clone(),
+        comment: comment.map(str::to_owned),
+        campaign,
+        times: edit.times,
+        malware,
+    })
+}
+
+/// The id of the campaign of this name and whether this made it, as `make_or_find` does for an event:
+/// two edits making one at once both get it.
+async fn campaign_named(conn: &mut PgConnection, name: &str) -> Result<(i32, bool), ServiceError> {
+    for _ in 0..3 {
+        let made = sqlx::query_scalar!(
+            "INSERT INTO events.campaigns (name) VALUES ($1) ON CONFLICT (name) DO NOTHING RETURNING id",
+            name,
+        )
+        .fetch_optional(&mut *conn)
+        .await?;
+        if let Some(id) = made {
+            return Ok((id, true));
+        }
+        let found = sqlx::query_scalar!(
+            "SELECT id FROM events.campaigns WHERE name = $1 FOR KEY SHARE",
+            name,
+        )
+        .fetch_optional(&mut *conn)
+        .await?;
+        if let Some(id) = found {
+            return Ok((id, false));
+        }
+    }
+    Err(ServiceError::Conflict(format!(
+        "the threat actor {name:?} kept changing; try again"
+    )))
+}
+
+/// The id of the malware of this name and whether this made it.
+async fn malware_named(conn: &mut PgConnection, name: &str) -> Result<(i32, bool), ServiceError> {
+    for _ in 0..3 {
+        let made = sqlx::query_scalar!(
+            "INSERT INTO events.malware (name) VALUES ($1) ON CONFLICT (name) DO NOTHING RETURNING id",
+            name,
+        )
+        .fetch_optional(&mut *conn)
+        .await?;
+        if let Some(id) = made {
+            return Ok((id, true));
+        }
+        let found = sqlx::query_scalar!(
+            "SELECT id FROM events.malware WHERE name = $1 FOR KEY SHARE",
+            name,
+        )
+        .fetch_optional(&mut *conn)
+        .await?;
+        if let Some(id) = found {
+            return Ok((id, false));
+        }
+    }
+    Err(ServiceError::Conflict(format!(
+        "the malware {name:?} kept changing; try again"
+    )))
+}
+
 async fn threat_row(
     conn: &mut PgConnection,
     malware: i32,
@@ -1515,6 +1917,478 @@ impl Service {
             .await
     }
 
+    /// What an edit's form offers (`EventEditChoices`), ace3's `edit_event_modal`'s lists, under
+    /// `event:read` as ace3's modal is. The users are the enabled ones, as ace3's owner select lists them.
+    pub async fn event_edit_choices(
+        &self,
+        actor: &Actor,
+    ) -> Result<EventEditChoices, ServiceError> {
+        self.gate
+            .read(actor, "event_edit_choices", &EVENT_READ, &|tx| {
+                Box::pin(async move {
+                    let mut choices = EventEditChoices::default();
+                    for row in sqlx::query!(
+                        r#"SELECT 'status' AS "table!", id::int AS "id!", value AS "value!" FROM events.statuses
+                           UNION ALL SELECT 'remediation', id::int, value FROM events.remediations
+                           UNION ALL SELECT 'type', id::int, value FROM events.types
+                           UNION ALL SELECT 'vector', id::int, value FROM events.vectors
+                           UNION ALL SELECT 'risk', id::int, value FROM events.risk_levels
+                           UNION ALL SELECT 'prevention', id::int, value FROM events.prevention_tools
+                           UNION ALL (SELECT 'campaign', id, name FROM events.campaigns
+                                      ORDER BY name, id LIMIT $1)
+                           ORDER BY 1, 3, 2"#,
+                        MAX_EVENT_CHOICES,
+                    )
+                    .fetch_all(tx.conn())
+                    .await?
+                    {
+                        let value = EventValue {
+                            id: row.id,
+                            value: row.value,
+                        };
+                        match row.table.as_str() {
+                            "status" => choices.statuses.push(value),
+                            "remediation" => choices.remediations.push(value),
+                            "type" => choices.types.push(value),
+                            "vector" => choices.vectors.push(value),
+                            "risk" => choices.risk_levels.push(value),
+                            "prevention" => choices.prevention_tools.push(value),
+                            _ => choices.campaigns.push(value),
+                        }
+                    }
+                    choices.malware = sqlx::query!(
+                        r#"SELECT m.id, m.name,
+                                  COALESCE(array_agg(tt.name ORDER BY tt.name)
+                                           FILTER (WHERE tt.name IS NOT NULL), '{}') AS "threat_types!"
+                           FROM (SELECT id, name FROM events.malware ORDER BY name, id LIMIT $1) m
+                           LEFT JOIN events.malware_threats mt ON mt.malware_id = m.id
+                           LEFT JOIN events.threat_types tt ON tt.id = mt.threat_type_id
+                           GROUP BY m.id, m.name
+                           ORDER BY m.name, m.id"#,
+                        MAX_EVENT_CHOICES,
+                    )
+                    .fetch_all(tx.conn())
+                    .await?
+                    .into_iter()
+                    .map(|row| EventMalware {
+                        id: row.id,
+                        name: row.name,
+                        threat_types: row.threat_types,
+                    })
+                    .collect();
+                    choices.threat_types = sqlx::query_as!(
+                        ThreatType,
+                        "SELECT id, name FROM events.threat_types ORDER BY name, id LIMIT $1",
+                        MAX_EVENT_CHOICES,
+                    )
+                    .fetch_all(tx.conn())
+                    .await?;
+                    choices.users = sqlx::query!(
+                        r#"SELECT id, username::text AS "username!", display_name
+                           FROM service.users WHERE enabled
+                           ORDER BY COALESCE(display_name, username::text), id
+                           LIMIT $1"#,
+                        MAX_EVENT_CHOICES,
+                    )
+                    .fetch_all(tx.conn())
+                    .await?
+                    .into_iter()
+                    .map(|row| EventOwnerChoice {
+                        id: UserId(row.id),
+                        username: row.username,
+                        display_name: row.display_name,
+                    })
+                    .collect();
+                    Ok(choices)
+                })
+            })
+            .await
+    }
+
+    /// Edits an event, ace3's `edit_event`, under `event:write`: one transaction, and one audit row with
+    /// the event's state before and after and what it made (the module's docs). An edit that changes
+    /// nothing has no row. An edit drawn from a version the event has left is a conflict.
+    pub async fn edit_event(
+        &self,
+        actor: &Actor,
+        event: EventRef,
+        edit: &EventEdit,
+    ) -> Result<Event, ServiceError> {
+        let edit = checked_edit(edit)?;
+        let edit = &edit;
+        self.gate
+            .write(actor, "edit_event", &EVENT_WRITE, &|tx| {
+                Box::pin(async move {
+                    let id = event_id(tx.conn(), event).await?;
+                    // held until the commit, so two edits of one version can't both pass the check;
+                    // NO KEY, so adding an alert or a tag meanwhile isn't held up by it
+                    sqlx::query!(
+                        "SELECT id FROM events.events WHERE id = $1 FOR NO KEY UPDATE",
+                        id
+                    )
+                        .fetch_one(tx.conn())
+                        .await?;
+                    let before = one_event(tx.conn(), id).await?;
+                    if before.edit_version() != edit.version {
+                        return Err(ServiceError::Conflict(format!(
+                            "event {id} has changed since this edit began: open its edit again"
+                        )));
+                    }
+                    let closed = before.status == CLOSED_STATUS;
+                    if !closed && edit.status == CLOSED_STATUS {
+                        return Err(ServiceError::InvalidRequest(
+                            "an open event is closed with Close Event, not an edit".to_owned(),
+                        ));
+                    }
+                    let refs = sqlx::query!(
+                        r#"SELECT (SELECT id FROM events.statuses WHERE value = $1) AS "status?",
+                                  (SELECT id FROM events.remediations WHERE value = $2) AS "remediation?",
+                                  (SELECT id FROM events.types WHERE value = $3) AS "kind?",
+                                  (SELECT id FROM events.vectors WHERE value = $4) AS "vector?",
+                                  (SELECT id FROM events.risk_levels WHERE value = $5) AS "risk_level?",
+                                  (SELECT id FROM events.prevention_tools WHERE value = $6)
+                                      AS "prevention_tool?""#,
+                        edit.status,
+                        edit.remediation,
+                        edit.kind,
+                        edit.vector,
+                        edit.risk_level,
+                        edit.prevention_tool,
+                    )
+                    .fetch_one(tx.conn())
+                    .await?;
+                    let need = |found: Option<i16>, what: &str, value: &str| {
+                        found.ok_or_else(|| {
+                            ServiceError::InvalidRequest(format!("{value:?} isn't an event {what}"))
+                        })
+                    };
+                    let status = need(refs.status, "status", &edit.status)?;
+                    let remediation = need(refs.remediation, "remediation", &edit.remediation)?;
+                    let kind = need(refs.kind, "type", &edit.kind)?;
+                    let vector = need(refs.vector, "vector", &edit.vector)?;
+                    let risk_level = need(refs.risk_level, "risk level", &edit.risk_level)?;
+                    let prevention_tool =
+                        need(refs.prevention_tool, "prevention tool", &edit.prevention_tool)?;
+
+                    if let Some(owner) = edit.owner {
+                        let enabled = sqlx::query_scalar!(
+                            "SELECT enabled FROM service.users WHERE id = $1 FOR KEY SHARE",
+                            owner.0,
+                        )
+                        .fetch_optional(tx.conn())
+                        .await?
+                        .ok_or_else(|| ServiceError::NotFound(format!("no user {}", owner.0)))?;
+                        let kept = before.owner.as_ref().is_some_and(|o| o.id == owner);
+                        if !enabled && !kept {
+                            return Err(ServiceError::InvalidRequest(format!(
+                                "user {} is disabled, so can't be given an event",
+                                owner.0
+                            )));
+                        }
+                    }
+
+                    // ace3 sets the times given only while the event isn't closed, then checks the order
+                    let times = if closed {
+                        before.times()
+                    } else {
+                        let stored = before.times();
+                        let merged = EventTimes {
+                            event_time: edit.times.event_time.or(stored.event_time),
+                            alert_time: edit.times.alert_time.or(stored.alert_time),
+                            ownership_time: edit.times.ownership_time.or(stored.ownership_time),
+                            disposition_time: edit
+                                .times
+                                .disposition_time
+                                .or(stored.disposition_time),
+                            contain_time: edit.times.contain_time.or(stored.contain_time),
+                            remediation_time: edit
+                                .times
+                                .remediation_time
+                                .or(stored.remediation_time),
+                        };
+                        if !merged.in_order() {
+                            return Err(ServiceError::InvalidRequest(
+                                "one or more of the times is out of order: each of event time, alert \
+                                 time, ownership time, disposition time, contain time and remediation \
+                                 time is no earlier than the one before it"
+                                    .to_owned(),
+                            ));
+                        }
+                        merged
+                    };
+
+                    let (campaign, made_campaign) = match &edit.campaign {
+                        CampaignChoice::None => (None, None),
+                        CampaignChoice::Existing(campaign) => {
+                            let found = sqlx::query_scalar!(
+                                "SELECT id FROM events.campaigns WHERE id = $1 FOR KEY SHARE",
+                                campaign,
+                            )
+                            .fetch_optional(tx.conn())
+                            .await?
+                            .ok_or_else(|| {
+                                ServiceError::NotFound(format!("no threat actor {campaign}"))
+                            })?;
+                            (Some(found), None)
+                        }
+                        CampaignChoice::New(name) => {
+                            let (found, made) = campaign_named(tx.conn(), name).await?;
+                            (Some(found), made.then_some(name.as_str()))
+                        }
+                    };
+
+                    let mut malware: Vec<i32> = Vec::new();
+                    let mut made_malware: Vec<String> = Vec::new();
+                    let mut added_threats: Vec<ThreatGiven> = Vec::new();
+                    for choice in &edit.malware {
+                        let found = match choice {
+                            MalwareChoice::Existing(id) => sqlx::query_scalar!(
+                                "SELECT id FROM events.malware WHERE id = $1 FOR KEY SHARE",
+                                id,
+                            )
+                            .fetch_optional(tx.conn())
+                            .await?
+                            .ok_or_else(|| ServiceError::NotFound(format!("no malware {id}")))?,
+                            MalwareChoice::New { name, threat_types } => {
+                                let there = sqlx::query_scalar!(
+                                    r#"SELECT count(*) AS "count!" FROM events.threat_types
+                                       WHERE id = ANY($1)"#,
+                                    threat_types,
+                                )
+                                .fetch_one(tx.conn())
+                                .await?;
+                                if usize::try_from(there).ok() != Some(threat_types.len()) {
+                                    return Err(ServiceError::NotFound(format!(
+                                        "a threat type of new malware {name:?} isn't there"
+                                    )));
+                                }
+                                let (found, made) = malware_named(tx.conn(), name).await?;
+                                if made {
+                                    made_malware.push(name.clone());
+                                }
+                                for threat_type in sqlx::query_scalar!(
+                                    "INSERT INTO events.malware_threats (malware_id, threat_type_id)
+                                     SELECT $1, unnest($2::int[])
+                                     ON CONFLICT DO NOTHING
+                                     RETURNING threat_type_id",
+                                    found,
+                                    threat_types,
+                                )
+                                .fetch_all(tx.conn())
+                                .await?
+                                {
+                                    added_threats.push(ThreatGiven {
+                                        malware: name.clone(),
+                                        threat_type,
+                                    });
+                                }
+                                found
+                            }
+                        };
+                        if !malware.contains(&found) {
+                            malware.push(found);
+                        }
+                    }
+                    sqlx::query!(
+                        "DELETE FROM events.event_malware WHERE event_id = $1 AND malware_id <> ALL($2)",
+                        id,
+                        &malware,
+                    )
+                    .execute(tx.conn())
+                    .await?;
+                    sqlx::query!(
+                        "INSERT INTO events.event_malware (event_id, malware_id)
+                         SELECT $1, unnest($2::int[])
+                         ON CONFLICT DO NOTHING",
+                        id,
+                        &malware,
+                    )
+                    .execute(tx.conn())
+                    .await?;
+
+                    sqlx::query!(
+                        "UPDATE events.events
+                         SET name = $2, status_id = $3, remediation_id = $4, type_id = $5,
+                             vector_id = $6, risk_level_id = $7, prevention_tool_id = $8,
+                             campaign_id = $9, comment = $10, event_time = $11, alert_time = $12,
+                             ownership_time = $13, disposition_time = $14, contain_time = $15,
+                             remediation_time = $16, owner_id = $17
+                         WHERE id = $1",
+                        id,
+                        edit.name,
+                        status,
+                        remediation,
+                        kind,
+                        vector,
+                        risk_level,
+                        prevention_tool,
+                        campaign,
+                        edit.comment,
+                        times.event_time,
+                        times.alert_time,
+                        times.ownership_time,
+                        times.disposition_time,
+                        times.contain_time,
+                        times.remediation_time,
+                        edit.owner.map(|owner| owner.0),
+                    )
+                    .execute(tx.conn())
+                    .await
+                    .map_err(|error| {
+                        if is_unique_violation(&error) {
+                            ServiceError::Conflict(format!(
+                                "an event named {:?} exists on {} already",
+                                edit.name, before.creation_date
+                            ))
+                        } else {
+                            error.into()
+                        }
+                    })?;
+
+                    let after = one_event(tx.conn(), id).await?;
+                    let (was, is) = (EditState::of(&before), EditState::of(&after));
+                    if was == is {
+                        return Ok(Audited::unchanged(after));
+                    }
+                    let change = Change::updated(Target::event(id), &was, &is)?.details(
+                        &EditDetails {
+                            uuid: after.uuid,
+                            made_campaign,
+                            made_malware: &made_malware,
+                            added_threats: &added_threats,
+                        },
+                    )?;
+                    Ok(Audited::changed(after, change))
+                })
+            })
+            .await
+    }
+
+    /// Takes alerts out of an event, ace3's `remove_alerts`, under `event:write`, with one audit row
+    /// listing those taken. An alert that isn't in it is said, not an error, as ace3 skips one; taking out
+    /// none has no row. At most `MAX_EVENT_ALERTS`.
+    pub async fn remove_alerts(
+        &self,
+        actor: &Actor,
+        event: EventRef,
+        alerts: &[Uuid],
+    ) -> Result<RemovedAlerts, ServiceError> {
+        if alerts.len() > MAX_EVENT_ALERTS {
+            return Err(ServiceError::TooLarge(format!(
+                "at most {MAX_EVENT_ALERTS} alerts are removed from an event at once"
+            )));
+        }
+        let mut given: Vec<Uuid> = Vec::with_capacity(alerts.len());
+        for alert in alerts {
+            if !given.contains(alert) {
+                given.push(*alert);
+            }
+        }
+        let given = given.as_slice();
+        self.gate
+            .write(actor, "remove_alerts", &EVENT_WRITE, &|tx| {
+                Box::pin(async move {
+                    let id = event_id(tx.conn(), event).await?;
+                    let deleted = sqlx::query_scalar!(
+                        "DELETE FROM events.event_alerts WHERE event_id = $1 AND root_id = ANY($2)
+                         RETURNING root_id",
+                        id,
+                        given,
+                    )
+                    .fetch_all(tx.conn())
+                    .await?;
+                    let (removed, not_in): (Vec<Uuid>, Vec<Uuid>) =
+                        given.iter().copied().partition(|id| deleted.contains(id));
+                    let event = one_event(tx.conn(), id).await?;
+                    let change = if removed.is_empty() {
+                        None
+                    } else {
+                        Some(
+                            Change::removed(
+                                Target::event(id),
+                                &AlertsInEvent { alerts: &removed },
+                            )?
+                            .details(&EventNamed {
+                                uuid: event.uuid,
+                                name: &event.name,
+                            })?,
+                        )
+                    };
+                    let value = RemovedAlerts {
+                        event,
+                        removed,
+                        not_in,
+                    };
+                    Ok(match change {
+                        Some(change) => Audited::changed(value, change),
+                        None => Audited::unchanged(value),
+                    })
+                })
+            })
+            .await
+    }
+
+    /// Puts tags on an event itself, ace3's `add_tag` (`add_event_tag_mapping`), under `event:write`, with
+    /// one audit row listing those it didn't have. A tag it has is left; adding only those has no row. At
+    /// most `MAX_EVENT_TAGS`, each an `event_tag`.
+    pub async fn add_event_tags(
+        &self,
+        actor: &Actor,
+        event: EventRef,
+        tags: &[String],
+    ) -> Result<Event, ServiceError> {
+        if tags.len() > MAX_EVENT_TAGS {
+            return Err(ServiceError::TooLarge(format!(
+                "at most {MAX_EVENT_TAGS} tags are added at once"
+            )));
+        }
+        let mut given: Vec<String> = Vec::with_capacity(tags.len());
+        for tag in tags {
+            let tag = event_tag(tag)?;
+            if !given.iter().any(|g| g == tag) {
+                given.push(tag.to_owned());
+            }
+        }
+        if given.is_empty() {
+            return Err(ServiceError::InvalidRequest(
+                "give one or more tags to add".to_owned(),
+            ));
+        }
+        let given = given.as_slice();
+        self.gate
+            .write(actor, "add_event_tags", &EVENT_WRITE, &|tx| {
+                Box::pin(async move {
+                    let id = event_id(tx.conn(), event).await?;
+                    let inserted = sqlx::query_scalar!(
+                        "INSERT INTO events.event_tags (event_id, tag)
+                         SELECT $1, unnest($2::text[])
+                         ON CONFLICT DO NOTHING
+                         RETURNING tag",
+                        id,
+                        given,
+                    )
+                    .fetch_all(tx.conn())
+                    .await?;
+                    let added: Vec<String> = given
+                        .iter()
+                        .filter(|tag| inserted.contains(tag))
+                        .cloned()
+                        .collect();
+                    let event = one_event(tx.conn(), id).await?;
+                    if added.is_empty() {
+                        return Ok(Audited::unchanged(event));
+                    }
+                    let change = Change::added(Target::event(id), &TagsAdded { tags: &added })?
+                        .details(&EventNamed {
+                            uuid: event.uuid,
+                            name: &event.name,
+                        })?;
+                    Ok(Audited::changed(event, change))
+                })
+            })
+            .await
+    }
+
     /// Every threat type, by name, ace3's `GET /threat-types/`.
     pub async fn threat_types(&self, actor: &Actor) -> Result<Vec<ThreatType>, ServiceError> {
         self.gate
@@ -1780,65 +2654,5 @@ fn taken(error: sqlx::Error, name: &str) -> ServiceError {
         ServiceError::Conflict(format!("a threat type named {name:?} exists already"))
     } else {
         error.into()
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn an_event_rolls_its_alerts_dispositions_up_as_ace3_does() {
-        assert_eq!(rolled_up([]), "DELIVERY", "no alerts");
-        assert_eq!(rolled_up([None, Some("OPEN")]), "OPEN");
-        assert_eq!(rolled_up([Some("IGNORE")]), "IGNORE");
-        assert_eq!(
-            rolled_up([Some("DAMAGE"), Some("FALSE_POSITIVE"), None]),
-            "DAMAGE"
-        );
-        assert_eq!(
-            rolled_up([Some("GRAYWARE"), Some("SIMULATED"), Some("REVIEWED")]),
-            "GRAYWARE"
-        );
-        assert_eq!(rolled_up([Some("SITE_OWN")]), "OPEN", "no rank never wins");
-        assert_eq!(rolled_up([Some("SITE_OWN"), Some("IGNORE")]), "IGNORE");
-    }
-
-    #[test]
-    fn an_event_is_named_by_its_id_or_its_uuid() {
-        assert_eq!(EventRef::parse("42").expect("an id"), EventRef::Id(42));
-        let uuid = Uuid::from_u128(7);
-        assert_eq!(
-            EventRef::parse(&uuid.to_string()).expect("a uuid"),
-            EventRef::Uuid(uuid)
-        );
-        // ace3's warning: a uuid starting with digits isn't an id
-        assert!(matches!(
-            EventRef::parse("443c2e1a-719b-4f5d"),
-            Err(ServiceError::InvalidRequest(_))
-        ));
-        assert!(matches!(
-            EventRef::parse("99999999999999999999"),
-            Err(ServiceError::NotFound(_))
-        ));
-        assert!(matches!(
-            EventRef::parse(""),
-            Err(ServiceError::InvalidRequest(_))
-        ));
-    }
-
-    #[test]
-    fn a_threat_type_name_is_checked() {
-        assert!(threat_type_name("ransomware").is_ok());
-        assert!(threat_type_name(&"x".repeat(MAX_THREAT_TYPE_CHARS)).is_ok());
-        for bad in [
-            "",
-            "  ",
-            "a\nb",
-            "a\0b",
-            &"x".repeat(MAX_THREAT_TYPE_CHARS + 1),
-        ] {
-            assert!(threat_type_name(bad).is_err(), "{bad:?}");
-        }
     }
 }

@@ -7235,8 +7235,8 @@ async fn alerts_are_added_to_an_event_through_the_form() {
 // ---- PLAN.md 5.11's events area (6c): the event list and an event's page ----
 
 use ace_gui::events::{
-    ClosePage, EventListPageHtml, EventListQuery, EventPageHtml, close_view, event_list_view,
-    event_view,
+    ClosePage, EventListPageHtml, EventListQuery, EventMay, EventPageHtml, close_view,
+    event_list_view, event_view,
 };
 use ace_service::{
     EventAlert, EventChoices, EventListPage, EventMalware, EventOwner, EventOwnerChoice,
@@ -7402,7 +7402,13 @@ fn the_event_list_and_page_views_draw_ace3_s_columns() {
     // the event's page
     let html = drawn_safely(&EventPageHtml {
         layout: Layout::signed_out("n"),
-        view: event_view(&event, true),
+        view: event_view(
+            &event,
+            EventMay {
+                write: true,
+                disposition: true,
+            },
+        ),
     });
     assert!(
         html.contains(&format!("<h1>{HOSTILE_ESCAPED}</h1>")),
@@ -7430,13 +7436,25 @@ fn the_event_list_and_page_views_draw_ace3_s_columns() {
     for (event, write) in [(&closed, true), (&event, false)] {
         let html = drawn_safely(&EventPageHtml {
             layout: Layout::signed_out("n"),
-            view: event_view(event, write),
+            view: event_view(
+                event,
+                EventMay {
+                    write,
+                    disposition: false,
+                },
+            ),
         });
         assert!(!html.contains("Close Event"), "{html}");
     }
     let html = drawn_safely(&EventPageHtml {
         layout: Layout::signed_out("n"),
-        view: event_view(&closed, true),
+        view: event_view(
+            &closed,
+            EventMay {
+                write: true,
+                disposition: false,
+            },
+        ),
     });
     assert!(!html.contains("STILL ANALYZING"));
 
@@ -7808,4 +7826,730 @@ async fn the_event_list_and_an_event_s_page_through_the_server() {
         added.contains(&format!(r#"<a href="/events/{closed}">"#)),
         "{added}"
     );
+}
+
+// ---- PLAN.md 5.11's events area (6d): an event's edit, its alerts removed and dispositioned, its tags ----
+
+use ace_gui::events::{EditForm, EventEditPage, TaggedPage, TaggedView, edit_view};
+use ace_service::EventEditChoices;
+
+fn fixture_edit_choices() -> EventEditChoices {
+    EventEditChoices {
+        statuses: vec![
+            event_value(2, "CLOSED"),
+            event_value(3, "IGNORE"),
+            event_value(1, "OPEN"),
+        ],
+        remediations: vec![event_value(1, "not remediated"), event_value(2, HOSTILE)],
+        types: vec![event_value(1, "phish")],
+        vectors: vec![event_value(1, "corporate email")],
+        risk_levels: vec![event_value(4, "0")],
+        prevention_tools: vec![event_value(1, "response team")],
+        campaigns: vec![event_value(3, HOSTILE)],
+        malware: vec![
+            EventMalware {
+                id: 1,
+                name: HOSTILE.to_owned(),
+                threat_types: vec!["rat".to_owned(), "wiper".to_owned()],
+            },
+            EventMalware {
+                id: 2,
+                name: "Plain".to_owned(),
+                threat_types: Vec::new(),
+            },
+        ],
+        threat_types: vec![
+            ace_service::ThreatType {
+                id: 6,
+                name: "rat".to_owned(),
+            },
+            ace_service::ThreatType {
+                id: 11,
+                name: HOSTILE.to_owned(),
+            },
+        ],
+        users: vec![EventOwnerChoice {
+            id: ace_service::UserId(uuid::Uuid::from_u128(0xB0)),
+            username: "bob".to_owned(),
+            display_name: Some(HOSTILE.to_owned()),
+        }],
+    }
+}
+
+/// The view functions: the edit page draws ace3's fields with the event's values chosen, CLOSED only for
+/// a closed event and the times only for one that isn't, each malware row with NEW, (none) and ace3's
+/// labels, the Add slot, a disabled owner kept, and why a save was refused; the form reads back as the
+/// edit it asks for; the event page offers Edit Event, Add Tag(s), Remove Alert(s) and Set Disposition
+/// by what the viewer holds; the list its Edit links and Add Tag(s); and the tag answer. Every value is
+/// escaped and nothing is inline.
+#[test]
+fn the_edit_views_draw_ace3_s_form() {
+    let mut event = hostile_event();
+    event.campaign = Some(HOSTILE.to_owned());
+    let choices = fixture_edit_choices();
+    let form = EditForm::of(&event);
+    assert_eq!(form.version, event.edit_version());
+    assert_eq!(
+        form.malware.len(),
+        2,
+        "the event's malware and the Add slot"
+    );
+    let html = drawn_safely(&EventEditPage {
+        layout: Layout::signed_out("n"),
+        view: edit_view(&event, &choices, &form, Some(HOSTILE.to_owned())),
+    });
+    assert!(inline_free(&html.replace(HOSTILE_ESCAPED, "")), "{html}");
+    assert!(
+        html.contains(r#"<form method="post" action="/events/7/edit" class="edit-event">"#),
+        "{html}"
+    );
+    assert!(html.contains(&format!(
+        r#"<input type="hidden" name="version" value="{}">"#,
+        event.edit_version()
+    )));
+    assert!(html.contains(&format!("The event wasn't saved: {HOSTILE_ESCAPED}")));
+    assert!(html.contains(&format!(
+        r#"maxlength="{}">{HOSTILE_ESCAPED}</textarea>"#,
+        ace_service::MAX_EVENT_NAME_CHARS
+    )));
+    // ace3: an open event isn't offered CLOSED
+    assert!(html.contains(r#"<option value="OPEN" selected>OPEN</option>"#));
+    assert!(html.contains(r#"<option value="IGNORE">IGNORE</option>"#));
+    assert!(!html.contains(r#"value="CLOSED""#), "{html}");
+    // the event's type, not in the table, is kept as it is
+    assert!(html.contains(&format!(
+        r#"<option value="{HOSTILE_ESCAPED}" selected>{HOSTILE_ESCAPED}</option>"#
+    )));
+    // the owner: None, the enabled users, and the event's own, disabled, kept
+    assert!(html.contains(r#"<option value="None">None</option>"#));
+    assert!(html.contains(&format!(
+        r#"<option value="{}">{HOSTILE_ESCAPED}</option>"#,
+        uuid::Uuid::from_u128(0xB0)
+    )));
+    assert!(
+        html.contains(&format!(
+            r#"<option value="{}" selected>{HOSTILE_ESCAPED} (disabled)</option>"#,
+            uuid::Uuid::from_u128(0xA1)
+        )),
+        "{html}"
+    );
+    // the campaign, chosen by its name
+    assert!(html.contains(&format!(
+        r#"<option value="3" selected>{HOSTILE_ESCAPED}</option>"#
+    )));
+    assert!(html.contains(r#"<option value="NEW">NEW</option>"#));
+    // the times, as datetime-local values
+    assert!(html.contains(
+        r#"<input type="datetime-local" step="1" id="alert_time" name="alert_time" value="2026-03-04T05:06:07">"#
+    ));
+    // the event's malware row, chosen, labelled with its threat types; and the Add slot, NEW, open
+    assert!(html.contains(&format!(
+        r#"<option value="1" selected>{HOSTILE_ESCAPED}: rat, wiper</option>"#
+    )));
+    assert!(html.contains(r#"<option value="2">Plain</option>"#));
+    assert!(html.contains(r#"<select id="malware_selection_1" name="malware_selection_1">"#));
+    assert!(html.contains(r#"<option value="NEW" selected>NEW</option>"#));
+    assert!(html.contains("<details open>"));
+    assert!(html.contains(r#"name="threats_1" value="11">"#));
+    assert!(
+        html.contains(r#"<button type="submit" name="action" value="more">Add a threat</button>"#)
+    );
+    assert!(html.contains(r#"<button type="submit" name="action" value="save">Save</button>"#));
+
+    // a closed event: CLOSED offered, and no times
+    let mut closed = event.clone();
+    closed.status = "CLOSED".to_owned();
+    let html = drawn_safely(&EventEditPage {
+        layout: Layout::signed_out("n"),
+        view: edit_view(&closed, &choices, &EditForm::of(&closed), None),
+    });
+    assert!(html.contains(r#"<option value="CLOSED" selected>CLOSED</option>"#));
+    assert!(!html.contains("datetime-local"));
+    assert!(html.contains("The event is closed, so its times don't change."));
+    assert!(!html.contains("wasn't saved"));
+
+    // the form as sent reads back as the edit it asks for
+    let sent =
+        |text: &str| -> Vec<(String, String)> { serde_urlencoded::from_str(text).expect("a form") };
+    let form = EditForm::parse(&sent(
+        "version=v&event_name=n&event_status=OPEN&event_owner=None&event_remediation=r&event_type=t\
+         &event_vector=v&event_risk_level=0&event_prevention=p&event_comment=c&campaign_id=NEW\
+         &new_campaign=APT&event_time=2026-01-01T00:00&alert_time=\
+         &malware_selection_2=NEW&mal_name_2=Fresh&threats_2=6&threats_2=11\
+         &malware_selection_0=1&malware_selection_1=&malware_selection_3=NEW&mal_name_3=",
+    ))
+    .expect("parses");
+    let edit = form.edit().expect("an edit");
+    assert_eq!(edit.version, "v");
+    assert_eq!(edit.owner, None);
+    assert_eq!(
+        edit.campaign,
+        ace_service::CampaignChoice::New("APT".to_owned())
+    );
+    assert_eq!(
+        edit.times.event_time,
+        Some("2026-01-01T00:00:00Z".parse().expect("a time"))
+    );
+    assert_eq!(edit.times.alert_time, None, "empty keeps the stored one");
+    assert_eq!(
+        edit.malware,
+        [
+            ace_service::MalwareChoice::Existing(1),
+            ace_service::MalwareChoice::New {
+                name: "Fresh".to_owned(),
+                threat_types: vec![6, 11],
+            },
+        ],
+        "in their rows' order; (none) taken off and the untouched Add slot left out"
+    );
+    for bad in [
+        "event_owner=bob",
+        "campaign_id=x",
+        "event_time=soon",
+        "malware_selection_0=x",
+        "malware_selection_0=NEW&mal_name_0=a&threats_0=x",
+    ] {
+        let form = EditForm::parse(&sent(bad)).expect("parses");
+        assert!(form.edit().is_err(), "{bad}");
+    }
+    assert!(EditForm::parse(&sent("malware_selection_x=1")).is_err());
+    let too_many = (0..=ace_service::MAX_EDIT_MALWARE + 1)
+        .map(|n| format!("malware_selection_{n}=1"))
+        .collect::<Vec<_>>()
+        .join("&");
+    assert!(EditForm::parse(&sent(&too_many)).is_err());
+
+    // the event page: what the viewer holds decides what it offers
+    let html = drawn_safely(&EventPageHtml {
+        layout: Layout::signed_out("n"),
+        view: event_view(
+            &event,
+            EventMay {
+                write: true,
+                disposition: true,
+            },
+        ),
+    });
+    assert!(
+        html.contains(r#"<a href="/events/7/edit">Edit Event</a>"#),
+        "{html}"
+    );
+    assert!(html.contains(r#"<form method="post" action="/events/7/tags" class="inline">"#));
+    assert!(html.contains(
+        r#"<button type="submit" formaction="/events/7/alerts/remove">Remove Alert(s)</button>"#
+    ));
+    assert!(html.contains(
+        r#"<button type="submit" formaction="/alerts/disposition">Set Disposition</button>"#
+    ));
+    assert!(html.contains(r#"<input type="hidden" name="next" value="/events/7">"#));
+    assert!(html.contains(&format!(
+        r#"<input type="checkbox" form="event-alerts" name="alert" value="{}""#,
+        uuid::Uuid::from_u128(0xA)
+    )));
+    assert!(html.contains(r#"<option value="FALSE_POSITIVE">FALSE_POSITIVE</option>"#));
+    // alert:write only: Set Disposition and the boxes, nothing of event:write's
+    let html = drawn_safely(&EventPageHtml {
+        layout: Layout::signed_out("n"),
+        view: event_view(
+            &event,
+            EventMay {
+                write: false,
+                disposition: true,
+            },
+        ),
+    });
+    assert!(html.contains("Set Disposition") && html.contains(r#"form="event-alerts""#));
+    assert!(!html.contains("Remove Alert(s)") && !html.contains("Edit Event"));
+    assert!(!html.contains("Add Tag(s)"));
+    // neither: no form and no boxes
+    let html = drawn_safely(&EventPageHtml {
+        layout: Layout::signed_out("n"),
+        view: event_view(&event, EventMay::default()),
+    });
+    assert!(!html.contains("event-alerts") && !html.contains("Set Disposition"));
+
+    // the list: Edit links and Add Tag(s) of the ticked rows for event:write
+    let page = EventListPage {
+        events: vec![event.clone()],
+        next: None,
+        total: 1,
+    };
+    let query = EventListQuery::default();
+    let html = drawn_safely(&EventListPageHtml {
+        layout: Layout::signed_out("n"),
+        view: event_list_view(Some(&page), &query, &fixture_choices(), None, true),
+    });
+    assert!(
+        html.contains(r#"<a href="/events/7/edit" title="Edit Event">Edit</a>"#),
+        "{html}"
+    );
+    assert!(html.contains(
+        r#"<button type="submit" form="export" formmethod="post" formaction="/events/tags">Add Tag(s)</button>"#
+    ));
+    assert!(
+        html.contains(
+            r#"<input type="hidden" form="export" name="next" value="/events?filtered=1&#38;"#
+        ),
+        "{html}"
+    );
+    let html = drawn_safely(&EventListPageHtml {
+        layout: Layout::signed_out("n"),
+        view: event_list_view(Some(&page), &query, &fixture_choices(), None, false),
+    });
+    assert!(!html.contains("/edit") && !html.contains("Add Tag(s)"));
+
+    // the list's tag answer
+    let html = drawn_safely(&TaggedPage {
+        layout: Layout::signed_out("n"),
+        view: TaggedView {
+            tags: vec![HOSTILE.to_owned()],
+            done: vec![(HOSTILE.to_owned(), "/events/7".to_owned())],
+            failed: vec![(9, HOSTILE.to_owned())],
+            next: "/events".to_owned(),
+        },
+    });
+    assert!(inline_free(&html.replace(HOSTILE_ESCAPED, "")));
+    assert!(html.contains("1 event tagged, 1 not."), "{html}");
+    assert!(html.contains(&format!(r#"<a href="/events/7">{HOSTILE_ESCAPED}</a>"#)));
+    assert!(html.contains(&format!("<li>9: {HOSTILE_ESCAPED}</li>")));
+}
+
+async fn event_uuid(stack: &Stack, id: i64) -> uuid::Uuid {
+    sqlx::query_scalar("SELECT uuid FROM events.events WHERE id = $1")
+        .bind(id)
+        .fetch_one(stack.test_db.db().pool())
+        .await
+        .expect("reads")
+}
+
+/// The edit form's fields that the page drew, as a browser would send them back: each input's and
+/// textarea's value, each select's chosen option, and each ticked box.
+fn drawn_form(page: &str) -> Vec<(String, String)> {
+    let unescape = |text: &str| {
+        text.replace("&#34;", "\"")
+            .replace("&#39;", "'")
+            .replace("&#60;", "<")
+            .replace("&#62;", ">")
+            .replace("&#38;", "&")
+    };
+    let attr = |tag: &str, name: &str| {
+        let key = format!(" {name}=\"");
+        tag.find(&key).map(|at| {
+            let rest = &tag[at + key.len()..];
+            unescape(&rest[..rest.find('"').expect("closes")])
+        })
+    };
+    let form = page
+        .split(r#"class="edit-event">"#)
+        .nth(1)
+        .and_then(|rest| rest.split("</form>").next())
+        .expect("the edit form");
+    let mut fields = Vec::new();
+    let mut select: Option<String> = None;
+    for piece in form.split('<').skip(1) {
+        let tag = piece.split('>').next().unwrap_or("");
+        if tag.starts_with("select ") {
+            select = attr(tag, "name");
+        } else if tag.starts_with("/select") {
+            select = None;
+        } else if tag.starts_with("option ") && tag.ends_with(" selected") {
+            if let (Some(name), Some(value)) = (&select, attr(tag, "value")) {
+                fields.push((name.clone(), value));
+            }
+        } else if tag.starts_with("input ") {
+            let checkbox = tag.contains(r#"type="checkbox""#);
+            if checkbox && !tag.ends_with(" checked") {
+                continue;
+            }
+            if let (Some(name), Some(value)) = (attr(tag, "name"), attr(tag, "value")) {
+                fields.push((name, value));
+            }
+        } else if tag.starts_with("textarea ") {
+            let text = piece.split_once('>').map_or("", |(_, text)| text);
+            if let Some(name) = attr(tag, "name") {
+                fields.push((name, unescape(text)));
+            }
+        }
+    }
+    fields
+}
+
+fn set(form: &mut Vec<(String, String)>, name: &str, value: &str) {
+    form.retain(|(key, _)| key != name);
+    form.push((name.to_owned(), value.to_owned()));
+}
+
+/// Through the server: signed out goes to the login; the edit, Remove Alert(s) and Add Tag(s) need
+/// `event:write`, and Set Disposition `alert:write`; the edit page is the event as it is, Add a threat
+/// draws it again with one more row and writes nothing, and Save edits it in one audited write and goes
+/// back to its page; a refusal the form can fix draws it again with what was typed; a save over another
+/// one is a 409; the alerts are removed and dispositioned, and the event tagged, from its page and the
+/// list; and each refusal, a cross-site post among them, changes nothing.
+#[tokio::test]
+async fn an_event_is_edited_through_the_server() {
+    let stack = stack().await;
+    let alice = user(&stack, "alice").await;
+    let session = session_of(&stack, "alice").await;
+    let one = list_alert(&stack, HOSTILE, "2026-05-01T10:00:00Z", None).await;
+    let two = list_alert(&stack, "two", "2026-05-02T10:00:00Z", None).await;
+    let open = gui_event(&stack, HOSTILE, "2026-04-01", "OPEN").await;
+    let other = gui_event(&stack, "other", "2026-04-02", "OPEN").await;
+    for alert in [one, two] {
+        sqlx::query("INSERT INTO events.event_alerts (event_id, root_id) VALUES ($1, $2)")
+            .bind(open)
+            .bind(alert)
+            .execute(stack.test_db.db().pool())
+            .await
+            .expect("adds");
+    }
+    let get = |path: String| {
+        let request = stack.get(&path).header("cookie", cookie(&session));
+        async move { request.send().await.expect("answered") }
+    };
+    let post = |path: String, form: Vec<(String, String)>, origin: String| {
+        let request = stack
+            .http
+            .post(format!("{}{path}", stack.url))
+            .header("origin", origin)
+            .header("cookie", cookie(&session))
+            .form(&form);
+        async move { request.send().await.expect("answered") }
+    };
+    let here = stack.url.clone();
+    let pairs = |list: &[(&str, &str)]| {
+        list.iter()
+            .map(|(k, v)| ((*k).to_owned(), (*v).to_owned()))
+            .collect::<Vec<_>>()
+    };
+    let edit_path = format!("/events/{open}/edit");
+
+    // signed out
+    let response = stack.get(&edit_path).send().await.expect("answered");
+    assert_eq!(response.status(), StatusCode::SEE_OTHER);
+    assert!(location(&response).starts_with("/login?next=%2Fevents%2F"));
+
+    // without event:write: refused, and nothing changes
+    grant_to(&stack, &alice, "event", "read").await;
+    let audit = stack.audit_count().await;
+    assert_eq!(get(edit_path.clone()).await.status(), StatusCode::FORBIDDEN);
+    for (path, form) in [
+        (edit_path.clone(), pairs(&[("event_name", "x")])),
+        (
+            format!("/events/{open}/alerts/remove"),
+            pairs(&[("alert", &one.to_string())]),
+        ),
+        (format!("/events/{open}/tags"), pairs(&[("tag", "x")])),
+        (
+            "/events/tags".to_owned(),
+            pairs(&[("tag", "x"), ("id", &open.to_string())]),
+        ),
+        (
+            "/alerts/disposition".to_owned(),
+            pairs(&[("alert", &one.to_string()), ("disposition", "DAMAGE")]),
+        ),
+    ] {
+        assert_eq!(
+            post(path.clone(), form, here.clone()).await.status(),
+            StatusCode::FORBIDDEN,
+            "{path}"
+        );
+    }
+    let page = get(format!("/events/{open}"))
+        .await
+        .text()
+        .await
+        .expect("a page");
+    assert!(!page.contains("Edit Event") && !page.contains("event-alerts"));
+    assert_eq!(stack.audit_count().await, audit);
+    grant_to(&stack, &alice, "event", "write").await;
+    let audit = audit + 1;
+
+    // the event's page links the edit, and the list each row's
+    let page = get(format!("/events/{open}"))
+        .await
+        .text()
+        .await
+        .expect("a page");
+    assert!(page.contains(&format!(r#"<a href="/events/{open}/edit">Edit Event</a>"#)));
+    assert!(page.contains("Remove Alert(s)") && !page.contains("Set Disposition"));
+    let list = get("/events".to_owned())
+        .await
+        .text()
+        .await
+        .expect("a page");
+    assert!(list.contains(&format!(
+        r#"<a href="/events/{open}/edit" title="Edit Event">Edit</a>"#
+    )));
+
+    // the edit page: the event as it is
+    let response = get(edit_path.clone()).await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let page = response.text().await.expect("a page");
+    assert!(inline_free(&page.replace(HOSTILE_ESCAPED, "")));
+    assert!(!page.contains(HOSTILE));
+    assert!(
+        !page.contains(r#"value="CLOSED""#),
+        "an open event isn't offered CLOSED"
+    );
+    let mut form = drawn_form(&page);
+    assert!(
+        form.iter().any(|(k, v)| k == "event_name" && v == HOSTILE),
+        "{form:?}"
+    );
+    assert!(
+        form.iter()
+            .any(|(k, v)| k == "malware_selection_0" && v == "NEW")
+    );
+    assert_eq!(
+        get(format!("/events/{}/edit", i64::MAX)).await.status(),
+        StatusCode::NOT_FOUND
+    );
+    assert_eq!(
+        get("/events/nope/edit".to_owned()).await.status(),
+        StatusCode::BAD_REQUEST
+    );
+
+    // Add a threat: the form again as sent, one more row, and nothing written
+    set(&mut form, "event_comment", "typed, not saved");
+    set(&mut form, "mal_name_0", "Fresh");
+    let rat = sqlx::query_scalar::<_, i32>("SELECT id FROM events.threat_types WHERE name = 'rat'")
+        .fetch_one(stack.test_db.db().pool())
+        .await
+        .expect("a type");
+    form.push(("threats_0".to_owned(), rat.to_string()));
+    let mut more = form.clone();
+    more.push(("action".to_owned(), "more".to_owned()));
+    let response = post(edit_path.clone(), more, here.clone()).await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let page = response.text().await.expect("a page");
+    assert!(page.contains(">typed, not saved</textarea>"), "{page}");
+    assert!(page.contains(r#"name="mal_name_0" value="Fresh""#));
+    assert!(page.contains(&format!(r#"name="threats_0" value="{rat}" checked>"#)));
+    assert!(
+        page.contains(r#"name="malware_selection_1""#),
+        "a second row"
+    );
+    assert_eq!(stack.audit_count().await, audit);
+
+    // a refusal the form can fix: drawn again with what was typed, and why
+    let mut bad = form.clone();
+    set(&mut bad, "event_time", "2026-05-02T00:00");
+    set(&mut bad, "alert_time", "2026-05-01T00:00");
+    let response = post(edit_path.clone(), bad, here.clone()).await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    let page = response.text().await.expect("a page");
+    assert!(
+        page.contains("The event wasn't saved: one or more of the times is out of order"),
+        "{page}"
+    );
+    assert!(page.contains(">typed, not saved</textarea>"));
+    let mut bad = form.clone();
+    set(&mut bad, "event_time", "whenever");
+    let response = post(edit_path.clone(), bad, here.clone()).await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    assert!(
+        response
+            .text()
+            .await
+            .expect("a page")
+            .contains("isn&#39;t a time")
+    );
+    let mut bad = form.clone();
+    set(&mut bad, "event_status", "CLOSED");
+    assert_eq!(
+        post(edit_path.clone(), bad, here.clone()).await.status(),
+        StatusCode::BAD_REQUEST
+    );
+    // from another site
+    assert_eq!(
+        post(
+            edit_path.clone(),
+            form.clone(),
+            "https://evil.example".to_owned()
+        )
+        .await
+        .status(),
+        StatusCode::FORBIDDEN
+    );
+    assert_eq!(stack.audit_count().await, audit);
+
+    // Save: one audited write, back to the event's page
+    set(&mut form, "event_name", "<b>renamed</b>");
+    set(&mut form, "event_comment", "saved");
+    set(&mut form, "campaign_id", "NEW");
+    set(&mut form, "new_campaign", "APT-new");
+    let mut save = form.clone();
+    save.push(("action".to_owned(), "save".to_owned()));
+    let response = post(edit_path.clone(), save.clone(), here.clone()).await;
+    assert_eq!(response.status(), StatusCode::SEE_OTHER);
+    assert_eq!(location(&response), format!("/events/{open}"));
+    assert_eq!(stack.audit_count().await, audit + 1);
+    assert_eq!(last_action(&stack).await, "edit_event");
+    let page = get(format!("/events/{open}"))
+        .await
+        .text()
+        .await
+        .expect("a page");
+    assert!(
+        page.contains("<h1>&#60;b&#62;renamed&#60;/b&#62;</h1>"),
+        "{page}"
+    );
+    assert!(page.contains("<td>APT-new</td>"));
+    assert!(page.contains(r#"<span class="badge">Fresh</span>"#));
+    assert!(page.contains(r#"<span class="badge">rat</span>"#));
+
+    // the same form again was drawn from the old version: a conflict, and nothing written
+    let response = post(edit_path.clone(), save, here.clone()).await;
+    assert_eq!(response.status(), StatusCode::CONFLICT);
+    assert!(
+        response
+            .text()
+            .await
+            .expect("a page")
+            .contains("open its edit again")
+    );
+    assert_eq!(stack.audit_count().await, audit + 1);
+    let audit = audit + 1;
+
+    // Add Tag(s) on the event's page, split on whitespace
+    let response = post(
+        format!("/events/{open}/tags"),
+        pairs(&[("tag", " kit  <i>x</i> ")]),
+        here.clone(),
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::SEE_OTHER);
+    assert_eq!(location(&response), format!("/events/{open}"));
+    let page = get(format!("/events/{open}"))
+        .await
+        .text()
+        .await
+        .expect("a page");
+    assert!(page.contains(r#"<span class="badge">&#60;i&#62;x&#60;/i&#62;</span>"#));
+    assert!(page.contains(r#"<span class="badge">kit</span>"#));
+    assert_eq!(stack.audit_count().await, audit + 1);
+    for form in [pairs(&[("tag", "  ")]), pairs(&[])] {
+        assert_eq!(
+            post(format!("/events/{open}/tags"), form, here.clone())
+                .await
+                .status(),
+            StatusCode::BAD_REQUEST
+        );
+    }
+    // and on the list's ticked rows, each its own write; an event that isn't there is said
+    let response = post(
+        "/events/tags".to_owned(),
+        pairs(&[
+            ("tag", "bulk"),
+            ("id", &open.to_string()),
+            ("id", &other.to_string()),
+            ("id", &i64::MAX.to_string()),
+            ("next", "/events?filtered=1"),
+        ]),
+        here.clone(),
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let page = response.text().await.expect("a page");
+    assert!(inline_free(&page.replace(HOSTILE_ESCAPED, "")));
+    assert!(page.contains("2 events tagged, 1 not."), "{page}");
+    assert!(page.contains(&format!(r#"<a href="/events/{other}">"#)));
+    assert!(page.contains(r#"<a href="/events?filtered=1">Back to the list</a>"#));
+    assert_eq!(stack.audit_count().await, audit + 3);
+    assert_eq!(
+        post(
+            "/events/tags".to_owned(),
+            pairs(&[("tag", "x"), ("id", "nope")]),
+            here.clone()
+        )
+        .await
+        .status(),
+        StatusCode::BAD_REQUEST
+    );
+    let audit = audit + 3;
+
+    // Remove Alert(s) of the ticked alerts, back to the page's alerts
+    let response = post(
+        format!("/events/{open}/alerts/remove"),
+        pairs(&[
+            ("alert", &two.to_string()),
+            ("disposition", "DAMAGE"),
+            ("next", "/x"),
+        ]),
+        here.clone(),
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::SEE_OTHER);
+    assert_eq!(location(&response), format!("/events/{open}#alerts"));
+    assert_eq!(alerts_in_event(&stack, open).await, BTreeSet::from([one]));
+    assert_eq!(stack.audit_count().await, audit + 1);
+    assert_eq!(last_action(&stack).await, "remove_alerts");
+    for form in [pairs(&[]), pairs(&[("alert", "x")])] {
+        assert_eq!(
+            post(format!("/events/{open}/alerts/remove"), form, here.clone())
+                .await
+                .status(),
+            StatusCode::BAD_REQUEST
+        );
+    }
+    assert_eq!(
+        post(
+            format!("/events/{}/alerts/remove", i64::MAX),
+            pairs(&[("alert", &one.to_string())]),
+            here.clone()
+        )
+        .await
+        .status(),
+        StatusCode::NOT_FOUND
+    );
+    let audit = audit + 1;
+
+    // Set Disposition, for alert:write: the alert list's route, back to the event's page
+    grant_to(&stack, &alice, "alert", "write").await;
+    let audit = audit + 1;
+    let page = get(format!("/events/{open}"))
+        .await
+        .text()
+        .await
+        .expect("a page");
+    assert!(page.contains(
+        r#"<button type="submit" formaction="/alerts/disposition">Set Disposition</button>"#
+    ));
+    let response = post(
+        "/alerts/disposition".to_owned(),
+        pairs(&[
+            ("alert", &one.to_string()),
+            ("disposition", "DAMAGE"),
+            ("next", &format!("/events/{open}")),
+        ]),
+        here.clone(),
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let page = response.text().await.expect("a page");
+    assert!(page.contains("1 alert dispositioned"), "{page}");
+    assert!(page.contains(&format!(r#"<a href="/events/{open}">"#)));
+    assert_eq!(stack.audit_count().await, audit + 1);
+    assert_eq!(last_action(&stack).await, "disposition");
+    let page = get(format!("/events/{open}"))
+        .await
+        .text()
+        .await
+        .expect("a page");
+    assert!(page.contains("<td>DAMAGE</td>"));
+
+    // closed: the edit offers CLOSED and no times; by uuid too
+    let uuid = event_uuid(&stack, open).await;
+    let response = post(format!("/events/{open}/close"), pairs(&[]), here.clone()).await;
+    assert_eq!(response.status(), StatusCode::SEE_OTHER);
+    let page = get(format!("/events/{uuid}/edit"))
+        .await
+        .text()
+        .await
+        .expect("a page");
+    assert!(
+        page.contains(r#"<option value="CLOSED" selected>CLOSED</option>"#),
+        "{page}"
+    );
+    assert!(!page.contains("datetime-local"));
 }
