@@ -1,0 +1,57 @@
+{#- Confirming a YARA QA purge (PLAN.md 5.11's signatures area), where ace3's script asks with
+    window.confirm: what will go, and the form that purges it (src/signatures.rs). -#}
+{% extends "base.html" %}
+{% block title %}Purge · Yara QA · ACE{% endblock %}
+{% block content %}
+<section class="signatures">
+  <p><a href="/signatures">Signatures</a> / <a href="/signatures/yara-qa">Yara QA Results</a> / <a href="{{ view.rule_href }}">{{ view.rule }}</a></p>
+  <h1>Purge {{ view.files }} stored file{% if view.files != 1 %}s{% endif %} of {{ view.rule }}?</h1>
+  {%- if let Some(problem) = view.problem %}
+  <p class="error" role="alert">Nothing was purged: {{ problem }}</p>
+  {%- endif %}
+  {%- if !view.versions.is_empty() %}
+  <p>Every record of {% if view.versions.len() == 1 %}this version{% else %}these {{ view.versions.len() }} versions{% endif %} goes: the files kept now, and those whose keeping has lapsed.</p>
+  <table class="keys">
+    <thead><tr><th>Version</th><th>Matches</th><th>Stored</th><th>Last match</th></tr></thead>
+    <tbody>
+      {%- for version in view.versions %}
+      <tr>
+        <td class="qa-text"><code title="{{ version.version }}">{{ version.short }}</code>{% if version.current %} <span class="badge current">current</span>{% endif %}</td>
+        <td>{{ version.match_count }}</td>
+        <td>{{ version.stored_count }}</td>
+        <td class="nowrap">{{ version.last_match }}</td>
+      </tr>
+      {%- endfor %}
+    </tbody>
+  </table>
+  {%- else %}
+  <table class="keys">
+    <thead><tr><th>Match</th><th>File</th><th>SHA256</th><th>Version</th><th>Last seen</th></tr></thead>
+    <tbody>
+      {%- for m in view.matches %}
+      <tr>
+        <td><a href="{{ m.href }}">{{ m.id }}</a></td>
+        <td class="qa-text">{{ m.file_path }}</td>
+        <td class="qa-text"><code title="{{ m.sha256 }}">{{ m.short_sha256 }}</code></td>
+        <td class="qa-text"><code title="{{ m.version }}">{{ m.short_version }}</code></td>
+        <td class="nowrap">{{ m.last_seen }}</td>
+      </tr>
+      {%- endfor %}
+    </tbody>
+  </table>
+  {%- endif %}
+  <p class="warning">Files that match again are stored again. A file another rule, version or alert still holds stays.</p>
+  <form method="post" action="{{ view.action }}" class="fields">
+    {%- for version in view.versions %}
+    <input type="hidden" name="version" value="{{ version.version }}">
+    {%- endfor %}
+    {%- for m in view.matches %}
+    <input type="hidden" name="match_id" value="{{ m.id }}">
+    {%- endfor %}
+    <label for="reason">Reason, for the audit record (optional)</label>
+    <textarea id="reason" name="reason" maxlength="{{ view.max_reason }}" rows="3">{{ view.reason }}</textarea>
+    <button type="submit">Purge</button>
+  </form>
+  <p><a href="{{ view.rule_href }}">Cancel</a></p>
+</section>
+{% endblock %}

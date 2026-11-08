@@ -1,0 +1,16 @@
+{#- ace3's signatures/hub.html (PLAN.md 5.11's signatures area): a tile for each page of the area
+    (src/signatures.rs). Samples and Validations come with 7.10. -#}
+{% extends "base.html" %}
+{% block title %}Signatures · ACE{% endblock %}
+{% block content %}
+<section class="admin signatures">
+  <h1>Signatures</h1>
+  <ul class="tiles">
+    {%- for module in modules %}
+    <li><a href="{{ module.href }}"><b>{{ module.title }}</b><span class="muted">{{ module.description }}</span></a></li>
+    {%- else %}
+    <li class="muted">You do not have access to any signature areas.</li>
+    {%- endfor %}
+  </ul>
+</section>
+{% endblock %}

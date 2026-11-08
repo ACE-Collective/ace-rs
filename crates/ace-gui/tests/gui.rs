@@ -20,6 +20,11 @@
 //! key's edit and the page showing a secret once, drawn directly, and through the server under
 //! `admin:read` and each page's own permission, each write with its audit row, each refusal changing
 //! nothing, and the self-harm the service refuses shown.
+//!
+//! PLAN.md 5.11's signatures area: the hub, the YARA QA list, a rule's page, a match's page, the purge's
+//! confirm and its answer, drawn directly with a rule's and a file's hostile text, and through the server
+//! under `signature:read`, `signature:download` and `signature:qa_purge`, the purge from this site only
+//! with its audit row, and each refusal changing nothing.
 
 use std::collections::BTreeSet;
 use std::io::Write;
@@ -5965,4 +5970,823 @@ async fn groups_grants_and_keys_through_the_admin_area() {
         .await
         .expect("answered");
     assert_eq!(again.status(), StatusCode::NOT_FOUND);
+}
+
+// ---- PLAN.md 5.11's signatures area ----
+
+fn qa_time(seconds: i64) -> chrono::DateTime<chrono::Utc> {
+    chrono::DateTime::from_timestamp(1_800_000_000 + seconds, 0).expect("a time")
+}
+
+fn fixture_qa_rule(
+    uuid: &str,
+    name: &str,
+    status: ace_service::QaStatus,
+) -> ace_service::QaRuleSummary {
+    ace_service::QaRuleSummary {
+        signature_uuid: uuid.to_owned(),
+        name: name.to_owned(),
+        status,
+        enabled: Some(true),
+        namespace: Some(HOSTILE.to_owned()),
+        path: Some(HOSTILE.to_owned()),
+        tags: vec![HOSTILE.to_owned()],
+        match_count: 7,
+        stored_count: 3,
+        version_count: 2,
+        first_match_at: Some(qa_time(0)),
+        last_match_at: Some(qa_time(60)),
+    }
+}
+
+fn fixture_qa_match(id: i64, uuid: &str, version: &str, alerted: bool) -> ace_service::QaMatch {
+    ace_service::QaMatch {
+        id,
+        signature_uuid: uuid.to_owned(),
+        signature_version: version.to_owned(),
+        rule: HOSTILE.to_owned(),
+        namespace: HOSTILE.to_owned(),
+        ruleset: Some(HOSTILE.to_owned()),
+        sha256: "ab".repeat(32),
+        file_path: HOSTILE.to_owned(),
+        file_size: Some(1536),
+        root: uuid::Uuid::from_u128(9),
+        alerted,
+        observable_id: 1,
+        hit_count: 2,
+        first_seen: qa_time(0),
+        last_seen: qa_time(30),
+        expires_at: qa_time(86_400),
+    }
+}
+
+/// The area's view functions, called directly: the hub, the list with its filters and pages, a rule's
+/// page with its versions and files, with and without `signature:download` and `signature:qa_purge`, a
+/// match's page with its meta, the purge's confirm and its answer, each with a rule's and a file's
+/// hostile text escaped, a link only percent-encoded, and nothing inline.
+#[test]
+fn the_signatures_views_draw_rules_versions_files_and_purges() {
+    use ace_gui::signatures::{
+        ConfirmPurgePage, HubPage, ListForm, MatchPage, PurgedPage, RulePage, YaraQaPage,
+        list_view, match_row, match_view, rule_href, rule_view, short_version, size,
+    };
+    use ace_service::{
+        QaMatchDetail, QaMatchPage, QaMatchSummary, QaRuleDetail, QaRulePage, QaRuleset, QaStatus,
+        QaStringSummary, QaVersion,
+    };
+    let layout = || {
+        Layout::new(
+            "n",
+            Theme::default(),
+            Some("analyst".to_owned()),
+            "/signatures",
+        )
+    };
+    let encoded = "%22%3E%3Cscript%3Ealert%28%27x%27%29%3C%2Fscript%3E%3Cimg%20src%3Dx%20onerror%3Dalert%281%29%3E%26amp%3B";
+    assert_eq!(
+        rule_href(HOSTILE),
+        format!("/signatures/yara-qa/rules/{encoded}")
+    );
+    assert_eq!(size(10), "10 B");
+    assert_eq!(size(1536), "1.5 KB");
+    assert_eq!(size(3 << 30), "3.0 GB");
+    assert_eq!(short_version(&"c".repeat(40)), "cccccccccc");
+    assert_eq!(short_version("unknown"), "unknown");
+
+    let hub = drawn_safely(&HubPage {
+        layout: layout(),
+        modules: vec![ace_gui::admin::Module {
+            href: "/signatures/yara-qa",
+            title: "Yara QA Results",
+            description: "d",
+        }],
+    });
+    assert!(
+        hub.contains(r#"<a href="/signatures/yara-qa"><b>Yara QA Results</b>"#),
+        "{hub}"
+    );
+
+    // the list
+    let ruleset = QaRuleset {
+        key: "k".repeat(64),
+        commit: "c".repeat(40),
+        built_at: qa_time(0),
+        qa_rules_recorded: true,
+    };
+    let page = QaRulePage {
+        rules: vec![
+            fixture_qa_rule(HOSTILE, HOSTILE, QaStatus::Qa),
+            fixture_qa_rule("plain", "plain", QaStatus::NotQa),
+        ],
+        total: 5,
+        ruleset: Some(ruleset.clone()),
+    };
+    let mut form =
+        ListForm::parse("q=%3Cb%3E&status=&sort=match_count&descending=true&limit=2&offset=2")
+            .expect("a form");
+    assert_eq!(form.q, "<b>");
+    assert_eq!(form.status, "");
+    let list = drawn_safely(&YaraQaPage {
+        layout: layout(),
+        view: list_view(form.clone(), &page),
+    });
+    assert!(
+        list.contains(&format!(
+            r#"<a href="/signatures/yara-qa/rules/{encoded}"><b>{HOSTILE_ESCAPED}</b></a>"#
+        )),
+        "{list}"
+    );
+    assert!(list.contains(r#"<a href="/signatures/yara-qa/rules/plain">"#));
+    assert!(list.contains(r#"value="&#60;b&#62;""#), "{list}");
+    assert!(
+        list.contains(r#"<option value="" selected>All</option>"#),
+        "{list}"
+    );
+    assert!(
+        list.contains(r#"<option value="match_count" selected>"#),
+        "{list}"
+    );
+    assert!(list.contains("3–4 of 5"), "{list}");
+    assert!(list.contains("q=%3Cb%3E&#38;status=&#38;has_matches=&#38;sort=match_count&#38;descending=true&#38;limit=2&#38;offset=0\" rel=\"prev\""), "{list}");
+    assert!(list.contains("offset=4\" rel=\"next\""), "{list}");
+    assert!(!list.contains("class=\"warning\""), "{list}");
+    form.offset = 0;
+    let none = QaRulePage {
+        rules: vec![],
+        total: 0,
+        ruleset: None,
+    };
+    let empty = drawn_safely(&YaraQaPage {
+        layout: layout(),
+        view: list_view(form, &none),
+    });
+    assert!(empty.contains("No signatures match these filters."));
+    assert!(empty.contains("No ruleset has been built yet"), "{empty}");
+    assert!(!empty.contains("rel=\"prev\"") && !empty.contains("rel=\"next\""));
+    for bad in [
+        "status=missing",
+        "sort=bogus",
+        "has_matches=maybe",
+        "limit=x",
+        "offset=-1",
+    ] {
+        assert!(ListForm::parse(bad).is_err(), "{bad}");
+    }
+    let defaults = ListForm::parse("").expect("a form");
+    assert_eq!(defaults.status, "qa");
+    assert_eq!(defaults.limit, 50);
+
+    // a rule's page
+    let current = "c".repeat(40);
+    let detail = QaRuleDetail {
+        rule: fixture_qa_rule(HOSTILE, HOSTILE, QaStatus::Qa),
+        versions: vec![
+            QaVersion {
+                signature_version: current.clone(),
+                rule: HOSTILE.to_owned(),
+                namespace: HOSTILE.to_owned(),
+                match_count: 4,
+                stored_count: 2,
+                first_match_at: qa_time(0),
+                last_match_at: qa_time(60),
+            },
+            QaVersion {
+                signature_version: HOSTILE.to_owned(),
+                rule: HOSTILE.to_owned(),
+                namespace: HOSTILE.to_owned(),
+                match_count: 3,
+                stored_count: 1,
+                first_match_at: qa_time(0),
+                last_match_at: qa_time(10),
+            },
+        ],
+        ruleset: Some(ruleset.clone()),
+    };
+    let matches = QaMatchPage {
+        matches: vec![
+            fixture_qa_match(12, HOSTILE, HOSTILE, true),
+            fixture_qa_match(11, HOSTILE, &current, false),
+        ],
+        next: Some(11),
+    };
+    let full = drawn_safely(&RulePage {
+        layout: layout(),
+        view: rule_view(&detail, Some(HOSTILE), Some(20), &matches, true, true),
+    });
+    let rule = format!("/signatures/yara-qa/rules/{encoded}");
+    // a query encodes a space as +
+    let query = encoded.replace("%20", "+");
+    for part in [
+        format!(
+            r#"<a href="{rule}?version=cccccccccccccccccccccccccccccccccccccccc"><code title="{current}">cccccccccc</code></a> <span class="badge current">current</span>"#
+        ),
+        format!(r#"<b><code title="{HOSTILE_ESCAPED}">{HOSTILE_ESCAPED}</code></b>"#),
+        format!(
+            r#"<a href="/api/yara-qa/v1/rules/{encoded}/download?version={query}" title="password: infected">Download all (this version)</a>"#
+        ),
+        format!(r#"<a href="{rule}/purge?version={query}">Purge this version…</a>"#),
+        format!(
+            r#"<a href="{rule}/purge?version={query}" title="every version but the one loaded now">Purge older versions… (1 files of 1 version)</a>"#
+        ),
+        format!(r#"<form method="get" action="{rule}/purge" id="qa-files">"#),
+        r#"<input type="checkbox" name="match_id" value="12""#.to_owned(),
+        format!(r#"<button type="submit" formaction="{rule}/download""#),
+        "<button type=\"submit\">Purge selected…</button>".to_owned(),
+        r#"<a href="/api/yara-qa/v1/matches/12/download" title="password: infected">Download</a>"#
+            .to_owned(),
+        format!(
+            r#"<a href="/alerts/{}">Alert</a>"#,
+            uuid::Uuid::from_u128(9)
+        ),
+        r#"<a href="/signatures/yara-qa/matches/11">Match</a>"#.to_owned(),
+        format!(r#"<a href="{rule}?version={query}">First</a>"#),
+        format!(r#"<a href="{rule}?version={query}&#38;after=11" rel="next">Next</a>"#),
+        format!("<td class=\"qa-text\">{HOSTILE_ESCAPED}</td>"),
+        "1.5 KB".to_owned(),
+        "Loaded now: commit cccccccccc".to_owned(),
+    ] {
+        assert!(full.contains(&part), "{part}: {full}");
+    }
+    // the second file's root isn't an alert
+    assert_eq!(full.matches(">Alert</a>").count(), 1);
+    let reader = drawn_safely(&RulePage {
+        layout: layout(),
+        view: rule_view(&detail, None, None, &matches, false, false),
+    });
+    for absent in [
+        "checkbox",
+        "<form method=\"get\"",
+        "/download",
+        "/purge",
+        "First</a>",
+        "All versions",
+    ] {
+        assert!(!reader.contains(absent), "{absent}: {reader}");
+    }
+    assert!(reader.contains("rel=\"next\""));
+
+    // a match's page
+    let mut meta = serde_json::Map::new();
+    meta.insert(
+        "description".to_owned(),
+        serde_json::Value::String(HOSTILE.to_owned()),
+    );
+    let shown = drawn_safely(&MatchPage {
+        layout: layout(),
+        view: match_view(
+            &QaMatchDetail {
+                qa_match: fixture_qa_match(12, HOSTILE, HOSTILE, true),
+                summary: Some(QaMatchSummary {
+                    meta,
+                    tags: vec![HOSTILE.to_owned()],
+                    commit: Some(HOSTILE.to_owned()),
+                    strings: vec![QaStringSummary {
+                        identifier: HOSTILE.to_owned(),
+                        count: 3,
+                        first_offset: 255,
+                    }],
+                }),
+            },
+            false,
+        ),
+    });
+    for part in [
+        format!(
+            r#"<td class="qa-text"><code>{HOSTILE_ESCAPED}</code></td><td>3</td><td><code>0xff</code></td>"#
+        ),
+        format!(
+            r#"<pre class="qa-meta">{{
+  &#34;description&#34;: &#34;\{HOSTILE_ESCAPED}"#
+        ),
+        r#"<a href="/api/yara-qa/v1/matches/12/record">Full match record (JSON)</a>"#.to_owned(),
+        format!(r#"<a href="{rule}">{HOSTILE_ESCAPED}</a>"#),
+    ] {
+        assert!(shown.contains(&part), "{part}: {shown}");
+    }
+    assert!(
+        !shown.contains("/download"),
+        "no download without signature:download"
+    );
+    let bare = drawn_safely(&MatchPage {
+        layout: layout(),
+        view: match_view(
+            &QaMatchDetail {
+                qa_match: fixture_qa_match(13, "u", "v", false),
+                summary: None,
+            },
+            true,
+        ),
+    });
+    assert!(bare.contains("The record isn't one the YARA module writes"));
+    assert!(bare.contains("(not an alert)"));
+    assert!(bare.contains(r#"href="/api/yara-qa/v1/matches/13/download""#));
+
+    // the confirm and the answer
+    let confirm = drawn_safely(&ConfirmPurgePage {
+        layout: layout(),
+        view: ace_gui::signatures::PurgeView {
+            rule: HOSTILE.to_owned(),
+            rule_href: rule.clone(),
+            action: format!("{rule}/purge"),
+            versions: vec![],
+            matches: vec![match_row(
+                &fixture_qa_match(12, HOSTILE, HOSTILE, true),
+                false,
+            )],
+            files: 1,
+            reason: HOSTILE.to_owned(),
+            max_reason: 1024,
+            problem: Some(HOSTILE.to_owned()),
+        },
+    });
+    for part in [
+        format!("<h1>Purge 1 stored file of {HOSTILE_ESCAPED}?</h1>"),
+        format!(r#"<form method="post" action="{rule}/purge" class="fields">"#),
+        r#"<input type="hidden" name="match_id" value="12">"#.to_owned(),
+        format!(r#"maxlength="1024" rows="3">{HOSTILE_ESCAPED}</textarea>"#),
+        format!("Nothing was purged: {HOSTILE_ESCAPED}"),
+        format!(r#"<a href="{rule}">Cancel</a>"#),
+    ] {
+        assert!(confirm.contains(&part), "{part}: {confirm}");
+    }
+    let purged = drawn_safely(&PurgedPage {
+        layout: layout(),
+        uuid: HOSTILE.to_owned(),
+        rule_href: rule.clone(),
+        purged: 500,
+        remaining: 3,
+        again: Some(format!("{rule}/purge?version=v")),
+    });
+    assert!(
+        purged.contains(&format!(
+            "Purged 500 stored files of <code>{HOSTILE_ESCAPED}</code>. 3 more are left"
+        )),
+        "{purged}"
+    );
+    assert!(purged.contains(&format!(
+        r#"<a href="{rule}/purge?version=v">Purge again…</a>"#
+    )));
+}
+
+/// A kept QA match, as the core's recorder writes one, with a hostile file path and meta.
+async fn gui_qa_match(
+    stack: &Stack,
+    uuid: &str,
+    version: &str,
+    alert: Option<uuid::Uuid>,
+    n: u8,
+) -> i64 {
+    let root = alert.unwrap_or_else(uuid::Uuid::new_v4);
+    sqlx::query_scalar(
+        "INSERT INTO yara.qa_matches
+             (signature_uuid, signature_version, rule, namespace, sha256, file_path, root_id,
+              observable_id, match, expires_at)
+         VALUES ($1, $2, $3, 'ns', $4, $5, $6, 1, $7, now() + interval '30 days')
+         RETURNING id",
+    )
+    .bind(uuid)
+    .bind(version)
+    .bind(HOSTILE)
+    .bind(format!("{n:02x}").repeat(32))
+    .bind(HOSTILE)
+    .bind(root)
+    .bind(serde_json::json!({
+        "rule": HOSTILE, "namespace": "ns",
+        "meta": {"uuid": uuid, "modifiers": "qa", "description": HOSTILE},
+        "tags": ["candidate"], "commit": version, "ruleset": null, "target": "a",
+        "strings": [[4, "$a", {"base64": "RVZJTA=="}]], "context": [], "match_context": [],
+    }))
+    .fetch_one(stack.test_db.db().pool())
+    .await
+    .expect("a QA match")
+}
+
+async fn qa_rows(stack: &Stack) -> i64 {
+    sqlx_count(&stack.test_db, "SELECT count(*) FROM yara.qa_matches").await
+}
+
+/// The area through the server: signed out goes to the login; without `signature:read` every page and
+/// form is 403 and the layout has no Signatures link; with it the hub, the list, a rule with a hostile
+/// uuid by its encoded link, and a match draw, with no downloads or purges; `signature:download` adds
+/// the API's download links and Download selected, which goes on to the API; `signature:qa_purge` adds
+/// the purges, whose confirm lists what goes and refuses what isn't the rule's, and whose post, from this
+/// site only, removes it with one audit row carrying the reason. Each refusal changes nothing.
+#[tokio::test]
+async fn the_signatures_area_needs_signature_read_then_download_and_purge() {
+    let stack = stack().await;
+    let alice = user(&stack, "alice").await;
+    let pool = stack.test_db.db().pool().clone();
+    sqlx::query(
+        "INSERT INTO yara.rulesets
+             (key, commit, tree, sources_sha256, yara_x_version, files, left_out, qa_rules)
+         VALUES (repeat('b', 64), 'c0ffee', 'tree', 'sources', $1, '[]', '[]', $2)",
+    )
+    .bind(ace_core::rulesets::YARA_X_VERSION)
+    .bind(serde_json::json!([
+        {"namespace": "ns", "path": "ns/qa.yar", "name": "qa_rule", "uuid": HOSTILE,
+         "enabled": true, "tags": ["candidate"]},
+        {"namespace": "ns", "path": "ns/new.yar", "name": "never_matched", "uuid": "never",
+         "enabled": false, "tags": []},
+    ]))
+    .execute(&pool)
+    .await
+    .expect("a ruleset");
+    let alert_root = uuid::Uuid::new_v4();
+    let first = gui_qa_match(&stack, HOSTILE, "c0ffee", Some(alert_root), 1).await;
+    let second = gui_qa_match(&stack, HOSTILE, "old", None, 2).await;
+    let third = gui_qa_match(&stack, HOSTILE, "old", None, 3).await;
+    let other = gui_qa_match(&stack, "other-rule", "c0ffee", None, 4).await;
+    let encoded = "%22%3E%3Cscript%3Ealert%28%27x%27%29%3C%2Fscript%3E%3Cimg%20src%3Dx%20onerror%3Dalert%281%29%3E%26amp%3B";
+    let rule = format!("/signatures/yara-qa/rules/{encoded}");
+
+    for (path, back) in [
+        ("/signatures", "/login?next=%2Fsignatures"),
+        ("/signatures/yara-qa", "/login?next=%2Fsignatures%2Fyara-qa"),
+    ] {
+        let page = stack.get(path).send().await.expect("answered");
+        assert_eq!(page.status(), StatusCode::SEE_OTHER, "{path}");
+        assert_eq!(location(&page), back);
+    }
+    let post = stack
+        .post(
+            &format!("{rule}/purge"),
+            &[("match_id", &first.to_string())],
+        )
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(location(&post), "/login");
+
+    let session = session_of(&stack, "alice").await;
+    let get = |path: String| stack.get(&path).header("cookie", cookie(&session)).send();
+    let purge = |form: Vec<(&'static str, String)>| {
+        let form: Vec<(&str, &str)> = form.iter().map(|(k, v)| (*k, v.as_str())).collect();
+        stack
+            .post(&format!("{rule}/purge"), &form)
+            .header("cookie", cookie(&session))
+            .send()
+    };
+    let audit = stack.audit_count().await;
+    for path in [
+        "/signatures".to_owned(),
+        "/signatures/yara-qa".to_owned(),
+        rule.clone(),
+        format!("/signatures/yara-qa/matches/{first}"),
+        format!("{rule}/purge?match_id={first}"),
+        format!("{rule}/download?match_id={first}"),
+    ] {
+        let page = get(path.clone()).await.expect("answered");
+        assert_eq!(page.status(), StatusCode::FORBIDDEN, "{path}");
+        assert!(
+            page.text()
+                .await
+                .expect("a page")
+                .contains("signature:read"),
+            "{path}"
+        );
+    }
+    let refused = purge(vec![("match_id", first.to_string())])
+        .await
+        .expect("answered");
+    assert_eq!(refused.status(), StatusCode::FORBIDDEN);
+    let home = get("/".to_owned())
+        .await
+        .expect("answered")
+        .text()
+        .await
+        .expect("a page");
+    assert!(!home.contains(r#"href="/signatures""#), "{home}");
+
+    // signature:read: the pages, with no downloads or purges
+    grant_to(&stack, &alice, "signature", "read").await;
+    let hub = get("/signatures".to_owned()).await.expect("answered");
+    assert_eq!(hub.status(), StatusCode::OK);
+    let hub = hub.text().await.expect("a page");
+    assert!(
+        hub.contains(r#"<a href="/signatures">Signatures</a>"#),
+        "{hub}"
+    );
+    assert!(
+        hub.contains(r#"<a href="/signatures/yara-qa"><b>Yara QA Results</b>"#),
+        "{hub}"
+    );
+    let list = get("/signatures/yara-qa".to_owned())
+        .await
+        .expect("answered");
+    assert_eq!(list.status(), StatusCode::OK);
+    let list = list.text().await.expect("a page");
+    assert!(
+        list.contains(&format!(r#"<a href="{rule}"><b>qa_rule</b></a>"#)),
+        "{list}"
+    );
+    assert!(list.contains(r#"<a href="/signatures/yara-qa/rules/never"><b>never_matched</b></a>"#));
+    assert!(
+        !list.contains("other-rule"),
+        "not in QA mode, so not listed by default"
+    );
+    assert!(!list.contains("<script>alert"), "{list}");
+    let all = get(
+        "/signatures/yara-qa?status=&has_matches=true&sort=match_count&descending=true".to_owned(),
+    )
+    .await
+    .expect("answered")
+    .text()
+    .await
+    .expect("a page");
+    assert!(
+        all.contains("other-rule") && !all.contains("never_matched"),
+        "{all}"
+    );
+    assert!(all.contains("1–2 of 2"), "{all}");
+    let paged = get("/signatures/yara-qa?status=&limit=1&offset=1".to_owned())
+        .await
+        .expect("answered")
+        .text()
+        .await
+        .expect("a page");
+    assert!(
+        paged.contains("2–2 of 3")
+            && paged.contains("rel=\"prev\"")
+            && paged.contains("rel=\"next\""),
+        "{paged}"
+    );
+
+    let page = get(rule.clone()).await.expect("answered");
+    assert_eq!(page.status(), StatusCode::OK);
+    let page = page.text().await.expect("a page");
+    assert!(
+        page.contains(&format!(
+            r#"<td class="qa-text"><code>{HOSTILE_ESCAPED}</code></td>"#
+        )),
+        "{page}"
+    );
+    assert!(
+        page.contains(r#"<a href="/signatures/yara-qa/matches"#),
+        "{page}"
+    );
+    // no root of that id is an alert, so no file links to one
+    assert!(!page.contains(&format!("/alerts/{alert_root}")), "{page}");
+    assert!(
+        page.contains(r#"<span class="badge current">current</span>"#),
+        "{page}"
+    );
+    for absent in ["checkbox", "/download", "/purge"] {
+        assert!(!page.contains(absent), "{absent}: {page}");
+    }
+    let old = get(format!("{rule}?version=old"))
+        .await
+        .expect("answered")
+        .text()
+        .await
+        .expect("a page");
+    assert!(
+        old.contains(&format!("matches/{second}\""))
+            && !old.contains(&format!("matches/{first}\"")),
+        "{old}"
+    );
+    let shown = get(format!("/signatures/yara-qa/matches/{first}"))
+        .await
+        .expect("answered");
+    assert_eq!(shown.status(), StatusCode::OK);
+    let shown = shown.text().await.expect("a page");
+    assert!(shown.contains("<code>0x4</code>"), "{shown}");
+    assert!(shown.contains(&format!(
+        r#"<a href="/api/yara-qa/v1/matches/{first}/record">"#
+    )));
+    assert!(!shown.contains("<script>alert"), "{shown}");
+
+    for (path, status) in [
+        (
+            "/signatures/yara-qa?sort=bogus".to_owned(),
+            StatusCode::BAD_REQUEST,
+        ),
+        (
+            "/signatures/yara-qa?limit=0".to_owned(),
+            StatusCode::BAD_REQUEST,
+        ),
+        (
+            "/signatures/yara-qa/rules/nothing-here".to_owned(),
+            StatusCode::NOT_FOUND,
+        ),
+        (format!("{rule}?after=x"), StatusCode::BAD_REQUEST),
+        (
+            "/signatures/yara-qa/matches/x".to_owned(),
+            StatusCode::BAD_REQUEST,
+        ),
+        (
+            format!("/signatures/yara-qa/matches/{}", other + 1000),
+            StatusCode::NOT_FOUND,
+        ),
+        // the confirm needs qa_purge before anything else
+        (
+            format!("{rule}/purge?match_id={first}"),
+            StatusCode::FORBIDDEN,
+        ),
+    ] {
+        assert_eq!(
+            get(path.clone()).await.expect("answered").status(),
+            status,
+            "{path}"
+        );
+    }
+    let refused = purge(vec![("match_id", first.to_string())])
+        .await
+        .expect("answered");
+    assert_eq!(refused.status(), StatusCode::FORBIDDEN);
+    assert!(
+        refused
+            .text()
+            .await
+            .expect("a page")
+            .contains("signature:qa_purge")
+    );
+    assert_eq!(qa_rows(&stack).await, 4);
+    assert_eq!(stack.audit_count().await, audit + 1, "only the grant");
+
+    // signature:download: the API's downloads
+    grant_to(&stack, &alice, "signature", "download").await;
+    let page = get(rule.clone())
+        .await
+        .expect("answered")
+        .text()
+        .await
+        .expect("a page");
+    assert!(page.contains(&format!(r#"<a href="/api/yara-qa/v1/rules/{encoded}/download" title="password: infected">Download all</a>"#)), "{page}");
+    assert!(page.contains(&format!(
+        r#"<a href="/api/yara-qa/v1/matches/{first}/download""#
+    )));
+    assert!(page.contains(&format!(
+        r#"<button type="submit" formaction="{rule}/download""#
+    )));
+    assert!(!page.contains("/purge"), "{page}");
+    let sent = get(format!(
+        "{rule}/download?match_id={first}&match_id={second}"
+    ))
+    .await
+    .expect("answered");
+    assert_eq!(sent.status(), StatusCode::SEE_OTHER);
+    assert_eq!(
+        location(&sent),
+        format!("/api/yara-qa/v1/rules/{encoded}/download?match_ids={first}%2C{second}")
+    );
+    for path in [
+        format!("{rule}/download"),
+        format!("{rule}/download?match_id=x"),
+    ] {
+        assert_eq!(
+            get(path.clone()).await.expect("answered").status(),
+            StatusCode::BAD_REQUEST,
+            "{path}"
+        );
+    }
+
+    // signature:qa_purge: the confirm, then the purge
+    grant_to(&stack, &alice, "signature", "qa_purge").await;
+    let audit = stack.audit_count().await;
+    let page = get(rule.clone())
+        .await
+        .expect("answered")
+        .text()
+        .await
+        .expect("a page");
+    assert!(page.contains(&format!(r#"<a href="{rule}/purge?version=old" title="every version but the one loaded now">Purge older versions… (2 files of 1 version)</a>"#)), "{page}");
+    let confirm = get(format!("{rule}/purge?match_id={first}"))
+        .await
+        .expect("answered");
+    assert_eq!(confirm.status(), StatusCode::OK);
+    let confirm = confirm.text().await.expect("a page");
+    assert!(
+        confirm.contains("<h1>Purge 1 stored file of qa_rule?</h1>"),
+        "{confirm}"
+    );
+    assert!(confirm.contains(&format!(
+        r#"<input type="hidden" name="match_id" value="{first}">"#
+    )));
+    let by_version = get(format!("{rule}/purge?version=old"))
+        .await
+        .expect("answered")
+        .text()
+        .await
+        .expect("a page");
+    assert!(
+        by_version.contains("<h1>Purge 2 stored files of qa_rule?</h1>"),
+        "{by_version}"
+    );
+    assert!(by_version.contains(r#"<input type="hidden" name="version" value="old">"#));
+    for (path, status) in [
+        (format!("{rule}/purge"), StatusCode::BAD_REQUEST),
+        (
+            format!("{rule}/purge?version=old&match_id={first}"),
+            StatusCode::BAD_REQUEST,
+        ),
+        (format!("{rule}/purge?match_id=x"), StatusCode::BAD_REQUEST),
+        (
+            format!("{rule}/purge?match_id={other}"),
+            StatusCode::NOT_FOUND,
+        ),
+        (format!("{rule}/purge?version=nope"), StatusCode::NOT_FOUND),
+    ] {
+        assert_eq!(
+            get(path.clone()).await.expect("answered").status(),
+            status,
+            "{path}"
+        );
+    }
+
+    // refusals that change nothing: from another site, a reason too long, no target, both
+    let cross = stack
+        .http
+        .post(format!("{}{rule}/purge", stack.url))
+        .header("origin", "https://evil.example")
+        .header("cookie", cookie(&session))
+        .form(&[("match_id", first.to_string())])
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(cross.status(), StatusCode::FORBIDDEN);
+    let long = purge(vec![
+        ("match_id", first.to_string()),
+        ("reason", "x".repeat(1025)),
+    ])
+    .await
+    .expect("answered");
+    assert_eq!(long.status(), StatusCode::BAD_REQUEST);
+    let long = long.text().await.expect("a page");
+    assert!(
+        long.contains("Nothing was purged: a reason is at most 1024 characters"),
+        "{long}"
+    );
+    assert!(long.contains(&format!("rows=\"3\">{}</textarea>", "x".repeat(1025))));
+    for form in [
+        vec![("reason", "why".to_owned())],
+        vec![
+            ("match_id", first.to_string()),
+            ("version", "old".to_owned()),
+        ],
+        vec![("match_id", "x".to_owned())],
+    ] {
+        let refused = purge(form.clone()).await.expect("answered");
+        assert_eq!(refused.status(), StatusCode::BAD_REQUEST, "{form:?}");
+    }
+    assert_eq!(qa_rows(&stack).await, 4);
+    assert_eq!(stack.audit_count().await, audit);
+
+    // another rule's match, named in this rule's purge, stays
+    let elsewhere = purge(vec![("match_id", other.to_string())])
+        .await
+        .expect("answered");
+    assert_eq!(elsewhere.status(), StatusCode::OK);
+    assert!(
+        elsewhere
+            .text()
+            .await
+            .expect("a page")
+            .contains("Purged 0 stored files")
+    );
+    assert_eq!(qa_rows(&stack).await, 4);
+    assert_eq!(
+        stack.audit_count().await,
+        audit,
+        "a purge that finds nothing has no row"
+    );
+
+    let done = purge(vec![
+        ("match_id", first.to_string()),
+        ("reason", "<b>false positive</b>".to_owned()),
+    ])
+    .await
+    .expect("answered");
+    assert_eq!(done.status(), StatusCode::OK);
+    let done = done.text().await.expect("a page");
+    assert!(
+        done.contains(&format!(
+            "Purged 1 stored file of <code>{HOSTILE_ESCAPED}</code>."
+        )),
+        "{done}"
+    );
+    assert!(!done.contains("Purge again"));
+    assert_eq!(qa_rows(&stack).await, 3);
+    assert_eq!(stack.audit_count().await, audit + 1);
+    assert_eq!(last_action(&stack).await, "purge_qa_matches");
+    let details: String =
+        sqlx::query_scalar("SELECT details::text FROM service.audit ORDER BY id DESC LIMIT 1")
+            .fetch_one(&pool)
+            .await
+            .expect("a row");
+    assert!(details.contains("<b>false positive</b>"), "{details}");
+
+    let versions = purge(vec![("version", "old".to_owned())])
+        .await
+        .expect("answered");
+    assert_eq!(versions.status(), StatusCode::OK);
+    assert!(
+        versions
+            .text()
+            .await
+            .expect("a page")
+            .contains("Purged 2 stored files")
+    );
+    assert_eq!(qa_rows(&stack).await, 1);
+    assert_eq!(stack.audit_count().await, audit + 2);
+    let _ = third;
 }

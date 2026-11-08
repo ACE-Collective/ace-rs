@@ -1,0 +1,86 @@
+{#- ace3's signatures/yara_qa.html (PLAN.md 5.11's signatures area): the rules in QA mode and the rules
+    with matches kept, with ace3's filters as a GET form and its pages as links. A rule's name, uuid,
+    namespace, file and tags are what its author wrote, so they're text, and a rule's link is its uuid
+    percent-encoded (src/signatures.rs). -#}
+{% extends "base.html" %}
+{% block title %}Yara QA Results · ACE{% endblock %}
+{% block content %}
+<section class="signatures">
+  <p><a href="/signatures">Signatures</a></p>
+  <h1>Yara QA Results</h1>
+  <p class="muted">YARA rules with <code>modifiers = "qa"</code> match live data without alerting. The files they match are
+    kept for review, up to a cap per rule, until they have not matched for a while. Open a rule to see its files.
+    Downloads are zips protected with the password <code>infected</code>.</p>
+  {%- if let Some(warning) = view.warning %}
+  <p class="warning" role="alert">{{ warning }}</p>
+  {%- endif %}
+
+  <form method="get" action="/signatures/yara-qa" class="qa-filters">
+    <label>Search <input type="text" name="q" value="{{ view.form.q }}" placeholder="rule name, uuid, namespace, file"></label>
+    <label>Status
+      <select name="status">
+        <option value="qa"{% if view.form.status == "qa" %} selected{% endif %}>In QA mode</option>
+        <option value="not_qa"{% if view.form.status == "not_qa" %} selected{% endif %}>No longer in QA mode</option>
+        <option value=""{% if view.form.status.is_empty() %} selected{% endif %}>All</option>
+      </select>
+    </label>
+    <label>Matches
+      <select name="has_matches">
+        <option value=""{% if view.form.has_matches.is_empty() %} selected{% endif %}>any</option>
+        <option value="true"{% if view.form.has_matches == "true" %} selected{% endif %}>has matched</option>
+        <option value="false"{% if view.form.has_matches == "false" %} selected{% endif %}>never matched</option>
+      </select>
+    </label>
+    <label>Sort
+      <select name="sort">
+        <option value="name"{% if view.form.sort == "name" %} selected{% endif %}>name</option>
+        <option value="last_match"{% if view.form.sort == "last_match" %} selected{% endif %}>last match</option>
+        <option value="match_count"{% if view.form.sort == "match_count" %} selected{% endif %}>match count</option>
+      </select>
+    </label>
+    <label><input type="checkbox" name="descending" value="true"{% if view.form.descending %} checked{% endif %}> descending</label>
+    <label>Per page
+      <select name="limit">
+        {%- for size in view.page_sizes %}
+        <option value="{{ size }}"{% if *size == view.form.limit %} selected{% endif %}>{{ size }}</option>
+        {%- endfor %}
+      </select>
+    </label>
+    <button type="submit">Apply</button>
+    <a href="/signatures/yara-qa">Reset</a>
+  </form>
+
+  <table class="keys qa-rules">
+    <thead>
+      <tr>
+        <th>Rule</th><th>UUID</th><th>Status</th><th>Enabled</th>
+        <th title="every match, including those past the file cap">Matches</th>
+        <th title="files kept for review">Stored</th>
+        <th title="versions of the rule that have matched">Versions</th>
+        <th>Last match</th>
+      </tr>
+    </thead>
+    <tbody>
+      {%- for rule in view.rows %}
+      <tr>
+        <td class="qa-text"><a href="{{ rule.href }}"><b>{{ rule.name }}</b></a>{% if !rule.path.is_empty() %}<br><span class="muted">{{ rule.path }}</span>{% endif %}</td>
+        <td class="qa-text"><code>{{ rule.uuid }}</code></td>
+        <td>{% if rule.in_qa %}<span class="badge">{{ rule.status }}</span>{% else %}<span class="muted">{{ rule.status }}</span>{% endif %}</td>
+        <td>{{ rule.enabled }}</td>
+        <td>{{ rule.match_count }}</td>
+        <td>{{ rule.stored_count }}</td>
+        <td>{{ rule.version_count }}</td>
+        <td class="nowrap">{{ rule.last_match }}</td>
+      </tr>
+      {%- else %}
+      <tr><td colspan="8" class="muted">No signatures match these filters.</td></tr>
+      {%- endfor %}
+    </tbody>
+  </table>
+  <nav class="pager" aria-label="Pages">
+    {%- if let Some(previous) = view.previous %}<a href="{{ previous }}" rel="prev">Previous</a>{% endif %}
+    <span class="muted">{{ view.first_shown }}–{{ view.last_shown }} of {{ view.total }}</span>
+    {%- if let Some(next) = view.next %}<a href="{{ next }}" rel="next">Next</a>{% endif %}
+  </nav>
+</section>
+{% endblock %}

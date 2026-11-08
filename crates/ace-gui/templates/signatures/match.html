@@ -1,0 +1,56 @@
+{#- ace3's YARA QA match modal (signatures/yara_qa.html, PLAN.md 5.11's signatures area) as a page: the
+    rule as it matched, each string's count and first offset, and the rule's meta as JSON, all text
+    (src/signatures.rs). -#}
+{% extends "base.html" %}
+{% block title %}Match {{ view.row.id }} · Yara QA · ACE{% endblock %}
+{% block content %}
+<section class="signatures">
+  <p><a href="/signatures">Signatures</a> / <a href="/signatures/yara-qa">Yara QA Results</a> / <a href="{{ view.rule_href }}">{{ view.rule }}</a></p>
+  <h1>Match {{ view.row.id }}</h1>
+  <table class="details">
+    <tr><th>Rule</th><td class="qa-text">{{ view.rule }}</td></tr>
+    <tr><th>Namespace</th><td class="qa-text">{{ view.namespace }}</td></tr>
+    <tr><th>UUID</th><td class="qa-text"><code>{{ view.uuid }}</code></td></tr>
+    <tr><th>Version</th><td class="qa-text"><code>{{ view.row.version }}</code></td></tr>
+    <tr><th>Ruleset</th><td class="qa-text"><code>{{ view.ruleset }}</code></td></tr>
+    <tr><th>File</th><td class="qa-text">{{ view.row.file_path }}</td></tr>
+    <tr><th>SHA256</th><td class="qa-text"><code>{{ view.row.sha256 }}</code></td></tr>
+    <tr><th>Size</th><td>{{ view.row.size }}</td></tr>
+    <tr><th>Analysis</th><td>{% if let Some(alert) = view.row.alert %}<a href="{{ alert }}">{{ view.root }}</a>{% else %}<code>{{ view.root }}</code> <span class="muted">(not an alert)</span>{% endif %}</td></tr>
+    <tr><th>Hits</th><td>{{ view.row.hit_count }}</td></tr>
+    <tr><th>First seen</th><td>{{ view.row.first_seen }}</td></tr>
+    <tr><th>Last seen</th><td>{{ view.row.last_seen }}</td></tr>
+    <tr><th>Expires</th><td>{{ view.row.expires }}</td></tr>
+    {%- if let Some(summary) = view.summary %}
+    <tr><th>Tags</th><td class="qa-text">{{ summary.tags }}</td></tr>
+    <tr><th>Commit</th><td class="qa-text"><code>{{ summary.commit }}</code></td></tr>
+    <tr><th>String matches</th><td>{{ summary.string_matches }}</td></tr>
+    {%- endif %}
+  </table>
+  <p class="actions-bar">
+    <a href="{{ view.record }}">Full match record (JSON)</a>
+    {%- if let Some(download) = view.row.download %} <a href="{{ download }}" title="password: infected">Download</a>{% endif %}
+  </p>
+  {%- if let Some(summary) = view.summary %}
+  <div class="section">
+    <h2>Strings</h2>
+    <table class="keys">
+      <thead><tr><th>String</th><th>Matches</th><th>First offset</th></tr></thead>
+      <tbody>
+        {%- for s in summary.strings %}
+        <tr><td class="qa-text"><code>{{ s.identifier }}</code></td><td>{{ s.count }}</td><td><code>{{ s.first_offset }}</code></td></tr>
+        {%- else %}
+        <tr><td colspan="3" class="muted">No strings.</td></tr>
+        {%- endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="section">
+    <h2>Meta</h2>
+    <pre class="qa-meta">{{ summary.meta }}</pre>
+  </div>
+  {%- else %}
+  <p class="muted">The record isn't one the YARA module writes; the full record has it as it is.</p>
+  {%- endif %}
+</section>
+{% endblock %}

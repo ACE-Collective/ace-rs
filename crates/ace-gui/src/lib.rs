@@ -34,6 +34,10 @@
 //! - `admin`: the administration area under `admin:read` (5.11's admin area), ace3's `admin/hub.html` and
 //!   `admin/manage.html`: users, groups, grants and keys over the `users` service. The base layout links
 //!   to it for whoever holds `admin:read`.
+//! - `signatures`: the signatures area under `signature:read` (5.11's signatures area), ace3's
+//!   `signatures/hub.html` and `yara_qa.html`: the YARA QA rules, their versions and kept files, the
+//!   links to the API's downloads, and purges with a confirm page, over the `yara_qa` service. The base
+//!   layout links to it for whoever holds `signature:read`.
 //!
 //! From ace3's `app/templates/base.html` and `core.html`, and what differs: the layout keeps ace3's
 //! theme attribute on `<html>`, its five themes and its log out by POST. It has none of ace3's jQuery,
@@ -59,6 +63,7 @@ mod places;
 pub mod preferences;
 pub mod saved_filters;
 mod session;
+pub mod signatures;
 pub mod templates;
 
 pub use actions::{ObservableAction, ObservableActions};
@@ -203,6 +208,26 @@ impl Gui {
                 get(admin::key_page).post(admin::save_key),
             )
             .route("/admin/keys/{id}/revoke", post(admin::revoke_key))
+            .route("/signatures", get(signatures::hub))
+            .route("/signatures/yara-qa", get(signatures::yara_qa))
+            .route(
+                "/signatures/yara-qa/rules/{uuid}",
+                get(signatures::rule_page),
+            )
+            .route(
+                "/signatures/yara-qa/rules/{uuid}/download",
+                get(signatures::download_selected),
+            )
+            .route(
+                "/signatures/yara-qa/rules/{uuid}/purge",
+                get(signatures::confirm_purge)
+                    .post(signatures::purge)
+                    .layer(DefaultBodyLimit::max(signatures::MAX_PURGE_FORM_BYTES)),
+            )
+            .route(
+                "/signatures/yara-qa/matches/{id}",
+                get(signatures::match_page),
+            )
             .route("/alerts/{id}", get(alert::page))
             .route("/alerts/{id}/live", get(alert::live))
             .route("/alerts/{id}/results/{result}", get(alert::result_page))

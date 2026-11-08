@@ -79,6 +79,8 @@ pub struct Layout {
     pub path: String,
     /// Whether the viewer holds `admin:read`, for the link to the administration area.
     pub admin: bool,
+    /// Whether the viewer holds `signature:read`, for the link to the signatures area.
+    pub signatures: bool,
     pub stylesheet: String,
     pub datastar: String,
 }
@@ -92,6 +94,7 @@ impl Layout {
             username,
             path: path.to_owned(),
             admin: false,
+            signatures: false,
             stylesheet: STYLESHEET.url(),
             datastar: DATASTAR.url(),
         }

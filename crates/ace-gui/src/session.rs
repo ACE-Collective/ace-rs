@@ -85,6 +85,14 @@ pub(crate) async fn layout_for(gui: &Gui, actor: Option<&Actor>, parts: &Parts) 
             tracing::warn!(%actor, "checking admin:read failed, so the page has no admin link: {error}");
             false
         });
+    layout.signatures = gui
+        .service
+        .allowed(actor, &ace_service::SIGNATURE_READ)
+        .await
+        .unwrap_or_else(|error| {
+            tracing::warn!(%actor, "checking signature:read failed, so the page has no signatures link: {error}");
+            false
+        });
     layout
 }
 

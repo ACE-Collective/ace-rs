@@ -1,0 +1,14 @@
+{#- What a YARA QA purge did (PLAN.md 5.11's signatures area), as ace3's notice says it (src/signatures.rs). -#}
+{% extends "base.html" %}
+{% block title %}Purged · Yara QA · ACE{% endblock %}
+{% block content %}
+<section class="signatures">
+  <p><a href="/signatures">Signatures</a> / <a href="/signatures/yara-qa">Yara QA Results</a></p>
+  <h1>Purged</h1>
+  <p class="notice" role="status">Purged {{ purged }} stored file{% if purged != 1 %}s{% endif %} of <code>{{ uuid }}</code>.{% if remaining > 0 %} {{ remaining }} more {% if remaining == 1 %}is{% else %}are{% endif %} left, past what one purge removes.{% endif %}</p>
+  {%- if let Some(again) = again %}
+  <p><a href="{{ again }}">Purge again…</a></p>
+  {%- endif %}
+  <p><a href="{{ rule_href }}">Back to the rule</a></p>
+</section>
+{% endblock %}

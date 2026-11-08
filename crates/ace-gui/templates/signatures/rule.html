@@ -1,0 +1,104 @@
+{#- A rule's row of ace3's signatures/yara_qa.html, expanded, as its own page (PLAN.md 5.11's signatures
+    area): its versions and a page of its kept files. The files' form ticks files to download or purge;
+    a purge goes to its confirm page first. Everything from the rule or a file is text, and a link holds a
+    uuid or a version only percent-encoded (src/signatures.rs). -#}
+{% extends "base.html" %}
+{% block title %}{{ view.rule.name }} · Yara QA · ACE{% endblock %}
+{% block content %}
+<section class="signatures">
+  <p><a href="/signatures">Signatures</a> / <a href="/signatures/yara-qa">Yara QA Results</a></p>
+  <h1 class="qa-text">{{ view.rule.name }}</h1>
+  {%- if let Some(warning) = view.warning %}
+  <p class="warning" role="alert">{{ warning }}</p>
+  {%- endif %}
+  <table class="details">
+    <tr><th>UUID</th><td class="qa-text"><code>{{ view.rule.uuid }}</code></td></tr>
+    <tr><th>Status</th><td>{{ view.rule.status }}{% if !view.rule.enabled.is_empty() %}, enabled: {{ view.rule.enabled }}{% endif %}</td></tr>
+    <tr><th>Namespace</th><td class="qa-text">{{ view.rule.namespace }}</td></tr>
+    <tr><th>File</th><td class="qa-text">{{ view.rule.path }}</td></tr>
+    <tr><th>Tags</th><td class="qa-text">{% for tag in view.rule.tags %}{{ tag }}{% if !loop.last %}, {% endif %}{% endfor %}</td></tr>
+    <tr><th>Matches</th><td>{{ view.rule.match_count }}, {{ view.rule.stored_count }} stored</td></tr>
+    <tr><th>First match</th><td>{{ view.rule.first_match }}</td></tr>
+    <tr><th>Last match</th><td>{{ view.rule.last_match }}</td></tr>
+  </table>
+  {%- if let Some(loaded) = view.loaded_now %}
+  <p class="muted">{{ loaded }}</p>
+  {%- endif %}
+
+  <div class="section">
+    <h2>Versions</h2>
+    {%- if view.versions.is_empty() %}
+    <p class="muted">No version of this rule has matched.</p>
+    {%- else %}
+    <table class="keys">
+      <thead><tr><th>Version</th><th>Rule</th><th>Matches</th><th>Stored</th><th>First match</th><th>Last match</th></tr></thead>
+      <tbody>
+        {%- for version in view.versions %}
+        <tr>
+          <td class="qa-text">{% if version.selected %}<b><code title="{{ version.version }}">{{ version.short }}</code></b>{% else %}<a href="{{ version.href }}"><code title="{{ version.version }}">{{ version.short }}</code></a>{% endif %}{% if version.current %} <span class="badge current">current</span>{% endif %}</td>
+          <td class="qa-text">{{ version.namespace }}:{{ version.rule }}</td>
+          <td>{{ version.match_count }}</td>
+          <td>{{ version.stored_count }}</td>
+          <td class="nowrap">{{ version.first_match }}</td>
+          <td class="nowrap">{{ version.last_match }}</td>
+        </tr>
+        {%- endfor %}
+      </tbody>
+    </table>
+    {%- endif %}
+  </div>
+
+  <div class="section">
+    <h2>Stored files{% if let Some(version) = view.version %} of version <code>{{ version }}</code>{% endif %}</h2>
+    <p class="actions-bar">
+      {%- if view.version.is_some() %}<a href="{{ view.rule.href }}">All versions</a>{% endif %}
+      {%- if let Some(download) = view.download_all %} <a href="{{ download }}" title="password: infected">Download all{% if view.version.is_some() %} (this version){% endif %}</a>{% endif %}
+      {%- if let Some(purge) = view.purge_version %} <a href="{{ purge }}">Purge this version…</a>{% endif %}
+      {%- if let Some((purge, versions, files)) = view.purge_older %} <a href="{{ purge }}" title="every version but the one loaded now">Purge older versions… ({{ files }} files of {{ versions }} version{% if *versions != 1 %}s{% endif %})</a>{% endif %}
+    </p>
+    {%- if view.matches.is_empty() %}
+    <p class="muted">No stored files{% if view.version.is_some() %} for this version{% endif %}.</p>
+    {%- else %}
+    {%- if view.selectable() %}
+    <form method="get" action="{{ view.form_action() }}" id="qa-files">
+    {%- endif %}
+    <table class="keys qa-files">
+      <thead>
+        <tr>{% if view.selectable() %}<th></th>{% endif %}<th>File</th><th>SHA256</th><th>Size</th><th>Version</th><th>Hits</th><th>First seen</th><th>Last seen</th><th>Expires</th><th></th></tr>
+      </thead>
+      <tbody>
+        {%- for m in view.matches %}
+        <tr>
+          {%- if view.selectable() %}<td><input type="checkbox" name="match_id" value="{{ m.id }}" aria-label="select {{ m.id }}"></td>{% endif %}
+          <td class="qa-text">{{ m.file_path }}</td>
+          <td class="qa-text"><code title="{{ m.sha256 }}">{{ m.short_sha256 }}</code></td>
+          <td class="nowrap">{{ m.size }}</td>
+          <td class="qa-text"><code title="{{ m.version }}">{{ m.short_version }}</code></td>
+          <td>{{ m.hit_count }}</td>
+          <td class="nowrap">{{ m.first_seen }}</td>
+          <td class="nowrap">{{ m.last_seen }}</td>
+          <td class="nowrap">{{ m.expires }}</td>
+          <td class="nowrap">
+            <a href="{{ m.href }}">Match</a>
+            {%- if let Some(download) = m.download %} <a href="{{ download }}" title="password: infected">Download</a>{% endif %}
+            {%- if let Some(alert) = m.alert %} <a href="{{ alert }}">Alert</a>{% endif %}
+          </td>
+        </tr>
+        {%- endfor %}
+      </tbody>
+    </table>
+    {%- if view.selectable() %}
+    <p>
+      {%- if view.can_download %}<button type="submit" formaction="{{ view.download_selected }}" title="password: infected">Download selected</button>{% endif %}
+      {%- if view.can_purge %} <button type="submit">Purge selected…</button>{% endif %}
+    </p>
+    </form>
+    {%- endif %}
+    <nav class="pager" aria-label="Pages">
+      {%- if let Some(first) = view.first %}<a href="{{ first }}">First</a>{% endif %}
+      {%- if let Some(next) = view.next %} <a href="{{ next }}" rel="next">Next</a>{% endif %}
+    </nav>
+    {%- endif %}
+  </div>
+</section>
+{% endblock %}
