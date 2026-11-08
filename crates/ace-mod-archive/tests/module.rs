@@ -103,6 +103,24 @@ fn encrypted_zip(name: &str, options: zip::write::SimpleFileOptions) -> Vec<u8> 
     writer.finish().expect("finishes").into_inner()
 }
 
+/// A ZipCrypto member that the archive module's password, `infected`, doesn't open. ZipCrypto's
+/// header is random and checks a password by one byte, so about one write in 256 takes a wrong
+/// password too, which then decrypts to garbage; this writes again until `infected` is refused.
+fn refusing_zipcrypto_zip(name: &str) -> Vec<u8> {
+    for _ in 0..64 {
+        let bytes = encrypted_zip(name, zipcrypto(b"Secr3tPw"));
+        let mut archive =
+            zip::ZipArchive::new(std::io::Cursor::new(bytes.as_slice())).expect("reads");
+        if matches!(
+            archive.by_index_decrypt(0, b"infected"),
+            Err(zip::result::ZipError::InvalidPassword)
+        ) {
+            return bytes;
+        }
+    }
+    panic!("64 ZipCrypto headers in a row took the wrong password");
+}
+
 fn zipcrypto(password: &'static [u8]) -> zip::write::SimpleFileOptions {
     use zip::unstable::write::FileOptionsExt as _;
     zip::write::SimpleFileOptions::default()
@@ -119,7 +137,7 @@ fn aes(password: &'static str) -> zip::write::SimpleFileOptions {
 #[test]
 fn a_zip_member_the_password_doesnt_open_is_written_empty_as_7z_leaves_it() {
     for bytes in [
-        encrypted_zip("invoice.txt", zipcrypto(b"Secr3tPw")),
+        refusing_zipcrypto_zip("invoice.txt"),
         encrypted_zip("invoice.txt", aes("Secr3tPw")),
     ] {
         let harness = Harness::<ArchiveAnalyzer>::new().expect("harness");
@@ -137,7 +155,7 @@ fn a_zip_member_the_password_doesnt_open_is_written_empty_as_7z_leaves_it() {
         assert!(file.detections.is_empty(), "{:?}", file.detections);
     }
 
-    let bytes = encrypted_zip("evil.exe", zipcrypto(b"Secr3tPw"));
+    let bytes = refusing_zipcrypto_zip("evil.exe");
     let harness = Harness::<ArchiveAnalyzer>::new().expect("harness");
     let file = harness.file_bytes("a.zip", &bytes, &[]).expect("fixture");
     let Outcome::Done(result) = harness.run_parser(file).expect("runs") else {
