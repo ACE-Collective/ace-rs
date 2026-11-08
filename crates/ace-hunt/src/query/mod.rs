@@ -10,9 +10,15 @@
 //! a suppression drops the groups that alerted within it, and [`Processed::suppressed`] lists them,
 //! which the hunter records as suppression rows (6.5).
 //!
-//! Correlation (`correlate`) is 6.6's: a hunt with one isn't processed here. The rest is pure: the
-//! hunter (`ace_app::hunter`) runs the search, keeps the state and submits.
+//! A hunt with a `correlate` block (6.6) has its rows run through [`crate::correlate::engine`]
+//! first, by the caller, which hands the result over as [`Context::correlated`]: the rows that alert
+//! are processed as a search's are, an alert action's queue and analysis mode apply to an ungrouped
+//! hunt's submission, and each correlated submission is tagged `correlated` and carries in its
+//! details its share of the run's trace, the rows before correlation and which step each observable
+//! came from ([`correlation`]). The rest is pure: the hunter (`ace_app::hunter`) runs the search and
+//! the correlation, keeps the state and submits.
 
+pub mod correlation;
 pub mod extract;
 pub mod observable;
 pub mod schedule;
@@ -21,6 +27,7 @@ use chrono::{DateTime, Utc};
 use serde::Serialize;
 use serde_json::{Map as JsonMap, Value as Json, json};
 
+use crate::correlate::engine::Correlated;
 use crate::model::HuntConfig;
 use crate::query::extract::{Extractor, FileContent, Row, lookup, py_str, whole_value_patterns};
 use crate::query::observable::{EmailNormalizer, Observable};
@@ -116,11 +123,15 @@ pub struct Context<'a> {
     pub state: &'a State,
     /// A validation run, which ignores suppression, as ace3's `manual_hunt`.
     pub manual: bool,
+    /// For a hunt with a `correlate` block, what its correlation made of the rows.
+    pub correlated: Option<&'a Correlated>,
 }
 
 /// What [`process`] made of the rows.
 #[derive(Debug, Default)]
 pub struct Processed {
+    /// A correlation's `discard` dropped the run's submissions.
+    pub discarded: bool,
     pub submissions: Vec<Submission>,
     /// The submissions a group's suppression dropped, with their keys, which the hunter records.
     pub suppressed: Vec<(Submission, String)>,
@@ -129,7 +140,7 @@ pub struct Processed {
 /// Why rows weren't processed.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum ProcessError {
-    #[error("hunt {0} correlates its rows, which comes with PLAN.md 6.6")]
+    #[error("hunt {0} correlates its rows and they weren't correlated")]
     Correlation(String),
 }
 
@@ -157,15 +168,41 @@ fn text(rendered: Rendered) -> Option<String> {
     }
 }
 
-/// `QueryHunt.process_query_results`, without correlation.
+/// `QueryHunt.process_query_results`.
 pub fn process(
     hunt: &HuntConfig,
     rows: &[JsonMap<String, Json>],
     ctx: &Context<'_>,
 ) -> Result<Processed, ProcessError> {
-    if hunt.correlate.is_some() {
-        return Err(ProcessError::Correlation(hunt.name.clone()));
-    }
+    let correlated = match (&hunt.correlate, ctx.correlated) {
+        (None, _) => None,
+        (Some(_), Some(c)) => Some(c),
+        (Some(_), None) => return Err(ProcessError::Correlation(hunt.name.clone())),
+    };
+    let original = rows;
+    let alerting: Vec<JsonMap<String, Json>>;
+    let rows: &[JsonMap<String, Json>] = match correlated {
+        None => rows,
+        Some(c) if c.discarded => {
+            return Ok(Processed {
+                discarded: true,
+                ..Processed::default()
+            });
+        }
+        Some(c) => {
+            alerting = c
+                .events
+                .iter()
+                .map(|e| match crate::value::Value::Map(e.clone()).to_json() {
+                    Json::Object(m) => m,
+                    _ => JsonMap::new(),
+                })
+                .collect();
+            &alerting
+        }
+    };
+    let mut provenance = correlation::Provenance::new(hunt);
+    let mut per_event: Vec<Vec<Observable>> = Vec::with_capacity(rows.len());
     let renderer = ctx.renderer;
     let global_ignored = whole_value_patterns(&hunt.ignored_values);
     let extractor = Extractor {
@@ -189,6 +226,9 @@ pub fn process(
             None => (ctx.now, EventTimeSource::QueryTime),
         };
         let extraction = extractor.extract(row, &hunt.observable_mapping, Some(event_time));
+        if correlated.is_some() {
+            provenance.extracted(&extraction.observables);
+        }
         let mut observables: Vec<Observable> = Vec::new();
         for extracted in extraction.observables {
             match observables
@@ -212,6 +252,7 @@ pub fn process(
                 None => relationships.push((observable, mappings)),
             }
         }
+        per_event.push(observables.clone());
         if let Some(mut signature) =
             Observable::create("signature_id", &hunt.uuid, false, ctx.email)
         {
@@ -239,6 +280,19 @@ pub fn process(
                 }
                 submission.event_time = event_time;
                 submission.event_time_source = source;
+                if let Some(action) = correlated.and_then(|c| correlation::action_of(c, index)) {
+                    if let Some(queue) = action.queue_override.as_deref().filter(|q| !q.is_empty())
+                    {
+                        submission.queue = queue.to_owned();
+                    }
+                    if let Some(mode) = action
+                        .analysis_mode_override
+                        .as_deref()
+                        .filter(|m| !m.is_empty())
+                    {
+                        submission.analysis_mode = mode.to_owned();
+                    }
+                }
                 if let Some(field) = &hunt.description_field
                     && let Some(value) = row.json.get(field)
                 {
@@ -392,6 +446,20 @@ pub fn process(
         );
     }
 
+    if let Some(c) = correlated {
+        correlation::details(
+            hunt,
+            c,
+            original,
+            rows,
+            &row_submissions,
+            &per_event,
+            &provenance,
+            ctx,
+            &mut submissions,
+        );
+    }
+
     let mut processed = Processed::default();
     if group_by.is_some() && schedule::suppression(hunt).is_some() && !ctx.manual {
         for mut submission in submissions {
@@ -510,6 +578,9 @@ fn create(hunt: &HuntConfig, row: &Row<'_>, ctx: &Context<'_>) -> Submission {
                 submission.tags.push(value);
             }
         }
+    }
+    if hunt.correlate.is_some() && !submission.tags.iter().any(|t| t == "correlated") {
+        submission.tags.push("correlated".to_owned());
     }
     for link in &hunt.pivot_links {
         let field = |name: &str| {

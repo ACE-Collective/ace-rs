@@ -222,7 +222,17 @@ impl Object for Root {
     }
 }
 
-fn environment(strict: bool, limits: &Limits) -> Environment<'static> {
+/// The filters an environment has: Jinja2's, with ace3's `fromjson` unless it's `plain`.
+fn filter_list(plain: bool) -> impl Iterator<Item = &'static (&'static str, filters::FilterFn)> {
+    filters::filters()
+        .iter()
+        .filter(move |(name, _)| !(plain && *name == ACE3_FILTER))
+}
+
+/// The one filter ace3 adds to its hunt templates' environment, which its correlation's lacks.
+const ACE3_FILTER: &str = "fromjson";
+
+fn environment(strict: bool, limits: &Limits, plain: bool) -> Environment<'static> {
     let mut env = Environment::empty();
     env.set_undefined_behavior(if strict {
         UndefinedBehavior::Strict
@@ -231,7 +241,7 @@ fn environment(strict: bool, limits: &Limits) -> Environment<'static> {
     });
     env.set_fuel(Some(limits.fuel));
     env.set_recursion_limit(limits.recursion);
-    for &(name, f) in filters::filters() {
+    for &(name, f) in filter_list(plain) {
         env.add_filter(name, f);
     }
     for &(name, f) in filters::tests() {
@@ -298,6 +308,8 @@ pub struct Renderer {
     permissive: Environment<'static>,
     strict: Environment<'static>,
     limits: Limits,
+    /// Jinja2's own environment, without ace3's `fromjson`, as its correlation renders.
+    plain: bool,
 }
 
 impl Default for Renderer {
@@ -323,9 +335,22 @@ pub fn paths(template: &str) -> Result<Vec<Vec<Segment>>, String> {
 impl Renderer {
     pub fn new(limits: Limits) -> Renderer {
         Renderer {
-            permissive: environment(false, &limits),
-            strict: environment(true, &limits),
+            permissive: environment(false, &limits, false),
+            strict: environment(true, &limits, false),
             limits,
+            plain: false,
+        }
+    }
+
+    /// A renderer for a correlation's templates: ace3 renders them in a `SandboxedEnvironment` of
+    /// its own (`saq/collectors/hunter/correlation/expressions.py`), which has Jinja2's filters
+    /// and not `fromjson`.
+    pub fn correlation(limits: Limits) -> Renderer {
+        Renderer {
+            permissive: environment(false, &limits, true),
+            strict: environment(true, &limits, true),
+            limits,
+            plain: true,
         }
     }
 
@@ -344,7 +369,7 @@ impl Renderer {
             Ok(ast) => ast,
             Err(e) => return Rendered::Failed(format!("TemplateSyntaxError: {e}")),
         };
-        let filter_names: Vec<&str> = filters::filters().iter().map(|(n, _)| *n).collect();
+        let filter_names: Vec<&str> = filter_list(self.plain).map(|(n, _)| *n).collect();
         let test_names: Vec<&str> = filters::tests().iter().map(|(n, _)| *n).collect();
         let check = rewrite::Check {
             filters: &|n| filter_names.contains(&n),

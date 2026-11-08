@@ -251,6 +251,51 @@ pub fn search(
     })
 }
 
+/// The job a correlation's Splunk query creates (`SplunkQuerySource.execute_query`, which calls
+/// `SplunkClient.query`): the query with its window put in front, in the times' own offsets as
+/// they are, a `search` before it unless it's a generating command, 1000 rows at most, and the
+/// window again as the job's `earliest_time` and `latest_time`. ace3's hunts write their window in
+/// the instance's timezone; its correlation doesn't.
+pub fn correlation_form(
+    query: &str,
+    start: crate::correlate::time::Time,
+    end: crate::correlate::time::Time,
+) -> Vec<(String, String)> {
+    let mut job = query.to_owned();
+    let trimmed = query.trim_start_matches(crate::render::methods::is_space);
+    if !trimmed.starts_with('|') {
+        if trimmed.to_lowercase().starts_with("search") {
+            job = trimmed.chars().skip(6).collect();
+        }
+        job = format!("latest={} {job}", end.strftime("%m/%d/%Y:%H:%M:%S"));
+        job = format!("earliest={} {job}", start.strftime("%m/%d/%Y:%H:%M:%S"));
+        job = format!("search {job}");
+    }
+    vec![
+        ("search".to_owned(), job),
+        ("max_count".to_owned(), "1000".to_owned()),
+        ("exec_mode".to_owned(), "normal".to_owned()),
+        ("earliest_time".to_owned(), start.isoformat()),
+        ("latest_time".to_owned(), end.isoformat()),
+    ]
+}
+
+/// `SplunkQuerySource.format_timespec_for_display`: the window as `earliest=` and `latest=` in the
+/// instance's timezone, a naive time taken as UTC.
+pub fn correlation_timespec(
+    start: crate::correlate::time::Time,
+    end: crate::correlate::time::Time,
+    tz: Tz,
+) -> String {
+    let f = |t: crate::correlate::time::Time| {
+        t.utc()
+            .with_timezone(&tz)
+            .format("%m/%d/%Y:%H:%M:%S")
+            .to_string()
+    };
+    format!("earliest={} latest={}", f(start), f(end))
+}
+
 /// `strip_spl_comments`: the ```comment``` blocks out, a double-quoted string kept as it is.
 pub fn strip_comments(query: &str) -> String {
     static COMMENT: LazyLock<Regex> = LazyLock::new(|| {

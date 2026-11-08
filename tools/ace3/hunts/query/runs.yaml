@@ -103,3 +103,26 @@ deduped.yaml:
     rows:
       - {_time: "2026-11-01T16:01:00.000+00:00", user: alice}
       - {_time: "2026-11-01T16:02:00.000+00:00", user: carol}
+correlated.yaml:
+  - now: "2026-11-01T12:00:00+00:00"
+    rows:
+      - {_time: "2026-11-01T11:51:00.000+00:00", host: web1, user: alice, kind: noise}
+      - {_time: "2026-11-01T11:52:00.000+00:00", host: web2, user: bob, kind: login}
+      - {_time: "2026-11-01T11:53:00.000+00:00", host: web3, user: carol, kind: login}
+correlated_grouped.yaml:
+  - now: "2026-11-01T12:00:00+00:00"
+    rows:
+      - {_time: "2026-11-01T11:51:00.000+00:00", user: alice, kind: vpn}
+      - {_time: "2026-11-01T11:52:00.000+00:00", user: svc-backup, kind: vpn}
+      - {_time: "2026-11-01T11:53:00.000+00:00", user: bob, kind: web}
+  - now: "2026-11-01T12:10:00+00:00"
+    rows:
+      - {_time: "2026-11-01T12:05:00.000+00:00", user: carol, kind: vpn}
+      - {_time: "2026-11-01T12:06:00.000+00:00", user: svc-backup, kind: vpn}
+      - {_time: "2026-11-01T12:07:00.000+00:00", user: dave, kind: mail}
+correlated_stream.yaml:
+  - now: "2026-11-01T12:00:00+00:00"
+    rows:
+      - {_time: "2026-11-01T11:51:00.000+00:00", user: alice}
+      - {_time: "2026-11-01T11:53:00.000+00:00", user: zed}
+      - {_time: "2026-11-01T11:55:00.000+00:00", user: bob}

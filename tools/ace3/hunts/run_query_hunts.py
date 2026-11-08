@@ -21,6 +21,10 @@ Each tick starts the fake afresh with that tick's rows (--any-hostname: every se
 records every exchange, and the tick's entry in the output holds the exchanges, the submissions
 and the hunt's state after it.
 
+The correlated cases (PLAN.md step 6.6) run ace3's correlation engine in the same run, its queries
+going to the same fake through ace3's SplunkQuerySource on the `default` instance, with no secrets
+to scrub and no cache, so nothing reaches ace3's database or Redis.
+
 It also records each suppression decision (PLAN.md step 6.5). A grouped hunt's are what
 QueryHunt.process_query_results hands record_suppressed, which is replaced by a recorder, so
 nothing reaches ace3's SVS tables: each dropped submission's group value, description, event time,
@@ -159,6 +163,22 @@ def setup(work, cases):
                    saq.util, saq.util.time, saq.analysis.root):
         if hasattr(module, "local_time"):
             module.local_time = CLOCK
+
+    # correlation (step 6.6): the query sources the hunter registers at startup, ace3's `splunk` on
+    # the `default` instance; its secrets and its cache are ace3's database and Redis, which nothing
+    # here reaches, so the secrets are none and a cache lookup fails the run
+    import saq.collectors.hunter.correlation.commands
+    import saq.collectors.hunter.correlation.engine
+    from saq.collectors.hunter.correlation.sources import load_query_sources_from_config
+
+    load_query_sources_from_config(force=True)
+    saq.collectors.hunter.correlation.engine.export_encrypted_passwords = lambda: {}
+
+    def no_cache(*args, **kwargs):
+        raise SystemExit("a case's correlation reached ace3's cache")
+
+    saq.collectors.hunter.correlation.commands.get_cached_result = no_cache
+    saq.collectors.hunter.correlation.commands.set_cached_result = no_cache
     return hunts
 
 
@@ -169,7 +189,18 @@ def iso(value):
 
 
 def jsonable(value):
-    return json.loads(json.dumps(value, default=str, sort_keys=True))
+    # as ace3 saves a root's details: a datetime in EVENT_TIME_FORMAT_JSON_TZ (a correlation trace's
+    # query window), anything else it can't write as its str()
+    from saq.json_encoding import _JSONEncoder
+
+    class Encoder(_JSONEncoder):
+        def default(self, obj):
+            try:
+                return super().default(obj)
+            except TypeError:
+                return str(obj)
+
+    return json.loads(json.dumps(value, cls=Encoder, sort_keys=True))
 
 
 def observable_normal(observable):

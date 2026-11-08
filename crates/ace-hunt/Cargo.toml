@@ -21,6 +21,8 @@ minijinja = { version = "=3.0.5", default-features = false, features = ["builtin
 regex = "1.13.1"
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.154"
+# A correlation command's cache key, ace3's sha256 of its arguments (6.6).
+sha2 = "0.11.1"
 thiserror = "2.0.21"
 # The YAML parser, for its events: ace-hunt builds the values itself, as PyYAML's SafeLoader
 # resolves them (YAML 1.1), with bounds on size, depth and aliases.

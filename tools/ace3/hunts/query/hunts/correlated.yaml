@@ -1,0 +1,44 @@
+include:
+  - includes/defaults.include.yaml
+commands:
+  - name: host_context
+    description: the rows a host has around an event's time
+    type: query
+    source: splunk
+    query: "search index=ctx ace4case=correlated host={{ _event.host }}"
+    time_range:
+      before: 1h
+      after: 5m
+rule:
+  uuid: 00000000-0000-0000-0000-00000000a013
+  name: "{{ user }} on {{ host }}"
+  description: one alert a row that its correlation keeps, with each row's host context from a second search
+  query: index=auth ace4case=correlated
+  observable_mapping:
+    - field: user
+      type: user
+    - field: ctx.0.host
+      field_lookup_type: dot
+      type: hostname
+  correlate:
+    timeout: 5m
+    logic:
+      - description: drop the noise
+        when: {type: equals, property: kind, value: noise}
+        execute:
+          - action: {type: filter, log_message: "noise from {{ _event.host }}"}
+      - description: the host's context
+        transform:
+          type: event
+          method: property
+          property_name: ctx
+          property_type: list
+          command:
+            type: defined
+            name: host_context
+      - description: a busy host is critical
+        when: "{{ (_event.ctx | length) > 2 and _event.user == 'carol' }}"
+        execute:
+          - action: {type: alert, queue: critical, analysis_mode: analysis}
+        else:
+          - action: {type: log, log_message: "{{ _event.user }} isn't critical"}

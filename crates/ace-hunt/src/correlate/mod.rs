@@ -1,11 +1,41 @@
-//! A hunt's `correlate` block and its predefined `commands`, as ace3's correlation schema
-//! validates them at load (`saq/collectors/hunter/correlation/schema.py`). 6.6 runs them.
+//! Correlation hunts (PLAN.md 6.6): a hunt's `correlate` block and its predefined `commands`, as
+//! ace3's correlation schema validates them at load (`saq/collectors/hunter/correlation/schema.py`,
+//! this module, 6.2), and the engine that runs them over a search's rows ([`engine`]).
 //!
 //! A step is `when`, `transform` or `action`, decided by which key it has, as ace3's
 //! `StepConfig.dispatch_step_type` does. That dispatch is a pydantic before validator, which shapes
 //! the errors a bad step gets: the first problem in a step ends it, a step nested in a condition's
 //! branch reports its errors at its outermost step's location, and a branch that isn't a list
 //! fails the whole hunt with Python's TypeError, as in ace3.
+//!
+//! The engine's parts are ace3's: [`expr`] its expressions, [`transform`] what a transform does
+//! with a command's output, [`action`] its actions, [`command`] its commands (a query against a
+//! [`source::QuerySource`], a predefined command, or a custom type an integration registers), with
+//! [`cache`] their cache and the validator's record and replay, [`trace`] the record of a run, and
+//! [`check`] the checks hunt validation adds. [`time`] reads times as ace3 does and [`pyjson`]
+//! writes JSON as Python does.
+//!
+//! **`type: executable` doesn't run.** ace3 runs a hunt's executable, which in the signatures is a
+//! Python script under `hunts/scripts/`, in a Landlock sandbox (`saq/sandbox/`). ace4 has no Python
+//! and no sandbox runner, and how such a command runs waits for the owner: a sandbox runner with an
+//! interpreter for hunt scripts, or the scripts' work as built-in command types (PLAN.md 6.6). Until
+//! then an executable step fails as a step error, so its event falls through to an alert, as ace3's
+//! does where Landlock is missing. A hunt that names one loads and validates.
+
+pub mod action;
+pub mod cache;
+pub mod check;
+pub mod command;
+pub mod engine;
+pub mod expr;
+pub mod pyjson;
+pub mod source;
+pub mod time;
+pub mod trace;
+pub mod transform;
+
+#[cfg(test)]
+mod tests;
 
 use std::sync::LazyLock;
 
@@ -163,7 +193,8 @@ fn string_pairs<S: serde::Serializer>(
     }
 }
 
-const BUILTIN_COMMAND_TYPES: [&str; 3] = ["query", "executable", "defined"];
+/// The command types ace3's core implements; any other `type` is a custom command type.
+pub const BUILTIN_COMMAND_TYPES: [&str; 3] = ["query", "executable", "defined"];
 
 impl Correlate {
     pub fn validate(v: &Value, loc: &[Loc], errs: &mut Errors) -> V<Correlate> {
@@ -861,8 +892,227 @@ impl PredefinedCommand {
     }
 }
 
+impl PredefinedCommand {
+    /// `to_command_config(overrides)`: the command with its fields as `model_dump` gives them,
+    /// `overrides` (a `defined` command's `arguments`) replacing whole fields, validated as a
+    /// CommandConfig.
+    pub fn to_command(
+        &self,
+        overrides: Option<&JsonMap<String, Json>>,
+    ) -> Result<Command, HuntError> {
+        let mut data = crate::value::Map::new();
+        let s = |v: &Option<String>| v.as_ref().map_or(Value::Null, |s| Value::Str(s.clone()));
+        let strings = |v: &Option<Vec<String>>| {
+            v.as_ref().map_or(Value::Null, |l| {
+                Value::Seq(l.iter().map(|s| Value::Str(s.clone())).collect())
+            })
+        };
+        let json = |map: &JsonMap<String, Json>| {
+            crate::query::extract::to_loaded(&Json::Object(map.clone()))
+        };
+        data.insert(Value::str("type"), Value::Str(self.kind.clone()));
+        data.insert(Value::str("timeout"), Value::Str(self.timeout.clone()));
+        data.insert(Value::str("cache"), s(&self.cache));
+        data.insert(Value::str("source"), s(&self.source));
+        data.insert(Value::str("query"), s(&self.query));
+        data.insert(
+            Value::str("time_range"),
+            match &self.time_range {
+                None => Value::Null,
+                Some(t) => {
+                    let mut m = crate::value::Map::new();
+                    m.insert(Value::str("before"), s(&t.before));
+                    m.insert(Value::str("after"), s(&t.after));
+                    m.insert(Value::str("relative_time_field"), s(&t.relative_time_field));
+                    m.insert(
+                        Value::str("relative_time_format"),
+                        s(&t.relative_time_format),
+                    );
+                    Value::Map(m)
+                }
+            },
+        );
+        data.insert(Value::str("source_options"), json(&self.source_options));
+        data.insert(Value::str("path"), s(&self.path));
+        data.insert(
+            Value::str("stdin"),
+            self.stdin.map_or(Value::Null, Value::Bool),
+        );
+        data.insert(Value::str("args"), strings(&self.args));
+        data.insert(
+            Value::str("env"),
+            match &self.env {
+                None => Value::Null,
+                Some(pairs) => {
+                    let mut m = crate::value::Map::new();
+                    for (k, v) in pairs {
+                        m.insert(Value::Str(k.clone()), Value::Str(v.clone()));
+                    }
+                    Value::Map(m)
+                }
+            },
+        );
+        data.insert(Value::str("files"), strings(&self.files));
+        data.insert(Value::str("options"), json(&self.options));
+        for (k, v) in overrides.into_iter().flatten() {
+            data.insert(Value::Str(k.clone()), crate::query::extract::to_loaded(v));
+        }
+        let mut errs = Errors::new();
+        match Command::validate(&Value::Map(data), &[], &mut errs)? {
+            Some(command) if errs.is_empty() => Ok(command),
+            _ => Err(HuntError::Validation {
+                title: "CommandConfig".to_owned(),
+                errors: errs,
+            }),
+        }
+    }
+}
+
+/// `iter_correlate_commands`: every transform's command in the logic, in document order, into a
+/// condition's branches.
+pub fn commands(steps: &[Step]) -> Vec<&Command> {
+    let mut out = Vec::new();
+    for step in steps {
+        match &step.step {
+            StepKind::Transform(t) => out.push(&t.command),
+            StepKind::Condition(c) => {
+                out.extend(commands(&c.execute));
+                if let Some(otherwise) = &c.otherwise {
+                    out.extend(commands(otherwise));
+                }
+            }
+            StepKind::Action(_) => {}
+        }
+    }
+    out
+}
+
+/// `collect_correlate_steps` (`query_hunter.py`): each transform that sets a named property, with
+/// its step's description, in document order, for the provenance of a correlated alert's
+/// observables.
+pub fn property_steps(steps: &[Step]) -> Vec<(Option<&str>, &str)> {
+    let mut out = Vec::new();
+    for step in steps {
+        match &step.step {
+            StepKind::Transform(t) => {
+                if t.method == "property"
+                    && let Some(name) = t.property_name.as_deref().filter(|n| !n.is_empty())
+                {
+                    out.push((step.description.as_deref(), name));
+                }
+            }
+            StepKind::Condition(c) => {
+                out.extend(property_steps(&c.execute));
+                if let Some(otherwise) = &c.otherwise {
+                    out.extend(property_steps(otherwise));
+                }
+            }
+            StepKind::Action(_) => {}
+        }
+    }
+    out
+}
+
+impl Correlate {
+    /// Validates a `correlate` block as `CorrelateConfig.model_validate` does.
+    pub fn from_value(v: &Value) -> Result<Correlate, HuntError> {
+        let mut errs = Errors::new();
+        match Correlate::validate(v, &[], &mut errs)? {
+            Some(c) if errs.is_empty() => Ok(c),
+            _ => Err(HuntError::Validation {
+                title: "CorrelateConfig".to_owned(),
+                errors: errs,
+            }),
+        }
+    }
+}
+
+impl PredefinedCommand {
+    /// Validates one predefined command as `PredefinedCommandConfig.model_validate` does.
+    pub fn from_value(v: &Value) -> Result<PredefinedCommand, HuntError> {
+        let mut errs = Errors::new();
+        match PredefinedCommand::validate(v, &[], &mut errs)? {
+            Some(c) if errs.is_empty() => Ok(c),
+            _ => Err(HuntError::Validation {
+                title: "PredefinedCommandConfig".to_owned(),
+                errors: errs,
+            }),
+        }
+    }
+}
+
+impl Command {
+    /// Validates a command as `CommandConfig.model_validate` does.
+    pub fn from_value(v: &Value) -> Result<Command, HuntError> {
+        let mut errs = Errors::new();
+        match Command::validate(v, &[], &mut errs)? {
+            Some(c) if errs.is_empty() => Ok(c),
+            _ => Err(HuntError::Validation {
+                title: "CommandConfig".to_owned(),
+                errors: errs,
+            }),
+        }
+    }
+}
+
+impl Step {
+    /// Validates a step as `StepConfig.model_validate` does.
+    pub fn from_value(v: &Value) -> Result<Step, HuntError> {
+        let mut errs = Errors::new();
+        match Step::validate(v, &[], &mut errs)? {
+            Some(c) if errs.is_empty() => Ok(c),
+            _ => Err(HuntError::Validation {
+                title: "StepConfig".to_owned(),
+                errors: errs,
+            }),
+        }
+    }
+}
+
+impl Expression {
+    /// Validates an expression as `ExpressionConfig.model_validate` does, a string as a Jinja one.
+    pub fn from_value(v: &Value) -> Result<Expression, HuntError> {
+        let mut errs = Errors::new();
+        match Expression::validate(v, &[], &mut errs)? {
+            Some(c) if errs.is_empty() => Ok(c),
+            _ => Err(HuntError::Validation {
+                title: "ExpressionConfig".to_owned(),
+                errors: errs,
+            }),
+        }
+    }
+}
+
+impl Action {
+    /// Validates an action as `ActionConfig.model_validate` does, a string as its type.
+    pub fn from_value(v: &Value) -> Result<Action, HuntError> {
+        let mut errs = Errors::new();
+        match Action::validate(v, &[], &mut errs)? {
+            Some(c) if errs.is_empty() => Ok(c),
+            _ => Err(HuntError::Validation {
+                title: "ActionConfig".to_owned(),
+                errors: errs,
+            }),
+        }
+    }
+}
+
+impl Transform {
+    /// Validates a transform as `TransformConfig.model_validate` does.
+    pub fn from_value(v: &Value) -> Result<Transform, HuntError> {
+        let mut errs = Errors::new();
+        match Transform::validate(v, &[], &mut errs)? {
+            Some(c) if errs.is_empty() => Ok(c),
+            _ => Err(HuntError::Validation {
+                title: "TransformConfig".to_owned(),
+                errors: errs,
+            }),
+        }
+    }
+}
+
 #[cfg(test)]
-mod tests {
+mod timespec_tests {
     use super::*;
 
     #[test]

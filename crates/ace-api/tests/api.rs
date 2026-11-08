@@ -6098,4 +6098,111 @@ async fn hunts_router(client: &mut Client<'_>) {
             S::UNPROCESSABLE_ENTITY,
         )
         .await;
+
+    // a correlated hunt (PLAN.md 6.6): checked as ace3's validation checks one, and run over the
+    // rows sent, its saved queries replayed, a query it can't replay failing its step
+    let rows = audit_count(stack).await;
+    let correlated = client
+        .json(
+            M::POST,
+            VALIDATE,
+            VALIDATE,
+            w,
+            Send::Json(json!({
+                "compiled_hunt": hunt_package(&format!("{HUNT_RULE}{CORRELATE}")),
+                "execution_arguments": {
+                    "query_results": [
+                        {"_time": "2026-11-01T11:55:00.000+00:00", "user": "alice"},
+                        {"_time": "2026-11-01T11:56:00.000+00:00", "user": "bob"},
+                        {"_time": "2026-11-01T11:57:00.000+00:00", "user": "carol"},
+                    ],
+                    "correlate_results": {"version": 1, "queries": [
+                        {"source": "splunk", "query": "search ctx user=alice", "results": [{"seen": "1"}]},
+                    ]},
+                },
+            })),
+            S::OK,
+        )
+        .await;
+    assert_eq!(audit_count(stack).await, rows + 1, "audited");
+    let roots = correlated["roots"].as_array().expect("roots");
+    // bob is filtered
+    assert_eq!(roots.len(), 2);
+    assert_eq!(
+        roots[0]["details"]["events"][0]["ctx"],
+        json!([{"seen": "1"}])
+    );
+    assert!(
+        roots[0]["tags"]
+            .as_array()
+            .is_some_and(|t| t.contains(&json!("correlated")))
+    );
+    let trace = &correlated["correlation_trace"]["event_traces"];
+    assert_eq!(trace[1]["outcome"], "filter");
+    // carol's query wasn't saved and this process has no data source: her event alerts
+    assert_eq!(trace[2]["outcome"], "error");
+    assert!(
+        trace[2]["steps"][1]["step"]["error"]
+            .as_str()
+            .is_some_and(|e| e.contains("query source not registered")),
+        "{trace}"
+    );
+    assert!(
+        roots[1]["tags"]
+            .as_array()
+            .is_some_and(|t| t.contains(&json!("warning:hunt_error")))
+    );
+    assert_eq!(
+        correlated["original_events"].as_array().map(Vec::len),
+        Some(3)
+    );
+    assert_eq!(
+        correlated["correlate_results"],
+        json!({"version": 1, "queries": [
+            {"source": "splunk", "query": "search ctx user=alice", "results": [{"seen": "1"}]},
+        ]})
+    );
+    // a hunt that doesn't correlate has none
+    assert_eq!(ran["correlation_trace"], Value::Null);
+    assert_eq!(ran["correlate_results"], Value::Null);
+    for (correlate, why) in [
+        (
+            CORRELATE.replace("{{ _event.user }}", "{{ _secrets.key }}"),
+            "references _secrets",
+        ),
+        (
+            "  correlate:\n    logic:\n      - transform:\n          property_name: x\n          command: {type: wiz_lookup}\n".to_owned(),
+            "unknown command type 'wiz_lookup'",
+        ),
+    ] {
+        let refused = client
+            .json(
+                M::POST,
+                VALIDATE,
+                VALIDATE,
+                w,
+                Send::Json(json!({"compiled_hunt": hunt_package(&format!("{HUNT_RULE}{correlate}"))})),
+                S::BAD_REQUEST,
+            )
+            .await;
+        assert!(
+            refused["error"].as_str().is_some_and(|e| e.contains(why)),
+            "{why}: {refused}"
+        );
+    }
 }
+
+/// A correlation for the router's test: bob filtered, each other row's context from a query.
+const CORRELATE: &str = "  correlate:
+    logic:
+      - when: {type: equals, property: user, value: bob}
+        execute:
+          - action: filter
+      - transform:
+          property_name: ctx
+          property_type: list
+          command:
+            type: query
+            source: splunk
+            query: \"search ctx user={{ _event.user }}\"
+";

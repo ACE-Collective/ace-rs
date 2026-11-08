@@ -1,0 +1,30 @@
+include:
+  - includes/defaults.include.yaml
+rule:
+  uuid: 00000000-0000-0000-0000-00000000a014
+  name: logins of a kind
+  description: rows grouped by their kind after correlation, each group suppressed for half an hour
+  query: index=auth ace4case=correlated_grouped
+  group_by: kind
+  suppression: "00:30:00"
+  observable_mapping:
+    - field: user
+      type: user
+    - field: score.0.user
+      field_lookup_type: dot
+      type: user
+  correlate:
+    logic:
+      - when: {type: glob, property: user, value: "svc-*"}
+        execute:
+          - action: filter
+      - transform:
+          type: event
+          method: property
+          property_name: score
+          property_type: list
+          command:
+            type: query
+            source: splunk
+            query: "search index=score ace4case=correlated_grouped user={{ _event.user }} | head 1"
+            time_range: {before: 30m}

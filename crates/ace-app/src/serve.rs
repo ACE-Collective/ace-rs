@@ -91,6 +91,7 @@ async fn serve(app: &App) -> Result<ExitCode> {
             types: app.hunt_types().to_vec(),
             email: ace_mod_email::py::normalize_email_address,
             valid_type: |t| t.parse::<ace_results::ObservableKind>().is_ok(),
+            command_types: std::sync::Arc::new(app.command_types()),
         });
     let api = Api::new(db.clone(), bucket.clone(), orchestrator, config).await?;
     let stopping_api = api.clone();

@@ -10989,12 +10989,36 @@
           "valid"
         ],
         "properties": {
+          "correlate_results": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "A run's correlation queries and their rows, `{\"version\": 1, \"queries\": [...]}`, null for a\nhunt that doesn't correlate."
+          },
+          "correlation_trace": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "A run's correlation trace, null for a hunt that doesn't correlate."
+          },
           "error": {
             "type": [
               "string",
               "null"
             ],
             "description": "Why it isn't valid, or why its run failed."
+          },
+          "original_events": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "object"
+            },
+            "description": "A run's rows as they were sent, before correlation."
           },
           "roots": {
             "type": [

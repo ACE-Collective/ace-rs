@@ -10,6 +10,15 @@
 //! made that tick: each group `record_suppressed` was handed, and each staged submission ace3's
 //! `DuplicateSubmissionFilter` dropped. Each row points at the root of the earlier hit, and every other
 //! submission is a root with no row.
+//!
+//! PLAN.md 6.6: the `correlated*.yaml` cases correlate their rows with ace3's engine, their
+//! queries going to the same fake through ace3's `SplunkQuerySource`. Their job forms match ace3's,
+//! the correlation's included, and their submissions carry ace3's trace, original rows and
+//! provenance, with the rows `differences.md` gives. The cases of ace3's `test_sources_loader.py`
+//! and `test_splunk_source.py`, and `test_command_types.py`'s `TestLoadCommandTypesFromConfig`, are
+//! at the end: ace3 builds its sources and command types from classes its configuration names, and
+//! ace4's hunter builds its sources from its own configuration and takes its command types from the
+//! binary (`App::command_type`).
 
 use std::path::{Path, PathBuf};
 
@@ -96,6 +105,8 @@ fn config(base_url: &str, signatures: &Path, instance_type: &str) -> HunterConfi
         ca_certificates: None,
         request_timeout_seconds: 10,
         dispatch_timeout_seconds: 900,
+        user_context: None,
+        app_context: None,
     };
     HunterConfig {
         signatures: signatures.to_owned(),
@@ -109,6 +120,8 @@ fn config(base_url: &str, signatures: &Path, instance_type: &str) -> HunterConfi
         reload_seconds: 60,
         poll_seconds: 0.0,
         concurrency: 1,
+        query_sources: default_query_sources(),
+        correlation_cache_bytes: 1 << 20,
     }
 }
 
@@ -221,7 +234,7 @@ async fn the_cases_submit_as_ace3_s_hunter_does() {
             .expect("a hunter")
             .with_home(work.path().to_owned());
             let ran = hunter
-                .tick(&hunt, &state, "unknown", now, std::future::pending())
+                .tick(&hunt, &state, "unknown", now, &CancellationToken::new())
                 .await;
             assert_eq!(ran.error, None, "{label}");
             assert_eq!(
@@ -519,4 +532,240 @@ fn a_hunt_submission_becomes_the_core_s() {
         origin.details.as_ref().expect("details")["alert_type"],
         json!("a")
     );
+}
+
+fn sources_config(query_sources: Json) -> HunterConfig {
+    let mut config = config("https://127.0.0.1:1", Path::new("/nowhere"), "dev");
+    config.query_sources = serde_json::from_value(query_sources).expect("a query source config");
+    config
+}
+
+/// test_sources_loader.py test_registers_configured_source: a source as configured, on the
+/// instance it names (ace3's `kwargs`).
+#[tokio::test(flavor = "multi_thread")]
+async fn test_registers_configured_source() {
+    let hunter = Hunter::new(
+        sources_config(json!({"rec": {"type": "splunk", "instance": "eastern"}})),
+        &secrets(),
+    )
+    .expect("a hunter");
+    let sources = hunter.query_sources(&CancellationToken::new());
+    assert_eq!(sources.names(), ["rec"]);
+    // eastern's timezone is the one its display uses
+    let spec = sources
+        .get("rec")
+        .expect("registered")
+        .format_timespec_for_display(
+            Time::from(
+                DateTime::parse_from_rfc3339("2026-05-18T12:26:32Z")
+                    .expect("a time")
+                    .with_timezone(&Utc),
+            ),
+            Time::from(
+                DateTime::parse_from_rfc3339("2026-05-18T12:31:32Z")
+                    .expect("a time")
+                    .with_timezone(&Utc),
+            ),
+        )
+        .expect("formats");
+    // test_splunk_source.py test_format_timespec_uses_configured_timezone: UTC 12:26-12:31 is
+    // EDT 08:26-08:31 on 2026-05-18
+    assert_eq!(
+        spec.as_deref(),
+        Some("earliest=05/18/2026:08:26:32 latest=05/18/2026:08:31:32")
+    );
+}
+
+/// test_loaded_flag_prevents_double_registration and test_force_reloads: ace3 keeps its sources in
+/// a module global loaded once; ace4 builds them for each correlation from the configuration, so a
+/// run's sources are always the configuration's, and a stop ends only that run's.
+#[tokio::test(flavor = "multi_thread")]
+async fn test_loaded_flag_prevents_double_registration() {
+    let hunter = Hunter::new(
+        sources_config(json!({"rec": {"type": "splunk", "instance": "default"}})),
+        &secrets(),
+    )
+    .expect("a hunter");
+    let first = hunter.query_sources(&CancellationToken::new());
+    let second = hunter.query_sources(&CancellationToken::new());
+    assert_eq!(first.names(), second.names());
+}
+
+/// test_failing_source_does_not_abort_others: a source on an instance the hunter hasn't fails to
+/// load, as ace3's source whose class raises, and the others load.
+#[tokio::test(flavor = "multi_thread")]
+async fn test_failing_source_does_not_abort_others() {
+    let hunter = Hunter::new(
+        sources_config(json!({
+            "boom": {"type": "splunk", "instance": "no_such_splunk"},
+            "rec": {"type": "splunk", "instance": "default"},
+        })),
+        &secrets(),
+    )
+    .expect("a hunter");
+    let sources = hunter.query_sources(&CancellationToken::new());
+    assert!(sources.get("rec").is_ok());
+    assert!(matches!(sources.get("boom"), Err(e) if e.contains("not registered")));
+}
+
+/// test_no_op_when_hunter_config_absent.
+#[tokio::test(flavor = "multi_thread")]
+async fn test_no_op_when_hunter_config_absent() {
+    let hunter = Hunter::new(sources_config(json!({})), &secrets()).expect("a hunter");
+    assert!(hunter.query_sources(&CancellationToken::new()).is_empty());
+}
+
+/// test_splunk_source.py test_default_config_name: with no `query_sources`, `splunk` is the
+/// `default` instance, as ace3's default configuration registers it.
+#[test]
+fn test_default_config_name() {
+    let config: HunterConfig = serde_json::from_value(json!({
+        "signatures": "/nowhere", "rule_dirs": {}, "instance_type": "dev",
+    }))
+    .expect("a config");
+    assert_eq!(
+        config.query_sources,
+        BTreeMap::from([(
+            "splunk".to_owned(),
+            QuerySourceConfig::Splunk {
+                instance: "default".to_owned()
+            }
+        )])
+    );
+}
+
+/// test_default_time_field_and_format.
+#[tokio::test(flavor = "multi_thread")]
+async fn test_default_time_field_and_format() {
+    let hunter = Hunter::new(
+        sources_config(json!({"splunk": {"type": "splunk", "instance": "default"}})),
+        &secrets(),
+    )
+    .expect("a hunter");
+    let sources = hunter.query_sources(&CancellationToken::new());
+    let splunk = sources.get("splunk").expect("registered");
+    assert_eq!(splunk.default_time_field(), Some("_time"));
+    assert_eq!(splunk.default_time_format(), Some("iso8601"));
+}
+
+/// test_execute_query_passes_correct_params: the job has the query and its window, as ace3's
+/// SplunkClient.query makes it; test_execute_query_returns_results and
+/// test_execute_query_accepts_and_ignores_source_options are the correlated cases above, whose
+/// queries' rows are ace3's and whose forms match ace3's.
+#[test]
+fn test_execute_query_passes_correct_params() {
+    let start = Time::from(
+        DateTime::parse_from_rfc3339("2024-01-01T00:00:00Z")
+            .expect("a time")
+            .with_timezone(&Utc),
+    );
+    let end = Time::from(
+        DateTime::parse_from_rfc3339("2024-01-02T00:00:00Z")
+            .expect("a time")
+            .with_timezone(&Utc),
+    );
+    assert_eq!(
+        splunk::correlation_form("search index=main", start, end),
+        [
+            (
+                "search",
+                "search earliest=01/01/2024:00:00:00 latest=01/02/2024:00:00:00  index=main"
+            ),
+            ("max_count", "1000"),
+            ("exec_mode", "normal"),
+            ("earliest_time", "2024-01-01T00:00:00+00:00"),
+            ("latest_time", "2024-01-02T00:00:00+00:00"),
+        ]
+        .map(|(k, v)| (k.to_owned(), v.to_owned()))
+    );
+    // a generating command is sent as it is
+    assert_eq!(
+        splunk::correlation_form("| inputlookup x", start, end)[0].1,
+        "| inputlookup x"
+    );
+}
+
+/// test_format_timespec_unknown_config_raises: ace3 raises when it formats for an instance it
+/// hasn't; ace4 never builds a source for one (test_failing_source_does_not_abort_others).
+#[tokio::test(flavor = "multi_thread")]
+async fn test_format_timespec_unknown_config_raises() {
+    let hunter = Hunter::new(
+        sources_config(json!({"splunk": {"type": "splunk", "instance": "no_such_splunk"}})),
+        &secrets(),
+    )
+    .expect("a hunter");
+    assert!(
+        hunter
+            .query_sources(&CancellationToken::new())
+            .get("splunk")
+            .is_err()
+    );
+}
+
+struct Echo(String);
+
+impl ace_hunt::correlate::command::CommandType for Echo {
+    fn execute(
+        &self,
+        _: &ace_hunt::correlate::command::CommandContext<'_>,
+        _: &Json,
+    ) -> Result<String, String> {
+        Ok(self.0.clone())
+    }
+}
+
+/// test_command_types.py TestLoadCommandTypesFromConfig: ace3 imports each configured class with
+/// its `kwargs`; ace4's binary adds each with `App::command_type`, the integration's own settings in
+/// what it builds.
+#[test]
+fn test_registers_configured_type_with_kwargs() {
+    let app = App::new().command_type("echo", || Ok(Arc::new(Echo(">> ".to_owned()))));
+    let types = app.command_types();
+    assert_eq!(types.names(), ["echo"]);
+}
+
+/// test_loaded_flag_prevents_reload: the registry is built once a process, each call a fresh one.
+#[test]
+fn test_loaded_flag_prevents_reload() {
+    let app = App::new().command_type("echo", || Ok(Arc::new(Echo(String::new()))));
+    let (first, second) = (app.command_types(), app.command_types());
+    assert!(!Arc::ptr_eq(
+        first.get("echo").expect("registered"),
+        second.get("echo").expect("registered")
+    ));
+}
+
+#[test]
+fn test_failing_type_does_not_abort_others() {
+    let app = App::new()
+        .command_type("boom", || Err("RuntimeError: constructor boom".to_owned()))
+        .command_type("echo", || Ok(Arc::new(Echo(String::new()))));
+    let types = app.command_types();
+    assert!(types.get("echo").is_ok());
+    assert!(types.load_errors()["boom"].contains("constructor boom"));
+    // the failure, not a bare unknown type, is what a hunt using it is told
+    assert!(
+        matches!(types.get("boom"), Err(e) if e.contains("failed to load: RuntimeError: constructor boom"))
+    );
+}
+
+#[test]
+fn test_no_op_when_hunter_config_absent_for_types() {
+    assert!(App::new().command_types().names().is_empty());
+}
+
+/// test_config_entry_rejects_unknown_keys: ace3's configuration entry is a model; ace4's is a call,
+/// whose name is checked as ace3 checks a registered one.
+#[test]
+fn test_config_entry_rejects_unknown_keys() {
+    let app = App::new().command_type("Echo", || Ok(Arc::new(Echo(String::new()))));
+    let types = app.command_types();
+    assert!(types.names().is_empty());
+    assert!(types.load_errors()["Echo"].contains("invalid correlation command type name"));
+}
+
+/// test_default_config_declares_no_command_types: the open-source binary adds none.
+#[test]
+fn test_default_config_declares_no_command_types() {
+    assert!(App::new().command_types().names().is_empty());
 }

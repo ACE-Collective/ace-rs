@@ -20,13 +20,22 @@
 //!   works, as ace3's does, and a run asking for the source is 400, saying so.
 //! - `analyze_results` and `create_alerts`, which would submit the roots as the caller: 400 for now.
 //! - The answer's `logs`, every log line ace3's run wrote: ace4's tracing isn't captured per request.
-//! - `correlation_trace`, `original_events` and `correlate_results`, and correlation hunts, which come
-//!   with 6.6.
+//!
+//! Correlation (PLAN.md 6.6): a hunt with a `correlate` block is checked as ace3's validation checks
+//! one (`ace_hunt::correlate::check`), a template that reads `_secrets` or `_config` and a custom
+//! command type that isn't this binary's, failed to build, has a `cache:` it can't take or options
+//! its model refuses each a 400 with ace3's message. A run correlates the rows sent before
+//! processing them, as ace3's does, and answers with ace3's `correlation_trace`, `original_events`
+//! (the rows sent) and `correlate_results` (the correlation's queries and their rows, to save and
+//! send back as `execution_arguments.correlate_results`, whose saved answers it replays). This
+//! process holds no data source's credentials, so a correlation query it can't replay fails its step,
+//! and its event alerts with the reason on its trace.
 //! - ace3 has no enable or disable: a hunt's `enabled` is in its file, in the signatures repository.
 
 use std::path::{Component, Path as FsPath};
 use std::sync::Arc;
 
+use ace_hunt::correlate::command::CommandTypes;
 use ace_hunt::query::observable::EmailNormalizer;
 use ace_hunt::query::{self, Context, schedule::State};
 use ace_hunt::render::Renderer;
@@ -54,6 +63,8 @@ pub struct HuntSupport {
     pub email: EmailNormalizer,
     /// Whether an observable type is one the binary has.
     pub valid_type: fn(&str) -> bool,
+    /// The binary's correlation command types (`App::command_types`).
+    pub command_types: Arc<CommandTypes>,
 }
 
 impl Default for HuntSupport {
@@ -62,6 +73,7 @@ impl Default for HuntSupport {
             types: vec![Arc::new(ace_hunt::types::Splunk::default())],
             email: |_| None,
             valid_type: |t| t.parse::<ace_results::ObservableKind>().is_ok(),
+            command_types: Arc::new(CommandTypes::new()),
         }
     }
 }
@@ -370,6 +382,43 @@ pub(crate) struct ValidationBody {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(value_type = Option<Vec<Object>>)]
     roots: Option<Vec<JsonValue>>,
+    /// A run's correlation trace, null for a hunt that doesn't correlate.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(value_type = Option<Object>)]
+    correlation_trace: Option<JsonValue>,
+    /// A run's rows as they were sent, before correlation.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(value_type = Option<Vec<Object>>)]
+    original_events: Option<JsonValue>,
+    /// A run's correlation queries and their rows, `{"version": 1, "queries": [...]}`, null for a
+    /// hunt that doesn't correlate.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(value_type = Option<Object>)]
+    correlate_results: Option<JsonValue>,
+}
+
+impl ValidationBody {
+    fn refused(error: String) -> ValidationBody {
+        ValidationBody {
+            valid: false,
+            error: Some(error),
+            roots: None,
+            correlation_trace: None,
+            original_events: None,
+            correlate_results: None,
+        }
+    }
+
+    fn valid() -> ValidationBody {
+        ValidationBody {
+            valid: true,
+            error: None,
+            roots: None,
+            correlation_trace: None,
+            original_events: None,
+            correlate_results: None,
+        }
+    }
 }
 
 /// Writes the package's assets under `dir`, refusing a path outside it, and gives its target's path.
@@ -461,11 +510,7 @@ fn validate(
         (
             record,
             StatusCode::BAD_REQUEST,
-            ValidationBody {
-                valid: false,
-                error: Some(error),
-                roots: None,
-            },
+            ValidationBody::refused(error),
         )
     };
     let dir = match tempfile::tempdir() {
@@ -515,17 +560,24 @@ fn validate(
     record.kind = Some(hunt.config.kind.clone());
     record.name = Some(hunt.config.name.clone());
     record.uuid = Some(hunt.config.uuid.clone());
+    // a correlation's templates and custom command types, which loading doesn't check
+    let correlate = hunt.config.correlate.as_ref();
+    let template_errors =
+        ace_hunt::correlate::check::removed_names(correlate, Some(&hunt.commands));
+    if !template_errors.is_empty() {
+        return refuse(record, template_errors.join("; "));
+    }
+    let type_errors = ace_hunt::correlate::check::custom_command_types(
+        correlate,
+        Some(&hunt.commands),
+        &support.command_types,
+    );
+    if !type_errors.is_empty() {
+        return refuse(record, type_errors.join("; "));
+    }
     let Some(execution) = &request.execution_arguments else {
         record.valid = true;
-        return (
-            record,
-            StatusCode::OK,
-            ValidationBody {
-                valid: true,
-                error: None,
-                roots: None,
-            },
-        );
+        return (record, StatusCode::OK, ValidationBody::valid());
     };
     if execution.analyze_results || execution.create_alerts {
         return refuse(
@@ -546,13 +598,17 @@ fn validate(
         &execution.timezone,
         &execution.queue,
     );
-    let _ = (
-        &execution.time_range_overrides,
-        &execution.correlate_results,
-    );
+    let _ = &execution.time_range_overrides;
     record.events = Some(rows.len());
     let now = Utc::now();
     let renderer = Renderer::default();
+    let correlated = match correlate {
+        None => None,
+        Some(correlate) => match run_correlation(&hunt, correlate, rows, execution, support, now) {
+            Ok(c) => Some(c),
+            Err(e) => return refuse(record, format!("error executing hunt: {e}")),
+        },
+    };
     let splunk = hunt.config.kind == "splunk";
     let event_time =
         |row: &JsonMap<String, JsonValue>| splunk.then(|| ace_hunt::splunk::event_time(row, now));
@@ -571,6 +627,7 @@ fn validate(
         email: support.email,
         state: &state,
         manual: true,
+        correlated: correlated.as_ref(),
     };
     match query::process(&hunt.config, rows, &ctx) {
         Ok(processed) => {
@@ -587,18 +644,75 @@ fn validate(
                 .collect();
             record.valid = true;
             record.roots = roots.len();
-            (
-                record,
-                StatusCode::OK,
-                ValidationBody {
-                    valid: true,
-                    error: None,
-                    roots: Some(roots),
-                },
-            )
+            let mut body = ValidationBody::valid();
+            body.roots = Some(roots);
+            body.original_events = Some(json!(rows));
+            body.correlation_trace = Some(
+                correlated
+                    .as_ref()
+                    .and_then(|c| serde_json::to_value(&c.trace).ok())
+                    .unwrap_or(JsonValue::Null),
+            );
+            body.correlate_results = Some(
+                correlated
+                    .as_ref()
+                    .map(|c| json!({"version": 1, "queries": c.captured}))
+                    .unwrap_or(JsonValue::Null),
+            );
+            (record, StatusCode::OK, body)
         }
         Err(e) => refuse(record, format!("error executing hunt: {e}")),
     }
+}
+
+/// The hunt's correlation over the rows sent, as ace3's validation runs it: a zero-width window at
+/// now, the saved `correlate_results` replayed, no data source and no cache.
+fn run_correlation(
+    hunt: &ace_hunt::Hunt,
+    correlate: &ace_hunt::correlate::Correlate,
+    rows: &[JsonMap<String, JsonValue>],
+    execution: &ExecutionBody,
+    support: &HuntSupport,
+    now: DateTime<Utc>,
+) -> Result<ace_hunt::correlate::engine::Correlated, String> {
+    use ace_hunt::correlate::engine::{Engine, HuntRun, Runtime};
+    let renderer = Renderer::correlation(ace_hunt::render::Limits::default());
+    let sources = ace_hunt::correlate::source::Sources::new();
+    let clock = Utc::now;
+    let stopped = || false;
+    let rt = Runtime {
+        renderer: &renderer,
+        sources: &sources,
+        command_types: &support.command_types,
+        cache: &ace_hunt::correlate::cache::NoCache,
+        secrets: &[],
+        clock: &clock,
+        stopped: &stopped,
+        limits: Default::default(),
+    };
+    let mut run = HuntRun::at(now);
+    run.source_type = Some(hunt.config.kind.clone());
+    run.name = Some(hunt.config.name.clone());
+    run.uuid = Some(hunt.config.uuid.clone());
+    run.replay = execution
+        .correlate_results
+        .as_ref()
+        .and_then(|r| r.get("queries"))
+        .and_then(JsonValue::as_array)
+        .cloned()
+        .unwrap_or_default();
+    let events = rows
+        .iter()
+        .map(
+            |r| match ace_hunt::query::extract::to_loaded(&JsonValue::Object(r.clone())) {
+                ace_hunt::value::Value::Map(m) => m,
+                _ => ace_hunt::value::Map::new(),
+            },
+        )
+        .collect();
+    Engine::new(&rt, correlate, &hunt.commands, run)
+        .execute(events)
+        .map_err(|e| e.to_string())
 }
 
 /// Checks a hunt package the way the hunter loads it and, with `execution_arguments.query_results`,

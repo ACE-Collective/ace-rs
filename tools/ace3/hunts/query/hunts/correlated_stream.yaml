@@ -1,0 +1,24 @@
+include:
+  - includes/defaults.include.yaml
+rule:
+  uuid: 00000000-0000-0000-0000-00000000a015
+  name: "{{ user }} in the merged stream"
+  description: the rows merged by time with a second search's, then each alerting but the last
+  query: index=auth ace4case=correlated_stream
+  observable_mapping:
+    - field: user
+      type: user
+  correlate:
+    logic:
+      - transform:
+          type: stream
+          method: merge
+          merge_time_spec: {l_field: _time, l_format: iso8601, r_field: _time, r_format: iso8601}
+          command:
+            type: query
+            source: splunk
+            query: "search index=more ace4case=correlated_stream"
+            time_range: {before: 1h}
+      - when: {type: regex, property: user, value: "^z"}
+        execute:
+          - action: stop

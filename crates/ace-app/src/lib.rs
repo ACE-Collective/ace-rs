@@ -24,7 +24,7 @@
 //! Each kind of thing an ace3 integration can add (`ace3/docs/INTEGRATIONS.md`) becomes an entry
 //! here once its feature exists in ace4: analysis modules and observable types (2.31), analysis
 //! templates and observable actions (5.9, `analysis_view`, `observable_action`), hunt types (6.2,
-//! `hunt_type`), collectors with the first collector (6.1), and the rest with the phases that build
+//! `hunt_type`), correlation command types (6.6, `command_type`), collectors with the first collector (6.1), and the rest with the phases that build
 //! them.
 //!
 //! Everything here reads its configuration from the environment and the site overlay at run
@@ -62,7 +62,14 @@ pub struct App {
     views: ace_gui::Views,
     actions: ace_gui::ObservableActions,
     hunt_types: Vec<Arc<dyn ace_hunt::HuntType>>,
+    command_types: Vec<(String, CommandTypeFactory)>,
 }
+
+/// What builds a correlation command type: the handler, or why it can't be built, in the words a
+/// hunt that uses it is told.
+pub type CommandTypeFactory = Arc<
+    dyn Fn() -> Result<Arc<dyn ace_hunt::correlate::command::CommandType>, String> + Send + Sync,
+>;
 
 /// A parser pool: modules that read files, one contained process per task (PLAN.md 2.17).
 pub struct ParserPool {
@@ -138,6 +145,38 @@ impl App {
         self.hunt_types.retain(|k| k.name() != kind.name());
         self.hunt_types.push(Arc::new(kind));
         self
+    }
+
+    /// Adds a correlation command type (PLAN.md 6.6), ace3's `hunter.correlation.command_types`
+    /// entry from an integration's `saq.integration.yaml`: a correlate command whose `type` is
+    /// `name` runs the handler `build` makes. The registry is built when a process starts, the
+    /// hunter's and `ace serve`'s for validation, each type once; one that fails to build is
+    /// recorded with its error, which a hunt using it fails with, and the others still register.
+    /// One with a name already added takes its place.
+    pub fn command_type(
+        mut self,
+        name: &str,
+        build: impl Fn() -> Result<Arc<dyn ace_hunt::correlate::command::CommandType>, String>
+        + Send
+        + Sync
+        + 'static,
+    ) -> App {
+        self.command_types.retain(|(n, _)| n != name);
+        self.command_types.push((name.to_owned(), Arc::new(build)));
+        self
+    }
+
+    /// The correlation command types, built: ace3's `load_command_types_from_config`.
+    pub fn command_types(&self) -> ace_hunt::correlate::command::CommandTypes {
+        let mut types = ace_hunt::correlate::command::CommandTypes::new();
+        for (name, build) in &self.command_types {
+            let built = build().and_then(|handler| types.register(name, handler).map(|_| ()));
+            if let Err(e) = built {
+                tracing::error!(name, "failed to load correlation command type {name}: {e}");
+                types.failed(name, &e);
+            }
+        }
+        types
     }
 
     /// The hunt types the binary loads hunts of: what 6.4's hunter runs and 6.8's `ace signatures
