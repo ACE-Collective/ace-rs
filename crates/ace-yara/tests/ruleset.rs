@@ -145,6 +145,67 @@ fn the_manifest_lists_the_files_and_rules_included_and_the_files_left_out() {
     assert!(manifest.left_out[0].error.contains("not_defined"));
 }
 
+/// PLAN.md 5.6's `yara_qa` router lists the rules in QA mode from the manifest, with their uuid,
+/// `enabled` and tags, whether or not they're enabled. Rules not in QA mode aren't listed.
+#[test]
+fn the_manifest_lists_the_rules_in_qa_mode() {
+    let temp = tempfile::tempdir().unwrap();
+    let dir = temp.path();
+    std::fs::create_dir_all(dir.join("ns")).unwrap();
+    std::fs::write(
+        dir.join("ns/qa.yar"),
+        r#"
+rule normal { meta: uuid = "11111111-1111-1111-1111-111111111111" condition: false }
+rule in_qa : one two {
+    meta:
+        uuid = " 22222222-2222-2222-2222-222222222222 "
+        modifiers = "no_alert, qa"
+        description = "<script>alert(1)</script>"
+    condition: false
+}
+rule qa_off { meta: modifiers = "qa" enabled = "false" condition: false }
+rule qa_blank_uuid { meta: modifiers = "qa" uuid = "  " condition: false }
+"#,
+    )
+    .unwrap();
+    let built = build(dir, &LoadOptions::default()).unwrap();
+    let qa: Vec<_> = built
+        .manifest
+        .qa_rules
+        .iter()
+        .map(|r| {
+            (
+                r.namespace.as_str(),
+                r.path.as_str(),
+                r.name.as_str(),
+                r.uuid.as_deref(),
+                r.enabled,
+                r.tags.clone(),
+            )
+        })
+        .collect();
+    assert_eq!(
+        qa,
+        [
+            (
+                "ns",
+                "ns/qa.yar",
+                "in_qa",
+                Some("22222222-2222-2222-2222-222222222222"),
+                true,
+                vec!["one".to_string(), "two".into()]
+            ),
+            ("ns", "ns/qa.yar", "qa_off", None, false, vec![]),
+            ("ns", "ns/qa.yar", "qa_blank_uuid", None, true, vec![]),
+        ]
+    );
+    // a manifest written before the field existed reads it as empty
+    let mut old = serde_json::to_value(&built.manifest).unwrap();
+    old.as_object_mut().unwrap().remove("qa_rules");
+    let old: Manifest = serde_json::from_value(old).unwrap();
+    assert!(old.qa_rules.is_empty());
+}
+
 #[test]
 fn a_directory_outside_git_is_known_by_the_hash_of_its_sources() {
     let temp = tempfile::tempdir().unwrap();

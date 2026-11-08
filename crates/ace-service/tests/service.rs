@@ -12,6 +12,9 @@
 //!
 //! PLAN.md 5.5: a submission records its actor on the root and in its row, and a download is a row of
 //! what was read, each with the source address an adapter gives. The API's own tests are `ace-api`'s.
+//!
+//! PLAN.md 5.6's `yara_qa`: the rules in QA mode merge the current ruleset with the matches kept, a
+//! download is a row of what was read, and a purge releases only its own holds.
 
 use std::collections::BTreeSet;
 use std::io::Write;
@@ -19,7 +22,7 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
-use ace_core::bucket::{Bucket, BucketSettings};
+use ace_core::bucket::{ALERT_FILES, Bucket, BucketSettings, Hold};
 use ace_core::eligibility::Catalog;
 use ace_core::modes::Modes;
 use ace_core::orchestrator::{Orchestrator, OrchestratorError};
@@ -32,8 +35,9 @@ use ace_sdk::{Lookup, Manifest, Module, ModuleError, Outcome, TaskContext};
 use ace_service::{
     ALERT_WRITE, Actor, ApiKeyId, CATALOG, Component, CrashFilter, CrashInput, Effect, GroupId,
     Holder, MAX_CRASHES_PAGE, MIN_PASSWORD_CHARS, NewSession, Password, PermissionName,
-    PermissionPattern, Profile, RequestParts, SESSION_LIFETIME_SECONDS, Service, ServiceError,
-    SessionCookie, Transport, USER_SELF, USER_WRITE, UserId, Username, with_source_ip,
+    PermissionPattern, Profile, QaPurge, QaRuleFilter, QaSort, QaStatus, RequestParts,
+    SESSION_LIFETIME_SECONDS, Service, ServiceError, SessionCookie, Transport, USER_SELF,
+    USER_WRITE, UserId, Username, with_source_ip,
 };
 use ace_store::{BucketConfig, NodeCache, Store};
 use schemars::JsonSchema;
@@ -129,7 +133,12 @@ async fn submission(bucket: &Bucket, bytes: &[u8]) -> (Submission, Vec<Submitted
 
 /// A submitted alert with a file: the root and the file's observable.
 async fn file_alert(db: &Db, bucket: &Bucket) -> (Uuid, i64) {
-    let (submission, files) = submission(bucket, b"some file").await;
+    file_alert_with(db, bucket, b"some file").await
+}
+
+/// `file_alert` with these bytes, for a test that collects them, since other tests share the bucket.
+async fn file_alert_with(db: &Db, bucket: &Bucket, bytes: &[u8]) -> (Uuid, i64) {
+    let (submission, files) = submission(bucket, bytes).await;
     let root = service(db)
         .submit(&admin(db).await, bucket, &submission, &files)
         .await
@@ -1431,6 +1440,9 @@ async fn every_write_function_has_an_audit_test() {
         submit_records_its_row(db).await,
         download_file_records_its_row(db).await,
         download_crash_records_its_row(db).await,
+        download_qa_match_records_its_row(db).await,
+        download_qa_matches_records_its_row(db).await,
+        purge_qa_matches_records_its_row(db).await,
         update_user_records_its_row(db).await,
         update_own_profile_records_its_row(db).await,
         create_group_records_its_row(db).await,
@@ -1769,6 +1781,803 @@ async fn crashes_are_failed_tasks() {
     assert_eq!(audit_rows(db).await.len(), rows);
 }
 
+// PLAN.md 5.6's yara_qa router.
+
+const QA_UUID: &str = "4c3c8330-545d-4673-9a7c-7bd4597d0098";
+
+/// A match record as the YARA module writes one, with meta a rule's author could write.
+fn qa_record(uuid: &str) -> Value {
+    json!({
+        "rule": "qa_rule",
+        "namespace": "ns",
+        "meta": {"uuid": uuid, "modifiers": "qa", "description": "<script>alert(1)</script>"},
+        "tags": ["candidate"],
+        "commit": "c0ffee",
+        "ruleset": null,
+        "target": "mail/a.txt",
+        "strings": [
+            [10, "$a", {"base64": "RVZJTA=="}],
+            [4, "$a", {"base64": "RVZJTA=="}],
+            [7, "$b", {"base64": "RVZJTA=="}],
+        ],
+        "context": [],
+        "match_context": [],
+    })
+}
+
+/// A kept QA match of `uuid` at `version` on a file alert's file, held as the core's recorder holds one.
+async fn qa_match(
+    db: &Db,
+    bucket: &Bucket,
+    root: Uuid,
+    observable: i64,
+    uuid: &str,
+    version: &str,
+) -> i64 {
+    let (id, sha256, expires_at): (i64, String, chrono::DateTime<chrono::Utc>) = sqlx::query_as(
+        "INSERT INTO yara.qa_matches
+             (signature_uuid, signature_version, rule, namespace, sha256, file_path, root_id,
+              observable_id, match, expires_at)
+         SELECT $3, $4, 'qa_rule', 'ns', o.value, 'mail/a.txt', o.root_id, o.id, $5,
+                now() + interval '30 days'
+         FROM analysis.observables o WHERE o.root_id = $1 AND o.id = $2
+         RETURNING id, sha256, expires_at",
+    )
+    .bind(root)
+    .bind(observable)
+    .bind(uuid)
+    .bind(version)
+    .bind(qa_record(uuid))
+    .fetch_one(db.pool())
+    .await
+    .expect("a QA match");
+    bucket
+        .hold(
+            ALERT_FILES,
+            &sha256.parse().expect("a sha256"),
+            &Hold::new(ace_core::yara_qa::HOLDER_KIND, id.to_string()).until(expires_at),
+        )
+        .await
+        .expect("holds");
+    id
+}
+
+/// The current ruleset's row, with these QA rules, or none recorded.
+async fn qa_ruleset(db: &Db, qa_rules: Option<Value>) {
+    sqlx::query(
+        "INSERT INTO yara.rulesets
+             (key, commit, tree, sources_sha256, yara_x_version, files, left_out, qa_rules)
+         VALUES (repeat('a', 64), md5(random()::text), 'tree', 'sources', $1, '[]', '[]', $2)",
+    )
+    .bind(ace_core::rulesets::YARA_X_VERSION)
+    .bind(qa_rules)
+    .execute(db.pool())
+    .await
+    .expect("a ruleset");
+}
+
+/// Every QA match and every hold, whole.
+async fn qa_state(db: &Db) -> Vec<String> {
+    sqlx::query_scalar(
+        "SELECT row_to_json(q)::text FROM yara.qa_matches q
+         UNION ALL SELECT row_to_json(h)::text FROM store.holds h
+         ORDER BY 1",
+    )
+    .fetch_all(db.pool())
+    .await
+    .expect("reads")
+}
+
+/// The holds on a file, as (kind, id).
+async fn holds_on(db: &Db, sha256: &str) -> Vec<(String, String)> {
+    sqlx::query_as(
+        "SELECT holder_kind, holder_id FROM store.holds
+         WHERE pool = 'alert_files' AND sha256 = $1 ORDER BY 1, 2",
+    )
+    .bind(sha256)
+    .fetch_all(db.pool())
+    .await
+    .expect("reads")
+}
+
+async fn download_qa_match_records_its_row(db: &Db) -> String {
+    let (bucket, _cache) = bucket(db);
+    let (root, observable) = file_alert(db, &bucket).await;
+    let id = qa_match(db, &bucket, root, observable, QA_UUID, "v1").await;
+    let actor = admin(db).await;
+    let source = "192.0.2.10".parse().expect("an address");
+    let download = with_source_ip(Some(source), service(db).download_qa_match(&actor, id))
+        .await
+        .expect("may download");
+    let sha256 = hex::encode(Sha256::digest(b"some file"));
+    assert_eq!(download.qa_match.sha256, sha256);
+    assert_eq!(download.record, qa_record(QA_UUID));
+    let row = last_audit(db).await;
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: boss_json(),
+            action: "download_qa_match".to_owned(),
+            target: ("yara_qa_match".to_owned(), id.to_string()),
+            before: None,
+            after: None,
+            details: json!({
+                "signature_uuid": QA_UUID,
+                "signature_version": "v1",
+                "sha256": sha256,
+            }),
+        }
+    );
+    assert_eq!(src_ip_of_last(db).await.as_deref(), Some("192.0.2.10"));
+
+    // it needs signature:download, which signature:read isn't, and a refusal or a missing match has no row
+    let reader = UserId(Uuid::from_u128(0x6A));
+    grant(
+        db,
+        &Holder::User(reader),
+        "signature",
+        "read",
+        Effect::Allow,
+    )
+    .await;
+    let rows = audit_rows(db).await.len();
+    for refused in [
+        service(db)
+            .download_qa_match(&user(reader), id)
+            .await
+            .map(|_| ()),
+        service(db)
+            .download_qa_matches(&user(reader), QA_UUID, None, &[])
+            .await
+            .map(|_| ()),
+    ] {
+        assert!(
+            matches!(refused, Err(ServiceError::PermissionDenied { ref permission, .. })
+                if permission.to_string() == "signature:download"),
+            "{refused:?}"
+        );
+    }
+    assert!(service(db).qa_match(&user(reader), id).await.is_ok());
+    assert!(matches!(
+        service(db).download_qa_match(&actor, id + 1000).await,
+        Err(ServiceError::NotFound(why)) if why == format!("no kept YARA QA match {}", id + 1000)
+    ));
+    assert_eq!(audit_rows(db).await.len(), rows);
+    row.action
+}
+
+async fn download_qa_matches_records_its_row(db: &Db) -> String {
+    let (bucket, _cache) = bucket(db);
+    let (root, observable) = file_alert(db, &bucket).await;
+    let uuid = "download-these";
+    let first = qa_match(db, &bucket, root, observable, uuid, "v1").await;
+    let second = qa_match(db, &bucket, root, observable, uuid, "v2").await;
+    let actor = admin(db).await;
+    let sha256 = hex::encode(Sha256::digest(b"some file"));
+    let downloads = service(db)
+        .download_qa_matches(&actor, uuid, None, &[])
+        .await
+        .expect("may download");
+    let ids: Vec<i64> = downloads.iter().map(|d| d.qa_match.id).collect();
+    assert_eq!(ids, [first, second], "oldest first");
+    let row = last_audit(db).await;
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: boss_json(),
+            action: "download_qa_matches".to_owned(),
+            target: ("yara_rule".to_owned(), uuid.to_owned()),
+            before: None,
+            after: None,
+            details: json!({
+                "version": null,
+                "matches": [{"id": first, "sha256": sha256}, {"id": second, "sha256": sha256}],
+            }),
+        }
+    );
+    let downloads = service(db)
+        .download_qa_matches(&actor, uuid, Some("v2"), &[])
+        .await
+        .expect("may download");
+    assert_eq!(downloads.len(), 1);
+    assert_eq!(last_audit(db).await.details["version"], "v2");
+
+    // ids that aren't the rule's, nothing to download, or too many ids, are refused with no row
+    let rows = audit_rows(db).await.len();
+    assert!(matches!(
+        service(db).download_qa_matches(&actor, uuid, None, &[first, first + 1000]).await,
+        Err(ServiceError::NotFound(why)) if why == format!("no kept matches of this rule with ids [{}]", first + 1000)
+    ));
+    assert!(matches!(
+        service(db)
+            .download_qa_matches(&actor, uuid, Some("v3"), &[])
+            .await,
+        Err(ServiceError::NotFound(_))
+    ));
+    let many: Vec<i64> = (1..=501).collect();
+    assert!(matches!(
+        service(db)
+            .download_qa_matches(&actor, uuid, None, &many)
+            .await,
+        Err(ServiceError::TooLarge(_))
+    ));
+    assert_eq!(audit_rows(db).await.len(), rows);
+    row.action
+}
+
+async fn purge_qa_matches_records_its_row(db: &Db) -> String {
+    let (bucket, _cache) = bucket(db);
+    let (root, observable) = file_alert(db, &bucket).await;
+    let uuid = "purge-these";
+    let first = qa_match(db, &bucket, root, observable, uuid, "v1").await;
+    let second = qa_match(db, &bucket, root, observable, uuid, "v2").await;
+    let actor = admin(db).await;
+    let sha256 = hex::encode(Sha256::digest(b"some file"));
+    let purged = service(db)
+        .purge_qa_matches(
+            &actor,
+            uuid,
+            &QaPurge {
+                versions: Some(vec!["v1".to_owned()]),
+                match_ids: None,
+                reason: Some("a noisy version <b>".to_owned()),
+            },
+        )
+        .await
+        .expect("may purge");
+    assert_eq!((purged.purged, purged.remaining), (vec![first], 0));
+    let row = last_audit(db).await;
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: boss_json(),
+            action: "purge_qa_matches".to_owned(),
+            target: ("yara_rule".to_owned(), uuid.to_owned()),
+            before: Some(json!({
+                "matches": [{"id": first, "signature_version": "v1", "sha256": sha256, "root": root}],
+            })),
+            after: None,
+            details: json!({
+                "versions": ["v1"],
+                "match_ids": null,
+                "reason": "a noisy version <b>",
+                "remaining": 0,
+            }),
+        }
+    );
+
+    // a purge that finds nothing has no row, nor does a refusal or a request the service won't take
+    let rows = audit_rows(db).await.len();
+    let nothing = service(db)
+        .purge_qa_matches(
+            &actor,
+            uuid,
+            &QaPurge {
+                match_ids: Some(vec![first]),
+                ..QaPurge::default()
+            },
+        )
+        .await
+        .expect("may purge");
+    assert_eq!((nothing.purged, nothing.remaining), (vec![], 0));
+    let reader = UserId(Uuid::from_u128(0x6B));
+    grant(
+        db,
+        &Holder::User(reader),
+        "signature",
+        "download",
+        Effect::Allow,
+    )
+    .await;
+    let rows_after_grant = audit_rows(db).await.len();
+    assert_eq!(rows_after_grant, rows + 1, "the grant's own row");
+    let one = QaPurge {
+        match_ids: Some(vec![second]),
+        ..QaPurge::default()
+    };
+    assert!(matches!(
+        service(db).purge_qa_matches(&user(reader), uuid, &one).await,
+        Err(ServiceError::PermissionDenied { ref permission, .. })
+            if permission.to_string() == "signature:qa_purge"
+    ));
+    for (bad, why) in [
+        (QaPurge::default(), "give versions or match_ids, not both"),
+        (
+            QaPurge {
+                versions: Some(vec!["v2".to_owned()]),
+                match_ids: Some(vec![second]),
+                reason: None,
+            },
+            "give versions or match_ids, not both",
+        ),
+        (
+            QaPurge {
+                versions: Some(vec![]),
+                ..QaPurge::default()
+            },
+            "give 1 to 1000 versions",
+        ),
+        (
+            QaPurge {
+                match_ids: Some((0..501).collect()),
+                ..QaPurge::default()
+            },
+            "give 1 to 500 match ids, or purge by version",
+        ),
+        (
+            QaPurge {
+                match_ids: Some(vec![second]),
+                reason: Some("x".repeat(1025)),
+                ..QaPurge::default()
+            },
+            "a reason is at most 1024 characters",
+        ),
+    ] {
+        assert!(
+            matches!(
+                service(db).purge_qa_matches(&actor, uuid, &bad).await,
+                Err(ServiceError::InvalidRequest(ref got)) if got == why
+            ),
+            "{why}"
+        );
+    }
+    assert_eq!(audit_rows(db).await.len(), rows_after_grant);
+    // other writes here hold the same bytes, so only this test's holds are looked at
+    let holds = holds_on(db, &sha256).await;
+    assert!(holds.contains(&("root".to_owned(), root.to_string())));
+    assert!(
+        holds.contains(&("yara_qa".to_owned(), second.to_string())),
+        "the refused purges left the other match's hold"
+    );
+    assert!(!holds.contains(&("yara_qa".to_owned(), first.to_string())));
+    row.action
+}
+
+/// ace3's listing: the QA rules of the current ruleset, matched or not, merged with the rules that have
+/// matches kept, filtered, ordered and paged; one rule with its versions; its matches newest first; and a
+/// match with its record. A match past its expiry isn't served. Each read needs signature:read and writes
+/// no row.
+#[tokio::test]
+async fn qa_rules_merge_the_ruleset_and_the_kept_matches() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let (bucket, _cache) = bucket(db);
+    let actor = admin(db).await;
+    let (root, file) = file_alert(db, &bucket).await;
+    let empty = service
+        .qa_rules(&actor, &QaRuleFilter::default(), None, 0)
+        .await
+        .expect("lists");
+    assert_eq!((empty.total, empty.ruleset), (0, None));
+
+    // matched under two versions, a rule that left QA mode, and one past its expiry
+    let old = qa_match(db, &bucket, root, file, QA_UUID, "v1").await;
+    let new = qa_match(db, &bucket, root, file, QA_UUID, "v2").await;
+    sqlx::query(
+        "UPDATE yara.qa_matches SET hit_count = 3, first_seen = now() - interval '2 days',
+                last_seen = now() - interval '1 day' WHERE id = $1",
+    )
+    .bind(old)
+    .execute(db.pool())
+    .await
+    .expect("ages");
+    let left = qa_match(db, &bucket, root, file, "left-qa", "v1").await;
+    let expired = qa_match(db, &bucket, root, file, QA_UUID, "v0").await;
+    sqlx::query(
+        "UPDATE yara.qa_matches SET expires_at = now() - interval '1 second',
+                first_seen = now() - interval '40 days', last_seen = now() - interval '31 days'
+         WHERE id = $1",
+    )
+    .bind(expired)
+    .execute(db.pool())
+    .await
+    .expect("expires");
+
+    // a ruleset from before QA rules were recorded lists only what matched
+    qa_ruleset(db, None).await;
+    let page = service
+        .qa_rules(&actor, &QaRuleFilter::default(), None, 0)
+        .await
+        .expect("lists");
+    assert_eq!(page.total, 2);
+    assert!(!page.ruleset.expect("a ruleset").qa_rules_recorded);
+    assert!(page.rules.iter().all(|r| r.status == QaStatus::NotQa));
+
+    let hostile_uuid = "<img src=x onerror=alert(1)>/../../etc/passwd";
+    qa_ruleset(
+        db,
+        Some(json!([
+            {"namespace": "ns", "path": "ns/qa.yar", "name": "qa_rule", "uuid": QA_UUID,
+             "enabled": true, "tags": ["candidate"]},
+            {"namespace": "ns", "path": "ns/qa.yar", "name": "never_matched", "uuid": hostile_uuid,
+             "enabled": false, "tags": []},
+            {"namespace": "ns", "path": "ns/qa.yar", "name": "no_uuid", "uuid": null,
+             "enabled": true, "tags": []},
+        ])),
+    )
+    .await;
+    let page = service
+        .qa_rules(&actor, &QaRuleFilter::default(), None, 0)
+        .await
+        .expect("lists");
+    let ruleset = page.ruleset.clone().expect("a ruleset");
+    assert!(ruleset.qa_rules_recorded);
+    assert_eq!(ruleset.key, "a".repeat(64));
+    let names: Vec<&str> = page.rules.iter().map(|r| r.name.as_str()).collect();
+    assert_eq!(
+        names,
+        ["never_matched", "qa_rule", "qa_rule"],
+        "by name, then uuid"
+    );
+    assert_eq!(page.total, 3);
+    let qa = page
+        .rules
+        .iter()
+        .find(|r| r.signature_uuid == QA_UUID)
+        .expect("the QA rule");
+    assert_eq!(qa.status, QaStatus::Qa);
+    assert_eq!(qa.enabled, Some(true));
+    assert_eq!(qa.path.as_deref(), Some("ns/qa.yar"));
+    assert_eq!(qa.tags, ["candidate"]);
+    assert_eq!(
+        (qa.match_count, qa.stored_count, qa.version_count),
+        (5, 2, 3)
+    );
+    let never = &page.rules[0];
+    assert_eq!(never.signature_uuid, hostile_uuid, "a uuid is data");
+    assert_eq!(
+        (
+            never.status,
+            never.enabled,
+            never.match_count,
+            never.last_match_at
+        ),
+        (QaStatus::Qa, Some(false), 0, None)
+    );
+    let gone = page
+        .rules
+        .iter()
+        .find(|r| r.signature_uuid == "left-qa")
+        .expect("the rule that left QA mode");
+    assert_eq!(
+        (gone.status, gone.enabled, &gone.path),
+        (QaStatus::NotQa, None, &None)
+    );
+
+    let listed = |filter: QaRuleFilter, limit: Option<u32>, offset: u32| {
+        let service = service.clone();
+        let actor = actor.clone();
+        async move {
+            service
+                .qa_rules(&actor, &filter, limit, offset)
+                .await
+                .expect("lists")
+                .rules
+                .into_iter()
+                .map(|r| r.signature_uuid)
+                .collect::<Vec<_>>()
+        }
+    };
+    assert_eq!(
+        listed(
+            QaRuleFilter {
+                q: Some(" NEVER ".to_owned()),
+                ..QaRuleFilter::default()
+            },
+            None,
+            0
+        )
+        .await,
+        [hostile_uuid]
+    );
+    assert_eq!(
+        listed(
+            QaRuleFilter {
+                status: Some(QaStatus::NotQa),
+                ..QaRuleFilter::default()
+            },
+            None,
+            0
+        )
+        .await,
+        ["left-qa"]
+    );
+    assert_eq!(
+        listed(
+            QaRuleFilter {
+                has_matches: Some(false),
+                ..QaRuleFilter::default()
+            },
+            None,
+            0
+        )
+        .await,
+        [hostile_uuid]
+    );
+    assert_eq!(
+        listed(
+            QaRuleFilter {
+                sort: QaSort::MatchCount,
+                descending: true,
+                ..QaRuleFilter::default()
+            },
+            None,
+            0
+        )
+        .await,
+        [QA_UUID, "left-qa", hostile_uuid]
+    );
+    assert_eq!(
+        listed(
+            QaRuleFilter {
+                sort: QaSort::LastMatch,
+                ..QaRuleFilter::default()
+            },
+            Some(1),
+            1
+        )
+        .await,
+        [QA_UUID],
+        "never matched first, then the oldest last match"
+    );
+    for limit in [0, 501] {
+        assert!(matches!(
+            service
+                .qa_rules(&actor, &QaRuleFilter::default(), Some(limit), 0)
+                .await,
+            Err(ServiceError::InvalidRequest(_))
+        ));
+    }
+
+    let detail = service.qa_rule(&actor, QA_UUID).await.expect("reads");
+    assert_eq!(&detail.rule, qa);
+    let versions: Vec<(&str, i64, i64)> = detail
+        .versions
+        .iter()
+        .map(|v| (v.signature_version.as_str(), v.match_count, v.stored_count))
+        .collect();
+    assert_eq!(versions, [("v2", 1, 1), ("v1", 3, 1), ("v0", 1, 0)]);
+    assert!(service.qa_rule(&actor, hostile_uuid).await.is_ok());
+    assert!(matches!(
+        service.qa_rule(&actor, "nothing").await,
+        Err(ServiceError::NotFound(_))
+    ));
+
+    let page = service
+        .qa_matches(&actor, QA_UUID, None, None, None)
+        .await
+        .expect("lists");
+    let ids: Vec<i64> = page.matches.iter().map(|m| m.id).collect();
+    assert_eq!(
+        (ids, page.next),
+        (vec![new, old], None),
+        "the expired one isn't served"
+    );
+    let first = &page.matches[0];
+    assert_eq!(
+        (
+            first.root,
+            first.alerted,
+            first.observable_id,
+            first.file_size
+        ),
+        (root, true, file, Some(9))
+    );
+    assert_eq!(first.file_path, "mail/a.txt");
+    let page = service
+        .qa_matches(&actor, QA_UUID, None, Some(1), None)
+        .await
+        .expect("lists");
+    assert_eq!(page.next, Some(new));
+    let page = service
+        .qa_matches(&actor, QA_UUID, None, Some(1), page.next)
+        .await
+        .expect("lists");
+    assert_eq!((page.matches[0].id, page.next), (old, None));
+    let page = service
+        .qa_matches(&actor, QA_UUID, Some("v1"), None, None)
+        .await
+        .expect("lists");
+    assert_eq!(page.matches.len(), 1);
+    assert!(matches!(
+        service
+            .qa_matches(&actor, QA_UUID, None, Some(0), None)
+            .await,
+        Err(ServiceError::InvalidRequest(_))
+    ));
+
+    let detail = service.qa_match(&actor, new).await.expect("reads");
+    let summary = detail.summary.expect("a summary");
+    assert_eq!(
+        summary.meta["description"], "<script>alert(1)</script>",
+        "the meta is data"
+    );
+    let strings: Vec<(&str, usize, u64)> = summary
+        .strings
+        .iter()
+        .map(|s| (s.identifier.as_str(), s.count, s.first_offset))
+        .collect();
+    assert_eq!(strings, [("$a", 2, 4), ("$b", 1, 7)]);
+    assert_eq!(summary.commit.as_deref(), Some("c0ffee"));
+    assert_eq!(
+        service.qa_match_record(&actor, new).await.expect("reads"),
+        qa_record(QA_UUID)
+    );
+    for missing in [expired, left + 1000] {
+        assert!(matches!(
+            service.qa_match(&actor, missing).await,
+            Err(ServiceError::NotFound(_))
+        ));
+        assert!(matches!(
+            service.qa_match_record(&actor, missing).await,
+            Err(ServiceError::NotFound(_))
+        ));
+    }
+
+    // a record the scanner didn't write has no summary
+    sqlx::query("UPDATE yara.qa_matches SET match = '{\"not\": \"a scan result\"}' WHERE id = $1")
+        .bind(left)
+        .execute(db.pool())
+        .await
+        .expect("changes the record");
+    assert_eq!(
+        service.qa_match(&actor, left).await.expect("reads").summary,
+        None
+    );
+
+    // reads need signature:read, which alert:read isn't, and write no row
+    let rows = audit_rows(db).await.len();
+    let outsider = UserId(Uuid::from_u128(0x6C));
+    grant(db, &Holder::User(outsider), "alert", "read", Effect::Allow).await;
+    let outsider = user(outsider);
+    let refusals = [
+        service
+            .qa_rules(&outsider, &QaRuleFilter::default(), None, 0)
+            .await
+            .map(|_| ()),
+        service.qa_rule(&outsider, QA_UUID).await.map(|_| ()),
+        service
+            .qa_matches(&outsider, QA_UUID, None, None, None)
+            .await
+            .map(|_| ()),
+        service.qa_match(&outsider, new).await.map(|_| ()),
+        service.qa_match_record(&outsider, new).await.map(|_| ()),
+    ];
+    for refused in refusals {
+        assert!(
+            matches!(refused, Err(ServiceError::PermissionDenied { ref permission, .. })
+                if permission.to_string() == "signature:read"),
+            "{refused:?}"
+        );
+    }
+    assert_eq!(audit_rows(db).await.len(), rows + 1, "only the grant's row");
+}
+
+/// A purge releases only its own matches' holds: a file that a root or another match still holds stays
+/// through GC, and goes once nothing holds it. A purge of more than 500 says what's left.
+#[tokio::test]
+async fn a_purge_releases_only_its_own_holds() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let (bucket, _cache) = bucket(db);
+    let actor = admin(db).await;
+    let bytes = b"a file only the purge test holds";
+    let (root, file) = file_alert_with(db, &bucket, bytes).await;
+    let sha256 = hex::encode(Sha256::digest(bytes));
+    let ours = qa_match(db, &bucket, root, file, QA_UUID, "v1").await;
+    let theirs = qa_match(db, &bucket, root, file, "another-rule", "v1").await;
+    let age_and_collect = || async {
+        sqlx::query(
+            "UPDATE store.objects SET last_held_at = now() - interval '2 days'
+             WHERE pool = 'alert_files' AND sha256 = $1",
+        )
+        .bind(&sha256)
+        .execute(db.pool())
+        .await
+        .expect("ages");
+        bucket.gc(ALERT_FILES).await.expect("collects");
+        bucket
+            .object(ALERT_FILES, &sha256.parse().expect("a sha256"))
+            .await
+            .expect("reads")
+            .is_some()
+    };
+
+    let purged = service
+        .purge_qa_matches(
+            &actor,
+            QA_UUID,
+            &QaPurge {
+                match_ids: Some(vec![ours, theirs]),
+                ..QaPurge::default()
+            },
+        )
+        .await
+        .expect("purges");
+    assert_eq!(
+        purged.purged,
+        [ours],
+        "another rule's match isn't this rule's to purge"
+    );
+    assert_eq!(
+        holds_on(db, &sha256).await,
+        [
+            ("root".to_owned(), root.to_string()),
+            ("yara_qa".to_owned(), theirs.to_string()),
+        ]
+    );
+    let last_held: bool = sqlx::query_scalar(
+        "SELECT last_held_at > now() - interval '1 minute' FROM store.objects
+         WHERE pool = 'alert_files' AND sha256 = $1",
+    )
+    .bind(&sha256)
+    .fetch_one(db.pool())
+    .await
+    .expect("reads");
+    assert!(last_held, "a release starts the grace again");
+    assert!(
+        age_and_collect().await,
+        "the root and the other match hold it"
+    );
+
+    service
+        .purge_qa_matches(
+            &actor,
+            "another-rule",
+            &QaPurge {
+                versions: Some(vec!["v1".to_owned()]),
+                ..QaPurge::default()
+            },
+        )
+        .await
+        .expect("purges");
+    assert_eq!(
+        holds_on(db, &sha256).await,
+        [("root".to_owned(), root.to_string())]
+    );
+    assert!(age_and_collect().await, "the root still holds it");
+    bucket
+        .release(
+            ALERT_FILES,
+            &sha256.parse().expect("a sha256"),
+            &Hold::root(root),
+        )
+        .await
+        .expect("releases");
+    assert!(!age_and_collect().await, "nothing holds it, so it goes");
+
+    // more than one purge's worth: 501 versions of one rule
+    sqlx::query(
+        "INSERT INTO yara.qa_matches
+             (signature_uuid, signature_version, rule, namespace, sha256, file_path, root_id,
+              observable_id, match, expires_at)
+         SELECT 'many', 'v' || n, 'r', 'ns', $1, 'p', $2, 1, '{}', now() + interval '1 day'
+         FROM generate_series(1, 501) AS n",
+    )
+    .bind(&sha256)
+    .bind(root)
+    .execute(db.pool())
+    .await
+    .expect("adds matches");
+    let versions: Vec<String> = (1..=501).map(|n| format!("v{n}")).collect();
+    let everything = QaPurge {
+        versions: Some(versions),
+        ..QaPurge::default()
+    };
+    let first = service
+        .purge_qa_matches(&actor, "many", &everything)
+        .await
+        .expect("purges");
+    assert_eq!((first.purged.len(), first.remaining), (500, 1));
+    let rest = service
+        .purge_qa_matches(&actor, "many", &everything)
+        .await
+        .expect("purges");
+    assert_eq!((rest.purged.len(), rest.remaining), (1, 0));
+}
+
 async fn disposition_records_its_row(db: &Db) -> String {
     let service = service(db);
     let root = alert(db).await;
@@ -1954,6 +2763,7 @@ async fn every_write_fails_when_its_audit_fails() {
     let (bucket, _cache) = bucket(db);
     let (file_root, file) = file_alert(db, &bucket).await;
     let crash = failed_task(db, file_root, file, "crasher", "the module panicked").await;
+    let qa = qa_match(db, &bucket, file_root, file, QA_UUID, "v1").await;
     let (submitted, files) = submission(&bucket, b"another file").await;
     let before = (
         row(db, root).await,
@@ -1963,6 +2773,7 @@ async fn every_write_fails_when_its_audit_fails() {
         credential_rows(db).await,
         root_count(db).await,
         group_rows(db).await,
+        qa_state(db).await,
     );
 
     sqlx::raw_sql("ALTER TABLE service.audit ADD CONSTRAINT broken CHECK (false) NOT VALID")
@@ -2102,6 +2913,37 @@ async fn every_write_fails_when_its_audit_fails() {
                 .expect_err("refused"),
         ),
         (
+            "download_qa_match",
+            service
+                .download_qa_match(&actor, qa)
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "download_qa_matches",
+            service
+                .download_qa_matches(&actor, QA_UUID, None, &[])
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "purge_qa_matches",
+            service
+                .purge_qa_matches(
+                    &actor,
+                    QA_UUID,
+                    &QaPurge {
+                        match_ids: Some(vec![qa]),
+                        ..QaPurge::default()
+                    },
+                )
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
             "update_user",
             service
                 .update_user(&actor, bob, &display_name("Bob"))
@@ -2202,6 +3044,7 @@ async fn every_write_fails_when_its_audit_fails() {
         credential_rows(db).await,
         root_count(db).await,
         group_rows(db).await,
+        qa_state(db).await,
     );
     assert_eq!(after, before);
     assert_eq!(

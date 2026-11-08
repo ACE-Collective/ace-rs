@@ -375,29 +375,8 @@ impl Bucket {
         sha256: &Sha256,
         hold: &Hold,
     ) -> Result<bool, BucketError> {
-        let hex = sha256.to_hex();
         let mut tx = self.db.begin().await?;
-        let released = sqlx::query!(
-            "DELETE FROM store.holds
-             WHERE pool = $1 AND sha256 = $2 AND holder_kind = $3 AND holder_id = $4",
-            pool,
-            hex,
-            hold.kind,
-            hold.id,
-        )
-        .execute(tx.conn())
-        .await?
-        .rows_affected()
-            > 0;
-        if released {
-            sqlx::query!(
-                "UPDATE store.objects SET last_held_at = now() WHERE pool = $1 AND sha256 = $2",
-                pool,
-                hex,
-            )
-            .execute(tx.conn())
-            .await?;
-        }
+        let released = release_in(&mut tx, pool, sha256, hold).await?;
         tx.commit().await?;
         Ok(released)
     }
@@ -563,6 +542,41 @@ impl Bucket {
 enum ObjectState {
     Present,
     Deleting,
+}
+
+/// `Bucket::release`, inside the caller's transaction, so a row that holds an object and its hold
+/// go together. Only this hold goes: an object another hold keeps, such as a root's, stays, and
+/// one that nothing holds any more lives for its pool's grace from now. False when there was no
+/// such hold.
+pub async fn release_in(
+    tx: &mut Tx<'_>,
+    pool: &str,
+    sha256: &Sha256,
+    hold: &Hold,
+) -> Result<bool, BucketError> {
+    let hex = sha256.to_hex();
+    let released = sqlx::query!(
+        "DELETE FROM store.holds
+         WHERE pool = $1 AND sha256 = $2 AND holder_kind = $3 AND holder_id = $4",
+        pool,
+        hex,
+        hold.kind,
+        hold.id,
+    )
+    .execute(tx.conn())
+    .await?
+    .rows_affected()
+        > 0;
+    if released {
+        sqlx::query!(
+            "UPDATE store.objects SET last_held_at = now() WHERE pool = $1 AND sha256 = $2",
+            pool,
+            hex,
+        )
+        .execute(tx.conn())
+        .await?;
+    }
+    Ok(released)
 }
 
 async fn take_hold(

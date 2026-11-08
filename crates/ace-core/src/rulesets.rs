@@ -13,12 +13,18 @@
 //!
 //! The pools ask for the latest row (`current`) through the lease API and load its bytes from
 //! the bucket (PLAN.md 2.26).
+//!
+//! A row also lists the rules in QA mode (`qa_rules`), which 5.6's `yara_qa` router serves. A row
+//! built before that column has none, and the next run builds its commit again to fill it in: the
+//! bytes come out the same, so the key and the pools don't change.
 
 use std::path::PathBuf;
 use std::time::Duration;
 
 use ace_results::Sha256;
 use ace_yara::LoadOptions;
+pub use ace_yara::YARA_X_VERSION;
+pub use ace_yara::ruleset::QaRule;
 use ace_yara::ruleset::{self, BuildError, IncludedFile, LeftOutFile};
 use chrono::{DateTime, Utc};
 use tokio_util::sync::CancellationToken;
@@ -85,6 +91,8 @@ pub struct RulesetRow {
     pub yara_x_version: String,
     pub files: Vec<IncludedFile>,
     pub left_out: Vec<LeftOutFile>,
+    /// The rules in QA mode, or None for a row built before they were recorded.
+    pub qa_rules: Option<Vec<QaRule>>,
     pub built_at: DateTime<Utc>,
 }
 
@@ -131,8 +139,9 @@ async fn blocking<T: Send + 'static>(
     }
 }
 
-/// Builds the commit `repo.rev` names unless it has a row already. Returns the new row, or None
-/// when there was nothing to build.
+/// Builds the commit `repo.rev` names unless it has a row already, or one built before QA rules
+/// were recorded, which this fills in. Returns the new or filled row, or None when there was
+/// nothing to build.
 pub async fn build_new(
     db: &Db,
     bucket: &Bucket,
@@ -144,7 +153,8 @@ pub async fn build_new(
     };
     let version = ace_yara::YARA_X_VERSION;
     let built = sqlx::query_scalar!(
-        "SELECT id FROM yara.rulesets WHERE commit = $1 AND yara_x_version = $2",
+        "SELECT id FROM yara.rulesets
+         WHERE commit = $1 AND yara_x_version = $2 AND qa_rules IS NOT NULL",
         commit,
         version,
     )
@@ -178,17 +188,24 @@ async fn build_commit(
 
     // the same tree built before gives the same bytes, so its row's build serves this commit
     let earlier = sqlx::query!(
-        r#"SELECT key, sources_sha256, files, left_out FROM yara.rulesets
-           WHERE tree = $1 AND yara_x_version = $2 ORDER BY id DESC LIMIT 1"#,
+        r#"SELECT key, sources_sha256, files, left_out, qa_rules AS "qa_rules!" FROM yara.rulesets
+           WHERE tree = $1 AND yara_x_version = $2 AND qa_rules IS NOT NULL
+           ORDER BY id DESC LIMIT 1"#,
         tree,
         version,
     )
     .fetch_optional(db.pool())
     .await?;
-    let (key, sources_sha256, files, left_out) = match earlier {
+    let (key, sources_sha256, files, left_out, qa_rules) = match earlier {
         Some(row) => {
             tracing::info!(key = %row.key, "the signature directory is unchanged since an earlier build");
-            (row.key, row.sources_sha256, row.files, row.left_out)
+            (
+                row.key,
+                row.sources_sha256,
+                row.files,
+                row.left_out,
+                row.qa_rules,
+            )
         }
         None => {
             let built = {
@@ -222,15 +239,18 @@ async fn build_commit(
                 manifest.sources_sha256,
                 json(serde_json::to_value(&manifest.files))?,
                 json(serde_json::to_value(&manifest.left_out))?,
+                json(serde_json::to_value(&manifest.qa_rules))?,
             )
         }
     };
-    // a core on another node may have built the same commit meanwhile
+    // a core on another node may have built the same commit meanwhile; a row from before QA
+    // rules were recorded gets them, and keeps the rest
     sqlx::query!(
-        "INSERT INTO yara.rulesets
-             (key, commit, tree, sources_sha256, yara_x_version, files, left_out)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)
-         ON CONFLICT (commit, yara_x_version) DO NOTHING",
+        "INSERT INTO yara.rulesets AS r
+             (key, commit, tree, sources_sha256, yara_x_version, files, left_out, qa_rules)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+         ON CONFLICT (commit, yara_x_version) DO UPDATE SET qa_rules = EXCLUDED.qa_rules
+         WHERE r.qa_rules IS NULL",
         key,
         commit,
         tree,
@@ -238,6 +258,7 @@ async fn build_commit(
         version,
         files,
         left_out,
+        qa_rules,
     )
     .execute(db.pool())
     .await?;
@@ -248,6 +269,7 @@ async fn build_commit(
         key = %row.key,
         files = row.files.len(),
         left_out = row.left_out.len(),
+        qa_rules = row.qa_rules.as_ref().map_or(0, Vec::len),
         "built the ruleset"
     );
     Ok(row)
@@ -263,6 +285,7 @@ struct Record {
     yara_x_version: String,
     files: serde_json::Value,
     left_out: serde_json::Value,
+    qa_rules: Option<serde_json::Value>,
     built_at: DateTime<Utc>,
 }
 
@@ -284,6 +307,11 @@ impl Record {
                 .map_err(|e| decode("files", e.to_string()))?,
             left_out: serde_json::from_value(self.left_out)
                 .map_err(|e| decode("left_out", e.to_string()))?,
+            qa_rules: self
+                .qa_rules
+                .map(serde_json::from_value)
+                .transpose()
+                .map_err(|e| decode("qa_rules", e.to_string()))?,
             built_at: self.built_at,
         })
     }
@@ -293,7 +321,8 @@ impl Record {
 pub async fn by_commit(db: &Db, commit: &str) -> Result<Option<RulesetRow>, DbError> {
     sqlx::query_as!(
         Record,
-        "SELECT id, key, commit, tree, sources_sha256, yara_x_version, files, left_out, built_at
+        "SELECT id, key, commit, tree, sources_sha256, yara_x_version, files, left_out, qa_rules,
+                built_at
          FROM yara.rulesets WHERE commit = $1 AND yara_x_version = $2",
         commit,
         ace_yara::YARA_X_VERSION,
@@ -307,13 +336,21 @@ pub async fn by_commit(db: &Db, commit: &str) -> Result<Option<RulesetRow>, DbEr
 /// The ruleset the pools should scan with: the latest built with this build's yara-x, which
 /// is the only one this build's pools can load.
 pub async fn current(db: &Db) -> Result<Option<RulesetRow>, DbError> {
+    current_with(db.pool()).await
+}
+
+/// `current`, on a connection or in a transaction the caller holds.
+pub async fn current_with<'c>(
+    executor: impl sqlx::PgExecutor<'c>,
+) -> Result<Option<RulesetRow>, DbError> {
     sqlx::query_as!(
         Record,
-        "SELECT id, key, commit, tree, sources_sha256, yara_x_version, files, left_out, built_at
+        "SELECT id, key, commit, tree, sources_sha256, yara_x_version, files, left_out, qa_rules,
+                built_at
          FROM yara.rulesets WHERE yara_x_version = $1 ORDER BY id DESC LIMIT 1",
         ace_yara::YARA_X_VERSION,
     )
-    .fetch_optional(db.pool())
+    .fetch_optional(executor)
     .await?
     .map(Record::decode)
     .transpose()

@@ -2632,6 +2632,688 @@
           }
         }
       }
+    },
+    "/api/yara-qa/v1/matches/{id}": {
+      "get": {
+        "tags": [
+          "yara_qa"
+        ],
+        "summary": "One kept match, with its record in short: the rule's meta and tags, and per string how many times it\nmatched and where first.",
+        "operationId": "one_match",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The match's id",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The match",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QaMatchDetailBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An id that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold signature:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No kept match with that id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/yara-qa/v1/matches/{id}/download": {
+      "get": {
+        "tags": [
+          "yara_qa"
+        ],
+        "summary": "One kept file and its record as a zip encrypted with AES-256 and the password `infected`, laid out as\na rule's download is. The download is in the audit record.",
+        "operationId": "download_match",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The match's id",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The zip",
+            "content": {
+              "application/zip": {
+                "schema": {
+                  "$ref": "#/components/schemas/ZipBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An id that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold signature:download",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No kept match with that id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/yara-qa/v1/matches/{id}/record": {
+      "get": {
+        "tags": [
+          "yara_qa"
+        ],
+        "summary": "A kept match's whole record as the YARA module wrote it, never cut short, with bytes of the file. It's\nserved to show in a browser tab, and never to be sniffed as anything but JSON.",
+        "operationId": "record",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The match's id",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The record",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "400": {
+            "description": "An id that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold signature:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No kept match with that id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/yara-qa/v1/rules": {
+      "get": {
+        "tags": [
+          "yara_qa"
+        ],
+        "summary": "The rules in QA mode in the current ruleset, whether or not they matched, and the rules with matches\nrecorded, with their counts.",
+        "operationId": "rules",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "description": "A substring of the rule's name, uuid, namespace or file, in any case.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "`qa` or `not_qa`; all when left out.",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/QaStatusBody"
+            }
+          },
+          {
+            "name": "has_matches",
+            "in": "query",
+            "description": "Only rules that have (true) or haven't (false) matched.",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "`name`, `last_match` or `match_count`; `name` when left out.",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/QaSortBody"
+            }
+          },
+          {
+            "name": "descending",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "How many, 1 to 500; 50 when left out.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "How many to skip.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of rules",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QaRulePageBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A limit out of range, or a filter that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold signature:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/yara-qa/v1/rules/{uuid}": {
+      "get": {
+        "tags": [
+          "yara_qa"
+        ],
+        "summary": "One rule, with its counts per version.",
+        "operationId": "rule",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "description": "The rule's uuid meta",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The rule",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QaRuleDetailBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A uuid that isn't UTF-8",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold signature:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No rule in QA mode and no matches with that uuid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/yara-qa/v1/rules/{uuid}/download": {
+      "get": {
+        "tags": [
+          "yara_qa"
+        ],
+        "summary": "A rule's kept files with their records and a manifest, as one zip encrypted with AES-256 and the\npassword `infected`: every kept file of the rule, of one version, or the matches named. At most 500\nfiles and 1 GiB. The download is in the audit record.",
+        "operationId": "download_rule",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "description": "The rule's uuid meta",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "version",
+            "in": "query",
+            "description": "Only matches under this version of the rule.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "match_ids",
+            "in": "query",
+            "description": "Only these matches, as ids separated by commas; each has to be one of this rule's.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The zip",
+            "content": {
+              "application/zip": {
+                "schema": {
+                  "$ref": "#/components/schemas/ZipBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Match ids that aren't ids",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold signature:download",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No kept matches, or a match id that isn't one of the rule's",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "More than 500 files or 1 GiB: narrow it by version or match id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/yara-qa/v1/rules/{uuid}/matches": {
+      "get": {
+        "tags": [
+          "yara_qa"
+        ],
+        "summary": "A rule's kept files, newest first, a page at a time. Follow `next` until it's null.",
+        "operationId": "matches",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "description": "The rule's uuid meta",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "version",
+            "in": "query",
+            "description": "Only matches under this version of the rule.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "How many, 1 to 500; 50 when left out.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "description": "The `next` of the previous page.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of matches",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QaMatchPageBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A limit out of range, a cursor that isn't one, or a uuid that isn't UTF-8",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold signature:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/yara-qa/v1/rules/{uuid}/purge": {
+      "post": {
+        "tags": [
+          "yara_qa"
+        ],
+        "summary": "Purges a rule's matches: every match of some versions, or some matches, up to 500 at once. Only each\nmatch's own hold on its file goes, so a file that a root or another match still holds stays. A file\nthat matches again later is kept again. The purge is in the audit record, with its reason.",
+        "operationId": "purge",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "description": "The rule's uuid meta",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QaPurgeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "What the purge removed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QaPurgedBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Both versions and match ids or neither, too many, a reason too long, or a body that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold signature:qa_purge, or a session's request came from another site",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -3786,6 +4468,482 @@
         },
         "additionalProperties": false
       },
+      "QaMatchBody": {
+        "type": "object",
+        "description": "One kept file of a rule. Its path is what the alert's sender named it: show it as text.",
+        "required": [
+          "id",
+          "signature_uuid",
+          "signature_version",
+          "rule",
+          "namespace",
+          "sha256",
+          "file_path",
+          "root",
+          "alerted",
+          "observable_id",
+          "hit_count",
+          "first_seen",
+          "last_seen",
+          "expires_at"
+        ],
+        "properties": {
+          "alerted": {
+            "type": "boolean",
+            "description": "Whether that root is an alert."
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the file is let go unless it matches again."
+          },
+          "file_path": {
+            "type": "string",
+            "description": "The file's path in the alert when it last matched."
+          },
+          "file_size": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Null when the bucket no longer has the file."
+          },
+          "first_seen": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "hit_count": {
+            "type": "integer",
+            "format": "int32",
+            "description": "How many times this file matched this version of the rule."
+          },
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "last_seen": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "namespace": {
+            "type": "string"
+          },
+          "observable_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "root": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The root the file was found in when it last matched, which may be gone."
+          },
+          "rule": {
+            "type": "string"
+          },
+          "ruleset": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The key of the ruleset the rule came from, when the scan used one the core built."
+          },
+          "sha256": {
+            "type": "string"
+          },
+          "signature_uuid": {
+            "type": "string"
+          },
+          "signature_version": {
+            "type": "string"
+          }
+        }
+      },
+      "QaMatchDetailBody": {
+        "type": "object",
+        "description": "One kept match, with its record in short; the whole record is at `/record`.",
+        "required": [
+          "match"
+        ],
+        "properties": {
+          "match": {
+            "$ref": "#/components/schemas/QaMatchBody"
+          },
+          "summary": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/QaSummaryBody",
+                "description": "Null when the record isn't one the YARA module writes."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "QaMatchPageBody": {
+        "type": "object",
+        "required": [
+          "matches"
+        ],
+        "properties": {
+          "matches": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QaMatchBody"
+            }
+          },
+          "next": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Pass as `after` for the next page; null on the last."
+          }
+        }
+      },
+      "QaPurgeRequest": {
+        "type": "object",
+        "description": "What to purge from one rule: every kept file of some versions, or some matches. Exactly one of the two.",
+        "properties": {
+          "match_ids": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "description": "Purge these matches, 1 to 500 of them; an id of another rule's match is left alone."
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Why, for the audit record: at most 1024 characters."
+          },
+          "versions": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "description": "Purge every match of these versions, 1 to 1000 of them."
+          }
+        },
+        "additionalProperties": false
+      },
+      "QaPurgedBody": {
+        "type": "object",
+        "required": [
+          "purged",
+          "remaining"
+        ],
+        "properties": {
+          "purged": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "description": "The matches removed. A file goes at the bucket's next GC after its grace, once no root or other\nmatch holds it."
+          },
+          "remaining": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Matches left past the 500 one purge removes: purge again to remove them."
+          }
+        }
+      },
+      "QaRuleBody": {
+        "type": "object",
+        "description": "A rule in QA mode now, or one with matches recorded. Its name, uuid, namespace and tags are what the\nrule's author wrote: show them as text.",
+        "required": [
+          "signature_uuid",
+          "name",
+          "status",
+          "tags",
+          "match_count",
+          "stored_count",
+          "version_count"
+        ],
+        "properties": {
+          "enabled": {
+            "type": [
+              "boolean",
+              "null"
+            ],
+            "description": "Its `enabled` meta in the current ruleset; null when it isn't a QA rule there."
+          },
+          "first_match_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "last_match_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "match_count": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Every match recorded, across versions."
+          },
+          "name": {
+            "type": "string"
+          },
+          "namespace": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "path": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Its file in the current ruleset, relative to the signature directory."
+          },
+          "signature_uuid": {
+            "type": "string",
+            "description": "The rule's `uuid` meta, which its matches are kept under."
+          },
+          "status": {
+            "$ref": "#/components/schemas/QaStatusBody"
+          },
+          "stored_count": {
+            "type": "integer",
+            "format": "int64",
+            "description": "The files kept now, across versions."
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "version_count": {
+            "type": "integer",
+            "description": "How many versions of the rule have matched.",
+            "minimum": 0
+          }
+        }
+      },
+      "QaRuleDetailBody": {
+        "type": "object",
+        "description": "One rule, with its versions, most recently matched first.",
+        "required": [
+          "rule",
+          "versions"
+        ],
+        "properties": {
+          "rule": {
+            "$ref": "#/components/schemas/QaRuleBody"
+          },
+          "ruleset": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/QaRulesetBody"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "versions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QaVersionBody"
+            }
+          }
+        }
+      },
+      "QaRulePageBody": {
+        "type": "object",
+        "required": [
+          "rules",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "properties": {
+          "limit": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "offset": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "rules": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QaRuleBody"
+            }
+          },
+          "ruleset": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/QaRulesetBody",
+                "description": "Null when no ruleset has been built: then only rules with matches are listed."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "total": {
+            "type": "integer",
+            "description": "How many rules match the filters, across pages.",
+            "minimum": 0
+          }
+        }
+      },
+      "QaRulesetBody": {
+        "type": "object",
+        "description": "The ruleset the QA rules come from: the latest the core built.",
+        "required": [
+          "key",
+          "commit",
+          "built_at",
+          "qa_rules_recorded"
+        ],
+        "properties": {
+          "built_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "commit": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string",
+            "description": "The sha256 of its bytes."
+          },
+          "qa_rules_recorded": {
+            "type": "boolean",
+            "description": "False for a ruleset built before its QA rules were recorded, until the builder fills them in: a rule\nthat never matched is missing from the list until then."
+          }
+        }
+      },
+      "QaStatusBody": {
+        "type": "string",
+        "description": "Whether a rule is in QA mode in the current ruleset: `qa`, or `not_qa` for a rule with matches that\nisn't, because it left QA mode or the repository.",
+        "enum": [
+          "qa",
+          "not_qa"
+        ]
+      },
+      "QaStringBody": {
+        "type": "object",
+        "description": "How often one of the rule's strings matched the file, and where first.",
+        "required": [
+          "identifier",
+          "count",
+          "first_offset"
+        ],
+        "properties": {
+          "count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "first_offset": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "identifier": {
+            "type": "string"
+          }
+        }
+      },
+      "QaSummaryBody": {
+        "type": "object",
+        "description": "A match's record in short. The meta is the rule's, as its author wrote it: show it as text.",
+        "required": [
+          "meta",
+          "tags",
+          "strings"
+        ],
+        "properties": {
+          "commit": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The commit of the rule's repository, when it came from one."
+          },
+          "meta": {},
+          "strings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QaStringBody"
+            }
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "QaVersionBody": {
+        "type": "object",
+        "description": "What was recorded for one version of a rule.",
+        "required": [
+          "signature_version",
+          "rule",
+          "namespace",
+          "match_count",
+          "stored_count",
+          "first_match_at",
+          "last_match_at"
+        ],
+        "properties": {
+          "first_match_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "last_match_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "match_count": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "namespace": {
+            "type": "string"
+          },
+          "rule": {
+            "type": "string",
+            "description": "The rule's name and namespace when it last matched under this version."
+          },
+          "signature_version": {
+            "type": "string",
+            "description": "The commit of the rule's repository, or `unknown`."
+          },
+          "stored_count": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
       "RecentAlertBody": {
         "type": "object",
         "required": [
@@ -4167,6 +5325,10 @@
     {
       "name": "crashes",
       "description": "Failed tasks, their errors and their inputs"
+    },
+    {
+      "name": "yara_qa",
+      "description": "YARA rules in QA mode, the files they matched, and purges"
     }
   ]
 }

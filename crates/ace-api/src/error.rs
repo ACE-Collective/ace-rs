@@ -59,6 +59,7 @@ impl From<ServiceError> for ApiError {
             ServiceError::NotFound(_)
             | ServiceError::NoUser(_)
             | ServiceError::Orchestrator(OrchestratorError::NoRoot(_)) => StatusCode::NOT_FOUND,
+            ServiceError::TooLarge(_) => StatusCode::PAYLOAD_TOO_LARGE,
             ServiceError::UsernameTaken
             | ServiceError::GroupNameTaken
             | ServiceError::UsersExist => StatusCode::CONFLICT,

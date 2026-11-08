@@ -346,13 +346,23 @@ const MY_KEY: &str = "/api/users/v1/me/keys/{id}";
 const CRASHES: &str = "/api/crashes/v1/crashes";
 const CRASH: &str = "/api/crashes/v1/crashes/{id}";
 const CRASH_DOWNLOAD: &str = "/api/crashes/v1/crashes/{id}/download";
+const QA_RULES: &str = "/api/yara-qa/v1/rules";
+const QA_RULE: &str = "/api/yara-qa/v1/rules/{uuid}";
+const QA_RULE_MATCHES: &str = "/api/yara-qa/v1/rules/{uuid}/matches";
+const QA_RULE_DOWNLOAD: &str = "/api/yara-qa/v1/rules/{uuid}/download";
+const QA_PURGE: &str = "/api/yara-qa/v1/rules/{uuid}/purge";
+const QA_MATCH: &str = "/api/yara-qa/v1/matches/{id}";
+const QA_RECORD: &str = "/api/yara-qa/v1/matches/{id}/record";
+const QA_MATCH_DOWNLOAD: &str = "/api/yara-qa/v1/matches/{id}/download";
 const OTHER_PASSWORD: &str = "a different long passphrase";
 
 /// A route with its `{...}` filled: a crash's `{id}` is a task's, which `observable` stands in for, since a
 /// refusal comes before the id is looked up.
 fn fill(route: &str, id: Uuid, observable: i64) -> String {
-    if route.starts_with("/api/crashes/") {
-        return route.replace("{id}", &observable.to_string());
+    if route.starts_with("/api/crashes/") || route.starts_with("/api/yara-qa/") {
+        return route
+            .replace("{id}", &observable.to_string())
+            .replace("{uuid}", &id.to_string());
     }
     route
         .replace("{id}", &id.to_string())
@@ -399,6 +409,7 @@ fn good_body(route: &str) -> Send {
         })),
         KEYS | KEY | MY_KEYS | MY_KEY => Send::Json(scope_body("refused", &[("alert", "read")])),
         MY_PASSWORD => Send::Json(json!({"current": PASSWORD, "new": OTHER_PASSWORD})),
+        QA_PURGE => Send::Json(json!({"match_ids": [1]})),
         _ => Send::Nothing,
     }
 }
@@ -424,7 +435,7 @@ async fn refuses_without_a_credential_or_a_permission(
         .map(|(method, route, _)| (method, route))
         .filter(|route| !public.contains(route))
         .collect();
-    assert_eq!(routes.len(), 36, "{routes:?}");
+    assert_eq!(routes.len(), 44, "{routes:?}");
     for (method, route) in routes {
         let method: Method = method.to_uppercase().parse().expect("a method");
         let path = fill(&route, id, file);
@@ -2271,6 +2282,538 @@ async fn crashes(client: &mut Client<'_>, token: &str, root: Uuid, file: i64, by
     }
 }
 
+/// A kept QA match of `uuid` on the submitted file, held as the core's recorder holds one.
+async fn qa_match(stack: &Stack, root: Uuid, file: i64, uuid: &str) -> i64 {
+    let pool = stack.test_db.db().pool();
+    let record = json!({
+        "rule": "qa_rule",
+        "namespace": "ns",
+        "meta": {"uuid": uuid, "modifiers": "qa", "description": "<script>alert(1)</script>"},
+        "tags": ["candidate"],
+        "commit": "c0ffee",
+        "ruleset": null,
+        "target": "mail/invoice.zip",
+        "strings": [[4, "$a", {"base64": "RVZJTA=="}], [9, "$a", {"base64": "RVZJTA=="}]],
+        "context": [],
+        "match_context": [],
+    });
+    let id: i64 = sqlx::query_scalar(
+        "INSERT INTO yara.qa_matches
+             (signature_uuid, signature_version, rule, namespace, sha256, file_path, root_id,
+              observable_id, match, expires_at)
+         SELECT $3, 'c0ffee', 'qa_rule', 'ns', o.value, $4, o.root_id, o.id, $5,
+                now() + interval '30 days'
+         FROM analysis.observables o WHERE o.root_id = $1 AND o.id = $2
+         RETURNING id",
+    )
+    .bind(root)
+    .bind(file)
+    .bind(uuid)
+    .bind("mail/<b>\u{fffd}/../../etc/passwd")
+    .bind(record)
+    .fetch_one(pool)
+    .await
+    .expect("a QA match");
+    sqlx::query(
+        "INSERT INTO store.holds (pool, sha256, holder_kind, holder_id, expires_at)
+         SELECT 'alert_files', sha256, 'yara_qa', id::text, expires_at
+         FROM yara.qa_matches WHERE id = $1",
+    )
+    .bind(id)
+    .execute(pool)
+    .await
+    .expect("holds the file");
+    id
+}
+
+/// The names in a zip, and a function that reads one with ace3's password.
+fn unzip(zipped: &[u8]) -> (BTreeSet<String>, impl FnMut(&str) -> Vec<u8>) {
+    let mut archive = zip::ZipArchive::new(Cursor::new(zipped.to_vec())).expect("a zip");
+    let names: BTreeSet<String> = archive
+        .file_names()
+        .map(|name| name.expect("a name").into_owned())
+        .collect();
+    assert!(archive.by_index(0).is_err(), "it needs the password");
+    let read = move |name: &str| {
+        let at = archive.index_for_name(name).expect("an entry");
+        let mut entry = archive.by_index_decrypt(at, b"infected").expect("opens");
+        let mut unzipped = Vec::new();
+        entry.read_to_end(&mut unzipped).expect("reads");
+        unzipped
+    };
+    (names, read)
+}
+
+/// ace3's `yara_qa` router: the rules in QA mode and with matches, one rule, its matches, one match and
+/// its record, the downloads, and a purge. A rule's meta and a file's path come back as the text they are.
+async fn yara_qa(client: &mut Client<'_>, token: &str, root: Uuid, file: i64, bytes: &[u8]) {
+    const UUID: &str = "4c3c8330-545d-4673-9a7c-7bd4597d0098";
+    let hostile = "../x <y>";
+    let pool = client.stack.test_db.db().pool();
+    let id = qa_match(client.stack, root, file, UUID).await;
+    let other = qa_match(client.stack, root, file, hostile).await;
+    sqlx::query(
+        "INSERT INTO yara.rulesets
+             (key, commit, tree, sources_sha256, yara_x_version, files, left_out, qa_rules)
+         VALUES (repeat('b', 64), 'c0ffee', 'tree', 'sources', $1, '[]', '[]', $2)",
+    )
+    .bind(ace_core::rulesets::YARA_X_VERSION)
+    .bind(json!([
+        {"namespace": "ns", "path": "ns/qa.yar", "name": "qa_rule", "uuid": UUID,
+         "enabled": true, "tags": ["candidate"]},
+        {"namespace": "ns", "path": "ns/new.yar", "name": "never_matched", "uuid": "never",
+         "enabled": true, "tags": []},
+    ]))
+    .execute(pool)
+    .await
+    .expect("a ruleset");
+    let sha256 = sha256_hex(bytes);
+
+    let page = client
+        .json(
+            Method::GET,
+            QA_RULES,
+            QA_RULES,
+            Some(token),
+            Send::Nothing,
+            StatusCode::OK,
+        )
+        .await;
+    assert_eq!(page["total"], 3);
+    assert_eq!(
+        (page["limit"].clone(), page["offset"].clone()),
+        (json!(50), json!(0))
+    );
+    assert_eq!(page["ruleset"]["commit"], "c0ffee");
+    assert_eq!(page["ruleset"]["qa_rules_recorded"], true);
+    let names: Vec<&str> = page["rules"]
+        .as_array()
+        .expect("rules")
+        .iter()
+        .map(|r| r["signature_uuid"].as_str().expect("a uuid"))
+        .collect();
+    assert_eq!(names, ["never", hostile, UUID], "by name, then uuid");
+    let listed = &page["rules"][2];
+    assert_eq!(listed["status"], "qa");
+    assert_eq!(listed["path"], "ns/qa.yar");
+    assert_eq!(
+        (
+            listed["match_count"].clone(),
+            listed["stored_count"].clone()
+        ),
+        (json!(1), json!(1))
+    );
+    assert_eq!(page["rules"][1]["status"], "not_qa");
+    let page = client
+        .json(
+            Method::GET,
+            QA_RULES,
+            &format!("{QA_RULES}?status=not_qa&has_matches=true&sort=match_count&descending=true&limit=1&q=X"),
+            Some(token),
+            Send::Nothing,
+            StatusCode::OK,
+        )
+        .await;
+    assert_eq!(page["rules"][0]["signature_uuid"], hostile);
+    assert_eq!(page["total"], 1);
+    for query in ["?limit=0", "?status=missing", "?sort=size"] {
+        client
+            .json(
+                Method::GET,
+                QA_RULES,
+                &format!("{QA_RULES}{query}"),
+                Some(token),
+                Send::Nothing,
+                StatusCode::BAD_REQUEST,
+            )
+            .await;
+    }
+
+    let detail = client
+        .json(
+            Method::GET,
+            QA_RULE,
+            &QA_RULE.replace("{uuid}", UUID),
+            Some(token),
+            Send::Nothing,
+            StatusCode::OK,
+        )
+        .await;
+    assert_eq!(&detail["rule"], listed);
+    assert_eq!(detail["versions"][0]["signature_version"], "c0ffee");
+    assert_eq!(detail["versions"][0]["match_count"], 1);
+    let error = client
+        .json(
+            Method::GET,
+            QA_RULE,
+            &QA_RULE.replace("{uuid}", "nothing"),
+            Some(token),
+            Send::Nothing,
+            StatusCode::NOT_FOUND,
+        )
+        .await;
+    assert_eq!(
+        error["error"],
+        "no rule in QA mode and no QA matches with that uuid"
+    );
+    for route in [QA_RULE, QA_RULE_MATCHES] {
+        client
+            .json(
+                Method::GET,
+                route,
+                &route.replace("{uuid}", "%FF"),
+                Some(token),
+                Send::Nothing,
+                StatusCode::BAD_REQUEST,
+            )
+            .await;
+    }
+
+    let page = client
+        .json(
+            Method::GET,
+            QA_RULE_MATCHES,
+            &format!(
+                "{}?version=c0ffee&limit=10",
+                QA_RULE_MATCHES.replace("{uuid}", UUID)
+            ),
+            Some(token),
+            Send::Nothing,
+            StatusCode::OK,
+        )
+        .await;
+    assert_eq!(page["next"], Value::Null);
+    let kept = &page["matches"][0];
+    assert_eq!(kept["id"], id);
+    assert_eq!(kept["sha256"], sha256);
+    assert_eq!(
+        kept["file_path"], "mail/<b>\u{fffd}/../../etc/passwd",
+        "a path is data"
+    );
+    assert_eq!(kept["file_size"], bytes.len());
+    assert_eq!(
+        (kept["root"].clone(), kept["alerted"].clone()),
+        (json!(root), json!(true))
+    );
+    client
+        .json(
+            Method::GET,
+            QA_RULE_MATCHES,
+            &format!("{}?after=x", QA_RULE_MATCHES.replace("{uuid}", UUID)),
+            Some(token),
+            Send::Nothing,
+            StatusCode::BAD_REQUEST,
+        )
+        .await;
+
+    let detail = client
+        .json(
+            Method::GET,
+            QA_MATCH,
+            &QA_MATCH.replace("{id}", &id.to_string()),
+            Some(token),
+            Send::Nothing,
+            StatusCode::OK,
+        )
+        .await;
+    assert_eq!(&detail["match"], kept);
+    assert_eq!(
+        detail["summary"]["meta"]["description"],
+        "<script>alert(1)</script>"
+    );
+    assert_eq!(
+        detail["summary"]["strings"],
+        json!([{"identifier": "$a", "count": 2, "first_offset": 4}])
+    );
+    let response = client
+        .call(
+            Method::GET,
+            QA_RECORD,
+            &QA_RECORD.replace("{id}", &id.to_string()),
+            Some(token),
+            Send::Nothing,
+        )
+        .await;
+    assert_eq!(response.status(), 200);
+    assert_eq!(response.headers()["content-type"], "application/json");
+    assert_eq!(response.headers()["x-content-type-options"], "nosniff");
+    assert_eq!(
+        response.headers()["content-disposition"],
+        format!("inline; filename=\"yara-qa-match-{id}.json\"")
+    );
+    let record: Value = response.json().await.expect("JSON");
+    assert_eq!(record["strings"][1][0], 9, "the whole record");
+    for route in [QA_MATCH, QA_RECORD, QA_MATCH_DOWNLOAD] {
+        client
+            .json(
+                Method::GET,
+                route,
+                &route.replace("{id}", "x"),
+                Some(token),
+                Send::Nothing,
+                StatusCode::BAD_REQUEST,
+            )
+            .await;
+        let error = client
+            .json(
+                Method::GET,
+                route,
+                &route.replace("{id}", &(other + 1000).to_string()),
+                Some(token),
+                Send::Nothing,
+                StatusCode::NOT_FOUND,
+            )
+            .await;
+        assert_eq!(
+            error["error"],
+            format!("no kept YARA QA match {}", other + 1000)
+        );
+    }
+
+    // one match's download, and a rule's: entries are named by id and hash, never by the file's path
+    let rows = audit_count(client.stack).await;
+    let response = client
+        .call(
+            Method::GET,
+            QA_MATCH_DOWNLOAD,
+            &QA_MATCH_DOWNLOAD.replace("{id}", &id.to_string()),
+            Some(token),
+            Send::Nothing,
+        )
+        .await;
+    assert_eq!(response.status(), 200);
+    assert_eq!(response.headers()["content-type"], "application/zip");
+    let label = format!("yara-qa-match-{id}");
+    assert_eq!(
+        response.headers()["content-disposition"],
+        format!("attachment; filename=\"{label}.zip\"")
+    );
+    let zipped = response.bytes().await.expect("the zip");
+    let (names, mut read) = unzip(&zipped);
+    assert_eq!(
+        names,
+        BTreeSet::from([
+            format!("{label}/manifest.json"),
+            format!("{label}/{id}/match.json"),
+            format!("{label}/{id}/{sha256}"),
+        ])
+    );
+    assert_eq!(read(&format!("{label}/{id}/{sha256}")), bytes);
+    let manifest: Value =
+        serde_json::from_slice(&read(&format!("{label}/manifest.json"))).expect("JSON");
+    assert_eq!(manifest["matches"][0]["file_path"], kept["file_path"]);
+    assert_eq!(
+        manifest["matches"][0]["file"],
+        format!("{label}/{id}/{sha256}")
+    );
+    let record: Value =
+        serde_json::from_slice(&read(&format!("{label}/{id}/match.json"))).expect("JSON");
+    assert_eq!(record["rule"], "qa_rule");
+    let (action, target): (String, String) =
+        sqlx::query_as("SELECT action, target_id FROM service.audit ORDER BY id DESC LIMIT 1")
+            .fetch_one(pool)
+            .await
+            .expect("the download's row");
+    assert_eq!(
+        (action.as_str(), target),
+        ("download_qa_match", id.to_string())
+    );
+
+    // a uuid that isn't plain doesn't name the archive
+    let response = client
+        .call(
+            Method::GET,
+            QA_RULE_DOWNLOAD,
+            &QA_RULE_DOWNLOAD.replace("{uuid}", "..%2Fx%20%3Cy%3E"),
+            Some(token),
+            Send::Nothing,
+        )
+        .await;
+    assert_eq!(response.status(), 200);
+    assert_eq!(
+        response.headers()["content-disposition"],
+        "attachment; filename=\"yara-qa-rule.zip\""
+    );
+    let zipped = response.bytes().await.expect("the zip");
+    let (names, _) = unzip(&zipped);
+    assert!(
+        names.contains(&format!("yara-qa-rule/{other}/{sha256}")),
+        "{names:?}"
+    );
+    let response = client
+        .call(
+            Method::GET,
+            QA_RULE_DOWNLOAD,
+            &format!(
+                "{}?match_ids={id}",
+                QA_RULE_DOWNLOAD.replace("{uuid}", UUID)
+            ),
+            Some(token),
+            Send::Nothing,
+        )
+        .await;
+    assert_eq!(response.status(), 200);
+    assert_eq!(
+        response.headers()["content-disposition"],
+        format!("attachment; filename=\"yara-qa-{UUID}.zip\"")
+    );
+    assert_eq!(
+        audit_count(client.stack).await,
+        rows + 3,
+        "each download has a row"
+    );
+    let many: Vec<String> = (1..=501).map(|n| n.to_string()).collect();
+    for (query, status) in [
+        ("?match_ids=x".to_owned(), StatusCode::BAD_REQUEST),
+        (format!("?match_ids={other}"), StatusCode::NOT_FOUND),
+        ("?version=none".to_owned(), StatusCode::NOT_FOUND),
+        (
+            format!("?match_ids={}", many.join(",")),
+            StatusCode::PAYLOAD_TOO_LARGE,
+        ),
+    ] {
+        client
+            .json(
+                Method::GET,
+                QA_RULE_DOWNLOAD,
+                &format!("{}{query}", QA_RULE_DOWNLOAD.replace("{uuid}", UUID)),
+                Some(token),
+                Send::Nothing,
+                status,
+            )
+            .await;
+    }
+
+    // a purge: refused bodies first, then one that removes the match and its hold, with a row
+    let purge = QA_PURGE.replace("{uuid}", UUID);
+    for body in [
+        Send::Json(json!({})),
+        Send::Json(json!({"versions": ["c0ffee"], "match_ids": [id]})),
+        Send::Json(json!({"match_ids": [id], "extra": 1})),
+        Send::Bytes(b"not json".to_vec()),
+    ] {
+        client
+            .json(
+                Method::POST,
+                QA_PURGE,
+                &purge,
+                Some(token),
+                body,
+                StatusCode::BAD_REQUEST,
+            )
+            .await;
+    }
+    client
+        .json(
+            Method::POST,
+            QA_PURGE,
+            &purge,
+            Some(token),
+            too_large(),
+            StatusCode::PAYLOAD_TOO_LARGE,
+        )
+        .await;
+    let rows = audit_count(client.stack).await;
+    let purged = client
+        .json(
+            Method::POST,
+            QA_PURGE,
+            &purge,
+            Some(token),
+            Send::Json(json!({"match_ids": [id, other], "reason": "noisy"})),
+            StatusCode::OK,
+        )
+        .await;
+    assert_eq!(purged, json!({"purged": [id], "remaining": 0}));
+    assert_eq!(audit_count(client.stack).await, rows + 1);
+    let (action, target, reason): (String, String, Value) = sqlx::query_as(
+        "SELECT action, target_id, details->'reason' FROM service.audit ORDER BY id DESC LIMIT 1",
+    )
+    .fetch_one(pool)
+    .await
+    .expect("the purge's row");
+    assert_eq!(
+        (action.as_str(), target.as_str(), reason),
+        ("purge_qa_matches", UUID, json!("noisy"))
+    );
+    let holds: Vec<String> = sqlx::query_scalar(
+        "SELECT holder_kind || ':' || holder_id FROM store.holds WHERE sha256 = $1 ORDER BY 1",
+    )
+    .bind(&sha256)
+    .fetch_all(pool)
+    .await
+    .expect("the holds");
+    assert_eq!(holds, [format!("root:{root}"), format!("yara_qa:{other}")]);
+    client
+        .json(
+            Method::GET,
+            QA_MATCH,
+            &QA_MATCH.replace("{id}", &id.to_string()),
+            Some(token),
+            Send::Nothing,
+            StatusCode::NOT_FOUND,
+        )
+        .await;
+
+    // signature:read reads and doesn't download or purge; alert:read does neither
+    let reader = key(client.stack, &["signature:read"]).await;
+    client
+        .json(
+            Method::GET,
+            QA_RULES,
+            QA_RULES,
+            Some(&reader),
+            Send::Nothing,
+            StatusCode::OK,
+        )
+        .await;
+    for (route, path) in [
+        (
+            QA_RULE_DOWNLOAD,
+            QA_RULE_DOWNLOAD.replace("{uuid}", "..%2Fx%20%3Cy%3E"),
+        ),
+        (
+            QA_MATCH_DOWNLOAD,
+            QA_MATCH_DOWNLOAD.replace("{id}", &other.to_string()),
+        ),
+    ] {
+        let error = client
+            .json(
+                Method::GET,
+                route,
+                &path,
+                Some(&reader),
+                Send::Nothing,
+                StatusCode::FORBIDDEN,
+            )
+            .await;
+        assert_eq!(error["error"], "this needs signature:download");
+    }
+    let error = client
+        .json(
+            Method::POST,
+            QA_PURGE,
+            &purge,
+            Some(&reader),
+            Send::Json(json!({"match_ids": [other]})),
+            StatusCode::FORBIDDEN,
+        )
+        .await;
+    assert_eq!(error["error"], "this needs signature:qa_purge");
+    let alerts = key(client.stack, &["alert:read"]).await;
+    let error = client
+        .json(
+            Method::GET,
+            QA_RULES,
+            QA_RULES,
+            Some(&alerts),
+            Send::Nothing,
+            StatusCode::FORBIDDEN,
+        )
+        .await;
+    assert_eq!(error["error"], "this needs signature:read");
+}
+
 /// The Done check.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn every_documented_status_is_tested() {
@@ -2284,6 +2827,9 @@ async fn every_documented_status_is_tested() {
             "alert:create",
             "observable:read",
             "crash:read",
+            "signature:read",
+            "signature:download",
+            "signature:qa_purge",
         ],
     )
     .await;
@@ -2303,6 +2849,7 @@ async fn every_documented_status_is_tested() {
     manages_users(&mut client, &admin).await;
     serves_me(&mut client).await;
     crashes(&mut client, &token, id, file, &bytes).await;
+    yara_qa(&mut client, &token, id, file, &bytes).await;
     pings(&mut client, &token).await;
 
     assert_eq!(

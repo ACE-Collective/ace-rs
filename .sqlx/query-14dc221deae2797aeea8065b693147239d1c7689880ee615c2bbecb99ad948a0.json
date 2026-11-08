@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "DELETE FROM store.holds\n             WHERE pool = $1 AND sha256 = $2 AND holder_kind = $3 AND holder_id = $4",
+  "query": "DELETE FROM store.holds\n         WHERE pool = $1 AND sha256 = $2 AND holder_kind = $3 AND holder_id = $4",
   "describe": {
     "columns": [],
     "parameters": {
@@ -13,5 +13,5 @@
     },
     "nullable": []
   },
-  "hash": "87907b2b5d395bd16c33f11ffaa9b25fef4219ee2b3ee2dbf56a31d905d8a195"
+  "hash": "14dc221deae2797aeea8065b693147239d1c7689880ee615c2bbecb99ad948a0"
 }

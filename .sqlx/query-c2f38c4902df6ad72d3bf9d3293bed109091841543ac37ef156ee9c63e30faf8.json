@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id FROM yara.rulesets WHERE commit = $1 AND yara_x_version = $2",
+  "query": "SELECT id FROM yara.rulesets\n         WHERE commit = $1 AND yara_x_version = $2 AND qa_rules IS NOT NULL",
   "describe": {
     "columns": [
       {
@@ -25,5 +25,5 @@
       false
     ]
   },
-  "hash": "480f25de5a8ad987e346925117e92cb54cf79699e92d933e990e91a86f8e4cfb"
+  "hash": "c2f38c4902df6ad72d3bf9d3293bed109091841543ac37ef156ee9c63e30faf8"
 }

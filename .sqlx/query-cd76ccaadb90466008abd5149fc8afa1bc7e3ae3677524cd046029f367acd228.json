@@ -1,0 +1,82 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT signature_uuid, signature_version,\n                  (array_agg(rule ORDER BY last_seen DESC, id DESC))[1] AS \"rule!\",\n                  (array_agg(namespace ORDER BY last_seen DESC, id DESC))[1] AS \"namespace!\",\n                  sum(hit_count)::bigint AS \"match_count!\",\n                  count(*) FILTER (WHERE expires_at > now()) AS \"stored_count!\",\n                  min(first_seen) AS \"first_match_at!\", max(last_seen) AS \"last_match_at!\"\n           FROM yara.qa_matches\n           WHERE $1::text IS NULL OR signature_uuid = $1\n           GROUP BY signature_uuid, signature_version",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "signature_uuid",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "yara.qa_matches",
+            "name": "signature_uuid"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "signature_version",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "yara.qa_matches",
+            "name": "signature_version"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "rule!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "namespace!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 4,
+        "name": "match_count!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 5,
+        "name": "stored_count!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 6,
+        "name": "first_match_at!",
+        "type_info": "Timestamptz",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 7,
+        "name": "last_match_at!",
+        "type_info": "Timestamptz",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "cd76ccaadb90466008abd5149fc8afa1bc7e3ae3677524cd046029f367acd228"
+}

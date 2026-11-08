@@ -118,6 +118,46 @@
 //! - No write. ace3's router has none, and neither does its GUI. A failed task is final in the queue, so
 //!   a retry would need the queue to allow one; `ace task replay` runs one again on a laptop and changes
 //!   nothing. ace3's `ace crash prune` and `sync` are the bucket's GC and its single store.
+//!
+//! ace3's `yara_qa` router (PLAN.md 5.6), under ace3's `signature:read`, `signature:download` and
+//! `signature:qa_purge` (`ace_service`'s `yara_qa` docs). A rule is named by its `uuid` meta, as there:
+//!
+//! | ace3 `/api/v2/signatures/yara-qa` | here |
+//! |---|---|
+//! | `GET /?q=&status=&has_matches=&sort=&descending=&limit=&offset=` | `GET /api/yara-qa/v1/rules`, the same filters, order and paging |
+//! | `GET /{signature_uuid}` | `GET /api/yara-qa/v1/rules/{uuid}`, with its versions |
+//! | `GET /{signature_uuid}/matches?version=&limit=&offset=` | `GET /api/yara-qa/v1/rules/{uuid}/matches?version=&limit=&after=`, newest first |
+//! | `GET /{signature_uuid}/download?version=&match_id=` | `GET /api/yara-qa/v1/rules/{uuid}/download?version=&match_ids=`, ids separated by commas, audited |
+//! | `POST /{signature_uuid}/purge` | `POST /api/yara-qa/v1/rules/{uuid}/purge`, the same body, audited |
+//! | `GET /matches/{match_id}` | `GET /api/yara-qa/v1/matches/{id}`, with its record in short |
+//! | `GET /matches/{match_id}/record` | `GET /api/yara-qa/v1/matches/{id}/record`, inline JSON with `nosniff` |
+//! | `GET /matches/{match_id}/download` | `GET /api/yara-qa/v1/matches/{id}/download`, audited |
+//!
+//! What differs, or is left out, and why:
+//! - The rules in QA mode come from the current ruleset's row (2.25), whose manifest now lists them, where
+//!   ace3 reads its rule files every 60 seconds. ace3's `inventory_error` becomes the page's `ruleset`:
+//!   null when none was built, and `qa_rules_recorded` false for a row built before the list existed,
+//!   which the builder fills in on its next run.
+//! - `status` is `qa` or `not_qa`. ace3's `missing`, a uuid no loaded rule has, needs every rule's uuid,
+//!   and the manifest records only the QA rules', so a rule that left the repository is `not_qa` here.
+//!   `current_version` and `current_content_hash` become the ruleset's `commit` and `key`, the same for
+//!   every rule.
+//! - A version is the commit of the rule's repository, as 2.27 records it, so there's no `version_kind`,
+//!   `first_commit` or `last_commit`: ace3's content hash of a rule isn't computed here.
+//! - ace3 keeps at most 25 files per version and 250 per rule, counting the rest, and rolls old versions
+//!   over. 2.27 keeps every file, so `match_count` is the sum of each file's hits and `stored_count` the
+//!   files not yet expired.
+//! - `node`, `local` and the 409 `wrong_node`: every node reads one bucket.
+//! - A download's entries are `<label>/<id>/<sha256>`, `<label>/<id>/match.json` and
+//!   `<label>/manifest.json`, so nothing a file or a rule was named becomes an entry's name. A file the
+//!   bucket no longer has is listed with a null `file`, where ace3 lists one on another node as `skipped`.
+//!   `match_id` repeated is `match_ids` with commas, which axum's query reader takes.
+//! - A purge removes up to 500 matches in one transaction with its audit row, and says how many are
+//!   left, where ace3 deletes in batches that commit one by one and audits first. The audit row lists
+//!   each match removed. A purge that finds nothing has no row, as a write that changes nothing.
+//! - ace3's daily prune of expired rows: 2.27's holds expire on their own, and an expired row isn't
+//!   listed or served here. Deleting the rows is the scheduler's (6.7).
+//! - `ace yara-qa list` and the GUI page come with 5.11's signatures area.
 
 use std::net::SocketAddr;
 
@@ -136,6 +176,7 @@ mod error;
 mod health;
 mod observables;
 mod users;
+mod yara_qa;
 
 use auth::Schemes;
 
@@ -237,6 +278,26 @@ impl Web {
             .route(
                 "/api/crashes/v1/crashes/{id}/download",
                 get(crashes::download),
+            )
+            .route("/api/yara-qa/v1/rules", get(yara_qa::rules))
+            .route("/api/yara-qa/v1/rules/{uuid}", get(yara_qa::rule))
+            .route(
+                "/api/yara-qa/v1/rules/{uuid}/matches",
+                get(yara_qa::matches),
+            )
+            .route(
+                "/api/yara-qa/v1/rules/{uuid}/download",
+                get(yara_qa::download_rule),
+            )
+            .route(
+                "/api/yara-qa/v1/rules/{uuid}/purge",
+                post(yara_qa::purge).layer(json_limit),
+            )
+            .route("/api/yara-qa/v1/matches/{id}", get(yara_qa::one_match))
+            .route("/api/yara-qa/v1/matches/{id}/record", get(yara_qa::record))
+            .route(
+                "/api/yara-qa/v1/matches/{id}/download",
+                get(yara_qa::download_match),
             )
             .merge(self.users_router())
             .layer(axum::middleware::from_fn(auth::with_source))
@@ -342,6 +403,14 @@ impl Web {
         crashes::list,
         crashes::one,
         crashes::download,
+        yara_qa::rules,
+        yara_qa::rule,
+        yara_qa::matches,
+        yara_qa::download_rule,
+        yara_qa::purge,
+        yara_qa::one_match,
+        yara_qa::record,
+        yara_qa::download_match,
     ),
     modifiers(&Schemes),
     security(("api_key" = []), ("session" = [])),
@@ -352,6 +421,7 @@ impl Web {
         (name = "users", description = "Users, groups, grants and API keys, and the caller's own account"),
         (name = "health", description = "Whether the API answers"),
         (name = "crashes", description = "Failed tasks, their errors and their inputs"),
+        (name = "yara_qa", description = "YARA rules in QA mode, the files they matched, and purges"),
     )
 )]
 pub struct ApiDoc;

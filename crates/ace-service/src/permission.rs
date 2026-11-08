@@ -243,6 +243,12 @@ pub const ALERT_CREATE: PermissionName = PermissionName::known("alert", "create"
 pub const OBSERVABLE_READ: PermissionName = PermissionName::known("observable", "read");
 /// List failed tasks and download them with their inputs: ace3's `crash:read`.
 pub const CRASH_READ: PermissionName = PermissionName::known("crash", "read");
+/// See the rules in QA mode, their matches and the matches' records: ace3's `signature:read`.
+pub const SIGNATURE_READ: PermissionName = PermissionName::known("signature", "read");
+/// Download the files rules in QA mode matched: ace3's `signature:download`.
+pub const SIGNATURE_DOWNLOAD: PermissionName = PermissionName::known("signature", "download");
+/// Purge the matches of rules in QA mode: ace3's `signature:qa_purge`.
+pub const SIGNATURE_QA_PURGE: PermissionName = PermissionName::known("signature", "qa_purge");
 /// See users, groups, grants and keys: ace3's `user:read`.
 pub const USER_READ: PermissionName = PermissionName::known("user", "read");
 /// Change users, groups and grants: ace3's `user:write`.
@@ -282,6 +288,21 @@ pub static CATALOG: &[CatalogEntry] = &[
     CatalogEntry {
         name: OBSERVABLE_READ,
         description: "Look observables up across alerts, and list the observable types.",
+    },
+    CatalogEntry {
+        name: SIGNATURE_DOWNLOAD,
+        description: "Download the files YARA rules in QA mode matched: live malware, in zips with the \
+                      password infected.",
+    },
+    CatalogEntry {
+        name: SIGNATURE_QA_PURGE,
+        description: "Purge the matches kept for YARA rules in QA mode, by version or by match (audited). \
+                      A file a root still holds stays.",
+    },
+    CatalogEntry {
+        name: SIGNATURE_READ,
+        description: "Read the YARA rules in QA mode, their match counts, their matches and the matches' \
+                      records.",
     },
     CatalogEntry {
         name: USER_READ,

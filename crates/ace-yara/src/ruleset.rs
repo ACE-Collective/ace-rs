@@ -36,6 +36,26 @@ pub struct Manifest {
     pub files: Vec<IncludedFile>,
     /// The files left out, with why.
     pub left_out: Vec<LeftOutFile>,
+    /// The rules in QA mode (`modifiers` holds `qa`), in file order, enabled or not, which 5.6's
+    /// `yara_qa` router lists whether or not they have matched. A manifest written before this
+    /// field existed reads it as empty.
+    #[serde(default)]
+    pub qa_rules: Vec<QaRule>,
+}
+
+/// A rule in QA mode, with the meta that says what it is. Every field but `path` is text the
+/// rule's author wrote, so it's data to show, never markup.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct QaRule {
+    pub namespace: String,
+    /// The rule's file, relative to the signature directory.
+    pub path: String,
+    pub name: String,
+    /// Its `uuid` meta, trimmed; None when it has none, and then its matches aren't kept.
+    pub uuid: Option<String>,
+    /// Its `enabled` meta. A disabled rule matches nothing that's kept.
+    pub enabled: bool,
+    pub tags: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -215,13 +235,25 @@ fn build_with(
     };
     let mut files = Vec::new();
     let mut left_out = Vec::new();
+    let mut qa_rules = Vec::new();
     for report in &loaded.files {
         match &report.outcome {
-            FileOutcome::Included { rules } => files.push(IncludedFile {
-                namespace: report.namespace.clone(),
-                path: relative(&report.path),
-                rules: rules.iter().map(|r| r.name.clone()).collect(),
-            }),
+            FileOutcome::Included { rules } => {
+                let path = relative(&report.path);
+                qa_rules.extend(rules.iter().filter(|r| r.meta.is_qa()).map(|r| QaRule {
+                    namespace: r.namespace.clone(),
+                    path: path.clone(),
+                    name: r.name.clone(),
+                    uuid: r.meta.uuid().filter(|uuid| !uuid.is_empty()),
+                    enabled: r.meta.enabled(),
+                    tags: r.tags.clone(),
+                }));
+                files.push(IncludedFile {
+                    namespace: report.namespace.clone(),
+                    path,
+                    rules: rules.iter().map(|r| r.name.clone()).collect(),
+                });
+            }
             FileOutcome::LeftOut { error } => left_out.push(LeftOutFile {
                 namespace: report.namespace.clone(),
                 path: relative(&report.path),
@@ -237,6 +269,7 @@ fn build_with(
         yara_x_version: crate::YARA_X_VERSION.to_string(),
         files,
         left_out,
+        qa_rules,
     };
     Ok(Built {
         bytes,

@@ -1,0 +1,222 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT q.id, q.signature_uuid, q.signature_version, q.rule, q.namespace, q.ruleset,\n                  q.sha256, q.file_path, s.size AS \"file_size?\", q.root_id,\n                  coalesce(r.alerted_at IS NOT NULL, false) AS \"alerted!\", q.observable_id,\n                  q.hit_count, q.first_seen, q.last_seen, q.expires_at, q.match AS record\n           FROM yara.qa_matches q\n           LEFT JOIN store.objects s\n             ON s.pool = $8 AND s.sha256 = q.sha256 AND s.state = 'present'\n           LEFT JOIN analysis.roots r ON r.id = q.root_id\n           WHERE q.expires_at > now()\n             AND ($1::bigint IS NULL OR q.id = $1)\n             AND ($2::text IS NULL OR q.signature_uuid = $2)\n             AND ($3::text IS NULL OR q.signature_version = $3)\n             AND ($4::bigint[] IS NULL OR q.id = ANY($4))\n             AND ($5::bigint IS NULL OR q.id < $5)\n           ORDER BY CASE WHEN $7 THEN q.id END, q.id DESC\n           LIMIT $6",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "yara.qa_matches",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "signature_uuid",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "yara.qa_matches",
+            "name": "signature_uuid"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "signature_version",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "yara.qa_matches",
+            "name": "signature_version"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "rule",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "yara.qa_matches",
+            "name": "rule"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "namespace",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "yara.qa_matches",
+            "name": "namespace"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "ruleset",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "yara.qa_matches",
+            "name": "ruleset"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "sha256",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "yara.qa_matches",
+            "name": "sha256"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "file_path",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "yara.qa_matches",
+            "name": "file_path"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "file_size?",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "store.objects",
+            "name": "size"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "root_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "yara.qa_matches",
+            "name": "root_id"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "alerted!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 11,
+        "name": "observable_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "yara.qa_matches",
+            "name": "observable_id"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "hit_count",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "yara.qa_matches",
+            "name": "hit_count"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "first_seen",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "yara.qa_matches",
+            "name": "first_seen"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "last_seen",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "yara.qa_matches",
+            "name": "last_seen"
+          }
+        }
+      },
+      {
+        "ordinal": 15,
+        "name": "expires_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "yara.qa_matches",
+            "name": "expires_at"
+          }
+        }
+      },
+      {
+        "ordinal": 16,
+        "name": "record",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "yara.qa_matches",
+            "name": "match"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text",
+        "Text",
+        "Int8Array",
+        "Int8",
+        "Int8",
+        "Bool",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      null,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "e8accf717e91fe725a401f2a7c31b86038c6523a1e0486fd4353e5fe58ccaceb"
+}

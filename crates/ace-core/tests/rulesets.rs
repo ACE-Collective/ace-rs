@@ -47,6 +47,8 @@ fn commit(repo: &Path, message: &str) -> String {
 
 const GOOD: &str = r#"rule fixture_good { strings: $a = "EVIL" condition: $a }"#;
 const BROKEN: &str = "rule fixture_broken { condition: nonsense( }";
+const QA: &str =
+    r#"rule fixture_qa { meta: uuid = "qa-rule-uuid" modifiers = "qa" condition: false }"#;
 
 #[tokio::test]
 async fn a_new_commit_gets_a_row_that_lists_the_files_left_out() {
@@ -136,4 +138,39 @@ async fn a_new_commit_gets_a_row_that_lists_the_files_left_out() {
         .await
         .unwrap();
     assert_eq!(rows, 3);
+    assert_eq!(row3.qa_rules, Some(vec![]));
+
+    // a rule in QA mode is in the row's qa_rules (PLAN.md 5.6)
+    write(repo, "yara/fixture/qa.yar", QA);
+    let fourth = commit(repo, "a rule in QA mode");
+    let row4 = build_new(db, &bucket, &signatures)
+        .await
+        .unwrap()
+        .expect("a row for the fourth commit");
+    assert_eq!(row4.commit, fourth);
+    let qa = row4.qa_rules.clone().expect("recorded");
+    assert_eq!(qa.len(), 1, "{qa:?}");
+    assert_eq!(
+        (
+            qa[0].path.as_str(),
+            qa[0].name.as_str(),
+            qa[0].uuid.as_deref()
+        ),
+        ("fixture/qa.yar", "fixture_qa", Some("qa-rule-uuid"))
+    );
+
+    // a row built before qa_rules existed is filled in by the next run, keeping its id and key
+    sqlx::query("UPDATE yara.rulesets SET qa_rules = NULL WHERE id = $1")
+        .bind(row4.id)
+        .execute(db.pool())
+        .await
+        .unwrap();
+    assert_eq!(rulesets::current(db).await.unwrap().unwrap().qa_rules, None);
+    let filled = build_new(db, &bucket, &signatures)
+        .await
+        .unwrap()
+        .expect("fills the row in");
+    assert_eq!((filled.id, &filled.key), (row4.id, &row4.key));
+    assert_eq!(filled.qa_rules, row4.qa_rules);
+    assert!(build_new(db, &bucket, &signatures).await.unwrap().is_none());
 }

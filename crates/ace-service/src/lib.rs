@@ -35,6 +35,9 @@
 //!
 //! `crashes` reads failed tasks for 5.6's `crashes` router, and audits their download as a read.
 //!
+//! `yara_qa` reads the rules in QA mode and what they matched for 5.6's `yara_qa` router, audits a download
+//! of the files as a read, and purges matches as a write.
+//!
 //! Writes outside this crate today:
 //! - `Orchestrator::set_mode` and `queue::cancel_root` have no caller outside the core's own flows
 //!   and tests. Each gets a function here when a route for it appears (5.5, 5.6).
@@ -52,6 +55,7 @@ mod permission;
 mod source;
 mod submit;
 mod users;
+mod yara_qa;
 
 use ace_core::bucket::BucketError;
 use ace_core::db::{Db, DbError, Retryable};
@@ -81,11 +85,17 @@ pub use observables::{
 };
 pub use permission::{
     ALERT_CREATE, ALERT_READ, ALERT_WRITE, CATALOG, CRASH_READ, CatalogEntry, Effect,
-    InvalidPermission, OBSERVABLE_READ, PermissionName, PermissionPattern, USER_READ, USER_SELF,
-    USER_WRITE,
+    InvalidPermission, OBSERVABLE_READ, PermissionName, PermissionPattern, SIGNATURE_DOWNLOAD,
+    SIGNATURE_QA_PURGE, SIGNATURE_READ, USER_READ, USER_SELF, USER_WRITE,
 };
 pub use source::with_source_ip;
 pub use users::{ApiKey, Grant, Group, MAX_KEY_SCOPE, Profile, User, UserDetail};
+pub use yara_qa::{
+    MAX_PURGE_REASON, MAX_PURGE_VERSIONS, MAX_QA_DOWNLOAD_BYTES, MAX_QA_DOWNLOAD_FILES,
+    MAX_QA_PAGE, QaDownload, QaMatch, QaMatchDetail, QaMatchPage, QaMatchSummary, QaPurge,
+    QaPurged, QaRuleDetail, QaRuleFilter, QaRulePage, QaRuleSummary, QaRuleset, QaSort, QaStatus,
+    QaStringSummary, QaVersion,
+};
 
 /// A group's id. Groups hold users, and their rows apply to their members.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -139,6 +149,10 @@ pub enum ServiceError {
     /// What a request names isn't there, or isn't what it says, such as a root that isn't an alert.
     #[error("{0}")]
     NotFound(String),
+    /// A request for more than a limit allows at once, such as a download of too many files. Nothing was
+    /// written.
+    #[error("{0}")]
+    TooLarge(String),
     #[error(transparent)]
     Bucket(#[from] BucketError),
 }
@@ -163,6 +177,7 @@ impl Retryable for ServiceError {
             ServiceError::Bucket(_)
             | ServiceError::InvalidRequest(_)
             | ServiceError::NotFound(_)
+            | ServiceError::TooLarge(_)
             | ServiceError::PermissionDenied { .. }
             | ServiceError::InvalidPermission(_)
             | ServiceError::AuditEncoding(_)

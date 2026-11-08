@@ -83,6 +83,22 @@ impl Target {
         }
     }
 
+    /// A YARA rule, by its uuid meta, as the QA matches name it.
+    pub(crate) fn qa_rule(uuid: &str) -> Self {
+        Target {
+            kind: "yara_rule",
+            id: uuid.to_owned(),
+        }
+    }
+
+    /// A kept YARA QA match, by its id.
+    pub(crate) fn qa_match(id: i64) -> Self {
+        Target {
+            kind: "yara_qa_match",
+            id: id.to_string(),
+        }
+    }
+
     pub(crate) fn holder(holder: &Holder) -> Self {
         let (kind, id) = match holder {
             Holder::User(id) => ("user", id.0.to_string()),

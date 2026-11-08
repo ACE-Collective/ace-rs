@@ -177,6 +177,96 @@ async fn record_in(
     Ok(ids)
 }
 
+/// The most matches one purge removes, as ace3's `yara_qa.prune_batch_size` and
+/// `max_bulk_download_files` bound one batch. A purge of more says how many are left.
+pub const MAX_PURGE: usize = 500;
+
+/// Which of a rule's matches a purge removes.
+#[derive(Debug, Clone, Copy)]
+pub enum PurgeTarget<'a> {
+    /// Every match of these versions of the rule.
+    Versions(&'a [String]),
+    /// These matches, by id. An id of another rule's match isn't removed.
+    Matches(&'a [i64]),
+}
+
+/// A match a purge removed.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Purged {
+    pub id: i64,
+    pub signature_version: String,
+    pub sha256: String,
+    pub file_path: String,
+    pub root_id: uuid::Uuid,
+}
+
+/// Removes up to `MAX_PURGE` of a rule's matches in the caller's transaction, oldest first, and
+/// releases each one's hold on its file: only the match's own hold, so a file that a root or
+/// another match still holds stays, and one nothing holds any more is the bucket's GC's after its
+/// grace. Returns what it removed and how many of the target are left, which another purge
+/// removes. A file that matches again afterwards is recorded again, as in ace3.
+///
+/// The rows are locked in id order, and a purge and a renewal of the same match take turns: a
+/// renewal that commits first is purged with its row, and one that waits finds no row and records
+/// a new one. A recorder renewing several of the purge's matches at once can deadlock with it;
+/// Postgres rolls one back, and the caller's `Db::transaction` runs it again.
+pub async fn purge_in(
+    tx: &mut Tx<'_>,
+    signature_uuid: &str,
+    target: PurgeTarget<'_>,
+) -> Result<(Vec<Purged>, i64), QaError> {
+    let (versions, ids) = match target {
+        PurgeTarget::Versions(versions) => (Some(versions), None),
+        PurgeTarget::Matches(ids) => (None, Some(ids)),
+    };
+    let limit = i64::try_from(MAX_PURGE).unwrap_or(i64::MAX);
+    let mut purged: Vec<Purged> = sqlx::query_as!(
+        Purged,
+        "DELETE FROM yara.qa_matches WHERE id IN (
+             SELECT id FROM yara.qa_matches
+             WHERE signature_uuid = $1
+               AND ($2::text[] IS NULL OR signature_version = ANY($2))
+               AND ($3::bigint[] IS NULL OR id = ANY($3))
+             ORDER BY id LIMIT $4 FOR UPDATE)
+         RETURNING id, signature_version, sha256, file_path, root_id",
+        signature_uuid,
+        versions,
+        ids,
+        limit,
+    )
+    .fetch_all(tx.conn())
+    .await?;
+    purged.sort_by_key(|p| p.id);
+    // in hash order, so two purges lock the objects' rows in the same order
+    let mut holds: Vec<&Purged> = purged.iter().collect();
+    holds.sort_by(|a, b| (&a.sha256, a.id).cmp(&(&b.sha256, b.id)));
+    for match_ in holds {
+        let sha256: Sha256 = match_
+            .sha256
+            .parse()
+            .map_err(|_| QaError::Invalid(format!("QA match {} has no sha256", match_.id)))?;
+        crate::bucket::release_in(
+            tx,
+            ALERT_FILES,
+            &sha256,
+            &Hold::new(HOLDER_KIND, match_.id.to_string()),
+        )
+        .await?;
+    }
+    let remaining = sqlx::query_scalar!(
+        r#"SELECT count(*) AS "count!" FROM yara.qa_matches
+           WHERE signature_uuid = $1
+             AND ($2::text[] IS NULL OR signature_version = ANY($2))
+             AND ($3::bigint[] IS NULL OR id = ANY($3))"#,
+        signature_uuid,
+        versions,
+        ids,
+    )
+    .fetch_one(tx.conn())
+    .await?;
+    Ok((purged, remaining))
+}
+
 /// The core's QA recorder: claims `yara_qa` tasks as `worker`, waking on the queue's
 /// notifications with `fallback` as the longest wait, and records each, until `stop` fires. A
 /// task that can't be recorded fails with why.
