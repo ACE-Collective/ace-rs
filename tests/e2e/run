@@ -49,8 +49,9 @@ so the comparison below sees the empty lists ace3's trees were made with.
 
 Then the library diff's self-test runs (PLAN.md 4.8), and tools/ace3/modules/check checks the module
 inventory, docs/modules.md, against ace3's config at the head of ace3's checkout (PLAN.md 7.1), and its
-modules that read ACE's own data against ace3's code, each with what serves it (7.2); under CI, which
-has no ace3 checkout, that check is skipped.
+modules that read ACE's own data against ace3's code, each with what serves it (7.2), and its modules
+that start a process, each with a decision for every program (7.3); under CI, which has no ace3
+checkout, that check is skipped.
 
 It then runs `ace compare` (PLAN.md 3.3, crates/ace-app/src/compare.rs) over the sample set, each
 sample in the cli mode against ace3's tree in tools/ace3/trees/reference/ (3.2), and writes the
@@ -975,7 +976,8 @@ def check_library_diff(failures):
 
 def check_module_inventory(failures):
     """That docs/modules.md names every analysis module section in ace3's config and no other
-    (PLAN.md 7.1)."""
+    (PLAN.md 7.1), with what serves each read of ACE's data (7.2) and a decision for each program
+    a module starts (7.3)."""
     command = [ROOT / "tools" / "ace3" / "modules" / "check"]
     if os.environ.get("CI"):
         command.append("--allow-absent")

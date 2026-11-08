@@ -1,0 +1,33 @@
+#!/bin/sh
+# What 7.3's evidence ran (docs/modules.md, External tools): each program ace3's modules start,
+# in a throwaway container of ace3's own image with no network, under
+#   strace -f -qq -e trace=clone,clone3,fork,vfork,execve
+# on samples from ace3's tests, and the threaded ones again under filter.py's seccomp filters.
+#
+#   tools/ace3/strace/run          prints each pass's summary
+#
+# pass1 counts threads and processes for every tool; pass2 tries larger inputs and the filters;
+# pass3 compares outputs with and without the filters and the thread limits; pass4 covers the
+# programs whose modules go to crates. Needs Docker, ace3's image (ACE3_IMAGE, default
+# ace3:latest) and ace3's checkout (ACE4_ACE3_CHECKOUT, default ~/Development/public/ace3), which
+# it mounts read-only. The DMG sample is made with hdiutil, so on another host pass1 skips it.
+# Works in a directory under ACE4_STRACE_TMP (default /tmp, which Docker Desktop and Rancher share),
+# which it removes.
+set -eu
+HERE=$(cd "$(dirname "$0")" && pwd)
+ACE3=${ACE4_ACE3_CHECKOUT:-$HOME/Development/public/ace3}
+IMAGE=${ACE3_IMAGE:-ace3:latest}
+WORK=$(mktemp -d "${ACE4_STRACE_TMP:-/tmp}/ace4-strace.XXXXXX")
+trap 'rm -rf "$WORK"' EXIT
+mkdir -p "$WORK/d" "$WORK/src/T.app/Contents/MacOS"
+printf '#!/bin/sh\necho hi\n' > "$WORK/src/T.app/Contents/MacOS/run"
+if command -v hdiutil >/dev/null; then
+  hdiutil create -quiet -fs HFS+ -volname T -srcfolder "$WORK/src" -format UDZO "$WORK/d/t.dmg"
+fi
+for pass in pass1 pass2 pass3 pass4; do
+  echo "== $pass"
+  mkdir -p "$WORK/out-$pass"
+  docker run --rm --network none --user root --entrypoint /bin/sh \
+    -v "$HERE:/s:ro" -v "$WORK/d:/d:ro" -v "$WORK/out-$pass:/out" -v "$ACE3:/ace3:ro" \
+    "$IMAGE" "/s/$pass.sh"
+done

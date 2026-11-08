@@ -2,7 +2,7 @@
 
 PLAN.md 7.1. The 90 `analysis_module_*` sections of `ace3/etc/saq.default.yaml` at ace3 `f72f8946`, with what each module does, where it runs in ace4 and which step ports it. The same 90 sections were there at `141a60a2`, the commit PLAN.md was written against. Each entry comes from the module's code, not just its config: the class, the helpers it calls and the base classes they inherit. It's the plan for the rest of phase 7, so when a step ports a module, change its row.
 
-`tools/ace3/modules/check` reads the sections at the head of ace3's checkout and fails if this file misses one, names one that's gone, or disagrees with ace3 about a module's class, groups or modes. It also checks that every module has a pool and a step from the lists below, and that the ported modules are the ones `crates/ace` registers. tests/e2e/run runs it.
+`tools/ace3/modules/check` reads the sections at the head of ace3's checkout and fails if this file misses one, names one that's gone, or disagrees with ace3 about a module's class, groups or modes. It also checks that every module has a pool and a step from the lists below, that the ported modules are the ones `crates/ace` registers, that every reader of ACE's data has what serves it (7.2), and that every module starting a process has a decision for each program (7.3). tests/e2e/run runs it.
 
 Versions are those of ace3's image: Python packages from `installer/requirements-pinned.txt` and the Dockerfile's git installs, Debian trixie's packages from `dpkg-query` in ace3's dev container. "Writes" names the files a module adds to the alert, with `{file}` for the analyzed file's path; YARA rules match on those names and on the `yara_meta` types, which reach the scanner as its `meta_tags`.
 
@@ -13,9 +13,8 @@ Versions are those of ace3's image: Python packages from `installer/requirements
 | parser | a contained task process with one thread, no network and no database: it parses attacker bytes or values |
 | lookup | the async network pool: DNS, HTTP APIs, and ACE's own data through the internal API (7.2), parsing nothing hostile |
 | core | work over the whole tree that edits other nodes or the root's mode, which only the core's orchestrator can do |
-| sandbox | an external tool in ACE's sandbox runner (`ace3/saq/sandbox/`), which 7.3 brings; tshark is already placed there |
+| sandbox | a parser pool whose image carries external programs, which its supervisor runs at a task's request in ACE's sandbox runner (*External tools*, 7.3) |
 | scanner | 7.7's pool that starts a scanner image per file and reads back what it wrote |
-| 7.3 | starts an external program, and 7.3 decides between a crate, the tool as its own contained task process, and the sandbox runner |
 
 ## Counts
 
@@ -24,9 +23,8 @@ Versions are those of ace3's image: Python packages from `installer/requirements
 | parser | 54 | 9 |
 | lookup | 17 | 1 |
 | core | 3 | 0 |
-| sandbox | 3 | 0 |
+| sandbox | 14 | 0 |
 | scanner | 2 | 0 |
-| 7.3 | 11 | 0 |
 | all | 90 | 10 |
 
 | Step | Modules |
@@ -43,7 +41,7 @@ No ace3 module goes to 7.8 or 7.9: 7.8's integrations are a site's (below), and 
 
 ## 7.5's batches
 
-In order. Batches 10 to 13 wait for 7.3's decisions about their tools.
+In order. Batches 10 to 13 run programs in the sandbox runner, which batch 10 builds (*External tools*).
 
 1. **URLs and indicators in text**: `url_extraction`, `ioc_extraction`. Starts with `url_extraction`, as 7.5 says, which hits its 15-second cap on multi-line blobs. Until file_type is ported it reads the mime type the core gives every input file.
 2. **File identity**: `file_type`, `file_hash_analyzer`, `ssdeep`, `lnk_parser`, `binary_file_analyzer`, `x509_analyzer`, `dhash`. file_type first: many later modules read its result, its tags and its `yara_meta` types.
@@ -51,13 +49,13 @@ In order. Batches 10 to 13 wait for 7.3's decisions about their tools.
 4. **HTML**: `html_data_url_extraction`, `har_extraction`, `html_js_extraction`, `mhtml`. HTML, MHTML and HAR files, with the DOM snapshots 7.7's js-deobfuscator reads.
 5. **Office containers**: `onenote_extraction`, `officeparser3`, `office_xml_rel`, `xml_binary_analyzer`, `xml_plain_text_analyzer`, `extracted_ole_analyzer`, `hidden_mime`, `active_mime`. OLE streams, Office XML, OneNote and MIME blobs, on `ace-mod-oletools`' olefile port.
 6. **RTF and scripts**: `microsoft_script_encoding_analysis`, `extracted_rtf_analyzer`, `vbscript_analyzer`, `nowhitespace_analyzer`. Checks and transforms of RTF and script files.
-7. **Encrypted files**: `zip_encryption_analyzer`, `rar_encryption_analyzer`, `pdf_encryption_analyzer`. After 7.3 records John's decision: the email's wordlist tried in the task, as 4.11 did for Office.
+7. **Encrypted files**: `zip_encryption_analyzer`, `rar_encryption_analyzer`, `pdf_encryption_analyzer`. No John (7.3): the email's wordlist tried in the task, as 4.11 did for Office.
 8. **Email tree**: `mailbox_email_analyzer`, `lure_url_analyzer`, `email_conversation_attachment_analyzer`, `email_conversation_link_analyzer`. Modules that read the email's analysis; the two conversation modules after 7.4's frequency analyzer.
 9. **Email archive**: `email_archiver`, `encrypted_archive_analyzer`, `url_email_pivot_analyzer`, `message_id_analyzer_v2`. Brings ace3's `email` router (5.6) and the `daily/partitions` task's archive half (6.7). Lookup modules, on 7.2's reads (`crates/ace-core/src/reads.md`).
-10. **PDF and image text**: `ocr`, `qrcode`, `exif`, `pdftotext`. After 7.3, the tools that turn PDFs and images into text YARA scans.
-11. **Executables**: `java_class_decompiler`, `upx`, `autoit`, `de4dot`, `ilspy`. After 7.3: unpackers and decompilers.
-12. **macOS images**: `dmg_analyzer`, `cve_2021_30657_analyzer`. After 7.3.
-13. **Packet captures**: `pcap_analyzer`, `pcap_dns`, `pcap_tls`, `pcap_http`, `pcap_files`, `pcap_tls_decryption`, `tls_keylog`. On ACE's sandbox runner with tshark (7.3).
+10. **PDF and image text**: `ocr`, `qrcode`, `exif`, `pdftotext`. The tools that turn PDFs and images into text YARA scans. Builds the sandbox runner and the sandbox pool's image, and adds Ghostscript's rewrite to `pdf_analyzer` and ACE archives to `archive`, which move to the sandbox pool.
+11. **Executables**: `java_class_decompiler`, `upx`, `autoit`, `de4dot`, `ilspy`. Unpackers and decompilers, on the runner; the JVM and .NET in the image wait for the owner (*External tools*).
+12. **macOS images**: `dmg_analyzer`, `cve_2021_30657_analyzer`. dmg2img and 7z on the runner.
+13. **Packet captures**: `pcap_analyzer`, `pcap_dns`, `pcap_tls`, `pcap_http`, `pcap_files`, `pcap_tls_decryption`, `tls_keylog`. tshark on the sandbox runner.
 
 7.4 ports, in this workspace: `fqdn_analyzer`, `nrd_analyzer`, `snort_signature_analysis_v1`, `user_analyzer`, `email_conversation_frequency_analyzer`, `email_thread_analyzer`, `email_logger`, `clicker_detection_splunk`. The brocess modules (`email_logger` writes what `email_conversation_frequency_analyzer` and `email_thread_analyzer` read) go together, after 7.2's endpoints.
 
@@ -88,45 +86,104 @@ Not here: `rdap_analyzer` and `nrd_analyzer` use ace3's analysis result cache, w
 | `svs_alert_tagger` | ace: alerts R (insert_date); ace: svs_runs, svs_maintenance_windows R (attribution_open gate, cached svs.attribution.gate_cache_seconds); ace: svs_runs, svs_test_hosts, svs_maintenance_windows, svs_attributions R (evaluate: resolve_markers, runs_overlapping, maintenance_windows_overlapping, _existing) | to tag an alert SVS attributes to a test run or maintenance window | `svs-attribution` |
 | `observable_detection` | Redis: Redis 'local' config (redis_local), DB 4 (REDIS_DB_FOR_DETECTION_A): GET '<type>:<value>' per observable; populated by 'ace observables export' (saq/observables/export/redis_cache.py). One connection per module instance, health_check_interval 30. | to flag an observable an analyst set for detection | `lease` |
 
-## What 7.3 decides
+## External tools
 
-Every module that starts a process in ace3, and what it starts. Pool `parser` here means the process goes away in the port; `sandbox`, `scanner` and `7.3` mean it stays a process.
+PLAN.md 7.3. Every module that starts a process in ace3, each program it starts, and what ace4 does instead. A program goes one of four ways:
 
-| Module | Pool | Tools in ace3 | In ace4 |
+- **crate**: the module's own task process does the work with a library, and no program runs.
+- **runner**: ACE's sandbox runner, below, runs the program as its own contained process, which may start threads but not processes.
+- **children**: the sandbox runner runs the program and lets it start processes. No module's program needs this; it is there for 6.6.
+- **scanner**: 7.7's scanner pool, which starts an image per file. **none**: the process goes away with nothing in its place.
+
+`tools/ace3/modules/check` finds the modules that start a process in ace3's code, as it finds 7.2's readers: from each section's class through its methods, bases and helpers, to `run_tool`, `run_sandboxed_tool`, `run_sandboxed`, `subprocess`, `Popen`, `os.system` and the like, or `pytesseract`. At ace3 `f72f8946` it finds 30. The modules table below has those and three the scan can't see: two scanners, whose programs ACE's own code doesn't start, and `svs_yara_sample_capture`, whose `git` is behind an interface. The check fails when the scan finds a module the table doesn't have, when a row has no decision, when a row's decisions aren't those of the tools table's rows that name it, or when a decision doesn't fit the module's pool: **runner** needs the sandbox pool (or a module already ported, whose tool comes with batch 10) and **scanner** the scanner pool.
+
+### Evidence
+
+Each program ran in a throwaway container of ace3's own image (`ace3:latest`, Debian trixie, aarch64), with no network, on samples from ace3's tests and a DMG made with `hdiutil`, under `strace -f -qq -e trace=clone,clone3,fork,vfork,execve`. A thread is a `clone` with `CLONE_THREAD`; a process is a `clone` without it, a `fork` or a `vfork`. No program started a process. The ones with threads were run again under a seccomp filter that kills a new process and lets a thread through (`clone` with `CLONE_THREAD` allowed, `clone` without it killed, `clone3` failing with ENOSYS so glibc falls back to `clone`), and the rest under one that kills every `clone`, as the parser's does. A control that forks (`sh -c '/bin/true; echo after'`) died of SIGSYS under the first. Each run under a filter was compared with one without it, stdout and the files written: all were the same but for what names a time or a path (exiftool's `File:FileAccessDate`, and the document ID, dates and `%%Invocation` path in Ghostscript's PDF). `tools/ace3/strace/run` runs it all again: `pass1.sh` counts every tool's threads and processes, `pass2.sh` tries larger inputs and the filters (`filter.py`), `pass3.sh` compares outputs with thread limits and on the page that holds a QR code, and `pass4.sh` covers the programs whose modules go to crates.
+
+### The sandbox runner
+
+ace3's runner (`ace3/saq/sandbox/`) runs a program under `launcher.py`, `prlimit` and `setpriv`: Landlock rules for files, TCP ports and (from ABI 6) signals, rlimits on address space, file size, open files and CPU, an environment of `PATH`, `LANG`, `HOME` and `TMPDIR` only, and a launcher outside the program's Landlock domain that is a child subreaper, caps live descendants (64), and kills every descendant when the program exits, times out or writes more than 64 MiB. It never runs a program where Landlock is missing. ace4's runner keeps all of that and is built from ace4's containment (`crates/ace-pool/src/containment.rs`) instead of `setpriv`.
+
+- **Who runs it.** A module's task process is contained and can't exec, so it asks its supervisor: `Context::run_tool` writes the request (a tool the module's manifest declares, its arguments, the task files it reads, the outputs it keeps) on a pipe the task process opened before containing itself, and blocks. The supervisor checks the tool is one the module declares and every path is in the task's directory, makes an empty working directory, runs the tool, and answers with its exit status or signal, stdout and stderr (64 MiB each, as ace3; a tool past that is killed), and the outputs it left as plain files with one link, moved where the task process can read them. A request can't name a program, only a declared tool, so a task process that a hostile file took over can run only its module's tools, contained the same way. Tools run inside the task's deadline, and a task's tool runs are counted and capped. ace3's flows of several runs (`upx -t` then `-d`, `de4dot -d` then a clean, qrcode's page count, renders, scans and fallbacks) stay as they are. Running the tools before the module, from its manifest, can't express them.
+- **How a tool is contained.** The supervisor execs the pool's binary in a `tool` mode as the task's user, never forking (#982). It contains itself while it is one thread, then execs the tool, which is `contain_before_exec` brought back from `0bc58ab`: `RLIMIT_AS`, `RLIMIT_CORE` 0, `RLIMIT_CPU` (ace3 gives a tool its timeout times the number of cores, since the limit counts every thread), `RLIMIT_FSIZE` (1 GiB, ace3's `tool_sandbox`) and `RLIMIT_NOFILE`, `no_new_privs`, Landlock (reading the tool's own directories, the libraries and the few `/etc` files ace3 allows, the task files the request names; writing its working directory; executing only the tool and the dynamic loader; no TCP; the signal and abstract socket scopes), then the tool filter. The environment is ace3's four plus what the tool declares, such as `OMP_THREAD_LIMIT=1`. Since Landlock and seccomp are applied before the exec, every thread the tool starts inherits them, and Landlock's one-thread rule before ABI 8 doesn't apply. The PID the supervisor holds is the tool's, and killing it ends every thread, so the deadline and the output cap need no launcher.
+- **The tool filter.** The parser's filter, except that `clone` with `CLONE_THREAD` is allowed (seccomp can read `clone`'s flags), `clone3` fails with ENOSYS (seccomp can't read its flags, and glibc falls back), and `execve` stays for the tool's own exec. `fork`, `vfork`, `clone` without `CLONE_THREAD` and `io_uring_setup` kill it with SIGSYS, which the supervisor reports as a tool that tried to start a process, where ace3 would have let it. Threads are allowed because the JVM, .NET, Go and OpenMP start them whatever their options, and a thread can't outlive its process or escape rules applied before the exec. This is what the plan's "own task process" means, with threads let through: `contain_before_exec`'s filter killed them and so suited no tool here but the single-threaded ones.
+- **With children.** For a program that must start processes, the `tool` mode instead becomes ace3's launcher: it sets `PR_SET_CHILD_SUBREAPER`, forks once while one thread, and the child contains itself without the fork ban and execs the program; the parent, outside the program's Landlock domain, waits, counts live descendants against a cap (ace3's 64; `RLIMIT_NPROC` counts per user, and task processes share one), and at the program's exit, its deadline or a stop SIGSTOPs then SIGKILLs every descendant. Landlock TCP ports (ace3's correlation sandbox allows 443 and 53) come from `SandboxProfile::tcp_ports`, which containment already has. No module's program needs this mode; it waits for its first user.
+- **Failures.** As ace3 tells them apart: a tool that can't start (missing, not executable, or containment failed) is the node's fault and fails the task; a timeout, too much output, SIGXFSZ or SIGSYS is the file's and is recorded on the analysis, as ace3 records a tool that didn't finish. Landlock below ABI 4 fails containment, so a node without it runs no tool, as ace3 runs none.
+- **Where it goes.** The runner is in `ace-pool`, beside containment and the supervisor, and `ace-sdk` gets `Context::run_tool` and a manifest's tools; a parser pool without tools never starts the `tool` mode. Modules that run tools are on the `sandbox` pool: a parser pool, with the same supervisor and task processes, whose image adds the tools below, so the `parsers` image stays as it is. Its image is a new target in `docker/ace4/Dockerfile` on Debian trixie, whose packages are ace3's versions. 7.5's batch 10 builds the runner and the image, and with them adds the two tools left in modules already ported: Ghostscript's rewrite in `pdf_analyzer` and ACE archives in `archive`, which then move to the sandbox pool.
+- **For 6.6.** If the owner picks 6.6's first option, a `type: executable` command runs on this runner with children, as `ace3/saq/collectors/hunter/correlation/commands.py` runs it: the script and its `files:` staged into the working directory, its rendered arguments, ace3's `EXECUTABLE_ENV_ALLOWLIST` and the command's rendered `env:`, the event (or a stream's events as JSON lines) on stdin when the hunt asks, TCP ports 443 and 53, the command's `timeout`, and stdout and stderr scrubbed of the hunter's secrets before they reach the trace. Nothing in the runner needs a lease, so the hunter calls it directly, and `ace-app` depends on `ace-pool` already. The hunter's image would then carry Python 3 and dnspython, which ace4's images don't have, and the 24 cases of `test_sandbox.py` that 6.6 lists would port onto the runner's own tests, with the 26 executable cases. With 6.6's second option the children mode has no user and isn't built.
+
+### Image
+
+The sandbox image's packages, by Debian's installed size: the JRE 199 MB, Wireshark's libraries 134 MB, the .NET 10 runtime 86 MB with de4dotEx (90 MB as ace3 publishes it, self-contained) and ilspycmd 22 MB, Perl 60 MB with ExifTool 28 MB, Ghostscript 24 MB, ImageMagick and zbar 14 MB, tesseract with its data and Leptonica 24 MB, unautoit 11 MB, 7-Zip 7 MB, poppler 6 MB, upx 3 MB, dmg2img and unace under 1 MB: about 710 MB before OpenCV. ace3's one image carries all of that and also the .NET SDK (436 MB, where the runtime is enough), John's build (310 MB) and Node.js (237 MB), which ace4 doesn't need. **For the owner:** the JVM and .NET together are about 400 MB for three modules (`java_class_decompiler`, `de4dot`, `ilspy`). The recommendation is to keep them in the sandbox image, since each module's output (decompiled Java, deobfuscated assemblies, IL) has no other source; dropping a module instead is the owner's call. The licences don't stop anything: every GPL or AGPL program here (Ghostscript, poppler, unautoit, de4dot, upx, dmg2img, tshark) runs as a separate program, as ace3 runs it, and none is linked into ace4's Apache-2.0 binaries. That is also why Ghostscript, poppler and libautoit aren't crates.
+
+### Tools
+
+| Tool | Modules | Threads and children | Options | Decision | Image and licence |
+|---|---|---|---|---|---|
+| tshark 4.4.19, capinfos | `pcap_analyzer`, `pcap_tls_decryption`, `tls_keylog` | tshark: 3 threads (statistics and JSON runs), no process; capinfos: none. tshark's JSON run gave the same output under the tool filter. | none: the plan keeps tshark in the sandbox runner | **runner**, as the plan says. It starts no process, so it runs without children. | tshark, libwireshark18 and wireshark-common, 134 MB; GPL-2 |
+| exiftool 13.25 (Perl) | `exif` | none, on a PDF and a DOCX; the same JSON under the parser's filter | kamadak-exif 0.6.2 (BSD-2, kept up) and nom-exif 3.8.0 read EXIF in images and media; little_exif 0.6.23 is for writing. None reads a PDF's Info and XMP, OLE property sets or OOXML document properties under ExifTool's `Group:Tag` names, which the module stores whole and summarizes. | **runner** | libimage-exiftool-perl 28 MB and Perl 5.40, 60 MB; GPL-1+ or Artistic |
+| java (OpenJDK 21) with CFR 0.151 | `java_class_decompiler` | 29 threads with ace3's options, 13 with one CPU, the serial GC and one compiler thread; no process. The parser's filter kills it; the tool filter gives the same source. | no Rust decompiler of Java classes | **runner** | openjdk-21-jre-headless 199 MB, cfr.jar 2 MB; GPL-2 with the Classpath exception, CFR MIT. The size is for the owner (Image). |
+| upx 4.2.4 | `upx` | none, for `-t` and `-d`; the same output under the parser's filter | no crate unpacks UPX; goblin and object read a PE but not UPX's compressed sections | **runner** | upx-ucl 3 MB; GPL-2+ with UPX's exception |
+| unautoit (Go) | `autoit` | 4 or 5 threads (Go's runtime), no process; the same listing under the tool filter | porting its vendored libautoit, 5,315 lines of GPL-3 Go, would put GPL-3 code in ace4's binaries | **runner**, where ace3 runs it unsandboxed | a static Go binary, 11 MB, built from ace3's `third_party/unautoit` as ace3's Dockerfile builds it; GPL-3 |
+| de4dotEx 3.10.0 (.NET 10) | `de4dot` | 8 threads detecting, 9 cleaning, no process. The parser's filter kills it; under the tool filter both runs work and the clean writes `deobfuscated`. | no Rust .NET deobfuscator | **runner**. De4dot's dynamic string decrypters can call the sample's methods; one that starts a process now kills the tool. | 90 MB self-contained as ace3 publishes it, of which de4dot's own assemblies are 4 MB, so about that on the shared runtime; GPL-3. With ilspycmd, for the owner (Image). |
+| ilspycmd 11.0.0.9375 (.NET 10) | `ilspy` | 19 threads, no process; under the tool filter it wrote the sample's IL (2.7 MB) | no crate gives ILSpy's IL | **runner** | dotnet-runtime-10.0 86 MB (ace3 installs the 436 MB SDK), ilspycmd 22 MB; MIT |
+| tesseract 5.5.0 | `ocr` | none with `OMP_THREAD_LIMIT=1`, ace3's `omp_thread_limit`; 4 OpenMP threads without it on a large screenshot, with the same text | libtesseract in the task through `tesseract` 0.15.2 (last release April 2025) or `tesseract-rs` 0.4.0 (young): the same engine, but pytesseract runs the program on a PNG, so the program matches ace3 with no binding to keep up | **runner**, with `OMP_THREAD_LIMIT=1` | tesseract-ocr, its English and OSD data, libtesseract5 and Leptonica, 24 MB; Apache-2.0 |
+| OpenCV (cv2 5.0 in Python) | `ocr`, `qrcode` | ace3's QR script: 19 threads without `OPENBLAS_NUM_THREADS=1` (numpy's OpenBLAS), none with it and `cv2.setNumThreads(1)` | the `opencv` crate 0.102.0 (MIT, kept up) binds the same library. `imageproc` 0.27 has no non-local-means denoising, and rxing 0.9.4 and rqrr 0.11 find QR codes differently from cv2's `QRCodeDetector`. | **crate**: `opencv` in the task, with `setNumThreads(1)` before containment. ace3 has opencv-python 5.0.0.93 and trixie has OpenCV 4.10, so batch 10 builds 5.0 or shows 4.10 gives the same text and codes. | libopencv's core, imgproc, imgcodecs, photo and objdetect, in the sandbox image only; Apache-2.0 |
+| Ghostscript 10.05.1 | `pdf_analyzer`, `qrcode` | none, for `pdfwrite` and `pngalpha`; under the parser's filter the same pages, and the same PDF but for its ID, dates and invocation line | pdfium-render 0.9.5 needs a PDFium library and renders differently; mupdf 0.8.0 is AGPL; qpdf rewrites a PDF but doesn't interpret it, which is what `.gs.pdf` is for (AES-encrypted PDFs' URLs). 4.9 left this open. | **runner** | libgs10 and its common files, 24 MB; AGPL-3 |
+| pdfinfo, pdftotext (poppler 25.03.0) | `qrcode`, `pdftotext` | none | pdf-extract 0.12.1 (MIT) lays text out differently from pdftotext, and YARA rules match its text; poppler-rs 0.26.0 binds poppler-glib, GPL. libqpdf could count pages but differs from pdfinfo on a damaged file. | **runner** | poppler-utils and libpoppler147, 6 MB; GPL-2 or 3 |
+| zbarimg 0.23.93 | `qrcode` | 6 threads (ImageMagick's OpenMP), none with `MAGICK_THREAD_LIMIT=1` and `OMP_THREAD_LIMIT=1`; the same URL plain, under the tool filter, and limited under the parser's | zbar-rust 0.1.1 (LGPL-2.1, little used) binds libzbar; rxing and rqrr are other decoders | **runner** | zbar-tools and libzbar 0.5 MB, ImageMagick 7's libraries 14 MB; LGPL-2.1, ImageMagick's licence |
+| dmg2img 1.6.7 | `dmg_analyzer` | none | dmgwiz 1.1.1 (MIT, about 7,000 downloads) extracts partitions, not dmg2img's whole image, which the module adds as a file for YARA | **runner** | 0.2 MB; GPL-2 |
+| 7z 25.01, on a DMG's image | `dmg_analyzer`, `cve_2021_30657_analyzer` | none, listing and extracting a member of an HFS+ image, and extracting a 64 MB LZMA2 archive under the parser's filter | hfsplus 0.4.0 (MIT, young) reads HFS+; the module keeps 7z's listing lines as they are and parses its columns | **runner** | 7zip 7 MB; LGPL-2.1 |
+| unace 2.5 | `archive` | none, listing and extracting | no crate reads ACE archives | **runner**, added to `archive` in batch 10 | unace-nonfree 0.2 MB; the Public UnAce Licence, which forbids using it to make an ACE compressor, nothing ACE does |
+| 7z, unrar, unzip, `bin/unjar` | `archive`, `zip_encryption_analyzer`, `rar_encryption_analyzer` | not run | zip, sevenz-rust2 and unrar (1.29) | **crate** | none |
+| John the Ripper 1.9.0-jumbo-1, zip2john, rar2john, pdf2john.pl, office2john.py | `msoffice_encryption_analyzer`, `zip_encryption_analyzer`, `rar_encryption_analyzer`, `pdf_encryption_analyzer` | john: 10 threads (OpenMP; it links libgomp), no process; zip2john and pdf2john.pl: none | ace3 runs John only with `--wordlist`, the email body's candidates (up to `list_limit`, 5,000), and no rules, so trying each word with the format's own library gives the same password | **crate**: the wordlist tried in the task, as 4.11 does for Office, with zip, unrar and libqpdf | none; saves John's 310 MB build |
+| file (libmagic 5.46) | `archive`, `file_type`, `de4dot`, `ilspy`, `cve_2021_30657_analyzer` | none | libmagic through `ace_yara::mime` | **crate** | none |
+| node `--check`, grep | `file_type`, `extracted_ole_analyzer` | node: 7 threads, no process | oxc_parser 0.157.0 (MIT, kept up) checks syntax; V8 and oxc may disagree at the edges, which batch 2 measures | **crate** | none; saves Node.js, 237 MB |
+| ssdeep 2.14.1 | `ssdeep` | none | fuzzyhash 0.2.2 (MIT, pure Rust, last release 2023); ssdeep 0.7.0 binds libfuzzy and is GPL-3 | **crate**: fuzzyhash, checked against ssdeep's hashes and `-m` scores in batch 2. If they differ, the module moves to the runner. | none |
+| pdf-parser.py, xlmdeobfuscator, pcodedmp, rtfobj, officeparser3 | `pdf_analyzer`, `xlmdeobfuscator`, `pcodedmp`, `rtfole`, `officeparser3` | Python, gone | ported in 4.9, 4.10 and 4.12; officeparser3 onto `ace-mod-oletools`' olefile port in batch 5 | **crate** | none |
+| jscript.decode.pl | `microsoft_script_encoding_analysis` | none | about 80 lines of Perl, ported | **crate** | none |
+| git | `yara_scanner_v3_4`, `observable_modifier`, `svs_yara_sample_capture` | not run | the ruleset records its commit (2.26) | **none** | none |
+| version probes (`probe_binary_version`) | `ocr`, `qrcode` | not run | they key ace3's analysis result cache, which ace4 doesn't have (6.7) | **none** | none |
+| docker, through the scanner managers | `javascript_deobfuscation`, `phishkit_analyzer` | not ACE's | 7.7 | **scanner** | 7.7's images |
+
+### Modules that start a process
+
+| Module | Pool | Tools in ace3 | Decision |
 |---|---|---|---|
-| `pcap_analyzer` | sandbox | tshark 4.4.19 (and capinfos 4.4.19 from the same dir) via saq.sandbox.runner.run_sandboxed + build_sandbox_argv directly (NOT AnalysisModule.run_sandboxed_tool): argv is `python3 -I -S saq/sandbox/launcher.py --max-processes=64 --deadline=... -- /usr/bin/prlimit --as --fsize --nofile --cpu --core=0 -- setpriv --no-new-privs --landlock-access fs ... -- tshark -n -r input ...`; env is only PATH/LANG/HOME; refuses to run when landlock_available() is false (PcapNodeError); runs: `capinfos -M -S input` (30 s timeout), `tshark -n -r input -q -z io,stat,0 -z endpoints,eth -z endpoints,ip -z endpoints,ipv6 -z conv,tcp -z conv,udp`, then `tshark -n -r input -T json -Y 'frame.number <= max_field_packets && (dns \|\| tls.handshake \|\| http.request \|\| http.response \|\| http2.headers \|\| dhcp \|\| nbns)' -e <38 fields> --export-objects http\|smb\|ftp-data\|tftp\|imf,objects/<proto>` (pcap.tshark_timeout 120 s each) | stays a process, in the sandbox runner |
-| `pcap_tls_decryption` | sandbox | tshark 4.4.19 (and capinfos 4.4.19 from the same dir) via saq.sandbox.runner.run_sandboxed + build_sandbox_argv directly (NOT AnalysisModule.run_sandboxed_tool): argv is `python3 -I -S saq/sandbox/launcher.py --max-processes=64 --deadline=... -- /usr/bin/prlimit --as --fsize --nofile --cpu --core=0 -- setpriv --no-new-privs --landlock-access fs ... -- tshark -n -r input ...`; env is only PATH/LANG/HOME; refuses to run when landlock_available() is false (PcapNodeError); one run: `tshark -n -r input -T json -Y ... -e ... --export-objects ... -o tls.keylog_file:keylog` (no statistics/capinfos pass) | stays a process, in the sandbox runner |
-| `tls_keylog` | sandbox | tshark 4.4.19 (and capinfos 4.4.19 from the same dir) via saq.sandbox.runner.run_sandboxed + build_sandbox_argv directly (NOT AnalysisModule.run_sandboxed_tool): argv is `python3 -I -S saq/sandbox/launcher.py --max-processes=64 --deadline=... -- /usr/bin/prlimit --as --fsize --nofile --cpu --core=0 -- setpriv --no-new-privs --landlock-access fs ... -- tshark -n -r input ...`; env is only PATH/LANG/HOME; refuses to run when landlock_available() is false (PcapNodeError) -- only for late key logs: one tshark run per pcap with a completed PcapTlsDecryptionAnalysis that this key log has new session keys (or RSA keys) for | stays a process, in the sandbox runner |
-| `javascript_deobfuscation` | scanner | none started by ACE itself; the js-deobfuscator manager container (docker:dind image, Alpine python3 venv with celery[redis] + pyyaml, unpinned) runs `docker run --rm --network none -v <stack>_js-deobfuscator:/js-deobfuscator ${ACE3_JS_DEOBFUSCATOR_IMAGE_URL:-js-deobfuscator} node /opt/app/harness.js <input> <output>/deobfuscated.js` via subprocess.Popen on the host docker socket, killed after scanner_timeout (30 s); scanner image: node:26-alpine with webcrack 2.15.1 (npm, --ignore-scripts, isolated-vm not built); harness.js uses node:vm (webcrack sandbox 10 s timeout, dynamic run 5 s per script) | stays a process, in 7.7's scanner pool |
-| `ssdeep` | parser | ssdeep 2.14.1 via run_tool (plain subprocess.run, unsandboxed): `ssdeep -m <ssdeep_hashes> <file>` | a fuzzy-hash crate |
-| `archive` | parser | 7z (7zip 25.01, with 7zip-rar 25.00) via run_sandboxed_tool: `7z -y -pinfected l` and `7z -y -pinfected -o<dir> x` (and `7z -y -o<dir> x` for MSI); unrar 7.1.8 via run_sandboxed_tool: `unrar la` and `unrar e -y -o+ -idq -kb`; unzip via run_sandboxed_tool: `unzip -l -P infected` and `unzip -qq ... -x xl/activeX/* ... -d <dir>`; unace-nonfree 2.5 via run_sandboxed_tool on a copy in a temp staging dir: `unace l` and `unace x -y -o`; bin/unjar (python3 script using custom_zipfile.extractall) via run_sandboxed_tool for jar files; file via Popen `file -b -L` (unsandboxed, no timeout) in is_msi_file, called up to twice | ported onto crates (1.29); ACE archives (unace) left for 7.3 |
-| `java_class_decompiler` | 7.3 | java (default-jre, OpenJDK 21) running /usr/local/bin/cfr.jar (cfr 0.151) via run_sandboxed_tool: `java -Xmx1g -XX:CompressedClassSpaceSize=128m -XX:ReservedCodeCacheSize=128m -XX:-UsePerfData -jar cfr.jar <class>` | 7.3 decides |
-| `officeparser3` | parser | officeparser3 (unixfreak0037/officeparser3, pip-installed from git master; config officeparser_path /venv/bin/officeparser3) via subprocess.Popen directly, NOT sandboxed, timeout config 90s | `ace-mod-oletools`' olefile port |
-| `xlmdeobfuscator` | parser | xlmdeobfuscator CLI (DissectMalware/XLMMacroDeobfuscator master, with xlrd2 and pyxlsb2 master) resolved from PATH via subprocess.Popen, NOT sandboxed: `xlmdeobfuscator -f <file>` and `xlmdeobfuscator -x -f <file>`, timeout config 30s each | ported (4.12) |
-| `pcodedmp` | parser | bin/pcodedmp_wrapper (bash) via subprocess.Popen, NOT sandboxed: `timeout --foreground --signal=KILL 30 /venv/bin/pcodedmp <file> \| sed -ne '/^Module streams:/,$ p' \| egrep '^[[:space:]]'`; pcodedmp 1.2.6 (pip, uses oletools/olefile) | ported (4.12) |
-| `msoffice_encryption_analyzer` | parser | bin/office2john.py (vendored, bundles an old olefile 0.42) via run_sandboxed_tool with the venv python3 -I (sandbox_python()); john 1.9.0-jumbo-1 (openwall git master, built with plain ./configure, so OpenMP is enabled if detected) via saq/cracking.py crack_password(): two run_sandboxed_tool calls, `john --session=john --pot=john.pot --wordlist=<abs> <hash>` (pot moved out as {hash}.pot) then `john --pot=<pot> --show <hash>` | ported: the wordlist tried in the task (4.11); 7.3 records John |
-| `extracted_ole_analyzer` | parser | node (nodejs 24.22) `node --check <file or hard link {file}-<uuid>.js>` via subprocess.Popen from is_javascript_file(), NOT sandboxed, no timeout; grep -Eq <JS keyword regex> <file> via Popen, no timeout | a Rust JavaScript parser |
-| `file_type` | parser | file (libmagic 5.46) via run_tool (plain subprocess.run, unsandboxed), twice: `file -b -L` and `file -b --mime-type -L`; node 24.22 via Popen `node --check <file or hard link>.js` (unsandboxed, no timeout) in is_javascript_file, only when mime is a JS type or extension is .js/.mjs/.cjs/.jse; grep via Popen `grep -Eq <js keyword regex>` (unsandboxed) after node --check succeeds | libmagic through `ace_yara::mime`, and a Rust JavaScript parser |
-| `pdf_analyzer` | parser | python3 bin/pdf-parser.py (Didier Stevens pdf-parser 0.7.12, vendored) via run_tool (plain subprocess.run, unsandboxed), timeout 10 s, run on the file and again on the decrypted copy; gs (ghostscript 10.05.1) via run_sandboxed_tool: `gs -sDEVICE=pdfwrite -o output.pdf -f <file>`, timeout 10 s | pdf-parser.py ported (4.9); Ghostscript left for 7.3 |
-| `upx` | 7.3 | upx (upx-ucl 4.2.4) via run_sandboxed_tool: `upx -t <file>` then `upx -d -ounpacked.exe <file>` | 7.3 decides |
-| `autoit` | 7.3 | unautoit (vendored Go build from third_party/unautoit) via run_tool (plain subprocess.run, UNSANDBOXED): `unautoit list <file>` and `unautoit extract-all --output-dir {file}.autoit <file>` | 7.3 decides |
-| `de4dot` | 7.3 | de4dotEx 3.10.0 (/opt/de4dotEx/de4dot, .NET 10) via run_sandboxed_tool with /proc/self readable, DOTNET_GCHeapHardLimit=1 GB, memory limit 12 GB, timeout 10 s: `de4dot -d <file>` then `de4dot <file> -o deobfuscated`; file via Popen `file -b -L` (unsandboxed, no timeout) in is_dotnet | 7.3 decides |
-| `ilspy` | 7.3 | ilspycmd 11.0.0.9375 (/opt/dotnet/ilspycmd, .NET 10) via run_sandboxed_tool with /proc/self readable, DOTNET env heap limits, memory limit 12 GB, timeout 10 s: `ilspycmd -il --disable-updatecheck -o . <file>`; file via Popen `file -b -L` (unsandboxed) in is_dotnet | 7.3 decides |
-| `ocr` | 7.3 | tesseract (tesseract-ocr 5.5.0) via pytesseract.image_to_string, which starts it with subprocess UNSANDBOXED and no timeout, twice per image (`--oem 1 --psm 3`); tesseract --version via probe_binary_version (subprocess.run, cached per binary mtime) for the cache key | 7.3 decides |
-| `qrcode` | 7.3 | pdfinfo (poppler-utils 25.03.0) via run_sandboxed_tool for the page count; gs (ghostscript 10.05.1) via run_sandboxed_tool: `gs -sDEVICE=pngalpha -o <pattern> -r144 -dFirstPage -dLastPage`, up to 2 runs plus a full-render fallback; zbarimg (zbar-tools 0.23.93) via run_sandboxed_tool: `zbarimg -q --raw --nodbus`, per page and per inverted page; venv python3 -I bin/qr_decode_opencv.py via run_sandboxed_tool (OPENBLAS_NUM_THREADS=1), when zbarimg finds no URL; zbarimg/gs/pdfinfo version probes via probe_binary_version (subprocess.run, cached) for the cache key | 7.3 decides |
-| `dmg_analyzer` | 7.3 | dmg2img 1.6.7 via run_sandboxed_tool: `dmg2img <file> image.img`; 7z 25.01 via run_sandboxed_tool: `7z l <image>` | 7.3 decides |
-| `cve_2021_30657_analyzer` | 7.3 | 7z 25.01 via run_sandboxed_tool: `7z x -o<temp> <img> <member>` once per Contents/MacOS member; file via run_tool (plain subprocess.run, unsandboxed): `file -b --mime-type -L <extracted>` | 7.3 decides |
-| `exif` | 7.3 | exiftool (libimage-exiftool-perl 13.25) via run_sandboxed_tool: `exiftool -j -G -n <file>`, timeout 30 s | 7.3 decides |
-| `pdftotext` | 7.3 | pdftotext (poppler-utils 25.03.0, /usr/bin/pdftotext) via run_sandboxed_tool: `pdftotext <file> output.txt`, timeout 5 s | 7.3 decides |
-| `yara_scanner_v3_4` | parser | git via subprocess.run `git -C <dir> rev-parse HEAD` (saq/git.py get_commit_hash) when initializing the local scanner, through get_validated_git_repo_dirs | ported; ace4's ruleset records its commit (2.26) |
-| `microsoft_script_encoding_analysis` | parser | perl script bin/jscript.decode.pl (vendored, ~80 lines) via run_tool() = subprocess.run, NOT sandboxed; timeout = time_left() minus margin | the decoder ported to Rust |
-| `observable_modifier` | core | git rev-parse HEAD via subprocess.run (saq/git.py:53-70), only when the optional git_dir setting is configured (not set in saq.default.yaml), on each rules reload | none: its rules come from 5.14's lists or the overlay, not a git checkout |
-| `rtfole` | parser | `python /venv/bin/rtfobj -d {file}.rtfobj -s all <file>` (oletools 0.60.2 rtfobj) via run_tool() = subprocess.run, NOT sandboxed; 'python' resolved from PATH; timeout = time_left() minus margin | ported (4.10) |
-| `zip_encryption_analyzer` | parser | zip2john (john run dir) via run_sandboxed_tool; john 1.9.0-jumbo-1 (openwall git master, built with plain ./configure, so OpenMP is enabled if detected) via saq/cracking.py crack_password(): two run_sandboxed_tool calls, `john --session=john --pot=john.pot --wordlist=<abs> <hash>` (pot moved out as {hash}.pot) then `john --pot=<pot> --show <hash>`; 7z 25.01 `7z x -y -p<password> -o<abs dir> <file>` via run_sandboxed_tool, timeout extract_timeout=5s, write_dirs=[{file}.decrypted] | the wordlist tried in the task with the zip crate; 7.3 records John |
-| `rar_encryption_analyzer` | parser | rar2john (john run dir) via run_sandboxed_tool; john 1.9.0-jumbo-1 (openwall git master, built with plain ./configure, so OpenMP is enabled if detected) via saq/cracking.py crack_password(): two run_sandboxed_tool calls, `john --session=john --pot=john.pot --wordlist=<abs> <hash>` (pot moved out as {hash}.pot) then `john --pot=<pot> --show <hash>`; unrar 7.1.8 `unrar x -y -kb -p<password> <file> <abs dir>/` via run_sandboxed_tool, read_files=archive_volumes(), write_dirs=[{file}.decrypted], timeout = time_left() | the wordlist tried in the task with the unrar crate; 7.3 records John |
-| `pdf_encryption_analyzer` | parser | perl <john_bin_path>/pdf2john.pl <file> via run_sandboxed_tool, read_dirs=[john run dir] (uses john's bundled ExifTool perl lib); john 1.9.0-jumbo-1 (openwall git master, built with plain ./configure, so OpenMP is enabled if detected) via saq/cracking.py crack_password(): two run_sandboxed_tool calls, `john --session=john --pot=john.pot --wordlist=<abs> <hash>` (pot moved out as {hash}.pot) then `john --pot=<pot> --show <hash>`; hash written as 'pdf:<$pdf$...>' with login='pdf' | the wordlist tried in the task with libqpdf; 7.3 records John |
-| `svs_yara_sample_capture` | lookup | git via subprocess.run (rev-parse --show-toplevel, remote URL, rev-parse HEAD) through saq.signatures.git_context.GitContext.resolve when the yara rule inventory is (re)built for _rule_content_hash (saq/svs/capture.py:210-217, saq/signatures/loaders/yara.py:332, saq/git.py:53-110) | none: ace4's ruleset records its commit (2.26) |
-| `phishkit_analyzer` | scanner | none started by ACE; the phishkit manager container (docker:dind, Alpine, python venv with unpinned celery[redis], pydantic, pyyaml, python-magic) runs two Celery workers (worker_launcher.py: scan queue 'celery' and control queue 'phishkit_control' solo pool) and per scan `docker run --rm --init --name phishkit-scan-<job> --label phishkit.* --memory/--memory-swap --cpus --stop-timeout 5 -v <stack>_phishkit:/phishkit ${ACE3_PHISHKIT_IMAGE_URL:-phishkit} /opt/venv/bin/python /opt/app/scanner.py <url \| --file path> --output-dir ... [--proxy ...] [--config ...]` via Popen, with a retry without proxy on proxy errors; also docker inspect/ps/stop/kill/rm (reaper thread kills orphans older than reaper_max_age_seconds); scanner image: ubuntu 22.04 + google-chrome-stable (current at build) + chromedriver, Xvfb, ffmpeg; python seleniumbase, pyautogui, selenium-recaptcha-solver (git), pillow, opencv-python, pyyaml (all unpinned) | stays a process, in 7.7's scanner pool |
+| `pcap_analyzer` | sandbox | tshark 4.4.19 (and capinfos 4.4.19 from the same dir) via saq.sandbox.runner.run_sandboxed + build_sandbox_argv directly (NOT AnalysisModule.run_sandboxed_tool): argv is `python3 -I -S saq/sandbox/launcher.py --max-processes=64 --deadline=... -- /usr/bin/prlimit --as --fsize --nofile --cpu --core=0 -- setpriv --no-new-privs --landlock-access fs ... -- tshark -n -r input ...`; env is only PATH/LANG/HOME; refuses to run when landlock_available() is false (PcapNodeError); runs: `capinfos -M -S input` (30 s timeout), `tshark -n -r input -q -z io,stat,0 -z endpoints,eth -z endpoints,ip -z endpoints,ipv6 -z conv,tcp -z conv,udp`, then `tshark -n -r input -T json -Y 'frame.number <= max_field_packets && (dns \|\| tls.handshake \|\| http.request \|\| http.response \|\| http2.headers \|\| dhcp \|\| nbns)' -e <38 fields> --export-objects http\|smb\|ftp-data\|tftp\|imf,objects/<proto>` (pcap.tshark_timeout 120 s each) | tshark, capinfos: **runner** |
+| `pcap_tls_decryption` | sandbox | tshark 4.4.19 (and capinfos 4.4.19 from the same dir) via saq.sandbox.runner.run_sandboxed + build_sandbox_argv directly (NOT AnalysisModule.run_sandboxed_tool): argv is `python3 -I -S saq/sandbox/launcher.py --max-processes=64 --deadline=... -- /usr/bin/prlimit --as --fsize --nofile --cpu --core=0 -- setpriv --no-new-privs --landlock-access fs ... -- tshark -n -r input ...`; env is only PATH/LANG/HOME; refuses to run when landlock_available() is false (PcapNodeError); one run: `tshark -n -r input -T json -Y ... -e ... --export-objects ... -o tls.keylog_file:keylog` (no statistics/capinfos pass) | tshark: **runner** |
+| `tls_keylog` | sandbox | tshark 4.4.19 (and capinfos 4.4.19 from the same dir) via saq.sandbox.runner.run_sandboxed + build_sandbox_argv directly (NOT AnalysisModule.run_sandboxed_tool): argv is `python3 -I -S saq/sandbox/launcher.py --max-processes=64 --deadline=... -- /usr/bin/prlimit --as --fsize --nofile --cpu --core=0 -- setpriv --no-new-privs --landlock-access fs ... -- tshark -n -r input ...`; env is only PATH/LANG/HOME; refuses to run when landlock_available() is false (PcapNodeError) -- only for late key logs: one tshark run per pcap with a completed PcapTlsDecryptionAnalysis that this key log has new session keys (or RSA keys) for | tshark: **runner** |
+| `javascript_deobfuscation` | scanner | none started by ACE itself; the js-deobfuscator manager container (docker:dind image, Alpine python3 venv with celery[redis] + pyyaml, unpinned) runs `docker run --rm --network none -v <stack>_js-deobfuscator:/js-deobfuscator ${ACE3_JS_DEOBFUSCATOR_IMAGE_URL:-js-deobfuscator} node /opt/app/harness.js <input> <output>/deobfuscated.js` via subprocess.Popen on the host docker socket, killed after scanner_timeout (30 s); scanner image: node:26-alpine with webcrack 2.15.1 (npm, --ignore-scripts, isolated-vm not built); harness.js uses node:vm (webcrack sandbox 10 s timeout, dynamic run 5 s per script) | **scanner** (7.7) |
+| `ssdeep` | parser | ssdeep 2.14.1 via run_tool (plain subprocess.run, unsandboxed): `ssdeep -m <ssdeep_hashes> <file>` | ssdeep: **crate** (fuzzyhash, checked in batch 2) |
+| `archive` | parser | 7z (7zip 25.01, with 7zip-rar 25.00) via run_sandboxed_tool: `7z -y -pinfected l` and `7z -y -pinfected -o<dir> x` (and `7z -y -o<dir> x` for MSI); unrar 7.1.8 via run_sandboxed_tool: `unrar la` and `unrar e -y -o+ -idq -kb`; unzip via run_sandboxed_tool: `unzip -l -P infected` and `unzip -qq ... -x xl/activeX/* ... -d <dir>`; unace-nonfree 2.5 via run_sandboxed_tool on a copy in a temp staging dir: `unace l` and `unace x -y -o`; bin/unjar (python3 script using custom_zipfile.extractall) via run_sandboxed_tool for jar files; file via Popen `file -b -L` (unsandboxed, no timeout) in is_msi_file, called up to twice | 7z, unrar, unzip, unjar: **crate** (1.29); unace: **runner**, in batch 10; file: **crate** |
+| `java_class_decompiler` | sandbox | java (default-jre, OpenJDK 21) running /usr/local/bin/cfr.jar (cfr 0.151) via run_sandboxed_tool: `java -Xmx1g -XX:CompressedClassSpaceSize=128m -XX:ReservedCodeCacheSize=128m -XX:-UsePerfData -jar cfr.jar <class>` | java with CFR: **runner** |
+| `officeparser3` | parser | officeparser3 (unixfreak0037/officeparser3, pip-installed from git master; config officeparser_path /venv/bin/officeparser3) via subprocess.Popen directly, NOT sandboxed, timeout config 90s | **crate**: `ace-mod-oletools`' olefile port |
+| `xlmdeobfuscator` | parser | xlmdeobfuscator CLI (DissectMalware/XLMMacroDeobfuscator master, with xlrd2 and pyxlsb2 master) resolved from PATH via subprocess.Popen, NOT sandboxed: `xlmdeobfuscator -f <file>` and `xlmdeobfuscator -x -f <file>`, timeout config 30s each | **crate** (4.12) |
+| `pcodedmp` | parser | bin/pcodedmp_wrapper (bash) via subprocess.Popen, NOT sandboxed: `timeout --foreground --signal=KILL 30 /venv/bin/pcodedmp <file> \| sed -ne '/^Module streams:/,$ p' \| egrep '^[[:space:]]'`; pcodedmp 1.2.6 (pip, uses oletools/olefile) | **crate** (4.12) |
+| `msoffice_encryption_analyzer` | parser | bin/office2john.py (vendored, bundles an old olefile 0.42) via run_sandboxed_tool with the venv python3 -I (sandbox_python()); john 1.9.0-jumbo-1 (openwall git master, built with plain ./configure, so OpenMP is enabled if detected) via saq/cracking.py crack_password(): two run_sandboxed_tool calls, `john --session=john --pot=john.pot --wordlist=<abs> <hash>` (pot moved out as {hash}.pot) then `john --pot=<pot> --show <hash>` | office2john.py and John: **crate**, the wordlist tried in the task (4.11) |
+| `extracted_ole_analyzer` | parser | node (nodejs 24.22) `node --check <file or hard link {file}-<uuid>.js>` via subprocess.Popen from is_javascript_file(), NOT sandboxed, no timeout; grep -Eq <JS keyword regex> <file> via Popen, no timeout | node and grep: **crate** (oxc_parser) |
+| `file_type` | parser | file (libmagic 5.46) via run_tool (plain subprocess.run, unsandboxed), twice: `file -b -L` and `file -b --mime-type -L`; node 24.22 via Popen `node --check <file or hard link>.js` (unsandboxed, no timeout) in is_javascript_file, only when mime is a JS type or extension is .js/.mjs/.cjs/.jse; grep via Popen `grep -Eq <js keyword regex>` (unsandboxed) after node --check succeeds | file: **crate** (`ace_yara::mime`); node and grep: **crate** (oxc_parser) |
+| `pdf_analyzer` | parser | python3 bin/pdf-parser.py (Didier Stevens pdf-parser 0.7.12, vendored) via run_tool (plain subprocess.run, unsandboxed), timeout 10 s, run on the file and again on the decrypted copy; gs (ghostscript 10.05.1) via run_sandboxed_tool: `gs -sDEVICE=pdfwrite -o output.pdf -f <file>`, timeout 10 s | pdf-parser.py: **crate** (4.9); gs: **runner**, in batch 10 |
+| `upx` | sandbox | upx (upx-ucl 4.2.4) via run_sandboxed_tool: `upx -t <file>` then `upx -d -ounpacked.exe <file>` | upx: **runner** |
+| `autoit` | sandbox | unautoit (vendored Go build from third_party/unautoit) via run_tool (plain subprocess.run, UNSANDBOXED): `unautoit list <file>` and `unautoit extract-all --output-dir {file}.autoit <file>` | unautoit: **runner** |
+| `de4dot` | sandbox | de4dotEx 3.10.0 (/opt/de4dotEx/de4dot, .NET 10) via run_sandboxed_tool with /proc/self readable, DOTNET_GCHeapHardLimit=1 GB, memory limit 12 GB, timeout 10 s: `de4dot -d <file>` then `de4dot <file> -o deobfuscated`; file via Popen `file -b -L` (unsandboxed, no timeout) in is_dotnet | de4dot: **runner**; file: **crate** |
+| `ilspy` | sandbox | ilspycmd 11.0.0.9375 (/opt/dotnet/ilspycmd, .NET 10) via run_sandboxed_tool with /proc/self readable, DOTNET env heap limits, memory limit 12 GB, timeout 10 s: `ilspycmd -il --disable-updatecheck -o . <file>`; file via Popen `file -b -L` (unsandboxed) in is_dotnet | ilspycmd: **runner**; file: **crate** |
+| `ocr` | sandbox | tesseract (tesseract-ocr 5.5.0) via pytesseract.image_to_string, which starts it with subprocess UNSANDBOXED and no timeout, twice per image (`--oem 1 --psm 3`); tesseract --version via probe_binary_version (subprocess.run, cached per binary mtime) for the cache key | tesseract: **runner**; OpenCV: **crate** (`opencv`); the version probe: **none** |
+| `qrcode` | sandbox | pdfinfo (poppler-utils 25.03.0) via run_sandboxed_tool for the page count; gs (ghostscript 10.05.1) via run_sandboxed_tool: `gs -sDEVICE=pngalpha -o <pattern> -r144 -dFirstPage -dLastPage`, up to 2 runs plus a full-render fallback; zbarimg (zbar-tools 0.23.93) via run_sandboxed_tool: `zbarimg -q --raw --nodbus`, per page and per inverted page; venv python3 -I bin/qr_decode_opencv.py via run_sandboxed_tool (OPENBLAS_NUM_THREADS=1), when zbarimg finds no URL; zbarimg/gs/pdfinfo version probes via probe_binary_version (subprocess.run, cached) for the cache key | pdfinfo, gs, zbarimg: **runner**; the OpenCV script: **crate** (`opencv`); the version probes: **none** |
+| `dmg_analyzer` | sandbox | dmg2img 1.6.7 via run_sandboxed_tool: `dmg2img <file> image.img`; 7z 25.01 via run_sandboxed_tool: `7z l <image>` | dmg2img, 7z: **runner** |
+| `cve_2021_30657_analyzer` | sandbox | 7z 25.01 via run_sandboxed_tool: `7z x -o<temp> <img> <member>` once per Contents/MacOS member; file via run_tool (plain subprocess.run, unsandboxed): `file -b --mime-type -L <extracted>` | 7z: **runner**; file: **crate** |
+| `exif` | sandbox | exiftool (libimage-exiftool-perl 13.25) via run_sandboxed_tool: `exiftool -j -G -n <file>`, timeout 30 s | exiftool: **runner** |
+| `pdftotext` | sandbox | pdftotext (poppler-utils 25.03.0, /usr/bin/pdftotext) via run_sandboxed_tool: `pdftotext <file> output.txt`, timeout 5 s | pdftotext: **runner** |
+| `yara_scanner_v3_4` | parser | git via subprocess.run `git -C <dir> rev-parse HEAD` (saq/git.py get_commit_hash) when initializing the local scanner, through get_validated_git_repo_dirs | git: **none**; the ruleset records its commit (2.26) |
+| `microsoft_script_encoding_analysis` | parser | perl script bin/jscript.decode.pl (vendored, ~80 lines) via run_tool() = subprocess.run, NOT sandboxed; timeout = time_left() minus margin | jscript.decode.pl: **crate**, the decoder ported |
+| `observable_modifier` | core | git rev-parse HEAD via subprocess.run (saq/git.py:53-70), only when the optional git_dir setting is configured (not set in saq.default.yaml), on each rules reload | git: **none**; its rules come from 5.14's lists or the overlay |
+| `rtfole` | parser | `python /venv/bin/rtfobj -d {file}.rtfobj -s all <file>` (oletools 0.60.2 rtfobj) via run_tool() = subprocess.run, NOT sandboxed; 'python' resolved from PATH; timeout = time_left() minus margin | **crate** (4.10) |
+| `zip_encryption_analyzer` | parser | zip2john (john run dir) via run_sandboxed_tool; john 1.9.0-jumbo-1 (openwall git master, built with plain ./configure, so OpenMP is enabled if detected) via saq/cracking.py crack_password(): two run_sandboxed_tool calls, `john --session=john --pot=john.pot --wordlist=<abs> <hash>` (pot moved out as {hash}.pot) then `john --pot=<pot> --show <hash>`; 7z 25.01 `7z x -y -p<password> -o<abs dir> <file>` via run_sandboxed_tool, timeout extract_timeout=5s, write_dirs=[{file}.decrypted] | zip2john and John: **crate**, the wordlist tried in the task with zip; 7z: **crate** |
+| `rar_encryption_analyzer` | parser | rar2john (john run dir) via run_sandboxed_tool; john 1.9.0-jumbo-1 (openwall git master, built with plain ./configure, so OpenMP is enabled if detected) via saq/cracking.py crack_password(): two run_sandboxed_tool calls, `john --session=john --pot=john.pot --wordlist=<abs> <hash>` (pot moved out as {hash}.pot) then `john --pot=<pot> --show <hash>`; unrar 7.1.8 `unrar x -y -kb -p<password> <file> <abs dir>/` via run_sandboxed_tool, read_files=archive_volumes(), write_dirs=[{file}.decrypted], timeout = time_left() | rar2john and John: **crate**, the wordlist tried in the task with unrar; unrar: **crate** |
+| `pdf_encryption_analyzer` | parser | perl <john_bin_path>/pdf2john.pl <file> via run_sandboxed_tool, read_dirs=[john run dir] (uses john's bundled ExifTool perl lib); john 1.9.0-jumbo-1 (openwall git master, built with plain ./configure, so OpenMP is enabled if detected) via saq/cracking.py crack_password(): two run_sandboxed_tool calls, `john --session=john --pot=john.pot --wordlist=<abs> <hash>` (pot moved out as {hash}.pot) then `john --pot=<pot> --show <hash>`; hash written as 'pdf:<$pdf$...>' with login='pdf' | pdf2john.pl and John: **crate**, the wordlist tried in the task with libqpdf |
+| `svs_yara_sample_capture` | lookup | git via subprocess.run (rev-parse --show-toplevel, remote URL, rev-parse HEAD) through saq.signatures.git_context.GitContext.resolve when the yara rule inventory is (re)built for _rule_content_hash (saq/svs/capture.py:210-217, saq/signatures/loaders/yara.py:332, saq/git.py:53-110) | git: **none**; the ruleset records its commit (2.26) |
+| `phishkit_analyzer` | scanner | none started by ACE; the phishkit manager container (docker:dind, Alpine, python venv with unpinned celery[redis], pydantic, pyyaml, python-magic) runs two Celery workers (worker_launcher.py: scan queue 'celery' and control queue 'phishkit_control' solo pool) and per scan `docker run --rm --init --name phishkit-scan-<job> --label phishkit.* --memory/--memory-swap --cpus --stop-timeout 5 -v <stack>_phishkit:/phishkit ${ACE3_PHISHKIT_IMAGE_URL:-phishkit} /opt/venv/bin/python /opt/app/scanner.py <url \| --file path> --output-dir ... [--proxy ...] [--config ...]` via Popen, with a retry without proxy on proxy errors; also docker inspect/ps/stop/kill/rm (reaper thread kills orphans older than reaper_max_age_seconds); scanner image: ubuntu 22.04 + google-chrome-stable (current at build) + chromedriver, Xvfb, ffmpeg; python seleniumbase, pyautogui, selenium-recaptcha-solver (git), pillow, opencv-python, pyyaml (all unpinned) | **scanner** (7.7) |
 
 ## Modules
 
@@ -172,7 +229,7 @@ In the config's order. ace4 is the crate a ported module is in.
 | `file_hash_analyzer` | `FileHashAnalyzer` | not yet | parser | 7.5 batch 2 | file | analysis, binary, cli, correlation, email, file |
 | `ssdeep` | `SsdeepAnalyzer` | not yet | parser | 7.5 batch 2 | file | analysis, binary, cli, correlation, email, file |
 | `archive` | `ArchiveAnalyzer` | `ace-mod-archive` | parser | done | file | analysis, binary, cli, correlation, email, file |
-| `java_class_decompiler` | `JavaClassDecompilerAnalysisModule` | not yet | 7.3 | 7.5 batch 11 | file | analysis, binary, cli, correlation, email, file |
+| `java_class_decompiler` | `JavaClassDecompilerAnalysisModule` | not yet | sandbox | 7.5 batch 11 | file | analysis, binary, cli, correlation, email, file |
 | `olevba_v1_2` | `OLEVBA_Analyzer_v1_2` | `ace-mod-oletools` | parser | done | file | analysis, binary, cli, correlation, email, file |
 | `officeparser3` | `OfficeParserAnalyzer3` | not yet | parser | 7.5 batch 5 | file | analysis, binary, cli, correlation, email, file |
 | `xlmdeobfuscator` | `XLMMacroDeobfuscatorAnalyzer` | `ace-mod-xlm` | parser | done | file | analysis, binary, cli, correlation, email, file |
@@ -185,19 +242,19 @@ In the config's order. ace4 is the crate a ported module is in.
 | `extracted_ole_analyzer` | `ExtractedOLEAnalyzer` | not yet | parser | 7.5 batch 5 | file | analysis, binary, cli, correlation, email, file |
 | `file_type` | `FileTypeAnalyzer` | not yet | parser | 7.5 batch 2 | file | analysis, binary, cli, correlation, email, file |
 | `pdf_analyzer` | `PDFAnalyzer` | `ace-mod-pdf` | parser | done | file | analysis, binary, cli, correlation, email, file |
-| `upx` | `UPXAnalyzer` | not yet | 7.3 | 7.5 batch 11 | file | analysis, binary, cli, correlation, email, file |
-| `autoit` | `AutoItAnalyzer` | not yet | 7.3 | 7.5 batch 11 | file | analysis, binary, cli, correlation, email, file |
+| `upx` | `UPXAnalyzer` | not yet | sandbox | 7.5 batch 11 | file | analysis, binary, cli, correlation, email, file |
+| `autoit` | `AutoItAnalyzer` | not yet | sandbox | 7.5 batch 11 | file | analysis, binary, cli, correlation, email, file |
 | `lnk_parser` | `LnkParseAnalyzer` | not yet | parser | 7.5 batch 2 | file | analysis, binary, cli, correlation, email, file |
-| `de4dot` | `De4dotAnalyzer` | not yet | 7.3 | 7.5 batch 11 | file | analysis, binary, cli, correlation, email, file |
-| `ilspy` | `IlspyAnalyzer` | not yet | 7.3 | 7.5 batch 11 | file | analysis, binary, cli, correlation, email, file |
-| `ocr` | `OCRAnalyzer` | not yet | 7.3 | 7.5 batch 10 | file | analysis, binary, cli, correlation, email, file |
-| `qrcode` | `QRCodeAnalyzer` | not yet | 7.3 | 7.5 batch 10 | file | analysis, binary, cli, correlation, email, file |
+| `de4dot` | `De4dotAnalyzer` | not yet | sandbox | 7.5 batch 11 | file | analysis, binary, cli, correlation, email, file |
+| `ilspy` | `IlspyAnalyzer` | not yet | sandbox | 7.5 batch 11 | file | analysis, binary, cli, correlation, email, file |
+| `ocr` | `OCRAnalyzer` | not yet | sandbox | 7.5 batch 10 | file | analysis, binary, cli, correlation, email, file |
+| `qrcode` | `QRCodeAnalyzer` | not yet | sandbox | 7.5 batch 10 | file | analysis, binary, cli, correlation, email, file |
 | `hidden_mime` | `HiddenMIMEAnalyzer` | not yet | parser | 7.5 batch 5 | file | analysis, binary, cli, correlation, email, file |
 | `active_mime` | `ActiveMimeAnalyzer` | not yet | parser | 7.5 batch 5 | file | analysis, binary, cli, correlation, email, file |
-| `dmg_analyzer` | `DMGAnalyzer` | not yet | 7.3 | 7.5 batch 12 | file | analysis, binary, cli, correlation, email, file |
-| `cve_2021_30657_analyzer` | `CVE_2021_30657_Analyzer` | not yet | 7.3 | 7.5 batch 12 | file | analysis, binary, cli, correlation, email, file |
-| `exif` | `ExifAnalyzer` | not yet | 7.3 | 7.5 batch 10 | file | analysis, binary, cli, correlation, email, file |
-| `pdftotext` | `PDFTextAnalyzer` | not yet | 7.3 | 7.5 batch 10 | file | analysis, binary, cli, correlation, email, file |
+| `dmg_analyzer` | `DMGAnalyzer` | not yet | sandbox | 7.5 batch 12 | file | analysis, binary, cli, correlation, email, file |
+| `cve_2021_30657_analyzer` | `CVE_2021_30657_Analyzer` | not yet | sandbox | 7.5 batch 12 | file | analysis, binary, cli, correlation, email, file |
+| `exif` | `ExifAnalyzer` | not yet | sandbox | 7.5 batch 10 | file | analysis, binary, cli, correlation, email, file |
+| `pdftotext` | `PDFTextAnalyzer` | not yet | sandbox | 7.5 batch 10 | file | analysis, binary, cli, correlation, email, file |
 | `yara_scanner_v3_4` | `YaraScanner_v3_4` | `ace-mod-yara` | parser | done | file, yara | analysis, binary, cli, correlation, email, file, yara |
 | `binary_file_analyzer` | `BinaryFileAnalyzer` | not yet | parser | 7.5 batch 2 | file | analysis, binary, cli, correlation, email, file |
 | `microsoft_script_encoding_analysis` | `MicrosoftScriptEncodingAnalyzer` | not yet | parser | 7.5 batch 6 | file | analysis, binary, cli, correlation, email, file |
@@ -273,7 +330,7 @@ In the config's order. ace4 is the crate a ported module is in.
 
 - **Section**: `analysis_module_pcap_analyzer`, class `PcapAnalyzer` in `saq/modules/file_analysis/pcap.py`, enabled by default.
 - **ace4**: not yet.
-- **Pool**: sandbox. Runs tshark and capinfos, which stay in ACE's sandbox runner (7.3 says so).
+- **Pool**: sandbox. Runs tshark and capinfos, which stay in ACE's sandbox runner. tshark starts 3 threads and no process, so it runs there without children (*External tools*).
 - **Step**: 7.5 batch 13 (Packet captures).
 - **Does**: Dissects a pcap/pcapng file (detected by magic, not extension) with sandboxed capinfos and two tshark runs, stores the capture index (capture metadata, endpoints, flows, DNS/TLS/HTTP/hostnames, carved objects, certificates, embedded pcapng decryption secrets) and adds the host observables (IP, MAC, hostname).
 - **Input**: file.
@@ -1012,7 +1069,7 @@ In the config's order. ace4 is the crate a ported module is in.
 
 - **Section**: `analysis_module_archive`, class `ArchiveAnalyzer` in `saq/modules/file_analysis/archive.py`, enabled by default.
 - **ace4**: ported in `ace-mod-archive`.
-- **Pool**: parser. zip, sevenz-rust2 and unrar in the task's process (1.29). ACE archives, which ace3 opens with unace, are left for 7.3.
+- **Pool**: parser. zip, sevenz-rust2 and unrar in the task's process (1.29). ACE archives, which ace3 opens with unace, go to the sandbox runner (7.3), and with them the module moves to the sandbox pool in 7.5's batch 10.
 - **Step**: done.
 - **Does**: Lists and extracts archive files (rar, jar, xlsx-style zip, ACE, MSI, and anything else 7z opens, password 'infected') into {file}.extracted/ and adds each member as a file observable, flagging single-file archives holding executables, scripts, lnk, jnlp or OneNote files.
 - **Input**: file.
@@ -1034,7 +1091,7 @@ In the config's order. ace4 is the crate a ported module is in.
 
 - **Section**: `analysis_module_java_class_decompiler`, class `JavaClassDecompilerAnalysisModule` in `saq/modules/file_analysis/java.py`, enabled by default.
 - **ace4**: not yet.
-- **Pool**: 7.3. Runs CFR on a JVM, which starts many threads; no Rust decompiler.
+- **Pool**: sandbox. Runs CFR on a JVM in the sandbox runner; no Rust decompiler. The JVM's size is for the owner (*External tools*).
 - **Step**: 7.5 batch 11 (Executables).
 - **Does**: Decompiles a Java .class file (CAFEBABE magic) with CFR and adds the Java source as a file observable.
 - **Input**: file.
@@ -1042,7 +1099,7 @@ In the config's order. ace4 is the crate a ported module is in.
 - **Depends on**: none.
 - **Libraries**: none.
 - **Tools**: java (default-jre, OpenJDK 21) running /usr/local/bin/cfr.jar (cfr 0.151) via run_sandboxed_tool: `java -Xmx1g -XX:CompressedClassSpaceSize=128m -XX:ReservedCodeCacheSize=128m -XX:-UsePerfData -jar cfr.jar <class>`.
-- **Threads and children**: The JVM starts many threads (GC, JIT compiler threads per core).
+- **Threads and children**: The JVM started 29 threads on the sample, 13 with one CPU, and no process (strace, 7.3).
 - **Writes**: {file}-{N}-decompiled.java (next to the class file, N makes it unique).
 - **yara_meta**: type=script.java.decompiled.
 - **ACE's data**: none.
@@ -1293,7 +1350,7 @@ In the config's order. ace4 is the crate a ported module is in.
 
 - **Section**: `analysis_module_pdf_analyzer`, class `PDFAnalyzer` in `saq/modules/file_analysis/pdf.py`, enabled by default.
 - **ace4**: ported in `ace-mod-pdf`.
-- **Pool**: parser. libqpdf and a port of pdf-parser.py in the task's process (4.9). Its Ghostscript rewrite is left for 7.3.
+- **Pool**: parser. libqpdf and a port of pdf-parser.py in the task's process (4.9). Its Ghostscript rewrite goes to the sandbox runner (7.3), and with it the module moves to the sandbox pool in 7.5's batch 10.
 - **Step**: done.
 - **Does**: For a PDF, dumps its objects with stream filters decoded via pdf-parser.py, re-renders it with ghostscript, and with pikepdf extracts annotation URIs, base64 AcroForm field values and /Names JavaScript, and saves a decrypted copy of PDFs that open with an empty password.
 - **Input**: file.
@@ -1315,7 +1372,7 @@ In the config's order. ace4 is the crate a ported module is in.
 
 - **Section**: `analysis_module_upx`, class `UPXAnalyzer` in `saq/modules/file_analysis/upx.py`, enabled by default.
 - **ace4**: not yet.
-- **Pool**: 7.3. Runs upx; no crate unpacks UPX.
+- **Pool**: sandbox. Runs upx in the sandbox runner; no crate unpacks UPX.
 - **Step**: 7.5 batch 11 (Executables).
 - **Does**: Tests a PE file with `upx -t` and, if it is UPX packed, unpacks it with `upx -d` and adds the unpacked executable as a file observable.
 - **Input**: file.
@@ -1323,6 +1380,7 @@ In the config's order. ace4 is the crate a ported module is in.
 - **Depends on**: none.
 - **Libraries**: none.
 - **Tools**: upx (upx-ucl 4.2.4) via run_sandboxed_tool: `upx -t <file>` then `upx -d -ounpacked.exe <file>`.
+- **Threads and children**: none: upx started no thread and no process (strace, 7.3).
 - **Writes**: {file}.upx.exe.
 - **yara_meta**: type=executable.unpacked.
 - **ACE's data**: none.
@@ -1336,7 +1394,7 @@ In the config's order. ace4 is the crate a ported module is in.
 
 - **Section**: `analysis_module_autoit`, class `AutoItAnalyzer` in `saq/modules/file_analysis/autoit.py`, enabled by default.
 - **ace4**: not yet.
-- **Pool**: 7.3. Runs unautoit (Go, unsandboxed today), whose runtime starts threads; or port its vendored libautoit.
+- **Pool**: sandbox. Runs unautoit in the sandbox runner, where ace3 runs it unsandboxed. A port of its libautoit would be GPL-3 code in ace4.
 - **Step**: 7.5 batch 11 (Executables).
 - **Does**: For a compiled AutoIt executable (PE or .au3 containing AU3!EA05/EA06), lists and extracts its embedded resources with unautoit and adds each decompiled .au3 script as a file observable.
 - **Input**: file.
@@ -1344,7 +1402,7 @@ In the config's order. ace4 is the crate a ported module is in.
 - **Depends on**: none.
 - **Libraries**: none.
 - **Tools**: unautoit (vendored Go build from third_party/unautoit) via run_tool (plain subprocess.run, UNSANDBOXED): `unautoit list <file>` and `unautoit extract-all --output-dir {file}.autoit <file>`.
-- **Threads and children**: Go runtime starts its own OS threads.
+- **Threads and children**: Go's runtime started 4 or 5 threads, and no process (strace, 7.3).
 - **Writes**: {file}.autoit/<name>.au3 (and any other resources unautoit extracts, only .au3 are added).
 - **yara_meta**: type=script.autoit.
 - **ACE's data**: none.
@@ -1379,7 +1437,7 @@ In the config's order. ace4 is the crate a ported module is in.
 
 - **Section**: `analysis_module_de4dot`, class `De4dotAnalyzer` in `saq/modules/file_analysis/dotnet.py`, enabled by default.
 - **ace4**: not yet.
-- **Pool**: 7.3. Runs de4dot on .NET, which starts threads and can run the sample's own methods.
+- **Pool**: sandbox. Runs de4dot on .NET in the sandbox runner. .NET's size is for the owner (*External tools*).
 - **Step**: 7.5 batch 11 (Executables).
 - **Does**: For a .NET assembly, checks for a known obfuscator with `de4dot -d` and, if one is detected, deobfuscates it and adds the cleaned assembly as a file observable.
 - **Input**: file.
@@ -1387,7 +1445,7 @@ In the config's order. ace4 is the crate a ported module is in.
 - **Depends on**: none.
 - **Libraries**: none.
 - **Tools**: de4dotEx 3.10.0 (/opt/de4dotEx/de4dot, .NET 10) via run_sandboxed_tool with /proc/self readable, DOTNET_GCHeapHardLimit=1 GB, memory limit 12 GB, timeout 10 s: `de4dot -d <file>` then `de4dot <file> -o deobfuscated`; file via Popen `file -b -L` (unsandboxed, no timeout) in is_dotnet.
-- **Threads and children**: .NET CoreCLR runtime starts GC/JIT/finalizer threads; de4dot's dynamic string decrypters can execute the sample's own methods (dotnet.py:110).
+- **Threads and children**: .NET started 8 or 9 threads and no process (strace, 7.3); de4dot's dynamic string decrypters can execute the sample's own methods (dotnet.py:110), and one that starts a process kills the tool in ace4.
 - **Writes**: {file}.deobfuscated.
 - **yara_meta**: type=executable.dotnet.
 - **ACE's data**: none.
@@ -1401,7 +1459,7 @@ In the config's order. ace4 is the crate a ported module is in.
 
 - **Section**: `analysis_module_ilspy`, class `IlspyAnalyzer` in `saq/modules/file_analysis/dotnet.py`, enabled by default.
 - **ace4**: not yet.
-- **Pool**: 7.3. Runs ilspycmd on .NET; no crate gives ILSpy's output.
+- **Pool**: sandbox. Runs ilspycmd on .NET in the sandbox runner; no crate gives ILSpy's output.
 - **Step**: 7.5 batch 11 (Executables).
 - **Does**: Disassembles a .NET assembly to IL with ilspycmd and adds the .il file as a file observable.
 - **Input**: file.
@@ -1409,7 +1467,7 @@ In the config's order. ace4 is the crate a ported module is in.
 - **Depends on**: none.
 - **Libraries**: none.
 - **Tools**: ilspycmd 11.0.0.9375 (/opt/dotnet/ilspycmd, .NET 10) via run_sandboxed_tool with /proc/self readable, DOTNET env heap limits, memory limit 12 GB, timeout 10 s: `ilspycmd -il --disable-updatecheck -o . <file>`; file via Popen `file -b -L` (unsandboxed) in is_dotnet.
-- **Threads and children**: .NET CoreCLR runtime threads.
+- **Threads and children**: .NET started 19 threads and no process (strace, 7.3).
 - **Writes**: {file_name}_ilspy.il or {file_name}_ilspy_<n>.il (via root.create_file_path).
 - **yara_meta**: type=script.dotnet.decompiled.
 - **ACE's data**: none.
@@ -1423,7 +1481,7 @@ In the config's order. ace4 is the crate a ported module is in.
 
 - **Section**: `analysis_module_ocr`, class `OCRAnalyzer` in `saq/modules/file_analysis/ocr.py`, enabled by default.
 - **ace4**: not yet.
-- **Pool**: 7.3. Runs tesseract (unsandboxed today, through pytesseract) after OpenCV; libtesseract in the task's process is the alternative.
+- **Pool**: sandbox. Preprocesses with the `opencv` crate in the task, then runs tesseract in the sandbox runner with `OMP_THREAD_LIMIT=1`, where ace3 runs it unsandboxed.
 - **Step**: 7.5 batch 10 (PDF and image text).
 - **Does**: For an image file carrying the ocr directive, preprocesses it with OpenCV and runs two tesseract passes (grayscale and denoised), writing the extracted text to a file observable for URL extraction and yara.
 - **Input**: file.
@@ -1431,7 +1489,7 @@ In the config's order. ace4 is the crate a ported module is in.
 - **Depends on**: none.
 - **Libraries**: opencv-python 5.0.0.93 (cv2); numpy 2.5.4; pytesseract 0.3.13; Pillow 13.0.0 (is_image); pyenchant 3.3.0 (enchant en_US dictionary, in saq/ocr.py remove_line_wrapping).
 - **Tools**: tesseract (tesseract-ocr 5.5.0) via pytesseract.image_to_string, which starts it with subprocess UNSANDBOXED and no timeout, twice per image (`--oem 1 --psm 3`); tesseract --version via probe_binary_version (subprocess.run, cached per binary mtime) for the cache key.
-- **Threads and children**: tesseract uses OpenMP threads (limited by OMP_THREAD_LIMIT, config omp_thread_limit 1); OpenCV may start its own threads.
+- **Threads and children**: tesseract started no thread with OMP_THREAD_LIMIT=1 (config omp_thread_limit 1) and 4 OpenMP threads without it, with the same text, and no process (strace, 7.3); OpenCV starts none with `setNumThreads(1)`.
 - **Writes**: {file}.ocr/{basename}.ocr; pytesseract temp image/output files in the system temp dir (removed by pytesseract).
 - **yara_meta**: type=document.text.ocr.
 - **ACE's data**: none.
@@ -1445,7 +1503,7 @@ In the config's order. ace4 is the crate a ported module is in.
 
 - **Section**: `analysis_module_qrcode`, class `QRCodeAnalyzer` in `saq/modules/file_analysis/qrcode.py`, enabled by default.
 - **ace4**: not yet.
-- **Pool**: 7.3. Runs Ghostscript, pdfinfo, zbarimg and an OpenCV script. A QR crate could decode in the task; rendering PDF pages still needs a tool.
+- **Pool**: sandbox. Runs Ghostscript, pdfinfo and zbarimg in the sandbox runner; its OpenCV fallback is the `opencv` crate in the task.
 - **Step**: 7.5 batch 10 (PDF and image text).
 - **Does**: Scans an image, or the first and last pages of a PDF rendered with ghostscript, for QR codes with zbarimg (falling back to an OpenCV script and an inverted image) and writes the decoded URLs to a file observable for crawling.
 - **Input**: file.
@@ -1453,7 +1511,7 @@ In the config's order. ace4 is the crate a ported module is in.
 - **Depends on**: none.
 - **Libraries**: Pillow 13.0.0 (is_image, ImageOps.invert); opencv-python 5.0.0.93 and numpy 2.5.4 (in bin/qr_decode_opencv.py, run as a sandboxed subprocess).
 - **Tools**: pdfinfo (poppler-utils 25.03.0) via run_sandboxed_tool for the page count; gs (ghostscript 10.05.1) via run_sandboxed_tool: `gs -sDEVICE=pngalpha -o <pattern> -r144 -dFirstPage -dLastPage`, up to 2 runs plus a full-render fallback; zbarimg (zbar-tools 0.23.93) via run_sandboxed_tool: `zbarimg -q --raw --nodbus`, per page and per inverted page; venv python3 -I bin/qr_decode_opencv.py via run_sandboxed_tool (OPENBLAS_NUM_THREADS=1), when zbarimg finds no URL; zbarimg/gs/pdfinfo version probes via probe_binary_version (subprocess.run, cached) for the cache key.
-- **Threads and children**: The OpenCV script runs a Python interpreter; OpenBLAS limited to 1 thread and cv2.setNumThreads(1).
+- **Threads and children**: The OpenCV script runs a Python interpreter; OpenBLAS limited to 1 thread and cv2.setNumThreads(1), with which it started none (19 without the OpenBLAS limit). zbarimg started 6 threads (ImageMagick's OpenMP), none with MAGICK_THREAD_LIMIT=1 and OMP_THREAD_LIMIT=1; Ghostscript and pdfinfo none. No process (strace, 7.3).
 - **Writes**: {file}.qrcode; temp dir qrcode-pages-*/page-N.png, first-N.png, last-N.png (removed); temp inverted PNG via tempfile.NamedTemporaryFile (removed).
 - **yara_meta**: type=document.text.qrcode.
 - **ACE's data**: none.
@@ -1509,7 +1567,7 @@ In the config's order. ace4 is the crate a ported module is in.
 
 - **Section**: `analysis_module_dmg_analyzer`, class `DMGAnalyzer` in `saq/modules/file_analysis/dmg.py`, enabled by default.
 - **ace4**: not yet.
-- **Pool**: 7.3. Runs dmg2img and 7z; no maintained crate reads DMG and HFS+.
+- **Pool**: sandbox. Runs dmg2img and 7z in the sandbox runner; the DMG and HFS+ crates are young, and the module keeps 7z's listing as it is.
 - **Step**: 7.5 batch 12 (macOS images).
 - **Does**: For a file named *.dmg, converts it to a raw .img with dmg2img, adds that image as a file observable, and records the 7z listing of its files.
 - **Input**: file.
@@ -1517,7 +1575,7 @@ In the config's order. ace4 is the crate a ported module is in.
 - **Depends on**: none.
 - **Libraries**: none.
 - **Tools**: dmg2img 1.6.7 via run_sandboxed_tool: `dmg2img <file> image.img`; 7z 25.01 via run_sandboxed_tool: `7z l <image>`.
-- **Threads and children**: 7z may start threads.
+- **Threads and children**: dmg2img and 7z started no thread and no process on an HFS+ DMG (strace, 7.3).
 - **Writes**: {file without .dmg}.img.
 - **yara_meta**: type=archive.dmg.
 - **ACE's data**: none.
@@ -1531,7 +1589,7 @@ In the config's order. ace4 is the crate a ported module is in.
 
 - **Section**: `analysis_module_cve_2021_30657_analyzer`, class `CVE_2021_30657_Analyzer` in `saq/modules/file_analysis/cve.py`, enabled by default.
 - **ace4**: not yet.
-- **Pool**: 7.3. Runs 7z on dmg_analyzer's HFS+ image, and `file`.
+- **Pool**: sandbox. Runs 7z on dmg_analyzer's HFS+ image in the sandbox runner; `file` becomes `ace_yara::mime`.
 - **Step**: 7.5 batch 12 (macOS images).
 - **Does**: For a .img produced by dmg_analyzer, extracts each file under */Contents/MacOS/ with 7z and raises a detection when its mime type is a script (CVE-2021-30657 Gatekeeper bypass).
 - **Input**: file.
@@ -1539,7 +1597,7 @@ In the config's order. ace4 is the crate a ported module is in.
 - **Depends on**: DMGAnalysis on the file's redirection (the .dmg), read via _file.redirection.get_and_load_analysis; requires tags macos and dmg set by dmg_analyzer.
 - **Libraries**: none.
 - **Tools**: 7z 25.01 via run_sandboxed_tool: `7z x -o<temp> <img> <member>` once per Contents/MacOS member; file via run_tool (plain subprocess.run, unsandboxed): `file -b --mime-type -L <extracted>`.
-- **Threads and children**: 7z may start threads.
+- **Threads and children**: 7z started no thread and no process extracting a member (strace, 7.3).
 - **Writes**: <storage_dir>/cve_2021_30657/<basename> (copy of each script found); temp dir under get_temp_dir() (removed).
 - **yara_meta**: none.
 - **ACE's data**: none.
@@ -1553,7 +1611,7 @@ In the config's order. ace4 is the crate a ported module is in.
 
 - **Section**: `analysis_module_exif`, class `ExifAnalyzer` in `saq/modules/file_analysis/exif.py`, enabled by default.
 - **ace4**: not yet.
-- **Pool**: 7.3. Runs exiftool, whose tag names YARA rules match; no crate gives them for Office and PDF files.
+- **Pool**: sandbox. Runs exiftool in the sandbox runner; no crate gives its tag names for Office and PDF files.
 - **Step**: 7.5 batch 10 (PDF and image text).
 - **Does**: Runs exiftool on office documents, OLE files and PDFs, stores the metadata in details and writes it pretty-printed to a file observable for yara.
 - **Input**: file.
@@ -1561,7 +1619,7 @@ In the config's order. ace4 is the crate a ported module is in.
 - **Depends on**: FileTypeAnalysis read indirectly by is_office_file (falls back to extension when absent; wait_for_analysis commented out, exif.py:169).
 - **Libraries**: json, pprint stdlib.
 - **Tools**: exiftool (libimage-exiftool-perl 13.25) via run_sandboxed_tool: `exiftool -j -G -n <file>`, timeout 30 s.
-- **Threads and children**: Perl interpreter, single process.
+- **Threads and children**: none: Perl started no thread and no process (strace, 7.3).
 - **Writes**: {file}.exif/exiftool.out.
 - **yara_meta**: type=metadata.exif.
 - **ACE's data**: none.
@@ -1575,7 +1633,7 @@ In the config's order. ace4 is the crate a ported module is in.
 
 - **Section**: `analysis_module_pdftotext`, class `PDFTextAnalyzer` in `saq/modules/file_analysis/pdf.py`, enabled by default.
 - **ace4**: not yet.
-- **Pool**: 7.3. Runs poppler's pdftotext; a crate's text layout would differ from what YARA rules match today.
+- **Pool**: sandbox. Runs poppler's pdftotext in the sandbox runner; a crate's text layout would differ from what YARA rules match today.
 - **Step**: 7.5 batch 10 (PDF and image text).
 - **Does**: Converts a PDF to plain text with poppler's pdftotext and adds the text file as a file observable for yara scanning.
 - **Input**: file.
@@ -1583,6 +1641,7 @@ In the config's order. ace4 is the crate a ported module is in.
 - **Depends on**: none.
 - **Libraries**: none.
 - **Tools**: pdftotext (poppler-utils 25.03.0, /usr/bin/pdftotext) via run_sandboxed_tool: `pdftotext <file> output.txt`, timeout 5 s.
+- **Threads and children**: none: pdftotext started no thread and no process (strace, 7.3).
 - **Writes**: {file}.txt when the name ends in .pdf, else {file}.pdf.txt.
 - **yara_meta**: type=document.pdf.text.
 - **ACE's data**: none.
@@ -1933,7 +1992,7 @@ In the config's order. ace4 is the crate a ported module is in.
 
 - **Section**: `analysis_module_zip_encryption_analyzer`, class `ZipEncryptionAnalyzer` in `saq/modules/email/encryption/zip.py`, enabled by default.
 - **ace4**: not yet.
-- **Pool**: parser. ace3 runs zip2john, John and 7z. As 4.11 did for Office, the task tries the email's wordlist itself, with the zip crate's ZipCrypto and AES, as `ace-mod-archive` already reads zips. 7.3 records John's decision.
+- **Pool**: parser. ace3 runs zip2john, John and 7z. As 4.11 did for Office, the task tries the email's wordlist itself, with the zip crate's ZipCrypto and AES, as `ace-mod-archive` already reads zips. 7.3 drops John: ace3 runs it only with this wordlist.
 - **Step**: 7.5 batch 7 (Encrypted files).
 - **Does**: For a zip with any encrypted entry, extracts its hash with zip2john, cracks it with John the Ripper using words from the carrying email, and extracts the archive with 7z using the cracked password.
 - **Input**: file.
@@ -1955,7 +2014,7 @@ In the config's order. ace4 is the crate a ported module is in.
 
 - **Section**: `analysis_module_rar_encryption_analyzer`, class `RarEncryptionAnalyzer` in `saq/modules/email/encryption/rar.py`, enabled by default.
 - **ace4**: not yet.
-- **Pool**: parser. ace3 runs rar2john, John and unrar. The unrar crate `ace-mod-archive` uses takes a password, so the task tries the wordlist itself, as 4.11 did. 7.3 records John's decision.
+- **Pool**: parser. ace3 runs rar2john, John and unrar. The unrar crate `ace-mod-archive` uses takes a password, so the task tries the wordlist itself, as 4.11 did. 7.3 drops John: ace3 runs it only with this wordlist.
 - **Step**: 7.5 batch 7 (Encrypted files).
 - **Does**: For a RAR that rarfile says needs a password, extracts its hash with rar2john, cracks it with John the Ripper using words from the carrying email, and extracts it with unrar using the cracked password.
 - **Input**: file.
@@ -1977,7 +2036,7 @@ In the config's order. ace4 is the crate a ported module is in.
 
 - **Section**: `analysis_module_pdf_encryption_analyzer`, class `PDFEncryptionAnalyzer` in `saq/modules/email/encryption/pdf.py`, enabled by default.
 - **ace4**: not yet.
-- **Pool**: parser. ace3 runs pdf2john.pl and John. libqpdf, which `ace-mod-pdf` links, opens a PDF with a password, so the task tries the wordlist itself, as 4.11 did. 7.3 records John's decision.
+- **Pool**: parser. ace3 runs pdf2john.pl and John. libqpdf, which `ace-mod-pdf` links, opens a PDF with a password, so the task tries the wordlist itself, as 4.11 did. 7.3 drops John: ace3 runs it only with this wordlist.
 - **Step**: 7.5 batch 7 (Encrypted files).
 - **Does**: For a PDF that pikepdf cannot open without a user password, builds a wordlist from the carrying email, extracts the hash with pdf2john.pl, cracks it with John the Ripper and saves a decrypted copy.
 - **Input**: file.
