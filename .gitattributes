@@ -3,3 +3,6 @@
 samples/** -text
 # Vendored crates are kept byte for byte as upstream ships them, CRLF line endings included.
 vendor/** -text
+# sqlx's offline query data, written by `cargo sqlx prepare --workspace` and checked in CI. GitHub
+# folds generated files in diffs; git tracks them as usual.
+.sqlx/** linguist-generated=true
