@@ -47,7 +47,9 @@ module has to whitelist it, the root's analysis has to stop with nothing extract
 entry's audit row has to name the analyst. It deletes the entry the same way before anything else runs,
 so the comparison below sees the empty lists ace3's trees were made with.
 
-Then the library diff's self-test runs (PLAN.md 4.8).
+Then the library diff's self-test runs (PLAN.md 4.8), and tools/ace3/modules/check checks the module
+inventory, docs/modules.md, against ace3's config at the head of ace3's checkout (PLAN.md 7.1); under CI,
+which has no ace3 checkout, that check is skipped.
 
 It then runs `ace compare` (PLAN.md 3.3, crates/ace-app/src/compare.rs) over the sample set, each
 sample in the cli mode against ace3's tree in tools/ace3/trees/reference/ (3.2), and writes the
@@ -970,6 +972,17 @@ def check_library_diff(failures):
         failures.append("the library diff's self-test failed; see above")
 
 
+def check_module_inventory(failures):
+    """That docs/modules.md names every analysis module section in ace3's config and no other
+    (PLAN.md 7.1)."""
+    command = [ROOT / "tools" / "ace3" / "modules" / "check"]
+    if os.environ.get("CI"):
+        command.append("--allow-absent")
+    if subprocess.run(command).returncode != 0:
+        failures.append("the module inventory (docs/modules.md) doesn't match ace3's config; "
+                        "see above")
+
+
 def check_ports_compared(failures):
     """A port that replaces a Python library must have been compared with something."""
     compared = json.loads((WORK / "compare" / "report.json").read_text())["compared_by_module"]
@@ -1114,6 +1127,7 @@ def main(argv):
             log("SKIP  the browser test: the Compose file has no browser service")
         if "ACE4_E2E_SITE" not in os.environ:
             check_library_diff(failures)
+            check_module_inventory(failures)
             compare_failed = compare_with_ace3(threshold=True) != 0
             check_ports_compared(failures)
             if compare_failed:

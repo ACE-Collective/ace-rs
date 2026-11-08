@@ -1,0 +1,250 @@
+#!/usr/bin/env python3
+"""Check docs/modules.md, the module inventory (PLAN.md 7.1), against ace3's config.
+
+It reads etc/saq.default.yaml at a commit of ace3's checkout with `git show`, which writes nothing
+there, and fails when the inventory's table of modules:
+
+- misses an `analysis_module_*` section, or names a module that no section has;
+- gives a module a class other than the section's python_class, or groups or modes other than
+  the config's module_group_* and analysis_mode_* sections give it;
+- gives a module no pool or step from the inventory's lists, or a 7.5 batch the list of batches
+  doesn't have, or a batch list that disagrees with the table;
+- names a crate as ace4's that crates/ace doesn't register, or misses one it does;
+- disagrees with a module's entry below it, or with its own counts.
+
+    tools/ace3/modules/check                  ace3's checkout at HEAD
+    tools/ace3/modules/check --commit f72f894 at another commit
+    tools/ace3/modules/check --allow-absent   exits 0 with a SKIP when there's no checkout (CI)
+
+ACE4_ACE3_CHECKOUT is ace3's checkout on the host (default: ../ace3 beside this checkout, or
+~/Development/public/ace3). Exits 0 when every check passes. Needs only python3 and git.
+"""
+
+import argparse
+import collections
+import os
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+REPO = Path(__file__).resolve().parents[3]
+DOC = REPO / "docs" / "modules.md"
+POOLS = ["parser", "lookup", "core", "sandbox", "scanner", "7.3"]
+STEPS = ["done", "7.4", "7.5", "7.6", "7.7", "7.8", "7.9", "7.10", "owner"]
+# ace3's SplunkAPIAnalyzer has no section of its own in saq.default.yaml: sites run it as
+# instances, as tests/e2e/site/overlay.yaml does
+REGISTERED_WITHOUT_A_SECTION = {"ace-mod-splunk"}
+ROW = re.compile(
+    r"^\| `(?P<name>[a-z0-9_]+)` \| `(?P<cls>[A-Za-z0-9_]+)` \| (?P<ace4>not yet|`[a-z0-9-]+`) "
+    r"\| (?P<pool>[^|]+) \| (?P<step>[^|]+) \| (?P<groups>[^|]+) \| (?P<modes>[^|]+) \|$"
+)
+
+
+def checkout():
+    if "ACE4_ACE3_CHECKOUT" in os.environ:
+        candidates = [Path(os.environ["ACE4_ACE3_CHECKOUT"])]
+    else:
+        candidates = [REPO.parent / "ace3", Path.home() / "Development" / "public" / "ace3"]
+    for candidate in candidates:
+        if (candidate / "etc" / "saq.default.yaml").exists():
+            return candidate
+    return None
+
+
+def git(ace3, *args):
+    return subprocess.run(["git", "-C", str(ace3), *args], check=True, capture_output=True,
+                          text=True).stdout
+
+
+def sections(text):
+    """The config's top-level sections, each as its own lines, in order."""
+    out, name = {}, None
+    for line in text.splitlines():
+        top = re.match(r"^([A-Za-z0-9_]+):", line)
+        if top:
+            name = top.group(1)
+            out[name] = []
+        elif name is not None:
+            out[name].append(line)
+    return out
+
+
+def fields(lines):
+    """A section's two-space keys, each a scalar or a list (block or inline)."""
+    out, key = {}, None
+    for line in lines:
+        if line.lstrip().startswith("#") or not line.strip():
+            continue
+        field = re.match(r"^  ([A-Za-z0-9_]+):\s*(.*?)\s*(#.*)?$", line)
+        item = re.match(r"^\s+- (.*?)\s*$", line)
+        if field:
+            key, value = field.group(1), field.group(2)
+            if value.startswith("[") and value.endswith("]"):
+                out[key] = [v.strip() for v in value[1:-1].split(",") if v.strip()]
+            else:
+                out[key] = value if value else []
+        elif item and key is not None and isinstance(out.get(key), list):
+            out[key].append(item.group(1))
+    return out
+
+
+def config(text):
+    """{module: (class, groups, modes)} from ace3's config."""
+    found = {k: fields(v) for k, v in sections(text).items()}
+    groups = {f["name"]: f.get("modules", []) for k, f in found.items()
+              if k.startswith("module_group_")}
+    modes = {f["name"]: f for k, f in found.items() if k.startswith("analysis_mode_")}
+    out = {}
+    for key, f in found.items():
+        if not key.startswith("analysis_module_"):
+            continue
+        name = key[len("analysis_module_"):]
+        if f.get("name") != name:
+            sys.exit(f"modules: {key} names itself {f.get('name')!r}; the check expects its key")
+        in_groups = sorted(g for g, members in groups.items() if name in members)
+        in_modes = sorted(
+            m for m, mode in modes.items()
+            if set(mode.get("module_groups") or []) & set(in_groups)
+            or name in (mode.get("enabled_modules") or [])
+        )
+        out[name] = (f.get("python_class"), in_groups, in_modes)
+    return out
+
+
+def registered():
+    """The ace_mod_* crates crates/ace registers."""
+    text = (REPO / "crates" / "ace" / "src" / "lib.rs").read_text()
+    return {"ace-mod-" + m.replace("_", "-") for m in re.findall(r"ace_mod_([a-z0-9_]+)::", text)}
+
+
+def listed(cell):
+    return [] if cell.strip() == "-" else [x.strip() for x in cell.split(",")]
+
+
+def check_doc(doc, ace3, failures):
+    """Checks the table against ace3's config and the rest of the doc against the table."""
+    rows, seen = {}, collections.Counter()
+    table = doc.split("\n## Modules\n", 1)[1].split("\n## ", 1)[0]
+    for line in table.splitlines():
+        if line.startswith("| `"):
+            match = ROW.match(line)
+            if not match:
+                failures.append(f"a row of the table doesn't parse: {line}")
+                continue
+            seen[match["name"]] += 1
+            rows[match["name"]] = match
+    for name, count in seen.items():
+        if count > 1:
+            failures.append(f"{name} has {count} rows")
+    for name in sorted(set(ace3) - set(rows)):
+        failures.append(f"analysis_module_{name} has no row")
+    for name in sorted(set(rows) - set(ace3)):
+        failures.append(f"{name} has a row and no section in ace3's config")
+
+    batches = re.findall(r"^(\d+)\. \*\*[^*]+\*\*: (.+)$", doc.split("\n## 7.5's batches\n", 1)[1]
+                         .split("\n## ", 1)[0], re.M)
+    in_batch = {}
+    for number, line in batches:
+        for name in re.findall(r"`([a-z0-9_]+)`", line.split(". ", 1)[0]):
+            in_batch[name] = int(number)
+    if [int(n) for n, _ in batches] != list(range(1, len(batches) + 1)):
+        failures.append("7.5's batches aren't numbered 1 to n")
+
+    crates = registered()
+    named = set()
+    for name, row in rows.items():
+        cls, groups, modes = ace3.get(name, (None, None, None))
+        if cls is not None and row["cls"] != cls:
+            failures.append(f"{name}: the class is {row['cls']}, and ace3's config says {cls}")
+        if groups is not None and listed(row["groups"]) != groups:
+            failures.append(f"{name}: groups {row['groups'].strip()}, and ace3's config says "
+                            f"{', '.join(groups) or '-'}")
+        if modes is not None and listed(row["modes"]) != modes:
+            failures.append(f"{name}: modes {row['modes'].strip()}, and ace3's config says "
+                            f"{', '.join(modes) or '-'}")
+        pool, step = row["pool"].strip(), row["step"].strip()
+        if pool not in POOLS:
+            failures.append(f"{name}: pool {pool!r} isn't one of {', '.join(POOLS)}")
+        batch = re.fullmatch(r"7\.5 batch (\d+)", step)
+        if batch:
+            if int(batch.group(1)) > len(batches):
+                failures.append(f"{name}: 7.5 has no batch {batch.group(1)}")
+            if in_batch.get(name) != int(batch.group(1)):
+                failures.append(f"{name}: the table says {step}, and 7.5's batches say "
+                                f"{in_batch.get(name)}")
+        elif step not in STEPS or step == "7.5":
+            failures.append(f"{name}: step {step!r} isn't one of {', '.join(STEPS)} or a 7.5 batch")
+        elif name in in_batch:
+            failures.append(f"{name}: 7.5's batch {in_batch[name]} has it, and the table says {step}")
+        crate = row["ace4"].strip("`") if row["ace4"] != "not yet" else None
+        if crate:
+            named.add(crate)
+            if crate not in crates:
+                failures.append(f"{name}: crates/ace doesn't register {crate}")
+        if (crate is not None) != (step == "done"):
+            failures.append(f"{name}: ace4 {row['ace4']} with step {step}")
+
+        entry = re.search(rf"^### {name}\n(.*?)(?=^### |^## |\Z)", doc, re.M | re.S)
+        if not entry:
+            failures.append(f"{name} has no entry")
+            continue
+        body = entry.group(1)
+        if not re.search(rf"^- \*\*Pool\*\*: {re.escape(pool)}\. ", body, re.M):
+            failures.append(f"{name}: its entry's pool isn't the table's {pool}")
+        ace4 = f"ported in `{crate}`" if crate else "not yet"
+        if f"- **ace4**: {ace4}." not in body:
+            failures.append(f"{name}: its entry's ace4 isn't the table's {row['ace4']}")
+        if not re.search(rf"^- \*\*Step\*\*: {re.escape(step)}[ .]", body, re.M):
+            failures.append(f"{name}: its entry's step isn't the table's {step}")
+        if cls is not None and f"class `{cls}`" not in body:
+            failures.append(f"{name}: its entry's class isn't {cls}")
+    for crate in sorted(crates - named - REGISTERED_WITHOUT_A_SECTION):
+        failures.append(f"crates/ace registers {crate}, and no module's row names it")
+    for name in sorted(set(in_batch) - set(rows)):
+        failures.append(f"7.5's batches name {name}, which has no row")
+
+    pools = collections.Counter(r["pool"].strip() for r in rows.values())
+    ported = collections.Counter(r["pool"].strip() for r in rows.values() if r["ace4"] != "not yet")
+    steps = collections.Counter(r["step"].strip().split(" batch")[0] for r in rows.values())
+    for pool in POOLS:
+        want = f"| {pool} | {pools[pool]} | {ported[pool]} |"
+        if want not in doc:
+            failures.append(f"the counts table doesn't say {want}")
+    for step in STEPS:
+        if steps[step] and f"| {step} | {steps[step]} |" not in doc:
+            failures.append(f"the counts table doesn't say | {step} | {steps[step]} |")
+    return pools, steps
+
+
+def main(argv):
+    parser = argparse.ArgumentParser(description=__doc__.split("\n", 1)[0])
+    parser.add_argument("--commit", default="HEAD")
+    parser.add_argument("--allow-absent", action="store_true")
+    parser.add_argument("--doc", type=Path, default=DOC, help=argparse.SUPPRESS)
+    args = parser.parse_args(argv)
+    ace3 = checkout()
+    if ace3 is None:
+        if args.allow_absent:
+            print("SKIP  the module inventory: no ace3 checkout")
+            return 0
+        sys.exit("modules: no ace3 checkout; set ACE4_ACE3_CHECKOUT")
+    commit = git(ace3, "rev-parse", "--short=8", args.commit).strip()
+    sections_ = config(git(ace3, "show", f"{commit}:etc/saq.default.yaml"))
+    doc = args.doc.read_text()
+    failures = []
+    pools, steps = check_doc(doc, sections_, failures)
+    documented = re.search(r"at ace3 `([0-9a-f]+)`", doc)
+    if documented and not commit.startswith(documented.group(1)[:7]):
+        print(f"note  docs/modules.md was written at ace3 {documented.group(1)}; checked at {commit}")
+    for failure in failures:
+        print(f"FAIL  {failure}")
+    summary = (f"{len(sections_)} sections at ace3 {commit}; pools "
+               + ", ".join(f"{p} {pools[p]}" for p in POOLS) + "; steps "
+               + ", ".join(f"{s} {steps[s]}" for s in STEPS if steps[s]))
+    print(("ok    " if not failures else "FAIL  ") + "the module inventory: " + summary)
+    return 1 if failures else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
