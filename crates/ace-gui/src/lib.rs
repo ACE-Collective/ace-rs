@@ -17,8 +17,9 @@
 //! - `session`: who the viewer is, through `Service::authenticate_request`.
 //! - `auth`: ace3's `/login` and `/logout`, with the CSRF check that a login has to make itself, and its
 //!   password change, `/login/change` (5.11's auth area).
-//! - `preferences`: the theme form, and the alert page's section pins. The base layout draws every page
-//!   in the viewer's theme.
+//! - `preferences`: the preferences page (5.11's preferences area), with the profile, the theme, the
+//!   alert list's columns and the user's own API keys; the theme menu, and the alert page's section pins.
+//!   The base layout draws every page in the viewer's theme.
 //! - `alert`: an alert's page and its analysis tree, and the event stream that draws a result on an open
 //!   page when it lands (5.8), and a result's page (5.9).
 //! - `analysis`: each analysis type's view, ace3's analysis templates, by type from the binary's list
@@ -48,7 +49,7 @@ mod auth;
 mod headers;
 pub mod list;
 mod places;
-mod preferences;
+pub mod preferences;
 mod session;
 pub mod templates;
 
@@ -140,6 +141,17 @@ impl Gui {
             .route(
                 "/login/change",
                 get(auth::change_password_page).post(auth::change_password),
+            )
+            .route("/preferences", get(preferences::page))
+            .route("/preferences/profile", post(preferences::save_profile))
+            .route("/preferences/keys", post(preferences::create_key))
+            .route(
+                "/preferences/keys/{id}",
+                get(preferences::key_page).post(preferences::save_key),
+            )
+            .route(
+                "/preferences/keys/{id}/revoke",
+                post(preferences::revoke_key),
             )
             .route("/preferences/theme", post(preferences::set_theme))
             .route(

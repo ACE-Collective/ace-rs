@@ -5915,7 +5915,8 @@ async fn revoke_own_api_key_records_its_row(db: &Db) -> String {
 }
 
 /// ace3's `_check_scope_within_grants`: a key a user makes for themselves lists what it needs, each
-/// pattern covering something ACE checks that they hold, and never `user:self`. A key can't make one.
+/// pattern covering something ACE checks that they hold, and never `user:self`, and `own_permissions`
+/// offers those. A key can't make one.
 #[tokio::test]
 async fn a_user_s_own_key_holds_only_what_they_do() {
     let test_db = TestDb::new().await;
@@ -5928,6 +5929,15 @@ async fn a_user_s_own_key_holds_only_what_they_do() {
         &[("user", "self"), ("alert", "read")],
     )
     .await;
+    // what the picker offers: the catalog's permissions they hold, without user:self
+    let offered: Vec<String> = service
+        .own_permissions(&me)
+        .await
+        .expect("reads")
+        .iter()
+        .map(|entry| entry.name.to_string())
+        .collect();
+    assert_eq!(offered, ["alert:read"]);
     let before = (permission_rows(db).await, credential_rows(db).await);
     for (scope, says) in [
         (vec![], "has to list"),
@@ -6001,6 +6011,10 @@ async fn a_user_s_own_key_holds_only_what_they_do() {
     );
     assert!(matches!(
         service.own_account(&as_key).await,
+        Err(ServiceError::PermissionDenied { .. })
+    ));
+    assert!(matches!(
+        service.own_permissions(&as_key).await,
         Err(ServiceError::PermissionDenied { .. })
     ));
 

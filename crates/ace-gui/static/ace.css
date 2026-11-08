@@ -550,3 +550,52 @@ table.alerts td[data-col-id="description"] {
   gap: 1rem;
   margin: 1rem 0;
 }
+
+/* The preferences page (PLAN.md 5.11's preferences area). */
+.preferences .fields {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+  max-width: 40rem;
+}
+
+.preferences .hint {
+  margin: 0 0 0.5rem;
+  font-size: 0.9em;
+}
+
+.preferences .choice {
+  display: block;
+  margin: 0.2rem 0;
+}
+
+.preferences .scope {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  width: 100%;
+}
+
+.preferences textarea,
+.preferences .token {
+  width: 100%;
+  font-family: monospace;
+}
+
+table.keys {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+table.keys th,
+table.keys td {
+  text-align: left;
+  padding: 0.25rem 0.5rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+
+.nowrap {
+  white-space: nowrap;
+}

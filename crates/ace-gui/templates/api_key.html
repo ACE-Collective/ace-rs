@@ -1,0 +1,32 @@
+{#- Changing one of the user's own API keys (PLAN.md 5.11's preferences area): ace3's edit dialog in
+    preferences.html, as a page whose form posts to /preferences/keys/{id}. -#}
+{% extends "base.html" %}
+{% block title %}Edit API key · ACE{% endblock %}
+{% block content %}
+<section class="preferences">
+  <p><a href="/preferences">Back to Preferences</a></p>
+  <h1>Edit API key</h1>
+  {%- if let Some(problem) = problem %}
+  <p class="error" role="alert">{{ problem }}</p>
+  {%- endif %}
+  <div class="section">
+    <form method="post" action="/preferences/keys/{{ id }}" class="fields">
+      <label for="key-name">Name</label>
+      <input id="key-name" type="text" name="name" value="{{ draft.name }}" maxlength="255" required>
+      <fieldset class="scope">
+        <legend>Scope</legend>
+        {%- for permission in offered %}
+        <label class="choice"><input type="checkbox" name="scope" value="{{ permission.name }}"{% if permission.checked %} checked{% endif %}> <code>{{ permission.name }}</code> <span class="muted">{{ permission.description }}</span></label>
+        {%- endfor %}
+        <label for="key-other">Other patterns</label>
+        <textarea id="key-other" name="other" rows="2" placeholder="signature:*">{{ draft.other }}</textarea>
+        <p class="muted hint">Only permissions you hold are offered. A pattern you no longer hold has to go before anything else about the key changes.</p>
+      </fieldset>
+      {%- if !denies.is_empty() %}
+      <p class="muted">An administrator denies this key {% for deny in denies %}<code>{{ deny }}</code>{% if !loop.last %}, {% endif %}{% endfor %}, whatever its scope.</p>
+      {%- endif %}
+      <button type="submit">Save</button>
+    </form>
+  </div>
+</section>
+{% endblock %}

@@ -193,7 +193,7 @@ impl Failure {
         }
     }
 
-    /// A service error as a page, with the API's statuses (`ace-api`'s `error`). A failure that isn't the
+    /// A service error as a page, with the API's statuses for a refusal (`ace-api`'s `error`). A failure that isn't the
     /// viewer's says only "internal error", with the detail in the log.
     pub(crate) fn from_service(error: ServiceError, parts: &Parts) -> Self {
         let status = match &error {
@@ -201,8 +201,16 @@ impl Failure {
             ServiceError::CrossSiteRequest
             | ServiceError::Forbidden(_)
             | ServiceError::PermissionDenied { .. } => StatusCode::FORBIDDEN,
-            ServiceError::InvalidRequest(_) => StatusCode::BAD_REQUEST,
+            ServiceError::InvalidRequest(_)
+            | ServiceError::WeakPassword
+            | ServiceError::InvalidKeyName
+            | ServiceError::CantDisableYourself => StatusCode::BAD_REQUEST,
             ServiceError::NotFound(_) | ServiceError::NoUser(_) => StatusCode::NOT_FOUND,
+            ServiceError::TooLarge(_) => StatusCode::PAYLOAD_TOO_LARGE,
+            ServiceError::UsernameTaken
+            | ServiceError::GroupNameTaken
+            | ServiceError::FilterNameTaken(_)
+            | ServiceError::UsersExist => StatusCode::CONFLICT,
             _ => {
                 tracing::error!("a page failed: {error}");
                 return Failure::new(StatusCode::INTERNAL_SERVER_ERROR, "internal error", parts);

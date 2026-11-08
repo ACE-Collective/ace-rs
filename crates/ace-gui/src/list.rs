@@ -125,14 +125,14 @@ pub(crate) fn pairs(text: &[u8]) -> Vec<(String, String)> {
     serde_urlencoded::from_bytes(text).unwrap_or_default()
 }
 
-fn one<'a>(pairs: &'a [(String, String)], name: &str) -> Option<&'a str> {
+pub(crate) fn one<'a>(pairs: &'a [(String, String)], name: &str) -> Option<&'a str> {
     pairs
         .iter()
         .find(|(key, _)| key == name)
         .map(|(_, value)| value.as_str())
 }
 
-fn all(pairs: &[(String, String)], name: &str) -> Vec<String> {
+pub(crate) fn all(pairs: &[(String, String)], name: &str) -> Vec<String> {
     pairs
         .iter()
         .filter(|(key, _)| key == name)
@@ -385,6 +385,27 @@ pub struct ColumnChoice {
     pub last: bool,
 }
 
+/// The column chooser's rows for a `manage_columns` preference, in its order.
+pub fn column_choices(columns: &ManageColumnsPreference) -> Vec<ColumnChoice> {
+    let order: Vec<&'static ManageColumn> = columns
+        .order
+        .iter()
+        .filter_map(|id| MANAGE_COLUMNS.iter().find(|column| column.id == id))
+        .collect();
+    order
+        .iter()
+        .enumerate()
+        .map(|(at, column)| ColumnChoice {
+            id: column.id,
+            label: column.label,
+            shown: !columns.hidden.iter().any(|id| id == column.id),
+            required: column.required,
+            first: at == 0,
+            last: at + 1 == order.len(),
+        })
+        .collect()
+}
+
 /// A filter the editor can add.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EditorFilter {
@@ -626,23 +647,7 @@ pub fn list_view(
             quick: filter.quick_filter_order.is_some(),
         })
         .collect();
-    let order: Vec<&'static ManageColumn> = columns
-        .order
-        .iter()
-        .filter_map(|id| MANAGE_COLUMNS.iter().find(|column| column.id == id))
-        .collect();
-    let chooser = order
-        .iter()
-        .enumerate()
-        .map(|(at, column)| ColumnChoice {
-            id: column.id,
-            label: column.label,
-            shown: !columns.hidden.iter().any(|id| id == column.id),
-            required: column.required,
-            first: at == 0,
-            last: at + 1 == order.len(),
-        })
-        .collect();
+    let chooser = column_choices(columns);
     let export = |format: &str| {
         let mut pairs: Vec<(&'static str, String)> = f.iter().map(|f| ("f", f.clone())).collect();
         pairs.push(("sort", query.sort.as_str().to_owned()));

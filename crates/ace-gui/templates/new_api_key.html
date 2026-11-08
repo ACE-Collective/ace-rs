@@ -1,0 +1,16 @@
+{#- A key just made (PLAN.md 5.11's preferences area): ace3's reveal dialog in preferences.html. The token is
+    here once, in an answer no cache keeps (src/preferences.rs). -#}
+{% extends "base.html" %}
+{% block title %}Your new API key · ACE{% endblock %}
+{% block content %}
+<section class="preferences">
+  <h1>Your new API key</h1>
+  <div class="section">
+    <p>The key <b>{{ name }}</b> is made. Copy it now. It isn't stored and can't be shown again.</p>
+    <label for="new-key">Key</label>
+    <input id="new-key" class="token" type="text" value="{{ token }}" readonly autocomplete="off">
+    <p class="muted">Send it as <code>Authorization: Bearer</code> followed by the key.</p>
+    <p><a href="/preferences">Done</a></p>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,108 @@
+{#- ace3's preferences.html (PLAN.md 5.11): the profile, the theme, the alert list's columns and the user's
+    own API keys, each a form that posts to the server (src/preferences.rs). -#}
+{% extends "base.html" %}
+{% block title %}Preferences · ACE{% endblock %}
+{% block content %}
+<section class="preferences">
+  <h1>Preferences</h1>
+  {%- if let Some(notice) = view.notice %}
+  <p class="notice" role="status">{{ notice }}</p>
+  {%- endif %}
+
+  <div class="section" id="profile">
+    <h2>Profile</h2>
+    {%- if let Some(problem) = view.profile_problem %}
+    <p class="error" role="alert">{{ problem }}</p>
+    {%- endif %}
+    <form method="post" action="/preferences/profile" class="fields">
+      <label for="profile-username">Username</label>
+      <input id="profile-username" type="text" value="{{ view.username }}" disabled>
+      <label for="profile-email">Email</label>
+      <input id="profile-email" type="text" value="{{ view.email }}" disabled>
+      <p class="muted hint">Username and email are set by an administrator.</p>
+      <label for="profile-display-name">Display name</label>
+      <input id="profile-display-name" type="text" name="display_name" value="{{ view.display_name }}" maxlength="1024">
+      <p class="muted hint">How you appear on comments.</p>
+      <label for="profile-timezone">Timezone</label>
+      <select id="profile-timezone" name="timezone">
+        {%- for zone in view.timezones %}
+        <option value="{{ zone }}"{% if view.is_timezone(zone) %} selected{% endif %}>{{ zone }}</option>
+        {%- endfor %}
+      </select>
+      <p class="muted hint">Alert dates are shown in this timezone.</p>
+      <button type="submit">Save profile</button>
+    </form>
+    <p><a href="/login/change">Change password</a></p>
+  </div>
+
+  <div class="section" id="appearance">
+    <h2>Appearance</h2>
+    <form method="post" action="/preferences/theme">
+      <input type="hidden" name="next" value="{{ view.here }}">
+      {%- for theme in view.themes %}
+      <label class="choice"><input type="radio" name="mode" value="{{ theme.as_str() }}"{% if layout.is_theme(theme) %} checked{% endif %}> {{ theme.label() }}</label>
+      {%- endfor %}
+      <button type="submit">Save theme</button>
+    </form>
+  </div>
+
+  <div class="section" id="alert-columns">
+    <h2>Alert list columns</h2>
+    <p class="muted">Move, show or hide a column. It applies everywhere you log in.</p>
+  {% include "column_chooser.html" %}
+  </div>
+
+  <div class="section" id="api-keys">
+    <h2>API Keys</h2>
+    <p class="muted">A key is shown once, when it is made. It can only do what both its scope and your own permissions allow, so a permission you lose stops working for your keys too.</p>
+    <table class="keys">
+      <thead><tr><th>Name</th><th>Scope</th><th>Created</th><th></th></tr></thead>
+      <tbody>
+        {%- for key in view.keys %}
+        <tr>
+          <td>{{ key.name }}</td>
+          <td>{% for pattern in key.scope %}<code>{{ pattern }}</code>{% if !loop.last %}, {% endif %}{% endfor %}</td>
+          <td class="nowrap">{{ key.created }}</td>
+          <td class="nowrap">
+            {%- if key.editable %}
+            <a href="/preferences/keys/{{ key.id }}">Edit</a>
+            {%- endif %}
+            {%- if view.can_manage_keys %}
+            <form method="post" action="/preferences/keys/{{ key.id }}/revoke" class="inline">
+              <button type="submit">Revoke</button>
+            </form>
+            {%- endif %}
+          </td>
+        </tr>
+        {%- else %}
+        <tr><td colspan="4" class="muted">You have no API keys.</td></tr>
+        {%- endfor %}
+      </tbody>
+    </table>
+    {%- if view.can_manage_keys %}
+    <h3>New API key</h3>
+    {%- if let Some(problem) = view.key_problem %}
+    <p class="error" role="alert">{{ problem }}</p>
+    {%- endif %}
+    <form method="post" action="/preferences/keys" class="fields">
+      <label for="key-name">Name</label>
+      <input id="key-name" type="text" name="name" value="{{ view.draft.name }}" maxlength="255" placeholder="What uses this key" required>
+      <fieldset class="scope">
+        <legend>Scope</legend>
+        {%- for permission in view.offered %}
+        <label class="choice"><input type="checkbox" name="scope" value="{{ permission.name }}"{% if permission.checked %} checked{% endif %}> <code>{{ permission.name }}</code> <span class="muted">{{ permission.description }}</span></label>
+        {%- else %}
+        <p class="muted">You hold no permission a key could have.</p>
+        {%- endfor %}
+        <label for="key-other">Other patterns</label>
+        <textarea id="key-other" name="other" rows="2" placeholder="signature:*">{{ view.draft.other }}</textarea>
+        <p class="muted hint">Only permissions you hold are offered. A pattern such as <code>signature:*</code> may cover only permissions you hold.</p>
+      </fieldset>
+      <button type="submit">Create</button>
+    </form>
+    {%- else %}
+    <p class="muted">Ask an administrator to make or change your API keys.</p>
+    {%- endif %}
+  </div>
+</section>
+{% endblock %}

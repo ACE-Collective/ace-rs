@@ -1,0 +1,44 @@
+{#- ace3's _manage_column_chooser.html (PLAN.md 5.10), which the alert list and the preferences page (5.11)
+    both include: a form for each move, show or hide of a column, and a reset. Its page has a `view` with
+    the `columns` and `here`, the page the forms come back to. -#}
+  <details class="section columns">
+    <summary>Columns</summary>
+    <ul class="column-chooser">
+      {%- for column in view.columns %}
+      <li>
+        <span class="column-label">{{ column.label }}</span>
+        {%- if !column.first %}
+        <form method="post" action="/preferences/manage-columns" class="inline">
+          <input type="hidden" name="next" value="{{ view.here }}">
+          <input type="hidden" name="column" value="{{ column.id }}">
+          <input type="hidden" name="action" value="up">
+          <button type="submit" title="Move left">Up</button>
+        </form>
+        {%- endif %}
+        {%- if !column.last %}
+        <form method="post" action="/preferences/manage-columns" class="inline">
+          <input type="hidden" name="next" value="{{ view.here }}">
+          <input type="hidden" name="column" value="{{ column.id }}">
+          <input type="hidden" name="action" value="down">
+          <button type="submit" title="Move right">Down</button>
+        </form>
+        {%- endif %}
+        {%- if column.required %}
+        <span class="muted">always shown</span>
+        {%- else %}
+        <form method="post" action="/preferences/manage-columns" class="inline">
+          <input type="hidden" name="next" value="{{ view.here }}">
+          <input type="hidden" name="column" value="{{ column.id }}">
+          <input type="hidden" name="action" value="{% if column.shown %}hide{% else %}show{% endif %}">
+          <button type="submit">{% if column.shown %}Hide{% else %}Show{% endif %}</button>
+        </form>
+        {%- endif %}
+      </li>
+      {%- endfor %}
+    </ul>
+    <form method="post" action="/preferences/manage-columns">
+      <input type="hidden" name="next" value="{{ view.here }}">
+      <input type="hidden" name="action" value="reset">
+      <button type="submit">Reset to default</button>
+    </form>
+  </details>

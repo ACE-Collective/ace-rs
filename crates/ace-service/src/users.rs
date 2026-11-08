@@ -35,6 +35,7 @@ use crate::auth::NewApiKey;
 use crate::gate::{Audited, Change, Holder, Recorded, Target, holds};
 use crate::permission::{
     CATALOG, CatalogEntry, Effect, PermissionPattern, USER_READ, USER_SELF, USER_WRITE, covered_by,
+    is_people_only,
 };
 use crate::{GroupId, Service, ServiceError};
 
@@ -367,6 +368,31 @@ impl Service {
         let (id, _) = as_user(actor)?;
         self.gate
             .read_own(&|tx| Box::pin(async move { key_rows(tx.conn(), Some(id.0)).await }))
+            .await
+    }
+
+    /// The permissions in the catalog the user holds, but `user:self`, which no key can: what a key they
+    /// make for themselves may list, as ace3's `list_held_catalog` without its `SESSION_ONLY_PAIRS`, which
+    /// its preferences page offers. It needs no grant, but only a user has any.
+    pub async fn own_permissions(
+        &self,
+        actor: &Actor,
+    ) -> Result<Vec<&'static CatalogEntry>, ServiceError> {
+        as_user(actor)?;
+        self.gate
+            .read_own(&|tx| {
+                Box::pin(async move {
+                    let mut held = Vec::new();
+                    for entry in CATALOG {
+                        if !is_people_only(&entry.name)
+                            && holds(tx.conn(), actor, &entry.name).await?
+                        {
+                            held.push(entry);
+                        }
+                    }
+                    Ok(held)
+                })
+            })
             .await
     }
 

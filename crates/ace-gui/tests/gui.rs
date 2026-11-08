@@ -9,6 +9,9 @@
 //!
 //! PLAN.md 5.9: each ported module's analysis view draws the module's own result, escaped and bounded,
 //! a type with no view draws as JSON, and a result's page draws its view under `alert:read`.
+//!
+//! PLAN.md 5.11's preferences area: the page's views directly, and its profile and own API keys through
+//! the server, each write with its audit row and each refusal changing nothing.
 
 use std::collections::BTreeSet;
 use std::io::Write;
@@ -1152,8 +1155,8 @@ impl tracing_subscriber::fmt::MakeWriter<'_> for Captured {
 }
 
 /// 5.4's `no_credential_reaches_the_log`, through the routes: everything at TRACE, sqlx's statements and
-/// axum's included, while logins fail and succeed, a session is used and a logout ends it, with no
-/// password and no session secret in it. The subscriber is global for the reason 5.4's test gives, so
+/// axum's included, while logins fail and succeed, a session is used, a key is made on the preferences
+/// page and a logout ends it, with no password, no session secret and no key's secret in it. The subscriber is global for the reason 5.4's test gives, so
 /// this binary has no other test that sets one.
 #[tokio::test]
 async fn no_credential_reaches_the_log_through_the_routes() {
@@ -1166,7 +1169,9 @@ async fn no_credential_reaches_the_log_through_the_routes() {
     tracing::subscriber::set_global_default(subscriber).expect("the only global subscriber here");
 
     let stack = stack().await;
-    user(&stack, "alice").await;
+    let alice = user(&stack, "alice").await;
+    grant_to(&stack, &alice, "user", "self").await;
+    grant_to(&stack, &alice, "alert", "read").await;
     let wrong = "a-wrong-password-for-alice";
     let in_the_wrong_box = "my-password-in-the-username-box";
     stack.log_in("alice", wrong).await;
@@ -1194,6 +1199,23 @@ async fn no_credential_reaches_the_log_through_the_routes() {
         .send()
         .await
         .expect("answered");
+    let made = stack
+        .post(
+            "/preferences/keys",
+            &[("name", "for the log"), ("scope", "alert:read")],
+        )
+        .header("cookie", cookie(&second))
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(made.status(), StatusCode::CREATED);
+    let page = made.text().await.expect("a page");
+    let key_token = page
+        .split(r#"class="token" type="text" value=""#)
+        .nth(1)
+        .and_then(|rest| rest.split('"').next())
+        .expect("the token")
+        .to_owned();
     let changed_to = "alice-s-changed-password";
     stack
         .post(
@@ -1231,6 +1253,7 @@ async fn no_credential_reaches_the_log_through_the_routes() {
         "a GUI login",
         "a cross-site login was refused",
         "a GUI password change",
+        "create_own_api_key",
         "AUDIT",
         "service.sessions",
         "127.0.0.1",
@@ -1247,6 +1270,7 @@ async fn no_credential_reaches_the_log_through_the_routes() {
         secret(&first),
         secret(&second),
         secret(&third),
+        secret(&key_token),
     ] {
         assert!(!log.contains(&credential), "{credential} is in the log");
     }
@@ -3268,4 +3292,748 @@ async fn list_refreshes_are_bounded() {
     assert_eq!(first.status(), StatusCode::OK);
     // the place went back
     assert_eq!(refresh().await.expect("answered").status(), StatusCode::OK);
+}
+
+// ---- PLAN.md 5.11's preferences area ----
+
+use ace_gui::preferences::{KeyDraft, KeyPage, NewKeyPage, PreferencesPage, preferences_view};
+use ace_service::{ApiKey, ApiKeyId, CATALOG, Grant, User};
+
+fn fixture_user(name: &str) -> User {
+    User {
+        id: ace_service::UserId(uuid::Uuid::from_u128(1)),
+        username: name.to_owned(),
+        display_name: Some(name.to_owned()),
+        email: Some(name.to_owned()),
+        timezone: "America/New_York".to_owned(),
+        enabled: true,
+        created_at: chrono::DateTime::from_timestamp(1_793_000_000, 0).expect("a time"),
+        api_keys: 2,
+    }
+}
+
+fn fixture_key(id: u128, name: &str, grants: &[(&str, &str, Effect)]) -> ApiKey {
+    ApiKey {
+        id: ApiKeyId(uuid::Uuid::from_u128(id)),
+        name: name.to_owned(),
+        owner: Some(ace_service::UserId(uuid::Uuid::from_u128(1))),
+        grants: grants
+            .iter()
+            .enumerate()
+            .map(|(at, (major, minor, effect))| Grant {
+                id: at as i64,
+                major: (*major).to_owned(),
+                minor: (*minor).to_owned(),
+                effect: *effect,
+            })
+            .collect(),
+        // 2026-10-26 12:53:20 UTC, 08:53 in New York
+        created_at: chrono::DateTime::from_timestamp(1_793_019_200, 0).expect("a time"),
+        created_by: RecordedActor {
+            kind: "user".to_owned(),
+            id: "1".to_owned(),
+            name: Some("alice".to_owned()),
+        },
+    }
+}
+
+fn catalog_entries(names: &[&str]) -> Vec<&'static ace_service::CatalogEntry> {
+    CATALOG
+        .iter()
+        .filter(|entry| names.contains(&entry.name.to_string().as_str()))
+        .collect()
+}
+
+/// The preferences page's view functions, called directly: the profile with what 5.6 lets a user change,
+/// the theme, the column chooser coming back here, and the keys with what `user:self` allows, with every
+/// outside value escaped and nothing inline.
+#[test]
+fn the_preferences_view_draws_the_profile_theme_columns_and_keys() {
+    let user = fixture_user("alice");
+    let keys = [
+        fixture_key(0xA, "triage", &[("alert", "read", Effect::Allow)]),
+        fixture_key(0xB, "everything", &[("*", "*", Effect::Allow)]),
+        fixture_key(
+            0xC,
+            "scoped",
+            &[
+                ("signature", "*", Effect::Allow),
+                ("signature", "download", Effect::Deny),
+            ],
+        ),
+    ];
+    let held = catalog_entries(&["alert:read", "signature:read"]);
+    let layout = || {
+        Layout::new(
+            "n0nce",
+            Theme::Dark,
+            Some("alice".to_owned()),
+            "/preferences",
+        )
+    };
+    let page = PreferencesPage {
+        layout: layout(),
+        view: preferences_view(
+            &user,
+            &keys,
+            &held,
+            true,
+            &ace_service::ManageColumnsPreference::default(),
+        ),
+    }
+    .render()
+    .expect("renders");
+    for part in [
+        r#"<form method="post" action="/preferences/profile" class="fields">"#,
+        r#"<input id="profile-username" type="text" value="alice" disabled>"#,
+        r#"<input id="profile-email" type="text" value="alice" disabled>"#,
+        r#"name="display_name" value="alice""#,
+        r#"<option value="America/New_York" selected>America/New_York</option>"#,
+        r#"<option value="Europe/London">Europe/London</option>"#,
+        r#"<a href="/login/change">Change password</a>"#,
+        r#"<a href="/preferences">Preferences</a>"#,
+        r#"<input type="radio" name="mode" value="dark" checked> Dark"#,
+        r#"<input type="radio" name="mode" value="light"> Light"#,
+        r#"<form method="post" action="/preferences/manage-columns" class="inline">"#,
+        r#"<input type="hidden" name="next" value="/preferences">"#,
+        "<td>triage</td>",
+        "<code>alert:read</code>",
+        "<code>*:*</code>",
+        "<code>signature:*</code>, <code>deny signature:download</code>",
+        "2026-10-26 08:53 EDT",
+        r#"<a href="/preferences/keys/00000000-0000-0000-0000-00000000000a">Edit</a>"#,
+        r#"<a href="/preferences/keys/00000000-0000-0000-0000-00000000000c">Edit</a>"#,
+        r#"action="/preferences/keys/00000000-0000-0000-0000-00000000000b/revoke""#,
+        r#"<form method="post" action="/preferences/keys" class="fields">"#,
+        r#"<input type="checkbox" name="scope" value="alert:read"> <code>alert:read</code>"#,
+        r#"<input type="checkbox" name="scope" value="signature:read"> <code>signature:read</code>"#,
+        r#"<textarea id="key-other" name="other""#,
+    ] {
+        assert!(page.contains(part), "{part}: {page}");
+    }
+    // the email is shown, not sent; a *:* key isn't edited here; only held permissions are offered
+    assert!(!page.contains(r#"name="email""#), "{page}");
+    assert!(!page.contains("00000000000b\">Edit"), "{page}");
+    assert!(!page.contains(r#"value="user:self""#), "{page}");
+    assert!(!page.contains(r#"value="alert:write""#), "{page}");
+    assert_eq!(
+        page.matches("<option value=").count(),
+        chrono_tz::TZ_VARIANTS.len() + Theme::ALL.len(),
+        "every chrono-tz timezone, and the menu's themes"
+    );
+    assert!(!page.contains(r#"role="alert""#), "{page}");
+    assert!(inline_free(&page), "{page}");
+
+    // without user:self the keys are listed, with no control to change them
+    let page = PreferencesPage {
+        layout: layout(),
+        view: preferences_view(
+            &user,
+            &keys,
+            &held,
+            false,
+            &ace_service::ManageColumnsPreference::default(),
+        ),
+    }
+    .render()
+    .expect("renders");
+    assert!(page.contains("<td>triage</td>"), "{page}");
+    assert!(!page.contains("/revoke"), "{page}");
+    assert!(!page.contains(">Edit</a>"), "{page}");
+    assert!(!page.contains(r#"action="/preferences/keys""#), "{page}");
+    assert!(page.contains("Ask an administrator to make or change your API keys."));
+    let page = PreferencesPage {
+        layout: layout(),
+        view: preferences_view(
+            &user,
+            &[],
+            &held,
+            true,
+            &ace_service::ManageColumnsPreference::default(),
+        ),
+    }
+    .render()
+    .expect("renders");
+    assert!(page.contains("You have no API keys."), "{page}");
+
+    // hostile text in every outside value
+    let escaped = "&#34;&#62;&#60;script&#62;alert(&#39;x&#39;)&#60;/script&#62;&#60;img src=x \
+                   onerror=alert(1)&#62;&#38;amp;";
+    let hostile_user = fixture_user(HOSTILE);
+    let hostile_keys = [fixture_key(
+        0xA,
+        HOSTILE,
+        &[("alert", "read", Effect::Allow)],
+    )];
+    let mut view = preferences_view(
+        &hostile_user,
+        &hostile_keys,
+        &held,
+        true,
+        &ace_service::ManageColumnsPreference::default(),
+    );
+    view.profile_problem = Some(HOSTILE.to_owned());
+    view.key_problem = Some(HOSTILE.to_owned());
+    view.draft = KeyDraft {
+        name: HOSTILE.to_owned(),
+        ticked: vec![],
+        other: HOSTILE.to_owned(),
+    };
+    let page = PreferencesPage {
+        layout: layout(),
+        view,
+    }
+    .render()
+    .expect("renders");
+    assert!(!page.contains("<script>alert"), "{page}");
+    assert!(!page.contains("<img"), "{page}");
+    // username, email and display name; the key's name; two problems; the draft's name and patterns
+    assert_eq!(page.matches(escaped).count(), 8, "{page}");
+    assert!(page.contains(&format!(r#"<p class="error" role="alert">{escaped}</p>"#)));
+    // the hostile text has " onerror=" in it, escaped, so the page's own markup is checked without it
+    assert!(inline_free(&page.replace(escaped, "")), "{page}");
+
+    let key = KeyPage {
+        layout: layout(),
+        id: uuid::Uuid::from_u128(0xC),
+        offered: ace_gui::preferences::offered(&held, &["signature:read".to_owned()]),
+        draft: KeyDraft {
+            name: HOSTILE.to_owned(),
+            ticked: vec!["signature:read".to_owned()],
+            other: HOSTILE.to_owned(),
+        },
+        denies: vec!["signature:download".to_owned()],
+        problem: Some(HOSTILE.to_owned()),
+    }
+    .render()
+    .expect("renders");
+    for part in [
+        r#"<form method="post" action="/preferences/keys/00000000-0000-0000-0000-00000000000c" class="fields">"#,
+        r#"<input type="checkbox" name="scope" value="signature:read" checked>"#,
+        r#"<input type="checkbox" name="scope" value="alert:read"> "#,
+        "denies this key <code>signature:download</code>",
+    ] {
+        assert!(key.contains(part), "{part}: {key}");
+    }
+    assert_eq!(key.matches(escaped).count(), 3, "{key}");
+    assert!(!key.contains("<script>alert"), "{key}");
+    // the hostile text has " onerror=" in it, escaped, so the page's own markup is checked without it
+    assert!(inline_free(&key.replace(escaped, "")), "{key}");
+
+    let made = NewKeyPage {
+        layout: layout(),
+        name: HOSTILE.to_owned(),
+        token: "ace4k_the-token".to_owned(),
+    };
+    assert!(!format!("{made:?}").contains("the-token"), "Debug hides it");
+    let made = made.render().expect("renders");
+    assert!(
+        made.contains(
+            r#"<input id="new-key" class="token" type="text" value="ace4k_the-token" readonly"#
+        ),
+        "{made}"
+    );
+    assert_eq!(made.matches(escaped).count(), 1, "{made}");
+    assert!(inline_free(&made.replace(escaped, "")), "{made}");
+}
+
+async fn grant_to(stack: &Stack, actor: &Actor, major: &str, minor: &str) {
+    let Actor::User { id, .. } = actor else {
+        panic!("a user");
+    };
+    stack
+        .service
+        .grant(
+            &bootstrap(),
+            &Holder::User(*id),
+            &PermissionPattern::new(major, minor).expect("a pattern"),
+            Effect::Allow,
+        )
+        .await
+        .expect("grants");
+}
+
+async fn last_action(stack: &Stack) -> String {
+    sqlx::query_scalar("SELECT action FROM service.audit ORDER BY id DESC LIMIT 1")
+        .fetch_one(stack.test_db.db().pool())
+        .await
+        .expect("a row")
+}
+
+/// The page and its profile form through the server: signed out goes to the login, the page reads the
+/// user's own account, a save writes through `update_own_profile` with its audit row, and each refusal,
+/// a cross-site post among them, changes nothing. An email in the form is ignored, as 5.6 leaves it to an
+/// administrator.
+#[tokio::test]
+async fn the_preferences_page_saves_the_profile() {
+    let stack = stack().await;
+    let alice = user(&stack, "alice").await;
+    let page = stack.get("/preferences").send().await.expect("answered");
+    assert_eq!(page.status(), StatusCode::SEE_OTHER);
+    assert_eq!(location(&page), "/login?next=%2Fpreferences");
+    let post = stack
+        .post(
+            "/preferences/profile",
+            &[("display_name", "Alice"), ("timezone", "UTC")],
+        )
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(post.status(), StatusCode::SEE_OTHER);
+    assert_eq!(location(&post), "/login");
+
+    let session = session_of(&stack, "alice").await;
+    let page = stack
+        .get("/preferences")
+        .header("cookie", cookie(&session))
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(page.status(), StatusCode::OK);
+    let page = page.text().await.expect("a page");
+    assert!(
+        page.contains(r#"<option value="UTC" selected>UTC</option>"#),
+        "{page}"
+    );
+    assert!(page.contains("Ask an administrator to make or change your API keys."));
+
+    let audit = stack.audit_count().await;
+    let profile = |form: &[(&str, &str)]| {
+        stack
+            .post("/preferences/profile", form)
+            .header("cookie", cookie(&session))
+    };
+    for (what, request, status, says) in [
+        (
+            "a timezone chrono-tz doesn't know",
+            profile(&[("display_name", "Alice"), ("timezone", "Mars/Olympus_Mons")]),
+            StatusCode::BAD_REQUEST,
+            "Not saved: &#34;Mars/Olympus_Mons&#34; isn&#39;t an IANA timezone",
+        ),
+        (
+            "a display name with a control character",
+            profile(&[("display_name", "Al\u{7}ice"), ("timezone", "UTC")]),
+            StatusCode::BAD_REQUEST,
+            "Not saved: a display name is up to 1024 characters with no control characters.",
+        ),
+        (
+            "an incomplete form",
+            profile(&[("display_name", "Alice")]),
+            StatusCode::BAD_REQUEST,
+            "The form wasn&#39;t complete.",
+        ),
+        (
+            "a post from another site",
+            stack
+                .http
+                .post(format!("{}/preferences/profile", stack.url))
+                .header("origin", "https://evil.example")
+                .header("cookie", cookie(&session))
+                .form(&[("display_name", "Alice"), ("timezone", "UTC")]),
+            StatusCode::FORBIDDEN,
+            "this request came from another site",
+        ),
+    ] {
+        let response = request.send().await.expect("answered");
+        assert_eq!(response.status(), status, "{what}");
+        let page = response.text().await.expect("a page");
+        assert!(page.contains(says), "{what}: {page}");
+    }
+    assert_eq!(stack.audit_count().await, audit, "nothing changed");
+
+    let saved = profile(&[
+        ("display_name", "Alice A."),
+        ("timezone", "Europe/London"),
+        ("email", "alice@evil.example"),
+    ])
+    .send()
+    .await
+    .expect("answered");
+    assert_eq!(saved.status(), StatusCode::SEE_OTHER);
+    assert_eq!(location(&saved), "/preferences?done=profile");
+    assert_eq!(stack.audit_count().await, audit + 1);
+    assert_eq!(last_action(&stack).await, "update_own_profile");
+    let account = stack.service.own_account(&alice).await.expect("reads");
+    assert_eq!(account.display_name.as_deref(), Some("Alice A."));
+    assert_eq!(account.timezone, "Europe/London");
+    assert_eq!(account.email, None, "an email isn't the user's to change");
+    let page = stack
+        .get("/preferences?done=profile")
+        .header("cookie", cookie(&session))
+        .send()
+        .await
+        .expect("answered")
+        .text()
+        .await
+        .expect("a page");
+    assert!(page.contains("Your profile is saved."), "{page}");
+    assert!(page.contains(r#"<option value="Europe/London" selected>"#));
+    assert!(page.contains(r#"name="display_name" value="Alice A.""#));
+
+    // the theme and the columns come back here
+    let themed = stack
+        .post(
+            "/preferences/theme",
+            &[("mode", "jd"), ("next", "/preferences")],
+        )
+        .header("cookie", cookie(&session))
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(location(&themed), "/preferences");
+    let moved = stack
+        .post(
+            "/preferences/manage-columns",
+            &[
+                ("column", "description"),
+                ("action", "up"),
+                ("next", "/preferences"),
+            ],
+        )
+        .header("cookie", cookie(&session))
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(location(&moved), "/preferences");
+    let page = stack
+        .get("/preferences")
+        .header("cookie", cookie(&session))
+        .send()
+        .await
+        .expect("answered")
+        .text()
+        .await
+        .expect("a page");
+    assert!(page.contains(r#"value="jd" checked"#), "{page}");
+}
+
+/// A user's own keys through the server: without `user:self` there's nothing to change and a post is
+/// refused; with it a key is made with its token shown once, in an answer no cache keeps and no URL
+/// holds, then changed and revoked, each with its audit row. A scope `_check_scope_within_grants` refuses
+/// comes back with the service's reason and the form as it was, and each refusal changes nothing.
+#[tokio::test]
+async fn own_api_keys_are_made_shown_once_changed_and_revoked() {
+    let stack = stack().await;
+    let alice = user(&stack, "alice").await;
+    grant_to(&stack, &alice, "alert", "read").await;
+    let session = session_of(&stack, "alice").await;
+    let make = |form: &[(&str, &str)]| {
+        stack
+            .post("/preferences/keys", form)
+            .header("cookie", cookie(&session))
+    };
+    let audit = stack.audit_count().await;
+    let refused = make(&[("name", "mine"), ("scope", "alert:read")])
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(refused.status(), StatusCode::FORBIDDEN, "no user:self");
+    assert!(refused.text().await.expect("a page").contains("user:self"));
+    let page = stack
+        .get("/preferences/keys/00000000-0000-0000-0000-00000000000a")
+        .header("cookie", cookie(&session))
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(page.status(), StatusCode::FORBIDDEN);
+    assert_eq!(stack.audit_count().await, audit);
+
+    grant_to(&stack, &alice, "user", "self").await;
+    let audit = stack.audit_count().await;
+    let page = stack
+        .get("/preferences")
+        .header("cookie", cookie(&session))
+        .send()
+        .await
+        .expect("answered")
+        .text()
+        .await
+        .expect("a page");
+    assert!(page.contains(r#"value="alert:read""#), "{page}");
+    assert!(!page.contains(r#"value="user:self""#), "{page}");
+
+    for (what, form, says) in [
+        (
+            "a pattern covering what alice doesn't hold",
+            vec![
+                ("name", "mine"),
+                ("scope", "alert:read"),
+                ("other", "alert:*"),
+            ],
+            "No key was made: alert:* covers alert:create, alert:write, which you don&#39;t hold.",
+        ),
+        (
+            "a pattern covering nothing",
+            vec![("name", "mine"), ("other", "alret:read")],
+            "alret:read matches no permission ACE checks",
+        ),
+        (
+            "user:self",
+            vec![("name", "mine"), ("other", "user:self")],
+            "user:self is only ever a person&#39;s",
+        ),
+        (
+            "no scope",
+            vec![("name", "mine")],
+            "a key you make yourself has to list the permissions it needs",
+        ),
+        (
+            "text that isn't a pattern",
+            vec![("name", "mine"), ("other", "alert")],
+            "alert isn&#39;t a pattern, which is major:minor",
+        ),
+        (
+            "no name",
+            vec![("name", " "), ("scope", "alert:read")],
+            "an API key&#39;s name is 1 to 255 characters",
+        ),
+    ] {
+        let response = make(&form).send().await.expect("answered");
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST, "{what}");
+        let page = response.text().await.expect("a page");
+        assert!(page.contains(says), "{what}: {page}");
+        assert!(!page.contains("ace4k_"), "{what}: {page}");
+    }
+    // the refused form comes back as it was sent
+    let page = make(&[
+        ("name", "mine"),
+        ("scope", "alert:read"),
+        ("other", "alert:*"),
+    ])
+    .send()
+    .await
+    .expect("answered")
+    .text()
+    .await
+    .expect("a page");
+    assert!(page.contains(r#"name="name" value="mine""#), "{page}");
+    assert!(page.contains(r#"value="alert:read" checked"#), "{page}");
+    assert!(page.contains(">alert:*</textarea>"), "{page}");
+    let cross_site = stack
+        .http
+        .post(format!("{}/preferences/keys", stack.url))
+        .header("origin", "https://evil.example")
+        .header("cookie", cookie(&session))
+        .form(&[("name", "mine"), ("scope", "alert:read")])
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(cross_site.status(), StatusCode::FORBIDDEN);
+    let signed_out = stack
+        .post(
+            "/preferences/keys",
+            &[("name", "mine"), ("scope", "alert:read")],
+        )
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(location(&signed_out), "/login");
+    assert_eq!(stack.audit_count().await, audit, "nothing changed");
+    assert!(
+        stack
+            .service
+            .own_api_keys(&alice)
+            .await
+            .expect("reads")
+            .is_empty()
+    );
+
+    // made, and shown once
+    let made = make(&[("name", "triage"), ("scope", "alert:read")])
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(made.status(), StatusCode::CREATED);
+    assert_eq!(made.headers()["cache-control"], "no-store");
+    assert!(made.headers().get(LOCATION).is_none(), "no redirect");
+    let page = made.text().await.expect("a page");
+    let token = page
+        .split(r#"class="token" type="text" value=""#)
+        .nth(1)
+        .and_then(|rest| rest.split('"').next())
+        .expect("the token")
+        .to_owned();
+    assert!(token.starts_with("ace4k_"), "{page}");
+    assert_eq!(stack.audit_count().await, audit + 1);
+    assert_eq!(last_action(&stack).await, "create_own_api_key");
+    let as_key = stack
+        .service
+        .authenticate_api_key(&token)
+        .await
+        .expect("the token works");
+    assert!(
+        stack
+            .service
+            .allowed(&as_key, &ace_service::ALERT_READ)
+            .await
+            .expect("checks")
+    );
+    let keys = stack.service.own_api_keys(&alice).await.expect("reads");
+    let id = keys[0].id.0;
+    let listing = stack
+        .get("/preferences")
+        .header("cookie", cookie(&session))
+        .send()
+        .await
+        .expect("answered")
+        .text()
+        .await
+        .expect("a page");
+    assert!(listing.contains("<td>triage</td>"), "{listing}");
+    assert!(!listing.contains(&token), "shown once");
+
+    // changed
+    let edit = stack
+        .get(&format!("/preferences/keys/{id}"))
+        .header("cookie", cookie(&session))
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(edit.status(), StatusCode::OK);
+    let edit = edit.text().await.expect("a page");
+    assert!(edit.contains(r#"name="name" value="triage""#), "{edit}");
+    assert!(edit.contains(r#"value="alert:read" checked"#), "{edit}");
+    let change = |id: &str, form: &[(&str, &str)]| {
+        stack
+            .post(&format!("/preferences/keys/{id}"), form)
+            .header("cookie", cookie(&session))
+    };
+    let audit = stack.audit_count().await;
+    let refused = change(
+        &id.to_string(),
+        &[("name", "renamed"), ("other", "alert:*")],
+    )
+    .send()
+    .await
+    .expect("answered");
+    assert_eq!(refused.status(), StatusCode::BAD_REQUEST);
+    let page = refused.text().await.expect("a page");
+    assert!(
+        page.contains("Not changed: alert:* covers alert:create, alert:write"),
+        "{page}"
+    );
+    assert!(page.contains(r#"name="name" value="renamed""#), "{page}");
+    assert_eq!(stack.audit_count().await, audit);
+    let changed = change(
+        &id.to_string(),
+        &[("name", "renamed"), ("scope", "alert:read")],
+    )
+    .send()
+    .await
+    .expect("answered");
+    assert_eq!(changed.status(), StatusCode::SEE_OTHER);
+    assert_eq!(location(&changed), "/preferences?done=key");
+    assert_eq!(stack.audit_count().await, audit + 1);
+    assert_eq!(last_action(&stack).await, "set_own_api_key_scope");
+    assert_eq!(
+        stack.service.own_api_keys(&alice).await.expect("reads")[0].name,
+        "renamed"
+    );
+
+    // another user's key isn't there, to alice; an id that isn't a uuid is a bad request
+    let bob = user(&stack, "bob").await;
+    grant_to(&stack, &bob, "user", "self").await;
+    grant_to(&stack, &bob, "alert", "read").await;
+    let bobs = stack
+        .service
+        .create_own_api_key(
+            &bob,
+            "bob's",
+            &[PermissionPattern::new("alert", "read").expect("a pattern")],
+        )
+        .await
+        .expect("makes bob's key")
+        .id
+        .0
+        .to_string();
+    let audit = stack.audit_count().await;
+    for (what, response, status) in [
+        (
+            "bob's key's page",
+            stack
+                .get(&format!("/preferences/keys/{bobs}"))
+                .header("cookie", cookie(&session))
+                .send()
+                .await,
+            StatusCode::NOT_FOUND,
+        ),
+        (
+            "changing bob's key",
+            change(&bobs, &[("name", "mine now"), ("scope", "alert:read")])
+                .send()
+                .await,
+            StatusCode::NOT_FOUND,
+        ),
+        (
+            "revoking bob's key",
+            stack
+                .post(&format!("/preferences/keys/{bobs}/revoke"), &[])
+                .header("cookie", cookie(&session))
+                .send()
+                .await,
+            StatusCode::NOT_FOUND,
+        ),
+        (
+            "a revoke from another site",
+            stack
+                .http
+                .post(format!("{}/preferences/keys/{id}/revoke", stack.url))
+                .header("origin", "https://evil.example")
+                .header("cookie", cookie(&session))
+                .send()
+                .await,
+            StatusCode::FORBIDDEN,
+        ),
+        (
+            "an id that isn't a uuid",
+            stack
+                .post("/preferences/keys/not-a-uuid/revoke", &[])
+                .header("cookie", cookie(&session))
+                .send()
+                .await,
+            StatusCode::BAD_REQUEST,
+        ),
+        (
+            "a page for an id that isn't a uuid",
+            stack
+                .get("/preferences/keys/not-a-uuid")
+                .header("cookie", cookie(&session))
+                .send()
+                .await,
+            StatusCode::BAD_REQUEST,
+        ),
+    ] {
+        assert_eq!(response.expect("answered").status(), status, "{what}");
+    }
+    let signed_out = stack
+        .post(&format!("/preferences/keys/{id}/revoke"), &[])
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(location(&signed_out), "/login");
+    assert_eq!(stack.audit_count().await, audit, "nothing changed");
+    assert_eq!(
+        stack.service.own_api_keys(&bob).await.expect("reads")[0].name,
+        "bob's"
+    );
+
+    // revoked
+    let revoked = stack
+        .post(&format!("/preferences/keys/{id}/revoke"), &[])
+        .header("cookie", cookie(&session))
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(revoked.status(), StatusCode::SEE_OTHER);
+    assert_eq!(location(&revoked), "/preferences?done=revoked");
+    assert_eq!(stack.audit_count().await, audit + 1);
+    assert_eq!(last_action(&stack).await, "revoke_own_api_key");
+    assert!(stack.service.authenticate_api_key(&token).await.is_err());
+    let again = stack
+        .post(&format!("/preferences/keys/{id}/revoke"), &[])
+        .header("cookie", cookie(&session))
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(again.status(), StatusCode::NOT_FOUND);
 }
