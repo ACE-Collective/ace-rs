@@ -75,6 +75,7 @@
 
   <details class="section saved">
     <summary>Saved filters</summary>
+    <p><a href="{{ view.manage }}">Manage…</a> <span class="muted">Rename them and set the quick filters' order.</span></p>
     <form method="post" action="/filters/saved" class="save-filter">
       <input type="hidden" name="next" value="{{ view.here }}">
       {%- for f in view.f %}

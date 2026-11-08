@@ -12,6 +12,9 @@
 //!
 //! PLAN.md 5.11's preferences area: the page's views directly, and its profile and own API keys through
 //! the server, each write with its audit row and each refusal changing nothing.
+//!
+//! PLAN.md 5.11's saved_filters area: the manage page and the rename page drawn directly, and the moves and
+//! renames through the server, each write with its audit row and each refusal changing nothing.
 
 use std::collections::BTreeSet;
 use std::io::Write;
@@ -4036,4 +4039,453 @@ async fn own_api_keys_are_made_shown_once_changed_and_revoked() {
         .await
         .expect("answered");
     assert_eq!(again.status(), StatusCode::NOT_FOUND);
+}
+
+// PLAN.md 5.11's saved_filters area: ace3's Manage Filters dialog as a page, with rename and the quick
+// filters' order.
+
+use ace_gui::saved_filters::{EditPage, FilterDraft, ManagePage, manage_view, moved};
+use ace_service::{NewSavedFilter, SavedFilter, UserId};
+
+fn fixture_filter(
+    id: u128,
+    name: &str,
+    description: Option<&str>,
+    order: Option<i32>,
+) -> SavedFilter {
+    let at = chrono::DateTime::parse_from_rfc3339("2026-01-01T00:00:00Z")
+        .expect("a time")
+        .with_timezone(&chrono::Utc);
+    SavedFilter {
+        id: uuid::Uuid::from_u128(id),
+        screen: FilterScreen::Alerts,
+        name: name.to_owned(),
+        description: description.map(str::to_owned),
+        filters: vec![FilterEntry::text("Disposition", false, &["OPEN"])],
+        quick_filter_order: order,
+        quick_filter_indicator: order == Some(0),
+        owner: UserId(uuid::Uuid::from_u128(99)),
+        owner_name: "alice".to_owned(),
+        created_at: at,
+        updated_at: at,
+    }
+}
+
+/// The view functions draw the user's saved filters: the quick filters numbered in their order, each with
+/// Up and Down forms but at its end, the rest with Pin, every row's Open, Rename and Delete, every value
+/// escaped and nothing inline. A move swaps a place, stops at either end, and refuses a filter that isn't a
+/// quick filter.
+#[test]
+fn the_saved_filters_views_draw_the_order_and_the_rename_form() {
+    let saved = [
+        fixture_filter(1, "First", None, Some(0)),
+        fixture_filter(2, HOSTILE, Some(HOSTILE), Some(1)),
+        fixture_filter(3, "Unpinned", None, None),
+    ];
+    let back = "/?f=disposition%3AOPEN";
+    let view = manage_view(&saved, back);
+    assert_eq!(
+        view.rows.iter().map(|row| row.place).collect::<Vec<_>>(),
+        [Some(1), Some(2), None]
+    );
+    assert_eq!(
+        view.here,
+        "/filters/saved?next=%2F%3Ff%3Ddisposition%253AOPEN"
+    );
+    assert_eq!(
+        view.rows[2].rename,
+        format!(
+            "/filters/saved/{}?next=%2F%3Ff%3Ddisposition%253AOPEN",
+            uuid::Uuid::from_u128(3)
+        )
+    );
+    assert_eq!(view.rows[0].href, "/?f=disposition%3AOPEN");
+    let page = ManagePage {
+        layout: Layout::new(
+            "n",
+            Theme::default(),
+            Some("alice".to_owned()),
+            "/filters/saved",
+        ),
+        view,
+    }
+    .render()
+    .expect("renders");
+    let escaped = "&#34;&#62;&#60;script&#62;alert(&#39;x&#39;)&#60;/script&#62;&#60;img src=x \
+                   onerror=alert(1)&#62;&#38;amp;";
+    assert_eq!(page.matches(escaped).count(), 2, "its name and description");
+    assert!(!page.contains("<script>alert"), "{page}");
+    assert!(inline_free(&page.replace(escaped, "")), "{page}");
+    assert_eq!(page.matches(r#"name="to" value="up""#).count(), 2);
+    assert_eq!(page.matches(r#"title="Move up" disabled"#).count(), 1);
+    assert_eq!(page.matches(r#"title="Move down" disabled"#).count(), 1);
+    assert_eq!(page.matches(">Unpin</button>").count(), 2);
+    assert_eq!(page.matches(">Pin</button>").count(), 1);
+    assert_eq!(page.matches(">Delete</button>").count(), 3);
+    assert_eq!(page.matches("with its count").count(), 1);
+    assert!(page.contains(r#"<a href="/?f=disposition%3AOPEN">Back to the alert list</a>"#));
+    assert_eq!(
+        page.matches(r#"name="next" value="/filters/saved?next=%2F%3Ff%3Ddisposition%253AOPEN""#)
+            .count(),
+        10,
+        "every form comes back here: three pins, two pairs of moves, three deletes"
+    );
+    let empty = ManagePage {
+        layout: Layout::signed_out("n"),
+        view: manage_view(&[], "/"),
+    }
+    .render()
+    .expect("renders");
+    assert!(empty.contains("You have no saved filters yet."), "{empty}");
+    assert!(empty.contains(r#"<a href="/">Back to the alert list</a>"#));
+
+    let edit = EditPage {
+        layout: Layout::signed_out("n"),
+        id: uuid::Uuid::from_u128(2),
+        draft: FilterDraft {
+            name: HOSTILE.to_owned(),
+            description: HOSTILE.to_owned(),
+            indicator: true,
+        },
+        quick: false,
+        next: "/".to_owned(),
+        manage: "/filters/saved".to_owned(),
+        problem: Some(HOSTILE.to_owned()),
+        max_name: 255,
+        max_description: 1024,
+    }
+    .render()
+    .expect("renders");
+    assert_eq!(edit.matches(escaped).count(), 3, "{edit}");
+    assert!(inline_free(&edit.replace(escaped, "")), "{edit}");
+    assert!(edit.contains(&format!(
+        r#"action="/filters/saved/{}""#,
+        uuid::Uuid::from_u128(2)
+    )));
+    assert!(edit.contains(r#"name="indicator" checked"#));
+    assert!(edit.contains("It isn't a quick filter now."));
+
+    let (a, b, c) = (
+        uuid::Uuid::from_u128(1),
+        uuid::Uuid::from_u128(2),
+        uuid::Uuid::from_u128(3),
+    );
+    assert_eq!(moved(&[a, b, c], b, true), Ok(Some(vec![b, a, c])));
+    assert_eq!(moved(&[a, b, c], b, false), Ok(Some(vec![a, c, b])));
+    assert_eq!(moved(&[a, b, c], a, true), Ok(None));
+    assert_eq!(moved(&[a, b, c], c, false), Ok(None));
+    assert!(moved(&[a, b], c, true).is_err());
+}
+
+/// Through the server: signed out goes to the login, a user without `alert:read` is refused, the page
+/// lists the user's own filters, a move and a rename each write through the service with one audit row,
+/// and each refusal, a cross-site post among them, changes nothing. Another user's filter is no filter.
+#[tokio::test]
+async fn saved_filters_are_renamed_and_reordered() {
+    let stack = stack().await;
+    let alice = user(&stack, "alice").await;
+    grant_alert_read(&stack, &alice).await;
+    let bob = user(&stack, "bob").await;
+    grant_alert_read(&stack, &bob).await;
+    user(&stack, "carol").await;
+    let save = |actor: &Actor, name: &str, quick: bool| {
+        let (service, actor) = (stack.service.clone(), actor.clone());
+        let new = NewSavedFilter {
+            name: name.to_owned(),
+            filters: vec![FilterEntry::text("Disposition", false, &["OPEN"])],
+            quick_filter: quick,
+            ..NewSavedFilter::default()
+        };
+        async move {
+            service
+                .create_saved_filter(&actor, FilterScreen::Alerts, &new)
+                .await
+                .expect("saves")
+                .id
+        }
+    };
+    let first = save(&alice, "First", true).await;
+    let second = save(&alice, HOSTILE, true).await;
+    let loose = save(&alice, "Loose", false).await;
+    let bobs = save(&bob, "Bob's", true).await;
+    let order = || async {
+        stack
+            .service
+            .saved_filters(&alice, FilterScreen::Alerts)
+            .await
+            .expect("lists")
+            .into_iter()
+            .map(|filter| (filter.name, filter.quick_filter_order))
+            .collect::<Vec<_>>()
+    };
+
+    // signed out
+    for path in [
+        "/filters/saved".to_owned(),
+        format!("/filters/saved/{first}"),
+    ] {
+        let page = stack.get(&path).send().await.expect("answered");
+        assert_eq!(page.status(), StatusCode::SEE_OTHER);
+        assert_eq!(location(&page), format!("/login?{}", next_query(&path)));
+    }
+    let post = stack
+        .post(&format!("/filters/saved/{first}/move"), &[("to", "down")])
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(location(&post), "/login");
+
+    // without alert:read
+    let carol = session_of(&stack, "carol").await;
+    for path in [
+        "/filters/saved".to_owned(),
+        format!("/filters/saved/{first}"),
+    ] {
+        let page = stack
+            .get(&path)
+            .header("cookie", cookie(&carol))
+            .send()
+            .await
+            .expect("answered");
+        assert_eq!(page.status(), StatusCode::FORBIDDEN, "{path}");
+    }
+
+    let session = session_of(&stack, "alice").await;
+    let get = |path: String| {
+        let request = stack.get(&path).header("cookie", cookie(&session));
+        async move { request.send().await.expect("answered") }
+    };
+    let page = get("/filters/saved?next=%2F%3Fsize%3D10".to_owned()).await;
+    assert_eq!(page.status(), StatusCode::OK);
+    let page = page.text().await.expect("a page");
+    assert!(
+        page.contains(r#"<a href="/?size=10">Back to the alert list</a>"#),
+        "{page}"
+    );
+    assert!(page.contains(">First</a>"));
+    assert!(page.contains("&#60;script&#62;alert"), "{page}");
+    assert!(!page.contains("<script>alert"), "{page}");
+    assert!(!page.contains("Bob&#39;s"), "only her own filters");
+    let list = get("/".to_owned()).await.text().await.expect("a page");
+    assert!(
+        list.contains(r#"<a href="/filters/saved">Manage…</a>"#),
+        "{list}"
+    );
+
+    let audit = stack.audit_count().await;
+    let send = |path: String, form: Vec<(&'static str, &'static str)>| {
+        let request = stack.post(&path, &form).header("cookie", cookie(&session));
+        async move { request.send().await.expect("answered") }
+    };
+    for (what, response, status) in [
+        (
+            "moving the first up",
+            send(
+                format!("/filters/saved/{first}/move"),
+                vec![("to", "up"), ("next", "/filters/saved")],
+            )
+            .await,
+            StatusCode::SEE_OTHER,
+        ),
+        (
+            "moving one that isn't a quick filter",
+            send(format!("/filters/saved/{loose}/move"), vec![("to", "up")]).await,
+            StatusCode::BAD_REQUEST,
+        ),
+        (
+            "a direction that isn't one",
+            send(
+                format!("/filters/saved/{second}/move"),
+                vec![("to", "sideways")],
+            )
+            .await,
+            StatusCode::BAD_REQUEST,
+        ),
+        (
+            "another user's filter",
+            send(format!("/filters/saved/{bobs}/move"), vec![("to", "down")]).await,
+            StatusCode::NOT_FOUND,
+        ),
+        (
+            "an id that isn't one",
+            send("/filters/saved/nope/move".to_owned(), vec![("to", "down")]).await,
+            StatusCode::NOT_FOUND,
+        ),
+        (
+            "a move from another site",
+            stack
+                .http
+                .post(format!("{}/filters/saved/{first}/move", stack.url))
+                .header("origin", "https://evil.example")
+                .header("cookie", cookie(&session))
+                .form(&[("to", "down")])
+                .send()
+                .await
+                .expect("answered"),
+            StatusCode::FORBIDDEN,
+        ),
+    ] {
+        assert_eq!(response.status(), status, "{what}");
+    }
+    assert_eq!(stack.audit_count().await, audit, "nothing changed");
+    assert_eq!(
+        order().await,
+        [
+            ("First".to_owned(), Some(0)),
+            (HOSTILE.to_owned(), Some(1)),
+            ("Loose".to_owned(), None)
+        ]
+    );
+
+    let down = send(
+        format!("/filters/saved/{first}/move"),
+        vec![
+            ("to", "down"),
+            ("next", "/filters/saved?next=%2F%3Fsize%3D10"),
+        ],
+    )
+    .await;
+    assert_eq!(down.status(), StatusCode::SEE_OTHER);
+    assert_eq!(location(&down), "/filters/saved?next=%2F%3Fsize%3D10");
+    assert_eq!(stack.audit_count().await, audit + 1);
+    assert_eq!(last_action(&stack).await, "set_quick_filters");
+    assert_eq!(
+        order().await,
+        [
+            (HOSTILE.to_owned(), Some(0)),
+            ("First".to_owned(), Some(1)),
+            ("Loose".to_owned(), None)
+        ]
+    );
+    let pinned = send(
+        format!("/filters/saved/{loose}/quick"),
+        vec![("pin", "true"), ("next", "/filters/saved")],
+    )
+    .await;
+    assert_eq!(location(&pinned), "/filters/saved");
+    let up = send(format!("/filters/saved/{loose}/move"), vec![("to", "up")]).await;
+    assert_eq!(up.status(), StatusCode::SEE_OTHER);
+    assert_eq!(location(&up), "/");
+    assert_eq!(
+        order().await,
+        [
+            (HOSTILE.to_owned(), Some(0)),
+            ("Loose".to_owned(), Some(1)),
+            ("First".to_owned(), Some(2))
+        ]
+    );
+    assert_eq!(stack.audit_count().await, audit + 3);
+
+    // rename
+    let page = get(format!("/filters/saved/{first}?next=%2F%3Fsize%3D10")).await;
+    assert_eq!(page.status(), StatusCode::OK);
+    let page = page.text().await.expect("a page");
+    assert!(page.contains(r#"name="name" value="First""#), "{page}");
+    assert!(
+        page.contains(r#"<input type="hidden" name="next" value="/?size=10">"#),
+        "{page}"
+    );
+    assert!(
+        page.contains(r#"<a href="/filters/saved?next=%2F%3Fsize%3D10">Back to Saved filters</a>"#)
+    );
+    for path in [
+        format!("/filters/saved/{bobs}"),
+        "/filters/saved/nope".to_owned(),
+    ] {
+        assert_eq!(
+            get(path.clone()).await.status(),
+            StatusCode::NOT_FOUND,
+            "{path}"
+        );
+    }
+
+    let audit = stack.audit_count().await;
+    let rename = |id: uuid::Uuid, form: Vec<(&'static str, &'static str)>| {
+        send(format!("/filters/saved/{id}"), form)
+    };
+    for (what, response, status, says) in [
+        (
+            "a name she has already",
+            rename(first, vec![("name", "Loose"), ("description", "")]).await,
+            StatusCode::CONFLICT,
+            "You have a saved filter named &#34;Loose&#34; already.",
+        ),
+        (
+            "a blank name",
+            rename(first, vec![("name", "   "), ("description", "")]).await,
+            StatusCode::BAD_REQUEST,
+            "Not saved: a saved filter&#39;s name is 1 to 255 characters, not all whitespace.",
+        ),
+        (
+            "another user's filter",
+            rename(bobs, vec![("name", "Mine now")]).await,
+            StatusCode::NOT_FOUND,
+            "There&#39;s no such saved filter.",
+        ),
+        (
+            "a rename from another site",
+            stack
+                .http
+                .post(format!("{}/filters/saved/{first}", stack.url))
+                .header("origin", "https://evil.example")
+                .header("cookie", cookie(&session))
+                .form(&[("name", "Renamed")])
+                .send()
+                .await
+                .expect("answered"),
+            StatusCode::FORBIDDEN,
+            "this request came from another site",
+        ),
+    ] {
+        assert_eq!(response.status(), status, "{what}");
+        let page = response.text().await.expect("a page");
+        assert!(page.contains(says), "{what}: {page}");
+    }
+    let refused = rename(first, vec![("name", "Loose"), ("description", "kept <b>")])
+        .await
+        .text()
+        .await
+        .expect("a page");
+    assert!(
+        refused.contains(r#"name="description" value="kept &#60;b&#62;""#),
+        "the form comes back as it was sent: {refused}"
+    );
+    assert_eq!(stack.audit_count().await, audit, "nothing changed");
+    let bobs_now = stack.service.saved_filter(&bob, bobs).await.expect("reads");
+    assert_eq!(bobs_now.name, "Bob's");
+
+    // the same values change nothing and write no row
+    let same = rename(first, vec![("name", "First"), ("description", "")]).await;
+    assert_eq!(same.status(), StatusCode::SEE_OTHER);
+    assert_eq!(stack.audit_count().await, audit);
+
+    let renamed = rename(
+        first,
+        vec![
+            ("name", "  Renamed  "),
+            ("description", "Open ones"),
+            ("indicator", "on"),
+            ("next", "/?size=10"),
+        ],
+    )
+    .await;
+    assert_eq!(renamed.status(), StatusCode::SEE_OTHER);
+    assert_eq!(location(&renamed), "/filters/saved?next=%2F%3Fsize%3D10");
+    assert_eq!(stack.audit_count().await, audit + 1);
+    assert_eq!(last_action(&stack).await, "update_saved_filter");
+    let now = stack
+        .service
+        .saved_filter(&alice, first)
+        .await
+        .expect("reads");
+    assert_eq!(now.name, "Renamed");
+    assert_eq!(now.description.as_deref(), Some("Open ones"));
+    assert!(now.quick_filter_indicator);
+    assert_eq!(now.quick_filter_order, Some(2), "its place is kept");
+    assert_eq!(
+        now.filters,
+        vec![FilterEntry::text("Disposition", false, &["OPEN"])]
+    );
+    let list = get("/".to_owned()).await.text().await.expect("a page");
+    assert!(list.contains(">Renamed <span class=\"count\">"), "{list}");
 }

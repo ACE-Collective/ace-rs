@@ -1,0 +1,27 @@
+{#- Renaming a saved filter (PLAN.md 5.11's saved_filters area): the name, description and count of ace3's
+    saved filter, as a page whose form posts to /filters/saved/{id} (src/saved_filters.rs). -#}
+{% extends "base.html" %}
+{% block title %}Rename saved filter · ACE{% endblock %}
+{% block content %}
+<section class="manage-filters">
+  <p><a href="{{ manage }}">Back to Saved filters</a></p>
+  <h1>Rename saved filter</h1>
+  {%- if let Some(problem) = problem %}
+  <p class="error" role="alert">{{ problem }}</p>
+  {%- endif %}
+  <div class="section">
+    <form method="post" action="/filters/saved/{{ id }}" class="fields">
+      <input type="hidden" name="next" value="{{ next }}">
+      <label for="filter-name">Name</label>
+      <input id="filter-name" type="text" name="name" value="{{ draft.name }}" maxlength="{{ max_name }}" required>
+      <label for="filter-description">Description <span class="muted">(optional)</span></label>
+      <input id="filter-description" type="text" name="description" value="{{ draft.description }}" maxlength="{{ max_description }}">
+      <label class="choice"><input type="checkbox" name="indicator"{% if draft.indicator %} checked{% endif %}> Show a count on its quick filter</label>
+      {%- if !quick %}
+      <p class="muted hint">It isn't a quick filter now. Pin it on Saved filters to show it on the filter bar.</p>
+      {%- endif %}
+      <button type="submit">Save</button>
+    </form>
+  </div>
+</section>
+{% endblock %}

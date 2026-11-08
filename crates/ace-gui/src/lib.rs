@@ -28,6 +28,9 @@
 //!   ace3's "Add Comment" opens (5.9, #1032).
 //! - `list`: the alert list at `/` (5.10), ace3's manage page, with its filters, saved filters, columns,
 //!   sorts, bulk disposition and refresh.
+//! - `saved_filters`: the saved filters' forms and their manage page (5.10, and 5.11's saved_filters
+//!   area), ace3's `saved_filters/_modals.html`, where a saved filter is renamed and the quick filters
+//!   reordered.
 //!
 //! From ace3's `app/templates/base.html` and `core.html`, and what differs: the layout keeps ace3's
 //! theme attribute on `<html>`, its five themes and its log out by POST. It has none of ace3's jQuery,
@@ -50,6 +53,7 @@ mod headers;
 pub mod list;
 mod places;
 pub mod preferences;
+pub mod saved_filters;
 mod session;
 pub mod templates;
 
@@ -132,9 +136,20 @@ impl Gui {
                 post(list::bulk_disposition)
                     .layer(DefaultBodyLimit::max(list::MAX_BULK_FORM_BYTES)),
             )
-            .route("/filters/saved", post(list::save_filter))
-            .route("/filters/saved/{id}/delete", post(list::delete_filter))
-            .route("/filters/saved/{id}/quick", post(list::pin_filter))
+            .route(
+                "/filters/saved",
+                get(saved_filters::manage_page).post(saved_filters::save_filter),
+            )
+            .route(
+                "/filters/saved/{id}",
+                get(saved_filters::edit_filter_page).post(saved_filters::save_edit),
+            )
+            .route(
+                "/filters/saved/{id}/delete",
+                post(saved_filters::delete_filter),
+            )
+            .route("/filters/saved/{id}/quick", post(saved_filters::pin_filter))
+            .route("/filters/saved/{id}/move", post(saved_filters::move_filter))
             .route("/preferences/manage-columns", post(list::set_columns))
             .route("/login", get(auth::login_page).post(auth::login))
             .route("/logout", post(auth::logout))

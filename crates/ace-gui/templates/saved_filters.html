@@ -1,0 +1,58 @@
+{#- ace3's Manage Filters dialog (saved_filters/_modals.html, PLAN.md 5.11's saved_filters area), as a page:
+    each row's pin, order, rename and delete is a link or a form (src/saved_filters.rs). -#}
+{% extends "base.html" %}
+{% block title %}Saved filters · ACE{% endblock %}
+{% block content %}
+<section class="manage-filters">
+  <p><a href="{{ view.back }}">Back to the alert list</a></p>
+  <h1>Saved filters</h1>
+  {%- if view.rows.is_empty() %}
+  <p class="muted">You have no saved filters yet. Build a filter on the alert list, then save it there.</p>
+  {%- else %}
+  <table class="saved-filters">
+    <thead>
+      <tr><th>Quick filter</th><th>Order</th><th>Name</th><th>Description</th><th></th></tr>
+    </thead>
+    <tbody>
+      {%- for row in view.rows %}
+      <tr>
+        <td class="nowrap">
+          <form method="post" action="/filters/saved/{{ row.id }}/quick" class="inline">
+            <input type="hidden" name="next" value="{{ view.here }}">
+            <input type="hidden" name="pin" value="{% if row.place.is_some() %}false{% else %}true{% endif %}">
+            <button type="submit">{% if row.place.is_some() %}Unpin{% else %}Pin{% endif %}</button>
+          </form>
+          {%- if row.place.is_some() && row.indicator %} <span class="muted">with its count</span>{% endif %}
+        </td>
+        <td class="nowrap">
+          {%- if let Some(place) = row.place %}
+          <span class="place">{{ place }}</span>
+          <form method="post" action="/filters/saved/{{ row.id }}/move" class="inline">
+            <input type="hidden" name="next" value="{{ view.here }}">
+            <input type="hidden" name="to" value="up">
+            <button type="submit" title="Move up"{% if row.first %} disabled{% endif %}>Up</button>
+          </form>
+          <form method="post" action="/filters/saved/{{ row.id }}/move" class="inline">
+            <input type="hidden" name="next" value="{{ view.here }}">
+            <input type="hidden" name="to" value="down">
+            <button type="submit" title="Move down"{% if row.last %} disabled{% endif %}>Down</button>
+          </form>
+          {%- endif %}
+        </td>
+        <td><a href="{{ row.href }}" title="Open the list with this filter; the link carries the filter, to copy and share">{{ row.name }}</a></td>
+        <td class="muted">{{ row.description }}</td>
+        <td class="nowrap">
+          <a href="{{ row.rename }}">Rename</a>
+          <form method="post" action="/filters/saved/{{ row.id }}/delete" class="inline">
+            <input type="hidden" name="next" value="{{ view.here }}">
+            <button type="submit">Delete</button>
+          </form>
+        </td>
+      </tr>
+      {%- endfor %}
+    </tbody>
+  </table>
+  <p class="muted hint">Pinned filters appear as quick filters on the alert list's filter bar, in the order shown here.</p>
+  {%- endif %}
+</section>
+{% endblock %}

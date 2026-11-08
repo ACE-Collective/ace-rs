@@ -18,7 +18,8 @@
 //! - The columns are 5.7's `manage_columns` preference, and ace3's drag-and-drop chooser is a form per
 //!   move, show or hide, which writes it through `Service::set_preference`.
 //! - Saved filters are `Service::saved_filters`, and the forms here save one, delete one and pin or unpin
-//!   one as a quick filter, each through the service with its audit row.
+//!   one as a quick filter, each through the service with its audit row. They post to
+//!   `crate::saved_filters`, whose manage page, linked as "Manage…", renames and reorders them (5.11).
 //! - A column header sorts by it, ace3's orders that ace4's alerts have fields for, and the pager is a
 //!   keyset: First and Next. ace3's offset pager also jumps back and to the end, which a keyset can't do
 //!   without a second cursor; the back button goes back.
@@ -57,12 +58,12 @@ use std::collections::HashMap;
 use ace_service::filters::{self, DISPOSITIONS, FilterKind, FilterScreen};
 use ace_service::{
     AlertPage, AlertQuery, AlertSort, AlertSummary, AnalysisState, FilterEntry, FilterValue,
-    MANAGE_COLUMNS, ManageColumn, ManageColumnsPreference, NewSavedFilter, PreferenceValue,
-    SavedFilter, ServiceError,
+    MANAGE_COLUMNS, ManageColumn, ManageColumnsPreference, PreferenceValue, SavedFilter,
+    ServiceError,
 };
 use askama::Template;
 use axum::body::Bytes;
-use axum::extract::{Path, RawQuery, State};
+use axum::extract::{RawQuery, State};
 use axum::http::StatusCode;
 use axum::http::request::Parts;
 use axum::response::{IntoResponse, Response};
@@ -276,7 +277,7 @@ impl ListQuery {
     }
 
     /// The first page of this list with other filters.
-    fn with_filters(&self, filters: &[FilterEntry]) -> String {
+    pub(crate) fn with_filters(&self, filters: &[FilterEntry]) -> String {
         ListQuery::url(
             "/",
             &self.pairs_with(filters, self.sort, self.descending, None),
@@ -422,6 +423,8 @@ pub struct ListView {
     pub f: Vec<String>,
     /// This page, for the forms to come back to.
     pub here: String,
+    /// The saved filters' manage page, coming back here.
+    pub manage: String,
     pub share: String,
     pub reset: String,
     pub clear: String,
@@ -619,11 +622,7 @@ pub fn list_view(
     let current = |filter: &SavedFilter| {
         filters::encode(FilterScreen::Alerts, &filter.filters).ok() == Some(f.clone())
     };
-    let href_of = |filter: &SavedFilter| match filters::check(FilterScreen::Alerts, &filter.filters)
-    {
-        Ok(filters) => query.with_filters(&filters),
-        Err(_) => "/".to_owned(),
-    };
+    let href_of = |filter: &SavedFilter| crate::saved_filters::open_href(query, filter);
     let badges = saved
         .iter()
         .filter(|filter| filter.quick_filter_order.is_some())
@@ -662,6 +661,7 @@ pub fn list_view(
         list: alert_list(page, query, columns, tz),
         chips,
         here: query.at("/"),
+        manage: crate::saved_filters::manage_url(&query.at("/")),
         share: query.with_filters(&query.filters),
         reset: query.with_filters(&[FilterEntry::text("Disposition", false, &["OPEN"])]),
         clear: query.with_filters(&[]),
@@ -918,119 +918,6 @@ pub(crate) async fn bulk_disposition(
     });
     *response.status_mut() = status;
     response
-}
-
-/// `POST /filters/saved`: saves the list's filters as a named filter.
-pub(crate) async fn save_filter(
-    State(gui): State<Gui>,
-    viewer: SignedIn,
-    parts: Parts,
-    body: Bytes,
-) -> Response {
-    let form = pairs(&body);
-    let next = next_of(&form);
-    let filters = match filters::decode(FilterScreen::Alerts, &all(&form, "f"), true) {
-        Ok((filters, _)) => filters,
-        Err(error) => return Failure::from_service(error, &parts).into_response(),
-    };
-    let new = NewSavedFilter {
-        name: one(&form, "name").unwrap_or("").trim().to_owned(),
-        description: one(&form, "description")
-            .map(str::trim)
-            .filter(|text| !text.is_empty())
-            .map(str::to_owned),
-        filters,
-        quick_filter: one(&form, "quick").is_some(),
-        quick_filter_indicator: one(&form, "indicator").is_some(),
-    };
-    match gui
-        .service
-        .create_saved_filter(&viewer.actor, FilterScreen::Alerts, &new)
-        .await
-    {
-        Ok(_) => see_other(&next, None),
-        Err(ServiceError::FilterNameTaken(name)) => Failure::new(
-            StatusCode::CONFLICT,
-            format!("You have a saved filter named {name:?} already."),
-            &parts,
-        )
-        .into_response(),
-        Err(error) => Failure::from_service(error, &parts).into_response(),
-    }
-}
-
-/// `POST /filters/saved/{id}/delete`.
-pub(crate) async fn delete_filter(
-    State(gui): State<Gui>,
-    viewer: SignedIn,
-    parts: Parts,
-    Path(raw): Path<String>,
-    body: Bytes,
-) -> Response {
-    let form = pairs(&body);
-    let Ok(id) = raw.parse::<Uuid>() else {
-        return Failure::new(
-            StatusCode::NOT_FOUND,
-            "There's no such saved filter.",
-            &parts,
-        )
-        .into_response();
-    };
-    match gui.service.delete_saved_filter(&viewer.actor, id).await {
-        Ok(()) => see_other(&next_of(&form), None),
-        Err(error) => Failure::from_service(error, &parts).into_response(),
-    }
-}
-
-/// `POST /filters/saved/{id}/quick`: pins a saved filter as the last quick filter, or unpins it.
-pub(crate) async fn pin_filter(
-    State(gui): State<Gui>,
-    viewer: SignedIn,
-    parts: Parts,
-    Path(raw): Path<String>,
-    body: Bytes,
-) -> Response {
-    let form = pairs(&body);
-    let Ok(id) = raw.parse::<Uuid>() else {
-        return Failure::new(
-            StatusCode::NOT_FOUND,
-            "There's no such saved filter.",
-            &parts,
-        )
-        .into_response();
-    };
-    let pin = match one(&form, "pin") {
-        Some("true") => true,
-        Some("false") => false,
-        _ => {
-            return Failure::new(StatusCode::BAD_REQUEST, "pin is true or false.", &parts)
-                .into_response();
-        }
-    };
-    let saved = match gui
-        .service
-        .saved_filters(&viewer.actor, FilterScreen::Alerts)
-        .await
-    {
-        Ok(saved) => saved,
-        Err(error) => return Failure::from_service(error, &parts).into_response(),
-    };
-    let mut quick: Vec<Uuid> = saved
-        .iter()
-        .filter(|filter| filter.quick_filter_order.is_some() && filter.id != id)
-        .map(|filter| filter.id)
-        .collect();
-    if pin {
-        quick.push(id);
-    }
-    match gui
-        .service
-        .set_quick_filters(&viewer.actor, FilterScreen::Alerts, &quick)
-        .await
-    {
-        Ok(_) => see_other(&next_of(&form), None),
-        Err(error) => Failure::from_service(error, &parts).into_response(),
-    }
 }
 
 /// `POST /preferences/manage-columns`: one move, show or hide of a column, or a reset, written to the

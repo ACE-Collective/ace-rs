@@ -599,3 +599,40 @@ table.keys td {
 .nowrap {
   white-space: nowrap;
 }
+
+/* The saved filters' manage page (PLAN.md 5.11's saved_filters area). */
+table.saved-filters {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+table.saved-filters th,
+table.saved-filters td {
+  text-align: left;
+  padding: 0.25rem 0.5rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+
+table.saved-filters .place {
+  display: inline-block;
+  min-width: 1.5rem;
+}
+
+.manage-filters .fields {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+  max-width: 40rem;
+}
+
+.manage-filters .fields input[type="text"] {
+  width: 100%;
+}
+
+.manage-filters .hint {
+  margin: 0.5rem 0;
+  font-size: 0.9em;
+}
