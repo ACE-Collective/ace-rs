@@ -275,6 +275,117 @@ def conversation_runs():
     ]
 
 
+# The email logger's runs: each email in the sample set, on its own against an empty brocess, and
+# then the conversation in fixtures/email_logger in order, each against the brocess the one before
+# left (run_module.py --brocess-store), starting from fixtures/email_logger/seed.json, a minute
+# apart. What ace3 sends fluent-bit is kept in the dump (--fluent-bit).
+LOGGER_THREAD = [
+    "01_thread_start",
+    "02_reply",
+    "03_lookalike_reply",
+    "04_no_reply_headers",
+    "05_calendar_response",
+    "06_same_subject_elsewhere",
+    "07_no_message_id",
+]
+LOGGER_ARGS = ["--directive", "original_email", "--fluent-bit"]
+
+
+@contextlib.contextmanager
+def logger_store(path, previous, minute):
+    """Puts the brocess the run starts with at `path`: the one the previous run left, or the seed."""
+    if previous is None:
+        store = json.loads((HERE / "fixtures" / "email_logger" / "seed.json").read_text())
+        store.pop("about", None)
+    else:
+        store = json.loads((OUT / "email_logger" / f"{previous}.json").read_text())["brocess_after"]
+    store["now"] = f"2026-11-08 10:{minute:02d}:00"
+    put(path, json.dumps(store).encode())
+    yield
+
+
+def logger_runs():
+    runs = []
+    for sample in manifest_samples("email"):
+        runs.append({
+            "module": "email_logger",
+            "enable": ["email_analyzer", "file_type"],
+            "name": sample["path"],
+            "args": ["--file", f"{REMOTE}/samples/{sample['path']}", "--alert-path", sample["alert_path"],
+                     "--brocess-store", f"{REMOTE}/fixtures/email_logger/empty.json", *LOGGER_ARGS]
+            + [arg for tag in sample["meta_tags"] for arg in ("--meta-tag", tag)],
+            "label": f"{sample['path']}, against an empty brocess",
+        })
+    previous = None
+    for minute, name in enumerate(LOGGER_THREAD):
+        store = f"{REMOTE}/runs/email_logger-{name}.store.json"
+        runs.append({
+            "module": "email_logger",
+            "enable": ["email_analyzer", "file_type"],
+            "name": f"thread/{name}",
+            "args": ["--file", f"{REMOTE}/fixtures/email_logger/{name}.email.rfc822",
+                     "--alert-path", f"{name}.email.rfc822", "--brocess-store", store, *LOGGER_ARGS],
+            "label": f"fixtures/email_logger/{name}.email.rfc822, against the brocess "
+            + (f"thread/{previous} left" if previous else "of fixtures/email_logger/seed.json"),
+            "service": lambda store=store, previous=(f"thread/{previous}" if previous else None), minute=minute:
+                logger_store(store, previous, minute),
+        })
+        previous = name
+    return runs
+
+
+# The thread module's runs read the brocess the email logger's thread runs left, after the last of
+# them: each message of that conversation, by its id as ace3 records it and once without its angle
+# brackets, a message never recorded, and two with settings of their own: caps of 2 messages and 1
+# thread, and a pair the analysts said is related (fixtures/email_thread/ignored.yaml).
+THREAD_STORE = f"{REMOTE}/runs/email_thread.store.json"
+THREAD_RUNS = [
+    ("<inv-1@example.com>", None),
+    ("<inv-2@example.org>", None),
+    ("inv-2@example.org", None),
+    ("<inv-3@examp1e.com>", None),
+    ("<inv-4@example.com>", None),
+    ("<cal-5@exarnple.com>", None),
+    ("<other-6@example.net>", None),
+    ("<never@example.com>", None),
+    ("<inv-4@example.com>", "capped"),
+    ("<inv-3@examp1e.com>", "ignored"),
+]
+THREAD_CONFIG = {
+    "capped": "analysis_module_email_thread_analyzer:\n  max_messages: 2\n  max_threads: 1\n  config_path: ''\n",
+    "ignored": "analysis_module_email_thread_analyzer:\n"
+    f"  config_path: {REMOTE}/fixtures/email_thread/ignored.yaml\n",
+    None: "analysis_module_email_thread_analyzer:\n  config_path: ''\n",
+}
+
+
+@contextlib.contextmanager
+def thread_store(config, settings):
+    """The brocess the logger's last thread run left, and the module's settings for the run."""
+    store = json.loads((OUT / "email_logger" / f"thread/{LOGGER_THREAD[-1]}.json").read_text())
+    put(THREAD_STORE, json.dumps(store["brocess_after"]).encode())
+    put(config, THREAD_CONFIG[settings].encode())
+    yield
+
+
+def thread_runs():
+    runs = []
+    for value, settings in THREAD_RUNS:
+        name = f"message_id_{value}" + (f".{settings}" if settings else "")
+        config = f"{REMOTE}/runs/email_thread-{len(runs)}.yaml"
+        runs.append({
+            "module": "email_thread_analyzer",
+            "enable": [],
+            "name": name,
+            "args": ["--observable", "message_id", value, "--brocess-store", THREAD_STORE,
+                     "--config", config],
+            "label": f"message_id {value}, against the brocess email_logger's thread runs left"
+            + (f", with the {settings} settings" if settings else ""),
+            "service": lambda config=config, settings=settings: thread_store(config, settings),
+        })
+    return runs
+
+
 RUNS = {
     "email": lambda: file_runs("email_analyzer", ["file_type"], "email"),
     "archive": lambda: file_runs("archive", ["file_type"], "archive/"),
@@ -284,6 +395,8 @@ RUNS = {
     "dns": dns_runs,
     "snort": snort_runs,
     "conversations": conversation_runs,
+    "logger": logger_runs,
+    "thread": thread_runs,
 }
 
 
@@ -413,6 +526,9 @@ def run(spec):
         "fqdn_analyzer": "FQDNAnalysis",
         "snort_signature_analysis_v1": "SnortSignatureAnalysis_v1",
         "email_conversation_frequency_analyzer": "EmailConversationFrequencyAnalysis",
+        # it creates none, and works after the rest of the root
+        "email_logger": "EmailLoggingAnalysis",
+        "email_thread_analyzer": "EmailThreadAnalysis",
     }[spec["module"]]
     analysis = next((a for a in parsed["analyses"] if a["class"] == target_class), None)
     return {

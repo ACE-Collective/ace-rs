@@ -12,6 +12,7 @@ use std::sync::Arc;
 use ace_results::AnalysisType;
 use ace_sdk::reads::Reader;
 use ace_sdk::wire::{LeasedTask, TaskEnd};
+use ace_sdk::writes::WireWrite;
 use ace_sdk::{
     CarryingEmail, Component, FileStore, Lookup, Manifest, ModuleError, Outcome, Parser, Secrets,
     SettingsError, TaskContext, load_settings, run_lookup, run_parser,
@@ -140,7 +141,9 @@ impl<M: ace_sdk::Module> Entry<M> {
         .with_yara_rules_below(run.task.yara_rules_below.clone())
         .with_carrying_email(run.carrying_email())
         .with_lists(run.task.lists.clone())
-        .with_reader(run.reader.clone());
+        .with_reader(run.reader.clone())
+        .with_dependency_results(run.task.dependency_results.clone())
+        .with_observables_below(run.task.observables_below.clone());
         match &run.task.delayed {
             Some(delayed) => ctx.with_delayed(delayed.clone()),
             None => ctx,
@@ -171,7 +174,7 @@ impl<M: Parser> PoolParser for Entry<M> {
     }
 
     fn run(&self, run: Run<'_>) -> TaskEnd {
-        task_end(run_parser(&self.module, &self.context(&run)))
+        task_end(run_parser(&self.module, &self.context(&run)), Vec::new())
     }
 }
 
@@ -187,16 +190,22 @@ impl<M: Lookup> PoolLookup for Entry<M> {
     fn run<'a>(&'a self, run: Run<'a>) -> Pin<Box<dyn Future<Output = TaskEnd> + Send + 'a>> {
         Box::pin(async move {
             let ctx = self.context(&run);
-            task_end(run_lookup(&self.module, &ctx).await)
+            let outcome = run_lookup(&self.module, &ctx).await;
+            task_end(outcome, ctx.take_writes())
         })
     }
 }
 
-/// How a module's run ends, as the lease API takes it.
-pub fn task_end<D: AnalysisType>(outcome: Result<Outcome<D>, ModuleError>) -> TaskEnd {
+/// How a module's run ends, as the lease API takes it, with what it wrote (`Module::WRITES`) when
+/// it ends with a result or a skip. Any other end drops them: a task that fails, delays or is
+/// cancelled writes nothing.
+pub fn task_end<D: AnalysisType>(
+    outcome: Result<Outcome<D>, ModuleError>,
+    writes: Vec<WireWrite>,
+) -> TaskEnd {
     match outcome {
         Ok(Outcome::Done(result)) => match result.to_raw() {
-            Ok(result) => TaskEnd::Done { result },
+            Ok(result) => TaskEnd::Done { result, writes },
             Err(e) => TaskEnd::Failed {
                 error: format!("the result doesn't serialize: {e}"),
             },
@@ -205,7 +214,7 @@ pub fn task_end<D: AnalysisType>(outcome: Result<Outcome<D>, ModuleError>) -> Ta
             after_seconds: delay.run_after.as_secs_f64(),
             state: delay.state,
         },
-        Ok(Outcome::Skipped(reason)) => TaskEnd::Skipped { reason },
+        Ok(Outcome::Skipped(reason)) => TaskEnd::Skipped { reason, writes },
         Err(ModuleError::Cancelled) => TaskEnd::Cancelled,
         Err(e) => TaskEnd::Failed {
             error: e.to_string(),
@@ -392,7 +401,43 @@ mod tests {
             emails_pending,
             yara_rules_below: Vec::new(),
             lists: Vec::new(),
+            dependency_results: Default::default(),
+            observables_below: Vec::new(),
         }
+    }
+
+    /// PLAN.md 7.2: a task's writes go with a result or a skip, and with no other end.
+    #[test]
+    fn writes_go_only_with_a_result_or_a_skip() {
+        use ace_results::types::brocess::EmailLoggingAnalysis;
+        let writes = || {
+            vec![WireWrite {
+                write: "smtp-log".to_owned(),
+                body: serde_json::json!({"rows": []}),
+            }]
+        };
+        let result = ace_results::ResultEnvelope::new(EmailLoggingAnalysis {});
+        let ends = [
+            task_end(Ok(Outcome::Done(result)), writes()),
+            task_end::<EmailLoggingAnalysis>(Ok(Outcome::Skipped("x".to_owned())), writes()),
+            task_end::<EmailLoggingAnalysis>(
+                Ok(Outcome::Delay(ace_sdk::Delay::new(
+                    std::time::Duration::from_secs(1),
+                    std::time::Duration::from_secs(9),
+                ))),
+                writes(),
+            ),
+            task_end::<EmailLoggingAnalysis>(Err(ModuleError::other("broke")), writes()),
+            task_end::<EmailLoggingAnalysis>(Err(ModuleError::Cancelled), writes()),
+        ];
+        let carried: Vec<usize> = ends
+            .iter()
+            .map(|end| match end {
+                TaskEnd::Done { writes, .. } | TaskEnd::Skipped { writes, .. } => writes.len(),
+                _ => 0,
+            })
+            .collect();
+        assert_eq!(carried, [1, 1, 0, 0, 0]);
     }
 
     #[test]

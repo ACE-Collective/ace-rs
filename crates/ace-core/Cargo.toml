@@ -42,6 +42,8 @@ ace-core = { path = ".", features = ["testing"] }
 # The ported modules' manifests, for eligibility's tests; 2.9's check runs 1.28's delayed
 # module through the queue against its recorded Splunk API.
 ace-mod-archive = { path = "../ace-mod-archive" }
+# the email logger, which requires a directive and runs last (PLAN.md 7.4)
+ace-mod-brocess = { path = "../ace-mod-brocess" }
 ace-mod-email = { path = "../ace-mod-email" }
 ace-mod-rdap = { path = "../ace-mod-rdap" }
 ace-mod-splunk = { path = "../ace-mod-splunk" }

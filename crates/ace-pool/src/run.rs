@@ -141,7 +141,7 @@ pub async fn send_end(
     outputs: &LocalFileStore,
     end: &TaskEnd,
 ) -> Result<(), ClientError> {
-    if let TaskEnd::Done { result } = end {
+    if let TaskEnd::Done { result, .. } = end {
         for file in &result.files {
             let url = client.upload_url(task.id, &file.sha256, file.size).await?;
             client.upload(&url, &outputs.path_of(&file.sha256)).await?;
@@ -187,9 +187,18 @@ pub async fn run_in_process(
 ) -> Result<TaskEnd, ClientError> {
     let keeper = LeaseKeeper::start(client, &task, shutdown);
     let dir = TaskDir::new()?;
-    let input = fetch_input(client, &task, &dir)
-        .instrument(tracing::info_span!("fetch_input"))
-        .await?;
+    // a lookup parses nothing hostile, so it gets a file's record and not its bytes: its pool
+    // can't reach the bucket (`pool::lookup_sandbox`)
+    let parser = modules.parser(&task.module).is_some();
+    let input = async {
+        if parser {
+            fetch_input(client, &task, &dir).await
+        } else {
+            Ok(None)
+        }
+    }
+    .instrument(tracing::info_span!("fetch_input"))
+    .await?;
     let email_body = fetch_email_body(client, &task, dir.path()).await?;
     let outputs = Arc::new(LocalFileStore::new(dir.outputs())?);
     // the module's own span (ace_sdk::module::task_span) is a child of this task's

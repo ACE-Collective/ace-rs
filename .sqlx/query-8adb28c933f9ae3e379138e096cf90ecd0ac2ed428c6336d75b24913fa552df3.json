@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT details FROM analysis.results\n           WHERE root_id = $1 AND analysis_type = $2\n             AND jsonb_typeof(details -> 'email') = 'object'",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "details",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "analysis.results",
+            "name": "details"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "8adb28c933f9ae3e379138e096cf90ecd0ac2ed428c6336d75b24913fa552df3"
+}

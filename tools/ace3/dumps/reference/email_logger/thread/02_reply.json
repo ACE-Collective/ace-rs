@@ -1,0 +1,859 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "email_analyzer",
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "EmailAnalysis",
+      "details": {
+        "email": {
+          "authentication_failed": false,
+          "compauth_reason": null,
+          "compauth_result": null,
+          "decoded_subject": "RE: Quarterly invoice",
+          "dkim_result": null,
+          "dmarc_result": null,
+          "env_mail_from": null,
+          "env_rcpt_to": [],
+          "from": "Bob Buyer <bob@example.org>",
+          "from_address": "bob@example.org",
+          "headers": [
+            [
+              "From",
+              "Bob Buyer <bob@example.org>"
+            ],
+            [
+              "To",
+              "Alice Vendor <alice@example.com>"
+            ],
+            [
+              "Subject",
+              "RE: Quarterly invoice"
+            ],
+            [
+              "Date",
+              "Mon, 02 Nov 2026 05:10:00 +0000"
+            ],
+            [
+              "Message-ID",
+              "<inv-2@example.org>"
+            ],
+            [
+              "In-Reply-To",
+              "<inv-1@example.com>"
+            ],
+            [
+              "References",
+              "<inv-1@example.com>"
+            ],
+            [
+              "MIME-Version",
+              "1.0"
+            ],
+            [
+              "Content-Type",
+              "text/plain; charset=utf-8"
+            ]
+          ],
+          "internal_org_sender": false,
+          "is_anonymous_direct_send": false,
+          "log_entry": {
+            "attachment_count": 1,
+            "attachment_hashes": [
+              "1d03bdf1e312dc6e81a68b03daef28b7bff0f945d5891974eb64affa734a15ca"
+            ],
+            "attachment_names": [
+              "02_reply.email.rfc822.unknown_text_plain_000.txt"
+            ],
+            "attachment_sizes": [
+              34
+            ],
+            "attachment_types": [
+              "text/plain"
+            ],
+            "authentication_failed": false,
+            "bcc": [],
+            "cc": [],
+            "compauth_reason": null,
+            "compauth_result": null,
+            "date": "2026-11-08 21:49:12.495485 +0000",
+            "dkim_result": null,
+            "dmarc_result": null,
+            "env_mail_from": null,
+            "env_rcpt_to": [],
+            "first_received": null,
+            "headers": [
+              "From: Bob Buyer <bob@example.org>",
+              "To: Alice Vendor <alice@example.com>",
+              "Subject: RE: Quarterly invoice",
+              "Date: Mon, 02 Nov 2026 05:10:00 +0000",
+              "Message-ID: <inv-2@example.org>",
+              "In-Reply-To: <inv-1@example.com>",
+              "References: <inv-1@example.com>",
+              "MIME-Version: 1.0",
+              "Content-Type: text/plain; charset=utf-8"
+            ],
+            "in_reply_to": "<inv-1@example.com>",
+            "internal_org_sender": false,
+            "is_anonymous_direct_send": false,
+            "last_received": null,
+            "mail_from": "Bob Buyer <bob@example.org>",
+            "mail_from_is_local": false,
+            "mail_to": [
+              "Alice Vendor <alice@example.com>"
+            ],
+            "message_directionality": null,
+            "message_id": "<inv-2@example.org>",
+            "originating_ip": null,
+            "path": [],
+            "refereneces": "<inv-1@example.com>",
+            "reply_to": null,
+            "size": 341,
+            "spf_result": null,
+            "spoofed_internal": false,
+            "subject": "RE: Quarterly invoice",
+            "subject_raw": "RE: Quarterly invoice",
+            "thread_index": null,
+            "thread_topic": null,
+            "user_agent": null,
+            "x_mailer": null,
+            "x_sender": null
+          },
+          "mail_from_is_local": false,
+          "message-id": "<inv-2@example.org>",
+          "message_directionality": null,
+          "spf_result": null,
+          "spoofed_internal": false,
+          "subject": "RE: Quarterly invoice",
+          "to": [
+            "Alice Vendor <alice@example.com>"
+          ],
+          "to_addresses": [
+            "alice@example.com"
+          ]
+        },
+        "extraction_errors": [],
+        "parsing_error": null
+      },
+      "detections": [],
+      "module_path": "saq.modules.email.rfc822:EmailAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_from",
+          "value": "bob@example.org"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_to",
+          "value": "alice@example.com"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_conversation",
+          "value": "bob@example.org|alice@example.com"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "display_type": "Decoded Subject",
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_subject",
+          "value": "RE: Quarterly invoice"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [
+            "saq.modules.email.message_id:<class 'saq.modules.email.message_id.MessageIDAnalyzerV2'>"
+          ],
+          "relationships": [],
+          "tags": [],
+          "type": "message_id",
+          "value": "<inv-2@example.org>"
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls",
+            "preview",
+            "yara_meta:type=email.attachment"
+          ],
+          "excluded_analysis": [],
+          "file_path": "02_reply.email.rfc822.unknown_text_plain_000.txt",
+          "relationships": [],
+          "size": 34,
+          "tags": [],
+          "type": "file",
+          "value": "1d03bdf1e312dc6e81a68b03daef28b7bff0f945d5891974eb64affa734a15ca",
+          "yara_meta": [
+            "type=email.attachment"
+          ]
+        },
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=email",
+            "yara_meta:type=email.headers"
+          ],
+          "excluded_analysis": [
+            "saq.modules.email.rfc822:<class 'saq.modules.email.rfc822.EmailAnalyzer'>"
+          ],
+          "file_path": "02_reply.email.rfc822.headers",
+          "relationships": [],
+          "size": 294,
+          "tags": [
+            "email"
+          ],
+          "type": "file",
+          "value": "71be1ad9d09671d59af73e8591ff58767dab3bed19c07c468e2750644c77643c",
+          "yara_meta": [
+            "type=email",
+            "type=email.headers"
+          ]
+        },
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=email",
+            "yara_meta:type=email.combined"
+          ],
+          "excluded_analysis": [
+            "saq.modules.email.rfc822:<class 'saq.modules.email.rfc822.EmailAnalyzer'>"
+          ],
+          "file_path": "02_reply.email.rfc822.combined",
+          "relationships": [],
+          "size": 332,
+          "tags": [
+            "email"
+          ],
+          "type": "file",
+          "value": "550944936749d925e0524068329f34c3c938e19f945bf558a1a544b504ae9fd0",
+          "yara_meta": [
+            "type=email",
+            "type=email.combined"
+          ]
+        }
+      ],
+      "summary": "Email Analysis: From Bob Buyer <bob@example.org> To Alice Vendor <alice@example.com> Subject RE: Quarterly invoice",
+      "tags": []
+    },
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": true,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "message/rfc822",
+        "type": "news or mail, ASCII text, with CRLF line terminators"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: news or mail, ASCII text, with CRLF line terminators (message/rfc822) (email)",
+      "tags": []
+    }
+  ],
+  "brocess_after": {
+    "email_thread_domain": [
+      {
+        "address": "accounts@example.com",
+        "domain": "example.com",
+        "entry_hash": "C49FEA7425FA7F8699897A97C159C6690267D9003BB78C53FAFA8FC15C325D84",
+        "firstseendate": "2026-10-01 08:00:00",
+        "id": 1,
+        "message_id_hash": null,
+        "numseen": 1,
+        "role": "from",
+        "thread_id": "<inv-1@example.com>",
+        "thread_id_hash": "94C8FF5DF821866D72094049ACC7CEB155C9B353709803F35708ABCA9BAB32C2"
+      },
+      {
+        "address": "alice@example.com",
+        "domain": "example.com",
+        "entry_hash": "CB55E280520085D8118ADCFC2B20144EF7F83E76E2B997AF7E3FDDC688FB332B",
+        "firstseendate": "2026-11-08 10:00:00",
+        "id": 2,
+        "message_id_hash": "94C8FF5DF821866D72094049ACC7CEB155C9B353709803F35708ABCA9BAB32C2",
+        "numseen": 1,
+        "role": "from",
+        "thread_id": "<inv-1@example.com>",
+        "thread_id_hash": "94C8FF5DF821866D72094049ACC7CEB155C9B353709803F35708ABCA9BAB32C2"
+      },
+      {
+        "address": "bounce@mail.example.com",
+        "domain": "example.com",
+        "entry_hash": "D6BF0538DB6C8CE1545A90557E6B2FDA5ACA83A4D2036278B579595255F5A8B0",
+        "firstseendate": "2026-11-08 10:00:00",
+        "id": 3,
+        "message_id_hash": "94C8FF5DF821866D72094049ACC7CEB155C9B353709803F35708ABCA9BAB32C2",
+        "numseen": 1,
+        "role": "return_path",
+        "thread_id": "<inv-1@example.com>",
+        "thread_id_hash": "94C8FF5DF821866D72094049ACC7CEB155C9B353709803F35708ABCA9BAB32C2"
+      },
+      {
+        "address": "bob@example.org",
+        "domain": "example.org",
+        "entry_hash": "31FA5457EF600114ED4A5D8E0D230C22480137368B976CE2D3F3316BD4329705",
+        "firstseendate": "2026-11-08 10:00:00",
+        "id": 4,
+        "message_id_hash": "94C8FF5DF821866D72094049ACC7CEB155C9B353709803F35708ABCA9BAB32C2",
+        "numseen": 1,
+        "role": "to",
+        "thread_id": "<inv-1@example.com>",
+        "thread_id_hash": "94C8FF5DF821866D72094049ACC7CEB155C9B353709803F35708ABCA9BAB32C2"
+      },
+      {
+        "address": "carol@example.org",
+        "domain": "example.org",
+        "entry_hash": "6A2FDB7F85B94FBE0EDA82C65738AF493A2BC0F54D8A4BE4D0DBF4796E0FE127",
+        "firstseendate": "2026-11-08 10:00:00",
+        "id": 5,
+        "message_id_hash": "94C8FF5DF821866D72094049ACC7CEB155C9B353709803F35708ABCA9BAB32C2",
+        "numseen": 1,
+        "role": "cc",
+        "thread_id": "<inv-1@example.com>",
+        "thread_id_hash": "94C8FF5DF821866D72094049ACC7CEB155C9B353709803F35708ABCA9BAB32C2"
+      },
+      {
+        "address": "bob@example.org",
+        "domain": "example.org",
+        "entry_hash": "89AD26C18D0CD8CB0D4A792D6A8FA5B63338DE0340CE06D2F4E36A32592A0C10",
+        "firstseendate": "2026-11-08 10:01:00",
+        "id": 6,
+        "message_id_hash": "14F73C794C928DC56804F83E7A07B3EC13F581FC79CC097658B0FFEAD6CE960D",
+        "numseen": 1,
+        "role": "from",
+        "thread_id": "<inv-1@example.com>",
+        "thread_id_hash": "94C8FF5DF821866D72094049ACC7CEB155C9B353709803F35708ABCA9BAB32C2"
+      },
+      {
+        "address": "alice@example.com",
+        "domain": "example.com",
+        "entry_hash": "3640C72157C9E708859006055E7C3686003F956706A4BFC5F54F441741C5A017",
+        "firstseendate": "2026-11-08 10:01:00",
+        "id": 7,
+        "message_id_hash": "14F73C794C928DC56804F83E7A07B3EC13F581FC79CC097658B0FFEAD6CE960D",
+        "numseen": 1,
+        "role": "to",
+        "thread_id": "<inv-1@example.com>",
+        "thread_id_hash": "94C8FF5DF821866D72094049ACC7CEB155C9B353709803F35708ABCA9BAB32C2"
+      }
+    ],
+    "email_thread_message": [
+      {
+        "direction": 0,
+        "from_address": "alice@example.com",
+        "from_domain": "example.com",
+        "id": 1,
+        "in_reply_to": null,
+        "insert_date": "2026-11-08 10:00:00",
+        "message_date": "2026-11-02 04:00:00",
+        "message_id": "<inv-1@example.com>",
+        "message_id_hash": "94C8FF5DF821866D72094049ACC7CEB155C9B353709803F35708ABCA9BAB32C2",
+        "normalized_subject": "quarterly invoice",
+        "normalized_subject_hash": "6EA0D69F0C484A6050A30D5C6C3B2609C2FAE66D56A174E7F5E10B6ECBD959DD",
+        "thread_id": "<inv-1@example.com>",
+        "thread_id_hash": "94C8FF5DF821866D72094049ACC7CEB155C9B353709803F35708ABCA9BAB32C2"
+      },
+      {
+        "direction": 0,
+        "from_address": "bob@example.org",
+        "from_domain": "example.org",
+        "id": 2,
+        "in_reply_to": "<inv-1@example.com>",
+        "insert_date": "2026-11-08 10:01:00",
+        "message_date": "2026-11-02 05:10:00",
+        "message_id": "<inv-2@example.org>",
+        "message_id_hash": "14F73C794C928DC56804F83E7A07B3EC13F581FC79CC097658B0FFEAD6CE960D",
+        "normalized_subject": "quarterly invoice",
+        "normalized_subject_hash": "6EA0D69F0C484A6050A30D5C6C3B2609C2FAE66D56A174E7F5E10B6ECBD959DD",
+        "thread_id": "<inv-1@example.com>",
+        "thread_id_hash": "94C8FF5DF821866D72094049ACC7CEB155C9B353709803F35708ABCA9BAB32C2"
+      }
+    ],
+    "now": "2026-11-08 10:01:00",
+    "smtplog": []
+  },
+  "brocess_before": {
+    "email_thread_domain": [
+      {
+        "address": "accounts@example.com",
+        "domain": "example.com",
+        "entry_hash": "C49FEA7425FA7F8699897A97C159C6690267D9003BB78C53FAFA8FC15C325D84",
+        "firstseendate": "2026-10-01 08:00:00",
+        "id": 1,
+        "message_id_hash": null,
+        "numseen": 1,
+        "role": "from",
+        "thread_id": "<inv-1@example.com>",
+        "thread_id_hash": "94C8FF5DF821866D72094049ACC7CEB155C9B353709803F35708ABCA9BAB32C2"
+      },
+      {
+        "address": "alice@example.com",
+        "domain": "example.com",
+        "entry_hash": "CB55E280520085D8118ADCFC2B20144EF7F83E76E2B997AF7E3FDDC688FB332B",
+        "firstseendate": "2026-11-08 10:00:00",
+        "id": 2,
+        "message_id_hash": "94C8FF5DF821866D72094049ACC7CEB155C9B353709803F35708ABCA9BAB32C2",
+        "numseen": 1,
+        "role": "from",
+        "thread_id": "<inv-1@example.com>",
+        "thread_id_hash": "94C8FF5DF821866D72094049ACC7CEB155C9B353709803F35708ABCA9BAB32C2"
+      },
+      {
+        "address": "bounce@mail.example.com",
+        "domain": "example.com",
+        "entry_hash": "D6BF0538DB6C8CE1545A90557E6B2FDA5ACA83A4D2036278B579595255F5A8B0",
+        "firstseendate": "2026-11-08 10:00:00",
+        "id": 3,
+        "message_id_hash": "94C8FF5DF821866D72094049ACC7CEB155C9B353709803F35708ABCA9BAB32C2",
+        "numseen": 1,
+        "role": "return_path",
+        "thread_id": "<inv-1@example.com>",
+        "thread_id_hash": "94C8FF5DF821866D72094049ACC7CEB155C9B353709803F35708ABCA9BAB32C2"
+      },
+      {
+        "address": "bob@example.org",
+        "domain": "example.org",
+        "entry_hash": "31FA5457EF600114ED4A5D8E0D230C22480137368B976CE2D3F3316BD4329705",
+        "firstseendate": "2026-11-08 10:00:00",
+        "id": 4,
+        "message_id_hash": "94C8FF5DF821866D72094049ACC7CEB155C9B353709803F35708ABCA9BAB32C2",
+        "numseen": 1,
+        "role": "to",
+        "thread_id": "<inv-1@example.com>",
+        "thread_id_hash": "94C8FF5DF821866D72094049ACC7CEB155C9B353709803F35708ABCA9BAB32C2"
+      },
+      {
+        "address": "carol@example.org",
+        "domain": "example.org",
+        "entry_hash": "6A2FDB7F85B94FBE0EDA82C65738AF493A2BC0F54D8A4BE4D0DBF4796E0FE127",
+        "firstseendate": "2026-11-08 10:00:00",
+        "id": 5,
+        "message_id_hash": "94C8FF5DF821866D72094049ACC7CEB155C9B353709803F35708ABCA9BAB32C2",
+        "numseen": 1,
+        "role": "cc",
+        "thread_id": "<inv-1@example.com>",
+        "thread_id_hash": "94C8FF5DF821866D72094049ACC7CEB155C9B353709803F35708ABCA9BAB32C2"
+      }
+    ],
+    "email_thread_message": [
+      {
+        "direction": 0,
+        "from_address": "alice@example.com",
+        "from_domain": "example.com",
+        "id": 1,
+        "in_reply_to": null,
+        "insert_date": "2026-11-08 10:00:00",
+        "message_date": "2026-11-02 04:00:00",
+        "message_id": "<inv-1@example.com>",
+        "message_id_hash": "94C8FF5DF821866D72094049ACC7CEB155C9B353709803F35708ABCA9BAB32C2",
+        "normalized_subject": "quarterly invoice",
+        "normalized_subject_hash": "6EA0D69F0C484A6050A30D5C6C3B2609C2FAE66D56A174E7F5E10B6ECBD959DD",
+        "thread_id": "<inv-1@example.com>",
+        "thread_id_hash": "94C8FF5DF821866D72094049ACC7CEB155C9B353709803F35708ABCA9BAB32C2"
+      }
+    ],
+    "now": "2026-11-08 10:01:00",
+    "smtplog": []
+  },
+  "brocess_reads": [
+    {
+      "established": [
+        {
+          "address": "accounts@example.com",
+          "domain": "example.com",
+          "first_seen": "2026-10-01 08:00:00",
+          "role": "from"
+        },
+        {
+          "address": "alice@example.com",
+          "domain": "example.com",
+          "first_seen": "2026-11-08 10:00:00",
+          "role": "from"
+        },
+        {
+          "address": "bounce@mail.example.com",
+          "domain": "example.com",
+          "first_seen": "2026-11-08 10:00:00",
+          "role": "return_path"
+        },
+        {
+          "address": "bob@example.org",
+          "domain": "example.org",
+          "first_seen": "2026-11-08 10:00:00",
+          "role": "to"
+        },
+        {
+          "address": "carol@example.org",
+          "domain": "example.org",
+          "first_seen": "2026-11-08 10:00:00",
+          "role": "cc"
+        }
+      ]
+    },
+    {
+      "thread_message_count": 1
+    }
+  ],
+  "fluent_bit": [
+    {
+      "record": {
+        "path": "database.pool.status",
+        "timestamp": "2026-11-08T21:49:12.490142",
+        "value": "Pool size: 5  Connections in pool: 0 Current Overflow: -4 Current Checked out connections: 1"
+      },
+      "tag": "monitoring"
+    },
+    {
+      "record": {
+        "header": "From: Bob Buyer <bob@example.org>",
+        "header_index": 0,
+        "message_id": "<inv-2@example.org>",
+        "timestamp": "1794174552.495485"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "To: Alice Vendor <alice@example.com>",
+        "header_index": 1,
+        "message_id": "<inv-2@example.org>",
+        "timestamp": "1794174552.495485"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "Subject: RE: Quarterly invoice",
+        "header_index": 2,
+        "message_id": "<inv-2@example.org>",
+        "timestamp": "1794174552.495485"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "Date: Mon, 02 Nov 2026 05:10:00 +0000",
+        "header_index": 3,
+        "message_id": "<inv-2@example.org>",
+        "timestamp": "1794174552.495485"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "Message-ID: <inv-2@example.org>",
+        "header_index": 4,
+        "message_id": "<inv-2@example.org>",
+        "timestamp": "1794174552.495485"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "In-Reply-To: <inv-1@example.com>",
+        "header_index": 5,
+        "message_id": "<inv-2@example.org>",
+        "timestamp": "1794174552.495485"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "References: <inv-1@example.com>",
+        "header_index": 6,
+        "message_id": "<inv-2@example.org>",
+        "timestamp": "1794174552.495485"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "MIME-Version: 1.0",
+        "header_index": 7,
+        "message_id": "<inv-2@example.org>",
+        "timestamp": "1794174552.495485"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "Content-Type: text/plain; charset=utf-8",
+        "header_index": 8,
+        "message_id": "<inv-2@example.org>",
+        "timestamp": "1794174552.495485"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "archive_path": null,
+        "attachment_count": 1,
+        "attachment_hashes": [
+          "1d03bdf1e312dc6e81a68b03daef28b7bff0f945d5891974eb64affa734a15ca"
+        ],
+        "attachment_names": [
+          "02_reply.email.rfc822.unknown_text_plain_000.txt"
+        ],
+        "attachment_sizes": [
+          34
+        ],
+        "attachment_types": [
+          "text/plain"
+        ],
+        "authentication_failed": false,
+        "bcc": [],
+        "cc": [],
+        "compauth_reason": null,
+        "compauth_result": null,
+        "date": "2026-11-08 21:49:12.495485 +0000",
+        "dkim_result": null,
+        "dmarc_result": null,
+        "env_mail_from": null,
+        "env_rcpt_to": [],
+        "first_received": null,
+        "in_reply_to": "<inv-1@example.com>",
+        "internal_org_sender": false,
+        "is_anonymous_direct_send": false,
+        "last_received": null,
+        "mail_from": "Bob Buyer <bob@example.org>",
+        "mail_from_is_local": false,
+        "mail_to": [
+          "Alice Vendor <alice@example.com>"
+        ],
+        "message_directionality": null,
+        "message_id": "<inv-2@example.org>",
+        "originating_ip": null,
+        "path": [],
+        "refereneces": "<inv-1@example.com>",
+        "reply_to": null,
+        "size": 341,
+        "spf_result": null,
+        "spoofed_internal": false,
+        "subject": "RE: Quarterly invoice",
+        "subject_raw": "RE: Quarterly invoice",
+        "thread_index": null,
+        "thread_topic": null,
+        "timestamp": "1794174552.495485",
+        "user_agent": null,
+        "x_mailer": null,
+        "x_sender": null
+      },
+      "tag": "phishfinder-main"
+    },
+    {
+      "record": {
+        "any_mixed_script": false,
+        "any_similar": true,
+        "comparison_count": 2,
+        "comparisons": [
+          {
+            "damerau_levenshtein": 3,
+            "is_identical": false,
+            "is_similar": true,
+            "jaro_winkler": 0.9272727272727274,
+            "reference_address": "accounts@example.com",
+            "reference_domain": "example.com",
+            "reference_first_seen": "2026-10-01 08:00:00",
+            "reference_role": "from",
+            "skeleton_equal": false,
+            "suspect_domain": "example.org",
+            "suspect_role": "from",
+            "techniques": [
+              "edit_distance"
+            ]
+          },
+          {
+            "damerau_levenshtein": 0,
+            "is_identical": true,
+            "is_similar": false,
+            "jaro_winkler": 1.0,
+            "reference_address": "bob@example.org",
+            "reference_domain": "example.org",
+            "reference_first_seen": "2026-11-08 10:00:00",
+            "reference_role": "to",
+            "skeleton_equal": false,
+            "suspect_domain": "example.org",
+            "suspect_role": "from",
+            "techniques": []
+          }
+        ],
+        "established_domains": [
+          {
+            "address": "accounts@example.com",
+            "domain": "example.com",
+            "first_seen": "2026-10-01 08:00:00",
+            "role": "from"
+          },
+          {
+            "address": "alice@example.com",
+            "domain": "example.com",
+            "first_seen": "2026-11-08 10:00:00",
+            "role": "from"
+          },
+          {
+            "address": "bounce@mail.example.com",
+            "domain": "example.com",
+            "first_seen": "2026-11-08 10:00:00",
+            "role": "return_path"
+          },
+          {
+            "address": "bob@example.org",
+            "domain": "example.org",
+            "first_seen": "2026-11-08 10:00:00",
+            "role": "to"
+          },
+          {
+            "address": "carol@example.org",
+            "domain": "example.org",
+            "first_seen": "2026-11-08 10:00:00",
+            "role": "cc"
+          }
+        ],
+        "max_jaro_winkler": 1.0,
+        "message_id": "<inv-2@example.org>",
+        "min_damerau_levenshtein": 0,
+        "normalized_subject": "quarterly invoice",
+        "senders": [
+          {
+            "address": "bob@example.org",
+            "domain": "example.org",
+            "mixed_script": false,
+            "punycode": false,
+            "role": "from"
+          }
+        ],
+        "thread_id": "<inv-1@example.com>",
+        "thread_message_count": 1,
+        "thread_method": "references",
+        "timestamp": "1794174552.495485"
+      },
+      "tag": "phishfinder-lookalike"
+    },
+    {
+      "record": {
+        "alert_type": "cli_analysis",
+        "analysis_time_seconds": 0.0012630000000000002,
+        "exec_count": 9,
+        "is_alert": false,
+        "module": "email_logger",
+        "percentage": 0.49882445323726116,
+        "queue": "default",
+        "root_uuid": "dd47ac6a-53ac-4144-90af-40be57431e58",
+        "timestamp": "2026-11-08 21:49:12.726384",
+        "total_analysis_time_seconds": 0.026341,
+        "total_time_seconds": 0.25319528579711914
+      },
+      "tag": "metrics"
+    },
+    {
+      "record": {
+        "alert_type": "cli_analysis",
+        "analysis_time_seconds": 0.021089,
+        "exec_count": 4,
+        "is_alert": false,
+        "module": "file_type",
+        "percentage": 8.329144017672682,
+        "queue": "default",
+        "root_uuid": "dd47ac6a-53ac-4144-90af-40be57431e58",
+        "timestamp": "2026-11-08 21:49:12.726384",
+        "total_analysis_time_seconds": 0.026341,
+        "total_time_seconds": 0.25319528579711914
+      },
+      "tag": "metrics"
+    },
+    {
+      "record": {
+        "alert_type": "cli_analysis",
+        "analysis_time_seconds": 0.0039889999999999995,
+        "exec_count": 2,
+        "is_alert": false,
+        "module": "email_analyzer",
+        "percentage": 1.5754637719425448,
+        "queue": "default",
+        "root_uuid": "dd47ac6a-53ac-4144-90af-40be57431e58",
+        "timestamp": "2026-11-08 21:49:12.726384",
+        "total_analysis_time_seconds": 0.026341,
+        "total_time_seconds": 0.25319528579711914
+      },
+      "tag": "metrics"
+    },
+    {
+      "record": {
+        "path": "database.pool.available_count",
+        "timestamp": "2026-11-08T21:49:12.726648",
+        "value": 0
+      },
+      "tag": "monitoring"
+    },
+    {
+      "record": {
+        "path": "database.pool.in_use_count",
+        "timestamp": "2026-11-08T21:49:12.726664",
+        "value": 1
+      },
+      "tag": "monitoring"
+    }
+  ],
+  "input": {
+    "directives": [
+      "original_email"
+    ],
+    "label": "fixtures/email_logger/02_reply.email.rfc822, against the brocess thread/01_thread_start left",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "02_reply.email.rfc822",
+      "size": 341,
+      "type": "file",
+      "value": "2ea6ee84492642611adf9c53396ef407febdb00969e10af78de688d7170fadd3"
+    }
+  },
+  "module": "email_logger",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "original_email",
+      "yara_meta:type=email"
+    ],
+    "excluded_analysis": [],
+    "file_path": "02_reply.email.rfc822",
+    "relationships": [],
+    "size": 341,
+    "tags": [
+      "email"
+    ],
+    "type": "file",
+    "value": "2ea6ee84492642611adf9c53396ef407febdb00969e10af78de688d7170fadd3",
+    "yara_meta": [
+      "type=email"
+    ]
+  }
+}

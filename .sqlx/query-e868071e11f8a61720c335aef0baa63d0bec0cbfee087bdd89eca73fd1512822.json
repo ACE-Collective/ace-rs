@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO brocess.smtplog AS s\n                             (source, destination, numconnections, firstconnectdate)\n                         VALUES ($1, $2, 1, floor(extract(epoch FROM now())))\n                         ON CONFLICT (source, destination)\n                         DO UPDATE SET numconnections = s.numconnections + 1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Bytea",
+        "Bytea"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e868071e11f8a61720c335aef0baa63d0bec0cbfee087bdd89eca73fd1512822"
+}

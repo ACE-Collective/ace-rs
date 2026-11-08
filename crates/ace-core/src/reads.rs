@@ -2,16 +2,21 @@
 //! file specifies, and the lease API serves at `POST /api/worker/v1/tasks/<id>/reads/<read>`.
 //!
 //! `api.rs` checks the caller, the lease and that the task's module declares the read. Each read
-//! here then finds its subject in the task's root and answers. Built so far: `snort-signature` and
-//! `smtp-counts` (PLAN.md 7.4).
+//! here then finds its subject in the task's root and answers. Built so far: `snort-signature`,
+//! `smtp-counts`, `email-thread-domains` and `email-thread` (PLAN.md 7.4).
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::time::SystemTime;
 
+use ace_results::AnalysisType;
+use ace_results::types::email::EmailAnalysis;
 use ace_results::{ObservableKind, ObservableRef};
+use ace_sdk::email_threads;
 use ace_sdk::reads::{
+    Conversation, ConversationMessage, EmailThreadAnswer, EmailThreadDomainsAnswer,
+    EmailThreadDomainsRequest, EmailThreadRequest, EstablishedDomain, MessageParticipant,
     SmtpCountsAnswer, SmtpCountsRequest, SnortSignatureAnswer, SnortSignatureRequest,
 };
 use regex::Regex;
@@ -63,6 +68,7 @@ impl ReadStores {
 pub async fn answer(
     db: &Db,
     stores: &ReadStores,
+    catalog: &crate::eligibility::Catalog,
     task: &Task,
     read: &str,
     request: Value,
@@ -75,6 +81,16 @@ pub async fn answer(
         "smtp-counts" => {
             let request: SmtpCountsRequest = parse(request)?;
             serde_json::to_value(smtp_counts(db, task, request).await?)
+        }
+        "email-thread-domains" => {
+            let request: EmailThreadDomainsRequest = parse(request)?;
+            serde_json::to_value(email_thread_domains(db, task, request).await?)
+        }
+        "email-thread" => {
+            let request: EmailThreadRequest = parse(request)?;
+            let mut answer = email_thread(db, task, request).await?;
+            answer.recording = recording(db, catalog, task).await?;
+            serde_json::to_value(answer)
         }
         other => {
             return Err(ReadFailure::Forbidden(format!(
@@ -172,6 +188,507 @@ pub fn parse_email_conversation(value: &str) -> (&str, &str) {
         [sender, recipient] => (sender, recipient),
         _ => (value, ""),
     }
+}
+
+// ---- email-thread-domains ----
+
+/// The most participant domains an `email-thread-domains` read may name.
+pub const MAX_PARTICIPANT_DOMAINS: usize = 100;
+/// The most rows of earlier messages' participants an `email-thread-domains` read reads.
+pub const MAX_THREAD_DOMAIN_ROWS: i64 = 10_000;
+
+/// `email-thread-domains`: ace3's `get_established_domains` and `get_thread_message_count` for a
+/// thread an email in the task's root belongs to.
+async fn email_thread_domains(
+    db: &Db,
+    task: &Task,
+    request: EmailThreadDomainsRequest,
+) -> Result<EmailThreadDomainsAnswer, ReadFailure> {
+    if request.participant_domains.len() > MAX_PARTICIPANT_DOMAINS {
+        return Err(ReadFailure::Forbidden(format!(
+            "{} participant domains, past the bound of {MAX_PARTICIPANT_DOMAINS}",
+            request.participant_domains.len()
+        )));
+    }
+    if !thread_in_root(
+        db,
+        task.root,
+        &request.thread_id,
+        &request.normalized_subject,
+    )
+    .await?
+    {
+        return Err(ReadFailure::Forbidden(format!(
+            "no email in the task's root belongs to thread {} with that subject",
+            request.thread_id
+        )));
+    }
+    let limit = MAX_THREAD_DOMAIN_ROWS + 1;
+    // in the order the store wrote them, as InnoDB reads them by its index on the thread
+    let rows: Vec<(String, String, String, Option<chrono::NaiveDateTime>)> =
+        if matches!(request.thread_method.as_str(), "references" | "in_reply_to") {
+            sqlx::query!(
+                "SELECT domain, address, role, firstseendate FROM brocess.email_thread_domain
+                 WHERE thread_id_hash = $1 ORDER BY id LIMIT $2",
+                crate::writes::hash(&request.thread_id),
+                limit,
+            )
+            .fetch_all(db.pool())
+            .await?
+            .into_iter()
+            .map(|r| (r.domain, r.address, r.role, r.firstseendate))
+            .collect()
+        } else if request.normalized_subject.is_empty() {
+            Vec::new()
+        } else {
+            // same-subject threads that share a participant domain with this email
+            // ace3 groups the rows by thread, in the order it first reads each thread
+            let rows = sqlx::query!(
+                "SELECT d.thread_id_hash, d.domain, d.address, d.role, d.firstseendate
+                 FROM brocess.email_thread_domain d
+                 WHERE d.thread_id_hash IN (
+                     SELECT m.thread_id_hash FROM brocess.email_thread_message m
+                     WHERE m.normalized_subject_hash = $1)
+                   AND d.thread_id_hash IN (
+                     SELECT s.thread_id_hash FROM brocess.email_thread_domain s
+                     WHERE s.domain = ANY($2))
+                 ORDER BY d.id LIMIT $3",
+                crate::writes::hash(&request.normalized_subject),
+                &request.participant_domains,
+                limit,
+            )
+            .fetch_all(db.pool())
+            .await?;
+            let mut threads: Vec<Vec<u8>> = Vec::new();
+            for row in &rows {
+                if !threads.contains(&row.thread_id_hash) {
+                    threads.push(row.thread_id_hash.clone());
+                }
+            }
+            threads
+                .iter()
+                .flat_map(|thread| rows.iter().filter(move |r| &r.thread_id_hash == thread))
+                .map(|r| {
+                    (
+                        r.domain.clone(),
+                        r.address.clone(),
+                        r.role.clone(),
+                        r.firstseendate,
+                    )
+                })
+                .collect()
+        };
+    let truncated = rows.len() as i64 > MAX_THREAD_DOMAIN_ROWS;
+    let rows = &rows[..rows.len().min(MAX_THREAD_DOMAIN_ROWS as usize)];
+    let thread_message_count = sqlx::query_scalar!(
+        r#"SELECT count(*) AS "count!" FROM brocess.email_thread_message WHERE thread_id_hash = $1"#,
+        crate::writes::hash(&request.thread_id),
+    )
+    .fetch_one(db.pool())
+    .await?;
+    tracing::info!(
+        task = task.id.0,
+        root = %task.root,
+        read = "email-thread-domains",
+        thread = %request.thread_id,
+        rows = rows.len(),
+        truncated,
+        "read"
+    );
+    Ok(EmailThreadDomainsAnswer {
+        established: collapse_thread_domains(rows),
+        thread_message_count,
+        truncated,
+    })
+}
+
+/// `_collapse_thread_domains`: one entry per domain, address and role, in the order each was first
+/// read, with its earliest sighting. An unknown time never wins over a known one.
+fn collapse_thread_domains(
+    rows: &[(String, String, String, Option<chrono::NaiveDateTime>)],
+) -> Vec<EstablishedDomain> {
+    let mut order: Vec<(&str, &str, &str)> = Vec::new();
+    let mut earliest: HashMap<(&str, &str, &str), Option<chrono::NaiveDateTime>> = HashMap::new();
+    for (domain, address, role, seen) in rows {
+        let key = (domain.as_str(), address.as_str(), role.as_str());
+        match earliest.get_mut(&key) {
+            None => {
+                order.push(key);
+                earliest.insert(key, *seen);
+            }
+            Some(kept) => {
+                if let Some(seen) = seen
+                    && kept.is_none_or(|kept| *seen < kept)
+                {
+                    *kept = Some(*seen);
+                }
+            }
+        }
+    }
+    order
+        .into_iter()
+        .map(|key @ (domain, address, role)| EstablishedDomain {
+            domain: domain.to_owned(),
+            address: address.to_owned(),
+            role: role.to_owned(),
+            first_seen: earliest[&key].map(|t| t.format("%Y-%m-%d %H:%M:%S").to_string()),
+        })
+        .collect()
+}
+
+/// Whether an email in the root belongs to `thread_id`, by its Message-ID, an In-Reply-To or a
+/// References id, and has `normalized_subject`.
+async fn thread_in_root(
+    db: &Db,
+    root: Uuid,
+    thread_id: &str,
+    normalized_subject: &str,
+) -> Result<bool, ReadFailure> {
+    let details = sqlx::query_scalar!(
+        r#"SELECT details FROM analysis.results
+           WHERE root_id = $1 AND analysis_type = $2
+             AND jsonb_typeof(details -> 'email') = 'object'"#,
+        root,
+        EmailAnalysis::NAME,
+    )
+    .fetch_all(db.pool())
+    .await?;
+    Ok(details.into_iter().any(|details| {
+        serde_json::from_value::<EmailAnalysis>(details)
+            .ok()
+            .and_then(|analysis| analysis.email)
+            .is_some_and(|email| {
+                email_threads::thread_ids(&email)
+                    .iter()
+                    .any(|id| id == thread_id)
+                    && email_threads::normalized_subject(&email) == normalized_subject
+            })
+    }))
+}
+
+// ---- email-thread ----
+
+/// Whether a module that writes `email-thread` has a task in the task's root that hasn't finished.
+async fn recording(
+    db: &Db,
+    catalog: &crate::eligibility::Catalog,
+    task: &Task,
+) -> Result<bool, ReadFailure> {
+    let recorders: Vec<String> = catalog
+        .iter()
+        .filter(|c| {
+            c.manifest
+                .writes
+                .contains(&<ace_sdk::writes::EmailThread as ace_sdk::writes::WriteKind>::WRITE)
+        })
+        .map(|c| c.key.clone())
+        .collect();
+    if recorders.is_empty() {
+        return Ok(false);
+    }
+    Ok(sqlx::query_scalar!(
+        r#"SELECT EXISTS (
+               SELECT 1 FROM queue.tasks
+               WHERE root_id = $1 AND module = ANY($2)
+                 AND state IN ('queued', 'delayed', 'running')
+           ) AS "pending!""#,
+        task.root,
+        &recorders,
+    )
+    .fetch_one(db.pool())
+    .await?)
+}
+
+/// The most messages, and the most threads, an `email-thread` read assembles, whatever it asks.
+pub const MAX_CONVERSATION: u32 = 500;
+
+/// A message row as `email-thread` reads it.
+struct MessageRow {
+    thread_id: String,
+    message_id: String,
+    message_id_hex: String,
+    in_reply_to: Option<String>,
+    normalized_subject: Option<String>,
+    from_address: Option<String>,
+    from_domain: Option<String>,
+    direction: Option<i16>,
+    message_date: Option<chrono::NaiveDateTime>,
+    insert_date: chrono::NaiveDateTime,
+}
+
+impl From<MessageRow> for ConversationMessage {
+    fn from(r: MessageRow) -> Self {
+        ConversationMessage {
+            thread_id: r.thread_id,
+            message_id: r.message_id,
+            message_id_hex: r.message_id_hex,
+            in_reply_to: r.in_reply_to,
+            normalized_subject: r.normalized_subject,
+            from_address: r.from_address,
+            from_domain: r.from_domain,
+            direction: r.direction,
+            message_date: when(r.message_date),
+            insert_date: when(Some(r.insert_date)),
+        }
+    }
+}
+
+fn when(time: Option<chrono::NaiveDateTime>) -> Option<String> {
+    time.map(|t| t.format("%Y-%m-%d %H:%M:%S").to_string())
+}
+
+/// `email-thread`: ace3's `get_conversation` for a `message_id` observable in the task's root.
+async fn email_thread(
+    db: &Db,
+    task: &Task,
+    request: EmailThreadRequest,
+) -> Result<EmailThreadAnswer, ReadFailure> {
+    let subject = subject_in_root(db, task, request.subject).await?;
+    if subject.kind != ObservableKind::MessageId {
+        return Err(ReadFailure::Forbidden(format!(
+            "{}:{} isn't a message_id observable",
+            subject.kind, subject.value
+        )));
+    }
+    let max_messages = request.max_messages.clamp(1, MAX_CONVERSATION) as usize;
+    let max_threads = request.max_threads.clamp(1, MAX_CONVERSATION) as usize;
+    let message_id = email_threads::normalize_message_id(&subject.value);
+    let pool = db.pool();
+    let anchor = sqlx::query!(
+        r#"SELECT thread_id_hash, normalized_subject, thread_id, message_id
+           FROM brocess.email_thread_message WHERE message_id_hash = $1 ORDER BY id LIMIT 1"#,
+        crate::writes::hash(&message_id),
+    )
+    .fetch_optional(pool)
+    .await?;
+    let Some(anchor) = anchor else {
+        return Ok(EmailThreadAnswer {
+            conversation: None,
+            recording: false,
+        });
+    };
+    let header_threaded = anchor.thread_id != anchor.message_id;
+    let mut roles: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
+    let mut addresses: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
+    let mut roles_truncated = false;
+    let mut link_domains = Vec::new();
+    let mut threads_capped = false;
+    let mut threads = vec![anchor.thread_id_hash.clone()];
+    if let (false, Some(normalized)) = (header_threaded, anchor.normalized_subject.as_deref())
+        && !normalized.is_empty()
+    {
+        let subject_hash = crate::writes::hash(normalized);
+        let rows = sqlx::query!(
+            "SELECT d.thread_id_hash, d.domain, d.address, d.role
+             FROM brocess.email_thread_domain d
+             WHERE d.thread_id_hash IN (
+                 SELECT m.thread_id_hash FROM brocess.email_thread_message m
+                 WHERE m.normalized_subject_hash = $1)
+             ORDER BY d.id LIMIT $2",
+            subject_hash,
+            MAX_THREAD_DOMAIN_ROWS + 1,
+        )
+        .fetch_all(pool)
+        .await?;
+        roles_truncated = rows.len() as i64 > MAX_THREAD_DOMAIN_ROWS;
+        let rows = &rows[..rows.len().min(MAX_THREAD_DOMAIN_ROWS as usize)];
+        let anchor_domains: BTreeSet<&str> = rows
+            .iter()
+            .filter(|r| r.thread_id_hash == anchor.thread_id_hash)
+            .map(|r| r.domain.as_str())
+            .collect();
+        if !anchor_domains.is_empty() {
+            // each thread in the order first read, kept when it shares a domain with the anchor's
+            let mut order: Vec<&Vec<u8>> = Vec::new();
+            for row in rows {
+                if !order.contains(&&row.thread_id_hash) {
+                    order.push(&row.thread_id_hash);
+                }
+            }
+            let overlapping: Vec<&Vec<u8>> = order
+                .into_iter()
+                .filter(|thread| {
+                    rows.iter().any(|r| {
+                        &&r.thread_id_hash == thread && anchor_domains.contains(r.domain.as_str())
+                    })
+                })
+                .collect();
+            let mut linked = BTreeSet::new();
+            for row in rows
+                .iter()
+                .filter(|r| overlapping.contains(&&r.thread_id_hash))
+            {
+                roles
+                    .entry(row.domain.clone())
+                    .or_default()
+                    .insert(row.role.clone());
+                addresses
+                    .entry(row.domain.clone())
+                    .or_default()
+                    .insert(row.address.clone());
+                if row.thread_id_hash != anchor.thread_id_hash
+                    && anchor_domains.contains(row.domain.as_str())
+                {
+                    linked.insert(row.domain.clone());
+                }
+            }
+            link_domains = linked.into_iter().collect();
+            // oldest first, by each thread's earliest message, as the message cap keeps the oldest
+            let dates = sqlx::query!(
+                "SELECT thread_id_hash, MIN(message_date) AS message_date,
+                        MIN(insert_date) AS insert_date
+                 FROM brocess.email_thread_message WHERE normalized_subject_hash = $1
+                 GROUP BY thread_id_hash",
+                subject_hash,
+            )
+            .fetch_all(pool)
+            .await?;
+            let date_of = |thread: &Vec<u8>| {
+                dates
+                    .iter()
+                    .find(|d| &d.thread_id_hash == thread)
+                    .map_or((None, None), |d| (d.message_date, d.insert_date))
+            };
+            let mut siblings: Vec<Vec<u8>> = overlapping.into_iter().cloned().collect();
+            siblings.sort_by_key(|thread| {
+                let (message_date, insert_date) = date_of(thread);
+                (
+                    message_date.is_none(),
+                    message_date,
+                    insert_date,
+                    hex(thread),
+                )
+            });
+            if !siblings.contains(&anchor.thread_id_hash) {
+                siblings.insert(0, anchor.thread_id_hash.clone());
+            }
+            if siblings.len() > max_threads {
+                threads_capped = true;
+                threads = std::iter::once(anchor.thread_id_hash.clone())
+                    .chain(
+                        siblings
+                            .into_iter()
+                            .filter(|t| *t != anchor.thread_id_hash)
+                            .take(max_threads - 1),
+                    )
+                    .collect();
+            } else {
+                threads = siblings;
+            }
+        }
+    }
+    let mut messages: Vec<ConversationMessage> = sqlx::query_as!(
+        MessageRow,
+        r#"SELECT thread_id, message_id, upper(encode(message_id_hash, 'hex')) AS "message_id_hex!",
+                  in_reply_to, normalized_subject, from_address, from_domain, direction,
+                  message_date, insert_date
+           FROM brocess.email_thread_message WHERE thread_id_hash = ANY($1)
+           ORDER BY message_date IS NULL, message_date, insert_date, id LIMIT $2"#,
+        &threads,
+        (max_messages + 1) as i64,
+    )
+    .fetch_all(pool)
+    .await?
+    .into_iter()
+    .map(ConversationMessage::from)
+    .collect();
+    let messages_capped = messages.len() > max_messages;
+    if messages_capped {
+        messages.truncate(max_messages);
+        // the message the analyst is looking at stays, whatever the cap
+        if !messages.iter().any(|m| m.message_id == message_id) {
+            let anchor = sqlx::query_as!(
+                MessageRow,
+                r#"SELECT thread_id, message_id,
+                          upper(encode(message_id_hash, 'hex')) AS "message_id_hex!", in_reply_to,
+                          normalized_subject, from_address, from_domain, direction, message_date,
+                          insert_date
+                   FROM brocess.email_thread_message WHERE message_id_hash = $1
+                   ORDER BY id LIMIT 1"#,
+                crate::writes::hash(&message_id),
+            )
+            .fetch_optional(pool)
+            .await?;
+            messages.extend(anchor.map(ConversationMessage::from));
+        }
+    }
+    // by thread, then as written, as InnoDB reads a list of threads through its index
+    let participant_rows = sqlx::query!(
+        r#"SELECT upper(encode(message_id_hash, 'hex')) AS message_id_hex, domain, address, role,
+                  firstseendate
+           FROM brocess.email_thread_domain WHERE thread_id_hash = ANY($1)
+           ORDER BY thread_id_hash, id LIMIT $2"#,
+        &threads,
+        MAX_THREAD_DOMAIN_ROWS + 1,
+    )
+    .fetch_all(pool)
+    .await?;
+    roles_truncated |= participant_rows.len() as i64 > MAX_THREAD_DOMAIN_ROWS;
+    let participants: Vec<MessageParticipant> = participant_rows
+        .into_iter()
+        .take(MAX_THREAD_DOMAIN_ROWS as usize)
+        .map(|r| {
+            roles
+                .entry(r.domain.clone())
+                .or_default()
+                .insert(r.role.clone());
+            addresses
+                .entry(r.domain.clone())
+                .or_default()
+                .insert(r.address.clone());
+            MessageParticipant {
+                message_id_hex: r.message_id_hex,
+                domain: r.domain,
+                address: r.address,
+                role: r.role,
+                first_seen: when(r.firstseendate),
+            }
+        })
+        .collect();
+    let mut per_thread: Vec<(&str, u32)> = Vec::new();
+    for m in &messages {
+        match per_thread.iter_mut().find(|(t, _)| *t == m.thread_id) {
+            Some((_, count)) => *count += 1,
+            None => per_thread.push((&m.thread_id, 1)),
+        }
+    }
+    let mut thread_message_counts: Vec<u32> = per_thread.into_iter().map(|(_, n)| n).collect();
+    thread_message_counts.sort_unstable_by(|a, b| b.cmp(a));
+    tracing::info!(
+        task = task.id.0,
+        root = %task.root,
+        read = "email-thread",
+        subject = %message_id,
+        messages = messages.len(),
+        threads = threads.len(),
+        "read"
+    );
+    let sets = |map: BTreeMap<String, BTreeSet<String>>| {
+        map.into_iter()
+            .map(|(k, v)| (k, v.into_iter().collect()))
+            .collect()
+    };
+    Ok(EmailThreadAnswer {
+        conversation: Some(Conversation {
+            anchor_message_id: message_id,
+            normalized_subject: anchor.normalized_subject,
+            thread_count: threads.len() as u32,
+            thread_method: if header_threaded { "headers" } else { "self" }.to_owned(),
+            link_domains,
+            thread_message_counts,
+            domain_roles: sets(roles),
+            domain_addresses: sets(addresses),
+            messages,
+            participants,
+            truncated: messages_capped || threads_capped,
+            roles_truncated,
+        }),
+        recording: false,
+    })
+}
+
+fn hex(bytes: &[u8]) -> String {
+    bytes.iter().map(|b| format!("{b:02X}")).collect()
 }
 
 // ---- snort-signature ----

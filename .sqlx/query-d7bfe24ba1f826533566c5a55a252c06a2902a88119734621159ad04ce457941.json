@@ -1,0 +1,132 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT thread_id, message_id, upper(encode(message_id_hash, 'hex')) AS \"message_id_hex!\",\n                  in_reply_to, normalized_subject, from_address, from_domain, direction,\n                  message_date, insert_date\n           FROM brocess.email_thread_message WHERE thread_id_hash = ANY($1)\n           ORDER BY message_date IS NULL, message_date, insert_date, id LIMIT $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "thread_id",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "brocess.email_thread_message",
+            "name": "thread_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "message_id",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "brocess.email_thread_message",
+            "name": "message_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "message_id_hex!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "in_reply_to",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "brocess.email_thread_message",
+            "name": "in_reply_to"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "normalized_subject",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "brocess.email_thread_message",
+            "name": "normalized_subject"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "from_address",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "brocess.email_thread_message",
+            "name": "from_address"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "from_domain",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "brocess.email_thread_message",
+            "name": "from_domain"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "direction",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "brocess.email_thread_message",
+            "name": "direction"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "message_date",
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "brocess.email_thread_message",
+            "name": "message_date"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "insert_date",
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "brocess.email_thread_message",
+            "name": "insert_date"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "ByteaArray",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      null,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "d7bfe24ba1f826533566c5a55a252c06a2902a88119734621159ad04ce457941"
+}

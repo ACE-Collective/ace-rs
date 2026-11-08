@@ -5,6 +5,7 @@
 //! to download its input from the bucket, and the worker asks for a presigned URL to upload each
 //! file the module wrote. So a worker holds an API token and nothing else.
 
+use std::collections::BTreeMap;
 use std::path::Path;
 
 use ace_results::{AlertPath, ObservableKind, ObservableRef, ResultEnvelope, Sha256, YaraMeta};
@@ -15,6 +16,7 @@ use uuid::Uuid;
 
 use crate::context::{DelayedRun, InputFile, Observable};
 use crate::lists::WireList;
+use crate::writes::WireWrite;
 
 /// The paths of the lease API, under its base URL.
 pub mod paths {
@@ -172,6 +174,14 @@ pub struct LeasedTask {
     /// the task out (PLAN.md 5.14). Empty for a module that reads none.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub lists: Vec<WireList>,
+    /// The observable's results from the modules the task's module depends on
+    /// (`Module::DEPENDS_ON`): each one's details, by module.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub dependency_results: BTreeMap<String, Value>,
+    /// For a module that runs last, the observables below the task's of the types it reads there
+    /// (`Module::READS_BELOW`), in the order they were added.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub observables_below: Vec<ObservableRef>,
 }
 
 /// What a module may read of the email that carried its observable (PLAN.md 4.6). A worker holds no
@@ -212,10 +222,20 @@ pub struct Renewal {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "outcome", rename_all = "snake_case", deny_unknown_fields)]
 pub enum TaskEnd {
-    /// The module's result. Its files must have been uploaded first.
-    Done { result: ResultEnvelope<Value> },
-    /// The module had nothing to say about the observable.
-    Skipped { reason: String },
+    /// The module's result. Its files must have been uploaded first. The writes to ACE's data the
+    /// task made (`Module::WRITES`) land in the result's transaction.
+    Done {
+        result: ResultEnvelope<Value>,
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        writes: Vec<WireWrite>,
+    },
+    /// The module had nothing to store about the observable, and its writes, if it made any, land
+    /// as the task ends.
+    Skipped {
+        reason: String,
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        writes: Vec<WireWrite>,
+    },
     /// Run the task again after `after_seconds`, with `state` for the next run.
     Delay {
         after_seconds: f64,

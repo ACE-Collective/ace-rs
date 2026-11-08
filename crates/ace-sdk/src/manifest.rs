@@ -20,6 +20,7 @@ use serde_json::{Value, json};
 use crate::lists::ListSpec;
 use crate::module::{EXCLUDE_ALL, Lookup, Module, Parser, Settings};
 use crate::reads::Read;
+use crate::writes::Write;
 
 /// The limits a module's task runs under.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -74,6 +75,8 @@ pub struct Manifest {
     pub depends_on: &'static [&'static str],
     /// Directives that keep the module off an observable, besides `exclude_all`.
     pub skip_directives: &'static [&'static str],
+    /// Directives an observable must have for the module to run on it.
+    pub required_directives: &'static [&'static str],
     pub resources: Resources,
     pub sandbox: Sandbox,
     pub secrets: &'static [&'static str],
@@ -83,21 +86,33 @@ pub struct Manifest {
     pub reads_carrying_email: bool,
     /// The module runs when the rest of its root is done (`Module::RUNS_LAST`).
     pub runs_last: bool,
+    /// The observable types below its observable a module that runs last reads
+    /// (`Module::READS_BELOW`).
+    pub reads_below: &'static [ObservableKind],
     /// The analyst-edited lists the module reads (`Module::LISTS`).
     pub lists: &'static [ListSpec],
     /// The reads of ACE's own data the module makes (`Module::READS`).
     pub reads: &'static [Read],
+    /// The writes to ACE's own data the module makes (`Module::WRITES`).
+    pub writes: &'static [Write],
+    /// The module's tasks end with a result when they find something (`Module::STORES_RESULTS`).
+    pub stores_results: bool,
     settings_schema: fn() -> Schema,
     check_settings: fn(Option<&Value>) -> Result<(), SettingsError>,
 }
 
 impl Manifest {
-    /// A parser's manifest. A parser that declares a read doesn't build: its task process has no
-    /// network and no channel back while it runs, so it gets ACE's data on the lease.
+    /// A parser's manifest. A parser that declares a read or a write doesn't build: its task
+    /// process has no network and no channel back while it runs, so it gets ACE's data on the
+    /// lease, and its result is all it hands back.
     pub const fn parser<M: Parser>() -> Self {
         assert!(
             M::READS.is_empty(),
             "a parser can't declare reads (Module::READS)"
+        );
+        assert!(
+            M::WRITES.is_empty(),
+            "a parser can't declare writes (Module::WRITES)"
         );
         Manifest::of::<M>(ModuleKind::Parser, Sandbox::Contained)
     }
@@ -119,14 +134,18 @@ impl Manifest {
             output: AnalysisTypeInfo::of::<M::Output>(),
             depends_on: M::DEPENDS_ON,
             skip_directives: M::SKIP_DIRECTIVES,
+            required_directives: M::REQUIRED_DIRECTIVES,
             resources: M::RESOURCES,
             sandbox,
             secrets: M::SECRETS,
             instances_only: M::INSTANCES_ONLY,
             reads_carrying_email: M::READS_CARRYING_EMAIL,
             runs_last: M::RUNS_LAST,
+            reads_below: M::READS_BELOW,
             lists: M::LISTS,
             reads: M::READS,
+            writes: M::WRITES,
+            stores_results: M::STORES_RESULTS,
             settings_schema: settings_schema::<M::Settings>,
             check_settings: check_settings::<M::Settings>,
         }
@@ -156,6 +175,14 @@ impl Manifest {
             .find(|d| *d == EXCLUDE_ALL || self.skip_directives.contains(d))
     }
 
+    /// The first of the module's required directives that `directives` lacks.
+    pub fn missing_directive(&self, directives: &[String]) -> Option<&'static str> {
+        self.required_directives
+            .iter()
+            .copied()
+            .find(|required| !directives.iter().any(|d| d == required))
+    }
+
     /// The manifest as JSON, for listing modules and for snapshots.
     pub fn describe(&self) -> Value {
         let sandbox = match self.sandbox {
@@ -180,6 +207,8 @@ impl Manifest {
             "sandbox": sandbox,
             "secrets": self.secrets,
             "reads": self.reads.iter().map(|r| r.name).collect::<Vec<_>>(),
+            "writes": self.writes.iter().map(|w| w.name).collect::<Vec<_>>(),
+            "required_directives": self.required_directives,
             "settings_schema": self.settings_schema(),
         })
     }
@@ -363,6 +392,52 @@ mod tests {
         assert!(refused.is_err());
         assert!(RESOLVER.reads.is_empty());
         assert_eq!(RESOLVER.describe()["reads"], json!([]));
+    }
+
+    /// A parser that declares a write, which it couldn't hand back.
+    struct WritingParser;
+
+    impl Module for WritingParser {
+        const NAME: &'static str = "writing_parser";
+        const INPUTS: &'static [ObservableKind] = &[ObservableKind::File];
+        const WRITES: &'static [Write] =
+            &[<crate::writes::SmtpLog as crate::writes::WriteKind>::WRITE];
+        type Output = crate::example::LineStats;
+        type Settings = LineCounterSettings;
+        fn init(_: &LineCounterSettings) -> Result<Self, crate::ModuleError> {
+            Ok(WritingParser)
+        }
+    }
+
+    impl Parser for WritingParser {
+        fn analyze(
+            &self,
+            _: &crate::TaskContext<LineCounterSettings>,
+        ) -> Result<crate::Outcome<crate::example::LineStats>, crate::ModuleError> {
+            Ok(crate::Outcome::Skipped(String::new()))
+        }
+    }
+
+    #[test]
+    fn a_parser_can_t_declare_a_write() {
+        let refused = std::panic::catch_unwind(Manifest::parser::<WritingParser>);
+        assert!(refused.is_err());
+        assert_eq!(RESOLVER.describe()["writes"], json!([]));
+    }
+
+    #[test]
+    fn a_required_directive_is_named_when_missing() {
+        assert_eq!(RESOLVER.missing_directive(&[]), None);
+        let mut manifest = RESOLVER;
+        manifest.required_directives = &["original_email", "archive"];
+        assert_eq!(
+            manifest.missing_directive(&["archive".to_owned()]),
+            Some("original_email")
+        );
+        assert_eq!(
+            manifest.missing_directive(&["archive".to_owned(), "original_email".to_owned()]),
+            None
+        );
     }
 
     #[test]

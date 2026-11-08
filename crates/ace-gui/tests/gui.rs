@@ -2222,6 +2222,7 @@ fn each_module_s_view_draws_its_fixture() {
         "dns_fqdn_example_com",
         "snort_sig_9000001",
         "brocess_frequent_conversation",
+        "brocess_email_thread",
         "splunk_proxy_domain_lookup",
         "olevba_receipt_doc",
         "rtfole_objects_rtf",
@@ -2305,6 +2306,22 @@ fn each_module_s_view_draws_its_fixture() {
                 &[
                     "<tr><th>source_count</th><td>10</td></tr>",
                     "<tr><th>dest_count</th><td>7</td></tr>",
+                ],
+            ),
+            "brocess_email_thread" => contains_all(
+                &html,
+                &[
+                    "<tr><th>Subject</th><td>quarterly invoice</td></tr>",
+                    "In-Reply-To / References:",
+                    "<h3>Email conversation</h3>",
+                    "**examp1e.com** (looks like example.com)",
+                    "<code>examp1e.com</code> looks like <code>example.com</code>",
+                    "Jaro-Winkler 0.9636, visually confusable",
+                    "<code>alice@examp1e.com</code> &rarr; <code>alice@example.com</code> (identical local part)",
+                    "<td>3 &larr;</td>",
+                    "<mark><code>alice@examp1e.com</code></mark>",
+                    "reply-to:</span> <mark><code>alice.vendor@ex\u{430}mple.com</code></mark>",
+                    "not attributable to a specific message: <code>accounts@example.com</code>",
                 ],
             ),
             "splunk_proxy_domain_lookup" => contains_all(

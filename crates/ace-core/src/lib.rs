@@ -25,6 +25,7 @@ pub mod submit;
 #[cfg(any(test, feature = "testing"))]
 pub mod testing;
 pub mod tree;
+pub mod writes;
 pub mod yara_qa;
 
 pub use db::{Db, DbConfig, DbError, Isolation, Retryable, Tx};

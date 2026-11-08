@@ -116,6 +116,7 @@ pub fn manifests() -> Vec<ace_sdk::Manifest> {
         ace_mod_archive::MANIFEST,
         ace_mod_yara::MANIFEST,
         ace_mod_splunk::MANIFEST,
+        ace_mod_brocess::logger::MANIFEST,
         stubs::DEPENDS_ON_ARCHIVE,
         stubs::ALERT_ADDED_TO_EVENT,
     ]

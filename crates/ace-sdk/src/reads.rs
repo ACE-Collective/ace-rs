@@ -137,5 +137,157 @@ pub struct SmtpCountsAnswer {
     pub conversation_count: i64,
 }
 
+/// `email-thread-domains`: the domains earlier messages of an email's thread established, and how
+/// many messages the thread has (`email_logger`).
+pub struct EmailThreadDomains;
+
+impl ReadKind for EmailThreadDomains {
+    const READ: Read = Read {
+        name: "email-thread-domains",
+    };
+    type Request = EmailThreadDomainsRequest;
+    type Answer = EmailThreadDomainsAnswer;
+}
+
+/// The thread an email belongs to, as ace3's `derive_thread_context` finds it. The core answers
+/// only for a thread id an email in the task's root has as its Message-ID, an In-Reply-To or a
+/// References id, and a normalized subject one of them has.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct EmailThreadDomainsRequest {
+    pub thread_id: String,
+    /// `references` or `in_reply_to` for a thread its headers name, which is read by its id;
+    /// `self` or `none` for a message that starts one, whose same-subject threads sharing one of
+    /// `participant_domains` are read instead.
+    pub thread_method: String,
+    pub normalized_subject: String,
+    /// The registrable domains of the email's participants. At most 100.
+    pub participant_domains: Vec<String>,
+}
+
+/// The answer to an `email-thread-domains` read: ace3's `get_established_domains` and
+/// `get_thread_message_count`.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct EmailThreadDomainsAnswer {
+    /// One per domain, address and role, with its earliest sighting, in the order the store first
+    /// recorded each.
+    pub established: Vec<EstablishedDomain>,
+    /// Messages recorded in the thread.
+    pub thread_message_count: i64,
+    /// True when `established` was cut at its cap of 10,000 rows read.
+    pub truncated: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct EstablishedDomain {
+    pub domain: String,
+    pub address: String,
+    pub role: String,
+    /// When it was first seen, as `%Y-%m-%d %H:%M:%S`, as ace3's `str(datetime)` writes it.
+    pub first_seen: Option<String>,
+}
+
+/// `email-thread`: the recorded conversation a Message-ID belongs to (`email_thread_analyzer`).
+pub struct EmailThread;
+
+impl ReadKind for EmailThread {
+    const READ: Read = Read {
+        name: "email-thread",
+    };
+    type Request = EmailThreadRequest;
+    type Answer = EmailThreadAnswer;
+}
+
+/// The subject of an `email-thread` read, a `message_id` observable in the task's root, the task's
+/// own by default, and how much of its conversation to assemble. The core caps each at 500.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct EmailThreadRequest {
+    #[serde(default)]
+    pub subject: Option<ObservableRef>,
+    pub max_messages: u32,
+    pub max_threads: u32,
+}
+
+/// The answer to an `email-thread` read: ace3's `get_conversation`, or nothing recorded.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct EmailThreadAnswer {
+    /// None when the store has no message with the id.
+    pub conversation: Option<Conversation>,
+    /// An email of the task's root is still to be recorded: a module that writes `email-thread` has
+    /// a task there that hasn't finished. ace3 records an email at the end of its email-mode
+    /// analysis, before a root that alerts is analyzed again for correlation, so its thread module
+    /// sees the alert's own message; a module that asks here delays until that's done.
+    #[serde(default)]
+    pub recording: bool,
+}
+
+/// A recorded conversation: its messages, oldest first, with who took part in each.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Conversation {
+    /// The Message-ID asked about, `<...>`.
+    pub anchor_message_id: String,
+    pub normalized_subject: Option<String>,
+    /// How many threads were joined into it.
+    pub thread_count: u32,
+    /// `headers` when its References or In-Reply-To grouped it, `self` when same-subject threads
+    /// sharing a domain were joined.
+    pub thread_method: String,
+    /// The domains on both sides that joined same-subject threads, sorted.
+    pub link_domains: Vec<String>,
+    /// How many of the messages each joined thread has, largest first.
+    pub thread_message_counts: Vec<u32>,
+    /// Every role each domain had, and every address on it, across every thread that qualified,
+    /// including any past the thread cap, each sorted.
+    pub domain_roles: std::collections::BTreeMap<String, Vec<String>>,
+    pub domain_addresses: std::collections::BTreeMap<String, Vec<String>>,
+    pub messages: Vec<ConversationMessage>,
+    /// The participants of the joined threads, each with the message it was on, or none when it
+    /// was recorded before the store kept that.
+    pub participants: Vec<MessageParticipant>,
+    /// True when a cap trimmed the messages or the threads.
+    pub truncated: bool,
+    /// True when the core cut the rows the roles and addresses come from at 10,000.
+    pub roles_truncated: bool,
+}
+
+/// A message of a conversation, as the store recorded it.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ConversationMessage {
+    pub thread_id: String,
+    pub message_id: String,
+    /// The SHA-256 of the message id, in upper-case hex, which participants name it by.
+    pub message_id_hex: String,
+    pub in_reply_to: Option<String>,
+    pub normalized_subject: Option<String>,
+    pub from_address: Option<String>,
+    pub from_domain: Option<String>,
+    pub direction: Option<i16>,
+    /// `%Y-%m-%d %H:%M:%S`, UTC.
+    pub message_date: Option<String>,
+    pub insert_date: Option<String>,
+}
+
+/// One participant of one message.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct MessageParticipant {
+    pub message_id_hex: Option<String>,
+    pub domain: String,
+    pub address: String,
+    pub role: String,
+    pub first_seen: Option<String>,
+}
+
 /// Every read a module can declare, by name.
-pub const ALL: &[Read] = &[SnortSignature::READ, SmtpCounts::READ];
+pub const ALL: &[Read] = &[
+    SnortSignature::READ,
+    SmtpCounts::READ,
+    EmailThreadDomains::READ,
+    EmailThread::READ,
+];

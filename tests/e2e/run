@@ -17,7 +17,10 @@ does below. It checks the GUI's login page and its Datastar on the same port (PL
 submits samples/ace4/email/e2e.email.rfc822, an email with a DKIM signing domain
 (example.com) in its headers and a zip attachment holding the marker, twice. Each time, the email, archive and YARA modules run in
 email mode; the YARA match on the attachment makes the root an alert in correlation mode, which
-runs RDAP and the Splunk instance, the delayed module, on the domain. The second time the
+runs RDAP and the Splunk instance, the delayed module, on the domain. The email goes in with the
+original_email directive, as ace3's collectors give it, so the email logger runs once the rest of the
+root is done and records the email's thread in brocess with its task's end, which the thread module,
+running for correlation, waits for and then reads back (PLAN.md 7.4). The second time the
 parser pool is frozen before the submission, so the core leases it a task it never answers, and
 it is killed with SIGKILL while it holds that lease, then started again. Both roots must have
 results from all five modules and complete; the second only later. The same email goes in both
@@ -111,6 +114,7 @@ ACE_COMMAND = os.environ.get("ACE4_E2E_ACE_COMMAND", "ace")
 LEASE_SECONDS = 15
 RULE = "ace4_e2e_attachment"
 SAMPLE = "ace4/email/e2e.email.rfc822"
+EMAIL_SAMPLE = ROOT / "samples" / SAMPLE
 TREES = ROOT / "tools" / "ace3" / "trees"
 MODULES = [
     "email_analyzer",
@@ -376,6 +380,31 @@ def check_root(root, failures):
             AND first_delayed_at IS NOT NULL"""
     )[0][0]
     expect(delays != "0", "the Splunk task was delayed before its result")
+
+    # PLAN.md 7.4: the email logger ran on the original email once the rest of the root was done,
+    # stored no result, and its write landed with its task's end: the email is in brocess's thread
+    # store, once however many roots it came in
+    logger = sql(
+        f"""SELECT t.state::text, (SELECT count(*) FROM analysis.results r
+                                   WHERE r.root_id = t.root_id AND r.module = t.module)
+            FROM queue.tasks t WHERE t.root_id = '{root}' AND t.module = 'email_logger'"""
+    )
+    expect(logger == [["done", "0"]], f"the email logger ran and stored no result: {logger}")
+    message_id = re.search(rb"^Message-ID:\s*(<[^>]+>)", EMAIL_SAMPLE.read_bytes(), re.I | re.M)
+    recorded = sql(
+        f"""SELECT count(*) FROM brocess.email_thread_message
+            WHERE message_id = '{message_id.group(1).decode()}'"""
+    ) if message_id else [["none"]]
+    expect(recorded == [["1"]], f"the email logger recorded the email's thread once: {recorded}")
+    # and the thread module, which runs for correlation, waited for that record and found the email
+    # in it, as ace3's does after its email-mode pass
+    thread = sql(
+        f"""SELECT o.value, jsonb_array_length(r.details->'messages')
+            FROM analysis.results r JOIN analysis.observables o ON o.id = r.observable_id
+            WHERE r.root_id = '{root}' AND r.module = 'email_thread_analyzer'"""
+    )
+    expect(thread == [[message_id.group(1).decode() if message_id else "", "1"]],
+           f"the thread module laid out the recorded conversation: {thread}")
 
 
 def normal_form(root):
@@ -1001,6 +1030,9 @@ def compare_with_ace3(threshold=False):
     <work>/compare. Returns its exit code."""
     report = WORK / "compare"
     report.mkdir(parents=True, exist_ok=True)
+    # ace3's trees were made against an empty brocess (tools/ace3/trees/brocess.json), and the
+    # email logger has recorded this test's email by now
+    sql("TRUNCATE brocess.smtplog, brocess.email_thread_message, brocess.email_thread_domain")
     # the recorded Splunk job counts requests from when the responder started
     compose("restart", "responder")
     compose("up", "-d", "--wait", "responder")
@@ -1031,7 +1063,10 @@ def run(email, kill, failures):
     compose("up", "-d", "--wait", "responder")
     if kill:
         compose("pause", "parsers")
-    root = submit(email)
+    # as ace3's email collectors mark the email they collected, so the email logger takes it
+    original = {"type": "file", "value": hashlib.sha256(email).hexdigest(),
+                "directives": ["original_email"]}
+    root = submit(email, observables=[original])
     log(f"submitted root {root}{' with the parser pool frozen' if kill else ''}")
     if kill:
         held = wait_for(

@@ -1,0 +1,661 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "email_analyzer",
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "EmailAnalysis",
+      "details": {
+        "email": {
+          "authentication_failed": false,
+          "compauth_reason": null,
+          "compauth_result": null,
+          "decoded_subject": "Test Email with Nested PDF",
+          "dkim_result": null,
+          "dmarc_result": null,
+          "env_mail_from": "sender@example.com",
+          "env_rcpt_to": [
+            "recipient@example.com"
+          ],
+          "from": "Test Sender <sender@example.com>",
+          "from_address": "sender@example.com",
+          "headers": [
+            [
+              "Received",
+              "from smtp.example.com (10.0.0.2)\n by mail.example.com (10.0.0.1) with Microsoft SMTP Server\n id 15.20.0.0; Mon, 13 Jan 2026 10:29:59 +0000"
+            ],
+            [
+              "From",
+              "Test Sender <sender@example.com>"
+            ],
+            [
+              "To",
+              "recipient@example.com"
+            ],
+            [
+              "Subject",
+              "Test Email with Nested PDF"
+            ],
+            [
+              "Message-ID",
+              "<target-message-id-5678@example.com>"
+            ],
+            [
+              "Date",
+              "Mon, 13 Jan 2026 10:29:55 +0000"
+            ],
+            [
+              "MIME-Version",
+              "1.0"
+            ],
+            [
+              "Content-Type",
+              "multipart/mixed;\n\tboundary=\"_inner-boundary-5678_\""
+            ],
+            [
+              "X-MS-Exchange-Organization-MessageDirectionality",
+              "Incoming"
+            ]
+          ],
+          "internal_org_sender": false,
+          "is_anonymous_direct_send": false,
+          "log_entry": {
+            "attachment_count": 2,
+            "attachment_hashes": [
+              "fd193b769914c8d0d9266619285422662b1e9736d4b61adcc930e697c7f171eb",
+              "cc3a2ee99435eee790e38745c99a9cdf4428a8ff45e32f52fd6ba98ca4e9840b"
+            ],
+            "attachment_names": [
+              "email.rfc822.unknown_text_plain_000.txt",
+              "test_document.pdf"
+            ],
+            "attachment_sizes": [
+              92,
+              329
+            ],
+            "attachment_types": [
+              "text/plain",
+              "application/pdf"
+            ],
+            "authentication_failed": false,
+            "bcc": [],
+            "cc": [],
+            "compauth_reason": null,
+            "compauth_result": null,
+            "date": "2026-11-08 21:48:03.740369 +0000",
+            "dkim_result": null,
+            "dmarc_result": null,
+            "env_mail_from": "sender@example.com",
+            "env_rcpt_to": [
+              "recipient@example.com"
+            ],
+            "first_received": "from smtp.example.com (10.0.0.2)\n by mail.example.com (10.0.0.1) with Microsoft SMTP Server\n id 15.20.0.0; Mon, 13 Jan 2026 10:29:59 +0000",
+            "headers": [
+              "Received: from smtp.example.com (10.0.0.2) by mail.example.com (10.0.0.1) with Microsoft SMTP Server id 15.20.0.0; Mon, 13 Jan 2026 10:29:59 +0000",
+              "From: Test Sender <sender@example.com>",
+              "To: recipient@example.com",
+              "Subject: Test Email with Nested PDF",
+              "Message-ID: <target-message-id-5678@example.com>",
+              "Date: Mon, 13 Jan 2026 10:29:55 +0000",
+              "MIME-Version: 1.0",
+              "Content-Type: multipart/mixed;boundary=\"_inner-boundary-5678_\""
+            ],
+            "in_reply_to": null,
+            "internal_org_sender": false,
+            "is_anonymous_direct_send": false,
+            "last_received": "from smtp.example.com (10.0.0.2)\n by mail.example.com (10.0.0.1) with Microsoft SMTP Server\n id 15.20.0.0; Mon, 13 Jan 2026 10:29:59 +0000",
+            "mail_from": "Test Sender <sender@example.com>",
+            "mail_from_is_local": false,
+            "mail_to": [
+              "recipient@example.com"
+            ],
+            "message_directionality": "Incoming",
+            "message_id": "<target-message-id-5678@example.com>",
+            "originating_ip": null,
+            "path": [
+              "10.0.0.2"
+            ],
+            "refereneces": null,
+            "reply_to": null,
+            "size": 2773,
+            "spf_result": null,
+            "spoofed_internal": false,
+            "subject": "Test Email with Nested PDF",
+            "subject_raw": "Test Email with Nested PDF",
+            "thread_index": null,
+            "thread_topic": null,
+            "user_agent": null,
+            "x_mailer": null,
+            "x_sender": null
+          },
+          "mail_from_is_local": false,
+          "message-id": "<target-message-id-5678@example.com>",
+          "message_directionality": "Incoming",
+          "spf_result": null,
+          "spoofed_internal": false,
+          "subject": "Test Email with Nested PDF",
+          "to": [
+            "recipient@example.com"
+          ],
+          "to_addresses": [
+            "recipient@example.com"
+          ]
+        },
+        "extraction_errors": [],
+        "parsing_error": null
+      },
+      "detections": [],
+      "module_path": "saq.modules.email.rfc822:EmailAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_from",
+          "value": "sender@example.com"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_envelope_rcpt_to",
+          "value": "recipient@example.com"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_conversation",
+          "value": "sender@example.com|recipient@example.com"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_to",
+          "value": "recipient@example.com"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "display_type": "Decoded Subject",
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_subject",
+          "value": "Test Email with Nested PDF"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [
+            "saq.modules.email.message_id:<class 'saq.modules.email.message_id.MessageIDAnalyzerV2'>"
+          ],
+          "relationships": [],
+          "tags": [],
+          "time": "2026-01-13 10:29:59+00:00",
+          "type": "message_id",
+          "value": "<target-message-id-5678@example.com>"
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls",
+            "preview",
+            "yara_meta:type=email.attachment"
+          ],
+          "excluded_analysis": [],
+          "file_path": "email.rfc822.unknown_text_plain_000.txt",
+          "relationships": [],
+          "size": 92,
+          "tags": [],
+          "type": "file",
+          "value": "fd193b769914c8d0d9266619285422662b1e9736d4b61adcc930e697c7f171eb",
+          "yara_meta": [
+            "type=email.attachment"
+          ]
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls",
+            "render",
+            "yara_meta:type=document.pdf",
+            "yara_meta:type=email.attachment"
+          ],
+          "excluded_analysis": [],
+          "file_path": "test_document.pdf",
+          "relationships": [],
+          "size": 329,
+          "tags": [
+            "pdf"
+          ],
+          "type": "file",
+          "value": "cc3a2ee99435eee790e38745c99a9cdf4428a8ff45e32f52fd6ba98ca4e9840b",
+          "yara_meta": [
+            "type=document.pdf",
+            "type=email.attachment"
+          ]
+        },
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=email",
+            "yara_meta:type=email.headers"
+          ],
+          "excluded_analysis": [
+            "saq.modules.email.rfc822:<class 'saq.modules.email.rfc822.EmailAnalyzer'>"
+          ],
+          "file_path": "email.rfc822.headers",
+          "relationships": [],
+          "size": 478,
+          "tags": [
+            "email"
+          ],
+          "type": "file",
+          "value": "2054d2e176e0dd3a00f29d7fb068d6adc9fffe952041737dedf24515c35645b5",
+          "yara_meta": [
+            "type=email",
+            "type=email.headers"
+          ]
+        },
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=email",
+            "yara_meta:type=email.combined"
+          ],
+          "excluded_analysis": [
+            "saq.modules.email.rfc822:<class 'saq.modules.email.rfc822.EmailAnalyzer'>"
+          ],
+          "file_path": "email.rfc822.combined",
+          "relationships": [],
+          "size": 574,
+          "tags": [
+            "email"
+          ],
+          "type": "file",
+          "value": "c2378c509dcebe6930ad74abc7632ad233e9d0a82096806337cd8a339b84d87a",
+          "yara_meta": [
+            "type=email",
+            "type=email.combined"
+          ]
+        }
+      ],
+      "summary": "Email Analysis: From Test Sender <sender@example.com> To recipient@example.com Subject Test Email with Nested PDF",
+      "tags": []
+    },
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": true,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "message/rfc822",
+        "type": "SMTP mail, ASCII text"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: SMTP mail, ASCII text (message/rfc822) (email)",
+      "tags": []
+    }
+  ],
+  "brocess_after": {
+    "email_thread_domain": [
+      {
+        "address": "sender@example.com",
+        "domain": "example.com",
+        "entry_hash": "916FAB003B164AED3E0A43DA9F112DD4EFF0526C817A9558B1F3C697FF89670D",
+        "firstseendate": "2026-11-08 09:00:00",
+        "id": 1,
+        "message_id_hash": "67224362764AB7BE8CADBD2FDAE92276A75F6F693EE9D872949CC062812C5CB0",
+        "numseen": 1,
+        "role": "from",
+        "thread_id": "<target-message-id-5678@example.com>",
+        "thread_id_hash": "67224362764AB7BE8CADBD2FDAE92276A75F6F693EE9D872949CC062812C5CB0"
+      },
+      {
+        "address": "recipient@example.com",
+        "domain": "example.com",
+        "entry_hash": "17A3AD17892BA4C678FD48120B20055F7C58FBE5B842E776440830C1D66DC238",
+        "firstseendate": "2026-11-08 09:00:00",
+        "id": 2,
+        "message_id_hash": "67224362764AB7BE8CADBD2FDAE92276A75F6F693EE9D872949CC062812C5CB0",
+        "numseen": 1,
+        "role": "to",
+        "thread_id": "<target-message-id-5678@example.com>",
+        "thread_id_hash": "67224362764AB7BE8CADBD2FDAE92276A75F6F693EE9D872949CC062812C5CB0"
+      }
+    ],
+    "email_thread_message": [
+      {
+        "direction": 0,
+        "from_address": "sender@example.com",
+        "from_domain": "example.com",
+        "id": 1,
+        "in_reply_to": null,
+        "insert_date": "2026-11-08 09:00:00",
+        "message_date": "2026-01-13 10:29:55",
+        "message_id": "<target-message-id-5678@example.com>",
+        "message_id_hash": "67224362764AB7BE8CADBD2FDAE92276A75F6F693EE9D872949CC062812C5CB0",
+        "normalized_subject": "test email with nested pdf",
+        "normalized_subject_hash": "FAAB63AB84BA7839AE798AAF4E0DA71D5E435AE69B978119B51F04E5FB62D0ED",
+        "thread_id": "<target-message-id-5678@example.com>",
+        "thread_id_hash": "67224362764AB7BE8CADBD2FDAE92276A75F6F693EE9D872949CC062812C5CB0"
+      }
+    ],
+    "now": "2026-11-08 09:00:00",
+    "smtplog": [
+      [
+        "sender@example.com",
+        "recipient@example.com",
+        1,
+        1794128400.0
+      ]
+    ]
+  },
+  "brocess_before": {
+    "email_thread_domain": [],
+    "email_thread_message": [],
+    "now": "2026-11-08 09:00:00",
+    "smtplog": []
+  },
+  "brocess_reads": [
+    {
+      "established": []
+    },
+    {
+      "thread_message_count": 0
+    }
+  ],
+  "fluent_bit": [
+    {
+      "record": {
+        "path": "database.pool.status",
+        "timestamp": "2026-11-08T21:48:03.733696",
+        "value": "Pool size: 5  Connections in pool: 0 Current Overflow: -4 Current Checked out connections: 1"
+      },
+      "tag": "monitoring"
+    },
+    {
+      "record": {
+        "header": "Received: from smtp.example.com (10.0.0.2) by mail.example.com (10.0.0.1) with Microsoft SMTP Server id 15.20.0.0; Mon, 13 Jan 2026 10:29:59 +0000",
+        "header_index": 0,
+        "message_id": "<target-message-id-5678@example.com>",
+        "timestamp": "1794174483.740369"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "From: Test Sender <sender@example.com>",
+        "header_index": 1,
+        "message_id": "<target-message-id-5678@example.com>",
+        "timestamp": "1794174483.740369"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "To: recipient@example.com",
+        "header_index": 2,
+        "message_id": "<target-message-id-5678@example.com>",
+        "timestamp": "1794174483.740369"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "Subject: Test Email with Nested PDF",
+        "header_index": 3,
+        "message_id": "<target-message-id-5678@example.com>",
+        "timestamp": "1794174483.740369"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "Message-ID: <target-message-id-5678@example.com>",
+        "header_index": 4,
+        "message_id": "<target-message-id-5678@example.com>",
+        "timestamp": "1794174483.740369"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "Date: Mon, 13 Jan 2026 10:29:55 +0000",
+        "header_index": 5,
+        "message_id": "<target-message-id-5678@example.com>",
+        "timestamp": "1794174483.740369"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "MIME-Version: 1.0",
+        "header_index": 6,
+        "message_id": "<target-message-id-5678@example.com>",
+        "timestamp": "1794174483.740369"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "Content-Type: multipart/mixed;boundary=\"_inner-boundary-5678_\"",
+        "header_index": 7,
+        "message_id": "<target-message-id-5678@example.com>",
+        "timestamp": "1794174483.740369"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "archive_path": null,
+        "attachment_count": 2,
+        "attachment_hashes": [
+          "fd193b769914c8d0d9266619285422662b1e9736d4b61adcc930e697c7f171eb",
+          "cc3a2ee99435eee790e38745c99a9cdf4428a8ff45e32f52fd6ba98ca4e9840b"
+        ],
+        "attachment_names": [
+          "email.rfc822.unknown_text_plain_000.txt",
+          "test_document.pdf"
+        ],
+        "attachment_sizes": [
+          92,
+          329
+        ],
+        "attachment_types": [
+          "text/plain",
+          "application/pdf"
+        ],
+        "authentication_failed": false,
+        "bcc": [],
+        "cc": [],
+        "compauth_reason": null,
+        "compauth_result": null,
+        "date": "2026-11-08 21:48:03.740369 +0000",
+        "dkim_result": null,
+        "dmarc_result": null,
+        "env_mail_from": "sender@example.com",
+        "env_rcpt_to": [
+          "recipient@example.com"
+        ],
+        "first_received": "from smtp.example.com (10.0.0.2)\n by mail.example.com (10.0.0.1) with Microsoft SMTP Server\n id 15.20.0.0; Mon, 13 Jan 2026 10:29:59 +0000",
+        "in_reply_to": null,
+        "internal_org_sender": false,
+        "is_anonymous_direct_send": false,
+        "last_received": "from smtp.example.com (10.0.0.2)\n by mail.example.com (10.0.0.1) with Microsoft SMTP Server\n id 15.20.0.0; Mon, 13 Jan 2026 10:29:59 +0000",
+        "mail_from": "Test Sender <sender@example.com>",
+        "mail_from_is_local": false,
+        "mail_to": [
+          "recipient@example.com"
+        ],
+        "message_directionality": "Incoming",
+        "message_id": "<target-message-id-5678@example.com>",
+        "originating_ip": null,
+        "path": [
+          "10.0.0.2"
+        ],
+        "refereneces": null,
+        "reply_to": null,
+        "size": 2773,
+        "spf_result": null,
+        "spoofed_internal": false,
+        "subject": "Test Email with Nested PDF",
+        "subject_raw": "Test Email with Nested PDF",
+        "thread_index": null,
+        "thread_topic": null,
+        "timestamp": "1794174483.740369",
+        "user_agent": null,
+        "x_mailer": null,
+        "x_sender": null
+      },
+      "tag": "phishfinder-main"
+    },
+    {
+      "record": {
+        "any_mixed_script": false,
+        "any_similar": false,
+        "comparison_count": 0,
+        "comparisons": [],
+        "established_domains": [],
+        "max_jaro_winkler": 0.0,
+        "message_id": "<target-message-id-5678@example.com>",
+        "min_damerau_levenshtein": null,
+        "normalized_subject": "test email with nested pdf",
+        "senders": [
+          {
+            "address": "sender@example.com",
+            "domain": "example.com",
+            "mixed_script": false,
+            "punycode": false,
+            "role": "from"
+          }
+        ],
+        "thread_id": "<target-message-id-5678@example.com>",
+        "thread_message_count": 0,
+        "thread_method": "self",
+        "timestamp": "1794174483.740369"
+      },
+      "tag": "phishfinder-lookalike"
+    },
+    {
+      "record": {
+        "alert_type": "cli_analysis",
+        "analysis_time_seconds": 0.024771,
+        "exec_count": 5,
+        "is_alert": false,
+        "module": "file_type",
+        "percentage": 9.856203973517474,
+        "queue": "default",
+        "root_uuid": "049fe4f8-51b6-4bad-9e2f-7499b5939558",
+        "timestamp": "2026-11-08 21:48:03.966535",
+        "total_analysis_time_seconds": 0.031407000000000004,
+        "total_time_seconds": 0.251323938369751
+      },
+      "tag": "metrics"
+    },
+    {
+      "record": {
+        "alert_type": "cli_analysis",
+        "analysis_time_seconds": 0.001712,
+        "exec_count": 11,
+        "is_alert": false,
+        "module": "email_logger",
+        "percentage": 0.6811925720666067,
+        "queue": "default",
+        "root_uuid": "049fe4f8-51b6-4bad-9e2f-7499b5939558",
+        "timestamp": "2026-11-08 21:48:03.966535",
+        "total_analysis_time_seconds": 0.031407000000000004,
+        "total_time_seconds": 0.251323938369751
+      },
+      "tag": "metrics"
+    },
+    {
+      "record": {
+        "alert_type": "cli_analysis",
+        "analysis_time_seconds": 0.0049239999999999996,
+        "exec_count": 3,
+        "is_alert": false,
+        "module": "email_analyzer",
+        "percentage": 1.959224430406525,
+        "queue": "default",
+        "root_uuid": "049fe4f8-51b6-4bad-9e2f-7499b5939558",
+        "timestamp": "2026-11-08 21:48:03.966535",
+        "total_analysis_time_seconds": 0.031407000000000004,
+        "total_time_seconds": 0.251323938369751
+      },
+      "tag": "metrics"
+    },
+    {
+      "record": {
+        "path": "database.pool.available_count",
+        "timestamp": "2026-11-08T21:48:03.966767",
+        "value": 0
+      },
+      "tag": "monitoring"
+    },
+    {
+      "record": {
+        "path": "database.pool.in_use_count",
+        "timestamp": "2026-11-08T21:48:03.966779",
+        "value": 1
+      },
+      "tag": "monitoring"
+    }
+  ],
+  "input": {
+    "directives": [
+      "original_email"
+    ],
+    "label": "ace3/email/nested_rfc822_pdf.email.rfc822, against an empty brocess",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "email.rfc822",
+      "size": 2773,
+      "type": "file",
+      "value": "058d47db0c96560355d331739f267395cb73fb4377aa22bb92cdfe77ff62592b"
+    }
+  },
+  "module": "email_logger",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "original_email",
+      "yara_meta:type=email"
+    ],
+    "excluded_analysis": [],
+    "file_path": "email.rfc822",
+    "relationships": [],
+    "size": 2773,
+    "tags": [
+      "email"
+    ],
+    "type": "file",
+    "value": "058d47db0c96560355d331739f267395cb73fb4377aa22bb92cdfe77ff62592b",
+    "yara_meta": [
+      "type=email"
+    ]
+  }
+}

@@ -68,6 +68,7 @@ async fn an_invalid_result_is_rejected_with_its_fields_path_nothing_is_written_a
     });
     let done = TaskEnd::Done {
         result: serde_json::from_value(invalid).expect("an envelope"),
+        writes: Vec::new(),
     };
     let refused = client.end(task.id, &done).await;
     let Err(ClientError::Api { status, error }) = refused else {
@@ -119,6 +120,7 @@ async fn an_invalid_result_is_rejected_with_its_fields_path_nothing_is_written_a
             task.id,
             &TaskEnd::Done {
                 result: serde_json::from_value(wrong_type).expect("an envelope"),
+                writes: Vec::new(),
             },
         )
         .await;
@@ -161,6 +163,7 @@ async fn an_invalid_result_is_rejected_with_its_fields_path_nothing_is_written_a
             task.id,
             &TaskEnd::Done {
                 result: serde_json::from_value(missing).expect("an envelope"),
+                writes: Vec::new(),
             },
         )
         .await;
@@ -183,6 +186,7 @@ async fn an_invalid_result_is_rejected_with_its_fields_path_nothing_is_written_a
             task.id,
             &TaskEnd::Done {
                 result: serde_json::from_value(valid).expect("an envelope"),
+                writes: Vec::new(),
             },
         )
         .await
@@ -258,7 +262,15 @@ async fn a_large_result_lands_and_one_past_the_limit_fails_its_task_at_once() {
             })
             .to_raw()
             .expect("encodes");
-        let sent = client.end(task.id, &TaskEnd::Done { result }).await;
+        let sent = client
+            .end(
+                task.id,
+                &TaskEnd::Done {
+                    result,
+                    writes: Vec::new(),
+                },
+            )
+            .await;
         let (found, error) = task_of(&core, root, "archive").await;
         println!("{name}: {sent:?} {found} {error:?}");
         assert_eq!(found, state);
@@ -345,6 +357,7 @@ async fn a_nul_from_a_hostile_file_doesnt_stop_a_task_ending() {
             task.id,
             &TaskEnd::Done {
                 result: serde_json::from_value(result).expect("an envelope"),
+                writes: Vec::new(),
             },
         )
         .await

@@ -4,10 +4,12 @@ use std::collections::BTreeMap;
 use std::fmt;
 use std::io::Read;
 use std::path::PathBuf;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
-use ace_results::{AlertPath, NewFile, ObservableKind, ObservableRef, Sha256, YaraMeta};
+use ace_results::{
+    AlertPath, AnalysisType, NewFile, ObservableKind, ObservableRef, Sha256, YaraMeta,
+};
 use chrono::{DateTime, Utc};
 use serde::de::DeserializeOwned;
 use tokio_util::sync::CancellationToken;
@@ -17,6 +19,7 @@ use crate::files::{FileOutputError, FileStore, write_file};
 use crate::lists::{List, ListSpec, WireList};
 use crate::module::{Module, ModuleError};
 use crate::reads::{Read as DeclaredRead, ReadError, ReadKind, Reader};
+use crate::writes::{WireWrite, Write as DeclaredWrite, WriteKind};
 
 /// The observable a task analyzes.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -207,6 +210,12 @@ pub struct TaskContext<S> {
     lists: BTreeMap<&'static str, List>,
     declared_reads: &'static [DeclaredRead],
     reader: Option<Arc<dyn Reader>>,
+    declared_writes: &'static [DeclaredWrite],
+    /// What the task wrote so far, sent with its end.
+    writes: Mutex<Vec<WireWrite>>,
+    /// The results the observable has from the modules this one depends on, by module.
+    dependency_results: BTreeMap<String, serde_json::Value>,
+    observables_below: Vec<ObservableRef>,
 }
 
 impl<S> TaskContext<S> {
@@ -238,7 +247,77 @@ impl<S> TaskContext<S> {
                 .collect(),
             declared_reads: M::READS,
             reader: None,
+            declared_writes: M::WRITES,
+            writes: Mutex::new(Vec::new()),
+            dependency_results: BTreeMap::new(),
+            observables_below: Vec::new(),
         }
+    }
+
+    /// Writes to ACE's own data (PLAN.md 7.2), a write the module declared in `Module::WRITES`.
+    /// Nothing is written yet: the write goes with the task's end, and lands only if that end is a
+    /// result or a skip, in the end's transaction.
+    pub fn write<W: WriteKind>(&self, body: &W::Body) -> Result<(), ModuleError> {
+        let name = W::WRITE.name;
+        if !self.declared_writes.contains(&W::WRITE) {
+            return Err(ModuleError::other(format!(
+                "write {name:?} isn't declared in the module's WRITES"
+            )));
+        }
+        let body = serde_json::to_value(body)
+            .map_err(|e| ModuleError::other(format!("write {name:?}: {e}")))?;
+        self.writes
+            .lock()
+            .map_err(|_| ModuleError::other("the task's writes are poisoned"))?
+            .push(WireWrite {
+                write: name.to_owned(),
+                body,
+            });
+        Ok(())
+    }
+
+    /// What the task wrote, in order, for its end. Taking them leaves none.
+    pub fn take_writes(&self) -> Vec<WireWrite> {
+        self.writes
+            .lock()
+            .map(|mut writes| std::mem::take(&mut *writes))
+            .unwrap_or_default()
+    }
+
+    /// The results the core sent with the task: the observable's results from the modules in
+    /// `Module::DEPENDS_ON`, by module.
+    pub fn with_dependency_results(
+        mut self,
+        results: impl IntoIterator<Item = (String, serde_json::Value)>,
+    ) -> Self {
+        self.dependency_results = results.into_iter().collect();
+        self
+    }
+
+    /// The details of the observable's result from the module that writes `D`, which this module
+    /// depends on. None when it has none.
+    pub fn dependency_result<D: AnalysisType>(&self) -> Result<Option<D>, ModuleError> {
+        self.dependency_results
+            .get(D::MODULE)
+            .map(|details| {
+                serde_json::from_value(details.clone()).map_err(|e| {
+                    ModuleError::other(format!("{}'s result doesn't read: {e}", D::MODULE))
+                })
+            })
+            .transpose()
+    }
+
+    /// The observables below the task's one, of the types the module reads there
+    /// (`Module::READS_BELOW`).
+    pub fn with_observables_below(mut self, observables: Vec<ObservableRef>) -> Self {
+        self.observables_below = observables;
+        self
+    }
+
+    /// The observables of the types in `Module::READS_BELOW` found below the task's observable, for
+    /// a module that runs last.
+    pub fn observables_below(&self) -> &[ObservableRef] {
+        &self.observables_below
     }
 
     /// What makes the task's reads (`Module::READS`): the pool's lease API client.

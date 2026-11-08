@@ -10,8 +10,8 @@
 //! site adds its own through `ace_app::App::analysis_view`, the same way it adds a module, so the
 //! list is fixed when the binary is built.
 //!
-//! What a view is ported from: `email_analysis.html`, `rdap.html` and `yara_analysis_v3_4.html`, and
-//! the Splunk module's `api_analysis.html`. ace3 draws the other ported modules' results with
+//! What a view is ported from: `email_analysis.html`, `rdap.html`, `yara_analysis_v3_4.html` and
+//! `email_thread.html`, and the Splunk module's `api_analysis.html`. ace3 draws the other ported modules' results with
 //! `default_template.html`, which prints the details with `pprint`; here each has a view of its own
 //! fields in the same order, which reads the same and needs no Python repr of bytes.
 //!
@@ -39,7 +39,9 @@ use std::fmt;
 
 use ace_results::bytes::TextOrBytes;
 use ace_results::types::archive::ArchiveAnalysis;
-use ace_results::types::brocess::EmailConversationFrequencyAnalysis;
+use ace_results::types::brocess::{
+    EmailConversationFrequencyAnalysis, EmailThreadAnalysis, Lookalike, ThreadMessage,
+};
 use ace_results::types::dns::FqdnAnalysis;
 use ace_results::types::email::EmailAnalysis;
 use ace_results::types::msoffice::MsofficeEncryptionAnalysis;
@@ -159,6 +161,7 @@ impl Views {
             .with(ViewEntry::of::<FqdnAnalysis>())
             .with(ViewEntry::of::<SnortSignatureAnalysis>())
             .with(ViewEntry::of::<EmailConversationFrequencyAnalysis>())
+            .with(ViewEntry::of::<EmailThreadAnalysis>())
             .with(ViewEntry::of::<SplunkApiAnalysis>())
             .with(ViewEntry::of::<OlevbaAnalysis>())
             .with(ViewEntry::of::<RtfOleObjectAnalysis>())
@@ -838,6 +841,62 @@ impl AnalysisView for EmailConversationFrequencyAnalysis {
     type View<'a> = ConversationFrequencyView<'a>;
     fn view(&self) -> ConversationFrequencyView<'_> {
         ConversationFrequencyView { analysis: self }
+    }
+}
+
+// ---- email thread: ace3's email_thread.html ----
+
+/// `email_thread_analysis`, from ace3's `email_thread.html`: how the conversation was assembled, the
+/// findings ace3 adds as a summary detail, each look-alike pair, the timeline and what the record
+/// is missing. ace3 colours its badges with Bootstrap; here they're words in the same places.
+#[derive(Debug, Template)]
+#[template(path = "analysis/email_thread.html")]
+pub struct EmailThreadView<'a> {
+    pub analysis: &'a EmailThreadAnalysis,
+}
+
+impl EmailThreadView<'_> {
+    pub fn findings(&self) -> Option<String> {
+        self.analysis.findings()
+    }
+
+    pub fn lookalikes(&self) -> Shown<'_, Lookalike> {
+        first(&self.analysis.lookalikes, MAX_ITEMS)
+    }
+
+    pub fn messages(&self) -> Shown<'_, ThreadMessage> {
+        first(&self.analysis.messages, MAX_ITEMS)
+    }
+
+    /// Every joined thread gave one message: what a subject collision looks like.
+    pub fn one_each(&self) -> bool {
+        self.analysis.thread_message_counts.iter().max() == Some(&1)
+    }
+
+    pub fn counts(&self) -> String {
+        let counts: Vec<String> = self
+            .analysis
+            .thread_message_counts
+            .iter()
+            .map(u32::to_string)
+            .collect();
+        counts.join(", ")
+    }
+
+    /// ace3's `'%.4f' | format(jaro_winkler)`.
+    pub fn similarity(&self, entry: &Lookalike) -> String {
+        format!("{:.4}", entry.jaro_winkler)
+    }
+
+    pub fn plural(&self, count: usize) -> &'static str {
+        if count == 1 { "" } else { "s" }
+    }
+}
+
+impl AnalysisView for EmailThreadAnalysis {
+    type View<'a> = EmailThreadView<'a>;
+    fn view(&self) -> EmailThreadView<'_> {
+        EmailThreadView { analysis: self }
     }
 }
 

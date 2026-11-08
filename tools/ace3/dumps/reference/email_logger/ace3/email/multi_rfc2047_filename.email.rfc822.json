@@ -1,0 +1,674 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "email_analyzer",
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "EmailAnalysis",
+      "details": {
+        "email": {
+          "authentication_failed": false,
+          "compauth_reason": null,
+          "compauth_result": null,
+          "decoded_subject": "Test multi-chunk RFC 2047 attachment filename",
+          "dkim_result": null,
+          "dmarc_result": null,
+          "env_mail_from": null,
+          "env_rcpt_to": [],
+          "from": "External Sender <sender@external.example>",
+          "from_address": "sender@external.example",
+          "headers": [
+            [
+              "Return-Path",
+              "<sender@external.example>"
+            ],
+            [
+              "Received",
+              "from mail.external.example (unknown [192.0.2.20])\n\tby mx.company.com (Postfix) with ESMTPS id 0123456789AB\n\tfor <alice@company.com>; Tue, 04 Mar 2025 15:00:00 -0500 (EST)"
+            ],
+            [
+              "Subject",
+              "Test multi-chunk RFC 2047 attachment filename"
+            ],
+            [
+              "To",
+              "alice@company.com"
+            ],
+            [
+              "From",
+              "External Sender <sender@external.example>"
+            ],
+            [
+              "Message-ID",
+              "<multi-rfc2047-filename-test@external.example>"
+            ],
+            [
+              "Date",
+              "Tue, 04 Mar 2025 15:00:00 -0500"
+            ],
+            [
+              "MIME-Version",
+              "1.0"
+            ],
+            [
+              "Content-Type",
+              "multipart/mixed; boundary=\"boundary123\""
+            ]
+          ],
+          "internal_org_sender": false,
+          "is_anonymous_direct_send": false,
+          "log_entry": {
+            "attachment_count": 2,
+            "attachment_hashes": [
+              "5416a9e2ef754dd0d354b8e474df6cf24a71e3072cef39635e6b9197e2b8b438",
+              "d5ef9984be135ec74cbc5dee24825199ca433e1ffd7a2fb22db12a3c5324ea1d"
+            ],
+            "attachment_names": [
+              "email.rfc822.unknown_text_plain_000.txt",
+              "Hello __ World .txt"
+            ],
+            "attachment_sizes": [
+              18,
+              13
+            ],
+            "attachment_types": [
+              "text/plain",
+              "application/octet-stream"
+            ],
+            "authentication_failed": false,
+            "bcc": [],
+            "cc": [],
+            "compauth_reason": null,
+            "compauth_result": null,
+            "date": "2026-11-08 21:47:59.349542 +0000",
+            "dkim_result": null,
+            "dmarc_result": null,
+            "env_mail_from": null,
+            "env_rcpt_to": [],
+            "first_received": "from mail.external.example (unknown [192.0.2.20])\n\tby mx.company.com (Postfix) with ESMTPS id 0123456789AB\n\tfor <alice@company.com>; Tue, 04 Mar 2025 15:00:00 -0500 (EST)",
+            "headers": [
+              "Return-Path: <sender@external.example>",
+              "Received: from mail.external.example (unknown [192.0.2.20])by mx.company.com (Postfix) with ESMTPS id 0123456789ABfor <alice@company.com>; Tue, 04 Mar 2025 15:00:00 -0500 (EST)",
+              "Subject: Test multi-chunk RFC 2047 attachment filename",
+              "To: alice@company.com",
+              "From: External Sender <sender@external.example>",
+              "Message-ID: <multi-rfc2047-filename-test@external.example>",
+              "Date: Tue, 04 Mar 2025 15:00:00 -0500",
+              "MIME-Version: 1.0",
+              "Content-Type: multipart/mixed; boundary=\"boundary123\""
+            ],
+            "in_reply_to": null,
+            "internal_org_sender": false,
+            "is_anonymous_direct_send": false,
+            "last_received": "from mail.external.example (unknown [192.0.2.20])\n\tby mx.company.com (Postfix) with ESMTPS id 0123456789AB\n\tfor <alice@company.com>; Tue, 04 Mar 2025 15:00:00 -0500 (EST)",
+            "mail_from": "External Sender <sender@external.example>",
+            "mail_from_is_local": false,
+            "mail_to": [
+              "alice@company.com"
+            ],
+            "message_directionality": null,
+            "message_id": "<multi-rfc2047-filename-test@external.example>",
+            "originating_ip": null,
+            "path": [
+              "unknown [192.0.2.20]"
+            ],
+            "refereneces": null,
+            "reply_to": null,
+            "size": 898,
+            "spf_result": null,
+            "spoofed_internal": false,
+            "subject": "Test multi-chunk RFC 2047 attachment filename",
+            "subject_raw": "Test multi-chunk RFC 2047 attachment filename",
+            "thread_index": null,
+            "thread_topic": null,
+            "user_agent": null,
+            "x_mailer": null,
+            "x_sender": null
+          },
+          "mail_from_is_local": false,
+          "message-id": "<multi-rfc2047-filename-test@external.example>",
+          "message_directionality": null,
+          "return_path": "sender@external.example",
+          "spf_result": null,
+          "spoofed_internal": false,
+          "subject": "Test multi-chunk RFC 2047 attachment filename",
+          "to": [
+            "alice@company.com"
+          ],
+          "to_addresses": [
+            "alice@company.com"
+          ]
+        },
+        "extraction_errors": [],
+        "parsing_error": null
+      },
+      "detections": [],
+      "module_path": "saq.modules.email.rfc822:EmailAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_from",
+          "value": "sender@external.example"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_to",
+          "value": "alice@company.com"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_conversation",
+          "value": "sender@external.example|alice@company.com"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "display_type": "Decoded Subject",
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_subject",
+          "value": "Test multi-chunk RFC 2047 attachment filename"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [
+            "saq.modules.email.message_id:<class 'saq.modules.email.message_id.MessageIDAnalyzerV2'>"
+          ],
+          "relationships": [],
+          "tags": [],
+          "time": "2025-03-04 20:00:00+00:00",
+          "type": "message_id",
+          "value": "<multi-rfc2047-filename-test@external.example>"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_return_path",
+          "value": "sender@external.example"
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls",
+            "preview",
+            "yara_meta:type=email.attachment"
+          ],
+          "excluded_analysis": [],
+          "file_path": "email.rfc822.unknown_text_plain_000.txt",
+          "relationships": [],
+          "size": 18,
+          "tags": [],
+          "type": "file",
+          "value": "5416a9e2ef754dd0d354b8e474df6cf24a71e3072cef39635e6b9197e2b8b438",
+          "yara_meta": [
+            "type=email.attachment"
+          ]
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls",
+            "render",
+            "yara_meta:type=email.attachment"
+          ],
+          "excluded_analysis": [],
+          "file_path": "Hello __ World .txt",
+          "relationships": [],
+          "size": 13,
+          "tags": [],
+          "type": "file",
+          "value": "d5ef9984be135ec74cbc5dee24825199ca433e1ffd7a2fb22db12a3c5324ea1d",
+          "yara_meta": [
+            "type=email.attachment"
+          ]
+        },
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=email",
+            "yara_meta:type=email.headers"
+          ],
+          "excluded_analysis": [
+            "saq.modules.email.rfc822:<class 'saq.modules.email.rfc822.EmailAnalyzer'>"
+          ],
+          "file_path": "email.rfc822.headers",
+          "relationships": [],
+          "size": 513,
+          "tags": [
+            "email"
+          ],
+          "type": "file",
+          "value": "09db63545e823b9a574916cb5d1188dc8b16e769c8bbd2f47665a9c133cecf90",
+          "yara_meta": [
+            "type=email",
+            "type=email.headers"
+          ]
+        },
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=email",
+            "yara_meta:type=email.combined"
+          ],
+          "excluded_analysis": [
+            "saq.modules.email.rfc822:<class 'saq.modules.email.rfc822.EmailAnalyzer'>"
+          ],
+          "file_path": "email.rfc822.combined",
+          "relationships": [],
+          "size": 535,
+          "tags": [
+            "email"
+          ],
+          "type": "file",
+          "value": "dcd70bcaa924606b123f068c1900433e95f37acf4586199235be3e70876b4fb4",
+          "yara_meta": [
+            "type=email",
+            "type=email.combined"
+          ]
+        }
+      ],
+      "summary": "Email Analysis: From External Sender <sender@external.example> To alice@company.com Subject Test multi-chunk RFC 2047 attachment filename",
+      "tags": []
+    },
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": true,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "message/rfc822",
+        "type": "SMTP mail, ASCII text"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: SMTP mail, ASCII text (message/rfc822) (email)",
+      "tags": []
+    }
+  ],
+  "brocess_after": {
+    "email_thread_domain": [
+      {
+        "address": "sender@external.example",
+        "domain": "external.example",
+        "entry_hash": "6741464441EDDE5E4C54A1CF2BBB186E21EE11CA50FD78A85D51A4CA7DCD75B4",
+        "firstseendate": "2026-11-08 09:00:00",
+        "id": 1,
+        "message_id_hash": "BC24AAE7114720E94C286584B45129B4163FBBAADEEE2DFA62C15BC7F34B3BC0",
+        "numseen": 1,
+        "role": "from",
+        "thread_id": "<multi-rfc2047-filename-test@external.example>",
+        "thread_id_hash": "BC24AAE7114720E94C286584B45129B4163FBBAADEEE2DFA62C15BC7F34B3BC0"
+      },
+      {
+        "address": "sender@external.example",
+        "domain": "external.example",
+        "entry_hash": "8588E0B67A9D4282188FC9F5AA2ECF7B10F017A6FA4AE7F611B64CF98B56CBEF",
+        "firstseendate": "2026-11-08 09:00:00",
+        "id": 2,
+        "message_id_hash": "BC24AAE7114720E94C286584B45129B4163FBBAADEEE2DFA62C15BC7F34B3BC0",
+        "numseen": 1,
+        "role": "return_path",
+        "thread_id": "<multi-rfc2047-filename-test@external.example>",
+        "thread_id_hash": "BC24AAE7114720E94C286584B45129B4163FBBAADEEE2DFA62C15BC7F34B3BC0"
+      },
+      {
+        "address": "alice@company.com",
+        "domain": "company.com",
+        "entry_hash": "2B2CC19209EE0C658A678C83CA9B79F176401539D58313E78CB35ADE93EEF3DE",
+        "firstseendate": "2026-11-08 09:00:00",
+        "id": 3,
+        "message_id_hash": "BC24AAE7114720E94C286584B45129B4163FBBAADEEE2DFA62C15BC7F34B3BC0",
+        "numseen": 1,
+        "role": "to",
+        "thread_id": "<multi-rfc2047-filename-test@external.example>",
+        "thread_id_hash": "BC24AAE7114720E94C286584B45129B4163FBBAADEEE2DFA62C15BC7F34B3BC0"
+      }
+    ],
+    "email_thread_message": [
+      {
+        "direction": 0,
+        "from_address": "sender@external.example",
+        "from_domain": "external.example",
+        "id": 1,
+        "in_reply_to": null,
+        "insert_date": "2026-11-08 09:00:00",
+        "message_date": "2025-03-04 20:00:00",
+        "message_id": "<multi-rfc2047-filename-test@external.example>",
+        "message_id_hash": "BC24AAE7114720E94C286584B45129B4163FBBAADEEE2DFA62C15BC7F34B3BC0",
+        "normalized_subject": "test multi-chunk rfc 2047 attachment filename",
+        "normalized_subject_hash": "E106537A82A579134E897200658A63FAB5E661157200BD5386D00691A9EB74C6",
+        "thread_id": "<multi-rfc2047-filename-test@external.example>",
+        "thread_id_hash": "BC24AAE7114720E94C286584B45129B4163FBBAADEEE2DFA62C15BC7F34B3BC0"
+      }
+    ],
+    "now": "2026-11-08 09:00:00",
+    "smtplog": []
+  },
+  "brocess_before": {
+    "email_thread_domain": [],
+    "email_thread_message": [],
+    "now": "2026-11-08 09:00:00",
+    "smtplog": []
+  },
+  "brocess_reads": [
+    {
+      "established": []
+    },
+    {
+      "thread_message_count": 0
+    }
+  ],
+  "fluent_bit": [
+    {
+      "record": {
+        "path": "database.pool.status",
+        "timestamp": "2026-11-08T21:47:59.344107",
+        "value": "Pool size: 5  Connections in pool: 0 Current Overflow: -4 Current Checked out connections: 1"
+      },
+      "tag": "monitoring"
+    },
+    {
+      "record": {
+        "header": "Return-Path: <sender@external.example>",
+        "header_index": 0,
+        "message_id": "<multi-rfc2047-filename-test@external.example>",
+        "timestamp": "1794174479.349542"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "Received: from mail.external.example (unknown [192.0.2.20])by mx.company.com (Postfix) with ESMTPS id 0123456789ABfor <alice@company.com>; Tue, 04 Mar 2025 15:00:00 -0500 (EST)",
+        "header_index": 1,
+        "message_id": "<multi-rfc2047-filename-test@external.example>",
+        "timestamp": "1794174479.349542"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "Subject: Test multi-chunk RFC 2047 attachment filename",
+        "header_index": 2,
+        "message_id": "<multi-rfc2047-filename-test@external.example>",
+        "timestamp": "1794174479.349542"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "To: alice@company.com",
+        "header_index": 3,
+        "message_id": "<multi-rfc2047-filename-test@external.example>",
+        "timestamp": "1794174479.349542"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "From: External Sender <sender@external.example>",
+        "header_index": 4,
+        "message_id": "<multi-rfc2047-filename-test@external.example>",
+        "timestamp": "1794174479.349542"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "Message-ID: <multi-rfc2047-filename-test@external.example>",
+        "header_index": 5,
+        "message_id": "<multi-rfc2047-filename-test@external.example>",
+        "timestamp": "1794174479.349542"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "Date: Tue, 04 Mar 2025 15:00:00 -0500",
+        "header_index": 6,
+        "message_id": "<multi-rfc2047-filename-test@external.example>",
+        "timestamp": "1794174479.349542"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "MIME-Version: 1.0",
+        "header_index": 7,
+        "message_id": "<multi-rfc2047-filename-test@external.example>",
+        "timestamp": "1794174479.349542"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "Content-Type: multipart/mixed; boundary=\"boundary123\"",
+        "header_index": 8,
+        "message_id": "<multi-rfc2047-filename-test@external.example>",
+        "timestamp": "1794174479.349542"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "archive_path": null,
+        "attachment_count": 2,
+        "attachment_hashes": [
+          "5416a9e2ef754dd0d354b8e474df6cf24a71e3072cef39635e6b9197e2b8b438",
+          "d5ef9984be135ec74cbc5dee24825199ca433e1ffd7a2fb22db12a3c5324ea1d"
+        ],
+        "attachment_names": [
+          "email.rfc822.unknown_text_plain_000.txt",
+          "Hello __ World .txt"
+        ],
+        "attachment_sizes": [
+          18,
+          13
+        ],
+        "attachment_types": [
+          "text/plain",
+          "application/octet-stream"
+        ],
+        "authentication_failed": false,
+        "bcc": [],
+        "cc": [],
+        "compauth_reason": null,
+        "compauth_result": null,
+        "date": "2026-11-08 21:47:59.349542 +0000",
+        "dkim_result": null,
+        "dmarc_result": null,
+        "env_mail_from": null,
+        "env_rcpt_to": [],
+        "first_received": "from mail.external.example (unknown [192.0.2.20])\n\tby mx.company.com (Postfix) with ESMTPS id 0123456789AB\n\tfor <alice@company.com>; Tue, 04 Mar 2025 15:00:00 -0500 (EST)",
+        "in_reply_to": null,
+        "internal_org_sender": false,
+        "is_anonymous_direct_send": false,
+        "last_received": "from mail.external.example (unknown [192.0.2.20])\n\tby mx.company.com (Postfix) with ESMTPS id 0123456789AB\n\tfor <alice@company.com>; Tue, 04 Mar 2025 15:00:00 -0500 (EST)",
+        "mail_from": "External Sender <sender@external.example>",
+        "mail_from_is_local": false,
+        "mail_to": [
+          "alice@company.com"
+        ],
+        "message_directionality": null,
+        "message_id": "<multi-rfc2047-filename-test@external.example>",
+        "originating_ip": null,
+        "path": [
+          "unknown [192.0.2.20]"
+        ],
+        "refereneces": null,
+        "reply_to": null,
+        "size": 898,
+        "spf_result": null,
+        "spoofed_internal": false,
+        "subject": "Test multi-chunk RFC 2047 attachment filename",
+        "subject_raw": "Test multi-chunk RFC 2047 attachment filename",
+        "thread_index": null,
+        "thread_topic": null,
+        "timestamp": "1794174479.349542",
+        "user_agent": null,
+        "x_mailer": null,
+        "x_sender": null
+      },
+      "tag": "phishfinder-main"
+    },
+    {
+      "record": {
+        "any_mixed_script": false,
+        "any_similar": false,
+        "comparison_count": 0,
+        "comparisons": [],
+        "established_domains": [],
+        "max_jaro_winkler": 0.0,
+        "message_id": "<multi-rfc2047-filename-test@external.example>",
+        "min_damerau_levenshtein": null,
+        "normalized_subject": "test multi-chunk rfc 2047 attachment filename",
+        "senders": [
+          {
+            "address": "sender@external.example",
+            "domain": "external.example",
+            "mixed_script": false,
+            "punycode": false,
+            "role": "from"
+          },
+          {
+            "address": "sender@external.example",
+            "domain": "external.example",
+            "mixed_script": false,
+            "punycode": false,
+            "role": "return_path"
+          }
+        ],
+        "thread_id": "<multi-rfc2047-filename-test@external.example>",
+        "thread_message_count": 0,
+        "thread_method": "self",
+        "timestamp": "1794174479.349542"
+      },
+      "tag": "phishfinder-lookalike"
+    },
+    {
+      "record": {
+        "alert_type": "cli_analysis",
+        "analysis_time_seconds": 0.004417,
+        "exec_count": 3,
+        "is_alert": false,
+        "module": "email_analyzer",
+        "percentage": 1.8327189166463045,
+        "queue": "default",
+        "root_uuid": "df8f29a9-d7ea-413c-b2cb-72b0a44913f2",
+        "timestamp": "2026-11-08 21:47:59.568920",
+        "total_analysis_time_seconds": 0.030432,
+        "total_time_seconds": 0.24100804328918457
+      },
+      "tag": "metrics"
+    },
+    {
+      "record": {
+        "alert_type": "cli_analysis",
+        "analysis_time_seconds": 0.024591000000000002,
+        "exec_count": 5,
+        "is_alert": false,
+        "module": "file_type",
+        "percentage": 10.203393905195671,
+        "queue": "default",
+        "root_uuid": "df8f29a9-d7ea-413c-b2cb-72b0a44913f2",
+        "timestamp": "2026-11-08 21:47:59.568920",
+        "total_analysis_time_seconds": 0.030432,
+        "total_time_seconds": 0.24100804328918457
+      },
+      "tag": "metrics"
+    },
+    {
+      "record": {
+        "alert_type": "cli_analysis",
+        "analysis_time_seconds": 0.0014239999999999997,
+        "exec_count": 11,
+        "is_alert": false,
+        "module": "email_logger",
+        "percentage": 0.5908516498311833,
+        "queue": "default",
+        "root_uuid": "df8f29a9-d7ea-413c-b2cb-72b0a44913f2",
+        "timestamp": "2026-11-08 21:47:59.568920",
+        "total_analysis_time_seconds": 0.030432,
+        "total_time_seconds": 0.24100804328918457
+      },
+      "tag": "metrics"
+    },
+    {
+      "record": {
+        "path": "database.pool.available_count",
+        "timestamp": "2026-11-08T21:47:59.569170",
+        "value": 0
+      },
+      "tag": "monitoring"
+    },
+    {
+      "record": {
+        "path": "database.pool.in_use_count",
+        "timestamp": "2026-11-08T21:47:59.569186",
+        "value": 1
+      },
+      "tag": "monitoring"
+    }
+  ],
+  "input": {
+    "directives": [
+      "original_email"
+    ],
+    "label": "ace3/email/multi_rfc2047_filename.email.rfc822, against an empty brocess",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "email.rfc822",
+      "size": 898,
+      "type": "file",
+      "value": "319d73b463bb59113f0c71d76f621f9a2d233d3183b817ae7058dfbd5f01a6a1"
+    }
+  },
+  "module": "email_logger",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "original_email",
+      "yara_meta:type=email"
+    ],
+    "excluded_analysis": [],
+    "file_path": "email.rfc822",
+    "relationships": [],
+    "size": 898,
+    "tags": [
+      "email"
+    ],
+    "type": "file",
+    "value": "319d73b463bb59113f0c71d76f621f9a2d233d3183b817ae7058dfbd5f01a6a1",
+    "yara_meta": [
+      "type=email"
+    ]
+  }
+}

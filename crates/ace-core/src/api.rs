@@ -13,7 +13,10 @@
 //!   be uploaded first; the core checks each one's bytes against its sha256 and moves it into
 //!   the `alert_files` pool, held by the root. A result that fails its check is answered 422 with
 //!   each field that failed, and that ends the task as failed, because the same module would write
-//!   the same result again. The row's error says why.
+//!   the same result again. The row's error says why. A result or a skip also carries the writes
+//!   to ACE's data the task made (PLAN.md 7.2, `writes.rs`), which land in the end's transaction;
+//!   one the module doesn't declare, past its bound or about another email is refused with 403,
+//!   and one that doesn't read with 400, failing the task with nothing written.
 //!
 //! - `POST /api/worker/v1/tasks/<id>/release`: gives the task back to the queue without
 //!   counting the attempt, as a pool does at shutdown.
@@ -46,6 +49,7 @@
 //! owner is `<pool>/<worker>`, so one pool's token can't touch another pool's tasks, and one
 //! worker can't end another worker's.
 
+use std::collections::BTreeMap;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -550,6 +554,7 @@ impl Api {
         } else {
             Vec::new()
         };
+        let (dependency_results, observables_below) = self.tree_reads(&task, runs_last).await?;
         // read after the claim, so an edit committed before it is in the task (`lists`' docs)
         let lists = self.lists_for(&task.module).await?;
         let mut leased = self.wire_task(task, file, redirection);
@@ -557,7 +562,36 @@ impl Api {
         leased.emails_pending = emails_pending;
         leased.yara_rules_below = yara_rules_below;
         leased.lists = lists;
+        leased.dependency_results = dependency_results;
+        leased.observables_below = observables_below;
         Ok(Some(leased))
+    }
+
+    /// What a task reads of its root's tree on the lease: its observable's results from the modules
+    /// its module depends on, and for a module that runs last, the observables below of the types
+    /// it reads there.
+    async fn tree_reads(
+        &self,
+        task: &Task,
+        runs_last: bool,
+    ) -> Result<(BTreeMap<String, Value>, Vec<ObservableRef>), Failure> {
+        let catalog = self.inner.orchestrator.catalog();
+        let Some(manifest) = catalog.get(&task.module) else {
+            return Ok(Default::default());
+        };
+        let pool = self.inner.db.pool();
+        let results = if manifest.depends_on.is_empty() {
+            Vec::new()
+        } else {
+            tree::results_of(pool, task.root, task.observable.id, manifest.depends_on).await?
+        };
+        let below = if runs_last && !manifest.reads_below.is_empty() {
+            tree::observables_below(pool, task.root, task.observable.id, manifest.reads_below)
+                .await?
+        } else {
+            Vec::new()
+        };
+        Ok((results.into_iter().collect(), below))
     }
 
     /// The analyst-edited lists `module` reads, as they are now.
@@ -642,6 +676,8 @@ impl Api {
             emails_pending: false,
             yara_rules_below: Vec::new(),
             lists: Vec::new(),
+            dependency_results: Default::default(),
+            observables_below: Vec::new(),
         }
     }
 
@@ -702,7 +738,13 @@ impl Api {
     /// been uploaded with bytes that match its sha256. Then one transaction puts the files in the `alert_files` pool, held by
     /// the root, and writes the result, its observables, its file records and the tasks that
     /// became eligible. The uploads go once that has committed.
-    async fn land(&self, worker: &Worker, task: TaskId, result: Value) -> Result<(), Failure> {
+    async fn land(
+        &self,
+        worker: &Worker,
+        task: TaskId,
+        result: Value,
+        writes: &[crate::writes::Checked],
+    ) -> Result<(), Failure> {
         let task = worker.owned(task).await?.ok_or(Failure::LeaseLost(task))?;
         let orchestrator = &self.inner.orchestrator;
         if let Err(rejected) = orchestrator.check_result(&task.module, &result) {
@@ -725,6 +767,7 @@ impl Api {
                         bucket.put_in(tx, ALERT_FILES, file, Some(hold)).await?;
                     }
                     orchestrator.land_result(tx, worker, task, result).await?;
+                    crate::writes::apply(tx, task, writes).await?;
                     Ok::<_, LandError>(())
                 })
             })
@@ -732,6 +775,73 @@ impl Api {
         for file in files {
             bucket.remove_upload(task.id.0, &file.sha256).await?;
         }
+        Ok(())
+    }
+
+    /// Checks the writes a task's end carries (PLAN.md 7.2, `writes.rs`). A refused write fails the
+    /// task now, with why, as a result that fails its check does: the module would write the same
+    /// on another attempt.
+    async fn check_writes(
+        &self,
+        worker: &Worker,
+        task: TaskId,
+        writes: Vec<ace_sdk::writes::WireWrite>,
+    ) -> Result<Vec<crate::writes::Checked>, Failure> {
+        if writes.is_empty() {
+            return Ok(Vec::new());
+        }
+        let owned = worker.owned(task).await?.ok_or(Failure::LeaseLost(task))?;
+        let catalog = self.inner.orchestrator.catalog();
+        let manifest = catalog.get(&owned.module);
+        let writes = writes
+            .into_iter()
+            .map(|w| ace_sdk::writes::WireWrite {
+                write: w.write,
+                body: without_nul(w.body),
+            })
+            .collect();
+        match crate::writes::check(&self.inner.db, manifest, &owned, writes).await {
+            Ok(checked) => Ok(checked),
+            Err(crate::writes::WriteFailure::Db(e)) => Err(e.into()),
+            Err(refused) => {
+                let (why, failure) = match refused {
+                    crate::writes::WriteFailure::BadRequest(why) => {
+                        (why.clone(), Failure::BadRequest(why))
+                    }
+                    crate::writes::WriteFailure::Forbidden(why) => {
+                        (why.clone(), Failure::Forbidden(why))
+                    }
+                    crate::writes::WriteFailure::Db(_) => unreachable!("handled above"),
+                };
+                tracing::warn!(%task, module = %owned.module, "refused a task's writes: {why}");
+                worker.fail(task, &why).await?;
+                Err(failure)
+            }
+        }
+    }
+
+    /// Ends a skipped task and lands its writes in one transaction.
+    async fn complete_with_writes(
+        &self,
+        worker: &Worker,
+        task: TaskId,
+        writes: &[crate::writes::Checked],
+    ) -> Result<(), Failure> {
+        let owned = worker.owned(task).await?.ok_or(Failure::LeaseLost(task))?;
+        let owned = &owned;
+        self.inner
+            .db
+            .transaction(Isolation::ReadCommitted, |tx| {
+                Box::pin(async move {
+                    let root = worker
+                        .finish_in(tx, task, crate::queue::TaskState::Done, None)
+                        .await?;
+                    crate::writes::apply(tx, owned, writes).await?;
+                    crate::queue::check_completion(tx, root).await?;
+                    Ok::<_, QueueError>(())
+                })
+            })
+            .await?;
         Ok(())
     }
 
@@ -1034,15 +1144,22 @@ async fn end_in(
     let worker = api.worker(&headers)?;
     let task = TaskId(id);
     match end {
-        TaskEnd::Done { result } => {
+        TaskEnd::Done { result, writes } => {
+            let writes = api.check_writes(&worker, task, writes).await?;
             // checked as JSON, so each field that fails is named
             let result = serde_json::to_value(result)
                 .map_err(|e| Failure::Internal(format!("re-encoding a result: {e}")))?;
-            api.land(&worker, task, without_nul(result)).await?
+            api.land(&worker, task, without_nul(result), &writes)
+                .await?
         }
-        TaskEnd::Skipped { reason } => {
+        TaskEnd::Skipped { reason, writes } => {
             tracing::info!(%task, "skipped: {reason}");
-            worker.complete(task).await?;
+            let writes = api.check_writes(&worker, task, writes).await?;
+            if writes.is_empty() {
+                worker.complete(task).await?;
+            } else {
+                api.complete_with_writes(&worker, task, &writes).await?;
+            }
         }
         TaskEnd::Delay {
             after_seconds,
@@ -1134,7 +1251,16 @@ async fn replay(
         None
     };
     let lists = api.lists_for(&task.module).await?;
+    let runs_last = api
+        .inner
+        .orchestrator
+        .catalog()
+        .get(&task.module)
+        .is_some_and(|manifest| manifest.runs_last);
+    let (dependency_results, observables_below) = api.tree_reads(&task, runs_last).await?;
     let mut leased = api.wire_task(task, file, redirection);
+    leased.dependency_results = dependency_results;
+    leased.observables_below = observables_below;
     // what the task read when it ran, if its email has been parsed by now, as it usually has
     leased.carrying_email = carrying_email;
     // the lists as they are now, which may have changed since it ran
@@ -1201,14 +1327,22 @@ impl Api {
                 task.module
             )));
         }
-        crate::reads::answer(&self.inner.db, &self.inner.stores, task, read, request)
-            .await
-            .map(Json)
-            .map_err(|failure| match failure {
-                crate::reads::ReadFailure::BadRequest(why) => Failure::BadRequest(why),
-                crate::reads::ReadFailure::Forbidden(why) => Failure::Forbidden(why),
-                crate::reads::ReadFailure::Unavailable(why) => Failure::Unavailable(why),
-            })
+        let catalog = self.inner.orchestrator.catalog();
+        crate::reads::answer(
+            &self.inner.db,
+            &self.inner.stores,
+            catalog,
+            task,
+            read,
+            request,
+        )
+        .await
+        .map(Json)
+        .map_err(|failure| match failure {
+            crate::reads::ReadFailure::BadRequest(why) => Failure::BadRequest(why),
+            crate::reads::ReadFailure::Forbidden(why) => Failure::Forbidden(why),
+            crate::reads::ReadFailure::Unavailable(why) => Failure::Unavailable(why),
+        })
     }
 }
 

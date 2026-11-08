@@ -21,16 +21,16 @@ Versions are those of ace3's image: Python packages from `installer/requirements
 | Pool | Modules | Ported |
 |---|---|---|
 | parser | 54 | 9 |
-| lookup | 17 | 4 |
+| lookup | 17 | 6 |
 | core | 3 | 0 |
 | sandbox | 14 | 0 |
 | scanner | 2 | 0 |
-| all | 90 | 13 |
+| all | 90 | 15 |
 
 | Step | Modules |
 |---|---|
-| done | 13 |
-| 7.4 | 5 |
+| done | 15 |
+| 7.4 | 3 |
 | 7.5 | 62 |
 | 7.6 | 5 |
 | 7.7 | 2 |
@@ -57,11 +57,11 @@ In order. Batches 10 to 13 run programs in the sandbox runner, which batch 10 bu
 12. **macOS images**: `dmg_analyzer`, `cve_2021_30657_analyzer`. dmg2img and 7z on the runner.
 13. **Packet captures**: `pcap_analyzer`, `pcap_dns`, `pcap_tls`, `pcap_http`, `pcap_files`, `pcap_tls_decryption`, `tls_keylog`. tshark on the sandbox runner.
 
-7.4 ports, in this workspace: `fqdn_analyzer` (done), `nrd_analyzer`, `snort_signature_analysis_v1` (done), `user_analyzer`, `email_conversation_frequency_analyzer` (done), `email_thread_analyzer`, `email_logger`, `clicker_detection_splunk`. The brocess modules (`email_logger` writes what `email_conversation_frequency_analyzer` and `email_thread_analyzer` read) go together, after 7.2's endpoints.
+7.4 ports, in this workspace: `fqdn_analyzer` (done), `nrd_analyzer`, `snort_signature_analysis_v1` (done), `user_analyzer`, `email_conversation_frequency_analyzer` (done), `email_thread_analyzer` (done), `email_logger` (done), `clicker_detection_splunk`. The brocess modules (`email_logger` writes what `email_conversation_frequency_analyzer` and `email_thread_analyzer` read) go together, after 7.2's endpoints.
 
 ## What 7.2 serves
 
-Modules that read or write ACE's own data in ace3, or hold its encryption key, and what serves each in ace4, where workers hold neither. The reads, their scope, their bounds and how they refuse are a contract in `crates/ace-core/src/reads.md`, beside the lease API; each module's port step builds what its module calls. None is built in 7.2: the one ported module here then, `yara_scanner_v3_4`, gets its data on the ruleset, and that waits for 7.6, which brings the list it reads. 7.4 built the first, `snort-signature`, and `smtp-counts`.
+Modules that read or write ACE's own data in ace3, or hold its encryption key, and what serves each in ace4, where workers hold neither. The reads, their scope, their bounds and how they refuse are a contract in `crates/ace-core/src/reads.md`, beside the lease API; each module's port step builds what its module calls. None is built in 7.2: the one ported module here then, `yara_scanner_v3_4`, gets its data on the ruleset, and that waits for 7.6, which brings the list it reads. 7.4 built the first, `snort-signature`, then `smtp-counts`, `email-thread-domains` with the first writes, `email_logger`'s, and `email-thread`.
 
 `tools/ace3/modules/check` finds these in ace3's code at the commit it checks. From each section's class it follows the class's methods, its bases, the functions they name in ace3's own packages and, through an interface, the methods of the package's classes, until it finds `get_db(`, `get_db_connection(`, `private_transaction(`, `run_private_transaction(` or a Redis connection, or a use of `saq.crypto`. It doesn't follow ace3's framework (`saq.analysis`, `saq.configuration`, `saq.engine` and the module base classes), whose own reads are the engine's. Some reads aren't in the module's own file: they're in helpers such as `saq/brocess.py`, `saq/modules/email/conversation.py`, `saq/email_archive/` and `saq/svs/`. At ace3 `f72f8946` it finds the 14 below. The check fails when this table misses one or lists one it doesn't find, or when a row names nothing to serve it or a read `reads.md` doesn't have.
 
@@ -223,9 +223,9 @@ In the config's order. ace4 is the crate a ported module is in.
 | `email_conversation_frequency_analyzer` | `EmailConversationFrequencyAnalyzer` | `ace-mod-brocess` | lookup | done | email | analysis, cli, correlation, email |
 | `email_conversation_attachment_analyzer` | `EmailConversationAttachmentAnalyzer` | not yet | parser | 7.5 batch 8 | email | analysis, cli, correlation, email |
 | `email_conversation_link_analyzer` | `EmailConversationLinkAnalyzer` | not yet | parser | 7.5 batch 8 | email | analysis, cli, correlation, email |
-| `email_thread_analyzer` | `EmailThreadAnalyzer` | not yet | lookup | 7.4 | correlation | analysis, cli, correlation |
+| `email_thread_analyzer` | `EmailThreadAnalyzer` | `ace-mod-brocess` | lookup | done | correlation | analysis, cli, correlation |
 | `url_email_pivot_analyzer` | `URLEmailPivotAnalyzer` | not yet | lookup | 7.5 batch 9 | correlation | analysis, cli, correlation |
-| `email_logger` | `EmailLoggingAnalyzer` | not yet | lookup | 7.4 | - | email |
+| `email_logger` | `EmailLoggingAnalyzer` | `ace-mod-brocess` | lookup | done | - | email |
 | `file_hash_analyzer` | `FileHashAnalyzer` | not yet | parser | 7.5 batch 2 | file | analysis, binary, cli, correlation, email, file |
 | `ssdeep` | `SsdeepAnalyzer` | not yet | parser | 7.5 batch 2 | file | analysis, binary, cli, correlation, email, file |
 | `archive` | `ArchiveAnalyzer` | `ace-mod-archive` | parser | done | file | analysis, binary, cli, correlation, email, file |
@@ -963,9 +963,9 @@ In the config's order. ace4 is the crate a ported module is in.
 ### email_thread_analyzer
 
 - **Section**: `analysis_module_email_thread_analyzer`, class `EmailThreadAnalyzer` in `saq/modules/email/thread.py`, enabled by default.
-- **ace4**: not yet.
+- **ace4**: ported in `ace-mod-brocess`. Through the `email-thread` read (7.4), with the GUI view `email_thread.html`, which also draws the findings ace3 adds as a summary detail, since ace4's results have none. It runs last, and delays while the read says a module that records threads has a task in the root that hasn't finished, so it sees an alert's own email, which ace3 records before its correlation pass. The pairs never reported are a setting rather than ace3's watched `etc/email_thread_analysis.yaml`, and a core that can't answer fails the task as unavailable where ace3 cools down; `crates/ace-mod-brocess/tests/differences.md` has the rest.
 - **Pool**: lookup. Reads brocess's thread store through the `email-thread` read (7.2); the similarity work is cheap and runs in the same task.
-- **Step**: 7.4.
+- **Step**: done.
 - **Does**: For a message_id, loads the recorded conversation from the brocess thread store and builds a display-only timeline with look-a-like domain pairs, inline markdown findings and missing-parent message ids.
 - **Input**: message_id.
 - **Groups and modes**: groups correlation; modes analysis, cli, correlation.
@@ -1005,9 +1005,9 @@ In the config's order. ace4 is the crate a ported module is in.
 ### email_logger
 
 - **Section**: `analysis_module_email_logger`, class `EmailLoggingAnalyzer` in `saq/modules/email/logging.py`, enabled by default.
-- **ace4**: not yet.
+- **ace4**: ported in `ace-mod-brocess`. A module on the `original_email` file that runs last and depends on the email module, whose result comes with the task, with the URLs below it (`Module::REQUIRED_DIRECTIVES`, `RUNS_LAST`, `DEPENDS_ON`, `READS_BELOW`). Its `smtp-log` and `email-thread` writes land with its task's end (`Module::WRITES`, 7.2), which stores no result, as ace3 creates no analysis; it reads `email-thread-domains` for the look-alike telemetry, and sends fluent-bit's forward protocol itself. No URLs come from `url_extraction` and `archive_path` is null until 7.5 ports those modules; `crates/ace-mod-brocess/tests/differences.md` has the rest.
 - **Pool**: lookup. Writes brocess (through the internal API) and sends records to fluent-bit; parses nothing new.
-- **Step**: 7.4.
+- **Step**: done.
 - **Does**: In post-analysis, for each file with the original_email directive and a non-whitelisted EmailAnalysis, exports the email's log entry (plus every extracted URL and archive path) to brocess smtplog and fluent-bit, records the message in the brocess thread store, and emits look-a-like domain telemetry.
 - **Input**: none (valid_observable_types None; works in execute_post_analysis over files with directive original_email).
 - **Groups and modes**: groups none; modes email.

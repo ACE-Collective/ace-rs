@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO brocess.email_thread_message\n             (thread_id, thread_id_hash, message_id, message_id_hash, in_reply_to,\n              normalized_subject, normalized_subject_hash, from_address, from_domain, direction,\n              message_date)\n         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)\n         ON CONFLICT (thread_id_hash, message_id_hash) DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Bytea",
+        "Text",
+        "Bytea",
+        "Text",
+        "Text",
+        "Bytea",
+        "Text",
+        "Text",
+        "Int2",
+        "Timestamp"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "38b6a6c0a2d0e59b7ff4e089c8b0e53f1b004807a29f12a14d2307162eac5650"
+}

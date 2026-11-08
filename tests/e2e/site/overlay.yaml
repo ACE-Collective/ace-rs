@@ -11,6 +11,10 @@ modules:
   fqdn_analyzer:
     settings:
       nameservers: ["responder:53"]
+  # the stack has no fluent-bit; the logger's brocess writes are what the test checks
+  email_logger:
+    settings:
+      fluent_bit_logging_enabled: false
   splunk_api:
     instances:
       # ace3's correlation group runs an instance by this name, so a root that becomes an

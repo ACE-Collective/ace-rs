@@ -1,0 +1,1453 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "email_analyzer",
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "EmailAnalysis",
+      "details": {
+        "email": {
+          "authentication_failed": true,
+          "compauth_reason": "201",
+          "compauth_result": "softpass",
+          "decoded_subject": "canary #3",
+          "dkim_result": "fail",
+          "dkim_signing_domains": [
+            "gmail.com"
+          ],
+          "dmarc_result": "fail",
+          "env_mail_from": "unixfreak0037@gmail.com",
+          "env_rcpt_to": [
+            "jwdavison@company.com"
+          ],
+          "first_hop_helo": "us-smtp-1.mimecast.com",
+          "first_hop_ip": "207.211.31.120",
+          "from": "John Davison <unixfreak0037@gmail.com>",
+          "from_address": "unixfreak0037@gmail.com",
+          "headers": [
+            [
+              "Received",
+              "from BN6PR2001CA0043.namprd20.prod.outlook.com (10.172.27.29) by\n BN6PR2001MB1905.namprd20.prod.outlook.com (10.174.81.10) with Microsoft SMTP\n Server (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384_P256) id\n 15.20.527.15; Fri, 23 Feb 2018 18:22:20 +0000"
+            ],
+            [
+              "Received",
+              "from BY2NAM01FT010.eop-nam01.prod.protection.outlook.com\n (2a01:111:f400:7e42::200) by BN6PR2001CA0043.outlook.office365.com\n (2603:10b6:405:16::29) with Microsoft SMTP Server (version=TLS1_2,\n cipher=TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384) id 15.20.527.15 via Frontend\n Transport; Fri, 23 Feb 2018 18:22:20 +0000"
+            ],
+            [
+              "Authentication-Results",
+              "spf=softfail (sender IP is 207.211.31.120)\n smtp.mailfrom=gmail.com; company.com; dkim=fail (body hash did not verify)\n header.d=gmail.com;company.com; dmarc=fail action=none\n header.from=gmail.com;"
+            ],
+            [
+              "Received-SPF",
+              "SoftFail (protection.outlook.com: domain of transitioning\n gmail.com discourages use of 207.211.31.120 as permitted sender)"
+            ],
+            [
+              "Received",
+              "from us-smtp-1.mimecast.com (207.211.31.120) by\n BY2NAM01FT010.mail.protection.outlook.com (10.152.68.104) with Microsoft SMTP\n Server (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384_P256) id\n 15.20.506.19 via Frontend Transport; Fri, 23 Feb 2018 18:22:19 +0000"
+            ],
+            [
+              "Received",
+              "from mail-lf0-f45.google.com (mail-lf0-f45.google.com\n [209.85.215.45]) (Using TLS) by us-smtp-1.mimecast.com with ESMTP id\n us-mta-251-KmnS3zR4MtinG2Rc3Ll5aA-1; Fri, 23 Feb 2018 13:22:17 -0500"
+            ],
+            [
+              "Received",
+              "by mail-lf0-f45.google.com with SMTP id t79so13632720lfe.3\n        for <jwdavison@company.com>; Fri, 23 Feb 2018 10:22:17 -0800 (PST)"
+            ],
+            [
+              "DKIM-Signature",
+              "v=1; a=rsa-sha256; c=relaxed/relaxed;\n        d=gmail.com; s=20161025;\n        h=mime-version:from:date:message-id:subject:to;\n        bh=cd7yRZXIitoc+LkoHtdNMAwtGdashgrFEmFW2JaB26w=;\n        b=DQIIuISbc3rvshT/VAXa6mePokURLVBWVMDWBqJ2cW4dxyurDJXUyUbCDDBe8l9KkS\n         KZvyH8KXr9KKTGPrxc7wzZUAkEwObPm5eM06G5ivfG9wF/HQOzgxetpapaH5MRfodTrg\n         8wu8sOYriAs83ycXwc6o71PmDyfWXt2axF3rN+ZdA/Msa9sfFNktYBklD74ioKo7q6u7\n         0mLCG5hn2ouq1jB/QajRbcqQ2qoE0G/c5+o4pjK8JFLISOJq14AyfPiUSi7CvoLB17Df\n         8vZDyPN8+KtWN6J3DhIh7QfwRp+jbE7isiEjcSx5RkPiBdFvU/KXoCtEAlzmV3GPwjMl\n         z1Iw=="
+            ],
+            [
+              "X-Google-DKIM-Signature",
+              "v=1; a=rsa-sha256; c=relaxed/relaxed;\n        d=1e100.net; s=20161025;\n        h=x-gm-message-state:mime-version:from:date:message-id:subject:to;\n        bh=cd7yRZXIitoc+LkoHtdNMAwtGdashgrFEmFW2JaB26w=;\n        b=ELyyENtK32E0HlvVE9a5EPtE2QYX20+D/myVF2+GWPaQ04z/dgm3t2k1PpUfFT3Jfk\n         weIl5/riygMyZ5lpYPHHBykvK+35yb+j5dGW9R1v0bNv4doaWVnbVrSHIrkPjPIKduNk\n         /M3AqmkY88L+Askcf2J5P1dNP3NM3QS86+IeyNRwtjFXKUB9sutLuBicKFZO6hMPJ4IB\n         QF8tGHUIPGtqZfVfEcDRdVWhrvKdSkc2yfcs/1rJJqRJK2bDj2EXG0/YWTknCRc/+acu\n         x9OmN2u1nXXGN8EH67BPG8DN5r0wrdARZKPcrq7LHiFlt0wYxwHupOWH7zyFiuZWnfbG\n         TmMg=="
+            ],
+            [
+              "X-Gm-Message-State",
+              "APf1xPCKqWEZhm6Vg1AD3tpYkZ40ljTPadE07846hVhkbfo2vTmVGYxy\n\tvKTWz3C73FAGQK3ccQLf3tMHF5Hz/FjTNwhc3BJAPcts"
+            ],
+            [
+              "X-Google-Smtp-Source",
+              "AH8x227rwx+GiQc/eMRMR1oQ1UpKB+HKAjKBQao4qR2E/2YTYUPyqNhOtQlqbvtysEEBOgew+rObouvQUOAJRMTY0CU="
+            ],
+            [
+              "X-Received",
+              "by 10.46.43.17 with SMTP id q17mr2166386lje.20.1519410135496; Fri,\n 23 Feb 2018 10:22:15 -0800 (PST)"
+            ],
+            [
+              "MIME-Version",
+              "1.0"
+            ],
+            [
+              "Received",
+              "by 10.46.5.71 with HTTP; Fri, 23 Feb 2018 10:22:14 -0800 (PST)"
+            ],
+            [
+              "From",
+              "John Davison <unixfreak0037@gmail.com>"
+            ],
+            [
+              "Date",
+              "Fri, 23 Feb 2018 13:22:14 -0500"
+            ],
+            [
+              "Message-ID",
+              "<CANTOGZsMiMb+7aB868zXSen_fO=NS-qFTUMo9h2eHtOexY8Qhw@mail.gmail.com>"
+            ],
+            [
+              "Subject",
+              "canary #3"
+            ],
+            [
+              "To",
+              "jwdavison@company.com"
+            ],
+            [
+              "X-MC-Unique",
+              "KmnS3zR4MtinG2Rc3Ll5aA-1"
+            ],
+            [
+              "Authentication-Results-Original",
+              "mimecast.com;\tspf=pass (spfCheck: domain of\n _spf.google.com designates 209.85.215.45 as permitted sender)\n client-ip=209.85.215.45; envelope-from=unixfreak0037@gmail.com;\n helo=mail-lf0-f45.google.com;\tdkim=pass header.i=@gmail.com;\tdmarc=pass\n (p=allow dis=allow) header.from=gmail.com"
+            ],
+            [
+              "Content-Type",
+              "multipart/alternative;\n\tboundary=\"_0c036305-5e94-4585-ba29-c9425ccc5bc8_\""
+            ],
+            [
+              "Return-Path",
+              "unixfreak0037@gmail.com"
+            ],
+            [
+              "X-MS-Exchange-Organization-OriginalArrivalTime",
+              "23 Feb 2018 18:22:19.8627\n (UTC)"
+            ],
+            [
+              "X-MS-Exchange-Organization-Network-Message-Id",
+              "9765f09b-0f6b-4cb5-d955-08d57aea6075"
+            ],
+            [
+              "X-MS-Exchange-Organization-OriginalClientIPAddress",
+              "207.211.31.120"
+            ],
+            [
+              "X-MS-Exchange-Organization-OriginalServerIPAddress",
+              "10.152.68.104"
+            ],
+            [
+              "X-MS-Exchange-Organization-MessageScope",
+              "3eab9b1c-fde4-4cdd-b0e9-fe279ff4c53e"
+            ],
+            [
+              "X-MS-Exchange-Forest-MessageScope",
+              "3eab9b1c-fde4-4cdd-b0e9-fe279ff4c53e"
+            ],
+            [
+              "X-EOPAttributedMessage",
+              "0"
+            ],
+            [
+              "X-EOPTenantAttributedMessage",
+              "6e1e3a0a-cb5b-4699-9a6a-595e9ef289e9:0"
+            ],
+            [
+              "X-MS-Exchange-Organization-TargetResourceForest",
+              "namprd20.prod.outlook.com"
+            ],
+            [
+              "X-MS-Exchange-Organization-MessageDirectionality",
+              "Incoming"
+            ],
+            [
+              "X-MS-Exchange-Organization-Id",
+              "6e1e3a0a-cb5b-4699-9a6a-595e9ef289e9"
+            ],
+            [
+              "X-MS-Exchange-Organization-FFO-ServiceTag",
+              "NAM01B"
+            ],
+            [
+              "X-MS-Exchange-Organization-ConnectingIP",
+              "207.211.31.120"
+            ],
+            [
+              "X-MS-Exchange-Organization-Exchange-Diagnostics-Stage-SecureDataContainer",
+              "0"
+            ],
+            [
+              "X-MS-Exchange-Organization-MxPointsToUs",
+              "false"
+            ],
+            [
+              "X-MS-Exchange-Organization-VBR-Class",
+              "GrayBest"
+            ],
+            [
+              "X-MS-Exchange-Organization-SpoofDetection-Frontdoor-DisplayDomainName",
+              "gmail.com"
+            ],
+            [
+              "X-MS-Exchange-Organization-CompAuthRes",
+              "softpass"
+            ],
+            [
+              "X-MS-Exchange-Organization-CompAuthReason",
+              "201"
+            ],
+            [
+              "X-Forefront-Antispam-Report",
+              "CIP:207.211.31.120;IPV:CAL;SCL:-1;CTRY:US;EFV:NLI;SFV:SKN;SFS:;DIR:INB;SFP:;SCL:-1;SRVR:BN6PR2001MB1905;H:us-smtp-1.mimecast.com;FPR:;SPF:None;LANG:en;"
+            ],
+            [
+              "X-MS-Exchange-Organization-SCL",
+              "-1"
+            ],
+            [
+              "X-MS-Exchange-Organization-Originating-Country",
+              "US"
+            ],
+            [
+              "X-MS-Exchange-Organization-Scanned-By-IP-Filter",
+              "true"
+            ],
+            [
+              "X-MS-Exchange-Organization-OriginalEnvelopeRecipients",
+              "jwdavison@company.com"
+            ],
+            [
+              "X-MS-Exchange-Organization-MxRecordAlignment",
+              "0"
+            ],
+            [
+              "X-MS-Exchange-Organization-SenderRep-Score",
+              "3"
+            ],
+            [
+              "X-MS-Exchange-Organization-SenderRep-Data",
+              "IpClassLargeGrayBest_GrayBest_GrayOther"
+            ],
+            [
+              "X-MS-Exchange-Organization-TLSSubject",
+              "CN=*.mimecast.com, OU=Technical\n Operations, O=Mimecast Services Limited, L=London, S=London, C=GB"
+            ],
+            [
+              "X-MS-Exchange-Organization-HMATPModel-Spf",
+              "3"
+            ],
+            [
+              "X-MS-Exchange-Organization-HMATPModel-FeatureReputationValues-Spam",
+              "111;6;20;41;41;-1;57;57;3;-1;-1;-1;-1;21;-1"
+            ],
+            [
+              "X-MS-Exchange-Organization-HMATPModel-FeatureReputationValues-Phish",
+              "4;0;1;2;2;-1;2;2;0;-1;-1;-1;-1;1;-1"
+            ],
+            [
+              "X-MS-Exchange-Organization-HMATPModel-Recipient",
+              "<PII:H101(o6tXwi8LRYvj9iEqezD4F70Nrwp1DgdXEZNl4xEyq7E=)>@company.com"
+            ],
+            [
+              "X-Microsoft-Exchange-Diagnostics",
+              "1;BY2NAM01FT010;1:cXHxorVBgYsCo5RElcyw2WCLBZnnsYie4Ky11aQ4YaytVzEjErT9ACPrPPKGeSw1C3fdzi0Jg5NSOo8MpHNdMnLxTVhrtyAioDLZdgR8zaV39dQdzEwjmPR911TqGAAa"
+            ],
+            [
+              "X-MS-Exchange-Organization-Cross-Premises-Headers-Processed",
+              "BY2NAM01FT010.eop-nam01.prod.protection.outlook.com"
+            ],
+            [
+              "X-MS-Exchange-Organization-OrderedPrecisionLatencyInProgress",
+              "LSRV=BN6PR2001CA0043.namprd20.prod.outlook.com:TOTAL-FE=0.187|SMR=0.178(SMRPI=0.058(SMRPI-FrontendProxyAgent=0.057));2018-02-23T18:22:20.328Z"
+            ],
+            [
+              "X-MS-Exchange-Organization-MessageLatency",
+              "SRV=BY2NAM01FT010.eop-nam01.prod.protection.outlook.com:TOTAL-FE=0.359|SMR=0.358"
+            ],
+            [
+              "X-MS-Exchange-Organization-MessageLatency",
+              "SRV=BN6PR2001CA0043.namprd20.prod.outlook.com:TOTAL-FE=0.187|SMR=0.178(SMRPI=0.058(SMRPI-FrontendProxyAgent=0.057))"
+            ],
+            [
+              "X-MS-Exchange-Forest-ArrivalHubServer",
+              "BN6PR2001MB1905.namprd20.prod.outlook.com"
+            ],
+            [
+              "X-MS-Exchange-Organization-AuthSource",
+              "BY2NAM01FT010.eop-nam01.prod.protection.outlook.com"
+            ],
+            [
+              "X-MS-Exchange-Organization-AuthAs",
+              "Anonymous"
+            ],
+            [
+              "X-MS-Exchange-Organization-FromEntityHeader",
+              "Internet"
+            ],
+            [
+              "X-MS-Exchange-Organization-TransportTrafficType",
+              "Email"
+            ],
+            [
+              "X-MS-Exchange-Organization-TransportTrafficSubType",
+              ""
+            ],
+            [
+              "X-MS-PublicTrafficType",
+              "Email"
+            ],
+            [
+              "X-MS-Exchange-Organization-Antispam-ProtocolFilterHub-ScanContext",
+              "ProtocolFilterHub:SmtpOnEndOfData;"
+            ],
+            [
+              "X-MS-Office365-Filtering-Correlation-Id",
+              "9765f09b-0f6b-4cb5-d955-08d57aea6075"
+            ],
+            [
+              "X-Microsoft-Antispam",
+              "UriScan:;BCL:0;PCL:0;RULEID:(7020095)(5600026)(4604075)(4605076)(1401096)(71702078);SRVR:BN6PR2001MB1905;"
+            ],
+            [
+              "X-Microsoft-Exchange-Diagnostics",
+              "1;BN6PR2001MB1905;3:nreH+bA/sMskUxRXF3979mKSz5VC3HL0sHhjqZbiBOm+E3NkRs+CapEpiyGMbQfW4M72YxulbTjhe9vMeEAIIty0W7Q3AsLS8jzhWviyXwi2mZz0oR4a37KiQAT82uhjMh/3v9tXtIgExFbWIFplzUBbvIIfWpGJshbQhpB6aGRzfBxUFB7IWFHUcCTa7EuER9UUDSn1P64kJ5SjNkAfADAzNLxRYd+KeHPRcGSS89FGhCYzJ9XaCGKQgVWsstBgxysULVlwX5U6P1XkzxVIb7b6N1STwgX+JUbzoeKV1fRzZMT5PzPMLhe5hKPg0jlHdw7XPLNrf+GHNcc8ZBcGpAS0ozkd2RZAiZptsiCH6HY=;25:gFQi49t8Cuxsx5KDQCK+jyitNvNQJEqX9XwezMcGUzCB9JeNWeViwbMDgqP2xctXfvcqxLmPYJJPr3b7hCYiejmJPwIrMwpUEK1dJHfnKa31zQqD6jwb2fmrrOtxJSwfspEOJZiOfSgqBgphIDBnNAmfw1tGAAAWdopreFpv3NfmKsA8I4apUOSMCzQyP/VXEL8z/wcYI8H1dzMdO+LrrKW3PrqdF0rmjmW8s8JoK4OfAefpfcYx+8GSK8on4/EE43sBwEfBtGGVd5sfUximMEfhGW6wXDzPN4Ga3i00rPNHJkSf/qZqNy3ypSo2NKK1fhJjNZNPSnQpuYELrQ34YA=="
+            ],
+            [
+              "X-MS-Exchange-Organization-OriginalSize",
+              "11437"
+            ],
+            [
+              "X-MS-TrafficTypeDiagnostic",
+              "BN6PR2001MB1905:"
+            ],
+            [
+              "X-MS-Exchange-Organization-HygienePolicy",
+              "Premium"
+            ],
+            [
+              "X-MS-Exchange-Organization-IsPotentialIntraOrgMail",
+              "False"
+            ],
+            [
+              "X-MS-Exchange-Organization-Antispam-PreContentFilter-PolicyLoadTime",
+              "MAOSUB:2;SLOSUB:0;SAORES:1;SLORES:1;"
+            ],
+            [
+              "X-MS-Exchange-Organization-MessageFingerprint",
+              "6478D908.881F6557.BF46623E.C118835D.20044"
+            ],
+            [
+              "X-MS-Exchange-Organization-Antispam-PreContentFilter-ScanContext",
+              "CategorizerOnSubmitted;CategorizerOnResolved;"
+            ],
+            [
+              "X-MS-Exchange-Organization-AVScannedByV2",
+              "Command;Symantec;Microsoft"
+            ],
+            [
+              "X-MS-Exchange-Organization-AVScanComplete",
+              "true"
+            ],
+            [
+              "X-MS-Exchange-Organization-Recipient-Limit-Verified",
+              "True"
+            ],
+            [
+              "X-MS-Exchange-Organization-TotalRecipientCount",
+              "1"
+            ],
+            [
+              "X-MS-Exchange-Organization-HMATPModel-DkimAuthStatus",
+              "2"
+            ],
+            [
+              "X-MS-Exchange-Organization-HMATPModel-DmarcAuthStatus",
+              "3"
+            ],
+            [
+              "X-Microsoft-Exchange-Diagnostics",
+              "1;BN6PR2001MB1905;31:eSVpzHPCbZsrS59L/bCyerT9ChgrH12Vgq4coyb65F8O/yTDclQba6ye9YRRC3K/7+QK+BjYAWDI0y7YMBdJPmlmTxpa22RsH3HOmVE5SjF7FKCEQOX5QRzLdRQB3iAsyZvecomFpTyBQy0O+yfG1zP6wDO8/l276nudsQ65AeG6I6ZUVnymLo5p2T1bLd8qi/uhLC2KMLzOeXOYnuBwUb2f8HcgpbbiPsnjIOIScv0=;20:EwFzZEPoX0UF1+TcB2F17DSw9msleaW8UG/1Jl8ZmmW3ltvN8UCcOk/m79+hcZx3SNSSxKyBWaZuv/vxg3HazCzLntYGQiGIQRHUvVkh+rxBs4B6gRPkq1IBh4whPtzgofws+mkFKf+GZCtN2A8KXXWcory+yB3nJzKRbJJcyuboOrpoWh6vFDxEGy9b2VWAQphY3vRG1PZDdZ8QlnwR1a2N8cT6oC9w4s3xgQgwjkEY4jINNhG+cqVEtvCS6UbVx/P1mde8It6esls5e0Fc+bO6L6cvcYIKxZLnvZKauQOxFoIfAPlRJs62XqOOdANujGc0vprKvO5qDI2MugEmU6MOWyVWgEfCEYGSgGBs8kfV13uA65s+rCJ/bhMmCeB20XjuLS4Js3esYk2LXB9Ek/lUrtgKCSs07Tl7aB/BXkA0iTxOxaGZw4q9DJYcFK4JBGqxTjMh46gVfbVqDQ1N/dpkqLoROeXl+Lwz3Hxbr9Rxf4sTW28svMyOSpcfORZs"
+            ],
+            [
+              "X-MS-Exchange-Organization-Rules-Execution-History",
+              "d7714c4d-adcd-4773-989c-59926fcc11e5%%%3b0bb397-8cac-41d3-ab56-25035c8ab3dc%%%403c64e1-f062-40b1-a5f5-f351e816b3c1%%%6031581b-87eb-42ab-9346-bcda9ea2ad19%%%b45a7abf-d936-4fa6-9308-d22b6cda1ddb%%%f6f3288f-dddf-4dfd-8c14-802ae7eb3b6c%%%8168ea4e-b16f-4a10-88e9-2fb93535d2a2%%%69ec4db5-1f86-41a8-828f-ea2daf5f5c25%%%be8ed082-83fa-4061-929d-345319539bae"
+            ],
+            [
+              "X-MS-Exchange-Organization-Disclaimer-Hash",
+              "e1af577c5532344db024d91a7a26ea4a357a7c89a00e1805be3a7b21c3818370"
+            ],
+            [
+              "X-MS-Exchange-Forest-RulesExecuted",
+              "BN6PR2001MB1905"
+            ],
+            [
+              "X-MS-Exchange-Organization-RulesExecuted",
+              "BN6PR2001MB1905"
+            ],
+            [
+              "X-MS-Exchange-Organization-Antispam-ContentFilter-ScanContext",
+              "CategorizerOnResolved;CategorizerOnRouted;"
+            ],
+            [
+              "X-MS-Exchange-Organization-TT-Fingerprint",
+              "6478D908.881F6557.BF46623E.C118835D.20044"
+            ],
+            [
+              "X-MS-Exchange-Organization-ASDirectionalityType",
+              "1"
+            ],
+            [
+              "X-MS-Exchange-Organization-CompAuth",
+              "compauth=none reason=405"
+            ],
+            [
+              "X-Exchange-Antispam-Report-Test",
+              "UriScan:(85827821059158);"
+            ],
+            [
+              "X-MS-Exchange-Organization-HeloRdns",
+              "us-smtp-1.mimecast.com;us-smtp-delivery-1.mimecast.com"
+            ],
+            [
+              "X-Exchange-Antispam-Report-CFA-Test",
+              "BCL:0;PCL:0;RULEID:(2401047)(8121501046)(1430306)(1431041)(1437130)(1441077)(1551027)(9101536074)(3231101)(902075)(903095)(944500087)(944510158)(944921075)(946801075)(946901075)(3002001)(93006095)(93003095)(10201501046)(1610001)(8301001075)(8301003183)(201708071742011);SRVR:BN6PR2001MB1905;BCL:0;PCL:0;RULEID:;SRVR:BN6PR2001MB1905;"
+            ],
+            [
+              "X-Microsoft-Exchange-Diagnostics",
+              "1;BN6PR2001MB1905;4:ioN3ZJedqQdvli9vCnGMNltYr+zgWPVmf0tG6c5alcGO4ISl/8lFJTQOxfJlhQV63Ley7XC/TGhw59ZawZAuE4KxAsVkAsdIZi/2xJnTpjkGBFSG7bZmCiffHvlcBBdJjwMCus98FyQdcIafsKRlFx5efT20Yx0vsvLYaVi7kdc4dmWtxdArk94pt9oxr1ynhEh3gPXIxkWYq3uoQ+VefRL/l9su1WN7CUeSXOCrzorhJv2FaRJHhqWsQ0Tjhru2Y25Faz792vol5AMvTe+7d0Kf1M2dlmiVEZQAiRNUNcup5WHy5IOsvs/fZYpjxpPd;23:MWNwE/MOBLVTPZgClSgqYWoYlNSaiiFQpanincmk1DqNVUYN8UhvLRdEm7TFYoiuRBHbLLaoNDxb/1NrPj+HC17u+vvZEp4uLk3vdCro0UhrVsM7slDQ1peOOo6zyjdqLksaY0LI5zudcb7+E0dTG4mL+t+CuAVoU8qLQVNrueAS5asP8KBSO7r7mG2lKcCU;6:CMuTSH10t0kxrGMsDt4hv7qIBuEJOgaUzWyAKhNMcq4FLygg08B8j7jTk/79XGjz3+DZtYVJjgiHTbeNLEZAq+SZM45Ujd6XkE2GxMDFC8FXEXS0P0LS1gOf0uZkHDnnGdVO/O60nTr7681sjHdnJV7H2teYOcdvoMFHzDffXG70clq5qOHLYDoV4FVSf0I5x8cGdLO0ssZ5YRjpW3YL8A+a2EyebNDTh4Ncz7qmvjJG1H4zcF0otPONnaNqAGDnaJTs353MRmEIvVUDeKxbQyWdOdLeAzdhkXKxL2ppiyojIm+omJt5zXJGAH7UhizGNx3/FHA4FQBclmCxvtGGsBNdB7qfg0sqc0BNPVwreaK6sZiR8F60pvWoh+7k+kycMoQ8EcOdQ2NuP5c2cpnzeA=="
+            ],
+            [
+              "X-MS-Exchange-Organization-Antispam-ScanContext",
+              "DIR:Incoming;SFV:SKN;SKIP:0;"
+            ],
+            [
+              "X-MS-Exchange-Organization-Antispam-PostContentFilter-ScanContext",
+              "CategorizerOnResolved;CategorizerOnRouted;"
+            ],
+            [
+              "X-Microsoft-Antispam-Message-Info",
+              "yGQC7JQXgcC+ph/gymyINJ8kvst3uUhlX9sJePX0A+/MKYD5V+QofS3Pma/8KgJ/X5qqYzzy+yUq9F4IPtcyY4cO4sTSh3d38bsF40dnq98Q5b4pXLlQEaSwXAtRLvxU9Ocz+YxBqIOspSfHREisO2Nv5CgubAF05cK3CPuoVwreFu0IanWCjX4BdF/EtLPycRbOwGiL+L3+/lG5nAUE/tXUFMSLqfnNMSWaYZUX7lIGcvgY8lw6cE3imaMVeVWi"
+            ],
+            [
+              "X-MS-Exchange-Organization-GroupForkPerf",
+              "VCL=0;VL=0"
+            ],
+            [
+              "X-MS-Exchange-Forest-IndexAgent-0",
+              "AQ0CZW4AAU0BAAAPAAADH4sIAAAAAAAEADWPMU/DMBCFL3HatC5BbA\n wI6eZKddIyFJhAdEIMDEjMbuomVh07ip2WH8GP5tIK6cl6d9/ds/0b\n Z3w+n3/V2iNJWlQ/QXVWGlSN1AYb5b2slMA3Z/e6azDUCr2yO9XhVu\n 1dp9C1ympboQxBlnWjbPDoOiyNLg9D32h78AJfj07vsHQ20ATFyIDG\n uYNH3/tWl9r1XtBTMr58WovVshCrR7Es1hmvQ2j9c56fTichjVb2KH\n sTROma/AKJBbNrheuq/GPzmcutz+vQGMKLRcbfXW3xW+BGHrV3NuO9\n 1T/7TslDUTysX6rhn0NaxmGUwCgGRprAdATjFKYpTBgkY0hJ5Gdw9U\n /T88CEVsjw6IYBsCi5nDFAHLHBE43g7hzCYcZgnERwDyltUeeiBGZU\n RsDouiyCW7imQPYHWpE4U5sBAAABCvMBPD94bWwgdmVyc2lvbj0iMS\n 4wIiBlbmNvZGluZz0idXRmLTE2Ij8+DQo8RW1haWxTZXQ+DQogIDxW\n ZXJzaW9uPjE1LjAuMC4wPC9WZXJzaW9uPg0KICA8RW1haWxzPg0KIC\n AgIDxFbWFpbCBTdGFydEluZGV4PSIyNDMiIFBvc2l0aW9uPSJTaWdu\n YXR1cmUiPg0KICAgICAgPEVtYWlsU3RyaW5nPnVuaXhmcmVhazAwMz\n dAZ21haWwuY29tPC9FbWFpbFN0cmluZz4NCiAgICA8L0VtYWlsPg0K\n ICA8L0VtYWlscz4NCjwvRW1haWxTZXQ+AQvMAjw/eG1sIHZlcnNpb2\n 49IjEuMCIgZW5jb2Rpbmc9InV0Zi0xNiI/Pg0KPFVybFNldD4NCiAg\n PFZlcnNpb24+MTUuMC4wLjA8L1ZlcnNpb24+DQogIDxVcmxzPg0KIC\n AgIDxVcmwgU3RhcnRJbmRleD0iMTYyIiBUeXBlPSJVcmwiPg0KICAg\n ICAgPFVybFN0cmluZz5odHRwczovL3d3dy5hbGllbnZhdWx0LmNvbS\n 88L1VybFN0cmluZz4NCiAgICA8L1VybD4NCiAgICA8VXJsIFN0YXJ0\n SW5kZXg9IjE5MSIgVHlwZT0iVXJsIj4NCiAgICAgIDxVcmxTdHJpbm\n c+aHR0cDovL3RsZHAub3JnL0xEUC9hYnMvaHRtbC88L1VybFN0cmlu\n Zz4NCiAgICA8L1VybD4NCiAgPC9VcmxzPg0KPC9VcmxTZXQ+AQy5BD\n w/eG1sIHZlcnNpb249IjEuMCIgZW5jb2Rpbmc9InV0Zi0xNiI/Pg0K\n PENvbnRhY3RTZXQ+DQogIDxWZXJzaW9uPjE1LjAuMC4wPC9WZXJzaW\n 9uPg0KICA8Q29udGFjdHM+DQogICAgPENvbnRhY3QgU3RhcnRJbmRl\n eD0iMjI2IiBQb3NpdGlvbj0iU2lnbmF0dXJlIj4NCiAgICAgIDxQZX\n Jzb24gU3RhcnRJbmRleD0iMjI2IiBQb3NpdGlvbj0iU2lnbmF0dXJl\n Ij4NCiAgICAgICAgPFBlcnNvblN0cmluZz5Kb2huIFcuIERhdmlzb2\n 48L1BlcnNvblN0cmluZz4NCiAgICAgIDwvUGVyc29uPg0KICAgICAg\n PEVtYWlscz4NCiAgICAgICAgPEVtYWlsIFN0YXJ0SW5kZXg9IjI0My\n IgUG9zaXRpb249IlNpZ25hdHVyZSI+DQogICAgICAgICAgPEVtYWls\n U3RyaW5nPnVuaXhmcmVhazAwMzdAZ21haWwuY29tPC9FbWFpbFN0cm\n luZz4NCiAgICAgICAgPC9FbWFpbD4NCiAgICAgIDwvRW1haWxzPg0K\n ICAgICAgPENvbnRhY3RTdHJpbmc+Sm9obiBXLiBEYXZpc29uDQp1bm\n l4ZnJlYWswMDM3QGdtYWlsLmNvbTwvQ29udGFjdFN0cmluZz4NCiAg\n ICA8L0NvbnRhY3Q+DQogIDwvQ29udGFjdHM+DQo8L0NvbnRhY3RTZX\n Q+AQ7OAVJldHJpZXZlck9wZXJhdG9yLDEwLDA7UmV0cmlldmVyT3Bl\n cmF0b3IsMTEsMTtQb3N0RG9jUGFyc2VyT3BlcmF0b3IsMTAsMDtQb3\n N0RG9jUGFyc2VyT3BlcmF0b3IsMTEsMDtQb3N0V29yZEJyZWFrZXJE\n aWFnbm9zdGljT3BlcmF0b3IsMTAsMDtQb3N0V29yZEJyZWFrZXJEaW\n Fnbm9zdGljT3BlcmF0b3IsMTEsMDtUcmFuc3BvcnRXcml0ZXJQcm9k dWNlciwyMCw0"
+            ],
+            [
+              "X-MS-Exchange-Forest-IndexAgent",
+              "1 1710"
+            ],
+            [
+              "X-MS-Exchange-Forest-EmailMessageHash",
+              "7FB482E4"
+            ],
+            [
+              "X-MS-Exchange-Forest-Language",
+              "en"
+            ],
+            [
+              "X-Microsoft-Exchange-Diagnostics",
+              "1;BN6PR2001MB1905;5:kMk+adYd8FaJ8A26yJWufLE3qpPGnAvijukOn/IjnDMr+W5bVtEEx865zR+ssGpDWvNtkeJ6V6wlRGEdaUQLhBgRuIqglaMNyD8+DmBh9PT+m9rW/WWMEje7DfjtdlYB+mewXcEP6qPZkSZNaiO61hJro/I5eeXcHX2C1/OA47s=;24:Oib13udY5BFLcZmEGInCdnJZYlLw3rsIySmRgmVDu6dd8bmNO6w/mamcUmWOUmbIHHhuJsewvmkH5QC7SGqpP6dtADDBO48lGRZiSWGVcHo=;7:LW9ewMwU6C0PnHufqwSA8PN7GtNXqKuILffLhJt5R3JLMTLyx9JXrDx4XL+gSxb/tsAoXycNOXKRhOVjVBagJN9lfSfB+Vm/eH/QBNiGlyOiHBGN1Oc02L9T8WOKBPXF/WFG0HfYJxLzvG2jE1mrJQzgseXyPpiMciDjKqpQZ2NDPhJ6FmS/Kyaw2c+45XQY4aY5tInbn6x5Zty+Sf+AOTr+ucQ7NuZe2mtXdxtfhqzmddTm2h59wIb6/oyKiUqV;20:fl8/RmGEU9vG8NtJjOlI+xyYLfhihJpt6wOuZKw9RWZ+gcQEEgHZzg9Kmxb4LuTvr3voh2mtGHhS8vlb1cyf7oKsVf4nyJE1zVC+bRNqFSxJscMidiP8XDyiEmIpRTZcithsOoJBZFDDjAxPmUEvN9mTnFSOhaPmSGBZVQBktWQ="
+            ],
+            [
+              "SpamDiagnosticOutput",
+              "1:99"
+            ],
+            [
+              "SpamDiagnosticMetadata",
+              "SKN"
+            ],
+            [
+              "X-MS-Exchange-Organization-Cross-Session-Cache",
+              "00CIP=207.211.31.120;EIPC0=2055,950,2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,951,2000,2050,2051,2052,952,904,2054,2016,2015,3000,2001,3010,2003,1000,2002,967,2004,2058,2059,2060,1001,2017,5011,905,5001,902,5050,5010,903,906,5022,5024,5030,5031,5035,5034,5036,5038,5020,5037,5040,5021,5029,5032,5039,5028,5023,5026,5027,901,907,5025,5033,5002,5003,5005;MIPC0=950,952,951,2003,5011;REP=01,1,132\\;01,2,226\\;01,3,13069843\\;01,4,931437\\;01,5,183\\;01,6,4846\\;01,7,91545\\;01,8,230418\\;01,9,26177170\\;01,10,1843725\\;01,11,183\\;01,12,230418\\;02,1,132\\;02,2,169\\;02,3,69823610\\;02,4,3731260\\;02,5,183\\;02,6,71677\\;02,7,1788455;SL=3;EMSL=1;SCL=0;BL=0;RL=1;PID=0;PL=0;EXPID=;EIPC1=2055,950,2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,951,2000,2050,2051,2052,952,904,2054,2016,2015,3000,2001,3010,2003,1000,2002,967,2004,2058,2059,2060,1001,2017,5011,905,5001,902,5050,5010,903,906,5022,5024,5030,5031,5035,5034,5036,5038,5020,5037,5040,5021,5029,5032,5039,5028,5023,5026,5027,901,907,5025,5033,5002,5003,5005,6002,2019,2056,2018,6001,2057,2053;MIPC1=950,952,951,2003,5011,902,2018;TP_CPIP=Allow;SAUTHOP=1;A=00;MX=00;PTR=00us-smtp-delivery-1.mimecast.com;SPF=031unixfreak0037@gmail.com;DKIM=0020161025._domainkey.gmail.com\\;az1yc2E7IHA9TUlJQklqQU5CZ2txaGtpRzl3MEJBUUVGQUFPQ0FROEFNSUlCQ2dLQ0FRRUF2aVBHQms0WkI2NFVmU3FXeUFpY2RSN2xvZGh5dGFlK0VZUlFWdEtEaE0rMW1YakVxUnRQL3BEVDNzQmhhemttQTQ4bjJrNU5KVXlNRW9POG5jMnI2c1VBKy9Eb201alJCWnA2cURLSk93ako1Ui9PcEhhbWxSRytZUkpRcVJ0cUVnU2lKV0c3aDdlZkdZV21oNFVSaEZNOWs5K3JtRy9Dd0Nnd3g3RXQrYzhPTWxuZ2FMbDA0L2JQbWZwamRFeUxXeU5pbWs3NjFDWDZLeW16WWlSRE56MU1PSk9KN096RmFTNFBGYlZMbjBtNW1mMEhWTnRCcFB3V3VDTnZhRlZmbFVZeEV5YmxiQjZoL29XT1BHYnpvU2d0UkE0N1NIVjUzU3daaklzVnBicTRMeFVXOUl4QUV3WXpHY1NnWjRuNVE4WDhUbmRvd3NEVXpvY2NQRkdoZHdJREFRQUI=;DMARC=00unixfreak0037@gmail.com\\;dj1ETUFSQzE7IHA9bm9uZTsgc3A9cXVhcmFudGluZTsgcnVhPW1haWx0bzptYWlsYXV0aC1yZXBvcnRzQGdvb2dsZS5jb20=;DkimStatus=2;DkimSS=10;DmarcStatus=3;DmarcAction=0;PReRC=1;NoDLx=1;CAUTH=none;CAUTHR=405;TP_PTL=;IdDom=3;EIPC2=2055,6002,2019,2056,2018,2050,2051,2052,2054"
+            ],
+            [
+              "X-MS-Exchange-Organization-Cross-Session-Cache",
+              "01,6001,2057,2053;MIPC2=;SFA_SFV=SKN;SFA_ASC=0;SFA_IsASF=0;SFA_SCL=-1;TP_FV=Allow;TP_FC=ConnPolicy;PV_TV=ALW;PV_TVT=ETR"
+            ],
+            [
+              "X-MS-Exchange-Organization-Processed-By-Gcc-Journaling",
+              "Journal Agent"
+            ]
+          ],
+          "internal_org_sender": false,
+          "is_anonymous_direct_send": false,
+          "log_entry": {
+            "attachment_count": 2,
+            "attachment_hashes": [
+              "804cc369beb99c1fb72f1b43da0d7b5798a1fe20bb06d57a45cf9f52ff05e7a4",
+              "930c094ca8bf21eca5c06a1818f6d1c4463032341393a693881ffe84b3acaeb3"
+            ],
+            "attachment_names": [
+              "email.rfc822.unknown_text_plain_000.txt",
+              "email.rfc822.unknown_text_html_000.html"
+            ],
+            "attachment_sizes": [
+              326,
+              1561
+            ],
+            "attachment_types": [
+              "text/plain",
+              "text/html"
+            ],
+            "authentication_failed": true,
+            "bcc": [],
+            "cc": [],
+            "compauth_reason": "201",
+            "compauth_result": "softpass",
+            "date": "2026-11-08 21:48:18.807282 +0000",
+            "dkim_result": "fail",
+            "dmarc_result": "fail",
+            "env_mail_from": "unixfreak0037@gmail.com",
+            "env_rcpt_to": [
+              "jwdavison@company.com"
+            ],
+            "first_received": "by 10.46.5.71 with HTTP; Fri, 23 Feb 2018 10:22:14 -0800 (PST)",
+            "headers": [
+              "Received: from BN6PR2001CA0043.namprd20.prod.outlook.com (10.172.27.29) by BN6PR2001MB1905.namprd20.prod.outlook.com (10.174.81.10) with Microsoft SMTP Server (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384_P256) id 15.20.527.15; Fri, 23 Feb 2018 18:22:20 +0000",
+              "Received: from BY2NAM01FT010.eop-nam01.prod.protection.outlook.com (2a01:111:f400:7e42::200) by BN6PR2001CA0043.outlook.office365.com (2603:10b6:405:16::29) with Microsoft SMTP Server (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384) id 15.20.527.15 via Frontend Transport; Fri, 23 Feb 2018 18:22:20 +0000",
+              "Authentication-Results: spf=softfail (sender IP is 207.211.31.120) smtp.mailfrom=gmail.com; company.com; dkim=fail (body hash did not verify) header.d=gmail.com;company.com; dmarc=fail action=none header.from=gmail.com;",
+              "Received-SPF: SoftFail (protection.outlook.com: domain of transitioning gmail.com discourages use of 207.211.31.120 as permitted sender)",
+              "Received: from us-smtp-1.mimecast.com (207.211.31.120) by BY2NAM01FT010.mail.protection.outlook.com (10.152.68.104) with Microsoft SMTP Server (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384_P256) id 15.20.506.19 via Frontend Transport; Fri, 23 Feb 2018 18:22:19 +0000",
+              "Received: from mail-lf0-f45.google.com (mail-lf0-f45.google.com [209.85.215.45]) (Using TLS) by us-smtp-1.mimecast.com with ESMTP id us-mta-251-KmnS3zR4MtinG2Rc3Ll5aA-1; Fri, 23 Feb 2018 13:22:17 -0500",
+              "Received: by mail-lf0-f45.google.com with SMTP id t79so13632720lfe.3        for <jwdavison@company.com>; Fri, 23 Feb 2018 10:22:17 -0800 (PST)",
+              "DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;        d=gmail.com; s=20161025;        h=mime-version:from:date:message-id:subject:to;        bh=cd7yRZXIitoc+LkoHtdNMAwtGdashgrFEmFW2JaB26w=;        b=DQIIuISbc3rvshT/VAXa6mePokURLVBWVMDWBqJ2cW4dxyurDJXUyUbCDDBe8l9KkS         KZvyH8KXr9KKTGPrxc7wzZUAkEwObPm5eM06G5ivfG9wF/HQOzgxetpapaH5MRfodTrg         8wu8sOYriAs83ycXwc6o71PmDyfWXt2axF3rN+ZdA/Msa9sfFNktYBklD74ioKo7q6u7         0mLCG5hn2ouq1jB/QajRbcqQ2qoE0G/c5+o4pjK8JFLISOJq14AyfPiUSi7CvoLB17Df         8vZDyPN8+KtWN6J3DhIh7QfwRp+jbE7isiEjcSx5RkPiBdFvU/KXoCtEAlzmV3GPwjMl         z1Iw==",
+              "X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;        d=1e100.net; s=20161025;        h=x-gm-message-state:mime-version:from:date:message-id:subject:to;        bh=cd7yRZXIitoc+LkoHtdNMAwtGdashgrFEmFW2JaB26w=;        b=ELyyENtK32E0HlvVE9a5EPtE2QYX20+D/myVF2+GWPaQ04z/dgm3t2k1PpUfFT3Jfk         weIl5/riygMyZ5lpYPHHBykvK+35yb+j5dGW9R1v0bNv4doaWVnbVrSHIrkPjPIKduNk         /M3AqmkY88L+Askcf2J5P1dNP3NM3QS86+IeyNRwtjFXKUB9sutLuBicKFZO6hMPJ4IB         QF8tGHUIPGtqZfVfEcDRdVWhrvKdSkc2yfcs/1rJJqRJK2bDj2EXG0/YWTknCRc/+acu         x9OmN2u1nXXGN8EH67BPG8DN5r0wrdARZKPcrq7LHiFlt0wYxwHupOWH7zyFiuZWnfbG         TmMg==",
+              "X-Gm-Message-State: APf1xPCKqWEZhm6Vg1AD3tpYkZ40ljTPadE07846hVhkbfo2vTmVGYxyvKTWz3C73FAGQK3ccQLf3tMHF5Hz/FjTNwhc3BJAPcts",
+              "X-Google-Smtp-Source: AH8x227rwx+GiQc/eMRMR1oQ1UpKB+HKAjKBQao4qR2E/2YTYUPyqNhOtQlqbvtysEEBOgew+rObouvQUOAJRMTY0CU=",
+              "X-Received: by 10.46.43.17 with SMTP id q17mr2166386lje.20.1519410135496; Fri, 23 Feb 2018 10:22:15 -0800 (PST)",
+              "MIME-Version: 1.0",
+              "Received: by 10.46.5.71 with HTTP; Fri, 23 Feb 2018 10:22:14 -0800 (PST)",
+              "From: John Davison <unixfreak0037@gmail.com>",
+              "Date: Fri, 23 Feb 2018 13:22:14 -0500",
+              "Message-ID: <CANTOGZsMiMb+7aB868zXSen_fO=NS-qFTUMo9h2eHtOexY8Qhw@mail.gmail.com>",
+              "Subject: canary #3",
+              "To: jwdavison@company.com",
+              "X-MC-Unique: KmnS3zR4MtinG2Rc3Ll5aA-1",
+              "Authentication-Results-Original: mimecast.com;spf=pass (spfCheck: domain of _spf.google.com designates 209.85.215.45 as permitted sender) client-ip=209.85.215.45; envelope-from=unixfreak0037@gmail.com; helo=mail-lf0-f45.google.com;dkim=pass header.i=@gmail.com;dmarc=pass (p=allow dis=allow) header.from=gmail.com",
+              "Content-Type: multipart/alternative;boundary=\"_0c036305-5e94-4585-ba29-c9425ccc5bc8_\"",
+              "Return-Path: unixfreak0037@gmail.com",
+              "X-EOPAttributedMessage: 0",
+              "X-EOPTenantAttributedMessage: 6e1e3a0a-cb5b-4699-9a6a-595e9ef289e9:0",
+              "X-Forefront-Antispam-Report: CIP:207.211.31.120;IPV:CAL;SCL:-1;CTRY:US;EFV:NLI;SFV:SKN;SFS:;DIR:INB;SFP:;SCL:-1;SRVR:BN6PR2001MB1905;H:us-smtp-1.mimecast.com;FPR:;SPF:None;LANG:en;",
+              "X-Microsoft-Exchange-Diagnostics: 1;BY2NAM01FT010;1:cXHxorVBgYsCo5RElcyw2WCLBZnnsYie4Ky11aQ4YaytVzEjErT9ACPrPPKGeSw1C3fdzi0Jg5NSOo8MpHNdMnLxTVhrtyAioDLZdgR8zaV39dQdzEwjmPR911TqGAAa",
+              "X-MS-PublicTrafficType: Email",
+              "X-MS-Office365-Filtering-Correlation-Id: 9765f09b-0f6b-4cb5-d955-08d57aea6075",
+              "X-Microsoft-Antispam: UriScan:;BCL:0;PCL:0;RULEID:(7020095)(5600026)(4604075)(4605076)(1401096)(71702078);SRVR:BN6PR2001MB1905;",
+              "X-Microsoft-Exchange-Diagnostics: 1;BN6PR2001MB1905;3:nreH+bA/sMskUxRXF3979mKSz5VC3HL0sHhjqZbiBOm+E3NkRs+CapEpiyGMbQfW4M72YxulbTjhe9vMeEAIIty0W7Q3AsLS8jzhWviyXwi2mZz0oR4a37KiQAT82uhjMh/3v9tXtIgExFbWIFplzUBbvIIfWpGJshbQhpB6aGRzfBxUFB7IWFHUcCTa7EuER9UUDSn1P64kJ5SjNkAfADAzNLxRYd+KeHPRcGSS89FGhCYzJ9XaCGKQgVWsstBgxysULVlwX5U6P1XkzxVIb7b6N1STwgX+JUbzoeKV1fRzZMT5PzPMLhe5hKPg0jlHdw7XPLNrf+GHNcc8ZBcGpAS0ozkd2RZAiZptsiCH6HY=;25:gFQi49t8Cuxsx5KDQCK+jyitNvNQJEqX9XwezMcGUzCB9JeNWeViwbMDgqP2xctXfvcqxLmPYJJPr3b7hCYiejmJPwIrMwpUEK1dJHfnKa31zQqD6jwb2fmrrOtxJSwfspEOJZiOfSgqBgphIDBnNAmfw1tGAAAWdopreFpv3NfmKsA8I4apUOSMCzQyP/VXEL8z/wcYI8H1dzMdO+LrrKW3PrqdF0rmjmW8s8JoK4OfAefpfcYx+8GSK8on4/EE43sBwEfBtGGVd5sfUximMEfhGW6wXDzPN4Ga3i00rPNHJkSf/qZqNy3ypSo2NKK1fhJjNZNPSnQpuYELrQ34YA==",
+              "X-MS-TrafficTypeDiagnostic: BN6PR2001MB1905:",
+              "X-Microsoft-Exchange-Diagnostics: 1;BN6PR2001MB1905;31:eSVpzHPCbZsrS59L/bCyerT9ChgrH12Vgq4coyb65F8O/yTDclQba6ye9YRRC3K/7+QK+BjYAWDI0y7YMBdJPmlmTxpa22RsH3HOmVE5SjF7FKCEQOX5QRzLdRQB3iAsyZvecomFpTyBQy0O+yfG1zP6wDO8/l276nudsQ65AeG6I6ZUVnymLo5p2T1bLd8qi/uhLC2KMLzOeXOYnuBwUb2f8HcgpbbiPsnjIOIScv0=;20:EwFzZEPoX0UF1+TcB2F17DSw9msleaW8UG/1Jl8ZmmW3ltvN8UCcOk/m79+hcZx3SNSSxKyBWaZuv/vxg3HazCzLntYGQiGIQRHUvVkh+rxBs4B6gRPkq1IBh4whPtzgofws+mkFKf+GZCtN2A8KXXWcory+yB3nJzKRbJJcyuboOrpoWh6vFDxEGy9b2VWAQphY3vRG1PZDdZ8QlnwR1a2N8cT6oC9w4s3xgQgwjkEY4jINNhG+cqVEtvCS6UbVx/P1mde8It6esls5e0Fc+bO6L6cvcYIKxZLnvZKauQOxFoIfAPlRJs62XqOOdANujGc0vprKvO5qDI2MugEmU6MOWyVWgEfCEYGSgGBs8kfV13uA65s+rCJ/bhMmCeB20XjuLS4Js3esYk2LXB9Ek/lUrtgKCSs07Tl7aB/BXkA0iTxOxaGZw4q9DJYcFK4JBGqxTjMh46gVfbVqDQ1N/dpkqLoROeXl+Lwz3Hxbr9Rxf4sTW28svMyOSpcfORZs",
+              "X-Exchange-Antispam-Report-Test: UriScan:(85827821059158);",
+              "X-Exchange-Antispam-Report-CFA-Test: BCL:0;PCL:0;RULEID:(2401047)(8121501046)(1430306)(1431041)(1437130)(1441077)(1551027)(9101536074)(3231101)(902075)(903095)(944500087)(944510158)(944921075)(946801075)(946901075)(3002001)(93006095)(93003095)(10201501046)(1610001)(8301001075)(8301003183)(201708071742011);SRVR:BN6PR2001MB1905;BCL:0;PCL:0;RULEID:;SRVR:BN6PR2001MB1905;",
+              "X-Microsoft-Exchange-Diagnostics: 1;BN6PR2001MB1905;4:ioN3ZJedqQdvli9vCnGMNltYr+zgWPVmf0tG6c5alcGO4ISl/8lFJTQOxfJlhQV63Ley7XC/TGhw59ZawZAuE4KxAsVkAsdIZi/2xJnTpjkGBFSG7bZmCiffHvlcBBdJjwMCus98FyQdcIafsKRlFx5efT20Yx0vsvLYaVi7kdc4dmWtxdArk94pt9oxr1ynhEh3gPXIxkWYq3uoQ+VefRL/l9su1WN7CUeSXOCrzorhJv2FaRJHhqWsQ0Tjhru2Y25Faz792vol5AMvTe+7d0Kf1M2dlmiVEZQAiRNUNcup5WHy5IOsvs/fZYpjxpPd;23:MWNwE/MOBLVTPZgClSgqYWoYlNSaiiFQpanincmk1DqNVUYN8UhvLRdEm7TFYoiuRBHbLLaoNDxb/1NrPj+HC17u+vvZEp4uLk3vdCro0UhrVsM7slDQ1peOOo6zyjdqLksaY0LI5zudcb7+E0dTG4mL+t+CuAVoU8qLQVNrueAS5asP8KBSO7r7mG2lKcCU;6:CMuTSH10t0kxrGMsDt4hv7qIBuEJOgaUzWyAKhNMcq4FLygg08B8j7jTk/79XGjz3+DZtYVJjgiHTbeNLEZAq+SZM45Ujd6XkE2GxMDFC8FXEXS0P0LS1gOf0uZkHDnnGdVO/O60nTr7681sjHdnJV7H2teYOcdvoMFHzDffXG70clq5qOHLYDoV4FVSf0I5x8cGdLO0ssZ5YRjpW3YL8A+a2EyebNDTh4Ncz7qmvjJG1H4zcF0otPONnaNqAGDnaJTs353MRmEIvVUDeKxbQyWdOdLeAzdhkXKxL2ppiyojIm+omJt5zXJGAH7UhizGNx3/FHA4FQBclmCxvtGGsBNdB7qfg0sqc0BNPVwreaK6sZiR8F60pvWoh+7k+kycMoQ8EcOdQ2NuP5c2cpnzeA==",
+              "X-Microsoft-Antispam-Message-Info: yGQC7JQXgcC+ph/gymyINJ8kvst3uUhlX9sJePX0A+/MKYD5V+QofS3Pma/8KgJ/X5qqYzzy+yUq9F4IPtcyY4cO4sTSh3d38bsF40dnq98Q5b4pXLlQEaSwXAtRLvxU9Ocz+YxBqIOspSfHREisO2Nv5CgubAF05cK3CPuoVwreFu0IanWCjX4BdF/EtLPycRbOwGiL+L3+/lG5nAUE/tXUFMSLqfnNMSWaYZUX7lIGcvgY8lw6cE3imaMVeVWi",
+              "X-Microsoft-Exchange-Diagnostics: 1;BN6PR2001MB1905;5:kMk+adYd8FaJ8A26yJWufLE3qpPGnAvijukOn/IjnDMr+W5bVtEEx865zR+ssGpDWvNtkeJ6V6wlRGEdaUQLhBgRuIqglaMNyD8+DmBh9PT+m9rW/WWMEje7DfjtdlYB+mewXcEP6qPZkSZNaiO61hJro/I5eeXcHX2C1/OA47s=;24:Oib13udY5BFLcZmEGInCdnJZYlLw3rsIySmRgmVDu6dd8bmNO6w/mamcUmWOUmbIHHhuJsewvmkH5QC7SGqpP6dtADDBO48lGRZiSWGVcHo=;7:LW9ewMwU6C0PnHufqwSA8PN7GtNXqKuILffLhJt5R3JLMTLyx9JXrDx4XL+gSxb/tsAoXycNOXKRhOVjVBagJN9lfSfB+Vm/eH/QBNiGlyOiHBGN1Oc02L9T8WOKBPXF/WFG0HfYJxLzvG2jE1mrJQzgseXyPpiMciDjKqpQZ2NDPhJ6FmS/Kyaw2c+45XQY4aY5tInbn6x5Zty+Sf+AOTr+ucQ7NuZe2mtXdxtfhqzmddTm2h59wIb6/oyKiUqV;20:fl8/RmGEU9vG8NtJjOlI+xyYLfhihJpt6wOuZKw9RWZ+gcQEEgHZzg9Kmxb4LuTvr3voh2mtGHhS8vlb1cyf7oKsVf4nyJE1zVC+bRNqFSxJscMidiP8XDyiEmIpRTZcithsOoJBZFDDjAxPmUEvN9mTnFSOhaPmSGBZVQBktWQ=",
+              "SpamDiagnosticOutput: 1:99",
+              "SpamDiagnosticMetadata: SKN"
+            ],
+            "in_reply_to": null,
+            "internal_org_sender": false,
+            "is_anonymous_direct_send": false,
+            "last_received": "from BN6PR2001CA0043.namprd20.prod.outlook.com (10.172.27.29) by\n BN6PR2001MB1905.namprd20.prod.outlook.com (10.174.81.10) with Microsoft SMTP\n Server (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384_P256) id\n 15.20.527.15; Fri, 23 Feb 2018 18:22:20 +0000",
+            "mail_from": "John Davison <unixfreak0037@gmail.com>",
+            "mail_from_is_local": false,
+            "mail_to": [
+              "jwdavison@company.com"
+            ],
+            "message_directionality": "Incoming",
+            "message_id": "<CANTOGZsMiMb+7aB868zXSen_fO=NS-qFTUMo9h2eHtOexY8Qhw@mail.gmail.com>",
+            "originating_ip": null,
+            "path": [
+              "10.172.27.29",
+              "207.211.31.120",
+              "mail-lf0-f45.google.com\n [209.85.215.45]"
+            ],
+            "refereneces": null,
+            "reply_to": null,
+            "size": 23406,
+            "spf_result": "softfail",
+            "spoofed_internal": false,
+            "subject": "canary #3",
+            "subject_raw": "canary #3",
+            "thread_index": null,
+            "thread_topic": null,
+            "user_agent": null,
+            "x_mailer": null,
+            "x_sender": null
+          },
+          "mail_from_is_local": false,
+          "message-id": "<CANTOGZsMiMb+7aB868zXSen_fO=NS-qFTUMo9h2eHtOexY8Qhw@mail.gmail.com>",
+          "message_directionality": "Incoming",
+          "return_path": "unixfreak0037@gmail.com",
+          "spf_result": "softfail",
+          "spoofed_internal": false,
+          "subject": "canary #3",
+          "to": [
+            "jwdavison@company.com"
+          ],
+          "to_addresses": [
+            "jwdavison@company.com"
+          ]
+        },
+        "extraction_errors": [],
+        "parsing_error": null
+      },
+      "detections": [],
+      "module_path": "saq.modules.email.rfc822:EmailAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_from",
+          "value": "unixfreak0037@gmail.com"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_envelope_rcpt_to",
+          "value": "jwdavison@company.com"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_conversation",
+          "value": "unixfreak0037@gmail.com|jwdavison@company.com"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_to",
+          "value": "jwdavison@company.com"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "display_type": "Decoded Subject",
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_subject",
+          "value": "canary #3"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [
+            "saq.modules.email.message_id:<class 'saq.modules.email.message_id.MessageIDAnalyzerV2'>"
+          ],
+          "relationships": [],
+          "tags": [],
+          "time": "2018-02-23 18:22:20+00:00",
+          "type": "message_id",
+          "value": "<CANTOGZsMiMb+7aB868zXSen_fO=NS-qFTUMo9h2eHtOexY8Qhw@mail.gmail.com>"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_return_path",
+          "value": "unixfreak0037@gmail.com"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_first_hop_ip",
+          "value": "207.211.31.120"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_first_hop_helo",
+          "value": "us-smtp-1.mimecast.com"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_dkim_signing_domain",
+          "value": "gmail.com"
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls",
+            "preview",
+            "yara_meta:type=email.attachment"
+          ],
+          "excluded_analysis": [],
+          "file_path": "email.rfc822.unknown_text_plain_000.txt",
+          "relationships": [],
+          "size": 326,
+          "tags": [],
+          "type": "file",
+          "value": "804cc369beb99c1fb72f1b43da0d7b5798a1fe20bb06d57a45cf9f52ff05e7a4",
+          "yara_meta": [
+            "type=email.attachment"
+          ]
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls",
+            "render",
+            "yara_meta:type=document.html",
+            "yara_meta:type=email.attachment"
+          ],
+          "excluded_analysis": [],
+          "file_path": "email.rfc822.unknown_text_html_000.html",
+          "relationships": [],
+          "size": 1561,
+          "tags": [],
+          "type": "file",
+          "value": "930c094ca8bf21eca5c06a1818f6d1c4463032341393a693881ffe84b3acaeb3",
+          "yara_meta": [
+            "type=document.html",
+            "type=email.attachment"
+          ]
+        },
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=email",
+            "yara_meta:type=email.headers"
+          ],
+          "excluded_analysis": [
+            "saq.modules.email.rfc822:<class 'saq.modules.email.rfc822.EmailAnalyzer'>"
+          ],
+          "file_path": "email.rfc822.headers",
+          "relationships": [],
+          "size": 18824,
+          "tags": [
+            "email"
+          ],
+          "type": "file",
+          "value": "89e250afe409274e9573db84275aeac0a1e1e3804a4561fe184e77ba98dfb84c",
+          "yara_meta": [
+            "type=email",
+            "type=email.headers"
+          ]
+        },
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=email",
+            "yara_meta:type=email.combined"
+          ],
+          "excluded_analysis": [
+            "saq.modules.email.rfc822:<class 'saq.modules.email.rfc822.EmailAnalyzer'>"
+          ],
+          "file_path": "email.rfc822.combined",
+          "relationships": [],
+          "size": 20717,
+          "tags": [
+            "email"
+          ],
+          "type": "file",
+          "value": "bae7fb5dafc2144f35345d66b465398c07b242e86ba303981d35aa5263545538",
+          "yara_meta": [
+            "type=email",
+            "type=email.combined"
+          ]
+        }
+      ],
+      "summary": "Email Analysis: From John Davison <unixfreak0037@gmail.com> To jwdavison@company.com Subject canary #3",
+      "tags": []
+    },
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": true,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "message/rfc822",
+        "type": "SMTP mail, ASCII text, with very long lines (948)"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: SMTP mail, ASCII text, with very long lines (948) (message/rfc822) (email)",
+      "tags": []
+    }
+  ],
+  "brocess_after": {
+    "email_thread_domain": [
+      {
+        "address": "unixfreak0037@gmail.com",
+        "domain": "gmail.com",
+        "entry_hash": "4FC3E460EA1029C09BB3E75F94276B7493ED94E577240B7E67A9171F5575EA7F",
+        "firstseendate": "2026-11-08 09:00:00",
+        "id": 1,
+        "message_id_hash": "EE034EC3B9820866EE6658EE5995E4F6478937573AB1D217D3C523308F03ADE6",
+        "numseen": 1,
+        "role": "from",
+        "thread_id": "<CANTOGZsMiMb+7aB868zXSen_fO=NS-qFTUMo9h2eHtOexY8Qhw@mail.gmail.com>",
+        "thread_id_hash": "EE034EC3B9820866EE6658EE5995E4F6478937573AB1D217D3C523308F03ADE6"
+      },
+      {
+        "address": "unixfreak0037@gmail.com",
+        "domain": "gmail.com",
+        "entry_hash": "B8049F602BF95CD51CD391F520424105F600F646D99C0DDF7B557AD24F45BFF4",
+        "firstseendate": "2026-11-08 09:00:00",
+        "id": 2,
+        "message_id_hash": "EE034EC3B9820866EE6658EE5995E4F6478937573AB1D217D3C523308F03ADE6",
+        "numseen": 1,
+        "role": "return_path",
+        "thread_id": "<CANTOGZsMiMb+7aB868zXSen_fO=NS-qFTUMo9h2eHtOexY8Qhw@mail.gmail.com>",
+        "thread_id_hash": "EE034EC3B9820866EE6658EE5995E4F6478937573AB1D217D3C523308F03ADE6"
+      },
+      {
+        "address": "jwdavison@company.com",
+        "domain": "company.com",
+        "entry_hash": "1BBDF425CD64576295DAAED2DE45CF8E2AE32B752EEFB53D9BCFB13A9314A129",
+        "firstseendate": "2026-11-08 09:00:00",
+        "id": 3,
+        "message_id_hash": "EE034EC3B9820866EE6658EE5995E4F6478937573AB1D217D3C523308F03ADE6",
+        "numseen": 1,
+        "role": "to",
+        "thread_id": "<CANTOGZsMiMb+7aB868zXSen_fO=NS-qFTUMo9h2eHtOexY8Qhw@mail.gmail.com>",
+        "thread_id_hash": "EE034EC3B9820866EE6658EE5995E4F6478937573AB1D217D3C523308F03ADE6"
+      }
+    ],
+    "email_thread_message": [
+      {
+        "direction": 0,
+        "from_address": "unixfreak0037@gmail.com",
+        "from_domain": "gmail.com",
+        "id": 1,
+        "in_reply_to": null,
+        "insert_date": "2026-11-08 09:00:00",
+        "message_date": "2018-02-23 18:22:14",
+        "message_id": "<CANTOGZsMiMb+7aB868zXSen_fO=NS-qFTUMo9h2eHtOexY8Qhw@mail.gmail.com>",
+        "message_id_hash": "EE034EC3B9820866EE6658EE5995E4F6478937573AB1D217D3C523308F03ADE6",
+        "normalized_subject": "canary #3",
+        "normalized_subject_hash": "22698B5F4E9AC158DAB93CF9BDED2AB33210A097E73F3536A76185A4B801F298",
+        "thread_id": "<CANTOGZsMiMb+7aB868zXSen_fO=NS-qFTUMo9h2eHtOexY8Qhw@mail.gmail.com>",
+        "thread_id_hash": "EE034EC3B9820866EE6658EE5995E4F6478937573AB1D217D3C523308F03ADE6"
+      }
+    ],
+    "now": "2026-11-08 09:00:00",
+    "smtplog": [
+      [
+        "unixfreak0037@gmail.com",
+        "jwdavison@company.com",
+        1,
+        1794128400.0
+      ]
+    ]
+  },
+  "brocess_before": {
+    "email_thread_domain": [],
+    "email_thread_message": [],
+    "now": "2026-11-08 09:00:00",
+    "smtplog": []
+  },
+  "brocess_reads": [
+    {
+      "established": []
+    },
+    {
+      "thread_message_count": 0
+    }
+  ],
+  "fluent_bit": [
+    {
+      "record": {
+        "path": "database.pool.status",
+        "timestamp": "2026-11-08T21:48:18.800565",
+        "value": "Pool size: 5  Connections in pool: 0 Current Overflow: -4 Current Checked out connections: 1"
+      },
+      "tag": "monitoring"
+    },
+    {
+      "record": {
+        "header": "Received: from BN6PR2001CA0043.namprd20.prod.outlook.com (10.172.27.29) by BN6PR2001MB1905.namprd20.prod.outlook.com (10.174.81.10) with Microsoft SMTP Server (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384_P256) id 15.20.527.15; Fri, 23 Feb 2018 18:22:20 +0000",
+        "header_index": 0,
+        "message_id": "<CANTOGZsMiMb+7aB868zXSen_fO=NS-qFTUMo9h2eHtOexY8Qhw@mail.gmail.com>",
+        "timestamp": "1794174498.807282"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "Received: from BY2NAM01FT010.eop-nam01.prod.protection.outlook.com (2a01:111:f400:7e42::200) by BN6PR2001CA0043.outlook.office365.com (2603:10b6:405:16::29) with Microsoft SMTP Server (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384) id 15.20.527.15 via Frontend Transport; Fri, 23 Feb 2018 18:22:20 +0000",
+        "header_index": 1,
+        "message_id": "<CANTOGZsMiMb+7aB868zXSen_fO=NS-qFTUMo9h2eHtOexY8Qhw@mail.gmail.com>",
+        "timestamp": "1794174498.807282"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "Authentication-Results: spf=softfail (sender IP is 207.211.31.120) smtp.mailfrom=gmail.com; company.com; dkim=fail (body hash did not verify) header.d=gmail.com;company.com; dmarc=fail action=none header.from=gmail.com;",
+        "header_index": 2,
+        "message_id": "<CANTOGZsMiMb+7aB868zXSen_fO=NS-qFTUMo9h2eHtOexY8Qhw@mail.gmail.com>",
+        "timestamp": "1794174498.807282"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "Received-SPF: SoftFail (protection.outlook.com: domain of transitioning gmail.com discourages use of 207.211.31.120 as permitted sender)",
+        "header_index": 3,
+        "message_id": "<CANTOGZsMiMb+7aB868zXSen_fO=NS-qFTUMo9h2eHtOexY8Qhw@mail.gmail.com>",
+        "timestamp": "1794174498.807282"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "Received: from us-smtp-1.mimecast.com (207.211.31.120) by BY2NAM01FT010.mail.protection.outlook.com (10.152.68.104) with Microsoft SMTP Server (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384_P256) id 15.20.506.19 via Frontend Transport; Fri, 23 Feb 2018 18:22:19 +0000",
+        "header_index": 4,
+        "message_id": "<CANTOGZsMiMb+7aB868zXSen_fO=NS-qFTUMo9h2eHtOexY8Qhw@mail.gmail.com>",
+        "timestamp": "1794174498.807282"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "Received: from mail-lf0-f45.google.com (mail-lf0-f45.google.com [209.85.215.45]) (Using TLS) by us-smtp-1.mimecast.com with ESMTP id us-mta-251-KmnS3zR4MtinG2Rc3Ll5aA-1; Fri, 23 Feb 2018 13:22:17 -0500",
+        "header_index": 5,
+        "message_id": "<CANTOGZsMiMb+7aB868zXSen_fO=NS-qFTUMo9h2eHtOexY8Qhw@mail.gmail.com>",
+        "timestamp": "1794174498.807282"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "Received: by mail-lf0-f45.google.com with SMTP id t79so13632720lfe.3        for <jwdavison@company.com>; Fri, 23 Feb 2018 10:22:17 -0800 (PST)",
+        "header_index": 6,
+        "message_id": "<CANTOGZsMiMb+7aB868zXSen_fO=NS-qFTUMo9h2eHtOexY8Qhw@mail.gmail.com>",
+        "timestamp": "1794174498.807282"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;        d=gmail.com; s=20161025;        h=mime-version:from:date:message-id:subject:to;        bh=cd7yRZXIitoc+LkoHtdNMAwtGdashgrFEmFW2JaB26w=;        b=DQIIuISbc3rvshT/VAXa6mePokURLVBWVMDWBqJ2cW4dxyurDJXUyUbCDDBe8l9KkS         KZvyH8KXr9KKTGPrxc7wzZUAkEwObPm5eM06G5ivfG9wF/HQOzgxetpapaH5MRfodTrg         8wu8sOYriAs83ycXwc6o71PmDyfWXt2axF3rN+ZdA/Msa9sfFNktYBklD74ioKo7q6u7         0mLCG5hn2ouq1jB/QajRbcqQ2qoE0G/c5+o4pjK8JFLISOJq14AyfPiUSi7CvoLB17Df         8vZDyPN8+KtWN6J3DhIh7QfwRp+jbE7isiEjcSx5RkPiBdFvU/KXoCtEAlzmV3GPwjMl         z1Iw==",
+        "header_index": 7,
+        "message_id": "<CANTOGZsMiMb+7aB868zXSen_fO=NS-qFTUMo9h2eHtOexY8Qhw@mail.gmail.com>",
+        "timestamp": "1794174498.807282"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;        d=1e100.net; s=20161025;        h=x-gm-message-state:mime-version:from:date:message-id:subject:to;        bh=cd7yRZXIitoc+LkoHtdNMAwtGdashgrFEmFW2JaB26w=;        b=ELyyENtK32E0HlvVE9a5EPtE2QYX20+D/myVF2+GWPaQ04z/dgm3t2k1PpUfFT3Jfk         weIl5/riygMyZ5lpYPHHBykvK+35yb+j5dGW9R1v0bNv4doaWVnbVrSHIrkPjPIKduNk         /M3AqmkY88L+Askcf2J5P1dNP3NM3QS86+IeyNRwtjFXKUB9sutLuBicKFZO6hMPJ4IB         QF8tGHUIPGtqZfVfEcDRdVWhrvKdSkc2yfcs/1rJJqRJK2bDj2EXG0/YWTknCRc/+acu         x9OmN2u1nXXGN8EH67BPG8DN5r0wrdARZKPcrq7LHiFlt0wYxwHupOWH7zyFiuZWnfbG         TmMg==",
+        "header_index": 8,
+        "message_id": "<CANTOGZsMiMb+7aB868zXSen_fO=NS-qFTUMo9h2eHtOexY8Qhw@mail.gmail.com>",
+        "timestamp": "1794174498.807282"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "X-Gm-Message-State: APf1xPCKqWEZhm6Vg1AD3tpYkZ40ljTPadE07846hVhkbfo2vTmVGYxyvKTWz3C73FAGQK3ccQLf3tMHF5Hz/FjTNwhc3BJAPcts",
+        "header_index": 9,
+        "message_id": "<CANTOGZsMiMb+7aB868zXSen_fO=NS-qFTUMo9h2eHtOexY8Qhw@mail.gmail.com>",
+        "timestamp": "1794174498.807282"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "X-Google-Smtp-Source: AH8x227rwx+GiQc/eMRMR1oQ1UpKB+HKAjKBQao4qR2E/2YTYUPyqNhOtQlqbvtysEEBOgew+rObouvQUOAJRMTY0CU=",
+        "header_index": 10,
+        "message_id": "<CANTOGZsMiMb+7aB868zXSen_fO=NS-qFTUMo9h2eHtOexY8Qhw@mail.gmail.com>",
+        "timestamp": "1794174498.807282"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "X-Received: by 10.46.43.17 with SMTP id q17mr2166386lje.20.1519410135496; Fri, 23 Feb 2018 10:22:15 -0800 (PST)",
+        "header_index": 11,
+        "message_id": "<CANTOGZsMiMb+7aB868zXSen_fO=NS-qFTUMo9h2eHtOexY8Qhw@mail.gmail.com>",
+        "timestamp": "1794174498.807282"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "MIME-Version: 1.0",
+        "header_index": 12,
+        "message_id": "<CANTOGZsMiMb+7aB868zXSen_fO=NS-qFTUMo9h2eHtOexY8Qhw@mail.gmail.com>",
+        "timestamp": "1794174498.807282"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "Received: by 10.46.5.71 with HTTP; Fri, 23 Feb 2018 10:22:14 -0800 (PST)",
+        "header_index": 13,
+        "message_id": "<CANTOGZsMiMb+7aB868zXSen_fO=NS-qFTUMo9h2eHtOexY8Qhw@mail.gmail.com>",
+        "timestamp": "1794174498.807282"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "From: John Davison <unixfreak0037@gmail.com>",
+        "header_index": 14,
+        "message_id": "<CANTOGZsMiMb+7aB868zXSen_fO=NS-qFTUMo9h2eHtOexY8Qhw@mail.gmail.com>",
+        "timestamp": "1794174498.807282"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "Date: Fri, 23 Feb 2018 13:22:14 -0500",
+        "header_index": 15,
+        "message_id": "<CANTOGZsMiMb+7aB868zXSen_fO=NS-qFTUMo9h2eHtOexY8Qhw@mail.gmail.com>",
+        "timestamp": "1794174498.807282"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "Message-ID: <CANTOGZsMiMb+7aB868zXSen_fO=NS-qFTUMo9h2eHtOexY8Qhw@mail.gmail.com>",
+        "header_index": 16,
+        "message_id": "<CANTOGZsMiMb+7aB868zXSen_fO=NS-qFTUMo9h2eHtOexY8Qhw@mail.gmail.com>",
+        "timestamp": "1794174498.807282"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "Subject: canary #3",
+        "header_index": 17,
+        "message_id": "<CANTOGZsMiMb+7aB868zXSen_fO=NS-qFTUMo9h2eHtOexY8Qhw@mail.gmail.com>",
+        "timestamp": "1794174498.807282"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "To: jwdavison@company.com",
+        "header_index": 18,
+        "message_id": "<CANTOGZsMiMb+7aB868zXSen_fO=NS-qFTUMo9h2eHtOexY8Qhw@mail.gmail.com>",
+        "timestamp": "1794174498.807282"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "X-MC-Unique: KmnS3zR4MtinG2Rc3Ll5aA-1",
+        "header_index": 19,
+        "message_id": "<CANTOGZsMiMb+7aB868zXSen_fO=NS-qFTUMo9h2eHtOexY8Qhw@mail.gmail.com>",
+        "timestamp": "1794174498.807282"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "Authentication-Results-Original: mimecast.com;spf=pass (spfCheck: domain of _spf.google.com designates 209.85.215.45 as permitted sender) client-ip=209.85.215.45; envelope-from=unixfreak0037@gmail.com; helo=mail-lf0-f45.google.com;dkim=pass header.i=@gmail.com;dmarc=pass (p=allow dis=allow) header.from=gmail.com",
+        "header_index": 20,
+        "message_id": "<CANTOGZsMiMb+7aB868zXSen_fO=NS-qFTUMo9h2eHtOexY8Qhw@mail.gmail.com>",
+        "timestamp": "1794174498.807282"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "Content-Type: multipart/alternative;boundary=\"_0c036305-5e94-4585-ba29-c9425ccc5bc8_\"",
+        "header_index": 21,
+        "message_id": "<CANTOGZsMiMb+7aB868zXSen_fO=NS-qFTUMo9h2eHtOexY8Qhw@mail.gmail.com>",
+        "timestamp": "1794174498.807282"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "Return-Path: unixfreak0037@gmail.com",
+        "header_index": 22,
+        "message_id": "<CANTOGZsMiMb+7aB868zXSen_fO=NS-qFTUMo9h2eHtOexY8Qhw@mail.gmail.com>",
+        "timestamp": "1794174498.807282"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "X-EOPAttributedMessage: 0",
+        "header_index": 23,
+        "message_id": "<CANTOGZsMiMb+7aB868zXSen_fO=NS-qFTUMo9h2eHtOexY8Qhw@mail.gmail.com>",
+        "timestamp": "1794174498.807282"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "X-EOPTenantAttributedMessage: 6e1e3a0a-cb5b-4699-9a6a-595e9ef289e9:0",
+        "header_index": 24,
+        "message_id": "<CANTOGZsMiMb+7aB868zXSen_fO=NS-qFTUMo9h2eHtOexY8Qhw@mail.gmail.com>",
+        "timestamp": "1794174498.807282"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "X-Forefront-Antispam-Report: CIP:207.211.31.120;IPV:CAL;SCL:-1;CTRY:US;EFV:NLI;SFV:SKN;SFS:;DIR:INB;SFP:;SCL:-1;SRVR:BN6PR2001MB1905;H:us-smtp-1.mimecast.com;FPR:;SPF:None;LANG:en;",
+        "header_index": 25,
+        "message_id": "<CANTOGZsMiMb+7aB868zXSen_fO=NS-qFTUMo9h2eHtOexY8Qhw@mail.gmail.com>",
+        "timestamp": "1794174498.807282"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "X-Microsoft-Exchange-Diagnostics: 1;BY2NAM01FT010;1:cXHxorVBgYsCo5RElcyw2WCLBZnnsYie4Ky11aQ4YaytVzEjErT9ACPrPPKGeSw1C3fdzi0Jg5NSOo8MpHNdMnLxTVhrtyAioDLZdgR8zaV39dQdzEwjmPR911TqGAAa",
+        "header_index": 26,
+        "message_id": "<CANTOGZsMiMb+7aB868zXSen_fO=NS-qFTUMo9h2eHtOexY8Qhw@mail.gmail.com>",
+        "timestamp": "1794174498.807282"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "X-MS-PublicTrafficType: Email",
+        "header_index": 27,
+        "message_id": "<CANTOGZsMiMb+7aB868zXSen_fO=NS-qFTUMo9h2eHtOexY8Qhw@mail.gmail.com>",
+        "timestamp": "1794174498.807282"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "X-MS-Office365-Filtering-Correlation-Id: 9765f09b-0f6b-4cb5-d955-08d57aea6075",
+        "header_index": 28,
+        "message_id": "<CANTOGZsMiMb+7aB868zXSen_fO=NS-qFTUMo9h2eHtOexY8Qhw@mail.gmail.com>",
+        "timestamp": "1794174498.807282"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "X-Microsoft-Antispam: UriScan:;BCL:0;PCL:0;RULEID:(7020095)(5600026)(4604075)(4605076)(1401096)(71702078);SRVR:BN6PR2001MB1905;",
+        "header_index": 29,
+        "message_id": "<CANTOGZsMiMb+7aB868zXSen_fO=NS-qFTUMo9h2eHtOexY8Qhw@mail.gmail.com>",
+        "timestamp": "1794174498.807282"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "X-Microsoft-Exchange-Diagnostics: 1;BN6PR2001MB1905;3:nreH+bA/sMskUxRXF3979mKSz5VC3HL0sHhjqZbiBOm+E3NkRs+CapEpiyGMbQfW4M72YxulbTjhe9vMeEAIIty0W7Q3AsLS8jzhWviyXwi2mZz0oR4a37KiQAT82uhjMh/3v9tXtIgExFbWIFplzUBbvIIfWpGJshbQhpB6aGRzfBxUFB7IWFHUcCTa7EuER9UUDSn1P64kJ5SjNkAfADAzNLxRYd+KeHPRcGSS89FGhCYzJ9XaCGKQgVWsstBgxysULVlwX5U6P1XkzxVIb7b6N1STwgX+JUbzoeKV1fRzZMT5PzPMLhe5hKPg0jlHdw7XPLNrf+GHNcc8ZBcGpAS0ozkd2RZAiZptsiCH6HY=;25:gFQi49t8Cuxsx5KDQCK+jyitNvNQJEqX9XwezMcGUzCB9JeNWeViwbMDgqP2xctXfvcqxLmPYJJPr3b7hCYiejmJPwIrMwpUEK1dJHfnKa31zQqD6jwb2fmrrOtxJSwfspEOJZiOfSgqBgphIDBnNAmfw1tGAAAWdopreFpv3NfmKsA8I4apUOSMCzQyP/VXEL8z/wcYI8H1dzMdO+LrrKW3PrqdF0rmjmW8s8JoK4OfAefpfcYx+8GSK8on4/EE43sBwEfBtGGVd5sfUximMEfhGW6wXDzPN4Ga3i00rPNHJkSf/qZqNy3ypSo2NKK1fhJjNZNPSnQpuYELrQ34YA==",
+        "header_index": 30,
+        "message_id": "<CANTOGZsMiMb+7aB868zXSen_fO=NS-qFTUMo9h2eHtOexY8Qhw@mail.gmail.com>",
+        "timestamp": "1794174498.807282"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "X-MS-TrafficTypeDiagnostic: BN6PR2001MB1905:",
+        "header_index": 31,
+        "message_id": "<CANTOGZsMiMb+7aB868zXSen_fO=NS-qFTUMo9h2eHtOexY8Qhw@mail.gmail.com>",
+        "timestamp": "1794174498.807282"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "X-Microsoft-Exchange-Diagnostics: 1;BN6PR2001MB1905;31:eSVpzHPCbZsrS59L/bCyerT9ChgrH12Vgq4coyb65F8O/yTDclQba6ye9YRRC3K/7+QK+BjYAWDI0y7YMBdJPmlmTxpa22RsH3HOmVE5SjF7FKCEQOX5QRzLdRQB3iAsyZvecomFpTyBQy0O+yfG1zP6wDO8/l276nudsQ65AeG6I6ZUVnymLo5p2T1bLd8qi/uhLC2KMLzOeXOYnuBwUb2f8HcgpbbiPsnjIOIScv0=;20:EwFzZEPoX0UF1+TcB2F17DSw9msleaW8UG/1Jl8ZmmW3ltvN8UCcOk/m79+hcZx3SNSSxKyBWaZuv/vxg3HazCzLntYGQiGIQRHUvVkh+rxBs4B6gRPkq1IBh4whPtzgofws+mkFKf+GZCtN2A8KXXWcory+yB3nJzKRbJJcyuboOrpoWh6vFDxEGy9b2VWAQphY3vRG1PZDdZ8QlnwR1a2N8cT6oC9w4s3xgQgwjkEY4jINNhG+cqVEtvCS6UbVx/P1mde8It6esls5e0Fc+bO6L6cvcYIKxZLnvZKauQOxFoIfAPlRJs62XqOOdANujGc0vprKvO5qDI2MugEmU6MOWyVWgEfCEYGSgGBs8kfV13uA65s+rCJ/bhMmCeB20XjuLS4Js3esYk2LXB9Ek/lUrtgKCSs07Tl7aB/BXkA0iTxOxaGZw4q9DJYcFK4JBGqxTjMh46gVfbVqDQ1N/dpkqLoROeXl+Lwz3Hxbr9Rxf4sTW28svMyOSpcfORZs",
+        "header_index": 32,
+        "message_id": "<CANTOGZsMiMb+7aB868zXSen_fO=NS-qFTUMo9h2eHtOexY8Qhw@mail.gmail.com>",
+        "timestamp": "1794174498.807282"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "X-Exchange-Antispam-Report-Test: UriScan:(85827821059158);",
+        "header_index": 33,
+        "message_id": "<CANTOGZsMiMb+7aB868zXSen_fO=NS-qFTUMo9h2eHtOexY8Qhw@mail.gmail.com>",
+        "timestamp": "1794174498.807282"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "X-Exchange-Antispam-Report-CFA-Test: BCL:0;PCL:0;RULEID:(2401047)(8121501046)(1430306)(1431041)(1437130)(1441077)(1551027)(9101536074)(3231101)(902075)(903095)(944500087)(944510158)(944921075)(946801075)(946901075)(3002001)(93006095)(93003095)(10201501046)(1610001)(8301001075)(8301003183)(201708071742011);SRVR:BN6PR2001MB1905;BCL:0;PCL:0;RULEID:;SRVR:BN6PR2001MB1905;",
+        "header_index": 34,
+        "message_id": "<CANTOGZsMiMb+7aB868zXSen_fO=NS-qFTUMo9h2eHtOexY8Qhw@mail.gmail.com>",
+        "timestamp": "1794174498.807282"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "X-Microsoft-Exchange-Diagnostics: 1;BN6PR2001MB1905;4:ioN3ZJedqQdvli9vCnGMNltYr+zgWPVmf0tG6c5alcGO4ISl/8lFJTQOxfJlhQV63Ley7XC/TGhw59ZawZAuE4KxAsVkAsdIZi/2xJnTpjkGBFSG7bZmCiffHvlcBBdJjwMCus98FyQdcIafsKRlFx5efT20Yx0vsvLYaVi7kdc4dmWtxdArk94pt9oxr1ynhEh3gPXIxkWYq3uoQ+VefRL/l9su1WN7CUeSXOCrzorhJv2FaRJHhqWsQ0Tjhru2Y25Faz792vol5AMvTe+7d0Kf1M2dlmiVEZQAiRNUNcup5WHy5IOsvs/fZYpjxpPd;23:MWNwE/MOBLVTPZgClSgqYWoYlNSaiiFQpanincmk1DqNVUYN8UhvLRdEm7TFYoiuRBHbLLaoNDxb/1NrPj+HC17u+vvZEp4uLk3vdCro0UhrVsM7slDQ1peOOo6zyjdqLksaY0LI5zudcb7+E0dTG4mL+t+CuAVoU8qLQVNrueAS5asP8KBSO7r7mG2lKcCU;6:CMuTSH10t0kxrGMsDt4hv7qIBuEJOgaUzWyAKhNMcq4FLygg08B8j7jTk/79XGjz3+DZtYVJjgiHTbeNLEZAq+SZM45Ujd6XkE2GxMDFC8FXEXS0P0LS1gOf0uZkHDnnGdVO/O60nTr7681sjHdnJV7H2teYOcdvoMFHzDffXG70clq5qOHLYDoV4FVSf0I5x8cGdLO0ssZ5YRjpW3YL8A+a2EyebNDTh4Ncz7qmvjJG1H4zcF0otPONnaNqAGDnaJTs353MRmEIvVUDeKxbQyWdOdLeAzdhkXKxL2ppiyojIm+omJt5zXJGAH7UhizGNx3/FHA4FQBclmCxvtGGsBNdB7qfg0sqc0BNPVwreaK6sZiR8F60pvWoh+7k+kycMoQ8EcOdQ2NuP5c2cpnzeA==",
+        "header_index": 35,
+        "message_id": "<CANTOGZsMiMb+7aB868zXSen_fO=NS-qFTUMo9h2eHtOexY8Qhw@mail.gmail.com>",
+        "timestamp": "1794174498.807282"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "X-Microsoft-Antispam-Message-Info: yGQC7JQXgcC+ph/gymyINJ8kvst3uUhlX9sJePX0A+/MKYD5V+QofS3Pma/8KgJ/X5qqYzzy+yUq9F4IPtcyY4cO4sTSh3d38bsF40dnq98Q5b4pXLlQEaSwXAtRLvxU9Ocz+YxBqIOspSfHREisO2Nv5CgubAF05cK3CPuoVwreFu0IanWCjX4BdF/EtLPycRbOwGiL+L3+/lG5nAUE/tXUFMSLqfnNMSWaYZUX7lIGcvgY8lw6cE3imaMVeVWi",
+        "header_index": 36,
+        "message_id": "<CANTOGZsMiMb+7aB868zXSen_fO=NS-qFTUMo9h2eHtOexY8Qhw@mail.gmail.com>",
+        "timestamp": "1794174498.807282"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "X-Microsoft-Exchange-Diagnostics: 1;BN6PR2001MB1905;5:kMk+adYd8FaJ8A26yJWufLE3qpPGnAvijukOn/IjnDMr+W5bVtEEx865zR+ssGpDWvNtkeJ6V6wlRGEdaUQLhBgRuIqglaMNyD8+DmBh9PT+m9rW/WWMEje7DfjtdlYB+mewXcEP6qPZkSZNaiO61hJro/I5eeXcHX2C1/OA47s=;24:Oib13udY5BFLcZmEGInCdnJZYlLw3rsIySmRgmVDu6dd8bmNO6w/mamcUmWOUmbIHHhuJsewvmkH5QC7SGqpP6dtADDBO48lGRZiSWGVcHo=;7:LW9ewMwU6C0PnHufqwSA8PN7GtNXqKuILffLhJt5R3JLMTLyx9JXrDx4XL+gSxb/tsAoXycNOXKRhOVjVBagJN9lfSfB+Vm/eH/QBNiGlyOiHBGN1Oc02L9T8WOKBPXF/WFG0HfYJxLzvG2jE1mrJQzgseXyPpiMciDjKqpQZ2NDPhJ6FmS/Kyaw2c+45XQY4aY5tInbn6x5Zty+Sf+AOTr+ucQ7NuZe2mtXdxtfhqzmddTm2h59wIb6/oyKiUqV;20:fl8/RmGEU9vG8NtJjOlI+xyYLfhihJpt6wOuZKw9RWZ+gcQEEgHZzg9Kmxb4LuTvr3voh2mtGHhS8vlb1cyf7oKsVf4nyJE1zVC+bRNqFSxJscMidiP8XDyiEmIpRTZcithsOoJBZFDDjAxPmUEvN9mTnFSOhaPmSGBZVQBktWQ=",
+        "header_index": 37,
+        "message_id": "<CANTOGZsMiMb+7aB868zXSen_fO=NS-qFTUMo9h2eHtOexY8Qhw@mail.gmail.com>",
+        "timestamp": "1794174498.807282"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "SpamDiagnosticOutput: 1:99",
+        "header_index": 38,
+        "message_id": "<CANTOGZsMiMb+7aB868zXSen_fO=NS-qFTUMo9h2eHtOexY8Qhw@mail.gmail.com>",
+        "timestamp": "1794174498.807282"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "SpamDiagnosticMetadata: SKN",
+        "header_index": 39,
+        "message_id": "<CANTOGZsMiMb+7aB868zXSen_fO=NS-qFTUMo9h2eHtOexY8Qhw@mail.gmail.com>",
+        "timestamp": "1794174498.807282"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "archive_path": null,
+        "attachment_count": 2,
+        "attachment_hashes": [
+          "804cc369beb99c1fb72f1b43da0d7b5798a1fe20bb06d57a45cf9f52ff05e7a4",
+          "930c094ca8bf21eca5c06a1818f6d1c4463032341393a693881ffe84b3acaeb3"
+        ],
+        "attachment_names": [
+          "email.rfc822.unknown_text_plain_000.txt",
+          "email.rfc822.unknown_text_html_000.html"
+        ],
+        "attachment_sizes": [
+          326,
+          1561
+        ],
+        "attachment_types": [
+          "text/plain",
+          "text/html"
+        ],
+        "authentication_failed": true,
+        "bcc": [],
+        "cc": [],
+        "compauth_reason": "201",
+        "compauth_result": "softpass",
+        "date": "2026-11-08 21:48:18.807282 +0000",
+        "dkim_result": "fail",
+        "dmarc_result": "fail",
+        "env_mail_from": "unixfreak0037@gmail.com",
+        "env_rcpt_to": [
+          "jwdavison@company.com"
+        ],
+        "first_received": "by 10.46.5.71 with HTTP; Fri, 23 Feb 2018 10:22:14 -0800 (PST)",
+        "in_reply_to": null,
+        "internal_org_sender": false,
+        "is_anonymous_direct_send": false,
+        "last_received": "from BN6PR2001CA0043.namprd20.prod.outlook.com (10.172.27.29) by\n BN6PR2001MB1905.namprd20.prod.outlook.com (10.174.81.10) with Microsoft SMTP\n Server (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384_P256) id\n 15.20.527.15; Fri, 23 Feb 2018 18:22:20 +0000",
+        "mail_from": "John Davison <unixfreak0037@gmail.com>",
+        "mail_from_is_local": false,
+        "mail_to": [
+          "jwdavison@company.com"
+        ],
+        "message_directionality": "Incoming",
+        "message_id": "<CANTOGZsMiMb+7aB868zXSen_fO=NS-qFTUMo9h2eHtOexY8Qhw@mail.gmail.com>",
+        "originating_ip": null,
+        "path": [
+          "10.172.27.29",
+          "207.211.31.120",
+          "mail-lf0-f45.google.com\n [209.85.215.45]"
+        ],
+        "refereneces": null,
+        "reply_to": null,
+        "size": 23406,
+        "spf_result": "softfail",
+        "spoofed_internal": false,
+        "subject": "canary #3",
+        "subject_raw": "canary #3",
+        "thread_index": null,
+        "thread_topic": null,
+        "timestamp": "1794174498.807282",
+        "user_agent": null,
+        "x_mailer": null,
+        "x_sender": null
+      },
+      "tag": "phishfinder-main"
+    },
+    {
+      "record": {
+        "any_mixed_script": false,
+        "any_similar": false,
+        "comparison_count": 0,
+        "comparisons": [],
+        "established_domains": [],
+        "max_jaro_winkler": 0.0,
+        "message_id": "<CANTOGZsMiMb+7aB868zXSen_fO=NS-qFTUMo9h2eHtOexY8Qhw@mail.gmail.com>",
+        "min_damerau_levenshtein": null,
+        "normalized_subject": "canary #3",
+        "senders": [
+          {
+            "address": "unixfreak0037@gmail.com",
+            "domain": "gmail.com",
+            "mixed_script": false,
+            "punycode": false,
+            "role": "from"
+          },
+          {
+            "address": "unixfreak0037@gmail.com",
+            "domain": "gmail.com",
+            "mixed_script": false,
+            "punycode": false,
+            "role": "return_path"
+          }
+        ],
+        "thread_id": "<CANTOGZsMiMb+7aB868zXSen_fO=NS-qFTUMo9h2eHtOexY8Qhw@mail.gmail.com>",
+        "thread_message_count": 0,
+        "thread_method": "self",
+        "timestamp": "1794174498.807282"
+      },
+      "tag": "phishfinder-lookalike"
+    },
+    {
+      "record": {
+        "alert_type": "cli_analysis",
+        "analysis_time_seconds": 0.001966,
+        "exec_count": 15,
+        "is_alert": false,
+        "module": "email_logger",
+        "percentage": 0.8048389555249948,
+        "queue": "default",
+        "root_uuid": "26bc1b22-b397-49ee-bc77-35415b93aeac",
+        "timestamp": "2026-11-08 21:48:19.029017",
+        "total_analysis_time_seconds": 0.030872999999999998,
+        "total_time_seconds": 0.24427247047424316
+      },
+      "tag": "metrics"
+    },
+    {
+      "record": {
+        "alert_type": "cli_analysis",
+        "analysis_time_seconds": 0.023394999999999996,
+        "exec_count": 5,
+        "is_alert": false,
+        "module": "file_type",
+        "percentage": 9.57741981917968,
+        "queue": "default",
+        "root_uuid": "26bc1b22-b397-49ee-bc77-35415b93aeac",
+        "timestamp": "2026-11-08 21:48:19.029017",
+        "total_analysis_time_seconds": 0.030872999999999998,
+        "total_time_seconds": 0.24427247047424316
+      },
+      "tag": "metrics"
+    },
+    {
+      "record": {
+        "alert_type": "cli_analysis",
+        "analysis_time_seconds": 0.005512,
+        "exec_count": 3,
+        "is_alert": false,
+        "module": "email_analyzer",
+        "percentage": 2.2564966036896092,
+        "queue": "default",
+        "root_uuid": "26bc1b22-b397-49ee-bc77-35415b93aeac",
+        "timestamp": "2026-11-08 21:48:19.029017",
+        "total_analysis_time_seconds": 0.030872999999999998,
+        "total_time_seconds": 0.24427247047424316
+      },
+      "tag": "metrics"
+    },
+    {
+      "record": {
+        "path": "database.pool.available_count",
+        "timestamp": "2026-11-08T21:48:19.029299",
+        "value": 0
+      },
+      "tag": "monitoring"
+    },
+    {
+      "record": {
+        "path": "database.pool.in_use_count",
+        "timestamp": "2026-11-08T21:48:19.029317",
+        "value": 1
+      },
+      "tag": "monitoring"
+    }
+  ],
+  "input": {
+    "directives": [
+      "original_email"
+    ],
+    "label": "ace3/email/sample_rfc822.in, against an empty brocess",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "email.rfc822",
+      "size": 23406,
+      "type": "file",
+      "value": "759f4eb6a31031c0af03b00d206725fce2e5d0fc13c8e7d3426d714477948bdf"
+    }
+  },
+  "module": "email_logger",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "original_email",
+      "yara_meta:type=email"
+    ],
+    "excluded_analysis": [],
+    "file_path": "email.rfc822",
+    "relationships": [],
+    "size": 23406,
+    "tags": [
+      "authentication_failed",
+      "email"
+    ],
+    "type": "file",
+    "value": "759f4eb6a31031c0af03b00d206725fce2e5d0fc13c8e7d3426d714477948bdf",
+    "yara_meta": [
+      "type=email"
+    ]
+  }
+}

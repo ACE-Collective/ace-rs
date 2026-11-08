@@ -1,0 +1,666 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "email_analyzer",
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "EmailAnalysis",
+      "details": {
+        "email": {
+          "authentication_failed": false,
+          "compauth_reason": null,
+          "compauth_result": null,
+          "decoded_subject": "Fwd: Payroll adjustment",
+          "dkim_result": null,
+          "dmarc_result": null,
+          "env_mail_from": "hr@victim-company.example",
+          "env_rcpt_to": [
+            "victim@example.com"
+          ],
+          "from": "\"HR Director\" <hr@victim-company.example>",
+          "from_address": "hr@victim-company.example",
+          "headers": [
+            [
+              "From",
+              "\"HR Director\" <hr@victim-company.example>"
+            ],
+            [
+              "To",
+              "victim@example.com"
+            ],
+            [
+              "Subject",
+              "Fwd: Payroll adjustment"
+            ],
+            [
+              "Message-ID",
+              "<inner-fwd@example.com>"
+            ],
+            [
+              "Date",
+              "Fri, 17 Apr 2026 09:00:00 +0000"
+            ],
+            [
+              "MIME-Version",
+              "1.0"
+            ],
+            [
+              "Content-Type",
+              "multipart/mixed; boundary=\"inner-boundary-bbbb\""
+            ]
+          ],
+          "internal_org_sender": false,
+          "is_anonymous_direct_send": false,
+          "log_entry": {
+            "attachment_count": 3,
+            "attachment_hashes": [
+              "d999290f66a18edb224ef61da4d21b35594c4fcc82206866fc26a1bd101bd64d",
+              "ad051cc117906f0d8dc87062a6f26980483e0bd908e7dbe0a85ed05e182f5ee2",
+              "7823e7901899ba8fd517c44aae8a3716bcd110cc868269db74aa0e594c7d7b8f"
+            ],
+            "attachment_names": [
+              "email.rfc822.unknown_text_plain_000.txt",
+              "email.rfc822.email.rfc822",
+              "email.rfc822.unknown_text_html_000.html"
+            ],
+            "attachment_sizes": [
+              74,
+              430,
+              82
+            ],
+            "attachment_types": [
+              "text/plain",
+              "message/rfc822",
+              "text/html"
+            ],
+            "authentication_failed": false,
+            "bcc": [],
+            "cc": [],
+            "compauth_reason": null,
+            "compauth_result": null,
+            "date": "2026-11-08 21:48:01.559685 +0000",
+            "dkim_result": null,
+            "dmarc_result": null,
+            "env_mail_from": "hr@victim-company.example",
+            "env_rcpt_to": [
+              "victim@example.com"
+            ],
+            "first_received": null,
+            "headers": [
+              "From: \"HR Director\" <hr@victim-company.example>",
+              "To: victim@example.com",
+              "Subject: Fwd: Payroll adjustment",
+              "Message-ID: <inner-fwd@example.com>",
+              "Date: Fri, 17 Apr 2026 09:00:00 +0000",
+              "MIME-Version: 1.0",
+              "Content-Type: multipart/mixed; boundary=\"inner-boundary-bbbb\""
+            ],
+            "in_reply_to": null,
+            "internal_org_sender": false,
+            "is_anonymous_direct_send": false,
+            "last_received": null,
+            "mail_from": "\"HR Director\" <hr@victim-company.example>",
+            "mail_from_is_local": false,
+            "mail_to": [
+              "victim@example.com"
+            ],
+            "message_directionality": null,
+            "message_id": "<inner-fwd@example.com>",
+            "originating_ip": null,
+            "path": [],
+            "refereneces": null,
+            "reply_to": null,
+            "size": 2023,
+            "spf_result": null,
+            "spoofed_internal": false,
+            "subject": "Fwd: Payroll adjustment",
+            "subject_raw": "Fwd: Payroll adjustment",
+            "thread_index": null,
+            "thread_topic": null,
+            "user_agent": null,
+            "x_mailer": null,
+            "x_sender": null
+          },
+          "mail_from_is_local": false,
+          "message-id": "<inner-fwd@example.com>",
+          "message_directionality": null,
+          "spf_result": null,
+          "spoofed_internal": false,
+          "subject": "Fwd: Payroll adjustment",
+          "to": [
+            "victim@example.com"
+          ],
+          "to_addresses": [
+            "victim@example.com"
+          ]
+        },
+        "extraction_errors": [],
+        "parsing_error": null
+      },
+      "detections": [],
+      "module_path": "saq.modules.email.rfc822:EmailAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_from",
+          "value": "hr@victim-company.example"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_envelope_rcpt_to",
+          "value": "victim@example.com"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_conversation",
+          "value": "hr@victim-company.example|victim@example.com"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_to",
+          "value": "victim@example.com"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "display_type": "Decoded Subject",
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_subject",
+          "value": "Fwd: Payroll adjustment"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [
+            "saq.modules.email.message_id:<class 'saq.modules.email.message_id.MessageIDAnalyzerV2'>"
+          ],
+          "relationships": [],
+          "tags": [],
+          "type": "message_id",
+          "value": "<inner-fwd@example.com>"
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls",
+            "preview",
+            "yara_meta:type=email.attachment"
+          ],
+          "excluded_analysis": [],
+          "file_path": "email.rfc822.unknown_text_plain_000.txt",
+          "relationships": [],
+          "size": 74,
+          "tags": [],
+          "type": "file",
+          "value": "d999290f66a18edb224ef61da4d21b35594c4fcc82206866fc26a1bd101bd64d",
+          "yara_meta": [
+            "type=email.attachment"
+          ]
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls",
+            "render",
+            "yara_meta:type=email",
+            "yara_meta:type=email.attachment"
+          ],
+          "excluded_analysis": [],
+          "file_path": "email.rfc822.email.rfc822",
+          "relationships": [],
+          "size": 430,
+          "tags": [
+            "email"
+          ],
+          "type": "file",
+          "value": "ad051cc117906f0d8dc87062a6f26980483e0bd908e7dbe0a85ed05e182f5ee2",
+          "yara_meta": [
+            "type=email",
+            "type=email.attachment"
+          ]
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls",
+            "render",
+            "yara_meta:type=document.html",
+            "yara_meta:type=email.attachment"
+          ],
+          "excluded_analysis": [],
+          "file_path": "email.rfc822.unknown_text_html_000.html",
+          "relationships": [],
+          "size": 82,
+          "tags": [],
+          "type": "file",
+          "value": "7823e7901899ba8fd517c44aae8a3716bcd110cc868269db74aa0e594c7d7b8f",
+          "yara_meta": [
+            "type=document.html",
+            "type=email.attachment"
+          ]
+        },
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=email",
+            "yara_meta:type=email.headers"
+          ],
+          "excluded_analysis": [
+            "saq.modules.email.rfc822:<class 'saq.modules.email.rfc822.EmailAnalyzer'>"
+          ],
+          "file_path": "email.rfc822.headers",
+          "relationships": [],
+          "size": 257,
+          "tags": [
+            "email"
+          ],
+          "type": "file",
+          "value": "23da9cebc5b26594a228abf474a8bf542cbbf0ad22f8abe63809ff0fd9089398",
+          "yara_meta": [
+            "type=email",
+            "type=email.headers"
+          ]
+        },
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=email",
+            "yara_meta:type=email.combined"
+          ],
+          "excluded_analysis": [
+            "saq.modules.email.rfc822:<class 'saq.modules.email.rfc822.EmailAnalyzer'>"
+          ],
+          "file_path": "email.rfc822.combined",
+          "relationships": [],
+          "size": 419,
+          "tags": [
+            "email"
+          ],
+          "type": "file",
+          "value": "0ee15ee954981e359d21accd2eadc5960dac5ab6da0841b31e9efc76e091d105",
+          "yara_meta": [
+            "type=email",
+            "type=email.combined"
+          ]
+        }
+      ],
+      "summary": "Email Analysis: From \"HR Director\" <hr@victim-company.example> To victim@example.com Subject Fwd: Payroll adjustment",
+      "tags": []
+    },
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": true,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "message/rfc822",
+        "type": "SMTP mail, Unicode text, UTF-8 text, with CRLF line terminators"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: SMTP mail, Unicode text, UTF-8 text, with CRLF line terminators (message/rfc822) (email)",
+      "tags": []
+    }
+  ],
+  "brocess_after": {
+    "email_thread_domain": [
+      {
+        "address": "hr@victim-company.example",
+        "domain": "victim-company.example",
+        "entry_hash": "C1720CE8528C9A5B4922D3607386E3F5553B2C48D66C9BDD59DBCE98AEA7C212",
+        "firstseendate": "2026-11-08 09:00:00",
+        "id": 1,
+        "message_id_hash": "697F7C8C73672368D3AF98D9B388161ED02B38E76EEB3647DC222C3E1BB13696",
+        "numseen": 1,
+        "role": "from",
+        "thread_id": "<inner-fwd@example.com>",
+        "thread_id_hash": "697F7C8C73672368D3AF98D9B388161ED02B38E76EEB3647DC222C3E1BB13696"
+      },
+      {
+        "address": "victim@example.com",
+        "domain": "example.com",
+        "entry_hash": "BAB1F0E8800EC09F0737F933127B804C261EA6FBF9BBF1986E24F976759CCDF5",
+        "firstseendate": "2026-11-08 09:00:00",
+        "id": 2,
+        "message_id_hash": "697F7C8C73672368D3AF98D9B388161ED02B38E76EEB3647DC222C3E1BB13696",
+        "numseen": 1,
+        "role": "to",
+        "thread_id": "<inner-fwd@example.com>",
+        "thread_id_hash": "697F7C8C73672368D3AF98D9B388161ED02B38E76EEB3647DC222C3E1BB13696"
+      }
+    ],
+    "email_thread_message": [
+      {
+        "direction": 0,
+        "from_address": "hr@victim-company.example",
+        "from_domain": "victim-company.example",
+        "id": 1,
+        "in_reply_to": null,
+        "insert_date": "2026-11-08 09:00:00",
+        "message_date": "2026-04-17 09:00:00",
+        "message_id": "<inner-fwd@example.com>",
+        "message_id_hash": "697F7C8C73672368D3AF98D9B388161ED02B38E76EEB3647DC222C3E1BB13696",
+        "normalized_subject": "payroll adjustment",
+        "normalized_subject_hash": "EEB9993FDB058E1EAB001A0EECFDDDB88C9B62AF71B155D855BCE1183BF21F2E",
+        "thread_id": "<inner-fwd@example.com>",
+        "thread_id_hash": "697F7C8C73672368D3AF98D9B388161ED02B38E76EEB3647DC222C3E1BB13696"
+      }
+    ],
+    "now": "2026-11-08 09:00:00",
+    "smtplog": [
+      [
+        "hr@victim-company.example",
+        "victim@example.com",
+        1,
+        1794128400.0
+      ]
+    ]
+  },
+  "brocess_before": {
+    "email_thread_domain": [],
+    "email_thread_message": [],
+    "now": "2026-11-08 09:00:00",
+    "smtplog": []
+  },
+  "brocess_reads": [
+    {
+      "established": []
+    },
+    {
+      "thread_message_count": 0
+    }
+  ],
+  "fluent_bit": [
+    {
+      "record": {
+        "path": "database.pool.status",
+        "timestamp": "2026-11-08T21:48:01.553320",
+        "value": "Pool size: 5  Connections in pool: 0 Current Overflow: -4 Current Checked out connections: 1"
+      },
+      "tag": "monitoring"
+    },
+    {
+      "record": {
+        "header": "From: \"HR Director\" <hr@victim-company.example>",
+        "header_index": 0,
+        "message_id": "<inner-fwd@example.com>",
+        "timestamp": "1794174481.559685"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "To: victim@example.com",
+        "header_index": 1,
+        "message_id": "<inner-fwd@example.com>",
+        "timestamp": "1794174481.559685"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "Subject: Fwd: Payroll adjustment",
+        "header_index": 2,
+        "message_id": "<inner-fwd@example.com>",
+        "timestamp": "1794174481.559685"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "Message-ID: <inner-fwd@example.com>",
+        "header_index": 3,
+        "message_id": "<inner-fwd@example.com>",
+        "timestamp": "1794174481.559685"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "Date: Fri, 17 Apr 2026 09:00:00 +0000",
+        "header_index": 4,
+        "message_id": "<inner-fwd@example.com>",
+        "timestamp": "1794174481.559685"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "MIME-Version: 1.0",
+        "header_index": 5,
+        "message_id": "<inner-fwd@example.com>",
+        "timestamp": "1794174481.559685"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "Content-Type: multipart/mixed; boundary=\"inner-boundary-bbbb\"",
+        "header_index": 6,
+        "message_id": "<inner-fwd@example.com>",
+        "timestamp": "1794174481.559685"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "archive_path": null,
+        "attachment_count": 3,
+        "attachment_hashes": [
+          "d999290f66a18edb224ef61da4d21b35594c4fcc82206866fc26a1bd101bd64d",
+          "ad051cc117906f0d8dc87062a6f26980483e0bd908e7dbe0a85ed05e182f5ee2",
+          "7823e7901899ba8fd517c44aae8a3716bcd110cc868269db74aa0e594c7d7b8f"
+        ],
+        "attachment_names": [
+          "email.rfc822.unknown_text_plain_000.txt",
+          "email.rfc822.email.rfc822",
+          "email.rfc822.unknown_text_html_000.html"
+        ],
+        "attachment_sizes": [
+          74,
+          430,
+          82
+        ],
+        "attachment_types": [
+          "text/plain",
+          "message/rfc822",
+          "text/html"
+        ],
+        "authentication_failed": false,
+        "bcc": [],
+        "cc": [],
+        "compauth_reason": null,
+        "compauth_result": null,
+        "date": "2026-11-08 21:48:01.559685 +0000",
+        "dkim_result": null,
+        "dmarc_result": null,
+        "env_mail_from": "hr@victim-company.example",
+        "env_rcpt_to": [
+          "victim@example.com"
+        ],
+        "first_received": null,
+        "in_reply_to": null,
+        "internal_org_sender": false,
+        "is_anonymous_direct_send": false,
+        "last_received": null,
+        "mail_from": "\"HR Director\" <hr@victim-company.example>",
+        "mail_from_is_local": false,
+        "mail_to": [
+          "victim@example.com"
+        ],
+        "message_directionality": null,
+        "message_id": "<inner-fwd@example.com>",
+        "originating_ip": null,
+        "path": [],
+        "refereneces": null,
+        "reply_to": null,
+        "size": 2023,
+        "spf_result": null,
+        "spoofed_internal": false,
+        "subject": "Fwd: Payroll adjustment",
+        "subject_raw": "Fwd: Payroll adjustment",
+        "thread_index": null,
+        "thread_topic": null,
+        "timestamp": "1794174481.559685",
+        "user_agent": null,
+        "x_mailer": null,
+        "x_sender": null
+      },
+      "tag": "phishfinder-main"
+    },
+    {
+      "record": {
+        "any_mixed_script": false,
+        "any_similar": false,
+        "comparison_count": 0,
+        "comparisons": [],
+        "established_domains": [],
+        "max_jaro_winkler": 0.0,
+        "message_id": "<inner-fwd@example.com>",
+        "min_damerau_levenshtein": null,
+        "normalized_subject": "payroll adjustment",
+        "senders": [
+          {
+            "address": "hr@victim-company.example",
+            "domain": "victim-company.example",
+            "mixed_script": false,
+            "punycode": false,
+            "role": "from"
+          }
+        ],
+        "thread_id": "<inner-fwd@example.com>",
+        "thread_message_count": 0,
+        "thread_method": "self",
+        "timestamp": "1794174481.559685"
+      },
+      "tag": "phishfinder-lookalike"
+    },
+    {
+      "record": {
+        "alert_type": "cli_analysis",
+        "analysis_time_seconds": 0.006579000000000001,
+        "exec_count": 5,
+        "is_alert": false,
+        "module": "email_analyzer",
+        "percentage": 2.5743377195633923,
+        "queue": "default",
+        "root_uuid": "d9f74c19-b303-4051-b22b-dd73d24ce2c6",
+        "timestamp": "2026-11-08 21:48:01.791771",
+        "total_analysis_time_seconds": 0.041151,
+        "total_time_seconds": 0.25556087493896484
+      },
+      "tag": "metrics"
+    },
+    {
+      "record": {
+        "alert_type": "cli_analysis",
+        "analysis_time_seconds": 0.031984,
+        "exec_count": 9,
+        "is_alert": false,
+        "module": "file_type",
+        "percentage": 12.515217756880306,
+        "queue": "default",
+        "root_uuid": "d9f74c19-b303-4051-b22b-dd73d24ce2c6",
+        "timestamp": "2026-11-08 21:48:01.791771",
+        "total_analysis_time_seconds": 0.041151,
+        "total_time_seconds": 0.25556087493896484
+      },
+      "tag": "metrics"
+    },
+    {
+      "record": {
+        "alert_type": "cli_analysis",
+        "analysis_time_seconds": 0.002588,
+        "exec_count": 19,
+        "is_alert": false,
+        "module": "email_logger",
+        "percentage": 1.0126745733743818,
+        "queue": "default",
+        "root_uuid": "d9f74c19-b303-4051-b22b-dd73d24ce2c6",
+        "timestamp": "2026-11-08 21:48:01.791771",
+        "total_analysis_time_seconds": 0.041151,
+        "total_time_seconds": 0.25556087493896484
+      },
+      "tag": "metrics"
+    },
+    {
+      "record": {
+        "path": "database.pool.available_count",
+        "timestamp": "2026-11-08T21:48:01.792060",
+        "value": 0
+      },
+      "tag": "monitoring"
+    },
+    {
+      "record": {
+        "path": "database.pool.in_use_count",
+        "timestamp": "2026-11-08T21:48:01.792082",
+        "value": 1
+      },
+      "tag": "monitoring"
+    }
+  ],
+  "input": {
+    "directives": [
+      "original_email"
+    ],
+    "label": "ace3/email/nested_rfc822_bom.email.rfc822, against an empty brocess",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "email.rfc822",
+      "size": 2023,
+      "type": "file",
+      "value": "c5892b0b9c873f1f16d630785f3f0c38a70bf9c17ab9160640caca767e9702d2"
+    }
+  },
+  "module": "email_logger",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "original_email",
+      "yara_meta:type=email"
+    ],
+    "excluded_analysis": [],
+    "file_path": "email.rfc822",
+    "relationships": [],
+    "size": 2023,
+    "tags": [
+      "email"
+    ],
+    "type": "file",
+    "value": "c5892b0b9c873f1f16d630785f3f0c38a70bf9c17ab9160640caca767e9702d2",
+    "yara_meta": [
+      "type=email"
+    ]
+  }
+}

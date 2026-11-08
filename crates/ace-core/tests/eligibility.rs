@@ -203,6 +203,48 @@ fn each_rule() {
                 Ok(()),
             )
         },
+        Case {
+            results: &["email_analyzer"],
+            ..case(
+                "a file without the directive the email logger requires",
+                "email_logger",
+                FILE,
+                "email",
+                Err(Ineligible::MissingDirective("original_email".to_owned())),
+            )
+        },
+        Case {
+            directives: &["original_email"],
+            ..case(
+                "the original email, before the email module's result",
+                "email_logger",
+                FILE,
+                "email",
+                Err(Ineligible::WaitingFor("email_analyzer".to_owned())),
+            )
+        },
+        Case {
+            directives: &["original_email"],
+            results: &["email_analyzer"],
+            ..case(
+                "the original email, once the email module parsed it",
+                "email_logger",
+                FILE,
+                "email",
+                Ok(()),
+            )
+        },
+        Case {
+            directives: &["original_email", "exclude_all"],
+            results: &["email_analyzer"],
+            ..case(
+                "a directive that keeps it off wins over one it requires",
+                "email_logger",
+                FILE,
+                "email",
+                Err(Ineligible::Directive("exclude_all".to_owned())),
+            )
+        },
     ];
 
     let catalog = Catalog::new(manifests());
@@ -921,6 +963,81 @@ async fn a_file_finds_the_yara_rules_of_what_is_below_it() {
     )
     .await;
     assert_eq!(rules(doc_id).await, ["a_on_doc", "z_on_doc"]);
+}
+
+/// What a module that runs last reads of the tree on its lease: the observables of the types it
+/// reads below its own, in the order they were added and each once, and its own observable's
+/// results from the modules it depends on.
+#[tokio::test]
+async fn a_task_reads_what_is_below_its_observable_and_what_it_depends_on() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let hash = |c: &str| c.repeat(64);
+    let (email, zip, doc) = (hash("a"), hash("b"), hash("c"));
+    let (root, ids) = root_with(
+        db,
+        "test",
+        &[
+            (ObservableKind::File, email.as_str()),
+            (ObservableKind::File, zip.as_str()),
+            (ObservableKind::File, doc.as_str()),
+            (ObservableKind::Url, "https://a.example/"),
+            (ObservableKind::Url, "https://b.example/"),
+            (ObservableKind::Fqdn, "a.example"),
+            (ObservableKind::Url, "https://elsewhere.example/"),
+        ],
+    )
+    .await;
+    let (email_id, zip_id, doc_id) = (ids[0], ids[1], ids[2]);
+    let (url_a, url_b, fqdn) = (ids[3], ids[4], ids[5]);
+    add_result(
+        db,
+        root,
+        email_id,
+        "email_analyzer",
+        json!({"first": true}),
+        &[(zip_id, Some("a.zip")), (url_b, None)],
+    )
+    .await;
+    add_result(
+        db,
+        root,
+        zip_id,
+        "archive",
+        json!({}),
+        &[(doc_id, Some("a.zip.extracted/a.doc"))],
+    )
+    .await;
+    add_result(
+        db,
+        root,
+        doc_id,
+        "xlm",
+        json!({}),
+        &[(url_a, None), (fqdn, None), (url_b, None)],
+    )
+    .await;
+    add_result(db, root, email_id, "yara", json!({}), &[]).await;
+
+    let below = tree::observables_below(db.pool(), root, email_id, &[ObservableKind::Url])
+        .await
+        .expect("reads");
+    let values: Vec<&str> = below.iter().map(|o| o.value.as_str()).collect();
+    assert_eq!(values, ["https://a.example/", "https://b.example/"]);
+    assert!(
+        tree::observables_below(db.pool(), root, doc_id, &[ObservableKind::Fqdn])
+            .await
+            .expect("reads")
+            .iter()
+            .all(|o| o.value == "a.example")
+    );
+    let results = tree::results_of(db.pool(), root, email_id, &["email_analyzer", "archive"])
+        .await
+        .expect("reads");
+    assert_eq!(
+        results,
+        [("email_analyzer".to_owned(), json!({"first": true}))]
+    );
 }
 
 /// A file's relationships and redirection reach the tree, and what a module adds to the

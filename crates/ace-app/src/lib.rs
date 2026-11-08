@@ -224,7 +224,8 @@ impl App {
         self.registry()
             .manifests()
             .iter()
-            .filter(|m| !self.views.has(m.output.name, m.output.version))
+            // a module that never stores a result has nothing to draw
+            .filter(|m| m.stores_results && !self.views.has(m.output.name, m.output.version))
             .map(|m| (m.name, m.output.name, m.output.version))
             .collect()
     }

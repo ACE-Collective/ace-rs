@@ -1,0 +1,65 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT d.thread_id_hash, d.domain, d.address, d.role\n             FROM brocess.email_thread_domain d\n             WHERE d.thread_id_hash IN (\n                 SELECT m.thread_id_hash FROM brocess.email_thread_message m\n                 WHERE m.normalized_subject_hash = $1)\n             ORDER BY d.id LIMIT $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "thread_id_hash",
+        "type_info": "Bytea",
+        "origin": {
+          "Table": {
+            "table": "brocess.email_thread_domain",
+            "name": "thread_id_hash"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "domain",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "brocess.email_thread_domain",
+            "name": "domain"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "address",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "brocess.email_thread_domain",
+            "name": "address"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "role",
+        "type_info": "Varchar",
+        "origin": {
+          "Table": {
+            "table": "brocess.email_thread_domain",
+            "name": "role"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Bytea",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "4697d02a76e991b10265de627f4bb7f0a0531929610f3ad5ffd312c6fbbb9e03"
+}

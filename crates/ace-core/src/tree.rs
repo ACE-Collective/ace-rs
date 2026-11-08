@@ -543,6 +543,71 @@ pub async fn yara_rules_below(
     .await?)
 }
 
+/// The details of the observable's results from `modules`, by module, as a module that depends on
+/// them reads them (`Module::DEPENDS_ON`). A module has one result per observable.
+pub async fn results_of(
+    pool: &PgPool,
+    root: Uuid,
+    observable: ObservableId,
+    modules: &[&str],
+) -> Result<Vec<(String, Value)>, DbError> {
+    let modules: Vec<String> = modules.iter().map(|m| (*m).to_owned()).collect();
+    let rows = sqlx::query!(
+        r#"SELECT module, details
+           FROM analysis.results
+           WHERE root_id = $1 AND observable_id = $2 AND module = ANY($3)
+           ORDER BY module"#,
+        root,
+        observable as ObservableId,
+        &modules,
+    )
+    .fetch_all(pool)
+    .await?;
+    Ok(rows.into_iter().map(|r| (r.module, r.details)).collect())
+}
+
+/// The observables of `kinds` added below an observable, by any route, as ace3's `recurse_tree`
+/// finds them, in the order they were added. A file that contains its own ancestor ends the walk.
+pub async fn observables_below(
+    pool: &PgPool,
+    root: Uuid,
+    observable: ObservableId,
+    kinds: &[ObservableKind],
+) -> Result<Vec<ObservableRef>, DbError> {
+    let kinds: Vec<String> = kinds.iter().map(|k| k.as_str().to_owned()).collect();
+    let rows = sqlx::query!(
+        r#"WITH RECURSIVE below (observable_id) AS (
+               SELECT a.observable_id
+               FROM analysis.results r
+               JOIN analysis.result_additions a ON a.result_id = r.id
+               WHERE r.root_id = $1 AND r.observable_id = $2
+               UNION
+               SELECT a.observable_id
+               FROM below
+               JOIN analysis.results r ON r.root_id = $1 AND r.observable_id = below.observable_id
+               JOIN analysis.result_additions a ON a.result_id = r.id
+           )
+           SELECT o.type AS kind, o.value
+           FROM below JOIN analysis.observables o ON o.root_id = $1 AND o.id = below.observable_id
+           WHERE o.type = ANY($3)
+           ORDER BY o.id"#,
+        root,
+        observable as ObservableId,
+        &kinds,
+    )
+    .fetch_all(pool)
+    .await?;
+    rows.into_iter()
+        .map(|row| {
+            let kind = row
+                .kind
+                .parse()
+                .map_err(|e| DbError::Decode(format!("observable {}: {e}", row.value)))?;
+            Ok(ObservableRef::new(kind, row.value))
+        })
+        .collect()
+}
+
 /// The email an observable came out of, as ace3's `search_down` finds its `EmailAnalysis`: up
 /// through the results that added it, by any route, to the nearest email result that parsed a
 /// message. A result lands after the one that added what it analyzed, so the highest id is the

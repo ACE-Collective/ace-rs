@@ -1,0 +1,835 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "email_analyzer",
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "EmailAnalysis",
+      "details": {
+        "email": {
+          "authentication_failed": false,
+          "cc": [
+            "user1@partner.example",
+            "user2@partner.example",
+            "user3@contractor.example"
+          ],
+          "compauth_reason": null,
+          "compauth_result": null,
+          "decoded_subject": "RE: Test Subject Line",
+          "dkim_result": null,
+          "dmarc_result": null,
+          "env_mail_from": "john.smith@contractor.example",
+          "env_rcpt_to": [
+            "alice@acmecorp.com",
+            "bob@acmecorp.com",
+            "carol@acmecorp.com"
+          ],
+          "from": "\"John Smith\" <john.smith@contractor.example>",
+          "from_address": "john.smith@contractor.example",
+          "headers": [
+            [
+              "Received",
+              "from BY3PR05CA0014.namprd05.prod.outlook.com (2603:10b6:a03:254::19)\n by DS1PR01MB8774.prod.exchangelabs.com (2603:10b6:8:220::15) with Microsoft\n SMTP Server (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id\n 15.20.9700.24; Wed, 18 Mar 2026 02:12:43 +0000"
+            ],
+            [
+              "From",
+              "\"John Smith\" <john.smith@contractor.example>"
+            ],
+            [
+              "To",
+              "\"'Jane Doe'\" <jane.doe@partner.example>"
+            ],
+            [
+              "CC",
+              "\"'Test User 1'\" <user1@partner.example>,\n\t\"'Test User 2'\" <user2@partner.example>,\n\t<user3@contractor.example>"
+            ],
+            [
+              "Subject",
+              "RE: Test Subject Line"
+            ],
+            [
+              "Date",
+              "Wed, 18 Mar 2026 09:11:27 +0700"
+            ],
+            [
+              "Message-ID",
+              "<000001dcb67c$11223344$55667788$@contractor.example>"
+            ],
+            [
+              "MIME-Version",
+              "1.0"
+            ],
+            [
+              "Content-Type",
+              "multipart/alternative;\n\tboundary=\"_inner-boundary-7bit-bom-1234_\""
+            ]
+          ],
+          "internal_org_sender": false,
+          "is_anonymous_direct_send": false,
+          "log_entry": {
+            "attachment_count": 2,
+            "attachment_hashes": [
+              "91c8aae712a2e64a4d3e8d2379d54d124ef6009650c4b68f04b9c15ecdf57ae8",
+              "7715f6d14b51a422548602aec804731079c13efc2666d19ebf5978acac090ae5"
+            ],
+            "attachment_names": [
+              "email.rfc822.unknown_text_plain_000.txt",
+              "email.rfc822.unknown_text_html_000.html"
+            ],
+            "attachment_sizes": [
+              60,
+              93
+            ],
+            "attachment_types": [
+              "text/plain",
+              "text/html"
+            ],
+            "authentication_failed": false,
+            "bcc": [],
+            "cc": [
+              "user1@partner.example",
+              "user2@partner.example",
+              "user3@contractor.example"
+            ],
+            "compauth_reason": null,
+            "compauth_result": null,
+            "date": "2026-11-08 21:48:08.029525 +0000",
+            "dkim_result": null,
+            "dmarc_result": null,
+            "env_mail_from": "john.smith@contractor.example",
+            "env_rcpt_to": [
+              "alice@acmecorp.com",
+              "bob@acmecorp.com",
+              "carol@acmecorp.com"
+            ],
+            "first_received": "from BY3PR05CA0014.namprd05.prod.outlook.com (2603:10b6:a03:254::19)\n by DS1PR01MB8774.prod.exchangelabs.com (2603:10b6:8:220::15) with Microsoft\n SMTP Server (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id\n 15.20.9700.24; Wed, 18 Mar 2026 02:12:43 +0000",
+            "headers": [
+              "Received: from BY3PR05CA0014.namprd05.prod.outlook.com (2603:10b6:a03:254::19) by DS1PR01MB8774.prod.exchangelabs.com (2603:10b6:8:220::15) with Microsoft SMTP Server (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.9700.24; Wed, 18 Mar 2026 02:12:43 +0000",
+              "From: \"John Smith\" <john.smith@contractor.example>",
+              "To: \"'Jane Doe'\" <jane.doe@partner.example>",
+              "CC: \"'Test User 1'\" <user1@partner.example>,\"'Test User 2'\" <user2@partner.example>,<user3@contractor.example>",
+              "Subject: RE: Test Subject Line",
+              "Date: Wed, 18 Mar 2026 09:11:27 +0700",
+              "Message-ID: <000001dcb67c$11223344$55667788$@contractor.example>",
+              "MIME-Version: 1.0",
+              "Content-Type: multipart/alternative;boundary=\"_inner-boundary-7bit-bom-1234_\""
+            ],
+            "in_reply_to": null,
+            "internal_org_sender": false,
+            "is_anonymous_direct_send": false,
+            "last_received": "from BY3PR05CA0014.namprd05.prod.outlook.com (2603:10b6:a03:254::19)\n by DS1PR01MB8774.prod.exchangelabs.com (2603:10b6:8:220::15) with Microsoft\n SMTP Server (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id\n 15.20.9700.24; Wed, 18 Mar 2026 02:12:43 +0000",
+            "mail_from": "\"John Smith\" <john.smith@contractor.example>",
+            "mail_from_is_local": false,
+            "mail_to": [
+              "\"'Jane Doe'\" <jane.doe@partner.example>"
+            ],
+            "message_directionality": null,
+            "message_id": "<000001dcb67c$11223344$55667788$@contractor.example>",
+            "originating_ip": null,
+            "path": [
+              "2603:10b6:a03:254::19"
+            ],
+            "refereneces": null,
+            "reply_to": null,
+            "size": 2952,
+            "spf_result": null,
+            "spoofed_internal": false,
+            "subject": "RE: Test Subject Line",
+            "subject_raw": "RE: Test Subject Line",
+            "thread_index": null,
+            "thread_topic": null,
+            "user_agent": null,
+            "x_mailer": null,
+            "x_sender": null
+          },
+          "mail_from_is_local": false,
+          "message-id": "<000001dcb67c$11223344$55667788$@contractor.example>",
+          "message_directionality": null,
+          "spf_result": null,
+          "spoofed_internal": false,
+          "subject": "RE: Test Subject Line",
+          "to": [
+            "\"'Jane Doe'\" <jane.doe@partner.example>"
+          ],
+          "to_addresses": [
+            "jane.doe@partner.example"
+          ]
+        },
+        "extraction_errors": [],
+        "parsing_error": null
+      },
+      "detections": [],
+      "module_path": "saq.modules.email.rfc822:EmailAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_from",
+          "value": "john.smith@contractor.example"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_envelope_rcpt_to",
+          "value": "alice@acmecorp.com"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_conversation",
+          "value": "john.smith@contractor.example|alice@acmecorp.com"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_envelope_rcpt_to",
+          "value": "bob@acmecorp.com"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_conversation",
+          "value": "john.smith@contractor.example|bob@acmecorp.com"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_envelope_rcpt_to",
+          "value": "carol@acmecorp.com"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_conversation",
+          "value": "john.smith@contractor.example|carol@acmecorp.com"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_to",
+          "value": "jane.doe@partner.example"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_conversation",
+          "value": "john.smith@contractor.example|jane.doe@partner.example"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "display_type": "Decoded Subject",
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_subject",
+          "value": "RE: Test Subject Line"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [
+            "saq.modules.email.message_id:<class 'saq.modules.email.message_id.MessageIDAnalyzerV2'>"
+          ],
+          "relationships": [],
+          "tags": [],
+          "time": "2026-03-18 02:12:43+00:00",
+          "type": "message_id",
+          "value": "<000001dcb67c$11223344$55667788$@contractor.example>"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_cc",
+          "value": "user1@partner.example"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_conversation",
+          "value": "john.smith@contractor.example|user1@partner.example"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_cc",
+          "value": "user2@partner.example"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_conversation",
+          "value": "john.smith@contractor.example|user2@partner.example"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_cc",
+          "value": "user3@contractor.example"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_conversation",
+          "value": "john.smith@contractor.example|user3@contractor.example"
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls",
+            "preview",
+            "yara_meta:type=email.attachment"
+          ],
+          "excluded_analysis": [],
+          "file_path": "email.rfc822.unknown_text_plain_000.txt",
+          "relationships": [],
+          "size": 60,
+          "tags": [],
+          "type": "file",
+          "value": "91c8aae712a2e64a4d3e8d2379d54d124ef6009650c4b68f04b9c15ecdf57ae8",
+          "yara_meta": [
+            "type=email.attachment"
+          ]
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls",
+            "render",
+            "yara_meta:type=document.html",
+            "yara_meta:type=email.attachment"
+          ],
+          "excluded_analysis": [],
+          "file_path": "email.rfc822.unknown_text_html_000.html",
+          "relationships": [],
+          "size": 93,
+          "tags": [],
+          "type": "file",
+          "value": "7715f6d14b51a422548602aec804731079c13efc2666d19ebf5978acac090ae5",
+          "yara_meta": [
+            "type=document.html",
+            "type=email.attachment"
+          ]
+        },
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=email",
+            "yara_meta:type=email.headers"
+          ],
+          "excluded_analysis": [
+            "saq.modules.email.rfc822:<class 'saq.modules.email.rfc822.EmailAnalyzer'>"
+          ],
+          "file_path": "email.rfc822.headers",
+          "relationships": [],
+          "size": 724,
+          "tags": [
+            "email"
+          ],
+          "type": "file",
+          "value": "cdec7dbb0ea4d18561ae8e72c3fd0307ce2fad0dce297313fdb6561b83beda3c",
+          "yara_meta": [
+            "type=email",
+            "type=email.headers"
+          ]
+        },
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=email",
+            "yara_meta:type=email.combined"
+          ],
+          "excluded_analysis": [
+            "saq.modules.email.rfc822:<class 'saq.modules.email.rfc822.EmailAnalyzer'>"
+          ],
+          "file_path": "email.rfc822.combined",
+          "relationships": [],
+          "size": 883,
+          "tags": [
+            "email"
+          ],
+          "type": "file",
+          "value": "b25b7ac1b1ad03d6d2a62a6a5f429be18676024b8fa136a236f7b7999eed1e97",
+          "yara_meta": [
+            "type=email",
+            "type=email.combined"
+          ]
+        }
+      ],
+      "summary": "Email Analysis: From \"John Smith\" <john.smith@contractor.example> To alice@acmecorp.com Subject RE: Test Subject Line",
+      "tags": []
+    },
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": true,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "message/rfc822",
+        "type": "SMTP mail, Unicode text, UTF-8 text"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: SMTP mail, Unicode text, UTF-8 text (message/rfc822) (email)",
+      "tags": []
+    }
+  ],
+  "brocess_after": {
+    "email_thread_domain": [
+      {
+        "address": "john.smith@contractor.example",
+        "domain": "contractor.example",
+        "entry_hash": "7B26AA15D43C57642DD6D45AA754C7F0BB747C98DD41216130B275F5E55B8831",
+        "firstseendate": "2026-11-08 09:00:00",
+        "id": 1,
+        "message_id_hash": "709A5C218DB3566EBB680B02C0598443577145401B918A5E6DCAAEADB9D24CBA",
+        "numseen": 1,
+        "role": "from",
+        "thread_id": "<000001dcb67c$11223344$55667788$@contractor.example>",
+        "thread_id_hash": "709A5C218DB3566EBB680B02C0598443577145401B918A5E6DCAAEADB9D24CBA"
+      },
+      {
+        "address": "jane.doe@partner.example",
+        "domain": "partner.example",
+        "entry_hash": "6C29F286664DDF8A4B4FE0FF31BF3F070260ADC35406125093F02C8B681291C1",
+        "firstseendate": "2026-11-08 09:00:00",
+        "id": 2,
+        "message_id_hash": "709A5C218DB3566EBB680B02C0598443577145401B918A5E6DCAAEADB9D24CBA",
+        "numseen": 1,
+        "role": "to",
+        "thread_id": "<000001dcb67c$11223344$55667788$@contractor.example>",
+        "thread_id_hash": "709A5C218DB3566EBB680B02C0598443577145401B918A5E6DCAAEADB9D24CBA"
+      },
+      {
+        "address": "user1@partner.example",
+        "domain": "partner.example",
+        "entry_hash": "EDE7E356CC2303AB505E858A0FBCBD79F0C80DB4D6BA18D837BB8D106A5C7E59",
+        "firstseendate": "2026-11-08 09:00:00",
+        "id": 3,
+        "message_id_hash": "709A5C218DB3566EBB680B02C0598443577145401B918A5E6DCAAEADB9D24CBA",
+        "numseen": 1,
+        "role": "cc",
+        "thread_id": "<000001dcb67c$11223344$55667788$@contractor.example>",
+        "thread_id_hash": "709A5C218DB3566EBB680B02C0598443577145401B918A5E6DCAAEADB9D24CBA"
+      },
+      {
+        "address": "user2@partner.example",
+        "domain": "partner.example",
+        "entry_hash": "1C23B463EB8DDB2CB85F5E1ABFCF7EAC9CEAE608848242DA1ED383BAE67DCBD5",
+        "firstseendate": "2026-11-08 09:00:00",
+        "id": 4,
+        "message_id_hash": "709A5C218DB3566EBB680B02C0598443577145401B918A5E6DCAAEADB9D24CBA",
+        "numseen": 1,
+        "role": "cc",
+        "thread_id": "<000001dcb67c$11223344$55667788$@contractor.example>",
+        "thread_id_hash": "709A5C218DB3566EBB680B02C0598443577145401B918A5E6DCAAEADB9D24CBA"
+      },
+      {
+        "address": "user3@contractor.example",
+        "domain": "contractor.example",
+        "entry_hash": "19CB32F198F29F981FDEE404CD1F86BC5E05EE07775AE16E23ABC16CC56BA21D",
+        "firstseendate": "2026-11-08 09:00:00",
+        "id": 5,
+        "message_id_hash": "709A5C218DB3566EBB680B02C0598443577145401B918A5E6DCAAEADB9D24CBA",
+        "numseen": 1,
+        "role": "cc",
+        "thread_id": "<000001dcb67c$11223344$55667788$@contractor.example>",
+        "thread_id_hash": "709A5C218DB3566EBB680B02C0598443577145401B918A5E6DCAAEADB9D24CBA"
+      }
+    ],
+    "email_thread_message": [
+      {
+        "direction": 0,
+        "from_address": "john.smith@contractor.example",
+        "from_domain": "contractor.example",
+        "id": 1,
+        "in_reply_to": null,
+        "insert_date": "2026-11-08 09:00:00",
+        "message_date": "2026-03-18 02:11:27",
+        "message_id": "<000001dcb67c$11223344$55667788$@contractor.example>",
+        "message_id_hash": "709A5C218DB3566EBB680B02C0598443577145401B918A5E6DCAAEADB9D24CBA",
+        "normalized_subject": "test subject line",
+        "normalized_subject_hash": "EADBE22BDE9DFD4623D2D76E64B5AFA19BD01E3A542E80571B9BACDC31741359",
+        "thread_id": "<000001dcb67c$11223344$55667788$@contractor.example>",
+        "thread_id_hash": "709A5C218DB3566EBB680B02C0598443577145401B918A5E6DCAAEADB9D24CBA"
+      }
+    ],
+    "now": "2026-11-08 09:00:00",
+    "smtplog": [
+      [
+        "john.smith@contractor.example",
+        "alice@acmecorp.com",
+        1,
+        1794128400.0
+      ],
+      [
+        "john.smith@contractor.example",
+        "bob@acmecorp.com",
+        1,
+        1794128400.0
+      ],
+      [
+        "john.smith@contractor.example",
+        "carol@acmecorp.com",
+        1,
+        1794128400.0
+      ]
+    ]
+  },
+  "brocess_before": {
+    "email_thread_domain": [],
+    "email_thread_message": [],
+    "now": "2026-11-08 09:00:00",
+    "smtplog": []
+  },
+  "brocess_reads": [
+    {
+      "established": []
+    },
+    {
+      "thread_message_count": 0
+    }
+  ],
+  "fluent_bit": [
+    {
+      "record": {
+        "path": "database.pool.status",
+        "timestamp": "2026-11-08T21:48:08.022255",
+        "value": "Pool size: 5  Connections in pool: 0 Current Overflow: -4 Current Checked out connections: 1"
+      },
+      "tag": "monitoring"
+    },
+    {
+      "record": {
+        "header": "Received: from BY3PR05CA0014.namprd05.prod.outlook.com (2603:10b6:a03:254::19) by DS1PR01MB8774.prod.exchangelabs.com (2603:10b6:8:220::15) with Microsoft SMTP Server (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.9700.24; Wed, 18 Mar 2026 02:12:43 +0000",
+        "header_index": 0,
+        "message_id": "<000001dcb67c$11223344$55667788$@contractor.example>",
+        "timestamp": "1794174488.029525"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "From: \"John Smith\" <john.smith@contractor.example>",
+        "header_index": 1,
+        "message_id": "<000001dcb67c$11223344$55667788$@contractor.example>",
+        "timestamp": "1794174488.029525"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "To: \"'Jane Doe'\" <jane.doe@partner.example>",
+        "header_index": 2,
+        "message_id": "<000001dcb67c$11223344$55667788$@contractor.example>",
+        "timestamp": "1794174488.029525"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "CC: \"'Test User 1'\" <user1@partner.example>,\"'Test User 2'\" <user2@partner.example>,<user3@contractor.example>",
+        "header_index": 3,
+        "message_id": "<000001dcb67c$11223344$55667788$@contractor.example>",
+        "timestamp": "1794174488.029525"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "Subject: RE: Test Subject Line",
+        "header_index": 4,
+        "message_id": "<000001dcb67c$11223344$55667788$@contractor.example>",
+        "timestamp": "1794174488.029525"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "Date: Wed, 18 Mar 2026 09:11:27 +0700",
+        "header_index": 5,
+        "message_id": "<000001dcb67c$11223344$55667788$@contractor.example>",
+        "timestamp": "1794174488.029525"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "Message-ID: <000001dcb67c$11223344$55667788$@contractor.example>",
+        "header_index": 6,
+        "message_id": "<000001dcb67c$11223344$55667788$@contractor.example>",
+        "timestamp": "1794174488.029525"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "MIME-Version: 1.0",
+        "header_index": 7,
+        "message_id": "<000001dcb67c$11223344$55667788$@contractor.example>",
+        "timestamp": "1794174488.029525"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "header": "Content-Type: multipart/alternative;boundary=\"_inner-boundary-7bit-bom-1234_\"",
+        "header_index": 8,
+        "message_id": "<000001dcb67c$11223344$55667788$@contractor.example>",
+        "timestamp": "1794174488.029525"
+      },
+      "tag": "phishfinder-headers"
+    },
+    {
+      "record": {
+        "archive_path": null,
+        "attachment_count": 2,
+        "attachment_hashes": [
+          "91c8aae712a2e64a4d3e8d2379d54d124ef6009650c4b68f04b9c15ecdf57ae8",
+          "7715f6d14b51a422548602aec804731079c13efc2666d19ebf5978acac090ae5"
+        ],
+        "attachment_names": [
+          "email.rfc822.unknown_text_plain_000.txt",
+          "email.rfc822.unknown_text_html_000.html"
+        ],
+        "attachment_sizes": [
+          60,
+          93
+        ],
+        "attachment_types": [
+          "text/plain",
+          "text/html"
+        ],
+        "authentication_failed": false,
+        "bcc": [],
+        "cc": [
+          "user1@partner.example",
+          "user2@partner.example",
+          "user3@contractor.example"
+        ],
+        "compauth_reason": null,
+        "compauth_result": null,
+        "date": "2026-11-08 21:48:08.029525 +0000",
+        "dkim_result": null,
+        "dmarc_result": null,
+        "env_mail_from": "john.smith@contractor.example",
+        "env_rcpt_to": [
+          "alice@acmecorp.com",
+          "bob@acmecorp.com",
+          "carol@acmecorp.com"
+        ],
+        "first_received": "from BY3PR05CA0014.namprd05.prod.outlook.com (2603:10b6:a03:254::19)\n by DS1PR01MB8774.prod.exchangelabs.com (2603:10b6:8:220::15) with Microsoft\n SMTP Server (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id\n 15.20.9700.24; Wed, 18 Mar 2026 02:12:43 +0000",
+        "in_reply_to": null,
+        "internal_org_sender": false,
+        "is_anonymous_direct_send": false,
+        "last_received": "from BY3PR05CA0014.namprd05.prod.outlook.com (2603:10b6:a03:254::19)\n by DS1PR01MB8774.prod.exchangelabs.com (2603:10b6:8:220::15) with Microsoft\n SMTP Server (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id\n 15.20.9700.24; Wed, 18 Mar 2026 02:12:43 +0000",
+        "mail_from": "\"John Smith\" <john.smith@contractor.example>",
+        "mail_from_is_local": false,
+        "mail_to": [
+          "\"'Jane Doe'\" <jane.doe@partner.example>"
+        ],
+        "message_directionality": null,
+        "message_id": "<000001dcb67c$11223344$55667788$@contractor.example>",
+        "originating_ip": null,
+        "path": [
+          "2603:10b6:a03:254::19"
+        ],
+        "refereneces": null,
+        "reply_to": null,
+        "size": 2952,
+        "spf_result": null,
+        "spoofed_internal": false,
+        "subject": "RE: Test Subject Line",
+        "subject_raw": "RE: Test Subject Line",
+        "thread_index": null,
+        "thread_topic": null,
+        "timestamp": "1794174488.029525",
+        "user_agent": null,
+        "x_mailer": null,
+        "x_sender": null
+      },
+      "tag": "phishfinder-main"
+    },
+    {
+      "record": {
+        "any_mixed_script": false,
+        "any_similar": false,
+        "comparison_count": 0,
+        "comparisons": [],
+        "established_domains": [],
+        "max_jaro_winkler": 0.0,
+        "message_id": "<000001dcb67c$11223344$55667788$@contractor.example>",
+        "min_damerau_levenshtein": null,
+        "normalized_subject": "test subject line",
+        "senders": [
+          {
+            "address": "john.smith@contractor.example",
+            "domain": "contractor.example",
+            "mixed_script": false,
+            "punycode": false,
+            "role": "from"
+          }
+        ],
+        "thread_id": "<000001dcb67c$11223344$55667788$@contractor.example>",
+        "thread_message_count": 0,
+        "thread_method": "self",
+        "timestamp": "1794174488.029525"
+      },
+      "tag": "phishfinder-lookalike"
+    },
+    {
+      "record": {
+        "alert_type": "cli_analysis",
+        "analysis_time_seconds": 0.005639,
+        "exec_count": 3,
+        "is_alert": false,
+        "module": "email_analyzer",
+        "percentage": 2.1134290390433863,
+        "queue": "default",
+        "root_uuid": "74a465f6-f838-4348-953d-84451220eab4",
+        "timestamp": "2026-11-08 21:48:08.269646",
+        "total_analysis_time_seconds": 0.033927,
+        "total_time_seconds": 0.266817569732666
+      },
+      "tag": "metrics"
+    },
+    {
+      "record": {
+        "alert_type": "cli_analysis",
+        "analysis_time_seconds": 0.025184,
+        "exec_count": 5,
+        "is_alert": false,
+        "module": "file_type",
+        "percentage": 9.438658790436007,
+        "queue": "default",
+        "root_uuid": "74a465f6-f838-4348-953d-84451220eab4",
+        "timestamp": "2026-11-08 21:48:08.269646",
+        "total_analysis_time_seconds": 0.033927,
+        "total_time_seconds": 0.266817569732666
+      },
+      "tag": "metrics"
+    },
+    {
+      "record": {
+        "alert_type": "cli_analysis",
+        "analysis_time_seconds": 0.0031040000000000004,
+        "exec_count": 22,
+        "is_alert": false,
+        "module": "email_logger",
+        "percentage": 1.1633416806509436,
+        "queue": "default",
+        "root_uuid": "74a465f6-f838-4348-953d-84451220eab4",
+        "timestamp": "2026-11-08 21:48:08.269646",
+        "total_analysis_time_seconds": 0.033927,
+        "total_time_seconds": 0.266817569732666
+      },
+      "tag": "metrics"
+    },
+    {
+      "record": {
+        "path": "database.pool.available_count",
+        "timestamp": "2026-11-08T21:48:08.269913",
+        "value": 0
+      },
+      "tag": "monitoring"
+    },
+    {
+      "record": {
+        "path": "database.pool.in_use_count",
+        "timestamp": "2026-11-08T21:48:08.269930",
+        "value": 1
+      },
+      "tag": "monitoring"
+    }
+  ],
+  "input": {
+    "directives": [
+      "original_email"
+    ],
+    "label": "ace3/email/o365_journaled_7bit_bom_meta.email.rfc822, against an empty brocess",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "email.rfc822",
+      "size": 2952,
+      "type": "file",
+      "value": "00892c0df0360d7b5bedd806470854672fc6030d63e0d2cd4ebf8f9a80352478"
+    }
+  },
+  "module": "email_logger",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "original_email",
+      "yara_meta:type=email"
+    ],
+    "excluded_analysis": [],
+    "file_path": "email.rfc822",
+    "relationships": [],
+    "size": 2952,
+    "tags": [
+      "email"
+    ],
+    "type": "file",
+    "value": "00892c0df0360d7b5bedd806470854672fc6030d63e0d2cd4ebf8f9a80352478",
+    "yara_meta": [
+      "type=email"
+    ]
+  }
+}

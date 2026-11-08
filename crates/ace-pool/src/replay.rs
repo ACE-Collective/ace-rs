@@ -34,13 +34,14 @@ pub async fn replay_task(
     task: &ace_sdk::wire::LeasedTask,
     dir: &Path,
 ) -> Result<TaskEnd, ClientError> {
+    // as a pool runs it: a lookup gets no file bytes
     let input = match &task.observable.file {
-        Some(file) => {
+        Some(file) if modules.parser(&task.module).is_some() => {
             let path = dir.join("input");
             client.download(&file.download, &path).await?;
             Some(path)
         }
-        None => None,
+        _ => None,
     };
     let email_body = crate::run::fetch_email_body(client, task, dir).await?;
     let outputs = Arc::new(LocalFileStore::new(dir.join("outputs"))?);

@@ -7,10 +7,11 @@
 //! module type. Lookups make HTTP calls through `http::HttpClient`. A site's `overlay::Overlay`
 //! gives modules their settings and declares named instances of them. A module reads the
 //! analyst-edited lists it declares, such as whitelists, through `lists` (PLAN.md 5.14), and a
-//! lookup reads ACE's own data through `reads` (PLAN.md 7.2).
+//! lookup reads ACE's own data through `reads` and writes it through `writes` (PLAN.md 7.2).
 
 pub mod context;
 pub mod domains;
+pub mod email_threads;
 #[cfg(any(test, feature = "example-modules"))]
 pub mod example;
 pub mod files;
@@ -23,6 +24,7 @@ pub mod module;
 pub mod overlay;
 pub mod reads;
 pub mod wire;
+pub mod writes;
 
 pub use context::{CarryingEmail, DelayedRun, InputFile, Observable, Secret, Secrets, TaskContext};
 pub use files::{FileOutputError, FileStore, LocalFileStore};

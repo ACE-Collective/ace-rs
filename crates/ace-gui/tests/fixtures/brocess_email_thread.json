@@ -1,0 +1,247 @@
+{
+  "analysis_type": "email_thread_analysis",
+  "schema_version": 1,
+  "details": {
+    "anchor_message_id": "<inv-3@examp1e.com>",
+    "link_domains": [],
+    "lookalikes": [
+      {
+        "addresses": [
+          "alice.vendor@exаmple.com"
+        ],
+        "counterpart": "example.com",
+        "damerau_levenshtein": 1,
+        "domain": "exаmple.com",
+        "ever_reply_to": true,
+        "ever_sent": false,
+        "first_seen_replies_to_unrecorded": false,
+        "impersonations": [],
+        "introduced_by_address": "alice@examp1e.com",
+        "introduced_by_message_id": "<inv-3@examp1e.com>",
+        "introduced_on": "2026-11-03 08:00:00",
+        "jaro_winkler": 0.9515151515151515,
+        "likely_inherited": false,
+        "message_count": 1,
+        "presence_is_partial": false,
+        "present_in_anchor_message": true,
+        "reply_to_addresses": [
+          "alice.vendor@exаmple.com"
+        ],
+        "roles": [
+          "reply_to"
+        ],
+        "shared_reply_to": [],
+        "skeleton_equal": true,
+        "techniques": [
+          "confusable_skeleton",
+          "edit_distance"
+        ],
+        "total_messages": 3
+      },
+      {
+        "addresses": [
+          "alice.vendor@exаmple.com"
+        ],
+        "counterpart": "examp1e.com",
+        "damerau_levenshtein": 2,
+        "domain": "exаmple.com",
+        "ever_reply_to": true,
+        "ever_sent": false,
+        "first_seen_replies_to_unrecorded": false,
+        "impersonations": [],
+        "introduced_by_address": "alice@examp1e.com",
+        "introduced_by_message_id": "<inv-3@examp1e.com>",
+        "introduced_on": "2026-11-03 08:00:00",
+        "jaro_winkler": 0.9030303030303031,
+        "likely_inherited": false,
+        "message_count": 1,
+        "presence_is_partial": false,
+        "present_in_anchor_message": true,
+        "reply_to_addresses": [
+          "alice.vendor@exаmple.com"
+        ],
+        "roles": [
+          "reply_to"
+        ],
+        "shared_reply_to": [],
+        "skeleton_equal": true,
+        "techniques": [
+          "confusable_skeleton",
+          "edit_distance"
+        ],
+        "total_messages": 3
+      },
+      {
+        "addresses": [
+          "alice@examp1e.com"
+        ],
+        "counterpart": "example.com",
+        "damerau_levenshtein": 1,
+        "domain": "examp1e.com",
+        "ever_reply_to": false,
+        "ever_sent": true,
+        "first_seen_replies_to_unrecorded": false,
+        "impersonations": [
+          {
+            "address": "alice@examp1e.com",
+            "exact_local_part": true,
+            "impersonates": "alice@example.com"
+          }
+        ],
+        "introduced_by_address": "alice@examp1e.com",
+        "introduced_by_message_id": "<inv-3@examp1e.com>",
+        "introduced_on": "2026-11-03 08:00:00",
+        "jaro_winkler": 0.9636363636363636,
+        "likely_inherited": false,
+        "message_count": 1,
+        "presence_is_partial": false,
+        "present_in_anchor_message": true,
+        "reply_to_addresses": [],
+        "roles": [
+          "from"
+        ],
+        "shared_reply_to": [],
+        "skeleton_equal": true,
+        "techniques": [
+          "confusable_skeleton",
+          "edit_distance"
+        ],
+        "total_messages": 3
+      },
+      {
+        "addresses": [
+          "accounts@example.com",
+          "alice@example.com",
+          "bounce@mail.example.com"
+        ],
+        "counterpart": "example.org",
+        "damerau_levenshtein": 3,
+        "domain": "example.com",
+        "ever_reply_to": false,
+        "ever_sent": true,
+        "first_seen_replies_to_unrecorded": false,
+        "impersonations": [],
+        "introduced_by_address": "alice@example.com",
+        "introduced_by_message_id": "<inv-1@example.com>",
+        "introduced_on": "2026-11-02 04:00:00",
+        "jaro_winkler": 0.9272727272727274,
+        "likely_inherited": false,
+        "message_count": 2,
+        "presence_is_partial": true,
+        "present_in_anchor_message": false,
+        "reply_to_addresses": [],
+        "roles": [
+          "from",
+          "return_path",
+          "to"
+        ],
+        "shared_reply_to": [],
+        "skeleton_equal": false,
+        "techniques": [
+          "edit_distance"
+        ],
+        "total_messages": 3
+      }
+    ],
+    "messages": [
+      {
+        "date": "2026-11-02 04:00:00",
+        "date_is_estimated": false,
+        "direction": "inbound",
+        "from_address": "alice@example.com",
+        "from_domain": "example.com",
+        "from_is_lookalike": true,
+        "index": 1,
+        "is_anchor": false,
+        "lookalike_domains_present": [
+          "example.com"
+        ],
+        "message_id": "<inv-1@example.com>",
+        "other_senders": [
+          {
+            "address": "bounce@mail.example.com",
+            "is_lookalike": true,
+            "role": "return_path"
+          }
+        ],
+        "recipients": [
+          {
+            "address": "bob@example.org",
+            "is_lookalike": false
+          },
+          {
+            "address": "carol@example.org",
+            "is_lookalike": false
+          }
+        ],
+        "recipients_omitted": 0,
+        "replies_to_unrecorded": false
+      },
+      {
+        "date": "2026-11-02 05:10:00",
+        "date_is_estimated": false,
+        "direction": "inbound",
+        "from_address": "bob@example.org",
+        "from_domain": "example.org",
+        "from_is_lookalike": false,
+        "index": 2,
+        "is_anchor": false,
+        "lookalike_domains_present": [
+          "example.com"
+        ],
+        "message_id": "<inv-2@example.org>",
+        "other_senders": [],
+        "recipients": [
+          {
+            "address": "alice@example.com",
+            "is_lookalike": true
+          }
+        ],
+        "recipients_omitted": 0,
+        "replies_to_unrecorded": false
+      },
+      {
+        "date": "2026-11-03 08:00:00",
+        "date_is_estimated": false,
+        "direction": "inbound",
+        "from_address": "alice@examp1e.com",
+        "from_domain": "examp1e.com",
+        "from_is_lookalike": true,
+        "index": 3,
+        "is_anchor": true,
+        "lookalike_domains_present": [
+          "examp1e.com",
+          "exаmple.com"
+        ],
+        "message_id": "<inv-3@examp1e.com>",
+        "other_senders": [
+          {
+            "address": "alice.vendor@exаmple.com",
+            "is_lookalike": true,
+            "role": "reply_to"
+          }
+        ],
+        "recipients": [
+          {
+            "address": "bob@example.org",
+            "is_lookalike": false
+          }
+        ],
+        "recipients_omitted": 0,
+        "replies_to_unrecorded": false
+      }
+    ],
+    "missing_parent_message_ids": [],
+    "normalized_subject": "quarterly invoice",
+    "thread_count": 1,
+    "thread_message_counts": [
+      3
+    ],
+    "thread_method": "headers",
+    "truncated": false,
+    "unattributed_participants": [
+      "accounts@example.com"
+    ]
+  },
+  "summary": "Email Thread Analysis: 3 messages, 2026-11-02 04:00:00 to 2026-11-03 08:00:00 UTC - exаmple.com never sent mail, but replies were directed to it"
+}

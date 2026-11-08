@@ -21,7 +21,7 @@
 //! (whitelisted email)", since a result is how a module adds to the file it analyzed.
 
 mod analyze;
-mod headers;
+pub mod headers;
 mod mime;
 mod naming;
 mod parts;

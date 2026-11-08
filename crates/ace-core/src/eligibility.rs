@@ -2,8 +2,9 @@
 //!
 //! A component, a module or a named instance of one, is eligible for an observable when it
 //! takes the observable's type (or a type that type extends), the root's analysis mode runs it,
-//! none of the observable's directives keeps it off and the observable doesn't exclude it, and
-//! every module it depends on has a result for the observable. A whitelisted observable, one with the
+//! none of the observable's directives keeps it off, the observable has every directive the module
+//! requires and doesn't exclude it, and every module it depends on has a result for the
+//! observable. A whitelisted observable, one with the
 //! `whitelisted` tag or directive, is eligible for nothing, as ace3's executor skips one. The inputs come from the component (the manifest's, or an instance's
 //! narrower list), the dependencies and skip directives from the module's manifest, and the
 //! mode's modules from `Modes`.
@@ -110,6 +111,8 @@ pub enum Ineligible {
     Whitelisted,
     /// A directive keeps the module off, such as `no_scan` or `exclude_all`.
     Directive(String),
+    /// The observable lacks a directive the module requires, such as `original_email`.
+    MissingDirective(String),
     /// The observable excludes the module.
     Excluded,
     /// A module this one depends on has no result for the observable yet.
@@ -136,6 +139,9 @@ pub fn check(
     }
     if let Some(directive) = manifest.skipped_by(facts.directives) {
         return Err(Ineligible::Directive(directive.to_owned()));
+    }
+    if let Some(directive) = manifest.missing_directive(facts.directives) {
+        return Err(Ineligible::MissingDirective(directive.to_owned()));
     }
     if facts.exclude_modules.iter().any(|m| m == key) {
         return Err(Ineligible::Excluded);

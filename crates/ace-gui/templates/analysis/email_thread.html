@@ -1,0 +1,83 @@
+{#- email_thread_analysis (src/analysis.rs), from ace3's analysis/email_thread.html. -#}
+{%- let a = self.analysis %}
+<h3>Conversation</h3>
+<table class="fields">
+<tr><th>Subject</th><td>{% if let Some(subject) = a.normalized_subject %}{{ subject }}{% else %}(none recorded){% endif %}</td></tr>
+<tr><th>Messages</th><td>{{ a.messages.len() }}{% if a.truncated %} (truncated){% endif %}</td></tr>
+<tr><th>Assembled by</th><td>
+{%- if a.thread_method.as_deref() == Some("headers") %}
+In-Reply-To / References: <span class="muted">the messages reference each other, so this is a real reply chain</span>
+{%- else if a.thread_count > 1 %}
+subject + shared domain: <span class="muted">these messages carry no In-Reply-To/References, so {{ a.thread_count }} separate threads were joined on an identical subject plus a shared participant domain{% if !a.link_domains.is_empty() %} ({% for domain in a.link_domains %}<code>{{ domain }}</code>{% if !loop.last %}, {% endif %}{% endfor %}){% endif %}. A generic subject and one ubiquitous domain can link genuinely unrelated mail &mdash; check the senders below before reading this as one conversation.</span>
+{%- if !a.thread_message_counts.is_empty() %}
+<br><span class="muted">Messages per joined thread: {{ self.counts() }}{% if self.one_each() %} &mdash; every thread contributed exactly one message, which is what a subject collision looks like rather than a conversation{% endif %}</span>
+{%- endif %}
+{%- else %}
+single thread: <span class="muted">no In-Reply-To/References, and no same-subject thread shared a participant domain</span>
+{%- endif %}
+</td></tr>
+</table>
+{%- if let Some(findings) = self.findings() %}
+<h3>Email conversation</h3>
+<pre class="wrap">{{ findings }}</pre>
+{%- endif %}
+{%- let lookalikes = self.lookalikes() %}
+{%- if !lookalikes.items.is_empty() %}
+<h3>Look-a-like domains in this conversation</h3>
+{%- for entry in lookalikes.items %}
+<table class="fields">
+<tr><th>Domain</th><td><code>{{ entry.domain }}</code> looks like <code>{{ entry.counterpart }}</code> <span class="muted">(Damerau-Levenshtein {{ entry.damerau_levenshtein }}, Jaro-Winkler {{ self.similarity(entry) }}{% if entry.skeleton_equal %}, visually confusable{% endif %})</span></td></tr>
+<tr><th>Sent mail?</th><td>
+{%- if entry.ever_sent %}Yes: mail originated from this domain ({{ entry.roles.join(", ") }}) in this conversation
+{%- else if entry.ever_reply_to %}Reply-To only: no mail originated from this domain, but replies were directed to it ({{ entry.roles.join(", ") }})
+{%- else %}No: only ever a recipient ({{ entry.roles.join(", ") }}) &mdash; no mail was received from this domain in this conversation
+{%- endif %}</td></tr>
+{%- if !entry.shared_reply_to.is_empty() %}
+<tr><th>Replies go to</th><td>{% for address in entry.shared_reply_to %}<code>{{ address }}</code>{% if !loop.last %}, {% endif %}{% endfor %} (both sides)<br><span class="muted">Messages from both domains direct replies here. Two look-a-like domains sharing one reply address are usually one operator (a bulk sender using several sending domains), not an impersonation &mdash; confirm before escalating.</span></td></tr>
+{%- else if !entry.reply_to_addresses.is_empty() %}
+<tr><th>Replies go to</th><td>{% for address in entry.reply_to_addresses %}<code>{{ address }}</code>{% if !loop.last %}, {% endif %}{% endfor %} (one side only)<br><span class="muted">Only one side of this pair points here, so this is not the shared-operator pattern. Replies to this conversation leave for the look-a-like domain &mdash; check which message introduced it and whether anyone answered.</span></td></tr>
+{%- endif %}
+<tr><th>Presence</th><td>on {{ entry.message_count }} of {{ entry.total_messages }} recorded messages
+{%- if let Some(on) = entry.introduced_on %} &mdash; first recorded appearance {{ on }} UTC{% if let Some(by) = entry.introduced_by_address %} on a message from <code>{{ by }}</code>{% endif %}{% endif %}
+{%- if entry.likely_inherited %} (likely inherited)<br><span class="muted">That message is a reply to a message that was never recorded, and this domain appears only in its recipient list &mdash; the address was likely carried over from the unrecorded message's recipients rather than added by this sender.</span>
+{%- else if entry.first_seen_replies_to_unrecorded %}<br><span class="muted">The first recorded appearance is a reply to a message that was never recorded, so the domain may have entered the conversation earlier than shown here.</span>
+{%- endif %}
+{%- if entry.presence_is_partial %} (at least)<br><span class="muted">Some records for this domain predate per-message tracking (listed at the bottom of this page), so they cannot be tied to a message. The count above is a floor &mdash; the roles and &ldquo;sent mail?&rdquo; verdict do include those records.</span>
+{%- else if !entry.present_in_anchor_message %}<br><span class="muted">Not present in the message this alert fired on &mdash; it comes from earlier messages in the conversation.</span>
+{%- endif %}</td></tr>
+<tr><th>Addresses</th><td>{% for address in entry.addresses %}<code>{{ address }}</code>{% if !loop.last %}, {% endif %}{% endfor %}</td></tr>
+{%- if !entry.impersonations.is_empty() %}
+<tr><th>Impersonates</th><td>{% for item in entry.impersonations %}<div><code>{{ item.address }}</code> &rarr; <code>{{ item.impersonates }}</code> ({% if item.exact_local_part %}identical{% else %}similar{% endif %} local part)</div>{% endfor %}</td></tr>
+{%- endif %}
+</table>
+{%- endfor %}
+{%- if lookalikes.more > 0 %}
+<p class="clipped">{{ lookalikes.more }} more look-a-like pairs not shown.</p>
+{%- endif %}
+{%- endif %}
+<h3>Timeline</h3>
+{%- let messages = self.messages() %}
+<table class="rows">
+<tr><th>#</th><th>Date (UTC)</th><th>Direction</th><th>From</th><th>Recipients</th><th>Look-a-like</th></tr>
+{%- for m in messages.items %}
+<tr><td>{{ m.index }}{% if m.is_anchor %} &larr;{% endif %}</td>
+<td>{% if let Some(date) = m.date %}{{ date }}{% endif %}{% if m.date_is_estimated %} <span class="muted" title="No Date header was recorded; showing when ACE processed the message">(processed)</span>{% endif %}{% if m.replies_to_unrecorded %}<br><span class="muted" title="This message's In-Reply-To names a message that is not in the record">&#8617; replies to an unrecorded message</span>{% endif %}</td>
+<td>{{ m.direction }}</td>
+<td>{% if let Some(from) = m.from_address %}{% if m.from_is_lookalike %}<mark><code>{{ from }}</code></mark>{% else %}<code>{{ from }}</code>{% endif %}{% endif %}
+{%- for sender in m.other_senders %}<br><span class="muted">{{ sender.role.replace("_", "-") }}:</span> {% if sender.is_lookalike %}<mark><code>{{ sender.address }}</code></mark>{% else %}<code>{{ sender.address }}</code>{% endif %}{% endfor %}</td>
+<td>{% for r in m.recipients %}{% if r.is_lookalike %}<mark><code>{{ r.address }}</code></mark>{% else %}<code>{{ r.address }}</code>{% endif %}{% if !loop.last %}, {% endif %}{% endfor %}{% if m.recipients_omitted > 0 %} <span class="muted">+{{ m.recipients_omitted }} more</span>{% endif %}</td>
+<td>{% for domain in m.lookalike_domains_present %}<code>{{ domain }}</code>{% if !loop.last %} {% endif %}{% endfor %}</td></tr>
+{%- endfor %}
+</table>
+{%- if messages.more > 0 %}
+<p class="clipped">{{ messages.more }} more messages not shown.</p>
+{%- endif %}
+{%- if a.truncated %}
+<p class="muted">This conversation is larger than the configured limit, so the timeline above is only partly shown &mdash; the oldest messages were kept, so any look-a-like domain's entry point stays visible, along with the message this alert fired on. The findings above are not limited to the messages listed here: roles, addresses and the "sent mail?" verdict are computed across the whole conversation, so they do not change depending on where the cap fell. Only the per-message counts and "introduced by" refer to the visible timeline.</p>
+{%- endif %}
+{%- if !a.missing_parent_message_ids.is_empty() %}
+<p class="muted">This conversation's reply headers reference {{ a.missing_parent_message_ids.len() }} message{{ self.plural(a.missing_parent_message_ids.len()) }} that {% if a.missing_parent_message_ids.len() == 1 %}was{% else %}were{% endif %} never recorded &mdash; the timeline shows only the messages that were scanned, so one side of the exchange may be missing entirely: {% for id in a.missing_parent_message_ids %}<code>{{ id }}</code>{% if !loop.last %}, {% endif %}{% endfor %}</p>
+{%- endif %}
+{%- if !a.unattributed_participants.is_empty() %}
+<p class="muted">Recorded before per-message participant tracking, so not attributable to a specific message: {% for address in a.unattributed_participants %}<code>{{ address }}</code>{% if !loop.last %}, {% endif %}{% endfor %}</p>
+{%- endif %}

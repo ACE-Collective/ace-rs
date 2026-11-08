@@ -17,6 +17,7 @@ use crate::context::TaskContext;
 use crate::lists::ListSpec;
 use crate::manifest::Resources;
 use crate::reads::Read;
+use crate::writes::Write;
 
 /// A module's settings: the block a site's config overlay gives it. Missing settings fall back
 /// to `Default`. Derive `Deserialize` with `#[serde(deny_unknown_fields)]`; the loader refuses
@@ -39,6 +40,10 @@ pub trait Module: Sized + Send + Sync + 'static {
     /// that gained one after its task was queued is skipped. `exclude_all` keeps every module
     /// off.
     const SKIP_DIRECTIVES: &'static [&'static str] = &[];
+    /// Directives an observable must have for the module to run on it, as ace3's
+    /// `required_directives`, such as `original_email` for the email logger. The core doesn't queue
+    /// the module for an observable without every one.
+    const REQUIRED_DIRECTIVES: &'static [&'static str] = &[];
     /// The names of the secrets the module reads. The task context gives it these and no others.
     const SECRETS: &'static [&'static str] = &[];
     const RESOURCES: Resources = Resources::DEFAULT;
@@ -55,6 +60,10 @@ pub trait Module: Sized + Send + Sync + 'static {
     /// `execute_final_analysis`, and reads the YARA rules that matched its observable or anything
     /// below it. The core holds its tasks back until then and adds those rules to them.
     const RUNS_LAST: bool = false;
+    /// For a module that runs last: the observable types whose values below its observable it
+    /// reads, as ace3's `recurse_tree` finds them, such as the email logger's URLs. The core adds
+    /// them to its tasks, which read them with `TaskContext::observables_below`.
+    const READS_BELOW: &'static [ObservableKind] = &[];
     /// The analyst-edited lists the module reads (PLAN.md 5.14), such as the email module's
     /// whitelists. The core adds each to the module's tasks as it is when the task is leased, and
     /// the module reads it with `TaskContext::list`. The lists a binary knows are its modules'.
@@ -62,6 +71,12 @@ pub trait Module: Sized + Send + Sync + 'static {
     /// The reads of ACE's own data the module makes (PLAN.md 7.2), with `TaskContext::read`. Only
     /// a lookup may declare one: `Manifest::parser` refuses a parser that does.
     const READS: &'static [Read] = &[];
+    /// The writes to ACE's own data the module makes (PLAN.md 7.2), with `TaskContext::write`.
+    /// They land with the task's end, in its transaction. Only a lookup may declare one.
+    const WRITES: &'static [Write] = &[];
+    /// False for a module whose tasks end with writes and never a result, as ace3's email logger,
+    /// which creates no analysis. Its type needs no view.
+    const STORES_RESULTS: bool = true;
 
     /// The analysis type the module writes.
     type Output: AnalysisType;

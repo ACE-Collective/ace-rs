@@ -9,8 +9,9 @@ systems see the same world, as tests/e2e/run gives ace4:
 - the Splunk module has the same query as tests/e2e/site/overlay.yaml's instance, against
   fake_splunk.py with the rows the responder's recording holds, for any search as it answers;
 - YARA scans with tools/ace3/trees/signatures, the rule tests/e2e/run gives the stack;
-- brocess's smtplog is tools/ace3/trees/brocess.json, empty, as ace4's is before email_logger
-  runs;
+- brocess is tools/ace3/trees/brocess.json, empty: its smtplog for the frequency module and its
+  thread store for the thread module (run_module.py --brocess-store), as tests/e2e/run empties
+  ace4's before its comparison;
 - DNS is answered by fake_dns.py from tools/ace3/dumps/fixtures/dns/zone.json, and what it answered
   is kept in tools/ace3/trees/dns.json, which tests/e2e/run's responder replays to ace4.
 
@@ -45,7 +46,7 @@ CONTAINER, REMOTE, docker, put = dumps.CONTAINER, dumps.REMOTE, dumps.docker, du
 ENABLE = [
     "file_type", "archive", "yara_scanner_v3_4", "rdap_analyzer", "ace4_proxy_splunk", "olevba_v1_2",
     "rtfole", "msoffice_encryption_analyzer", "xlmdeobfuscator", "pcodedmp", "pdf_analyzer", "fqdn_analyzer",
-    "email_conversation_frequency_analyzer",
+    "email_conversation_frequency_analyzer", "email_thread_analyzer",
 ]
 BROCESS = HERE / "brocess.json"
 DNS_RECORDING = HERE / "dns.json"
@@ -120,6 +121,7 @@ def run(sample):
         "--alert-path", sample["alert_path"], "--yara-rules", f"{REMOTE}/signatures",
         "--config", f"{FAKE}/saq.yaml", "--replay-http", f"{REMOTE}/rdap", "--tree",
         "--dns", f"127.0.0.1:{dumps.DNS_PORT}", "--brocess", f"{REMOTE}/trees-brocess.json",
+        "--brocess-store", f"{REMOTE}/trees-brocess.json",
     ]
     for tag in sample["meta_tags"]:
         command += ["--meta-tag", tag]

@@ -24,11 +24,12 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use ace_results::{
-    AlertPath, AnalysisType, InvalidResult, InvalidSchema, NewFile, ObservableKind, ResultEnvelope,
-    ResultValidator, Sha256, YaraMeta, sort_json_keys,
+    AlertPath, AnalysisType, InvalidResult, InvalidSchema, NewFile, ObservableKind, ObservableRef,
+    ResultEnvelope, ResultValidator, Sha256, YaraMeta, sort_json_keys,
 };
 use ace_sdk::lists::{Entry as ListEntry, ListSpec, WireList};
 use ace_sdk::reads::Reader;
+use ace_sdk::writes::WireWrite;
 use ace_sdk::{
     CarryingEmail, Delay, DelayedRun, FileStore, InputFile, LocalFileStore, Lookup, Module,
     ModuleError, Observable, Outcome, Parser, Secret, Secrets, SettingsError, TaskContext,
@@ -87,6 +88,8 @@ pub struct Harness<M: Module> {
     timeout: Option<Duration>,
     lists: Vec<WireList>,
     reader: Option<Arc<dyn Reader>>,
+    dependency_results: Vec<(String, Value)>,
+    observables_below: Vec<ObservableRef>,
 }
 
 impl<M: Module> Harness<M> {
@@ -116,6 +119,8 @@ impl<M: Module> Harness<M> {
             timeout: None,
             lists: Vec::new(),
             reader: None,
+            dependency_results: Vec::new(),
+            observables_below: Vec::new(),
         })
     }
 
@@ -140,6 +145,21 @@ impl<M: Module> Harness<M> {
     /// then run as task 1 of the queue.
     pub fn reader(mut self, reader: Arc<dyn Reader>) -> Self {
         self.reader = Some(reader);
+        self
+    }
+
+    /// The details of the observable's result from a module this one depends on, as the core sends
+    /// it with the task (`Module::DEPENDS_ON`).
+    pub fn dependency_result(mut self, module: &str, details: Value) -> Self {
+        self.dependency_results.retain(|(m, _)| m != module);
+        self.dependency_results.push((module.to_owned(), details));
+        self
+    }
+
+    /// What the core finds below the observable for a module that runs last
+    /// (`Module::READS_BELOW`).
+    pub fn observables_below(mut self, observables: Vec<ObservableRef>) -> Self {
+        self.observables_below = observables;
         self
     }
 
@@ -251,7 +271,9 @@ impl<M: Module> Harness<M> {
             .with_file_store(self.store.clone())
             .with_carrying_email(self.carrying_email.clone())
             .with_lists(self.lists.clone())
-            .with_reader(self.reader.clone());
+            .with_reader(self.reader.clone())
+            .with_dependency_results(self.dependency_results.clone())
+            .with_observables_below(self.observables_below.clone());
         let ctx = match &self.reader {
             Some(_) => ctx.with_task_id(1),
             None => ctx,
@@ -293,6 +315,17 @@ impl<M: Lookup> Harness<M> {
     ) -> Result<Outcome<M::Output>, HarnessError> {
         let ctx = self.context(observable, None);
         check_outcome(ace_sdk::run_lookup(&self.module, &ctx).await?)
+    }
+
+    /// Runs the lookup and returns its result with what it wrote to ACE's data (`Module::WRITES`),
+    /// which the core would land with its end.
+    pub async fn run_lookup_writing(
+        &self,
+        observable: Observable,
+    ) -> Result<(Outcome<M::Output>, Vec<WireWrite>), HarnessError> {
+        let ctx = self.context(observable, None);
+        let outcome = check_outcome(ace_sdk::run_lookup(&self.module, &ctx).await?)?;
+        Ok((outcome, ctx.take_writes()))
     }
 
     /// Runs the lookup again after a delay.

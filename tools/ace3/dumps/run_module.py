@@ -30,6 +30,10 @@ does (saq/cli/commands/correlate.py) with all modules disabled except the ones n
   ace3's Redis;
 - with --brocess FILE, ace3's conversation frequency module counts from the smtplog rows in that
   JSON file, summed as its SQL sums them, instead of querying brocess;
+- with --brocess-store FILE, ace3's email logger and thread modules read and write a brocess held
+  in memory (FakeBrocess below), which starts with the rows in that JSON file, and the dump keeps
+  the rows before and after the run and what each read answered;
+- with --fluent-bit, what ace3 sends to fluent-bit is kept in the dump instead of sent;
 - with --tree, it also writes tree.json, the whole root in the normal form of PLAN.md 3.1
   (crates/ace-core/src/normal.rs), which tools/ace3/trees/make-trees collects.
 
@@ -86,6 +90,8 @@ def parse_args():
     parser.add_argument("--dns", metavar="HOST:PORT", help="the one DNS server ace3's resolver asks")
     parser.add_argument("--snort-rules", help="a rules file the snort module's index is built from, in memory")
     parser.add_argument("--brocess", help="a JSON file of smtplog rows the frequency module counts from")
+    parser.add_argument("--brocess-store", help="a JSON file of brocess rows the email modules read and write")
+    parser.add_argument("--fluent-bit", action="store_true", help="keep what ace3 sends to fluent-bit in the dump")
     parser.add_argument("--tree", action="store_true", help="also write the root in the normal form to tree.json")
     parser.add_argument("--label", default="", help="a name for the input, written into the dump")
     args = parser.parse_args(sys.argv[1:])
@@ -240,6 +246,280 @@ def fake_brocess(path):
 
     fa.query_brocess_by_source_email = by_source
     fa.query_brocess_by_email_conversation = by_conversation
+
+
+class FakeBrocess:
+    """brocess's smtplog and thread store, in memory, answering the statements ace3's email logger
+    (saq/modules/email/logging.py) and its thread code (saq/modules/email/conversation.py) send, as
+    MySQL would: each hash is UNHEX(SHA2(text, 256)) of the text's UTF-8, HEX() is upper case, a
+    duplicate key leaves its row, and NOW() is the store's "now". Rows come back in the order InnoDB
+    reads them: by id through the thread index, and by thread hash then id for a list of threads. A
+    statement it doesn't know fails the run."""
+
+    def __init__(self, path):
+        with open(path) as fp:
+            store = json.load(fp)
+        self.now = store["now"]
+        self.smtplog = [list(row) for row in store.get("smtplog", [])]
+        self.messages = [dict(row) for row in store.get("email_thread_message", [])]
+        self.domains = [dict(row) for row in store.get("email_thread_domain", [])]
+        self.reads = []
+
+    def rows(self):
+        return {
+            "now": self.now,
+            "smtplog": self.smtplog,
+            "email_thread_message": self.messages,
+            "email_thread_domain": self.domains,
+        }
+
+    @staticmethod
+    def sha(text):
+        return hashlib.sha256(text.encode("utf-8")).hexdigest().upper()
+
+    def connection(self):
+        import contextlib
+
+        store = self
+
+        class Cursor:
+            def __init__(self):
+                self.result = []
+                self.rowcount = 0
+
+            def execute(self, sql, params=()):
+                self.result = store.execute(" ".join(sql.split()), tuple(params))
+                self.rowcount = len(self.result)
+
+            def fetchall(self):
+                return list(self.result)
+
+            def fetchone(self):
+                return self.result[0] if self.result else None
+
+            def __iter__(self):
+                return iter(list(self.result))
+
+        class Connection:
+            server_status = 0
+
+            def cursor(self):
+                return Cursor()
+
+            def commit(self):
+                pass
+
+            def rollback(self):
+                pass
+
+        @contextlib.contextmanager
+        def get_db_connection(name="ace"):
+            assert name == "brocess", name
+            yield Connection()
+
+        return get_db_connection
+
+    def execute(self, sql, params):
+        import datetime
+
+        def text(value):
+            return None if value is None else str(value)
+
+        def when(value):
+            if value is None:
+                return None
+            if isinstance(value, datetime.datetime):
+                return value.strftime("%Y-%m-%d %H:%M:%S")
+            return value
+
+        def as_datetime(value):
+            return None if value is None else datetime.datetime.strptime(value, "%Y-%m-%d %H:%M:%S")
+
+        if sql.startswith("INSERT INTO smtplog"):
+            # ace3 cuts each to 255 bytes, which the fixtures' addresses are well under
+            source, destination = (p.decode("utf-8") for p in params)
+            for row in self.smtplog:
+                if row[0].encode() == source.encode() and row[1].encode() == destination.encode():
+                    row[2] += 1
+                    return [()]
+            stamp = datetime.datetime.strptime(self.now, "%Y-%m-%d %H:%M:%S").replace(tzinfo=datetime.timezone.utc)
+            self.smtplog.append([source, destination, 1, float(int(stamp.timestamp()))])
+            return [()]
+        if sql.startswith("INSERT INTO email_thread_message"):
+            (thread_id, _, message_id, _, in_reply_to, subject, _, from_address, from_domain, direction,
+             message_date) = params
+            key = (self.sha(thread_id), self.sha(message_id))
+            if any((m["thread_id_hash"], m["message_id_hash"]) == key for m in self.messages):
+                return []
+            self.messages.append({
+                "id": len(self.messages) + 1, "insert_date": self.now, "thread_id": thread_id,
+                "thread_id_hash": key[0], "message_id": message_id, "message_id_hash": key[1],
+                "in_reply_to": text(in_reply_to), "normalized_subject": subject,
+                "normalized_subject_hash": None if subject is None else self.sha(subject),
+                "from_address": from_address, "from_domain": from_domain, "direction": direction,
+                "message_date": when(message_date),
+            })
+            return [()]
+        if sql.startswith("INSERT INTO email_thread_domain"):
+            thread_id, _, message_id, domain, address, role, *entry = params
+            thread_hash = self.sha(thread_id)
+            entry_hash = self.sha("\x1f".join(entry))
+            if any((d["thread_id_hash"], d["entry_hash"]) == (thread_hash, entry_hash) for d in self.domains):
+                return []
+            self.domains.append({
+                "id": len(self.domains) + 1, "thread_id": thread_id, "thread_id_hash": thread_hash,
+                "message_id_hash": self.sha(message_id), "domain": domain, "address": address, "role": role,
+                "entry_hash": entry_hash, "numseen": 1, "firstseendate": self.now,
+            })
+            return [()]
+
+        def domains_of(thread_hashes, by_thread):
+            rows = [d for d in self.domains if d["thread_id_hash"] in thread_hashes]
+            return sorted(rows, key=lambda d: (d["thread_id_hash"], d["id"]) if by_thread else d["id"])
+
+        def subject_threads(subject):
+            digest = self.sha(subject)
+            return {m["thread_id_hash"] for m in self.messages if m["normalized_subject_hash"] == digest}
+
+        if sql.startswith("SELECT domain, address, role, firstseendate FROM email_thread_domain WHERE thread_id_hash = UNHEX(SHA2(%s, 256))"):
+            rows = [(d["domain"], d["address"], d["role"], as_datetime(d["firstseendate"]))
+                    for d in domains_of({self.sha(params[0])}, False)]
+            return rows
+        if sql.startswith("SELECT HEX(d.thread_id_hash), d.domain, d.address, d.role, d.firstseendate FROM email_thread_domain d WHERE d.thread_id_hash IN ( SELECT m.thread_id_hash FROM email_thread_message m WHERE m.normalized_subject_hash = UNHEX(SHA2(%s, 256)) )"):
+            rows = [(d["thread_id_hash"], d["domain"], d["address"], d["role"], as_datetime(d["firstseendate"]))
+                    for d in domains_of(subject_threads(params[0]), False)]
+            return rows
+        if sql.startswith("SELECT COUNT(*) FROM email_thread_message WHERE thread_id_hash = UNHEX(SHA2(%s, 256))"):
+            digest = self.sha(params[0])
+            return [(sum(1 for m in self.messages if m["thread_id_hash"] == digest),)]
+        message_columns = ("thread_id", "message_id", "message_id_hash", "in_reply_to", "normalized_subject",
+                           "from_address", "from_domain", "direction", "message_date", "insert_date")
+
+        def message_row(m):
+            return tuple(as_datetime(m[c]) if c in ("message_date", "insert_date") else m[c] for c in message_columns)
+
+        if sql.startswith("SELECT HEX(thread_id_hash), normalized_subject, thread_id, message_id FROM email_thread_message WHERE message_id_hash = UNHEX(SHA2(%s, 256)) LIMIT 1"):
+            digest = self.sha(params[0])
+            found = [m for m in self.messages if m["message_id_hash"] == digest]
+            return [(m["thread_id_hash"], m["normalized_subject"], m["thread_id"], m["message_id"]) for m in found[:1]]
+        if sql.startswith("SELECT thread_id, message_id, HEX(message_id_hash), in_reply_to, normalized_subject, from_address, from_domain, direction, message_date, insert_date FROM email_thread_message WHERE message_id_hash = UNHEX(SHA2(%s, 256)) LIMIT 1"):
+            digest = self.sha(params[0])
+            return [message_row(m) for m in self.messages if m["message_id_hash"] == digest][:1]
+        if sql.startswith("SELECT thread_id, message_id, HEX(message_id_hash), in_reply_to, normalized_subject, from_address, from_domain, direction, message_date, insert_date FROM email_thread_message WHERE thread_id_hash IN ("):
+            *hexes, limit = params
+            rows = [m for m in self.messages if m["thread_id_hash"] in {h.upper() for h in hexes}]
+            rows.sort(key=lambda m: (m["message_date"] is None, m["message_date"] or "", m["insert_date"], m["id"]))
+            return [message_row(m) for m in rows[:limit]]
+        if sql.startswith("SELECT HEX(message_id_hash), domain, address, role, firstseendate FROM email_thread_domain WHERE thread_id_hash IN ("):
+            return [(d["message_id_hash"], d["domain"], d["address"], d["role"], as_datetime(d["firstseendate"]))
+                    for d in domains_of({h.upper() for h in params}, True)]
+        if sql.startswith("SELECT HEX(thread_id_hash), MIN(message_date), MIN(insert_date) FROM email_thread_message WHERE normalized_subject_hash = UNHEX(SHA2(%s, 256)) GROUP BY thread_id_hash"):
+            digest = self.sha(params[0])
+            groups = {}
+            for m in self.messages:
+                if m["normalized_subject_hash"] == digest:
+                    groups.setdefault(m["thread_id_hash"], []).append(m)
+            result = []
+            for thread_hash in sorted(groups):
+                dates = [m["message_date"] for m in groups[thread_hash] if m["message_date"] is not None]
+                result.append((thread_hash, as_datetime(min(dates)) if dates else None,
+                               as_datetime(min(m["insert_date"] for m in groups[thread_hash]))))
+            return result
+        if sql.startswith("SELECT message_id FROM email_thread_message WHERE message_id_hash IN ("):
+            digests = {self.sha(p) for p in params}
+            return [(m["message_id"],) for m in self.messages if m["message_id_hash"] in digests]
+        raise RuntimeError(f"FakeBrocess doesn't know {sql}")
+
+
+def fake_brocess_store(path):
+    """Points ace3's email logger and thread code at a FakeBrocess over the rows in `path`."""
+    import saq.modules.email.conversation as conversation
+    import saq.modules.email.logging as email_logging
+
+    store = FakeBrocess(path)
+    conversation.get_db_connection = store.connection()
+    email_logging.get_db_connection = store.connection()
+
+    # what the logger's reads answered, as ace4's email-thread-domains read answers them
+    established, count = conversation.get_established_domains, conversation.get_thread_message_count
+
+    def get_established_domains(context):
+        found = established(context)
+        store.reads.append({"established": [
+            {"domain": d.domain, "address": d.address, "role": d.role,
+             "first_seen": str(d.firstseendate) if d.firstseendate else None}
+            for d in found
+        ]})
+        return found
+
+    def get_thread_message_count(thread_id):
+        found = count(thread_id)
+        store.reads.append({"thread_message_count": found})
+        return found
+
+    conversation.get_established_domains = get_established_domains
+    conversation.get_thread_message_count = get_thread_message_count
+
+    # what the thread module's read answered, as ace4's email-thread read answers it
+    import saq.modules.email.thread as email_thread
+
+    get_conversation = email_thread.get_conversation
+
+    def recorded_conversation(message_id, **caps):
+        found = get_conversation(message_id, **caps)
+        store.reads.append({"conversation": None if found is None else conversation_form(found)})
+        return found
+
+    email_thread.get_conversation = recorded_conversation
+    return store
+
+
+def conversation_form(conversation):
+    """A Conversation as ace4's email-thread read answers one."""
+
+    def when(value):
+        return value.strftime("%Y-%m-%d %H:%M:%S") if value else None
+
+    def participant(p):
+        return {"message_id_hex": p.message_id_hex, "domain": p.domain, "address": p.address,
+                "role": p.role, "first_seen": when(p.firstseendate)}
+
+    return {
+        "anchor_message_id": conversation.anchor_message_id,
+        "normalized_subject": conversation.normalized_subject,
+        "thread_count": conversation.thread_count,
+        "thread_method": conversation.thread_method,
+        "link_domains": conversation.link_domains,
+        "thread_message_counts": conversation.thread_message_counts,
+        "domain_roles": {d: sorted(r) for d, r in sorted(conversation.domain_roles.items())},
+        "domain_addresses": {d: sorted(a) for d, a in sorted(conversation.domain_addresses.items())},
+        "messages": [{
+            "thread_id": m.thread_id, "message_id": m.message_id, "message_id_hex": m.message_id_hex,
+            "in_reply_to": m.in_reply_to, "normalized_subject": m.normalized_subject,
+            "from_address": m.from_address, "from_domain": m.from_domain, "direction": m.direction,
+            "message_date": when(m.message_date), "insert_date": when(m.insert_date),
+        } for m in conversation.messages],
+        # the participants in the order Conversation keeps them: those tied to no message, then each
+        # message's, in the order the first of each was read
+        "participants": [participant(p) for p in conversation.unattributed_participants]
+        + [participant(p) for ps in conversation.participants_by_message.values() for p in ps],
+        "truncated": conversation.truncated,
+        "roles_truncated": False,
+    }
+
+
+def record_fluent_bit():
+    """Keeps what ace3 sends to fluent-bit, by tag, instead of sending it."""
+    from fluent import sender
+
+    sent = []
+
+    def emit(self, label, data):
+        sent.append({"tag": ".".join((self.tag, label)) if label else self.tag, "record": json_safe(data)})
+        return True
+
+    sender.FluentSender.emit = emit
+    return sent
 
 
 # What the normal form calls each ace3 analysis, and the fields of a result that describe the run
@@ -513,7 +793,12 @@ def dump_observable(observable):
 
 def dump_analysis(analysis):
     analysis.load_details()
-    return {
+    # a module's summary details, kept only when it has some, so dumps made before stay as they were
+    summary_details = [
+        {"header": d.header, "content": d.content, "format": d.format}
+        for d in getattr(analysis, "summary_details", None) or []
+    ]
+    return ({"summary_details": summary_details} if summary_details else {}) | {
         "module_path": analysis.module_path,
         "class": type(analysis).__name__,
         "summary": analysis.summary,
@@ -579,6 +864,9 @@ def main():
         fake_snort_index(args.snort_rules)
     if args.brocess:
         fake_brocess(args.brocess)
+    store = fake_brocess_store(args.brocess_store) if args.brocess_store else None
+    before = json.loads(json.dumps(store.rows())) if store else None
+    fluent_bit = record_fluent_bit() if args.fluent_bit else None
 
     # results must not reach ace3's database through the analysis cache
     get_config().analysis_cache.enabled = False
@@ -661,6 +949,12 @@ def main():
         "observable_after": dump_observable(target),
         "analyses": [dump_analysis(a) for a in target.all_analysis],
     }
+    if store is not None:
+        dump["brocess_before"] = before
+        dump["brocess_after"] = store.rows()
+        dump["brocess_reads"] = store.reads
+    if fluent_bit is not None:
+        dump["fluent_bit"] = fluent_bit
     if args.tree:
         tree = relative_paths(tree_form(root), [(root_dir, "<root>"), (work, "<work>")])
         with open(os.path.join(work, "tree.json"), "w") as fp:
