@@ -17,6 +17,7 @@ use ace_results::{AnalysisTypeInfo, ObservableKind};
 use schemars::Schema;
 use serde_json::{Value, json};
 
+use crate::lists::ListSpec;
 use crate::module::{EXCLUDE_ALL, Lookup, Module, Parser, Settings};
 
 /// The limits a module's task runs under.
@@ -81,6 +82,8 @@ pub struct Manifest {
     pub reads_carrying_email: bool,
     /// The module runs when the rest of its root is done (`Module::RUNS_LAST`).
     pub runs_last: bool,
+    /// The analyst-edited lists the module reads (`Module::LISTS`).
+    pub lists: &'static [ListSpec],
     settings_schema: fn() -> Schema,
     check_settings: fn(Option<&Value>) -> Result<(), SettingsError>,
 }
@@ -113,6 +116,7 @@ impl Manifest {
             instances_only: M::INSTANCES_ONLY,
             reads_carrying_email: M::READS_CARRYING_EMAIL,
             runs_last: M::RUNS_LAST,
+            lists: M::LISTS,
             settings_schema: settings_schema::<M::Settings>,
             check_settings: check_settings::<M::Settings>,
         }

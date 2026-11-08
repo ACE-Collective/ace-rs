@@ -44,15 +44,16 @@ use ace_core::testing::TestDb;
 use ace_core::tree::{self, NewRoot};
 use ace_core::{Db, queue};
 use ace_results::{AlertPath, AnalysisType, NewObservable, ObservableKind};
+use ace_sdk::lists::{ListSpec, MAX_ENTRIES};
 use ace_sdk::{Lookup, Manifest, Module, ModuleError, Outcome, TaskContext};
 use ace_service::{
     ALERT_WRITE, Actor, ApiKeyId, CATALOG, CampaignChoice, CommandState, Component, CrashFilter,
     CrashInput, DetectionPointFilter, Effect, EventChoice, EventEdit, EventRef, EventTimes,
-    GroupId, Holder, MAX_CRASHES_PAGE, MIN_PASSWORD_CHARS, MalwareChoice, NewEvent, NewSession,
-    Password, PermissionName, PermissionPattern, PreferenceKey, PreferenceValue, Profile, QaPurge,
-    QaRuleFilter, QaSort, QaStatus, RequestParts, SESSION_LIFETIME_SECONDS, Service, ServiceError,
-    SessionCookie, Theme, ThemePreference, Transport, USER_SELF, USER_WRITE, UserId, Username,
-    with_source_ip,
+    GroupId, Holder, ListEntry, MAX_CRASHES_PAGE, MIN_PASSWORD_CHARS, MalwareChoice, MatchKind,
+    NewEvent, NewListEntry, NewSession, Password, PermissionName, PermissionPattern, PreferenceKey,
+    PreferenceValue, Profile, QaPurge, QaRuleFilter, QaSort, QaStatus, RequestParts,
+    SESSION_LIFETIME_SECONDS, Service, ServiceError, SessionCookie, Theme, ThemePreference,
+    Transport, USER_SELF, USER_WRITE, UserId, Username, with_source_ip,
 };
 use ace_store::{BucketConfig, NodeCache, Store};
 use schemars::JsonSchema;
@@ -106,10 +107,48 @@ macro_rules! stub {
 stub!(CorrelationStub, "rdap_analyzer");
 stub!(DispositionedStub, "alert_added_to_event");
 
+/// A list for the tests, as a module declares one (PLAN.md 5.14).
+const TEST_LIST: ListSpec = ListSpec {
+    name: "test_whitelist",
+    description: "a list for the tests",
+    typed: false,
+};
+
+/// A typed one, whose entries name an observable type.
+const TYPED_LIST: ListSpec = ListSpec {
+    name: "test_typed_list",
+    description: "a typed list for the tests",
+    typed: true,
+};
+
+/// A module that reads the two lists. No mode names it, so it never runs.
+struct ListReader;
+
+impl Module for ListReader {
+    const NAME: &'static str = "test_list_reader";
+    const INPUTS: &'static [ObservableKind] = &[ObservableKind::Fqdn];
+    const LISTS: &'static [ListSpec] = &[TEST_LIST, TYPED_LIST];
+    type Output = StubOutput;
+    type Settings = ();
+
+    fn init(_: &()) -> Result<Self, ModuleError> {
+        Ok(ListReader)
+    }
+}
+
+impl Lookup for ListReader {
+    const TCP_PORTS: &'static [u16] = &[];
+
+    async fn analyze(&self, _: &TaskContext<()>) -> Result<Outcome<StubOutput>, ModuleError> {
+        Ok(Outcome::Skipped("a stub".to_owned()))
+    }
+}
+
 fn orchestrator() -> Orchestrator {
     let catalog = Catalog::new(vec![
         Manifest::lookup::<CorrelationStub>(),
         Manifest::lookup::<DispositionedStub>(),
+        Manifest::lookup::<ListReader>(),
     ]);
     Orchestrator::new(catalog, Modes::ace3())
 }
@@ -1489,6 +1528,9 @@ async fn every_write_function_has_an_audit_test() {
         add_event_tags_records_its_row(db).await,
         start_command_records_its_row(db).await,
         cancel_command_records_its_row(db).await,
+        add_list_entry_records_its_row(db).await,
+        edit_list_entry_records_its_row(db).await,
+        delete_list_entry_records_its_row(db).await,
     ]);
     assert_eq!(covered, write_functions(), "{WRITES_NEED_A_TEST}");
 }
@@ -3015,6 +3057,15 @@ async fn every_write_fails_when_its_audit_fails() {
         .expect("starts a command")
         .run
         .id;
+    let listed = service
+        .add_list_entry(
+            &actor,
+            TEST_LIST.name,
+            &list_entry(MatchKind::Substring, "before"),
+        )
+        .await
+        .expect("adds an entry");
+    let lists_before = list_rows(db).await;
     let commands_before = command_rows(db).await;
     let before = (
         row(db, root).await,
@@ -3493,6 +3544,39 @@ async fn every_write_fails_when_its_audit_fails() {
                 .map(|_| ())
                 .expect_err("refused"),
         ),
+        (
+            "add_list_entry",
+            service
+                .add_list_entry(
+                    &actor,
+                    TEST_LIST.name,
+                    &list_entry(MatchKind::Exact, "after"),
+                )
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "edit_list_entry",
+            service
+                .edit_list_entry(
+                    &actor,
+                    TEST_LIST.name,
+                    listed.id,
+                    &list_entry(MatchKind::Exact, "after"),
+                )
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "delete_list_entry",
+            service
+                .delete_list_entry(&actor, TEST_LIST.name, listed.id)
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
     ];
     let mut covered = BTreeSet::new();
     for (function, error) in &attempts {
@@ -3517,6 +3601,11 @@ async fn every_write_fails_when_its_audit_fails() {
     );
     assert_eq!(after, before);
     assert_eq!(command_rows(db).await, commands_before);
+    assert_eq!(
+        list_rows(db).await,
+        lists_before,
+        "no list changed, nor its version"
+    );
     assert_eq!(
         queue::completions(db, root).await.expect("reads"),
         [],
@@ -11973,4 +12062,393 @@ fn a_long_label_is_cut_and_every_observable_is_in_the_graph() {
     assert_eq!(label.chars().count(), MAX_LABEL_CHARS);
     assert!(label.starts_with("fqdn: aaa") && label.ends_with('…'));
     assert!(graph.edges.is_empty());
+}
+
+// PLAN.md 5.14: the analyst-edited lists.
+
+fn list_entry(kind: MatchKind, value: &str) -> NewListEntry {
+    NewListEntry {
+        kind,
+        value: value.to_owned(),
+        ignore_case: true,
+        observable_type: None,
+        note: String::new(),
+        expires_at: None,
+    }
+}
+
+/// Every list entry's id, list, match and value, and the lists' version.
+async fn list_rows(db: &Db) -> (Vec<(i64, String, String, String)>, i64) {
+    let rows = sqlx::query_as("SELECT id, list, match, value FROM lists.entries ORDER BY id")
+        .fetch_all(db.pool())
+        .await
+        .expect("reads");
+    let version = sqlx::query_scalar("SELECT version FROM lists.version")
+        .fetch_one(db.pool())
+        .await
+        .expect("reads");
+    (rows, version)
+}
+
+async fn add_list_entry_records_its_row(db: &Db) -> String {
+    let actor = admin(db).await;
+    let service = service(db);
+    let (_, version) = list_rows(db).await;
+    let entry = NewListEntry {
+        note: "<b>the partner's relay</b>".to_owned(),
+        ..list_entry(MatchKind::Regex, r"^relay-\d+@partner\.example$")
+    };
+    let added = service
+        .add_list_entry(&actor, TEST_LIST.name, &entry)
+        .await
+        .expect("adds");
+    assert_eq!(added.list, TEST_LIST.name);
+    assert_eq!(added.created_by.id, Uuid::from_u128(0xAD).to_string());
+    assert_eq!(added.updated_by, added.created_by);
+    let row = last_audit(db).await;
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: boss_json(),
+            action: "add_list_entry".to_owned(),
+            target: ("list_entry".to_owned(), added.id.to_string()),
+            before: None,
+            after: Some(json!({
+                "list": "test_whitelist",
+                "match": "regex",
+                "value": r"^relay-\d+@partner\.example$",
+                "ignore_case": true,
+                "observable_type": null,
+                "note": "<b>the partner's relay</b>",
+                "expires_at": null,
+            })),
+            details: json!({}),
+        }
+    );
+    assert_eq!(
+        list_rows(db).await.1,
+        version + 1,
+        "the write raised the version"
+    );
+
+    // a refusal, an unknown list, or an entry the service won't take, has no row
+    let rows = audit_rows(db).await.len();
+    let reader = UserId(Uuid::from_u128(0xC1));
+    exists(db, &Holder::User(reader)).await;
+    assert!(matches!(
+        service
+            .add_list_entry(&user(reader), TEST_LIST.name, &list_entry(MatchKind::Exact, "x"))
+            .await,
+        Err(ServiceError::PermissionDenied { ref permission, .. })
+            if permission.to_string() == "list:write"
+    ));
+    assert!(matches!(
+        service
+            .add_list_entry(&actor, "no_such_list", &list_entry(MatchKind::Exact, "x"))
+            .await,
+        Err(ServiceError::NotFound(_))
+    ));
+    assert!(matches!(
+        service
+            .add_list_entry(&actor, TEST_LIST.name, &list_entry(MatchKind::Regex, "(unclosed"))
+            .await,
+        Err(ServiceError::InvalidRequest(why)) if why.starts_with("the pattern doesn't compile")
+    ));
+    assert_eq!(audit_rows(db).await.len(), rows);
+    row.action
+}
+
+async fn edit_list_entry_records_its_row(db: &Db) -> String {
+    let actor = admin(db).await;
+    let service = service(db);
+    let added = service
+        .add_list_entry(
+            &actor,
+            TEST_LIST.name,
+            &list_entry(MatchKind::Substring, "@old.example"),
+        )
+        .await
+        .expect("adds");
+    let key_id = ApiKeyId(Uuid::from_u128(0x1157));
+    exists(db, &Holder::ApiKey(key_id)).await;
+    grant(db, &Holder::ApiKey(key_id), "list", "write", Effect::Allow).await;
+    let editor = key(key_id, None);
+    let edited = service
+        .edit_list_entry(
+            &editor,
+            TEST_LIST.name,
+            added.id,
+            &NewListEntry {
+                ignore_case: false,
+                note: "moved".to_owned(),
+                ..list_entry(MatchKind::Exact, "relay@new.example")
+            },
+        )
+        .await
+        .expect("edits");
+    assert_eq!(edited.created_by, added.created_by);
+    assert_eq!(edited.updated_by.kind, "api_key");
+    let row = last_audit(db).await;
+    assert_eq!(row.action, "edit_list_entry");
+    assert_eq!(row.actor["kind"], "api_key");
+    assert_eq!(row.actor["id"], key_id.0.to_string());
+    assert_eq!(row.target, ("list_entry".to_owned(), added.id.to_string()));
+    assert_eq!(
+        (row.before, row.after),
+        (
+            Some(json!({
+                "list": "test_whitelist", "match": "substring", "value": "@old.example",
+                "ignore_case": true, "observable_type": null, "note": "", "expires_at": null,
+            })),
+            Some(json!({
+                "list": "test_whitelist", "match": "exact", "value": "relay@new.example",
+                "ignore_case": false, "observable_type": null, "note": "moved", "expires_at": null,
+            })),
+        )
+    );
+
+    // the same again changes nothing and has no row; another list's entry isn't this list's
+    let rows = audit_rows(db).await.len();
+    let (_, version) = list_rows(db).await;
+    service
+        .edit_list_entry(
+            &editor,
+            TEST_LIST.name,
+            added.id,
+            &NewListEntry {
+                ignore_case: false,
+                note: "moved".to_owned(),
+                ..list_entry(MatchKind::Exact, "relay@new.example")
+            },
+        )
+        .await
+        .expect("changes nothing");
+    assert!(matches!(
+        service
+            .edit_list_entry(
+                &actor,
+                TYPED_LIST.name,
+                added.id,
+                &list_entry(MatchKind::Exact, "x")
+            )
+            .await,
+        Err(ServiceError::NotFound(_))
+    ));
+    assert_eq!(audit_rows(db).await.len(), rows);
+    assert_eq!(
+        list_rows(db).await.1,
+        version,
+        "an edit that changed nothing wrote nothing"
+    );
+    row.action
+}
+
+async fn delete_list_entry_records_its_row(db: &Db) -> String {
+    let actor = admin(db).await;
+    let service = service(db);
+    let added = service
+        .add_list_entry(
+            &actor,
+            TEST_LIST.name,
+            &list_entry(MatchKind::Substring, "doomed"),
+        )
+        .await
+        .expect("adds");
+    service
+        .delete_list_entry(&actor, TEST_LIST.name, added.id)
+        .await
+        .expect("deletes");
+    let row = last_audit(db).await;
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: boss_json(),
+            action: "delete_list_entry".to_owned(),
+            target: ("list_entry".to_owned(), added.id.to_string()),
+            before: Some(json!({
+                "list": "test_whitelist",
+                "match": "substring",
+                "value": "doomed",
+                "ignore_case": true,
+                "observable_type": null,
+                "note": "",
+                "expires_at": null,
+                "created_by": boss_json(),
+                "created_at": row.before.as_ref().expect("a before")["created_at"],
+            })),
+            after: None,
+            details: json!({}),
+        }
+    );
+    assert!(matches!(
+        service
+            .delete_list_entry(&actor, TEST_LIST.name, added.id)
+            .await,
+        Err(ServiceError::NotFound(_))
+    ));
+    row.action
+}
+
+/// What the service refuses, so a module never gets a list it can't compile: each entry's own checks,
+/// a duplicate, a typed list's type, an expiry that passed, and the whole list's count and patterns.
+#[tokio::test]
+async fn a_list_takes_only_entries_a_module_can_compile() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let actor = admin(db).await;
+    let add = |list: &'static str, entry: NewListEntry| {
+        let service = service.clone();
+        let actor = actor.clone();
+        async move { service.add_list_entry(&actor, list, &entry).await }
+    };
+    let invalid = |result: Result<ListEntry, ServiceError>| match result {
+        Err(ServiceError::InvalidRequest(why)) => why,
+        other => panic!("expected a refusal, got {other:?}"),
+    };
+
+    add(
+        TEST_LIST.name,
+        list_entry(MatchKind::Substring, "@partner.example"),
+    )
+    .await
+    .expect("adds");
+    assert!(matches!(
+        add(
+            TEST_LIST.name,
+            list_entry(MatchKind::Substring, "@partner.example")
+        )
+        .await,
+        Err(ServiceError::Conflict(_))
+    ));
+    // the same value matched another way, or with case, is another entry
+    add(
+        TEST_LIST.name,
+        NewListEntry {
+            ignore_case: false,
+            ..list_entry(MatchKind::Substring, "@partner.example")
+        },
+    )
+    .await
+    .expect("adds");
+    assert_eq!(
+        invalid(add(TEST_LIST.name, list_entry(MatchKind::Regex, r"\w{100}")).await),
+        "the pattern compiles to more than 1048576 bytes; make it simpler, such as with fewer repetitions or narrower classes"
+    );
+    assert!(
+        invalid(add(TEST_LIST.name, list_entry(MatchKind::Regex, r"(?=x)")).await)
+            .starts_with("the pattern doesn't compile")
+    );
+    assert_eq!(
+        invalid(add(TEST_LIST.name, list_entry(MatchKind::Exact, "")).await),
+        "an entry's value can't be empty"
+    );
+    assert_eq!(
+        invalid(
+            add(
+                TEST_LIST.name,
+                NewListEntry {
+                    observable_type: Some("ipv4".to_owned()),
+                    ..list_entry(MatchKind::Exact, "192.0.2.1")
+                }
+            )
+            .await
+        ),
+        "list test_whitelist doesn't take an observable type"
+    );
+    assert_eq!(
+        invalid(add(TYPED_LIST.name, list_entry(MatchKind::Exact, "192.0.2.1")).await),
+        "an entry on list test_typed_list has to name an observable type"
+    );
+    assert_eq!(
+        invalid(
+            add(
+                TYPED_LIST.name,
+                NewListEntry {
+                    observable_type: Some("no_such_type".to_owned()),
+                    ..list_entry(MatchKind::Exact, "192.0.2.1")
+                }
+            )
+            .await
+        ),
+        "no observable type \"no_such_type\""
+    );
+    let typed = add(
+        TYPED_LIST.name,
+        NewListEntry {
+            observable_type: Some("ipv4".to_owned()),
+            ..list_entry(MatchKind::Exact, "192.0.2.1")
+        },
+    )
+    .await
+    .expect("adds");
+    assert_eq!(typed.observable_type.as_deref(), Some("ipv4"));
+    assert_eq!(
+        invalid(
+            add(
+                TEST_LIST.name,
+                NewListEntry {
+                    expires_at: Some(chrono::Utc::now() - chrono::Duration::seconds(1)),
+                    ..list_entry(MatchKind::Exact, "late")
+                }
+            )
+            .await
+        ),
+        "an entry's expiry has to be in the future"
+    );
+
+    // each \w{10} compiles alone, and twenty of them together pass the list's limit
+    for i in 0..16 {
+        add(
+            TEST_LIST.name,
+            list_entry(MatchKind::Regex, &format!(r"\w{{10}}{i}")),
+        )
+        .await
+        .expect("adds a pattern");
+    }
+    assert_eq!(
+        invalid(add(TEST_LIST.name, list_entry(MatchKind::Regex, r"\w{10}z")).await),
+        "the list's patterns would compile to more than 8388608 bytes together; remove or simplify some"
+    );
+
+    // a list holds at most MAX_ENTRIES, counted as committed
+    let room = MAX_ENTRIES as i64
+        - sqlx::query_scalar::<_, i64>("SELECT count(*) FROM lists.entries WHERE list = $1")
+            .bind(TEST_LIST.name)
+            .fetch_one(db.pool())
+            .await
+            .expect("counts");
+    sqlx::query(
+        "INSERT INTO lists.entries (list, match, value, ignore_case, created_by, updated_by)
+         SELECT $1, 'exact', 'filler-' || n, true, $2::jsonb, $2::jsonb FROM generate_series(1, $3) n",
+    )
+    .bind(TEST_LIST.name)
+    .bind(boss_json())
+    .bind(room)
+    .execute(db.pool())
+    .await
+    .expect("fills the list");
+    assert_eq!(
+        invalid(add(TEST_LIST.name, list_entry(MatchKind::Exact, "one more")).await),
+        "list test_whitelist holds at most 1000 entries"
+    );
+
+    // the list reads back in order, and the lists count their entries
+    let summaries = service.lists(&actor).await.expect("lists");
+    let names: Vec<(&str, i64)> = summaries.iter().map(|s| (s.spec.name, s.entries)).collect();
+    assert_eq!(names, [("test_typed_list", 1), ("test_whitelist", 1000)]);
+    let list = service.list(&actor, TEST_LIST.name).await.expect("reads");
+    assert_eq!(list.entries.len(), 1000);
+    assert_eq!(list.entries[0].value, "@partner.example");
+    assert!(list.entries.windows(2).all(|w| w[0].id < w[1].id));
+    assert!(matches!(
+        service.list(&actor, "no_such_list").await,
+        Err(ServiceError::NotFound(_))
+    ));
+    let nobody = UserId(Uuid::from_u128(0xC2));
+    exists(db, &Holder::User(nobody)).await;
+    assert!(matches!(
+        service.lists(&user(nobody)).await,
+        Err(ServiceError::PermissionDenied { ref permission, .. }) if permission.to_string() == "list:read"
+    ));
 }

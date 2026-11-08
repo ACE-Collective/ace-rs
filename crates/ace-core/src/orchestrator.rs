@@ -10,6 +10,13 @@
 //! the second sees the first's observables and mode, and nothing the first made eligible is
 //! missed. Landing a result checks the root's completion last, so the tasks it queues keep the
 //! same pass open.
+//!
+//! Whitelisting is ace3's (PLAN.md 5.14): a whitelisted observable is eligible for nothing
+//! (`eligibility`), a result that whitelists the observable it analyzed cancels the rest of its
+//! root's analysis, as ace3's executor stops the tree, and a detection doesn't make a root holding a
+//! whitelisted observable an alert. ace3 decides whether to alert when the analysis pass ends, and ace4
+//! when a detection lands, so a root that alerted before something in it was whitelisted stays an
+//! alert here, where ace3 wouldn't have alerted.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::{Arc, OnceLock};
@@ -19,7 +26,7 @@ use serde_json::Value;
 use uuid::Uuid;
 
 use crate::db::{DbError, Retryable, Tx};
-use crate::eligibility::{Catalog, Facts, check};
+use crate::eligibility::{Catalog, Facts, check, is_whitelisted};
 use crate::modes::{CORRELATION, DISPOSITIONED, Modes};
 use crate::queue::{self, QueueError, Task, TaskId, TaskState, Worker};
 use crate::tree::{self, ObservableId, ResultId};
@@ -187,7 +194,7 @@ impl Orchestrator {
             Scope::Observables(ids) => Some(ids.iter().map(|id| id.0).collect()),
         };
         let observables = sqlx::query!(
-            r#"SELECT id AS "id: ObservableId", type AS kind, directives, exclude_modules
+            r#"SELECT id AS "id: ObservableId", type AS kind, tags, directives, exclude_modules
                FROM analysis.observables
                WHERE root_id = $1 AND ($2::bigint[] IS NULL OR id = ANY($2))
                ORDER BY id"#,
@@ -236,6 +243,7 @@ impl Orchestrator {
                 .map_err(|e| DbError::Decode(format!("observable {}: {e}", observable.id.0)))?;
             let facts = Facts {
                 kind,
+                tags: &observable.tags,
                 directives: &observable.directives,
                 exclude_modules: &observable.exclude_modules,
             };
@@ -402,6 +410,18 @@ impl Orchestrator {
                 mode_changed_to: None,
             });
         }
+        // ace3's executor: when the observable a module analyzed turns out whitelisted, the whole tree
+        // is, so analysis stops there. What the result added stays, and the root never alerts.
+        if is_whitelisted(&result.analyzed.tags, &result.analyzed.directives) {
+            tracing::info!(%root, module = %task.module, "a result whitelisted its observable; stopping the root's analysis");
+            queue::cancel_root(tx, root).await?;
+            queue::check_completion(tx, root).await?;
+            return Ok(Landed {
+                result: result_id,
+                queued: Vec::new(),
+                mode_changed_to: None,
+            });
+        }
         // a QA rule's match never alerts; a task of the core's records it (PLAN.md 2.27)
         let mut qa_task = Vec::new();
         if !crate::yara_qa::qa_matches(result).is_empty()
@@ -409,7 +429,10 @@ impl Orchestrator {
         {
             qa_task.push(id);
         }
-        if !detections.is_empty() && self.modes.is_detectable(&mode) {
+        if !detections.is_empty()
+            && self.modes.is_detectable(&mode)
+            && !tree::has_whitelisted(tx.conn(), root).await?
+        {
             sqlx::query!(
                 "UPDATE analysis.roots SET alerted_at = COALESCE(alerted_at, now()) WHERE id = $1",
                 root,

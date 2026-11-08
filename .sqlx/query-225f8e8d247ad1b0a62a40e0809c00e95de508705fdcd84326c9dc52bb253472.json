@@ -1,0 +1,33 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT list, count(*) AS \"count!\" FROM lists.entries GROUP BY list",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "list",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "lists.entries",
+            "name": "list"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "count!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      null
+    ]
+  },
+  "hash": "225f8e8d247ad1b0a62a40e0809c00e95de508705fdcd84326c9dc52bb253472"
+}

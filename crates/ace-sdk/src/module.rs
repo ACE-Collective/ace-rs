@@ -14,6 +14,7 @@ use serde::de::DeserializeOwned;
 use tracing::Instrument;
 
 use crate::context::TaskContext;
+use crate::lists::ListSpec;
 use crate::manifest::Resources;
 
 /// A module's settings: the block a site's config overlay gives it. Missing settings fall back
@@ -53,6 +54,10 @@ pub trait Module: Sized + Send + Sync + 'static {
     /// `execute_final_analysis`, and reads the YARA rules that matched its observable or anything
     /// below it. The core holds its tasks back until then and adds those rules to them.
     const RUNS_LAST: bool = false;
+    /// The analyst-edited lists the module reads (PLAN.md 5.14), such as the email module's
+    /// whitelists. The core adds each to the module's tasks as it is when the task is leased, and
+    /// the module reads it with `TaskContext::list`. The lists a binary knows are its modules'.
+    const LISTS: &'static [ListSpec] = &[];
 
     /// The analysis type the module writes.
     type Output: AnalysisType;
@@ -179,6 +184,11 @@ pub fn task_span<S>(module: &'static str, ctx: &TaskContext<S>) -> tracing::Span
 
 /// The directive that keeps every module off an observable, as ace3's `exclude_all`.
 pub const EXCLUDE_ALL: &str = "exclude_all";
+
+/// The tag and the directive ace3's `Observable.whitelist()` adds, and either one makes an observable
+/// whitelisted: no module analyzes it, a result that whitelists the observable it analyzed stops its
+/// root's analysis, and a root holding one never becomes an alert (`ace_core::orchestrator`).
+pub const WHITELISTED: &str = "whitelisted";
 
 /// The first of the observable's directives that keeps module `M` off it.
 fn skipping_directive<M: Module, S>(ctx: &TaskContext<S>) -> Option<&str> {

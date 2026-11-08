@@ -600,3 +600,17 @@ pub async fn carrying_email(
         }
     })))
 }
+
+/// Whether any of the root's observables is whitelisted: it has ace3's `whitelisted` tag or directive
+/// (`eligibility::is_whitelisted`).
+pub async fn has_whitelisted(executor: impl PgExecutor<'_>, root: Uuid) -> Result<bool, DbError> {
+    Ok(sqlx::query_scalar!(
+        r#"SELECT EXISTS (SELECT FROM analysis.observables
+                          WHERE root_id = $1
+                            AND ('whitelisted' = ANY(tags) OR 'whitelisted' = ANY(directives)))
+           AS "whitelisted!""#,
+        root,
+    )
+    .fetch_one(executor)
+    .await?)
+}

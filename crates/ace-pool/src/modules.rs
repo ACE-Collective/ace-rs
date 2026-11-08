@@ -135,7 +135,8 @@ impl<M: ace_sdk::Module> Entry<M> {
         .with_contained(run.contained)
         .with_task_id(run.task.id)
         .with_yara_rules_below(run.task.yara_rules_below.clone())
-        .with_carrying_email(run.carrying_email());
+        .with_carrying_email(run.carrying_email())
+        .with_lists(run.task.lists.clone());
         match &run.task.delayed {
             Some(delayed) => ctx.with_delayed(delayed.clone()),
             None => ctx,
@@ -386,6 +387,7 @@ mod tests {
             carrying_email,
             emails_pending,
             yara_rules_below: Vec::new(),
+            lists: Vec::new(),
         }
     }
 

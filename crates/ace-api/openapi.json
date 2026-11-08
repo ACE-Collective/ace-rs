@@ -3374,6 +3374,396 @@
         ]
       }
     },
+    "/api/lists/v1/lists": {
+      "get": {
+        "tags": [
+          "lists"
+        ],
+        "summary": "The lists this server's modules read, with how many entries each has.",
+        "operationId": "lists",
+        "responses": {
+          "200": {
+            "description": "The lists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListsBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold list:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/lists/v1/lists/{list}": {
+      "get": {
+        "tags": [
+          "lists"
+        ],
+        "summary": "One list and its entries.",
+        "operationId": "list",
+        "parameters": [
+          {
+            "name": "list",
+            "in": "path",
+            "description": "The list's name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold list:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/lists/v1/lists/{list}/entries": {
+      "post": {
+        "tags": [
+          "lists"
+        ],
+        "summary": "Adds an entry to the end of a list. It applies to the next task that reads the list.",
+        "operationId": "add",
+        "parameters": [
+          {
+            "name": "list",
+            "in": "path",
+            "description": "The list's name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EntryRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "The entry",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EntryBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A value that's empty or too long, a pattern that doesn't compile or compiles too large alone or with the list's others, a list that would hold too many entries, a type the list doesn't take or one it needs, an expiry that passed, or a body that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold list:write, or a session's request came from another site",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The list has an entry with this match, case, type and value already",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/lists/v1/lists/{list}/entries/{id}": {
+      "put": {
+        "tags": [
+          "lists"
+        ],
+        "summary": "Replaces what an entry holds, keeping its place on the list. A body that changes nothing changes\nnothing.",
+        "operationId": "replace",
+        "parameters": [
+          {
+            "name": "list",
+            "in": "path",
+            "description": "The list's name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The entry's id",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EntryRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The entry as it is now",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EntryBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An id that isn't one, or an entry that can't be stored, as for adding one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold list:write, or a session's request came from another site",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such list, or no such entry on it",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Another entry on the list has this match, case, type and value",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "lists"
+        ],
+        "summary": "Deletes an entry. Its audit row keeps what it was.",
+        "operationId": "delete",
+        "parameters": [
+          {
+            "name": "list",
+            "in": "path",
+            "description": "The list's name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The entry's id",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The entry is gone"
+          },
+          "400": {
+            "description": "An id that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold list:write, or a session's request came from another site",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such list, or no such entry on it",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/observables/v1/comments": {
       "get": {
         "tags": [
@@ -7410,6 +7800,116 @@
           }
         }
       },
+      "EntryBody": {
+        "type": "object",
+        "description": "An entry on a list.",
+        "required": [
+          "id",
+          "list",
+          "match",
+          "value",
+          "ignore_case",
+          "note",
+          "created_by",
+          "created_at",
+          "updated_by",
+          "updated_at"
+        ],
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "created_by": {
+            "$ref": "#/components/schemas/ActorBody"
+          },
+          "expires_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "After this it matches nothing; null never expires."
+          },
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "ignore_case": {
+            "type": "boolean"
+          },
+          "list": {
+            "type": "string"
+          },
+          "match": {
+            "$ref": "#/components/schemas/MatchBody"
+          },
+          "note": {
+            "type": "string",
+            "description": "Why it's there."
+          },
+          "observable_type": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "On a typed list, the observable type it applies to."
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_by": {
+            "$ref": "#/components/schemas/ActorBody"
+          },
+          "value": {
+            "type": "string",
+            "description": "The value or the pattern, as it was sent. Show it as text."
+          }
+        }
+      },
+      "EntryRequest": {
+        "type": "object",
+        "description": "An entry, new or in place of one.",
+        "required": [
+          "match",
+          "value"
+        ],
+        "properties": {
+          "expires_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "After this it matches nothing. It has to be in the future, unless it's the entry's own."
+          },
+          "ignore_case": {
+            "type": "boolean",
+            "description": "Compare without case; true unless false is sent, as ace3's whitelist did.",
+            "default": true
+          },
+          "match": {
+            "$ref": "#/components/schemas/MatchBody"
+          },
+          "note": {
+            "type": "string",
+            "description": "Why it's there, up to 1024 characters."
+          },
+          "observable_type": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "On a typed list, the observable type it applies to; on another, leave it out."
+          },
+          "value": {
+            "type": "string",
+            "description": "The value, up to 4096 bytes, or a pattern, up to 1024, which has to compile."
+          }
+        },
+        "additionalProperties": false
+      },
       "ErrorBody": {
         "type": "object",
         "description": "The body of every failure.",
@@ -8072,6 +8572,81 @@
           }
         }
       },
+      "ListBody": {
+        "type": "object",
+        "description": "A list and its entries, in the order a module tries them.",
+        "required": [
+          "name",
+          "description",
+          "typed",
+          "version",
+          "entries"
+        ],
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "entries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EntryBody"
+            }
+          },
+          "name": {
+            "type": "string"
+          },
+          "typed": {
+            "type": "boolean"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64",
+            "description": "The lists' version: every committed edit to any list raises it."
+          }
+        }
+      },
+      "ListSummaryBody": {
+        "type": "object",
+        "description": "A list this server's modules read.",
+        "required": [
+          "name",
+          "description",
+          "typed",
+          "entries"
+        ],
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "What it's for, and what its entries are matched against."
+          },
+          "entries": {
+            "type": "integer",
+            "format": "int64",
+            "description": "How many entries it has."
+          },
+          "name": {
+            "type": "string"
+          },
+          "typed": {
+            "type": "boolean",
+            "description": "Each entry names an observable type."
+          }
+        }
+      },
+      "ListsBody": {
+        "type": "object",
+        "required": [
+          "lists"
+        ],
+        "properties": {
+          "lists": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ListSummaryBody"
+            }
+          }
+        }
+      },
       "LookupBody": {
         "type": "object",
         "required": [
@@ -8124,6 +8699,15 @@
           }
         },
         "additionalProperties": false
+      },
+      "MatchBody": {
+        "type": "string",
+        "description": "How an entry matches a value.",
+        "enum": [
+          "exact",
+          "substring",
+          "regex"
+        ]
       },
       "NewApiKeyBody": {
         "type": "object",
@@ -9799,6 +10383,10 @@
     {
       "name": "filters",
       "description": "A list screen's filters, their share links, and the caller's saved filters"
+    },
+    {
+      "name": "lists",
+      "description": "The analyst-edited lists, such as the email whitelists, which apply to the next task that reads them"
     }
   ]
 }

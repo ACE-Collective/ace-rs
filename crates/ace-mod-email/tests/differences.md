@@ -31,7 +31,7 @@ These follow ace3 on purpose, so they aren't differences, but they're easy to ge
 
 These depart from ace3:
 
-- Sender and recipient whitelisting waits for analyst-edited lists (PLAN.md 5.14).
+- Sender and recipient whitelisting reads two analyst-edited lists (PLAN.md 5.14), `email_sender_whitelist` and `email_recipient_whitelist`, in place of ace3's brotex whitelist file and its `smtp_from` and `smtp_to` keys. ace3's entries were case-blind substrings; an entry here is an exact value, a substring or a regex, with or without case. The dumps were made with ace3's empty whitelist, and the harness gives the module empty lists, so they don't exercise it; `tests/headers.rs` does.
+- A whitelisted message gets a result with no details and ace3's summary for it, "Email Analysis: (whitelisted email)", carrying the `whitelisted` tag and directive to the file. ace3 adds the tag and directive to the file and no analysis, but here a result is the only way a module adds to the file it analyzed.
 - The SMTP collector's `smtp_rcpt_to` and `smtp_mail_from` observables, the `remediate` directive copied from a `message_id` observable, and renaming the alert from the subject all need the rest of the alert, which a module doesn't see until the core exists.
-- An outbound journaled message skipped under `scan_inbound_only` is skipped without being whitelisted, because a skipped task stores nothing.
 - ace3 labels the IP addresses from `X-Originating-IP` and `X-Sender-IP` "Originating IP" and "Sender IP", and the decoded subject "Decoded Subject". An observable can carry a display type since PLAN.md 5.8, but this module doesn't set one yet: its reference dumps were made before `tools/ace3/dumps/run_module.py` recorded display types (the Splunk dumps of 1.24 added that), so they'd have to be made again for the comparison to see these labels.

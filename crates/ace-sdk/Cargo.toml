@@ -16,6 +16,8 @@ ace-results = { path = "../ace-results" }
 chrono = { version = "0.4.45", default-features = false, features = ["clock", "serde", "std"] }
 # rustls with aws-lc-rs, verifying against the platform's roots.
 reqwest = { version = "0.13.5", default-features = false, features = ["rustls", "http2", "json"] }
+# An analyst-edited list's patterns (PLAN.md 5.14), whose matching is linear in the input.
+regex = "1.13.1"
 # Only to recognize rustls's errors when classifying; reqwest picks the TLS setup.
 rustls = { version = "0.23", default-features = false }
 schemars = "1.2.3"

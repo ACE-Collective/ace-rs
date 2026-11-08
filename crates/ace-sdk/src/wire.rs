@@ -14,6 +14,7 @@ use serde_json::Value;
 use uuid::Uuid;
 
 use crate::context::{DelayedRun, InputFile, Observable};
+use crate::lists::WireList;
 
 /// The paths of the lease API, under its base URL.
 pub mod paths {
@@ -157,6 +158,10 @@ pub struct LeasedTask {
     /// that runs last (`Module::RUNS_LAST`). Empty for any other.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub yara_rules_below: Vec<String>,
+    /// The analyst-edited lists the module reads (`Module::LISTS`), as they were when the core handed
+    /// the task out (PLAN.md 5.14). Empty for a module that reads none.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub lists: Vec<WireList>,
 }
 
 /// What a module may read of the email that carried its observable (PLAN.md 4.6). A worker holds no

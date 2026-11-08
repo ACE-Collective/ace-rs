@@ -56,6 +56,9 @@
 //! `preferences` keeps a user's GUI preferences, ace3's `user_preferences` router, for 5.7's GUI and its
 //! routes under `/api/users/v1/me/preferences`.
 //!
+//! `lists` keeps the analyst-edited lists (5.14), such as the email module's whitelists, which the lease
+//! API adds to the tasks of the modules that read them.
+//!
 //! `filters` is the filter model of a list screen (5.10), ace3's filter language and share links, which the
 //! alert list (`alerts`) and the detection points (`detection_points`) take, and `saved_filters` keeps an
 //! analyst's saved filters, ace3's `saved_filters` router.
@@ -79,6 +82,7 @@ mod detection_points;
 mod events;
 pub mod filters;
 mod gate;
+mod lists;
 mod observable_comments;
 mod observables;
 mod permission;
@@ -100,6 +104,7 @@ use uuid::Uuid;
 
 use gate::{Audited, Change, Gate, Recorded, TITLE_LIMIT, Target};
 
+pub use ace_sdk::lists::MatchKind;
 pub use actor::{Actor, ApiKeyId, Component, InvalidComponent, UserId};
 pub use alert_graph::{
     AlertGraph, GraphEdge, GraphEdgeKind, GraphNode, GraphNodeKind, MAX_GRAPH_EDGES,
@@ -139,15 +144,16 @@ pub use filters::events::{
 };
 pub use filters::{FilterEntry, FilterScreen, FilterValue};
 pub use gate::Holder;
+pub use lists::{ListEntry, ListSummary, ListView, NewListEntry};
 pub use observable_comments::{CommentAuthor, MAX_COMMENT_CHARS, ObservableComment};
 pub use observables::{
     Lookup, MAX_EXCLUDED_ALERTS, MAX_LOOKUP_PAIRS, MAX_RECENT_ALERTS, OPEN, Prevalence, RecentAlert,
 };
 pub use permission::{
     ADMIN_READ, ALERT_CREATE, ALERT_READ, ALERT_WRITE, CATALOG, CLI_EXECUTE, CRASH_READ,
-    CatalogEntry, EVENT_READ, EVENT_WRITE, Effect, InvalidPermission, OBSERVABLE_READ,
-    OBSERVABLE_WRITE, PermissionName, PermissionPattern, SIGNATURE_DOWNLOAD, SIGNATURE_QA_PURGE,
-    SIGNATURE_READ, USER_READ, USER_SELF, USER_WRITE,
+    CatalogEntry, EVENT_READ, EVENT_WRITE, Effect, InvalidPermission, LIST_READ, LIST_WRITE,
+    OBSERVABLE_READ, OBSERVABLE_WRITE, PermissionName, PermissionPattern, SIGNATURE_DOWNLOAD,
+    SIGNATURE_QA_PURGE, SIGNATURE_READ, USER_READ, USER_SELF, USER_WRITE,
 };
 pub use preferences::{
     AlertSectionsPreference, MANAGE_COLUMNS, MAX_ALERT_SECTIONS, ManageColumn,

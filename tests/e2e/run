@@ -41,6 +41,12 @@ It also runs a GUI command (PLAN.md 5.12): signed in as that analyst, it starts 
 through the JSON API with the session, which the parser pool runs contained, and checks that the help
 completed with ace's usage and that `serve` was refused, as a command a contained process can't run.
 
+Then the analyst-edited lists (PLAN.md 5.14): signed in as that analyst, it adds the email's sender to the
+sender whitelist through the JSON API and submits the email once more, with nothing restarted. The email
+module has to whitelist it, the root's analysis has to stop with nothing extracted and no alert, and the
+entry's audit row has to name the analyst. It deletes the entry the same way before anything else runs,
+so the comparison below sees the empty lists ace3's trees were made with.
+
 Then the library diff's self-test runs (PLAN.md 4.8).
 
 It then runs `ace compare` (PLAN.md 3.3, crates/ace-app/src/compare.rs) over the sample set, each
@@ -537,20 +543,110 @@ def web_request(method, path, body=None, headers=None):
         connection.close()
 
 
-def check_gui_command(failures):
-    """PLAN.md 5.12: a command started with the analyst's session runs on the parser pool, contained,
-    on ace's own command line: --help completes with the usage, and a command that needs what a contained
-    process can't have is refused."""
+def sign_in():
+    """The analyst's session headers for the JSON API, or None when the login fails."""
     origin = f"http://127.0.0.1:{PORT}"
     form = urllib.parse.urlencode({"username": ANALYST, "password": ANALYST_PASSWORD})
     status, headers, _ = web_request("POST", "/login", form, {
         "Content-Type": "application/x-www-form-urlencoded", "Origin": origin})
     cookie = (headers.get("Set-Cookie") or headers.get("set-cookie") or "").split(";")[0]
     if status != 303 or not cookie:
-        log(f"FAIL  the analyst couldn't sign in for a GUI command ({status})")
+        return None
+    return {"Cookie": cookie, "Origin": origin, "Content-Type": "application/json"}
+
+
+def started_at(service):
+    """When the service's container last started, by Docker's clock."""
+    container = compose("ps", "-q", service, capture=True).strip()
+    return subprocess.run(
+        ["docker", "inspect", "-f", "{{.State.StartedAt}}", container],
+        check=True, capture_output=True, text=True,
+    ).stdout.strip()
+
+
+def check_whitelist(email, failures):
+    """PLAN.md 5.14's Done check: an entry added through the JSON API applies to the next task with
+    nothing restarted, and its audit row names the actor. The entry is the e2e email's sender on the
+    email module's sender whitelist, ace3's smtp_from: the email is whitelisted, its analysis stops and
+    it doesn't alert. The entry is deleted again, also through the API, before anything else runs."""
+
+    def expect(ok, message):
+        log(("ok    " if ok else "FAIL  ") + message)
+        if not ok:
+            failures.append(f"whitelist: {message}")
+
+    session = sign_in()
+    if session is None:
+        expect(False, "the analyst signed in")
+        return
+    started = {service: started_at(service) for service in ("ace", "parsers")}
+    entries = "/api/lists/v1/lists/email_sender_whitelist/entries"
+    status, _, body = web_request("POST", entries, json.dumps({
+        "match": "substring", "value": "ALICE@example.com", "note": "the e2e test's sender",
+    }), session)
+    if status != 201:
+        expect(False, f"adding the entry answered {status}: {body}")
+        return
+    entry = json.loads(body)["id"]
+    try:
+        root = submit(email)
+        log(f"submitted root {root} with its sender whitelisted")
+        seconds = wait_for(f"root {root} to complete", lambda: completed_after(root), within=120)
+        log(f"root {root} completed {seconds:.2f}s after it was created")
+        for row in tasks(root):
+            log("  task " + " | ".join(row))
+        tags, directives = sql(
+            f"""SELECT array_to_string(tags, ','), array_to_string(directives, ',')
+                FROM analysis.observables WHERE root_id = '{root}' AND type = 'file'"""
+        )[0]
+        expect("whitelisted" in tags.split(",") and "whitelisted" in directives.split(","),
+               f"the email module whitelisted the email: tags {tags!r}, directives {directives!r}")
+        files, alerted, cancelled = sql(
+            f"""SELECT (SELECT count(*) FROM analysis.observables
+                        WHERE root_id = r.id AND type = 'file'),
+                       alerted_at IS NOT NULL, cancelled_at IS NOT NULL
+                FROM analysis.roots r WHERE id = '{root}'"""
+        )[0]
+        expect(files == "1", f"nothing was extracted from it: {files} file(s) in the root")
+        expect(alerted == "f" and cancelled == "t",
+               f"its analysis stopped and it didn't alert: alerted {alerted}, cancelled {cancelled}")
+        summary = sql(
+            f"""SELECT coalesce(summary, '') FROM analysis.results
+                WHERE root_id = '{root}' AND module = 'email_analyzer'"""
+        )
+        expect(summary == [["Email Analysis: (whitelisted email)"]],
+               f"its result is ace3's for a whitelisted email: {summary}")
+        audit = sql(
+            f"""SELECT actor->>'kind', actor->>'name', action FROM service.audit
+                WHERE target_kind = 'list_entry' AND target_id = '{entry}' ORDER BY id"""
+        )
+        expect(audit == [["user", ANALYST, "add_list_entry"]],
+               f"the entry's audit row names the analyst: {audit}")
+        now = {service: started_at(service) for service in ("ace", "parsers")}
+        expect(now == started, f"nothing restarted: {started} then {now}")
+    finally:
+        status, _, body = web_request(
+            "DELETE", f"/api/lists/v1/lists/email_sender_whitelist/entries/{entry}", None, session)
+        expect(status == 204, f"the entry was deleted through the API ({status} {body})")
+        audit = sql(
+            f"""SELECT actor->>'name', action FROM service.audit
+                WHERE target_kind = 'list_entry' AND target_id = '{entry}' ORDER BY id"""
+        )
+        expect(audit[-1:] == [[ANALYST, "delete_list_entry"]],
+               f"the delete's audit row names the analyst: {audit}")
+        left = sql("SELECT count(*) FROM lists.entries")[0][0]
+        expect(left == "0", f"the lists are empty again, as ace3's trees were made: {left}")
+
+
+def check_gui_command(failures):
+    """PLAN.md 5.12: a command started with the analyst's session runs on the parser pool, contained,
+    on ace's own command line: --help completes with the usage, and a command that needs what a contained
+    process can't have is refused."""
+    session = sign_in()
+    if session is None:
+        log("FAIL  the analyst couldn't sign in for a GUI command")
         failures.append("no session for a GUI command")
         return
-    session = {"Cookie": cookie, "Origin": origin, "Content-Type": "application/json"}
     ended = {}
     for line in ("--help", "serve"):
         status, _, body = web_request("POST", "/api/cli/v1/commands",
@@ -1007,6 +1103,7 @@ def main(argv):
         else:
             log("FAIL  the roots' normal forms differ; see normal-form*.json in " + str(WORK))
             failures.append("the same email's two roots have different normal forms")
+        check_whitelist(email, failures)
         if browser:
             try:
                 check_live_alert(email, failures)

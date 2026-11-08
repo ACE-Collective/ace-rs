@@ -25,6 +25,7 @@ use ace_results::{
     AlertPath, AnalysisType, InvalidResult, InvalidSchema, NewFile, ObservableKind, ResultEnvelope,
     ResultValidator, Sha256, YaraMeta, sort_json_keys,
 };
+use ace_sdk::lists::{Entry as ListEntry, ListSpec, WireList};
 use ace_sdk::{
     CarryingEmail, Delay, DelayedRun, FileStore, InputFile, LocalFileStore, Lookup, Module,
     ModuleError, Observable, Outcome, Parser, Secret, Secrets, SettingsError, TaskContext,
@@ -81,6 +82,7 @@ pub struct Harness<M: Module> {
     store: Arc<LocalFileStore>,
     carrying_email: CarryingEmail,
     timeout: Option<Duration>,
+    lists: Vec<WireList>,
 }
 
 impl<M: Module> Harness<M> {
@@ -108,12 +110,24 @@ impl<M: Module> Harness<M> {
             store,
             carrying_email: CarryingEmail::Absent,
             timeout: None,
+            lists: Vec::new(),
         })
     }
 
     /// What a module that reads its carrying email is told of it.
     pub fn carrying_email(mut self, email: CarryingEmail) -> Self {
         self.carrying_email = email;
+        self
+    }
+
+    /// Entries on one of the lists the module reads, as the core would send them with a task.
+    pub fn list(mut self, spec: &ListSpec, entries: Vec<ListEntry>) -> Self {
+        self.lists.retain(|list| list.name != spec.name);
+        self.lists.push(WireList {
+            name: spec.name.to_owned(),
+            version: 1,
+            entries,
+        });
         self
     }
 
@@ -223,7 +237,8 @@ impl<M: Module> Harness<M> {
             .with_secrets(&self.secrets)
             .with_now(self.now)
             .with_file_store(self.store.clone())
-            .with_carrying_email(self.carrying_email.clone());
+            .with_carrying_email(self.carrying_email.clone())
+            .with_lists(self.lists.clone());
         let ctx = match self.timeout {
             Some(timeout) => ctx.with_timeout(timeout),
             None => ctx,

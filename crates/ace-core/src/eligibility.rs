@@ -3,7 +3,8 @@
 //! A component, a module or a named instance of one, is eligible for an observable when it
 //! takes the observable's type (or a type that type extends), the root's analysis mode runs it,
 //! none of the observable's directives keeps it off and the observable doesn't exclude it, and
-//! every module it depends on has a result for the observable. The inputs come from the component (the manifest's, or an instance's
+//! every module it depends on has a result for the observable. A whitelisted observable, one with the
+//! `whitelisted` tag or directive, is eligible for nothing, as ace3's executor skips one. The inputs come from the component (the manifest's, or an instance's
 //! narrower list), the dependencies and skip directives from the module's manifest, and the
 //! mode's modules from `Modes`.
 //!
@@ -13,7 +14,8 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use ace_results::ObservableKind;
-use ace_sdk::{Component, Manifest};
+use ace_sdk::lists::ListSpec;
+use ace_sdk::{Component, Manifest, WHITELISTED};
 
 /// The components the core knows, by key: each module as itself, or its named instances from
 /// the site overlay (PLAN.md 2.23).
@@ -51,14 +53,50 @@ impl Catalog {
     pub fn keys(&self) -> BTreeSet<&str> {
         self.components.keys().map(String::as_str).collect()
     }
+
+    /// The analyst-edited lists the catalog's modules read (PLAN.md 5.14), by name. Two modules
+    /// that read one list must declare it alike; the first module's spec is kept when they don't.
+    pub fn lists(&self) -> BTreeMap<&'static str, ListSpec> {
+        let mut lists: BTreeMap<&'static str, ListSpec> = BTreeMap::new();
+        for component in self.components.values() {
+            for spec in component.manifest.lists {
+                match lists.get(spec.name) {
+                    Some(kept) if kept != spec => tracing::error!(
+                        list = spec.name,
+                        module = component.manifest.name,
+                        "a module declares a list another declares differently; the first is kept"
+                    ),
+                    Some(_) => {}
+                    None => {
+                        lists.insert(spec.name, *spec);
+                    }
+                }
+            }
+        }
+        lists
+    }
 }
 
 /// What eligibility reads about an observable.
 #[derive(Debug, Clone, Copy)]
 pub struct Facts<'a> {
     pub kind: ObservableKind,
+    pub tags: &'a [String],
     pub directives: &'a [String],
     pub exclude_modules: &'a [String],
+}
+
+impl Facts<'_> {
+    /// The observable carries ace3's `whitelisted` tag or directive.
+    pub fn whitelisted(&self) -> bool {
+        is_whitelisted(self.tags, self.directives)
+    }
+}
+
+/// Whether an observable with these tags and directives is whitelisted, as ace3's
+/// `Observable.whitelisted`.
+pub fn is_whitelisted(tags: &[String], directives: &[String]) -> bool {
+    tags.iter().chain(directives).any(|t| t == WHITELISTED)
 }
 
 /// Why a module isn't eligible for an observable.
@@ -68,6 +106,8 @@ pub enum Ineligible {
     NotAnInput,
     /// The root's analysis mode doesn't run the module.
     NotInMode,
+    /// The observable is whitelisted.
+    Whitelisted,
     /// A directive keeps the module off, such as `no_scan` or `exclude_all`.
     Directive(String),
     /// The observable excludes the module.
@@ -90,6 +130,9 @@ pub fn check(
     }
     if !mode_modules.contains(key) {
         return Err(Ineligible::NotInMode);
+    }
+    if facts.whitelisted() {
+        return Err(Ineligible::Whitelisted);
     }
     if let Some(directive) = manifest.skipped_by(facts.directives) {
         return Err(Ineligible::Directive(directive.to_owned()));

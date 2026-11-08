@@ -66,6 +66,7 @@ use tracing::Instrument;
 use crate::bucket::{ALERT_FILES, Bucket, BucketError, Hold};
 use crate::commands::{CommandState, CommandWorker};
 use crate::db::{Db, DbError, Isolation, Retryable};
+use crate::lists::ListCache;
 use crate::orchestrator::{Orchestrator, OrchestratorError, Rejected};
 use crate::queue::{QueueError, TASKS_CHANNEL, Task, TaskId, Worker};
 use crate::tree;
@@ -222,6 +223,8 @@ struct Inner {
     listener: JoinHandle<()>,
     /// Fires at shutdown, so waiting lease requests answer at once.
     stopping: tokio_util::sync::CancellationToken,
+    /// The analyst-edited lists, as of the newest version a lease has read (PLAN.md 5.14).
+    lists: ListCache,
 }
 
 impl Drop for Inner {
@@ -268,6 +271,7 @@ impl Api {
                 wakeups,
                 listener,
                 stopping: tokio_util::sync::CancellationToken::new(),
+                lists: ListCache::default(),
             }),
         })
     }
@@ -519,11 +523,29 @@ impl Api {
         } else {
             Vec::new()
         };
+        // read after the claim, so an edit committed before it is in the task (`lists`' docs)
+        let lists = self.lists_for(&task.module).await?;
         let mut leased = self.wire_task(task, file, redirection);
         leased.carrying_email = carrying_email;
         leased.emails_pending = emails_pending;
         leased.yara_rules_below = yara_rules_below;
+        leased.lists = lists;
         Ok(Some(leased))
+    }
+
+    /// The analyst-edited lists `module` reads, as they are now.
+    async fn lists_for(&self, module: &str) -> Result<Vec<ace_sdk::lists::WireList>, Failure> {
+        let specs = self
+            .inner
+            .orchestrator
+            .catalog()
+            .get(module)
+            .map_or(&[][..], |manifest| manifest.lists);
+        if specs.is_empty() {
+            return Ok(Vec::new());
+        }
+        let snapshot = self.inner.lists.current(self.inner.db.pool()).await?;
+        Ok(snapshot.wire(specs))
     }
 
     /// The email that carried a task's observable, or why the task can't run.
@@ -592,6 +614,7 @@ impl Api {
             carrying_email: None,
             emails_pending: false,
             yara_rules_below: Vec::new(),
+            lists: Vec::new(),
         }
     }
 
@@ -1083,9 +1106,12 @@ async fn replay(
     } else {
         None
     };
+    let lists = api.lists_for(&task.module).await?;
     let mut leased = api.wire_task(task, file, redirection);
     // what the task read when it ran, if its email has been parsed by now, as it usually has
     leased.carrying_email = carrying_email;
+    // the lists as they are now, which may have changed since it ran
+    leased.lists = lists;
     Ok(Json(leased))
 }
 

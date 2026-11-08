@@ -19,6 +19,7 @@ use ace_core::submit::{Submission, SubmittedObservable};
 use ace_core::testing::TestDb;
 use ace_core::tree::{self, NewRoot};
 use ace_results::{AnalysisType, NewObservable, ObservableKind};
+use ace_sdk::lists::{ListSpec, WireList};
 use ace_sdk::{Lookup, Manifest, Module, ModuleError, Outcome, TaskContext};
 use ace_service::{
     Actor, Component, Effect, Holder, Password, PermissionPattern, Profile, Service, Username,
@@ -61,6 +62,36 @@ impl Lookup for Rdap {
     }
 }
 
+/// A list, as a module declares one (PLAN.md 5.14).
+const TEST_LIST: ListSpec = ListSpec {
+    name: "test_whitelist",
+    description: "a list for the tests",
+    typed: false,
+};
+
+/// A module that reads the list. No mode names it, so a test queues its tasks itself.
+struct ListReader;
+
+impl Module for ListReader {
+    const NAME: &'static str = "test_list_reader";
+    const INPUTS: &'static [ObservableKind] = &[ObservableKind::Fqdn];
+    const LISTS: &'static [ListSpec] = &[TEST_LIST];
+    type Output = StubOutput;
+    type Settings = ();
+
+    fn init(_: &()) -> Result<Self, ModuleError> {
+        Ok(ListReader)
+    }
+}
+
+impl Lookup for ListReader {
+    const TCP_PORTS: &'static [u16] = &[];
+
+    async fn analyze(&self, _: &TaskContext<()>) -> Result<Outcome<StubOutput>, ModuleError> {
+        Ok(Outcome::Skipped("a stub".to_owned()))
+    }
+}
+
 const BOUNDARY: &str = "ace4-api-test-boundary";
 const PASSWORD: &str = "correct horse battery staple";
 /// Small, so the limits are cheap to cross.
@@ -70,6 +101,8 @@ const MAX_SUBMISSION: usize = 1 << 20;
 struct Stack {
     test_db: TestDb,
     service: Service,
+    bucket: Bucket,
+    orchestrator: Orchestrator,
     url: String,
     http: reqwest::Client,
     task: tokio::task::JoinHandle<()>,
@@ -91,10 +124,13 @@ async fn stack() -> Stack {
     );
     let bucket = Bucket::new(test_db.db().clone(), store, BucketSettings::default());
     let orchestrator = Orchestrator::new(
-        Catalog::new(vec![Manifest::lookup::<Rdap>()]),
+        Catalog::new(vec![
+            Manifest::lookup::<Rdap>(),
+            Manifest::lookup::<ListReader>(),
+        ]),
         Modes::ace3(),
     );
-    let service = Service::new(test_db.db().clone(), orchestrator);
+    let service = Service::new(test_db.db().clone(), orchestrator.clone());
     let config = ace_api::WebConfig {
         max_json_bytes: MAX_JSON,
         max_submission_bytes: MAX_SUBMISSION,
@@ -103,7 +139,7 @@ async fn stack() -> Stack {
         max_export_rows: 2,
         ..ace_api::WebConfig::default()
     };
-    let router = ace_api::Web::new(service.clone(), bucket, config).router();
+    let router = ace_api::Web::new(service.clone(), bucket.clone(), config).router();
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
         .await
         .expect("binds");
@@ -116,6 +152,8 @@ async fn stack() -> Stack {
     Stack {
         test_db,
         service,
+        bucket,
+        orchestrator,
         url,
         http: reqwest::Client::new(),
         task,
@@ -383,6 +421,10 @@ const THREAT_TYPES: &str = "/api/events/v1/threat-types";
 const THREAT_TYPE: &str = "/api/events/v1/threat-types/{id}";
 const THREATS: &str = "/api/events/v1/threats";
 const THREAT: &str = "/api/events/v1/threats/{malware}/{threat_type}";
+const LISTS: &str = "/api/lists/v1/lists";
+const LIST_ONE: &str = "/api/lists/v1/lists/{list}";
+const ENTRIES: &str = "/api/lists/v1/lists/{list}/entries";
+const ENTRY: &str = "/api/lists/v1/lists/{list}/entries/{id}";
 const OTHER_PASSWORD: &str = "a different long passphrase";
 
 /// A route with its `{...}` filled: a crash's `{id}` is a task's, which `observable` stands in for, since a
@@ -399,6 +441,11 @@ fn fill(route: &str, id: Uuid, observable: i64) -> String {
             .replace("{id}", "1")
             .replace("{malware}", "1")
             .replace("{threat_type}", "1");
+    }
+    if route.starts_with("/api/lists/") {
+        return route
+            .replace("{list}", TEST_LIST.name)
+            .replace("{id}", &observable.to_string());
     }
     if route.starts_with("/api/crashes/")
         || route.starts_with("/api/yara-qa/")
@@ -472,6 +519,7 @@ fn good_body(route: &str) -> Send {
         THREAT_TYPES | THREAT_TYPE => Send::Json(json!({"name": "refused"})),
         THREATS => Send::Json(json!({"malware_id": 1, "threat_type_id": 1})),
         COMMANDS => Send::Json(json!({"command": "--help"})),
+        ENTRIES | ENTRY => Send::Json(json!({"match": "exact", "value": "refused"})),
         _ => Send::Nothing,
     }
 }
@@ -497,7 +545,7 @@ async fn refuses_without_a_credential_or_a_permission(
         .map(|(method, route, _)| (method, route))
         .filter(|route| !public.contains(route))
         .collect();
-    assert_eq!(routes.len(), 83, "{routes:?}");
+    assert_eq!(routes.len(), 88, "{routes:?}");
     for (method, route) in routes {
         let method: Method = method.to_uppercase().parse().expect("a method");
         let path = fill(&route, id, file);
@@ -3716,6 +3764,7 @@ async fn every_documented_status_is_tested() {
     filters_and_exports(&mut client, &token).await;
     saved_filters(&mut client).await;
     events(&mut client).await;
+    lists_router(&mut client).await;
     pings(&mut client, &token).await;
 
     assert_eq!(
@@ -5310,4 +5359,446 @@ async fn commands(client: &mut Client<'_>) {
         rows + 4,
         "two cancels, each with its row"
     );
+}
+
+/// The analyst-edited lists' router (PLAN.md 5.14): a list and its entries read back, each write audited
+/// with its actor, a bad entry refused, and a value returned as it was sent.
+async fn lists_router(client: &mut Client<'_>) {
+    use Method as M;
+    use StatusCode as S;
+    let json = Send::Json;
+    let stack = client.stack;
+    let (alice, alices) = session_of(stack, "list-editor", &["list:read", "list:write"]).await;
+    let a = Some(alices.as_str());
+    let reader = key(stack, &["list:read"]).await;
+    let r = Some(reader.as_str());
+    let entries = at(ENTRIES, "", "").replace("{list}", TEST_LIST.name);
+    let entry = |id: i64| {
+        ENTRY
+            .replace("{list}", TEST_LIST.name)
+            .replace("{id}", &id.to_string())
+    };
+    let rows = audit_count(stack).await;
+
+    let listed = client
+        .json(M::GET, LISTS, LISTS, r, Send::Nothing, S::OK)
+        .await;
+    assert_eq!(
+        listed,
+        json!({"lists": [{
+            "name": "test_whitelist", "description": "a list for the tests", "typed": false,
+            "entries": 0,
+        }]})
+    );
+
+    let hostile = "<script>alert(1)</script>@evil.example";
+    let added = client
+        .json(
+            M::POST,
+            ENTRIES,
+            &entries,
+            a,
+            json(json!({"match": "substring", "value": hostile, "note": "</td><b>x"})),
+            S::CREATED,
+        )
+        .await;
+    assert_eq!(added["value"], hostile, "as it was sent");
+    assert_eq!(added["match"], "substring");
+    assert_eq!(added["ignore_case"], true, "ace3's whitelist ignored case");
+    assert_eq!(added["note"], "</td><b>x");
+    assert_eq!(added["created_by"]["kind"], "user");
+    assert_eq!(added["created_by"]["id"], json!(alice.to_string()));
+    let id = added["id"].as_i64().expect("an id");
+    assert_eq!(audit_count(stack).await, rows + 1);
+    let (actor, action): (Value, String) =
+        sqlx::query_as("SELECT actor::jsonb, action FROM service.audit ORDER BY id DESC LIMIT 1")
+            .fetch_one(stack.test_db.db().pool())
+            .await
+            .expect("reads");
+    assert_eq!(action, "add_list_entry");
+    assert_eq!(
+        actor["name"], "list-editor",
+        "the audit row names the actor"
+    );
+
+    let second = client
+        .json(
+            M::POST,
+            ENTRIES,
+            &entries,
+            a,
+            json(json!({"match": "regex", "value": r"^bounce-\d+@", "ignore_case": false})),
+            S::CREATED,
+        )
+        .await;
+    let one = client
+        .json(
+            M::GET,
+            LIST_ONE,
+            &LIST_ONE.replace("{list}", TEST_LIST.name),
+            r,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(one["entries"], json!([added.clone(), second.clone()]));
+    assert!(one["version"].as_i64().is_some());
+    client
+        .json(
+            M::GET,
+            LIST_ONE,
+            &LIST_ONE.replace("{list}", "no_such_list"),
+            r,
+            Send::Nothing,
+            S::NOT_FOUND,
+        )
+        .await;
+
+    // what the service won't take
+    for (body, status) in [
+        (
+            json!({"match": "regex", "value": "(unclosed"}),
+            S::BAD_REQUEST,
+        ),
+        (
+            json!({"match": "regex", "value": r"\w{100}"}),
+            S::BAD_REQUEST,
+        ),
+        (json!({"match": "exact", "value": ""}), S::BAD_REQUEST),
+        (json!({"match": "glob", "value": "x"}), S::BAD_REQUEST),
+        (
+            json!({"match": "exact", "value": "x", "observable_type": "ipv4"}),
+            S::BAD_REQUEST,
+        ),
+        (json!({"match": "substring", "value": hostile}), S::CONFLICT),
+    ] {
+        client
+            .json(M::POST, ENTRIES, &entries, a, json(body), status)
+            .await;
+    }
+    client
+        .json(
+            M::POST,
+            ENTRIES,
+            &ENTRIES.replace("{list}", "no_such_list"),
+            a,
+            json(json!({"match": "exact", "value": "x"})),
+            S::NOT_FOUND,
+        )
+        .await;
+    let response = client
+        .call(M::POST, ENTRIES, &entries, a, too_large())
+        .await;
+    assert_eq!(response.status(), S::PAYLOAD_TOO_LARGE);
+    let refused = client
+        .json(
+            M::POST,
+            ENTRIES,
+            &entries,
+            r,
+            json(json!({"match": "exact", "value": "x"})),
+            S::FORBIDDEN,
+        )
+        .await;
+    assert_eq!(refused["error"], "this needs list:write");
+    assert_eq!(
+        audit_count(stack).await,
+        rows + 2,
+        "nothing refused has a row"
+    );
+
+    // replace an entry, keeping its place
+    let replaced = client
+        .json(
+            M::PUT,
+            ENTRY,
+            &entry(id),
+            a,
+            json(json!({"match": "exact", "value": "relay@partner.example"})),
+            S::OK,
+        )
+        .await;
+    assert_eq!(replaced["id"], id);
+    assert_eq!(replaced["value"], "relay@partner.example");
+    assert_eq!(replaced["created_at"], added["created_at"]);
+    assert_eq!(audit_count(stack).await, rows + 3);
+    client
+        .json(
+            M::PUT,
+            ENTRY,
+            &entry(id),
+            a,
+            json(json!({"match": "regex", "value": r"^bounce-\d+@", "ignore_case": false})),
+            S::CONFLICT,
+        )
+        .await;
+    client
+        .json(
+            M::PUT,
+            ENTRY,
+            &entry(id),
+            a,
+            json(json!({"match": "regex", "value": "("})),
+            S::BAD_REQUEST,
+        )
+        .await;
+    client
+        .json(
+            M::PUT,
+            ENTRY,
+            &ENTRY
+                .replace("{list}", TEST_LIST.name)
+                .replace("{id}", "abc"),
+            a,
+            json(json!({"match": "exact", "value": "x"})),
+            S::BAD_REQUEST,
+        )
+        .await;
+    client
+        .json(
+            M::PUT,
+            ENTRY,
+            &entry(i64::MAX),
+            a,
+            json(json!({"match": "exact", "value": "x"})),
+            S::NOT_FOUND,
+        )
+        .await;
+    let response = client.call(M::PUT, ENTRY, &entry(id), a, too_large()).await;
+    assert_eq!(response.status(), S::PAYLOAD_TOO_LARGE);
+
+    // and delete one
+    let response = client
+        .call(M::DELETE, ENTRY, &entry(id), a, Send::Nothing)
+        .await;
+    assert_eq!(response.status(), S::NO_CONTENT);
+    assert_eq!(audit_count(stack).await, rows + 4);
+    client
+        .json(M::DELETE, ENTRY, &entry(id), a, Send::Nothing, S::NOT_FOUND)
+        .await;
+    client
+        .json(
+            M::DELETE,
+            ENTRY,
+            &ENTRY
+                .replace("{list}", TEST_LIST.name)
+                .replace("{id}", "abc"),
+            a,
+            Send::Nothing,
+            S::BAD_REQUEST,
+        )
+        .await;
+    let remaining = client
+        .json(
+            M::GET,
+            LIST_ONE,
+            &LIST_ONE.replace("{list}", TEST_LIST.name),
+            r,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(remaining["entries"], json!([second]));
+}
+
+const LIST_POOL_TOKEN: &str = "list-pool-token";
+
+/// The core's lease API on a listener of its own, with a pool that runs the list reader.
+async fn lease_api(stack: &Stack) -> (String, tokio::task::JoinHandle<std::io::Result<()>>) {
+    let api = ace_core::api::Api::new(
+        stack.test_db.db().clone(),
+        stack.bucket.clone(),
+        stack.orchestrator.clone(),
+        ace_core::api::ApiConfig::new(vec![ace_core::api::PoolAccess::new(
+            "lists",
+            LIST_POOL_TOKEN,
+            vec![ListReader::NAME.to_owned()],
+        )]),
+    )
+    .await
+    .expect("the lease API starts");
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
+        .await
+        .expect("binds");
+    let url = format!("http://{}", listener.local_addr().expect("an address"));
+    let server = tokio::spawn(ace_core::api::serve(listener, api, std::future::pending()));
+    (url, server)
+}
+
+/// Queues a list reader's task on a new fqdn in `root` and leases it, as a pool would. Returns the
+/// list it carries.
+async fn lease_list(stack: &Stack, http: &reqwest::Client, url: &str, root: Uuid) -> WireList {
+    let db = stack.test_db.db();
+    let mut tx = db.begin().await.expect("begins");
+    let observable = tree::upsert_observable(
+        &mut tx,
+        root,
+        &NewObservable::new(ObservableKind::Fqdn, format!("{}.example", Uuid::new_v4())),
+    )
+    .await
+    .expect("adds")
+    .id;
+    ace_core::queue::enqueue(&mut tx, root, observable, ListReader::NAME)
+        .await
+        .expect("queues")
+        .expect("a task");
+    tx.commit().await.expect("commits");
+    let response = http
+        .post(format!("{url}{}", ace_sdk::wire::paths::LEASE))
+        .bearer_auth(LIST_POOL_TOKEN)
+        .json(&json!({"worker": "test/1", "modules": [ListReader::NAME]}))
+        .send()
+        .await
+        .expect("answers");
+    assert_eq!(response.status(), 200);
+    let task: ace_sdk::wire::LeasedTask = response.json().await.expect("a task");
+    assert_eq!(
+        task.lists.len(),
+        1,
+        "the task carries the list its module reads"
+    );
+    task.lists.into_iter().next().expect("the list")
+}
+
+/// PLAN.md 5.14's Done check: an edit through the API applies to the next task leased, with nothing
+/// restarted, and its audit row names the actor. Every edit is followed by a lease, so a list served from
+/// a cache older than the edit fails it; then edits race leases, and a lease begun after an edit's
+/// response must carry that edit or a later one.
+#[tokio::test]
+async fn an_edit_through_the_api_applies_to_the_next_task_without_a_restart() {
+    let stack = stack().await;
+    let (lease_url, server) = lease_api(&stack).await;
+    let http = reqwest::Client::new();
+    let (editor_id, editor) = session_of(&stack, "whitelister", &["list:write"]).await;
+    let root = NewRoot::new("analysis");
+    let mut tx = stack.test_db.db().begin().await.expect("begins");
+    tree::create_root(&mut tx, &root).await.expect("creates");
+    tx.commit().await.expect("commits");
+    let entries = ENTRIES.replace("{list}", TEST_LIST.name);
+    let session = |request: reqwest::RequestBuilder| {
+        request
+            .header("cookie", format!("ace4_session={editor}"))
+            .header("origin", &stack.url)
+    };
+
+    let empty = lease_list(&stack, &http, &lease_url, root.id).await;
+    assert_eq!(empty.name, TEST_LIST.name);
+    assert!(empty.entries.is_empty());
+
+    // add an entry, and the next task has it
+    let response = session(http.post(format!("{}{entries}", stack.url)))
+        .json(&json!({"match": "substring", "value": "@partner.example"}))
+        .send()
+        .await
+        .expect("answers");
+    assert_eq!(response.status(), 201);
+    let added: Value = response.json().await.expect("an entry");
+    let id = added["id"].as_i64().expect("an id");
+    let list = lease_list(&stack, &http, &lease_url, root.id).await;
+    assert!(list.version > empty.version);
+    assert_eq!(
+        list.entries
+            .iter()
+            .map(|e| e.value.as_str())
+            .collect::<Vec<_>>(),
+        ["@partner.example"]
+    );
+    // nothing changed, so the next task has the same version, from the core's cache
+    assert_eq!(lease_list(&stack, &http, &lease_url, root.id).await, list);
+
+    // every edit applies to the very next task
+    let entry = format!(
+        "{}{}",
+        stack.url,
+        ENTRY
+            .replace("{list}", TEST_LIST.name)
+            .replace("{id}", &id.to_string())
+    );
+    let mut version = list.version;
+    for i in 0..20 {
+        let response = session(http.put(&entry))
+            .json(&json!({"match": "exact", "value": format!("relay-{i}@partner.example")}))
+            .send()
+            .await
+            .expect("answers");
+        assert_eq!(response.status(), 200);
+        let list = lease_list(&stack, &http, &lease_url, root.id).await;
+        assert!(list.version > version, "edit {i}");
+        version = list.version;
+        assert_eq!(list.entries.len(), 1);
+        assert_eq!(
+            list.entries[0].value,
+            format!("relay-{i}@partner.example"),
+            "edit {i}"
+        );
+    }
+
+    // edits racing leases: a lease begun after an edit answered carries it, or a later one
+    let done = std::sync::Arc::new(std::sync::atomic::AtomicI64::new(-1));
+    let writer = {
+        let (http, entry, done) = (http.clone(), entry.clone(), done.clone());
+        let (cookie, origin) = (format!("ace4_session={editor}"), stack.url.clone());
+        tokio::spawn(async move {
+            for i in 0..40_i64 {
+                let response = http
+                    .put(&entry)
+                    .header("cookie", &cookie)
+                    .header("origin", &origin)
+                    .json(&json!({"match": "exact", "value": format!("race-{i:03}")}))
+                    .send()
+                    .await
+                    .expect("answers");
+                assert_eq!(response.status(), 200);
+                done.store(i, std::sync::atomic::Ordering::SeqCst);
+            }
+        })
+    };
+    let mut leases = 0;
+    while !writer.is_finished() {
+        let answered = done.load(std::sync::atomic::Ordering::SeqCst);
+        let list = lease_list(&stack, &http, &lease_url, root.id).await;
+        let seen = list.entries[0]
+            .value
+            .strip_prefix("race-")
+            .map_or(-1, |n| n.parse::<i64>().expect("a number"));
+        assert!(
+            seen >= answered,
+            "a lease after edit {answered} carried edit {seen}"
+        );
+        leases += 1;
+    }
+    writer.await.expect("the writer finished");
+    assert!(leases > 1, "the leases raced the edits");
+    let last = lease_list(&stack, &http, &lease_url, root.id).await;
+    assert_eq!(last.entries[0].value, "race-039");
+
+    // a delete applies too
+    let response = session(http.delete(&entry)).send().await.expect("answers");
+    assert_eq!(response.status(), 204);
+    assert!(
+        lease_list(&stack, &http, &lease_url, root.id)
+            .await
+            .entries
+            .is_empty()
+    );
+
+    // and each write's audit row names the actor
+    let rows: Vec<(Value, String, String)> = sqlx::query_as(
+        "SELECT actor::jsonb, action, target_id FROM service.audit
+         WHERE target_kind = 'list_entry' ORDER BY id",
+    )
+    .fetch_all(stack.test_db.db().pool())
+    .await
+    .expect("reads");
+    assert_eq!(rows.len(), 1 + 20 + 40 + 1);
+    for (actor, _, target) in &rows {
+        assert_eq!(
+            actor,
+            &json!({"kind": "user", "id": editor_id, "name": "whitelister"})
+        );
+        assert_eq!(target, &id.to_string());
+    }
+    assert_eq!(rows[0].1, "add_list_entry");
+    assert_eq!(rows[rows.len() - 1].1, "delete_list_entry");
+    server.abort();
 }

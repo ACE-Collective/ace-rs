@@ -115,6 +115,14 @@ impl Target {
         }
     }
 
+    /// An entry on an analyst-edited list, by its id.
+    pub(crate) fn list_entry(id: i64) -> Self {
+        Target {
+            kind: "list_entry",
+            id: id.to_string(),
+        }
+    }
+
     /// An event, by its numeric id.
     pub(crate) fn event(id: i64) -> Self {
         Target {

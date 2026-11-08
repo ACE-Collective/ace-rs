@@ -14,6 +14,7 @@ use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
 use crate::files::{FileOutputError, FileStore, write_file};
+use crate::lists::{List, ListSpec, WireList};
 use crate::module::{Module, ModuleError};
 
 /// The observable a task analyzes.
@@ -196,6 +197,8 @@ pub struct TaskContext<S> {
     yara_rules_below: Vec<String>,
     task: Option<i64>,
     carrying_email: CarryingEmail,
+    /// The lists the module declared, by name, each empty until the task's are added.
+    lists: BTreeMap<&'static str, List>,
 }
 
 impl<S> TaskContext<S> {
@@ -221,7 +224,32 @@ impl<S> TaskContext<S> {
             yara_rules_below: Vec::new(),
             task: None,
             carrying_email: CarryingEmail::Absent,
+            lists: M::LISTS
+                .iter()
+                .map(|spec| (spec.name, List::empty(spec.name)))
+                .collect(),
         }
+    }
+
+    /// The lists the core sent with the task. Only those the module declared are kept.
+    pub fn with_lists(mut self, lists: Vec<WireList>) -> Self {
+        for list in lists {
+            if let Some(slot) = self.lists.get_mut(list.name.as_str()) {
+                *slot = List::from_wire(list);
+            }
+        }
+        self
+    }
+
+    /// An analyst-edited list the module declared in `Module::LISTS`, as it was when the task was
+    /// leased. A list with no entries is empty, not missing.
+    pub fn list(&self, spec: &ListSpec) -> Result<&List, ModuleError> {
+        self.lists.get(spec.name).ok_or_else(|| {
+            ModuleError::other(format!(
+                "list {:?} isn't declared in the module's LISTS",
+                spec.name
+            ))
+        })
     }
 
     /// The store the task's output files go to.

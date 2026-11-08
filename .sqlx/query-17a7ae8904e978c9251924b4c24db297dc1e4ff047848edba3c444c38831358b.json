@@ -1,0 +1,110 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT v.version, e.id AS \"id?\", e.list AS \"list?\", e.match AS \"kind?\",\n                  e.value AS \"value?\", e.ignore_case AS \"ignore_case?\",\n                  e.observable_type, e.expires_at\n           FROM lists.version v LEFT JOIN lists.entries e ON true\n           ORDER BY e.list, e.id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "version",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "lists.version",
+            "name": "version"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "id?",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "lists.entries",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "list?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "lists.entries",
+            "name": "list"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "kind?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "lists.entries",
+            "name": "match"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "value?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "lists.entries",
+            "name": "value"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "ignore_case?",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "lists.entries",
+            "name": "ignore_case"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "observable_type",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "lists.entries",
+            "name": "observable_type"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "expires_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "lists.entries",
+            "name": "expires_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "17a7ae8904e978c9251924b4c24db297dc1e4ff047848edba3c444c38831358b"
+}

@@ -27,7 +27,7 @@ use sqlx::{PgConnection, PgPool, Postgres};
 pub static MIGRATOR: Migrator = sqlx::migrate!("./migrations");
 
 /// The core's areas, one Postgres schema each.
-pub const AREAS: &[&str] = &["analysis", "queue", "service", "store", "yara"];
+pub const AREAS: &[&str] = &["analysis", "lists", "queue", "service", "store", "yara"];
 
 /// The variable that holds the database URL, such as
 /// `postgres://ace4:password@postgres:5432/ace4`.

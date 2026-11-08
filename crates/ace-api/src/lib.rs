@@ -259,6 +259,23 @@
 //! - An API key with no owner is refused with 403 where ace3 answers 401, as with comments. Each write has
 //!   an audit row, and a user has at most 200 saved filters on a screen.
 //!
+//! The analyst-edited lists (PLAN.md 5.14), under `/api/lists/v1` with the new `list:read` and `list:write`
+//! (`ace_service`'s `lists` docs). ace3 has no router for them: its brotex whitelist was a file on each node,
+//! `etc/brotex.whitelist`, which `saq/whitelist.py` reloaded when its mtime changed, and its GUI's
+//! Whitelist action, which tagged an observable's value, was removed with `whitelist:write` before this
+//! plan's commit. So nothing maps; the routes are:
+//!
+//! | ace3 | here |
+//! |---|---|
+//! | none | `GET /lists`, the lists this server's modules read |
+//! | reading `etc/brotex.whitelist` | `GET /lists/{list}`, a list's entries in order |
+//! | adding a `smtp_from:` or `smtp_to:` line | `POST /lists/{list}/entries`, audited |
+//! | changing a line | `PUT /lists/{list}/entries/{id}`, audited |
+//! | deleting a line | `DELETE /lists/{list}/entries/{id}`, audited |
+//!
+//! ace3's `http_host`, `http_src_ip` and `http_dest_ip` keys have no list: nothing in ace3 read them any
+//! more. A bad entry is refused with 400, where ace3 logged a line it couldn't parse and skipped it.
+//!
 //! ace3's `cli` router and the `engine` router's `cli` endpoint (PLAN.md 5.6, 5.12), under `cli:execute`
 //! as in ace3 (`ace_service`'s `commands` docs). A command is queued for a parser pool, which runs it
 //! contained until its deadline, so the session and the API that took it don't bound it (#973):
@@ -302,6 +319,7 @@ mod events;
 mod export;
 mod filters;
 mod health;
+mod lists;
 mod observable_comments;
 mod observables;
 mod params;
@@ -469,6 +487,16 @@ impl Web {
                     .delete(observable_comments::delete)
                     .layer(json_limit),
             )
+            .route("/api/lists/v1/lists", get(lists::lists))
+            .route("/api/lists/v1/lists/{list}", get(lists::list))
+            .route(
+                "/api/lists/v1/lists/{list}/entries",
+                post(lists::add).layer(json_limit),
+            )
+            .route(
+                "/api/lists/v1/lists/{list}/entries/{id}",
+                put(lists::replace).delete(lists::delete).layer(json_limit),
+            )
             .route("/api/events/v1/events/open", get(events::open))
             .route("/api/events/v1/events/export/csv", get(events::export_csv))
             .route("/api/events/v1/events/{event}", get(events::one))
@@ -632,6 +660,11 @@ impl Web {
         observable_comments::add,
         observable_comments::edit,
         observable_comments::delete,
+        lists::lists,
+        lists::list,
+        lists::add,
+        lists::replace,
+        lists::delete,
         users::list_users,
         users::create_user,
         users::user,
@@ -703,6 +736,7 @@ impl Web {
         (name = "yara_qa", description = "YARA rules in QA mode, the files they matched, and purges"),
         (name = "events", description = "Events, the alerts in them, threat types and malware's threats"),
         (name = "filters", description = "A list screen's filters, their share links, and the caller's saved filters"),
+        (name = "lists", description = "The analyst-edited lists, such as the email whitelists, which apply to the next task that reads them"),
     )
 )]
 pub struct ApiDoc;

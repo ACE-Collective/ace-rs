@@ -246,6 +246,12 @@ pub const ALERT_CREATE: PermissionName = PermissionName::known("alert", "create"
 pub const EVENT_READ: PermissionName = PermissionName::known("event", "read");
 /// Change events, and the threat types and malware's threats they record: ace3's `event:write`.
 pub const EVENT_WRITE: PermissionName = PermissionName::known("event", "write");
+/// Read the analyst-edited lists, such as the email whitelists (PLAN.md 5.14). ace3 has no such
+/// permission: its lists were files on the node.
+pub const LIST_READ: PermissionName = PermissionName::known("list", "read");
+/// Add, change and delete entries on the analyst-edited lists. ace3's nearest is the `whitelist:write`
+/// it removed with its Whitelist action (its migration `e28c9d0a6154`).
+pub const LIST_WRITE: PermissionName = PermissionName::known("list", "write");
 /// Look observables up across alerts, list the observable types, and read observables' comments:
 /// ace3's `observable:read`.
 pub const OBSERVABLE_READ: PermissionName = PermissionName::known("observable", "read");
@@ -316,6 +322,15 @@ pub static CATALOG: &[CatalogEntry] = &[
         name: EVENT_WRITE,
         description: "Make events, add alerts to them and change them, and add, rename and delete threat \
                       types and malware's threats.",
+    },
+    CatalogEntry {
+        name: LIST_READ,
+        description: "Read the analyst-edited lists, such as the email whitelists, and their entries.",
+    },
+    CatalogEntry {
+        name: LIST_WRITE,
+        description: "Add, change and delete entries on the analyst-edited lists. An entry applies to the \
+                      next task that reads its list: a whitelist entry stops the analysis of what it matches.",
     },
     CatalogEntry {
         name: OBSERVABLE_READ,

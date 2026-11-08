@@ -51,6 +51,7 @@ fn each_rule() {
         what: &'static str,
         module: &'static str,
         kind: ObservableKind,
+        tags: &'static [&'static str],
         directives: &'static [&'static str],
         exclude: &'static [&'static str],
         mode: &'static str,
@@ -61,6 +62,7 @@ fn each_rule() {
         what,
         module,
         kind,
+        tags: &[],
         directives: &[],
         exclude: &[],
         mode,
@@ -145,6 +147,26 @@ fn each_rule() {
             )
         },
         Case {
+            directives: &["whitelisted"],
+            ..case(
+                "a whitelisted directive keeps every module off, as ace3's executor skips the observable",
+                "archive",
+                FILE,
+                "email",
+                Err(Ineligible::Whitelisted),
+            )
+        },
+        Case {
+            tags: &["whitelisted"],
+            ..case(
+                "so does a whitelisted tag",
+                "rdap_analyzer",
+                FQDN,
+                "correlation",
+                Err(Ineligible::Whitelisted),
+            )
+        },
+        Case {
             directives: &["original_email", "exclude_all"],
             ..case(
                 "exclude_all keeps every module off",
@@ -187,6 +209,7 @@ fn each_rule() {
     let modes = modes();
     for case in cases {
         let component = catalog.component(case.module).expect("a known module");
+        let tags = strings(case.tags);
         let directives = strings(case.directives);
         let exclude = strings(case.exclude);
         let results: BTreeSet<&str> = case.results.iter().copied().collect();
@@ -194,6 +217,7 @@ fn each_rule() {
             component,
             Facts {
                 kind: case.kind,
+                tags: &tags,
                 directives: &directives,
                 exclude_modules: &exclude,
             },
@@ -301,6 +325,138 @@ async fn a_detection_mid_analysis_queues_the_correlation_group_for_the_tree() {
             .await
             .expect("counts");
     assert_eq!(detections, 1);
+}
+
+/// ace3's executor: a result that whitelists the observable it analyzed stops the root's analysis, and
+/// a detection in a root holding a whitelisted observable doesn't make it an alert.
+#[tokio::test]
+async fn a_whitelisting_result_stops_the_root_and_nothing_in_it_alerts() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let orchestrator = orchestrator();
+    let (root, _) = root_with(db, "email", &[(ObservableKind::File, EMAIL_SHA256)]).await;
+    let mut tx = db.begin().await.expect("begins");
+    orchestrator
+        .queue_eligible(&mut tx, root, Scope::All, false)
+        .await
+        .expect("queues");
+    tx.commit().await.expect("commits");
+
+    // the email module whitelists the email, as for a whitelisted sender
+    let parser = worker(
+        &test_db,
+        "parsers",
+        &["email_analyzer"],
+        Duration::from_secs(60),
+    )
+    .await;
+    let task = parser.claim().await.expect("claims").expect("a task");
+    let mut tx = db.begin().await.expect("begins");
+    let landed = orchestrator
+        .land_result(
+            &mut tx,
+            &parser,
+            &task,
+            &result(json!({
+                "analysis_type": "email_analysis",
+                "schema_version": 1,
+                "details": {"parsing_error": null, "extraction_errors": [], "email": null},
+                "analyzed": {"tags": ["whitelisted"], "directives": ["whitelisted"]},
+            })),
+        )
+        .await
+        .expect("lands");
+    tx.commit().await.expect("commits");
+    assert_eq!(landed.queued, []);
+    assert_eq!(landed.mode_changed_to, None);
+    let state =
+        |module: &str, state: &str| (module.to_owned(), EMAIL_SHA256.to_owned(), state.to_owned());
+    assert_eq!(
+        tasks_of(db, root).await,
+        [
+            state("archive", "cancelled"),
+            state("email_analyzer", "done"),
+            state("yara_scanner_v3_4", "cancelled"),
+        ],
+        "the rest of the root's analysis stopped"
+    );
+
+    // a whitelisted observable gets no tasks, and a detection elsewhere in its root doesn't alert
+    const OTHER_SHA256: &str = "0000000000000000000000000000000000000000000000000000000000000001";
+    let (other, ids) = root_with(
+        db,
+        "email",
+        &[
+            (ObservableKind::File, EMAIL_SHA256),
+            (ObservableKind::File, OTHER_SHA256),
+        ],
+    )
+    .await;
+    let mut tx = db.begin().await.expect("begins");
+    tree::add_to_observable(
+        &mut tx,
+        other,
+        ids[0],
+        &serde_json::from_value(json!({"tags": ["whitelisted"]})).expect("additions"),
+    )
+    .await
+    .expect("tags");
+    orchestrator
+        .queue_eligible(&mut tx, other, Scope::All, false)
+        .await
+        .expect("queues");
+    tx.commit().await.expect("commits");
+    let queued = |module: &str| {
+        (
+            module.to_owned(),
+            OTHER_SHA256.to_owned(),
+            "queued".to_owned(),
+        )
+    };
+    assert_eq!(
+        tasks_of(db, other).await,
+        [
+            queued("archive"),
+            queued("email_analyzer"),
+            queued("yara_scanner_v3_4")
+        ],
+        "the whitelisted file is analyzed by nothing"
+    );
+    let scanner = worker(
+        &test_db,
+        "yara",
+        &["yara_scanner_v3_4"],
+        Duration::from_secs(60),
+    )
+    .await;
+    let task = scanner.claim().await.expect("claims").expect("a task");
+    let mut tx = db.begin().await.expect("begins");
+    let landed = orchestrator
+        .land_result(
+            &mut tx,
+            &scanner,
+            &task,
+            &result(json!({
+                "analysis_type": "yara_scan_results",
+                "schema_version": 1,
+                "details": {"matches": ["evil"]},
+                "detections": [{"description": "matched rule evil"}],
+            })),
+        )
+        .await
+        .expect("lands");
+    tx.commit().await.expect("commits");
+    assert_eq!(landed.mode_changed_to, None);
+    let alerted: Option<chrono::DateTime<chrono::Utc>> =
+        sqlx::query_scalar("SELECT alerted_at FROM analysis.roots WHERE id = $1")
+            .bind(other)
+            .fetch_one(db.pool())
+            .await
+            .expect("reads");
+    assert_eq!(
+        alerted, None,
+        "a root holding a whitelisted observable doesn't alert"
+    );
 }
 
 #[tokio::test]
