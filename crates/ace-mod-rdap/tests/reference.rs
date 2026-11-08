@@ -70,6 +70,10 @@ async fn matches_the_reference_dumps_or_lists_each_difference() {
         );
         println!("{}: replayed {:?}", dump.name, replay.requested());
 
+        if dump.short_name() == "fqdn_example.com" {
+            // the fixture ace-gui's analysis view test draws (PLAN.md 5.9)
+            ace_testkit::check_view_fixture("rdap_fqdn_example_com", &outcome);
+        }
         let mut ace3 = dump.normal_form("RdapAnalysis");
         let mut ace4 = normal_form(&outcome);
         parse_raw_json(&mut ace3);

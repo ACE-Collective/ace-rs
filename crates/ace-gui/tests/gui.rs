@@ -6,6 +6,9 @@
 //! from Postgres, with the Splunk module's result showing ace3's display types; the live stream that
 //! pushes a result as it lands, ends with the session, is bounded, and leaves nothing when its client
 //! goes; and the section pins. The browser's half of the Done check is `tests/e2e/run`'s.
+//!
+//! PLAN.md 5.9: each ported module's analysis view draws the module's own result, escaped and bounded,
+//! a type with no view draws as JSON, and a result's page draws its view under `alert:read`.
 
 use std::collections::BTreeSet;
 use std::io::Write;
@@ -19,7 +22,7 @@ use ace_core::orchestrator::Orchestrator;
 use ace_core::testing::TestDb;
 use ace_gui::alert::{AlertPage, AlertTreeFragment, tree_view};
 use ace_gui::templates::{ErrorPage, HomePage, Layout, LoginPage};
-use ace_gui::{Gui, LiveLimits, asset_named};
+use ace_gui::{Gui, LiveLimits, ObservableActions, Views, asset_named};
 use ace_service::{
     Actor, Addition, Alert, AlertDetection, AlertFile, AlertObservable, AlertSummary, AlertTree,
     AnalysisState, CommentAuthor, Component, Effect, Holder, ModuleResult, ObservableComment,
@@ -740,6 +743,20 @@ fn next_query(next: &str) -> String {
         .to_owned()
 }
 
+/// Whether HTML has no inline style and no event handler: no `style` attribute or element, and no
+/// ` on<name>=` attribute.
+fn inline_free(html: &str) -> bool {
+    let handler = html.match_indices(" on").any(|(at, _)| {
+        let rest = &html[at + 3..];
+        let name = rest.len()
+            - rest
+                .trim_start_matches(|c: char| c.is_ascii_lowercase())
+                .len();
+        name > 0 && rest[name..].starts_with('=')
+    });
+    !handler && !html.contains("style=") && !html.contains("<style")
+}
+
 /// askama escapes for HTML by a template's extension, so every template is `.html`, none turns escaping
 /// off, and no `askama.toml` changes the escapers. A page that ever needs raw HTML has to change this
 /// test, which is where that's decided.
@@ -749,8 +766,19 @@ fn every_template_escapes_html() {
     assert!(!root.join("askama.toml").exists());
     assert!(!root.join("../../askama.toml").exists());
     let mut templates = Vec::new();
-    for entry in std::fs::read_dir(root.join("templates")).expect("reads the templates") {
-        let path = entry.expect("an entry").path();
+    let mut dirs = vec![root.join("templates")];
+    let mut files = Vec::new();
+    while let Some(dir) = dirs.pop() {
+        for entry in std::fs::read_dir(&dir).expect("reads the templates") {
+            let path = entry.expect("an entry").path();
+            if path.is_dir() {
+                dirs.push(path);
+            } else {
+                files.push(path);
+            }
+        }
+    }
+    for path in files {
         assert_eq!(
             path.extension().and_then(|e| e.to_str()),
             Some("html"),
@@ -761,9 +789,26 @@ fn every_template_escapes_html() {
         for off in ["|safe", "| safe", "escape", "autoescape"] {
             assert!(!text.contains(off), "{} has {off}", path.display());
         }
+        // the page's policy refuses inline styles and scripts, which is what a handler is
+        assert!(
+            inline_free(&text),
+            "{} has an inline style or script",
+            path.display()
+        );
+        if !path.ends_with("base.html") {
+            assert!(!text.contains("<script"), "{} has a script", path.display());
+        }
         templates.push(path);
     }
-    assert!(templates.len() >= 4);
+    assert!(templates.len() >= 18);
+    // The one value askama doesn't escape is a view's HTML, which only `Views::draw` makes from a
+    // template's output (src/analysis.rs).
+    let mut safe = 0;
+    for entry in std::fs::read_dir(root.join("src")).expect("reads the source") {
+        let source = std::fs::read_to_string(entry.expect("an entry").path()).expect("reads");
+        safe += source.matches("HtmlSafe for").count();
+    }
+    assert_eq!(safe, 1, "one type is marked as already escaped");
     let source = std::fs::read_to_string(root.join("src/templates.rs")).expect("reads the source");
     let code: String = source
         .lines()
@@ -1078,7 +1123,7 @@ fn fixture_tree() -> (AlertTree, Vec<ObservableComment>) {
 #[test]
 fn the_view_function_draws_a_fixture_tree() {
     let (tree, comments) = fixture_tree();
-    let view = tree_view(&tree, &comments);
+    let view = tree_view(&tree, &comments, &ObservableActions::empty());
     let html = AlertTreeFragment { tree: view.clone() }
         .render()
         .expect("renders");
@@ -1088,11 +1133,11 @@ fn the_view_function_draws_a_fixture_tree() {
     let order = [
         r#"<div id="alert-tree" class="tree">"#,
         r#"<li class="observable" id="o1"><b class="type">file</b> : <span class="value">email.rfc822</span>"#,
-        r#"<li class="result" id="r10" data-module="email_analyzer"><span class="summary" title="email_analyzer">Email &#60;b&#62;Analysis&#60;/b&#62;</span> <span class="tag">x&#34;onmouseover=&#34;y</span>"#,
+        r#"<li class="result" id="r10" data-module="email_analyzer"><a class="summary" href="/alerts/00000000-0000-0000-0000-000000005800/results/10" title="email_analyzer">Email &#60;b&#62;Analysis&#60;/b&#62;</a> <span class="tag">x&#34;onmouseover=&#34;y</span>"#,
         r#"<li class="observable" id="o2"><b class="type">Mail From (email_from)</b> : <span class="value">a@example.com</span> <span class="detection" title="a known &#60;bad&#62; sender">detection: a known &#60;bad&#62; sender</span> <span class="tag">&#60;script&#62;alert(1)&#60;/script&#62;</span></li>"#,
         r#"<li class="observable" id="o3"><b class="type">Source IP (ip)</b> : <span class="value">192.0.2.10</span>"#,
         r#"<li class="comment"><span class="author">Alice &#60;A&#62;</span> <span class="time">2026-10-26 07:33:20 UTC</span>: seen &#60;/li&#62;&#60;li&#62;before</li>"#,
-        r#"<li class="result" id="r11" data-module="rdap_analyzer"><span class="summary" title="rdap_analyzer">rdap_analyzer</span>"#,
+        r#"<li class="result" id="r11" data-module="rdap_analyzer"><a class="summary" href="/alerts/00000000-0000-0000-0000-000000005800/results/11" title="rdap_analyzer">rdap_analyzer</a>"#,
         r#"<li class="observable" id="o4"><b class="type">fqdn</b> : <span class="value">evil.example.com&#39;&#62;&#60;img src=x&#62;</span></li>"#,
         r#"<li class="observable"><b class="type">Mail From (email_from)</b> : <span class="value">a@example.com</span>"#,
         r##"<li class="observable"><b class="type">file</b> : <span class="value">email.rfc822</span><ul><li class="jump"><a href="#o1">Jump To Analysis</a></li></ul></li>"##,
@@ -1133,6 +1178,7 @@ fn the_view_function_draws_a_fixture_tree() {
         Layout::new("n0nce", Theme::Light, Some("alice".to_owned()), "/alerts/x"),
         &tree,
         &comments,
+        &ObservableActions::empty(),
         &std::collections::BTreeMap::new(),
     )
     .expect("a page");
@@ -1167,6 +1213,7 @@ fn the_view_function_draws_a_fixture_tree() {
         Layout::new("n0nce", Theme::Light, Some("alice".to_owned()), "/alerts/x"),
         &tree,
         &comments,
+        &ObservableActions::empty(),
         &[("alert_details".to_owned(), false)].into_iter().collect(),
     )
     .expect("a page")
@@ -1750,5 +1797,640 @@ async fn a_section_pin_sets_how_it_starts() {
         .await
         .expect("answered");
     assert_eq!(cross_site.status(), StatusCode::FORBIDDEN);
+    assert_eq!(stack.audit_count().await, audits + 1);
+}
+
+// ---- PLAN.md 5.9: analysis views ----
+
+/// A module's result, as its own test wrote it (`ace_testkit::check_view_fixture`).
+fn view_fixture(name: &str) -> ace_results::ResultEnvelope<serde_json::Value> {
+    let path = Path::new(env!("CARGO_MANIFEST_DIR")).join(format!("tests/fixtures/{name}.json"));
+    let text =
+        std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{} reads: {e}", path.display()));
+    serde_json::from_str(&text).expect("a result envelope")
+}
+
+/// A result's details drawn by its type's view, which has to be its own and keep the page's policy.
+fn drawn(views: &Views, result: &ace_results::ResultEnvelope<serde_json::Value>) -> String {
+    let version = i32::try_from(result.schema_version()).expect("a version");
+    let drawn = views.draw(result.analysis_type(), version, &result.details);
+    assert_eq!(drawn.fallback, None, "{}", result.analysis_type());
+    let html = drawn.html.as_str().to_owned();
+    assert!(inline_free(&html), "{html}");
+    assert!(!html.contains("<script"), "{html}");
+    assert_eq!(html.matches("<pre").count(), html.matches("</pre>").count());
+    assert_eq!(
+        html.matches("<details").count(),
+        html.matches("</details>").count()
+    );
+    assert_eq!(
+        html.matches("<table").count(),
+        html.matches("</table>").count()
+    );
+    html
+}
+
+fn contains_all(html: &str, parts: &[&str]) {
+    for part in parts {
+        assert!(html.contains(part), "{part}\nisn't in\n{html}");
+    }
+}
+
+/// PLAN.md 5.9's Done check: each ported module's view draws the module's own result, which its tests
+/// keep as a fixture from a reference dump or a sample, with the content that matters in it.
+#[test]
+fn each_module_s_view_draws_its_fixture() {
+    let views = Views::builtin();
+    let fixtures = [
+        "email_pdf_attachment",
+        "archive_test_zip",
+        "yara_test_zip_attachment",
+        "rdap_fqdn_example_com",
+        "splunk_proxy_domain_lookup",
+        "olevba_receipt_doc",
+        "rtfole_objects_rtf",
+        "msoffice_encrypted_agile_docx",
+        "xlm_obfuscated_xlsm",
+        "pcode_receipt_doc",
+        "pdf_encrypted_aes_128",
+    ];
+    let mut types = BTreeSet::new();
+    for name in fixtures {
+        let result = view_fixture(name);
+        types.insert((result.analysis_type().to_owned(), result.schema_version()));
+        let html = drawn(&views, &result);
+        match name {
+            "email_pdf_attachment" => contains_all(
+                &html,
+                &[
+                    "<h3>Email Summary</h3>",
+                    "<tr><th>From</th><td>John Davison &#60;unixfreak0037@gmail.com&#62;</td></tr>",
+                    "<tr><th>To</th><td>jwdavison@company.com</td></tr>",
+                    "<tr><th>Subject (Decoded)</th><td>canary #1</td></tr>",
+                    "<tr><th>Message ID</th><td>&#60;CANTOGZuWahvYOEr0NwPELF5ASriGNWjfVsWhMSE_ekiSVw1RbA@mail.gmail.com&#62;</td></tr>",
+                    "<td>spectre.pdf</td><td>application/pdf</td><td>131872</td>",
+                    "<summary>Raw Email Headers</summary>",
+                    "Received: from CY4PR20CA0037.namprd20.prod.outlook.com",
+                ],
+            ),
+            "archive_test_zip" => contains_all(
+                &html,
+                &[
+                    "<tr><th>file_count</th><td>1</td></tr>",
+                    "<li>Faktura.FS.17.9.20_2018_2_13_AI02668779.pdf.js</li>",
+                ],
+            ),
+            "yara_test_zip_attachment" => {
+                contains_all(
+                    &html,
+                    &[
+                        "<h3>ace4_fixture_zip_attachment</h3>",
+                        "<h3>ace4_fixture_zip_any</h3>",
+                        "<code>test.zip</code>",
+                        "string <b>$local_file_header</b> value <b class=\"yara-value\">PK<span class=\"yara-ws\">\u{2403}</span><span class=\"yara-ws\">\u{2404}</span></b>",
+                        // the match marked in both columns of its dump, as ace3's
+                        "00000000  <mark>50 4b 03 04</mark> 14 00",
+                        "|<mark>PK..</mark>.......3.5.Z|",
+                        "<span class=\"yara-meta-line\">    &#34;meta_tags&#34;: &#34;type=email.attachment&#34;,</span>",
+                    ],
+                );
+            }
+            "rdap_fqdn_example_com" => contains_all(
+                &html,
+                &[
+                    "<tr><th>domain_name</th><td>EXAMPLE.COM</td></tr>",
+                    "<tr><th>datetime_created</th><td>1995-08-14 04:00:00+00:00</td></tr>",
+                    "<tr><th>datetime_expiration</th><td>2027-08-13 04:00:00+00:00</td></tr>",
+                    "<tr><th>datetime_of_last_update</th><td>2026-08-14 08:01:43+00:00</td></tr>",
+                    "<tr><th>name_servers</th><td>ELLIOTT.NS.CLOUDFLARE.COM, HERA.NS.CLOUDFLARE.COM</td></tr>",
+                    "<summary>rdap_raw_json</summary>",
+                    "&#34;ldhName&#34;: &#34;EXAMPLE.COM&#34;",
+                ],
+            ),
+            "splunk_proxy_domain_lookup" => contains_all(
+                &html,
+                &[
+                    "<strong>Was this domain seen in proxy logs?</strong>",
+                    "<summary>Show Query</summary>",
+                    "hostname=&#34;www.example.com&#34;",
+                    "<th>src_ip</th>",
+                    "<td title=\"192.0.2.10\">192.0.2.10</td>",
+                    "<td title=\"https://www.example.com/login\">https://www.example.com/login</td>",
+                    "<summary>Raw Details</summary>",
+                ],
+            ),
+            "olevba_receipt_doc" => contains_all(
+                &html,
+                &[
+                    "<tr><th>type</th><td>OLE</td></tr>",
+                    "autoexec=1, base64 string=1, hex string=1, suspicious=1",
+                    "<h3>ThisDocument.cls</h3>",
+                    "<tr><th>stream_path</th><td>Macros/VBA/ThisDocument</td></tr>",
+                    "Private Sub Document_Open()",
+                    "<h3>mirtans.bas</h3>",
+                ],
+            ),
+            "rtfole_objects_rtf" => contains_all(
+                &html,
+                &[
+                    "<tr><th>return_code</th><td>0</td></tr>",
+                    "<li>objects.rtf.rtfobj/objects.rtf_payload.exe</li>",
+                    "<li>objects.rtf.rtfobj/objects.rtf_café.txt</li>",
+                    "<summary>stdout</summary>",
+                    "URL extracted: http://example.com/a.hta",
+                ],
+            ),
+            "msoffice_encrypted_agile_docx" => contains_all(
+                &html,
+                &[
+                    "<tr><th>password</th><td><code>Secr3tPw</code></td></tr>",
+                    "<tr><th>email</th><td>true</td></tr>",
+                    "VelvetSweatshop\n",
+                    "The password is Secr3tPw",
+                ],
+            ),
+            "xlm_obfuscated_xlsm" => {
+                contains_all(&html, &["<tr><th>cell_count</th><td>13</td></tr>"]);
+            }
+            "pcode_receipt_doc" => {
+                contains_all(&html, &["<tr><th>line_count</th><td>1578</td></tr>"]);
+            }
+            "pdf_encrypted_aes_128" => contains_all(
+                &html,
+                &[
+                    "<tr><th>filter</th><td>/Standard</td></tr>",
+                    "<tr><th>method</th><td>aes</td></tr>",
+                    "<tr><th>bits</th><td>128</td></tr>",
+                    "<tr><th>modify_assembly</th><td>false</td></tr>",
+                ],
+            ),
+            other => panic!("no checks for {other}"),
+        }
+    }
+    let with_views: BTreeSet<(String, u32)> = views
+        .types()
+        .map(|(name, v)| (name.to_owned(), v))
+        .collect();
+    assert_eq!(
+        types, with_views,
+        "a fixture for each view, and a view for each fixture"
+    );
+}
+
+/// A module's text is escaped wherever a view puts it, bytes read as ace3 shows them, and what's large is
+/// cut with a note.
+#[test]
+fn a_view_escapes_bytes_and_bounds_what_a_module_wrote() {
+    use ace_gui::analysis::{MAX_HIGHLIGHTED_MATCHES, MAX_MATCHES, MAX_TEXT};
+    use base64::Engine as _;
+    let views = Views::builtin();
+    let b64 = |bytes: &[u8]| base64::engine::general_purpose::STANDARD.encode(bytes);
+    let hostile = "<script>alert(1)</script>\"'&";
+    let matches = MAX_MATCHES + 5;
+    let context: Vec<serde_json::Value> = (0..matches)
+        .map(|i| serde_json::json!([i, "$s<b>", {"base64": b64(b" \n\x00\xff<i>")}, "00000000  <dump>"]))
+        .collect();
+    let match_context: Vec<serde_json::Value> = (0..matches)
+        .map(|_| serde_json::json!({"data": {"base64": b64(b"ab <i>\x00")}, "match_offset": 2, "match_length": 3}))
+        .collect();
+    let yara = serde_json::json!({"scan_results": [{
+        "rule": hostile, "namespace": hostile, "meta": {"k": hostile}, "tags": [hostile],
+        "commit": null, "target": hostile,
+        "strings": [[0, "$s<b>", {"base64": b64(b"x")}]],
+        "context": context, "match_context": match_context,
+    }]});
+    let html = drawn(
+        &views,
+        &serde_json::from_value(serde_json::json!({
+            "analysis_type": "yara_scan_results", "schema_version": 1, "details": yara,
+        }))
+        .expect("a result"),
+    );
+    assert!(
+        !html.contains("<script>")
+            && !html.contains("$s<b>")
+            && !html.contains("<i>")
+            && !html.contains("<dump>")
+    );
+    assert!(html.contains("<h3>&#60;script&#62;alert(1)&#60;/script&#62;&#34;&#39;&#38;</h3>"));
+    // a space, a newline, a NUL, 0xff and markup, as ace3 draws them
+    assert!(html.contains(
+        "<span class=\"yara-sp\"> </span><span class=\"yara-ws\">\u{240a}</span><span class=\"yara-ws\">\u{2400}</span>\u{ff}&#60;i&#62;"
+    ));
+    assert!(html.contains("|ab<mark> &#60;i</mark>&#62;.|"));
+    assert_eq!(
+        html.matches("<pre class=\"yara-hexdump\">").count(),
+        MAX_MATCHES
+    );
+    assert_eq!(html.matches("<mark>").count(), MAX_HIGHLIGHTED_MATCHES * 2);
+    assert!(
+        html.contains("00000000  &#60;dump&#62;"),
+        "past the highlighted ones, the dump as stored"
+    );
+    assert!(html.contains("5 more matches not shown."));
+
+    let long = "x".repeat(MAX_TEXT + 10);
+    let olevba = serde_json::json!({"type": hostile, "keyword_summary": {hostile: 1}, "macros": [{
+        "file_name": {"base64": b64(b"a\xffb")}, "stream_path": hostile, "vba_filename": hostile,
+        "vba_code": format!("{hostile}{long}"), "local_path": "0".repeat(64),
+    }]});
+    let html = drawn(
+        &views,
+        &serde_json::from_value(serde_json::json!({
+            "analysis_type": "olevba_analysis", "schema_version": 1, "details": olevba,
+        }))
+        .expect("a result"),
+    );
+    assert!(!html.contains("<script>"));
+    assert!(
+        html.contains("<tr><th>file_name</th><td>a\\xffb</td></tr>"),
+        "{html}"
+    );
+    assert!(html.contains("38 more bytes of code not shown."), "{html}");
+    assert!(html.len() < MAX_TEXT + 4096);
+
+    let email = view_fixture("email_pdf_attachment");
+    let mut details = email.details.clone();
+    details["email"]["subject"] = serde_json::json!(hostile);
+    details["email"]["decoded_subject"] = serde_json::json!(hostile);
+    details["email"]["headers"] = serde_json::json!([["X-<b>", hostile]]);
+    details["email"]["log_entry"]["attachment_names"] = serde_json::json!([hostile]);
+    let version = i32::try_from(email.schema_version()).expect("a version");
+    let html = views
+        .draw("email_analysis", version, &details)
+        .html
+        .as_str()
+        .to_owned();
+    assert!(
+        !html.contains("<script>") && !html.contains("X-<b>"),
+        "{html}"
+    );
+    assert!(html.contains("X-&#60;b&#62;: &#60;script&#62;"));
+}
+
+/// A type with no view, or details its view can't read, is its details as JSON, as ace3's default
+/// template prints them, escaped and bounded, and says why.
+#[test]
+fn a_result_with_no_view_is_its_details_as_json() {
+    use ace_gui::analysis::MAX_JSON;
+    let views = Views::builtin();
+    let details = serde_json::json!({"b": "<script>x</script>", "a": "y".repeat(MAX_JSON)});
+    let drawn = views.draw("site_thing", 1, &details);
+    let why = drawn.fallback.expect("a fallback");
+    assert!(why.contains("site_thing version 1 has no view"), "{why}");
+    let html = drawn.html.as_str();
+    assert!(
+        html.starts_with("<pre class=\"json\">{\n    &#34;a&#34;: &#34;yyy"),
+        "{}",
+        &html[..80]
+    );
+    assert!(!html.contains("<script>"));
+    assert!(html.contains("more bytes of details not shown."));
+    assert!(html.len() < MAX_JSON + 1024);
+
+    let unreadable = views.draw(
+        "pcode_analysis",
+        1,
+        &serde_json::json!({"line_count": "many"}),
+    );
+    assert!(
+        unreadable
+            .fallback
+            .expect("a fallback")
+            .contains("couldn't draw this result")
+    );
+    assert!(
+        views
+            .draw("pcode_analysis", 2, &serde_json::json!({}))
+            .fallback
+            .is_some()
+    );
+    assert!(
+        views
+            .draw("pcode_analysis", -1, &serde_json::json!({}))
+            .fallback
+            .is_some()
+    );
+}
+
+#[test]
+fn the_views_helpers_read_bytes_as_ace3_does() {
+    use ace_gui::analysis::{Glyph, bytes_text, clip, hexdump, visible};
+    assert_eq!(clip("aé", 2).text, "a");
+    assert_eq!(clip("aé", 2).more, 2);
+    assert_eq!(clip("abc", 3).more, 0);
+    assert_eq!(bytes_text(b"a\xffb\xc3\xa9"), "a\\xffbé");
+    assert_eq!(
+        visible(b"a b\n\x7f\x85\xe9"),
+        [
+            Glyph::Text("a".to_owned()),
+            Glyph::Space,
+            Glyph::Text("b".to_owned()),
+            Glyph::Symbol("\u{240a}".to_owned()),
+            Glyph::Symbol("\u{2421}".to_owned()),
+            Glyph::Symbol("\\x85".to_owned()),
+            Glyph::Text("é".to_owned()),
+        ]
+    );
+    let lines = hexdump(b"PK\x03\x04rest", 0..4);
+    let first: String = lines[0]
+        .iter()
+        .map(|s| {
+            if s.marked {
+                format!("<{}>", s.text)
+            } else {
+                s.text.clone()
+            }
+        })
+        .collect();
+    // hexdump -C's columns, padded where the line is short
+    assert_eq!(
+        first,
+        format!(
+            "00000000  <50 4b 03 04> 72 65 73 74{}  |<PK..>rest|",
+            " ".repeat(25)
+        )
+    );
+    assert_eq!(lines[1][0].text, "00000008");
+}
+
+/// A result's page: its summary in the tree links to it, and it draws the result with its type's view under
+/// `alert:read`, with what the result added.
+#[tokio::test]
+async fn a_result_s_page_draws_it_with_its_view() {
+    let stack = stack().await;
+    let alice = user(&stack, "alice").await;
+    grant_alert_read(&stack, &alice).await;
+    let _bob = user(&stack, "bob").await;
+    let (root, _) = splunk_alert(&stack).await;
+    let alice_session = session_of(&stack, "alice").await;
+    let alert = stack
+        .get(&format!("/alerts/{root}"))
+        .header("cookie", cookie(&alice_session))
+        .send()
+        .await
+        .expect("answered")
+        .text()
+        .await
+        .expect("a page");
+    let start = alert
+        .find(&format!("href=\"/alerts/{root}/results/"))
+        .expect("a link to the result")
+        + 6;
+    let path = &alert[start..start + alert[start..].find('"').expect("its end")];
+
+    let response = stack
+        .get(path)
+        .header("cookie", cookie(&alice_session))
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(response.status(), StatusCode::OK);
+    assert!(
+        response.headers()["content-security-policy"]
+            .to_str()
+            .expect("text")
+            .contains("style-src 'self';")
+    );
+    let page = response.text().await.expect("a page");
+    assert!(inline_free(&page), "{page}");
+    contains_all(
+        &page,
+        &[
+            &format!("<a href=\"/alerts/{root}\">Back to Alert</a>"),
+            "<h1>Proxy &#60;correlation&#62;</h1>",
+            "<b class=\"type\">fqdn</b> : <span class=\"value\">www.example.com</span>",
+            "<h3>Proxy correlation: (3 results)</h3>",
+            "proxy_domain_lookup · splunk_api_analysis version 1",
+            "<div class=\"analysis-view\">",
+            "<summary>Show Query</summary>",
+            "<td title=\"192.0.2.10\">192.0.2.10</td>",
+            "<h2>Observables this result added</h2>",
+            "<b class=\"type\">Source IP (ip)</b> : 192.0.2.10</a>",
+        ],
+    );
+    assert!(!page.contains("has no view"));
+
+    // No alert:read; no such result, in this alert or at all; and no session.
+    let bob_session = session_of(&stack, "bob").await;
+    let refused = stack
+        .get(path)
+        .header("cookie", cookie(&bob_session))
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(refused.status(), StatusCode::FORBIDDEN);
+    assert!(!refused.text().await.expect("a page").contains("192.0.2.10"));
+    for missing in [
+        format!("/alerts/{root}/results/999999"),
+        format!("/alerts/{root}/results/x"),
+        format!("/alerts/{}/results/1", uuid::Uuid::nil()),
+    ] {
+        let response = stack
+            .get(&missing)
+            .header("cookie", cookie(&alice_session))
+            .send()
+            .await
+            .expect("answered");
+        assert_eq!(response.status(), StatusCode::NOT_FOUND, "{missing}");
+    }
+    let anonymous = stack.get(path).send().await.expect("answered");
+    assert_eq!(anonymous.status(), StatusCode::SEE_OTHER);
+}
+
+/// The open-source observable actions (PLAN.md 5.9, #1032): Add Comment on every observable the tree draws
+/// in full, and Download File As ZIP on a file with bytes, as links, which a reference doesn't repeat.
+#[test]
+fn the_tree_offers_each_observable_its_actions() {
+    let (tree, comments) = fixture_tree();
+    let html = AlertTreeFragment {
+        tree: tree_view(&tree, &comments, &ObservableActions::builtin()),
+    }
+    .render()
+    .expect("renders");
+    assert!(inline_free(&html));
+    let alert = "00000000-0000-0000-0000-000000005800";
+    for (observable, count) in [(1, 1), (2, 1), (3, 1), (4, 1)] {
+        let comment = format!(
+            r#"<li><a href="/alerts/{alert}/observables/{observable}/comment">Add Comment</a></li>"#
+        );
+        assert_eq!(html.matches(&comment).count(), count, "{comment}\n{html}");
+    }
+    assert_eq!(
+        html.matches(&format!(
+            r#"<a href="/api/alerts/v1/alerts/{alert}/observables/1/file">Download File As ZIP</a>"#
+        ))
+        .count(),
+        1
+    );
+    assert_eq!(
+        html.matches("Download File As ZIP").count(),
+        1,
+        "only the file has one"
+    );
+    assert_eq!(html.matches(r#"<details class="actions">"#).count(), 4);
+
+    // a site's action that tries for a script or another scheme isn't drawn
+    let hostile = ace_gui::ObservableAction::new("x", "X", |t| {
+        Some(format!("javascript:alert('{}')", t.value))
+    });
+    let other =
+        ace_gui::ObservableAction::new("y", "Y", |_| Some("//evil.example.com/".to_owned()));
+    let actions = ObservableActions::empty().with(hostile).with(other);
+    assert!(
+        actions
+            .links(tree.alert.summary.id, &tree.observables[0])
+            .is_empty()
+    );
+    assert_eq!(
+        ace_gui::actions::encode("a b/<c>é"),
+        "a%20b%2F%3Cc%3E%C3%A9"
+    );
+}
+
+/// Add Comment's form: the action's page under `alert:read`, and its post under `observable:write`, which
+/// comments on the observable, audits it and goes back to the observable in the tree.
+#[tokio::test]
+async fn add_comment_comments_on_the_observable() {
+    let stack = stack().await;
+    let alice = user(&stack, "alice").await;
+    grant_alert_read(&stack, &alice).await;
+    let carol = user(&stack, "carol").await;
+    grant_alert_read(&stack, &carol).await;
+    let _bob = user(&stack, "bob").await;
+    let (root, fqdn) = splunk_alert(&stack).await;
+    let alice_session = session_of(&stack, "alice").await;
+    let alert = stack
+        .get(&format!("/alerts/{root}"))
+        .header("cookie", cookie(&alice_session))
+        .send()
+        .await
+        .expect("answered")
+        .text()
+        .await
+        .expect("a page");
+    let path = format!("/alerts/{root}/observables/{}/comment", fqdn.0);
+    assert!(
+        alert.contains(&format!(r#"<a href="{path}">Add Comment</a>"#)),
+        "{alert}"
+    );
+
+    let form = stack
+        .get(&path)
+        .header("cookie", cookie(&alice_session))
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(form.status(), StatusCode::OK);
+    let form = form.text().await.expect("a page");
+    assert!(inline_free(&form));
+    contains_all(
+        &form,
+        &[
+            &format!(r#"<form method="post" action="{path}" class="section">"#),
+            r#"<b class="type">fqdn</b> : <span class="value">www.example.com</span>"#,
+            r#"<textarea id="comment-field" name="comment" rows="4" required></textarea>"#,
+        ],
+    );
+
+    // alice can read the alert but not comment
+    let audits = stack.audit_count().await;
+    let refused = stack
+        .post(&path, &[("comment", "seen <b>before</b>")])
+        .header("cookie", cookie(&alice_session))
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(refused.status(), StatusCode::FORBIDDEN);
+    assert_eq!(stack.audit_count().await, audits);
+
+    let Actor::User { id, .. } = &carol else {
+        panic!("a user")
+    };
+    stack
+        .service
+        .grant(
+            &bootstrap(),
+            &Holder::User(*id),
+            &PermissionPattern::new("observable", "write").expect("a pattern"),
+            Effect::Allow,
+        )
+        .await
+        .expect("granted");
+    let carol_session = session_of(&stack, "carol").await;
+    let bob_session = session_of(&stack, "bob").await;
+    let audits = stack.audit_count().await;
+    let added = stack
+        .post(&path, &[("comment", "seen <b>before</b>")])
+        .header("cookie", cookie(&carol_session))
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(added.status(), StatusCode::SEE_OTHER);
+    assert_eq!(location(&added), format!("/alerts/{root}#o{}", fqdn.0));
+    assert_eq!(stack.audit_count().await, audits + 1);
+    let page = stack
+        .get(&format!("/alerts/{root}"))
+        .header("cookie", cookie(&carol_session))
+        .send()
+        .await
+        .expect("answered")
+        .text()
+        .await
+        .expect("a page");
+    assert!(
+        page.contains(": seen &#60;b&#62;before&#60;/b&#62;</li>"),
+        "{page}"
+    );
+
+    // an empty comment, a form that isn't one, no such observable, another site, no alert:read and no session
+    let empty = stack
+        .post(&path, &[("comment", "  ")])
+        .header("cookie", cookie(&carol_session))
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(empty.status(), StatusCode::BAD_REQUEST);
+    let incomplete = stack
+        .post(&path, &[("other", "x")])
+        .header("cookie", cookie(&carol_session))
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(incomplete.status(), StatusCode::BAD_REQUEST);
+    for missing in [
+        format!("/alerts/{root}/observables/999999/comment"),
+        format!("/alerts/{root}/observables/x/comment"),
+    ] {
+        let response = stack
+            .post(&missing, &[("comment", "x")])
+            .header("cookie", cookie(&carol_session))
+            .send()
+            .await
+            .expect("answered");
+        assert_eq!(response.status(), StatusCode::NOT_FOUND, "{missing}");
+    }
+    let cross_site = stack
+        .post(&path, &[("comment", "x")])
+        .header("cookie", cookie(&carol_session))
+        .header("sec-fetch-site", "cross-site")
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(cross_site.status(), StatusCode::FORBIDDEN);
+    let unreadable = stack
+        .get(&path)
+        .header("cookie", cookie(&bob_session))
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(unreadable.status(), StatusCode::FORBIDDEN);
+    let anonymous = stack
+        .post(&path, &[("comment", "x")])
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(anonymous.status(), StatusCode::SEE_OTHER);
+    assert_eq!(location(&anonymous), "/login");
     assert_eq!(stack.audit_count().await, audits + 1);
 }

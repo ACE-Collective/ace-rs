@@ -1,0 +1,44 @@
+{#- splunk_api_analysis (src/analysis.rs), from ace3's analysis/api_analysis.html: the question, an error,
+    the query, the rows and the raw details. ace3's inline style block is in the stylesheet, and its jQuery
+    sorting and resizing of columns isn't here. -#}
+{%- if analysis.question.is_some() || analysis.query_summary.is_some() %}
+<p class="muted">
+{%- if let Some(question) = analysis.question %}<strong>{{ question }}</strong><br>{% endif %}
+{%- if let Some(summary) = analysis.query_summary %}{{ summary }}{% endif %}
+</p>
+{%- endif %}
+{%- if let Some(error) = analysis.query_error %}
+<p class="error" role="alert"><strong>Query Error:</strong> {{ error }}</p>
+{%- endif %}
+{%- if let Some(query) = self.query() %}
+<details class="block">
+<summary>Show Query</summary>
+<pre class="wrap"><code>{{ query.text }}</code></pre>
+{%- if query.more > 0 %}
+<p class="clipped">{{ query.more }} more bytes of the query not shown.</p>
+{%- endif %}
+</details>
+{%- endif %}
+{%- if let Some(table) = self.table() %}
+<div class="scroll">
+<table class="rows">
+<thead><tr>{% for column in table.columns %}<th>{{ column }}</th>{% endfor %}</tr></thead>
+<tbody>
+{%- for row in table.rows %}
+<tr>{% for value in row %}<td title="{{ value }}">{{ value }}</td>{% endfor %}</tr>
+{%- endfor %}
+</tbody>
+</table>
+</div>
+{%- if table.more > 0 %}
+<p class="clipped">{{ table.more }} more rows not shown.</p>
+{%- endif %}
+{%- endif %}
+{%- let raw = self.raw() %}
+<details class="block">
+<summary>Raw Details</summary>
+<pre class="json">{{ raw.text }}</pre>
+{%- if raw.more > 0 %}
+<p class="clipped">{{ raw.more }} more bytes of details not shown.</p>
+{%- endif %}
+</details>

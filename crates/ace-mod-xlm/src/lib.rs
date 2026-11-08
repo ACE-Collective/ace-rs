@@ -529,6 +529,11 @@ mod tests {
 
     #[test]
     fn a_macro_that_builds_its_url_is_emulated_and_its_cells_listed() {
+        // the fixture ace-gui's analysis view test draws (PLAN.md 5.9)
+        ace_testkit::check_view_fixture(
+            "xlm_obfuscated_xlsm",
+            &run("ace4/office/xlm_obfuscated.xlsm", json!({})),
+        );
         let result = done("ace4/office/xlm_obfuscated.xlsm");
         assert_eq!(result.details.cell_count, 13);
         assert_eq!(
@@ -652,7 +657,10 @@ mod tests {
         let input = harness
             .sample("ace3/office/receipt_687790.doc")
             .expect("a sample");
-        let Outcome::Done(result) = harness.run_parser(input).expect("runs") else {
+        let outcome = harness.run_parser(input).expect("runs");
+        // the fixture ace-gui's analysis view test draws (PLAN.md 5.9)
+        ace_testkit::check_view_fixture("pcode_receipt_doc", &outcome);
+        let Outcome::Done(result) = outcome else {
             panic!("no disassembly");
         };
         assert!(result.details.line_count > 0);

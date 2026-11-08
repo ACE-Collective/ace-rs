@@ -1,0 +1,16 @@
+{#- archive_analysis (src/analysis.rs): ace3 prints its details with analysis/default_template.html. -#}
+<table class="fields">
+<tr><th>file_count</th><td>{{ analysis.file_count }}</td></tr>
+</table>
+{%- let files = self.files() %}
+{%- if !files.items.is_empty() %}
+<h3>extracted_files</h3>
+<ul class="files">
+{%- for file in files.items %}
+<li>{{ file }}</li>
+{%- endfor %}
+</ul>
+{%- if files.more > 0 %}
+<p class="clipped">{{ files.more }} more files not shown.</p>
+{%- endif %}
+{%- endif %}

@@ -1,0 +1,32 @@
+{#- msoffice_encryption_analysis (src/analysis.rs): ace3 prints its details with
+    analysis/default_template.html, the password among them. -#}
+<table class="fields">
+<tr><th>password</th><td>{% if let Some(password) = analysis.password %}<code>{{ password }}</code>{% else %}<span class="muted">none</span>{% endif %}</td></tr>
+{%- if let Some(error) = analysis.error %}
+<tr><th>error</th><td>{{ error }}</td></tr>
+{%- endif %}
+<tr><th>email</th><td>{{ analysis.email }}</td></tr>
+{%- if let Some(info) = analysis.encryption_info %}
+<tr><th>encryption_info</th><td>{{ info }}</td></tr>
+{%- endif %}
+</table>
+{%- let words = self.words() %}
+{%- if !words.items.is_empty() %}
+<details class="block">
+<summary>word_list ({{ analysis.word_list.len() }})</summary>
+<pre>{% for word in words.items %}{{ word }}
+{% endfor %}</pre>
+{%- if words.more > 0 %}
+<p class="clipped">{{ words.more }} more passwords not shown.</p>
+{%- endif %}
+</details>
+{%- endif %}
+{%- if let Some(body) = self.body() %}
+<details class="block">
+<summary>email_body</summary>
+<pre>{{ body.text }}</pre>
+{%- if body.more > 0 %}
+<p class="clipped">{{ body.more }} more bytes of the body not shown.</p>
+{%- endif %}
+</details>
+{%- endif %}

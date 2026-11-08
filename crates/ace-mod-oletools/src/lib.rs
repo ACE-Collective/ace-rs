@@ -478,7 +478,10 @@ mod tests {
 
     #[test]
     fn macros_become_files_with_ace3s_names_tags_and_directives() {
-        let result = done(olevba(DOC, OlevbaSettings::default()));
+        let outcome = olevba(DOC, OlevbaSettings::default());
+        // the fixture ace-gui's analysis view test draws (PLAN.md 5.9)
+        ace_testkit::check_view_fixture("olevba_receipt_doc", &outcome);
+        let result = done(outcome);
         assert_eq!(result.details.kind.as_deref(), Some("OLE"));
         assert_eq!(result.details.macros.len(), 5);
         assert_eq!(result.analyzed.tags, ["olevba"]);
@@ -698,7 +701,10 @@ mod tests {
 
     #[test]
     fn the_report_is_the_commands() {
-        let Outcome::Done(result) = rtfole("ace4/rtf/objects.rtf") else {
+        let outcome = rtfole("ace4/rtf/objects.rtf");
+        // the fixture ace-gui's analysis view test draws (PLAN.md 5.9)
+        ace_testkit::check_view_fixture("rtfole_objects_rtf", &outcome);
+        let Outcome::Done(result) = outcome else {
             panic!("not done")
         };
         let stdout = &result.details.stdout;

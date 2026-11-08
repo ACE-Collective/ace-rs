@@ -99,6 +99,60 @@ async fn wait_for<T, F: std::future::Future<Output = Option<T>>>(
     }
 }
 
+/// PLAN.md 5.9: the site's binary list names its analysis view, so its GUI draws the ticket lookup's
+/// results with the site's template, beside the open-source views, and every module has one.
+#[test]
+fn the_site_binary_draws_its_results_with_its_own_view() {
+    let app = ace_site_example::app();
+    assert_eq!(app.modules_without_a_view(), []);
+    let drawn = app.views().draw(
+        "example_ticket_analysis",
+        1,
+        &json!({"tickets": ["TICKET-<b>.example.com"]}),
+    );
+    assert_eq!(drawn.fallback, None);
+    let html = drawn.html.as_str();
+    assert!(html.contains("<h3>Tickets</h3>"), "{html}");
+    assert!(
+        html.contains("<li>TICKET-&#60;b&#62;.example.com</li>"),
+        "{html}"
+    );
+    // the open-source views are still there
+    assert!(app.views().has("email_analysis", 1));
+
+    // and its observable action joins the open-source ones, on its own type only
+    let names: Vec<&str> = app.actions().names().collect();
+    assert_eq!(
+        names,
+        ["file_download_as_zip", "add_comment", "example_open_ticket"]
+    );
+    let ticket = |kind: &str| ace_service::AlertObservable {
+        id: 7,
+        kind: kind.to_owned(),
+        value: "TICKET-a b/<c>".to_owned(),
+        time: None,
+        tags: Vec::new(),
+        directives: Vec::new(),
+        exclude_modules: Vec::new(),
+        redirection: None,
+        display_type: None,
+        files: Vec::new(),
+        relationships: Vec::new(),
+        results: Vec::new(),
+        detections: Vec::new(),
+    };
+    let links = app.actions().links(Uuid::nil(), &ticket("example_ticket"));
+    let hrefs: Vec<&str> = links.iter().map(|l| l.href.as_str()).collect();
+    assert_eq!(
+        hrefs,
+        [
+            "/alerts/00000000-0000-0000-0000-000000000000/observables/7/comment",
+            "https://tickets.example.com/ticket/TICKET-a%20b%2F%3Cc%3E",
+        ]
+    );
+    assert_eq!(app.actions().links(Uuid::nil(), &ticket("fqdn")).len(), 1);
+}
+
 #[test]
 fn the_site_binary_exports_its_types_schemas() {
     let dir = tempfile::tempdir().expect("a directory");

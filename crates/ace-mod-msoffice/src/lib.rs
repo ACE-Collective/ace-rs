@@ -395,7 +395,12 @@ mod tests {
         ] {
             let harness = harness().carrying_email(body_file(dir.path(), body));
             let input = harness.sample(sample).expect("a sample");
-            let result = done(harness.run_parser(input).expect("runs"));
+            let outcome = harness.run_parser(input).expect("runs");
+            if sample == "ace4/office/encrypted_agile.docx" {
+                // the fixture ace-gui's analysis view test draws (PLAN.md 5.9)
+                ace_testkit::check_view_fixture("msoffice_encrypted_agile_docx", &outcome);
+            }
+            let result = done(outcome);
             assert_eq!(
                 result.details.password.as_deref(),
                 Some(password),

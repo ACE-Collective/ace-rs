@@ -12,6 +12,9 @@ publish.workspace = true
 [dependencies]
 ace = { path = "../ace" }
 ace-app = { path = "../ace-app" }
+# The ticket lookup's analysis view (PLAN.md 5.9).
+ace-gui = { path = "../ace-gui" }
+askama = "0.16.1"
 ace-results = { path = "../ace-results" }
 ace-sdk = { path = "../ace-sdk" }
 schemars = "1.2.3"

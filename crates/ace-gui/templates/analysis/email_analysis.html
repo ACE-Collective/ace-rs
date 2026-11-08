@@ -1,0 +1,43 @@
+{#- email_analysis (src/analysis.rs), from ace3's analysis/email_analysis.html: the summary, the raw headers,
+    and the attachments. -#}
+{%- if let Some(error) = analysis.parsing_error %}
+<p class="error">{{ error }}</p>
+{%- endif %}
+<h3>Email Summary</h3>
+<table class="fields">
+{%- for row in self.summary() %}
+<tr><th>{{ row.name }}</th><td>{{ row.value }}</td></tr>
+{%- endfor %}
+</table>
+{%- let attachments = self.attachments() %}
+{%- if !attachments.is_empty() %}
+<h3>Attachments</h3>
+<table class="rows">
+<thead><tr><th>Name</th><th>Type</th><th>Size</th><th>SHA-256</th></tr></thead>
+<tbody>
+{%- for attachment in attachments %}
+<tr><td>{{ attachment.name }}</td><td>{{ attachment.content_type }}</td><td>{{ attachment.size }}</td><td><code>{{ attachment.sha256 }}</code></td></tr>
+{%- endfor %}
+</tbody>
+</table>
+{%- if self.more_attachments() > 0 %}
+<p class="clipped">{{ self.more_attachments() }} more attachments not shown.</p>
+{%- endif %}
+{%- endif %}
+{%- if !analysis.extraction_errors.is_empty() %}
+<h3>Extraction Errors</h3>
+<ul>
+{%- for error in analysis.extraction_errors %}
+<li>{% if let Some(name) = error.filename %}{{ name }} {% endif %}{% if let Some(kind) = error.content_type %}({{ kind }}) {% endif %}{{ error.exception }}</li>
+{%- endfor %}
+</ul>
+{%- endif %}
+{%- if let Some(headers) = self.headers() %}
+<details class="block">
+<summary>Raw Email Headers</summary>
+<pre>{{ headers.text }}</pre>
+{%- if headers.more > 0 %}
+<p class="clipped">{{ headers.more }} more bytes of headers not shown.</p>
+{%- endif %}
+</details>
+{%- endif %}

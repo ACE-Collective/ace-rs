@@ -1,0 +1,40 @@
+{
+  "analysis_type": "archive_analysis",
+  "schema_version": 1,
+  "details": {
+    "file_count": 1,
+    "extracted_files": [
+      "Faktura.FS.17.9.20_2018_2_13_AI02668779.pdf.js"
+    ]
+  },
+  "summary": "Archive Analysis: extracted 1 of 1 files: (Faktura.FS.17.9.20_2018_2_13_AI02668779.pdf.js)",
+  "tags": [
+    "single_file_zip",
+    "script_in_zip"
+  ],
+  "files": [
+    {
+      "path": "test.zip.extracted/Faktura.FS.17.9.20_2018_2_13_AI02668779.pdf.js",
+      "sha256": "2e981fb20ec03bb5bf767e61069d4ceca975dabb333a958d45df74bbe6bf1bcb",
+      "size": 23405,
+      "directives": [
+        "sandbox"
+      ],
+      "detections": [
+        {
+          "description": "An archive contained a single file that was a script",
+          "signature_uuid": "de4bfc85-d827-4e60-a7e3-211b60ad61c8"
+        }
+      ],
+      "relationships": [
+        {
+          "type": "extracted_from",
+          "target": {
+            "type": "file",
+            "value": "1f0e8019d2bc4dadef1395af870b509adf4e8a226dee0fb7716cc5d8c3a4d147"
+          }
+        }
+      ]
+    }
+  ]
+}

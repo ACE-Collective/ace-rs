@@ -75,7 +75,17 @@ async fn serve(app: &App) -> Result<ExitCode> {
     }
     let service = ace_service::Service::new(db.clone(), orchestrator.clone());
     let web_config = ace_api::WebConfig::from_env().map_err(anyhow::Error::msg)?;
-    let gui = ace_gui::Gui::new(service.clone(), web_config.transport);
+    for (module, name, version) in app.modules_without_a_view() {
+        tracing::warn!(
+            module,
+            name,
+            version,
+            "a module's results have no analysis view, so they draw as JSON"
+        );
+    }
+    let gui = ace_gui::Gui::new(service.clone(), web_config.transport)
+        .with_views(app.views().clone())
+        .with_actions(app.actions().clone());
     let web = ace_api::Web::new(service, bucket.clone(), web_config);
     let api = Api::new(db.clone(), bucket.clone(), orchestrator, config).await?;
     let stopping_api = api.clone();

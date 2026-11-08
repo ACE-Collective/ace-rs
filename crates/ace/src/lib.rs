@@ -32,3 +32,12 @@ pub fn app() -> App {
         .parser_pool(parser_pool())
         .lookup_pool(lookup_pool())
 }
+
+#[cfg(test)]
+mod tests {
+    /// Every open-source module's results have their view (PLAN.md 5.9).
+    #[test]
+    fn every_module_has_an_analysis_view() {
+        assert_eq!(super::app().modules_without_a_view(), []);
+    }
+}

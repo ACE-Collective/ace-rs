@@ -2,7 +2,8 @@
 //! repository can build its own from this workspace's crates and its own (decision 9).
 //!
 //! An `App` is that list: the pools and the modules each one runs, the site's observable types,
-//! and the module groups its modules join. Each binary is a short `main` over one:
+//! the module groups its modules join, the analysis views that draw its modules' results, and the
+//! observable actions its GUI offers. Each binary is a short `main` over one:
 //!
 //! ```text
 //! // the core: `ace serve`, `ace task replay`, `ace schema export`, `ace yara ...`, `ace user ...`
@@ -21,8 +22,9 @@
 //! pool's modules.
 //!
 //! Each kind of thing an ace3 integration can add (`ace3/docs/INTEGRATIONS.md`) becomes an entry
-//! here once its feature exists in ace4: analysis modules and observable types now, collectors
-//! with the first collector (6.1), and the rest with the phases that build them.
+//! here once its feature exists in ace4: analysis modules and observable types (2.31), analysis
+//! templates and observable actions (5.9, `analysis_view`, `observable_action`), collectors with the
+//! first collector (6.1), and the rest with the phases that build them.
 //!
 //! Everything here reads its configuration from the environment and the site overlay at run
 //! time, and nothing from this workspace's checkout, so a binary built in another repository
@@ -54,6 +56,8 @@ pub struct App {
     parser_pools: Vec<ParserPool>,
     lookup_pools: Vec<LookupPool>,
     groups: Vec<(String, String)>,
+    views: ace_gui::Views,
+    actions: ace_gui::ObservableActions,
 }
 
 /// A parser pool: modules that read files, one contained process per task (PLAN.md 2.17).
@@ -105,6 +109,41 @@ impl App {
     pub fn module_in_group(mut self, group: &str, module: &str) -> App {
         self.groups.push((group.to_owned(), module.to_owned()));
         self
+    }
+
+    /// Adds the view of a site's analysis type, ace3's analysis template (PLAN.md 5.9), beside the
+    /// open-source ones (`ace_gui::Views::builtin`). A view for an open-source type takes the place of
+    /// its own. A type with no view draws as its details in JSON.
+    pub fn analysis_view<T: ace_gui::AnalysisView>(mut self) -> App {
+        self.views = self.views.with(ace_gui::ViewEntry::of::<T>());
+        self
+    }
+
+    /// Adds an observable action of the site's own (PLAN.md 5.9, #1032) after the open-source ones
+    /// (`ace_gui::ObservableActions::builtin`). One with an open-source action's name takes its place.
+    pub fn observable_action(mut self, action: ace_gui::ObservableAction) -> App {
+        self.actions = self.actions.with(action);
+        self
+    }
+
+    /// The observable actions the GUI offers.
+    pub fn actions(&self) -> &ace_gui::ObservableActions {
+        &self.actions
+    }
+
+    /// The analysis views the GUI draws results with.
+    pub fn views(&self) -> &ace_gui::Views {
+        &self.views
+    }
+
+    /// Each module whose results have no view, as its name and its type's name and version.
+    pub fn modules_without_a_view(&self) -> Vec<(&'static str, &'static str, u32)> {
+        self.registry()
+            .manifests()
+            .iter()
+            .filter(|m| !self.views.has(m.output.name, m.output.version))
+            .map(|m| (m.name, m.output.name, m.output.version))
+            .collect()
     }
 
     /// Runs the `ace` command.

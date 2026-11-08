@@ -1,0 +1,68 @@
+{
+  "analysis_type": "xlm_deobfuscator_analysis",
+  "schema_version": 1,
+  "details": {
+    "cell_count": 13
+  },
+  "summary": "XLMMacroDeobfuscator Analysis - analyzed 13 cells",
+  "analyzed": {
+    "tags": [
+      "xlm4"
+    ],
+    "detections": [
+      {
+        "description": "A url was found in an Excel 4.0 macro.",
+        "signature_uuid": "3e719b5d-8063-4cd7-a72b-3d1cc8ead39c"
+      }
+    ]
+  },
+  "observables": [
+    {
+      "type": "url",
+      "value": "http://xlm-built.example.com/stage2.exe",
+      "directives": [
+        "crawl"
+      ]
+    },
+    {
+      "type": "url",
+      "value": "https://xlm-plain.example.com/a?b=1",
+      "directives": [
+        "crawl"
+      ]
+    },
+    {
+      "type": "url",
+      "value": "HTTP://Upper.example.com/a b",
+      "directives": [
+        "crawl"
+      ]
+    }
+  ],
+  "files": [
+    {
+      "path": "xlm_obfuscated.xlsm.xlmdeobfuscator/xlmdeobfuscator.stdout",
+      "sha256": "0dfba1595a3e67dd0083eb8d0a7fdb9f62ebc62c6bd495a4af77c2562004f893",
+      "size": 1086,
+      "yara_meta": [
+        "type=script.macro.xlm"
+      ],
+      "directives": [
+        "extract_urls",
+        "crawl_extracted_urls"
+      ]
+    },
+    {
+      "path": "xlm_obfuscated.xlsm.xlmdeobfuscator/xlmdeobfuscatorextractcells.stdout",
+      "sha256": "b4fe6ad83ad618435f3e88a429af00c80641e7b3ce908578c2fa3352e0898540",
+      "size": 1143,
+      "yara_meta": [
+        "type=script.macro.xlm"
+      ],
+      "directives": [
+        "extract_urls",
+        "crawl_extracted_urls"
+      ]
+    }
+  ]
+}

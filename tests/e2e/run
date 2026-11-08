@@ -612,9 +612,42 @@ def check_live_alert(email, failures):
             and re.search(r"Content.Security.Policy|Refused to", e["params"]["entry"]["text"])
         ]
         expect(not refused, f"the page's policy refused nothing: {refused}")
+        check_result_pages(page, expect)
         wait_for(f"root {root} to complete", lambda: completed_after(root), within=300)
     finally:
         page.close()
+
+
+def check_result_pages(page, expect):
+    """PLAN.md 5.9: a result's summary in the open alert's tree links to its page, which draws it with
+    its module's analysis view, and the page's policy refuses nothing there either."""
+    # read every link off the alert's page first, since each one leaves it
+    modules = ("yara_scanner_v3_4", "rdap_analyzer")
+    hrefs = {
+        module: page.evaluate(
+            f"document.querySelector('#alert-tree [data-module=\"{module}\"] a.summary')"
+            "?.getAttribute('href') ?? null"
+        )
+        for module in modules
+    }
+    for module, href in hrefs.items():
+        if not expect(bool(href), f"the {module} result links to its page: {href}"):
+            continue
+        page.events.clear()
+        page.call("Page.navigate", url=f"{GUI_IN_STACK}{href}")
+        page.wait(f"the {module} result's page", "document.readyState === 'complete' && "
+                  "document.querySelector('.analysis-view') !== null", within=30)
+        own = page.evaluate(
+            "!document.querySelector('.result-page').textContent.includes('has no view') && "
+            "document.querySelector('.analysis-view table, .analysis-view .panel') !== null"
+        )
+        expect(own, f"the {module} result's page draws it with its own view")
+        refused = [
+            e["params"]["entry"]["text"] for e in page.events
+            if e["method"] == "Log.entryAdded"
+            and re.search(r"Content.Security.Policy|Refused to", e["params"]["entry"]["text"])
+        ]
+        expect(not refused, f"the {module} result's page: the policy refused nothing: {refused}")
 
 
 def check_library_diff(failures):

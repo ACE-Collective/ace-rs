@@ -236,3 +236,188 @@ button[type="submit"] {
   list-style: none;
   font-size: 0.9em;
 }
+
+/* A result's page and its analysis views (PLAN.md 5.9), with what ace3's templates had inline. */
+.tree a.summary {
+  color: inherit;
+}
+
+.result-page h2,
+.result-page h3 {
+  font-size: 1.05rem;
+  overflow-wrap: anywhere;
+}
+
+.analysis-view h3 {
+  font-size: 1rem;
+  margin: 1rem 0 0.25rem;
+}
+
+.analysis-view pre {
+  margin: 0.25rem 0;
+  padding: 0.5rem;
+  max-height: 40rem;
+  overflow: auto;
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+.analysis-view pre.wrap {
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.analysis-view .fields th {
+  text-align: left;
+  vertical-align: top;
+  padding-right: 1rem;
+  white-space: nowrap;
+}
+
+.analysis-view .fields td {
+  overflow-wrap: anywhere;
+}
+
+.analysis-view .scroll {
+  max-height: 600px;
+  overflow: auto;
+}
+
+.analysis-view .rows {
+  border-collapse: collapse;
+}
+
+.analysis-view .rows th,
+.analysis-view .rows td {
+  border: 1px solid var(--border);
+  padding: 0.15rem 0.4rem;
+  text-align: left;
+}
+
+.analysis-view .rows thead th {
+  position: sticky;
+  top: 0;
+  background: var(--surface);
+}
+
+.analysis-view .scroll .rows td {
+  max-width: 30rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.analysis-view .block {
+  margin: 0.5rem 0;
+}
+
+.analysis-view .block summary {
+  cursor: pointer;
+}
+
+.analysis-view .panel {
+  margin: 0.75rem 0;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.analysis-view .panel h3 {
+  margin-top: 0;
+}
+
+.analysis-view .matches {
+  padding-left: 1.25rem;
+}
+
+.analysis-view .matches li {
+  margin-bottom: 0.5rem;
+  overflow-wrap: anywhere;
+}
+
+.clipped {
+  color: var(--muted);
+  font-style: italic;
+}
+
+/* ace3's yara_analysis_v3_4.html: whitespace in a matched value drawn as an editor shows it, and the meta's
+   line numbers. */
+.yara-ws {
+  opacity: 0.5;
+}
+
+.yara-sp {
+  position: relative;
+  white-space: pre-wrap;
+}
+
+.yara-sp::after {
+  content: "\00b7";
+  position: absolute;
+  left: 0;
+  right: 0;
+  text-align: center;
+  opacity: 0.5;
+}
+
+.yara-hexdump mark {
+  padding: 0;
+}
+
+.yara-meta {
+  counter-reset: yara-meta-line;
+}
+
+.yara-meta-line::before {
+  counter-increment: yara-meta-line;
+  content: counter(yara-meta-line);
+  display: inline-block;
+  width: 2.5em;
+  margin-right: 1em;
+  text-align: right;
+  opacity: 0.5;
+  user-select: none;
+}
+
+/* An observable's actions (PLAN.md 5.9): ace3's dropdown, as <details>. */
+.tree .actions {
+  display: inline-block;
+  margin-left: 0.5rem;
+  font-size: 0.85em;
+}
+
+.tree .actions summary {
+  cursor: pointer;
+  color: var(--muted);
+}
+
+.tree .actions ul {
+  list-style: none;
+  margin: 0.15rem 0;
+  padding: 0.25rem 0.5rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+.comment-page form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-width: 40rem;
+}
+
+.comment-page h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+textarea {
+  font: inherit;
+  color: var(--text);
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.25rem 0.5rem;
+}

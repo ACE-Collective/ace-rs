@@ -1,0 +1,16 @@
+{#- rdap_analysis (src/analysis.rs), from ace3's analysis/rdap.html, which prints the details: each field by
+    its key, and the response under a summary. -#}
+<table class="fields">
+{%- for row in self.fields() %}
+<tr><th>{{ row.name }}</th><td>{{ row.value }}</td></tr>
+{%- endfor %}
+</table>
+{%- if let Some(raw) = self.raw_json() %}
+<details class="block">
+<summary>rdap_raw_json</summary>
+<pre class="json">{{ raw.text }}</pre>
+{%- if raw.more > 0 %}
+<p class="clipped">{{ raw.more }} more bytes of the response not shown.</p>
+{%- endif %}
+</details>
+{%- endif %}

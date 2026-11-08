@@ -14,6 +14,11 @@
 {%- if let Some(time) = node.time %} <span class="time">@ {{ time }}</span>{% endif %}
 {%- for detection in node.detections %} <span class="detection" title="{{ detection }}">detection: {{ detection }}</span>{% endfor %}
 {%- for tag in node.tags %} <span class="tag">{{ tag }}</span>{% endfor %}
+{%- if !node.actions.is_empty() %}
+<details class="actions"><summary>Actions</summary><ul>
+{%- for action in node.actions %}<li><a href="{{ action.href }}">{{ action.label }}</a></li>{% endfor -%}
+</ul></details>
+{%- endif %}
 {%- if !node.comments.is_empty() %}
 <ul class="comments">
 {%- for comment in node.comments %}
@@ -23,7 +28,7 @@
 {%- endif %}
 {%- when TreeLine::Result(node) %}
 <li class="result" id="{{ node.anchor }}" data-module="{{ node.module }}">
-<span class="summary" title="{{ node.module }}">{{ node.title }}</span>
+<a class="summary" href="{{ node.href }}" title="{{ node.module }}">{{ node.title }}</a>
 {%- for tag in node.tags %} <span class="tag">{{ tag }}</span>{% endfor %}
 {%- when TreeLine::Jump(anchor) %}
 <li class="jump"><a href="#{{ anchor }}">Jump To Analysis</a></li>

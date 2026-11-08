@@ -3,9 +3,12 @@
 //! type of its own, which that module's results add.
 //!
 //! The ticket lookup stands in for a site's lookup in its own ticket system. For an fqdn it adds
-//! an `example_ticket` observable; for a ticket it records the ticket and adds nothing.
+//! an `example_ticket` observable; for a ticket it records the ticket and adds nothing. Its results
+//! have a view of the site's own, its analysis template (5.9), and a ticket has an observable action
+//! of the site's own that opens it, both named by the binary's list.
 
 use ace_app::App;
+use ace_gui::{AnalysisView, ObservableAction};
 use ace_results::{AnalysisType, NewObservable, ObservableKind, ObservableType, ResultEnvelope};
 use ace_sdk::{Lookup, Module, ModuleError, Outcome, TaskContext};
 use schemars::JsonSchema;
@@ -30,7 +33,20 @@ pub fn app() -> App {
         .parser_pool(ace::parser_pool())
         .lookup_pool(ace::lookup_pool().module::<TicketLookup>())
         .module_in_group("correlation", TicketLookup::NAME)
+        .analysis_view::<TicketAnalysis>()
+        .observable_action(OPEN_TICKET)
 }
+
+/// An observable action of the site's own (PLAN.md 5.9): a ticket opens in the site's ticket system.
+pub const OPEN_TICKET: ObservableAction =
+    ObservableAction::new("example_open_ticket", "Open Ticket", |target| {
+        (target.kind == TICKET.as_str()).then(|| {
+            format!(
+                "https://tickets.example.com/ticket/{}",
+                ace_gui::actions::encode(target.value)
+            )
+        })
+    });
 
 pub struct TicketLookup;
 
@@ -45,6 +61,21 @@ impl AnalysisType for TicketAnalysis {
     const NAME: &'static str = "example_ticket_analysis";
     const VERSION: u32 = 1;
     const MODULE: &'static str = TicketLookup::NAME;
+}
+
+/// How a ticket lookup's result shows on its page.
+#[derive(askama::Template)]
+#[template(path = "ticket_analysis.html")]
+pub struct TicketView<'a> {
+    pub analysis: &'a TicketAnalysis,
+}
+
+impl AnalysisView for TicketAnalysis {
+    type View<'a> = TicketView<'a>;
+
+    fn view(&self) -> TicketView<'_> {
+        TicketView { analysis: self }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Deserialize, JsonSchema)]

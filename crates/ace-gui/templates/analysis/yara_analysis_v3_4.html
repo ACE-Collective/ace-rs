@@ -1,0 +1,49 @@
+{#- yara_scan_results (src/analysis.rs), from ace3's analysis/yara_analysis_v3_4.html: a panel a rule, its
+    string matches under a summary. ace3's style block is in the stylesheet, and its Bootstrap collapse is
+    <details>. -#}
+{%- if analysis.scan_results.is_empty() %}
+<p class="muted">No Yara scan results available.</p>
+{%- endif %}
+{%- for result in analysis.scan_results %}
+<section class="panel yara">
+<h3>{{ result.rule }}</h3>
+<table class="fields">
+<tr><th>target</th><td><code>{{ result.target }}</code></td></tr>
+<tr><th>namespace</th><td>{{ result.namespace }}</td></tr>
+{%- if !result.meta.is_empty() %}
+<tr><th>meta</th><td><pre class="yara-meta">{% for line in self.meta_lines(result) %}<span class="yara-meta-line">{{ line }}</span>
+{% endfor %}</pre></td></tr>
+{%- endif %}
+{%- if !result.tags.is_empty() %}
+<tr><th>tags</th><td>{{ result.tags|join(", ") }}</td></tr>
+{%- endif %}
+</table>
+<details class="block">
+<summary>String Matches ({{ result.context.len() }})</summary>
+<ul class="matches">
+{%- for m in self.matches(result) %}
+<li>position <b>{{ m.offset }}</b> string <b>{{ m.identifier }}</b> value <b class="yara-value">
+{%- for glyph in m.value %}
+{%- match glyph %}
+{%- when Glyph::Text(text) %}{{ text }}
+{%- when Glyph::Space %}<span class="yara-sp"> </span>
+{%- when Glyph::Symbol(symbol) %}<span class="yara-ws">{{ symbol }}</span>
+{%- endmatch %}
+{%- endfor %}</b>
+{%- if m.more > 0 %} <span class="clipped">and {{ m.more }} more bytes</span>{% endif %}
+{%- if let Some(dump) = m.dump %}
+<pre class="yara-hexdump">{% for line in dump %}{% for segment in line %}{% if segment.marked %}<mark>{{ segment.text }}</mark>{% else %}{{ segment.text }}{% endif %}{% endfor %}
+{% endfor %}</pre>
+{%- endif %}
+{%- if let Some(plain) = m.plain_dump %}
+<pre class="yara-hexdump">{{ plain.text }}</pre>
+{%- endif %}
+</li>
+{%- endfor %}
+</ul>
+{%- if self.more_matches(result) > 0 %}
+<p class="clipped">{{ self.more_matches(result) }} more matches not shown.</p>
+{%- endif %}
+</details>
+</section>
+{%- endfor %}

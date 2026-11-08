@@ -37,8 +37,11 @@
 //! (`templates`). The `data-init` expression holds only the alert's uuid and a hex hash, which can't
 //! hold a quote. The page has no inline script or style, so it keeps 5.7's policy.
 //!
+//! A result's summary links to its page, `GET /alerts/{id}/results/{result}` (5.9), which draws it with its
+//! type's view (`crate::analysis`) and lists the observables it added, as ace3's analysis page does.
+//!
 //! From ace3, and what differs: the section ids, the tree's shape and the jump links are ace3's. Not here
-//! yet: the analysis templates of each module (5.9), observable actions (5.9, #1032), the pruned
+//! yet: observable actions (#1032), the pruned
 //! "Critical Analysis Overview", tag levels and colours, pivot links, summary details, and the other
 //! sections of ace3's page, which come with what they show. A section opens and closes with `<details>`,
 //! with no script, and its pin is a form that posts to `/preferences/alert-section`, which comes back
@@ -65,6 +68,8 @@ use tokio::sync::{OwnedSemaphorePermit, Semaphore};
 use uuid::Uuid;
 
 use crate::Gui;
+use crate::actions::{ActionLink, ObservableActions};
+use crate::analysis::{DrawnView, Views};
 use crate::session::{Failure, SignedIn, render};
 use crate::templates::Layout;
 
@@ -179,6 +184,8 @@ pub struct ObservableNode {
     pub tags: Vec<String>,
     pub detections: Vec<String>,
     pub comments: Vec<CommentView>,
+    /// Its observable actions (5.9), where it's drawn in full.
+    pub actions: Vec<ActionLink>,
 }
 
 /// A module's result where the tree shows it.
@@ -190,6 +197,8 @@ pub struct ResultNode {
     /// Its summary, or the module's name when it has none, as ace3 shows the analysis itself.
     pub title: String,
     pub tags: Vec<String>,
+    /// Its page (5.9), which holds only the alert's uuid and the result's id.
+    pub href: String,
 }
 
 /// One step of drawing the tree: the template draws these in order, so it needs no recursion.
@@ -229,7 +238,11 @@ enum Step<'a> {
 
 /// The tree's lines, from a snapshot and the comments on its observables. This is the view function the
 /// page and the stream both draw with, and a test calls with a fixture.
-pub fn tree_view(tree: &AlertTree, comments: &[ObservableComment]) -> TreeView {
+pub fn tree_view(
+    tree: &AlertTree,
+    comments: &[ObservableComment],
+    actions: &ObservableActions,
+) -> TreeView {
     let by_id: HashMap<i64, &AlertObservable> =
         tree.observables.iter().map(|o| (o.id, o)).collect();
     let mut added_by: HashMap<i64, Vec<i64>> = HashMap::new();
@@ -274,6 +287,13 @@ pub fn tree_view(tree: &AlertTree, comments: &[ObservableComment]) -> TreeView {
         )
         .chain(tree.observables.iter())
         .map(|o| o.id);
+    let context = Context {
+        alert: tree.alert.summary.id,
+        actions,
+        by_id,
+        added_by,
+        comments_of,
+    };
     let mut drawn: HashSet<i64> = HashSet::new();
     let mut lines = Vec::new();
     let mut stack: Vec<Step<'_>> = Vec::new();
@@ -282,14 +302,7 @@ pub fn tree_view(tree: &AlertTree, comments: &[ObservableComment]) -> TreeView {
             continue;
         }
         stack.push(Step::Observable(start));
-        walk(
-            &mut stack,
-            &mut drawn,
-            &mut lines,
-            &by_id,
-            &added_by,
-            &comments_of,
-        );
+        walk(&context, &mut stack, &mut drawn, &mut lines);
     }
     TreeView {
         lines,
@@ -297,15 +310,31 @@ pub fn tree_view(tree: &AlertTree, comments: &[ObservableComment]) -> TreeView {
     }
 }
 
+/// What the walk reads: the alert, its actions, its observables by id, which result added which, and the
+/// comments.
+struct Context<'a> {
+    alert: Uuid,
+    actions: &'a ObservableActions,
+    by_id: HashMap<i64, &'a AlertObservable>,
+    added_by: HashMap<i64, Vec<i64>>,
+    comments_of: HashMap<(&'a str, &'a str), Vec<CommentView>>,
+}
+
 /// Draws what's on the stack, and everything below it.
 fn walk<'a>(
+    context: &Context<'a>,
     stack: &mut Vec<Step<'a>>,
     drawn: &mut HashSet<i64>,
     lines: &mut Vec<TreeLine>,
-    by_id: &HashMap<i64, &'a AlertObservable>,
-    added_by: &HashMap<i64, Vec<i64>>,
-    comments_of: &HashMap<(&str, &str), Vec<CommentView>>,
 ) {
+    let Context {
+        alert,
+        actions,
+        by_id,
+        added_by,
+        comments_of,
+    } = context;
+    let alert = *alert;
     while let Some(step) = stack.pop() {
         match step {
             Step::Line(line) => lines.push(line),
@@ -315,7 +344,7 @@ fn walk<'a>(
                     continue;
                 };
                 let reference = !drawn.insert(id);
-                let node = observable_node(
+                let mut node = observable_node(
                     observable,
                     reference,
                     comments_of
@@ -323,6 +352,9 @@ fn walk<'a>(
                         .cloned()
                         .unwrap_or_default(),
                 );
+                if !reference {
+                    node.actions = actions.links(alert, observable);
+                }
                 let anchor = node.anchor.clone();
                 lines.push(TreeLine::Observable(node));
                 if observable.results.is_empty() {
@@ -350,6 +382,7 @@ fn walk<'a>(
                         .clone()
                         .unwrap_or_else(|| result.module.clone()),
                     tags: result.tags.clone(),
+                    href: result_href(alert, result.id),
                 }));
                 match added_by.get(&result.id) {
                     Some(children) if !children.is_empty() => {
@@ -363,6 +396,11 @@ fn walk<'a>(
             }
         }
     }
+}
+
+/// A result's page.
+fn result_href(alert: Uuid, result: i64) -> String {
+    format!("/alerts/{alert}/results/{result}")
 }
 
 fn observable_node(
@@ -391,6 +429,7 @@ fn observable_node(
         tags: observable.tags.clone(),
         detections,
         comments,
+        actions: Vec::new(),
     }
 }
 
@@ -440,14 +479,16 @@ pub struct AlertPage {
 }
 
 impl AlertPage {
-    /// The page for a tree, its comments and the viewer's section choices.
+    /// The page for a tree, its comments, the binary's observable actions and the viewer's section
+    /// choices.
     pub fn new(
         layout: Layout,
         tree: &AlertTree,
         comments: &[ObservableComment],
+        actions: &ObservableActions,
         sections: &BTreeMap<String, bool>,
     ) -> Result<Self, askama::Error> {
-        let view = tree_view(tree, comments);
+        let view = tree_view(tree, comments, actions);
         let (_, version) = AlertTreeFragment { tree: view.clone() }.render_versioned()?;
         let summary = &tree.alert.summary;
         let section = |id: &'static str| {
@@ -548,12 +589,126 @@ pub(crate) async fn page(
         tracing::warn!(%actor, "reading alert_sections failed, so the page has the defaults: {error}");
         BTreeMap::new()
     });
-    match AlertPage::new(viewer.layout, &tree, &comments, &sections) {
+    match AlertPage::new(viewer.layout, &tree, &comments, &gui.actions, &sections) {
         Ok(page) => render(&page),
         Err(error) => {
             tracing::error!("an alert page couldn't be drawn: {error}");
             (StatusCode::INTERNAL_SERVER_ERROR, "internal error").into_response()
         }
+    }
+}
+
+/// An observable a result added, as the result's page lists it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AddedObservable {
+    /// Where the tree draws it in full.
+    pub anchor: String,
+    pub label: String,
+    pub value: String,
+    pub tags: Vec<String>,
+}
+
+/// `/alerts/{id}/results/{result}` (5.9): one module's result on one observable, drawn by its type's view
+/// (`crate::analysis`), with the observables it added. It's ace3's analysis page for one analysis.
+#[derive(Debug, Template)]
+#[template(path = "result.html")]
+pub struct ResultPage {
+    pub layout: Layout,
+    pub alert_id: Uuid,
+    pub alert_title: String,
+    pub observable_label: String,
+    pub observable_value: String,
+    pub title: String,
+    pub module: String,
+    pub analysis_type: String,
+    pub schema_version: i32,
+    pub created_at: String,
+    pub tags: Vec<String>,
+    pub view: DrawnView,
+    pub added: Vec<AddedObservable>,
+}
+
+impl ResultPage {
+    /// The page of the result with this id in a tree, drawn with `views`, or None when the tree has no
+    /// such result.
+    pub fn new(layout: Layout, tree: &AlertTree, id: i64, views: &Views) -> Option<Self> {
+        let (observable, result) = tree.observables.iter().find_map(|observable| {
+            observable
+                .results
+                .iter()
+                .find(|result| result.id == id)
+                .map(|result| (observable, result))
+        })?;
+        let by_id: HashMap<i64, &AlertObservable> =
+            tree.observables.iter().map(|o| (o.id, o)).collect();
+        let mut seen = HashSet::new();
+        let added = tree
+            .additions
+            .iter()
+            .filter(|addition| addition.result == id && seen.insert(addition.observable))
+            .filter_map(|addition| by_id.get(&addition.observable))
+            .map(|added| {
+                let node = observable_node(added, false, Vec::new());
+                AddedObservable {
+                    anchor: node.anchor,
+                    label: node.label,
+                    value: node.value,
+                    tags: node.tags,
+                }
+            })
+            .collect();
+        let node = observable_node(observable, false, Vec::new());
+        Some(ResultPage {
+            layout,
+            alert_id: tree.alert.summary.id,
+            alert_title: tree.alert.summary.title.clone(),
+            observable_label: node.label,
+            observable_value: node.value,
+            title: result
+                .summary
+                .clone()
+                .unwrap_or_else(|| result.module.clone()),
+            module: result.module.clone(),
+            analysis_type: result.analysis_type.clone(),
+            schema_version: result.schema_version,
+            created_at: result
+                .created_at
+                .format("%Y-%m-%d %H:%M:%S UTC")
+                .to_string(),
+            tags: result.tags.clone(),
+            view: views.draw(
+                &result.analysis_type,
+                result.schema_version,
+                &result.details,
+            ),
+            added,
+        })
+    }
+}
+
+/// `GET /alerts/{id}/results/{result}`. It reads the alert's tree under `alert:read`, as the alert's page
+/// does, so a result is found only in an alert the viewer may read.
+pub(crate) async fn result_page(
+    State(gui): State<Gui>,
+    viewer: SignedIn,
+    parts: Parts,
+    Path((raw, result)): Path<(String, String)>,
+) -> Response {
+    let id = match alert_id(&raw, &parts) {
+        Ok(id) => id,
+        Err(failure) => return failure.into_response(),
+    };
+    let missing = || Failure::new(StatusCode::NOT_FOUND, "There's no such result.", &parts);
+    let Ok(result) = result.parse::<i64>() else {
+        return missing().into_response();
+    };
+    let tree = match gui.service.alert_tree(&viewer.actor, id).await {
+        Ok(tree) => tree,
+        Err(error) => return Failure::from_service(error, &parts).into_response(),
+    };
+    match ResultPage::new(viewer.layout, &tree, result, &gui.views) {
+        Some(page) => render(&page),
+        None => missing().into_response(),
     }
 }
 
@@ -672,7 +827,7 @@ impl Streaming {
                         }
                     };
                     let fragment = AlertTreeFragment {
-                        tree: tree_view(&tree, &comments),
+                        tree: tree_view(&tree, &comments, &self.gui.actions),
                     };
                     let (html, version) = match fragment.render_versioned() {
                         Ok(drawn) => drawn,

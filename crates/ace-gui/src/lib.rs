@@ -19,7 +19,11 @@
 //! - `preferences`: the theme form, and the alert page's section pins. The base layout draws every page
 //!   in the viewer's theme.
 //! - `alert`: an alert's page and its analysis tree, and the event stream that draws a result on an open
-//!   page when it lands (5.8).
+//!   page when it lands (5.8), and a result's page (5.9).
+//! - `analysis`: each analysis type's view, ace3's analysis templates, by type from the binary's list
+//!   (5.9).
+//! - `actions`: the observable actions the tree offers, from the binary's list, and the comment form
+//!   ace3's "Add Comment" opens (5.9, #1032).
 //!
 //! From ace3's `app/templates/base.html` and `core.html`, and what differs: the layout keeps ace3's
 //! theme attribute on `<html>`, its five themes and its log out by POST. It has none of ace3's jQuery,
@@ -33,7 +37,9 @@ use axum::Router;
 use axum::extract::DefaultBodyLimit;
 use axum::routing::{get, post};
 
+pub mod actions;
 pub mod alert;
+pub mod analysis;
 mod assets;
 mod auth;
 mod headers;
@@ -41,7 +47,9 @@ mod preferences;
 mod session;
 pub mod templates;
 
+pub use actions::{ObservableAction, ObservableActions};
 pub use alert::LiveLimits;
+pub use analysis::{AnalysisView, ViewEntry, Views};
 pub use assets::{Asset, asset_named};
 pub use headers::content_security_policy;
 
@@ -57,6 +65,8 @@ pub struct Gui {
     service: Service,
     transport: Transport,
     live: std::sync::Arc<alert::Live>,
+    views: std::sync::Arc<Views>,
+    actions: std::sync::Arc<ObservableActions>,
 }
 
 impl Gui {
@@ -70,7 +80,23 @@ impl Gui {
             service,
             transport,
             live: std::sync::Arc::new(alert::Live::new(limits)),
+            views: std::sync::Arc::new(Views::builtin()),
+            actions: std::sync::Arc::new(ObservableActions::builtin()),
         }
+    }
+
+    /// The GUI drawing results with these analysis views (5.9), the binary's list, rather than the
+    /// open-source ones alone.
+    pub fn with_views(mut self, views: Views) -> Self {
+        self.views = std::sync::Arc::new(views);
+        self
+    }
+
+    /// The GUI offering these observable actions (5.9), the binary's list, rather than the open-source
+    /// ones alone.
+    pub fn with_actions(mut self, actions: ObservableActions) -> Self {
+        self.actions = std::sync::Arc::new(actions);
+        self
     }
 
     /// How many alert streams are open.
@@ -92,6 +118,13 @@ impl Gui {
             )
             .route("/alerts/{id}", get(alert::page))
             .route("/alerts/{id}/live", get(alert::live))
+            .route("/alerts/{id}/results/{result}", get(alert::result_page))
+            .route(
+                "/alerts/{id}/observables/{observable}/comment",
+                get(actions::comment_page)
+                    .post(actions::add_comment)
+                    .layer(DefaultBodyLimit::max(actions::MAX_COMMENT_FORM_BYTES)),
+            )
             .route("/static/{name}", get(assets::serve))
             .layer(DefaultBodyLimit::max(MAX_FORM_BYTES))
             .layer(axum::middleware::from_fn(headers::secure))

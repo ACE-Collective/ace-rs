@@ -52,6 +52,10 @@ fn matches_the_reference_dumps_or_lists_each_difference() {
         let outcome = harness
             .run_parser(observable)
             .unwrap_or_else(|e| panic!("{}: {e}", dump.name));
+        if dump.short_name() == "ace3/archive/test.zip" {
+            // the fixture ace-gui's analysis view test draws (PLAN.md 5.9)
+            ace_testkit::check_view_fixture("archive_test_zip", &outcome);
+        }
         let differences = diff(&dump.normal_form("ArchiveAnalysis"), &normal_form(&outcome));
         compared.push((dump.short_name().to_owned(), differences));
     }

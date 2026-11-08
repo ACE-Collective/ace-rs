@@ -708,6 +708,13 @@ mod tests {
                 ("encrypted_identity_streams.pdf", "none", 128, 4),
             ] {
                 let result = run(&format!("ace4/pdf/{sample}")).expect("a result");
+                if sample == "encrypted_aes_128.pdf" {
+                    // the fixture ace-gui's analysis view test draws (PLAN.md 5.9)
+                    ace_testkit::check_view_fixture(
+                        "pdf_encrypted_aes_128",
+                        &Outcome::Done(result.clone()),
+                    );
+                }
                 let encryption = result.details.encryption.clone().expect("its encryption");
                 assert_eq!(
                     (encryption.method.as_str(), encryption.bits, encryption.r),

@@ -1,0 +1,30 @@
+{#- olevba_analysis (src/analysis.rs): ace3 prints its details with analysis/default_template.html. Each
+    macro's code is also a file the module added. -#}
+<table class="fields">
+<tr><th>type</th><td>{% if let Some(kind) = analysis.kind %}{{ kind }}{% else %}<span class="muted">none</span>{% endif %}</td></tr>
+{%- if !analysis.keyword_summary.is_empty() %}
+<tr><th>keyword_summary</th><td>{% for (kind, count) in analysis.keyword_summary %}{% if !loop.first %}, {% endif %}{{ kind }}={{ count }}{% endfor %}</td></tr>
+{%- endif %}
+</table>
+{%- for m in self.macros() %}
+<section class="panel">
+<h3>{{ m.vba_filename }}</h3>
+<table class="fields">
+{%- if let Some(name) = m.file_name %}
+<tr><th>file_name</th><td>{{ name }}</td></tr>
+{%- endif %}
+<tr><th>stream_path</th><td>{{ m.stream_path }}</td></tr>
+<tr><th>local_path</th><td><code>{{ m.local_path }}</code></td></tr>
+</table>
+<details class="block">
+<summary>vba_code</summary>
+<pre>{{ m.code.text }}</pre>
+{%- if m.code.more > 0 %}
+<p class="clipped">{{ m.code.more }} more bytes of code not shown. The whole macro is the file this result added.</p>
+{%- endif %}
+</details>
+</section>
+{%- endfor %}
+{%- if self.more_macros() > 0 %}
+<p class="clipped">{{ self.more_macros() }} more macros not shown. Each is a file this result added.</p>
+{%- endif %}

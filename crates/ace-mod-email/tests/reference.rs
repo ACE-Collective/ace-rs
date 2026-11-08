@@ -36,6 +36,10 @@ fn matches_the_reference_dumps_or_lists_each_difference() {
         let outcome = harness
             .run_parser(observable)
             .unwrap_or_else(|e| panic!("{}: {e}", dump.name));
+        if dump.short_name() == "ace3/email/pdf_attachment.email.rfc822" {
+            // the fixture ace-gui's analysis view test draws (PLAN.md 5.9)
+            ace_testkit::check_view_fixture("email_pdf_attachment", &outcome);
+        }
         let differences = diff(&dump.normal_form("EmailAnalysis"), &normal_form(&outcome));
         compared.push((dump.short_name().to_owned(), differences));
     }

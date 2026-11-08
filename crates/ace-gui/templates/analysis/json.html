@@ -1,0 +1,6 @@
+{#- A result's details as JSON (src/analysis.rs), as ace3's analysis/default_template.html prints them for a
+    type with no template of its own. -#}
+<pre class="json">{{ json.text }}</pre>
+{%- if json.more > 0 %}
+<p class="clipped">{{ json.more }} more bytes of details not shown.</p>
+{%- endif %}

@@ -1,0 +1,70 @@
+{
+  "analysis_type": "msoffice_encryption_analysis",
+  "schema_version": 1,
+  "details": {
+    "email": true,
+    "email_body": "The password is Secr3tPw\n\n",
+    "word_list": [
+      "VelvetSweatshop",
+      "/01Hannes Ruescher/01",
+      "3tPw",
+      "Secr",
+      "Secr3",
+      "Secr3t",
+      "Secr3tP",
+      "Secr3tPw",
+      "assw",
+      "asswo",
+      "asswor",
+      "assword",
+      "cr3t",
+      "cr3tP",
+      "cr3tPw",
+      "ecr3",
+      "ecr3t",
+      "ecr3tP",
+      "ecr3tPw",
+      "pass",
+      "passw",
+      "passwo",
+      "passwor",
+      "password",
+      "r3tP",
+      "r3tPw",
+      "sswo",
+      "sswor",
+      "ssword",
+      "swor",
+      "sword",
+      "word"
+    ],
+    "password": "Secr3tPw",
+    "error": null,
+    "encryption_info": null
+  },
+  "summary": "MSOffice Encryption Analysis: password Secr3tPw",
+  "analyzed": {
+    "tags": [
+      "encrypted_msoffice"
+    ]
+  },
+  "files": [
+    {
+      "path": "encrypted_agile.docx.decrypted",
+      "sha256": "6a65fb99c4c7ecb88273b7f1d49b00640de95cb682cb1a63df0c08764f0ef24d",
+      "size": 12529,
+      "yara_meta": [
+        "type=document.office"
+      ],
+      "tags": [
+        "decrypted_msoffice"
+      ],
+      "detections": [
+        {
+          "description": "Was able to decrypt based on contents of email.",
+          "signature_uuid": "ef715326-081e-4ece-97ba-02817b5a28cd"
+        }
+      ]
+    }
+  ]
+}
