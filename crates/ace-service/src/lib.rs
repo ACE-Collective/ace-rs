@@ -43,6 +43,9 @@
 //! `observable_comments` keeps analysts' comments on an observable by its type and value, across alerts,
 //! for 5.6's `observable_comments` router, and reads an alert's for 5.8's alert view.
 //!
+//! `preferences` keeps a user's GUI preferences, ace3's `user_preferences` router, for 5.7's GUI and its
+//! routes under `/api/users/v1/me/preferences`.
+//!
 //! Writes outside this crate today:
 //! - `Orchestrator::set_mode` and `queue::cancel_root` have no caller outside the core's own flows
 //!   and tests. Each gets a function here when a route for it appears (5.5, 5.6).
@@ -59,6 +62,7 @@ mod gate;
 mod observable_comments;
 mod observables;
 mod permission;
+mod preferences;
 mod source;
 mod submit;
 mod users;
@@ -99,6 +103,7 @@ pub use permission::{
     InvalidPermission, OBSERVABLE_READ, OBSERVABLE_WRITE, PermissionName, PermissionPattern,
     SIGNATURE_DOWNLOAD, SIGNATURE_QA_PURGE, SIGNATURE_READ, USER_READ, USER_SELF, USER_WRITE,
 };
+pub use preferences::{Preference, PreferenceKey, PreferenceValue, Theme, ThemePreference};
 pub use source::with_source_ip;
 pub use users::{ApiKey, Grant, Group, MAX_KEY_SCOPE, Profile, User, UserDetail};
 pub use yara_qa::{

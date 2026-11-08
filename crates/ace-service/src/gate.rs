@@ -23,10 +23,10 @@
 //! such as a download: those go through `Gate::write` with `Change::read`, so they have a row like any
 //! write and the audit tests cover them.
 //!
-//! Four writes are a person's own and ask for no permission, because a user with no grants still has
-//! to be able to do them: `login`, `logout`, `change_own_password` and `update_own_profile`, through
-//! `Gate::write_own`. Each still has its audit row, and `tests/service.rs` fails if a fifth function
-//! calls it. A user's reads of their own account go through `Gate::read_own`, which checks nothing.
+//! Six writes are a person's own and ask for no permission, because a user with no grants still has
+//! to be able to do them: `login`, `logout`, `change_own_password`, `update_own_profile`,
+//! `set_preference` and `reset_preference`, through `Gate::write_own`. Each still has its audit row, and
+//! `tests/service.rs` fails if a seventh function calls it. A user's reads of their own account go through `Gate::read_own`, which checks nothing.
 
 use ace_core::db::{Db, Isolation, Tx, TxFuture};
 use sqlx::PgConnection;

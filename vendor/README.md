@@ -32,3 +32,24 @@ To update: copy the new unrar_sys release from the cargo registry over `unrar_sy
 `.define("RAR_SMP", None)` line from its `build.rs` again, change the versions above, and run
 the archive module's tests and `crates/ace-pool/tests/supervisor.rs`, which unpacks a RAR 5
 archive in a contained task process.
+
+## datastar
+
+`datastar/datastar-1.0.4.js` is Datastar 1.0.4 (starfederation/datastar), the file ace3 vendors as
+`app/static/js/datastar-1.0.4.js`, byte for byte. It's upstream's `bundles/datastar.js` at tag `v1.0.4`
+(commit `1efcdc3cb336ec3e9139491604e770e0329657bc`). The GitHub release has no assets, so that file is the
+published artifact. It's unchanged: 33,553 bytes, SHA-256
+`727844adfc825ee651fb93c544a2a739986f9a21820a94524b35f0cac470cf91`. That hash was checked against
+both `https://raw.githubusercontent.com/starfederation/datastar/v1.0.4/bundles/datastar.js` and
+`https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.4/bundles/datastar.js`, the URL
+`ace3/docs/GUI_DATASTAR.md` names, and it matches the hash recorded there. There's no npm and no build
+step: `ace-gui` embeds the file in the binary, and `crates/ace-gui/tests/gui.rs` fails if the bytes it
+serves stop matching the hash above.
+
+Its licence is MIT, `datastar/LICENSE.md`, upstream's `LICENSE.md` at the same tag.
+
+To update: download `bundles/datastar.js` at the new tag from both URLs above, check they match, save it
+as `datastar/datastar-<version>.js`, replace `LICENSE.md` from the same tag, and change the version,
+commit and hash here and the file name in `crates/ace-gui/src/assets.rs`. ace3's `docs/GUI_DATASTAR.md`
+lists the syntax that changed at 1.0: an attribute that's wrong does nothing, so check each page in a
+browser.

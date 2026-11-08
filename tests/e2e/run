@@ -13,7 +13,8 @@ responder under a project of its own (ace4-e2e), with:
 
 It makes an API key holding alert:create with `ace user create-key` in the ace container, since the
 stack has no default key (PLAN.md 5.5), and submits through the JSON API with it, as `ace compare`
-does below. Then it submits samples/ace4/email/e2e.email.rfc822, an email with a DKIM signing domain
+does below. It checks the GUI's login page and its Datastar on the same port (PLAN.md 5.7). Then it
+submits samples/ace4/email/e2e.email.rfc822, an email with a DKIM signing domain
 (example.com) in its headers and a zip attachment holding the marker, twice. Each time, the email, archive and YARA modules run in
 email mode; the YARA match on the attachment makes the root an alert in correlation mode, which
 runs RDAP and the Splunk instance, the delayed module, on the domain. The second time the
@@ -55,6 +56,7 @@ A site repository runs the same scenario, without the comparison with ace3, agai
 Its modules differ from ace3's by design, so setting ACE4_E2E_SITE skips the comparison.
 """
 
+import hashlib
 import json
 import os
 import re
@@ -217,6 +219,27 @@ def submit(email, mode="email", observables=()):
         if response.status != 201:
             raise SystemExit(f"e2e: the submission answered {response.status}")
         return json.load(response)["id"]
+
+
+def check_gui(failures):
+    """PLAN.md 5.7: `ace serve` serves the GUI on the JSON API's listener, with its security headers,
+    and Datastar from the binary under a hashed name."""
+    url = f"http://127.0.0.1:{PORT}"
+    with urllib.request.urlopen(f"{url}/login", timeout=30) as response:
+        page = response.read().decode()
+        policy = response.headers.get("Content-Security-Policy", "")
+    script = re.search(r'src="(/static/datastar-1\.0\.4\.[0-9a-f]{16}\.js)"', page)
+    if "script-src 'self' 'nonce-" not in policy or script is None:
+        log("FAIL  the GUI's login page isn't served with its policy and Datastar")
+        failures.append("ace serve doesn't serve the GUI")
+        return
+    with urllib.request.urlopen(f"{url}{script.group(1)}", timeout=30) as response:
+        digest = hashlib.sha256(response.read()).hexdigest()
+    if digest != "727844adfc825ee651fb93c544a2a739986f9a21820a94524b35f0cac470cf91":
+        log(f"FAIL  the GUI serves a Datastar with SHA-256 {digest}")
+        failures.append("the GUI's Datastar isn't the vendored release")
+        return
+    log("ok    the GUI serves its login page and the vendored Datastar")
 
 
 def wait_for(what, check, within, every=0.25):
@@ -476,6 +499,7 @@ def main(argv):
             if compare_with_ace3() != 0:
                 failures.append("ace compare couldn't run every sample; see above")
             return finish(failures)
+        check_gui(failures)
         email = (ROOT / "samples" / SAMPLE).read_bytes()
         first, undisturbed = run(email, kill=False, failures=failures)
         second, killed = run(email, kill=True, failures=failures)

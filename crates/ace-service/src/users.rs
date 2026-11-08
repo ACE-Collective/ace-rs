@@ -273,7 +273,7 @@ pub(crate) async fn insert_scope(
     Ok(())
 }
 
-fn as_user(actor: &Actor) -> Result<(UserId, &str), ServiceError> {
+pub(crate) fn as_user(actor: &Actor) -> Result<(UserId, &str), ServiceError> {
     match actor {
         Actor::User { id, name } => Ok((*id, name)),
         Actor::ApiKey { .. } | Actor::Internal { .. } => Err(ServiceError::PermissionDenied {

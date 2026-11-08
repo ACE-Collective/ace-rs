@@ -1,0 +1,133 @@
+//! The pages, as askama templates in this crate's `templates/` with a struct each. askama compiles a
+//! template into Rust at build time, so the binary holds them all and a template that uses a field its
+//! struct doesn't have fails the build, which is PLAN.md 5.7's Done check. These doctests are that
+//! check, and `cargo test` runs them. A page that extends the base layout, with its `layout`, builds:
+//!
+//! ```
+//! use ace_gui::templates::Layout;
+//! use askama::Template;
+//!
+//! #[derive(Template)]
+//! #[template(
+//!     source = r#"{% extends "base.html" %}{% block content %}{{ present }}{% endblock %}"#,
+//!     ext = "html"
+//! )]
+//! struct Page {
+//!     layout: Layout,
+//!     present: String,
+//! }
+//!
+//! let page = Page { layout: Layout::signed_out("a-nonce"), present: "<b>".to_owned() };
+//! assert!(page.render().unwrap().contains("&#60;b&#62;"));
+//! ```
+//!
+//! The same page naming a field the struct doesn't have doesn't build. The error is rustc's E0609, "no
+//! field `missing` on type", at the struct's `#[derive(Template)]`. Stable rustdoc doesn't check the code a `compile_fail` test names,
+//! only that compiling fails, so what pins the cause is that this differs from the test above only in
+//! the field it names:
+//!
+//! ```compile_fail,E0609
+//! use ace_gui::templates::Layout;
+//! use askama::Template;
+//!
+//! #[derive(Template)]
+//! #[template(
+//!     source = r#"{% extends "base.html" %}{% block content %}{{ missing }}{% endblock %}"#,
+//!     ext = "html"
+//! )]
+//! struct Page {
+//!     layout: Layout,
+//!     present: String,
+//! }
+//! ```
+//!
+//! And the base layout itself fails for a page whose struct has no `layout`:
+//!
+//! ```compile_fail,E0609
+//! use askama::Template;
+//!
+//! #[derive(Template)]
+//! #[template(path = "base.html")]
+//! struct Page {
+//!     present: String,
+//! }
+//! ```
+//!
+//! Escaping: askama escapes every value for HTML in a template whose name ends in `.html`, unless it's
+//! marked `|safe` or the template sets `escape = "none"`. Every template here ends in `.html`, none uses
+//! either, and there's no `askama.toml` to change the escapers, which `tests/gui.rs` checks by reading
+//! them. A value is text, and askama's escaper writes `&`, `<`, `>`, `"` and `'` as entities, so it's safe
+//! inside an element or a quoted attribute. It isn't safe as a URL in `href`, or as code in a `data-*`
+//! expression, so a template puts neither text from an alert nor any other outside value there.
+
+use ace_service::Theme;
+use askama::Template;
+
+use crate::assets::{DATASTAR, STYLESHEET};
+
+/// What the base layout needs, which every page has as its `layout`.
+#[derive(Debug, Clone)]
+pub struct Layout {
+    /// This response's CSP nonce (`headers`), which Datastar's script and `<html data-nonce>` carry.
+    pub nonce: String,
+    pub theme: Theme,
+    /// Every theme, for the menu.
+    pub themes: &'static [Theme],
+    /// The signed-in user's name, or None for a visitor who isn't.
+    pub username: Option<String>,
+    /// The page's own path, where the theme form comes back to.
+    pub path: String,
+    pub stylesheet: String,
+    pub datastar: String,
+}
+
+impl Layout {
+    pub fn new(nonce: &str, theme: Theme, username: Option<String>, path: &str) -> Self {
+        Layout {
+            nonce: nonce.to_owned(),
+            theme,
+            themes: Theme::ALL,
+            username,
+            path: path.to_owned(),
+            stylesheet: STYLESHEET.url(),
+            datastar: DATASTAR.url(),
+        }
+    }
+
+    /// A page for a visitor who isn't signed in, in the default theme.
+    pub fn signed_out(nonce: &str) -> Self {
+        Layout::new(nonce, Theme::default(), None, "/")
+    }
+
+    /// Whether the menu marks this theme as the page's.
+    pub fn is_theme(&self, theme: &Theme) -> bool {
+        *theme == self.theme
+    }
+}
+
+/// `/login`.
+#[derive(Debug, Template)]
+#[template(path = "login.html")]
+pub struct LoginPage {
+    pub layout: Layout,
+    /// Where to go after the login, already checked to be a path on this site.
+    pub next: Option<String>,
+    /// Whether this is the answer to a login that failed.
+    pub failed: bool,
+}
+
+/// `/`, until the alert list (5.10) takes its place, as it is ace3's.
+#[derive(Debug, Template)]
+#[template(path = "home.html")]
+pub struct HomePage {
+    pub layout: Layout,
+}
+
+/// A refusal or a failure, as a page.
+#[derive(Debug, Template)]
+#[template(path = "error.html")]
+pub struct ErrorPage {
+    pub layout: Layout,
+    pub status: u16,
+    pub message: String,
+}

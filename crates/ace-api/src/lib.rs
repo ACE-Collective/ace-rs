@@ -70,9 +70,24 @@
 //! - ace3 lets an API key that inherits its owner's scope read and change its owner's `/me`. Here only a
 //!   user has an account, so every key gets 403.
 //! - A user's `queue`: alerts have no queues yet (PLAN.md 7.13).
-//! - Login and logout are ace3's Flask views, and come with the GUI's login page (5.7), which sets the
-//!   cookie this API reads. ace3's held catalog, the scope picker of a user's own keys, has no route in
+//! - Login and logout are ace3's Flask views, and are the GUI's (`ace-gui`, 5.7), which sets the cookie
+//!   this API reads. ace3's held catalog, the scope picker of a user's own keys, has no route in
 //!   its router: it comes with the preferences page (5.11).
+//!
+//! ace3's `user_preferences` router (PLAN.md 5.6, 5.7), the caller's own, with no grant, as there
+//! (`ace_service`'s `preferences` docs):
+//!
+//! | ace3 `/api/v2/users/me/preferences` | here, under `/api/users/v1/me/preferences` |
+//! |---|---|
+//! | `GET /`, `{"data": {key: ...}}` | `GET`, `{"preferences": [...]}` in key order |
+//! | `GET /{key}` | `GET /{key}` |
+//! | `PUT /{key}`, the value as the body | `PUT /{key}`, the same |
+//! | `DELETE /{key}`, answering the default | `DELETE /{key}`, the same |
+//!
+//! What differs: the only key is `theme` until 5.8 adds `alert_sections` and 5.10 `manage_columns`. A
+//! value that isn't its key's is 400 where ace3 answers 422 with pydantic's errors. ace3 lets an API key
+//! that inherits its owner's scope use these; here a key is refused with 403, as with the rest of `/me`.
+//! Each set and reset that changes something has an audit row, which ace3 doesn't write.
 //!
 //! ace3's `health` router (PLAN.md 5.6):
 //!
@@ -227,6 +242,7 @@ mod error;
 mod health;
 mod observable_comments;
 mod observables;
+mod user_preferences;
 mod users;
 mod yara_qa;
 
@@ -238,8 +254,9 @@ pub use error::ErrorBody;
 #[derive(Debug, Clone)]
 pub struct WebConfig {
     /// Whether the browser reaches this server over TLS, which turns on the session cookie's `Secure`
-    /// attribute and `__Host-` name (`ace_service::SessionCookie`). TLS isn't in the stack yet, so
-    /// `ace serve` says `Plain`; whatever terminates TLS later sets this.
+    /// attribute and `__Host-` name (`ace_service::SessionCookie`). The site says so with
+    /// `ACE4_WEB_TLS=true`, set wherever TLS is terminated in front of `ace serve`. TLS isn't in the
+    /// stack yet, so Compose leaves it unset, which is `Plain`. The GUI (`ace-gui`) is given the same.
     pub transport: Transport,
     /// The largest submission, files included. ace3 has no limit of its own.
     pub max_submission_bytes: usize,
@@ -261,16 +278,26 @@ impl Default for WebConfig {
 }
 
 impl WebConfig {
-    /// The defaults, with the largest submission from `ACE4_MAX_SUBMISSION_BYTES` when it's set.
-    pub fn from_env() -> Self {
+    /// The defaults, with the largest submission from `ACE4_MAX_SUBMISSION_BYTES` when it's set, and the
+    /// transport from `ACE4_WEB_TLS`: `true` or `false`, and unset or empty is `false`. Any other value
+    /// is an error, since a cookie setting that was misspelled shouldn't quietly become the weaker one.
+    pub fn from_env() -> Result<Self, String> {
         let mut config = WebConfig::default();
+        match std::env::var("ACE4_WEB_TLS").as_deref() {
+            Ok("true") => config.transport = Transport::Tls,
+            Ok("false" | "") | Err(std::env::VarError::NotPresent) => {}
+            Ok(other) => return Err(format!("ACE4_WEB_TLS is {other:?}, not true or false")),
+            Err(std::env::VarError::NotUnicode(_)) => {
+                return Err("ACE4_WEB_TLS isn't text".to_owned());
+            }
+        }
         if let Some(bytes) = std::env::var("ACE4_MAX_SUBMISSION_BYTES")
             .ok()
             .and_then(|bytes| bytes.parse().ok())
         {
             config.max_submission_bytes = bytes;
         }
-        config
+        Ok(config)
     }
 }
 
@@ -417,6 +444,13 @@ impl Web {
                 "/api/users/v1/me/keys/{id}",
                 put(users::update_my_key).delete(users::revoke_my_key),
             )
+            .route("/api/users/v1/me/preferences", get(user_preferences::list))
+            .route(
+                "/api/users/v1/me/preferences/{key}",
+                get(user_preferences::one)
+                    .put(user_preferences::set)
+                    .delete(user_preferences::reset),
+            )
             .layer(DefaultBodyLimit::max(self.config.max_json_bytes))
     }
 }
@@ -469,6 +503,10 @@ impl Web {
         users::create_my_key,
         users::update_my_key,
         users::revoke_my_key,
+        user_preferences::list,
+        user_preferences::one,
+        user_preferences::set,
+        user_preferences::reset,
         health::ping,
         crashes::list,
         crashes::one,

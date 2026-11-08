@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO service.user_preferences (user_id, key, value)\n                         VALUES ($1, $2, $3)\n                         ON CONFLICT (user_id, key) DO UPDATE SET value = $3, updated_at = now()\n                         RETURNING updated_at",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "service.user_preferences",
+            "name": "updated_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Jsonb"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "c51bc2e9df38c9bc48ab6991f19b293ac8b546a342954ac51b37afffe35013aa"
+}

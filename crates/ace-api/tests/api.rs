@@ -357,6 +357,8 @@ const QA_MATCH_DOWNLOAD: &str = "/api/yara-qa/v1/matches/{id}/download";
 const COMMENTS: &str = "/api/observables/v1/comments";
 const COMMENT: &str = "/api/observables/v1/comments/{id}";
 const DETECTIONS: &str = "/api/alerts/v1/detections";
+const PREFERENCES: &str = "/api/users/v1/me/preferences";
+const PREFERENCE: &str = "/api/users/v1/me/preferences/{key}";
 const OTHER_PASSWORD: &str = "a different long passphrase";
 
 /// A route with its `{...}` filled: a crash's `{id}` is a task's, which `observable` stands in for, since a
@@ -375,6 +377,7 @@ fn fill(route: &str, id: Uuid, observable: i64) -> String {
         .replace("{id}", &id.to_string())
         .replace("{observable}", &observable.to_string())
         .replace("{user}", &id.to_string())
+        .replace("{key}", "theme")
 }
 
 /// A route with `{id}` and `{user}` filled.
@@ -419,6 +422,7 @@ fn good_body(route: &str) -> Send {
         QA_PURGE => Send::Json(json!({"match_ids": [1]})),
         COMMENTS => Send::Json(json!({"type": "fqdn", "value": "a.example", "comment": "x"})),
         COMMENT => Send::Json(json!({"comment": "x"})),
+        PREFERENCE => Send::Json(json!({"mode": "dark"})),
         _ => Send::Nothing,
     }
 }
@@ -444,7 +448,7 @@ async fn refuses_without_a_credential_or_a_permission(
         .map(|(method, route, _)| (method, route))
         .filter(|route| !public.contains(route))
         .collect();
-    assert_eq!(routes.len(), 49, "{routes:?}");
+    assert_eq!(routes.len(), 53, "{routes:?}");
     for (method, route) in routes {
         let method: Method = method.to_uppercase().parse().expect("a method");
         let path = fill(&route, id, file);
@@ -3245,6 +3249,143 @@ async fn bootstrap_reader(stack: &Stack) -> Actor {
     reader
 }
 
+/// ace3's `user_preferences` router: the caller's own, with no grant, defaults filled in, a value checked
+/// by its key, and refused to a key.
+async fn preferences(client: &mut Client<'_>) {
+    use Method as M;
+    use StatusCode as S;
+    let stack = client.stack;
+    let (_, token) = session_of(stack, "prefers", &[]).await;
+    let t = Some(token.as_str());
+    let theme = fill(PREFERENCE, Uuid::nil(), 0);
+
+    let all = client
+        .json(M::GET, PREFERENCES, PREFERENCES, t, Send::Nothing, S::OK)
+        .await;
+    assert_eq!(
+        all,
+        json!({"preferences": [
+            {"key": "theme", "value": {"mode": "system"}, "updated_at": null, "is_default": true},
+        ]})
+    );
+    let one = client
+        .json(M::GET, PREFERENCE, &theme, t, Send::Nothing, S::OK)
+        .await;
+    assert_eq!(one, all["preferences"][0]);
+
+    let before = audit_count(stack).await;
+    let set = client
+        .json(
+            M::PUT,
+            PREFERENCE,
+            &theme,
+            t,
+            Send::Json(json!({"mode": "dark"})),
+            S::OK,
+        )
+        .await;
+    assert_eq!(set["value"], json!({"mode": "dark"}));
+    assert_eq!(set["is_default"], false);
+    assert!(set["updated_at"].is_string(), "{set}");
+    assert_eq!(audit_count(stack).await, before + 1, "a set has a row");
+    let read = client
+        .json(M::GET, PREFERENCE, &theme, t, Send::Nothing, S::OK)
+        .await;
+    assert_eq!(read, set);
+    // left out is the default, as ace3's schema fills it in
+    let set = client
+        .json(M::PUT, PREFERENCE, &theme, t, Send::Json(json!({})), S::OK)
+        .await;
+    assert_eq!(set["value"], json!({"mode": "system"}));
+    assert_eq!(
+        set["is_default"], false,
+        "stored, even though it's the default's value"
+    );
+
+    for bad in [
+        json!({"mode": "neon"}),
+        json!({"mode": "dark", "extra": true}),
+        json!(["dark"]),
+    ] {
+        let error = client
+            .json(
+                M::PUT,
+                PREFERENCE,
+                &theme,
+                t,
+                Send::Json(bad.clone()),
+                S::BAD_REQUEST,
+            )
+            .await;
+        assert!(
+            error["error"]
+                .as_str()
+                .is_some_and(|e| e.contains("theme preference")),
+            "{bad}: {error}"
+        );
+    }
+    client
+        .json(
+            M::PUT,
+            PREFERENCE,
+            &theme,
+            t,
+            Send::Bytes(format!("{{\"mode\": \"{}\"}}", "x".repeat(MAX_JSON)).into_bytes()),
+            S::PAYLOAD_TOO_LARGE,
+        )
+        .await;
+    let unknown = "/api/users/v1/me/preferences/manage_columns";
+    for method in [M::GET, M::DELETE] {
+        let error = client
+            .json(method, PREFERENCE, unknown, t, Send::Nothing, S::NOT_FOUND)
+            .await;
+        assert_eq!(error["error"], "no preference is named \"manage_columns\"");
+    }
+    client
+        .json(
+            M::PUT,
+            PREFERENCE,
+            unknown,
+            t,
+            Send::Json(json!({"mode": "dark"})),
+            S::NOT_FOUND,
+        )
+        .await;
+
+    let reset = client
+        .json(M::DELETE, PREFERENCE, &theme, t, Send::Nothing, S::OK)
+        .await;
+    assert_eq!(
+        reset,
+        json!({"key": "theme", "value": {"mode": "system"}, "updated_at": null, "is_default": true})
+    );
+    let before = audit_count(stack).await;
+    client
+        .json(M::DELETE, PREFERENCE, &theme, t, Send::Nothing, S::OK)
+        .await;
+    assert_eq!(
+        audit_count(stack).await,
+        before,
+        "a reset of a default has no row"
+    );
+
+    // Another site's page can't change it with the analyst's cookie.
+    let refused = stack
+        .http
+        .put(format!("{}{theme}", stack.url))
+        .header("cookie", format!("ace4_session={token}"))
+        .header("origin", "https://evil.example")
+        .json(&json!({"mode": "halloween"}))
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(refused.status(), 403);
+    let read = client
+        .json(M::GET, PREFERENCE, &theme, t, Send::Nothing, S::OK)
+        .await;
+    assert_eq!(read["value"], json!({"mode": "system"}));
+}
+
 /// The Done check.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn every_documented_status_is_tested() {
@@ -3283,6 +3424,7 @@ async fn every_documented_status_is_tested() {
     crashes(&mut client, &token, id, file, &bytes).await;
     yara_qa(&mut client, &token, id, file, &bytes).await;
     comments(&mut client, id, &bytes).await;
+    preferences(&mut client).await;
     pings(&mut client, &token).await;
 
     assert_eq!(

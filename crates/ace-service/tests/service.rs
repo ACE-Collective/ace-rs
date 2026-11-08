@@ -18,6 +18,9 @@
 //!
 //! PLAN.md 5.6's `observable_comments`: a comment is on a type and value across alerts, a person's, and
 //! changed or deleted only by its author, with a deleted one kept in its audit row.
+//!
+//! PLAN.md 5.7's preferences: a user's own, checked by key, a default where none is stored or a stored
+//! one can't be read, and refused to anyone but a user.
 
 use std::collections::BTreeSet;
 use std::io::Write;
@@ -38,9 +41,10 @@ use ace_sdk::{Lookup, Manifest, Module, ModuleError, Outcome, TaskContext};
 use ace_service::{
     ALERT_WRITE, Actor, ApiKeyId, CATALOG, Component, CrashFilter, CrashInput,
     DetectionPointFilter, Effect, GroupId, Holder, MAX_CRASHES_PAGE, MIN_PASSWORD_CHARS,
-    NewSession, Password, PermissionName, PermissionPattern, Profile, QaPurge, QaRuleFilter,
-    QaSort, QaStatus, RequestParts, SESSION_LIFETIME_SECONDS, Service, ServiceError, SessionCookie,
-    Transport, USER_SELF, USER_WRITE, UserId, Username, with_source_ip,
+    NewSession, Password, PermissionName, PermissionPattern, PreferenceKey, PreferenceValue,
+    Profile, QaPurge, QaRuleFilter, QaSort, QaStatus, RequestParts, SESSION_LIFETIME_SECONDS,
+    Service, ServiceError, SessionCookie, Theme, ThemePreference, Transport, USER_SELF, USER_WRITE,
+    UserId, Username, with_source_ip,
 };
 use ace_store::{BucketConfig, NodeCache, Store};
 use schemars::JsonSchema;
@@ -1459,6 +1463,8 @@ async fn every_write_function_has_an_audit_test() {
         create_own_api_key_records_its_row(db).await,
         set_own_api_key_scope_records_its_row(db).await,
         revoke_own_api_key_records_its_row(db).await,
+        set_preference_records_its_row(db).await,
+        reset_preference_records_its_row(db).await,
     ]);
     assert_eq!(covered, write_functions(), "{WRITES_NEED_A_TEST}");
 }
@@ -2937,6 +2943,10 @@ async fn every_write_fails_when_its_audit_fails() {
         .add_observable_comment(&actor, "fqdn", "evil.example.com", "before")
         .await
         .expect("comments");
+    service
+        .set_preference(&bob_actor, &theme(Theme::Dark))
+        .await
+        .expect("sets bob's theme");
     let before = (
         row(db, root).await,
         tasks(db, root).await,
@@ -2947,6 +2957,7 @@ async fn every_write_fails_when_its_audit_fails() {
         group_rows(db).await,
         qa_state(db).await,
         comment_rows(db).await,
+        preference_rows(db).await,
     );
 
     sqlx::raw_sql("ALTER TABLE service.audit ADD CONSTRAINT broken CHECK (false) NOT VALID")
@@ -3225,6 +3236,22 @@ async fn every_write_fails_when_its_audit_fails() {
                 .map(|_| ())
                 .expect_err("refused"),
         ),
+        (
+            "set_preference",
+            service
+                .set_preference(&bob_actor, &theme(Theme::Light))
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "reset_preference",
+            service
+                .reset_preference(&bob_actor, PreferenceKey::Theme)
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
     ];
     let mut covered = BTreeSet::new();
     for (function, error) in &attempts {
@@ -3243,6 +3270,7 @@ async fn every_write_fails_when_its_audit_fails() {
         group_rows(db).await,
         qa_state(db).await,
         comment_rows(db).await,
+        preference_rows(db).await,
     );
     assert_eq!(after, before);
     assert_eq!(
@@ -5365,10 +5393,15 @@ fn only_a_person_s_own_writes_skip_the_permission_check() {
             .expect("reads the source")
     };
     let calls = regex::Regex::new(r#"\.write_own\(\s*&?\w+\s*,\s*"(\w+)""#).expect("a pattern");
-    let (auth, users) = (source("auth.rs"), source("users.rs"));
+    let (auth, users, preferences) = (
+        source("auth.rs"),
+        source("users.rs"),
+        source("preferences.rs"),
+    );
     let found: BTreeSet<&str> = calls
         .captures_iter(&auth)
         .chain(calls.captures_iter(&users))
+        .chain(calls.captures_iter(&preferences))
         .map(|call| call.get(1).expect("a name").as_str())
         .collect();
     assert_eq!(
@@ -5377,6 +5410,8 @@ fn only_a_person_s_own_writes_skip_the_permission_check() {
             "change_own_password",
             "login",
             "logout",
+            "reset_preference",
+            "set_preference",
             "update_own_profile"
         ])
     );
@@ -6614,4 +6649,274 @@ async fn observable_comments_apply_across_alerts_and_only_their_author_changes_t
             .expect("reads"),
         vec![by_bob]
     );
+}
+
+// PLAN.md 5.7: a user's GUI preferences.
+
+fn theme(mode: Theme) -> PreferenceValue {
+    PreferenceValue::Theme(ThemePreference { mode })
+}
+
+async fn preference_rows(db: &Db) -> Vec<(Uuid, String, Value)> {
+    sqlx::query_as("SELECT user_id, key, value FROM service.user_preferences ORDER BY user_id, key")
+        .fetch_all(db.pool())
+        .await
+        .expect("reads")
+}
+
+async fn set_preference_records_its_row(db: &Db) -> String {
+    let service = service(db);
+    let me = holding(&service, db, "audited-set-preference", &[]).await;
+    let target = (
+        "user_preference".to_owned(),
+        format!("{}/theme", actor_id(&me).0),
+    );
+    service
+        .set_preference(&me, &theme(Theme::Dark))
+        .await
+        .expect("needs no grant");
+    assert_eq!(
+        last_audit(db).await,
+        AuditRow {
+            actor: actor_json(&me),
+            action: "set_preference".to_owned(),
+            target: target.clone(),
+            before: None,
+            after: Some(json!({"value": {"mode": "dark"}})),
+            details: json!({}),
+        }
+    );
+    service
+        .set_preference(&me, &theme(Theme::Halloween))
+        .await
+        .expect("sets");
+    let row = last_audit(db).await;
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: actor_json(&me),
+            action: "set_preference".to_owned(),
+            target,
+            before: Some(json!({"value": {"mode": "dark"}})),
+            after: Some(json!({"value": {"mode": "halloween"}})),
+            details: json!({}),
+        }
+    );
+    let count = audit_rows(db).await.len();
+    service
+        .set_preference(&me, &theme(Theme::Halloween))
+        .await
+        .expect("a no-op");
+    assert_eq!(audit_rows(db).await.len(), count, "a no-op has no row");
+    row.action
+}
+
+async fn reset_preference_records_its_row(db: &Db) -> String {
+    let service = service(db);
+    let me = holding(&service, db, "audited-reset-preference", &[]).await;
+    service
+        .set_preference(&me, &theme(Theme::Jd))
+        .await
+        .expect("sets");
+    let reset = service
+        .reset_preference(&me, PreferenceKey::Theme)
+        .await
+        .expect("needs no grant");
+    assert_eq!(reset.value, theme(Theme::System));
+    assert!(reset.is_default);
+    let row = last_audit(db).await;
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: actor_json(&me),
+            action: "reset_preference".to_owned(),
+            target: (
+                "user_preference".to_owned(),
+                format!("{}/theme", actor_id(&me).0)
+            ),
+            before: Some(json!({"value": {"mode": "jd"}})),
+            after: None,
+            details: json!({}),
+        }
+    );
+    let count = audit_rows(db).await.len();
+    service
+        .reset_preference(&me, PreferenceKey::Theme)
+        .await
+        .expect("a no-op");
+    assert_eq!(audit_rows(db).await.len(), count, "a no-op has no row");
+    row.action
+}
+
+/// A user without a stored value has the default; a value is checked by its key, as ace3's schema
+/// checks it; a stored value this release can't read is the default again, with no failure; and only a
+/// user has preferences, each their own.
+#[tokio::test]
+async fn preferences_are_a_user_s_own_and_checked_by_key() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let alice = holding(&service, db, "alice", &[]).await;
+    let bob = holding(&service, db, "bob", &[]).await;
+
+    let defaults = service.preferences(&alice).await.expect("reads");
+    assert_eq!(defaults.len(), PreferenceKey::ALL.len());
+    assert_eq!(defaults[0].value, theme(Theme::System));
+    assert!(defaults[0].is_default);
+    assert_eq!(defaults[0].updated_at, None);
+    assert_eq!(service.theme(&alice).await.expect("reads"), Theme::System);
+
+    let set = service
+        .set_preference(&alice, &theme(Theme::Dark))
+        .await
+        .expect("sets");
+    assert!(!set.is_default);
+    assert!(set.updated_at.is_some());
+    assert_eq!(
+        service
+            .preference(&alice, PreferenceKey::Theme)
+            .await
+            .expect("reads"),
+        set
+    );
+    assert_eq!(service.theme(&alice).await.expect("reads"), Theme::Dark);
+    assert_eq!(
+        service.theme(&bob).await.expect("reads"),
+        Theme::System,
+        "one user's preference isn't another's"
+    );
+
+    // ace3's ThemePreference: `mode` defaults to "system", and nothing else is allowed.
+    let key = PreferenceKey::named("theme").expect("a key");
+    assert_eq!(
+        key.parse(json!({})).expect("a default"),
+        theme(Theme::System)
+    );
+    assert_eq!(
+        key.parse(json!({"mode": "halloween"})).expect("valid"),
+        theme(Theme::Halloween)
+    );
+    for invalid in [
+        json!({"mode": "neon"}),
+        json!({"mode": "DARK"}),
+        json!({"mode": "dark", "extra": 1}),
+        json!("dark"),
+        json!([]),
+    ] {
+        assert!(
+            matches!(
+                key.parse(invalid.clone()),
+                Err(ServiceError::InvalidRequest(_))
+            ),
+            "{invalid}"
+        );
+    }
+    assert_eq!(
+        PreferenceKey::named("manage_columns"),
+        None,
+        "not until 5.10"
+    );
+    assert_eq!(PreferenceKey::named("Theme"), None);
+
+    // A row this release can't read, as after a theme is removed: the default, and a set replaces it.
+    sqlx::query(
+        "UPDATE service.user_preferences SET value = '{\"mode\": \"retired\"}' WHERE user_id = $1",
+    )
+    .bind(actor_id(&alice).0)
+    .execute(db.pool())
+    .await
+    .expect("stales the row");
+    let stale = service
+        .preference(&alice, PreferenceKey::Theme)
+        .await
+        .expect("reads");
+    assert_eq!(stale.value, theme(Theme::System));
+    assert!(stale.is_default);
+    assert!(stale.updated_at.is_some());
+    assert_eq!(service.theme(&alice).await.expect("reads"), Theme::System);
+    service
+        .set_preference(&alice, &theme(Theme::Light))
+        .await
+        .expect("replaces it");
+    let row = last_audit(db).await;
+    assert_eq!(row.before, Some(json!({"unreadable": true})));
+    assert_eq!(row.after, Some(json!({"value": {"mode": "light"}})));
+
+    // A row under a key this release doesn't have isn't given.
+    sqlx::query(
+        "INSERT INTO service.user_preferences (user_id, key, value) VALUES ($1, 'retired', '{}')",
+    )
+    .bind(actor_id(&alice).0)
+    .execute(db.pool())
+    .await
+    .expect("adds a row");
+    let all = service.preferences(&alice).await.expect("reads");
+    assert_eq!(all.len(), 1);
+    assert_eq!(all[0].value, theme(Theme::Light));
+
+    // Only a user has preferences. A key, even one of the user's own holding everything, and a
+    // component are refused, and change nothing; their pages have the default theme.
+    let boss = admin(db).await;
+    let key = service
+        .create_api_key(
+            &boss,
+            "alice's",
+            Some(actor_id(&alice)),
+            &[pattern("*", "*")],
+        )
+        .await
+        .expect("makes a key");
+    let as_key = service
+        .authenticate_api_key(key.token.expose())
+        .await
+        .expect("authenticates");
+    let component = Actor::Internal {
+        id: Component::new("bootstrap").expect("a name"),
+    };
+    let rows = preference_rows(db).await;
+    for actor in [&as_key, &component] {
+        assert!(matches!(
+            service.preferences(actor).await,
+            Err(ServiceError::PermissionDenied { .. })
+        ));
+        assert!(matches!(
+            service.preference(actor, PreferenceKey::Theme).await,
+            Err(ServiceError::PermissionDenied { .. })
+        ));
+        assert!(matches!(
+            service.set_preference(actor, &theme(Theme::Dark)).await,
+            Err(ServiceError::PermissionDenied { .. })
+        ));
+        assert!(matches!(
+            service.reset_preference(actor, PreferenceKey::Theme).await,
+            Err(ServiceError::PermissionDenied { .. })
+        ));
+        assert_eq!(
+            service.theme(actor).await.expect("a default"),
+            Theme::System
+        );
+    }
+    assert_eq!(preference_rows(db).await, rows);
+
+    // A user's preferences go with the user, as their grants do.
+    sqlx::query("DELETE FROM service.users WHERE id = $1")
+        .bind(actor_id(&bob).0)
+        .execute(db.pool())
+        .await
+        .expect("deletes bob");
+    service
+        .set_preference(&alice, &theme(Theme::Jd))
+        .await
+        .expect("sets");
+    sqlx::query("DELETE FROM service.api_keys WHERE owner_id = $1")
+        .bind(actor_id(&alice).0)
+        .execute(db.pool())
+        .await
+        .expect("deletes alice's key");
+    sqlx::query("DELETE FROM service.users WHERE id = $1")
+        .bind(actor_id(&alice).0)
+        .execute(db.pool())
+        .await
+        .expect("deletes alice");
+    assert_eq!(preference_rows(db).await, []);
 }

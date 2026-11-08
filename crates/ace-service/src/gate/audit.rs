@@ -107,6 +107,14 @@ impl Target {
         }
     }
 
+    /// One of a user's GUI preferences, as `<user>/<key>`.
+    pub(crate) fn user_preference(user: Uuid, key: &str) -> Self {
+        Target {
+            kind: "user_preference",
+            id: format!("{user}/{key}"),
+        }
+    }
+
     pub(crate) fn holder(holder: &Holder) -> Self {
         let (kind, id) = match holder {
             Holder::User(id) => ("user", id.0.to_string()),

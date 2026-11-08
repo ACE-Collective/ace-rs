@@ -1,0 +1,9 @@
+{#- A refusal or a failure. -#}
+{% extends "base.html" %}
+{% block title %}{{ status }} · ACE{% endblock %}
+{% block content %}
+<section class="failure">
+  <h1>{{ status }}</h1>
+  <p>{{ message }}</p>
+</section>
+{% endblock %}

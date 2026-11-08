@@ -5,8 +5,8 @@
 //!
 //! It reads `ACE4_DATABASE_URL`, the `ACE4_BUCKET_*` variables, the pools and their tokens
 //! (`ACE4_POOLS`, by default the binary's own; `ACE4_POOL_TOKEN_<POOL>`, see `ApiConfig::from_env`),
-//! `ACE4_API_LISTEN` for the lease API (default `0.0.0.0:8080`), `ACE4_WEB_LISTEN` for the JSON API
-//! (default `0.0.0.0:8000`), `ACE4_MAX_SUBMISSION_BYTES` (1 GiB), `ACE4_CACHE_DIR` for the node's bucket
+//! `ACE4_API_LISTEN` for the lease API (default `0.0.0.0:8080`), `ACE4_WEB_LISTEN` for the JSON API and
+//! the GUI (default `0.0.0.0:8000`), `ACE4_WEB_TLS` (`false`), `ACE4_MAX_SUBMISSION_BYTES` (1 GiB), `ACE4_CACHE_DIR` for the node's bucket
 //! cache, and the site overlay at `ACE4_OVERLAY` (`site`).
 //!
 //! The two APIs listen apart. A pool holds a token for the lease API and nothing else, and the lease
@@ -15,9 +15,9 @@
 //! own network; a deployment can put TLS and a proxy in front of the one people use, and keep the
 //! other private. The cost is a second port and a second server to stop. One listener with two path
 //! prefixes would expose the lease API, and its `/api/admin/v1` replay, wherever people reach ACE.
-//! 5.7's GUI joins the JSON API's listener, so its pages and the API share an origin and a cookie. Its
-//! session cookie is `Transport::Plain` until TLS comes (PLAN.md's Deferred), and then
-//! `WebConfig::transport` turns on `Secure`.
+//! 5.7's GUI (`ace-gui`) joins the JSON API's listener, so its pages and the API share an origin and a
+//! cookie. Its session cookie is `Transport::Plain` until TLS comes (PLAN.md's Deferred), and then
+//! `ACE4_WEB_TLS=true` (`WebConfig::transport`) turns on `Secure` for both.
 
 use std::process::ExitCode;
 use std::time::Duration;
@@ -74,7 +74,9 @@ async fn serve(app: &App) -> Result<ExitCode> {
         tracing::info!(pool = %pool.name, modules = ?pool.modules, "serving a pool");
     }
     let service = ace_service::Service::new(db.clone(), orchestrator.clone());
-    let web = ace_api::Web::new(service, bucket.clone(), ace_api::WebConfig::from_env());
+    let web_config = ace_api::WebConfig::from_env().map_err(anyhow::Error::msg)?;
+    let gui = ace_gui::Gui::new(service.clone(), web_config.transport);
+    let web = ace_api::Web::new(service, bucket.clone(), web_config);
     let api = Api::new(db.clone(), bucket.clone(), orchestrator, config).await?;
     let stopping_api = api.clone();
     let listen = std::env::var("ACE4_API_LISTEN").unwrap_or_else(|_| "0.0.0.0:8080".to_owned());
@@ -86,7 +88,7 @@ async fn serve(app: &App) -> Result<ExitCode> {
     let web_listener = tokio::net::TcpListener::bind(&web_listen)
         .await
         .with_context(|| format!("binding {web_listen}"))?;
-    eprintln!("ace: the JSON API listens on {web_listen}");
+    eprintln!("ace: the JSON API and the GUI listen on {web_listen}");
 
     let stop = CancellationToken::new();
     let reaper = tokio::spawn(run_reaper(db.clone(), Duration::from_secs(5), stop.clone()));
@@ -115,9 +117,13 @@ async fn serve(app: &App) -> Result<ExitCode> {
         stopping.cancelled().await;
     }));
     let stopping = stop.clone();
-    let web_server = tokio::spawn(ace_api::serve(web_listener, web.router(), async move {
-        stopping.cancelled().await;
-    }));
+    let web_server = tokio::spawn(ace_api::serve(
+        web_listener,
+        web.router().merge(gui.router()),
+        async move {
+            stopping.cancelled().await;
+        },
+    ));
     // Compose and Docker stop a container with SIGTERM, a terminal with SIGINT
     wait_for_stop().await;
     stopping_api.shut_down();

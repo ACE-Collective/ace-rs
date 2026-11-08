@@ -2540,6 +2540,260 @@
         }
       }
     },
+    "/api/users/v1/me/preferences": {
+      "get": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Every preference the caller has, each key's default where they set none.",
+        "operationId": "list",
+        "responses": {
+          "200": {
+            "description": "The caller's preferences",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreferencesBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "An API key, which has no preferences",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/users/v1/me/preferences/{key}": {
+      "get": {
+        "tags": [
+          "users"
+        ],
+        "summary": "One of the caller's preferences, its default if they set none.",
+        "operationId": "one",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "description": "The preference's name, such as `theme`",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The preference",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreferenceBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "An API key, which has no preferences",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No preference has that name",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Sets one of the caller's preferences. The body is the value, in its key's shape; a field the key\ndoesn't have is refused, and one left out takes its default.",
+        "operationId": "set",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "description": "The preference's name, such as `theme`",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "The value, such as `{\"mode\": \"dark\"}` for `theme`",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The preference, as stored",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreferenceBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A value that isn't this key's, or a body that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "An API key, or a session's request from another site",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No preference has that name",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Forgets the caller's value for a preference, so its default applies again.",
+        "operationId": "reset",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "description": "The preference's name, such as `theme`",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The preference's default, which now applies",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreferenceBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "An API key, or a session's request from another site",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No preference has that name",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/users/v1/users": {
       "get": {
         "tags": [
@@ -4996,6 +5250,52 @@
           "result": {
             "type": "string",
             "description": "Always `pong`."
+          }
+        }
+      },
+      "PreferenceBody": {
+        "type": "object",
+        "description": "One of the caller's preferences.",
+        "required": [
+          "key",
+          "value",
+          "is_default"
+        ],
+        "properties": {
+          "is_default": {
+            "type": "boolean",
+            "description": "Whether this is the default rather than a value the caller set. A stored value this release can't\nread is given as the default too."
+          },
+          "key": {
+            "type": "string",
+            "description": "The preference's name, such as `theme`."
+          },
+          "updated_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "When the stored value last changed, or null when nothing is stored."
+          },
+          "value": {
+            "type": "object",
+            "description": "Its value, in the shape its key has. `theme`'s is `{\"mode\": \"system\" | \"light\" | \"dark\" | \"jd\" |\n\"halloween\"}`."
+          }
+        }
+      },
+      "PreferencesBody": {
+        "type": "object",
+        "description": "Every preference the caller has, defaults filled in.",
+        "required": [
+          "preferences"
+        ],
+        "properties": {
+          "preferences": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PreferenceBody"
+            }
           }
         }
       },

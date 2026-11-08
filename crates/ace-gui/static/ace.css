@@ -1,0 +1,166 @@
+/* ACE's stylesheet (PLAN.md 5.7). The theme is <html data-theme>: ace3's five, as colour variables.
+   "system" follows the browser's prefers-color-scheme here, where ace3 runs an inline script. */
+
+:root,
+[data-theme="light"],
+[data-theme="system"] {
+  color-scheme: light;
+  --background: #ffffff;
+  --surface: #f3f4f6;
+  --text: #1f2328;
+  --muted: #59636e;
+  --border: #d1d9e0;
+  --accent: #0b5cad;
+  --accent-text: #ffffff;
+  --danger: #b42318;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --background: #15181c;
+  --surface: #1f242a;
+  --text: #e6e8eb;
+  --muted: #9aa4af;
+  --border: #353c44;
+  --accent: #5aa2f0;
+  --accent-text: #0b0d10;
+  --danger: #f07167;
+}
+
+@media (prefers-color-scheme: dark) {
+  [data-theme="system"] {
+    color-scheme: dark;
+    --background: #15181c;
+    --surface: #1f242a;
+    --text: #e6e8eb;
+    --muted: #9aa4af;
+    --border: #353c44;
+    --accent: #5aa2f0;
+    --accent-text: #0b0d10;
+    --danger: #f07167;
+  }
+}
+
+/* ace3's "jd": high-contrast light. */
+[data-theme="jd"] {
+  color-scheme: light;
+  --background: #ffffff;
+  --surface: #ffffff;
+  --text: #000000;
+  --muted: #000000;
+  --border: #000000;
+  --accent: #0000c0;
+  --accent-text: #ffffff;
+  --danger: #a00000;
+}
+
+/* ace3's "halloween": pumpkin orange on midnight purple. */
+[data-theme="halloween"] {
+  color-scheme: dark;
+  --background: #1a1028;
+  --surface: #2a1a3e;
+  --text: #f4e9d8;
+  --muted: #c9b79c;
+  --border: #4a2f66;
+  --accent: #ff7518;
+  --accent-text: #1a1028;
+  --danger: #ff4d4d;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--text);
+  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+a {
+  color: var(--accent);
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.5rem 1rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.brand {
+  font-weight: 700;
+  text-decoration: none;
+  color: var(--text);
+}
+
+.menu {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-left: auto;
+}
+
+.menu form {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin: 0;
+}
+
+.user {
+  color: var(--muted);
+}
+
+main {
+  padding: 1rem;
+}
+
+button,
+input,
+select {
+  font: inherit;
+  color: var(--text);
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.25rem 0.5rem;
+}
+
+button[type="submit"] {
+  cursor: pointer;
+}
+
+.login {
+  max-width: 22rem;
+  margin: 4rem auto;
+  padding: 1.5rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.login h1 {
+  margin-top: 0;
+  font-size: 1.4rem;
+}
+
+.login form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.login button {
+  margin-top: 0.5rem;
+  background: var(--accent);
+  color: var(--accent-text);
+  border-color: var(--accent);
+}
+
+.error {
+  color: var(--danger);
+}
