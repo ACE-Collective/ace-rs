@@ -22,7 +22,7 @@ These depart from ace3:
 - In a YARA pool the rules come from the ruleset the core built (PLAN.md 2.26), and each match records its key and commit; a detection's signature version is the commit, as in ace3. These tests compile `signature_dir` instead, so `commit` and `ruleset` are null and the signature version is `unknown`.
 - ace3 asks the yara scanner service and falls back to a local scanner. There is no service here; the module scans in its own process.
 - A QA rule's match isn't recorded by the module. When its result lands, the core queues a `yara_qa` task that records the match in `yara.qa_matches` and holds the file in the bucket (PLAN.md 2.27). As in ace3 it never alerts or adds directives.
-- `$obsd_` and `$obs_` strings name rows of ace3's database, whose observables ace3 adds to the alert. That needs the core's read API (PLAN.md 7.2).
+- `$obsd_` and `$obs_` strings name rows of ace3's database, whose observables ace3 adds to the alert. In ace4 the `$obsd_` rows are entries of 7.6's `observable_detection` list, and the ruleset will carry each one's observable (`crates/ace-core/src/reads.md`), which 7.6 builds. `$obs_` strings name ace3's legacy `observables` rows, which ace4 doesn't have, so they won't be served.
 - Rules tagged `asm` get no disassembly of their match context; ace3 uses distorm3.
 - A scan that fails for a reason other than its timeout fails the task. ace3 logs it, optionally copies the file aside, and moves on with no analysis. A timeout is skipped with no analysis, as in ace3.
 - When the input redirects to another observable, `sandbox` goes in the result's `redirected` additions, which the core applies to that observable.

@@ -32,6 +32,10 @@
 //!
 //! Submissions moved to `ace-api` in PLAN.md 5.5, which serves people on a listener of its own.
 //!
+//! What a module reads of ACE's own data, which ace3's modules query its databases for, is a
+//! contract in `reads.md` beside this file (PLAN.md 7.2): task-scoped reads under
+//! `/api/worker/v1/tasks/<id>/reads/<read>`, each built by the step that ports its module.
+//!
 //! Every request carries `Authorization: Bearer <token>`, and the token says which pool the
 //! worker is in. A task-scoped request also names the worker in `x-ace4-worker`. A task's lease
 //! owner is `<pool>/<worker>`, so one pool's token can't touch another pool's tasks, and one

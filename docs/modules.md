@@ -53,7 +53,7 @@ In order. Batches 10 to 13 wait for 7.3's decisions about their tools.
 6. **RTF and scripts**: `microsoft_script_encoding_analysis`, `extracted_rtf_analyzer`, `vbscript_analyzer`, `nowhitespace_analyzer`. Checks and transforms of RTF and script files.
 7. **Encrypted files**: `zip_encryption_analyzer`, `rar_encryption_analyzer`, `pdf_encryption_analyzer`. After 7.3 records John's decision: the email's wordlist tried in the task, as 4.11 did for Office.
 8. **Email tree**: `mailbox_email_analyzer`, `lure_url_analyzer`, `email_conversation_attachment_analyzer`, `email_conversation_link_analyzer`. Modules that read the email's analysis; the two conversation modules after 7.4's frequency analyzer.
-9. **Email archive**: `email_archiver`, `encrypted_archive_analyzer`, `url_email_pivot_analyzer`, `message_id_analyzer_v2`. Brings ace3's `email` router (5.6) and the `daily/partitions` task's archive half (6.7). Lookup modules, on 7.2's endpoints.
+9. **Email archive**: `email_archiver`, `encrypted_archive_analyzer`, `url_email_pivot_analyzer`, `message_id_analyzer_v2`. Brings ace3's `email` router (5.6) and the `daily/partitions` task's archive half (6.7). Lookup modules, on 7.2's reads (`crates/ace-core/src/reads.md`).
 10. **PDF and image text**: `ocr`, `qrcode`, `exif`, `pdftotext`. After 7.3, the tools that turn PDFs and images into text YARA scans.
 11. **Executables**: `java_class_decompiler`, `upx`, `autoit`, `de4dot`, `ilspy`. After 7.3: unpackers and decompilers.
 12. **macOS images**: `dmg_analyzer`, `cve_2021_30657_analyzer`. After 7.3.
@@ -63,25 +63,30 @@ In order. Batches 10 to 13 wait for 7.3's decisions about their tools.
 
 ## What 7.2 serves
 
-Modules that read or write ACE's own data (`get_db(`, `get_db_connection(` and Redis), which in ace4 go through the internal API. Some reads aren't `get_db(` calls in the module's own file: they're in helpers such as `saq/modules/email/conversation.py` and `saq/email_archive/`.
+Modules that read or write ACE's own data in ace3, or hold its encryption key, and what serves each in ace4, where workers hold neither. The reads, their scope, their bounds and how they refuse are a contract in `crates/ace-core/src/reads.md`, beside the lease API; each module's port step builds what its module calls. None is built in 7.2: the one ported module here, `yara_scanner_v3_4`, gets its data on the ruleset, and that waits for 7.6, which brings the list it reads.
 
-Not here: `rdap_analyzer` and `nrd_analyzer` use ace3's analysis result cache, which is the engine's, not the module's, and which ace4 doesn't have (6.7); `nrd_analyzer`'s domain list is a SQLite file on the node, which 6.7's `nrd-refresh` keeps; the Redis of `javascript_deobfuscation` and `phishkit_analyzer` is Celery's, which 7.7 replaces.
+`tools/ace3/modules/check` finds these in ace3's code at the commit it checks. From each section's class it follows the class's methods, its bases, the functions they name in ace3's own packages and, through an interface, the methods of the package's classes, until it finds `get_db(`, `get_db_connection(`, `private_transaction(`, `run_private_transaction(` or a Redis connection, or a use of `saq.crypto`. It doesn't follow ace3's framework (`saq.analysis`, `saq.configuration`, `saq.engine` and the module base classes), whose own reads are the engine's. Some reads aren't in the module's own file: they're in helpers such as `saq/brocess.py`, `saq/modules/email/conversation.py`, `saq/email_archive/` and `saq/svs/`. At ace3 `f72f8946` it finds the 14 below. The check fails when this table misses one or lists one it doesn't find, or when a row names nothing to serve it or a read `reads.md` doesn't have.
 
-| Module | Reads and writes |
-|---|---|
-| `email_archiver` | email_archive: archive (W, INSERT IGNORE; R archive_id); email_archive: archive_index (W, field message_id and url hashes); email_archive: email_history (W, message_id/recipient); email_archive: archive_server (R/W at initialize_email_archive/register, not in this module) |
-| `snort_signature_analysis_v1` | Redis: Redis 'default' config (get_config().redis host/port/user/password), DB 1 (REDIS_DB_SNORT): GET '<sid>:<rev>' per observable. The index (keys '<sid>:<rev>' = rule line, 'suricata_rules_lastmtime', lock 'suricata_rules_lock' with 30s ex/nx) is built by 'ace signatures build-db' (saq/cli/commands/signatures.py:202-230) from data/snort/snort.rules, not by the module. A new redis.Redis connection is created per call (snort.py:110-120). |
-| `email_conversation_frequency_analyzer` | brocess: smtplog (R, SUM(numconnections) by source, and by source+destination) |
-| `email_thread_analyzer` | brocess: email_thread_message (R: anchor by message_id_hash, messages by thread_id_hash, same-subject threads by normalized_subject_hash); brocess: email_thread_domain (R: participants by thread_id_hash, subject-linked domains) |
-| `url_email_pivot_analyzer` | email_archive (primary plus every database_email_archive_* section): archive_index (R, COUNT(DISTINCT archive_id) WHERE field='url' AND hash=UNHEX(SHA2(url,256))) |
-| `email_logger` | brocess: smtplog (W, INSERT ... ON DUPLICATE KEY UPDATE numconnections+1 per envelope recipient); brocess: email_thread_message (W record_thread; R COUNT by thread for telemetry); brocess: email_thread_domain (W record_thread; R established domains by thread or same-subject) |
-| `yara_scanner_v3_4` | ace: observable_detections (ObservableDetection) by id from $obsd_<id> strings, R; ace: observables (Observable) by id from legacy $obs_<id> strings, R |
-| `message_id_analyzer_v2` | email_archive (primary section): archive JOIN archive_server JOIN archive_index (R, by message_id hash) - called twice (email_is_archived then iter_archived_email) |
-| `user_defined_tagging` | ace: observables, observable_tag_mapping, tags R (one SELECT per observable, tag.py:107-120) |
-| `alert_added_to_event` | ace: event_mapping joined to alerts, R |
-| `svs_yara_sample_capture` | ace: alerts R (disposition), svs_attributions + svs_runs R (unreviewed_run_condition); ace: svs_yara_captures R/W (insert pending, update stored/missing; private transactions); ace: svs_sample_deletions R (is_deleted, checked before and after); ace: cas_objects, cas_holds, cas_purges R/W (CAS index via pool.put/hold/stat/release) |
-| `svs_alert_tagger` | ace: alerts R (insert_date); ace: svs_runs, svs_maintenance_windows R (attribution_open gate, cached svs.attribution.gate_cache_seconds); ace: svs_runs, svs_test_hosts, svs_maintenance_windows, svs_attributions R (evaluate: resolve_markers, runs_overlapping, maintenance_windows_overlapping, _existing) |
-| `observable_detection` | Redis: Redis 'local' config (redis_local), DB 4 (REDIS_DB_FOR_DETECTION_A): GET '<type>:<value>' per observable; populated by 'ace observables export' (saq/observables/export/redis_cache.py). One connection per module instance, health_check_interval 30. |
+Served by is one or more of: a read of `reads.md`; `lease`, on the leased task (`Module::LISTS` here); `ruleset`, on the YARA ruleset; `end`, a write that lands with the task's end; and `core`, only for a module on the core's pool, which runs in the core.
+
+Not here: `rdap_analyzer` and `nrd_analyzer` use ace3's analysis result cache, which is the engine's, not the module's, and which ace4 doesn't have (6.7); `nrd_analyzer`'s domain list is a SQLite file on the node, which 6.7's `nrd-refresh` keeps; the Redis of `javascript_deobfuscation` and `phishkit_analyzer` is Celery's, which 7.7 replaces. A module's secrets, which ace3 can keep encrypted in its database, are the pool's environment in ace4 (2.24). `saq/modules/remediation.py` queries the database through `saq.remediation`, but no section names its module.
+
+| Module | Reads and writes in ace3 | Why | Served by |
+|---|---|---|---|
+| `email_archiver` | email_archive: archive (W, INSERT IGNORE; R archive_id); email_archive: archive_index (W, field message_id and url hashes); email_archive: email_history (W, message_id/recipient); email_archive: archive_server (R/W at initialize_email_archive/register, not in this module) | to keep every email it archives findable by Message-ID and URL later | `end` |
+| `encrypted_archive_analyzer` | ACE's encryption key: saq.crypto.decrypt of the file, then gunzip. No database | to open an archived email file (`.gz.e`) in the alert | `decrypted-archive` |
+| `snort_signature_analysis_v1` | Redis: Redis 'default' config (get_config().redis host/port/user/password), DB 1 (REDIS_DB_SNORT): GET '<sid>:<rev>' per observable. The index (keys '<sid>:<rev>' = rule line, 'suricata_rules_lastmtime', lock 'suricata_rules_lock' with 30s ex/nx) is built by 'ace signatures build-db' (saq/cli/commands/signatures.py:202-230) from data/snort/snort.rules, not by the module. A new redis.Redis connection is created per call (snort.py:110-120). | to show the rule text of a sid and rev an IDS alert names | `snort-signature` |
+| `email_conversation_frequency_analyzer` | brocess: smtplog (R, SUM(numconnections) by source, and by source+destination) | to tag a new sender or a frequent conversation by how often the pair was seen | `smtp-counts` |
+| `email_thread_analyzer` | brocess: email_thread_message (R: anchor by message_id_hash, messages by thread_id_hash, same-subject threads by normalized_subject_hash); brocess: email_thread_domain (R: participants by thread_id_hash, subject-linked domains) | to show the conversation a Message-ID belongs to, and judge look-alike domains in it | `email-thread` |
+| `url_email_pivot_analyzer` | email_archive (primary plus every database_email_archive_* section): archive_index (R, COUNT(DISTINCT archive_id) WHERE field='url' AND hash=UNHEX(SHA2(url,256))) | to count the archived emails that held a URL | `archived-url-count` |
+| `email_logger` | brocess: smtplog (W, INSERT ... ON DUPLICATE KEY UPDATE numconnections+1 per envelope recipient); brocess: email_thread_message (W record_thread; R COUNT by thread for telemetry); brocess: email_thread_domain (W record_thread; R established domains by thread or same-subject) | to record each email's sender, recipients and thread for the modules above, and to emit look-alike telemetry against earlier messages | `email-thread-domains`, `end` |
+| `yara_scanner_v3_4` | ace: observable_detections (ObservableDetection) by id from $obsd_<id> strings, R; ace: observables (Observable) by id from legacy $obs_<id> strings, R | to add the observable an exported detection rule matched | `ruleset` |
+| `message_id_analyzer_v2` | email_archive (primary section): archive JOIN archive_server JOIN archive_index (R, by message_id hash) - called twice (email_is_archived then iter_archived_email) | to pull an archived email into the alert by its Message-ID | `archived-email` |
+| `user_defined_tagging` | ace: observables, observable_tag_mapping, tags R (one SELECT per observable, tag.py:107-120) | to add the tags mapped to an observable's value | `observable-tags` |
+| `alert_added_to_event` | ace: event_mapping joined to alerts, R | to switch the root to event mode when it's in an event | `core` |
+| `svs_yara_sample_capture` | ace: alerts R (disposition), svs_attributions + svs_runs R (unreviewed_run_condition); ace: svs_yara_captures R/W (insert pending, update stored/missing; private transactions); ace: svs_sample_deletions R (is_deleted, checked before and after); ace: cas_objects, cas_holds, cas_purges R/W (CAS index via pool.put/hold/stat/release) | to capture the files YARA matched on a dispositioned alert as SVS samples | `svs-capture-state`, `end` |
+| `svs_alert_tagger` | ace: alerts R (insert_date); ace: svs_runs, svs_maintenance_windows R (attribution_open gate, cached svs.attribution.gate_cache_seconds); ace: svs_runs, svs_test_hosts, svs_maintenance_windows, svs_attributions R (evaluate: resolve_markers, runs_overlapping, maintenance_windows_overlapping, _existing) | to tag an alert SVS attributes to a test run or maintenance window | `svs-attribution` |
+| `observable_detection` | Redis: Redis 'local' config (redis_local), DB 4 (REDIS_DB_FOR_DETECTION_A): GET '<type>:<value>' per observable; populated by 'ace observables export' (saq/observables/export/redis_cache.py). One connection per module instance, health_check_interval 30. | to flag an observable an analyst set for detection | `lease` |
 
 ## What 7.3 decides
 
@@ -566,7 +571,7 @@ In the config's order. ace4 is the crate a ported module is in.
 
 - **Section**: `analysis_module_email_archiver`, class `EmailArchiveAction` in `saq/modules/email/archive.py`, disabled by default.
 - **ace4**: not yet.
-- **Pool**: lookup. Writes ACE's email archive, which in ace4 is the bucket and Postgres behind the internal API (7.2); it parses nothing.
+- **Pool**: lookup. Writes ACE's email archive, which in ace4 is the bucket and Postgres; the write lands with the task's end (7.2, `reads.md`). It parses nothing.
 - **Step**: 7.5 batch 9 (Email archive).
 - **Does**: For a non-whitelisted email file with the archive directive and an EmailAnalysis carrying a message-id and envelope recipients, gzips and AES-GCM encrypts the email into the email archive, records it in the email_archive database, and in post-analysis indexes every URL under the email.
 - **Input**: file (required directive archive).
@@ -587,7 +592,7 @@ In the config's order. ace4 is the crate a ported module is in.
 
 - **Section**: `analysis_module_encrypted_archive_analyzer`, class `EncryptedArchiveAnalyzer` in `saq/modules/email/archive.py`, enabled by default.
 - **ace4**: not yet.
-- **Pool**: lookup. Opens an archived email with ACE's encryption key. In ace4 the archive is ACE's own store, so this becomes a read through the internal API and no worker holds the key.
+- **Pool**: lookup. Opens an archived email with ACE's encryption key. In ace4 that's the `decrypted-archive` read (7.2): the core decrypts, and no worker holds the key.
 - **Step**: 7.5 batch 9 (Email archive).
 - **Does**: For a file named *.gz.e (an ACE email archive file), decrypts it with the ACE encryption key, gunzips it, and adds the resulting .rfc822 email as a file observable.
 - **Input**: file (name ending .gz.e).
@@ -776,7 +781,7 @@ In the config's order. ace4 is the crate a ported module is in.
 
 - **Section**: `analysis_module_snort_signature_analysis_v1`, class `SnortSignatureAnalyzer_v1` in `saq/modules/snort.py`, enabled by default.
 - **ace4**: not yet.
-- **Pool**: lookup. A Redis read today; in ace4 an internal API read (7.2) of the rules `ace signatures build-db` indexes.
+- **Pool**: lookup. A Redis read today; in ace4 the `snort-signature` read (7.2) of the rules `ace signatures build-db` indexes.
 - **Step**: 7.4.
 - **Does**: For a snort_signature observable ('gid:sid:rev'), fetches the full Suricata/Snort rule text indexed in Redis by sid:rev and adds it as a summary detail on the root.
 - **Input**: snort_signature.
@@ -839,7 +844,7 @@ In the config's order. ace4 is the crate a ported module is in.
 
 - **Section**: `analysis_module_email_conversation_frequency_analyzer`, class `EmailConversationFrequencyAnalyzer` in `saq/modules/email/fa.py`, enabled by default.
 - **ace4**: not yet.
-- **Pool**: lookup. Reads brocess's smtplog, which becomes an internal API read (7.2).
+- **Pool**: lookup. Reads brocess's smtplog, which becomes the `smtp-counts` read (7.2).
 - **Step**: 7.4.
 - **Does**: For an email_conversation observable (sender|recipient), counts in brocess how often the sender has emailed us and how often it emailed this recipient, tagging new_sender or frequent_conversation.
 - **Input**: email_conversation.
@@ -902,7 +907,7 @@ In the config's order. ace4 is the crate a ported module is in.
 
 - **Section**: `analysis_module_email_thread_analyzer`, class `EmailThreadAnalyzer` in `saq/modules/email/thread.py`, enabled by default.
 - **ace4**: not yet.
-- **Pool**: lookup. Reads brocess's thread store through the internal API (7.2); the similarity work is cheap and runs in the same task.
+- **Pool**: lookup. Reads brocess's thread store through the `email-thread` read (7.2); the similarity work is cheap and runs in the same task.
 - **Step**: 7.4.
 - **Does**: For a message_id, loads the recorded conversation from the brocess thread store and builds a display-only timeline with look-a-like domain pairs, inline markdown findings and missing-parent message ids.
 - **Input**: message_id.
@@ -923,7 +928,7 @@ In the config's order. ace4 is the crate a ported module is in.
 
 - **Section**: `analysis_module_url_email_pivot_analyzer`, class `URLEmailPivotAnalyzer` in `saq/modules/email/correlation.py`, enabled by default.
 - **ace4**: not yet.
-- **Pool**: lookup. Reads the email archive's URL index through the internal API (7.2).
+- **Pool**: lookup. Reads the email archive's URL index through the `archived-url-count` read (7.2).
 - **Step**: 7.5 batch 9 (Email archive).
 - **Does**: For a URL, counts how many archived emails contain it by looking up its SHA-256 in archive_index across every configured email archive database.
 - **Input**: url.
@@ -1591,7 +1596,7 @@ In the config's order. ace4 is the crate a ported module is in.
 
 - **Section**: `analysis_module_yara_scanner_v3_4`, class `YaraScanner_v3_4` in `saq/modules/file_analysis/yara.py`, enabled by default.
 - **ace4**: ported in `ace-mod-yara`.
-- **Pool**: parser. yara-x through `ace-yara` in the task's process (1.x, 2.26). Its database reads of $obsd_ and $obs_ strings wait for 7.2 (`crates/ace-mod-yara/src/lib.rs:309`).
+- **Pool**: parser. yara-x through `ace-yara` in the task's process (1.x, 2.26). Its database reads of $obsd_ strings come on the ruleset, which 7.6 builds with the `observable_detection` list (7.2, `reads.md`); $obs_ strings aren't served (`crates/ace-mod-yara/src/lib.rs:309`).
 - **Step**: done.
 - **Does**: Scans a file with ACE's yara rules through the yara scanner service over a Unix socket (falling back to an in-process scanner), adds rule/string/signature_id observables and detection points, resolves $obsd_/$obs_ strings to database observables, and applies rule modifiers and tags.
 - **Input**: file.
@@ -1802,7 +1807,7 @@ In the config's order. ace4 is the crate a ported module is in.
 
 - **Section**: `analysis_module_message_id_analyzer_v2`, class `MessageIDAnalyzerV2` in `saq/modules/email/message_id.py`, enabled by default.
 - **ace4**: not yet.
-- **Pool**: lookup. Fetches an archived email through the internal API (7.2); the email it adds is parsed by email_analyzer.
+- **Pool**: lookup. Fetches an archived email through the `archived-email` read (7.2), which decrypts it in the core; the email it adds is parsed by email_analyzer.
 - **Step**: 7.5 batch 9 (Email archive).
 - **Does**: For a message_id not already backed by an EmailAnalysis in the tree, looks it up in the email archive, decrypts and gunzips the archived email, and adds it as a file observable.
 - **Input**: message_id.
@@ -1865,7 +1870,7 @@ In the config's order. ace4 is the crate a ported module is in.
 
 - **Section**: `analysis_module_user_defined_tagging`, class `UserDefinedTaggingAnalyzer` in `saq/modules/tag.py`, enabled by default.
 - **ace4**: not yet.
-- **Pool**: lookup. One read of ACE's tag tables per observable, through the internal API (7.2); batch it per root.
+- **Pool**: lookup. One `observable-tags` read (7.2) per observable.
 - **Step**: 7.6.
 - **Does**: For every observable, reads the tags analysts attached to that (type, sha256 of value) in ACE's database and adds them to the observable.
 - **Input**: all (valid_observable_types None).
@@ -2036,7 +2041,7 @@ In the config's order. ace4 is the crate a ported module is in.
 
 - **Section**: `analysis_module_svs_alert_tagger`, class `SVSAlertTagger` in `saq/modules/svs.py`, enabled by default.
 - **ace4**: not yet.
-- **Pool**: lookup. Reads SVS run state through the internal API (7.2).
+- **Pool**: lookup. Reads SVS run state through the `svs-attribution` read (7.2).
 - **Step**: 7.10.
 - **Does**: In correlation-mode post-analysis, evaluates SVS test-run attribution for the alert (markers in the tree, hosts, event time vs registered runs and maintenance windows) and tags it svs_test, svs:marker_mismatch (with detection points) or svs:maintenance.
 - **Input**: none (post-analysis over the root).

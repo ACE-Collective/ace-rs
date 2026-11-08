@@ -12,6 +12,11 @@ there, and fails when the inventory's table of modules:
 - names a crate as ace4's that crates/ace doesn't register, or misses one it does;
 - disagrees with a module's entry below it, or with its own counts.
 
+And it finds the modules that read or write ACE's own data (PLAN.md 7.2) in ace3's code at the same
+commit, and fails when the inventory's "What 7.2 serves" table misses one or lists one it doesn't
+find, when a row names nothing to serve it, or a read crates/ace-core/src/reads.md doesn't have, or
+`core` for a module off the core's pool, and when reads.md lists a read no row names.
+
     tools/ace3/modules/check                  ace3's checkout at HEAD
     tools/ace3/modules/check --commit f72f894 at another commit
     tools/ace3/modules/check --allow-absent   exits 0 with a SKIP when there's no checkout (CI)
@@ -21,6 +26,7 @@ ACE4_ACE3_CHECKOUT is ace3's checkout on the host (default: ../ace3 beside this 
 """
 
 import argparse
+import ast
 import collections
 import os
 import re
@@ -30,6 +36,7 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[3]
 DOC = REPO / "docs" / "modules.md"
+READS = REPO / "crates" / "ace-core" / "src" / "reads.md"
 POOLS = ["parser", "lookup", "core", "sandbox", "scanner", "7.3"]
 STEPS = ["done", "7.4", "7.5", "7.6", "7.7", "7.8", "7.9", "7.10", "owner"]
 # ace3's SplunkAPIAnalyzer has no section of its own in saq.default.yaml: sites run it as
@@ -214,7 +221,199 @@ def check_doc(doc, ace3, failures):
     for step in STEPS:
         if steps[step] and f"| {step} | {steps[step]} |" not in doc:
             failures.append(f"the counts table doesn't say | {step} | {steps[step]} |")
-    return pools, steps
+    return pools, steps, rows
+
+
+# What the scan for ACE's own data looks for in a function's source, and what it means.
+ACCESS = {
+    "database": re.compile(r"\b(get_db|get_db_connection|private_transaction|run_private_transaction"
+                           r"|sessionmaker)\("),
+    "redis": re.compile(r"\b(redis\.Redis|redis\.StrictRedis|get_redis_connection)\("),
+}
+# a name imported from these is a use of ACE's encryption key
+KEY_MODULES = {"saq.crypto"}
+# ace3's framework: its own reads (the analysis result cache, secrets kept in the database) are the
+# engine's, not a module's, so the scan doesn't follow it
+FRAMEWORK = ("saq.analysis", "saq.configuration", "saq.environment", "saq.engine", "saq.constants",
+             "saq.util", "saq.logging", "saq.error", "saq.modules.base_module", "saq.modules.adapter",
+             "saq.modules.context", "saq.modules.config", "saq.modules.interfaces")
+# what serves a module besides a read of reads.md
+SERVED = {"lease", "ruleset", "end", "core"}
+FUNCTION = (ast.FunctionDef, ast.AsyncFunctionDef)
+
+
+class Code:
+    """ace3's Python at a commit, read with git show and parsed, never imported or run."""
+
+    def __init__(self, ace3, commit):
+        self.ace3, self.commit = ace3, commit
+        self.files = set(git(ace3, "ls-tree", "-r", "--name-only", commit, "saq").splitlines())
+        self.modules = {}
+
+    def path(self, module):
+        stem = module.replace(".", "/")
+        for path in (stem + ".py", stem + "/__init__.py"):
+            if path in self.files:
+                return path
+        return None
+
+    def module(self, name):
+        """(source, top-level definitions, imports) of a module, or None."""
+        if name not in self.modules:
+            path = self.path(name)
+            if path is None:
+                self.modules[name] = None
+                return None
+            text = git(self.ace3, "show", f"{self.commit}:{path}")
+            tree = ast.parse(text)
+            package = name if path.endswith("__init__.py") else name.rpartition(".")[0]
+            imports = {}
+            for node in ast.walk(tree):
+                if isinstance(node, ast.ImportFrom):
+                    base = node.module or ""
+                    if node.level:
+                        parts = package.split(".")
+                        parts = parts[:len(parts) - (node.level - 1)]
+                        base = ".".join(parts + ([base] if base else []))
+                    for alias in node.names:
+                        imports[alias.asname or alias.name] = (base, alias.name)
+            defs = {n.name: n for n in tree.body if isinstance(n, (*FUNCTION, ast.ClassDef))}
+            self.modules[name] = (text, defs, imports, package)
+        return self.modules[name]
+
+    def resolve(self, module, name, depth=0):
+        """(module, node) that `name` means in `module`, through re-exports, or None."""
+        found = self.module(module)
+        if found is None or depth > 5:
+            return None
+        _, defs, imports, _ = found
+        if name in defs:
+            return module, defs[name]
+        if name in imports:
+            base, attr = imports[name]
+            if self.path(f"{base}.{attr}") is None:
+                return self.resolve(base, attr, depth + 1)
+        return None
+
+    def package_methods(self, package, name):
+        """Each (module, class, method) called `name` in the package's own files: what an
+        interface's call reaches, as saq.email_archive's wrappers reach its local archive."""
+        prefix = package.replace(".", "/") + "/"
+        for path in sorted(self.files):
+            rest = path[len(prefix):] if path.startswith(prefix) else None
+            if not rest or "/" in rest or not rest.endswith(".py") or rest.startswith("test"):
+                continue
+            module = path[:-3].replace("/", ".").removesuffix(".__init__")
+            for node in self.module(module)[1].values():
+                if isinstance(node, ast.ClassDef):
+                    for item in node.body:
+                        if isinstance(item, FUNCTION) and item.name == name:
+                            yield module, node, item
+
+    def access(self, module, cls):
+        """{kind: the path to its first use} for a module's class."""
+        found, seen = {}, set()
+
+        def outside(name):
+            return any(name == f or name.startswith(f + ".") for f in FRAMEWORK)
+
+        def visit(module, node, owner, trail):
+            key = (module, getattr(owner, "name", None), node.name)
+            if key in seen or len(trail) > 10:
+                return
+            seen.add(key)
+            text, _, imports, package = self.module(module)
+            trail = trail + [f"{module}.{node.name}"]
+            source = ast.get_source_segment(text, node) or ""
+            for kind, pattern in ACCESS.items():
+                if pattern.search(source):
+                    found.setdefault(kind, " > ".join(trail))
+            if isinstance(node, ast.ClassDef):
+                owner = node
+                for base in node.bases:
+                    if isinstance(base, ast.Name):
+                        target = self.resolve(module, base.id)
+                        if target and not outside(target[0]) and isinstance(target[1], ast.ClassDef):
+                            visit(target[0], target[1], target[1], trail)
+            for sub in ast.walk(node):
+                if isinstance(sub, ast.Name):
+                    if sub.id in imports and imports[sub.id][0] in KEY_MODULES:
+                        found.setdefault("key", " > ".join(trail + [f"saq.crypto.{sub.id}"]))
+                    target = self.resolve(module, sub.id)
+                    if target and not outside(target[0]) and isinstance(target[1], FUNCTION):
+                        visit(target[0], target[1], None, trail)
+                elif isinstance(sub, ast.Attribute):
+                    if (owner is not None and isinstance(sub.value, ast.Name)
+                            and sub.value.id == "self"):
+                        for item in owner.body:
+                            if isinstance(item, FUNCTION) and item.name == sub.attr:
+                                visit(module, item, owner, trail)
+                    elif isinstance(sub.value, ast.Call) and not outside(module):
+                        for target, klass, item in self.package_methods(package, sub.attr):
+                            visit(target, item, klass, trail)
+
+        target = self.resolve(module, cls)
+        if target:
+            visit(target[0], target[1], target[1], [])
+        return found
+
+
+def readers(text, ace3, commit):
+    """{module: {kind: path}} for each section whose class reads ACE's data."""
+    code = Code(ace3, commit)
+    out = {}
+    for key, lines in sections(text).items():
+        if key.startswith("analysis_module_"):
+            f = fields(lines)
+            found = code.access(f.get("python_module"), f.get("python_class"))
+            if found:
+                out[key[len("analysis_module_"):]] = found
+    return out
+
+
+def check_reads(doc, reads_doc, rows, found, failures):
+    """Checks "What 7.2 serves" against the scan and against reads.md."""
+    section = doc.split("\n## What 7.2 serves\n", 1)[1].split("\n## ", 1)[0]
+    served = {}
+    for line in section.splitlines():
+        if line.startswith("| `"):
+            cells = [c.strip() for c in line.strip().strip("|").split(" | ")]
+            name = cells[0].strip("`")
+            if name in served:
+                failures.append(f"7.2: {name} has two rows")
+            served[name] = re.findall(r"`([a-z0-9-]+)`", cells[-1]) if len(cells) == 4 else []
+    reads = {}
+    table = reads_doc.split("\n## The reads\n", 1)[1].split("\n## ", 1)[0]
+    for line in table.splitlines():
+        match = re.match(r"^\| `([a-z0-9-]+)` \| `([a-z0-9_]+)` \|", line)
+        if match:
+            reads[match.group(1)] = match.group(2)
+    for name in sorted(set(found) - set(served)):
+        kinds = ", ".join(f"{k} ({v})" for k, v in sorted(found[name].items()))
+        failures.append(f"7.2: {name} reads ACE's data and has no row: {kinds}")
+    for name in sorted(set(served) - set(found)):
+        failures.append(f"7.2: {name} has a row and the scan finds no read of ACE's data")
+    named = set()
+    for name, tokens in served.items():
+        if name not in rows:
+            failures.append(f"7.2: {name} has a row and no row in the table of modules")
+        if not tokens:
+            failures.append(f"7.2: {name} reads ACE's data and names nothing to serve it")
+        for token in tokens:
+            if token in reads:
+                named.add(token)
+                if reads[token] != name:
+                    failures.append(f"7.2: {name} names {token}, which reads.md gives to "
+                                    f"{reads[token]}")
+            elif token not in SERVED:
+                failures.append(f"7.2: {name} names {token}, which isn't a read in reads.md or "
+                                f"one of {', '.join(sorted(SERVED))}")
+            if token == "core" and name in rows and rows[name]["pool"].strip() != "core":
+                failures.append(f"7.2: {name} is served in the core and its pool is "
+                                f"{rows[name]['pool'].strip()}")
+    for read in sorted(set(reads) - named):
+        failures.append(f"7.2: reads.md has {read}, which no module's row names")
+    return len(served), len(reads)
 
 
 def main(argv):
@@ -222,6 +421,7 @@ def main(argv):
     parser.add_argument("--commit", default="HEAD")
     parser.add_argument("--allow-absent", action="store_true")
     parser.add_argument("--doc", type=Path, default=DOC, help=argparse.SUPPRESS)
+    parser.add_argument("--reads", type=Path, default=READS, help=argparse.SUPPRESS)
     args = parser.parse_args(argv)
     ace3 = checkout()
     if ace3 is None:
@@ -230,10 +430,13 @@ def main(argv):
             return 0
         sys.exit("modules: no ace3 checkout; set ACE4_ACE3_CHECKOUT")
     commit = git(ace3, "rev-parse", "--short=8", args.commit).strip()
-    sections_ = config(git(ace3, "show", f"{commit}:etc/saq.default.yaml"))
+    text = git(ace3, "show", f"{commit}:etc/saq.default.yaml")
+    sections_ = config(text)
     doc = args.doc.read_text()
     failures = []
-    pools, steps = check_doc(doc, sections_, failures)
+    pools, steps, rows = check_doc(doc, sections_, failures)
+    served, reads = check_reads(doc, args.reads.read_text(), rows, readers(text, ace3, commit),
+                                failures)
     documented = re.search(r"at ace3 `([0-9a-f]+)`", doc)
     if documented and not commit.startswith(documented.group(1)[:7]):
         print(f"note  docs/modules.md was written at ace3 {documented.group(1)}; checked at {commit}")
@@ -241,7 +444,8 @@ def main(argv):
         print(f"FAIL  {failure}")
     summary = (f"{len(sections_)} sections at ace3 {commit}; pools "
                + ", ".join(f"{p} {pools[p]}" for p in POOLS) + "; steps "
-               + ", ".join(f"{s} {steps[s]}" for s in STEPS if steps[s]))
+               + ", ".join(f"{s} {steps[s]}" for s in STEPS if steps[s])
+               + f"; {served} read ACE's data, with {reads} reads in reads.md")
     print(("ok    " if not failures else "FAIL  ") + "the module inventory: " + summary)
     return 1 if failures else 0
 

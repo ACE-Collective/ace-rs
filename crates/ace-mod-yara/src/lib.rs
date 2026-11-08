@@ -306,8 +306,8 @@ impl Parser for YaraScanner {
                     &format!("{}:{}", m.rule, pattern.identifier),
                 );
             }
-            // the database lookups of $obsd_ and $obs_ strings wait for the core's read API
-            // (PLAN.md 7.2)
+            // the database lookups of $obsd_ strings come on the ruleset, which 7.6 builds
+            // (crates/ace-core/src/reads.md); $obs_ strings aren't served
 
             if !no_alert_rules.contains(&m.rule.as_str()) {
                 let mut detection =
