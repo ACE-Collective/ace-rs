@@ -60,6 +60,8 @@ pub async fn replay_task(
         outputs,
         cancel: CancellationToken::new(),
         contained: false,
+        // a replay holds no lease, so its reads go to the admin route
+        reader: Some(Arc::new(client.replay_reads())),
     };
     if let Some(parser) = modules.parser(&task.module) {
         Ok(tokio::task::block_in_place(|| parser.run(run)))

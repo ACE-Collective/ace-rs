@@ -1,0 +1,14 @@
+{
+  "about": "The world tools/ace3/dumps/fake_dns.py answers ace3's DNS lookups from, for the reference dumps and the trees. Every address is in TEST-NET-1 (192.0.2.0/24), which isn't globally routable, so the RDAP module skips the ip observables the DNS module adds. Any other name doesn't exist.",
+  "names": {
+    "example.com": {"A": ["192.0.2.10", "192.0.2.2"], "MX": ["10 mail.example.com.", "20 backup.example.com."]},
+    "www.example.com": {"CNAME": ["edge.example.net."]},
+    "edge.example.net": {"CNAME": ["cdn.example.org."]},
+    "cdn.example.org": {"A": ["192.0.2.30"]},
+    "example.net": {"TXT": ["\"v=spf1 -all\""]},
+    "example.org": {"MX": ["10 mx.example.org."]},
+    "ace4-wildcard.com": {"A": ["192.0.2.40"]},
+    "*.ace4-wildcard.com": {"A": ["192.0.2.41"]}
+  },
+  "servfail": ["broken.example.com"]
+}

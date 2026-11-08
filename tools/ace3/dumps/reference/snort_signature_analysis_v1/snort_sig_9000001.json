@@ -1,0 +1,38 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "SnortSignatureAnalysis_v1",
+      "details": {
+        "signature": "unknown signature (rules not updating?)",
+        "signature_id": null
+      },
+      "detections": [],
+      "module_path": "saq.modules.snort:SnortSignatureAnalysis_v1",
+      "observables": [],
+      "summary": null,
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "snort_sig 9000001, against fixtures/snort/snort.rules",
+    "meta_tags": [],
+    "observable": {
+      "type": "snort_sig",
+      "value": "9000001"
+    }
+  },
+  "module": "snort_signature_analysis_v1",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "relationships": [],
+    "tags": [],
+    "type": "snort_sig",
+    "value": "9000001"
+  }
+}

@@ -3,23 +3,29 @@
 //!
 //! ```text
 //! replay-server --listen 0.0.0.0:443 --public http://responder:443 \
-//!     --recording DIR[=PREFIX,PREFIX...]...
+//!     --recording DIR[=PREFIX,PREFIX...]... [--dns-listen 0.0.0.0:53 --dns-recording FILE...]
 //! ```
 //!
 //! A request for `/<scheme>/<host>/<path>` gets the response recorded for
 //! `<scheme>://<host>/<path>` in any of the recordings; anything else gets a 404. The bodies of
 //! responses to URLs starting with one of a recording's prefixes have their URLs pointed at
 //! `--public`. Each request is logged on stderr, with the ones nothing was recorded for marked.
+//!
+//! With `--dns-listen`, it also answers DNS over UDP and TCP from the DNS recordings
+//! (`ace_testkit::dns`), and SERVFAIL to anything else, logged the same way.
 
 use std::path::PathBuf;
 use std::time::Duration;
 
+use ace_testkit::dns::DnsReplay;
 use ace_testkit::replay::HttpReplay;
 
 struct Args {
     listen: String,
     public: Option<String>,
     recordings: Vec<(PathBuf, Vec<String>)>,
+    dns_listen: Option<String>,
+    dns_recordings: Vec<PathBuf>,
 }
 
 fn parse() -> Result<Args, String> {
@@ -28,6 +34,8 @@ fn parse() -> Result<Args, String> {
         listen: "0.0.0.0:443".to_owned(),
         public: None,
         recordings: Vec::new(),
+        dns_listen: None,
+        dns_recordings: Vec::new(),
     };
     while let Some(arg) = args.next() {
         let mut value = || args.next().ok_or(format!("{arg} takes a value"));
@@ -46,11 +54,16 @@ fn parse() -> Result<Args, String> {
                         .collect(),
                 ));
             }
+            "--dns-listen" => parsed.dns_listen = Some(value()?),
+            "--dns-recording" => parsed.dns_recordings.push(value()?.into()),
             other => return Err(format!("unknown argument {other}")),
         }
     }
     if parsed.recordings.is_empty() {
         return Err("no --recording".to_owned());
+    }
+    if parsed.dns_listen.is_some() != !parsed.dns_recordings.is_empty() {
+        return Err("--dns-listen and --dns-recording go together".to_owned());
     }
     Ok(parsed)
 }
@@ -94,7 +107,28 @@ async fn main() -> std::process::ExitCode {
         recordings.len(),
         args.listen
     );
+    let dns = match &args.dns_listen {
+        Some(listen) => {
+            let paths: Vec<&std::path::Path> =
+                args.dns_recordings.iter().map(PathBuf::as_path).collect();
+            match DnsReplay::serve(&paths, listen).await {
+                Ok(dns) => {
+                    eprintln!(
+                        "replay-server: serving {} DNS recordings on {listen}",
+                        paths.len()
+                    );
+                    Some(dns)
+                }
+                Err(e) => {
+                    eprintln!("replay-server: DNS on {listen}: {e}");
+                    return std::process::ExitCode::from(2);
+                }
+            }
+        }
+        None => None,
+    };
     let mut logged = 0;
+    let mut dns_logged = 0;
     let mut terminate =
         match tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate()) {
             Ok(signal) => signal,
@@ -121,5 +155,18 @@ async fn main() -> std::process::ExitCode {
             eprintln!("replay-server: {line}{mark}");
         }
         logged = requests.len();
+        if let Some(dns) = &dns {
+            let asked = dns.asked();
+            let unmatched = dns.unmatched();
+            for query in asked.iter().skip(dns_logged) {
+                let mark = if unmatched.contains(query) {
+                    " (not recorded: SERVFAIL)"
+                } else {
+                    ""
+                };
+                eprintln!("replay-server: DNS {query}{mark}");
+            }
+            dns_logged = asked.len();
+        }
     }
 }

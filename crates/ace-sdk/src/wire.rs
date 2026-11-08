@@ -29,6 +29,16 @@ pub mod paths {
         format!("/api/worker/v1/tasks/{id}/{action}")
     }
 
+    /// A read of ACE's own data for a leased task (PLAN.md 7.2, `crate::reads`).
+    pub fn read(id: i64, read: &str) -> String {
+        format!("/api/worker/v1/tasks/{id}/reads/{read}")
+    }
+
+    /// The same read for a task being replayed, with the admin token and no lease.
+    pub fn replay_read(id: i64, read: &str) -> String {
+        format!("/api/admin/v1/tasks/{id}/reads/{read}")
+    }
+
     /// The replay view of a task, for `ace task replay` (PLAN.md 2.20).
     pub fn replay(id: i64) -> String {
         format!("/api/admin/v1/tasks/{id}/replay")

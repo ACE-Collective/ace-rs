@@ -1,0 +1,38 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "SnortSignatureAnalysis_v1",
+      "details": {
+        "signature": "alert http $HOME_NET any -> $EXTERNAL_NET any (msg:\"ACE4 TEST fixture beacon\"; flow:established,to_server; content:\"/ace4-beacon\"; http_uri; classtype:trojan-activity; sid:9000001; rev:3;)",
+        "signature_id": "9000001 rev 3"
+      },
+      "detections": [],
+      "module_path": "saq.modules.snort:SnortSignatureAnalysis_v1",
+      "observables": [],
+      "summary": "Signature Analysis - (9000001 rev 3) alert http $HOME_NET any -> $EXTERNAL_NET any (msg:\"ACE4 TEST fixture beacon\"; flow:established,to_server; content:\"/ace4-beacon\"; http_uri; classtype:trojan-activity; sid:9000001; rev:3;)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "snort_sig 1:9000001:3, against fixtures/snort/snort.rules",
+    "meta_tags": [],
+    "observable": {
+      "type": "snort_sig",
+      "value": "1:9000001:3"
+    }
+  },
+  "module": "snort_signature_analysis_v1",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "relationships": [],
+    "tags": [],
+    "type": "snort_sig",
+    "value": "1:9000001:3"
+  }
+}

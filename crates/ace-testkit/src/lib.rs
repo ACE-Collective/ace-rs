@@ -11,7 +11,9 @@
 //! from JSON. The root uuid and the task's clock are fixed, so snapshots are stable. Output files
 //! go to a store in a temporary directory, where `read_output` finds them.
 
+pub mod dns;
 pub mod library_diff;
+pub mod reads;
 pub mod reference;
 pub mod replay;
 
@@ -26,6 +28,7 @@ use ace_results::{
     ResultValidator, Sha256, YaraMeta, sort_json_keys,
 };
 use ace_sdk::lists::{Entry as ListEntry, ListSpec, WireList};
+use ace_sdk::reads::Reader;
 use ace_sdk::{
     CarryingEmail, Delay, DelayedRun, FileStore, InputFile, LocalFileStore, Lookup, Module,
     ModuleError, Observable, Outcome, Parser, Secret, Secrets, SettingsError, TaskContext,
@@ -83,6 +86,7 @@ pub struct Harness<M: Module> {
     carrying_email: CarryingEmail,
     timeout: Option<Duration>,
     lists: Vec<WireList>,
+    reader: Option<Arc<dyn Reader>>,
 }
 
 impl<M: Module> Harness<M> {
@@ -111,6 +115,7 @@ impl<M: Module> Harness<M> {
             carrying_email: CarryingEmail::Absent,
             timeout: None,
             lists: Vec::new(),
+            reader: None,
         })
     }
 
@@ -128,6 +133,13 @@ impl<M: Module> Harness<M> {
             version: 1,
             entries,
         });
+        self
+    }
+
+    /// What answers the module's reads of ACE's data (PLAN.md 7.2), such as `FakeReads`. Its tasks
+    /// then run as task 1 of the queue.
+    pub fn reader(mut self, reader: Arc<dyn Reader>) -> Self {
+        self.reader = Some(reader);
         self
     }
 
@@ -238,7 +250,12 @@ impl<M: Module> Harness<M> {
             .with_now(self.now)
             .with_file_store(self.store.clone())
             .with_carrying_email(self.carrying_email.clone())
-            .with_lists(self.lists.clone());
+            .with_lists(self.lists.clone())
+            .with_reader(self.reader.clone());
+        let ctx = match &self.reader {
+            Some(_) => ctx.with_task_id(1),
+            None => ctx,
+        };
         let ctx = match self.timeout {
             Some(timeout) => ctx.with_timeout(timeout),
             None => ctx,

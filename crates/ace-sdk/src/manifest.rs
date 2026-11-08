@@ -19,6 +19,7 @@ use serde_json::{Value, json};
 
 use crate::lists::ListSpec;
 use crate::module::{EXCLUDE_ALL, Lookup, Module, Parser, Settings};
+use crate::reads::Read;
 
 /// The limits a module's task runs under.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -84,12 +85,20 @@ pub struct Manifest {
     pub runs_last: bool,
     /// The analyst-edited lists the module reads (`Module::LISTS`).
     pub lists: &'static [ListSpec],
+    /// The reads of ACE's own data the module makes (`Module::READS`).
+    pub reads: &'static [Read],
     settings_schema: fn() -> Schema,
     check_settings: fn(Option<&Value>) -> Result<(), SettingsError>,
 }
 
 impl Manifest {
+    /// A parser's manifest. A parser that declares a read doesn't build: its task process has no
+    /// network and no channel back while it runs, so it gets ACE's data on the lease.
     pub const fn parser<M: Parser>() -> Self {
+        assert!(
+            M::READS.is_empty(),
+            "a parser can't declare reads (Module::READS)"
+        );
         Manifest::of::<M>(ModuleKind::Parser, Sandbox::Contained)
     }
 
@@ -117,6 +126,7 @@ impl Manifest {
             reads_carrying_email: M::READS_CARRYING_EMAIL,
             runs_last: M::RUNS_LAST,
             lists: M::LISTS,
+            reads: M::READS,
             settings_schema: settings_schema::<M::Settings>,
             check_settings: check_settings::<M::Settings>,
         }
@@ -169,6 +179,7 @@ impl Manifest {
             },
             "sandbox": sandbox,
             "secrets": self.secrets,
+            "reads": self.reads.iter().map(|r| r.name).collect::<Vec<_>>(),
             "settings_schema": self.settings_schema(),
         })
     }
@@ -319,6 +330,39 @@ mod tests {
                 path: "outer".to_owned()
             }
         );
+    }
+
+    /// A parser that declares a read, which it couldn't make.
+    struct ReadingParser;
+
+    impl Module for ReadingParser {
+        const NAME: &'static str = "reading_parser";
+        const INPUTS: &'static [ObservableKind] = &[ObservableKind::File];
+        const READS: &'static [crate::reads::Read] =
+            &[<crate::reads::SnortSignature as crate::reads::ReadKind>::READ];
+        type Output = crate::example::LineStats;
+        type Settings = LineCounterSettings;
+        fn init(_: &LineCounterSettings) -> Result<Self, crate::ModuleError> {
+            Ok(ReadingParser)
+        }
+    }
+
+    impl Parser for ReadingParser {
+        fn analyze(
+            &self,
+            _: &crate::TaskContext<LineCounterSettings>,
+        ) -> Result<crate::Outcome<crate::example::LineStats>, crate::ModuleError> {
+            Ok(crate::Outcome::Skipped(String::new()))
+        }
+    }
+
+    #[test]
+    fn a_parser_can_t_declare_a_read_but_a_lookup_can() {
+        // in a constant, as a module crate's MANIFEST is, this fails the build
+        let refused = std::panic::catch_unwind(Manifest::parser::<ReadingParser>);
+        assert!(refused.is_err());
+        assert!(RESOLVER.reads.is_empty());
+        assert_eq!(RESOLVER.describe()["reads"], json!([]));
     }
 
     #[test]

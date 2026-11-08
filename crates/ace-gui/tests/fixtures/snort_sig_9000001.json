@@ -1,0 +1,9 @@
+{
+  "analysis_type": "snort_signature_analysis",
+  "schema_version": 1,
+  "details": {
+    "signature": "alert http $HOME_NET any -> $EXTERNAL_NET any (msg:\"ACE4 TEST fixture beacon\"; flow:established,to_server; content:\"/ace4-beacon\"; http_uri; classtype:trojan-activity; sid:9000001; rev:3;)",
+    "signature_id": "9000001 rev 3"
+  },
+  "summary": "Signature Analysis - (9000001 rev 3) alert http $HOME_NET any -> $EXTERNAL_NET any (msg:\"ACE4 TEST fixture beacon\"; flow:established,to_server; content:\"/ace4-beacon\"; http_uri; classtype:trojan-activity; sid:9000001; rev:3;)"
+}

@@ -39,6 +39,8 @@ use std::fmt;
 
 use ace_results::bytes::TextOrBytes;
 use ace_results::types::archive::ArchiveAnalysis;
+use ace_results::types::brocess::EmailConversationFrequencyAnalysis;
+use ace_results::types::dns::FqdnAnalysis;
 use ace_results::types::email::EmailAnalysis;
 use ace_results::types::msoffice::MsofficeEncryptionAnalysis;
 use ace_results::types::olevba::{OlevbaAnalysis, OlevbaMacro};
@@ -46,6 +48,7 @@ use ace_results::types::pcode::PCodeAnalysis;
 use ace_results::types::pdf::PdfAnalysis;
 use ace_results::types::rdap::RdapAnalysis;
 use ace_results::types::rtf::RtfOleObjectAnalysis;
+use ace_results::types::snort::SnortSignatureAnalysis;
 use ace_results::types::splunk::SplunkApiAnalysis;
 use ace_results::types::xlm::XlmDeobfuscatorAnalysis;
 use ace_results::types::yara::{ScanResult, YaraScanResults};
@@ -153,6 +156,9 @@ impl Views {
             .with(ViewEntry::of::<ArchiveAnalysis>())
             .with(ViewEntry::of::<YaraScanResults>())
             .with(ViewEntry::of::<RdapAnalysis>())
+            .with(ViewEntry::of::<FqdnAnalysis>())
+            .with(ViewEntry::of::<SnortSignatureAnalysis>())
+            .with(ViewEntry::of::<EmailConversationFrequencyAnalysis>())
             .with(ViewEntry::of::<SplunkApiAnalysis>())
             .with(ViewEntry::of::<OlevbaAnalysis>())
             .with(ViewEntry::of::<RtfOleObjectAnalysis>())
@@ -730,6 +736,108 @@ impl AnalysisView for RdapAnalysis {
     type View<'a> = RdapView<'a>;
     fn view(&self) -> RdapView<'_> {
         RdapView { analysis: self }
+    }
+}
+
+// ---- dns: ace3's default_template.html ----
+
+/// `fqdn_analysis`. ace3 prints its details with `default_template.html`; here each field by its key,
+/// in the order ace3 writes them, with a list's entries joined.
+#[derive(Debug, Template)]
+#[template(path = "analysis/dns.html")]
+pub struct FqdnView<'a> {
+    pub analysis: &'a FqdnAnalysis,
+}
+
+impl FqdnView<'_> {
+    pub fn fields(&self) -> Vec<Field> {
+        let a = self.analysis;
+        let names = |list: &[String]| (!list.is_empty()).then(|| list_text(list));
+        [
+            field("status", a.status.as_ref()),
+            field("ip_address", a.ip_address.as_ref()),
+            field("resolution_count", a.resolution_count),
+            field("aliaslist", names(&a.aliaslist)),
+            field("all_resolutions", names(&a.all_resolutions)),
+            field(
+                "mx",
+                a.mx.as_deref().map(|mx| {
+                    if mx.is_empty() {
+                        "none".to_owned()
+                    } else {
+                        list_text(mx)
+                    }
+                }),
+            ),
+            field("wildcard_dns", a.wildcard_dns),
+        ]
+        .into_iter()
+        .flatten()
+        .collect()
+    }
+}
+
+impl AnalysisView for FqdnAnalysis {
+    type View<'a> = FqdnView<'a>;
+    fn view(&self) -> FqdnView<'_> {
+        FqdnView { analysis: self }
+    }
+}
+
+// ---- snort: ace3's default_template.html ----
+
+/// `snort_signature_analysis`. ace3 prints its details with `default_template.html`: the signature's
+/// id, and its rule.
+#[derive(Debug, Template)]
+#[template(path = "analysis/snort.html")]
+pub struct SnortSignatureView<'a> {
+    pub analysis: &'a SnortSignatureAnalysis,
+}
+
+impl SnortSignatureView<'_> {
+    /// The rule, bounded as any block of text.
+    pub fn signature(&self) -> Option<Clipped> {
+        self.analysis
+            .signature
+            .as_deref()
+            .map(|rule| clip(rule, MAX_TEXT))
+    }
+}
+
+impl AnalysisView for SnortSignatureAnalysis {
+    type View<'a> = SnortSignatureView<'a>;
+    fn view(&self) -> SnortSignatureView<'_> {
+        SnortSignatureView { analysis: self }
+    }
+}
+
+// ---- conversation frequency: ace3's default_template.html ----
+
+/// `email_conversation_frequency_analysis`. ace3 prints its details with `default_template.html`: the
+/// two counts.
+#[derive(Debug, Template)]
+#[template(path = "analysis/conversation_frequency.html")]
+pub struct ConversationFrequencyView<'a> {
+    pub analysis: &'a EmailConversationFrequencyAnalysis,
+}
+
+impl ConversationFrequencyView<'_> {
+    pub fn fields(&self) -> Vec<Field> {
+        let a = self.analysis;
+        [
+            field("source_count", a.source_count),
+            field("dest_count", a.dest_count),
+        ]
+        .into_iter()
+        .flatten()
+        .collect()
+    }
+}
+
+impl AnalysisView for EmailConversationFrequencyAnalysis {
+    type View<'a> = ConversationFrequencyView<'a>;
+    fn view(&self) -> ConversationFrequencyView<'_> {
+        ConversationFrequencyView { analysis: self }
     }
 }
 

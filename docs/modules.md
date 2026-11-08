@@ -21,23 +21,23 @@ Versions are those of ace3's image: Python packages from `installer/requirements
 | Pool | Modules | Ported |
 |---|---|---|
 | parser | 54 | 9 |
-| lookup | 17 | 1 |
+| lookup | 17 | 4 |
 | core | 3 | 0 |
 | sandbox | 14 | 0 |
 | scanner | 2 | 0 |
-| all | 90 | 10 |
+| all | 90 | 13 |
 
 | Step | Modules |
 |---|---|
-| done | 10 |
-| 7.4 | 8 |
+| done | 13 |
+| 7.4 | 5 |
 | 7.5 | 62 |
 | 7.6 | 5 |
 | 7.7 | 2 |
 | 7.10 | 2 |
 | owner | 1 |
 
-No ace3 module goes to 7.8 or 7.9: 7.8's integrations are a site's (below), and remediation and file collection are services, not modules. "done" is the ten modules phases 1 to 4 ported. "owner" is a module no step names.
+No ace3 module goes to 7.8 or 7.9: 7.8's integrations are a site's (below), and remediation and file collection are services, not modules. "done" is the ten modules phases 1 to 4 ported and those 7.4 has ported since. "owner" is a module no step names.
 
 ## 7.5's batches
 
@@ -57,11 +57,11 @@ In order. Batches 10 to 13 run programs in the sandbox runner, which batch 10 bu
 12. **macOS images**: `dmg_analyzer`, `cve_2021_30657_analyzer`. dmg2img and 7z on the runner.
 13. **Packet captures**: `pcap_analyzer`, `pcap_dns`, `pcap_tls`, `pcap_http`, `pcap_files`, `pcap_tls_decryption`, `tls_keylog`. tshark on the sandbox runner.
 
-7.4 ports, in this workspace: `fqdn_analyzer`, `nrd_analyzer`, `snort_signature_analysis_v1`, `user_analyzer`, `email_conversation_frequency_analyzer`, `email_thread_analyzer`, `email_logger`, `clicker_detection_splunk`. The brocess modules (`email_logger` writes what `email_conversation_frequency_analyzer` and `email_thread_analyzer` read) go together, after 7.2's endpoints.
+7.4 ports, in this workspace: `fqdn_analyzer` (done), `nrd_analyzer`, `snort_signature_analysis_v1` (done), `user_analyzer`, `email_conversation_frequency_analyzer` (done), `email_thread_analyzer`, `email_logger`, `clicker_detection_splunk`. The brocess modules (`email_logger` writes what `email_conversation_frequency_analyzer` and `email_thread_analyzer` read) go together, after 7.2's endpoints.
 
 ## What 7.2 serves
 
-Modules that read or write ACE's own data in ace3, or hold its encryption key, and what serves each in ace4, where workers hold neither. The reads, their scope, their bounds and how they refuse are a contract in `crates/ace-core/src/reads.md`, beside the lease API; each module's port step builds what its module calls. None is built in 7.2: the one ported module here, `yara_scanner_v3_4`, gets its data on the ruleset, and that waits for 7.6, which brings the list it reads.
+Modules that read or write ACE's own data in ace3, or hold its encryption key, and what serves each in ace4, where workers hold neither. The reads, their scope, their bounds and how they refuse are a contract in `crates/ace-core/src/reads.md`, beside the lease API; each module's port step builds what its module calls. None is built in 7.2: the one ported module here then, `yara_scanner_v3_4`, gets its data on the ruleset, and that waits for 7.6, which brings the list it reads. 7.4 built the first, `snort-signature`, and `smtp-counts`.
 
 `tools/ace3/modules/check` finds these in ace3's code at the commit it checks. From each section's class it follows the class's methods, its bases, the functions they name in ace3's own packages and, through an interface, the methods of the package's classes, until it finds `get_db(`, `get_db_connection(`, `private_transaction(`, `run_private_transaction(` or a Redis connection, or a use of `saq.crypto`. It doesn't follow ace3's framework (`saq.analysis`, `saq.configuration`, `saq.engine` and the module base classes), whose own reads are the engine's. Some reads aren't in the module's own file: they're in helpers such as `saq/brocess.py`, `saq/modules/email/conversation.py`, `saq/email_archive/` and `saq/svs/`. At ace3 `f72f8946` it finds the 14 below. The check fails when this table misses one or lists one it doesn't find, or when a row names nothing to serve it or a read `reads.md` doesn't have.
 
@@ -213,14 +213,14 @@ In the config's order. ace4 is the crate a ported module is in.
 | `file_path_analysis` | `FilePathAnalyzer` | not yet | parser | 7.5 batch 3 | file | analysis, binary, cli, correlation, email, file |
 | `network_identifier` | `NetworkIdentifier` | not yet | parser | 7.5 batch 3 | correlation | analysis, cli, correlation |
 | `parse_url` | `ParseURLAnalyzer` | not yet | parser | 7.5 batch 3 | correlation | analysis, cli, correlation |
-| `fqdn_analyzer` | `FQDNAnalyzer` | not yet | lookup | 7.4 | correlation | analysis, cli, correlation |
+| `fqdn_analyzer` | `FQDNAnalyzer` | `ace-mod-dns` | lookup | done | correlation | analysis, cli, correlation |
 | `idna_analyzer` | `IDNAAnalyzer` | not yet | parser | 7.5 batch 3 | correlation | analysis, cli, correlation |
 | `rdap_analyzer` | `RdapAnalyzer` | `ace-mod-rdap` | lookup | done | correlation | analysis, cli, correlation |
 | `nrd_analyzer` | `NRDAnalyzer` | not yet | lookup | 7.4 | common | analysis, binary, cli, correlation, email, file |
-| `snort_signature_analysis_v1` | `SnortSignatureAnalyzer_v1` | not yet | lookup | 7.4 | correlation | analysis, cli, correlation, suricata_ids |
+| `snort_signature_analysis_v1` | `SnortSignatureAnalyzer_v1` | `ace-mod-snort` | lookup | done | correlation | analysis, cli, correlation, suricata_ids |
 | `user_analyzer` | `UserAnalyzer` | not yet | lookup | 7.4 | correlation | analysis, cli, correlation |
 | `email_address_fqdn_analyzer` | `EmailAddressFQDNAnalyzer` | not yet | parser | 7.5 batch 3 | common | analysis, binary, cli, correlation, email, file |
-| `email_conversation_frequency_analyzer` | `EmailConversationFrequencyAnalyzer` | not yet | lookup | 7.4 | email | analysis, cli, correlation, email |
+| `email_conversation_frequency_analyzer` | `EmailConversationFrequencyAnalyzer` | `ace-mod-brocess` | lookup | done | email | analysis, cli, correlation, email |
 | `email_conversation_attachment_analyzer` | `EmailConversationAttachmentAnalyzer` | not yet | parser | 7.5 batch 8 | email | analysis, cli, correlation, email |
 | `email_conversation_link_analyzer` | `EmailConversationLinkAnalyzer` | not yet | parser | 7.5 batch 8 | email | analysis, cli, correlation, email |
 | `email_thread_analyzer` | `EmailThreadAnalyzer` | not yet | lookup | 7.4 | correlation | analysis, cli, correlation |
@@ -753,9 +753,9 @@ In the config's order. ace4 is the crate a ported module is in.
 ### fqdn_analyzer
 
 - **Section**: `analysis_module_fqdn_analyzer`, class `FQDNAnalyzer` in `saq/modules/dns.py`, enabled by default.
-- **ace4**: not yet.
+- **ace4**: ported in `ace-mod-dns`. On hickory-proto (7.4), asking as dnspython's stub resolver does. A resolver that doesn't answer fails the task as unavailable, where ace3 records `dns_error`; `crates/ace-mod-dns/tests/differences.md` has the rest.
 - **Pool**: lookup. DNS queries, the plan's hickory-dns example.
-- **Step**: 7.4.
+- **Step**: done.
 - **Does**: Resolves an fqdn observable's A records (and for a registrable apex, its MX and a wildcard probe) and adds the first resolved address as an ip observable; every outcome (ok/nxdomain/no_answer/dns_error) produces an analysis.
 - **Input**: fqdn.
 - **Groups and modes**: groups correlation; modes analysis, cli, correlation.
@@ -837,9 +837,9 @@ In the config's order. ace4 is the crate a ported module is in.
 ### snort_signature_analysis_v1
 
 - **Section**: `analysis_module_snort_signature_analysis_v1`, class `SnortSignatureAnalyzer_v1` in `saq/modules/snort.py`, enabled by default.
-- **ace4**: not yet.
+- **ace4**: ported in `ace-mod-snort`. Its `snort-signature` read is the first built (7.4): the core indexes the rules file in `ACE4_SNORT_RULES`. ace3's summary detail on the root isn't ported, since ace4's roots have none yet; `crates/ace-mod-snort/tests/differences.md` has the rest.
 - **Pool**: lookup. A Redis read today; in ace4 the `snort-signature` read (7.2) of the rules `ace signatures build-db` indexes.
-- **Step**: 7.4.
+- **Step**: done.
 - **Does**: For a snort_signature observable ('gid:sid:rev'), fetches the full Suricata/Snort rule text indexed in Redis by sid:rev and adds it as a summary detail on the root.
 - **Input**: snort_signature.
 - **Groups and modes**: groups correlation; modes analysis, cli, correlation, suricata_ids.
@@ -900,9 +900,9 @@ In the config's order. ace4 is the crate a ported module is in.
 ### email_conversation_frequency_analyzer
 
 - **Section**: `analysis_module_email_conversation_frequency_analyzer`, class `EmailConversationFrequencyAnalyzer` in `saq/modules/email/fa.py`, enabled by default.
-- **ace4**: not yet.
+- **ace4**: ported in `ace-mod-brocess`. Through the `smtp-counts` read (7.4), of migration 0037's `brocess.smtplog`, which stays empty until `email_logger` is ported. A core that can't answer fails the task as unavailable, where ace3 goes into a cooldown; `crates/ace-mod-brocess/tests/differences.md` has the rest.
 - **Pool**: lookup. Reads brocess's smtplog, which becomes the `smtp-counts` read (7.2).
-- **Step**: 7.4.
+- **Step**: done.
 - **Does**: For an email_conversation observable (sender|recipient), counts in brocess how often the sender has emailed us and how often it emailed this recipient, tagging new_sender or frequent_conversation.
 - **Input**: email_conversation.
 - **Groups and modes**: groups email; modes analysis, cli, correlation, email.

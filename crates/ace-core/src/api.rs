@@ -32,9 +32,14 @@
 //!
 //! Submissions moved to `ace-api` in PLAN.md 5.5, which serves people on a listener of its own.
 //!
-//! What a module reads of ACE's own data, which ace3's modules query its databases for, is a
-//! contract in `reads.md` beside this file (PLAN.md 7.2): task-scoped reads under
-//! `/api/worker/v1/tasks/<id>/reads/<read>`, each built by the step that ports its module.
+//! - `POST /api/worker/v1/tasks/<id>/reads/<read>`: a read of ACE's own data for a lookup module
+//!   (PLAN.md 7.2), which ace3's modules query its databases for. `reads.md` beside this file is the
+//!   contract, and `reads.rs` serves the reads built so far. 401 for an unknown token, 400 without
+//!   a worker or with a body that doesn't read, 409 unless the task is leased to the worker now,
+//!   403 for a read the module doesn't declare or a subject outside the task's root, 503 when the
+//!   store behind it is down.
+//! - `POST /api/admin/v1/tasks/<id>/reads/<read>`: the same for `ace task replay`, with the admin
+//!   token and no lease.
 //!
 //! Every request carries `Authorization: Bearer <token>`, and the token says which pool the
 //! worker is in. A task-scoped request also names the worker in `x-ace4-worker`. A task's lease
@@ -136,6 +141,9 @@ pub struct ApiConfig {
     pub max_wait: Duration,
     /// How long a presigned URL works.
     pub url_expiry: Duration,
+    /// The snort and suricata rules the `snort-signature` read answers from (PLAN.md 7.4), ace3's
+    /// `data/snort/snort.rules`. None answers every one with no rule.
+    pub snort_rules: Option<std::path::PathBuf>,
 }
 
 impl ApiConfig {
@@ -147,7 +155,13 @@ impl ApiConfig {
             lease: Duration::from_secs(60),
             max_wait: Duration::from_secs(20),
             url_expiry: Duration::from_secs(900),
+            snort_rules: None,
         }
+    }
+
+    pub fn snort_rules(mut self, path: impl Into<std::path::PathBuf>) -> Self {
+        self.snort_rules = Some(path.into());
+        self
     }
 
     pub fn admin_token(mut self, token: &str) -> Self {
@@ -162,7 +176,7 @@ impl ApiConfig {
 
     /// The pools in `ACE4_POOLS`, as `<pool>:<module>,<module>;<pool>:...`, each with the
     /// token in `ACE4_POOL_TOKEN_<POOL>`, the admin token in `ACE4_ADMIN_TOKEN`, and the lease's
-    /// length in `ACE4_LEASE_SECONDS` (60). Each has a
+    /// length in `ACE4_LEASE_SECONDS` (60), and the snort rules in `ACE4_SNORT_RULES`. Each has a
     /// dev default: `default_pools`, the binary's own pools and their modules in the same form,
     /// and tokens named `ace4-dev-<pool>-token`.
     pub fn from_env(default_pools: &str) -> Self {
@@ -190,6 +204,9 @@ impl ApiConfig {
             .and_then(|s| s.parse::<u64>().ok())
         {
             config = config.lease(Duration::from_secs(seconds));
+        }
+        if let Some(path) = std::env::var_os("ACE4_SNORT_RULES").filter(|p| !p.is_empty()) {
+            config = config.snort_rules(path);
         }
         config
     }
@@ -229,6 +246,8 @@ struct Inner {
     stopping: tokio_util::sync::CancellationToken,
     /// The analyst-edited lists, as of the newest version a lease has read (PLAN.md 5.14).
     lists: ListCache,
+    /// What the reads read besides the database (PLAN.md 7.2).
+    stores: crate::reads::ReadStores,
 }
 
 impl Drop for Inner {
@@ -245,6 +264,7 @@ impl Api {
         orchestrator: Orchestrator,
         config: ApiConfig,
     ) -> Result<Api, QueueError> {
+        let config_snort_rules = config.snort_rules.clone();
         let mut listener = PgListener::connect_with(db.pool()).await?;
         listener.listen(TASKS_CHANNEL).await?;
         let (wakeups, _) = broadcast::channel(1024);
@@ -276,6 +296,7 @@ impl Api {
                 listener,
                 stopping: tokio_util::sync::CancellationToken::new(),
                 lists: ListCache::default(),
+                stores: crate::reads::ReadStores::new(config_snort_rules),
             }),
         })
     }
@@ -302,6 +323,8 @@ impl Api {
                 )),
             )
             .route("/api/worker/v1/tasks/{id}/release", post(release))
+            .route("/api/worker/v1/tasks/{id}/reads/{read}", post(read))
+            .route("/api/admin/v1/tasks/{id}/reads/{read}", post(replay_read))
             .route(paths::COMMAND_LEASE, post(lease_command))
             .route(
                 "/api/worker/v1/commands/{id}/report",
@@ -1117,6 +1140,76 @@ async fn replay(
     // the lists as they are now, which may have changed since it ran
     leased.lists = lists;
     Ok(Json(leased))
+}
+
+/// A read of ACE's own data for a leased task (PLAN.md 7.2, `reads.md`).
+async fn read(
+    State(api): State<Api>,
+    Path((id, read)): Path<(i64, String)>,
+    headers: HeaderMap,
+    body: Result<Json<Value>, JsonRejection>,
+) -> Result<Json<Value>, Failure> {
+    let span = request_span("read", Some(id), &headers);
+    async {
+        let worker = api.worker(&headers)?;
+        let Json(request) = body.map_err(|e| Failure::BadRequest(e.body_text()))?;
+        // Worker::owned doesn't look at the expiry: a lease past it may be claimed by another
+        // worker at any moment, so it reads nothing
+        let task = worker
+            .owned(TaskId(id))
+            .await?
+            .filter(|task| task.lease_expires_at > Utc::now())
+            .ok_or(Failure::LeaseLost(TaskId(id)))?;
+        api.answer_read(&task, &read, request).await
+    }
+    .instrument(span)
+    .await
+}
+
+/// A read for a task being replayed, with the admin token, whatever the task's state.
+async fn replay_read(
+    State(api): State<Api>,
+    Path((id, read)): Path<(i64, String)>,
+    headers: HeaderMap,
+    body: Result<Json<Value>, JsonRejection>,
+) -> Result<Json<Value>, Failure> {
+    api.admin(&headers)?;
+    let Json(request) = body.map_err(|e| Failure::BadRequest(e.body_text()))?;
+    let task = crate::queue::find(&api.inner.db, TaskId(id))
+        .await?
+        .ok_or_else(|| Failure::NotFound(format!("no task {id}")))?;
+    api.answer_read(&task, &read, request).await
+}
+
+impl Api {
+    /// Answers a read once the caller may make it for `task`: the task's module declares it.
+    async fn answer_read(
+        &self,
+        task: &Task,
+        read: &str,
+        request: Value,
+    ) -> Result<Json<Value>, Failure> {
+        let declared = self
+            .inner
+            .orchestrator
+            .catalog()
+            .get(&task.module)
+            .is_some_and(|manifest| manifest.reads.iter().any(|r| r.name == read));
+        if !declared {
+            return Err(Failure::Forbidden(format!(
+                "{} doesn't declare the read {read}",
+                task.module
+            )));
+        }
+        crate::reads::answer(&self.inner.db, &self.inner.stores, task, read, request)
+            .await
+            .map(Json)
+            .map_err(|failure| match failure {
+                crate::reads::ReadFailure::BadRequest(why) => Failure::BadRequest(why),
+                crate::reads::ReadFailure::Forbidden(why) => Failure::Forbidden(why),
+                crate::reads::ReadFailure::Unavailable(why) => Failure::Unavailable(why),
+            })
+    }
 }
 
 /// 200 when the database answers, for the stack's healthcheck.

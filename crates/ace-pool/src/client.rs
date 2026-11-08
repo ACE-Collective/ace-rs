@@ -1,10 +1,13 @@
 //! The lease API's client: all a worker holds is the API's URL and its pool's token.
 
+use std::future::Future;
 use std::path::Path;
+use std::pin::Pin;
 use std::time::Duration;
 
 use ace_results::Sha256;
 use ace_sdk::http::{HttpClient, HttpError};
+use ace_sdk::reads::{ReadError, Reader};
 use ace_sdk::wire::{
     ApiError, CommandEnd, CommandLeaseRequest, CommandReply, CommandReport, CurrentRuleset,
     LeaseRequest, LeasedCommand, LeasedTask, Presigned, Renewal, TaskEnd, UploadRequest, paths,
@@ -299,6 +302,100 @@ impl LeaseClient {
             });
         }
         Ok(())
+    }
+}
+
+/// A task's reads of ACE's data through the lease API (PLAN.md 7.2), as the client's worker, or
+/// for a replay, through the admin route.
+#[derive(Debug, Clone)]
+pub struct TaskReads {
+    client: LeaseClient,
+    replay: bool,
+}
+
+impl LeaseClient {
+    /// What makes a leased task's reads.
+    pub fn reads(&self) -> TaskReads {
+        TaskReads {
+            client: self.clone(),
+            replay: false,
+        }
+    }
+
+    /// What makes a replayed task's reads: the admin route, which takes the admin token and no
+    /// lease.
+    pub fn replay_reads(&self) -> TaskReads {
+        TaskReads {
+            client: self.clone(),
+            replay: true,
+        }
+    }
+
+    /// One read for task `task`, answering its JSON.
+    pub async fn read(
+        &self,
+        task: i64,
+        read: &'static str,
+        request: &serde_json::Value,
+        replay: bool,
+    ) -> Result<serde_json::Value, ReadError> {
+        let path = if replay {
+            paths::replay_read(task, read)
+        } else {
+            paths::read(task, read)
+        };
+        let response = self
+            .http
+            .send(self.post(&path).json(request))
+            .await
+            .map_err(|e| {
+                if e.is_unavailable() {
+                    ReadError::Unavailable {
+                        read,
+                        source: e.into(),
+                    }
+                } else {
+                    ReadError::Other {
+                        read,
+                        source: e.into(),
+                    }
+                }
+            })?;
+        let status = response.status();
+        if status.is_success() {
+            return response.json().await.map_err(|e| ReadError::Other {
+                read,
+                source: e.into(),
+            });
+        }
+        let message = response
+            .json::<ApiError>()
+            .await
+            .map(|e| e.error)
+            .unwrap_or_else(|e| format!("an unreadable error body: {e}"));
+        Err(match status.as_u16() {
+            409 => ReadError::LeaseLost(read),
+            429 | 502 | 503 | 504 => ReadError::Unavailable {
+                read,
+                source: format!("{status}: {message}").into(),
+            },
+            code => ReadError::Refused {
+                read,
+                status: code,
+                message,
+            },
+        })
+    }
+}
+
+impl Reader for TaskReads {
+    fn read<'a>(
+        &'a self,
+        task: i64,
+        read: &'static str,
+        request: serde_json::Value,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, ReadError>> + Send + 'a>> {
+        Box::pin(async move { self.client.read(task, read, &request, self.replay).await })
     }
 }
 

@@ -1,0 +1,10 @@
+{
+  "about": "brocess's smtplog as tools/ace3/dumps/run_module.py --brocess gives it to ace3's conversation frequency module for the reference dumps (PLAN.md 7.4): [source, destination, numconnections] rows, written for them. A null count is a row whose numconnections is NULL.",
+  "smtplog": [
+    ["sender@example.com", "recipient@example.com", 7],
+    ["sender@example.com", "other@example.com", 3],
+    ["once@example.org", "recipient@example.com", 4],
+    ["once@example.org", "nobody@example.com", null],
+    ["no-pipe@example.com", "", 2]
+  ]
+}

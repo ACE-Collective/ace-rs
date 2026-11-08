@@ -157,7 +157,10 @@ fn collect(dir: &Path, base: &Path, names: &mut Vec<String>) -> Result<(), Harne
             if path.extension().is_none_or(|e| e != "http") {
                 collect(&path, base, names)?;
             }
-        } else if path.extension().is_some_and(|e| e == "json") {
+        } else if path.extension().is_some_and(|e| e == "json")
+            // and the DNS module's recorded answers
+            && !path.to_string_lossy().ends_with(".dns.json")
+        {
             let relative = path.strip_prefix(base).unwrap_or(&path);
             let name = relative.to_string_lossy();
             names.push(name.trim_end_matches(".json").to_owned());

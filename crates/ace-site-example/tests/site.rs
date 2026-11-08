@@ -422,12 +422,13 @@ async fn a_site_module_adds_an_observable_of_the_sites_type() {
         .env("ACE4_LOG", "info");
     let mut pool = Process::start(lookups, &dir.path().join("lookups.log"));
 
-    // RDAP would look example.com up on the internet, so the submission leaves it out
+    // RDAP and DNS would look example.com up on the internet, so the submission leaves them out
     let analysis = json!({
         "description": "a site's own module and type",
         "analysis_mode": "analysis",
         "observables": [
-            {"type": "fqdn", "value": "example.com", "exclude_modules": ["rdap_analyzer"]},
+            {"type": "fqdn", "value": "example.com",
+             "exclude_modules": ["rdap_analyzer", "fqdn_analyzer"]},
         ],
     });
     let body = format!(

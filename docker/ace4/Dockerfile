@@ -111,5 +111,6 @@ RUN pip install --no-cache-dir --disable-pip-version-check --no-deps --require-h
 FROM runtime AS responder
 COPY --from=build /out/replay-server /usr/local/bin/replay-server
 COPY tools/ace3/dumps/reference /recordings
+COPY tools/ace3/trees/dns.json /recordings/trees.dns.json
 USER ace4
 CMD ["replay-server"]

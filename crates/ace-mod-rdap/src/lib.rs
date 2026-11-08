@@ -15,7 +15,6 @@
 
 mod bootstrap;
 mod parse;
-mod suffix;
 
 use std::net::IpAddr;
 use std::time::Duration;
@@ -118,7 +117,7 @@ impl Lookup for RdapAnalyzer {
         // IP addresses are asked about as they are; a domain as its registrable domain
         let target = match (&ip, observable.kind.is_subtype_of(ObservableKind::Ip)) {
             (_, true) => observable.value.trim().to_owned(),
-            (_, false) => suffix::registrable_domain(&observable.value),
+            (_, false) => ace_sdk::domains::registrable_domain(&observable.value),
         };
 
         match self.try_rdap(&target, ip, &mut analysis, now).await? {

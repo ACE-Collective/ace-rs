@@ -23,6 +23,13 @@ does (saq/cli/commands/correlate.py) with all modules disabled except the ones n
   how the Splunk dumps point a module at tools/ace3/dumps/fake_splunk.py for one run;
 - with --replay-http, requests made through `requests` get the answers recorded in that directory
   and fail when none was, and WHOIS fails, so the run reaches nothing outside the container;
+- with --dns HOST:PORT, ace3's DNS resolver asks only that server, such as
+  tools/ace3/dumps/fake_dns.py, instead of the container's;
+- with --snort-rules PATH, ace3's snort module reads an index of that rules file, built as
+  `ace signatures build-db` builds it, from a dict in place of Redis, so nothing reaches
+  ace3's Redis;
+- with --brocess FILE, ace3's conversation frequency module counts from the smtplog rows in that
+  JSON file, summed as its SQL sums them, instead of querying brocess;
 - with --tree, it also writes tree.json, the whole root in the normal form of PLAN.md 3.1
   (crates/ace-core/src/normal.rs), which tools/ace3/trees/make-trees collects.
 
@@ -76,6 +83,9 @@ def parse_args():
     parser.add_argument("--record-http", action="store_true", help="record HTTP requests made through requests")
     parser.add_argument("--config", action="append", default=[], help="a YAML file ace3 loads over its configuration")
     parser.add_argument("--replay-http", action="append", default=[], help="a directory of recorded HTTP to answer from")
+    parser.add_argument("--dns", metavar="HOST:PORT", help="the one DNS server ace3's resolver asks")
+    parser.add_argument("--snort-rules", help="a rules file the snort module's index is built from, in memory")
+    parser.add_argument("--brocess", help="a JSON file of smtplog rows the frequency module counts from")
     parser.add_argument("--tree", action="store_true", help="also write the root in the normal form to tree.json")
     parser.add_argument("--label", default="", help="a name for the input, written into the dump")
     args = parser.parse_args(sys.argv[1:])
@@ -169,11 +179,77 @@ def replay_http(directories):
     whois.whois = no_whois
 
 
+def point_dns(server):
+    """Every dns.resolver.Resolver ace3 makes asks only `server`, with its other settings as
+    resolv.conf gives them."""
+    import dns.resolver
+
+    host, port = server.rsplit(":", 1)
+    original = dns.resolver.Resolver.__init__
+
+    def init(resolver, *args, **kwargs):
+        original(resolver, *args, **kwargs)
+        resolver.nameservers = [host]
+        resolver.port = int(port)
+
+    dns.resolver.Resolver.__init__ = init
+
+
+def fake_snort_index(path):
+    """The snort module's Redis index of `path`, built by ace3's own _build_signature_db into a dict
+    that answers the calls it and extract_signature make."""
+    import saq.modules.snort as snort
+
+    class FakeRedis(dict):
+        def set(self, key, value, **_kwargs):
+            self[key] = value
+            return True
+
+        def get(self, key):
+            return dict.get(self, key)
+
+        def delete(self, key):
+            self.pop(key, None)
+
+    fake = FakeRedis()
+    snort._build_signature_db(path, get_redis_connection=lambda: fake)
+    snort.extract_signature.__defaults__ = (lambda: fake,)
+
+
+def fake_brocess(path):
+    """saq.brocess's two smtplog counts, answered from the rows in `path` as MySQL answers
+    `SELECT SUM(numconnections) ... WHERE source = %s [AND destination = %s]`: varbinary columns
+    compared byte for byte, NULL counts left out, and no row summing to NULL, which ace3 reads as 0."""
+    import saq.modules.email.fa as fa
+
+    with open(path) as fp:
+        rows = json.load(fp)["smtplog"]
+
+    def total(matching):
+        counts = [count for source, destination, count in rows if matching(source, destination) and count is not None]
+        return sum(counts) if counts else 0
+
+    def by_source(source_email_address):
+        return total(lambda source, _: source.encode() == source_email_address.encode())
+
+    def by_conversation(source_email_address, dest_email_address):
+        return total(
+            lambda source, destination: source.encode() == source_email_address.encode()
+            and destination.encode() == dest_email_address.encode()
+        )
+
+    fa.query_brocess_by_source_email = by_source
+    fa.query_brocess_by_email_conversation = by_conversation
+
+
 # What the normal form calls each ace3 analysis, and the fields of a result that describe the run
 # rather than the sample: RUN_FIELDS in crates/ace-core/src/normal.rs, by ace3's class.
 TREE_MODULES = {
     "EmailAnalysis": "email_analyzer",
     "FileTypeAnalysis": "file_type",
+    "FQDNAnalysis": "fqdn_analyzer",
+    "EmailConversationFrequencyAnalysis": "email_conversation_frequency_analyzer",
+    "SnortSignatureAnalysis_v1": "snort_signature_analysis_v1",
     "ArchiveAnalysis": "archive",
     "OLEVBA_Analysis_v1_2": "olevba_v1_2",
     "MSOfficeEncryptionAnalysis": "msoffice_encryption_analyzer",
@@ -205,6 +281,9 @@ TREE_RUN_FIELDS = {
 # ace3's excluded_analysis holds `module:<class ...>` strings
 TREE_EXCLUDED = {
     "EmailAnalyzer": "email_analyzer",
+    "FQDNAnalyzer": "fqdn_analyzer",
+    "EmailConversationFrequencyAnalyzer": "email_conversation_frequency_analyzer",
+    "SnortSignatureAnalyzer_v1": "snort_signature_analysis_v1",
     "MessageIDAnalyzerV2": "message_id_analyzer_v2",
     "ArchiveAnalyzer": "archive",
     "OLEVBA_Analyzer_v1_2": "olevba_v1_2",
@@ -469,6 +548,8 @@ def main():
     recorder = None
     if args.replay_http:
         replay_http(args.replay_http)
+    if args.dns:
+        point_dns(args.dns)
     if args.record_http:
         recorder = HttpRecorder(os.path.join(work, "http"))
         recorder.install()
@@ -493,6 +574,11 @@ def main():
     from saq.engine.core import Engine
     from saq.engine.engine_configuration import EngineConfiguration
     from saq.engine.enums import EngineExecutionMode, EngineType
+
+    if args.snort_rules:
+        fake_snort_index(args.snort_rules)
+    if args.brocess:
+        fake_brocess(args.brocess)
 
     # results must not reach ace3's database through the analysis cache
     get_config().analysis_cache.enabled = False

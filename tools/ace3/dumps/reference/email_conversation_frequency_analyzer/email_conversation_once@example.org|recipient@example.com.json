@@ -1,0 +1,38 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "EmailConversationFrequencyAnalysis",
+      "details": {
+        "dest_count": 4,
+        "source_count": 4
+      },
+      "detections": [],
+      "module_path": "saq.modules.email.fa:EmailConversationFrequencyAnalysis",
+      "observables": [],
+      "summary": "Email Conversation Frequency Analysis - 4 emails received before, 4 to this user",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "email_conversation once@example.org|recipient@example.com, against fixtures/brocess/smtplog.json",
+    "meta_tags": [],
+    "observable": {
+      "type": "email_conversation",
+      "value": "once@example.org|recipient@example.com"
+    }
+  },
+  "module": "email_conversation_frequency_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "relationships": [],
+    "tags": [],
+    "type": "email_conversation",
+    "value": "once@example.org|recipient@example.com"
+  }
+}

@@ -16,6 +16,7 @@ use tracing::Instrument;
 use crate::context::TaskContext;
 use crate::lists::ListSpec;
 use crate::manifest::Resources;
+use crate::reads::Read;
 
 /// A module's settings: the block a site's config overlay gives it. Missing settings fall back
 /// to `Default`. Derive `Deserialize` with `#[serde(deny_unknown_fields)]`; the loader refuses
@@ -58,6 +59,9 @@ pub trait Module: Sized + Send + Sync + 'static {
     /// whitelists. The core adds each to the module's tasks as it is when the task is leased, and
     /// the module reads it with `TaskContext::list`. The lists a binary knows are its modules'.
     const LISTS: &'static [ListSpec] = &[];
+    /// The reads of ACE's own data the module makes (PLAN.md 7.2), with `TaskContext::read`. Only
+    /// a lookup may declare one: `Manifest::parser` refuses a parser that does.
+    const READS: &'static [Read] = &[];
 
     /// The analysis type the module writes.
     type Output: AnalysisType;

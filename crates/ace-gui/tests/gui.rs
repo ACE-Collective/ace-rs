@@ -2219,6 +2219,9 @@ fn each_module_s_view_draws_its_fixture() {
         "archive_test_zip",
         "yara_test_zip_attachment",
         "rdap_fqdn_example_com",
+        "dns_fqdn_example_com",
+        "snort_sig_9000001",
+        "brocess_frequent_conversation",
         "splunk_proxy_domain_lookup",
         "olevba_receipt_doc",
         "rtfole_objects_rtf",
@@ -2278,6 +2281,30 @@ fn each_module_s_view_draws_its_fixture() {
                     "<tr><th>name_servers</th><td>ELLIOTT.NS.CLOUDFLARE.COM, HERA.NS.CLOUDFLARE.COM</td></tr>",
                     "<summary>rdap_raw_json</summary>",
                     "&#34;ldhName&#34;: &#34;EXAMPLE.COM&#34;",
+                ],
+            ),
+            "dns_fqdn_example_com" => contains_all(
+                &html,
+                &[
+                    "<tr><th>status</th><td>ok</td></tr>",
+                    "<tr><th>ip_address</th><td>192.0.2.10</td></tr>",
+                    "<tr><th>all_resolutions</th><td>192.0.2.10, 192.0.2.2</td></tr>",
+                    "<tr><th>mx</th><td>backup.example.com, mail.example.com</td></tr>",
+                    "<tr><th>wildcard_dns</th><td>false</td></tr>",
+                ],
+            ),
+            "snort_sig_9000001" => contains_all(
+                &html,
+                &[
+                    "<tr><th>signature_id</th><td>9000001 rev 3</td></tr>",
+                    "<pre class=\"wrap\">alert http $HOME_NET any -&#62; $EXTERNAL_NET any (msg:&#34;ACE4 TEST fixture beacon&#34;;",
+                ],
+            ),
+            "brocess_frequent_conversation" => contains_all(
+                &html,
+                &[
+                    "<tr><th>source_count</th><td>10</td></tr>",
+                    "<tr><th>dest_count</th><td>7</td></tr>",
                 ],
             ),
             "splunk_proxy_domain_lookup" => contains_all(

@@ -1,12 +1,16 @@
 # The end-to-end test's site overlay (PLAN.md 2.30, tests/e2e/run). The RDAP module and the
 # Splunk instance talk to the stack's responder service, which replays the recordings in
-# tools/ace3/dumps/reference over plain HTTP on port 443, so nothing reaches the internet or a
-# real Splunk.
+# tools/ace3/dumps/reference over plain HTTP on port 443, and the DNS module asks it as its
+# resolver, which answers from tools/ace3/trees/dns.json, so nothing reaches the internet, a
+# real resolver or a real Splunk.
 modules:
   rdap_analyzer:
     settings:
       bootstrap_url: http://responder:443/https/data.iana.org/rdap/
       request_timeout_seconds: 10
+  fqdn_analyzer:
+    settings:
+      nameservers: ["responder:53"]
   splunk_api:
     instances:
       # ace3's correlation group runs an instance by this name, so a root that becomes an

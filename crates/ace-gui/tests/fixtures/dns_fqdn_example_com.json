@@ -1,0 +1,26 @@
+{
+  "analysis_type": "fqdn_analysis",
+  "schema_version": 1,
+  "details": {
+    "aliaslist": [],
+    "all_resolutions": [
+      "192.0.2.10",
+      "192.0.2.2"
+    ],
+    "ip_address": "192.0.2.10",
+    "mx": [
+      "backup.example.com",
+      "mail.example.com"
+    ],
+    "resolution_count": 2,
+    "status": "ok",
+    "wildcard_dns": false
+  },
+  "summary": "DNS Analysis: ip addresses (192.0.2.10, 192.0.2.2) mx (backup.example.com, mail.example.com)",
+  "observables": [
+    {
+      "type": "ip",
+      "value": "192.0.2.10"
+    }
+  ]
+}

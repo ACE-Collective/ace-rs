@@ -85,6 +85,17 @@ impl Core {
         pool_modules: &[&str],
         lease: Duration,
     ) -> Core {
+        Core::start_configured(catalog, modes, pool_modules, lease, |config| config).await
+    }
+
+    /// `start_with`, with the API's config changed by `configure`.
+    pub async fn start_configured(
+        catalog: Catalog,
+        modes: Modes,
+        pool_modules: &[&str],
+        lease: Duration,
+        configure: impl FnOnce(ApiConfig) -> ApiConfig,
+    ) -> Core {
         let test_db = TestDb::new().await;
         let cache = tempfile::tempdir().expect("a cache directory");
         let store = Store::new(
@@ -99,9 +110,11 @@ impl Core {
             .map(|m| (*m).to_owned())
             .chain([ace_sdk::wire::COMMANDS.to_owned()])
             .collect();
-        let config = ApiConfig::new(vec![PoolAccess::new("test", TOKEN, modules)])
-            .admin_token(ADMIN_TOKEN)
-            .lease(lease);
+        let config = configure(
+            ApiConfig::new(vec![PoolAccess::new("test", TOKEN, modules)])
+                .admin_token(ADMIN_TOKEN)
+                .lease(lease),
+        );
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
             .await
             .expect("binds");

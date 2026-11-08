@@ -1,0 +1,31 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT COALESCE(SUM(numconnections), 0)::bigint AS \"source_count!\",\n                  COALESCE(SUM(numconnections) FILTER (WHERE destination = $2), 0)::bigint\n                      AS \"conversation_count!\"\n           FROM brocess.smtplog WHERE source = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "source_count!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "conversation_count!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Bytea",
+        "Bytea"
+      ]
+    },
+    "nullable": [
+      null,
+      null
+    ]
+  },
+  "hash": "b4f980f076b20b37752541fb4ab48c2ec68d5890555955dffb1d3a1049c18be6"
+}

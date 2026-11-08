@@ -1,0 +1,43 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "FQDNAnalysis",
+      "details": {
+        "aliaslist": [],
+        "all_resolutions": [],
+        "ip_address": null,
+        "mx": null,
+        "resolution_count": null,
+        "status": "dns_error",
+        "wildcard_dns": null
+      },
+      "detections": [],
+      "module_path": "saq.modules.dns:FQDNAnalysis",
+      "observables": [],
+      "summary": "DNS Analysis: lookup failed (no answer from any nameserver)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fqdn broken.example.com, against fake_dns.py",
+    "meta_tags": [],
+    "observable": {
+      "type": "fqdn",
+      "value": "broken.example.com"
+    }
+  },
+  "module": "fqdn_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "relationships": [],
+    "tags": [],
+    "type": "fqdn",
+    "value": "broken.example.com"
+  }
+}

@@ -18,6 +18,7 @@ pub mod modes;
 pub mod normal;
 pub mod orchestrator;
 pub mod queue;
+pub mod reads;
 pub mod rulesets;
 pub mod scheduler;
 pub mod submit;

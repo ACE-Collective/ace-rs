@@ -1,0 +1,6 @@
+{#- fqdn_analysis (src/analysis.rs): ace3 prints its details with analysis/default_template.html. -#}
+<table class="fields">
+{%- for row in self.fields() %}
+<tr><th>{{ row.name }}</th><td>{{ row.value }}</td></tr>
+{%- endfor %}
+</table>

@@ -20,10 +20,13 @@ pub fn parser_pool() -> ParserPool {
         .commands()
 }
 
-/// The network pool: the RDAP and Splunk modules.
+/// The network pool: the RDAP, DNS, snort signature, conversation frequency and Splunk modules.
 pub fn lookup_pool() -> LookupPool {
     LookupPool::new("lookups")
         .module::<ace_mod_rdap::RdapAnalyzer>()
+        .module::<ace_mod_dns::FqdnAnalyzer>()
+        .module::<ace_mod_snort::SnortSignatureAnalyzer>()
+        .module::<ace_mod_brocess::EmailConversationFrequencyAnalyzer>()
         .module::<ace_mod_splunk::SplunkAnalyzer>()
 }
 

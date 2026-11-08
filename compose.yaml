@@ -265,7 +265,7 @@ services:
       start_period: 10s
       retries: 3
 
-  # The network pool: the RDAP and Splunk modules as async tasks in one contained process. A
+  # The network pool: the RDAP, DNS and Splunk modules as async tasks in one contained process. A
   # secret its modules declare comes from where the overlay's secrets: section says, such as
   # ACE4_SPLUNK_PASSWORD.
   lookups:
@@ -300,7 +300,8 @@ services:
 
   # The end-to-end test's recorded RDAP and Splunk APIs (PLAN.md 2.30), behind the e2e
   # profile, so the stack's lookups never reach the internet in the test. Plain HTTP on 443,
-  # a port both modules' manifests allow; tests/e2e/site/overlay.yaml points them here.
+  # a port both modules' manifests allow, and DNS on 53 from what ace3's trees were answered;
+  # tests/e2e/site/overlay.yaml points them here.
   responder:
     build:
       context: .
@@ -321,6 +322,10 @@ services:
       - /recordings/rdap_analyzer/fqdn_example.com.http=https://data.iana.org/
       - --recording
       - /recordings/proxy_domain_lookup/fqdn_www.example.com.http
+      - --dns-listen
+      - 0.0.0.0:53
+      - --dns-recording
+      - /recordings/trees.dns.json
     mem_limit: ${ACE4_RESPONDER_MEM_LIMIT:-128m}
     healthcheck:
       test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/443"]

@@ -56,6 +56,8 @@ pub fn main(modules: &Modules) -> ExitCode {
         // the supervisor kills the process instead
         cancel: CancellationToken::new(),
         contained: true,
+        // a parser declares no reads
+        reader: None,
     });
     let reply = match serde_json::to_vec(&end) {
         Ok(reply) => reply,

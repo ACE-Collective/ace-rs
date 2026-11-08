@@ -6,9 +6,11 @@
 //! deadline and a place to write files. Each module crate exports a `Manifest` built from its
 //! module type. Lookups make HTTP calls through `http::HttpClient`. A site's `overlay::Overlay`
 //! gives modules their settings and declares named instances of them. A module reads the
-//! analyst-edited lists it declares, such as whitelists, through `lists` (PLAN.md 5.14).
+//! analyst-edited lists it declares, such as whitelists, through `lists` (PLAN.md 5.14), and a
+//! lookup reads ACE's own data through `reads` (PLAN.md 7.2).
 
 pub mod context;
+pub mod domains;
 #[cfg(any(test, feature = "example-modules"))]
 pub mod example;
 pub mod files;
@@ -19,6 +21,7 @@ pub mod lists;
 pub mod manifest;
 pub mod module;
 pub mod overlay;
+pub mod reads;
 pub mod wire;
 
 pub use context::{CarryingEmail, DelayedRun, InputFile, Observable, Secret, Secrets, TaskContext};

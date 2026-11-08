@@ -1,0 +1,12 @@
+{#- snort_signature_analysis (src/analysis.rs): ace3 prints its details with analysis/default_template.html. -#}
+<table class="fields">
+{%- if let Some(id) = analysis.signature_id %}
+<tr><th>signature_id</th><td>{{ id }}</td></tr>
+{%- endif %}
+</table>
+{%- if let Some(rule) = self.signature() %}
+<pre class="wrap">{{ rule.text }}</pre>
+{%- if rule.more > 0 %}
+<p class="clipped">{{ rule.more }} more bytes of the rule not shown.</p>
+{%- endif %}
+{%- endif %}

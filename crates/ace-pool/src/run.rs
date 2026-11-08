@@ -196,8 +196,12 @@ pub async fn run_in_process(
     let span = tracing::Span::current();
     let cancel = keeper.token().clone();
     // each module runs in a task of its own, so a panic ends that task and fails it
-    let (owned_modules, owned_task, owned_outputs) =
-        (modules.clone(), task.clone(), outputs.clone());
+    let (owned_modules, owned_task, owned_outputs, reads) = (
+        modules.clone(),
+        task.clone(),
+        outputs.clone(),
+        client.reads(),
+    );
     let joined = if modules.parser(&task.module).is_some() {
         tokio::task::spawn_blocking(move || match owned_modules.parser(&owned_task.module) {
             Some(parser) => span.in_scope(|| {
@@ -208,6 +212,7 @@ pub async fn run_in_process(
                     outputs: owned_outputs,
                     cancel,
                     contained: false,
+                    reader: None,
                 })
             }),
             None => unknown_module(&owned_task),
@@ -226,6 +231,7 @@ pub async fn run_in_process(
                                 outputs: owned_outputs,
                                 cancel,
                                 contained: false,
+                                reader: Some(Arc::new(reads)),
                             })
                             .await
                     }

@@ -10,6 +10,7 @@ use std::pin::Pin;
 use std::sync::Arc;
 
 use ace_results::AnalysisType;
+use ace_sdk::reads::Reader;
 use ace_sdk::wire::{LeasedTask, TaskEnd};
 use ace_sdk::{
     CarryingEmail, Component, FileStore, Lookup, Manifest, ModuleError, Outcome, Parser, Secrets,
@@ -58,6 +59,8 @@ pub struct Run<'a> {
     /// True when the task runs contained (PLAN.md 2.18), so the module avoids what starts
     /// threads.
     pub contained: bool,
+    /// What makes the task's reads of ACE's data (PLAN.md 7.2): the lease API, for a lookup.
+    pub reader: Option<Arc<dyn Reader>>,
 }
 
 impl Run<'_> {
@@ -136,7 +139,8 @@ impl<M: ace_sdk::Module> Entry<M> {
         .with_task_id(run.task.id)
         .with_yara_rules_below(run.task.yara_rules_below.clone())
         .with_carrying_email(run.carrying_email())
-        .with_lists(run.task.lists.clone());
+        .with_lists(run.task.lists.clone())
+        .with_reader(run.reader.clone());
         match &run.task.delayed {
             Some(delayed) => ctx.with_delayed(delayed.clone()),
             None => ctx,
@@ -405,6 +409,7 @@ mod tests {
                 outputs: store.clone(),
                 cancel: CancellationToken::new(),
                 contained: false,
+                reader: None,
             }
             .carrying_email()
         };

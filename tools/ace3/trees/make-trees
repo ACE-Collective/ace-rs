@@ -8,7 +8,11 @@ systems see the same world, as tests/e2e/run gives ace4:
 - RDAP is answered from the recording tests/e2e/run's responder replays, and WHOIS fails;
 - the Splunk module has the same query as tests/e2e/site/overlay.yaml's instance, against
   fake_splunk.py with the rows the responder's recording holds, for any search as it answers;
-- YARA scans with tools/ace3/trees/signatures, the rule tests/e2e/run gives the stack.
+- YARA scans with tools/ace3/trees/signatures, the rule tests/e2e/run gives the stack;
+- brocess's smtplog is tools/ace3/trees/brocess.json, empty, as ace4's is before email_logger
+  runs;
+- DNS is answered by fake_dns.py from tools/ace3/dumps/fixtures/dns/zone.json, and what it answered
+  is kept in tools/ace3/trees/dns.json, which tests/e2e/run's responder replays to ace4.
 
     tools/ace3/trees/make-trees                     every sample
     tools/ace3/trees/make-trees ace4/email/e2e...   the samples named, by path under samples/
@@ -40,8 +44,11 @@ _loader.exec_module(dumps)
 CONTAINER, REMOTE, docker, put = dumps.CONTAINER, dumps.REMOTE, dumps.docker, dumps.put
 ENABLE = [
     "file_type", "archive", "yara_scanner_v3_4", "rdap_analyzer", "ace4_proxy_splunk", "olevba_v1_2",
-    "rtfole", "msoffice_encryption_analyzer", "xlmdeobfuscator", "pcodedmp", "pdf_analyzer",
+    "rtfole", "msoffice_encryption_analyzer", "xlmdeobfuscator", "pcodedmp", "pdf_analyzer", "fqdn_analyzer",
+    "email_conversation_frequency_analyzer",
 ]
+BROCESS = HERE / "brocess.json"
+DNS_RECORDING = HERE / "dns.json"
 RDAP_RECORDING = DUMPS / "reference" / "rdap_analyzer" / "fqdn_example.com.http"
 FAKE = f"{REMOTE}/fake/trees"
 # tests/e2e/site/overlay.yaml's clicker_detection_splunk. ace3 has a module of that name, which its
@@ -112,6 +119,7 @@ def run(sample):
         "--label", sample["path"], "--file", f"{REMOTE}/samples/{sample['path']}",
         "--alert-path", sample["alert_path"], "--yara-rules", f"{REMOTE}/signatures",
         "--config", f"{FAKE}/saq.yaml", "--replay-http", f"{REMOTE}/rdap", "--tree",
+        "--dns", f"127.0.0.1:{dumps.DNS_PORT}", "--brocess", f"{REMOTE}/trees-brocess.json",
     ]
     for tag in sample["meta_tags"]:
         command += ["--meta-tag", tag]
@@ -127,6 +135,22 @@ def run(sample):
     docker("exec", CONTAINER, "rm", "-rf", work)
 
 
+def save_dns_recording(recorded):
+    """Keeps one answer per name and type, the newest, beside those of samples this run didn't make."""
+    exchanges = {}
+    if DNS_RECORDING.exists():
+        for exchange in json.loads(DNS_RECORDING.read_text())["exchanges"]:
+            exchanges[(exchange["name"], exchange["type"])] = exchange
+    for exchange in json.loads(recorded)["exchanges"] if recorded else []:
+        exchanges[(exchange["name"], exchange["type"])] = exchange
+    DNS_RECORDING.write_text(json.dumps({
+        "about": "What tools/ace3/dumps/fake_dns.py answered ace3's DNS lookups with while "
+        "tools/ace3/trees/make-trees ran, one answer per name and type. tests/e2e/run's responder "
+        "replays it to ace4.",
+        "exchanges": [exchanges[key] for key in sorted(exchanges)],
+    }, indent=2) + "\n")
+
+
 def main():
     manifest = json.loads((REPO / "samples" / "manifest.json").read_text())
     wanted = sys.argv[1:]
@@ -137,13 +161,16 @@ def main():
     dumps.copy_in(["splunk"])
     copy_tree(HERE / "signatures", f"{REMOTE}/signatures")
     copy_tree(RDAP_RECORDING, f"{REMOTE}/rdap")
+    put(f"{REMOTE}/trees-brocess.json", BROCESS.read_bytes())
     start_fake()
     try:
-        for sample in samples:
-            print(sample["path"], flush=True)
-            run(sample)
+        with dumps.fake_dns(f"{FAKE}/dns"):
+            for sample in samples:
+                print(sample["path"], flush=True)
+                run(sample)
     finally:
         stop_fake()
+    save_dns_recording(docker("exec", CONTAINER, "cat", f"{FAKE}/dns/dns.json", check=False).stdout)
     commit = docker(
         "exec", CONTAINER, "git", "-C", "/opt/ace", "rev-parse", "--short=8", "HEAD"
     ).stdout.decode().strip()

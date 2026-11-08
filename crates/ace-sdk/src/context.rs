@@ -16,6 +16,7 @@ use uuid::Uuid;
 use crate::files::{FileOutputError, FileStore, write_file};
 use crate::lists::{List, ListSpec, WireList};
 use crate::module::{Module, ModuleError};
+use crate::reads::{Read as DeclaredRead, ReadError, ReadKind, Reader};
 
 /// The observable a task analyzes.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -204,6 +205,8 @@ pub struct TaskContext<S> {
     carrying_email: CarryingEmail,
     /// The lists the module declared, by name, each empty until the task's are added.
     lists: BTreeMap<&'static str, List>,
+    declared_reads: &'static [DeclaredRead],
+    reader: Option<Arc<dyn Reader>>,
 }
 
 impl<S> TaskContext<S> {
@@ -233,7 +236,44 @@ impl<S> TaskContext<S> {
                 .iter()
                 .map(|spec| (spec.name, List::empty(spec.name)))
                 .collect(),
+            declared_reads: M::READS,
+            reader: None,
         }
+    }
+
+    /// What makes the task's reads (`Module::READS`): the pool's lease API client.
+    pub fn with_reader(mut self, reader: Option<Arc<dyn Reader>>) -> Self {
+        self.reader = reader;
+        self
+    }
+
+    /// Reads ACE's own data through the core (PLAN.md 7.2), a read the module declared in
+    /// `Module::READS`. A miss is an empty answer, not an error. The core or its store being down
+    /// is `Unavailable`, so the task runs again later, and a lost lease is `Cancelled`.
+    pub async fn read<R: ReadKind>(&self, request: &R::Request) -> Result<R::Answer, ModuleError> {
+        let name = R::READ.name;
+        if !self.declared_reads.contains(&R::READ) {
+            return Err(ModuleError::other(format!(
+                "read {name:?} isn't declared in the module's READS"
+            )));
+        }
+        let (Some(reader), Some(task)) = (&self.reader, self.task) else {
+            return Err(ModuleError::other(format!(
+                "read {name:?} needs a task leased through the lease API"
+            )));
+        };
+        let request = serde_json::to_value(request)
+            .map_err(|e| ModuleError::other(format!("read {name:?}: {e}")))?;
+        let answer = reader
+            .read(task, name, request)
+            .await
+            .map_err(|e| match e {
+                ReadError::Unavailable { .. } => ModuleError::Unavailable(e.into()),
+                ReadError::LeaseLost(_) => ModuleError::Cancelled,
+                other => ModuleError::Other(other.into()),
+            })?;
+        serde_json::from_value(answer)
+            .map_err(|e| ModuleError::other(format!("read {name:?}'s answer doesn't read: {e}")))
     }
 
     /// The lists the core sent with the task. Only those the module declared are kept.

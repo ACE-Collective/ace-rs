@@ -6,16 +6,38 @@
       "directives": {},
       "excluded_analysis": {},
       "relationships": {},
-      "results": {},
-      "tags": {}
+      "results": {
+        "email_conversation_frequency_analyzer": {
+          "details": {
+            "dest_count": null,
+            "source_count": 0
+          },
+          "summary": "Email Conversation Frequency Analysis - first time received",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "new_sender": true
+      }
     },
     "email_conversation:ap@someothercompany.com|random.person@whatever.com": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {},
       "relationships": {},
-      "results": {},
-      "tags": {}
+      "results": {
+        "email_conversation_frequency_analyzer": {
+          "details": {
+            "dest_count": null,
+            "source_count": 0
+          },
+          "summary": "Email Conversation Frequency Analysis - first time received",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "new_sender": true
+      }
     },
     "email_envelope_rcpt_to:lulu.zingzing@company.com": {
       "detections": {},

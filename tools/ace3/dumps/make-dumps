@@ -10,7 +10,9 @@ run_module.py inside ace3's dev container (ace-dev-1). Everything runs under the
 
 The dumps go to tools/ace3/dumps/reference/<module>/, named after the sample's path under
 samples/ (or the observable for a lookup), with index.json listing every run. RDAP runs also keep
-the HTTP requests and responses they made, in <name>.http/, so a port can replay them.
+the HTTP requests and responses they made, in <name>.http/, so a port can replay them. DNS runs
+ask fake_dns.py, which answers from fixtures/dns/zone.json, and keep what it answered in
+<name>.dns.json.
 
 There is no Splunk here, so the Splunk runs point ace3's Splunk module at fake_splunk.py, a fake
 Splunk REST API started inside the container for each run, through a config file loaded for that
@@ -166,12 +168,122 @@ SPLUNK_RUNS = [
     (".never-done", ["--never-done"], 3),
 ]
 
+# The DNS runs answer from fake_dns.py over the zone in fixtures/dns, which records each exchange
+# in <name>.dns.json beside the dump. Each name shows one of the module's outcomes: an apex with
+# addresses and MX, a CNAME chain, a name that doesn't exist, a server that fails, apexes with no
+# address with and without MX, and a wildcard.
+DNS_PORT = 5353
+DNS_NAMES = [
+    "example.com",
+    "www.example.com",
+    "missing.example.com",
+    "broken.example.com",
+    "example.net",
+    "example.org",
+    "ace4-wildcard.com",
+]
+
+
+def dns_runs():
+    runs = []
+    for value in DNS_NAMES:
+        name = f"fqdn_{value}"
+        fake_dir = f"{REMOTE}/fake/dns/{name}"
+        runs.append(
+            {
+                "module": "fqdn_analyzer",
+                "enable": [],
+                "name": name,
+                "args": ["--observable", "fqdn", value, "--dns", f"127.0.0.1:{DNS_PORT}"],
+                "label": f"fqdn {value}, against fake_dns.py",
+                "dns_record": f"{fake_dir}/dns.json",
+                "service": lambda fake_dir=fake_dir: fake_dns(fake_dir),
+            }
+        )
+    return runs
+
+
+@contextlib.contextmanager
+def fake_dns(fake_dir):
+    """Runs fake_dns.py in the container over the zone fixture, recording to fake_dir/dns.json."""
+    docker("exec", CONTAINER, "mkdir", "-p", fake_dir)
+    record = f"{fake_dir}/dns.json"
+    docker(
+        "exec", "-d", CONTAINER, "sh", "-c",
+        f"exec /venv/bin/python3 -I {REMOTE}/fake_dns.py --zone {REMOTE}/fixtures/dns/zone.json "
+        f"--port {DNS_PORT} --record {record} --pid-file {fake_dir}/dns.pid 2> {fake_dir}/dns.log",
+    )
+    try:
+        for _ in range(100):
+            if docker("exec", CONTAINER, "test", "-e", f"{fake_dir}/dns.pid", check=False).returncode == 0:
+                break
+            time.sleep(0.1)
+        else:
+            log = docker("exec", CONTAINER, "cat", f"{fake_dir}/dns.log", check=False).stdout.decode(errors="replace")
+            raise SystemExit(f"fake_dns.py did not start:\n{log}")
+        yield
+    finally:
+        docker("exec", CONTAINER, "sh", "-c", f'kill "$(cat {fake_dir}/dns.pid)" 2>/dev/null || true', check=False)
+
+
+# The snort runs read an index of fixtures/snort/snort.rules, built in memory by ace3's own code
+# (run_module.py --snort-rules): a rule found, one indented with trailing whitespace, a rev the
+# file doesn't have, a commented-out rule, and a value that isn't gid:sid:rev.
+SNORT_SIGNATURES = ["1:9000001:3", "1:9000003:2", "1:9000002:2", "1:9000004:1", "9000001"]
+
+
+def snort_runs():
+    return [
+        {
+            "module": "snort_signature_analysis_v1",
+            "enable": [],
+            "name": f"snort_sig_{value}",
+            "args": ["--observable", "snort_sig", value, "--snort-rules", f"{REMOTE}/fixtures/snort/snort.rules"],
+            "label": f"snort_sig {value}, against fixtures/snort/snort.rules",
+        }
+        for value in SNORT_SIGNATURES
+    ]
+
+
+# The conversation frequency runs count from fixtures/brocess/smtplog.json (run_module.py
+# --brocess): a frequent conversation, a known sender writing to someone new, a sender under the
+# threshold, a new sender, a known sender in another case (the file names differ in more than case,
+# for macOS), a value with no `|` and one with two.
+CONVERSATIONS = [
+    "sender@example.com|recipient@example.com",
+    "sender@example.com|new@example.com",
+    "once@example.org|recipient@example.com",
+    "once@example.org|nobody@example.com",
+    "stranger@example.net|recipient@example.com",
+    "Sender@Example.com|other@example.com",
+    "no-pipe@example.com",
+    "a@example.com|b@example.com|c@example.com",
+]
+
+
+def conversation_runs():
+    return [
+        {
+            "module": "email_conversation_frequency_analyzer",
+            "enable": [],
+            "name": f"email_conversation_{value}",
+            "args": ["--observable", "email_conversation", value, "--brocess",
+                     f"{REMOTE}/fixtures/brocess/smtplog.json"],
+            "label": f"email_conversation {value}, against fixtures/brocess/smtplog.json",
+        }
+        for value in CONVERSATIONS
+    ]
+
+
 RUNS = {
     "email": lambda: file_runs("email_analyzer", ["file_type"], "email"),
     "archive": lambda: file_runs("archive", ["file_type"], "archive/"),
     "rdap": lambda: lookup_runs("rdap_analyzer", [("fqdn", "example.com"), ("ip", "8.8.8.8")]),
     "yara": yara_runs,
     "splunk": lambda: splunk_runs(),
+    "dns": dns_runs,
+    "snort": snort_runs,
+    "conversations": conversation_runs,
 }
 
 
@@ -243,6 +355,7 @@ def copy_in(keys):
             capture_output=True, check=True, env={**os.environ, "COPYFILE_DISABLE": "1"},
         ).stdout
         docker("exec", "-i", CONTAINER, "tar", "-C", f"{REMOTE}/{target}", "-xf", "-", stdin=archive)
+    put(f"{REMOTE}/fake_dns.py", (HERE / "fake_dns.py").read_bytes())
     if "splunk" in keys:
         # the fake and its self-signed certificate: splunk-sdk speaks HTTPS to splunkd, without
         # verifying it (saq/splunk.py builds its handler with verify=False)
@@ -286,6 +399,10 @@ def run(spec):
         archive = docker("exec", CONTAINER, "tar", "-C", remote_http, "-cf", "-", ".").stdout
         subprocess.run(["tar", "-C", str(http_dir), "-xf", "-"], input=archive, check=True)
 
+    if "dns_record" in spec:
+        recording = docker("exec", CONTAINER, "cat", spec["dns_record"]).stdout
+        (OUT / spec["module"] / f"{spec['name']}.dns.json").write_bytes(recording)
+
     parsed = json.loads(dump)
     target_class = {
         "email_analyzer": "EmailAnalysis",
@@ -293,6 +410,9 @@ def run(spec):
         "rdap_analyzer": "RdapAnalysis",
         "yara_scanner_v3_4": "YaraScanResults_v3_4",
         "proxy_domain_lookup": "SplunkAPIAnalysis",
+        "fqdn_analyzer": "FQDNAnalysis",
+        "snort_signature_analysis_v1": "SnortSignatureAnalysis_v1",
+        "email_conversation_frequency_analyzer": "EmailConversationFrequencyAnalysis",
     }[spec["module"]]
     analysis = next((a for a in parsed["analyses"] if a["class"] == target_class), None)
     return {
@@ -322,13 +442,18 @@ def main():
             results.append(run(spec))
             done_modules.add(spec["module"])
 
-    commit = json.loads((OUT / results[0]["dump"]).read_text())["ace3_commit"] if results else None
     index["runs"] = sorted(
         [r for r in index["runs"] if r["module"] not in done_modules] + results,
         key=lambda r: (r["module"], r["dump"]),
     )
-    index["ace3_commit"] = commit
-    index["about"] = "Reference dumps written by tools/ace3/dumps/make-dumps; one entry per run."
+    # modules' dumps are made at different times, so each row names the commit its dump was made at
+    for row in index["runs"]:
+        row["ace3_commit"] = json.loads((OUT / row["dump"]).read_text())["ace3_commit"]
+    index.pop("ace3_commit", None)
+    index["about"] = (
+        "Reference dumps written by tools/ace3/dumps/make-dumps; one entry per run, with the ace3 commit "
+        "it was made at."
+    )
     index["not_made"] = NOT_MADE
     index_path.write_text(json.dumps(index, indent=2, sort_keys=True) + "\n")
     docker("exec", CONTAINER, "rm", "-rf", REMOTE)

@@ -6,8 +6,19 @@
       "directives": {},
       "excluded_analysis": {},
       "relationships": {},
-      "results": {},
-      "tags": {}
+      "results": {
+        "email_conversation_frequency_analyzer": {
+          "details": {
+            "dest_count": null,
+            "source_count": 0
+          },
+          "summary": "Email Conversation Frequency Analysis - first time received",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "new_sender": true
+      }
     },
     "email_envelope_rcpt_to:recipient@example.com": {
       "detections": {},
@@ -294,7 +305,7 @@
       },
       "tags": {}
     },
-    "file:6a0ae71c9c498dae7393534abe0d2c2d2438bf3407bdaaf40954d930c6e41f6d": {
+    "file:36a4c81b32bd5086dc321ec74a15cca770507fe7dae272315148814c458754b3": {
       "detections": {},
       "directives": {
         "extract_urls": true
