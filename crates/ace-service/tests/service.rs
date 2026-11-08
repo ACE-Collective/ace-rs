@@ -21,6 +21,10 @@
 //!
 //! PLAN.md 5.7's preferences: a user's own, checked by key, a default where none is stored or a stored
 //! one can't be read, and refused to anyone but a user.
+//!
+//! PLAN.md 5.10: the alert list filters and pages through fixture alerts, every filter and its inverse,
+//! every order both ways, with hostile values as data; ace3's share links and date ranges; the detection
+//! points' filters; saved filters, their owner and their audit rows; and `manage_columns`.
 
 use std::collections::BTreeSet;
 use std::io::Write;
@@ -1465,6 +1469,10 @@ async fn every_write_function_has_an_audit_test() {
         revoke_own_api_key_records_its_row(db).await,
         set_preference_records_its_row(db).await,
         reset_preference_records_its_row(db).await,
+        create_saved_filter_records_its_row(db).await,
+        update_saved_filter_records_its_row(db).await,
+        delete_saved_filter_records_its_row(db).await,
+        set_quick_filters_records_its_row(db).await,
     ]);
     assert_eq!(covered, write_functions(), "{WRITES_NEED_A_TEST}");
 }
@@ -1568,7 +1576,9 @@ async fn download_file_records_its_row(db: &Db) -> String {
         Err(ServiceError::PermissionDenied { .. })
     ));
     assert!(matches!(
-        service(db).alerts(&outsider, None, None).await,
+        service(db)
+            .alerts(&outsider, &ace_service::AlertQuery::default(), None, None)
+            .await,
         Err(ServiceError::PermissionDenied { .. })
     ));
     assert_eq!(audit_rows(db).await.len(), rows);
@@ -1757,7 +1767,10 @@ async fn detection_points_page_through_every_alert_s_detections_once_while_more_
     assert_eq!((ids(&past), past.next), (Vec::new(), None));
     assert!(![&page, &rest].iter().any(|p| ids(p).contains(&hidden)));
 
-    let of_one = DetectionPointFilter { alert: Some(one) };
+    let of_one = DetectionPointFilter {
+        alert: Some(one),
+        ..DetectionPointFilter::default()
+    };
     let page = service
         .detection_points(&actor, &of_one, None, None)
         .await
@@ -1775,6 +1788,7 @@ async fn detection_points_page_through_every_alert_s_detections_once_while_more_
     }
     let missing = DetectionPointFilter {
         alert: Some(Uuid::nil()),
+        ..DetectionPointFilter::default()
     };
     assert!(matches!(
         service.detection_points(&actor, &missing, None, None).await,
@@ -2947,6 +2961,14 @@ async fn every_write_fails_when_its_audit_fails() {
         .set_preference(&bob_actor, &theme(Theme::Dark))
         .await
         .expect("sets bob's theme");
+    let bobs_filter = service
+        .create_saved_filter(
+            &bob_actor,
+            FilterScreen::Alerts,
+            &new_filter("bob's", vec![text("Disposition", false, &["OPEN"])]),
+        )
+        .await
+        .expect("saves bob's filter");
     let before = (
         row(db, root).await,
         tasks(db, root).await,
@@ -2958,6 +2980,7 @@ async fn every_write_fails_when_its_audit_fails() {
         qa_state(db).await,
         comment_rows(db).await,
         preference_rows(db).await,
+        saved_rows(db).await,
     );
 
     sqlx::raw_sql("ALTER TABLE service.audit ADD CONSTRAINT broken CHECK (false) NOT VALID")
@@ -3252,6 +3275,49 @@ async fn every_write_fails_when_its_audit_fails() {
                 .map(|_| ())
                 .expect_err("refused"),
         ),
+        (
+            "create_saved_filter",
+            service
+                .create_saved_filter(
+                    &bob_actor,
+                    FilterScreen::Alerts,
+                    &new_filter("another", vec![text("Disposition", false, &["OPEN"])]),
+                )
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "update_saved_filter",
+            service
+                .update_saved_filter(
+                    &bob_actor,
+                    bobs_filter.id,
+                    &ace_service::SavedFilterChange {
+                        name: Some("renamed".to_owned()),
+                        ..ace_service::SavedFilterChange::default()
+                    },
+                )
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "delete_saved_filter",
+            service
+                .delete_saved_filter(&bob_actor, bobs_filter.id)
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "set_quick_filters",
+            service
+                .set_quick_filters(&bob_actor, FilterScreen::Alerts, &[bobs_filter.id])
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
     ];
     let mut covered = BTreeSet::new();
     for (function, error) in &attempts {
@@ -3271,6 +3337,7 @@ async fn every_write_fails_when_its_audit_fails() {
         qa_state(db).await,
         comment_rows(db).await,
         preference_rows(db).await,
+        saved_rows(db).await,
     );
     assert_eq!(after, before);
     assert_eq!(
@@ -6813,9 +6880,9 @@ async fn preferences_are_a_user_s_own_and_checked_by_key() {
     }
     assert_eq!(
         PreferenceKey::named("manage_columns"),
-        None,
-        "not until 5.10"
+        Some(PreferenceKey::ManageColumns)
     );
+    assert_eq!(PreferenceKey::named("search_columns"), None);
     assert_eq!(PreferenceKey::named("Theme"), None);
 
     // A row this release can't read, as after a theme is removed: the default, and a set replaces it.
@@ -6851,10 +6918,12 @@ async fn preferences_are_a_user_s_own_and_checked_by_key() {
     .await
     .expect("adds a row");
     let all = service.preferences(&alice).await.expect("reads");
-    assert_eq!(all.len(), 2);
+    assert_eq!(all.len(), 3);
     assert_eq!(all[0].value, theme(Theme::Light));
     assert_eq!(all[1].value.key(), PreferenceKey::AlertSections);
     assert!(all[1].is_default);
+    assert_eq!(all[2].value.key(), PreferenceKey::ManageColumns);
+    assert!(all[2].is_default);
 
     // Only a user has preferences. A key, even one of the user's own holding everything, and a
     // component are refused, and change nothing; their pages have the default theme.
@@ -6921,4 +6990,1552 @@ async fn preferences_are_a_user_s_own_and_checked_by_key() {
         .await
         .expect("deletes alice");
     assert_eq!(preference_rows(db).await, []);
+}
+
+// PLAN.md 5.10: the alert list's filters, sorts and keyset pages, the share-link encoding, date ranges,
+// the detection points' filters, saved filters and the manage_columns preference.
+
+use ace_service::filters::{self as filter_model, FilterScreen};
+use ace_service::{AlertQuery, AlertSort, FilterEntry, FilterValue};
+
+/// One alert of the list's fixtures.
+struct Fixture<'a> {
+    title: &'a str,
+    /// When it became an alert, as Postgres reads a timestamptz.
+    alerted: &'a str,
+    /// The disposition and the name of who set it, when it has one.
+    disposition: Option<(&'a str, &'a str, &'a str)>,
+    event_time: Option<&'a str>,
+    observables: &'a [(ObservableKind, &'a str, &'a [&'a str])],
+    /// A result of this module, with these tags, on the first observable.
+    result: Option<(&'a str, &'a [&'a str])>,
+    /// A detection by this signature uuid and version on the first observable.
+    signature: Option<(&'a str, Option<&'a str>)>,
+}
+
+impl Default for Fixture<'_> {
+    fn default() -> Self {
+        Fixture {
+            title: "",
+            alerted: "2026-01-01T00:00:00Z",
+            disposition: None,
+            event_time: None,
+            observables: &[],
+            result: None,
+            signature: None,
+        }
+    }
+}
+
+async fn listed(db: &Db, fixture: Fixture<'_>) -> Uuid {
+    let root = NewRoot {
+        description: fixture.title.to_owned(),
+        ..NewRoot::new("correlation")
+    };
+    let mut tx = db.begin().await.expect("begins");
+    tree::create_root(&mut tx, &root).await.expect("creates");
+    let mut first = None;
+    for (kind, value, tags) in fixture.observables {
+        let mut observable = NewObservable::new(*kind, *value);
+        observable.tags = tags.iter().map(|tag| (*tag).to_owned()).collect();
+        let added = tree::upsert_observable(&mut tx, root.id, &observable)
+            .await
+            .expect("adds");
+        first.get_or_insert(added.id.0);
+    }
+    tx.commit().await.expect("commits");
+    sqlx::query(
+        "UPDATE analysis.roots SET alerted_at = $2::timestamptz,
+                event_time = $3::timestamptz,
+                event_time_source = CASE WHEN $3 IS NULL THEN 'unset' ELSE 'event' END::analysis.event_time_source
+         WHERE id = $1",
+    )
+    .bind(root.id)
+    .bind(fixture.alerted)
+    .bind(fixture.event_time)
+    .execute(db.pool())
+    .await
+    .expect("makes it an alert");
+    if let Some((disposition, by, at)) = fixture.disposition {
+        sqlx::query(
+            "UPDATE analysis.roots SET disposition = $2, dispositioned_at = $4::timestamptz,
+                    dispositioned_by = jsonb_build_object('kind', 'user', 'id', gen_random_uuid()::text, 'name', $3::text)
+             WHERE id = $1",
+        )
+        .bind(root.id)
+        .bind(disposition)
+        .bind(by)
+        .bind(at)
+        .execute(db.pool())
+        .await
+        .expect("dispositions it");
+    }
+    let observable = first.unwrap_or_default();
+    let mut result_id: Option<i64> = None;
+    if let Some((module, tags)) = fixture.result {
+        let tags: Vec<String> = tags.iter().map(|tag| (*tag).to_owned()).collect();
+        result_id = Some(
+            sqlx::query_scalar(
+                "INSERT INTO analysis.results (root_id, observable_id, module, analysis_type, schema_version, details, tags)
+                 VALUES ($1, $2, $3, 'test_stub', 1, '{}', $4) RETURNING id",
+            )
+            .bind(root.id)
+            .bind(observable)
+            .bind(module)
+            .bind(&tags)
+            .fetch_one(db.pool())
+            .await
+            .expect("a result"),
+        );
+    }
+    if let Some((uuid, version)) = fixture.signature {
+        sqlx::query(
+            "INSERT INTO analysis.detections
+                 (root_id, observable_id, result_id, description, signature_uuid, signature_version, signature_family)
+             VALUES ($1, $2, $3, 'a rule matched', $4, $5, 'yara')",
+        )
+        .bind(root.id)
+        .bind(observable)
+        .bind(result_id)
+        .bind(uuid)
+        .bind(version)
+        .execute(db.pool())
+        .await
+        .expect("a detection");
+    }
+    root.id
+}
+
+const SIGNATURE_ONE: &str = "4C3C8330-545D-4673-9A7C-7BD4597D0001";
+const SIGNATURE_TWO: &str = "4c3c8330-545d-4673-9a7c-7bd4597d0002";
+const FILE_SHA256: &str = "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08";
+const HOSTILE_TITLE: &str = "quarterly'; DROP TABLE analysis.roots; --";
+
+/// The list's fixtures: four alerts and a root that isn't one, as (A, B, C, D).
+async fn list_fixtures(db: &Db) -> (Uuid, Uuid, Uuid, Uuid) {
+    let a = listed(
+        db,
+        Fixture {
+            title: "Phish from evil.example.com",
+            alerted: "2026-01-10T10:00:00Z",
+            event_time: Some("2026-01-10T09:00:00Z"),
+            observables: &[(ObservableKind::Fqdn, "evil.example.com", &["phish"])],
+            result: Some(("rdap_analyzer", &["whois"])),
+            signature: Some((SIGNATURE_ONE, Some("v1"))),
+            ..Fixture::default()
+        },
+    )
+    .await;
+    let b = listed(
+        db,
+        Fixture {
+            title: r"100% off_sale \ invoice",
+            alerted: "2026-01-11T10:00:00Z",
+            disposition: Some(("FALSE_POSITIVE", "alice", "2026-01-12T08:00:00Z")),
+            observables: &[
+                (ObservableKind::Ipv4, "10.0.0.1", &[]),
+                (ObservableKind::Url, "https://evil.example.com/a,b:c", &[]),
+            ],
+            ..Fixture::default()
+        },
+    )
+    .await;
+    // when B did, so the order's tie is broken by the id
+    let c = listed(
+        db,
+        Fixture {
+            title: "Weekly report",
+            alerted: "2026-01-11T10:00:00Z",
+            disposition: Some(("DELIVERY", "bob", "2026-01-13T08:00:00Z")),
+            observables: &[(ObservableKind::Fqdn, "other.example", &["Phishing-Kit"])],
+            signature: Some((SIGNATURE_TWO, None)),
+            ..Fixture::default()
+        },
+    )
+    .await;
+    let d = listed(
+        db,
+        Fixture {
+            title: HOSTILE_TITLE,
+            alerted: &(Utc::now() - chrono::Duration::hours(1)).to_rfc3339(),
+            observables: &[(ObservableKind::File, FILE_SHA256, &[])],
+            ..Fixture::default()
+        },
+    )
+    .await;
+    // a root that isn't an alert is never listed
+    let root = NewRoot {
+        description: "Phish, but never an alert".to_owned(),
+        ..NewRoot::new("correlation")
+    };
+    let mut tx = db.begin().await.expect("begins");
+    tree::create_root(&mut tx, &root).await.expect("creates");
+    tx.commit().await.expect("commits");
+    (a, b, c, d)
+}
+
+use chrono::Utc;
+
+fn text(name: &str, inverted: bool, values: &[&str]) -> FilterEntry {
+    FilterEntry::text(name, inverted, values)
+}
+
+fn pair(inverted: bool, kind: &str, value: &str) -> FilterEntry {
+    FilterEntry::new(
+        "Observable",
+        inverted,
+        vec![FilterValue::Pair(kind.to_owned(), value.to_owned())],
+    )
+}
+
+/// Every alert a query lists, paging `limit` at a time to the end, in order, and the total each page gave.
+async fn every_alert(
+    service: &Service,
+    actor: &Actor,
+    query: &AlertQuery,
+    limit: u32,
+) -> (Vec<Uuid>, i64) {
+    let mut seen = Vec::new();
+    let mut after: Option<String> = None;
+    let mut total = None;
+    loop {
+        let page = service
+            .alerts(actor, query, Some(limit), after.as_deref())
+            .await
+            .expect("lists");
+        assert!(page.alerts.len() <= limit as usize);
+        match total {
+            None => total = Some(page.total),
+            Some(total) => assert_eq!(page.total, total, "each page counts the same"),
+        }
+        seen.extend(page.alerts.iter().map(|alert| alert.id));
+        match page.next {
+            Some(next) => after = Some(next),
+            None => break,
+        }
+    }
+    (seen, total.unwrap_or(0))
+}
+
+async fn matching(service: &Service, actor: &Actor, filters: Vec<FilterEntry>) -> Vec<Uuid> {
+    let query = AlertQuery {
+        filters,
+        ..AlertQuery::default()
+    };
+    let (mut ids, total) = every_alert(service, actor, &query, 2).await;
+    assert_eq!(total, ids.len() as i64);
+    ids.sort();
+    ids
+}
+
+fn sorted(mut ids: Vec<Uuid>) -> Vec<Uuid> {
+    ids.sort();
+    ids
+}
+
+/// The Done check's service half: the list filters and pages through fixture alerts, each filter matching
+/// what it says, inverted matching exactly the rest, and every order total and stable.
+#[tokio::test]
+async fn the_alert_list_filters_and_pages_through_fixture_alerts() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let actor = admin(db).await;
+    let (a, b, c, d) = list_fixtures(db).await;
+    let all = sorted(vec![a, b, c, d]);
+
+    // no filter: every alert, newest first, the tie between B and C broken by the id
+    let (newest, total) = every_alert(&service, &actor, &AlertQuery::default(), 2).await;
+    assert_eq!(total, 4);
+    let (bc_first, bc_second) = if b > c { (b, c) } else { (c, b) };
+    assert_eq!(newest, [d, bc_first, bc_second, a]);
+
+    let cases: Vec<(Vec<FilterEntry>, Vec<Uuid>)> = vec![
+        (vec![text("Disposition", false, &["OPEN"])], vec![a, d]),
+        (vec![text("Disposition", true, &["OPEN"])], vec![b, c]),
+        (
+            vec![text("Disposition", false, &["FALSE_POSITIVE", "DELIVERY"])],
+            vec![b, c],
+        ),
+        // two entries of one filter are merged, so they mean either
+        (
+            vec![
+                text("Disposition", false, &["OPEN"]),
+                text("Disposition", false, &["DELIVERY"]),
+            ],
+            vec![a, c, d],
+        ),
+        (vec![text("Disposition By", false, &["alice"])], vec![b]),
+        (vec![text("Disposition By", false, &["None"])], vec![a, d]),
+        (vec![text("Disposition By", true, &["None"])], vec![b, c]),
+        (
+            vec![text("Disposition By", true, &["alice"])],
+            vec![a, c, d],
+        ),
+        (vec![text("Description", false, &["PHISH"])], vec![a]),
+        (vec![text("Description", true, &["report"])], vec![a, b, d]),
+        // %, _ and \ are themselves, not patterns
+        (vec![text("Description", false, &["%"])], vec![b]),
+        (vec![text("Description", false, &["_"])], vec![b]),
+        (vec![text("Description", false, &[r"\"])], vec![b]),
+        (vec![text("Description", false, &["f_s"])], vec![b]),
+        (vec![text("Description", false, &["o%f"])], vec![]),
+        (vec![pair(false, "fqdn", "evil.example.com")], vec![a]),
+        (vec![pair(true, "fqdn", "evil.example.com")], vec![b, c, d]),
+        (vec![pair(false, "Any", "10.0.0.1")], vec![b]),
+        (
+            vec![pair(false, "url", "https://evil.example.com/a,b:c")],
+            vec![b],
+        ),
+        (
+            vec![pair(false, "file", &FILE_SHA256.to_ascii_uppercase())],
+            vec![d],
+        ),
+        (vec![text("Tag", false, &["phish*"])], vec![a, c]),
+        (vec![text("Tag", false, &["phish"])], vec![a]),
+        (vec![text("Tag", false, &["whois"])], vec![a]),
+        (vec![text("Tag", true, &["phish*"])], vec![b, d]),
+        (vec![text("Analysis", false, &["rdap_analyzer"])], vec![a]),
+        (
+            vec![text("Analysis", true, &["rdap_analyzer"])],
+            vec![b, c, d],
+        ),
+        (
+            vec![text("Detection Point", false, &[SIGNATURE_ONE])],
+            vec![a],
+        ),
+        (
+            vec![text(
+                "Detection Point",
+                false,
+                &[&format!("{}:v1", SIGNATURE_ONE.to_ascii_lowercase())],
+            )],
+            vec![a],
+        ),
+        (
+            vec![text(
+                "Detection Point",
+                false,
+                &[&format!("{SIGNATURE_ONE}:v2")],
+            )],
+            vec![],
+        ),
+        (
+            vec![text("Detection Point", false, &[SIGNATURE_TWO])],
+            vec![c],
+        ),
+        (
+            vec![text("Detection Point", true, &[SIGNATURE_ONE])],
+            vec![b, c, d],
+        ),
+        (vec![text("Alert Date", false, &["-24h"])], vec![d]),
+        (vec![text("Alert Date", true, &["-24h"])], vec![a, b, c]),
+        (
+            vec![text(
+                "Alert Date",
+                false,
+                &["01-11-2026 00:00 - 01-11-2026 23:59"],
+            )],
+            vec![b, c],
+        ),
+        (
+            vec![text(
+                "Event Date",
+                false,
+                &["01-10-2026 08:00 - 01-10-2026 09:30"],
+            )],
+            vec![a],
+        ),
+        // an alert with no event time is in the inverse
+        (
+            vec![text(
+                "Event Date",
+                true,
+                &["01-10-2026 08:00 - 01-10-2026 09:30"],
+            )],
+            vec![b, c, d],
+        ),
+        (
+            vec![text(
+                "Disposition Date",
+                false,
+                &["01-12-2026 00:00 - 01-12-2026 23:59"],
+            )],
+            vec![b],
+        ),
+        (
+            vec![
+                text("Disposition", false, &["OPEN"]),
+                text("Alert Date", false, &["-24h"]),
+            ],
+            vec![d],
+        ),
+    ];
+    for (filters, expected) in cases {
+        let shown = format!("{filters:?}");
+        assert_eq!(
+            matching(&service, &actor, filters.clone()).await,
+            sorted(expected.clone()),
+            "{shown}"
+        );
+        // and an entry inverted is exactly the rest, when it's the only one
+        if let [entry] = filters.as_slice() {
+            let mut inverse = entry.clone();
+            inverse.inverted = !inverse.inverted;
+            let rest: Vec<Uuid> = all
+                .iter()
+                .copied()
+                .filter(|id| !expected.contains(id))
+                .collect();
+            assert_eq!(
+                matching(&service, &actor, vec![inverse]).await,
+                rest,
+                "the inverse of {shown}"
+            );
+        }
+    }
+
+    // every order, both ways, paged two at a time: total, with the id breaking ties
+    let summaries = every_alert(&service, &actor, &AlertQuery::default(), 10)
+        .await
+        .0;
+    assert_eq!(summaries.len(), 4);
+    let titles: std::collections::HashMap<Uuid, (&str, &str)> = [
+        (a, ("Phish from evil.example.com", "OPEN")),
+        (b, (r"100% off_sale \ invoice", "FALSE_POSITIVE")),
+        (c, ("Weekly report", "DELIVERY")),
+        (d, (HOSTILE_TITLE, "OPEN")),
+    ]
+    .into_iter()
+    .collect();
+    for sort in AlertSort::ALL {
+        for descending in [false, true] {
+            let query = AlertQuery {
+                sort: *sort,
+                descending,
+                ..AlertQuery::default()
+            };
+            let mut expected = all.clone();
+            match sort {
+                AlertSort::AlertDate => {
+                    let at = |id: &Uuid| newest.iter().position(|n| n == id).expect("listed");
+                    expected.sort_by_key(|id| std::cmp::Reverse(at(id)));
+                }
+                AlertSort::Description => {
+                    expected.sort_by(|x, y| {
+                        (titles[x].0.as_bytes(), x).cmp(&(titles[y].0.as_bytes(), y))
+                    });
+                }
+                AlertSort::Disposition => {
+                    expected.sort_by(|x, y| (titles[x].1, x).cmp(&(titles[y].1, y)));
+                }
+            }
+            if descending {
+                expected.reverse();
+            }
+            for limit in [1, 2, 3] {
+                let (seen, total) = every_alert(&service, &actor, &query, limit).await;
+                assert_eq!(total, 4);
+                assert_eq!(
+                    seen, expected,
+                    "{sort:?}, descending {descending}, {limit} a page"
+                );
+            }
+        }
+    }
+
+    // an alert that arrives while a client pages is on the first page, and never shifts a later one
+    let query = AlertQuery::default();
+    let first = service
+        .alerts(&actor, &query, Some(2), None)
+        .await
+        .expect("lists");
+    listed(
+        &db.clone(),
+        Fixture {
+            title: "late",
+            alerted: &Utc::now().to_rfc3339(),
+            ..Fixture::default()
+        },
+    )
+    .await;
+    let rest = service
+        .alerts(&actor, &query, Some(2), first.next.as_deref())
+        .await
+        .expect("lists");
+    let paged: Vec<Uuid> = first
+        .alerts
+        .iter()
+        .chain(&rest.alerts)
+        .map(|alert| alert.id)
+        .collect();
+    assert_eq!(paged, newest, "each once, and none that arrived meanwhile");
+    assert_eq!(rest.next, None);
+    assert_eq!(rest.total, 5, "the count is of now");
+
+    // a disposition order's cursor holds the disposition it was read with
+    let by_disposition = AlertQuery {
+        sort: AlertSort::Disposition,
+        ..AlertQuery::default()
+    };
+    let page = service
+        .alerts(&actor, &by_disposition, Some(1), None)
+        .await
+        .expect("lists");
+    let cursor = page.next.expect("more");
+    assert!(cursor.starts_with("disposition.desc."), "{cursor}");
+    // a cursor of another order, or one that isn't one, is refused
+    for (query, cursor) in [
+        (&query, cursor.as_str()),
+        (
+            &by_disposition,
+            "alert_date.desc.00000000-0000-0000-0000-000000000000",
+        ),
+        (&by_disposition, "disposition.desc.not-a-uuid.OPEN"),
+        (
+            &by_disposition,
+            "disposition.desc.00000000-0000-0000-0000-000000000000.open",
+        ),
+        (&query, "nonsense"),
+        (&query, &Uuid::nil().to_string()),
+    ] {
+        assert!(
+            matches!(
+                service.alerts(&actor, query, Some(1), Some(cursor)).await,
+                Err(ServiceError::InvalidRequest(_))
+            ),
+            "{cursor}"
+        );
+    }
+    // past the end, an empty page still says how many match
+    let last = service
+        .alerts(&actor, &query, Some(1), Some(&a.to_string()))
+        .await
+        .expect("lists");
+    assert_eq!((last.alerts.len(), last.next, last.total), (0, None, 5));
+}
+
+/// Values are data: whatever text a filter holds reaches the query as a bound parameter, a pattern's
+/// characters are themselves, and a value past the bounds or of the wrong shape is refused, saying why.
+#[tokio::test]
+async fn hostile_filter_values_are_refused_or_are_data() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let actor = admin(db).await;
+    let (_, _, _, d) = list_fixtures(db).await;
+    let roots = root_count(db).await;
+
+    // a title holding SQL is found by its text, and the text runs nothing
+    assert_eq!(
+        matching(
+            &service,
+            &actor,
+            vec![text("Description", false, &[HOSTILE_TITLE])]
+        )
+        .await,
+        [d]
+    );
+    for value in [
+        "' OR '1'='1",
+        "%' OR 1=1 --",
+        "\"; SELECT pg_sleep(10); --",
+        "*' OR '1'='1",
+        "$1",
+        "' UNION SELECT id FROM service.users --",
+        "ünïcödé ✓",
+    ] {
+        for name in ["Description", "Tag", "Disposition By", "Analysis"] {
+            let filters = vec![text(name, false, &[value])];
+            match service
+                .alerts(
+                    &actor,
+                    &AlertQuery {
+                        filters,
+                        ..AlertQuery::default()
+                    },
+                    None,
+                    None,
+                )
+                .await
+            {
+                Ok(page) => assert!(page.alerts.is_empty(), "{name} {value:?}"),
+                // Analysis takes only a module's name
+                Err(ServiceError::InvalidRequest(why)) => {
+                    assert_eq!(name, "Analysis", "{why}");
+                }
+                Err(error) => panic!("{name} {value:?}: {error}"),
+            }
+        }
+        assert!(
+            matching(&service, &actor, vec![pair(false, "Any", value)])
+                .await
+                .is_empty()
+        );
+    }
+    assert_eq!(root_count(db).await, roots, "nothing ran");
+
+    let refused = |filters: Vec<FilterEntry>| {
+        let service = service.clone();
+        let actor = actor.clone();
+        async move {
+            match service
+                .alerts(
+                    &actor,
+                    &AlertQuery {
+                        filters,
+                        ..AlertQuery::default()
+                    },
+                    None,
+                    None,
+                )
+                .await
+            {
+                Err(ServiceError::InvalidRequest(why)) => why,
+                other => panic!("not refused: {other:?}"),
+            }
+        }
+    };
+    let long = "x".repeat(filter_model::MAX_FILTER_VALUE_CHARS + 1);
+    let many: Vec<String> = (0..=filter_model::MAX_FILTER_VALUES)
+        .map(|n| n.to_string())
+        .collect();
+    let many: Vec<&str> = many.iter().map(String::as_str).collect();
+    for (filters, says) in [
+        (
+            vec![text("Description", false, &[&long])],
+            "at most 256 characters",
+        ),
+        (
+            vec![text("Description", false, &["a\0b"])],
+            "control character",
+        ),
+        (
+            vec![text("Description", false, &["line\nbreak"])],
+            "control character",
+        ),
+        (vec![text("Description", false, &[""])], "can't be empty"),
+        (vec![text("Description", false, &many)], "1 to 64 values"),
+        (
+            vec![FilterEntry::new("Description", false, vec![])],
+            "1 to 64 values",
+        ),
+        (vec![text("Nope", false, &["x"])], "no filter named"),
+        (
+            vec![text("Queue", false, &["default"])],
+            "alert routing (7.13)",
+        ),
+        (vec![text("Owner", false, &["alice"])], "no step in PLAN.md"),
+        (
+            vec![text("Alert Date", false, &["yesterday"])],
+            "isn't a date",
+        ),
+        (vec![text("Alert Date", false, &["-7dd"])], "isn't a date"),
+        (
+            vec![text("Detection Point", false, &["not-a-uuid"])],
+            "signature uuid",
+        ),
+        (
+            vec![text(
+                "Detection Point",
+                false,
+                &[&format!("{SIGNATURE_TWO}:")],
+            )],
+            "empty version",
+        ),
+        (
+            vec![text("Disposition", false, &["open"])],
+            "isn't a disposition",
+        ),
+        (
+            vec![text("Analysis", false, &["Rdap Analyzer"])],
+            "module's name",
+        ),
+        (vec![pair(false, "no_such_type", "x")], "Observable"),
+        (vec![pair(false, "file", "not a sha256")], "sha256"),
+        (
+            vec![text("Observable", false, &["x"])],
+            "[type, value] pair",
+        ),
+        (
+            vec![FilterEntry::new(
+                "Description",
+                false,
+                vec![FilterValue::Pair("a".to_owned(), "b".to_owned())],
+            )],
+            "not a pair",
+        ),
+    ] {
+        let why = refused(filters.clone()).await;
+        assert!(why.contains(says), "{filters:?}: {why}");
+    }
+    let too_many: Vec<FilterEntry> = (0..=filter_model::MAX_FILTER_ENTRIES)
+        .map(|n| text("Description", n % 2 == 0, &[&n.to_string()]))
+        .chain((0..filter_model::MAX_FILTER_ENTRIES).map(|n| text("Tag", false, &[&n.to_string()])))
+        .collect();
+    // merged, they're four entries, so that's allowed: a list is bounded once merged
+    assert!(matching(&service, &actor, too_many).await.is_empty());
+    let names = ["Description", "Tag", "Disposition By", "Analysis"];
+    let wide: Vec<FilterEntry> = (0..=filter_model::MAX_FILTER_ENTRIES)
+        .map(|n| text(names[n % 4], n % 8 >= 4, &["x"]))
+        .collect();
+    assert_eq!(
+        filter_model::check(FilterScreen::Alerts, &wide)
+            .expect("merges")
+            .len(),
+        8
+    );
+}
+
+/// ace3's share-link encoding: `[!]<slug>:<v1>,<v2>`, with `:`, `,` and `%` percent-encoded in a value and
+/// an observable's type colon literal, ace3's own examples among them.
+#[test]
+fn share_links_encode_and_decode_as_ace3_s_do() {
+    let screen = FilterScreen::Alerts;
+    let filters = vec![
+        text("Disposition", false, &["OPEN", "FALSE_POSITIVE"]),
+        text("Tag", true, &["whitelisted"]),
+        text("Alert Date", false, &["-7d"]),
+        pair(false, "url", "https://evil.com/a,b"),
+        text("Description", false, &["50% off: now"]),
+    ];
+    let f = filter_model::encode(screen, &filters).expect("encodes");
+    assert_eq!(
+        f,
+        [
+            "disposition:OPEN,FALSE_POSITIVE",
+            "!tag:whitelisted",
+            "alert_date:-7d",
+            "observable:url:https%3A%2F%2Fevil.com%2Fa%2Cb",
+            "description:50%25%20off%3A%20now",
+        ]
+    );
+    let (decoded, warnings) = filter_model::decode(screen, &f, true).expect("decodes");
+    assert_eq!(decoded, filters);
+    assert!(warnings.is_empty());
+
+    // ace3's examples, as a wiki holds them
+    let (decoded, _) = filter_model::decode(
+        screen,
+        &[
+            "!tag:whitelisted".to_owned(),
+            "observable:email_address:a%40b.example".to_owned(),
+        ],
+        true,
+    )
+    .expect("decodes");
+    assert_eq!(
+        decoded,
+        [
+            text("Tag", true, &["whitelisted"]),
+            pair(false, "email_address", "a@b.example")
+        ]
+    );
+
+    // a filter this list doesn't have is left out, saying why, unless the caller is strict
+    let old = ["queue:default".to_owned(), "disposition:OPEN".to_owned()];
+    let (decoded, warnings) = filter_model::decode(screen, &old, false).expect("decodes");
+    assert_eq!(decoded, [text("Disposition", false, &["OPEN"])]);
+    assert_eq!(warnings.len(), 1);
+    assert!(warnings[0].contains("7.13"), "{warnings:?}");
+    assert!(filter_model::decode(screen, &old, true).is_err());
+    assert!(
+        filter_model::decode(screen, &["nonsense:x".to_owned()], false)
+            .expect("decodes")
+            .1[0]
+            .contains("no filter")
+    );
+
+    // a malformed one is refused either way: showing more than its author meant isn't safe
+    for broken in [
+        "disposition",
+        ":x",
+        "tag:a,,b",
+        "tag:",
+        "observable:no-colon",
+        "disposition:open",
+    ] {
+        assert!(
+            filter_model::decode(screen, &[broken.to_owned()], false).is_err(),
+            "{broken}"
+        );
+    }
+    // the detection points screen has its own slugs
+    let (decoded, _) = filter_model::decode(
+        FilterScreen::DetectionPoints,
+        &[
+            format!("signature:{SIGNATURE_ONE}:abc"),
+            "family:YARA".to_owned(),
+        ],
+        true,
+    )
+    .expect("decodes");
+    assert_eq!(
+        decoded,
+        [
+            text(
+                "Signature",
+                false,
+                &[&format!("{}:abc", SIGNATURE_ONE.to_ascii_lowercase())]
+            ),
+            text("Family", false, &["yara"]),
+        ]
+    );
+}
+
+/// ace3's date range values: relative tokens resolved in the viewer's timezone at the moment of the read,
+/// snaps toward the past, `@w` the Sunday before, and absolute endpoints as that zone's wall clock.
+#[test]
+fn date_ranges_resolve_as_ace3_s_do() {
+    let at = |text: &str| -> chrono::DateTime<Utc> { text.parse().expect("a time") };
+    // a Sunday, the morning New York moves to summer time
+    let now = at("2026-03-08T12:00:00Z");
+    let york: chrono_tz::Tz = "America/New_York".parse().expect("a zone");
+    let window = |value: &str, tz| filter_model::date_window(value, now, tz).expect(value);
+    assert_eq!(window("-7d", york), (at("2026-03-01T12:00:00Z"), now));
+    assert_eq!(window("-7d - now", york), (at("2026-03-01T12:00:00Z"), now));
+    assert_eq!(window("now", york), (now, now));
+    assert_eq!(window("+1d", york), (now, at("2026-03-09T12:00:00Z")));
+    assert_eq!(window("-8h30m", york), (at("2026-03-08T03:30:00Z"), now));
+    assert_eq!(window("-1d 12h", york), (at("2026-03-07T00:00:00Z"), now));
+    assert_eq!(window("-1Y", york), (at("2025-03-08T12:00:00Z"), now));
+    // midnight on the change is still winter time, five hours behind
+    assert_eq!(window("@d", york), (at("2026-03-08T05:00:00Z"), now));
+    assert_eq!(window("now@d", york), (at("2026-03-08T05:00:00Z"), now));
+    assert_eq!(window("-1d@d", york), (at("2026-03-07T05:00:00Z"), now));
+    assert_eq!(window("@w", york), (at("2026-03-08T05:00:00Z"), now));
+    assert_eq!(window("-1d@w", york), (at("2026-03-01T05:00:00Z"), now));
+    assert_eq!(window("@mon", york), (at("2026-03-01T05:00:00Z"), now));
+    assert_eq!(window("@y", york), (at("2026-01-01T05:00:00Z"), now));
+    assert_eq!(window("@h", chrono_tz::Tz::UTC), (now, now));
+    assert_eq!(
+        window("@d", chrono_tz::Tz::UTC),
+        (at("2026-03-08T00:00:00Z"), now)
+    );
+    assert_eq!(
+        window("-1d@d - @d", york),
+        (at("2026-03-07T05:00:00Z"), at("2026-03-08T05:00:00Z"))
+    );
+    // absolute endpoints are the zone's wall clock; 02:30 doesn't happen there that day
+    assert_eq!(
+        window("03-07-2026 08:00 - 03-08-2026 02:30", york),
+        (at("2026-03-07T13:00:00Z"), at("2026-03-08T07:30:00Z"))
+    );
+    assert_eq!(
+        window("-7d - 03-08-2026 08:00", chrono_tz::Tz::UTC),
+        (at("2026-03-01T12:00:00Z"), at("2026-03-08T08:00:00Z"))
+    );
+    // 01:30 on the first Sunday of November happens twice in New York: the later, as pytz takes it
+    assert_eq!(
+        window("11-01-2026 01:30 - 11-01-2026 01:30", york).0,
+        at("2026-11-01T06:30:00Z")
+    );
+    for bad in [
+        "",
+        "7d",
+        "-7dd",
+        "-d",
+        "-",
+        "@",
+        "@x",
+        "now@",
+        "tomorrow",
+        "-7d - now - 1d",
+        "13-40-2026 00:00",
+        "-9999999999y",
+        "- 7d",
+    ] {
+        assert!(
+            filter_model::date_window(bad, now, york).is_err(),
+            "{bad:?}"
+        );
+    }
+}
+
+/// 5.6's detection points with 5.10's filters, `changed_since` and the count an export checks first.
+#[tokio::test]
+async fn detection_points_filter_and_count() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let actor = admin(db).await;
+    let (a, _, c, _) = list_fixtures(db).await;
+    let ids = |page: ace_service::DetectionPointPage| {
+        page.detections.iter().map(|d| d.alert).collect::<Vec<_>>()
+    };
+    let filtered = |filters: Vec<FilterEntry>| DetectionPointFilter {
+        filters,
+        ..DetectionPointFilter::default()
+    };
+    for (filters, expected) in [
+        (vec![], vec![a, c]),
+        (vec![text("Signature", false, &[SIGNATURE_ONE])], vec![a]),
+        (
+            vec![text("Signature", false, &[&format!("{SIGNATURE_ONE}:v1")])],
+            vec![a],
+        ),
+        (
+            vec![text("Signature", false, &[&format!("{SIGNATURE_ONE}:v9")])],
+            vec![],
+        ),
+        (vec![text("Signature", true, &[SIGNATURE_ONE])], vec![c]),
+        (vec![text("Family", false, &["YARA"])], vec![a, c]),
+        (vec![text("Family", true, &["yara"])], vec![]),
+        (
+            vec![text(
+                "Alert Date",
+                false,
+                &["01-11-2026 00:00 - 01-12-2026 00:00"],
+            )],
+            vec![c],
+        ),
+    ] {
+        let filter = filtered(filters.clone());
+        let page = service
+            .detection_points(&actor, &filter, None, None)
+            .await
+            .expect("lists");
+        assert_eq!(ids(page), expected, "{filters:?}");
+        assert_eq!(
+            service
+                .detection_point_count(&actor, &filter, 100)
+                .await
+                .expect("counts"),
+            expected.len() as i64
+        );
+    }
+    // the count stops one past its cap
+    assert_eq!(
+        service
+            .detection_point_count(&actor, &DetectionPointFilter::default(), 0)
+            .await
+            .expect("counts"),
+        1
+    );
+    // changed_since: a detection made, or whose root became an alert, at or after the time
+    let since = DetectionPointFilter {
+        changed_since: Some(Utc::now() + chrono::Duration::hours(1)),
+        ..DetectionPointFilter::default()
+    };
+    assert!(
+        service
+            .detection_points(&actor, &since, None, None)
+            .await
+            .expect("lists")
+            .detections
+            .is_empty()
+    );
+    let since = DetectionPointFilter {
+        changed_since: Some(Utc::now() - chrono::Duration::hours(1)),
+        ..DetectionPointFilter::default()
+    };
+    assert_eq!(
+        ids(service
+            .detection_points(&actor, &since, None, None)
+            .await
+            .expect("lists")),
+        [a, c],
+        "both were made in the last hour"
+    );
+    // a filter of the alert screen isn't this screen's
+    assert!(matches!(
+        service
+            .detection_points(
+                &actor,
+                &filtered(vec![text("Tag", false, &["x"])]),
+                None,
+                None
+            )
+            .await,
+        Err(ServiceError::InvalidRequest(_))
+    ));
+    assert!(matches!(
+        service
+            .detection_point_count(&actor, &filtered(vec![text("Verdict", false, &["tp"])]), 10)
+            .await,
+        Err(ServiceError::InvalidRequest(why)) if why.contains("7.14")
+    ));
+    let outsider = user(UserId(Uuid::from_u128(0xDE8)));
+    exists(db, &Holder::User(UserId(Uuid::from_u128(0xDE8)))).await;
+    assert!(matches!(
+        service
+            .detection_point_count(&outsider, &DetectionPointFilter::default(), 10)
+            .await,
+        Err(ServiceError::PermissionDenied { .. })
+    ));
+}
+
+fn saved_rows_query() -> &'static str {
+    "SELECT row_to_json(f)::text FROM (SELECT id, user_id, screen, name, description, filters,
+            quick_filter_order, quick_filter_indicator FROM service.saved_filters ORDER BY id) f"
+}
+
+async fn saved_rows(db: &Db) -> Vec<String> {
+    sqlx::query_scalar(saved_rows_query())
+        .fetch_all(db.pool())
+        .await
+        .expect("reads")
+}
+
+fn new_filter(name: &str, filters: Vec<FilterEntry>) -> ace_service::NewSavedFilter {
+    ace_service::NewSavedFilter {
+        name: name.to_owned(),
+        filters,
+        ..ace_service::NewSavedFilter::default()
+    }
+}
+
+/// ace3's saved filters: a person's own on a screen, checked for it, named once, pinned in order, and
+/// changed or deleted only by their owner.
+#[tokio::test]
+async fn saved_filters_are_their_owner_s() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let alice = holding(&service, db, "saver-alice", &[("alert", "read")]).await;
+    let bob = holding(&service, db, "saver-bob", &[("alert", "read")]).await;
+    let open = vec![text("Disposition", false, &["OPEN"])];
+    let first = service
+        .create_saved_filter(
+            &alice,
+            FilterScreen::Alerts,
+            &ace_service::NewSavedFilter {
+                name: "Open".to_owned(),
+                description: Some("<b>mine</b>".to_owned()),
+                filters: vec![
+                    text("Disposition", false, &["OPEN"]),
+                    text("Disposition", false, &["OPEN"]),
+                ],
+                quick_filter: true,
+                quick_filter_indicator: true,
+            },
+        )
+        .await
+        .expect("saves");
+    assert_eq!(first.filters, open, "merged and canonical");
+    assert_eq!(first.quick_filter_order, Some(0));
+    assert_eq!(first.description.as_deref(), Some("<b>mine</b>"));
+    let second = service
+        .create_saved_filter(
+            &alice,
+            FilterScreen::Alerts,
+            &ace_service::NewSavedFilter {
+                quick_filter: true,
+                ..new_filter("Phish", vec![text("Tag", false, &["phish*"])])
+            },
+        )
+        .await
+        .expect("saves");
+    assert_eq!(second.quick_filter_order, Some(1));
+    let third = service
+        .create_saved_filter(
+            &alice,
+            FilterScreen::Alerts,
+            &new_filter("A later one", open.clone()),
+        )
+        .await
+        .expect("saves");
+    assert_eq!(third.quick_filter_order, None);
+    // the same name on another screen is another filter
+    service
+        .create_saved_filter(
+            &alice,
+            FilterScreen::DetectionPoints,
+            &new_filter("Open", vec![text("Family", false, &["yara"])]),
+        )
+        .await
+        .expect("saves");
+    assert!(matches!(
+        service
+            .create_saved_filter(&alice, FilterScreen::Alerts, &new_filter("Open", open.clone()))
+            .await,
+        Err(ServiceError::FilterNameTaken(name)) if name == "Open"
+    ));
+    // bob may use the name: it's alice's
+    service
+        .create_saved_filter(
+            &bob,
+            FilterScreen::Alerts,
+            &new_filter("Open", open.clone()),
+        )
+        .await
+        .expect("saves");
+    let names = |saved: Vec<ace_service::SavedFilter>| {
+        saved
+            .into_iter()
+            .map(|filter| filter.name)
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(
+        names(
+            service
+                .saved_filters(&alice, FilterScreen::Alerts)
+                .await
+                .expect("lists")
+        ),
+        ["Open", "Phish", "A later one"],
+        "quick filters first, in order, then by name"
+    );
+    // checked for the screen, and never empty
+    for (screen, filters) in [
+        (FilterScreen::Alerts, vec![]),
+        (FilterScreen::Alerts, vec![text("Family", false, &["yara"])]),
+        (
+            FilterScreen::DetectionPoints,
+            vec![text("Tag", false, &["x"])],
+        ),
+    ] {
+        assert!(matches!(
+            service
+                .create_saved_filter(&alice, screen, &new_filter("x", filters))
+                .await,
+            Err(ServiceError::InvalidRequest(_))
+        ));
+    }
+    for name in ["", "   ", &"n".repeat(256)] {
+        assert!(matches!(
+            service
+                .create_saved_filter(
+                    &alice,
+                    FilterScreen::Alerts,
+                    &new_filter(name, open.clone())
+                )
+                .await,
+            Err(ServiceError::InvalidRequest(_))
+        ));
+    }
+
+    // only the owner sees, changes or deletes one
+    assert_eq!(
+        service.saved_filter(&alice, first.id).await.expect("reads"),
+        first
+    );
+    assert!(matches!(
+        service.saved_filter(&bob, first.id).await,
+        Err(ServiceError::NotFound(_))
+    ));
+    let rename = ace_service::SavedFilterChange {
+        name: Some("Mine".to_owned()),
+        ..ace_service::SavedFilterChange::default()
+    };
+    assert!(matches!(
+        service.update_saved_filter(&bob, first.id, &rename).await,
+        Err(ServiceError::Forbidden(_))
+    ));
+    assert!(matches!(
+        service.delete_saved_filter(&bob, first.id).await,
+        Err(ServiceError::Forbidden(_))
+    ));
+    assert!(matches!(
+        service
+            .update_saved_filter(&alice, Uuid::nil(), &rename)
+            .await,
+        Err(ServiceError::NotFound(_))
+    ));
+    assert!(matches!(
+        service
+            .update_saved_filter(
+                &alice,
+                first.id,
+                &ace_service::SavedFilterChange {
+                    name: Some("Phish".to_owned()),
+                    ..ace_service::SavedFilterChange::default()
+                }
+            )
+            .await,
+        Err(ServiceError::FilterNameTaken(_))
+    ));
+    // a change is checked for the row's own screen
+    assert!(matches!(
+        service
+            .update_saved_filter(
+                &alice,
+                first.id,
+                &ace_service::SavedFilterChange {
+                    filters: Some(vec![text("Family", false, &["yara"])]),
+                    ..ace_service::SavedFilterChange::default()
+                }
+            )
+            .await,
+        Err(ServiceError::InvalidRequest(_))
+    ));
+    let renamed = service
+        .update_saved_filter(&alice, first.id, &rename)
+        .await
+        .expect("renames");
+    assert_eq!(renamed.name, "Mine");
+
+    // the quick filters are the whole ordered list
+    let quick = service
+        .set_quick_filters(&alice, FilterScreen::Alerts, &[third.id, first.id])
+        .await
+        .expect("pins");
+    assert_eq!(names(quick), ["A later one", "Mine", "Phish"]);
+    let rows = audit_rows(db).await.len();
+    service
+        .set_quick_filters(&alice, FilterScreen::Alerts, &[third.id, first.id])
+        .await
+        .expect("pins");
+    assert_eq!(
+        audit_rows(db).await.len(),
+        rows,
+        "the same list again changes nothing"
+    );
+    for ids in [vec![Uuid::nil()], vec![first.id, first.id]] {
+        assert!(matches!(
+            service
+                .set_quick_filters(&alice, FilterScreen::Alerts, &ids)
+                .await,
+            Err(ServiceError::InvalidRequest(_))
+        ));
+    }
+    let bobs = service
+        .saved_filters(&bob, FilterScreen::Alerts)
+        .await
+        .expect("lists");
+    assert!(
+        matches!(
+            service
+                .set_quick_filters(&alice, FilterScreen::Alerts, &[bobs[0].id])
+                .await,
+            Err(ServiceError::InvalidRequest(_))
+        ),
+        "bob's isn't alice's to pin"
+    );
+
+    // a person's: a key with no owner, or a component, has none
+    let ownerless = Actor::ApiKey {
+        id: ApiKeyId(Uuid::from_u128(0x5AF)),
+        name: "ownerless".to_owned(),
+        owner: None,
+    };
+    exists(db, &Holder::ApiKey(ApiKeyId(Uuid::from_u128(0x5AF)))).await;
+    grant(
+        db,
+        &Holder::ApiKey(ApiKeyId(Uuid::from_u128(0x5AF))),
+        "alert",
+        "read",
+        Effect::Allow,
+    )
+    .await;
+    assert!(matches!(
+        service
+            .saved_filters(&ownerless, FilterScreen::Alerts)
+            .await,
+        Err(ServiceError::Forbidden(_))
+    ));
+    assert!(matches!(
+        service
+            .create_saved_filter(
+                &ownerless,
+                FilterScreen::Alerts,
+                &new_filter("k", open.clone())
+            )
+            .await,
+        Err(ServiceError::Forbidden(_))
+    ));
+    // and it needs the screen's permission first
+    let nobody = holding(&service, db, "saver-nobody", &[]).await;
+    assert!(matches!(
+        service.saved_filters(&nobody, FilterScreen::Alerts).await,
+        Err(ServiceError::PermissionDenied { .. })
+    ));
+    assert!(matches!(
+        service
+            .create_saved_filter(
+                &nobody,
+                FilterScreen::Alerts,
+                &new_filter("n", open.clone())
+            )
+            .await,
+        Err(ServiceError::PermissionDenied { .. })
+    ));
+    assert!(matches!(
+        service.delete_saved_filter(&nobody, first.id).await,
+        Err(ServiceError::PermissionDenied { .. })
+    ));
+
+    service
+        .delete_saved_filter(&alice, first.id)
+        .await
+        .expect("deletes");
+    assert!(matches!(
+        service.saved_filter(&alice, first.id).await,
+        Err(ServiceError::NotFound(_))
+    ));
+    // a user's rows go with the user
+    sqlx::query("DELETE FROM service.users WHERE id = $1")
+        .bind(actor_id(&bob).0)
+        .execute(db.pool())
+        .await
+        .expect("deletes bob");
+    assert!(
+        !saved_rows(db)
+            .await
+            .iter()
+            .any(|row| row.contains(&actor_id(&bob).0.to_string()))
+    );
+}
+
+/// A user has at most `MAX_SAVED_FILTERS` on a screen.
+#[tokio::test]
+async fn saved_filters_are_bounded() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let alice = holding(&service, db, "bounded", &[("alert", "read")]).await;
+    sqlx::query(
+        "INSERT INTO service.saved_filters (id, user_id, screen, name, filters)
+         SELECT gen_random_uuid(), $1, 'alerts', 'f' || n, '[]' FROM generate_series(1, $2) n",
+    )
+    .bind(actor_id(&alice).0)
+    .bind(ace_service::MAX_SAVED_FILTERS as i32)
+    .execute(db.pool())
+    .await
+    .expect("fills");
+    assert!(matches!(
+        service
+            .create_saved_filter(
+                &alice,
+                FilterScreen::Alerts,
+                &new_filter("one more", vec![text("Disposition", false, &["OPEN"])])
+            )
+            .await,
+        Err(ServiceError::InvalidRequest(why)) if why.contains("at most 200")
+    ));
+}
+
+/// ace3's `manage_columns`: normalized as its validators do, and a stored value from an older release
+/// still reads.
+#[tokio::test]
+async fn manage_columns_is_normalized() {
+    use ace_service::{ManageColumnsPreference, PreferenceKey, PreferenceValue};
+    let normal = ManageColumnsPreference::default();
+    assert_eq!(
+        normal.order,
+        ["date", "description", "disposition", "status"]
+    );
+    assert!(normal.hidden.is_empty());
+    let parsed = PreferenceKey::ManageColumns
+        .parse(json!({
+            "order": ["status", "queue", "status", "description"],
+            "hidden": ["description", "date", "owner", "date"],
+        }))
+        .expect("parses");
+    let PreferenceValue::ManageColumns(columns) = parsed else {
+        panic!("manage_columns")
+    };
+    assert_eq!(
+        columns.order,
+        ["status", "description", "date", "disposition"]
+    );
+    assert_eq!(columns.hidden, ["date"], "description is always shown");
+    assert_eq!(
+        columns
+            .visible()
+            .iter()
+            .map(|column| column.id)
+            .collect::<Vec<_>>(),
+        ["status", "description", "disposition"]
+    );
+    assert!(
+        PreferenceKey::ManageColumns
+            .parse(json!({"order": [], "extra": 1}))
+            .is_err()
+    );
+    assert!(PreferenceKey::ManageColumns.parse(json!([])).is_err());
+
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let alice = holding(&service, db, "columns", &[]).await;
+    assert_eq!(service.manage_columns(&alice).await.expect("reads"), normal);
+    service
+        .set_preference(&alice, &PreferenceValue::ManageColumns(columns.clone()))
+        .await
+        .expect("sets");
+    assert_eq!(
+        service.manage_columns(&alice).await.expect("reads"),
+        columns
+    );
+    // a key has only the default
+    let key = key(ApiKeyId(Uuid::from_u128(0xC01)), None);
+    assert_eq!(service.manage_columns(&key).await.expect("reads"), normal);
+}
+
+async fn create_saved_filter_records_its_row(db: &Db) -> String {
+    let service = service(db);
+    let me = holding(&service, db, "audited-save-filter", &[("alert", "read")]).await;
+    let saved = service
+        .create_saved_filter(
+            &me,
+            FilterScreen::Alerts,
+            &ace_service::NewSavedFilter {
+                name: "<b>Open</b>".to_owned(),
+                description: Some("mine".to_owned()),
+                filters: vec![text("Disposition", false, &["OPEN"])],
+                quick_filter: true,
+                quick_filter_indicator: false,
+            },
+        )
+        .await
+        .expect("saves");
+    assert_eq!(
+        last_audit(db).await,
+        AuditRow {
+            actor: actor_json(&me),
+            action: "create_saved_filter".to_owned(),
+            target: ("saved_filter".to_owned(), saved.id.to_string()),
+            before: None,
+            after: Some(json!({
+                "screen": "alerts",
+                "owner": actor_id(&me).0,
+                "name": "<b>Open</b>",
+                "description": "mine",
+                "filters": [{"name": "Disposition", "inverted": false, "values": ["OPEN"]}],
+                "quick_filter_order": 0,
+                "quick_filter_indicator": false,
+            })),
+            details: json!({}),
+        }
+    );
+    "create_saved_filter".to_owned()
+}
+
+async fn update_saved_filter_records_its_row(db: &Db) -> String {
+    let service = service(db);
+    let me = holding(&service, db, "audited-update-filter", &[("alert", "read")]).await;
+    let saved = service
+        .create_saved_filter(
+            &me,
+            FilterScreen::Alerts,
+            &new_filter("before", vec![text("Disposition", false, &["OPEN"])]),
+        )
+        .await
+        .expect("saves");
+    let change = ace_service::SavedFilterChange {
+        name: Some("after".to_owned()),
+        filters: Some(vec![pair(false, "url", "https://a.example/x,y")]),
+        ..ace_service::SavedFilterChange::default()
+    };
+    service
+        .update_saved_filter(&me, saved.id, &change)
+        .await
+        .expect("changes");
+    let record = |name: &str, filters: Value| {
+        json!({
+            "screen": "alerts",
+            "owner": actor_id(&me).0,
+            "name": name,
+            "description": null,
+            "filters": filters,
+            "quick_filter_order": null,
+            "quick_filter_indicator": false,
+        })
+    };
+    assert_eq!(
+        last_audit(db).await,
+        AuditRow {
+            actor: actor_json(&me),
+            action: "update_saved_filter".to_owned(),
+            target: ("saved_filter".to_owned(), saved.id.to_string()),
+            before: Some(record(
+                "before",
+                json!([{"name": "Disposition", "inverted": false, "values": ["OPEN"]}])
+            )),
+            after: Some(record(
+                "after",
+                json!([{"name": "Observable", "inverted": false, "values": [["url", "https://a.example/x,y"]]}])
+            )),
+            details: json!({}),
+        }
+    );
+    // the same change again changes nothing, and has no row
+    let rows = audit_rows(db).await.len();
+    service
+        .update_saved_filter(&me, saved.id, &change)
+        .await
+        .expect("changes");
+    assert_eq!(audit_rows(db).await.len(), rows);
+    "update_saved_filter".to_owned()
+}
+
+async fn delete_saved_filter_records_its_row(db: &Db) -> String {
+    let service = service(db);
+    let me = holding(&service, db, "audited-delete-filter", &[("alert", "read")]).await;
+    let saved = service
+        .create_saved_filter(
+            &me,
+            FilterScreen::Alerts,
+            &new_filter("gone", vec![text("Tag", true, &["noise"])]),
+        )
+        .await
+        .expect("saves");
+    service
+        .delete_saved_filter(&me, saved.id)
+        .await
+        .expect("deletes");
+    assert_eq!(
+        last_audit(db).await,
+        AuditRow {
+            actor: actor_json(&me),
+            action: "delete_saved_filter".to_owned(),
+            target: ("saved_filter".to_owned(), saved.id.to_string()),
+            before: Some(json!({
+                "screen": "alerts",
+                "owner": actor_id(&me).0,
+                "name": "gone",
+                "description": null,
+                "filters": [{"name": "Tag", "inverted": true, "values": ["noise"]}],
+                "quick_filter_order": null,
+                "quick_filter_indicator": false,
+            })),
+            after: None,
+            details: json!({}),
+        }
+    );
+    "delete_saved_filter".to_owned()
+}
+
+async fn set_quick_filters_records_its_row(db: &Db) -> String {
+    let service = service(db);
+    let me = holding(&service, db, "audited-quick", &[("alert", "read")]).await;
+    let one = service
+        .create_saved_filter(
+            &me,
+            FilterScreen::Alerts,
+            &ace_service::NewSavedFilter {
+                quick_filter: true,
+                ..new_filter("one", vec![text("Disposition", false, &["OPEN"])])
+            },
+        )
+        .await
+        .expect("saves");
+    let two = service
+        .create_saved_filter(
+            &me,
+            FilterScreen::Alerts,
+            &new_filter("two", vec![text("Disposition", false, &["IGNORE"])]),
+        )
+        .await
+        .expect("saves");
+    service
+        .set_quick_filters(&me, FilterScreen::Alerts, &[two.id])
+        .await
+        .expect("pins");
+    assert_eq!(
+        last_audit(db).await,
+        AuditRow {
+            actor: actor_json(&me),
+            action: "set_quick_filters".to_owned(),
+            target: (
+                "quick_filters".to_owned(),
+                format!("{}/alerts", actor_id(&me).0)
+            ),
+            before: Some(json!({"pinned": [one.id]})),
+            after: Some(json!({"pinned": [two.id]})),
+            details: json!({}),
+        }
+    );
+    "set_quick_filters".to_owned()
 }

@@ -99,6 +99,8 @@ async fn stack() -> Stack {
         max_json_bytes: MAX_JSON,
         max_submission_bytes: MAX_SUBMISSION,
         max_submitted_files: 3,
+        // small, so an export past it is cheap to make
+        max_export_rows: 2,
         ..ace_api::WebConfig::default()
     };
     let router = ace_api::Web::new(service.clone(), bucket, config).router();
@@ -359,6 +361,16 @@ const COMMENT: &str = "/api/observables/v1/comments/{id}";
 const DETECTIONS: &str = "/api/alerts/v1/detections";
 const PREFERENCES: &str = "/api/users/v1/me/preferences";
 const PREFERENCE: &str = "/api/users/v1/me/preferences/{key}";
+const ALERT_CSV: &str = "/api/alerts/v1/alerts/export/csv";
+const ALERT_NDJSON: &str = "/api/alerts/v1/alerts/export/ndjson";
+const DETECTION_CSV: &str = "/api/alerts/v1/detections/export/csv";
+const DETECTION_NDJSON: &str = "/api/alerts/v1/detections/export/ndjson";
+const SCREEN: &str = "/api/filters/v1/screens/{screen}";
+const ENCODE: &str = "/api/filters/v1/screens/{screen}/encode";
+const DECODE: &str = "/api/filters/v1/screens/{screen}/decode";
+const SAVED: &str = "/api/filters/v1/saved";
+const SAVED_ONE: &str = "/api/filters/v1/saved/{id}";
+const QUICK: &str = "/api/filters/v1/saved/quick";
 const OTHER_PASSWORD: &str = "a different long passphrase";
 
 /// A route with its `{...}` filled: a crash's `{id}` is a task's, which `observable` stands in for, since a
@@ -378,6 +390,7 @@ fn fill(route: &str, id: Uuid, observable: i64) -> String {
         .replace("{observable}", &observable.to_string())
         .replace("{user}", &id.to_string())
         .replace("{key}", "theme")
+        .replace("{screen}", "alerts")
 }
 
 /// A route with `{id}` and `{user}` filled.
@@ -423,6 +436,13 @@ fn good_body(route: &str) -> Send {
         COMMENTS => Send::Json(json!({"type": "fqdn", "value": "a.example", "comment": "x"})),
         COMMENT => Send::Json(json!({"comment": "x"})),
         PREFERENCE => Send::Json(json!({"mode": "dark"})),
+        ENCODE => Send::Json(json!({"filters": []})),
+        SAVED => Send::Json(json!({
+            "name": "refused",
+            "filters": [{"name": "Disposition", "values": ["OPEN"]}],
+        })),
+        SAVED_ONE => Send::Json(json!({"name": "refused"})),
+        QUICK => Send::Json(json!({"ids": []})),
         _ => Send::Nothing,
     }
 }
@@ -448,7 +468,7 @@ async fn refuses_without_a_credential_or_a_permission(
         .map(|(method, route, _)| (method, route))
         .filter(|route| !public.contains(route))
         .collect();
-    assert_eq!(routes.len(), 53, "{routes:?}");
+    assert_eq!(routes.len(), 66, "{routes:?}");
     for (method, route) in routes {
         let method: Method = method.to_uppercase().parse().expect("a method");
         let path = fill(&route, id, file);
@@ -3267,6 +3287,12 @@ async fn preferences(client: &mut Client<'_>) {
         json!({"preferences": [
             {"key": "theme", "value": {"mode": "system"}, "updated_at": null, "is_default": true},
             {"key": "alert_sections", "value": {"sections": {}}, "updated_at": null, "is_default": true},
+            {
+                "key": "manage_columns",
+                "value": {"order": ["date", "description", "disposition", "status"], "hidden": []},
+                "updated_at": null,
+                "is_default": true,
+            },
         ]})
     );
     let one = client
@@ -3383,12 +3409,12 @@ async fn preferences(client: &mut Client<'_>) {
         .await;
     assert_eq!(read, set, "a refused value changes nothing");
 
-    let unknown = "/api/users/v1/me/preferences/manage_columns";
+    let unknown = "/api/users/v1/me/preferences/search_columns";
     for method in [M::GET, M::DELETE] {
         let error = client
             .json(method, PREFERENCE, unknown, t, Send::Nothing, S::NOT_FOUND)
             .await;
-        assert_eq!(error["error"], "no preference is named \"manage_columns\"");
+        assert_eq!(error["error"], "no preference is named \"search_columns\"");
     }
     client
         .json(
@@ -3474,6 +3500,8 @@ async fn every_documented_status_is_tested() {
     yara_qa(&mut client, &token, id, file, &bytes).await;
     comments(&mut client, id, &bytes).await;
     preferences(&mut client).await;
+    filters_and_exports(&mut client, &token).await;
+    saved_filters(&mut client).await;
     pings(&mut client, &token).await;
 
     assert_eq!(
@@ -3672,4 +3700,672 @@ async fn a_session_reads_and_another_site_can_t_write_with_it() {
             .await
             .expect("the root");
     assert_eq!(by, json!({"kind": "user", "id": user.0, "name": "analyst"}));
+}
+
+impl Client<'_> {
+    /// Calls `route` and gives the status, the content type and the body as text.
+    async fn text(&mut self, route: &str, path: &str, token: &str) -> (StatusCode, String, String) {
+        let response = self
+            .call(Method::GET, route, path, Some(token), Send::Nothing)
+            .await;
+        let status = response.status();
+        let kind = response
+            .headers()
+            .get("content-type")
+            .and_then(|kind| kind.to_str().ok())
+            .unwrap_or("")
+            .to_owned();
+        (status, kind, response.text().await.expect("a body"))
+    }
+}
+
+/// PLAN.md 5.10: the alert list's filters and orders, its exports and the detection points', with CSV's
+/// cells guarded against formulas, and the filter screens' descriptor and share-link encoding.
+async fn filters_and_exports(client: &mut Client<'_>, token: &str) {
+    let stack = client.stack;
+    let titles = [
+        "=HYPERLINK(\"http://evil\")",
+        "+plain, \"quoted\"",
+        "@third\nline",
+    ];
+    let mut made = Vec::new();
+    for title in titles {
+        made.push(alert(stack, title, &[(ObservableKind::Fqdn, "csv.example")]).await);
+    }
+    let ids = |page: &Value| -> Vec<String> {
+        page["alerts"]
+            .as_array()
+            .expect("alerts")
+            .iter()
+            .map(|a| a["id"].as_str().expect("an id").to_owned())
+            .collect()
+    };
+    let page = client
+        .json(
+            Method::GET,
+            LIST,
+            &format!("{LIST}?f=observable:fqdn:csv.example&sort=description&dir=asc&limit=2"),
+            Some(token),
+            Send::Nothing,
+            StatusCode::OK,
+        )
+        .await;
+    assert_eq!(
+        ids(&page),
+        [made[1].to_string(), made[0].to_string()],
+        "by the title's bytes"
+    );
+    assert_eq!(page["total"], 3);
+    let next = page["next"].as_str().expect("more").to_owned();
+    let rest = client
+        .json(
+            Method::GET,
+            LIST,
+            &format!(
+                "{LIST}?f=observable:fqdn:csv.example&sort=description&dir=asc&limit=2&after={next}"
+            ),
+            Some(token),
+            Send::Nothing,
+            StatusCode::OK,
+        )
+        .await;
+    assert_eq!(ids(&rest), [made[2].to_string()]);
+    assert_eq!(rest["next"], Value::Null);
+    let page = client
+        .json(
+            Method::GET,
+            LIST,
+            &format!("{LIST}?f=description:HYPERLINK&tz=America/New_York"),
+            Some(token),
+            Send::Nothing,
+            StatusCode::OK,
+        )
+        .await;
+    assert_eq!(ids(&page), [made[0].to_string()]);
+    for bad in [
+        "?f=nope:x",
+        "?f=queue:default",
+        "?f=tag:a,,b",
+        "?f=",
+        "?sort=owner",
+        "?dir=up",
+        "?tz=Mars/Base",
+        "?limit=1&limit=2",
+        &format!("?sort=description&after={}", made[0]),
+    ] {
+        client
+            .json(
+                Method::GET,
+                LIST,
+                &format!("{LIST}{bad}"),
+                Some(token),
+                Send::Nothing,
+                StatusCode::BAD_REQUEST,
+            )
+            .await;
+    }
+
+    // the exports: the list's filters and order, everything to the end, a cell guarded against formulas
+    let two = "f=observable:fqdn:csv.example&f=!description:third&sort=description&dir=asc";
+    let (status, kind, csv) = client
+        .text(ALERT_CSV, &format!("{ALERT_CSV}?{two}"), token)
+        .await;
+    assert_eq!(status, StatusCode::OK, "{csv}");
+    assert_eq!(kind, "text/csv; charset=utf-8");
+    let lines: Vec<&str> = csv.split("\r\n").collect();
+    assert_eq!(lines.len(), 4, "a header, two rows and the end: {csv:?}");
+    assert!(lines[0].starts_with("id,title,analysis_mode,"), "{csv}");
+    assert!(
+        lines[1].contains(r#","'+plain, ""quoted""","#)
+            || lines[1].contains(r#""'+plain, ""quoted""""#),
+        "{csv}"
+    );
+    assert!(
+        lines[2].contains(r#""'=HYPERLINK(""http://evil"")""#),
+        "{csv}"
+    );
+    assert!(
+        !csv.contains(",=") && !csv.contains(",+"),
+        "no cell starts a formula: {csv}"
+    );
+    let (status, kind, ndjson) = client
+        .text(ALERT_NDJSON, &format!("{ALERT_NDJSON}?{two}"), token)
+        .await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(kind, "application/x-ndjson");
+    let rows: Vec<Value> = ndjson
+        .lines()
+        .map(|line| serde_json::from_str(line).expect("a JSON line"))
+        .collect();
+    assert_eq!(rows.len(), 2);
+    assert_eq!(rows[1]["title"], titles[0], "NDJSON is the data as it is");
+    for route in [ALERT_CSV, ALERT_NDJSON] {
+        let (status, _, body) = client
+            .text(
+                route,
+                &format!("{route}?f=observable:fqdn:csv.example"),
+                token,
+            )
+            .await;
+        assert_eq!(status, StatusCode::PAYLOAD_TOO_LARGE, "{body}");
+        let (status, _, _) = client
+            .text(route, &format!("{route}?f=nope:x"), token)
+            .await;
+        assert_eq!(status, StatusCode::BAD_REQUEST);
+    }
+
+    // the detection points' filters and exports
+    let target = made[0];
+    detection(
+        stack,
+        target,
+        "=cmd|' /C calc'!A0",
+        Some(json!({"rule": "-2+3"})),
+    )
+    .await;
+    detection(stack, target, "@SUM(1)", None).await;
+    let signature = "b5a1d3f2-0000-4000-8000-000000000001";
+    for (query, count) in [
+        (format!("alert={target}&f=signature:{signature}:abc123"), 2),
+        (format!("alert={target}&f=!signature:{signature}"), 0),
+        (format!("alert={target}&f=family:hunt"), 0),
+        (
+            format!("alert={target}&changed_since=2000-01-01T00:00:00"),
+            2,
+        ),
+        (
+            format!("alert={target}&changed_since=2999-01-01T00:00:00Z"),
+            0,
+        ),
+        (format!("alert={target}&f=alert_date:-1d&tz=Asia/Tokyo"), 2),
+    ] {
+        let page = client
+            .json(
+                Method::GET,
+                DETECTIONS,
+                &format!("{DETECTIONS}?{query}"),
+                Some(token),
+                Send::Nothing,
+                StatusCode::OK,
+            )
+            .await;
+        assert_eq!(
+            page["detections"].as_array().map(Vec::len),
+            Some(count),
+            "{query}"
+        );
+    }
+    for bad in ["f=tag:x", "f=verdict:tp", "changed_since=yesterday", "tz=x"] {
+        client
+            .json(
+                Method::GET,
+                DETECTIONS,
+                &format!("{DETECTIONS}?{bad}"),
+                Some(token),
+                Send::Nothing,
+                StatusCode::BAD_REQUEST,
+            )
+            .await;
+    }
+    let (status, _, csv) = client
+        .text(
+            DETECTION_CSV,
+            &format!("{DETECTION_CSV}?alert={target}"),
+            token,
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK, "{csv}");
+    assert!(csv.starts_with("id,alert,observable_id,"), "{csv}");
+    assert!(
+        csv.contains(r#""'=cmd|' /C calc'!A0""#) || csv.contains("'=cmd|' /C calc'!A0"),
+        "{csv}"
+    );
+    assert!(csv.contains(",'@SUM(1),"), "{csv}");
+    assert!(
+        csv.contains(r#""{""rule"":""-2+3""}""#),
+        "details are JSON, quoted: {csv}"
+    );
+    let (status, _, ndjson) = client
+        .text(
+            DETECTION_NDJSON,
+            &format!("{DETECTION_NDJSON}?alert={target}"),
+            token,
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(ndjson.lines().count(), 2);
+    detection(stack, target, "a third", None).await;
+    for route in [DETECTION_CSV, DETECTION_NDJSON] {
+        let (status, _, _) = client
+            .text(route, &format!("{route}?alert={target}"), token)
+            .await;
+        assert_eq!(status, StatusCode::PAYLOAD_TOO_LARGE);
+        let (status, _, _) = client.text(route, &format!("{route}?f=tag:x"), token).await;
+        assert_eq!(status, StatusCode::BAD_REQUEST);
+        let (status, _, _) = client
+            .text(route, &format!("{route}?alert={}", Uuid::nil()), token)
+            .await;
+        assert_eq!(status, StatusCode::NOT_FOUND);
+    }
+
+    // the screens' descriptors and the share-link encoding
+    let screen = client
+        .json(
+            Method::GET,
+            SCREEN,
+            "/api/filters/v1/screens/alerts",
+            Some(token),
+            Send::Nothing,
+            StatusCode::OK,
+        )
+        .await;
+    assert!(
+        screen["filters"]
+            .as_array()
+            .expect("filters")
+            .iter()
+            .any(|f| f["slug"] == "alert_date" && f["kind"] == "date_range")
+    );
+    assert!(
+        screen["left_out"]
+            .as_array()
+            .expect("left out")
+            .iter()
+            .any(|f| f["slug"] == "queue"
+                && f["why"].as_str().is_some_and(|why| why.contains("7.13")))
+    );
+    client
+        .json(
+            Method::GET,
+            SCREEN,
+            "/api/filters/v1/screens/svs_runs",
+            Some(token),
+            Send::Nothing,
+            StatusCode::NOT_FOUND,
+        )
+        .await;
+    let encoded = client
+        .json(
+            Method::POST,
+            ENCODE,
+            "/api/filters/v1/screens/alerts/encode",
+            Some(token),
+            Send::Json(json!({"filters": [
+                {"name": "Observable", "values": [["url", "https://evil.com/a,b"]]},
+                {"name": "Tag", "inverted": true, "values": ["whitelisted"]},
+            ]})),
+            StatusCode::OK,
+        )
+        .await;
+    assert_eq!(
+        encoded["f"],
+        json!([
+            "observable:url:https%3A%2F%2Fevil.com%2Fa%2Cb",
+            "!tag:whitelisted"
+        ])
+    );
+    for (path, body, status) in [
+        (
+            "/api/filters/v1/screens/alerts/encode",
+            Send::Json(json!({"filters": [{"name": "Queue", "values": ["x"]}]})),
+            StatusCode::BAD_REQUEST,
+        ),
+        (
+            "/api/filters/v1/screens/alerts/encode",
+            Send::Json(json!({"filters": "not a list"})),
+            StatusCode::BAD_REQUEST,
+        ),
+        (
+            "/api/filters/v1/screens/nope/encode",
+            Send::Json(json!({"filters": []})),
+            StatusCode::NOT_FOUND,
+        ),
+        (
+            "/api/filters/v1/screens/alerts/encode",
+            too_large(),
+            StatusCode::PAYLOAD_TOO_LARGE,
+        ),
+    ] {
+        client
+            .json(Method::POST, ENCODE, path, Some(token), body, status)
+            .await;
+    }
+    let decoded = client
+        .json(
+            Method::GET,
+            DECODE,
+            "/api/filters/v1/screens/alerts/decode?f=queue:default&f=!tag:x",
+            Some(token),
+            Send::Nothing,
+            StatusCode::OK,
+        )
+        .await;
+    assert_eq!(
+        decoded["filters"],
+        json!([{"name": "Tag", "inverted": true, "values": ["x"]}])
+    );
+    assert_eq!(decoded["warnings"].as_array().map(Vec::len), Some(1));
+    for (path, status) in [
+        (
+            "/api/filters/v1/screens/alerts/decode?f=tag:",
+            StatusCode::BAD_REQUEST,
+        ),
+        (
+            "/api/filters/v1/screens/nope/decode?f=tag:x",
+            StatusCode::NOT_FOUND,
+        ),
+    ] {
+        client
+            .json(
+                Method::GET,
+                DECODE,
+                path,
+                Some(token),
+                Send::Nothing,
+                status,
+            )
+            .await;
+    }
+}
+
+/// ace3's `saved_filters` router: a person's own, under the screen's permission, named once, pinned in
+/// order, and changed or deleted only by its owner.
+async fn saved_filters(client: &mut Client<'_>) {
+    let stack = client.stack;
+    let (_, mine) = session_of(stack, "saver", &["alert:read"]).await;
+    let (_, theirs) = session_of(stack, "other-saver", &["alert:read"]).await;
+    let ownerless = key(stack, &["alert:read"]).await;
+    let open = json!([{"name": "Disposition", "values": ["OPEN"]}]);
+    let listed = client
+        .json(
+            Method::GET,
+            SAVED,
+            SAVED,
+            Some(&mine),
+            Send::Nothing,
+            StatusCode::OK,
+        )
+        .await;
+    assert_eq!(listed["saved_filters"], json!([]));
+    client
+        .json(
+            Method::GET,
+            SAVED,
+            &format!("{SAVED}?screen=nope"),
+            Some(&mine),
+            Send::Nothing,
+            StatusCode::NOT_FOUND,
+        )
+        .await;
+    // a key with no owner has no saved filters
+    client
+        .json(
+            Method::GET,
+            SAVED,
+            SAVED,
+            Some(&ownerless),
+            Send::Nothing,
+            StatusCode::FORBIDDEN,
+        )
+        .await;
+    let first = client
+        .json(
+            Method::POST,
+            SAVED,
+            SAVED,
+            Some(&mine),
+            Send::Json(json!({"name": "Open <b>ones</b>", "filters": open, "quick_filter": true})),
+            StatusCode::CREATED,
+        )
+        .await;
+    assert_eq!(first["name"], "Open <b>ones</b>");
+    assert_eq!(first["screen"], "alerts");
+    assert_eq!(first["quick_filter_order"], 0);
+    assert_eq!(
+        first["filters"],
+        json!([{"name": "Disposition", "inverted": false, "values": ["OPEN"]}])
+    );
+    let first_id = first["id"].as_str().expect("an id").to_owned();
+    let second = client
+        .json(
+            Method::POST,
+            SAVED,
+            &format!("{SAVED}?screen=detection_points"),
+            Some(&mine),
+            Send::Json(
+                json!({"name": "Yara", "filters": [{"name": "Family", "values": ["yara"]}]}),
+            ),
+            StatusCode::CREATED,
+        )
+        .await;
+    assert_eq!(second["screen"], "detection_points");
+    let other = client
+        .json(
+            Method::POST,
+            SAVED,
+            SAVED,
+            Some(&mine),
+            Send::Json(json!({"name": "Other", "filters": open})),
+            StatusCode::CREATED,
+        )
+        .await;
+    let other_id = other["id"].as_str().expect("an id").to_owned();
+    for (path, body, status) in [
+        (
+            SAVED.to_owned(),
+            json!({"name": "Other", "filters": open}),
+            StatusCode::CONFLICT,
+        ),
+        (
+            SAVED.to_owned(),
+            json!({"name": "Empty", "filters": []}),
+            StatusCode::BAD_REQUEST,
+        ),
+        (
+            SAVED.to_owned(),
+            json!({"name": "Wrong", "filters": [{"name": "Family", "values": ["yara"]}]}),
+            StatusCode::BAD_REQUEST,
+        ),
+        (
+            SAVED.to_owned(),
+            json!({"name": "Extra", "filters": open, "owner": "x"}),
+            StatusCode::BAD_REQUEST,
+        ),
+        (
+            format!("{SAVED}?screen=nope"),
+            json!({"name": "x", "filters": open}),
+            StatusCode::NOT_FOUND,
+        ),
+    ] {
+        client
+            .json(
+                Method::POST,
+                SAVED,
+                &path,
+                Some(&mine),
+                Send::Json(body),
+                status,
+            )
+            .await;
+    }
+    client
+        .json(
+            Method::POST,
+            SAVED,
+            SAVED,
+            Some(&mine),
+            too_large(),
+            StatusCode::PAYLOAD_TOO_LARGE,
+        )
+        .await;
+
+    let one = |id: &str| format!("{SAVED}/{id}");
+    let read = client
+        .json(
+            Method::GET,
+            SAVED_ONE,
+            &one(&first_id),
+            Some(&mine),
+            Send::Nothing,
+            StatusCode::OK,
+        )
+        .await;
+    assert_eq!(read["id"], first_id);
+    for (path, status) in [
+        (one("not-a-uuid"), StatusCode::BAD_REQUEST),
+        (one(&Uuid::nil().to_string()), StatusCode::NOT_FOUND),
+    ] {
+        client
+            .json(
+                Method::GET,
+                SAVED_ONE,
+                &path,
+                Some(&mine),
+                Send::Nothing,
+                status,
+            )
+            .await;
+    }
+    // someone else's isn't found, and isn't theirs to change
+    client
+        .json(
+            Method::GET,
+            SAVED_ONE,
+            &one(&first_id),
+            Some(&theirs),
+            Send::Nothing,
+            StatusCode::NOT_FOUND,
+        )
+        .await;
+    client
+        .json(
+            Method::PATCH,
+            SAVED_ONE,
+            &one(&first_id),
+            Some(&theirs),
+            Send::Json(json!({"name": "x"})),
+            StatusCode::FORBIDDEN,
+        )
+        .await;
+    client
+        .json(
+            Method::DELETE,
+            SAVED_ONE,
+            &one(&first_id),
+            Some(&theirs),
+            Send::Nothing,
+            StatusCode::FORBIDDEN,
+        )
+        .await;
+
+    let renamed = client
+        .json(
+            Method::PATCH,
+            SAVED_ONE,
+            &one(&first_id),
+            Some(&mine),
+            Send::Json(json!({"name": "Renamed", "quick_filter_indicator": true})),
+            StatusCode::OK,
+        )
+        .await;
+    assert_eq!(
+        (
+            renamed["name"].clone(),
+            renamed["quick_filter_indicator"].clone()
+        ),
+        (json!("Renamed"), json!(true))
+    );
+    for (path, body, status) in [
+        (
+            one(&first_id),
+            Send::Json(json!({"name": "Other"})),
+            StatusCode::CONFLICT,
+        ),
+        (
+            one(&first_id),
+            Send::Json(json!({"filters": [{"name": "Nope", "values": ["x"]}]})),
+            StatusCode::BAD_REQUEST,
+        ),
+        (
+            one("not-a-uuid"),
+            Send::Json(json!({"name": "x"})),
+            StatusCode::BAD_REQUEST,
+        ),
+        (
+            one(&Uuid::nil().to_string()),
+            Send::Json(json!({"name": "x"})),
+            StatusCode::NOT_FOUND,
+        ),
+        (one(&first_id), too_large(), StatusCode::PAYLOAD_TOO_LARGE),
+    ] {
+        client
+            .json(Method::PATCH, SAVED_ONE, &path, Some(&mine), body, status)
+            .await;
+    }
+
+    let pinned = client
+        .json(
+            Method::PUT,
+            QUICK,
+            QUICK,
+            Some(&mine),
+            Send::Json(json!({"ids": [other_id, first_id]})),
+            StatusCode::OK,
+        )
+        .await;
+    let names: Vec<&str> = pinned["saved_filters"]
+        .as_array()
+        .expect("saved filters")
+        .iter()
+        .map(|f| f["name"].as_str().expect("a name"))
+        .collect();
+    assert_eq!(names, ["Other", "Renamed"]);
+    for (path, body, status) in [
+        (
+            QUICK.to_owned(),
+            Send::Json(json!({"ids": [Uuid::nil()]})),
+            StatusCode::BAD_REQUEST,
+        ),
+        (
+            QUICK.to_owned(),
+            Send::Json(json!({"ids": "x"})),
+            StatusCode::BAD_REQUEST,
+        ),
+        (
+            format!("{QUICK}?screen=nope"),
+            Send::Json(json!({"ids": []})),
+            StatusCode::NOT_FOUND,
+        ),
+        (QUICK.to_owned(), too_large(), StatusCode::PAYLOAD_TOO_LARGE),
+    ] {
+        client
+            .json(Method::PUT, QUICK, &path, Some(&mine), body, status)
+            .await;
+    }
+
+    let gone = client
+        .call(
+            Method::DELETE,
+            SAVED_ONE,
+            &one(&first_id),
+            Some(&mine),
+            Send::Nothing,
+        )
+        .await;
+    assert_eq!(gone.status(), StatusCode::NO_CONTENT);
+    for (path, status) in [
+        (one(&first_id), StatusCode::NOT_FOUND),
+        (one("not-a-uuid"), StatusCode::BAD_REQUEST),
+    ] {
+        client
+            .json(
+                Method::DELETE,
+                SAVED_ONE,
+                &path,
+                Some(&mine),
+                Send::Nothing,
+                status,
+            )
+            .await;
+    }
 }

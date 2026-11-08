@@ -1,0 +1,21 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO service.saved_filters\n                             (id, user_id, screen, name, description, filters, quick_filter_order,\n                              quick_filter_indicator)\n                         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Text",
+        "Text",
+        "Jsonb",
+        "Int4",
+        "Bool"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "97731cdfad9fc99bb3980502fbb4d55d6c053070c4b1f728a1249e078509e7fa"
+}

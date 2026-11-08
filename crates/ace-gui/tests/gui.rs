@@ -21,7 +21,8 @@ use ace_core::modes::Modes;
 use ace_core::orchestrator::Orchestrator;
 use ace_core::testing::TestDb;
 use ace_gui::alert::{AlertPage, AlertTreeFragment, tree_view};
-use ace_gui::templates::{ErrorPage, HomePage, Layout, LoginPage};
+use ace_gui::list::{ListPage, ListQuery, list_view};
+use ace_gui::templates::{ErrorPage, Layout, LoginPage};
 use ace_gui::{Gui, LiveLimits, ObservableActions, Views, asset_named};
 use ace_service::{
     Actor, Addition, Alert, AlertDetection, AlertFile, AlertObservable, AlertSummary, AlertTree,
@@ -56,10 +57,14 @@ async fn stack() -> Stack {
 }
 
 async fn stack_with(limits: LiveLimits) -> Stack {
+    stack_from(|service| Gui::with_limits(service, Transport::Plain, limits)).await
+}
+
+async fn stack_from(build: impl FnOnce(Service) -> Gui) -> Stack {
     let test_db = TestDb::new().await;
     let orchestrator = Orchestrator::new(Catalog::new(vec![]), Modes::ace3());
     let service = Service::new(test_db.db().clone(), orchestrator);
-    let gui = Gui::with_limits(service.clone(), Transport::Plain, limits);
+    let gui = build(service.clone());
     let router = gui.router();
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
         .await
@@ -184,8 +189,24 @@ async fn the_base_layout_renders_for_a_visitor_and_a_user() {
     assert!(!visitor.contains("/logout"), "no account menu: {visitor}");
     assert!(!visitor.contains("/preferences/theme"));
 
-    let signed_in = HomePage {
+    let view = list_view(
+        &ace_service::AlertPage {
+            alerts: Vec::new(),
+            next: None,
+            total: 0,
+        },
+        &ListQuery::default(),
+        &ace_service::ManageColumnsPreference::default(),
+        &[],
+        &std::collections::HashMap::new(),
+        chrono_tz::Tz::UTC,
+        Vec::new(),
+        None,
+    );
+    let signed_in = ListPage {
         layout: Layout::new("n0nce", Theme::Dark, Some("alice".to_owned()), "/"),
+        list: view.list.clone(),
+        view,
     }
     .render()
     .expect("renders");
@@ -194,7 +215,7 @@ async fn the_base_layout_renders_for_a_visitor_and_a_user() {
     assert!(signed_in.contains(r#"<form method="post" action="/logout">"#));
     assert!(signed_in.contains(r#"<option value="dark" selected>Dark</option>"#));
     assert!(signed_in.contains(r#"<option value="halloween">Halloween</option>"#));
-    assert!(signed_in.contains("Logged in as alice."));
+    assert!(signed_in.contains("No alerts match these filters."));
     for page in [&visitor, &signed_in] {
         let datastar = asset_named(
             page.split("src=\"/static/")
@@ -237,7 +258,8 @@ async fn the_base_layout_renders_for_a_visitor_and_a_user() {
     assert!(page.contains(r#"data-theme="system""#));
     assert!(!page.contains("/logout"));
 
-    user(&stack, "alice").await;
+    let alice = user(&stack, "alice").await;
+    grant_alert_read(&stack, &alice).await;
     let response = stack.log_in("alice", PASSWORD).await;
     let token = session_set(response.headers()).expect("a session");
     let home = stack
@@ -827,6 +849,7 @@ fn every_template_escapes_html() {
 async fn the_theme_menu_sets_the_user_s_theme() {
     let stack = stack().await;
     let alice = user(&stack, "alice").await;
+    grant_alert_read(&stack, &alice).await;
     let token = session_set(stack.log_in("alice", PASSWORD).await.headers()).expect("a session");
     let audits = stack.audit_count().await;
     let response = stack
@@ -2433,4 +2456,581 @@ async fn add_comment_comments_on_the_observable() {
     assert_eq!(anonymous.status(), StatusCode::SEE_OTHER);
     assert_eq!(location(&anonymous), "/login");
     assert_eq!(stack.audit_count().await, audits + 1);
+}
+
+// PLAN.md 5.10: the alert list.
+
+use ace_gui::list::{AlertListFragment, alert_list};
+use ace_service::filters::FilterScreen;
+use ace_service::{AlertPage as ListedPage, FilterEntry, ManageColumnsPreference};
+
+/// An alert for the list, made an alert at `alerted`, with an optional disposition.
+async fn list_alert(
+    stack: &Stack,
+    title: &str,
+    alerted: &str,
+    disposition: Option<&str>,
+) -> uuid::Uuid {
+    let root = ace_core::tree::NewRoot {
+        description: title.to_owned(),
+        ..ace_core::tree::NewRoot::new("correlation")
+    };
+    let db = stack.test_db.db();
+    let mut tx = db.begin().await.expect("begins");
+    ace_core::tree::create_root(&mut tx, &root)
+        .await
+        .expect("creates");
+    tx.commit().await.expect("commits");
+    sqlx::query(
+        "UPDATE analysis.roots SET alerted_at = $2::timestamptz, disposition = $3,
+                dispositioned_at = CASE WHEN $3 IS NULL THEN NULL ELSE now() END,
+                dispositioned_by = CASE WHEN $3 IS NULL THEN NULL
+                                   ELSE '{\"kind\": \"internal\", \"id\": \"test\"}'::jsonb END
+         WHERE id = $1",
+    )
+    .bind(root.id)
+    .bind(alerted)
+    .bind(disposition)
+    .execute(db.pool())
+    .await
+    .expect("an alert");
+    root.id
+}
+
+fn fixture_summary(id: uuid::Uuid, title: &str, disposition: Option<&str>) -> AlertSummary {
+    AlertSummary {
+        disposition: disposition.map(str::to_owned),
+        ..summary(id, title)
+    }
+}
+
+/// The page's rows' ids, in order.
+fn row_ids(page: &str) -> Vec<String> {
+    page.split("id=\"alert-row-")
+        .skip(1)
+        .filter_map(|rest| rest.split('"').next())
+        .map(str::to_owned)
+        .collect()
+}
+
+/// The view function draws a page of alerts the service read: the viewer's columns in their order, the
+/// headers that sort, the filter chips with links that remove them, the pager and the exports, every value
+/// escaped, and nothing inline.
+#[test]
+fn the_list_view_draws_a_page_of_alerts() {
+    let (one, two) = (uuid::Uuid::from_u128(1), uuid::Uuid::from_u128(2));
+    let page = ListedPage {
+        alerts: vec![
+            fixture_summary(one, HOSTILE, None),
+            fixture_summary(two, "second", Some("FALSE_POSITIVE")),
+        ],
+        next: Some(format!("alert_date.desc.{two}")),
+        total: 3,
+    };
+    let query = ListQuery {
+        filters: vec![
+            FilterEntry::text("Description", false, &[HOSTILE]),
+            FilterEntry::text("Disposition", true, &["IGNORE", "DELIVERY"]),
+        ],
+        after: Some(format!("alert_date.desc.{}", uuid::Uuid::from_u128(9))),
+        ..ListQuery::default()
+    };
+    let columns = ace_service::PreferenceKey::ManageColumns
+        .parse(serde_json::json!({"order": ["disposition", "description"], "hidden": ["status"]}))
+        .expect("a value");
+    let ace_service::PreferenceValue::ManageColumns(columns) = columns else {
+        panic!("manage_columns");
+    };
+    let view = list_view(
+        &page,
+        &query,
+        &columns,
+        &[],
+        &std::collections::HashMap::new(),
+        chrono_tz::Tz::UTC,
+        vec!["a <warning>".to_owned()],
+        None,
+    );
+    let ids: Vec<&str> = view.list.headers.iter().map(|header| header.id).collect();
+    assert_eq!(
+        ids,
+        ["disposition", "description", "date"],
+        "the viewer's order, status hidden"
+    );
+    assert_eq!(view.chips.len(), 2);
+    assert!(view.chips[1].inverted);
+    let html = ListPage {
+        layout: Layout::new("n0nce", Theme::Light, Some("alice".to_owned()), "/"),
+        list: view.list.clone(),
+        view: view.clone(),
+    }
+    .render()
+    .expect("renders");
+    assert!(!html.contains("<script>alert"), "{html}");
+    assert!(!html.contains("<img"), "{html}");
+    assert!(!html.contains("<warning>"));
+    // the hostile title's handler is text: every_template_escapes_html checks the templates themselves
+    assert!(!html.contains("style="), "{html}");
+    assert_eq!(row_ids(&html), [one.to_string(), two.to_string()]);
+    // the disposition links narrow the list to it, the title to the alert
+    assert!(html.contains(&format!(r#"<a href="/alerts/{one}">"#)));
+    assert!(html.contains(">OPEN</a>") && html.contains(">FALSE_POSITIVE</a>"));
+    // the pager: the first page, since this isn't it, and the next
+    let next = view.list.next.as_deref().expect("a next page");
+    assert!(
+        next.contains(&format!("after=alert_date.desc.{two}")),
+        "{next}"
+    );
+    assert!(
+        view.list
+            .first
+            .as_deref()
+            .is_some_and(|first| !first.contains("after="))
+    );
+    // a chip's link removes it and keeps the other
+    let remove = &view.chips[0].remove;
+    assert!(
+        !remove.contains("description") && remove.contains("disposition"),
+        "{remove}"
+    );
+    // the refresh reads the same list, and the export the same filters in the viewer's zone
+    assert!(
+        view.refresh.starts_with("/alerts/list?f=description"),
+        "{}",
+        view.refresh
+    );
+    assert!(view.refresh.contains("after="));
+    assert!(
+        view.export_csv
+            .starts_with("/api/alerts/v1/alerts/export/csv?f=")
+    );
+    assert!(view.export_csv.ends_with("tz=UTC"));
+    // the refresh's expression is fixed text, its URL an attribute
+    assert!(
+        html.contains(
+            r#"data-on-interval__duration.30s="!document.hidden && @get(el.dataset.refresh)""#
+        ),
+        "{html}"
+    );
+    // a sorted header toggles its direction
+    let date = view
+        .list
+        .headers
+        .iter()
+        .find(|h| h.id == "date")
+        .expect("date");
+    assert_eq!(date.arrow, "↓");
+    assert!(
+        date.href
+            .as_deref()
+            .is_some_and(|href| href.contains("dir=asc"))
+    );
+
+    // the fragment a refresh sends is the table alone, with the id Datastar morphs by
+    let fragment = AlertListFragment {
+        list: alert_list(&page, &query, &columns, chrono_tz::Tz::UTC),
+    }
+    .render()
+    .expect("renders");
+    assert!(
+        fragment.starts_with("<div id=\"alert-list\">"),
+        "{fragment}"
+    );
+    assert!(
+        html.contains(&fragment),
+        "the page includes the same fragment"
+    );
+}
+
+/// The Done check's GUI half: the list filters and pages through fixture alerts read from Postgres by the
+/// service, through the server, its editor's form folding a filter into the URL, and its refresh sending
+/// the same list as a fragment.
+#[tokio::test]
+async fn the_list_filters_and_pages_through_fixture_alerts() {
+    let stack = stack().await;
+    let alice = user(&stack, "alice").await;
+    grant_alert_read(&stack, &alice).await;
+    let session = session_of(&stack, "alice").await;
+    let mut made = Vec::new();
+    for n in 0..5 {
+        let disposition = (n % 2 == 1).then_some("FALSE_POSITIVE");
+        made.push(
+            list_alert(
+                &stack,
+                &format!("fixture {n}"),
+                &format!("2026-01-0{}T10:00:00Z", n + 1),
+                disposition,
+            )
+            .await,
+        );
+    }
+    let get = |path: String| {
+        let request = stack.get(&path).header("cookie", cookie(&session));
+        async move {
+            let response = request.send().await.expect("answered");
+            let status = response.status();
+            (status, response.text().await.expect("a page"))
+        }
+    };
+    let ids = |list: &[uuid::Uuid]| list.iter().map(|id| id.to_string()).collect::<Vec<_>>();
+
+    // every alert, newest first, two at a time
+    let mut seen = Vec::new();
+    let mut path = "/?size=2".to_owned();
+    loop {
+        let (status, page) = get(path.clone()).await;
+        assert_eq!(status, StatusCode::OK, "{page}");
+        assert!(page.contains("5 alerts"), "{page}");
+        seen.extend(row_ids(&page));
+        let Some(next) = page
+            .split(r#"rel="next""#)
+            .next()
+            .and_then(|before| before.rsplit("href=\"").next())
+            .filter(|_| page.contains(r#"rel="next""#))
+        else {
+            break;
+        };
+        path = next
+            .split('"')
+            .next()
+            .expect("a link")
+            .replace("&#38;", "&");
+        assert!(seen.len() <= 5, "paging ends");
+    }
+    let newest: Vec<uuid::Uuid> = made.iter().rev().copied().collect();
+    assert_eq!(seen, ids(&newest));
+
+    // a filter, as a share link writes it
+    let (_, page) = get("/?f=disposition:OPEN".to_owned()).await;
+    assert_eq!(row_ids(&page), ids(&[made[4], made[2], made[0]]));
+    let (_, page) = get("/?f=!disposition:OPEN&sort=description&dir=asc".to_owned()).await;
+    assert_eq!(row_ids(&page), ids(&[made[1], made[3]]));
+    // the editor's form folds a filter into the URL and comes back to it
+    let response = stack
+        .get("/?f=disposition:OPEN&add=description&value=fixture%204")
+        .header("cookie", cookie(&session))
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(response.status(), StatusCode::SEE_OTHER);
+    let to = location(&response).to_owned();
+    assert_eq!(to, "/?f=disposition%3AOPEN&f=description%3Afixture%25204");
+    let (_, page) = get(to).await;
+    assert_eq!(row_ids(&page), ids(&[made[4]]));
+    // a filter the list doesn't have is left out, saying so; a broken one shows the list without filters
+    let (status, page) = get("/?f=queue:default".to_owned()).await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(page.contains("alert routing (7.13)"), "{page}");
+    assert_eq!(row_ids(&page).len(), 5);
+    let (status, page) = get("/?f=tag:a,,b".to_owned()).await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(page.contains("That filter couldn"), "{page}");
+    assert_eq!(row_ids(&page).len(), 5);
+    let (status, _) = get("/?sort=owner".to_owned()).await;
+    assert_eq!(status, StatusCode::BAD_REQUEST);
+
+    // the refresh sends the same list as its fragment, and a request with no session gets 401
+    let (status, fragment) = get("/alerts/list?f=disposition:OPEN".to_owned()).await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(
+        fragment.starts_with("<div id=\"alert-list\">"),
+        "{fragment}"
+    );
+    assert!(!fragment.contains("<html"));
+    assert_eq!(row_ids(&fragment), ids(&[made[4], made[2], made[0]]));
+    let anonymous = stack
+        .get("/alerts/list")
+        .header("datastar-request", "true")
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(anonymous.status(), StatusCode::UNAUTHORIZED);
+    // a viewer without alert:read sees no list
+    let _bob = user(&stack, "bob").await;
+    let bob = session_of(&stack, "bob").await;
+    let refused = stack
+        .get("/")
+        .header("cookie", cookie(&bob))
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(refused.status(), StatusCode::FORBIDDEN);
+}
+
+/// ace3's bulk "Set Disposition": each ticked alert through the service on its own, with its permission
+/// and its audit row, and the page says which it did and which it couldn't.
+#[tokio::test]
+async fn a_bulk_disposition_is_each_alert_s_own_write() {
+    let stack = stack().await;
+    let alice = user(&stack, "alice").await;
+    grant_alert_read(&stack, &alice).await;
+    let session = session_of(&stack, "alice").await;
+    let one = list_alert(&stack, "one", "2026-01-01T10:00:00Z", None).await;
+    let two = list_alert(&stack, "two", "2026-01-02T10:00:00Z", None).await;
+    let post = |form: Vec<(&'static str, String)>| {
+        let request = stack
+            .http
+            .post(format!("{}/alerts/disposition", stack.url))
+            .header("origin", &stack.url)
+            .header("cookie", cookie(&session))
+            .form(&form);
+        async move { request.send().await.expect("answered") }
+    };
+    let form = |ids: &[String]| {
+        let mut form = vec![
+            ("disposition", "FALSE_POSITIVE".to_owned()),
+            ("next", "/?f=disposition:OPEN".to_owned()),
+        ];
+        form.extend(ids.iter().map(|id| ("alert", id.clone())));
+        form
+    };
+    // without alert:write, each is refused and nothing changes
+    let audit = stack.audit_count().await;
+    let refused = post(form(&[one.to_string(), two.to_string()])).await;
+    assert_eq!(refused.status(), StatusCode::FORBIDDEN);
+    let page = refused.text().await.expect("a page");
+    assert!(page.contains("0 alerts dispositioned, 2 not"), "{page}");
+    assert!(page.contains("alert:write"), "{page}");
+    assert_eq!(stack.audit_count().await, audit);
+
+    let Actor::User { id, .. } = &alice else {
+        panic!("a user")
+    };
+    stack
+        .service
+        .grant(
+            &bootstrap(),
+            &Holder::User(*id),
+            &PermissionPattern::new("alert", "write").expect("a pattern"),
+            Effect::Allow,
+        )
+        .await
+        .expect("grants");
+    let audit = stack.audit_count().await;
+    let missing = uuid::Uuid::from_u128(77);
+    let done = post(form(&[
+        one.to_string(),
+        two.to_string(),
+        missing.to_string(),
+        "x".to_owned(),
+    ]))
+    .await;
+    assert_eq!(done.status(), StatusCode::OK);
+    let page = done.text().await.expect("a page");
+    assert!(page.contains("2 alerts dispositioned, 2 not"), "{page}");
+    assert!(page.contains(&format!("{missing}: it couldn")), "{page}");
+    assert!(
+        page.contains(r#"<a href="/?f=disposition:OPEN">Back to the list</a>"#),
+        "{page}"
+    );
+    assert!(inline_free(&page));
+    assert_eq!(stack.audit_count().await, audit + 2, "a row for each alert");
+    let dispositions: Vec<Option<String>> = sqlx::query_scalar(
+        "SELECT disposition FROM analysis.roots WHERE id = ANY($1) ORDER BY alerted_at",
+    )
+    .bind(vec![one, two])
+    .fetch_all(stack.test_db.db().pool())
+    .await
+    .expect("reads");
+    assert_eq!(
+        dispositions,
+        [
+            Some("FALSE_POSITIVE".to_owned()),
+            Some("FALSE_POSITIVE".to_owned())
+        ]
+    );
+
+    // a disposition of the wrong shape, none ticked, or too many, is refused whole
+    for bad in [
+        vec![
+            ("disposition", "not one".to_owned()),
+            ("alert", one.to_string()),
+        ],
+        vec![("disposition", "IGNORE".to_owned())],
+        std::iter::once(("disposition", "IGNORE".to_owned()))
+            .chain((0..=ace_gui::list::MAX_BULK).map(|_| ("alert", one.to_string())))
+            .collect(),
+    ] {
+        let response = post(bad).await;
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    }
+    // and another site can't post it
+    let cross = stack
+        .http
+        .post(format!("{}/alerts/disposition", stack.url))
+        .header("origin", "https://evil.example")
+        .header("cookie", cookie(&session))
+        .form(&[("disposition", "IGNORE"), ("alert", &one.to_string())])
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(cross.status(), StatusCode::FORBIDDEN);
+    assert_eq!(stack.audit_count().await, audit + 2);
+}
+
+/// The saved filter forms and the column chooser write through the service, and the list draws what they
+/// wrote: a quick filter's badge with its count, and the columns in their new order.
+#[tokio::test]
+async fn saved_filters_and_columns_are_forms() {
+    let stack = stack().await;
+    let alice = user(&stack, "alice").await;
+    grant_alert_read(&stack, &alice).await;
+    let session = session_of(&stack, "alice").await;
+    list_alert(&stack, "open one", "2026-01-01T10:00:00Z", None).await;
+    list_alert(&stack, "closed one", "2026-01-02T10:00:00Z", Some("IGNORE")).await;
+    let post = |path: &str, form: Vec<(&str, &str)>| {
+        let request = stack.post(path, &form).header("cookie", cookie(&session));
+        async move { request.send().await.expect("answered") }
+    };
+    let saved = post(
+        "/filters/saved",
+        vec![
+            ("name", "Open <b>ones</b>"),
+            ("f", "disposition:OPEN"),
+            ("quick", "on"),
+            ("indicator", "on"),
+            ("next", "/?f=disposition:OPEN"),
+        ],
+    )
+    .await;
+    assert_eq!(saved.status(), StatusCode::SEE_OTHER);
+    assert_eq!(location(&saved), "/?f=disposition:OPEN");
+    let again = post(
+        "/filters/saved",
+        vec![("name", "Open <b>ones</b>"), ("f", "disposition:OPEN")],
+    )
+    .await;
+    assert_eq!(again.status(), StatusCode::CONFLICT);
+    let page = stack
+        .get("/?f=disposition:OPEN")
+        .header("cookie", cookie(&session))
+        .send()
+        .await
+        .expect("answered")
+        .text()
+        .await
+        .expect("a page");
+    assert!(
+        page.contains(r#"<a class="badge current" href="/?f=disposition%3AOPEN">Open &#60;b&#62;ones&#60;/b&#62; <span class="count">1</span></a>"#),
+        "{page}"
+    );
+    let filters = stack
+        .service
+        .saved_filters(&alice, FilterScreen::Alerts)
+        .await
+        .expect("lists");
+    let id = filters[0].id.to_string();
+    let unpinned = post(
+        &format!("/filters/saved/{id}/quick"),
+        vec![("pin", "false"), ("next", "/")],
+    )
+    .await;
+    assert_eq!(unpinned.status(), StatusCode::SEE_OTHER);
+    assert_eq!(
+        stack
+            .service
+            .saved_filters(&alice, FilterScreen::Alerts)
+            .await
+            .expect("lists")[0]
+            .quick_filter_order,
+        None
+    );
+    let deleted = post(&format!("/filters/saved/{id}/delete"), vec![("next", "/")]).await;
+    assert_eq!(deleted.status(), StatusCode::SEE_OTHER);
+    assert!(
+        stack
+            .service
+            .saved_filters(&alice, FilterScreen::Alerts)
+            .await
+            .expect("lists")
+            .is_empty()
+    );
+
+    // the columns: move the disposition first, hide the date, and reset
+    for (column, action) in [
+        ("disposition", "up"),
+        ("disposition", "up"),
+        ("date", "hide"),
+    ] {
+        let moved = post(
+            "/preferences/manage-columns",
+            vec![("column", column), ("action", action), ("next", "/")],
+        )
+        .await;
+        assert_eq!(moved.status(), StatusCode::SEE_OTHER);
+    }
+    let columns = stack.service.manage_columns(&alice).await.expect("reads");
+    assert_eq!(
+        columns.order,
+        ["disposition", "date", "description", "status"]
+    );
+    assert_eq!(columns.hidden, ["date"]);
+    let page = stack
+        .get("/")
+        .header("cookie", cookie(&session))
+        .send()
+        .await
+        .expect("answered")
+        .text()
+        .await
+        .expect("a page");
+    let headers: Vec<&str> = page
+        .split("<th data-col-id=\"")
+        .skip(1)
+        .filter_map(|rest| rest.split('"').next())
+        .collect();
+    assert_eq!(headers, ["disposition", "description", "status"]);
+    for bad in [
+        vec![("column", "queue"), ("action", "up")],
+        vec![("column", "date"), ("action", "drag")],
+    ] {
+        assert_eq!(
+            post("/preferences/manage-columns", bad).await.status(),
+            StatusCode::BAD_REQUEST
+        );
+    }
+    let reset = post(
+        "/preferences/manage-columns",
+        vec![("action", "reset"), ("next", "/")],
+    )
+    .await;
+    assert_eq!(reset.status(), StatusCode::SEE_OTHER);
+    assert_eq!(
+        stack.service.manage_columns(&alice).await.expect("reads"),
+        ManageColumnsPreference::default()
+    );
+}
+
+/// The refresh is bounded as 5.8's stream is: past its places, in all or for one user, it answers 503 and
+/// the page stays as it was, and a refresh holds its place only while it runs.
+#[tokio::test]
+async fn list_refreshes_are_bounded() {
+    let stack =
+        stack_from(|service| Gui::new(service, Transport::Plain).with_refresh_limits(4, 1)).await;
+    let alice = user(&stack, "alice").await;
+    grant_alert_read(&stack, &alice).await;
+    let session = session_of(&stack, "alice").await;
+    list_alert(&stack, "one", "2026-01-01T10:00:00Z", None).await;
+    // a lock holds the first refresh's read, so it keeps its place
+    let mut locker = stack.test_db.db().pool().begin().await.expect("begins");
+    sqlx::query("LOCK TABLE analysis.roots IN ACCESS EXCLUSIVE MODE")
+        .execute(&mut *locker)
+        .await
+        .expect("locks");
+    let refresh = || {
+        stack
+            .get("/alerts/list")
+            .header("cookie", cookie(&session))
+            .header("datastar-request", "true")
+            .send()
+    };
+    let held = tokio::spawn(refresh());
+    tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+    let refused = refresh().await.expect("answered");
+    assert_eq!(refused.status(), StatusCode::SERVICE_UNAVAILABLE);
+    locker.rollback().await.expect("unlocks");
+    let first = held.await.expect("joins").expect("answered");
+    assert_eq!(first.status(), StatusCode::OK);
+    // the place went back
+    assert_eq!(refresh().await.expect("answered").status(), StatusCode::OK);
 }

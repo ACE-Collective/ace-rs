@@ -5,8 +5,7 @@
 //! Each key has a type that checks its value, `PreferenceKey::parse`, and a default, so every key has a
 //! value for every user. A stored value is checked again when it's read, so a row a later release can't
 //! read falls back to the default with a warning, as ace3's does, rather than breaking the page. 5.7 brings
-//! `theme` and 5.8 `alert_sections`; `manage_columns` comes with 5.10, as a `PreferenceKey` and a
-//! `PreferenceValue` variant.
+//! `theme`, 5.8 `alert_sections` and 5.10 `manage_columns`.
 //!
 //! As in ace3, a preference is the caller's own: there's no user id to name, and it needs no grant,
 //! since it changes only how the caller's own pages look. Setting or resetting one goes through
@@ -31,16 +30,22 @@ use crate::{Service, ServiceError};
 pub enum PreferenceKey {
     Theme,
     AlertSections,
+    ManageColumns,
 }
 
 impl PreferenceKey {
     /// Every key, in the order a list of them is given.
-    pub const ALL: &'static [PreferenceKey] = &[PreferenceKey::Theme, PreferenceKey::AlertSections];
+    pub const ALL: &'static [PreferenceKey] = &[
+        PreferenceKey::Theme,
+        PreferenceKey::AlertSections,
+        PreferenceKey::ManageColumns,
+    ];
 
     pub fn name(self) -> &'static str {
         match self {
             PreferenceKey::Theme => "theme",
             PreferenceKey::AlertSections => "alert_sections",
+            PreferenceKey::ManageColumns => "manage_columns",
         }
     }
 
@@ -55,6 +60,9 @@ impl PreferenceKey {
             PreferenceKey::Theme => PreferenceValue::Theme(ThemePreference::default()),
             PreferenceKey::AlertSections => {
                 PreferenceValue::AlertSections(AlertSectionsPreference::default())
+            }
+            PreferenceKey::ManageColumns => {
+                PreferenceValue::ManageColumns(ManageColumnsPreference::default())
             }
         }
     }
@@ -79,6 +87,11 @@ impl PreferenceKey {
             PreferenceKey::AlertSections => serde_json::from_value(value)
                 .map(PreferenceValue::AlertSections)
                 .map_err(invalid),
+            PreferenceKey::ManageColumns => {
+                serde_json::from_value::<ManageColumnsPreference>(value)
+                    .map(|columns| PreferenceValue::ManageColumns(columns.normalized()))
+                    .map_err(invalid)
+            }
         }
     }
 }
@@ -95,6 +108,7 @@ impl std::fmt::Display for PreferenceKey {
 pub enum PreferenceValue {
     Theme(ThemePreference),
     AlertSections(AlertSectionsPreference),
+    ManageColumns(ManageColumnsPreference),
 }
 
 impl PreferenceValue {
@@ -102,6 +116,7 @@ impl PreferenceValue {
         match self {
             PreferenceValue::Theme(_) => PreferenceKey::Theme,
             PreferenceValue::AlertSections(_) => PreferenceKey::AlertSections,
+            PreferenceValue::ManageColumns(_) => PreferenceKey::ManageColumns,
         }
     }
 
@@ -157,6 +172,103 @@ fn section_choices<'de, D: Deserializer<'de>>(
         )));
     }
     Ok(sections)
+}
+
+/// One column the alert list can show, ace3's `ColumnSpec` (`saq/gui/manage_columns.py`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ManageColumn {
+    pub id: &'static str,
+    pub label: &'static str,
+    /// The order a click on its header sorts by, or None.
+    pub sort: Option<crate::AlertSort>,
+    /// Whether it's always shown. It can still move.
+    pub required: bool,
+}
+
+/// The alert list's columns in their default order: ace3's, but `remediation`, `queue` and `owner`, which
+/// come with what they show (`filters::FilterScreen::left_out`). `status` is the analysis state, as
+/// ace3's shows whether an alert is still being analyzed.
+pub const MANAGE_COLUMNS: &[ManageColumn] = &[
+    ManageColumn {
+        id: "date",
+        label: "Date",
+        sort: Some(crate::AlertSort::AlertDate),
+        required: false,
+    },
+    ManageColumn {
+        id: "description",
+        label: "Alert",
+        sort: Some(crate::AlertSort::Description),
+        required: true,
+    },
+    ManageColumn {
+        id: "disposition",
+        label: "Disposition",
+        sort: Some(crate::AlertSort::Disposition),
+        required: false,
+    },
+    ManageColumn {
+        id: "status",
+        label: "Status",
+        sort: None,
+        required: false,
+    },
+];
+
+/// ace3's `ManageColumnsPreference`: which of the alert list's columns show, and in what order. Two lists,
+/// as in ace3, so a column a later release adds shows for everyone rather than looking hidden. Reading one
+/// normalizes it as ace3's validators do: unknown ids dropped, repeats kept at their first place, every
+/// column the order leaves out appended in default order, and `hidden` without required columns, in
+/// default order.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ManageColumnsPreference {
+    #[serde(default)]
+    pub order: Vec<String>,
+    #[serde(default)]
+    pub hidden: Vec<String>,
+}
+
+impl Default for ManageColumnsPreference {
+    fn default() -> Self {
+        ManageColumnsPreference {
+            order: Vec::new(),
+            hidden: Vec::new(),
+        }
+        .normalized()
+    }
+}
+
+impl ManageColumnsPreference {
+    pub fn normalized(self) -> Self {
+        let known = |id: &str| MANAGE_COLUMNS.iter().find(|column| column.id == id);
+        let mut order: Vec<String> = Vec::new();
+        for id in self.order {
+            if known(&id).is_some() && !order.contains(&id) {
+                order.push(id);
+            }
+        }
+        for column in MANAGE_COLUMNS {
+            if !order.iter().any(|id| id == column.id) {
+                order.push(column.id.to_owned());
+            }
+        }
+        let hidden = MANAGE_COLUMNS
+            .iter()
+            .filter(|column| !column.required && self.hidden.iter().any(|id| id == column.id))
+            .map(|column| column.id.to_owned())
+            .collect();
+        ManageColumnsPreference { order, hidden }
+    }
+
+    /// The columns shown, in order.
+    pub fn visible(&self) -> Vec<&'static ManageColumn> {
+        self.order
+            .iter()
+            .filter(|id| !self.hidden.contains(id))
+            .filter_map(|id| MANAGE_COLUMNS.iter().find(|column| column.id == id))
+            .collect()
+    }
 }
 
 /// ace3's five themes. `System` follows the browser's `prefers-color-scheme`, so the page's stylesheet
@@ -343,7 +455,9 @@ impl Service {
         }
         match self.preference(actor, PreferenceKey::Theme).await?.value {
             PreferenceValue::Theme(theme) => Ok(theme.mode),
-            PreferenceValue::AlertSections(_) => Ok(Theme::default()),
+            PreferenceValue::AlertSections(_) | PreferenceValue::ManageColumns(_) => {
+                Ok(Theme::default())
+            }
         }
     }
 
@@ -361,7 +475,27 @@ impl Service {
             .value
         {
             PreferenceValue::AlertSections(sections) => Ok(sections.sections),
-            PreferenceValue::Theme(_) => Ok(BTreeMap::new()),
+            PreferenceValue::Theme(_) | PreferenceValue::ManageColumns(_) => Ok(BTreeMap::new()),
+        }
+    }
+
+    /// The alert list's columns for this actor: the user's choice, or the default for anyone else.
+    pub async fn manage_columns(
+        &self,
+        actor: &Actor,
+    ) -> Result<ManageColumnsPreference, ServiceError> {
+        if !matches!(actor, Actor::User { .. }) {
+            return Ok(ManageColumnsPreference::default());
+        }
+        match self
+            .preference(actor, PreferenceKey::ManageColumns)
+            .await?
+            .value
+        {
+            PreferenceValue::ManageColumns(columns) => Ok(columns),
+            PreferenceValue::Theme(_) | PreferenceValue::AlertSections(_) => {
+                Ok(ManageColumnsPreference::default())
+            }
         }
     }
 

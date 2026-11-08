@@ -1,0 +1,26 @@
+{#- What a bulk disposition did (PLAN.md 5.10): each ticked alert went through the service on its own, so
+    some may have been refused. ace3 flashes a count on the list instead. -#}
+{% extends "base.html" %}
+{% block title %}Set Disposition · ACE{% endblock %}
+{% block content %}
+<section class="bulk-result">
+  <h1>Set Disposition: {{ disposition }}</h1>
+  <p>{{ done.len() }} alert{% if done.len() != 1 %}s{% endif %} dispositioned{% if !failed.is_empty() %}, {{ failed.len() }} not{% endif %}.</p>
+  {%- if !done.is_empty() %}
+  <ul class="done">
+    {%- for id in done %}
+    <li><a href="/alerts/{{ id }}">{{ id }}</a></li>
+    {%- endfor %}
+  </ul>
+  {%- endif %}
+  {%- if !failed.is_empty() %}
+  <h2>Not dispositioned</h2>
+  <ul class="failed">
+    {%- for failure in failed %}
+    <li>{{ failure.0 }}: {{ failure.1 }}</li>
+    {%- endfor %}
+  </ul>
+  {%- endif %}
+  <p><a href="{{ next }}">Back to the list</a></p>
+</section>
+{% endblock %}

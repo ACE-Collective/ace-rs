@@ -1,0 +1,35 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT count(*) AS \"count!\" FROM (\n                           SELECT FROM analysis.detections d\n                           JOIN analysis.roots r ON r.id = d.root_id\n                           WHERE r.alerted_at IS NOT NULL\n                             AND ($2::uuid IS NULL OR d.root_id = $2)\n                             AND ($3::timestamptz IS NULL OR d.created_at >= $3 OR r.alerted_at >= $3)\n                             AND ($4::text[] IS NULL OR EXISTS (\n                                   SELECT FROM unnest($4::text[], $5::text[]) g(u, v)\n                                   WHERE lower(d.signature_uuid) = g.u\n                                     AND (g.v = '' OR d.signature_version = g.v)))\n                             AND ($6::text[] IS NULL OR NOT EXISTS (\n                                   SELECT FROM unnest($6::text[], $7::text[]) g(u, v)\n                                   WHERE lower(d.signature_uuid) = g.u\n                                     AND (g.v = '' OR d.signature_version = g.v)))\n                             AND ($8::text[] IS NULL OR d.signature_family = ANY ($8::text[]))\n                             AND ($9::text[] IS NULL\n                                  OR NOT COALESCE(d.signature_family = ANY ($9::text[]), false))\n                             AND ($10::timestamptz[] IS NULL OR EXISTS (\n                                   SELECT FROM unnest($10::timestamptz[], $11::timestamptz[]) w(s, e)\n                                   WHERE r.alerted_at BETWEEN w.s AND w.e))\n                             AND ($12::timestamptz[] IS NULL OR NOT EXISTS (\n                                   SELECT FROM unnest($12::timestamptz[], $13::timestamptz[]) w(s, e)\n                                   WHERE r.alerted_at BETWEEN w.s AND w.e))\n                           LIMIT $1) counted",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "count!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Uuid",
+        "Timestamptz",
+        "TextArray",
+        "TextArray",
+        "TextArray",
+        "TextArray",
+        "TextArray",
+        "TextArray",
+        "TimestamptzArray",
+        "TimestamptzArray",
+        "TimestamptzArray",
+        "TimestamptzArray"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "14e648a16b11ed3c1596095b545d7ecee68deba55fae6697e0a2e7fe60a67d9f"
+}

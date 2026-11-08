@@ -116,13 +116,6 @@ pub struct LoginPage {
     pub failed: bool,
 }
 
-/// `/`, until the alert list (5.10) takes its place, as it is ace3's.
-#[derive(Debug, Template)]
-#[template(path = "home.html")]
-pub struct HomePage {
-    pub layout: Layout,
-}
-
 /// A refusal or a failure, as a page.
 #[derive(Debug, Template)]
 #[template(path = "error.html")]

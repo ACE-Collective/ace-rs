@@ -49,7 +49,6 @@
 
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::convert::Infallible;
-use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use ace_service::{
@@ -64,12 +63,12 @@ use axum::response::sse::{Event, Sse};
 use axum::response::{IntoResponse, Response};
 use futures_util::stream;
 use sha2::{Digest, Sha256};
-use tokio::sync::{OwnedSemaphorePermit, Semaphore};
 use uuid::Uuid;
 
 use crate::Gui;
 use crate::actions::{ActionLink, ObservableActions};
 use crate::analysis::{DrawnView, Views};
+use crate::places::{Place, Places};
 use crate::session::{Failure, SignedIn, render};
 use crate::templates::Layout;
 
@@ -104,58 +103,25 @@ impl Default for LiveLimits {
 #[derive(Debug)]
 pub(crate) struct Live {
     limits: LiveLimits,
-    streams: Arc<Semaphore>,
-    users: Arc<Mutex<HashMap<String, usize>>>,
+    places: Places,
 }
 
 impl Live {
     pub(crate) fn new(limits: LiveLimits) -> Self {
         Live {
             limits,
-            streams: Arc::new(Semaphore::new(limits.streams)),
-            users: Arc::default(),
+            places: Places::new(limits.streams, limits.per_user),
         }
     }
 
     /// A place for one more stream of this actor's, or None past a limit.
-    fn admit(&self, actor: &Actor) -> Option<Admitted> {
-        let permit = self.streams.clone().try_acquire_owned().ok()?;
-        let user = actor.to_string();
-        let mut users = self.users.lock().unwrap_or_else(|e| e.into_inner());
-        let open = users.entry(user.clone()).or_default();
-        if *open >= self.limits.per_user {
-            return None;
-        }
-        *open += 1;
-        Some(Admitted {
-            _permit: permit,
-            user,
-            users: self.users.clone(),
-        })
+    fn admit(&self, actor: &Actor) -> Option<Place> {
+        self.places.admit(actor)
     }
 
     /// How many streams are open, for a test to see that a closed page leaves none.
     pub(crate) fn open(&self) -> usize {
-        self.limits.streams - self.streams.available_permits()
-    }
-}
-
-/// One stream's place, given back when the stream goes.
-struct Admitted {
-    _permit: OwnedSemaphorePermit,
-    user: String,
-    users: Arc<Mutex<HashMap<String, usize>>>,
-}
-
-impl Drop for Admitted {
-    fn drop(&mut self) {
-        let mut users = self.users.lock().unwrap_or_else(|e| e.into_inner());
-        if let Some(open) = users.get_mut(&self.user) {
-            *open -= 1;
-            if *open == 0 {
-                users.remove(&self.user);
-            }
-        }
+        self.places.held()
     }
 }
 
@@ -761,7 +727,7 @@ struct Streaming {
     /// When it last read the tree, so the next read waits out `MIN_REDRAW`.
     drawn_at: Option<tokio::time::Instant>,
     heartbeat: tokio::time::Interval,
-    _admitted: Admitted,
+    _admitted: Place,
 }
 
 /// What a stream does next.

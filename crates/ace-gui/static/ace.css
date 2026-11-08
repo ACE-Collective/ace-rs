@@ -421,3 +421,117 @@ textarea {
   border-radius: 4px;
   padding: 0.25rem 0.5rem;
 }
+
+/* The alert list (PLAN.md 5.10), with what ace3's manage page had inline. */
+.actions-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.actions-bar form,
+form.inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin: 0;
+}
+
+.filter-bar {
+  margin: 0.5rem 0;
+  overflow-wrap: anywhere;
+}
+
+.filter-bar .label {
+  font-weight: bold;
+}
+
+.filter-bar .chip {
+  margin-right: 0.75rem;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  text-decoration: none;
+}
+
+.badge.current {
+  border-color: var(--accent);
+}
+
+.badge .count {
+  color: var(--muted);
+  font-size: 0.85em;
+}
+
+.warning {
+  color: var(--accent);
+}
+
+.filter-editor,
+.save-filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.5rem 0;
+}
+
+.hints {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0 1rem;
+  font-size: 0.9em;
+}
+
+.hints dd {
+  margin: 0;
+  color: var(--muted);
+}
+
+.saved-filters li,
+.column-chooser li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.25rem 0;
+}
+
+.column-chooser .column-label {
+  min-width: 8rem;
+}
+
+table.alerts {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+table.alerts th,
+table.alerts td {
+  text-align: left;
+  padding: 0.25rem 0.5rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+table.alerts td[data-col-id="date"] {
+  white-space: nowrap;
+}
+
+table.alerts td[data-col-id="description"] {
+  width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.pager {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin: 1rem 0;
+}

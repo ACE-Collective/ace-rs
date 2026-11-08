@@ -1,0 +1,154 @@
+{#- The alert list (PLAN.md 5.10): ace3's analysis/manage.html, with its filter bar, filter editor, saved
+    filters, column chooser, bulk disposition and the alert table, which refreshes in place. Every control
+    is a link or a form. The Datastar expressions hold no outside value: the refresh URL is data-refresh,
+    read through el.dataset, and a row's id is a uuid (src/list.rs). -#}
+{% extends "base.html" %}
+{% block title %}Alerts · ACE{% endblock %}
+{% block content %}
+<section class="manage">
+  <div class="actions-bar">
+    <form id="bulk" method="post" action="/alerts/disposition" class="bulk">
+      <input type="hidden" name="next" value="{{ view.here }}">
+      <label for="bulk-disposition">Set disposition of the ticked alerts</label>
+      <select id="bulk-disposition" name="disposition">
+        {%- for disposition in view.dispositions %}
+        <option value="{{ disposition }}">{{ disposition }}</option>
+        {%- endfor %}
+      </select>
+      <button type="submit">Set Disposition</button>
+    </form>
+    <span class="exports">Export: <a href="{{ view.export_csv }}">CSV</a> <a href="{{ view.export_ndjson }}">NDJSON</a></span>
+  </div>
+
+  <div id="alert-filter-bar" class="filter-bar">
+    {%- if let Some(error) = view.error %}
+    <p class="error">That filter couldn't be used: {{ error }}</p>
+    {%- endif %}
+    {%- for warning in view.warnings %}
+    <p class="warning">{{ warning }}</p>
+    {%- endfor %}
+    <span class="label">Filters</span> |
+    <a href="{{ view.reset }}">Reset</a>
+    <a href="{{ view.clear }}">Clear</a>
+    <a href="{{ view.share }}" title="A link to this list, to copy and share">Link</a>
+    |
+    {%- for badge in view.badges %}
+    <a class="badge{% if badge.current %} current{% endif %}" href="{{ badge.href }}">{{ badge.label }}{% if let Some(count) = badge.count %} <span class="count">{{ count }}</span>{% endif %}</a>
+    {%- endfor %}
+    |
+    {%- for chip in view.chips %}
+    <span class="chip">{% if chip.inverted %}NOT {% endif %}<a href="{{ chip.remove }}" title="Remove this filter">{{ chip.name }}</a>:
+      {%- for value in chip.values %} <a href="{{ value.1 }}" title="Remove this value">{{ value.0 }}</a>{% if !loop.last %} |{% endif %}{% endfor %}</span>
+    {%- endfor %}
+  </div>
+
+  <details class="section editor">
+    <summary>Add a filter</summary>
+    <form method="get" action="/" class="filter-editor">
+      {%- for f in view.f %}
+      <input type="hidden" name="f" value="{{ f }}">
+      {%- endfor %}
+      <label><input type="checkbox" name="not"> Exclude</label>
+      <select name="add" aria-label="Filter">
+        {%- for filter in view.editor %}
+        <option value="{{ filter.slug }}">{{ filter.name }}</option>
+        {%- endfor %}
+      </select>
+      <input type="text" name="type" placeholder="type, for Observable" aria-label="Observable type">
+      <input type="text" name="value" list="filter-values" placeholder="a value" aria-label="Value" required>
+      <datalist id="filter-values">
+        {%- for disposition in view.dispositions %}
+        <option value="{{ disposition }}">
+        {%- endfor %}
+        <option value="-24h"><option value="-7d"><option value="-30d"><option value="@d">
+      </datalist>
+      <button type="submit">Add</button>
+    </form>
+    <dl class="hints">
+      {%- for filter in view.editor %}
+      <dt>{{ filter.name }}</dt><dd>{{ filter.hint }}</dd>
+      {%- endfor %}
+    </dl>
+    <p class="muted">Not here yet:
+      {%- for gone in view.left_out %} {{ gone.0 }} ({{ gone.1 }}){% if !loop.last %};{% endif %}{% endfor %}.</p>
+  </details>
+
+  <details class="section saved">
+    <summary>Saved filters</summary>
+    <form method="post" action="/filters/saved" class="save-filter">
+      <input type="hidden" name="next" value="{{ view.here }}">
+      {%- for f in view.f %}
+      <input type="hidden" name="f" value="{{ f }}">
+      {%- endfor %}
+      <input type="text" name="name" placeholder="name" aria-label="Name" required maxlength="255">
+      <input type="text" name="description" placeholder="description" aria-label="Description" maxlength="1024">
+      <label><input type="checkbox" name="quick"> Quick filter</label>
+      <label><input type="checkbox" name="indicator"> Show its count</label>
+      <button type="submit">Save these filters</button>
+    </form>
+    <ul class="saved-filters">
+      {%- for saved in view.saved %}
+      <li>
+        <a href="{{ saved.href }}">{{ saved.name }}</a>{% if !saved.description.is_empty() %} <span class="muted">{{ saved.description }}</span>{% endif %}
+        <form method="post" action="/filters/saved/{{ saved.id }}/quick" class="inline">
+          <input type="hidden" name="next" value="{{ view.here }}">
+          <input type="hidden" name="pin" value="{% if saved.quick %}false{% else %}true{% endif %}">
+          <button type="submit">{% if saved.quick %}Unpin{% else %}Pin{% endif %}</button>
+        </form>
+        <form method="post" action="/filters/saved/{{ saved.id }}/delete" class="inline">
+          <input type="hidden" name="next" value="{{ view.here }}">
+          <button type="submit">Delete</button>
+        </form>
+      </li>
+      {%- endfor %}
+    </ul>
+  </details>
+
+  <details class="section columns">
+    <summary>Columns</summary>
+    <ul class="column-chooser">
+      {%- for column in view.columns %}
+      <li>
+        <span class="column-label">{{ column.label }}</span>
+        {%- if !column.first %}
+        <form method="post" action="/preferences/manage-columns" class="inline">
+          <input type="hidden" name="next" value="{{ view.here }}">
+          <input type="hidden" name="column" value="{{ column.id }}">
+          <input type="hidden" name="action" value="up">
+          <button type="submit" title="Move left">Up</button>
+        </form>
+        {%- endif %}
+        {%- if !column.last %}
+        <form method="post" action="/preferences/manage-columns" class="inline">
+          <input type="hidden" name="next" value="{{ view.here }}">
+          <input type="hidden" name="column" value="{{ column.id }}">
+          <input type="hidden" name="action" value="down">
+          <button type="submit" title="Move right">Down</button>
+        </form>
+        {%- endif %}
+        {%- if column.required %}
+        <span class="muted">always shown</span>
+        {%- else %}
+        <form method="post" action="/preferences/manage-columns" class="inline">
+          <input type="hidden" name="next" value="{{ view.here }}">
+          <input type="hidden" name="column" value="{{ column.id }}">
+          <input type="hidden" name="action" value="{% if column.shown %}hide{% else %}show{% endif %}">
+          <button type="submit">{% if column.shown %}Hide{% else %}Show{% endif %}</button>
+        </form>
+        {%- endif %}
+      </li>
+      {%- endfor %}
+    </ul>
+    <form method="post" action="/preferences/manage-columns">
+      <input type="hidden" name="next" value="{{ view.here }}">
+      <input type="hidden" name="action" value="reset">
+      <button type="submit">Reset to default</button>
+    </form>
+  </details>
+
+  <div id="alert-page" data-signals:_sel="[]" data-refresh="{{ view.refresh }}"
+       data-on-interval__duration.{{ view.refresh_seconds }}s="!document.hidden && @get(el.dataset.refresh)">
+    {% include "alert_list.html" %}
+  </div>
+</section>
+{% endblock %}

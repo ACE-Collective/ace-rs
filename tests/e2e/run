@@ -24,12 +24,16 @@ results from all five modules and complete; the second only later. The same emai
 times, so their trees in the normal form (PLAN.md 3.1) must be the same text, which goes to
 <work>/normal-form.json.
 
-Then the browser test (PLAN.md 5.8): the e2e profile's headless Chromium, pinned by digest in
+Then the browser test (PLAN.md 5.8, 5.9 and 5.10): the e2e profile's headless Chromium, pinned by digest in
 compose.yaml, logs in to the GUI as an analyst that `ace user create-first` makes and opens a third
 submission's alert page while the network pool is frozen, so the page has no RDAP result. The pool is
 let go, and the RDAP result has to appear on the open page, pushed by its live stream, with no reload
-and nothing the page's Content-Security-Policy refused. It drives the browser over the DevTools
-protocol, with a WebSocket client here, so it needs nothing more than python3.
+and nothing the page's Content-Security-Policy refused. Then it opens the alert list (5.10) filtered to
+open alerts, which shows that alert, and a filter that matches nothing, which lists nothing; it opens
+the open alerts again, dispositions the alert through the JSON API with a key of its own, and the
+list's refresh has to drop it from the open page, again with no reload and nothing refused. It drives
+the browser over the DevTools protocol, with a WebSocket client here, so it needs nothing more than
+python3.
 
 Then the library diff's self-test runs (PLAN.md 4.8).
 
@@ -614,6 +618,7 @@ def check_live_alert(email, failures):
         expect(not refused, f"the page's policy refused nothing: {refused}")
         check_result_pages(page, expect)
         wait_for(f"root {root} to complete", lambda: completed_after(root), within=300)
+        check_alert_list(page, root, expect)
     finally:
         page.close()
 
@@ -648,6 +653,73 @@ def check_result_pages(page, expect):
             and re.search(r"Content.Security.Policy|Refused to", e["params"]["entry"]["text"])
         ]
         expect(not refused, f"the {module} result's page: the policy refused nothing: {refused}")
+
+
+def disposition_elsewhere(root, disposition):
+    """Sets an alert's disposition through the JSON API with a key of its own, as another analyst's
+    client would, and not through the open page."""
+    out = compose(
+        "exec", "-T", "ace", ACE_COMMAND, "user", "create-key", "e2e-dispositioner",
+        "--grant", "alert:write", capture=True,
+    )
+    token = next(
+        (line.split(": ", 1)[1] for line in out.splitlines()
+         if line.startswith("token (shown once): ")),
+        None,
+    )
+    if not token:
+        raise SystemExit(f"e2e: `ace user create-key` printed no token:\n{out}")
+    request = urllib.request.Request(
+        f"http://127.0.0.1:{PORT}/api/alerts/v1/alerts/{root}/disposition",
+        data=json.dumps({"disposition": disposition}).encode(),
+        method="PUT",
+        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+    )
+    with urllib.request.urlopen(request, timeout=30) as response:
+        if response.status != 200:
+            raise SystemExit(f"e2e: the disposition answered {response.status}")
+
+
+def check_alert_list(page, root, expect):
+    """PLAN.md 5.10: the alert list at / filters the alerts, and its refresh drops an alert that another
+    client dispositioned from an open list of open alerts, with no reload, and nothing the page's policy
+    refused."""
+    row = json.dumps(f"alert-row-{root}")
+    rows = "document.querySelectorAll('#alert-list tr[id^=\"alert-row-\"]').length"
+
+    def show(query):
+        page.call("Page.navigate", url=f"{GUI_IN_STACK}/{query}")
+        page.wait(f"the alert list at /{query}", "document.readyState === 'complete' && "
+                  "document.getElementById('alert-list') !== null", within=30)
+
+    page.events.clear()
+    show("?f=disposition:OPEN")
+    expect(page.evaluate(f"document.getElementById({row}) !== null"),
+           "the alert list of open alerts shows the open alert")
+    show("?f=description:no-such-alert-in-e2e")
+    expect(page.evaluate(rows) == 0, "a filter that matches nothing lists nothing")
+    show("?f=disposition:OPEN")
+    page.evaluate("window.ace4E2eMarker = 'the list as it was loaded'")
+    navigations = len([e for e in page.events if e["method"] == "Page.frameNavigated"])
+    disposition_elsewhere(root, "FALSE_POSITIVE")
+    log("dispositioned the alert through the API; waiting for the open list's refresh to drop it")
+    try:
+        page.wait("the refresh to drop the dispositioned alert",
+                  f"document.getElementById({row}) === null", within=75)
+        dropped = True
+    except SystemExit as error:
+        log(str(error))
+        dropped = False
+    expect(dropped, "the open list's refresh dropped the alert dispositioned elsewhere")
+    same = page.evaluate("window.ace4E2eMarker") == "the list as it was loaded"
+    later = len([e for e in page.events if e["method"] == "Page.frameNavigated"])
+    expect(same and later == navigations, "the list wasn't reloaded or navigated")
+    refused = [
+        e["params"]["entry"]["text"] for e in page.events
+        if e["method"] == "Log.entryAdded"
+        and re.search(r"Content.Security.Policy|Refused to", e["params"]["entry"]["text"])
+    ]
+    expect(not refused, f"the list's policy refused nothing: {refused}")
 
 
 def check_library_diff(failures):

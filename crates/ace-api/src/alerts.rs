@@ -1,17 +1,19 @@
-//! `/api/alerts/v1`: the alert list, one alert, its observables, a file's download and the disposition.
+//! `/api/alerts/v1`: the alert list with its filters, sorts and exports, one alert, its observables, a file's
+//! download and the disposition.
 
 use std::io::{Seek, SeekFrom};
 
 use ace_core::bucket::ALERT_FILES;
 use ace_results::Sha256;
+use ace_service::filters::{FilterScreen, decode};
 use ace_service::{
-    AlertDetection, AlertFile, AlertObservable, AlertSummary, AnalysisState, ModuleResult,
-    RecordedActor, Relationship,
+    Actor, AlertDetection, AlertFile, AlertObservable, AlertQuery, AlertSort, AlertSummary,
+    AnalysisState, ModuleResult, RecordedActor, Relationship,
 };
 use axum::Json;
 use axum::body::Body;
 use axum::extract::rejection::{JsonRejection, PathRejection, QueryRejection};
-use axum::extract::{Path, Query, State};
+use axum::extract::{Path, Query, RawQuery, State};
 use axum::http::{StatusCode, header};
 use axum::response::{IntoResponse, Response};
 use chrono::{DateTime, Utc};
@@ -23,6 +25,8 @@ use uuid::Uuid;
 use crate::Web;
 use crate::auth::Authenticated;
 use crate::error::{ApiError, ErrorBody};
+use crate::export::{self, EXPORT_PAGE, ExportRow, Format, time_cell};
+use crate::params::Params;
 
 /// The password of a download's zip, as ace3's. It's there so that a scanner on the analyst's machine
 /// leaves the file alone, not to keep it secret.
@@ -108,11 +112,58 @@ impl From<AlertSummary> for AlertBody {
     }
 }
 
+impl ExportRow for AlertBody {
+    const HEADER: &'static [&'static str] = &[
+        "id",
+        "title",
+        "analysis_mode",
+        "event_time",
+        "event_time_source",
+        "created_at",
+        "alerted_at",
+        "disposition",
+        "dispositioned_at",
+        "dispositioned_by",
+        "submitted_by",
+        "analysis",
+    ];
+
+    fn cells(&self) -> Vec<String> {
+        let actor = |actor: &Option<ActorBody>| {
+            actor
+                .as_ref()
+                .map(|actor| actor.name.clone().unwrap_or_else(|| actor.id.clone()))
+                .unwrap_or_default()
+        };
+        vec![
+            self.id.to_string(),
+            self.title.clone(),
+            self.analysis_mode.clone(),
+            time_cell(self.event_time),
+            self.event_time_source.clone(),
+            time_cell(Some(self.created_at)),
+            time_cell(Some(self.alerted_at)),
+            self.disposition.clone().unwrap_or_default(),
+            time_cell(self.dispositioned_at),
+            actor(&self.dispositioned_by),
+            actor(&self.submitted_by),
+            match self.analysis {
+                AnalysisBody::Running => "running",
+                AnalysisBody::Complete => "complete",
+                AnalysisBody::Cancelled => "cancelled",
+            }
+            .to_owned(),
+        ]
+    }
+}
+
 #[derive(Debug, Serialize, ToSchema)]
 pub(crate) struct AlertPageBody {
     alerts: Vec<AlertBody>,
-    /// Pass as `after` for the next page; null on the last.
-    next: Option<Uuid>,
+    /// Pass as `after` for the next page, with the same filters and order; null on the last.
+    next: Option<String>,
+    /// How many alerts the filters match in all.
+    total: i64,
 }
 
 #[derive(Debug, Serialize, ToSchema)]
@@ -123,13 +174,71 @@ pub(crate) struct AlertDetailBody {
     detections: i64,
 }
 
-#[derive(Debug, Deserialize, IntoParams)]
+/// The alert list's parameters, which its exports share but for `limit` and `after`. The handler reads
+/// them from the query itself, since `f` repeats.
+#[derive(Debug, IntoParams)]
 #[into_params(parameter_in = Query)]
+#[allow(dead_code)]
 pub(crate) struct AlertsQuery {
+    /// A filter in the share-link encoding, `[!]<slug>:<value>,<value>`, with the alert screen's slugs
+    /// (`GET /api/filters/v1/screens/alerts`); repeat it for more. Filters are ANDed, the values of one
+    /// ORed, and `!` inverts one.
+    #[param(style = Form, explode)]
+    f: Option<Vec<String>>,
+    /// `alert_date`, the default, `description` or `disposition`.
+    sort: Option<String>,
+    /// `desc`, the default, or `asc`.
+    dir: Option<String>,
+    /// The IANA timezone relative date filters (`-7d`, `@d`) resolve in; UTC when left out.
+    tz: Option<String>,
     /// How many alerts, 1 to 1000; 100 when left out.
     limit: Option<u32>,
     /// The `next` of the previous page.
-    after: Option<Uuid>,
+    after: Option<String>,
+}
+
+/// The export's parameters: the list's, with no paging.
+#[derive(Debug, IntoParams)]
+#[into_params(parameter_in = Query)]
+#[allow(dead_code)]
+pub(crate) struct AlertExportQuery {
+    /// A filter, as the list takes it; repeat it for more.
+    #[param(style = Form, explode)]
+    f: Option<Vec<String>>,
+    /// `alert_date`, the default, `description` or `disposition`.
+    sort: Option<String>,
+    /// `desc`, the default, or `asc`.
+    dir: Option<String>,
+    /// The IANA timezone relative date filters resolve in; UTC when left out.
+    tz: Option<String>,
+}
+
+/// The list's query from its parameters.
+fn alert_query(params: &Params) -> Result<AlertQuery, ApiError> {
+    let (filters, _) = decode(FilterScreen::Alerts, &params.all("f"), true)?;
+    let sort = match params.one("sort")? {
+        None => AlertSort::default(),
+        Some(name) => AlertSort::named(name).ok_or_else(|| {
+            ApiError::bad_request(format!(
+                "sort is alert_date, description or disposition, not {name:?}"
+            ))
+        })?,
+    };
+    let descending = match params.one("dir")? {
+        None | Some("desc") => true,
+        Some("asc") => false,
+        Some(other) => {
+            return Err(ApiError::bad_request(format!(
+                "dir is asc or desc, not {other:?}"
+            )));
+        }
+    };
+    Ok(AlertQuery {
+        filters,
+        sort,
+        descending,
+        tz: params.tz()?,
+    })
 }
 
 #[derive(Debug, Deserialize, IntoParams)]
@@ -296,8 +405,9 @@ pub(crate) struct DispositionedBody {
     queued: usize,
 }
 
-/// The alerts, newest first, a page at a time. Follow `next` until it's null: an alert that arrives
-/// meanwhile is on the first page and never shifts a later one.
+/// The alerts the filters match, newest first or in the order asked, a page at a time, with how many
+/// match in all. Follow `next` until it's null, with the same filters and order: each order breaks ties by
+/// the alert's id, so an alert that arrives meanwhile never shifts a later page.
 #[utoipa::path(
     get,
     path = "/api/alerts/v1/alerts",
@@ -305,7 +415,7 @@ pub(crate) struct DispositionedBody {
     params(AlertsQuery),
     responses(
         (status = 200, description = "A page of alerts", body = AlertPageBody),
-        (status = 400, description = "A limit out of range, or a cursor that names no alert", body = ErrorBody),
+        (status = 400, description = "A filter, order, timezone or limit that isn't one, a cursor of another order or that names no alert, or filters that took too long", body = ErrorBody),
         (status = 401, description = "No credential, or one that isn't valid", body = ErrorBody),
         (status = 403, description = "The actor doesn't hold alert:read", body = ErrorBody),
     )
@@ -313,14 +423,104 @@ pub(crate) struct DispositionedBody {
 pub(crate) async fn list(
     Authenticated(actor): Authenticated,
     State(web): State<Web>,
-    query: Result<Query<AlertsQuery>, QueryRejection>,
+    raw: RawQuery,
 ) -> Result<Json<AlertPageBody>, ApiError> {
-    let Query(query) = query?;
-    let page = web.service.alerts(&actor, query.limit, query.after).await?;
+    let params = Params::of(raw)?;
+    let query = alert_query(&params)?;
+    let limit = params.parsed("limit", "a number from 1 to 1000")?;
+    let page = web
+        .service
+        .alerts(&actor, &query, limit, params.one("after")?)
+        .await?;
     Ok(Json(AlertPageBody {
         alerts: page.alerts.into_iter().map(AlertBody::from).collect(),
         next: page.next,
+        total: page.total,
     }))
+}
+
+async fn export_alerts(
+    format: Format,
+    actor: Actor,
+    web: Web,
+    raw: RawQuery,
+) -> Result<Response, ApiError> {
+    let (service, max) = (web.service, web.config.max_export_rows);
+    let params = Params::of(raw)?;
+    let query = alert_query(&params)?;
+    let first = service
+        .alerts(&actor, &query, Some(EXPORT_PAGE), None)
+        .await?;
+    let total = first.total;
+    let first = (
+        first.alerts.into_iter().map(AlertBody::from).collect(),
+        first.next,
+    );
+    export::respond(
+        format,
+        "alerts",
+        max,
+        total,
+        first,
+        move |cursor: String| {
+            let (service, actor, query) = (service.clone(), actor.clone(), query.clone());
+            async move {
+                let page = service
+                    .alerts(&actor, &query, Some(EXPORT_PAGE), Some(&cursor))
+                    .await?;
+                Ok((
+                    page.alerts.into_iter().map(AlertBody::from).collect(),
+                    page.next,
+                ))
+            }
+        },
+    )
+}
+
+/// Every alert the list's filters match, in its order, as CSV: a header line, then a row per alert, with a
+/// cell that a spreadsheet would read as a formula behind a `'`. A failure part-way ends the file there.
+#[utoipa::path(
+    get,
+    path = "/api/alerts/v1/alerts/export/csv",
+    tag = "alerts",
+    params(AlertExportQuery),
+    responses(
+        (status = 200, description = "The alerts", content_type = "text/csv", body = String),
+        (status = 400, description = "A filter, order or timezone that isn't one, or filters that took too long", body = ErrorBody),
+        (status = 401, description = "No credential, or one that isn't valid", body = ErrorBody),
+        (status = 403, description = "The actor doesn't hold alert:read", body = ErrorBody),
+        (status = 413, description = "More alerts than an export holds", body = ErrorBody),
+    )
+)]
+pub(crate) async fn export_csv(
+    Authenticated(actor): Authenticated,
+    State(web): State<Web>,
+    raw: RawQuery,
+) -> Result<Response, ApiError> {
+    export_alerts(Format::Csv, actor, web, raw).await
+}
+
+/// Every alert the list's filters match, in its order, as NDJSON: an alert as the list gives it on each
+/// line. A failure part-way ends it with an `{"error": ...}` line.
+#[utoipa::path(
+    get,
+    path = "/api/alerts/v1/alerts/export/ndjson",
+    tag = "alerts",
+    params(AlertExportQuery),
+    responses(
+        (status = 200, description = "The alerts", content_type = "application/x-ndjson", body = String),
+        (status = 400, description = "A filter, order or timezone that isn't one, or filters that took too long", body = ErrorBody),
+        (status = 401, description = "No credential, or one that isn't valid", body = ErrorBody),
+        (status = 403, description = "The actor doesn't hold alert:read", body = ErrorBody),
+        (status = 413, description = "More alerts than an export holds", body = ErrorBody),
+    )
+)]
+pub(crate) async fn export_ndjson(
+    Authenticated(actor): Authenticated,
+    State(web): State<Web>,
+    raw: RawQuery,
+) -> Result<Response, ApiError> {
+    export_alerts(Format::Ndjson, actor, web, raw).await
 }
 
 /// One alert, with how many observables, files and detections it holds.

@@ -62,6 +62,7 @@ impl From<ServiceError> for ApiError {
             ServiceError::TooLarge(_) => StatusCode::PAYLOAD_TOO_LARGE,
             ServiceError::UsernameTaken
             | ServiceError::GroupNameTaken
+            | ServiceError::FilterNameTaken(_)
             | ServiceError::UsersExist => StatusCode::CONFLICT,
             ServiceError::Bucket(BucketError::Deleting { .. }) => StatusCode::SERVICE_UNAVAILABLE,
             error if error.is_retryable() => StatusCode::SERVICE_UNAVAILABLE,

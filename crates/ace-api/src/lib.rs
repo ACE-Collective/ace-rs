@@ -18,16 +18,21 @@
 //!
 //! | ace3 `/api/v2` | here |
 //! |---|---|
-//! | `GET /alerts` | `GET /api/alerts/v1/alerts`, newest first, a page at a time |
+//! | `GET /alerts?f=&cursor=&limit=&tz=` | `GET /api/alerts/v1/alerts?f=&sort=&dir=&tz=&after=&limit=`, newest first or in the order asked, a page at a time, with `total` (5.10's filters and orders) |
 //! | `GET /alerts/{uuid}`, `/meta` | `GET /api/alerts/v1/alerts/{id}`, and its observables, results and detections in pages at `/observables` |
 //! | `GET /alerts/{uuid}/observables/{o}/zip`, `/download` | `GET /api/alerts/v1/alerts/{id}/observables/{o}/file`, one file, audited |
 //! | the GUI's disposition | `PUT /api/alerts/v1/alerts/{id}/disposition` |
 //! | `POST /analysis` | `POST /api/analysis/v1/submit` |
 //! | `POST /observables/lookup` | `POST /api/observables/v1/lookup` |
+//! | `GET /alerts/export/csv`, `/export/ndjson` (5.10) | `GET /api/alerts/v1/alerts/export/csv`, `/export/ndjson`, up to 100,000 alerts, or 413 |
 //!
 //! Left out, each for a reason:
-//! - The listing's filters, `count`, `export/*` and `date-range` use the manage page's filter language,
-//!   which comes with that page in 5.10, as does a list's `changed_since`.
+//! - The list's `f` takes ace3's share-link encoding and slugs, and the filters ace4's alerts have fields
+//!   for (`ace_service::filters`). Its order is ace3's manage page's: by when each became an alert, the
+//!   title or the disposition, either way, where ace3's API pages in id order. ace3's `changed_since` on
+//!   the alert list, its `(updated_at, id)` order, needs a time a root last changed, which roots don't
+//!   record. `count` is the list's `total`. `date-range`, the window a relative token means now, waits for
+//!   an editor that shows it; `ace_service::filters::date_window` computes it.
 //! - The ETag and 304 on an alert: ace4 has no version counter, and 5.8 pushes changes to an open page.
 //! - `/download` of a whole alert's directory: ace4 has none, and each file downloads on its own.
 //! - `/text`, `/hex` and `/image` views of a file, and the alert's `saq.log`, belong to the alert view
@@ -84,7 +89,7 @@
 //! | `PUT /{key}`, the value as the body | `PUT /{key}`, the same |
 //! | `DELETE /{key}`, answering the default | `DELETE /{key}`, the same |
 //!
-//! What differs: the only key is `theme` until 5.8 adds `alert_sections` and 5.10 `manage_columns`. A
+//! What differs: the keys are `theme`, 5.8's `alert_sections` and 5.10's `manage_columns`. A
 //! value that isn't its key's is 400 where ace3 answers 422 with pydantic's errors. ace3 lets an API key
 //! that inherits its owner's scope use these; here a key is refused with 403, as with the rest of `/me`.
 //! Each set and reset that changes something has an audit row, which ace3 doesn't write.
@@ -209,8 +214,11 @@
 //! What differs, or is left out, and why:
 //! - The path is under `alerts`, since a detection is an alert's. ace3's `detection` router, its list of
 //!   observables to detect, is another thing and comes with 7.6.
-//! - The `f` filters, `changed_since`, `tz` and the `export/ndjson` and `export/csv` routes use the
-//!   manage page's filter language, and come with 5.10. An export pages through this list to the end.
+//! - The `f` filters (5.10) are the detection points screen's that ace4 has fields for: `alert_date`,
+//!   `family` and `signature`. `queue`, `verdict`, `source` and `has_override` come with alert routing
+//!   (7.13) and verdicts (7.14). `changed_since` is a detection made, or whose root became an alert, at or
+//!   after the time, where ace3 also counts a verdict's change. The exports, `export/csv` and
+//!   `export/ndjson`, page through this list to the end, and refuse more than 100,000 rows with 413.
 //! - `verdict`, `verdict_source`, `override`, `override_user` and `override_set_at`, the verdict writes
 //!   under `/alerts/{uuid}/detection-points/{content_hash}/verdict` and the alert's `confirm` come with
 //!   detection verdicts in 7.14.
@@ -223,7 +231,29 @@
 //! - `details` is the JSON that was written, where ace3 stores text and parses it back, falling back to
 //!   the text when it isn't JSON.
 //! - ace3 scopes the list to the alerts its node shows. Every node here shows every alert.
-
+//!
+//! ace3's `filter_screens` and `saved_filters` routers (PLAN.md 5.6, 5.10), under the screen's permission,
+//! `alert:read` for both screens here, as in ace3 (`ace_service`'s `filters` and `saved_filters` docs):
+//!
+//! | ace3 `/api/v2` | here, under `/api/filters/v1` |
+//! |---|---|
+//! | `GET /filter-screens/{screen}` | `GET /screens/{screen}`, with each filter's kind for every screen, and `left_out` |
+//! | `POST /filter-screens/{screen}/encode` | `POST /screens/{screen}/encode` |
+//! | `GET /filter-screens/{screen}/decode?f=` | `GET /screens/{screen}/decode?f=` |
+//! | `GET /saved-filters/?screen=` | `GET /saved?screen=` |
+//! | `POST /saved-filters/?screen=` | `POST /saved?screen=`, audited |
+//! | `GET`, `PATCH`, `DELETE /saved-filters/{uuid}` | `GET`, `PATCH`, `DELETE /saved/{id}`, the writes audited |
+//! | `PUT /saved-filters/quick-filters?screen=` | `PUT /saved/quick?screen=`, `{"ids": [...]}`, audited |
+//!
+//! What differs, or is left out, and why:
+//! - Two of ace3's eleven screens: `alerts` and `detection_points`. The SVS, remediation and file
+//!   collection screens come with their steps.
+//! - A filter that isn't the screen's, or a value of the wrong shape, is 400 where ace3 answers 422 with
+//!   pydantic's errors.
+//! - `PUT /saved-filters/scratch/{kind}` and ace3's `working` and `temp` rows: the GUI's list keeps its
+//!   filters in its URL, so there's nothing to hold between requests.
+//! - An API key with no owner is refused with 403 where ace3 answers 401, as with comments. Each write has
+//!   an audit row, and a user has at most 200 saved filters on a screen.
 use std::net::SocketAddr;
 
 use ace_core::bucket::Bucket;
@@ -239,9 +269,12 @@ mod auth;
 mod crashes;
 mod detection_points;
 mod error;
+mod export;
+mod filters;
 mod health;
 mod observable_comments;
 mod observables;
+mod params;
 mod user_preferences;
 mod users;
 mod yara_qa;
@@ -264,6 +297,8 @@ pub struct WebConfig {
     pub max_json_bytes: usize,
     /// The most files one submission holds.
     pub max_submitted_files: usize,
+    /// The most rows one export of a list holds.
+    pub max_export_rows: i64,
 }
 
 impl Default for WebConfig {
@@ -273,6 +308,7 @@ impl Default for WebConfig {
             max_submission_bytes: 1 << 30,
             max_json_bytes: 4 << 20,
             max_submitted_files: 1000,
+            max_export_rows: export::MAX_EXPORT_ROWS,
         }
     }
 }
@@ -327,7 +363,44 @@ impl Web {
             .route("/api/health/v1/ping", get(health::ping))
             .route("/api/alerts/v1/alerts", get(alerts::list))
             .route("/api/alerts/v1/alerts/{id}", get(alerts::one))
+            .route("/api/alerts/v1/alerts/export/csv", get(alerts::export_csv))
+            .route(
+                "/api/alerts/v1/alerts/export/ndjson",
+                get(alerts::export_ndjson),
+            )
             .route("/api/alerts/v1/detections", get(detection_points::list))
+            .route(
+                "/api/alerts/v1/detections/export/csv",
+                get(detection_points::export_csv),
+            )
+            .route(
+                "/api/alerts/v1/detections/export/ndjson",
+                get(detection_points::export_ndjson),
+            )
+            .route("/api/filters/v1/screens/{screen}", get(filters::screen))
+            .route(
+                "/api/filters/v1/screens/{screen}/encode",
+                post(filters::encode).layer(json_limit),
+            )
+            .route(
+                "/api/filters/v1/screens/{screen}/decode",
+                get(filters::decode),
+            )
+            .route(
+                "/api/filters/v1/saved",
+                get(filters::list).post(filters::create).layer(json_limit),
+            )
+            .route(
+                "/api/filters/v1/saved/quick",
+                put(filters::quick).layer(json_limit),
+            )
+            .route(
+                "/api/filters/v1/saved/{id}",
+                get(filters::one)
+                    .patch(filters::update)
+                    .delete(filters::delete)
+                    .layer(json_limit),
+            )
             .route(
                 "/api/alerts/v1/alerts/{id}/observables",
                 get(alerts::observables),
@@ -470,7 +543,20 @@ impl Web {
         alerts::observables,
         alerts::file,
         alerts::disposition,
+        alerts::export_csv,
+        alerts::export_ndjson,
         detection_points::list,
+        detection_points::export_csv,
+        detection_points::export_ndjson,
+        filters::screen,
+        filters::encode,
+        filters::decode,
+        filters::list,
+        filters::create,
+        filters::one,
+        filters::update,
+        filters::delete,
+        filters::quick,
         analysis::submit,
         observables::lookup,
         observables::observable_types,
@@ -530,6 +616,7 @@ impl Web {
         (name = "health", description = "Whether the API answers"),
         (name = "crashes", description = "Failed tasks, their errors and their inputs"),
         (name = "yara_qa", description = "YARA rules in QA mode, the files they matched, and purges"),
+        (name = "filters", description = "A list screen's filters, their share links, and the caller's saved filters"),
     )
 )]
 pub struct ApiDoc;

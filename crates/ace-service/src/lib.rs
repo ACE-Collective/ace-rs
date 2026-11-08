@@ -49,6 +49,10 @@
 //! `preferences` keeps a user's GUI preferences, ace3's `user_preferences` router, for 5.7's GUI and its
 //! routes under `/api/users/v1/me/preferences`.
 //!
+//! `filters` is the filter model of a list screen (5.10), ace3's filter language and share links, which the
+//! alert list (`alerts`) and the detection points (`detection_points`) take, and `saved_filters` keeps an
+//! analyst's saved filters, ace3's `saved_filters` router.
+//!
 //! Writes outside this crate today:
 //! - `Orchestrator::set_mode` and `queue::cancel_root` have no caller outside the core's own flows
 //!   and tests. Each gets a function here when a route for it appears (5.5, 5.6).
@@ -62,11 +66,13 @@ mod alerts;
 mod auth;
 mod crashes;
 mod detection_points;
+pub mod filters;
 mod gate;
 mod observable_comments;
 mod observables;
 mod permission;
 mod preferences;
+mod saved_filters;
 mod source;
 mod submit;
 mod users;
@@ -86,9 +92,9 @@ use gate::{Audited, Change, Gate, Recorded, TITLE_LIMIT, Target};
 pub use actor::{Actor, ApiKeyId, Component, InvalidComponent, UserId};
 pub use alert_view::{Addition, AlertTree, AlertWatch, MAX_TREE_OBSERVABLES, RESULTS_CHANNEL};
 pub use alerts::{
-    Alert, AlertDetection, AlertFile, AlertObservable, AlertPage, AlertSummary, AnalysisState,
-    FileDownload, MAX_ALERTS_PAGE, MAX_OBSERVABLES_PAGE, ModuleResult, ObservablePage,
-    RecordedActor, Relationship,
+    Alert, AlertDetection, AlertFile, AlertObservable, AlertPage, AlertQuery, AlertSort,
+    AlertSummary, AnalysisState, FileDownload, LIST_TIMEOUT, MAX_ALERTS_PAGE, MAX_OBSERVABLES_PAGE,
+    ModuleResult, ObservablePage, RecordedActor, Relationship,
 };
 pub use auth::{
     InvalidUsername, IssuedToken, MAX_PASSWORD_BYTES, MIN_PASSWORD_CHARS, NewApiKey, NewSession,
@@ -98,6 +104,7 @@ pub use crashes::{Crash, CrashDetail, CrashFilter, CrashInput, CrashPage, MAX_CR
 pub use detection_points::{
     DetectionPoint, DetectionPointFilter, DetectionPointPage, MAX_DETECTIONS_PAGE,
 };
+pub use filters::{FilterEntry, FilterScreen, FilterValue};
 pub use gate::Holder;
 pub use observable_comments::{CommentAuthor, MAX_COMMENT_CHARS, ObservableComment};
 pub use observables::{
@@ -109,8 +116,13 @@ pub use permission::{
     SIGNATURE_DOWNLOAD, SIGNATURE_QA_PURGE, SIGNATURE_READ, USER_READ, USER_SELF, USER_WRITE,
 };
 pub use preferences::{
-    AlertSectionsPreference, MAX_ALERT_SECTIONS, Preference, PreferenceKey, PreferenceValue, Theme,
-    ThemePreference, is_section_id,
+    AlertSectionsPreference, MANAGE_COLUMNS, MAX_ALERT_SECTIONS, ManageColumn,
+    ManageColumnsPreference, Preference, PreferenceKey, PreferenceValue, Theme, ThemePreference,
+    is_section_id,
+};
+pub use saved_filters::{
+    MAX_SAVED_FILTER_DESCRIPTION_CHARS, MAX_SAVED_FILTER_NAME_CHARS, MAX_SAVED_FILTERS,
+    NewSavedFilter, SavedFilter, SavedFilterChange,
 };
 pub use source::with_source_ip;
 pub use users::{ApiKey, Grant, Group, MAX_KEY_SCOPE, Profile, User, UserDetail};
@@ -151,6 +163,9 @@ pub enum ServiceError {
     UsernameTaken,
     #[error("that group name is taken")]
     GroupNameTaken,
+    /// The user has a saved filter with this name on the screen already.
+    #[error("a saved filter named {0:?} exists already")]
+    FilterNameTaken(String),
     #[error("no user {0}")]
     NoUser(Uuid),
     #[error("a user exists already, so a first user needs forcing")]
@@ -214,6 +229,7 @@ impl Retryable for ServiceError {
             | ServiceError::CrossSiteRequest
             | ServiceError::UsernameTaken
             | ServiceError::GroupNameTaken
+            | ServiceError::FilterNameTaken(_)
             | ServiceError::NoUser(_)
             | ServiceError::UsersExist
             | ServiceError::CantDisableYourself

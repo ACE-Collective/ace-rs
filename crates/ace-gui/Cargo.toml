@@ -18,7 +18,9 @@ ace-service = { path = "../ace-service" }
 # Templates compile into the binary, are checked against their structs, and escape HTML by default.
 askama = "0.16.1"
 axum = "0.8.9"
-chrono = { version = "0.4.45", default-features = false, features = ["std"] }
+chrono = { version = "0.4.45", default-features = false, features = ["std", "clock"] }
+# The alert list's times in the viewer's timezone.
+chrono-tz = "0.10.4"
 # The alert view's event stream is an unfolded stream.
 futures-util = { version = "0.3.34", default-features = false }
 # The CSP nonce.

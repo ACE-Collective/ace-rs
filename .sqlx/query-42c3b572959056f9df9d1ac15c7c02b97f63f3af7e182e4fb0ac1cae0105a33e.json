@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE service.saved_filters SET quick_filter_order = NULL, updated_at = now()\n                         WHERE user_id = $1 AND screen = $2 AND quick_filter_order IS NOT NULL\n                           AND id <> ALL ($3::uuid[])",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "UuidArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "42c3b572959056f9df9d1ac15c7c02b97f63f3af7e182e4fb0ac1cae0105a33e"
+}

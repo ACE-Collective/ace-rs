@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE service.saved_filters f\n                         SET quick_filter_order = o.n, updated_at = now()\n                         FROM (SELECT id, (n - 1)::integer AS n\n                               FROM unnest($3::uuid[]) WITH ORDINALITY AS o(id, n)) o\n                         WHERE f.user_id = $1 AND f.screen = $2 AND f.id = o.id\n                           AND f.quick_filter_order IS DISTINCT FROM o.n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "UuidArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "0bc163ba5d69531c01befc365fad4c6727e3760d6008b4a348ad195caf06347d"
+}

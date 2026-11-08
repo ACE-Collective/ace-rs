@@ -24,13 +24,15 @@
 //!   (5.9).
 //! - `actions`: the observable actions the tree offers, from the binary's list, and the comment form
 //!   ace3's "Add Comment" opens (5.9, #1032).
+//! - `list`: the alert list at `/` (5.10), ace3's manage page, with its filters, saved filters, columns,
+//!   sorts, bulk disposition and refresh.
 //!
 //! From ace3's `app/templates/base.html` and `core.html`, and what differs: the layout keeps ace3's
 //! theme attribute on `<html>`, its five themes and its log out by POST. It has none of ace3's jQuery,
 //! Bootstrap, Google Fonts or CDN links: the stylesheet is this crate's own, and Datastar is the only
 //! script. ace3's inline script that resolves the `system` theme is a `prefers-color-scheme` rule in the
 //! stylesheet, so the page has no inline script. Its navigation links come with the pages they lead to
-//! (5.8 to 5.11).
+//! (5.8 to 5.11). `/` is the alert list, as ace3's home page is its manage page.
 
 use ace_service::{Service, Transport};
 use axum::Router;
@@ -43,6 +45,8 @@ pub mod analysis;
 mod assets;
 mod auth;
 mod headers;
+pub mod list;
+mod places;
 mod preferences;
 mod session;
 pub mod templates;
@@ -67,6 +71,7 @@ pub struct Gui {
     live: std::sync::Arc<alert::Live>,
     views: std::sync::Arc<Views>,
     actions: std::sync::Arc<ObservableActions>,
+    refreshes: std::sync::Arc<places::Places>,
 }
 
 impl Gui {
@@ -82,6 +87,10 @@ impl Gui {
             live: std::sync::Arc::new(alert::Live::new(limits)),
             views: std::sync::Arc::new(Views::builtin()),
             actions: std::sync::Arc::new(ObservableActions::builtin()),
+            refreshes: std::sync::Arc::new(places::Places::new(
+                list::REFRESH_LIMITS.0,
+                list::REFRESH_LIMITS.1,
+            )),
         }
     }
 
@@ -99,6 +108,12 @@ impl Gui {
         self
     }
 
+    /// The GUI with these bounds on list refreshes (`list::REFRESH_LIMITS`): in all, and for one user.
+    pub fn with_refresh_limits(mut self, total: usize, per_user: usize) -> Self {
+        self.refreshes = std::sync::Arc::new(places::Places::new(total, per_user));
+        self
+    }
+
     /// How many alert streams are open.
     pub fn open_streams(&self) -> usize {
         self.live.open()
@@ -108,7 +123,17 @@ impl Gui {
     /// and each request records its peer as its audit rows' `src_ip`, as the API's do.
     pub fn router(&self) -> Router {
         Router::new()
-            .route("/", get(session::home))
+            .route("/", get(list::page))
+            .route("/alerts/list", get(list::refresh))
+            .route(
+                "/alerts/disposition",
+                post(list::bulk_disposition)
+                    .layer(DefaultBodyLimit::max(list::MAX_BULK_FORM_BYTES)),
+            )
+            .route("/filters/saved", post(list::save_filter))
+            .route("/filters/saved/{id}/delete", post(list::delete_filter))
+            .route("/filters/saved/{id}/quick", post(list::pin_filter))
+            .route("/preferences/manage-columns", post(list::set_columns))
             .route("/login", get(auth::login_page).post(auth::login))
             .route("/logout", post(auth::logout))
             .route("/preferences/theme", post(preferences::set_theme))

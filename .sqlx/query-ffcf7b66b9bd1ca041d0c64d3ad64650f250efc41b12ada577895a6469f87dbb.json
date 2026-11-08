@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE service.saved_filters\n                         SET name = $2, description = $3, filters = $4, quick_filter_indicator = $5,\n                             updated_at = now()\n                         WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Jsonb",
+        "Bool"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ffcf7b66b9bd1ca041d0c64d3ad64650f250efc41b12ada577895a6469f87dbb"
+}

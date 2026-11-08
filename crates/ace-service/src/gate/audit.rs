@@ -115,6 +115,22 @@ impl Target {
         }
     }
 
+    /// A saved filter, by its id.
+    pub(crate) fn saved_filter(id: Uuid) -> Self {
+        Target {
+            kind: "saved_filter",
+            id: id.to_string(),
+        }
+    }
+
+    /// A user's quick filters on a screen, as `<user>/<screen>`.
+    pub(crate) fn quick_filters(user: Uuid, screen: &str) -> Self {
+        Target {
+            kind: "quick_filters",
+            id: format!("{user}/{screen}"),
+        }
+    }
+
     pub(crate) fn holder(holder: &Holder) -> Self {
         let (kind, id) = match holder {
             Holder::User(id) => ("user", id.0.to_string()),

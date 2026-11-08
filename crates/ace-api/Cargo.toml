@@ -18,10 +18,14 @@ ace-results = { path = "../ace-results" }
 ace-service = { path = "../ace-service" }
 axum = { version = "0.8.9", features = ["multipart"] }
 chrono = { version = "0.4.45", default-features = false, features = ["std", "serde"] }
+# A list's `tz`, the timezone its date filters resolve in.
+chrono-tz = "0.10.4"
 # A submitted file streams from its form field into the spool.
 futures-util = { version = "0.3.34", default-features = false }
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.154"
+# A list's query, whose `f` repeats, which axum's `Query` can't read.
+serde_urlencoded = "0.7.1"
 tempfile = "3.27.0"
 tokio = { version = "1.54.1", features = ["fs", "io-util", "net", "rt"] }
 tokio-util = { version = "0.7.20", features = ["io"] }

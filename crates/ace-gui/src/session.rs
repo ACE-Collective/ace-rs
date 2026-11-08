@@ -21,7 +21,7 @@ use axum::response::{Html, IntoResponse, Redirect, Response};
 
 use crate::Gui;
 use crate::headers::Nonce;
-use crate::templates::{ErrorPage, HomePage, Layout};
+use crate::templates::{ErrorPage, Layout};
 
 /// Runs the request with its peer's address as its audit rows' `src_ip`. As in `ace-api`, the TCP peer,
 /// and no proxy header is trusted.
@@ -235,11 +235,4 @@ pub(crate) fn see_other(location: &str, set_cookie: Option<String>) -> Response 
         );
     }
     response
-}
-
-/// `GET /`: the home page, or `/login` for a visitor who isn't signed in.
-pub(crate) async fn home(viewer: SignedIn) -> Response {
-    render(&HomePage {
-        layout: viewer.layout,
-    })
 }

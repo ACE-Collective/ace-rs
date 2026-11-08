@@ -15,9 +15,50 @@
         "tags": [
           "alerts"
         ],
-        "summary": "The alerts, newest first, a page at a time. Follow `next` until it's null: an alert that arrives\nmeanwhile is on the first page and never shifts a later one.",
+        "summary": "The alerts the filters match, newest first or in the order asked, a page at a time, with how many\nmatch in all. Follow `next` until it's null, with the same filters and order: each order breaks ties by\nthe alert's id, so an alert that arrives meanwhile never shifts a later page.",
         "operationId": "list",
         "parameters": [
+          {
+            "name": "f",
+            "in": "query",
+            "description": "A filter in the share-link encoding, `[!]<slug>:<value>,<value>`, with the alert screen's slugs\n(`GET /api/filters/v1/screens/alerts`); repeat it for more. Filters are ANDed, the values of one\nORed, and `!` inverts one.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "style": "form",
+            "explode": true
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "`alert_date`, the default, `description` or `disposition`.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dir",
+            "in": "query",
+            "description": "`desc`, the default, or `asc`.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tz",
+            "in": "query",
+            "description": "The IANA timezone relative date filters (`-7d`, `@d`) resolve in; UTC when left out.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "limit",
             "in": "query",
@@ -35,8 +76,7 @@
             "description": "The `next` of the previous page.",
             "required": false,
             "schema": {
-              "type": "string",
-              "format": "uuid"
+              "type": "string"
             }
           }
         ],
@@ -52,7 +92,7 @@
             }
           },
           "400": {
-            "description": "A limit out of range, or a cursor that names no alert",
+            "description": "A filter, order, timezone or limit that isn't one, a cursor of another order or that names no alert, or filters that took too long",
             "content": {
               "application/json": {
                 "schema": {
@@ -73,6 +113,214 @@
           },
           "403": {
             "description": "The actor doesn't hold alert:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/alerts/v1/alerts/export/csv": {
+      "get": {
+        "tags": [
+          "alerts"
+        ],
+        "summary": "Every alert the list's filters match, in its order, as CSV: a header line, then a row per alert, with a\ncell that a spreadsheet would read as a formula behind a `'`. A failure part-way ends the file there.",
+        "operationId": "export_csv",
+        "parameters": [
+          {
+            "name": "f",
+            "in": "query",
+            "description": "A filter, as the list takes it; repeat it for more.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "style": "form",
+            "explode": true
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "`alert_date`, the default, `description` or `disposition`.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dir",
+            "in": "query",
+            "description": "`desc`, the default, or `asc`.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tz",
+            "in": "query",
+            "description": "The IANA timezone relative date filters resolve in; UTC when left out.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The alerts",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A filter, order or timezone that isn't one, or filters that took too long",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold alert:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "More alerts than an export holds",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/alerts/v1/alerts/export/ndjson": {
+      "get": {
+        "tags": [
+          "alerts"
+        ],
+        "summary": "Every alert the list's filters match, in its order, as NDJSON: an alert as the list gives it on each\nline. A failure part-way ends it with an `{\"error\": ...}` line.",
+        "operationId": "export_ndjson",
+        "parameters": [
+          {
+            "name": "f",
+            "in": "query",
+            "description": "A filter, as the list takes it; repeat it for more.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "style": "form",
+            "explode": true
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "`alert_date`, the default, `description` or `disposition`.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dir",
+            "in": "query",
+            "description": "`desc`, the default, or `asc`.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tz",
+            "in": "query",
+            "description": "The IANA timezone relative date filters resolve in; UTC when left out.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The alerts",
+            "content": {
+              "application/x-ndjson": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A filter, order or timezone that isn't one, or filters that took too long",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold alert:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "More alerts than an export holds",
             "content": {
               "application/json": {
                 "schema": {
@@ -432,7 +680,7 @@
         "tags": [
           "alerts"
         ],
-        "summary": "Detections on alerts, oldest first, a page at a time. Follow `next` until it's null.",
+        "summary": "Detections on alerts that the filters match, oldest first, a page at a time. Follow `next` until it's\nnull.",
         "operationId": "list",
         "parameters": [
           {
@@ -443,6 +691,38 @@
             "schema": {
               "type": "string",
               "format": "uuid"
+            }
+          },
+          {
+            "name": "f",
+            "in": "query",
+            "description": "A filter in the share-link encoding, `[!]<slug>:<value>,<value>`, with the detection points\nscreen's slugs (`GET /api/filters/v1/screens/detection_points`); repeat it for more.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "style": "form",
+            "explode": true
+          },
+          {
+            "name": "changed_since",
+            "in": "query",
+            "description": "Only detections made, or whose alert became one, at or after this time, UTC when it has no offset.\nPass the time the previous pull started.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tz",
+            "in": "query",
+            "description": "The IANA timezone relative date filters resolve in; UTC when left out.",
+            "required": false,
+            "schema": {
+              "type": "string"
             }
           },
           {
@@ -479,7 +759,7 @@
             }
           },
           "400": {
-            "description": "A limit out of range, or an alert or cursor that isn't one",
+            "description": "A filter, time, timezone or limit that isn't one, an alert or cursor that isn't one, or filters that took too long",
             "content": {
               "application/json": {
                 "schema": {
@@ -510,6 +790,236 @@
           },
           "404": {
             "description": "The alert filter names no alert",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/alerts/v1/detections/export/csv": {
+      "get": {
+        "tags": [
+          "alerts"
+        ],
+        "summary": "Every detection the list's filters match, oldest first, as CSV: a header line, then a row per detection\nwith its details as JSON, and a cell a spreadsheet would read as a formula behind a `'`. A failure\npart-way ends the file there.",
+        "operationId": "export_csv",
+        "parameters": [
+          {
+            "name": "alert",
+            "in": "query",
+            "description": "Only this alert's detections.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "f",
+            "in": "query",
+            "description": "A filter, as the list takes it; repeat it for more.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "style": "form",
+            "explode": true
+          },
+          {
+            "name": "changed_since",
+            "in": "query",
+            "description": "As the list takes it.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tz",
+            "in": "query",
+            "description": "The IANA timezone relative date filters resolve in; UTC when left out.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The detections",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A filter, time, timezone or alert that isn't one, or filters that took too long",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold alert:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The alert filter names no alert",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "More detections than an export holds",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/alerts/v1/detections/export/ndjson": {
+      "get": {
+        "tags": [
+          "alerts"
+        ],
+        "summary": "Every detection the list's filters match, oldest first, as NDJSON: a detection as the list gives it on\neach line. A failure part-way ends it with an `{\"error\": ...}` line.",
+        "operationId": "export_ndjson",
+        "parameters": [
+          {
+            "name": "alert",
+            "in": "query",
+            "description": "Only this alert's detections.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "f",
+            "in": "query",
+            "description": "A filter, as the list takes it; repeat it for more.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "style": "form",
+            "explode": true
+          },
+          {
+            "name": "changed_since",
+            "in": "query",
+            "description": "As the list takes it.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tz",
+            "in": "query",
+            "description": "The IANA timezone relative date filters resolve in; UTC when left out.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The detections",
+            "content": {
+              "application/x-ndjson": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A filter, time, timezone or alert that isn't one, or filters that took too long",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold alert:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The alert filter names no alert",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "More detections than an export holds",
             "content": {
               "application/json": {
                 "schema": {
@@ -820,6 +1330,738 @@
           },
           "404": {
             "description": "No failed task with that id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/filters/v1/saved": {
+      "get": {
+        "tags": [
+          "filters"
+        ],
+        "summary": "The caller's saved filters on a screen: the quick filters first, in order, then the rest by name.",
+        "operationId": "list",
+        "parameters": [
+          {
+            "name": "screen",
+            "in": "query",
+            "description": "The screen, `alerts` when left out, or `detection_points`.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The caller's saved filters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedFiltersBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold the screen's permission, or isn't a person (an API key with no owner)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such screen",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "filters"
+        ],
+        "summary": "Saves a filter list on a screen for the caller.",
+        "operationId": "create",
+        "parameters": [
+          {
+            "name": "screen",
+            "in": "query",
+            "description": "The screen, `alerts` when left out, or `detection_points`.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewSavedFilterRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "The saved filter",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedFilterBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A name, description or filter that isn't one, too many saved filters, or a body that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold the screen's permission, isn't a person, or a session's request came from another site",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such screen",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The caller has a saved filter with that name on the screen",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/filters/v1/saved/quick": {
+      "put": {
+        "tags": [
+          "filters"
+        ],
+        "summary": "Makes these of the caller's saved filters the screen's quick filters, in this order, and unpins the\nrest. Sending the same list again changes nothing.",
+        "operationId": "quick",
+        "parameters": [
+          {
+            "name": "screen",
+            "in": "query",
+            "description": "The screen, `alerts` when left out, or `detection_points`.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QuickFiltersRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The caller's saved filters on the screen",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedFiltersBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An id that isn't one of the caller's filters on the screen, or a body that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold the screen's permission, isn't a person, or a session's request came from another site",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such screen",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/filters/v1/saved/{id}": {
+      "get": {
+        "tags": [
+          "filters"
+        ],
+        "summary": "One of the caller's saved filters. Another user's isn't found.",
+        "operationId": "one",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The saved filter's id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The saved filter",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedFilterBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An id that isn't a uuid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold alert:read, or isn't a person",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such saved filter of the caller's",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "filters"
+        ],
+        "summary": "Deletes one of the caller's saved filters.",
+        "operationId": "delete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The saved filter's id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The saved filter is gone"
+          },
+          "400": {
+            "description": "An id that isn't a uuid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold alert:read, isn't the filter's owner, or a session's request came from another site",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such saved filter",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "filters"
+        ],
+        "summary": "Changes one of the caller's saved filters: each field the body has. Its filters are checked for its own\nscreen.",
+        "operationId": "update",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The saved filter's id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SavedFilterChangeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The saved filter as it is now",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedFilterBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A name, description or filter that isn't one, an id that isn't a uuid, or a body that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold alert:read, isn't the filter's owner, or a session's request came from another site",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such saved filter",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The caller has another saved filter with that name on the screen",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/filters/v1/screens/{screen}": {
+      "get": {
+        "tags": [
+          "filters"
+        ],
+        "summary": "What a screen filters on: each filter's name, share-link slug, kind and options, and ace3's filters\nthat aren't here yet, with why.",
+        "operationId": "screen",
+        "parameters": [
+          {
+            "name": "screen",
+            "in": "path",
+            "description": "`alerts` or `detection_points`",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The screen's filters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FilterScreenBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold the screen's permission",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such screen",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/filters/v1/screens/{screen}/decode": {
+      "get": {
+        "tags": [
+          "filters"
+        ],
+        "summary": "The filter list a share link names. A filter that this screen doesn't have is left out and named in\n`warnings`, so an old link still opens; a malformed one is refused.",
+        "operationId": "decode",
+        "parameters": [
+          {
+            "name": "screen",
+            "in": "path",
+            "description": "`alerts` or `detection_points`",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "f",
+            "in": "query",
+            "description": "The `f` values of a share link; repeat it for more.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "style": "form",
+            "explode": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The filter list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DecodedBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A value that's malformed or the screen can't take",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold the screen's permission",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such screen",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/filters/v1/screens/{screen}/encode": {
+      "post": {
+        "tags": [
+          "filters"
+        ],
+        "summary": "A filter list as a share link's `f` values. The filters are checked for the screen first, so a link\nisn't made from one it would refuse.",
+        "operationId": "encode",
+        "parameters": [
+          {
+            "name": "screen",
+            "in": "path",
+            "description": "`alerts` or `detection_points`",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FiltersRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The share link's values",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EncodedBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A filter the screen can't take, or a body that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold the screen's permission, or a session's request came from another site",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such screen",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is too large",
             "content": {
               "application/json": {
                 "schema": {
@@ -4098,7 +5340,8 @@
       "AlertPageBody": {
         "type": "object",
         "required": [
-          "alerts"
+          "alerts",
+          "total"
         ],
         "properties": {
           "alerts": {
@@ -4112,8 +5355,12 @@
               "string",
               "null"
             ],
-            "format": "uuid",
-            "description": "Pass as `after` for the next page; null on the last."
+            "description": "Pass as `after` for the next page, with the same filters and order; null on the last."
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64",
+            "description": "How many alerts the filters match in all."
           }
         }
       },
@@ -4491,6 +5738,29 @@
           }
         }
       },
+      "DecodedBody": {
+        "type": "object",
+        "description": "A share link's filter list.",
+        "required": [
+          "filters",
+          "warnings"
+        ],
+        "properties": {
+          "filters": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "A filter the link names that this screen doesn't have, which was left out."
+          }
+        }
+      },
       "DetectionBody": {
         "type": "object",
         "required": [
@@ -4696,6 +5966,22 @@
         },
         "additionalProperties": false
       },
+      "EncodedBody": {
+        "type": "object",
+        "description": "A share link's `f` values.",
+        "required": [
+          "f"
+        ],
+        "properties": {
+          "f": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The `f` query values of a share link, in order."
+          }
+        }
+      },
       "ErrorBody": {
         "type": "object",
         "description": "The body of every failure.",
@@ -4727,6 +6013,85 @@
             }
           }
         }
+      },
+      "FilterDescriptorBody": {
+        "type": "object",
+        "description": "One filter a screen has.",
+        "required": [
+          "name",
+          "slug",
+          "kind",
+          "options",
+          "hint"
+        ],
+        "properties": {
+          "hint": {
+            "type": "string",
+            "description": "What a value looks like."
+          },
+          "kind": {
+            "type": "string",
+            "description": "`text`, `multi`, `date_range` or `pair`: how an editor edits it."
+          },
+          "name": {
+            "type": "string",
+            "description": "Its name in a filter entry."
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The values a `multi` filter offers."
+          },
+          "slug": {
+            "type": "string",
+            "description": "Its name in a share link's `f`, which doesn't change."
+          }
+        }
+      },
+      "FilterScreenBody": {
+        "type": "object",
+        "description": "What a screen filters on, for an editor.",
+        "required": [
+          "name",
+          "filters",
+          "left_out"
+        ],
+        "properties": {
+          "filters": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FilterDescriptorBody"
+            }
+          },
+          "left_out": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LeftOutBody"
+            }
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "FiltersRequest": {
+        "type": "object",
+        "description": "A filter list.",
+        "required": [
+          "filters"
+        ],
+        "properties": {
+          "filters": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Entries `{\"name\", \"inverted\", \"values\"}`, each value a string, or for `Observable` a `[type, value]`\npair."
+          }
+        },
+        "additionalProperties": false
       },
       "GrantBody": {
         "type": "object",
@@ -4850,6 +6215,27 @@
           "api_key"
         ]
       },
+      "LeftOutBody": {
+        "type": "object",
+        "description": "One of ace3's filters this screen doesn't have yet.",
+        "required": [
+          "name",
+          "slug",
+          "why"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "why": {
+            "type": "string",
+            "description": "Why, and the step that brings what it reads."
+          }
+        }
+      },
       "LookupBody": {
         "type": "object",
         "required": [
@@ -4969,6 +6355,42 @@
           "value": {
             "type": "string",
             "description": "Its value; a file's is its sha256."
+          }
+        },
+        "additionalProperties": false
+      },
+      "NewSavedFilterRequest": {
+        "type": "object",
+        "required": [
+          "name",
+          "filters"
+        ],
+        "properties": {
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "At most 1024 characters."
+          },
+          "filters": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "At least one entry, as `POST /screens/{screen}/encode` takes them."
+          },
+          "name": {
+            "type": "string",
+            "description": "1 to 255 characters, the caller's own on the screen."
+          },
+          "quick_filter": {
+            "type": "boolean",
+            "description": "Pin it as the last quick filter."
+          },
+          "quick_filter_indicator": {
+            "type": "boolean",
+            "description": "Show how many alerts it matches on its badge."
           }
         },
         "additionalProperties": false
@@ -5287,7 +6709,7 @@
           },
           "value": {
             "type": "object",
-            "description": "Its value, in the shape its key has. `theme`'s is `{\"mode\": \"system\" | \"light\" | \"dark\" | \"jd\" |\n\"halloween\"}`. `alert_sections`' is `{\"sections\": {\"<section id>\": true | false}}`, whether each\nsection of the alert page starts open, with at most 100 ids of 1 to 64 of `a-z`, `0-9` and `_`."
+            "description": "Its value, in the shape its key has. `theme`'s is `{\"mode\": \"system\" | \"light\" | \"dark\" | \"jd\" |\n\"halloween\"}`. `alert_sections`' is `{\"sections\": {\"<section id>\": true | false}}`, whether each\nsection of the alert page starts open, with at most 100 ids of 1 to 64 of `a-z`, `0-9` and `_`.\n`manage_columns`' is `{\"order\": [...], \"hidden\": [...]}`, the alert list's column ids (`date`,\n`description`, `disposition`, `status`) in the order they show and those hidden, normalized: an\nunknown id dropped, a missing one appended, and `description` never hidden."
           }
         }
       },
@@ -5878,6 +7300,23 @@
           }
         }
       },
+      "QuickFiltersRequest": {
+        "type": "object",
+        "required": [
+          "ids"
+        ],
+        "properties": {
+          "ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "The quick filters, in order. Any of the caller's saved filters on the screen not listed is unpinned."
+          }
+        },
+        "additionalProperties": false
+      },
       "RecentAlertBody": {
         "type": "object",
         "required": [
@@ -5973,6 +7412,119 @@
             "type": "array",
             "items": {
               "type": "string"
+            }
+          }
+        }
+      },
+      "SavedFilterBody": {
+        "type": "object",
+        "description": "One of the caller's saved filters.",
+        "required": [
+          "id",
+          "screen",
+          "name",
+          "filters",
+          "quick_filter_indicator",
+          "owner",
+          "owner_name",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "filters": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "description": "Show it as text."
+          },
+          "owner": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "owner_name": {
+            "type": "string"
+          },
+          "quick_filter_indicator": {
+            "type": "boolean"
+          },
+          "quick_filter_order": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "description": "Its place among the screen's quick filters, from 0, or null."
+          },
+          "screen": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "SavedFilterChangeRequest": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "filters": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "object"
+            }
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "quick_filter_indicator": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "SavedFiltersBody": {
+        "type": "object",
+        "required": [
+          "saved_filters"
+        ],
+        "properties": {
+          "saved_filters": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SavedFilterBody"
             }
           }
         }
@@ -6263,6 +7815,10 @@
     {
       "name": "yara_qa",
       "description": "YARA rules in QA mode, the files they matched, and purges"
+    },
+    {
+      "name": "filters",
+      "description": "A list screen's filters, their share links, and the caller's saved filters"
     }
   ]
 }

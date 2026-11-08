@@ -1,0 +1,38 @@
+{#- The alert list's table and pager (PLAN.md 5.10), ace3's _manage_alert_table.html and _manage_columns.html:
+    what the page includes and what a refresh sends, which Datastar morphs in by the id. A row's box belongs
+    to the bulk form, outside this fragment; $_sel keeps the ticked ids across a morph, and each id is a
+    uuid. -#}
+<div id="alert-list">
+  <p class="count">{{ list.total }} alert{% if list.total != 1 %}s{% endif %}</p>
+  {%- if list.rows.is_empty() %}
+  <p class="muted">No alerts match these filters.</p>
+  {%- else %}
+  <table class="alerts">
+    <thead>
+      <tr>
+        <th><input type="checkbox" id="tick-all" aria-label="Tick every alert on this page" data-ids="{{ list.ids }}"
+                   data-on:change="$_sel = el.checked ? JSON.parse(el.dataset.ids) : []"></th>
+        {%- for header in list.headers %}
+        <th data-col-id="{{ header.id }}">{% if let Some(href) = header.href %}<a href="{{ href }}">{{ header.label }}{{ header.arrow }}</a>{% else %}{{ header.label }}{% endif %}</th>
+        {%- endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {%- for row in list.rows %}
+      <tr id="alert-row-{{ row.id }}">
+        <td><input type="checkbox" form="bulk" name="alert" value="{{ row.id }}" aria-label="Tick this alert"
+                   data-on:change="$_sel = $_sel.filter(id => id !== el.value).concat(el.checked ? [el.value] : [])"
+                   data-effect="el.checked = $_sel.includes(el.value)"></td>
+        {%- for cell in row.cells %}
+        <td data-col-id="{{ cell.id }}"{% if let Some(title) = cell.title %} title="{{ title }}"{% endif %}>{% if let Some(href) = cell.href %}<a href="{{ href }}">{{ cell.text }}</a>{% else %}{{ cell.text }}{% endif %}</td>
+        {%- endfor %}
+      </tr>
+      {%- endfor %}
+    </tbody>
+  </table>
+  {%- endif %}
+  <nav class="pager" aria-label="Pages">
+    {%- if let Some(first) = list.first %}<a href="{{ first }}">First</a>{% endif %}
+    {%- if let Some(next) = list.next %} <a href="{{ next }}" rel="next">Next</a>{% endif %}
+  </nav>
+</div>
