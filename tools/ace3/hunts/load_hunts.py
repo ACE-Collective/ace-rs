@@ -140,10 +140,9 @@ def load_one(path, hunt_type, config_class, names):
     }
 
 
-def main():
-    args = parse_args()
-    work = os.path.abspath(args.work)
-    root = os.path.abspath(args.root)
+def setup(work):
+    """Initializes ace3's environment with its data, temp and home directories under `work`,
+    which is replaced if it exists. render_templates.py (6.3) uses it too."""
     if os.path.exists(work):
         import shutil
 
@@ -167,6 +166,13 @@ def main():
         config_paths=[os.path.join(work, "saq.splunk.yaml")],
         logging_config_path=os.path.join(work, "logging.yaml"),
     )
+
+
+def main():
+    args = parse_args()
+    work = os.path.abspath(args.work)
+    root = os.path.abspath(args.root)
+    setup(work)
 
     import importlib
 

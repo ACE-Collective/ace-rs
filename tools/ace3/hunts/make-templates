@@ -1,0 +1,92 @@
+#!/usr/bin/env python3
+"""Render hunt templates with ace3's Jinja code, for 6.3's comparison (PLAN.md step 6.3).
+
+    tools/ace3/hunts/make-templates                 both sets below
+    tools/ace3/hunts/make-templates cases           one of them
+
+render_templates.py runs in ace3's dev container (ace-dev-1), beside load_hunts.py, whose setup
+of ace3's environment it shares. The sets:
+
+- `cases`: templates/cases.yaml, templates written for this comparison that cover each of Jinja2's
+  filters, tests and globals that ace4 provides, ace3's `fromjson`, undefined values in both modes,
+  whitespace control, loops, macros, call and filter blocks, namespaces, Python's methods and
+  operators, and ace3's dotted-key and list expansion.
+- `signatures`: every hunt in the signatures checkout ace3's container has at /opt/ace/signatures,
+  loaded with ace3's loader, each template rendered with the call ace3's hunter makes for it against
+  the fixed events render_templates.py builds from the fields the hunt reads.
+
+Each lands in tools/ace3/hunts/reference/templates-<set>.json. `templates-cases.json` holds only
+the cases' own text and is committed; `templates-signatures.json` holds the hunts' and is
+git-ignored. ace4's side is crates/ace-hunt's render module: its tests diff the cases, and
+tools/ace3/hunts/compare-templates the signatures, each accepting a difference only where
+differences.md has a row for it.
+
+Nothing is written under /opt/ace. Rerun this when ace3 or the signatures move.
+"""
+
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+CONTAINER = os.environ.get("ACE4_ACE3_CONTAINER", "ace-dev-1")
+REMOTE = "/tmp/ace4-dumps/templates"
+HERE = Path(__file__).resolve().parent
+OUT = HERE / "reference"
+
+RULE_DIRS = ["splunk=hunts/splunk", "logscale=hunts/logscale", "rapid7=hunts/rapid7"]
+
+
+def docker(*args, stdin=None, check=True):
+    return subprocess.run(["docker", *args], input=stdin, capture_output=True, check=check)
+
+
+def copy_in():
+    # /tmp in the container is a tmpfs, which `docker cp` can't write to, so a tar stream
+    docker("exec", CONTAINER, "rm", "-rf", REMOTE)
+    docker("exec", CONTAINER, "mkdir", "-p", REMOTE)
+    files = ["load_hunts.py", "render_templates.py", "templates/cases.yaml"]
+    archive = subprocess.run(
+        ["tar", "--no-xattrs", "-C", str(HERE), "-cf", "-", *files],
+        capture_output=True, check=True, env={**os.environ, "COPYFILE_DISABLE": "1"},
+    ).stdout
+    docker("exec", "-i", CONTAINER, "tar", "-C", REMOTE, "-xf", "-", stdin=archive)
+
+
+def make(name):
+    work = f"{REMOTE}/work-{name}"
+    args = ["--work", work, name]
+    if name == "cases":
+        args.append(f"{REMOTE}/templates/cases.yaml")
+    else:
+        args += ["--root", "/opt/ace/signatures"]
+        for rule_dir in RULE_DIRS:
+            args += ["--rule-dir", rule_dir]
+    result = docker(
+        "exec", "-e", "PYTHONDONTWRITEBYTECODE=1", "-e", "SAQ_SKIP_LOCAL_SAQ_YAML=1", CONTAINER,
+        "/venv/bin/python3", f"{REMOTE}/render_templates.py", *args, check=False,
+    )
+    if result.returncode != 0:
+        sys.stderr.write(result.stderr.decode(errors="replace"))
+        raise SystemExit(f"render_templates.py failed for {name}")
+    OUT.mkdir(exist_ok=True)
+    target = OUT / f"templates-{name}.json"
+    target.write_bytes(docker("exec", CONTAINER, "cat", f"{work}/templates.json").stdout)
+    print(f"{name}: wrote {target}")
+
+
+def main():
+    names = sys.argv[1:] or ["cases", "signatures"]
+    unknown = [n for n in names if n not in ("cases", "signatures")]
+    if unknown:
+        raise SystemExit(f"unknown set {unknown}; choose from cases, signatures")
+    try:
+        copy_in()
+        for name in names:
+            make(name)
+    finally:
+        docker("exec", CONTAINER, "rm", "-rf", REMOTE, check=False)
+
+
+if __name__ == "__main__":
+    main()

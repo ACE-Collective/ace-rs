@@ -55,6 +55,13 @@ impl Map {
         self.0.iter().find(|(k, _)| py_eq(k, key)).map(|(_, v)| v)
     }
 
+    pub fn get_value_mut(&mut self, key: &Value) -> Option<&mut Value> {
+        self.0
+            .iter_mut()
+            .find(|(k, _)| py_eq(k, key))
+            .map(|(_, v)| v)
+    }
+
     pub fn contains(&self, key: &str) -> bool {
         self.get(key).is_some()
     }
@@ -261,8 +268,15 @@ pub fn py_repr(s: &str) -> String {
                 out.push('\\');
                 out.push(c);
             }
-            c if (c as u32) < 0x20 || c as u32 == 0x7f => {
-                out.push_str(&format!("\\x{:02x}", c as u32));
+            c if !is_printable(c) => {
+                let n = c as u32;
+                if n < 0x100 {
+                    out.push_str(&format!("\\x{n:02x}"));
+                } else if n < 0x10000 {
+                    out.push_str(&format!("\\u{n:04x}"));
+                } else {
+                    out.push_str(&format!("\\U{n:08x}"));
+                }
             }
             c => out.push(c),
         }
@@ -271,17 +285,29 @@ pub fn py_repr(s: &str) -> String {
     out
 }
 
+/// Python's `str.isprintable()` for one character: not a control, format, separator other than
+/// the space, surrogate, private-use or noncharacter. Python also counts unassigned code points
+/// as unprintable, which needs Unicode's tables; this doesn't, so a character Unicode hasn't
+/// assigned prints as itself here where Python escapes it.
+pub fn is_printable(c: char) -> bool {
+    if c == ' ' {
+        return true;
+    }
+    let n = c as u32;
+    !(c.is_control()
+        || c.is_whitespace()
+        || matches!(n,
+            0xad | 0x600..=0x605 | 0x61c | 0x6dd | 0x70f | 0x890..=0x891 | 0x8e2 | 0x180e
+            | 0x200b..=0x200f | 0x202a..=0x202e | 0x2060..=0x2064 | 0x2066..=0x206f | 0xfeff
+            | 0xfff9..=0xfffb | 0x110bd | 0x110cd | 0x13430..=0x1343f | 0x1bca0..=0x1bca3
+            | 0x1d173..=0x1d17a | 0xe0001 | 0xe0020..=0xe007f
+            | 0xe000..=0xf8ff | 0xf0000..=0xffffd | 0x100000..=0x10fffd
+            | 0xfdd0..=0xfdef | 0xfffe..=0xffff))
+}
+
 /// Python's `repr` of a float.
 pub fn py_float_repr(f: f64) -> String {
-    if f.is_nan() {
-        "nan".to_owned()
-    } else if f.is_infinite() {
-        if f > 0.0 { "inf" } else { "-inf" }.to_owned()
-    } else if f == f.trunc() && f.abs() < 1e16 {
-        format!("{f:.1}")
-    } else {
-        format!("{f}")
-    }
+    crate::render::py::float_repr(f)
 }
 
 /// A YAML timestamp in the form Python's `datetime.isoformat()` writes it.

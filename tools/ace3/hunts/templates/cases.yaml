@@ -1,0 +1,443 @@
+# Templates written for 6.3's comparison (PLAN.md 6.3). make-templates renders each with ace3's
+# Jinja code in ace-dev-1 into ../reference/templates-cases.json, and
+# `the_template_cases_render_as_they_do_in_ace3` (crates/ace-hunt/src/render/cases.rs) renders them
+# with ace4 and diffs the two. Every template is rendered by every call against every event; a
+# `rows` call takes the case's templates together, and `grouped` and `sd_grouped` get all the events
+# at once as `events`.
+
+- name: filters-text
+  calls: [jinja, jinja_strict]
+  events:
+    - {s: "Hello World", n: 3, f: 2.5, t: true, none: null, empty: "", html: "<a href='x'>&\"</a>", words: "  the quick  brown fox  ", u: "ünïcode ÉÈ", dash: "foo-bar baz(qux)"}
+    - {}
+  templates:
+    - "{{ s|lower }}|{{ s|upper }}|{{ s|capitalize }}|{{ s|title }}"
+    - "{{ u|lower }}|{{ u|upper }}|{{ u|title }}|{{ dash|title }}"
+    - "{{ words|trim }}|{{ words|trim(' ef') }}|{{ 'xxaxx'|trim('x') }}"
+    - "{{ s|replace('o', '0') }}|{{ s|replace('o', '0', 1) }}|{{ s|replace('', '-') }}|{{ n|replace(3, 4) }}"
+    - "{{ s|length }}|{{ s|count }}|{{ u|length }}"
+    - "{{ s|center(21) }}|{{ s|center(20) }}|{{ 'ab'|center(5) }}"
+    - "{{ html|e }}|{{ html|escape }}|{{ html|e|e }}|{{ html|forceescape }}|{{ html|safe }}|{{ none|e }}"
+    - "{{ html|safe|e }}|{{ (html|e) ~ '<' }}"
+    - "{{ s|string }}|{{ n|string }}|{{ t|string }}|{{ none|string }}|{{ f|string }}"
+    - "{{ s|truncate(8) }}|{{ s|truncate(9, true) }}|{{ s|truncate(9, end='>') }}|{{ s|truncate(255) }}|{{ s|truncate(5, leeway=0) }}"
+    - "{{ words|wordcount }}|{{ s|wordcount }}"
+    - "{{ 'a b&c/d?é'|urlencode }}|{{ {'a': 'x y', 'b': '&'}|urlencode }}|{{ [('k', 'v w'), ('z', 1)]|urlencode }}|{{ 7|urlencode }}"
+    - "{{ s|indent }}|{{ 'a\nb\n\nc'|indent(2) }}|{{ 'a\nb'|indent(2, true) }}|{{ 'a\n\nb'|indent('>', blank=true) }}"
+    - "{{ s|reverse }}|{{ 'abc'|reverse }}"
+    - "{{ empty|default('d') }}|{{ empty|default('d', true) }}|{{ missing|default('d') }}|{{ missing|d('x') }}|{{ none|default('d') }}|{{ none|default('d', boolean=true) }}"
+    - "{{ s|first }}|{{ s|last }}|{{ empty|first }}"
+    - "{{ 1234567|filesizeformat }}|{{ 1|filesizeformat }}|{{ 999|filesizeformat }}|{{ 1048576|filesizeformat(true) }}|{{ 3000000000000|filesizeformat }}"
+
+- name: filters-numbers
+  calls: [jinja, jinja_strict]
+  events:
+    - {n: 3, f: 2.5, neg: -7, ns: "42", fs: " 3.75 ", bad: "x1", hexs: "ff", big: 12345678901234567890, under: "1_000", e: "1e3", inf: "inf", nan: "nan", t: true, none: null, zero: 0}
+  templates:
+    - "{{ ns|int }}|{{ fs|int }}|{{ bad|int }}|{{ bad|int(-1) }}|{{ hexs|int(base=16) }}|{{ under|int }}|{{ e|int }}|{{ inf|int }}|{{ nan|int }}|{{ t|int }}|{{ none|int }}|{{ f|int }}|{{ neg|int }}"
+    - "{{ ns|float }}|{{ fs|float }}|{{ bad|float }}|{{ bad|float(1.5) }}|{{ e|float }}|{{ inf|float }}|{{ nan|float }}|{{ n|float }}|{{ t|float }}|{{ none|float }}|{{ under|float }}"
+    - "{{ neg|abs }}|{{ -2.5|abs }}|{{ t|abs }}"
+    - "{{ f|round }}|{{ 2.675|round(2) }}|{{ 3.5|round }}|{{ 4.5|round }}|{{ 2.1|round(method='ceil') }}|{{ 2.9|round(0, 'floor') }}|{{ n|round }}|{{ 1234|round(-2) }}"
+    - "{{ 7 / 2 }}|{{ 7 // 2 }}|{{ -7 // 2 }}|{{ 7 // -2 }}|{{ 7 % 3 }}|{{ -7 % 3 }}|{{ 7.5 % 2 }}|{{ 2 ** 10 }}|{{ 2 ** -1 }}|{{ 2.0 ** 3 }}|{{ 10 ** 20 }}"
+    - "{{ 1 + 2 }}|{{ 1 + 2.0 }}|{{ t + 1 }}|{{ 0.1 + 0.2 }}|{{ 1e16 }}|{{ 1e15 }}|{{ 0.00001 }}|{{ 1.5e-7 }}|{{ 123456789012345678.0 }}|{{ -0.0 }}|{{ 3.0 }}|{{ big }}|{{ big * 1.0 }}"
+    - "{{ 4 / 2 }}|{{ 10 / 4 }}|{{ 1 / 3 }}|{{ -n }}|{{ -f }}"
+    - "{{ 1 / zero }}"
+    - "{{ 'ab' * 3 }}|{{ 3 * 'ab' }}|{{ [1] * 3 }}|{{ 'a' * -1 }}|{{ 'a' + 'b' }}|{{ [1] + [2] }}|{{ (1,) + (2,) }}"
+    - "{{ 'a' + 1 }}"
+    - "{{ 'a' - 1 }}"
+    - "{{ n ~ f ~ t ~ none ~ [1, 'a'] ~ {'k': 'v'} }}"
+    - "{{ [1, 2, 3]|sum }}|{{ [1.5, 2]|sum }}|{{ [[1], [2]]|sum([]) }}|{{ [{'v': 1}, {'v': 2}]|sum(attribute='v') }}"
+    - "{{ ['a']|sum }}"
+
+- name: filters-sequences
+  calls: [jinja, jinja_strict]
+  events:
+    - {l: [3, "a", 1], nums: [3, 1, 2, 3], strs: ["b", "A", "c", "a"], d: {b: 1, a: 2, C: 0}, rows: [{name: "b", v: 2, tags: ["x"]}, {name: "A", v: 1, tags: []}, {name: "c", v: 3, tags: ["y", "z"]}], empty: [], s: "hello"}
+    - {}
+  templates:
+    - "{{ nums|sort }}|{{ nums|sort(reverse=true) }}|{{ strs|sort }}|{{ strs|sort(case_sensitive=true) }}|{{ strs|sort(true) }}"
+    - "{{ rows|sort(attribute='name')|map(attribute='name')|join(',') }}|{{ rows|sort(attribute='v', reverse=true)|map(attribute='v')|join(',') }}|{{ rows|sort(attribute='tags.0,name')|map(attribute='name')|join(',') }}"
+    - "{{ l|sort }}"
+    - "{{ nums|unique|list }}|{{ strs|unique|list }}|{{ strs|unique(case_sensitive=true)|list }}|{{ rows|unique(attribute='v')|map(attribute='name')|list }}"
+    - "{{ nums|max }}|{{ nums|min }}|{{ strs|max }}|{{ strs|min }}|{{ strs|max(case_sensitive=true) }}|{{ rows|max(attribute='v')|tojson }}|{{ empty|max }}"
+    - "{{ nums|join }}|{{ nums|join(', ') }}|{{ rows|join('|', attribute='name') }}|{{ l|join('-') }}|{{ d|join(',') }}|{{ s|join('.') }}"
+    - "{{ nums|list }}|{{ s|list }}|{{ d|list }}|{{ nums|reverse|list }}|{{ d|reverse|list }}|{{ nums|first }}|{{ nums|last }}|{{ empty|first }}|{{ d|first }}"
+    - "{{ nums|length }}|{{ d|length }}|{{ empty|length }}|{{ rows|length }}"
+    - "{{ rows|map(attribute='name')|join(',') }}|{{ strs|map('lower')|join(',') }}|{{ strs|map('replace', 'a', 'Z')|list }}|{{ rows|map(attribute='missing', default='-')|list }}|{{ rows|map(attribute='tags.0')|list }}"
+    - "{{ nums|select('odd')|list }}|{{ nums|reject('odd')|list }}|{{ nums|select('gt', 1)|list }}|{{ nums|select|list }}|{{ [0, 1, '', 'a', none]|select|list }}|{{ [0, 1, '', 'a', none]|reject|list }}"
+    - "{{ rows|selectattr('v', 'gt', 1)|map(attribute='name')|list }}|{{ rows|rejectattr('tags')|map(attribute='name')|list }}|{{ rows|selectattr('tags')|map(attribute='name')|list }}|{{ rows|selectattr('name', 'equalto', 'c')|list|length }}|{{ rows|selectattr('name', 'in', ['A', 'b'])|list|length }}"
+    - "{{ d|dictsort }}|{{ d|dictsort(true) }}|{{ d|dictsort(by='value') }}|{{ d|dictsort(reverse=true) }}|{{ d|items|list }}"
+    - "{{ nums|batch(3)|list }}|{{ nums|batch(3, 'x')|list }}|{{ nums|slice(3)|list }}|{{ nums|slice(3, 0)|list }}"
+    - "{{ nums|tojson }}|{{ d|tojson }}|{{ rows|tojson }}|{{ {'z': '<&>', 'a': \"it's\", 'u': 'é\u2028😀', 'n': none, 'f': 1.0, 't': true}|tojson }}|{{ d|tojson(2) }}|{{ empty|tojson(2) }}|{{ {}|tojson }}|{{ (1, 2)|tojson }}"
+    - "{{ {1: 'a', 'b': 2}|tojson }}"
+    - "{{ {'a': nums}|tojson(indent=1) }}"
+    - "{{ s|tojson }}|{{ 1.5|tojson }}|{{ none|tojson }}"
+    - "{{ missing|tojson }}"
+    - "{{ nums|map('nosuch')|list }}"
+    - "{{ nums|select('nosuch')|list }}"
+    - "{{ d|attr('items') is defined }}|{{ rows[0]|attr('name') }}"
+
+- name: fromjson
+  calls: [jinja, jinja_strict, event, event_strict]
+  events:
+    - {j: '{"b": [1, 2.0, null, true], "a": {"x": "é"}, "b": "last"}', bad: "{not json", num: "42", list: "[1, \"two\"]", nan: "[NaN, Infinity, -Infinity]", esc: "\"\\u00e9\\ud83d\\ude00\\n\"", ws: "  {}  ", deep: 5, empty: ""}
+  templates:
+    - "{{ j|fromjson }}|{{ (j|fromjson).a.x }}|{{ (j|fromjson)['b'] }}|{{ (j|fromjson).keys()|list }}"
+    - "{{ bad|fromjson }}|{{ num|fromjson }}|{{ list|fromjson }}|{{ nan|fromjson }}|{{ esc|fromjson }}|{{ ws|fromjson }}|{{ deep|fromjson }}|{{ missing|fromjson }}|{{ empty|fromjson }}"
+    - "{% set o = j|fromjson %}{% for k, v in o.items() %}{{ k }}={{ v }};{% endfor %}"
+    - "{{ '{\"a\": 1}'|fromjson|tojson }}"
+
+- name: tests
+  calls: [jinja, jinja_strict]
+  events:
+    - {s: "abc", up: "ABC", n: 3, f: 2.5, t: true, none: null, l: [1, 2], d: {k: 1}, empty: ""}
+    - {}
+  templates:
+    - "{{ s is defined }}|{{ missing is defined }}|{{ missing is undefined }}|{{ none is none }}|{{ s is none }}|{{ missing is none }}"
+    - "{{ s is string }}|{{ n is string }}|{{ n is number }}|{{ f is number }}|{{ t is number }}|{{ s is number }}|{{ n is integer }}|{{ t is integer }}|{{ f is float }}|{{ n is float }}"
+    - "{{ t is boolean }}|{{ n is boolean }}|{{ t is true }}|{{ t is false }}|{{ 1 is true }}|{{ false is false }}"
+    - "{{ s is sequence }}|{{ l is sequence }}|{{ d is sequence }}|{{ n is sequence }}|{{ missing is sequence }}|{{ d.items() is sequence }}"
+    - "{{ s is iterable }}|{{ l is iterable }}|{{ d is iterable }}|{{ n is iterable }}|{{ d.keys() is iterable }}"
+    - "{{ missing is iterable }}"
+    - "{{ d is mapping }}|{{ l is mapping }}|{{ s is mapping }}"
+    - "{{ s is lower }}|{{ up is upper }}|{{ s is upper }}|{{ n is lower }}|{{ empty is lower }}"
+    - "{{ n is odd }}|{{ n is even }}|{{ n is divisibleby 3 }}|{{ n is divisibleby(2) }}|{{ t is odd }}"
+    - "{{ s is odd }}"
+    - "{{ n is eq 3 }}|{{ n is == 3 }}|{{ n is equalto 4 }}|{{ n is ne 3 }}|{{ n is != 3 }}|{{ n is gt 2 }}|{{ n is greaterthan 3 }}|{{ n is ge 3 }}|{{ n is lt 4 }}|{{ n is lessthan 3 }}|{{ n is le 3 }}|{{ n is > 1 }}|{{ n is < 1 }}|{{ n is >= 3 }}|{{ n is <= 2 }}"
+    - "{{ 2 is in l }}|{{ 'b' is in s }}|{{ 'k' is in d }}|{{ 5 is in l }}"
+    - "{{ 'lower' is filter }}|{{ 'nosuch' is filter }}|{{ 'odd' is test }}|{{ 'nosuch' is test }}|{{ 'fromjson' is filter }}"
+    - "{{ s is escaped }}|{{ (s|e) is escaped }}|{{ none is sameas none }}|{{ l is sameas l }}|{{ t is sameas true }}|{{ l is sameas [1, 2] }}"
+    - "{{ s.upper is callable }}|{{ s is callable }}|{{ range is callable }}"
+    - "{{ s is nosuch }}"
+    - "{% if false %}{{ s is nosuch }}{{ s|nosuch }}{% endif %}ok"
+    - "{{ s|nosuch if false else 'no' }}"
+    - "{% for x in [] %}{{ x|nosuch }}{% endfor %}ok"
+
+- name: undefined
+  calls: [jinja, jinja_strict, event, event_strict]
+  events:
+    - {a: {b: 1}, s: "x", l: [1], none: null}
+  templates:
+    - "[{{ missing }}]"
+    - "[{{ a.missing }}]"
+    - "[{{ missing.attr }}]"
+    - "[{{ missing['k'] }}]"
+    - "[{{ missing[0] }}]"
+    - "[{{ missing[1:] }}]"
+    - "[{{ a['missing'] }}][{{ l[5] }}][{{ s.missing }}][{{ none.x }}]"
+    - "{% if missing %}y{% else %}n{% endif %}"
+    - "{% for x in missing %}{{ x }}{% else %}none{% endfor %}"
+    - "{{ missing == 1 }}|{{ missing != 1 }}"
+    - "{{ missing > 1 }}"
+    - "{{ missing + 1 }}"
+    - "{{ missing ~ 'x' }}"
+    - "{{ 'x' in missing }}"
+    - "{{ missing in l }}"
+    - "{{ missing in [] }}"
+    - "{{ missing|length }}"
+    - "{{ missing|lower }}"
+    - "{{ missing|join(',') }}"
+    - "{{ missing|list }}"
+    - "{{ missing|first }}"
+    - "{{ missing|default('d') }}|{{ missing is defined }}"
+    - "{{ missing.get('x') }}"
+    - "{{ missing() }}"
+    - "{{ s.nosuch() }}"
+    - "{{ a.nosuch() }}"
+    - "{{ (1 if false) ~ '|' }}{{ (1 if false) is defined }}|{{ 1 if false }}|{{ (1 if false)|default('d') }}"
+    - "{{ not missing }}"
+    - "{{ missing or 'or' }}|{{ missing and 'and' }}"
+    - "{{ missing|string }}"
+    - "{{ missing|e }}"
+    - "{{ missing|int }}|{{ missing|float }}"
+    - "{{ missing|replace('a', 'b') }}"
+    - "{{ missing|truncate(5) }}"
+    - "{{ missing|urlencode }}"
+    - "{{ missing|map('lower')|list }}"
+    - "{{ missing|items|list }}"
+    - "{{ missing is sequence }}|{{ missing is mapping }}|{{ missing is string }}|{{ missing is none }}|{{ missing is number }}"
+    - "{{ -missing }}"
+    - "{{ missing|tojson }}"
+    - "{{ missing|fromjson }}"
+    - "{% set x = missing %}[{{ x }}]"
+
+- name: printing
+  calls: [jinja]
+  events:
+    - {s: "it's", q: "say \"hi\"", both: "it's \"x\"", nl: "a\nb\tc\\d", ctl: "\u0001\u007f\u0085\u00a0", t: true, f: false, none: null, i: 1, fl: 1.0, l: [1, "a", null, true, 1.5, [2], {k: "v"}], d: {"a": 1, "b": [1, 2], "c": {"x": null}}, e: [], ed: {}, uni: "é😀"}
+  templates:
+    - "{{ s }}|{{ q }}|{{ t }}|{{ f }}|{{ none }}|{{ i }}|{{ fl }}"
+    - "{{ l }}|{{ d }}|{{ e }}|{{ ed }}"
+    - "{{ [s] }}|{{ [q] }}|{{ [both] }}|{{ [nl] }}|{{ [ctl] }}|{{ [uni] }}"
+    - "{{ (1,) }}|{{ (1, 'a') }}|{{ () }}|{{ (none,) }}"
+    - "{{ range(3) }}|{{ range(1, 9, 2) }}|{{ range(3)|list }}|{{ range(5, 0, -2)|list }}|{{ range(0) is sequence }}"
+    - "{{ d.keys() }}|{{ d.values() }}|{{ d.items() }}"
+    - "{{ namespace(a=1) }}"
+    - "{{ dict(a=1, b='x') }}|{{ dict({'z': 1}, a=2) }}|{{ dict([('k', 'v')]) }}|{{ dict() }}"
+    - "{{ none }}{{ None }}{{ true }}{{ True }}{{ false }}{{ False }}"
+    - "{{ 'a' 'b' }}|{{ '\\x41\\u00e9\\n' }}|{{ \"dq\" }}"
+
+- name: methods
+  calls: [jinja, jinja_strict]
+  events:
+    - {s: "  Hello, World  ", csv: "a,b,,c", d: {a: 1, b: 2}, l: [3, 1, 2], ip: "10.1.2.3", path: "C:\\Windows\\System32\\cmd.exe", up: "ABC", mixed: "Hello World"}
+  templates:
+    - "{{ s.strip() }}|{{ s.lstrip() }}|{{ s.rstrip() }}|{{ s.strip(' Hd') }}|{{ s.lower() }}|{{ s.upper() }}|{{ mixed.title() }}|{{ mixed.capitalize() }}|{{ mixed.swapcase() }}"
+    - "{{ csv.split(',') }}|{{ csv.split(',', 1) }}|{{ s.split() }}|{{ ' a  b '.split(None, 1) }}|{{ csv.rsplit(',', 1) }}|{{ ' a  b '.rsplit(None, 1) }}|{{ 'a\nb\r\nc'.splitlines() }}"
+    - "{{ ip.startswith('10.') }}|{{ ip.startswith(('192.', '10.')) }}|{{ path.endswith('.exe') }}|{{ ip.startswith('1', 3) }}|{{ path.lower().endswith(('.exe', '.dll')) }}"
+    - "{{ csv.replace(',', ';') }}|{{ csv.replace(',', ';', 2) }}|{{ ', '.join(['a', 'b']) }}|{{ '-'.join(csv.split(',')) }}"
+    - "{{ ', '.join(l) }}"
+    - "{{ ip.find('.') }}|{{ ip.rfind('.') }}|{{ ip.find('x') }}|{{ ip.count('.') }}|{{ ip.index('2') }}|{{ 'ééa'.find('a') }}"
+    - "{{ ip.index('x') }}"
+    - "{{ ip.partition('.') }}|{{ ip.rpartition('.') }}|{{ ip.partition('x') }}|{{ 'abc'.removeprefix('a') }}|{{ 'abc'.removesuffix('c') }}"
+    - "{{ '42'.isdigit() }}|{{ 'ab'.isalpha() }}|{{ 'a1'.isalnum() }}|{{ ' '.isspace() }}|{{ up.isupper() }}|{{ up.islower() }}|{{ '7'.zfill(3) }}|{{ '-7'.zfill(4) }}|{{ 'ab'.ljust(4, '.') }}|{{ 'ab'.rjust(4) }}|{{ 'ab'.center(6, '*') }}"
+    - "{{ d.get('a') }}|{{ d.get('z') }}|{{ d.get('z', 'dflt') }}|{{ d.keys()|list }}|{{ d.values()|list }}|{{ d.items()|list }}|{{ d.copy() }}"
+    - "{% for k, v in d.items() %}{{ k }}={{ v }}{% if not loop.last %}&{% endif %}{% endfor %}"
+    - "{% set seen = [] %}{% for x in [1, 2, 1, 3, 2] %}{% if x not in seen %}{% set _ = seen.append(x) %}{% endif %}{% endfor %}{{ seen }}|{{ seen|length }}"
+    - "{% set m = {} %}{% set _ = m.update({'a': 1}) %}{% set _ = m.update(b=2) %}{% set _ = m.setdefault('c', []).append(3) %}{% set _ = m.setdefault('c', []).append(4) %}{{ m }}|{{ m.pop('a') }}|{{ m }}"
+    - "{% set x = [3, 1] %}{% set _ = x.extend([2]) %}{% set _ = x.insert(0, 9) %}{{ x }}|{{ x.pop() }}|{{ x.pop(0) }}|{{ x }}|{{ x.index(1) }}|{{ x.count(3) }}|{% set _ = x.sort() %}{{ x }}|{% set _ = x.reverse() %}{{ x }}|{% set _ = x.remove(3) %}{{ x }}"
+    - "{% for i in range(3) %}{% set acc = [] %}{% set _ = acc.append(i) %}{{ acc }}{% endfor %}"
+    - "{% set a = [1] %}{% set b = a %}{% set _ = b.append(2) %}{{ a }}|{% set l2 = l %}{% set _ = l2.append(4) %}{{ l }}"
+    - "{% set ns = namespace(items=[], n=0) %}{% for x in l %}{% set _ = ns.items.append(x * 2) %}{% set ns.n = ns.n + x %}{% endfor %}{{ ns.items }}|{{ ns.n }}"
+    - "{{ d.items }}"
+    - "{{ s.nosuchmethod() }}"
+    - "{{ l.get('x') }}"
+    - "{{ [1, 2].append }}"
+    - "{% set x = [1] %}{% for y in x %}{% if x|length < 4 %}{% set _ = x.append(y + 1) %}{% endif %}{% endfor %}{{ x }}"
+
+- name: operators
+  calls: [jinja, jinja_strict]
+  events:
+    - {n: "12", i: 12, s: "abc", l: [1, 2], none: null, t: true}
+  templates:
+    - "{{ i > 5 }}|{{ i == 12.0 }}|{{ t == 1 }}|{{ n == 12 }}|{{ none == none }}|{{ [1, 2] == l }}|{{ (1, 2) == l }}|{{ {'a': 1} == {'a': 1} }}|{{ 1 < 2 < 3 }}|{{ 3 > 2 > 2 }}"
+    - "{{ n > 5 }}"
+    - "{{ 'a' < 'b' }}|{{ 'B' < 'a' }}|{{ [1, 2] < [1, 3] }}|{{ (1,) < (1, 0) }}|{{ 'é' > 'z' }}"
+    - "{{ 'b' in s }}|{{ 1 in l }}|{{ 'x' not in s }}|{{ 'k' in {'k': 1} }}|{{ 1 in range(3) }}|{{ 1.0 in l }}"
+    - "{{ 1 in s }}"
+    - "{{ s[0] }}|{{ s[-1] }}|{{ s[1:] }}|{{ s[::-1] }}|{{ s[:-1] }}|{{ l[0] }}|{{ l[-1] }}|{{ l[5] }}|{{ l[1:] }}|{{ l[::2] }}|{{ (1, 2, 3)[1:] }}|{{ range(10)[2:5]|list }}"
+    - "{{ s.0 }}|{{ l.1 }}"
+    - "{{ s[1:'x'] }}"
+    - "{{ s[::0] }}"
+    - "{{ i if i > 5 else 0 }}|{{ 'a' if none else 'b' }}|{{ not none }}|{{ not l }}|{{ [] or 'empty' }}|{{ 0 and 1 }}|{{ 2 and 3 }}"
+    - "{{ -i }}|{{ - -i }}|{{ -t }}"
+    - "{{ -s }}"
+    - "{{ i * 1.5 }}|{{ i // 5 }}|{{ i % 5 }}|{{ i ** 2 }}|{{ i / 4 }}"
+    - "{{ range(100001)|length }}"
+    - "{{ range(100000)|length }}"
+
+- name: whitespace
+  calls: [jinja]
+  events:
+    - {l: [1, 2]}
+  templates:
+    - "a\n{% if true %}\nb\n{% endif %}\nc\n"
+    - "a\n{%- if true -%}\nb\n{%- endif -%}\nc"
+    - "  {% for x in l %}\n  {{ x }}\n  {% endfor %}\n"
+    - "  {%- for x in l %}[{{- x -}}]{% endfor -%}  \n"
+    - "{# a comment #}x{#- trimmed -#}  y"
+    - "trailing\n"
+    - "two\n\n"
+    - "crlf\r\nline\rend"
+    - "{% raw %}{{ not }}{% endraw %}"
+    - "{%+ if true %}k{% endif %}"
+    - "x {{- ' y ' -}} z"
+
+- name: control
+  calls: [jinja, jinja_strict]
+  events:
+    - {l: [3, 1, 2], d: {a: 1, b: 2}, rows: [{n: "x", c: 2}, {n: "y", c: 0}], text: "line1\nline2"}
+  templates:
+    - "{% for x in l %}{{ loop.index }}:{{ loop.index0 }}:{{ loop.revindex }}:{{ loop.revindex0 }}:{{ loop.first }}:{{ loop.last }}:{{ loop.length }}:{{ x }};{% endfor %}"
+    - "{% for x in l %}{{ loop.previtem }}<{{ x }}>{{ loop.nextitem }}|{% endfor %}"
+    - "{% for x in l %}{{ loop.cycle('odd', 'even') }}{% endfor %}"
+    - "{% for x in [1, 1, 2] %}{% if loop.changed(x) %}{{ x }}{% endif %}{% endfor %}"
+    - "{% for x in l if x > 1 %}{{ x }}{% else %}none{% endfor %}|{% for x in [] %}{{ x }}{% else %}empty{% endfor %}"
+    - "{% for k in d %}{{ k }}{% endfor %}|{% for k, v in d|dictsort %}{{ k }}{{ v }}{% endfor %}"
+    - "{% for r in rows %}{% for x in range(r.c) %}{{ r.n }}{{ loop.index }}{% endfor %}{% endfor %}"
+    - "{% set total = 0 %}{% for x in l %}{% set total = total + x %}{% endfor %}[{{ total }}]"
+    - "{% set ns = namespace(total=0) %}{% for x in l %}{% set ns.total = ns.total + x %}{% endfor %}[{{ ns.total }}]"
+    - "{% if l|length > 2 %}big{% elif l %}small{% else %}none{% endif %}"
+    - "{% set a, b = 1, 2 %}{{ a }}{{ b }}|{% set c = (3, 4) %}{% set x, y = c %}{{ y }}"
+    - "{% set block %}inner {{ l|length }}{% endset %}[{{ block }}]|{% set up | upper %}shout{% endset %}{{ up }}"
+    - "{% filter upper %}up {{ l[0] }}{% endfilter %}|{% filter replace('a', 'b') %}banana{% endfilter %}"
+    - "{% with x = 5, y = l %}{{ x }}{{ y }}{% endwith %}[{{ x }}]"
+    - "{% macro row(name, value='-', sep=': ') %}{{ name }}{{ sep }}{{ value }}{% endmacro %}{{ row('a') }}|{{ row('b', 2) }}|{{ row('c', sep='=') }}|{{ row(value='v', name='n') }}"
+    - "{% macro wrap(tag) %}<{{ tag }}>{{ caller() }}</{{ tag }}>{% endmacro %}{% call wrap('b') %}bold {{ l[0] }}{% endcall %}"
+    - "{% macro item(x) %}[{{ caller(x * 2) }}]{% endmacro %}{% call(v) item(4) %}v={{ v }}{% endcall %}"
+    - "{% macro fact(n) %}{% if n <= 1 %}1{% else %}{{ n * (fact(n - 1)|int) }}{% endif %}{% endmacro %}{{ fact(5) }}"
+    - "{% macro m() %}x{% endmacro %}{{ m(1) }}"
+    - "{% macro rec(n) %}{{ rec(n + 1) }}{% endmacro %}{{ rec(0) }}"
+    - "{% for x in l recursive %}{{ x }}{% endfor %}"
+    - "{% autoescape true %}{{ '<b>' }}{% endautoescape %}|{{ '<b>' }}"
+    - "{{ text|indent(2) }}"
+    - "{% do l.append(1) %}"
+    - "{% for x in l %}{% break %}{% endfor %}"
+    - "{% include 'other.html' %}"
+    - "{% if false %}{% include 'other.html' %}{% endif %}ok"
+    - "{% import 'm.html' as m %}"
+    - "{% extends 'base.html' %}"
+    - "{% block b %}in block{% endblock %}"
+    - "{{ unclosed"
+    - "{% if %}"
+    - "{{ lipsum(1) }}"
+    - "{{ cycler(1, 2).next() }}"
+    - "{{ joiner(',')() }}"
+    - "{{ s|format(1) }}"
+    - "{{ '%s and %s' % ('a', 'b') }}"
+    - "{{ 'a {}'.format(1) }}"
+    - "{{ l.__class__ }}"
+    - "{{ d._private }}|{{ {'_k': 1}._k }}"
+    - "{% for x in none %}{{ x }}{% else %}empty{% endfor %}"
+    - "{% for x in 5 %}{{ x }}{% endfor %}"
+    - "{% for x in 'ab' %}{{ x }}{% endfor %}|{% for x in d %}{{ x }}{% endfor %}"
+
+- name: event-expansion
+  calls: [event, event_strict, jinja, jinja_strict, multi, multi_strict, interpolate]
+  events:
+    - {"device.hostname": "ws-1", "device.ip": "10.0.0.1", "mitre_attack{}.technique_id": ["T1059", "T1105"], "user": "alice", "#repo": "base", "a": "flat", "a.b": "nested", ".lead": 1, "x..y": 2, "z.{}": 3}
+    - {"device": {"hostname": "ws-2"}, "device.hostname": "flat-wins?", "ips": ["1.1.1.1", "2.2.2.2"], "users": ["u1", "u2"], "empty": [], "n": 5}
+    - {"ips": ["1.1.1.1", "2.2.2.2", "3.3.3.3"], "pairs": [{"k": "a"}, {"k": "b"}], "nested": {"list": ["p", "q"]}}
+  templates:
+    - "{{ device.hostname }}"
+    - "{{ device.hostname }}@{{ device.ip }}"
+    - "{{ mitre_attack.technique_id }}"
+    - "{{ user }}|{{ a }}"
+    - "{{ ips }}"
+    - "{{ ips|join(',') }}"
+    - "{{ ips }}-{{ users }}"
+    - "{{ ips }}-{{ ips }}"
+    - "{{ ips[0] }}"
+    - "{{ empty }}"
+    - "{{ n }}"
+    - "{{ pairs.k }}"
+    - "{{ pairs[0].k }}"
+    - "{{ nested.list }}"
+    - "{{ nested['list'] }}"
+    - "{% for ip in ips %}{{ ip }};{% endfor %}"
+    - "{{ ips.get('x') }}"
+    - "{{ ips|length }}"
+    - "{{ lead }}|{{ x.y }}|{{ z }}"
+    - "{{ missing }}"
+    - "static"
+    - "{{ bad syntax"
+    - "{{ ips|nosuch }}"
+
+- name: rows
+  calls: [rows, rows_strict]
+  events:
+    - {app: ["a1", "a2"], link: "https://x/{id}", id: ["1", "2"]}
+    - {app: "solo", id: "9"}
+    - {app: []}
+    - {}
+  templates:
+    - "https://example.com/{{ app }}?id={{ id }}"
+    - "open {{ app }}"
+
+- name: rows-missing-second
+  calls: [rows, rows_strict]
+  events:
+    - {app: ["a1", "a2"]}
+  templates:
+    - "{{ app }}"
+    - "{{ app }} {{ missing }}"
+
+- name: rows-failing
+  calls: [rows, rows_strict]
+  events:
+    - {app: ["a1", "a2"]}
+  templates:
+    - "{{ app }}"
+    - "{{ app + 1 }}"
+
+- name: rows-syntax
+  calls: [rows, rows_strict]
+  events:
+    - {app: ["a1"]}
+  templates:
+    - "{{ app }}"
+    - "{{ app"
+
+- name: name
+  calls: [name]
+  events:
+    - {user: "alice", n: 3}
+    - {}
+  templates:
+    - "Plain name {with braces}"
+    - "Login by {{ user }}"
+    - "{% if n %}many{% endif %} logins"
+    - "{{ user.missing.deeper }}"
+    - "{{ broken"
+    - "{{ user|nosuch }}"
+
+- name: grouped
+  calls: [grouped, grouped_strict, sd_grouped]
+  sd: {format: jinja}
+  events:
+    - {user: "alice", n: 1, tags: ["x"]}
+    - {user: "bob", n: 2, tags: []}
+  templates:
+    - "{% for e in events %}{{ e.user }}={{ e.n }}{% if not loop.last %}, {% endif %}{% endfor %}"
+    - "{% for e in events %}{{ e.get('user') }}:{{ e.get('missing') }};{% endfor %}"
+    - "{% for e in events %}{{ e.missing }}{% endfor %}"
+    - "{{ events|map(attribute='user')|join(', ') }}|{{ events|sum(attribute='n') }}|{{ events|selectattr('tags')|list|length }}"
+    - "{{ events|tojson }}"
+    - "   \n  "
+    - "| a | b |\n|---|---|\n{% for e in events %}| {{ e.user }} | {{ e.n }} |\n{% endfor %}"
+
+- name: grouped-required
+  calls: [sd_grouped]
+  sd: {format: jinja, required_fields: [user]}
+  events:
+    - {user: "alice"}
+  templates:
+    - "{% for e in events %}{{ e.user }}{{ e.missing }}{% endfor %}"
+
+- name: summary-details
+  calls: [sd_content, sd_header]
+  sd: {format: md}
+  events:
+    - {"user": "alice", "device.name": "ws-1", "count": "3"}
+    - {}
+  templates:
+    - "User {{ user }} on {{ device.name }}"
+    - "{{ count|int + 1 }}"
+    - "{{ missing }}"
+    - "{{ bad"
+
+- name: summary-details-jinja
+  calls: [sd_content, sd_header]
+  sd: {format: jinja}
+  events:
+    - {"user": "alice", "device.name": "ws-1"}
+  templates:
+    - "User {{ user }}"
+    - "{{ device.name }}"
+    - "{{ this['device.name'] if this is defined else 'x' }}"
+
+- name: summary-details-required
+  calls: [sd_content, sd_header]
+  sd: {format: md, required_fields: [user]}
+  events:
+    - {"user": "alice"}
+  templates:
+    - "{{ user }} {{ missing }}"
+    - "{{ missing.attr }}"
+
+- name: bounds
+  calls: [jinja]
+  events:
+    - {}
+  templates:
+    - "{% for i in range(100000) %}{% endfor %}done"
+    - "{% set s = 'x' * 1000 %}{{ s|length }}"
+    - "{% set ns = namespace(s='ab') %}{% for i in range(10) %}{% set ns.s = ns.s ~ ns.s %}{% endfor %}{{ ns.s|length }}"
+
+- name: shared-event
+  calls: [shared]
+  events:
+    - {l: [1], device: {hostname: "nested"}, "device.hostname": "flat"}
+  templates:
+    - "{% set _ = l.append(2) %}{{ device.hostname }}"
+    - "{{ l }}|{{ device.hostname }}"

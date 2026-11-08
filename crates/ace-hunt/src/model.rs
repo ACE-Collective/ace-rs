@@ -12,7 +12,8 @@
 //! present with its default, which is the normal form 6.2's comparison diffs.
 //!
 //! Strings that are Jinja templates (a hunt's name, tags, summary details, pivot links, an
-//! observable mapping's type and value, `dedup_key`) are kept as written: 6.3 renders them.
+//! observable mapping's type and value, `dedup_key`) are kept as written; [`crate::render`] renders
+//! them.
 
 use serde::Serialize;
 use serde_json::{Map as JsonMap, Value as Json};
@@ -461,7 +462,7 @@ impl HuntConfig {
     }
 
     /// Every string of the hunt that ace3 renders as a Jinja template against an event, with
-    /// where it is: what 6.3 renders. The query's own tokens (`<TIMESPEC>`, `<include:...>`)
+    /// where it is: what [`crate::render`] renders. The query's own tokens (`<TIMESPEC>`, `<include:...>`)
     /// aren't Jinja and aren't here.
     pub fn templates(&self) -> Vec<(String, &str)> {
         let mut out: Vec<(String, &str)> = vec![("name".to_owned(), self.name.as_str())];
