@@ -136,11 +136,15 @@ async fn a_task_delayed_while_a_worker_waits_is_claimed_when_its_delay_ends() {
     let delayed = tokio::spawn(async move {
         // the waiter is waiting by now, with nothing due
         tokio::time::sleep(Duration::from_millis(500)).await;
+        // before the call, because the core sets run_after to its own now() plus the delay
+        // inside it: an instant taken after the call returns is late by the call's own time,
+        // which under load was over 100 ms, and a claim on time then looked early
+        let delayed_at = Instant::now();
         first
             .delay(task, Duration::from_secs(1), &serde_json::json!({}))
             .await
             .expect("delays");
-        Instant::now()
+        delayed_at
     });
     let (again, waits) = tokio::time::timeout(
         Duration::from_secs(10),
@@ -156,7 +160,9 @@ async fn a_task_delayed_while_a_worker_waits_is_claimed_when_its_delay_ends() {
     assert_eq!(again.id, task);
     assert_eq!(waits.timed_out, 0, "the fallback fired");
     assert!(
-        after >= Duration::from_millis(900) && after < Duration::from_secs(3),
+        // run_after is no earlier than delayed_at plus the delay; 50 ms covers the two
+        // containers' clocks, which aren't one clock
+        after >= Duration::from_millis(950) && after < Duration::from_secs(3),
         "claimed {after:?} after a 1-second delay began"
     );
 }
