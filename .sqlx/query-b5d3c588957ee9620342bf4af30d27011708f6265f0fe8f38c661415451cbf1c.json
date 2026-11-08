@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE scheduler.runs SET ended_at = now(), outcome = 'abandoned',\n                 error = 'its lease ended before the run did: the process running it went away'\n             WHERE id = $1 AND ended_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b5d3c588957ee9620342bf4af30d27011708f6265f0fe8f38c661415451cbf1c"
+}

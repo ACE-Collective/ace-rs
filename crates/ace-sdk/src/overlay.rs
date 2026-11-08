@@ -22,6 +22,10 @@
 //! doesn't have logs a warning and is skipped, so removing a module never stops startup (ace3
 //! #901, #916).
 //!
+//! `scheduler:` sets the schedule, timeout or `enabled` of the core's scheduled tasks (PLAN.md 6.7),
+//! by task name, each key refused when unknown. A task this build doesn't have logs a warning and is
+//! skipped, as a removed module is.
+//!
 //! `secrets:` says where each secret comes from, by the name modules declare in
 //! `Module::SECRETS`: `env:<VARIABLE>` or `file:<path>`, as ace3's `env:` references. Nothing
 //! is read when the overlay loads; a pool reads only the ones its modules declare (PLAN.md 2.24,
@@ -48,6 +52,21 @@ pub struct Overlay {
     pub modules: BTreeMap<String, ModuleSection>,
     /// Where each secret comes from, by name.
     pub secrets: BTreeMap<String, SecretSource>,
+    /// The core's scheduled tasks (PLAN.md 6.7), by task name. `ace serve` reads it; a pool doesn't.
+    pub scheduler: BTreeMap<String, ScheduledTaskSection>,
+}
+
+/// What the overlay says about one of the core's scheduled tasks. Each field left out keeps the
+/// task's default; `ace_app`'s scheduler lists the tasks and their defaults.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields, default)]
+pub struct ScheduledTaskSection {
+    /// A five-field cron expression, in UTC, as ace3's `etc/cron.yaml` schedules its cadences.
+    pub schedule: Option<String>,
+    /// How long a run may take before it's stopped.
+    pub timeout_seconds: Option<u64>,
+    /// False stops the task running.
+    pub enabled: Option<bool>,
 }
 
 /// Where a secret's value comes from.
@@ -202,6 +221,7 @@ impl Overlay {
                 .map(|(name, section)| (name.clone(), section.clone()))
                 .collect(),
             secrets: self.secrets.clone(),
+            scheduler: BTreeMap::new(),
         }
     }
 

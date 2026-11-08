@@ -1,7 +1,12 @@
 //! `ace serve`: the lease API workers call (PLAN.md 2.14), the JSON API people and their scripts call
 //! (5.5, `ace-api`), the reaper that takes back tasks whose lease expired, the recorder of YARA QA
-//! matches (2.27), and the ruleset builder (2.25) when `ACE4_SIGNATURES_REPO` names the signatures
-//! repository's checkout (`SignatureRepo::from_env`), every `ACE4_RULESET_POLL_SECONDS` (60).
+//! matches (2.27), the scheduler of ace3's maintenance tasks (6.7, `crate::scheduler`), and the ruleset
+//! builder (2.25) when `ACE4_SIGNATURES_REPO` names the signatures repository's checkout
+//! (`SignatureRepo::from_env`), every `ACE4_RULESET_POLL_SECONDS` (60).
+//!
+//! The scheduler is here, not a process of its own: its tasks need the database and the bucket, which
+//! `ace serve` already holds, and no data source's secret. Every replica runs it, and the tasks'
+//! rows in Postgres give each due run to one of them.
 //!
 //! It reads `ACE4_DATABASE_URL`, the `ACE4_BUCKET_*` variables, the pools and their tokens
 //! (`ACE4_POOLS`, by default the binary's own; `ACE4_POOL_TOKEN_<POOL>`, see `ApiConfig::from_env`),
@@ -66,7 +71,11 @@ async fn serve(app: &App) -> Result<ExitCode> {
     );
     let bucket = Bucket::new(db.clone(), store, BucketSettings::default());
     let signatures = SignatureRepo::from_env();
-    let components = crate::cli::components(&app.registry(), &crate::cli::overlay()?)?;
+    let overlay = crate::cli::overlay()?;
+    let components = crate::cli::components(&app.registry(), &overlay)?;
+    let scheduled = crate::scheduler::configure(&app.scheduled_tasks(), &overlay.scheduler)
+        .map_err(anyhow::Error::msg)
+        .context("the overlay's scheduler section")?;
     let orchestrator = Orchestrator::new(Catalog::of(components), app.modes());
     // a pool that lists a module leases its overlay instances too
     let config = ApiConfig::from_env(&app.pool_list()).with_instances(orchestrator.catalog());
@@ -74,6 +83,8 @@ async fn serve(app: &App) -> Result<ExitCode> {
         tracing::info!(pool = %pool.name, modules = ?pool.modules, "serving a pool");
     }
     let service = ace_service::Service::new(db.clone(), orchestrator.clone());
+    let scheduler =
+        crate::scheduler::Scheduler::new(db.clone(), service.clone(), bucket.clone(), scheduled);
     let web_config = ace_api::WebConfig::from_env().map_err(anyhow::Error::msg)?;
     for (module, name, version) in app.modules_without_a_view() {
         tracing::warn!(
@@ -114,6 +125,7 @@ async fn serve(app: &App) -> Result<ExitCode> {
         Duration::from_secs(5),
         stop.clone(),
     ));
+    let scheduler = tokio::spawn(scheduler.run(stop.clone()));
     let builder = signatures.map(|repo| {
         let every = std::env::var("ACE4_RULESET_POLL_SECONDS")
             .ok()
@@ -168,6 +180,16 @@ async fn serve(app: &App) -> Result<ExitCode> {
         .is_err()
     {
         tracing::warn!("the QA recorder didn't stop within 5 seconds");
+    }
+    // the scheduler stops its running tasks and waits STOP_WAIT for their ends to be recorded
+    if tokio::time::timeout(
+        crate::scheduler::STOP_WAIT + Duration::from_secs(5),
+        scheduler,
+    )
+    .await
+    .is_err()
+    {
+        tracing::warn!("the scheduler didn't stop in time");
     }
     if let Some(builder) = builder
         && tokio::time::timeout(Duration::from_secs(5), builder)

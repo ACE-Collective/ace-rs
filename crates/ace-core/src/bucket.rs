@@ -5,7 +5,9 @@
 //! mode. In a `held` pool an object lives while something holds it, plus the pool's grace
 //! period after the last hold went; a `permanent` pool keeps everything. GC deletes what no
 //! longer qualifies, in batches in key order with a pause between them, and never lists the
-//! bucket.
+//! bucket. ace3's weekly orphan sweep and verify come with the scheduler (PLAN.md 6.7): `orphans`
+//! is the one operation that lists the bucket, for bytes a put uploaded before its transaction
+//! failed to commit, and `verify` re-hashes a sample.
 //!
 //! A put is one transaction, as in ace3: it inserts the object's row if it is new, locks it,
 //! uploads the bytes while holding the lock unless the bucket has them, and takes the hold.
@@ -47,6 +49,11 @@ pub struct BucketSettings {
     pub gc_batch_pause: Duration,
     /// How long a put waits for GC to finish deleting the object it wants to put again.
     pub put_deleting_wait: Duration,
+    /// How old bytes with no index row must be before the orphan sweep removes them, so a put
+    /// still in its transaction is never taken for one: ace3's `orphan_grace_seconds`.
+    pub orphan_grace: Duration,
+    /// Objects per pool one verify re-hashes: ace3's `verify_sample_size`.
+    pub verify_sample: i64,
     pub pools: BTreeMap<String, PoolConfig>,
 }
 
@@ -68,6 +75,8 @@ impl Default for BucketSettings {
             gc_batch_size: 500,
             gc_batch_pause: Duration::from_millis(500),
             put_deleting_wait: Duration::from_secs(30),
+            orphan_grace: Duration::from_secs(86_400),
+            verify_sample: 1000,
             pools: [
                 (ALERT_FILES.to_owned(), held),
                 (
@@ -142,12 +151,62 @@ pub struct Put {
 }
 
 /// What a GC run of one pool did.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, serde::Serialize)]
 pub struct GcStats {
     /// Objects deleted, including ones an earlier run left `deleting`.
     pub deleted: u64,
     /// Expired hold rows removed.
     pub holds_pruned: u64,
+}
+
+/// What an orphan sweep of one pool did.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, serde::Serialize)]
+pub struct OrphanStats {
+    /// Keys listed under the pool.
+    pub scanned: u64,
+    /// Keys with no index row, deleted or not.
+    pub orphaned: u64,
+    /// Orphans younger than the grace, left for a later sweep.
+    pub within_grace: u64,
+    pub deleted: u64,
+    pub bytes_reclaimed: u64,
+    /// Keys the bucket's naming doesn't make, left as they are.
+    pub unrecognized: u64,
+}
+
+/// What a verify of one pool found.
+#[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize)]
+pub struct VerifyStats {
+    pub checked: u64,
+    /// Intact, with `verified_at` recorded.
+    pub verified: u64,
+    /// Deleted by GC since the sample was taken.
+    pub removed: u64,
+    /// In the index and not in the bucket.
+    pub missing: Vec<Sha256>,
+    /// In the bucket with bytes that hash to something else.
+    pub corrupt: Vec<Sha256>,
+}
+
+impl VerifyStats {
+    /// True when an object was missing or corrupt.
+    pub fn failed(&self) -> bool {
+        !self.missing.is_empty() || !self.corrupt.is_empty()
+    }
+}
+
+/// The sha256 a pool's key names: `<pool>/<sha[0..2]>/<sha[2..4]>/<sha>`, as `Store::key` makes it.
+fn sha256_of_key(pool: &str, key: &str) -> Option<Sha256> {
+    let sha256: Sha256 = key.rsplit('/').next()?.parse().ok()?;
+    (Store::key(pool, &sha256).ok()? == key).then_some(sha256)
+}
+
+/// 32 random bytes, for the point a verify's sample starts at.
+fn rand_bytes() -> [u8; 32] {
+    let mut bytes = [0; 32];
+    bytes[..16].copy_from_slice(Uuid::new_v4().as_bytes());
+    bytes[16..].copy_from_slice(Uuid::new_v4().as_bytes());
+    bytes
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -514,6 +573,140 @@ impl Bucket {
                 break;
             }
             tokio::time::sleep(self.settings.gc_batch_pause).await;
+        }
+        Ok(stats)
+    }
+
+    /// The pools this bucket has, in name order.
+    pub fn pools(&self) -> impl Iterator<Item = (&str, Retention)> {
+        self.settings
+            .pools
+            .iter()
+            .map(|(name, config)| (name.as_str(), config.retention))
+    }
+
+    /// ace3's `cas orphans`: lists the pool's keys in the bucket and deletes the bytes no index row
+    /// names, once they're older than `orphan_grace`, so a put still in its transaction, which uploads
+    /// before it commits, isn't taken for one. A key the bucket's naming doesn't make is counted and
+    /// left. This is the one operation that lists the bucket, so it runs weekly, as in ace3.
+    pub async fn orphans(&self, pool: &str) -> Result<OrphanStats, BucketError> {
+        self.pool(pool)?;
+        let prefix = format!("{pool}/");
+        let cutoff = Utc::now().timestamp()
+            - i64::try_from(self.settings.orphan_grace.as_secs()).unwrap_or(i64::MAX);
+        let mut stats = OrphanStats::default();
+        let listed = self.store.list_entries(&prefix).await?;
+        let batch = usize::try_from(self.settings.gc_batch_size.max(1)).unwrap_or(500);
+        for chunk in listed.chunks(batch) {
+            let mut named = Vec::new();
+            for entry in chunk {
+                stats.scanned += 1;
+                match sha256_of_key(pool, &entry.key) {
+                    Some(sha256) => named.push((entry, sha256)),
+                    None => {
+                        tracing::warn!(pool, key = %entry.key, "a key the bucket's naming doesn't make");
+                        stats.unrecognized += 1;
+                    }
+                }
+            }
+            let hexes: Vec<String> = named.iter().map(|(_, sha256)| sha256.to_hex()).collect();
+            // any state: an object GC is deleting isn't an orphan, GC finishes it
+            let present: std::collections::BTreeSet<String> = sqlx::query_scalar!(
+                "SELECT sha256 FROM store.objects WHERE pool = $1 AND sha256 = ANY($2)",
+                pool,
+                &hexes,
+            )
+            .fetch_all(self.db.pool())
+            .await?
+            .into_iter()
+            .collect();
+            for (entry, sha256) in named {
+                if present.contains(&sha256.to_hex()) {
+                    continue;
+                }
+                stats.orphaned += 1;
+                if entry.modified_seconds >= cutoff {
+                    stats.within_grace += 1;
+                    continue;
+                }
+                self.store.delete(pool, &sha256).await?;
+                stats.deleted += 1;
+                stats.bytes_reclaimed += entry.size;
+            }
+        }
+        if stats.deleted > 0 {
+            tracing::info!(
+                pool,
+                deleted = stats.deleted,
+                bytes = stats.bytes_reclaimed,
+                "removed bytes with no index row"
+            );
+        }
+        Ok(stats)
+    }
+
+    /// ace3's `cas verify`: re-hashes up to `verify_sample` of the pool's objects, from a random
+    /// point in hash order and round, downloading each past the node's cache, and records
+    /// `verified_at` on the intact ones. A corrupt or missing object is listed and logged, never
+    /// deleted. One GC deleted since the sample was taken isn't a failure.
+    pub async fn verify(&self, pool: &str) -> Result<VerifyStats, BucketError> {
+        self.pool(pool)?;
+        let start = Sha256(rand_bytes()).to_hex();
+        let sample = self.settings.verify_sample;
+        let mut sampled = sqlx::query_scalar!(
+            "SELECT sha256 FROM store.objects WHERE pool = $1 AND state = 'present' AND sha256 >= $2
+             ORDER BY sha256 LIMIT $3",
+            pool,
+            start,
+            sample,
+        )
+        .fetch_all(self.db.pool())
+        .await?;
+        let rest = sample - i64::try_from(sampled.len()).unwrap_or(i64::MAX);
+        if rest > 0 {
+            sampled.extend(
+                sqlx::query_scalar!(
+                    "SELECT sha256 FROM store.objects
+                     WHERE pool = $1 AND state = 'present' AND sha256 < $2
+                     ORDER BY sha256 LIMIT $3",
+                    pool,
+                    start,
+                    rest,
+                )
+                .fetch_all(self.db.pool())
+                .await?,
+            );
+        }
+        let mut stats = VerifyStats::default();
+        for hex in sampled {
+            stats.checked += 1;
+            let sha256: Sha256 = hex
+                .parse()
+                .map_err(|e| DbError::Decode(format!("store.objects sha256 {hex}: {e}")))?;
+            match self.store.verify(pool, &sha256).await {
+                Ok(()) => {
+                    sqlx::query!(
+                        "UPDATE store.objects SET verified_at = now() WHERE pool = $1 AND sha256 = $2",
+                        pool,
+                        hex,
+                    )
+                    .execute(self.db.pool())
+                    .await?;
+                    stats.verified += 1;
+                }
+                Err(StoreError::NotFound { .. }) if self.object(pool, &sha256).await?.is_none() => {
+                    stats.removed += 1;
+                }
+                Err(StoreError::NotFound { .. }) => {
+                    tracing::error!(pool, %sha256, "an object in the index isn't in the bucket");
+                    stats.missing.push(sha256);
+                }
+                Err(StoreError::Integrity { actual, .. }) => {
+                    tracing::error!(pool, %sha256, %actual, "an object's bytes don't match its name");
+                    stats.corrupt.push(sha256);
+                }
+                Err(e) => return Err(e.into()),
+            }
         }
         Ok(stats)
     }

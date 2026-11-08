@@ -32,6 +32,8 @@ anyhow = "1.0.104"
 chrono = { version = "0.4.45", default-features = false, features = ["std", "clock"] }
 chrono-tz = "0.10.4"
 clap = { version = "4.6.7", features = ["derive"] }
+# The scheduler's cron schedules (PLAN.md 6.7), as ace-hunt parses a hunt's.
+croner = { version = "=4.0.2", default-features = false, features = ["chrono"] }
 # `ace compare` posts each sample to the JSON API's submit endpoint. ace-sdk picks reqwest's features.
 reqwest = { version = "0.13.5", default-features = false }
 serde = { version = "1.0.229", features = ["derive"] }
@@ -50,6 +52,8 @@ ace-core = { path = "../ace-core", features = ["testing"] }
 ace-mod-yara = { path = "../ace-mod-yara" }
 # The hunter's test replays ace3's exchanges with the fake Splunk.
 ace-testkit = { path = "../ace-testkit" }
+# The scheduler's tests (PLAN.md 6.7) set up and read rows directly.
+sqlx = { version = "0.9.0", default-features = false, features = ["chrono", "json", "postgres", "runtime-tokio", "uuid"] }
 
 [lints]
 workspace = true

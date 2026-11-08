@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE scheduler.tasks SET due_at = $2, run_id = $3,\n             lease_until = now() + make_interval(secs => $4), updated_at = now()\n         WHERE name = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Timestamptz",
+        "Int8",
+        "Float8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "41b1e1ba195ad345a93c73d6eb437d93220223bd104aff647aafecf460acb5e2"
+}

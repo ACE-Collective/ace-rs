@@ -233,6 +233,13 @@ pub(crate) fn allows<'g>(
     allowed
 }
 
+/// Delete what the bucket's index no longer keeps: objects nothing has held for their pool's grace, expired
+/// holds, and bytes with no index row (PLAN.md 6.7). ace3 has no such permission: `ace cas gc` and `ace cas
+/// orphans` run from cron with the database's credentials. Only the scheduler's components hold it.
+pub const BUCKET_GC: PermissionName = PermissionName::known("bucket", "gc");
+/// Re-hash a sample of the bucket's objects and record when each was found intact, as ace3's `ace cas
+/// verify` does. Only the scheduler's `scheduler:bucket_verify` holds it.
+pub const BUCKET_VERIFY: PermissionName = PermissionName::known("bucket", "verify");
 /// Enter the GUI's administration area: ace3's `admin:read`, its umbrella gate. Each page there needs its
 /// own permission too, such as `user:read` for Users & Roles.
 pub const ADMIN_READ: PermissionName = PermissionName::known("admin", "read");
@@ -309,6 +316,16 @@ pub static CATALOG: &[CatalogEntry] = &[
     CatalogEntry {
         name: ALERT_WRITE,
         description: "Change alerts, such as their disposition.",
+    },
+    CatalogEntry {
+        name: BUCKET_GC,
+        description: "Delete what the bucket's index no longer keeps: objects nothing has held for their pool's \
+                      grace, expired holds, and bytes with no index row. The scheduler holds it.",
+    },
+    CatalogEntry {
+        name: BUCKET_VERIFY,
+        description: "Re-hash a sample of the bucket's objects and record when each was found intact. The \
+                      scheduler holds it.",
     },
     CatalogEntry {
         name: CLI_EXECUTE,

@@ -1,0 +1,59 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT due_at, schedule, run_id, now() AS \"now!\" FROM scheduler.tasks\n           WHERE name = $1 AND due_at <= now() AND (lease_until IS NULL OR lease_until < now())\n           FOR UPDATE SKIP LOCKED",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "due_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "scheduler.tasks",
+            "name": "due_at"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "schedule",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "scheduler.tasks",
+            "name": "schedule"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "run_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "scheduler.tasks",
+            "name": "run_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "now!",
+        "type_info": "Timestamptz",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      null
+    ]
+  },
+  "hash": "ec604597d8e5c7175d4ee651f22e61ba3adda62cc4d9536aa42c001002f7c74a"
+}

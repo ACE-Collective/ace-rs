@@ -24,7 +24,8 @@
 //! Each kind of thing an ace3 integration can add (`ace3/docs/INTEGRATIONS.md`) becomes an entry
 //! here once its feature exists in ace4: analysis modules and observable types (2.31), analysis
 //! templates and observable actions (5.9, `analysis_view`, `observable_action`), hunt types (6.2,
-//! `hunt_type`), correlation command types (6.6, `command_type`), collectors with the first collector (6.1), and the rest with the phases that build
+//! `hunt_type`), correlation command types (6.6, `command_type`), scheduled tasks (6.7,
+//! `scheduled_task`), collectors with the first collector (6.1), and the rest with the phases that build
 //! them.
 //!
 //! Everything here reads its configuration from the environment and the site overlay at run
@@ -36,6 +37,7 @@ mod compare;
 pub mod hunter;
 mod pools;
 mod root;
+pub mod scheduler;
 mod schema;
 mod serve;
 mod task;
@@ -63,6 +65,7 @@ pub struct App {
     actions: ace_gui::ObservableActions,
     hunt_types: Vec<Arc<dyn ace_hunt::HuntType>>,
     command_types: Vec<(String, CommandTypeFactory)>,
+    scheduled_tasks: Vec<scheduler::Task>,
 }
 
 /// What builds a correlation command type: the handler, or why it can't be built, in the words a
@@ -164,6 +167,25 @@ impl App {
         self.command_types.retain(|(n, _)| n != name);
         self.command_types.push((name.to_owned(), Arc::new(build)));
         self
+    }
+
+    /// Adds a scheduled task to `ace serve`'s scheduler (PLAN.md 6.7), as an ace3 integration adds an
+    /// executable to its `etc/cron/<cadence>/`. One with a core task's name takes its place. It acts as
+    /// the component `scheduler:<name>`, which holds only what a grant gives it.
+    pub fn scheduled_task(mut self, task: scheduler::Task) -> App {
+        self.scheduled_tasks.retain(|t| t.name != task.name);
+        self.scheduled_tasks.push(task);
+        self
+    }
+
+    /// The scheduler's tasks: the core's (`scheduler::Task::builtin`) and the site's.
+    pub fn scheduled_tasks(&self) -> Vec<scheduler::Task> {
+        let mut tasks: Vec<scheduler::Task> = scheduler::Task::builtin()
+            .into_iter()
+            .filter(|t| !self.scheduled_tasks.iter().any(|s| s.name == t.name))
+            .collect();
+        tasks.extend(self.scheduled_tasks.iter().cloned());
+        tasks
     }
 
     /// The correlation command types, built: ace3's `load_command_types_from_config`.

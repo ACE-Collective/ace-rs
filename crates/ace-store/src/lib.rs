@@ -354,7 +354,17 @@ impl Store {
     /// The keys in the bucket that start with `prefix`. Only maintenance and tests list the
     /// bucket; the index decides what exists.
     pub async fn list(&self, prefix: &str) -> Result<Vec<String>, StoreError> {
-        let mut keys = Vec::new();
+        Ok(self
+            .list_entries(prefix)
+            .await?
+            .into_iter()
+            .map(|entry| entry.key)
+            .collect())
+    }
+
+    /// `list`, with each key's size and when it was last written, as the orphan sweep needs.
+    pub async fn list_entries(&self, prefix: &str) -> Result<Vec<Listed>, StoreError> {
+        let mut entries = Vec::new();
         let mut pages = self
             .s3
             .list_objects_v2()
@@ -364,14 +374,49 @@ impl Store {
             .send();
         while let Some(page) = pages.next().await {
             let page = page.map_err(|e| bucket_error("list", prefix.to_owned(), e))?;
-            keys.extend(
-                page.contents()
-                    .iter()
-                    .filter_map(|object| object.key().map(str::to_owned)),
-            );
+            entries.extend(page.contents().iter().filter_map(|object| {
+                Some(Listed {
+                    key: object.key()?.to_owned(),
+                    size: u64::try_from(object.size().unwrap_or_default()).unwrap_or_default(),
+                    // a server that gives no time gets the epoch, so it counts as old
+                    modified_seconds: object.last_modified().map_or(0, |t| t.secs()),
+                })
+            }));
         }
-        Ok(keys)
+        Ok(entries)
     }
+
+    /// Downloads the object from the bucket, past this node's cache, and checks its bytes against
+    /// its name: what ace3's `cas verify` does to a sample. `NotFound` when the bucket hasn't got
+    /// it, `Integrity` when its bytes hash to something else. The download is thrown away.
+    pub async fn verify(&self, pool: &str, sha256: &Sha256) -> Result<(), StoreError> {
+        let key = Store::key(pool, sha256)?;
+        self.spool_key(&key, sha256).await.map(drop)
+    }
+
+    /// Writes `bytes` under `key` as they are, whatever their hash. For tests that need bytes the
+    /// index doesn't know of, or bytes that don't match their name.
+    #[doc(hidden)]
+    pub async fn put_raw(&self, key: &str, bytes: Vec<u8>) -> Result<(), StoreError> {
+        self.s3
+            .put_object()
+            .bucket(&self.bucket)
+            .key(key)
+            .body(ByteStream::from(bytes))
+            .send()
+            .await
+            .map_err(|e| bucket_error("put", key.to_owned(), e))?;
+        Ok(())
+    }
+}
+
+/// A key `Store::list_entries` found.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Listed {
+    pub key: String,
+    pub size: u64,
+    /// When it was last written, in seconds since the epoch.
+    pub modified_seconds: i64,
 }
 
 fn presigning(expires: std::time::Duration, key: &str) -> Result<PresigningConfig, StoreError> {

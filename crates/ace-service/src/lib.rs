@@ -59,6 +59,10 @@
 //! `lists` keeps the analyst-edited lists (5.14), such as the email module's whitelists, which the lease
 //! API adds to the tasks of the modules that read them.
 //!
+//! `maintenance` holds the bucket's scheduled maintenance (PLAN.md 6.7): GC, the orphan sweep and the
+//! verify, each under its own permission, which only the scheduler's components hold. `yara_qa` holds the
+//! prune of expired QA matches.
+//!
 //! `filters` is the filter model of a list screen (5.10), ace3's filter language and share links, which the
 //! alert list (`alerts`) and the detection points (`detection_points`) take, and `saved_filters` keeps an
 //! analyst's saved filters, ace3's `saved_filters` router.
@@ -66,8 +70,8 @@
 //! Writes outside this crate today:
 //! - `Orchestrator::set_mode` and `queue::cancel_root` have no caller outside the core's own flows
 //!   and tests. Each gets a function here when a route for it appears (5.5, 5.6).
-//! - The lease API, `Orchestrator::land_result`, the reaper, the ruleset builder and the QA recorder
-//!   stay out for good. They are the engine's own writes, not requests: a pool authenticates with
+//! - The lease API, `Orchestrator::land_result`, the reaper, the ruleset builder, the QA recorder and
+//!   the scheduler's own rows (`ace_core::scheduler`) stay out for good. They are the engine's own writes, not requests: a pool authenticates with
 //!   its token, and a task's row names its `lease_owner`. So do a GUI command's claim, reports and end
 //!   (5.12), which its pool makes; its start and cancel are here.
 
@@ -84,6 +88,7 @@ pub mod filters;
 mod gate;
 mod hunts;
 mod lists;
+mod maintenance;
 mod observable_comments;
 mod observables;
 mod permission;
@@ -151,15 +156,17 @@ pub use hunts::{
     Suppression, SuppressionPage, SuppressionReason,
 };
 pub use lists::{ListEntry, ListSummary, ListView, NewListEntry};
+pub use maintenance::{PoolGc, PoolOrphans, PoolVerify};
 pub use observable_comments::{CommentAuthor, MAX_COMMENT_CHARS, ObservableComment};
 pub use observables::{
     Lookup, MAX_EXCLUDED_ALERTS, MAX_LOOKUP_PAIRS, MAX_RECENT_ALERTS, OPEN, Prevalence, RecentAlert,
 };
 pub use permission::{
-    ADMIN_READ, ALERT_CREATE, ALERT_READ, ALERT_WRITE, CATALOG, CLI_EXECUTE, CRASH_READ,
-    CatalogEntry, EVENT_READ, EVENT_WRITE, Effect, HUNT_READ, HUNT_WRITE, InvalidPermission,
-    LIST_READ, LIST_WRITE, OBSERVABLE_READ, OBSERVABLE_WRITE, PermissionName, PermissionPattern,
-    SIGNATURE_DOWNLOAD, SIGNATURE_QA_PURGE, SIGNATURE_READ, USER_READ, USER_SELF, USER_WRITE,
+    ADMIN_READ, ALERT_CREATE, ALERT_READ, ALERT_WRITE, BUCKET_GC, BUCKET_VERIFY, CATALOG,
+    CLI_EXECUTE, CRASH_READ, CatalogEntry, EVENT_READ, EVENT_WRITE, Effect, HUNT_READ, HUNT_WRITE,
+    InvalidPermission, LIST_READ, LIST_WRITE, OBSERVABLE_READ, OBSERVABLE_WRITE, PermissionName,
+    PermissionPattern, SIGNATURE_DOWNLOAD, SIGNATURE_QA_PURGE, SIGNATURE_READ, USER_READ,
+    USER_SELF, USER_WRITE,
 };
 pub use preferences::{
     AlertSectionsPreference, MANAGE_COLUMNS, MAX_ALERT_SECTIONS, ManageColumn,
@@ -174,9 +181,9 @@ pub use source::with_source_ip;
 pub use users::{ApiKey, Grant, Group, MAX_KEY_SCOPE, Profile, User, UserDetail};
 pub use yara_qa::{
     MAX_PURGE_REASON, MAX_PURGE_VERSIONS, MAX_QA_DOWNLOAD_BYTES, MAX_QA_DOWNLOAD_FILES,
-    MAX_QA_PAGE, QaDownload, QaMatch, QaMatchDetail, QaMatchPage, QaMatchSummary, QaPurge,
-    QaPurged, QaRuleDetail, QaRuleFilter, QaRulePage, QaRuleSummary, QaRuleset, QaSort, QaStatus,
-    QaStringSummary, QaVersion,
+    MAX_QA_PAGE, QaDownload, QaMatch, QaMatchDetail, QaMatchPage, QaMatchSummary, QaPruned,
+    QaPurge, QaPurged, QaRuleDetail, QaRuleFilter, QaRulePage, QaRuleSummary, QaRuleset, QaSort,
+    QaStatus, QaStringSummary, QaVersion,
 };
 
 /// A group's id. Groups hold users, and their rows apply to their members.

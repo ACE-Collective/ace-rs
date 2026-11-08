@@ -923,4 +923,59 @@ impl Service {
             })
             .await
     }
+
+    /// ace3's daily `ace yara-qa prune` (PLAN.md 6.7): removes the matches past their expiry, 30 days
+    /// after the file last matched, with their holds on the files, in batches of `MAX_PURGE`, each batch
+    /// a transaction with its audit row listing the matches it removed. It stops at a batch that comes
+    /// back short. Expired matches are already not listed or served, so this only frees the rows and
+    /// lets the bucket's GC take a file nothing else holds. The scheduler's `yara_qa_prune` task calls
+    /// it as the component `scheduler:yara_qa_prune`, which migration 0036 grants `signature:qa_purge`,
+    /// the purge's own permission; ace3's prune runs under none.
+    pub async fn prune_qa_matches(&self, actor: &crate::Actor) -> Result<QaPruned, ServiceError> {
+        let mut pruned = QaPruned::default();
+        loop {
+            let removed = self
+                .gate
+                .write(actor, "prune_qa_matches", &SIGNATURE_QA_PURGE, &|tx| {
+                    Box::pin(async move {
+                        let removed = yara_qa::prune_expired_in(tx).await?;
+                        let count = removed.len();
+                        if removed.is_empty() {
+                            return Ok(Audited::unchanged(count));
+                        }
+                        let change = Change::removed(
+                            Target::expired_qa_matches(),
+                            &PurgedMatches {
+                                matches: removed
+                                    .iter()
+                                    .map(|p| PurgedMatch {
+                                        id: p.id,
+                                        signature_version: &p.signature_version,
+                                        sha256: &p.sha256,
+                                        root: p.root_id,
+                                    })
+                                    .collect(),
+                            },
+                        )?;
+                        Ok(Audited::changed(count, change))
+                    })
+                })
+                .await?;
+            pruned.removed += removed as u64;
+            if removed > 0 {
+                pruned.batches += 1;
+            }
+            if removed < MAX_PURGE {
+                return Ok(pruned);
+            }
+        }
+    }
+}
+
+/// What a prune of expired QA matches removed.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize)]
+pub struct QaPruned {
+    pub removed: u64,
+    /// Transactions that removed matches, each with its audit row.
+    pub batches: u64,
 }

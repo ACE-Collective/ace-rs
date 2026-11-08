@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO scheduler.tasks AS t (name, schedule, due_at) VALUES ($1, $2, $3)\n         ON CONFLICT (name) DO UPDATE SET schedule = EXCLUDED.schedule, due_at = EXCLUDED.due_at,\n             updated_at = now()\n         WHERE t.schedule <> EXCLUDED.schedule",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "627c4517fd5872f064abddf7bea99f76719aca8e8d3ee6fc457361401b9a3aed"
+}

@@ -99,6 +99,14 @@ impl Target {
         }
     }
 
+    /// The QA matches past their expiry, which a prune removes whatever rule they're of.
+    pub(crate) fn expired_qa_matches() -> Self {
+        Target {
+            kind: "yara_qa_matches",
+            id: "expired".to_owned(),
+        }
+    }
+
     /// A kept YARA QA match, by its id.
     pub(crate) fn qa_match(id: i64) -> Self {
         Target {

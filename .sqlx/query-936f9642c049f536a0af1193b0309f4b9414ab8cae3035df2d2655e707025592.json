@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE store.objects SET verified_at = now() WHERE pool = $1 AND sha256 = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "936f9642c049f536a0af1193b0309f4b9414ab8cae3035df2d2655e707025592"
+}

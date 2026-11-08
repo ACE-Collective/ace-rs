@@ -237,8 +237,47 @@ pub async fn purge_in(
     .fetch_all(tx.conn())
     .await?;
     purged.sort_by_key(|p| p.id);
-    // in hash order, so two purges lock the objects' rows in the same order
-    let mut holds: Vec<&Purged> = purged.iter().collect();
+    release_holds(tx, &purged).await?;
+    let remaining = sqlx::query_scalar!(
+        r#"SELECT count(*) AS "count!" FROM yara.qa_matches
+           WHERE signature_uuid = $1
+             AND ($2::text[] IS NULL OR signature_version = ANY($2))
+             AND ($3::bigint[] IS NULL OR id = ANY($3))"#,
+        signature_uuid,
+        versions,
+        ids,
+    )
+    .fetch_one(tx.conn())
+    .await?;
+    Ok((purged, remaining))
+}
+
+/// ace3's daily `ace yara-qa prune`, one batch: removes up to `MAX_PURGE` matches past their expiry,
+/// oldest expiry first, in the caller's transaction, and releases each one's hold on its file as a
+/// purge does, so the bucket's GC takes a file nothing else holds after its grace. A match the
+/// recorder is renewing right now is skipped, and its renewal keeps it. Returns what it removed;
+/// fewer than `MAX_PURGE` means none are left.
+pub async fn prune_expired_in(tx: &mut Tx<'_>) -> Result<Vec<Purged>, QaError> {
+    let limit = i64::try_from(MAX_PURGE).unwrap_or(i64::MAX);
+    let mut pruned: Vec<Purged> = sqlx::query_as!(
+        Purged,
+        "DELETE FROM yara.qa_matches WHERE id IN (
+             SELECT id FROM yara.qa_matches WHERE expires_at <= now()
+             ORDER BY expires_at, id LIMIT $1 FOR UPDATE SKIP LOCKED)
+         RETURNING id, signature_version, sha256, file_path, root_id",
+        limit,
+    )
+    .fetch_all(tx.conn())
+    .await?;
+    pruned.sort_by_key(|p| p.id);
+    release_holds(tx, &pruned).await?;
+    Ok(pruned)
+}
+
+/// Releases the holds of removed matches, in hash order, so two removals lock the objects' rows in
+/// the same order.
+async fn release_holds(tx: &mut Tx<'_>, removed: &[Purged]) -> Result<(), QaError> {
+    let mut holds: Vec<&Purged> = removed.iter().collect();
     holds.sort_by(|a, b| (&a.sha256, a.id).cmp(&(&b.sha256, b.id)));
     for match_ in holds {
         let sha256: Sha256 = match_
@@ -253,18 +292,7 @@ pub async fn purge_in(
         )
         .await?;
     }
-    let remaining = sqlx::query_scalar!(
-        r#"SELECT count(*) AS "count!" FROM yara.qa_matches
-           WHERE signature_uuid = $1
-             AND ($2::text[] IS NULL OR signature_version = ANY($2))
-             AND ($3::bigint[] IS NULL OR id = ANY($3))"#,
-        signature_uuid,
-        versions,
-        ids,
-    )
-    .fetch_one(tx.conn())
-    .await?;
-    Ok((purged, remaining))
+    Ok(())
 }
 
 /// The core's QA recorder: claims `yara_qa` tasks as `worker`, waking on the queue's

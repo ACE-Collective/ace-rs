@@ -52,7 +52,7 @@ use ace_service::{
     GroupId, GroupSuppressed, Holder, HuntRun, HuntState, HuntSubmission, HuntValidation,
     ListEntry, LoadedHuntRow, MAX_CRASHES_PAGE, MIN_PASSWORD_CHARS, MalwareChoice, MatchKind,
     NewEvent, NewListEntry, NewSession, Password, PermissionName, PermissionPattern, PreferenceKey,
-    PreferenceValue, Profile, QaPurge, QaRuleFilter, QaSort, QaStatus, RequestParts,
+    PreferenceValue, Profile, QaPruned, QaPurge, QaRuleFilter, QaSort, QaStatus, RequestParts,
     SESSION_LIFETIME_SECONDS, Service, ServiceError, SessionCookie, SuppressionReason, Theme,
     ThemePreference, Transport, USER_SELF, USER_WRITE, UserId, Username, with_source_ip,
 };
@@ -993,12 +993,14 @@ async fn an_actor_with_no_grants_is_refused_every_write() {
     assert_eq!(tasks(db, root).await, before_tasks);
     let (rows,): (i64,) = sqlx::query_as(
         "SELECT count(*) FROM service.permissions
-         WHERE component IS NULL OR component NOT IN ('bootstrap', 'hunter')",
+         WHERE component IS NULL
+            OR (component NOT IN ('bootstrap', 'hunter') AND component NOT LIKE 'scheduler:%')",
     )
     .fetch_one(db.pool())
     .await
     .expect("counts");
-    // the migrations' grants are the bootstrap's and the hunter's (0022, 0034)
+    // the migrations' grants are the bootstrap's, the hunter's and the scheduler's tasks' (0022, 0034,
+    // 0036)
     assert_eq!(rows, 0, "nothing was granted, and no admin was seeded");
 }
 
@@ -1500,6 +1502,7 @@ async fn every_write_function_has_an_audit_test() {
         download_qa_match_records_its_row(db).await,
         download_qa_matches_records_its_row(db).await,
         purge_qa_matches_records_its_row(db).await,
+        prune_qa_matches_records_its_row(db).await,
         add_observable_comment_records_its_row(db).await,
         edit_observable_comment_records_its_row(db).await,
         delete_observable_comment_records_its_row(db).await,
@@ -2385,6 +2388,83 @@ async fn purge_qa_matches_records_its_row(db: &Db) -> String {
     row.action
 }
 
+/// PLAN.md 6.7: the scheduler's daily prune removes the matches past their expiry with their own holds,
+/// in a batch with one row listing them, as the component the migration grants `signature:qa_purge`. A
+/// live match and its hold stay, a prune that finds nothing has no row, and one without the grant is
+/// refused.
+async fn prune_qa_matches_records_its_row(db: &Db) -> String {
+    let (bucket, _cache) = bucket(db);
+    let (root, observable) = file_alert(db, &bucket).await;
+    let uuid = "prune-these";
+    let expired = qa_match(db, &bucket, root, observable, uuid, "v1").await;
+    let live = qa_match(db, &bucket, root, observable, uuid, "v2").await;
+    expire_qa_match(db, expired).await;
+    let pruner = Actor::Internal {
+        id: Component::new("scheduler:yara_qa_prune").expect("valid"),
+    };
+    let sha256 = hex::encode(Sha256::digest(b"some file"));
+    let pruned = service(db)
+        .prune_qa_matches(&pruner)
+        .await
+        .expect("may prune");
+    assert_eq!(
+        pruned,
+        QaPruned {
+            removed: 1,
+            batches: 1
+        }
+    );
+    let row = last_audit(db).await;
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: json!({"kind": "internal", "id": "scheduler:yara_qa_prune"}),
+            action: "prune_qa_matches".to_owned(),
+            target: ("yara_qa_matches".to_owned(), "expired".to_owned()),
+            before: Some(json!({
+                "matches": [{"id": expired, "signature_version": "v1", "sha256": sha256, "root": root}],
+            })),
+            after: None,
+            details: json!({}),
+        }
+    );
+    let rows = audit_rows(db).await.len();
+    let nothing = service(db)
+        .prune_qa_matches(&pruner)
+        .await
+        .expect("may prune");
+    assert_eq!(nothing, QaPruned::default());
+    let reader = UserId(Uuid::from_u128(0x6C));
+    exists(db, &Holder::User(reader)).await;
+    assert!(matches!(
+        service(db).prune_qa_matches(&user(reader)).await,
+        Err(ServiceError::PermissionDenied { ref permission, .. })
+            if permission.to_string() == "signature:qa_purge"
+    ));
+    assert_eq!(audit_rows(db).await.len(), rows);
+    let holds = holds_on(db, &sha256).await;
+    assert!(holds.contains(&("yara_qa".to_owned(), live.to_string())));
+    assert!(!holds.contains(&("yara_qa".to_owned(), expired.to_string())));
+    row.action
+}
+
+/// Moves a QA match and its hold past their expiry.
+async fn expire_qa_match(db: &Db, id: i64) {
+    sqlx::query("UPDATE yara.qa_matches SET expires_at = now() - interval '1 day' WHERE id = $1")
+        .bind(id)
+        .execute(db.pool())
+        .await
+        .expect("expires the match");
+    sqlx::query(
+        "UPDATE store.holds SET expires_at = now() - interval '1 day'
+         WHERE holder_kind = 'yara_qa' AND holder_id = $1",
+    )
+    .bind(id.to_string())
+    .execute(db.pool())
+    .await
+    .expect("expires its hold");
+}
+
 /// ace3's listing: the QA rules of the current ruleset, matched or not, merged with the rules that have
 /// matches kept, filtered, ordered and paged; one rule with its versions; its matches newest first; and a
 /// match with its record. A match past its expiry isn't served. Each read needs signature:read and writes
@@ -3017,6 +3097,8 @@ async fn every_write_fails_when_its_audit_fails() {
     let (file_root, file) = file_alert(db, &bucket).await;
     let crash = failed_task(db, file_root, file, "crasher", "the module panicked").await;
     let qa = qa_match(db, &bucket, file_root, file, QA_UUID, "v1").await;
+    let expired_qa = qa_match(db, &bucket, file_root, file, "expired", "v1").await;
+    expire_qa_match(db, expired_qa).await;
     let (submitted, files) = submission(&bucket, b"another file").await;
     let comment = service
         .add_observable_comment(&actor, "fqdn", "evil.example.com", "before")
@@ -3252,6 +3334,14 @@ async fn every_write_fails_when_its_audit_fails() {
                         ..QaPurge::default()
                     },
                 )
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "prune_qa_matches",
+            service
+                .prune_qa_matches(&actor)
                 .await
                 .map(|_| ())
                 .expect_err("refused"),
