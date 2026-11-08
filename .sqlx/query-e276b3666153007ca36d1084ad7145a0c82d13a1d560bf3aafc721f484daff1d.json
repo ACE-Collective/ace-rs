@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM hunts.suppressions WHERE decided_at < $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e276b3666153007ca36d1084ad7145a0c82d13a1d560bf3aafc721f484daff1d"
+}

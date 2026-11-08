@@ -7,14 +7,34 @@
 //! fails with nothing written when the state moved since the run read it. So a run that dies before
 //! its commit leaves its window to the next run, and one that commits isn't run again.
 //!
-//! The `hunt` router reads [`Service::hunts`] and [`Service::hunt`] under `hunt:read`.
+//! **Suppression records** (PLAN.md 6.5, ace3 #840). ace3 drops a hit two ways, and says so only in
+//! a log line. A grouped hunt with a `suppression` drops a group that alerted less than `suppression`
+//! ago (`QueryHunt.process_query_results`); the hunter decides that ([`HuntRun::suppressed`]). And
+//! ace3's collector drops a submission whose dedup key it made a root for less than 4 hours ago
+//! (`DuplicateSubmissionFilter`), which [`Service::record_hunt_run`] does here, against
+//! `hunts.dedup_keys`. Each drop is a row of `hunts.suppressions` ([`Suppression`]): the hunt, the hit's
+//! key, group value, description and event time, the window it fell into, why, when, and the root of
+//! the earlier hit that opened the window. They're written in the run's transaction, with its roots
+//! and its state, so a run is never recorded without its decisions or the reverse.
+//!
+//! An ungrouped hunt with a `suppression` doesn't search while it's suppressed, so no hit is dropped and
+//! there's no row: the window is its state's `last_alert_time` plus the hunt's `suppression`.
+//!
+//! Growth: a run writes at most one row per submission it would have made, which its search's rows bound
+//! (`max_result_count`, 100 by default, which Splunk applies), and a grouped hunt makes one per group,
+//! with the rows it held as `events`. Rows go after [`SUPPRESSION_RETENTION`], in each run's
+//! transaction. ace3 keeps no such rows: its SVS keeps the first dropped match per SVS run and hunt
+//! (`svs_suppressed_matches`) while a run is open, which ace4 has no SVS for yet (7.10).
+//!
+//! The `hunt` router reads [`Service::hunts`], [`Service::hunt`] and [`Service::hunt_suppressions`]
+//! under `hunt:read`.
 
 use std::collections::BTreeMap;
 
 use ace_core::bucket::Bucket;
 use ace_core::submit::{Origin, Submission};
-use chrono::{DateTime, Utc};
-use serde::Serialize;
+use chrono::{DateTime, TimeDelta, Utc};
+use serde::{Deserialize, Serialize};
 use sqlx::types::Json;
 use uuid::Uuid;
 
@@ -64,21 +84,119 @@ pub struct HuntRow {
 pub struct HuntRun {
     pub kind: String,
     pub name: String,
+    /// The hunt's uuid, which its suppression rows are listed by.
+    pub uuid: String,
+    /// When the run read the clock, which its decisions are dated by.
+    pub at: DateTime<Utc>,
     /// The state the run started from.
     pub read: HuntState,
     /// The state after it.
     pub state: HuntState,
     pub window_start: Option<DateTime<Utc>>,
     pub window_end: Option<DateTime<Utc>>,
-    pub submissions: Vec<(Submission, Origin)>,
-    /// How many submissions a suppression dropped.
-    pub suppressed: usize,
+    /// What the run would submit, in order; a duplicate of a live dedup key is dropped here.
+    pub submissions: Vec<HuntSubmission>,
+    /// The submissions a group's suppression dropped.
+    pub suppressed: Vec<GroupSuppressed>,
 }
+
+/// A submission of a run, with the keys ace3 drops it by.
+#[derive(Debug, Clone)]
+pub struct HuntSubmission {
+    pub submission: Submission,
+    pub origin: Origin,
+    /// Its dedup key, `<hunt uuid>:<rendered dedup_key>`: ace3's collector drops a submission whose key
+    /// it made a root for less than [`DEDUP_KEY_LIFETIME`] ago.
+    pub dedup_key: Option<String>,
+    /// The key its group's alert time is kept under, for a grouped hunt.
+    pub suppression_key: Option<String>,
+    /// The `group_by` value that made it.
+    pub group_value: Option<serde_json::Value>,
+    /// How many of the search's rows it holds.
+    pub events: usize,
+}
+
+/// A submission a group's suppression dropped: its group alerted at `since`, less than the hunt's
+/// suppression before the run.
+#[derive(Debug, Clone)]
+pub struct GroupSuppressed {
+    pub key: String,
+    pub group_value: Option<serde_json::Value>,
+    pub description: String,
+    pub event_time: DateTime<Utc>,
+    pub events: usize,
+    pub since: DateTime<Utc>,
+    pub until: DateTime<Utc>,
+}
+
+/// How long a dedup key drops the submissions that repeat it: ace3's collector deletes a key 4 hours
+/// after its last update (`persistence_unmodified_expiration_seconds`) or 24 after it was made
+/// (`persistence_expiration_seconds`), and a key is never updated after it's made.
+pub const DEDUP_KEY_LIFETIME: TimeDelta = TimeDelta::hours(4);
+
+/// How long a suppression row is kept.
+pub const SUPPRESSION_RETENTION: TimeDelta = TimeDelta::days(30);
+
+/// Why a hit was dropped.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SuppressionReason {
+    /// Its group alerted within the hunt's `suppression`.
+    Group,
+    /// Its dedup key made a root within [`DEDUP_KEY_LIFETIME`].
+    Duplicate,
+}
+
+impl SuppressionReason {
+    fn as_str(self) -> &'static str {
+        match self {
+            SuppressionReason::Group => "group",
+            SuppressionReason::Duplicate => "duplicate",
+        }
+    }
+}
+
+/// A suppression decision: a hit a hunt dropped, why, and the earlier hit that dropped it.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct Suppression {
+    pub id: i64,
+    #[serde(rename = "type")]
+    pub kind: String,
+    pub name: String,
+    pub uuid: String,
+    pub reason: SuppressionReason,
+    /// The group's suppression key, or the dedup key.
+    pub key: String,
+    pub group_value: Option<serde_json::Value>,
+    pub description: String,
+    pub event_time: DateTime<Utc>,
+    pub events: i32,
+    /// The window it fell into, opened by the earlier hit.
+    pub window_start: DateTime<Utc>,
+    pub window_end: DateTime<Utc>,
+    /// The earlier hit's root, None when ace4 didn't make it.
+    pub cause_root: Option<Uuid>,
+    pub search_start: Option<DateTime<Utc>>,
+    pub search_end: Option<DateTime<Utc>>,
+    pub decided_at: DateTime<Utc>,
+}
+
+/// A page of a hunt's suppressions, newest first, and the cursor for the next, None on the last.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SuppressionPage {
+    pub suppressions: Vec<Suppression>,
+    pub next: Option<i64>,
+}
+
+const DEFAULT_SUPPRESSIONS_PAGE: u32 = 50;
+pub const MAX_SUPPRESSIONS_PAGE: u32 = 500;
 
 /// What recording a run made.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RunRecorded {
     pub roots: Vec<Uuid>,
+    /// The ids of the suppression rows it wrote, in the order it decided them.
+    pub suppressions: Vec<i64>,
 }
 
 #[derive(Serialize)]
@@ -87,6 +205,7 @@ struct RunDetails<'a> {
     window_end: Option<DateTime<Utc>>,
     roots: &'a [Uuid],
     suppressed: usize,
+    duplicates: usize,
 }
 
 impl Recorded for RunDetails<'_> {}
@@ -248,13 +367,7 @@ impl Service {
                             run.name, run.kind
                         )));
                     }
-                    let mut roots = Vec::with_capacity(run.submissions.len());
-                    for (submission, origin) in &run.submissions {
-                        let (submitted, _) =
-                            crate::submit::submit_in(tx, self, bucket, actor, submission, origin, &[])
-                                .await?;
-                        roots.push(submitted.uuid);
-                    }
+                    let recorded = record_decisions(tx, self, bucket, actor, run).await?;
                     sqlx::query!(
                         "UPDATE hunts.state
                          SET last_executed_time = $3, last_end_time = $4, last_alert_time = $5,
@@ -273,10 +386,11 @@ impl Service {
                         .details(&RunDetails {
                             window_start: run.window_start,
                             window_end: run.window_end,
-                            roots: &roots,
-                            suppressed: run.suppressed,
+                            roots: &recorded.roots,
+                            suppressed: run.suppressed.len(),
+                            duplicates: recorded.suppressions.len() - run.suppressed.len(),
                         })?;
-                    Ok(Audited::changed(RunRecorded { roots }, change))
+                    Ok(Audited::changed(recorded, change))
                 })
             })
             .await
@@ -334,6 +448,291 @@ impl Service {
         all.into_iter()
             .find(|h| h.hunt.uuid.as_deref() == Some(uuid))
             .ok_or_else(|| ServiceError::NotFound(format!("no hunt {uuid}")))
+    }
+}
+
+/// A suppression row to write.
+struct Decision<'a> {
+    reason: SuppressionReason,
+    key: &'a str,
+    group_value: Option<&'a serde_json::Value>,
+    description: &'a str,
+    event_time: DateTime<Utc>,
+    events: usize,
+    window_start: DateTime<Utc>,
+    window_end: DateTime<Utc>,
+    cause_root: Option<Uuid>,
+}
+
+async fn decide(
+    tx: &mut ace_core::db::Tx<'_>,
+    run: &HuntRun,
+    decision: &Decision<'_>,
+) -> Result<i64, ServiceError> {
+    let events = i32::try_from(decision.events).unwrap_or(i32::MAX);
+    Ok(sqlx::query_scalar!(
+        "INSERT INTO hunts.suppressions
+             (type, name, uuid, reason, key, group_value, description, event_time, events,
+              window_start, window_end, cause_root, search_start, search_end, decided_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+         RETURNING id",
+        run.kind,
+        run.name,
+        run.uuid,
+        decision.reason.as_str(),
+        decision.key,
+        decision.group_value.map(Json) as _,
+        decision.description,
+        decision.event_time,
+        events,
+        decision.window_start,
+        decision.window_end,
+        decision.cause_root,
+        run.window_start,
+        run.window_end,
+        run.at,
+    )
+    .fetch_one(tx.conn())
+    .await?)
+}
+
+/// A run's roots and its suppression decisions, in the run's transaction: a row for each group its
+/// suppression dropped, pointing at the root the group last alerted with, then each submission in order,
+/// dropped with a row when its dedup key made a root less than [`DEDUP_KEY_LIFETIME`] ago, as ace3's
+/// collector drops it, and submitted otherwise. Expired dedup keys and suppression rows past
+/// [`SUPPRESSION_RETENTION`] go first.
+async fn record_decisions(
+    tx: &mut ace_core::db::Tx<'_>,
+    service: &Service,
+    bucket: &Bucket,
+    actor: &Actor,
+    run: &HuntRun,
+) -> Result<RunRecorded, ServiceError> {
+    sqlx::query!(
+        "DELETE FROM hunts.dedup_keys WHERE created_at <= $1",
+        run.at - DEDUP_KEY_LIFETIME,
+    )
+    .execute(tx.conn())
+    .await?;
+    sqlx::query!(
+        "DELETE FROM hunts.suppressions WHERE decided_at < $1",
+        run.at - SUPPRESSION_RETENTION,
+    )
+    .execute(tx.conn())
+    .await?;
+    let mut recorded = RunRecorded {
+        roots: Vec::with_capacity(run.submissions.len()),
+        suppressions: Vec::new(),
+    };
+    for group in &run.suppressed {
+        let cause = sqlx::query_scalar!(
+            "SELECT root FROM hunts.alert_keys
+             WHERE type = $1 AND name = $2 AND hash = sha256(convert_to($3, 'UTF8'))",
+            run.kind,
+            run.name,
+            group.key,
+        )
+        .fetch_optional(tx.conn())
+        .await?;
+        let decision = Decision {
+            reason: SuppressionReason::Group,
+            key: &group.key,
+            group_value: group.group_value.as_ref(),
+            description: &group.description,
+            event_time: group.event_time,
+            events: group.events,
+            window_start: group.since,
+            window_end: group.until,
+            cause_root: cause,
+        };
+        recorded
+            .suppressions
+            .push(decide(tx, run, &decision).await?);
+    }
+    for hit in &run.submissions {
+        let seen = match &hit.dedup_key {
+            None => None,
+            Some(key) => sqlx::query!(
+                "SELECT root, created_at FROM hunts.dedup_keys
+                 WHERE hash = sha256(convert_to($1, 'UTF8')) AND created_at > $2",
+                key,
+                run.at - DEDUP_KEY_LIFETIME,
+            )
+            .fetch_optional(tx.conn())
+            .await?
+            .map(|r| (key, r.root, r.created_at)),
+        };
+        let root = match seen {
+            Some((key, cause, created_at)) => {
+                let decision = Decision {
+                    reason: SuppressionReason::Duplicate,
+                    key,
+                    group_value: hit.group_value.as_ref(),
+                    description: &hit.submission.description,
+                    event_time: hit.submission.event_time.unwrap_or(run.at),
+                    events: hit.events,
+                    window_start: created_at,
+                    window_end: created_at + DEDUP_KEY_LIFETIME,
+                    cause_root: Some(cause),
+                };
+                recorded
+                    .suppressions
+                    .push(decide(tx, run, &decision).await?);
+                cause
+            }
+            None => {
+                let (submitted, _) = crate::submit::submit_in(
+                    tx,
+                    service,
+                    bucket,
+                    actor,
+                    &hit.submission,
+                    &hit.origin,
+                    &[],
+                )
+                .await?;
+                if let Some(key) = &hit.dedup_key {
+                    sqlx::query!(
+                        "INSERT INTO hunts.dedup_keys (hash, root, created_at)
+                         VALUES (sha256(convert_to($1, 'UTF8')), $2, $3)
+                         ON CONFLICT (hash) DO UPDATE SET root = $2, created_at = $3",
+                        key,
+                        submitted.uuid,
+                        run.at,
+                    )
+                    .execute(tx.conn())
+                    .await?;
+                }
+                recorded.roots.push(submitted.uuid);
+                submitted.uuid
+            }
+        };
+        // the root the group's alert time now points to: ace3 records a group's alert time for a
+        // submission its collector then drops as a duplicate, so that one's is the earlier root
+        if let Some(key) = &hit.suppression_key
+            && run.state.last_alert_times.contains_key(key)
+        {
+            sqlx::query!(
+                "INSERT INTO hunts.alert_keys (type, name, hash, key, root)
+                 VALUES ($1, $2, sha256(convert_to($3, 'UTF8')), $3, $4)
+                 ON CONFLICT (type, name, hash) DO UPDATE SET root = $4",
+                run.kind,
+                run.name,
+                key,
+                root,
+            )
+            .execute(tx.conn())
+            .await?;
+        }
+    }
+    let kept: Vec<String> = run.state.last_alert_times.keys().cloned().collect();
+    sqlx::query!(
+        "DELETE FROM hunts.alert_keys WHERE type = $1 AND name = $2 AND NOT (key = ANY($3))",
+        run.kind,
+        run.name,
+        &kept,
+    )
+    .execute(tx.conn())
+    .await?;
+    Ok(recorded)
+}
+
+impl Service {
+    /// A page of a hunt's suppression decisions, newest first, of up to `limit` (50 when None, at most
+    /// [`MAX_SUPPRESSIONS_PAGE`]), after the row `after` names. NotFound when no loaded hunt has the uuid.
+    pub async fn hunt_suppressions(
+        &self,
+        actor: &Actor,
+        uuid: &str,
+        limit: Option<u32>,
+        after: Option<i64>,
+    ) -> Result<SuppressionPage, ServiceError> {
+        let limit = match limit.unwrap_or(DEFAULT_SUPPRESSIONS_PAGE) {
+            limit @ 1..=MAX_SUPPRESSIONS_PAGE => i64::from(limit),
+            limit => {
+                return Err(ServiceError::InvalidRequest(format!(
+                    "a page holds 1 to {MAX_SUPPRESSIONS_PAGE}, not {limit}"
+                )));
+            }
+        };
+        self.gate
+            .read(actor, "hunt_suppressions", &HUNT_READ, &|tx| {
+                Box::pin(async move {
+                    let known = sqlx::query_scalar!(
+                        r#"SELECT EXISTS (SELECT FROM hunts.hunts WHERE uuid = $1) AS "known!""#,
+                        uuid,
+                    )
+                    .fetch_one(tx.conn())
+                    .await?;
+                    if !known {
+                        return Err(ServiceError::NotFound(format!("no hunt {uuid}")));
+                    }
+                    if let Some(after) = after {
+                        let known = sqlx::query_scalar!(
+                            r#"SELECT EXISTS (SELECT FROM hunts.suppressions
+                                              WHERE id = $1 AND uuid = $2) AS "known!""#,
+                            after,
+                            uuid,
+                        )
+                        .fetch_one(tx.conn())
+                        .await?;
+                        if !known {
+                            return Err(ServiceError::InvalidRequest(format!(
+                                "the cursor {after} names no suppression of this hunt"
+                            )));
+                        }
+                    }
+                    let rows = sqlx::query!(
+                        r#"SELECT id, type, name, uuid, reason, key, group_value, description,
+                                  event_time, events, window_start, window_end, cause_root,
+                                  search_start, search_end, decided_at
+                           FROM hunts.suppressions
+                           WHERE uuid = $1 AND ($3::bigint IS NULL OR id < $3)
+                           ORDER BY id DESC
+                           LIMIT $2"#,
+                        uuid,
+                        limit + 1,
+                        after,
+                    )
+                    .fetch_all(tx.conn())
+                    .await?;
+                    let mut suppressions = Vec::with_capacity(rows.len());
+                    for r in rows {
+                        suppressions.push(Suppression {
+                            id: r.id,
+                            kind: r.r#type,
+                            name: r.name,
+                            uuid: r.uuid,
+                            reason: if r.reason == "group" {
+                                SuppressionReason::Group
+                            } else {
+                                SuppressionReason::Duplicate
+                            },
+                            key: r.key,
+                            group_value: r.group_value,
+                            description: r.description,
+                            event_time: r.event_time,
+                            events: r.events,
+                            window_start: r.window_start,
+                            window_end: r.window_end,
+                            cause_root: r.cause_root,
+                            search_start: r.search_start,
+                            search_end: r.search_end,
+                            decided_at: r.decided_at,
+                        });
+                    }
+                    let limit = usize::try_from(limit).unwrap_or(usize::MAX);
+                    let more = suppressions.len() > limit;
+                    suppressions.truncate(limit);
+                    let next = if more {
+                        suppressions.last().map(|s| s.id)
+                    } else {
+                        None
+                    };
+                    Ok(SuppressionPage { suppressions, next })
+                })
+            })
+            .await
     }
 }
 

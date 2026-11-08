@@ -3477,6 +3477,99 @@
         }
       }
     },
+    "/api/hunts/v1/hunts/{uuid}/suppressions": {
+      "get": {
+        "tags": [
+          "hunts"
+        ],
+        "summary": "The hits a hunt dropped, newest decision first, a page at a time. Follow `next` until it's null.",
+        "operationId": "suppressions",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "description": "The hunt's uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "How many, 1 to 500; 50 when left out.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "description": "The `next` of the previous page.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of suppression decisions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuppressionPageBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A limit out of range, or a cursor that names no suppression of this hunt",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold hunt:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No loaded hunt has that uuid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/hunts/v1/validate": {
       "post": {
         "tags": [
@@ -10561,6 +10654,136 @@
         },
         "additionalProperties": false
       },
+      "SuppressionBody": {
+        "type": "object",
+        "description": "A hit a hunt dropped (PLAN.md 6.5).",
+        "required": [
+          "id",
+          "type",
+          "name",
+          "uuid",
+          "reason",
+          "key",
+          "description",
+          "event_time",
+          "events",
+          "window_start",
+          "window_end",
+          "decided_at"
+        ],
+        "properties": {
+          "cause_root": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "The earlier hit's root; null when ace4 didn't make it."
+          },
+          "decided_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "description": {
+            "type": "string",
+            "description": "The root it would have been, as the hunt names it. Show it as text."
+          },
+          "event_time": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "events": {
+            "type": "integer",
+            "format": "int32",
+            "description": "How many of the search's rows it held."
+          },
+          "group_value": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Value",
+                "description": "The `group_by` value, for a grouped hunt."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "key": {
+            "type": "string",
+            "description": "The group's suppression key, or the dedup key."
+          },
+          "name": {
+            "type": "string"
+          },
+          "reason": {
+            "$ref": "#/components/schemas/SuppressionReasonBody"
+          },
+          "search_end": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "search_start": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "The window the run searched."
+          },
+          "type": {
+            "type": "string"
+          },
+          "uuid": {
+            "type": "string"
+          },
+          "window_end": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "window_start": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The window it fell into, from the earlier hit."
+          }
+        }
+      },
+      "SuppressionPageBody": {
+        "type": "object",
+        "required": [
+          "suppressions"
+        ],
+        "properties": {
+          "next": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "The `after` of the next page; null on the last."
+          },
+          "suppressions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SuppressionBody"
+            }
+          }
+        }
+      },
+      "SuppressionReasonBody": {
+        "type": "string",
+        "description": "Why a hunt dropped a hit.",
+        "enum": [
+          "group",
+          "duplicate"
+        ]
+      },
       "ThreatBody": {
         "type": "object",
         "description": "One of a malware's threat types.",
@@ -10788,6 +11011,7 @@
           }
         }
       },
+      "Value": {},
       "ZipBody": {
         "type": "string",
         "format": "binary",

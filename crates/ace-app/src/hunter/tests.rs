@@ -4,6 +4,12 @@
 //! send the same job forms, skip the same ticks and leave the same state. A difference in a submission
 //! is accepted only where `tools/ace3/hunts/differences.md` lists it, in its set `query`, whose Hunts
 //! column is `<hunt file> tick <n>`.
+//!
+//! PLAN.md 6.5: each tick that ran is recorded as `ace hunter` records it (`run_of`, then
+//! `Service::record_hunt_run`) in a test database, and its suppression rows are the decisions ace3
+//! made that tick: each group `record_suppressed` was handed, and each staged submission ace3's
+//! `DuplicateSubmissionFilter` dropped. Each row points at the root of the earlier hit, and every other
+//! submission is a root with no row.
 
 use std::path::{Path, PathBuf};
 
@@ -180,6 +186,9 @@ async fn the_cases_submit_as_ace3_s_hunter_does() {
     let hunts = copy_hunts(work.path());
     let mut differences = Vec::new();
     let mut compared = 0;
+    let recorder = Recorder::new().await;
+    let mut decisions = 0;
+    let mut reasons = std::collections::BTreeSet::new();
     for (name, ticks) in reference["cases"].as_object().expect("cases") {
         let hunt = ace_hunt::load_hunt(
             &hunts.join(name),
@@ -187,7 +196,11 @@ async fn the_cases_submit_as_ace3_s_hunter_does() {
             &LoadOptions::default(),
         )
         .unwrap_or_else(|e| panic!("{name}: {e}"));
+        recorder.loaded(&hunt, name).await;
         let mut state = State::default();
+        // the root each dedup key and each group's alert points to, as ace3's decisions say
+        let mut made: BTreeMap<String, (uuid::Uuid, DateTime<Utc>)> = BTreeMap::new();
+        let mut groups: BTreeMap<String, uuid::Uuid> = BTreeMap::new();
         for (i, tick) in ticks.as_array().expect("ticks").iter().enumerate() {
             let label = format!("{name} tick {i}");
             let now = DateTime::parse_from_rfc3339(tick["now"].as_str().expect("a time"))
@@ -253,6 +266,70 @@ async fn the_cases_submit_as_ace3_s_hunter_does() {
                     &mut differences,
                 );
                 compared += ace3.len();
+
+                let run = run_of(&hunt, to_service(&state), &ran, now);
+                let recorded = recorder
+                    .service
+                    .record_hunt_run(&recorder.actor, &recorder.bucket, &run)
+                    .await
+                    .unwrap_or_else(|e| panic!("{label}: {e}"));
+                let duplicates: Vec<usize> = tick["duplicates"]
+                    .as_array()
+                    .expect("duplicates")
+                    .iter()
+                    .map(|d| usize::try_from(d.as_u64().expect("an index")).expect("an index"))
+                    .collect();
+                let mut expected = Vec::new();
+                for group in tick["suppressed"].as_array().expect("suppressed") {
+                    let key = query::group_key(&group["group_value"]);
+                    expected.push(json!({
+                        "reason": "group",
+                        "key": key,
+                        "group_value": group["group_value"],
+                        "description": group["description"],
+                        "event_time": group["event_time"],
+                        "window_start": group["window_start"],
+                        "window_end": group["window_end"],
+                        "cause_root": groups.get(&key).map(ToString::to_string),
+                    }));
+                }
+                let tracks_groups =
+                    hunt.config.group_by.is_some() && schedule::suppression(&hunt.config).is_some();
+                let mut roots = recorded.roots.iter();
+                for (index, submission) in ace3.iter().enumerate() {
+                    let key = submission["key"].as_str().map(str::to_owned);
+                    let root = if duplicates.contains(&index) {
+                        let key = key.clone().expect("a duplicate has a key");
+                        let (cause, since) = made[&key];
+                        expected.push(json!({
+                            "reason": "duplicate",
+                            "key": key,
+                            "group_value": submission["group_value"],
+                            "description": submission["description"],
+                            "event_time": submission["event_time"],
+                            "window_start": isoformat(&since),
+                            "window_end": isoformat(&(since + ace_service::DEDUP_KEY_LIFETIME)),
+                            "cause_root": cause.to_string(),
+                        }));
+                        cause
+                    } else {
+                        let root = *roots
+                            .next()
+                            .unwrap_or_else(|| panic!("{label}: too few roots"));
+                        if let Some(key) = key {
+                            made.insert(key, (root, now));
+                        }
+                        root
+                    };
+                    if tracks_groups && !submission["group_value"].is_null() {
+                        groups.insert(query::group_key(&submission["group_value"]), root);
+                    }
+                }
+                assert!(roots.next().is_none(), "{label}: a root ace3 didn't make");
+                let rows = recorder.rows(&hunt, &recorded.suppressions).await;
+                assert_eq!(rows, expected, "{label}: the suppression rows");
+                decisions += rows.len();
+                reasons.extend(rows.iter().map(|r| r["reason"].to_string()));
             }
             assert_eq!(
                 state_json(&ran.state),
@@ -284,6 +361,101 @@ async fn the_cases_submit_as_ace3_s_hunter_does() {
         report.unused
     );
     assert!(compared >= 15, "compared only {compared} submissions");
+    assert!(
+        decisions >= 4 && reasons.len() == 2,
+        "only {decisions} decisions, {reasons:?}"
+    );
+}
+
+/// A test database to record the runs in, as `ace hunter` does.
+struct Recorder {
+    _db: ace_core::testing::TestDb,
+    _cache: tempfile::TempDir,
+    service: ace_service::Service,
+    bucket: ace_core::bucket::Bucket,
+    actor: ace_service::Actor,
+}
+
+impl Recorder {
+    async fn new() -> Recorder {
+        use ace_core::bucket::{Bucket, BucketSettings};
+        use ace_store::{BucketConfig, NodeCache, Store};
+
+        let db = ace_core::testing::TestDb::new().await;
+        let cache = tempfile::tempdir().expect("a cache directory");
+        let store = Store::new(
+            &BucketConfig::from_env().expect("the ACE4_BUCKET_* variables"),
+            NodeCache::new(cache.path(), 1 << 30).expect("a cache"),
+        );
+        let orchestrator = ace_core::orchestrator::Orchestrator::new(
+            ace_core::eligibility::Catalog::new(vec![]),
+            ace_core::modes::Modes::ace3(),
+        );
+        Recorder {
+            service: ace_service::Service::new(db.db().clone(), orchestrator),
+            bucket: Bucket::new(db.db().clone(), store, BucketSettings::default()),
+            actor: ace_service::Actor::Internal {
+                id: ace_service::Component::new("hunter").expect("valid"),
+            },
+            _db: db,
+            _cache: cache,
+        }
+    }
+
+    /// Records a hunt as loaded, so its suppressions can be listed by its uuid.
+    async fn loaded(&self, hunt: &Hunt, path: &str) {
+        let row = ace_service::LoadedHuntRow {
+            kind: "splunk".to_owned(),
+            path: path.to_owned(),
+            name: Some(hunt.config.name.clone()),
+            uuid: Some(hunt.config.uuid.clone()),
+            enabled: Some(hunt.config.enabled),
+            frequency: Some(hunt.config.frequency.clone()),
+            error: None,
+        };
+        let mut rows: Vec<ace_service::LoadedHuntRow> = self
+            .service
+            .hunts(&self.actor)
+            .await
+            .expect("lists")
+            .into_iter()
+            .map(|h| h.hunt)
+            .collect();
+        rows.push(row);
+        self.service
+            .sync_hunts(&self.actor, "splunk", &rows)
+            .await
+            .expect("records");
+    }
+
+    /// The rows a run wrote, as listed through the `hunt` router's service function, oldest first.
+    async fn rows(&self, hunt: &Hunt, ids: &[i64]) -> Vec<Json> {
+        let page = self
+            .service
+            .hunt_suppressions(&self.actor, &hunt.config.uuid, Some(500), None)
+            .await
+            .expect("lists");
+        let mut rows: Vec<&ace_service::Suppression> = page
+            .suppressions
+            .iter()
+            .filter(|s| ids.contains(&s.id))
+            .collect();
+        rows.sort_by_key(|s| s.id);
+        rows.into_iter()
+            .map(|s| {
+                json!({
+                    "reason": s.reason,
+                    "key": s.key,
+                    "group_value": s.group_value,
+                    "description": s.description,
+                    "event_time": isoformat(&s.event_time),
+                    "window_start": isoformat(&s.window_start),
+                    "window_end": isoformat(&s.window_end),
+                    "cause_root": s.cause_root.map(|r| r.to_string()),
+                })
+            })
+            .collect()
+    }
 }
 
 /// A submission reaches the core with its detection on its signature_id observable, its event time's

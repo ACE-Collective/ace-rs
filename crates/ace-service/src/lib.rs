@@ -145,7 +145,11 @@ pub use filters::events::{
 };
 pub use filters::{FilterEntry, FilterScreen, FilterValue};
 pub use gate::Holder;
-pub use hunts::{HuntRow, HuntRun, HuntState, HuntValidation, LoadedHuntRow, RunRecorded};
+pub use hunts::{
+    DEDUP_KEY_LIFETIME, GroupSuppressed, HuntRow, HuntRun, HuntState, HuntSubmission,
+    HuntValidation, LoadedHuntRow, MAX_SUPPRESSIONS_PAGE, RunRecorded, SUPPRESSION_RETENTION,
+    Suppression, SuppressionPage, SuppressionReason,
+};
 pub use lists::{ListEntry, ListSummary, ListView, NewListEntry};
 pub use observable_comments::{CommentAuthor, MAX_COMMENT_CHARS, ObservableComment};
 pub use observables::{

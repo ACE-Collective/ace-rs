@@ -11,6 +11,10 @@
 //! `alert:create`, `hunt:read` and `hunt:write`. The state lives in Postgres, so a restart neither
 //! searches a window again nor skips one. Hunts reload every `reload_seconds`.
 //!
+//! Each hit a suppression drops is a row (PLAN.md 6.5, [`run_of`]): a group a grouped hunt's
+//! `suppression` drops, decided here, and a duplicate of a dedup key, which ace3's collector drops and
+//! `Service::record_hunt_run` drops here, in the run's transaction (`ace_service`'s `hunts` docs).
+//!
 //! **Where it runs.** Its own process of the `ace` binary, as ace3's hunter is its own service. A
 //! search needs the Splunk instance's credentials, and 2.24 holds a process to the secrets it
 //! declares: `ace serve` holds the API's and none of a data source's, so the hunter isn't part of
@@ -29,9 +33,9 @@
 //! variables and the overlay at `ACE4_OVERLAY`.
 //!
 //! What waits: LogScale and Rapid7 hunts for their clients in 7.8 (their hunts load, and the
-//! hunter skips them, saying so); correlation hunts for 6.6; recording suppression decisions for 6.5
-//! (`Processed::suppressed` is the hook); a file mapping's files (three of the signatures' Splunk
-//! hunts have one), which are logged and dropped until the hunter spools files for submission.
+//! hunter skips them, saying so); correlation hunts for 6.6; a file mapping's files (three of the
+//! signatures' Splunk hunts have one), which are logged and dropped until the hunter spools files
+//! for submission.
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -462,6 +466,70 @@ pub fn to_core(submission: &query::Submission) -> (Submission, Origin) {
     (core, origin)
 }
 
+/// A tick that ran, as the service records it: its submissions with their dedup and suppression keys,
+/// and a row's worth for each submission a group's suppression dropped (PLAN.md 6.5).
+pub fn run_of(
+    hunt: &Hunt,
+    read: ace_service::HuntState,
+    tick: &Tick,
+    now: DateTime<Utc>,
+) -> ace_service::HuntRun {
+    let config = &hunt.config;
+    let state = from_service(read.clone());
+    let submissions = tick
+        .processed
+        .submissions
+        .iter()
+        .map(|s| {
+            let (submission, origin) = to_core(s);
+            ace_service::HuntSubmission {
+                submission,
+                origin,
+                dedup_key: s.key.clone(),
+                suppression_key: s
+                    .suppression_key
+                    .clone()
+                    .or_else(|| s.group_value.as_ref().map(query::group_key)),
+                group_value: s.group_value.clone(),
+                events: s.rows.len(),
+            }
+        })
+        .collect();
+    let suppressed = tick
+        .processed
+        .suppressed
+        .iter()
+        .filter_map(|(s, key)| {
+            let Some((since, until)) = schedule::group_suppression(config, &state, key, now) else {
+                tracing::error!(hunt = %config.name, key, "a suppressed group has no suppression window");
+                return None;
+            };
+            tracing::info!(hunt = %config.name, key, %until, "suppressed a group's alert");
+            Some(ace_service::GroupSuppressed {
+                key: key.clone(),
+                group_value: s.group_value.clone(),
+                description: s.description.clone(),
+                event_time: s.event_time,
+                events: s.rows.len(),
+                since,
+                until,
+            })
+        })
+        .collect();
+    ace_service::HuntRun {
+        kind: config.kind.clone(),
+        name: config.name.clone(),
+        uuid: config.uuid.clone(),
+        at: now,
+        read,
+        state: to_service(&tick.state),
+        window_start: tick.window.map(|w| w.start),
+        window_end: tick.window.map(|w| w.end),
+        submissions,
+        suppressed,
+    }
+}
+
 fn to_service(state: &State) -> ace_service::HuntState {
     ace_service::HuntState {
         last_executed_time: state.last_executed_time,
@@ -586,28 +654,22 @@ async fn hunt(app: &App) -> Result<ExitCode> {
                     }
                 };
                 let state = from_service(read.clone());
+                let now = Utc::now();
                 let tick = hunter
-                    .tick(&hunt, &state, &version, Utc::now(), stop.cancelled_owned())
+                    .tick(&hunt, &state, &version, now, stop.cancelled_owned())
                     .await;
-                if tick.skipped.is_some() || matches!(&tick.error, Some(e) if e.contains("stopped")) {
+                if tick.skipped.is_some() || matches!(&tick.error, Some(e) if e.contains("stopped"))
+                {
                     return;
                 }
-                // 6.5 records these
-                for (_, key) in &tick.processed.suppressed {
-                    tracing::info!(hunt = %config.name, key, "suppressed a group's alert");
-                }
-                let run = ace_service::HuntRun {
-                    kind: config.kind.clone(),
-                    name: config.name.clone(),
-                    read,
-                    state: to_service(&tick.state),
-                    window_start: tick.window.map(|w| w.start),
-                    window_end: tick.window.map(|w| w.end),
-                    submissions: tick.processed.submissions.iter().map(to_core).collect(),
-                    suppressed: tick.processed.suppressed.len(),
-                };
+                let run = run_of(&hunt, read, &tick, now);
                 match service.record_hunt_run(&actor, &bucket, &run).await {
-                    Ok(recorded) => tracing::info!(hunt = %config.name, roots = recorded.roots.len(), "recorded a hunt's run"),
+                    Ok(recorded) => tracing::info!(
+                        hunt = %config.name,
+                        roots = recorded.roots.len(),
+                        suppressed = recorded.suppressions.len(),
+                        "recorded a hunt's run"
+                    ),
                     Err(e) => tracing::error!(hunt = %config.name, "recording the hunt's run: {e}"),
                 }
             });

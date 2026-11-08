@@ -427,6 +427,7 @@ const ENTRIES: &str = "/api/lists/v1/lists/{list}/entries";
 const ENTRY: &str = "/api/lists/v1/lists/{list}/entries/{id}";
 const HUNTS: &str = "/api/hunts/v1/hunts";
 const HUNT: &str = "/api/hunts/v1/hunts/{uuid}";
+const SUPPRESSIONS: &str = "/api/hunts/v1/hunts/{uuid}/suppressions";
 const VALIDATE: &str = "/api/hunts/v1/validate";
 const OTHER_PASSWORD: &str = "a different long passphrase";
 
@@ -549,7 +550,7 @@ async fn refuses_without_a_credential_or_a_permission(
         .map(|(method, route, _)| (method, route))
         .filter(|route| !public.contains(route))
         .collect();
-    assert_eq!(routes.len(), 91, "{routes:?}");
+    assert_eq!(routes.len(), 92, "{routes:?}");
     for (method, route) in routes {
         let method: Method = method.to_uppercase().parse().expect("a method");
         let path = fill(&route, id, file);
@@ -5899,6 +5900,87 @@ async fn hunts_router(client: &mut Client<'_>) {
             S::NOT_FOUND,
         )
         .await;
+    // the hits a hunt dropped (PLAN.md 6.5), newest first, a page at a time
+    sqlx::query(
+        "INSERT INTO hunts.suppressions
+             (type, name, uuid, reason, key, group_value, description, event_time, events,
+              window_start, window_end, cause_root, search_start, search_end, decided_at)
+         VALUES
+             ('splunk', '<b>a</b>', 'uuid-a', 'duplicate', 'uuid-a:alice', NULL, '<script>alice</script>',
+              '2026-11-01T11:59:00Z', 1, '2026-11-01T11:00:00Z', '2026-11-01T15:00:00Z',
+              '00000000-0000-0000-0000-0000000000c1', '2026-11-01T11:50:00Z', '2026-11-01T12:00:00Z',
+              '2026-11-01T12:00:00Z'),
+             ('splunk', '<b>a</b>', 'uuid-a', 'group', '10.1.1.1', '\"10.1.1.1\"', 'a: 10.1.1.1',
+              '2026-11-01T12:05:00Z', 3, '2026-11-01T12:00:00Z', '2026-11-01T13:00:00Z', NULL,
+              '2026-11-01T12:00:00Z', '2026-11-01T12:10:00Z', '2026-11-01T12:10:00Z')",
+    )
+    .execute(db.pool())
+    .await
+    .expect("suppressions");
+    let path = SUPPRESSIONS.replace("{uuid}", "uuid-a");
+    let page = client
+        .json(
+            M::GET,
+            SUPPRESSIONS,
+            &format!("{path}?limit=1"),
+            r,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    let rows = page["suppressions"].as_array().expect("suppressions");
+    assert_eq!(rows.len(), 1);
+    assert_eq!(rows[0]["reason"], "group");
+    assert_eq!(rows[0]["group_value"], "10.1.1.1");
+    assert_eq!(rows[0]["events"], 3);
+    assert_eq!(rows[0]["window_end"], "2026-11-01T13:00:00Z");
+    assert_eq!(rows[0]["cause_root"], Value::Null);
+    let next = page["next"].as_i64().expect("another page");
+    let page = client
+        .json(
+            M::GET,
+            SUPPRESSIONS,
+            &format!("{path}?limit=1&after={next}"),
+            r,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    let rows = page["suppressions"].as_array().expect("suppressions");
+    assert_eq!(rows[0]["reason"], "duplicate");
+    assert_eq!(rows[0]["key"], "uuid-a:alice");
+    assert_eq!(rows[0]["description"], "<script>alice</script>", "as data");
+    assert_eq!(
+        rows[0]["cause_root"],
+        "00000000-0000-0000-0000-0000000000c1"
+    );
+    assert_eq!(page["next"], Value::Null);
+    for query in ["?limit=0", "?limit=501", "?after=999999", "?limit=x"] {
+        client
+            .json(
+                M::GET,
+                SUPPRESSIONS,
+                &format!("{path}{query}"),
+                r,
+                Send::Nothing,
+                S::BAD_REQUEST,
+            )
+            .await;
+    }
+    client
+        .json(
+            M::GET,
+            SUPPRESSIONS,
+            &SUPPRESSIONS.replace("{uuid}", "no-such"),
+            r,
+            Send::Nothing,
+            S::NOT_FOUND,
+        )
+        .await;
+    client
+        .json(M::GET, SUPPRESSIONS, &path, w, Send::Nothing, S::FORBIDDEN)
+        .await;
+
     // a reader can't validate, and a validator can't list
     client
         .json(

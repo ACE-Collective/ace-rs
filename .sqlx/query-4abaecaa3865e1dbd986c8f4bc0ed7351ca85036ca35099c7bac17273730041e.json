@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO hunts.alert_keys (type, name, hash, key, root)\n                 VALUES ($1, $2, sha256(convert_to($3, 'UTF8')), $3, $4)\n                 ON CONFLICT (type, name, hash) DO UPDATE SET root = $4",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4abaecaa3865e1dbd986c8f4bc0ed7351ca85036ca35099c7bac17273730041e"
+}

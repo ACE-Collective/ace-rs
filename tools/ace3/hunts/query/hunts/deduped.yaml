@@ -1,0 +1,12 @@
+include:
+  - includes/defaults.include.yaml
+rule:
+  uuid: 00000000-0000-0000-0000-00000000a012
+  name: "{{ user }} ran a tool"
+  description: one alert a row, a repeat of a user's key within 4 hours dropped by the collector as a duplicate
+  query: index=edr ace4case=deduped
+  frequency: "00:05:00"
+  dedup_key: "{{ user }}"
+  observable_mapping:
+    - field: user
+      type: user

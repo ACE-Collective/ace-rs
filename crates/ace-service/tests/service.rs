@@ -49,12 +49,12 @@ use ace_sdk::{Lookup, Manifest, Module, ModuleError, Outcome, TaskContext};
 use ace_service::{
     ALERT_WRITE, Actor, ApiKeyId, CATALOG, CampaignChoice, CommandState, Component, CrashFilter,
     CrashInput, DetectionPointFilter, Effect, EventChoice, EventEdit, EventRef, EventTimes,
-    GroupId, Holder, HuntRun, HuntState, HuntValidation, ListEntry, LoadedHuntRow,
-    MAX_CRASHES_PAGE, MIN_PASSWORD_CHARS, MalwareChoice, MatchKind, NewEvent, NewListEntry,
-    NewSession, Password, PermissionName, PermissionPattern, PreferenceKey, PreferenceValue,
-    Profile, QaPurge, QaRuleFilter, QaSort, QaStatus, RequestParts, SESSION_LIFETIME_SECONDS,
-    Service, ServiceError, SessionCookie, Theme, ThemePreference, Transport, USER_SELF, USER_WRITE,
-    UserId, Username, with_source_ip,
+    GroupId, GroupSuppressed, Holder, HuntRun, HuntState, HuntSubmission, HuntValidation,
+    ListEntry, LoadedHuntRow, MAX_CRASHES_PAGE, MIN_PASSWORD_CHARS, MalwareChoice, MatchKind,
+    NewEvent, NewListEntry, NewSession, Password, PermissionName, PermissionPattern, PreferenceKey,
+    PreferenceValue, Profile, QaPurge, QaRuleFilter, QaSort, QaStatus, RequestParts,
+    SESSION_LIFETIME_SECONDS, Service, ServiceError, SessionCookie, SuppressionReason, Theme,
+    ThemePreference, Transport, USER_SELF, USER_WRITE, UserId, Username, with_source_ip,
 };
 use ace_store::{BucketConfig, NodeCache, Store};
 use schemars::JsonSchema;
@@ -12515,10 +12515,12 @@ fn hunt_time(text: &str) -> chrono::DateTime<chrono::Utc> {
         .with_timezone(&chrono::Utc)
 }
 
-fn hunt_run(read: HuntState, submissions: Vec<(Submission, ace_core::submit::Origin)>) -> HuntRun {
+fn hunt_run(read: HuntState, submissions: Vec<HuntSubmission>) -> HuntRun {
     HuntRun {
         kind: "splunk".to_owned(),
         name: "hunt".to_owned(),
+        uuid: "00000000-0000-0000-0000-00000000a001".to_owned(),
+        at: hunt_time("2026-11-01T12:00:00Z"),
         read,
         state: HuntState {
             last_executed_time: Some(hunt_time("2026-11-01T12:00:00Z")),
@@ -12529,12 +12531,12 @@ fn hunt_run(read: HuntState, submissions: Vec<(Submission, ace_core::submit::Ori
         window_start: Some(hunt_time("2026-11-01T11:50:00Z")),
         window_end: Some(hunt_time("2026-11-01T12:00:00Z")),
         submissions,
-        suppressed: 0,
+        suppressed: vec![],
     }
 }
 
 /// A hunt's submission as the hunter makes one: its detection on its signature_id observable.
-fn hunt_submission() -> (Submission, ace_core::submit::Origin) {
+fn hunt_submission() -> HuntSubmission {
     let mut signature = NewObservable::new(
         ObservableKind::SignatureId,
         "00000000-0000-0000-0000-00000000a001",
@@ -12549,20 +12551,24 @@ fn hunt_submission() -> (Submission, ace_core::submit::Origin) {
     });
     let mut ip = NewObservable::new(ObservableKind::Ip, "10.1.2.3");
     ip.display_type = Some("Source IP".to_owned());
-    (
-        Submission {
+    HuntSubmission {
+        submission: Submission {
             description: "hunt: vpn".to_owned(),
             analysis_mode: Some("correlation".to_owned()),
             event_time: Some(hunt_time("2026-11-01T11:55:00Z")),
             observables: vec![],
             file_yara_meta: Default::default(),
         },
-        ace_core::submit::Origin {
+        origin: ace_core::submit::Origin {
             event_time_from_query: true,
             observables: vec![ip, signature],
             details: Some(json!({"alert_type": "hunter - splunk", "queue": "default"})),
         },
-    )
+        dedup_key: None,
+        suppression_key: None,
+        group_value: None,
+        events: 1,
+    }
 }
 
 async fn sync_hunts_records_its_row(db: &Db) -> String {
@@ -12647,6 +12653,7 @@ async fn record_hunt_run_records_its_row(db: &Db) -> String {
                 "window_end": "2026-11-01T12:00:00Z",
                 "roots": [root],
                 "suppressed": 0,
+                "duplicates": 0,
             }),
         }
     );
@@ -12731,6 +12738,246 @@ async fn a_hunt_run_commits_its_roots_with_its_state() {
             .await,
         Err(ServiceError::PermissionDenied { .. })
     ));
+}
+
+/// A grouped hunt's submission for one source address, keyed by its user.
+fn grouped_hit(ip: &str, user: &str) -> HuntSubmission {
+    let mut hit = hunt_submission();
+    hit.submission.description = format!("hunt: {ip}");
+    hit.dedup_key = Some(format!("00000000-0000-0000-0000-00000000a001:{user}"));
+    hit.suppression_key = Some(ip.to_owned());
+    hit.group_value = Some(json!(ip));
+    hit.events = 2;
+    hit
+}
+
+fn alerted(
+    keys: &[&str],
+    at: &str,
+) -> std::collections::BTreeMap<String, chrono::DateTime<chrono::Utc>> {
+    keys.iter()
+        .map(|k| ((*k).to_owned(), hunt_time(at)))
+        .collect()
+}
+
+/// PLAN.md 6.5: each hit a hunt drops is a row, in the run's transaction: a group its suppression
+/// drops, pointing at the root that group alerted with, and a duplicate of a live dedup key, pointing at
+/// the root that made the key. A hit neither drops leaves no row, and a key past its 4 hours drops
+/// nothing. The rows read back through `hunt_suppressions`, a page at a time.
+#[tokio::test]
+async fn a_suppressed_hit_leaves_a_row() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let (bucket, _cache) = bucket(db);
+    service
+        .sync_hunts(&hunter(), "splunk", &[loaded_hunt("a.yaml")])
+        .await
+        .expect("records");
+    let uuid = "00000000-0000-0000-0000-00000000a001";
+    let count = || async {
+        sqlx::query_scalar::<_, i64>("SELECT count(*) FROM hunts.suppressions")
+            .fetch_one(db.pool())
+            .await
+            .expect("counts")
+    };
+
+    // 12:00: two groups alert; the third hit repeats the first's dedup key in the same run
+    let mut first = hunt_run(
+        HuntState::default(),
+        vec![
+            grouped_hit("10.9.9.9", "alice"),
+            grouped_hit("10.8.8.8", "bob"),
+            grouped_hit("10.7.7.7", "alice"),
+        ],
+    );
+    first.state.last_alert_time = None;
+    first.state.last_alert_times = alerted(
+        &["10.9.9.9", "10.8.8.8", "10.7.7.7"],
+        "2026-11-01T12:00:00Z",
+    );
+    let one = service
+        .record_hunt_run(&hunter(), &bucket, &first)
+        .await
+        .expect("records");
+    assert_eq!(one.roots.len(), 2, "the duplicate makes no root");
+    assert_eq!(one.suppressions.len(), 1);
+    let page = service
+        .hunt_suppressions(&hunter(), uuid, None, None)
+        .await
+        .expect("reads");
+    let duplicate = &page.suppressions[0];
+    assert_eq!(duplicate.reason, SuppressionReason::Duplicate);
+    assert_eq!(duplicate.key, "00000000-0000-0000-0000-00000000a001:alice");
+    assert_eq!(duplicate.group_value, Some(json!("10.7.7.7")));
+    assert_eq!(duplicate.description, "hunt: 10.7.7.7");
+    assert_eq!(duplicate.events, 2);
+    assert_eq!(
+        duplicate.cause_root,
+        Some(one.roots[0]),
+        "the root that made the key"
+    );
+    assert_eq!(
+        (duplicate.window_start, duplicate.window_end),
+        (
+            hunt_time("2026-11-01T12:00:00Z"),
+            hunt_time("2026-11-01T16:00:00Z")
+        )
+    );
+    assert_eq!(duplicate.decided_at, hunt_time("2026-11-01T12:00:00Z"));
+    assert_eq!(
+        duplicate.search_start,
+        Some(hunt_time("2026-11-01T11:50:00Z"))
+    );
+    assert_eq!(page.next, None);
+
+    // 12:10: 10.9.9.9 alerted at 12:00 and its suppression lasts an hour; 10.6.6.6 is new
+    let read = service
+        .hunt_state(&hunter(), "splunk", "hunt")
+        .await
+        .expect("reads");
+    let mut second = hunt_run(read.clone(), vec![grouped_hit("10.6.6.6", "carol")]);
+    second.at = hunt_time("2026-11-01T12:10:00Z");
+    second.state.last_alert_time = None;
+    second.state.last_alert_times = read.last_alert_times.clone();
+    second
+        .state
+        .last_alert_times
+        .insert("10.6.6.6".to_owned(), hunt_time("2026-11-01T12:10:00Z"));
+    second.suppressed = vec![GroupSuppressed {
+        key: "10.9.9.9".to_owned(),
+        group_value: Some(json!("10.9.9.9")),
+        description: "hunt: 10.9.9.9".to_owned(),
+        event_time: hunt_time("2026-11-01T12:05:00Z"),
+        events: 1,
+        since: hunt_time("2026-11-01T12:00:00Z"),
+        until: hunt_time("2026-11-01T13:00:00Z"),
+    }];
+    // the same run, but read before the first committed, writes neither its roots nor its rows
+    let stale = HuntRun {
+        read: HuntState::default(),
+        ..second.clone()
+    };
+    let (roots, rows) = (root_count(db).await, count().await);
+    assert!(matches!(
+        service.record_hunt_run(&hunter(), &bucket, &stale).await,
+        Err(ServiceError::Conflict(_))
+    ));
+    assert_eq!((root_count(db).await, count().await), (roots, rows));
+    let two = service
+        .record_hunt_run(&hunter(), &bucket, &second)
+        .await
+        .expect("records");
+    assert_eq!(
+        two.roots.len(),
+        1,
+        "the new group alerts, and leaves no row"
+    );
+    assert_eq!(two.suppressions.len(), 1);
+    let page = service
+        .hunt_suppressions(&hunter(), uuid, None, None)
+        .await
+        .expect("reads");
+    assert_eq!(page.suppressions.len(), 2);
+    let group = &page.suppressions[0];
+    assert_eq!(group.reason, SuppressionReason::Group);
+    assert_eq!(group.key, "10.9.9.9");
+    assert_eq!(
+        group.cause_root,
+        Some(one.roots[0]),
+        "the root 10.9.9.9 alerted with"
+    );
+    assert_eq!(
+        (group.window_start, group.window_end),
+        (
+            hunt_time("2026-11-01T12:00:00Z"),
+            hunt_time("2026-11-01T13:00:00Z")
+        )
+    );
+    assert_eq!(group.event_time, hunt_time("2026-11-01T12:05:00Z"));
+    assert_eq!(group.decided_at, hunt_time("2026-11-01T12:10:00Z"));
+    let audit = last_audit(db).await;
+    assert_eq!(audit.details["suppressed"], 1);
+    assert_eq!(audit.details["duplicates"], 0);
+
+    // a page at a time, newest first
+    let first_page = service
+        .hunt_suppressions(&hunter(), uuid, Some(1), None)
+        .await
+        .expect("reads");
+    assert_eq!(first_page.suppressions[0].id, group.id);
+    let next = first_page.next.expect("another page");
+    let last_page = service
+        .hunt_suppressions(&hunter(), uuid, Some(1), Some(next))
+        .await
+        .expect("reads");
+    assert_eq!(last_page.suppressions[0].id, duplicate.id);
+    assert_eq!(last_page.next, None);
+    for (limit, after) in [(Some(0), None), (Some(501), None), (None, Some(i64::MAX))] {
+        assert!(matches!(
+            service
+                .hunt_suppressions(&hunter(), uuid, limit, after)
+                .await,
+            Err(ServiceError::InvalidRequest(_))
+        ));
+    }
+    assert!(matches!(
+        service
+            .hunt_suppressions(&hunter(), "no-such", None, None)
+            .await,
+        Err(ServiceError::NotFound(_))
+    ));
+    let other = Actor::Internal {
+        id: Component::new("not-the-hunter").expect("valid"),
+    };
+    assert!(matches!(
+        service.hunt_suppressions(&other, uuid, None, None).await,
+        Err(ServiceError::PermissionDenied { .. })
+    ));
+
+    // 16:05: alice's key was made at 12:00, so it's gone, and her hit alerts with no row; the groups'
+    // alert times have expired, so the roots they pointed to go too
+    let read = service
+        .hunt_state(&hunter(), "splunk", "hunt")
+        .await
+        .expect("reads");
+    let mut third = hunt_run(read, vec![grouped_hit("10.5.5.5", "alice")]);
+    third.at = hunt_time("2026-11-01T16:05:00Z");
+    third.state.last_alert_time = None;
+    third.state.last_alert_times = alerted(&["10.5.5.5"], "2026-11-01T16:05:00Z");
+    let three = service
+        .record_hunt_run(&hunter(), &bucket, &third)
+        .await
+        .expect("records");
+    assert_eq!((three.roots.len(), three.suppressions.len()), (1, 0));
+    let keys: Vec<(String, Uuid)> =
+        sqlx::query_as("SELECT key, root FROM hunts.alert_keys ORDER BY key")
+            .fetch_all(db.pool())
+            .await
+            .expect("reads");
+    assert_eq!(keys, vec![("10.5.5.5".to_owned(), three.roots[0])]);
+    let live: i64 = sqlx::query_scalar("SELECT count(*) FROM hunts.dedup_keys")
+        .fetch_one(db.pool())
+        .await
+        .expect("counts");
+    assert_eq!(
+        live, 2,
+        "alice's new key and carol's of 12:10; bob's expired"
+    );
+
+    // 31 days on, the rows are past their retention and go with the next run
+    let read = service
+        .hunt_state(&hunter(), "splunk", "hunt")
+        .await
+        .expect("reads");
+    let mut later = hunt_run(read, vec![]);
+    later.at = hunt_time("2026-12-02T16:05:00Z");
+    later.state.last_alert_time = None;
+    service
+        .record_hunt_run(&hunter(), &bucket, &later)
+        .await
+        .expect("records");
+    assert_eq!(count().await, 0);
 }
 
 fn validation() -> HuntValidation {

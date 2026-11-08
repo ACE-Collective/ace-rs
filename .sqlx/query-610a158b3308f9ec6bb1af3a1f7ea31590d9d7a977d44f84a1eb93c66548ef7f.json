@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO hunts.dedup_keys (hash, root, created_at)\n                         VALUES (sha256(convert_to($1, 'UTF8')), $2, $3)\n                         ON CONFLICT (hash) DO UPDATE SET root = $2, created_at = $3",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Uuid",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "610a158b3308f9ec6bb1af3a1f7ea31590d9d7a977d44f84a1eb93c66548ef7f"
+}

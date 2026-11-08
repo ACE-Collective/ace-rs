@@ -44,6 +44,8 @@ tracing = "0.1.44"
 uuid = { version = "1.29.0", features = ["serde", "v4"] }
 
 [dev-dependencies]
+# The hunter's test records its runs in a test database (PLAN.md 6.5).
+ace-core = { path = "../ace-core", features = ["testing"] }
 # The open-source parser pool's modules, for the unit test of the YARA module's ruleset directory.
 ace-mod-yara = { path = "../ace-mod-yara" }
 # The hunter's test replays ace3's exchanges with the fake Splunk.

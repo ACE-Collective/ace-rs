@@ -501,6 +501,10 @@ impl Web {
             .route("/api/hunts/v1/hunts", get(hunts::list))
             .route("/api/hunts/v1/hunts/{uuid}", get(hunts::one))
             .route(
+                "/api/hunts/v1/hunts/{uuid}/suppressions",
+                get(hunts::suppressions),
+            )
+            .route(
                 "/api/hunts/v1/validate",
                 post(hunts::validate_hunt).layer(json_limit),
             )
@@ -679,6 +683,7 @@ impl Web {
         observable_comments::delete,
         hunts::list,
         hunts::one,
+        hunts::suppressions,
         hunts::validate_hunt,
         lists::lists,
         lists::list,

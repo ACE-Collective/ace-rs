@@ -181,13 +181,20 @@ pub fn window(config: &HuntConfig, state: &State, now: DateTime<Utc>) -> Result<
 
 /// Whether a group's alerts are suppressed: it alerted less than `suppression` ago.
 pub fn group_suppressed(config: &HuntConfig, state: &State, key: &str, now: DateTime<Utc>) -> bool {
-    let Some(suppression) = suppression(config) else {
-        return false;
-    };
-    state
-        .last_alert_times
-        .get(key)
-        .is_some_and(|last| now < *last + suppression)
+    group_suppression(config, state, key, now).is_some()
+}
+
+/// The window a group's suppression drops its alerts in, when `now` is in it: from when it last
+/// alerted to `suppression` after.
+pub fn group_suppression(
+    config: &HuntConfig,
+    state: &State,
+    key: &str,
+    now: DateTime<Utc>,
+) -> Option<(DateTime<Utc>, DateTime<Utc>)> {
+    let suppression = suppression(config)?;
+    let last = *state.last_alert_times.get(key)?;
+    (now < last + suppression).then_some((last, last + suppression))
 }
 
 /// How a run ended, for [`record_run`].

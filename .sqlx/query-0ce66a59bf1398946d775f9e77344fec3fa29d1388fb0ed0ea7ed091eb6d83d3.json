@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM hunts.dedup_keys WHERE created_at <= $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "0ce66a59bf1398946d775f9e77344fec3fa29d1388fb0ed0ea7ed091eb6d83d3"
+}

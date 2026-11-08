@@ -4,6 +4,7 @@
 //! |---|---|
 //! | `POST /hunt/validate`, under `hunt:write` | `POST /api/hunts/v1/validate`, under `hunt:write`, audited |
 //! | (none: hunts are files, their state pickles on the node) | `GET /api/hunts/v1/hunts` and `GET /api/hunts/v1/hunts/{uuid}`, under `hunt:read` |
+//! | (none: a suppression is a log line, #840) | `GET /api/hunts/v1/hunts/{uuid}/suppressions?limit=&after=`, under `hunt:read`, newest first (PLAN.md 6.5) |
 //!
 //! A validation takes ace3's body, the `validate-hunt` CLI's compiled package (`compiled_hunt`: its
 //! target and its assets, with `__pkg__/` pointing at where they're written) and optional
@@ -30,16 +31,16 @@ use ace_hunt::query::observable::EmailNormalizer;
 use ace_hunt::query::{self, Context, schedule::State};
 use ace_hunt::render::Renderer;
 use ace_hunt::{HuntType, LoadOptions};
-use ace_service::{HuntRow, HuntState, HuntValidation};
+use ace_service::{HuntRow, HuntState, HuntValidation, Suppression, SuppressionReason};
 use axum::Json;
-use axum::extract::rejection::JsonRejection;
-use axum::extract::{Path, State as AxumState};
+use axum::extract::rejection::{JsonRejection, QueryRejection};
+use axum::extract::{Path, Query, State as AxumState};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map as JsonMap, Value as JsonValue, json};
-use utoipa::ToSchema;
+use utoipa::{IntoParams, ToSchema};
 
 use crate::Web;
 use crate::auth::Authenticated;
@@ -166,6 +167,122 @@ pub(crate) async fn one(
     Path(uuid): Path<String>,
 ) -> Result<Json<HuntBody>, ApiError> {
     Ok(Json(web.service.hunt(&actor, &uuid).await?.into()))
+}
+
+/// Why a hunt dropped a hit.
+#[derive(Debug, Serialize, ToSchema)]
+#[serde(rename_all = "snake_case")]
+pub(crate) enum SuppressionReasonBody {
+    /// Its group alerted within the hunt's `suppression`.
+    Group,
+    /// Its dedup key made a root less than 4 hours before, as ace3's collector drops duplicates.
+    Duplicate,
+}
+
+/// A hit a hunt dropped (PLAN.md 6.5).
+#[derive(Debug, Serialize, ToSchema)]
+pub(crate) struct SuppressionBody {
+    id: i64,
+    #[serde(rename = "type")]
+    kind: String,
+    name: String,
+    uuid: String,
+    reason: SuppressionReasonBody,
+    /// The group's suppression key, or the dedup key.
+    key: String,
+    /// The `group_by` value, for a grouped hunt.
+    group_value: Option<JsonValue>,
+    /// The root it would have been, as the hunt names it. Show it as text.
+    description: String,
+    event_time: DateTime<Utc>,
+    /// How many of the search's rows it held.
+    events: i32,
+    /// The window it fell into, from the earlier hit.
+    window_start: DateTime<Utc>,
+    window_end: DateTime<Utc>,
+    /// The earlier hit's root; null when ace4 didn't make it.
+    cause_root: Option<uuid::Uuid>,
+    /// The window the run searched.
+    search_start: Option<DateTime<Utc>>,
+    search_end: Option<DateTime<Utc>>,
+    decided_at: DateTime<Utc>,
+}
+
+impl From<Suppression> for SuppressionBody {
+    fn from(s: Suppression) -> Self {
+        SuppressionBody {
+            id: s.id,
+            kind: s.kind,
+            name: s.name,
+            uuid: s.uuid,
+            reason: match s.reason {
+                SuppressionReason::Group => SuppressionReasonBody::Group,
+                SuppressionReason::Duplicate => SuppressionReasonBody::Duplicate,
+            },
+            key: s.key,
+            group_value: s.group_value,
+            description: s.description,
+            event_time: s.event_time,
+            events: s.events,
+            window_start: s.window_start,
+            window_end: s.window_end,
+            cause_root: s.cause_root,
+            search_start: s.search_start,
+            search_end: s.search_end,
+            decided_at: s.decided_at,
+        }
+    }
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub(crate) struct SuppressionPageBody {
+    suppressions: Vec<SuppressionBody>,
+    /// The `after` of the next page; null on the last.
+    next: Option<i64>,
+}
+
+#[derive(Debug, Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
+pub(crate) struct SuppressionsQuery {
+    /// How many, 1 to 500; 50 when left out.
+    limit: Option<u32>,
+    /// The `next` of the previous page.
+    after: Option<i64>,
+}
+
+/// The hits a hunt dropped, newest decision first, a page at a time. Follow `next` until it's null.
+#[utoipa::path(
+    get,
+    path = "/api/hunts/v1/hunts/{uuid}/suppressions",
+    tag = "hunts",
+    params(("uuid" = String, Path, description = "The hunt's uuid"), SuppressionsQuery),
+    responses(
+        (status = 200, description = "A page of suppression decisions", body = SuppressionPageBody),
+        (status = 400, description = "A limit out of range, or a cursor that names no suppression of this hunt", body = ErrorBody),
+        (status = 401, description = "No credential, or one that isn't valid", body = ErrorBody),
+        (status = 403, description = "The actor doesn't hold hunt:read", body = ErrorBody),
+        (status = 404, description = "No loaded hunt has that uuid", body = ErrorBody),
+    )
+)]
+pub(crate) async fn suppressions(
+    Authenticated(actor): Authenticated,
+    AxumState(web): AxumState<Web>,
+    Path(uuid): Path<String>,
+    query: Result<Query<SuppressionsQuery>, QueryRejection>,
+) -> Result<Json<SuppressionPageBody>, ApiError> {
+    let Query(query) = query?;
+    let page = web
+        .service
+        .hunt_suppressions(&actor, &uuid, query.limit, query.after)
+        .await?;
+    Ok(Json(SuppressionPageBody {
+        suppressions: page
+            .suppressions
+            .into_iter()
+            .map(SuppressionBody::from)
+            .collect(),
+        next: page.next,
+    }))
 }
 
 /// A file of a compiled hunt package.

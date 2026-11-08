@@ -7,8 +7,8 @@
 //! all), named and described as ace3 does, with the observables the mappings take from the rows
 //! ([`extract`], [`observable`]), the hunt's tags, pivot links, playbook URL, summary details,
 //! dedup key and detection, each row's event time, and the details ace3 records. A grouped hunt with
-//! a suppression drops the groups that alerted within it, and [`Processed::suppressed`] lists them:
-//! 6.5 records those decisions.
+//! a suppression drops the groups that alerted within it, and [`Processed::suppressed`] lists them,
+//! which the hunter records as suppression rows (6.5).
 //!
 //! Correlation (`correlate`) is 6.6's: a hunt with one isn't processed here. The rest is pure: the
 //! hunter (`ace_app::hunter`) runs the search, keeps the state and submits.
@@ -122,7 +122,7 @@ pub struct Context<'a> {
 #[derive(Debug, Default)]
 pub struct Processed {
     pub submissions: Vec<Submission>,
-    /// The submissions a group's suppression dropped, with their keys: what 6.5 records.
+    /// The submissions a group's suppression dropped, with their keys, which the hunter records.
     pub suppressed: Vec<(Submission, String)>,
 }
 

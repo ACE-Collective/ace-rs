@@ -19,7 +19,17 @@ lives under the work directory, as ace3 keeps it under its data directory.
 
 Each tick starts the fake afresh with that tick's rows (--any-hostname: every search gets them),
 records every exchange, and the tick's entry in the output holds the exchanges, the submissions
-and the hunt's state after it. Times and the clock are fixed, so a run gives the same output each
+and the hunt's state after it.
+
+It also records each suppression decision (PLAN.md step 6.5). A grouped hunt's are what
+QueryHunt.process_query_results hands record_suppressed, which is replaced by a recorder, so
+nothing reaches ace3's SVS tables: each dropped submission's group value, description, event time,
+and the window its group's last alert time opened. A duplicate is what ace3's collector would do with
+the staged submissions: each goes through ace3's own DuplicateSubmissionFilter, in order, with the
+hunter service's persistence settings, over a store that keeps the keys in memory rather than in
+ace3's persistence table and expires them as Persistable.delete_expired_persistent_keys does, at the
+tick's clock rather than the database's. The collector clears expired keys every
+persistence_clear_seconds (60), and the ticks are minutes apart, so each tick clears first. Times and the clock are fixed, so a run gives the same output each
 time but for ace3's root uuids, which aren't written.
 """
 
@@ -217,16 +227,66 @@ class CapturingFileManager:
     def __init__(self, staging):
         self.staging = staging
         self.staged = []
+        self.keys = []
 
     def get_staging_tmp_dir(self):
         return self.staging
 
     def stage_submission(self, submission):
         self.staged.append(submission_normal(submission))
+        self.keys.append(submission.key)
         return self.staging
 
     def list_staged_submissions(self):
         return []
+
+
+class ClockPersistence:
+    """The persistence the collector's DuplicateSubmissionFilter keeps its keys in, in memory: a key's
+    created_at and last_update, at the tick's clock."""
+
+    persistence_source = "hunter"
+
+    def __init__(self):
+        self.keys = {}
+
+    def persistent_data_exists(self, key_name):
+        return truncate(key_name) in self.keys
+
+    def save_persistent_key(self, key_name):
+        # save_persistent_data's INSERT ... ON DUPLICATE KEY UPDATE last_update
+        key_name = truncate(key_name)
+        created = self.keys.get(key_name, (CLOCK.now, None))[0]
+        self.keys[key_name] = (created, CLOCK.now)
+
+    def delete_expired_persistent_keys(self, expiration_timedelta, unmodified_expiration_timedelta):
+        # its two deletes, by created_at and by last_update
+        expiration_date = CLOCK.now - expiration_timedelta
+        unmodified_expiration_date = CLOCK.now - unmodified_expiration_timedelta
+        self.keys = {k: (created, updated) for k, (created, updated) in self.keys.items()
+                     if not created < expiration_date and not updated < unmodified_expiration_date}
+
+
+def truncate(key_name):
+    from saq.persistence import truncate_key
+
+    return truncate_key(key_name)
+
+
+SUPPRESSED = []
+
+
+def record_suppressed(hunt, suppressed):
+    """Stands in for QueryHunt.record_suppressed: what the hunt dropped, and the window of each."""
+    for root, group_value in suppressed:
+        since = hunt.last_alert_times.get(group_value)
+        SUPPRESSED.append({
+            "group_value": group_value,
+            "description": root.description,
+            "event_time": iso(root.event_time),
+            "window_start": iso(since),
+            "window_end": iso(since + hunt.suppression) if since is not None else None,
+        })
 
 
 def start_fake(fake, work, tick_dir, rows, running_polls):
@@ -286,9 +346,15 @@ def main():
         runs = yaml.safe_load(fp)
     hunts_dir = setup(work, os.path.abspath(args.cases))
 
+    from saq.collectors.duplicate_filter import DuplicateSubmissionFilter
     from saq.collectors.hunter.manager import HuntManager
+    from saq.collectors.hunter.query_hunter import QueryHunt
     from saq.collectors.hunter.splunk_hunter import SplunkHunt
-    from saq.constants import ExecutionMode
+    from saq.configuration.config import get_service_config
+    from saq.constants import SERVICE_HUNTER, ExecutionMode
+
+    QueryHunt.record_suppressed = record_suppressed
+    service_config = get_service_config(SERVICE_HUNTER)
 
     output = {}
     for name in sorted(runs):
@@ -300,6 +366,8 @@ def main():
         manager.wait_control_event = threading.Event()
         hunt = SplunkHunt(manager=manager, hunt_config_file_path=os.path.join(hunts_dir, name))
         hunt.semaphore = None
+        persistence = ClockPersistence()
+        duplicate_filter = DuplicateSubmissionFilter(persistence, service_config)
         ticks = []
         for index, tick in enumerate(runs[name]):
             CLOCK.now = datetime.datetime.fromisoformat(tick["now"])
@@ -318,12 +386,26 @@ def main():
                 process = start_fake(args.fake, work, tick_dir, tick["rows"], tick.get("running_polls", 0))
                 try:
                     file_manager.staged = []
+                    file_manager.keys = []
+                    SUPPRESSED.clear()
                     manager.execute_threaded_hunt(hunt)
                 finally:
                     process.terminate()
                     process.wait()
                 entry["exchanges"] = exchanges(tick_dir)
                 entry["submissions"] = file_manager.staged
+                entry["suppressed"] = list(SUPPRESSED)
+                # Collector.process_submission and clear_expired_persistent_data, for what was staged
+                persistence.delete_expired_persistent_keys(
+                    datetime.timedelta(seconds=service_config.persistence_expiration_seconds),
+                    datetime.timedelta(seconds=service_config.persistence_unmodified_expiration_seconds))
+                entry["duplicates"] = []
+                for index, key in enumerate(file_manager.keys):
+                    if key:
+                        if duplicate_filter.is_duplicate(key):
+                            entry["duplicates"].append(index)
+                        else:
+                            duplicate_filter.mark_as_processed(key)
             entry["state"] = state(hunt)
             ticks.append(entry)
         output[name] = ticks

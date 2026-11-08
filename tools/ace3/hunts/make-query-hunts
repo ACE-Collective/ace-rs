@@ -6,9 +6,11 @@
 run_query_hunts.py runs in ace3's dev container (ace-dev-1) with the cases, hunts written for this
 comparison and the ticks each one runs at in runs.yaml, and tools/ace3/dumps/fake_splunk.py as the
 Splunk they search. It writes reference/query.json: for each tick, every exchange with the fake,
-the submissions ace3's hunter staged and the hunt's state after it. ace4's side is
-`ace_app::hunter`'s test, which replays those exchanges to ace4's hunter and diffs its submissions,
-searches and state with these.
+the submissions ace3's hunter staged, the hunt's state after it, and its suppression decisions
+(step 6.5): the groups a suppression dropped and the staged submissions ace3's collector would drop
+as duplicates. ace4's side is `ace_app::hunter`'s test, which replays those exchanges to ace4's
+hunter, diffs its submissions, searches and state with these, and records each run in a test
+database, where its suppression rows must be these decisions.
 
 Everything happens under /tmp/ace4-dumps/query in the container, and nothing reaches ace3's
 database: the hunter's file manager is replaced by one that records what it would stage. The cases

@@ -1,0 +1,210 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, type, name, uuid, reason, key, group_value, description,\n                                  event_time, events, window_start, window_end, cause_root,\n                                  search_start, search_end, decided_at\n                           FROM hunts.suppressions\n                           WHERE uuid = $1 AND ($3::bigint IS NULL OR id < $3)\n                           ORDER BY id DESC\n                           LIMIT $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "hunts.suppressions",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "type",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hunts.suppressions",
+            "name": "type"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hunts.suppressions",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "uuid",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hunts.suppressions",
+            "name": "uuid"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "reason",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hunts.suppressions",
+            "name": "reason"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "key",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hunts.suppressions",
+            "name": "key"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "group_value",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "hunts.suppressions",
+            "name": "group_value"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "description",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hunts.suppressions",
+            "name": "description"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "event_time",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "hunts.suppressions",
+            "name": "event_time"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "events",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "hunts.suppressions",
+            "name": "events"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "window_start",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "hunts.suppressions",
+            "name": "window_start"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "window_end",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "hunts.suppressions",
+            "name": "window_end"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "cause_root",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "hunts.suppressions",
+            "name": "cause_root"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "search_start",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "hunts.suppressions",
+            "name": "search_start"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "search_end",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "hunts.suppressions",
+            "name": "search_end"
+          }
+        }
+      },
+      {
+        "ordinal": 15,
+        "name": "decided_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "hunts.suppressions",
+            "name": "decided_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "f046b7e0b1cfc4e8e0a958e32bce3c17bcc2da61a9fe339d1ceab1f3f7a37e03"
+}
