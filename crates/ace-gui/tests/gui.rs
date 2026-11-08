@@ -15,6 +15,11 @@
 //!
 //! PLAN.md 5.11's saved_filters area: the manage page and the rename page drawn directly, and the moves and
 //! renames through the server, each write with its audit row and each refusal changing nothing.
+//!
+//! PLAN.md 5.11's admin area: the hub, Users & Roles, a user's and a group's pages, the grant confirm, a
+//! key's edit and the page showing a secret once, drawn directly, and through the server under
+//! `admin:read` and each page's own permission, each write with its audit row, each refusal changing
+//! nothing, and the self-harm the service refuses shown.
 
 use std::collections::BTreeSet;
 use std::io::Write;
@@ -1159,7 +1164,8 @@ impl tracing_subscriber::fmt::MakeWriter<'_> for Captured {
 
 /// 5.4's `no_credential_reaches_the_log`, through the routes: everything at TRACE, sqlx's statements and
 /// axum's included, while logins fail and succeed, a session is used, a key is made on the preferences
-/// page and a logout ends it, with no password, no session secret and no key's secret in it. The subscriber is global for the reason 5.4's test gives, so
+/// page, an administrator makes and resets a password and makes a key, and a logout ends it, with no
+/// password, no session secret and no key's secret in it. The subscriber is global for the reason 5.4's test gives, so
 /// this binary has no other test that sets one.
 #[tokio::test]
 async fn no_credential_reaches_the_log_through_the_routes() {
@@ -1219,6 +1225,62 @@ async fn no_credential_reaches_the_log_through_the_routes() {
         .and_then(|rest| rest.split('"').next())
         .expect("the token")
         .to_owned();
+    // an administrator's forms: a made password, a reset one, a typed one and a key's token
+    grant_to(&stack, &alice, "admin", "read").await;
+    grant_to(&stack, &alice, "user", "*").await;
+    let made = stack
+        .post(
+            "/admin/users",
+            &[("username", "carol"), ("password", ""), ("timezone", "UTC")],
+        )
+        .header("cookie", cookie(&second))
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(made.status(), StatusCode::CREATED);
+    let made_password = shown_secret(&made.text().await.expect("a page"));
+    let carol = stack
+        .service
+        .users(&alice, true)
+        .await
+        .expect("reads")
+        .into_iter()
+        .find(|user| user.username == "carol")
+        .expect("carol")
+        .id
+        .0;
+    let reset = stack
+        .post(
+            &format!("/admin/users/{carol}/password"),
+            &[("password", "")],
+        )
+        .header("cookie", cookie(&second))
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(reset.status(), StatusCode::OK);
+    let reset_password = shown_secret(&reset.text().await.expect("a page"));
+    let typed = "carol-s-typed-password";
+    stack
+        .post(
+            &format!("/admin/users/{carol}/password"),
+            &[("password", typed)],
+        )
+        .header("cookie", cookie(&second))
+        .send()
+        .await
+        .expect("answered");
+    let carols_key = stack
+        .post(
+            &format!("/admin/users/{carol}/keys"),
+            &[("name", "carol's"), ("mode", "inherit")],
+        )
+        .header("cookie", cookie(&second))
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(carols_key.status(), StatusCode::CREATED);
+    let carols_key = shown_secret(&carols_key.text().await.expect("a page"));
     let changed_to = "alice-s-changed-password";
     stack
         .post(
@@ -1257,6 +1319,9 @@ async fn no_credential_reaches_the_log_through_the_routes() {
         "a cross-site login was refused",
         "a GUI password change",
         "create_own_api_key",
+        "create_user",
+        "reset_password",
+        "create_api_key",
         "AUDIT",
         "service.sessions",
         "127.0.0.1",
@@ -1274,6 +1339,10 @@ async fn no_credential_reaches_the_log_through_the_routes() {
         secret(&second),
         secret(&third),
         secret(&key_token),
+        made_password,
+        reset_password,
+        typed.to_owned(),
+        secret(&carols_key),
     ] {
         assert!(!log.contains(&credential), "{credential} is in the log");
     }
@@ -4488,4 +4557,1412 @@ async fn saved_filters_are_renamed_and_reordered() {
     );
     let list = get("/".to_owned()).await.text().await.expect("a page");
     assert!(list.contains(">Renamed <span class=\"count\">"), "{list}");
+}
+
+// ---- PLAN.md 5.11's admin area ----
+
+use ace_gui::admin::{
+    AdminKeyPage, ConfirmGrantPage, GroupPage, HubPage, Named, SecretPage, UserPage, UsersPage,
+    gives, group_view, scope_choices, user_view, users_view,
+};
+use ace_service::{Group, GroupId, UserDetail};
+
+const HOSTILE_ESCAPED: &str = "&#34;&#62;&#60;script&#62;alert(&#39;x&#39;)&#60;/script&#62;&#60;img \
+                               src=x onerror=alert(1)&#62;&#38;amp;";
+
+fn fixture_grant(id: i64, major: &str, minor: &str, effect: Effect) -> Grant {
+    Grant {
+        id,
+        major: major.to_owned(),
+        minor: minor.to_owned(),
+        effect,
+    }
+}
+
+/// A drawn page: it holds the hostile text only escaped, and nothing inline.
+fn drawn_safely(page: &impl Template) -> String {
+    let html = page.render().expect("renders");
+    assert!(!html.contains("<script>alert"), "{html}");
+    assert!(!html.contains("<img"), "{html}");
+    assert!(inline_free(&html.replace(HOSTILE_ESCAPED, "")), "{html}");
+    html
+}
+
+/// The password or token a page shows once.
+fn shown_secret(page: &str) -> String {
+    page.split(r#"id="secret" class="token" type="text" value=""#)
+        .nth(1)
+        .and_then(|rest| rest.split('"').next())
+        .unwrap_or_else(|| panic!("a secret: {page}"))
+        .to_owned()
+}
+
+/// The area's view functions, called directly: the users list with each user's grants and groups, a
+/// user's page with what each grant gives and the self-harm notes, a group's page, the hub, the confirm
+/// for an allow covering `user:write`, a key's edit and the page that shows a secret once, each with
+/// hostile text escaped and nothing inline, and without `user:write` no forms.
+#[test]
+fn the_admin_views_draw_users_groups_grants_and_keys() {
+    let layout = || Layout::new("n", Theme::default(), Some("boss".to_owned()), "/admin");
+    let mut alice = fixture_user("alice");
+    alice.display_name = Some(HOSTILE.to_owned());
+    alice.email = Some(HOSTILE.to_owned());
+    let mut bob = fixture_user("bob");
+    bob.id = ace_service::UserId(uuid::Uuid::from_u128(2));
+    bob.enabled = false;
+    let group = Group {
+        id: GroupId(uuid::Uuid::from_u128(6)),
+        name: HOSTILE.to_owned(),
+        members: vec![alice.id],
+        grants: vec![fixture_grant(5, "user", "*", Effect::Allow)],
+    };
+    let other = Group {
+        id: GroupId(uuid::Uuid::from_u128(7)),
+        name: "readers".to_owned(),
+        members: vec![],
+        grants: vec![],
+    };
+    let alice_detail = UserDetail {
+        user: alice.clone(),
+        grants: vec![
+            fixture_grant(1, "*", "*", Effect::Allow),
+            fixture_grant(2, "signature", "download", Effect::Deny),
+        ],
+        groups: vec![group.clone()],
+    };
+    let bob_detail = UserDetail {
+        user: bob.clone(),
+        grants: vec![],
+        groups: vec![],
+    };
+    let mut service_key = fixture_key(0xB, "pipeline", &[("alert", "create", Effect::Allow)]);
+    service_key.owner = None;
+    let keys = [
+        fixture_key(0xA, HOSTILE, &[("alert", "read", Effect::Allow)]),
+        service_key,
+    ];
+
+    // what a grant gives
+    let every = gives(&PermissionPattern::new("*", "*").expect("a pattern"));
+    assert!(every.everything && every.escalates);
+    assert_eq!(every.covers.len(), CATALOG.len());
+    let alerts = gives(&PermissionPattern::new("alert", "*").expect("a pattern"));
+    assert_eq!(
+        alerts.covers,
+        ["alert:create", "alert:read", "alert:write"],
+        "the catalog's order"
+    );
+    assert!(!alerts.escalates);
+    assert_eq!(
+        alerts.summary(false),
+        "Gives alert:create, alert:read, alert:write."
+    );
+    assert_eq!(
+        alerts.summary(true),
+        "Takes away alert:create, alert:read, alert:write, whatever else allows them."
+    );
+    let none = gives(&PermissionPattern::new("alret", "read").expect("a pattern"));
+    assert_eq!(none.summary(false), "Covers nothing ACE checks today.");
+    assert!(gives(&PermissionPattern::new("user", "w*").expect("a pattern")).escalates);
+
+    // the list
+    let users = drawn_safely(&UsersPage {
+        layout: layout(),
+        view: users_view(
+            &[alice_detail.clone(), bob_detail.clone()],
+            &[group.clone(), other.clone()],
+            &keys,
+            false,
+            true,
+        ),
+    });
+    for part in [
+        r#"<a href="/admin/users/00000000-0000-0000-0000-000000000001">alice</a>"#,
+        r#"<a href="/admin/users/00000000-0000-0000-0000-000000000002">bob</a>"#,
+        "<td><b>no</b></td>",
+        &format!("<td>{HOSTILE_ESCAPED}</td>"),
+        &format!(
+            r#"allow <code>user:*</code> <span class="muted">(through {HOSTILE_ESCAPED})</span>"#
+        ),
+        "deny <code>signature:download</code>",
+        &format!(
+            r#"<a href="/admin/groups/00000000-0000-0000-0000-000000000006">{HOSTILE_ESCAPED}</a>"#
+        ),
+        "Keys with no owner",
+        "<td>pipeline</td>",
+        r#"<form method="post" action="/admin/users" class="fields">"#,
+        r#"<form method="post" action="/admin/groups" class="fields">"#,
+        r#"<a href="/admin/users?disabled=hide">Hide disabled users</a>"#,
+    ] {
+        assert!(users.contains(part), "{part}: {users}");
+    }
+    assert!(!users.contains(&format!(
+        "<td>{HOSTILE_ESCAPED}</td>\n          <td>alert:read"
+    )));
+    let read_only = drawn_safely(&UsersPage {
+        layout: layout(),
+        view: users_view(
+            &[alice_detail.clone(), bob_detail.clone()],
+            std::slice::from_ref(&group),
+            &keys,
+            true,
+            false,
+        ),
+    });
+    assert!(!read_only.contains(">bob</a>"), "hidden: {read_only}");
+    assert!(read_only.contains("Changing users and groups needs user:write."));
+    assert!(
+        !read_only.contains("<form method=\"post\" action=\"/admin"),
+        "{read_only}"
+    );
+    assert!(read_only.contains(r#"<a href="/admin/users">Show disabled users</a>"#));
+
+    // alice's own page: no Disable, and the note
+    let own = drawn_safely(&UserPage {
+        layout: layout(),
+        view: user_view(
+            &alice_detail,
+            &[group.clone(), other.clone()],
+            &keys,
+            Some(alice.id),
+            true,
+        ),
+    });
+    for part in [
+        "You can't disable yourself: another user with user:write has to.",
+        "You can't take user:write from yourself",
+        "Gives everything ACE checks, now and as permissions are added: full administration.",
+        "With user:write they can change any grant, and give themselves *:*.",
+        "Takes away signature:download, whatever else allows them.",
+        &format!(r#"<span class="muted">through {HOSTILE_ESCAPED}</span>"#),
+        r#"<input type="hidden" name="holder_kind" value="user">"#,
+        r#"<input type="hidden" name="major" value="signature">"#,
+        r#"<option value="00000000-0000-0000-0000-000000000007">readers</option>"#,
+        r#"action="/admin/groups/00000000-0000-0000-0000-000000000006/members/00000000-0000-0000-0000-000000000001/remove""#,
+        &format!("<td>{HOSTILE_ESCAPED}</td>"),
+        r#"<a href="/admin/keys/00000000-0000-0000-0000-00000000000a">Edit</a>"#,
+        r#"<option value="*:*">*:*: Everything ACE checks"#,
+        "so they can give themselves <code>*:*</code>",
+        &format!(r#"name="display_name" value="{HOSTILE_ESCAPED}""#),
+    ] {
+        assert!(own.contains(part), "{part}: {own}");
+    }
+    assert!(!own.contains(r#"name="enabled" value="false""#), "{own}");
+    assert!(!own.contains("<td>pipeline</td>"), "only alice's keys");
+    assert!(
+        !own.contains(r#"name="scope" value="user:self""#),
+        "no key holds user:self"
+    );
+    let theirs = drawn_safely(&UserPage {
+        layout: layout(),
+        view: user_view(
+            &alice_detail,
+            std::slice::from_ref(&group),
+            &keys,
+            Some(bob.id),
+            true,
+        ),
+    });
+    assert!(
+        theirs.contains(r#"name="enabled" value="false""#),
+        "{theirs}"
+    );
+    assert!(!theirs.contains("You can't disable yourself"));
+    let disabled = drawn_safely(&UserPage {
+        layout: layout(),
+        view: user_view(
+            &bob_detail,
+            std::slice::from_ref(&group),
+            &[],
+            Some(alice.id),
+            true,
+        ),
+    });
+    assert!(
+        disabled.contains(r#"name="enabled" value="true""#),
+        "{disabled}"
+    );
+    assert!(disabled.contains("bob <span class=\"muted\">(disabled)</span>"));
+    let looking = drawn_safely(&UserPage {
+        layout: layout(),
+        view: user_view(
+            &alice_detail,
+            std::slice::from_ref(&group),
+            &keys,
+            None,
+            false,
+        ),
+    });
+    assert!(
+        !looking.contains("<form method=\"post\" action=\"/admin"),
+        "{looking}"
+    );
+
+    // a group
+    let group_page = drawn_safely(&GroupPage {
+        layout: layout(),
+        view: group_view(&group, &[alice.clone(), bob.clone()], true),
+    });
+    for part in [
+        &format!("<h1>Group {HOSTILE_ESCAPED}</h1>"),
+        r#"<a href="/admin/users/00000000-0000-0000-0000-000000000001">alice</a>"#,
+        r#"<option value="00000000-0000-0000-0000-000000000002">bob</option>"#,
+        "With user:write its members can change any grant",
+        r#"<input type="hidden" name="holder_kind" value="group">"#,
+        r#"action="/admin/groups/00000000-0000-0000-0000-000000000006/delete""#,
+    ] {
+        assert!(group_page.contains(part), "{part}: {group_page}");
+    }
+
+    // the hub
+    let hub = drawn_safely(&HubPage {
+        layout: layout(),
+        modules: vec![],
+    });
+    assert!(hub.contains("You do not have access to any administration areas."));
+
+    // the confirm
+    let confirm = drawn_safely(&ConfirmGrantPage {
+        layout: layout(),
+        holder_kind: "group",
+        holder_id: group.id.0,
+        holder_name: HOSTILE.to_owned(),
+        pattern: "user:*".to_owned(),
+        gives: gives(&PermissionPattern::new("user", "*").expect("a pattern")),
+        back: "/admin/groups/00000000-0000-0000-0000-000000000006".to_owned(),
+    });
+    for part in [
+        &format!("Grant <code>user:*</code> to {HOSTILE_ESCAPED}?"),
+        "Gives user:read, user:self, user:write.",
+        &format!("every member of {HOSTILE_ESCAPED} can change any grant"),
+        r#"<input type="hidden" name="confirm" value="yes">"#,
+        r#"<input type="hidden" name="other" value="user:*">"#,
+        r#"<a href="/admin/groups/00000000-0000-0000-0000-000000000006">Cancel</a>"#,
+    ] {
+        assert!(confirm.contains(part), "{part}: {confirm}");
+    }
+
+    // a key's edit
+    let key = drawn_safely(&AdminKeyPage {
+        layout: layout(),
+        id: uuid::Uuid::from_u128(0xA),
+        owner: Some(Named {
+            id: alice.id.0,
+            name: HOSTILE.to_owned(),
+        }),
+        back: "/admin/users/00000000-0000-0000-0000-000000000001".to_owned(),
+        scope: scope_choices(&["alert:read".to_owned()]),
+        draft: KeyDraft {
+            name: HOSTILE.to_owned(),
+            ticked: vec!["alert:read".to_owned()],
+            other: HOSTILE.to_owned(),
+        },
+        inherit: true,
+        denies: vec!["signature:download".to_owned()],
+        problem: Some(HOSTILE.to_owned()),
+    });
+    for part in [
+        r#"value="inherit" checked"#,
+        r#"value="alert:read" checked"#,
+        "This key is denied <code>signature:download</code>",
+        &format!(r#"name="name" value="{HOSTILE_ESCAPED}""#),
+        &format!(r#"<p class="error" role="alert">{HOSTILE_ESCAPED}</p>"#),
+    ] {
+        assert!(key.contains(part), "{part}: {key}");
+    }
+
+    // a secret, once
+    let secret = SecretPage {
+        layout: layout(),
+        title: "New user",
+        what: format!("The password for {HOSTILE}"),
+        secret: "s3cret-value".to_owned(),
+        hint: "hand it over",
+        back: "/admin/users".to_owned(),
+    };
+    assert!(!format!("{secret:?}").contains("s3cret-value"));
+    let secret = drawn_safely(&secret);
+    assert_eq!(shown_secret(&secret), "s3cret-value");
+    assert!(secret.contains(&format!("The password for {HOSTILE_ESCAPED} is below.")));
+}
+
+async fn grant_effect(stack: &Stack, actor: &Actor, major: &str, minor: &str, effect: Effect) {
+    let Actor::User { id, .. } = actor else {
+        panic!("a user");
+    };
+    stack
+        .service
+        .grant(
+            &bootstrap(),
+            &Holder::User(*id),
+            &PermissionPattern::new(major, minor).expect("a pattern"),
+            effect,
+        )
+        .await
+        .expect("grants");
+}
+
+/// The area through the server: signed out goes to the login; without `admin:read` every page and
+/// form is 403 and the layout has no Admin link; with it the hub shows only what the viewer may open,
+/// Users & Roles needs `user:read`, and its forms need `user:write`, each refusal changing nothing.
+#[tokio::test]
+async fn the_admin_area_needs_admin_read_then_each_page_s_own_permission() {
+    let stack = stack().await;
+    let alice = user(&stack, "alice").await;
+    for (path, back) in [
+        ("/admin", "/login?next=%2Fadmin"),
+        ("/admin/users", "/login?next=%2Fadmin%2Fusers"),
+    ] {
+        let page = stack.get(path).send().await.expect("answered");
+        assert_eq!(page.status(), StatusCode::SEE_OTHER, "{path}");
+        assert_eq!(location(&page), back);
+    }
+    let post = stack
+        .post("/admin/users", &[("username", "mallory")])
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(location(&post), "/login");
+
+    let session = session_of(&stack, "alice").await;
+    let get = |path: &str| stack.get(path).header("cookie", cookie(&session)).send();
+    let audit = stack.audit_count().await;
+    for path in ["/admin", "/admin/users", "/admin/users/not-a-uuid"] {
+        let page = get(path).await.expect("answered");
+        assert_eq!(page.status(), StatusCode::FORBIDDEN, "{path}");
+        assert!(page.text().await.expect("a page").contains("admin:read"));
+    }
+    for (path, form) in [
+        (
+            "/admin/users",
+            vec![("username", "mallory"), ("password", PASSWORD)],
+        ),
+        ("/admin/groups", vec![("name", "mine")]),
+    ] {
+        let refused = stack
+            .post(path, &form)
+            .header("cookie", cookie(&session))
+            .send()
+            .await
+            .expect("answered");
+        assert_eq!(refused.status(), StatusCode::FORBIDDEN, "{path}");
+    }
+    let home = get("/")
+        .await
+        .expect("answered")
+        .text()
+        .await
+        .expect("a page");
+    assert!(!home.contains(r#"href="/admin""#), "{home}");
+
+    grant_to(&stack, &alice, "admin", "read").await;
+    let hub = get("/admin").await.expect("answered");
+    assert_eq!(hub.status(), StatusCode::OK);
+    let hub = hub.text().await.expect("a page");
+    assert!(hub.contains("You do not have access to any administration areas."));
+    assert!(hub.contains(r#"<a href="/admin">Admin</a>"#), "{hub}");
+    let users = get("/admin/users").await.expect("answered");
+    assert_eq!(users.status(), StatusCode::FORBIDDEN);
+    assert!(users.text().await.expect("a page").contains("user:read"));
+
+    grant_to(&stack, &alice, "user", "read").await;
+    let hub = get("/admin")
+        .await
+        .expect("answered")
+        .text()
+        .await
+        .expect("a page");
+    assert!(
+        hub.contains(r#"<a href="/admin/users"><b>Users &#38; Roles</b>"#),
+        "{hub}"
+    );
+    let users = get("/admin/users").await.expect("answered");
+    assert_eq!(users.status(), StatusCode::OK);
+    let users = users.text().await.expect("a page");
+    assert!(users.contains("Changing users and groups needs user:write."));
+    assert!(users.contains(">alice</a>"), "{users}");
+
+    let Actor::User { id: alice_id, .. } = &alice else {
+        panic!("a user");
+    };
+    let alice_id = alice_id.0.to_string();
+    let audit_now = stack.audit_count().await;
+    for (what, path, form) in [
+        (
+            "a new user",
+            "/admin/users".to_owned(),
+            vec![
+                ("username", "mallory"),
+                ("password", PASSWORD),
+                ("timezone", "UTC"),
+            ],
+        ),
+        (
+            "a new group",
+            "/admin/groups".to_owned(),
+            vec![("name", "mine")],
+        ),
+        (
+            "granting herself *:*",
+            "/admin/grants".to_owned(),
+            vec![
+                ("holder_kind", "user"),
+                ("holder", alice_id.as_str()),
+                ("effect", "allow"),
+                ("permission", "*:*"),
+            ],
+        ),
+        (
+            "a reset",
+            format!("/admin/users/{alice_id}/password"),
+            vec![("password", "")],
+        ),
+    ] {
+        let refused = stack
+            .post(&path, &form)
+            .header("cookie", cookie(&session))
+            .send()
+            .await
+            .expect("answered");
+        assert_eq!(refused.status(), StatusCode::FORBIDDEN, "{what}");
+        let page = refused.text().await.expect("a page");
+        assert!(page.contains("user:write"), "{what}: {page}");
+        assert!(!page.contains(r#"id="secret""#), "{what}");
+    }
+    assert_eq!(stack.audit_count().await, audit_now, "nothing changed");
+    assert_eq!(audit_now, audit + 2, "only the two grants");
+    assert!(
+        !stack
+            .service
+            .allowed(&alice, &ace_service::USER_WRITE)
+            .await
+            .expect("checks")
+    );
+
+    let nil = uuid::Uuid::nil();
+    for (path, status) in [
+        (
+            "/admin/users/not-a-uuid".to_owned(),
+            StatusCode::BAD_REQUEST,
+        ),
+        (format!("/admin/users/{nil}"), StatusCode::NOT_FOUND),
+        (format!("/admin/groups/{nil}"), StatusCode::NOT_FOUND),
+        (format!("/admin/keys/{nil}"), StatusCode::NOT_FOUND),
+        ("/admin/keys/nope".to_owned(), StatusCode::BAD_REQUEST),
+    ] {
+        assert_eq!(
+            get(&path).await.expect("answered").status(),
+            status,
+            "{path}"
+        );
+    }
+}
+
+/// Users through the area: made with a typed password or one made and shown once, their profile saved,
+/// disabled and enabled, and their password reset, each with its one audit row; a refusal the service
+/// gives draws the page again with its reason, and disabling yourself is refused.
+#[tokio::test]
+async fn users_are_made_changed_disabled_and_reset_through_the_admin_area() {
+    let stack = stack().await;
+    let boss = user(&stack, "boss").await;
+    grant_to(&stack, &boss, "*", "*").await;
+    let session = session_of(&stack, "boss").await;
+    let post = |path: &str, form: &[(&str, &str)]| {
+        stack.post(path, form).header("cookie", cookie(&session))
+    };
+    let page = |path: String| {
+        let request = stack.get(&path).header("cookie", cookie(&session));
+        async move {
+            request
+                .send()
+                .await
+                .expect("answered")
+                .text()
+                .await
+                .expect("a page")
+        }
+    };
+
+    // made, with a typed password
+    let audit = stack.audit_count().await;
+    let made = post(
+        "/admin/users",
+        &[
+            ("username", "Carol"),
+            ("password", PASSWORD),
+            ("display_name", HOSTILE),
+            ("email", "carol@example.com"),
+            ("timezone", "Europe/London"),
+        ],
+    )
+    .send()
+    .await
+    .expect("answered");
+    assert_eq!(made.status(), StatusCode::SEE_OTHER);
+    let carol_page = location(&made).to_owned();
+    assert!(carol_page.starts_with("/admin/users/") && carol_page.ends_with("?done=created"));
+    assert_eq!(stack.audit_count().await, audit + 1);
+    assert_eq!(last_action(&stack).await, "create_user");
+    let carol = stack
+        .service
+        .users(&boss, true)
+        .await
+        .expect("reads")
+        .into_iter()
+        .find(|user| user.username == "carol")
+        .expect("carol");
+    assert_eq!(carol.timezone, "Europe/London");
+    let carol_id = carol.id.0;
+    let carol_session = session_of(&stack, "carol").await;
+    let shown = page(carol_page).await;
+    assert!(shown.contains("The user is made."), "{shown}");
+    assert!(shown.contains(&format!(r#"value="{HOSTILE_ESCAPED}""#)));
+    let listed = page("/admin/users".to_owned()).await;
+    assert!(
+        listed.contains(&format!("<td>{HOSTILE_ESCAPED}</td>")),
+        "{listed}"
+    );
+    assert!(!listed.contains("<script>alert"));
+
+    // made, with one made for her, shown once
+    let audit = stack.audit_count().await;
+    let made = post(
+        "/admin/users",
+        &[("username", "dave"), ("password", ""), ("timezone", "UTC")],
+    )
+    .send()
+    .await
+    .expect("answered");
+    assert_eq!(made.status(), StatusCode::CREATED);
+    assert_eq!(made.headers()["cache-control"], "no-store");
+    assert!(made.headers().get(LOCATION).is_none(), "no redirect");
+    let password = shown_secret(&made.text().await.expect("a page"));
+    assert_eq!(password.len(), 48);
+    assert_eq!(stack.audit_count().await, audit + 1);
+    assert!(session_set(stack.log_in("dave", &password).await.headers()).is_some());
+    let listed = page("/admin/users".to_owned()).await;
+    assert!(!listed.contains(&password), "shown once");
+
+    // refusals draw the page again, and change nothing
+    let audit = stack.audit_count().await;
+    for (what, form, status, says) in [
+        (
+            "a taken username",
+            vec![
+                ("username", "carol"),
+                ("password", PASSWORD),
+                ("timezone", "UTC"),
+            ],
+            StatusCode::CONFLICT,
+            "No user was made: that username is taken.",
+        ),
+        (
+            "a username that isn't one",
+            vec![
+                ("username", "carol smith"),
+                ("password", PASSWORD),
+                ("timezone", "UTC"),
+            ],
+            StatusCode::BAD_REQUEST,
+            "No user was made: a username is 1 to 64 ASCII letters",
+        ),
+        (
+            "a weak password",
+            vec![
+                ("username", "erin"),
+                ("password", "short"),
+                ("timezone", "UTC"),
+            ],
+            StatusCode::BAD_REQUEST,
+            "No user was made: a password has to be at least 12 characters",
+        ),
+        (
+            "an email that isn't one",
+            vec![
+                ("username", "erin"),
+                ("password", PASSWORD),
+                ("email", "erin"),
+                ("timezone", "UTC"),
+            ],
+            StatusCode::BAD_REQUEST,
+            "No user was made: an email is a name, an @ and a domain",
+        ),
+    ] {
+        let response = post("/admin/users", &form).send().await.expect("answered");
+        assert_eq!(response.status(), status, "{what}");
+        let text = response.text().await.expect("a page");
+        assert!(text.contains(says), "{what}: {text}");
+        assert!(
+            !text.contains(PASSWORD),
+            "{what}: a password isn't drawn back"
+        );
+        assert!(!text.contains(r#"id="secret""#), "{what}");
+    }
+    let refilled = post(
+        "/admin/users",
+        &[
+            ("username", "carol"),
+            ("password", PASSWORD),
+            ("display_name", "C"),
+            ("timezone", "UTC"),
+        ],
+    )
+    .send()
+    .await
+    .expect("answered")
+    .text()
+    .await
+    .expect("a page");
+    assert!(
+        refilled.contains(r#"name="username" value="carol""#),
+        "{refilled}"
+    );
+    assert!(refilled.contains(r#"name="display_name" value="C""#));
+    let cross_site = stack
+        .http
+        .post(format!("{}/admin/users", stack.url))
+        .header("origin", "https://evil.example")
+        .header("cookie", cookie(&session))
+        .form(&[("username", "erin"), ("password", PASSWORD)])
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(cross_site.status(), StatusCode::FORBIDDEN);
+    assert_eq!(stack.audit_count().await, audit, "nothing changed");
+
+    // the profile
+    let profile = format!("/admin/users/{carol_id}/profile");
+    let saved = post(
+        &profile,
+        &[
+            ("display_name", "Carol"),
+            ("email", "c@example.com"),
+            ("timezone", "UTC"),
+        ],
+    )
+    .send()
+    .await
+    .expect("answered");
+    assert_eq!(
+        location(&saved),
+        format!("/admin/users/{carol_id}?done=profile")
+    );
+    assert_eq!(stack.audit_count().await, audit + 1);
+    assert_eq!(last_action(&stack).await, "update_user");
+    let same = post(
+        &profile,
+        &[
+            ("display_name", "Carol"),
+            ("email", "c@example.com"),
+            ("timezone", "UTC"),
+        ],
+    )
+    .send()
+    .await
+    .expect("answered");
+    assert_eq!(
+        location(&same),
+        format!("/admin/users/{carol_id}?done=unchanged")
+    );
+    assert_eq!(
+        stack.audit_count().await,
+        audit + 1,
+        "the same values write no row"
+    );
+    let refused = post(
+        &profile,
+        &[
+            ("display_name", "Carol"),
+            ("email", ""),
+            ("timezone", "Mars/Olympus_Mons"),
+        ],
+    )
+    .send()
+    .await
+    .expect("answered");
+    assert_eq!(refused.status(), StatusCode::BAD_REQUEST);
+    assert!(
+        refused
+            .text()
+            .await
+            .expect("a page")
+            .contains("Not saved: &#34;Mars/Olympus_Mons&#34; isn&#39;t an IANA timezone")
+    );
+
+    // disabled, which ends her session, and enabled
+    let enabled = format!("/admin/users/{carol_id}/enabled");
+    let audit = stack.audit_count().await;
+    let off = post(&enabled, &[("enabled", "false")])
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(
+        location(&off),
+        format!("/admin/users/{carol_id}?done=disabled")
+    );
+    assert_eq!(stack.audit_count().await, audit + 1);
+    assert_eq!(last_action(&stack).await, "set_user_enabled");
+    let hers = stack
+        .get("/preferences")
+        .header("cookie", cookie(&carol_session))
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(hers.status(), StatusCode::SEE_OTHER, "her session ended");
+    let shown = page(format!("/admin/users/{carol_id}?done=disabled")).await;
+    assert!(shown.contains("The user is disabled."), "{shown}");
+    assert!(shown.contains(r#"name="enabled" value="true""#));
+    let on = post(&enabled, &[("enabled", "true")])
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(
+        location(&on),
+        format!("/admin/users/{carol_id}?done=enabled")
+    );
+    assert_eq!(stack.audit_count().await, audit + 2);
+    let bad = post(&enabled, &[("enabled", "maybe")])
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(bad.status(), StatusCode::BAD_REQUEST);
+
+    // nobody disables themselves
+    let Actor::User { id: boss_id, .. } = &boss else {
+        panic!("a user");
+    };
+    let own = page(format!("/admin/users/{}", boss_id.0)).await;
+    assert!(own.contains("You can't disable yourself"), "{own}");
+    let audit = stack.audit_count().await;
+    let refused = post(
+        &format!("/admin/users/{}/enabled", boss_id.0),
+        &[("enabled", "false")],
+    )
+    .send()
+    .await
+    .expect("answered");
+    assert_eq!(refused.status(), StatusCode::BAD_REQUEST);
+    let text = refused.text().await.expect("a page");
+    assert!(
+        text.contains(
+            "Not changed: a user can&#39;t disable themselves: another user with user:write has to."
+        ),
+        "{text}"
+    );
+    assert_eq!(stack.audit_count().await, audit);
+    assert!(
+        stack
+            .get("/admin")
+            .header("cookie", cookie(&session))
+            .send()
+            .await
+            .expect("answered")
+            .status()
+            .is_success()
+    );
+
+    // a reset, made and shown once, which ends her sessions
+    let carol_session = session_of(&stack, "carol").await;
+    let audit = stack.audit_count().await;
+    let reset = format!("/admin/users/{carol_id}/password");
+    let made = post(&reset, &[("password", "")])
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(made.status(), StatusCode::OK);
+    assert_eq!(made.headers()["cache-control"], "no-store");
+    assert!(made.headers().get(LOCATION).is_none());
+    let text = made.text().await.expect("a page");
+    assert!(
+        text.contains("The new password for carol is below."),
+        "{text}"
+    );
+    let password = shown_secret(&text);
+    assert_eq!(stack.audit_count().await, audit + 1);
+    assert_eq!(last_action(&stack).await, "reset_password");
+    assert_eq!(
+        stack
+            .get("/preferences")
+            .header("cookie", cookie(&carol_session))
+            .send()
+            .await
+            .expect("answered")
+            .status(),
+        StatusCode::SEE_OTHER
+    );
+    assert!(session_set(stack.log_in("carol", PASSWORD).await.headers()).is_none());
+    assert!(session_set(stack.log_in("carol", &password).await.headers()).is_some());
+    let audit = stack.audit_count().await;
+    let weak = post(&reset, &[("password", "short")])
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(weak.status(), StatusCode::BAD_REQUEST);
+    assert!(
+        weak.text()
+            .await
+            .expect("a page")
+            .contains("Not reset: a password has to be")
+    );
+    assert_eq!(stack.audit_count().await, audit, "nothing changed");
+    let typed = post(&reset, &[("password", PASSWORD)])
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(
+        location(&typed),
+        format!("/admin/users/{carol_id}?done=password")
+    );
+    assert!(session_set(stack.log_in("carol", PASSWORD).await.headers()).is_some());
+}
+
+/// Groups, grants and keys through the area, each write with its one audit row: a group made, joined,
+/// granted, left and deleted; an allow covering `user:write` confirmed before it's made; a grant revoked;
+/// the administrator refused when a change would take their own `user:write`; and a key made with its
+/// token shown once, changed and revoked.
+#[tokio::test]
+async fn groups_grants_and_keys_through_the_admin_area() {
+    let stack = stack().await;
+    let boss = user(&stack, "boss").await;
+    grant_to(&stack, &boss, "*", "*").await;
+    let carol = user(&stack, "carol").await;
+    let Actor::User { id: carol_id, .. } = &carol else {
+        panic!("a user");
+    };
+    let Actor::User { id: boss_id, .. } = &boss else {
+        panic!("a user");
+    };
+    let (carol_id, boss_id) = (carol_id.0.to_string(), boss_id.0.to_string());
+    let session = session_of(&stack, "boss").await;
+    let post = |path: &str, form: &[(&str, &str)]| {
+        stack.post(path, form).header("cookie", cookie(&session))
+    };
+
+    // a group, made
+    let audit = stack.audit_count().await;
+    let made = post("/admin/groups", &[("name", HOSTILE)])
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(made.status(), StatusCode::SEE_OTHER);
+    let group_page = location(&made).to_owned();
+    assert!(group_page.ends_with("?done=group"), "{group_page}");
+    let group = group_page
+        .trim_start_matches("/admin/groups/")
+        .trim_end_matches("?done=group")
+        .to_owned();
+    assert_eq!(stack.audit_count().await, audit + 1);
+    assert_eq!(last_action(&stack).await, "create_group");
+    let shown = stack
+        .get(&group_page)
+        .header("cookie", cookie(&session))
+        .send()
+        .await
+        .expect("answered")
+        .text()
+        .await
+        .expect("a page");
+    assert!(
+        shown.contains(&format!("<h1>Group {HOSTILE_ESCAPED}</h1>")),
+        "{shown}"
+    );
+    for (name, status, says) in [
+        (
+            HOSTILE,
+            StatusCode::CONFLICT,
+            "No group was made: that group name is taken.",
+        ),
+        (
+            " ",
+            StatusCode::BAD_REQUEST,
+            "No group was made: a group&#39;s name is 1 to 255",
+        ),
+    ] {
+        let refused = post("/admin/groups", &[("name", name)])
+            .send()
+            .await
+            .expect("answered");
+        assert_eq!(refused.status(), status, "{name}");
+        assert!(refused.text().await.expect("a page").contains(says));
+    }
+    assert_eq!(stack.audit_count().await, audit + 1);
+
+    // joined, from the group's page and from the user's
+    let joined = post(
+        &format!("/admin/groups/{group}/members"),
+        &[("user", &carol_id), ("back", "group")],
+    )
+    .send()
+    .await
+    .expect("answered");
+    assert_eq!(
+        location(&joined),
+        format!("/admin/groups/{group}?done=joined")
+    );
+    assert_eq!(last_action(&stack).await, "add_group_member");
+    let readers = stack
+        .service
+        .create_group(&boss, "readers")
+        .await
+        .expect("makes")
+        .0;
+    let joined = post(
+        &format!("/admin/users/{carol_id}/groups"),
+        &[("group", &readers.to_string())],
+    )
+    .send()
+    .await
+    .expect("answered");
+    assert_eq!(
+        location(&joined),
+        format!("/admin/users/{carol_id}?done=joined")
+    );
+    let audit = stack.audit_count().await;
+
+    // a grant to the group
+    let grant = |holder_kind: &str, holder: &str, extra: &[(&str, &str)]| {
+        let mut form = vec![
+            ("holder_kind", holder_kind.to_owned()),
+            ("holder", holder.to_owned()),
+        ];
+        form.extend(extra.iter().map(|(k, v)| (*k, (*v).to_owned())));
+        stack
+            .http
+            .post(format!("{}/admin/grants", stack.url))
+            .header("origin", &stack.url)
+            .header("cookie", cookie(&session))
+            .form(&form)
+    };
+    let granted = grant(
+        "group",
+        &group,
+        &[("effect", "allow"), ("permission", "alert:read")],
+    )
+    .send()
+    .await
+    .expect("answered");
+    assert_eq!(
+        location(&granted),
+        format!("/admin/groups/{group}?done=granted")
+    );
+    assert_eq!(stack.audit_count().await, audit + 1);
+    assert_eq!(last_action(&stack).await, "grant");
+    assert!(
+        stack
+            .service
+            .allowed(&carol, &ace_service::ALERT_READ)
+            .await
+            .expect("checks")
+    );
+    let shown = stack
+        .get(&format!("/admin/groups/{group}"))
+        .header("cookie", cookie(&session))
+        .send()
+        .await
+        .expect("answered")
+        .text()
+        .await
+        .expect("a page");
+    assert!(shown.contains("Gives alert:read."), "{shown}");
+    for (what, holder_kind, holder, extra, says) in [
+        (
+            "both a choice and a pattern",
+            "group",
+            group.as_str(),
+            vec![
+                ("effect", "allow"),
+                ("permission", "alert:read"),
+                ("other", "alert:write"),
+            ],
+            "No grant was made: choose a permission or type a pattern, not both.",
+        ),
+        (
+            "neither",
+            "group",
+            group.as_str(),
+            vec![("effect", "allow")],
+            "No grant was made: choose a permission or type a pattern.",
+        ),
+        (
+            "text that isn't a pattern",
+            "user",
+            carol_id.as_str(),
+            vec![("effect", "deny"), ("other", "alert")],
+            "No grant was made: alert isn&#39;t a pattern, which is major:minor.",
+        ),
+    ] {
+        let refused = grant(holder_kind, holder, &extra)
+            .send()
+            .await
+            .expect("answered");
+        assert_eq!(refused.status(), StatusCode::BAD_REQUEST, "{what}");
+        let text = refused.text().await.expect("a page");
+        assert!(text.contains(says), "{what}: {text}");
+    }
+    for form in [
+        vec![
+            ("holder_kind", "key"),
+            ("holder", carol_id.as_str()),
+            ("effect", "allow"),
+            ("permission", "alert:read"),
+        ],
+        vec![
+            ("holder_kind", "user"),
+            ("holder", "nope"),
+            ("effect", "allow"),
+            ("permission", "alert:read"),
+        ],
+        vec![
+            ("holder_kind", "user"),
+            ("holder", carol_id.as_str()),
+            ("effect", "maybe"),
+            ("permission", "alert:read"),
+        ],
+    ] {
+        let refused = post("/admin/grants", &form).send().await.expect("answered");
+        assert_eq!(refused.status(), StatusCode::BAD_REQUEST, "{form:?}");
+    }
+    let cross_site = stack
+        .http
+        .post(format!("{}/admin/grants", stack.url))
+        .header("origin", "https://evil.example")
+        .header("cookie", cookie(&session))
+        .form(&[
+            ("holder_kind", "user"),
+            ("holder", carol_id.as_str()),
+            ("effect", "allow"),
+            ("permission", "*:*"),
+        ])
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(cross_site.status(), StatusCode::FORBIDDEN);
+    assert_eq!(stack.audit_count().await, audit + 1, "nothing more changed");
+
+    // an allow covering user:write is confirmed first
+    let asked = grant(
+        "user",
+        &carol_id,
+        &[("effect", "allow"), ("permission", "user:write")],
+    )
+    .send()
+    .await
+    .expect("answered");
+    assert_eq!(asked.status(), StatusCode::OK);
+    let text = asked.text().await.expect("a page");
+    assert!(
+        text.contains("Grant <code>user:write</code> to carol?"),
+        "{text}"
+    );
+    assert!(text.contains("carol can change any grant, their own included"));
+    assert_eq!(
+        stack.audit_count().await,
+        audit + 1,
+        "asking writes nothing"
+    );
+    assert!(
+        !stack
+            .service
+            .allowed(&carol, &ace_service::USER_WRITE)
+            .await
+            .expect("checks")
+    );
+    let confirmed = grant(
+        "user",
+        &carol_id,
+        &[
+            ("effect", "allow"),
+            ("other", "user:write"),
+            ("confirm", "yes"),
+        ],
+    )
+    .send()
+    .await
+    .expect("answered");
+    assert_eq!(
+        location(&confirmed),
+        format!("/admin/users/{carol_id}?done=granted")
+    );
+    assert_eq!(stack.audit_count().await, audit + 2);
+    assert!(
+        stack
+            .service
+            .allowed(&carol, &ace_service::USER_WRITE)
+            .await
+            .expect("checks")
+    );
+    let denied = grant(
+        "user",
+        &carol_id,
+        &[("effect", "deny"), ("permission", "*:*")],
+    )
+    .send()
+    .await
+    .expect("answered");
+    assert_eq!(
+        location(&denied),
+        format!("/admin/users/{carol_id}?done=granted"),
+        "a deny isn't asked"
+    );
+    assert_eq!(stack.audit_count().await, audit + 3);
+
+    // revoked
+    let revoke = |holder_kind: &str, holder: &str, major: &str, minor: &str, effect: &str| {
+        let form = [
+            ("holder_kind", holder_kind.to_owned()),
+            ("holder", holder.to_owned()),
+            ("major", major.to_owned()),
+            ("minor", minor.to_owned()),
+            ("effect", effect.to_owned()),
+        ];
+        stack
+            .http
+            .post(format!("{}/admin/grants/revoke", stack.url))
+            .header("origin", &stack.url)
+            .header("cookie", cookie(&session))
+            .form(&form)
+    };
+    for (major, minor, effect) in [("user", "write", "allow"), ("*", "*", "deny")] {
+        let revoked = revoke("user", &carol_id, major, minor, effect)
+            .send()
+            .await
+            .expect("answered");
+        assert_eq!(
+            location(&revoked),
+            format!("/admin/users/{carol_id}?done=revoked")
+        );
+        assert_eq!(last_action(&stack).await, "revoke");
+    }
+    assert_eq!(stack.audit_count().await, audit + 5);
+    let again = revoke("user", &carol_id, "user", "write", "allow")
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(again.status(), StatusCode::NOT_FOUND);
+    let bad = revoke("user", &carol_id, "user:", "write", "allow")
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(bad.status(), StatusCode::BAD_REQUEST);
+
+    // the administrator can't take their own user:write
+    let audit = stack.audit_count().await;
+    let refused = revoke("user", &boss_id, "*", "*", "allow")
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(refused.status(), StatusCode::BAD_REQUEST);
+    let text = refused.text().await.expect("a page");
+    assert!(
+        text.contains("Not revoked: that would take user:write from you, and only another user with user:write could give it back."),
+        "{text}"
+    );
+    let refused = grant(
+        "user",
+        &boss_id,
+        &[("effect", "deny"), ("permission", "user:write")],
+    )
+    .send()
+    .await
+    .expect("answered");
+    assert_eq!(refused.status(), StatusCode::BAD_REQUEST);
+    assert!(
+        refused
+            .text()
+            .await
+            .expect("a page")
+            .contains("would take user:write from you")
+    );
+    assert_eq!(stack.audit_count().await, audit, "nothing changed");
+    assert!(
+        stack
+            .service
+            .allowed(&boss, &ace_service::USER_WRITE)
+            .await
+            .expect("checks")
+    );
+
+    // left
+    let left = post(
+        &format!("/admin/groups/{group}/members/{carol_id}/remove"),
+        &[("back", "user")],
+    )
+    .send()
+    .await
+    .expect("answered");
+    assert_eq!(
+        location(&left),
+        format!("/admin/users/{carol_id}?done=left")
+    );
+    assert_eq!(stack.audit_count().await, audit + 1);
+    assert_eq!(last_action(&stack).await, "remove_group_member");
+    assert!(
+        !stack
+            .service
+            .allowed(&carol, &ace_service::ALERT_READ)
+            .await
+            .expect("checks")
+    );
+    let again = post(
+        &format!("/admin/groups/{group}/members/{carol_id}/remove"),
+        &[],
+    )
+    .send()
+    .await
+    .expect("answered");
+    assert_eq!(again.status(), StatusCode::NOT_FOUND);
+
+    // a key, made and shown once
+    grant_effect(&stack, &carol, "alert", "read", Effect::Allow).await;
+    let keys = format!("/admin/users/{carol_id}/keys");
+    let audit = stack.audit_count().await;
+    for (what, form, says) in [
+        (
+            "user:self",
+            vec![("name", "triage"), ("other", "user:self")],
+            "No key was made: user:self is only ever a person&#39;s",
+        ),
+        (
+            "text that isn't a pattern",
+            vec![("name", "triage"), ("other", "alert")],
+            "No key was made: alert isn&#39;t a pattern",
+        ),
+        (
+            "no name",
+            vec![("name", " "), ("scope", "alert:read")],
+            "No key was made: an API key&#39;s name is 1 to 255 characters",
+        ),
+    ] {
+        let refused = post(&keys, &form).send().await.expect("answered");
+        assert_eq!(refused.status(), StatusCode::BAD_REQUEST, "{what}");
+        let text = refused.text().await.expect("a page");
+        assert!(text.contains(says), "{what}: {text}");
+        assert!(!text.contains("ace4k_"), "{what}");
+    }
+    assert_eq!(stack.audit_count().await, audit);
+    let made = post(
+        &keys,
+        &[
+            ("name", "triage"),
+            ("mode", "restricted"),
+            ("scope", "alert:read"),
+        ],
+    )
+    .send()
+    .await
+    .expect("answered");
+    assert_eq!(made.status(), StatusCode::CREATED);
+    assert_eq!(made.headers()["cache-control"], "no-store");
+    assert!(made.headers().get(LOCATION).is_none());
+    let token = shown_secret(&made.text().await.expect("a page"));
+    assert!(token.starts_with("ace4k_"));
+    assert_eq!(stack.audit_count().await, audit + 1);
+    assert_eq!(last_action(&stack).await, "create_api_key");
+    let as_key = stack
+        .service
+        .authenticate_api_key(&token)
+        .await
+        .expect("works");
+    assert!(
+        stack
+            .service
+            .allowed(&as_key, &ace_service::ALERT_READ)
+            .await
+            .expect("checks")
+    );
+    let key = stack.service.api_keys(&boss, None).await.expect("reads")[0]
+        .id
+        .0;
+    let shown = stack
+        .get(&format!("/admin/users/{carol_id}"))
+        .header("cookie", cookie(&session))
+        .send()
+        .await
+        .expect("answered")
+        .text()
+        .await
+        .expect("a page");
+    assert!(shown.contains("<td>triage</td>"), "{shown}");
+    assert!(!shown.contains(&token), "shown once");
+
+    // changed
+    let edit = stack
+        .get(&format!("/admin/keys/{key}"))
+        .header("cookie", cookie(&session))
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(edit.status(), StatusCode::OK);
+    let edit = edit.text().await.expect("a page");
+    assert!(edit.contains(r#"name="name" value="triage""#), "{edit}");
+    assert!(edit.contains(r#"value="alert:read" checked"#));
+    assert!(edit.contains(r#"value="restricted" checked"#));
+    let refused = post(
+        &format!("/admin/keys/{key}"),
+        &[("name", "renamed"), ("other", "user:self")],
+    )
+    .send()
+    .await
+    .expect("answered");
+    assert_eq!(refused.status(), StatusCode::BAD_REQUEST);
+    let text = refused.text().await.expect("a page");
+    assert!(
+        text.contains("Not changed: user:self is only ever"),
+        "{text}"
+    );
+    assert!(text.contains(r#"name="name" value="renamed""#));
+    let changed = post(
+        &format!("/admin/keys/{key}"),
+        &[("name", "renamed"), ("mode", "inherit")],
+    )
+    .send()
+    .await
+    .expect("answered");
+    assert_eq!(
+        location(&changed),
+        format!("/admin/users/{carol_id}?done=key")
+    );
+    assert_eq!(stack.audit_count().await, audit + 2);
+    assert_eq!(last_action(&stack).await, "set_api_key_scope");
+    let now = &stack.service.api_keys(&boss, None).await.expect("reads")[0];
+    assert_eq!(now.name, "renamed");
+    assert_eq!(
+        (now.grants[0].major.as_str(), now.grants[0].minor.as_str()),
+        ("*", "*")
+    );
+
+    // revoked
+    let revoked = post(
+        &format!("/admin/keys/{key}/revoke"),
+        &[("owner", &carol_id)],
+    )
+    .send()
+    .await
+    .expect("answered");
+    assert_eq!(
+        location(&revoked),
+        format!("/admin/users/{carol_id}?done=key-revoked")
+    );
+    assert_eq!(stack.audit_count().await, audit + 3);
+    assert_eq!(last_action(&stack).await, "revoke_api_key");
+    assert!(stack.service.authenticate_api_key(&token).await.is_err());
+    let again = post(&format!("/admin/keys/{key}/revoke"), &[])
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(again.status(), StatusCode::NOT_FOUND);
+
+    // the group, deleted
+    let deleted = post(&format!("/admin/groups/{group}/delete"), &[])
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(location(&deleted), "/admin/users?done=deleted");
+    assert_eq!(stack.audit_count().await, audit + 4);
+    assert_eq!(last_action(&stack).await, "delete_group");
+    let again = post(&format!("/admin/groups/{group}/delete"), &[])
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(again.status(), StatusCode::NOT_FOUND);
 }

@@ -25,6 +25,9 @@
       <button type="submit">Apply</button>
     </form>
     <span class="user" id="username">{{ username }}</span>
+    {%- if layout.admin %}
+    <a href="/admin">Admin</a>
+    {%- endif %}
     <a href="/preferences">Preferences</a>
     <a href="/login/change">Change Password</a>
     <form method="post" action="/logout">

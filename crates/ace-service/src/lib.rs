@@ -111,7 +111,7 @@ pub use observables::{
     Lookup, MAX_EXCLUDED_ALERTS, MAX_LOOKUP_PAIRS, MAX_RECENT_ALERTS, OPEN, Prevalence, RecentAlert,
 };
 pub use permission::{
-    ALERT_CREATE, ALERT_READ, ALERT_WRITE, CATALOG, CRASH_READ, CatalogEntry, Effect,
+    ADMIN_READ, ALERT_CREATE, ALERT_READ, ALERT_WRITE, CATALOG, CRASH_READ, CatalogEntry, Effect,
     InvalidPermission, OBSERVABLE_READ, OBSERVABLE_WRITE, PermissionName, PermissionPattern,
     SIGNATURE_DOWNLOAD, SIGNATURE_QA_PURGE, SIGNATURE_READ, USER_READ, USER_SELF, USER_WRITE,
 };
@@ -172,6 +172,12 @@ pub enum ServiceError {
     UsersExist,
     #[error("a user can't disable themselves: another user with user:write has to")]
     CantDisableYourself,
+    /// A change to grants or groups that would leave the actor without `user:write`, which only another
+    /// holder of it could then give back. Nothing was written.
+    #[error(
+        "that would take user:write from you, and only another user with user:write could give it back"
+    )]
+    CantDropYourOwnUserWrite,
     #[error(
         "a password has to be at least {MIN_PASSWORD_CHARS} characters and at most {MAX_PASSWORD_BYTES} bytes"
     )]
@@ -233,6 +239,7 @@ impl Retryable for ServiceError {
             | ServiceError::NoUser(_)
             | ServiceError::UsersExist
             | ServiceError::CantDisableYourself
+            | ServiceError::CantDropYourOwnUserWrite
             | ServiceError::WeakPassword
             | ServiceError::InvalidKeyName
             | ServiceError::Hashing(_) => false,
@@ -381,7 +388,8 @@ impl Service {
 
     /// Adds a row giving a holder an effect on a pattern, as ace3's `add_user_permission`,
     /// `add_group_permission` and API key scopes do. It needs `user:write`. Adding a row that exists,
-    /// in any case, changes nothing and returns false. The row records who made it.
+    /// in any case, changes nothing and returns false. The row records who made it. A deny that takes
+    /// `user:write` from the actor is `ServiceError::CantDropYourOwnUserWrite` (`users::keeps_user_write`).
     pub async fn grant(
         &self,
         actor: &Actor,
@@ -426,6 +434,8 @@ impl Service {
                     if added.rows_affected() == 0 {
                         return Ok(Audited::unchanged(false));
                     }
+                    // only a deny can, but the check is one query
+                    users::keeps_user_write(tx.conn(), actor).await?;
                     let change = Change::added(
                         Target::holder(holder),
                         &PermissionRecord {
@@ -442,7 +452,8 @@ impl Service {
     }
 
     /// Removes the row `grant` would add, as ace3's `delete_user_permission` and
-    /// `delete_group_permission` do. It needs `user:write`. Returns false when there's no such row.
+    /// `delete_group_permission` do. It needs `user:write`. Returns false when there's no such row. Revoking
+    /// the actor's own `user:write` is `ServiceError::CantDropYourOwnUserWrite`, which ace3 allows.
     pub async fn revoke(
         &self,
         actor: &Actor,
@@ -475,6 +486,7 @@ impl Service {
                     let Some(created_by) = removed else {
                         return Ok(Audited::unchanged(false));
                     };
+                    users::keeps_user_write(tx.conn(), actor).await?;
                     let change = Change::removed(
                         Target::holder(holder),
                         &PermissionRecord {

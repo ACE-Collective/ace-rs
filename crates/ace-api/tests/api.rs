@@ -1936,6 +1936,35 @@ async fn manages_users(client: &mut Client<'_>, token: &str) {
             S::BAD_REQUEST,
         )
         .await;
+    // nor can it take its own user:write, or deny it to itself
+    let Ok(Actor::ApiKey { id: me, .. }) = client.stack.service.authenticate_api_key(token).await
+    else {
+        panic!("the admin's key");
+    };
+    for effect in ["allow", "deny"] {
+        let path = if effect == "allow" { REVOKE } else { GRANTS };
+        let refused = client
+            .json(
+                M::POST,
+                path,
+                path,
+                t,
+                json(json!({
+                    "holder": {"kind": "api_key", "id": me.0},
+                    "major": "user",
+                    "minor": "write",
+                    "effect": effect,
+                })),
+                S::BAD_REQUEST,
+            )
+            .await;
+        assert!(
+            refused["error"]
+                .as_str()
+                .is_some_and(|error| error.contains("would take user:write from you")),
+            "{refused}"
+        );
+    }
     client
         .json(
             M::POST,

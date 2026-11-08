@@ -5,7 +5,8 @@
 //! `/me` routes are the caller's own account, which only a user has, so an API key is refused with 403
 //! as not holding `user:self`: reading and changing your profile and password need no grant, and
 //! managing your own keys needs `user:self`. A token appears once, in the response that made it, with
-//! `Cache-Control: no-store`, as ace3 sends it.
+//! `Cache-Control: no-store`, as ace3 sends it. A grant, revoke or group change that would take
+//! `user:write` from the caller is 400, as disabling yourself is; ace3 refuses only the second.
 
 use ace_service::{
     ApiKey, ApiKeyId, CatalogEntry, Effect, Grant, Group, GroupId, Holder, NewApiKey, Password,
@@ -586,7 +587,7 @@ pub(crate) async fn create_group(
     params(("id" = Uuid, Path, description = "The group's id")),
     responses(
         (status = 204, description = "The group is gone"),
-        (status = 400, description = "An id that isn't a uuid", body = ErrorBody),
+        (status = 400, description = "An id that isn't a uuid, or a group you hold user:write through", body = ErrorBody),
         (status = 401, description = "No credential, or one that isn't valid", body = ErrorBody),
         (status = 403, description = "The actor doesn't hold user:write, or a session's request came from another site", body = ErrorBody),
         (status = 404, description = "No such group", body = ErrorBody),
@@ -647,7 +648,7 @@ pub(crate) async fn add_member(
     ),
     responses(
         (status = 204, description = "The user is no longer a member"),
-        (status = 400, description = "An id that isn't a uuid", body = ErrorBody),
+        (status = 400, description = "An id that isn't a uuid, or taking yourself out of the group you hold user:write through", body = ErrorBody),
         (status = 401, description = "No credential, or one that isn't valid", body = ErrorBody),
         (status = 403, description = "The actor doesn't hold user:write, or a session's request came from another site", body = ErrorBody),
         (status = 404, description = "The user isn't a member of such a group", body = ErrorBody),
@@ -690,7 +691,7 @@ fn holder(body: &HolderBody) -> Holder {
     request_body = GrantRequest,
     responses(
         (status = 200, description = "The holder has the grant", body = ChangedBody),
-        (status = 400, description = "A pattern that isn't one, or a body that isn't one", body = ErrorBody),
+        (status = 400, description = "A pattern that isn't one, a deny that would take user:write from you, or a body that isn't one", body = ErrorBody),
         (status = 401, description = "No credential, or one that isn't valid", body = ErrorBody),
         (status = 403, description = "The actor doesn't hold user:write, or a session's request came from another site", body = ErrorBody),
         (status = 404, description = "No such holder", body = ErrorBody),
@@ -719,7 +720,7 @@ pub(crate) async fn grant(
     request_body = GrantRequest,
     responses(
         (status = 200, description = "The holder hasn't the grant", body = ChangedBody),
-        (status = 400, description = "A pattern that isn't one, or a body that isn't one", body = ErrorBody),
+        (status = 400, description = "A pattern that isn't one, revoking your own user:write, or a body that isn't one", body = ErrorBody),
         (status = 401, description = "No credential, or one that isn't valid", body = ErrorBody),
         (status = 403, description = "The actor doesn't hold user:write, or a session's request came from another site", body = ErrorBody),
         (status = 413, description = "The body is too large", body = ErrorBody),

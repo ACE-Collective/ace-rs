@@ -4600,6 +4600,97 @@ async fn account_writes_check_their_permission_and_their_values() {
     );
 }
 
+/// A change to grants or groups that would leave its actor without `user:write` is refused and changes
+/// nothing, whichever way it would go; one that leaves them holding it some other way goes ahead, and
+/// someone else may still take it from them.
+#[tokio::test]
+async fn nobody_takes_their_own_user_write() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let boss = admin(db).await;
+    let alice_id = new_user(&service, &boss, "alice").await;
+    let alice = user(alice_id);
+    let admins = service.create_group(&boss, "admins").await.expect("makes");
+    service
+        .add_group_member(&boss, admins, alice_id)
+        .await
+        .expect("adds");
+    service
+        .grant(
+            &boss,
+            &Holder::Group(admins),
+            &pattern("user", "*"),
+            Effect::Allow,
+        )
+        .await
+        .expect("grants");
+    let audit = audit_rows(db).await.len();
+    let refusals = [
+        service
+            .remove_group_member(&alice, admins, alice_id)
+            .await
+            .map(|_| ()),
+        service.delete_group(&alice, admins).await.map(|_| ()),
+        service
+            .grant(
+                &alice,
+                &Holder::User(alice_id),
+                &pattern("user", "write"),
+                Effect::Deny,
+            )
+            .await
+            .map(|_| ()),
+        service
+            .revoke(
+                &alice,
+                &Holder::Group(admins),
+                &pattern("user", "*"),
+                Effect::Allow,
+            )
+            .await
+            .map(|_| ()),
+    ];
+    for refusal in refusals {
+        assert!(
+            matches!(refusal, Err(ServiceError::CantDropYourOwnUserWrite)),
+            "{refusal:?}"
+        );
+    }
+    assert_eq!(audit_rows(db).await.len(), audit, "nothing changed");
+    assert!(service.allowed(&alice, &USER_WRITE).await.expect("checks"));
+
+    // a change that leaves her holding it goes ahead
+    service
+        .grant(
+            &alice,
+            &Holder::User(alice_id),
+            &pattern("user", "write"),
+            Effect::Allow,
+        )
+        .await
+        .expect("grants herself what she holds");
+    assert!(
+        service
+            .remove_group_member(&alice, admins, alice_id)
+            .await
+            .expect("leaves")
+    );
+    // and someone else may take it from her
+    assert!(
+        service
+            .revoke(
+                &boss,
+                &Holder::User(alice_id),
+                &pattern("user", "write"),
+                Effect::Allow
+            )
+            .await
+            .expect("revokes")
+    );
+    assert!(!service.allowed(&alice, &USER_WRITE).await.expect("checks"));
+}
+
 #[test]
 fn a_username_is_one_value_in_any_case() {
     assert_eq!(

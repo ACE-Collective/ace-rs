@@ -17,6 +17,10 @@
 //! overreach into an error instead of a key that quietly does less. A user's own key that names another
 //! user's key id is told it isn't there, and the attempt is logged, as ace3 does.
 //!
+//! A change to grants or groups that would leave its actor without `user:write` is refused
+//! (`keeps_user_write`), as disabling yourself is. ace3 refuses only the second. Holding `user:write`
+//! still lets you grant yourself `*:*`, as in ace3 (5.2).
+//!
 //! ace3's `queue` isn't here: ace4's alerts have no queues yet.
 
 use std::collections::{BTreeMap, BTreeSet};
@@ -284,6 +288,21 @@ pub(crate) fn as_user(actor: &Actor) -> Result<(UserId, &str), ServiceError> {
     }
 }
 
+/// Refuses a change that, in its own transaction, has left the actor without `user:write`: revoking
+/// your own grant of it, denying it to yourself, or leaving or deleting the group you hold it through.
+/// Anyone else with `user:write` could still give it back, but you couldn't, so this is the grants'
+/// version of `set_user_enabled` refusing to disable yourself. ace3 has no such check.
+pub(crate) async fn keeps_user_write(
+    conn: &mut PgConnection,
+    actor: &Actor,
+) -> Result<(), ServiceError> {
+    if holds(conn, actor, &USER_WRITE).await? {
+        return Ok(());
+    }
+    tracing::warn!(%actor, "a change that would take user:write from its actor was refused");
+    Err(ServiceError::CantDropYourOwnUserWrite)
+}
+
 fn is_unique_violation(error: &sqlx::Error) -> bool {
     error
         .as_database_error()
@@ -474,7 +493,7 @@ impl Service {
     }
 
     /// Deletes a group, its memberships and its grants, which its members then stop holding. It needs
-    /// `user:write`. Returns false when there's no such group.
+    /// `user:write`, which the actor mustn't lose by it. Returns false when there's no such group.
     pub async fn delete_group(&self, actor: &Actor, group: GroupId) -> Result<bool, ServiceError> {
         self.gate
             .write(actor, "delete_group", &USER_WRITE, &|tx| {
@@ -496,6 +515,7 @@ impl Service {
                     let Some(name) = removed else {
                         return Ok(Audited::unchanged(false));
                     };
+                    keeps_user_write(tx.conn(), actor).await?;
                     let change = Change::removed(
                         Target::holder(&Holder::Group(group)),
                         &GroupRecord { name: &name },
@@ -556,7 +576,8 @@ impl Service {
             .await
     }
 
-    /// Takes a user out of a group. It needs `user:write`. Returns false when they weren't in it.
+    /// Takes a user out of a group. It needs `user:write`, which the actor mustn't lose by it. Returns false
+    /// when they weren't in it.
     pub async fn remove_group_member(
         &self,
         actor: &Actor,
@@ -576,6 +597,7 @@ impl Service {
                     if removed.rows_affected() == 0 {
                         return Ok(Audited::unchanged(false));
                     }
+                    keeps_user_write(tx.conn(), actor).await?;
                     let change = Change::removed(
                         Target::holder(&Holder::Group(group)),
                         &Membership { member: user.0 },

@@ -1,0 +1,22 @@
+{#- Confirming an allow that covers user:write (PLAN.md 5.11's admin area), where ace3's script asks to
+    confirm *:* (src/admin.rs). -#}
+{% extends "base.html" %}
+{% block title %}Confirm grant · ACE{% endblock %}
+{% block content %}
+<section class="preferences admin">
+  <h1>Grant <code>{{ pattern }}</code> to {{ holder_name }}?</h1>
+  <div class="section">
+    <p>{{ gives.summary(false) }}</p>
+    <p class="warning">It includes <code>user:write</code>, so {% if holder_kind == "group" %}every member of {{ holder_name }}{% else %}{{ holder_name }}{% endif %} can change any grant, their own included, and give themselves <code>*:*</code>. Only another user with user:write can take it back.</p>
+    <form method="post" action="/admin/grants" class="inline">
+      <input type="hidden" name="holder_kind" value="{{ holder_kind }}">
+      <input type="hidden" name="holder" value="{{ holder_id }}">
+      <input type="hidden" name="effect" value="allow">
+      <input type="hidden" name="other" value="{{ pattern }}">
+      <input type="hidden" name="confirm" value="yes">
+      <button type="submit">Grant {{ pattern }}</button>
+    </form>
+    <p><a href="{{ back }}">Cancel</a></p>
+  </div>
+</section>
+{% endblock %}

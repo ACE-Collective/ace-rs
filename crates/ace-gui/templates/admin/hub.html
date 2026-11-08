@@ -1,0 +1,16 @@
+{#- ace3's admin/hub.html (PLAN.md 5.11's admin area): a tile for each page of the area the viewer may
+    open (src/admin.rs). -#}
+{% extends "base.html" %}
+{% block title %}Administration · ACE{% endblock %}
+{% block content %}
+<section class="admin">
+  <h1>Administration</h1>
+  <ul class="tiles">
+    {%- for module in modules %}
+    <li><a href="{{ module.href }}"><b>{{ module.title }}</b><span class="muted">{{ module.description }}</span></a></li>
+    {%- else %}
+    <li class="muted">You do not have access to any administration areas.</li>
+    {%- endfor %}
+  </ul>
+</section>
+{% endblock %}

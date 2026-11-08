@@ -1,0 +1,24 @@
+{#- The grant form of a user's or a group's page, with what a grant gives said plainly. The page sets
+    holder_kind and holder_id, and has permissions. -#}
+<h3>Grant a permission</h3>
+<p class="muted hint">A grant gives what its pattern covers, listed beside each grant above. A deny wins over any allow. A grant covering <code>user:write</code> lets its holder change any grant, their own included, so they can give themselves <code>*:*</code>. Give it only to someone you'd make an administrator.</p>
+<form method="post" action="/admin/grants" class="fields">
+  <input type="hidden" name="holder_kind" value="{{ holder_kind }}">
+  <input type="hidden" name="holder" value="{{ holder_id }}">
+  <label for="grant-effect">Effect</label>
+  <select id="grant-effect" name="effect">
+    <option value="allow" selected>allow</option>
+    <option value="deny">deny</option>
+  </select>
+  <label for="grant-permission">Permission</label>
+  <select id="grant-permission" name="permission">
+    <option value="">Other pattern, typed below</option>
+    {%- for permission in permissions %}
+    <option value="{{ permission.name }}">{{ permission.name }}: {{ permission.description }}</option>
+    {%- endfor %}
+  </select>
+  <label for="grant-other">Other pattern</label>
+  <input id="grant-other" type="text" name="other" placeholder="signature:*">
+  <p class="muted hint">A pattern is <code>major:minor</code>, and either half may hold <code>*</code>, <code>?</code> or <code>[...]</code>.</p>
+  <button type="submit">Grant</button>
+</form>

@@ -220,7 +220,7 @@ pub fn key_row(key: &ApiKey, can_manage: bool, tz: Tz) -> KeyRow {
 }
 
 /// Whether a key's scope is `*:*`, ace3's `inherit_user_scope`.
-fn inherits(key: &ApiKey) -> bool {
+pub(crate) fn inherits(key: &ApiKey) -> bool {
     key.grants
         .iter()
         .any(|grant| grant.effect == Effect::Allow && grant.major == "*" && grant.minor == "*")
@@ -357,7 +357,7 @@ pub(crate) async fn save_profile(
 
 /// A key form's fields: `name`, `scope` once for each box ticked, and `other`, more patterns separated
 /// by spaces, commas or lines.
-fn draft_of(body: &[u8]) -> KeyDraft {
+pub(crate) fn draft_of(body: &[u8]) -> KeyDraft {
     let form = pairs(body);
     KeyDraft {
         name: one(&form, "name").unwrap_or("").to_owned(),
@@ -367,7 +367,7 @@ fn draft_of(body: &[u8]) -> KeyDraft {
 }
 
 /// The draft's scope, or why a pattern isn't one.
-fn scope_of(draft: &KeyDraft) -> Result<Vec<PermissionPattern>, String> {
+pub(crate) fn scope_of(draft: &KeyDraft) -> Result<Vec<PermissionPattern>, String> {
     draft
         .ticked
         .iter()

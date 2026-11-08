@@ -76,7 +76,16 @@ pub(crate) async fn layout_for(gui: &Gui, actor: Option<&Actor>, parts: &Parts) 
         Actor::User { name, .. } => Some(name.clone()),
         Actor::ApiKey { .. } | Actor::Internal { .. } => None,
     };
-    Layout::new(&nonce, theme, username, path)
+    let mut layout = Layout::new(&nonce, theme, username, path);
+    layout.admin = gui
+        .service
+        .allowed(actor, &ace_service::ADMIN_READ)
+        .await
+        .unwrap_or_else(|error| {
+            tracing::warn!(%actor, "checking admin:read failed, so the page has no admin link: {error}");
+            false
+        });
+    layout
 }
 
 /// Anyone: the actor if the request has a live session, and the page's layout.
@@ -204,7 +213,8 @@ impl Failure {
             ServiceError::InvalidRequest(_)
             | ServiceError::WeakPassword
             | ServiceError::InvalidKeyName
-            | ServiceError::CantDisableYourself => StatusCode::BAD_REQUEST,
+            | ServiceError::CantDisableYourself
+            | ServiceError::CantDropYourOwnUserWrite => StatusCode::BAD_REQUEST,
             ServiceError::NotFound(_) | ServiceError::NoUser(_) => StatusCode::NOT_FOUND,
             ServiceError::TooLarge(_) => StatusCode::PAYLOAD_TOO_LARGE,
             ServiceError::UsernameTaken

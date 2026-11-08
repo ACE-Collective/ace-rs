@@ -77,6 +77,8 @@ pub struct Layout {
     pub username: Option<String>,
     /// The page's own path, where the theme form comes back to.
     pub path: String,
+    /// Whether the viewer holds `admin:read`, for the link to the administration area.
+    pub admin: bool,
     pub stylesheet: String,
     pub datastar: String,
 }
@@ -89,6 +91,7 @@ impl Layout {
             themes: Theme::ALL,
             username,
             path: path.to_owned(),
+            admin: false,
             stylesheet: STYLESHEET.url(),
             datastar: DATASTAR.url(),
         }

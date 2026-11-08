@@ -1,0 +1,34 @@
+{#- Changing an API key's name and scope (PLAN.md 5.11's admin area): ace3's Edit API Key dialog, as a page
+    whose form posts to /admin/keys/{id} (src/admin.rs). -#}
+{% extends "base.html" %}
+{% block title %}Edit API key · ACE{% endblock %}
+{% block content %}
+<section class="preferences admin">
+  <p><a href="{{ back }}">Back</a></p>
+  <h1>Edit API key</h1>
+  {%- if let Some(problem) = problem %}
+  <p class="error" role="alert">{{ problem }}</p>
+  {%- endif %}
+  <div class="section">
+    <p>{% if let Some(owner) = owner %}A key of <a href="/admin/users/{{ owner.id }}">{{ owner.name }}</a>.{% else %}A key with no owner, which holds what its scope allows.{% endif %} The token doesn't change: anything using it has the new scope on its next request.</p>
+    <form method="post" action="/admin/keys/{{ id }}" class="fields">
+      <label for="key-name">Name</label>
+      <input id="key-name" type="text" name="name" value="{{ draft.name }}" maxlength="255" required>
+      <fieldset class="scope">
+        <legend>Scope</legend>
+        <label class="choice"><input type="radio" name="mode" value="restricted"{% if !inherit %} checked{% endif %}> Restricted to the permissions below</label>
+        <label class="choice"><input type="radio" name="mode" value="inherit"{% if inherit %} checked{% endif %}> Full access: <code>*:*</code>{% if owner.is_some() %}, all its owner holds{% endif %}</label>
+        {%- for permission in scope %}
+        <label class="choice"><input type="checkbox" name="scope" value="{{ permission.name }}"{% if permission.checked %} checked{% endif %}> <code>{{ permission.name }}</code> <span class="muted">{{ permission.description }}</span></label>
+        {%- endfor %}
+        <label for="key-other">Other patterns</label>
+        <textarea id="key-other" name="other" rows="2" placeholder="signature:*">{{ draft.other }}</textarea>
+      </fieldset>
+      {%- if !denies.is_empty() %}
+      <p class="muted">This key is denied {% for deny in denies %}<code>{{ deny }}</code>{% if !loop.last %}, {% endif %}{% endfor %}, whatever its scope.</p>
+      {%- endif %}
+      <button type="submit">Save</button>
+    </form>
+  </div>
+</section>
+{% endblock %}

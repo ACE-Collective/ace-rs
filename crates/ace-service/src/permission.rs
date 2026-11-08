@@ -233,6 +233,9 @@ pub(crate) fn allows<'g>(
     allowed
 }
 
+/// Enter the GUI's administration area: ace3's `admin:read`, its umbrella gate. Each page there needs its
+/// own permission too, such as `user:read` for Users & Roles.
+pub const ADMIN_READ: PermissionName = PermissionName::known("admin", "read");
 /// Read an alert and its files: ace3's `alert:read`.
 pub const ALERT_READ: PermissionName = PermissionName::known("alert", "read");
 /// Change an alert: ace3's `alert:write`, which its disposition route requires.
@@ -272,6 +275,10 @@ pub struct CatalogEntry {
 /// management page; the GUI here is in the same binary, so it reads this. A grant whose pattern covers
 /// nothing here is logged as a likely typo, as ace3 warns, and a key's own scope must cover something.
 pub static CATALOG: &[CatalogEntry] = &[
+    CatalogEntry {
+        name: ADMIN_READ,
+        description: "Enter the administration area. Each page there needs its own permission too.",
+    },
     CatalogEntry {
         name: ALERT_CREATE,
         description: "Submit analysis, which may become alerts.",

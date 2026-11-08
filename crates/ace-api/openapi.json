@@ -2578,7 +2578,7 @@
             }
           },
           "400": {
-            "description": "A pattern that isn't one, or a body that isn't one",
+            "description": "A pattern that isn't one, a deny that would take user:write from you, or a body that isn't one",
             "content": {
               "application/json": {
                 "schema": {
@@ -2659,7 +2659,7 @@
             }
           },
           "400": {
-            "description": "A pattern that isn't one, or a body that isn't one",
+            "description": "A pattern that isn't one, revoking your own user:write, or a body that isn't one",
             "content": {
               "application/json": {
                 "schema": {
@@ -2846,7 +2846,7 @@
             "description": "The group is gone"
           },
           "400": {
-            "description": "An id that isn't a uuid",
+            "description": "An id that isn't a uuid, or a group you hold user:write through",
             "content": {
               "application/json": {
                 "schema": {
@@ -2995,7 +2995,7 @@
             "description": "The user is no longer a member"
           },
           "400": {
-            "description": "An id that isn't a uuid",
+            "description": "An id that isn't a uuid, or taking yourself out of the group you hold user:write through",
             "content": {
               "application/json": {
                 "schema": {

@@ -1,0 +1,93 @@
+{#- One group (PLAN.md 5.11's admin area): ace3's Group Permission Management row, its Remove Group and
+    the groups half of its user dialog, as forms on the group's own page (src/admin.rs). -#}
+{% extends "base.html" %}
+{% block title %}{{ view.name }} · Users & Roles · ACE{% endblock %}
+{% block content %}
+<section class="preferences admin">
+  <p><a href="/admin/users">Users &amp; Roles</a></p>
+  <h1>Group {{ view.name }}</h1>
+  {%- if let Some(notice) = view.notice %}
+  <p class="notice" role="status">{{ notice }}</p>
+  {%- endif %}
+  {%- if let Some(problem) = view.problem %}
+  <p class="error" role="alert">{{ problem }}</p>
+  {%- endif %}
+
+  <div class="section" id="members">
+    <h2>Members</h2>
+    <ul class="grants">
+      {%- for member in view.members %}
+      <li><a href="/admin/users/{{ member.id }}">{{ member.name }}</a>
+        {%- if view.can_write %}
+        <form method="post" action="/admin/groups/{{ view.id }}/members/{{ member.id }}/remove" class="inline">
+          <input type="hidden" name="back" value="group">
+          <button type="submit">Remove</button>
+        </form>
+        {%- endif %}
+      </li>
+      {%- else %}
+      <li class="muted">No members.</li>
+      {%- endfor %}
+    </ul>
+    {%- if view.can_write && !view.others.is_empty() %}
+    <form method="post" action="/admin/groups/{{ view.id }}/members" class="inline">
+      <input type="hidden" name="back" value="group">
+      <label for="add-member">Add member</label>
+      <select id="add-member" name="user">
+        {%- for user in view.others %}
+        <option value="{{ user.id }}">{{ user.name }}</option>
+        {%- endfor %}
+      </select>
+      <button type="submit">Add</button>
+    </form>
+    {%- endif %}
+  </div>
+
+  <div class="section" id="grants">
+    <h2>Grants</h2>
+    <p class="muted">Every member holds these.</p>
+    <table class="keys">
+      <thead><tr><th>Effect</th><th>Pattern</th><th>What it does</th><th></th></tr></thead>
+      <tbody>
+        {%- for grant in view.grants %}
+        <tr>
+          <td>{{ grant.effect }}</td>
+          <td><code>{{ grant.pattern() }}</code></td>
+          <td>{{ grant.gives.summary(grant.is_deny()) }}{% if grant.gives.escalates && !grant.is_deny() %} <span class="warning">With user:write its members can change any grant, and give themselves *:*.</span>{% endif %}</td>
+          <td class="nowrap">
+            {%- if view.can_write %}
+            <form method="post" action="/admin/grants/revoke" class="inline">
+              <input type="hidden" name="holder_kind" value="group">
+              <input type="hidden" name="holder" value="{{ view.id }}">
+              <input type="hidden" name="major" value="{{ grant.major }}">
+              <input type="hidden" name="minor" value="{{ grant.minor }}">
+              <input type="hidden" name="effect" value="{{ grant.effect }}">
+              <button type="submit">Revoke</button>
+            </form>
+            {%- endif %}
+          </td>
+        </tr>
+        {%- else %}
+        <tr><td colspan="4" class="muted">No grants.</td></tr>
+        {%- endfor %}
+      </tbody>
+    </table>
+    {%- if view.can_write %}
+    {%- let holder_kind = "group" %}
+    {%- let holder_id = view.id %}
+    {%- let permissions = view.permissions %}
+    {% include "admin/grant_form.html" %}
+    {%- endif %}
+  </div>
+
+  {%- if view.can_write %}
+  <div class="section" id="delete">
+    <h2>Delete group</h2>
+    <p class="muted">Its members stop holding its grants. The users stay.</p>
+    <form method="post" action="/admin/groups/{{ view.id }}/delete" class="inline">
+      <button type="submit">Delete group</button>
+    </form>
+  </div>
+  {%- endif %}
+</section>
+{% endblock %}

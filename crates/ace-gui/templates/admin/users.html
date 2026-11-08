@@ -1,0 +1,136 @@
+{#- ace3's admin/manage.html (PLAN.md 5.11's admin area): every user with their grants and groups, every
+    group, the keys with no owner, and the forms for a new user and a new group (src/admin.rs). -#}
+{% extends "base.html" %}
+{% block title %}Users & Roles · ACE{% endblock %}
+{% block content %}
+<section class="preferences admin">
+  <p><a href="/admin">Administration</a></p>
+  <h1>Users &amp; Roles</h1>
+  {%- if let Some(notice) = view.notice %}
+  <p class="notice" role="status">{{ notice }}</p>
+  {%- endif %}
+  {%- if let Some(problem) = view.problem %}
+  <p class="error" role="alert">{{ problem }}</p>
+  {%- endif %}
+
+  <div class="section" id="users">
+    <h2>Users</h2>
+    <p>{% if view.hide_disabled %}<a href="/admin/users">Show disabled users</a>{% else %}<a href="/admin/users?disabled=hide">Hide disabled users</a>{% endif %}</p>
+    <table class="keys">
+      <thead><tr><th>User name</th><th>Display name</th><th>Email</th><th>Enabled</th><th>Timezone</th><th>API keys</th><th>Grants</th></tr></thead>
+      <tbody>
+        {%- for user in view.users %}
+        <tr>
+          <td><a href="/admin/users/{{ user.id }}">{{ user.username }}</a></td>
+          <td>{{ user.display_name }}</td>
+          <td>{{ user.email }}</td>
+          <td>{% if user.enabled %}yes{% else %}<b>no</b>{% endif %}</td>
+          <td>{{ user.timezone }}</td>
+          <td>{{ user.api_keys }}</td>
+          <td>
+            <ul class="grants">
+              {%- for grant in user.grants %}
+              <li>{{ grant.effect }} <code>{{ grant.pattern() }}</code>{% if let Some(group) = grant.through %} <span class="muted">(through {{ group }})</span>{% endif %}</li>
+              {%- else %}
+              <li class="muted">none</li>
+              {%- endfor %}
+            </ul>
+          </td>
+        </tr>
+        {%- else %}
+        <tr><td colspan="7" class="muted">No users.</td></tr>
+        {%- endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section" id="groups">
+    <h2>Groups</h2>
+    <table class="keys">
+      <thead><tr><th>Group name</th><th>Members</th><th>Grants</th></tr></thead>
+      <tbody>
+        {%- for group in view.groups %}
+        <tr>
+          <td><a href="/admin/groups/{{ group.id }}">{{ group.name }}</a></td>
+          <td>{% for member in group.members %}{{ member }}{% if !loop.last %}, {% endif %}{% else %}<span class="muted">none</span>{% endfor %}</td>
+          <td>
+            <ul class="grants">
+              {%- for grant in group.grants %}
+              <li>{{ grant.effect }} <code>{{ grant.pattern() }}</code></li>
+              {%- else %}
+              <li class="muted">none</li>
+              {%- endfor %}
+            </ul>
+          </td>
+        </tr>
+        {%- else %}
+        <tr><td colspan="3" class="muted">No groups.</td></tr>
+        {%- endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {%- if !view.service_keys.is_empty() %}
+  <div class="section" id="service-keys">
+    <h2>Keys with no owner</h2>
+    <p class="muted">Each stands for a service, and holds what its scope allows.</p>
+    <table class="keys">
+      <thead><tr><th>Name</th><th>Scope</th><th>Created</th><th></th></tr></thead>
+      <tbody>
+        {%- for key in view.service_keys %}
+        <tr>
+          <td>{{ key.name }}</td>
+          <td>{% for pattern in key.scope %}<code>{{ pattern }}</code>{% if !loop.last %}, {% endif %}{% else %}<span class="muted">nothing</span>{% endfor %}</td>
+          <td class="nowrap">{{ key.created }}</td>
+          <td class="nowrap">
+            {%- if view.can_write %}
+            <a href="/admin/keys/{{ key.id }}">Edit</a>
+            <form method="post" action="/admin/keys/{{ key.id }}/revoke" class="inline">
+              <button type="submit">Revoke</button>
+            </form>
+            {%- endif %}
+          </td>
+        </tr>
+        {%- endfor %}
+      </tbody>
+    </table>
+  </div>
+  {%- endif %}
+
+  {%- if view.can_write %}
+  <div class="section" id="new-user">
+    <h2>New user</h2>
+    <form method="post" action="/admin/users" class="fields">
+      <label for="new-username">User name</label>
+      <input id="new-username" type="text" name="username" value="{{ view.draft.username }}" maxlength="64" required>
+      <label for="new-password">Password</label>
+      <input id="new-password" type="password" name="password" autocomplete="new-password">
+      <p class="muted hint">Leave it blank to have one made, which is shown once.</p>
+      <label for="new-display-name">Display name</label>
+      <input id="new-display-name" type="text" name="display_name" value="{{ view.draft.display_name }}" maxlength="1024">
+      <label for="new-email">Email</label>
+      <input id="new-email" type="text" name="email" value="{{ view.draft.email }}" maxlength="255">
+      <label for="new-timezone">Timezone</label>
+      <select id="new-timezone" name="timezone">
+        {%- for zone in view.timezones %}
+        <option value="{{ zone }}"{% if view.is_timezone(zone) %} selected{% endif %}>{{ zone }}</option>
+        {%- endfor %}
+      </select>
+      <p class="muted hint">A new user holds nothing until they're granted something or put in a group.</p>
+      <button type="submit">Add user</button>
+    </form>
+  </div>
+
+  <div class="section" id="new-group">
+    <h2>New group</h2>
+    <form method="post" action="/admin/groups" class="fields">
+      <label for="new-group-name">Name</label>
+      <input id="new-group-name" type="text" name="name" value="{{ view.group_draft }}" maxlength="255" required>
+      <button type="submit">Add group</button>
+    </form>
+  </div>
+  {%- else %}
+  <p class="muted">Changing users and groups needs user:write.</p>
+  {%- endif %}
+</section>
+{% endblock %}

@@ -31,6 +31,9 @@
 //! - `saved_filters`: the saved filters' forms and their manage page (5.10, and 5.11's saved_filters
 //!   area), ace3's `saved_filters/_modals.html`, where a saved filter is renamed and the quick filters
 //!   reordered.
+//! - `admin`: the administration area under `admin:read` (5.11's admin area), ace3's `admin/hub.html` and
+//!   `admin/manage.html`: users, groups, grants and keys over the `users` service. The base layout links
+//!   to it for whoever holds `admin:read`.
 //!
 //! From ace3's `app/templates/base.html` and `core.html`, and what differs: the layout keeps ace3's
 //! theme attribute on `<html>`, its five themes and its log out by POST. It has none of ace3's jQuery,
@@ -45,6 +48,7 @@ use axum::extract::DefaultBodyLimit;
 use axum::routing::{get, post};
 
 pub mod actions;
+pub mod admin;
 pub mod alert;
 pub mod analysis;
 mod assets;
@@ -173,6 +177,32 @@ impl Gui {
                 "/preferences/alert-section",
                 post(preferences::set_alert_section),
             )
+            .route("/admin", get(admin::hub))
+            .route(
+                "/admin/users",
+                get(admin::users_page).post(admin::create_user),
+            )
+            .route("/admin/users/{id}", get(admin::user_page))
+            .route("/admin/users/{id}/profile", post(admin::save_profile))
+            .route("/admin/users/{id}/enabled", post(admin::set_enabled))
+            .route("/admin/users/{id}/password", post(admin::reset_password))
+            .route("/admin/users/{id}/groups", post(admin::join_group))
+            .route("/admin/users/{id}/keys", post(admin::create_key))
+            .route("/admin/groups", post(admin::create_group))
+            .route("/admin/groups/{id}", get(admin::group_page))
+            .route("/admin/groups/{id}/delete", post(admin::delete_group))
+            .route("/admin/groups/{id}/members", post(admin::add_member))
+            .route(
+                "/admin/groups/{id}/members/{user}/remove",
+                post(admin::remove_member),
+            )
+            .route("/admin/grants", post(admin::grant))
+            .route("/admin/grants/revoke", post(admin::revoke))
+            .route(
+                "/admin/keys/{id}",
+                get(admin::key_page).post(admin::save_key),
+            )
+            .route("/admin/keys/{id}/revoke", post(admin::revoke_key))
             .route("/alerts/{id}", get(alert::page))
             .route("/alerts/{id}/live", get(alert::live))
             .route("/alerts/{id}/results/{result}", get(alert::result_page))

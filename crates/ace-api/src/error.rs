@@ -55,7 +55,8 @@ impl From<ServiceError> for ApiError {
             ServiceError::InvalidRequest(_)
             | ServiceError::WeakPassword
             | ServiceError::InvalidKeyName
-            | ServiceError::CantDisableYourself => StatusCode::BAD_REQUEST,
+            | ServiceError::CantDisableYourself
+            | ServiceError::CantDropYourOwnUserWrite => StatusCode::BAD_REQUEST,
             ServiceError::NotFound(_)
             | ServiceError::NoUser(_)
             | ServiceError::Orchestrator(OrchestratorError::NoRoot(_)) => StatusCode::NOT_FOUND,

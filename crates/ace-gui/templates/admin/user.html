@@ -1,0 +1,191 @@
+{#- One user (PLAN.md 5.11's admin area): ace3's Add / Edit User, Enable, Disable, Add and Remove
+    Permissions, and its API key dialogs, as forms on the user's own page (src/admin.rs). -#}
+{% extends "base.html" %}
+{% block title %}{{ view.username }} · Users & Roles · ACE{% endblock %}
+{% block content %}
+<section class="preferences admin">
+  <p><a href="/admin/users">Users &amp; Roles</a></p>
+  <h1>{{ view.username }}{% if !view.enabled %} <span class="muted">(disabled)</span>{% endif %}</h1>
+  {%- if let Some(notice) = view.notice %}
+  <p class="notice" role="status">{{ notice }}</p>
+  {%- endif %}
+  {%- if let Some(problem) = view.problem %}
+  <p class="error" role="alert">{{ problem }}</p>
+  {%- endif %}
+
+  <div class="section" id="profile">
+    <h2>Profile</h2>
+    {%- if view.can_write %}
+    <form method="post" action="/admin/users/{{ view.id }}/profile" class="fields">
+      <label for="user-display-name">Display name</label>
+      <input id="user-display-name" type="text" name="display_name" value="{{ view.display_name }}" maxlength="1024">
+      <label for="user-email">Email</label>
+      <input id="user-email" type="text" name="email" value="{{ view.email }}" maxlength="255">
+      <label for="user-timezone">Timezone</label>
+      <select id="user-timezone" name="timezone">
+        {%- for zone in view.timezones %}
+        <option value="{{ zone }}"{% if view.is_timezone(zone) %} selected{% endif %}>{{ zone }}</option>
+        {%- endfor %}
+      </select>
+      <button type="submit">Save profile</button>
+    </form>
+    {%- else %}
+    <p>Display name: {{ view.display_name }}</p>
+    <p>Email: {{ view.email }}</p>
+    <p>Timezone: {{ view.timezone }}</p>
+    {%- endif %}
+  </div>
+
+  {%- if view.can_write %}
+  <div class="section" id="account">
+    <h2>Account</h2>
+    {%- if view.enabled %}
+    {%- if view.is_you %}
+    <p class="muted">You can't disable yourself: another user with user:write has to.</p>
+    {%- else %}
+    <form method="post" action="/admin/users/{{ view.id }}/enabled" class="inline">
+      <input type="hidden" name="enabled" value="false">
+      <button type="submit">Disable user</button>
+    </form>
+    <p class="muted hint">Disabling ends their sessions and stops their keys.</p>
+    {%- endif %}
+    {%- else %}
+    <form method="post" action="/admin/users/{{ view.id }}/enabled" class="inline">
+      <input type="hidden" name="enabled" value="true">
+      <button type="submit">Enable user</button>
+    </form>
+    {%- endif %}
+    <h3>Reset password</h3>
+    <form method="post" action="/admin/users/{{ view.id }}/password" class="fields">
+      <label for="user-password">New password</label>
+      <input id="user-password" type="password" name="password" autocomplete="new-password">
+      <p class="muted hint">Leave it blank to have one made, which is shown once. Either way their sessions end.</p>
+      <button type="submit">Reset password</button>
+    </form>
+  </div>
+  {%- endif %}
+
+  <div class="section" id="grants">
+    <h2>Grants</h2>
+    {%- if view.is_you && view.can_write %}
+    <p class="muted">You can't take user:write from yourself: another user with user:write has to.</p>
+    {%- endif %}
+    <table class="keys">
+      <thead><tr><th>Effect</th><th>Pattern</th><th>What it does</th><th></th></tr></thead>
+      <tbody>
+        {%- for grant in view.grants %}
+        <tr>
+          <td>{{ grant.effect }}</td>
+          <td><code>{{ grant.pattern() }}</code></td>
+          <td>{{ grant.gives.summary(grant.is_deny()) }}{% if grant.gives.escalates && !grant.is_deny() %} <span class="warning">With user:write they can change any grant, and give themselves *:*.</span>{% endif %}</td>
+          <td class="nowrap">
+            {%- if view.can_write %}
+            <form method="post" action="/admin/grants/revoke" class="inline">
+              <input type="hidden" name="holder_kind" value="user">
+              <input type="hidden" name="holder" value="{{ view.id }}">
+              <input type="hidden" name="major" value="{{ grant.major }}">
+              <input type="hidden" name="minor" value="{{ grant.minor }}">
+              <input type="hidden" name="effect" value="{{ grant.effect }}">
+              <button type="submit">Revoke</button>
+            </form>
+            {%- endif %}
+          </td>
+        </tr>
+        {%- else %}
+        <tr><td colspan="4" class="muted">No grants of their own.</td></tr>
+        {%- endfor %}
+        {%- for grant in view.group_grants %}
+        <tr>
+          <td>{{ grant.effect }}</td>
+          <td><code>{{ grant.pattern() }}</code>{% if let Some(group) = grant.through %} <span class="muted">through {{ group }}</span>{% endif %}</td>
+          <td>{{ grant.gives.summary(grant.is_deny()) }}</td>
+          <td class="muted">on the group's page</td>
+        </tr>
+        {%- endfor %}
+      </tbody>
+    </table>
+    {%- if view.can_write %}
+    {%- let holder_kind = "user" %}
+    {%- let holder_id = view.id %}
+    {%- let permissions = view.permissions %}
+    {% include "admin/grant_form.html" %}
+    {%- endif %}
+  </div>
+
+  <div class="section" id="groups">
+    <h2>Groups</h2>
+    <ul class="grants">
+      {%- for group in view.groups %}
+      <li><a href="/admin/groups/{{ group.id }}">{{ group.name }}</a>
+        {%- if view.can_write %}
+        <form method="post" action="/admin/groups/{{ group.id }}/members/{{ view.id }}/remove" class="inline">
+          <input type="hidden" name="back" value="user">
+          <button type="submit">Remove from group</button>
+        </form>
+        {%- endif %}
+      </li>
+      {%- else %}
+      <li class="muted">In no group.</li>
+      {%- endfor %}
+    </ul>
+    {%- if view.can_write && !view.other_groups.is_empty() %}
+    <form method="post" action="/admin/users/{{ view.id }}/groups" class="inline">
+      <label for="join-group">Add to group</label>
+      <select id="join-group" name="group">
+        {%- for group in view.other_groups %}
+        <option value="{{ group.id }}">{{ group.name }}</option>
+        {%- endfor %}
+      </select>
+      <button type="submit">Add</button>
+    </form>
+    {%- endif %}
+  </div>
+
+  <div class="section" id="api-keys">
+    <h2>API Keys</h2>
+    <p class="muted">A key does only what both its scope and this user's permissions allow, so a permission they lose stops working for their keys too.</p>
+    <table class="keys">
+      <thead><tr><th>Name</th><th>Scope</th><th>Created</th><th></th></tr></thead>
+      <tbody>
+        {%- for key in view.keys %}
+        <tr>
+          <td>{{ key.name }}</td>
+          <td>{% if key.inherits %}all they hold ({% endif %}{% for pattern in key.scope %}<code>{{ pattern }}</code>{% if !loop.last %}, {% endif %}{% else %}<span class="muted">nothing</span>{% endfor %}{% if key.inherits %}){% endif %}</td>
+          <td class="nowrap">{{ key.created }}</td>
+          <td class="nowrap">
+            {%- if view.can_write %}
+            <a href="/admin/keys/{{ key.id }}">Edit</a>
+            <form method="post" action="/admin/keys/{{ key.id }}/revoke" class="inline">
+              <input type="hidden" name="owner" value="{{ view.id }}">
+              <button type="submit">Revoke</button>
+            </form>
+            {%- endif %}
+          </td>
+        </tr>
+        {%- else %}
+        <tr><td colspan="4" class="muted">No API keys.</td></tr>
+        {%- endfor %}
+      </tbody>
+    </table>
+    {%- if view.can_write %}
+    <h3>New API key</h3>
+    <form method="post" action="/admin/users/{{ view.id }}/keys" class="fields">
+      <label for="key-name">Name</label>
+      <input id="key-name" type="text" name="name" value="{{ view.key_draft.name }}" maxlength="255" placeholder="What uses this key" required>
+      <fieldset class="scope">
+        <legend>Scope</legend>
+        <label class="choice"><input type="radio" name="mode" value="restricted" checked> Restricted to the permissions below</label>
+        <label class="choice"><input type="radio" name="mode" value="inherit"> Full account access: <code>*:*</code>, all this user holds</label>
+        {%- for permission in view.scope %}
+        <label class="choice"><input type="checkbox" name="scope" value="{{ permission.name }}"{% if permission.checked %} checked{% endif %}> <code>{{ permission.name }}</code> <span class="muted">{{ permission.description }}</span></label>
+        {%- endfor %}
+        <label for="key-other">Other patterns</label>
+        <textarea id="key-other" name="other" rows="2" placeholder="signature:*">{{ view.key_draft.other }}</textarea>
+        <p class="muted hint">The token is shown once, when it's made.</p>
+      </fieldset>
+      <button type="submit">Create key</button>
+    </form>
+    {%- endif %}
+  </div>
+</section>
+{% endblock %}
