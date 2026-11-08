@@ -1,0 +1,8 @@
+include:
+  - includes/defaults.include.yaml
+  - includes/deeper/spelled.include.yaml
+rule:
+  uuid: 00000000-0000-0000-0000-000000000019
+  name: include spelled loop
+  description: a loop of includes whose path grows each time round
+  query: index=main

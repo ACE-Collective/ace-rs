@@ -1,0 +1,16 @@
+rule:
+  uuid: 00000000-0000-0000-0000-00000000000d
+  name: time ranges
+  type: splunk
+  enabled: true
+  description: time_ranges as a shorthand and a mapping
+  alert_type: hunter - splunk - cases
+  frequency: "00:05:00"
+  full_coverage: true
+  use_index_time: true
+  query: index=main earliest=<TIMESPEC> <TIMESPEC_WIDE>
+  time_ranges:
+    TIMESPEC: "00:15:00"
+    TIMESPEC_WIDE:
+      duration_before: "01:00:00"
+      duration_after: "00:10:00"

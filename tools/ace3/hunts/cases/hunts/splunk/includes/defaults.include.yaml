@@ -1,0 +1,18 @@
+include:
+  - deeper/base.include.yaml
+rule:
+  enabled: true
+  type: splunk
+  frequency: "00:10:00"
+  time_range: "00:10:00"
+  full_coverage: true
+  use_index_time: false
+  alert_type: hunter - splunk - cases
+  tags:
+    - from-defaults
+  observable_mapping:
+    - field: src_ip
+      type: ipv4
+      tags: [base]
+    - fields: [user, domain]
+      type: user

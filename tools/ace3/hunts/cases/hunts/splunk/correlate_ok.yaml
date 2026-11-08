@@ -1,0 +1,47 @@
+include:
+  - includes/defaults.include.yaml
+  - ../commands/sample_commands.include.yaml
+rule:
+  uuid: 00000000-0000-0000-0000-000000000013
+  name: correlate ok
+  description: a correlate block with each kind of step
+  query: index=main
+  correlate:
+    timeout: 5m
+    logic:
+      - description: look up the user
+        transform:
+          property_name: myUser
+          command:
+            type: query
+            source: splunk
+            query: index=users user={{ user }}
+            time_range: {before: 1h, after: 5m}
+      - when: "{{ myUser }}"
+        execute:
+          - action: filter
+        else:
+          - action: {type: alert, queue: other}
+          - transform:
+              type: stream
+              method: merge
+              merge_time_spec: {l_field: a, l_format: x, r_field: b, r_format: y}
+              command: {type: defined, name: lookup_dns, arguments: {args: ["{{ x }}"]}}
+      - when:
+          type: and
+          value:
+            - type: equals
+              property: a
+              value: b
+            - "{{ c }}"
+        execute:
+          - action: stop
+        debug: "{{ a }}"
+      - transform:
+          property_name: score
+          command:
+            type: executable
+            path: ../scripts/score.py
+            files: [../scripts/data.json, /abs/data.json]
+            args: ["{{ a }}"]
+      - action: log

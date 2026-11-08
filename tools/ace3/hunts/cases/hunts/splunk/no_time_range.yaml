@@ -1,0 +1,13 @@
+rule:
+  uuid: 00000000-0000-0000-0000-00000000000c
+  name: no time range
+  type: splunk
+  enabled: true
+  description: neither time_range nor time_ranges.TIMESPEC
+  alert_type: hunter - splunk - cases
+  frequency: "00:05:00"
+  full_coverage: true
+  use_index_time: true
+  query: index=main
+  time_ranges:
+    OTHER: "00:10:00"

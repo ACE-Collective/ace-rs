@@ -1,0 +1,9 @@
+include:
+  - includes/defaults.include.yaml
+rule:
+  uuid: 00000000-0000-0000-0000-00000000000f
+  name: wrong type
+  type: logscale
+  repository: x
+  description: a logscale hunt in splunk's directory
+  query: index=main

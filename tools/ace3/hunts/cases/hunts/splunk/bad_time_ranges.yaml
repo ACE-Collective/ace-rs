@@ -1,0 +1,10 @@
+include:
+  - includes/defaults.include.yaml
+rule:
+  uuid: 00000000-0000-0000-0000-00000000000e
+  name: bad time ranges
+  description: a time range with a key it doesn't have
+  query: index=main
+  time_ranges:
+    TIMESPEC:
+      before: "01:00:00"

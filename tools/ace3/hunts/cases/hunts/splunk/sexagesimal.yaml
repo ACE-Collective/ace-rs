@@ -1,0 +1,10 @@
+include:
+  - includes/defaults.include.yaml
+rule:
+  uuid: 00000000-0000-0000-0000-000000000008
+  name: sexagesimal
+  description: an unquoted 1:30:00 is an integer in YAML 1.1, and 00:30:00 isn't
+  suppression: 1:30:00
+  offset: 00:30:00
+  queue: no
+  query: index=main

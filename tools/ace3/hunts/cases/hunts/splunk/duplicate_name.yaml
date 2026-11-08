@@ -1,0 +1,7 @@
+include:
+  - includes/defaults.include.yaml
+rule:
+  uuid: 00000000-0000-0000-0000-000000000010
+  name: ok minimal
+  description: the name of another hunt of the type
+  query: index=main

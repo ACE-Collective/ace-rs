@@ -1,0 +1,12 @@
+include:
+  - includes/defaults.include.yaml
+rule:
+  uuid: 00000000-0000-0000-0000-000000000015
+  name: correlate nested error
+  description: an error inside a condition's branch
+  query: index=main
+  correlate:
+    logic:
+      - when: "{{ a }}"
+        execute:
+          - action: bogus

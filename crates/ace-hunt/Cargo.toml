@@ -1,0 +1,25 @@
+[package]
+name = "ace-hunt"
+version = "0.1.0"
+description = "Hunts: the model, and loading them from a signatures checkout as ace3's hunter does"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+# A cron frequency is checked as ace3 checks it with croniter.
+croner = { version = "=4.0.2", default-features = false }
+regex = "1.13.1"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+thiserror = "2.0.21"
+# The YAML parser, for its events: ace-hunt builds the values itself, as PyYAML's SafeLoader
+# resolves them (YAML 1.1), with bounds on size, depth and aliases.
+yaml-rust2 = { version = "0.13.0", default-features = false }
+
+[dev-dependencies]
+tempfile = "3.27.0"
+
+[lints]
+workspace = true

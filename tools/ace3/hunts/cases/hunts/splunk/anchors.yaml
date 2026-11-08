@@ -1,0 +1,14 @@
+include:
+  - includes/defaults.include.yaml
+rule:
+  uuid: 00000000-0000-0000-0000-000000000009
+  name: &name anchors
+  description: *name
+  query: index=main
+  dedup_key: *name
+  summary_details:
+    - &detail
+      content: "{{ x }}"
+      header: one
+    - <<: *detail
+      header: two

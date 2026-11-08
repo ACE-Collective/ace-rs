@@ -1,0 +1,11 @@
+include:
+  - includes/defaults.include.yaml
+commands:
+  - name: custom
+    type: wiz_lookup
+    path: x.sh
+rule:
+  uuid: 00000000-0000-0000-0000-000000000017
+  name: command errors
+  description: a predefined command ace3 refuses
+  query: index=main

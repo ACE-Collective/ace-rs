@@ -1,0 +1,13 @@
+rule:
+  uuid: 00000000-0000-0000-0000-000000000101
+  name: logscale ok
+  type: logscale
+  enabled: true
+  description: a logscale hunt
+  alert_type: hunter - logscale - cases
+  frequency: "00:05:00"
+  time_range: "00:05:00"
+  full_coverage: true
+  use_index_time: true
+  repository: search-all
+  query: "#event_simpleName=ProcessRollup2"

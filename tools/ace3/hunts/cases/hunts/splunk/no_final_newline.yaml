@@ -1,0 +1,12 @@
+include:
+  - includes/defaults.include.yaml
+rule:
+  uuid: 00000000-0000-0000-0000-00000000001b
+  name: no final newline
+  description: >
+    a folded block
+    that ends the file without a line break,
+    as some of the signatures do
+  query: |
+    index=main
+    | head 1

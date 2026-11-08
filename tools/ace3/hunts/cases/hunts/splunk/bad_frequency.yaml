@@ -1,0 +1,8 @@
+include:
+  - includes/defaults.include.yaml
+rule:
+  uuid: 00000000-0000-0000-0000-00000000000a
+  name: bad frequency
+  description: neither a timedelta nor cron
+  frequency: every day
+  query: index=main

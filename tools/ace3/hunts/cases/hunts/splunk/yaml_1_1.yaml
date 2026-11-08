@@ -1,0 +1,21 @@
+rule:
+  uuid: 00000000-0000-0000-0000-000000000007
+  name: yaml 1.1 scalars
+  type: splunk
+  enabled: Yes
+  description: PyYAML resolves these as YAML 1.1 does
+  alert_type: hunter - splunk - cases
+  frequency: "00:05:00"
+  time_range: "00:05:00"
+  full_coverage: True
+  use_index_time: off
+  max_result_count: 0x1F
+  query: index=main
+  summary_details:
+    - content: a
+      limit: 010
+    - content: b
+      limit: 1_000
+    - content: c
+      limit: 1:30
+  author: [~, 2024-01-02]

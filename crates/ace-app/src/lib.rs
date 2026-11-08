@@ -23,8 +23,9 @@
 //!
 //! Each kind of thing an ace3 integration can add (`ace3/docs/INTEGRATIONS.md`) becomes an entry
 //! here once its feature exists in ace4: analysis modules and observable types (2.31), analysis
-//! templates and observable actions (5.9, `analysis_view`, `observable_action`), collectors with the
-//! first collector (6.1), and the rest with the phases that build them.
+//! templates and observable actions (5.9, `analysis_view`, `observable_action`), hunt types (6.2,
+//! `hunt_type`), collectors with the first collector (6.1), and the rest with the phases that build
+//! them.
 //!
 //! Everything here reads its configuration from the environment and the site overlay at run
 //! time, and nothing from this workspace's checkout, so a binary built in another repository
@@ -42,6 +43,7 @@ mod yara;
 
 use std::path::Path;
 use std::process::ExitCode;
+use std::sync::Arc;
 
 use ace_core::modes::Modes;
 use ace_pool::modules::Registry;
@@ -58,6 +60,7 @@ pub struct App {
     groups: Vec<(String, String)>,
     views: ace_gui::Views,
     actions: ace_gui::ObservableActions,
+    hunt_types: Vec<Arc<dyn ace_hunt::HuntType>>,
 }
 
 /// A parser pool: modules that read files, one contained process per task (PLAN.md 2.17).
@@ -126,6 +129,20 @@ impl App {
     pub fn observable_action(mut self, action: ace_gui::ObservableAction) -> App {
         self.actions = self.actions.with(action);
         self
+    }
+
+    /// Adds a hunt type (PLAN.md 6.2), as an ace3 integration adds a `hunt_type_*` section with
+    /// its class. One with a type's name already added takes its place.
+    pub fn hunt_type(mut self, kind: impl ace_hunt::HuntType + 'static) -> App {
+        self.hunt_types.retain(|k| k.name() != kind.name());
+        self.hunt_types.push(Arc::new(kind));
+        self
+    }
+
+    /// The hunt types the binary loads hunts of: what 6.4's hunter runs and 6.8's `ace signatures
+    /// check` loads.
+    pub fn hunt_types(&self) -> &[Arc<dyn ace_hunt::HuntType>] {
+        &self.hunt_types
     }
 
     /// The observable actions the GUI offers.

@@ -1,0 +1,9 @@
+rule:
+  queue: base-queue
+  instance_types: [production]
+  icon_configuration:
+    blueprint_file_location:
+      name: static
+      path: images/alert_icons/splunk.png
+  tags:
+    - from-base

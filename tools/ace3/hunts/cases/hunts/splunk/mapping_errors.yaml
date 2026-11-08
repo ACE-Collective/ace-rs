@@ -1,0 +1,36 @@
+include:
+  - includes/defaults.include.yaml
+rule:
+  uuid: 00000000-0000-0000-0000-000000000011
+  name: mapping errors
+  description: observable mappings ace3 refuses
+  query: index=main
+  observable_mapping:
+    - type: ipv4
+    - field: a
+      type: ipv4
+      fields_mode: any
+      value: "{{ a }}"
+    - field: b
+      type: file
+      display_value: shown
+    - field: c
+      type: ipv4
+      fallback_type: fqdn
+    - field: d
+      type: "{{ kind }}"
+      fallback_type: file
+    - field: e
+      type: file
+      file_decoder: rot13
+    - field: f
+      type: ipv4
+      limit: 0
+    - field: g
+      type: ipv4
+      fields_mode: some
+    - field: h
+      type: ipv4
+      relationships:
+        - type: downloaded_from
+          target: {type: url}

@@ -27,11 +27,14 @@ pub fn lookup_pool() -> LookupPool {
         .module::<ace_mod_splunk::SplunkAnalyzer>()
 }
 
-/// The open-source binaries' list: the two pools, and no observable types beyond ace3's.
+/// The open-source binaries' list: the two pools, no observable types beyond ace3's, and ace3's
+/// one open-source hunt type, Splunk (PLAN.md 6.2). Which Splunk instances a hunt may name comes
+/// with 6.4's hunter, so until then a hunt's `splunk_config` isn't checked.
 pub fn app() -> App {
     App::new()
         .parser_pool(parser_pool())
         .lookup_pool(lookup_pool())
+        .hunt_type(ace_hunt::types::Splunk::default())
 }
 
 #[cfg(test)]
@@ -40,5 +43,13 @@ mod tests {
     #[test]
     fn every_module_has_an_analysis_view() {
         assert_eq!(super::app().modules_without_a_view(), []);
+    }
+
+    /// ace3's open-source hunt type; a site's add LogScale and Rapid7 in its own app.
+    #[test]
+    fn the_open_source_hunt_type_is_splunk() {
+        let app = super::app();
+        let names: Vec<&str> = app.hunt_types().iter().map(|k| k.name()).collect();
+        assert_eq!(names, ["splunk"]);
     }
 }

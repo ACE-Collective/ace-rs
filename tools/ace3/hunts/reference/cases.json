@@ -1,0 +1,2412 @@
+{
+ "ace3_commit": "f72f89462e7026d0a26e6d826c1f849b156fe67f",
+ "hunts": [
+  {
+   "error": {
+    "class": "ScannerError",
+    "message": "mapping values are not allowed here\n  in \"$ROOT/hunts/splunk/yaml_syntax.yaml\", line 3, column 15"
+   },
+   "path": "hunts/splunk/yaml_syntax.yaml",
+   "type": "splunk"
+  },
+  {
+   "error": {
+    "class": "ValidationError",
+    "errors": [
+     {
+      "loc": [
+       "author",
+       0
+      ],
+      "msg": "Input should be a valid string",
+      "type": "string_type"
+     },
+     {
+      "loc": [
+       "author",
+       1
+      ],
+      "msg": "Input should be a valid string",
+      "type": "string_type"
+     }
+    ],
+    "title": "SplunkHuntConfig"
+   },
+   "path": "hunts/splunk/yaml_1_1.yaml",
+   "type": "splunk"
+  },
+  {
+   "error": {
+    "class": "ValidationError",
+    "errors": [
+     {
+      "loc": [
+       "observable_mapping"
+      ],
+      "msg": "Input should be a valid list",
+      "type": "list_type"
+     },
+     {
+      "loc": [
+       "max_result_count"
+      ],
+      "msg": "Input should be a valid integer, unable to parse string as an integer",
+      "type": "int_parsing"
+     },
+     {
+      "loc": [
+       "name"
+      ],
+      "msg": "Input should be a valid string",
+      "type": "string_type"
+     },
+     {
+      "loc": [
+       "enabled"
+      ],
+      "msg": "Input should be a valid boolean, unable to interpret input",
+      "type": "bool_parsing"
+     },
+     {
+      "loc": [
+       "instance_types",
+       0
+      ],
+      "msg": "Input should be a valid string",
+      "type": "string_type"
+     },
+     {
+      "loc": [
+       "description"
+      ],
+      "msg": "Input should be a valid string",
+      "type": "string_type"
+     },
+     {
+      "loc": [
+       "tags"
+      ],
+      "msg": "Input should be a valid list",
+      "type": "list_type"
+     },
+     {
+      "loc": [
+       "full_coverage"
+      ],
+      "msg": "Input should be a valid boolean, unable to interpret input",
+      "type": "bool_parsing"
+     },
+     {
+      "loc": [
+       "use_index_time"
+      ],
+      "msg": "Input should be a valid boolean, unable to interpret input",
+      "type": "bool_parsing"
+     }
+    ],
+    "title": "SplunkHuntConfig"
+   },
+   "path": "hunts/splunk/wrong_types.yaml",
+   "type": "splunk"
+  },
+  {
+   "error": {
+    "class": "ValidationError",
+    "errors": [
+     {
+      "loc": [
+       "repository"
+      ],
+      "msg": "Extra inputs are not permitted",
+      "type": "extra_forbidden"
+     }
+    ],
+    "title": "SplunkHuntConfig"
+   },
+   "path": "hunts/splunk/wrong_type.yaml",
+   "type": "splunk"
+  },
+  {
+   "loaded": {
+    "commands": [],
+    "config": {
+     "alert_template": null,
+     "alert_type": "hunter - splunk - cases",
+     "analysis_mode": "correlation",
+     "author": [],
+     "auto_append": "| fields *",
+     "correlate": null,
+     "dedup_key": null,
+     "description": "time_ranges as a shorthand and a mapping",
+     "description_field": null,
+     "enabled": true,
+     "frequency": "00:05:00",
+     "full_coverage": true,
+     "group_by": null,
+     "icon_configuration": null,
+     "ignored_values": [],
+     "instance_types": [],
+     "max_result_count": 100,
+     "max_time_range": null,
+     "name": "time ranges",
+     "observable_mapping": [],
+     "offset": null,
+     "pivot_links": [],
+     "playbook_url": null,
+     "query": "index=main earliest=<TIMESPEC> <TIMESPEC_WIDE>",
+     "query_path": null,
+     "query_prefix": null,
+     "query_suffix": null,
+     "query_timeout": "00:30:00",
+     "queue": "default",
+     "search": null,
+     "splunk_app_context": null,
+     "splunk_config": "default",
+     "splunk_user_context": null,
+     "summary_details": [],
+     "suppression": null,
+     "tags": [],
+     "time_range": null,
+     "time_ranges": {
+      "TIMESPEC": {
+       "duration_after": null,
+       "duration_before": "00:15:00"
+      },
+      "TIMESPEC_WIDE": {
+       "duration_after": "00:10:00",
+       "duration_before": "01:00:00"
+      }
+     },
+     "type": "splunk",
+     "use_index_time": true,
+     "uuid": "00000000-0000-0000-0000-00000000000d"
+    },
+    "files": [
+     "$ROOT/hunts/splunk/time_ranges.yaml"
+    ],
+    "query": null
+   },
+   "path": "hunts/splunk/time_ranges.yaml",
+   "type": "splunk"
+  },
+  {
+   "error": {
+    "class": "ValidationError",
+    "errors": [
+     {
+      "loc": [
+       "queue"
+      ],
+      "msg": "Input should be a valid string",
+      "type": "string_type"
+     },
+     {
+      "loc": [
+       "suppression"
+      ],
+      "msg": "Input should be a valid string",
+      "type": "string_type"
+     }
+    ],
+    "title": "SplunkHuntConfig"
+   },
+   "path": "hunts/splunk/sexagesimal.yaml",
+   "type": "splunk"
+  },
+  {
+   "error": {
+    "class": "AttributeError",
+    "message": "'str' object has no attribute 'get'"
+   },
+   "path": "hunts/splunk/scalar.yaml",
+   "type": "splunk"
+  },
+  {
+   "error": {
+    "class": "AttributeError",
+    "message": "'NoneType' object has no attribute 'get'"
+   },
+   "path": "hunts/splunk/rule_null.yaml",
+   "type": "splunk"
+  },
+  {
+   "error": {
+    "class": "AttributeError",
+    "message": "'list' object has no attribute 'get'"
+   },
+   "path": "hunts/splunk/rule_list.yaml",
+   "type": "splunk"
+  },
+  {
+   "loaded": {
+    "commands": [],
+    "config": {
+     "alert_template": null,
+     "alert_type": "hunter - splunk - cases",
+     "analysis_mode": "correlation",
+     "author": [],
+     "auto_append": "| fields *",
+     "correlate": null,
+     "dedup_key": null,
+     "description": "the fewest fields a splunk hunt needs",
+     "description_field": null,
+     "enabled": false,
+     "frequency": "00:05:00",
+     "full_coverage": false,
+     "group_by": null,
+     "icon_configuration": null,
+     "ignored_values": [],
+     "instance_types": [],
+     "max_result_count": 100,
+     "max_time_range": null,
+     "name": "ok minimal",
+     "observable_mapping": [],
+     "offset": null,
+     "pivot_links": [],
+     "playbook_url": null,
+     "query": "index=main | head 1",
+     "query_path": null,
+     "query_prefix": null,
+     "query_suffix": null,
+     "query_timeout": "00:30:00",
+     "queue": "default",
+     "search": null,
+     "splunk_app_context": null,
+     "splunk_config": "default",
+     "splunk_user_context": null,
+     "summary_details": [],
+     "suppression": null,
+     "tags": [],
+     "time_range": "00:05:00",
+     "time_ranges": null,
+     "type": "splunk",
+     "use_index_time": true,
+     "uuid": "00000000-0000-0000-0000-000000000001"
+    },
+    "files": [
+     "$ROOT/hunts/splunk/ok_minimal.yaml"
+    ],
+    "query": null
+   },
+   "path": "hunts/splunk/ok_minimal.yaml",
+   "type": "splunk"
+  },
+  {
+   "loaded": {
+    "commands": [],
+    "config": {
+     "alert_template": null,
+     "alert_type": "hunter - splunk - cases",
+     "analysis_mode": "correlation",
+     "author": [],
+     "auto_append": "| fields *",
+     "correlate": null,
+     "dedup_key": null,
+     "description": "includes, nested, circular and repeated, merged in order",
+     "description_field": null,
+     "enabled": true,
+     "frequency": "00:10:00",
+     "full_coverage": true,
+     "group_by": null,
+     "icon_configuration": {
+      "blueprint_file_location": {
+       "name": "static",
+       "path": "images/alert_icons/splunk.png"
+      },
+      "url": "https://example.com/icon.png"
+     },
+     "ignored_values": [],
+     "instance_types": [
+      "production"
+     ],
+     "max_result_count": 100,
+     "max_time_range": null,
+     "name": "ok includes",
+     "observable_mapping": [
+      {
+       "directives": [],
+       "display_type": null,
+       "display_value": null,
+       "fallback_type": null,
+       "field": "src_ip",
+       "field_lookup_type": "key",
+       "fields": [
+        "src_ip"
+       ],
+       "fields_mode": "all",
+       "file_decoder": null,
+       "file_name": null,
+       "ignored_values": [],
+       "limit": null,
+       "relationships": [],
+       "tags": [
+        "replaced"
+       ],
+       "time": false,
+       "type": "ipv4",
+       "value": null,
+       "volatile": false
+      },
+      {
+       "directives": [
+        "crawl"
+       ],
+       "display_type": null,
+       "display_value": null,
+       "fallback_type": null,
+       "field": null,
+       "field_lookup_type": "key",
+       "fields": [
+        "domain",
+        "user"
+       ],
+       "fields_mode": "all",
+       "file_decoder": null,
+       "file_name": null,
+       "ignored_values": [],
+       "limit": null,
+       "relationships": [],
+       "tags": [],
+       "time": false,
+       "type": "user",
+       "value": null,
+       "volatile": false
+      },
+      {
+       "directives": [],
+       "display_type": null,
+       "display_value": null,
+       "fallback_type": null,
+       "field": "dest",
+       "field_lookup_type": "key",
+       "fields": [
+        "dest"
+       ],
+       "fields_mode": "all",
+       "file_decoder": null,
+       "file_name": null,
+       "ignored_values": [],
+       "limit": null,
+       "relationships": [],
+       "tags": [],
+       "time": false,
+       "type": "fqdn",
+       "value": null,
+       "volatile": false
+      }
+     ],
+     "offset": null,
+     "pivot_links": [],
+     "playbook_url": null,
+     "query": "index=main",
+     "query_path": null,
+     "query_prefix": null,
+     "query_suffix": null,
+     "query_timeout": "00:30:00",
+     "queue": "hunt-queue",
+     "search": null,
+     "splunk_app_context": null,
+     "splunk_config": "default",
+     "splunk_user_context": null,
+     "summary_details": [],
+     "suppression": null,
+     "tags": [
+      "from-base",
+      "from-defaults",
+      "own"
+     ],
+     "time_range": "00:10:00",
+     "time_ranges": null,
+     "type": "splunk",
+     "use_index_time": false,
+     "uuid": "00000000-0000-0000-0000-000000000002"
+    },
+    "files": [
+     "$ROOT/hunts/splunk/includes/deeper/base.include.yaml",
+     "$ROOT/hunts/splunk/includes/defaults.include.yaml",
+     "$ROOT/hunts/splunk/ok_includes.yaml"
+    ],
+    "query": null
+   },
+   "path": "hunts/splunk/ok_includes.yaml",
+   "type": "splunk"
+  },
+  {
+   "error": {
+    "class": "ValidationError",
+    "errors": [
+     {
+      "loc": [],
+      "msg": "Value error, Either 'time_range' or 'time_ranges' with a TIMESPEC entry must be specified",
+      "type": "value_error"
+     }
+    ],
+    "title": "SplunkHuntConfig"
+   },
+   "path": "hunts/splunk/no_time_range.yaml",
+   "type": "splunk"
+  },
+  {
+   "error": {
+    "class": "ValidationError",
+    "errors": [
+     {
+      "loc": [
+       "uuid"
+      ],
+      "msg": "Field required",
+      "type": "missing"
+     },
+     {
+      "loc": [
+       "name"
+      ],
+      "msg": "Field required",
+      "type": "missing"
+     },
+     {
+      "loc": [
+       "type"
+      ],
+      "msg": "Field required",
+      "type": "missing"
+     },
+     {
+      "loc": [
+       "enabled"
+      ],
+      "msg": "Field required",
+      "type": "missing"
+     },
+     {
+      "loc": [
+       "description"
+      ],
+      "msg": "Field required",
+      "type": "missing"
+     },
+     {
+      "loc": [
+       "alert_type"
+      ],
+      "msg": "Field required",
+      "type": "missing"
+     },
+     {
+      "loc": [
+       "frequency"
+      ],
+      "msg": "Field required",
+      "type": "missing"
+     },
+     {
+      "loc": [
+       "full_coverage"
+      ],
+      "msg": "Field required",
+      "type": "missing"
+     },
+     {
+      "loc": [
+       "use_index_time"
+      ],
+      "msg": "Field required",
+      "type": "missing"
+     }
+    ],
+    "title": "SplunkHuntConfig"
+   },
+   "path": "hunts/splunk/no_rule.yaml",
+   "type": "splunk"
+  },
+  {
+   "loaded": {
+    "commands": [],
+    "config": {
+     "alert_template": null,
+     "alert_type": "hunter - splunk - cases",
+     "analysis_mode": "correlation",
+     "author": [],
+     "auto_append": "| fields *",
+     "correlate": null,
+     "dedup_key": null,
+     "description": "a folded block that ends the file without a line break, as some of the signatures do\n",
+     "description_field": null,
+     "enabled": true,
+     "frequency": "00:10:00",
+     "full_coverage": true,
+     "group_by": null,
+     "icon_configuration": {
+      "blueprint_file_location": {
+       "name": "static",
+       "path": "images/alert_icons/splunk.png"
+      },
+      "url": null
+     },
+     "ignored_values": [],
+     "instance_types": [
+      "production"
+     ],
+     "max_result_count": 100,
+     "max_time_range": null,
+     "name": "no final newline",
+     "observable_mapping": [
+      {
+       "directives": [],
+       "display_type": null,
+       "display_value": null,
+       "fallback_type": null,
+       "field": "src_ip",
+       "field_lookup_type": "key",
+       "fields": [
+        "src_ip"
+       ],
+       "fields_mode": "all",
+       "file_decoder": null,
+       "file_name": null,
+       "ignored_values": [],
+       "limit": null,
+       "relationships": [],
+       "tags": [
+        "base"
+       ],
+       "time": false,
+       "type": "ipv4",
+       "value": null,
+       "volatile": false
+      },
+      {
+       "directives": [],
+       "display_type": null,
+       "display_value": null,
+       "fallback_type": null,
+       "field": null,
+       "field_lookup_type": "key",
+       "fields": [
+        "user",
+        "domain"
+       ],
+       "fields_mode": "all",
+       "file_decoder": null,
+       "file_name": null,
+       "ignored_values": [],
+       "limit": null,
+       "relationships": [],
+       "tags": [],
+       "time": false,
+       "type": "user",
+       "value": null,
+       "volatile": false
+      }
+     ],
+     "offset": null,
+     "pivot_links": [],
+     "playbook_url": null,
+     "query": "index=main\n| head 1",
+     "query_path": null,
+     "query_prefix": null,
+     "query_suffix": null,
+     "query_timeout": "00:30:00",
+     "queue": "base-queue",
+     "search": null,
+     "splunk_app_context": null,
+     "splunk_config": "default",
+     "splunk_user_context": null,
+     "summary_details": [],
+     "suppression": null,
+     "tags": [
+      "from-base",
+      "from-defaults"
+     ],
+     "time_range": "00:10:00",
+     "time_ranges": null,
+     "type": "splunk",
+     "use_index_time": false,
+     "uuid": "00000000-0000-0000-0000-00000000001b"
+    },
+    "files": [
+     "$ROOT/hunts/splunk/includes/deeper/base.include.yaml",
+     "$ROOT/hunts/splunk/includes/defaults.include.yaml",
+     "$ROOT/hunts/splunk/no_final_newline.yaml"
+    ],
+    "query": null
+   },
+   "path": "hunts/splunk/no_final_newline.yaml",
+   "type": "splunk"
+  },
+  {
+   "error": {
+    "class": "ValidationError",
+    "errors": [
+     {
+      "loc": [
+       "uuid"
+      ],
+      "msg": "Field required",
+      "type": "missing"
+     },
+     {
+      "loc": [
+       "name"
+      ],
+      "msg": "Field required",
+      "type": "missing"
+     },
+     {
+      "loc": [
+       "enabled"
+      ],
+      "msg": "Field required",
+      "type": "missing"
+     },
+     {
+      "loc": [
+       "description"
+      ],
+      "msg": "Field required",
+      "type": "missing"
+     },
+     {
+      "loc": [
+       "alert_type"
+      ],
+      "msg": "Field required",
+      "type": "missing"
+     },
+     {
+      "loc": [
+       "frequency"
+      ],
+      "msg": "Field required",
+      "type": "missing"
+     },
+     {
+      "loc": [
+       "full_coverage"
+      ],
+      "msg": "Field required",
+      "type": "missing"
+     },
+     {
+      "loc": [
+       "use_index_time"
+      ],
+      "msg": "Field required",
+      "type": "missing"
+     }
+    ],
+    "title": "SplunkHuntConfig"
+   },
+   "path": "hunts/splunk/missing_fields.yaml",
+   "type": "splunk"
+  },
+  {
+   "loaded": {
+    "commands": [],
+    "config": {
+     "alert_template": null,
+     "alert_type": "hunter - splunk - cases",
+     "analysis_mode": "correlation",
+     "author": [],
+     "auto_append": "| fields *",
+     "correlate": null,
+     "dedup_key": null,
+     "description": "observable mappings with every option",
+     "description_field": null,
+     "enabled": true,
+     "frequency": "00:10:00",
+     "full_coverage": true,
+     "group_by": null,
+     "icon_configuration": {
+      "blueprint_file_location": {
+       "name": "static",
+       "path": "images/alert_icons/splunk.png"
+      },
+      "url": null
+     },
+     "ignored_values": [
+      "^-$",
+      "(unclosed"
+     ],
+     "instance_types": [
+      "production"
+     ],
+     "max_result_count": 100,
+     "max_time_range": null,
+     "name": "mapping ok",
+     "observable_mapping": [
+      {
+       "directives": [],
+       "display_type": null,
+       "display_value": null,
+       "fallback_type": null,
+       "field": "src_ip",
+       "field_lookup_type": "key",
+       "fields": [
+        "src_ip"
+       ],
+       "fields_mode": "all",
+       "file_decoder": null,
+       "file_name": null,
+       "ignored_values": [],
+       "limit": null,
+       "relationships": [],
+       "tags": [
+        "base"
+       ],
+       "time": false,
+       "type": "ipv4",
+       "value": null,
+       "volatile": false
+      },
+      {
+       "directives": [],
+       "display_type": null,
+       "display_value": null,
+       "fallback_type": null,
+       "field": null,
+       "field_lookup_type": "key",
+       "fields": [
+        "user",
+        "domain"
+       ],
+       "fields_mode": "all",
+       "file_decoder": null,
+       "file_name": null,
+       "ignored_values": [],
+       "limit": null,
+       "relationships": [],
+       "tags": [],
+       "time": false,
+       "type": "user",
+       "value": null,
+       "volatile": false
+      },
+      {
+       "directives": [],
+       "display_type": "Kind",
+       "display_value": null,
+       "fallback_type": "indicator",
+       "field": null,
+       "field_lookup_type": "key",
+       "fields": [
+        "a",
+        "b"
+       ],
+       "fields_mode": "any",
+       "file_decoder": null,
+       "file_name": null,
+       "ignored_values": [
+        "n/a"
+       ],
+       "limit": 3,
+       "relationships": [],
+       "tags": [],
+       "time": true,
+       "type": "{{ kind }}",
+       "value": null,
+       "volatile": true
+      },
+      {
+       "directives": [],
+       "display_type": null,
+       "display_value": null,
+       "fallback_type": null,
+       "field": "blob",
+       "field_lookup_type": "key",
+       "fields": [
+        "blob"
+       ],
+       "fields_mode": "all",
+       "file_decoder": "base64",
+       "file_name": "{{ name }}.bin",
+       "ignored_values": [],
+       "limit": null,
+       "relationships": [
+        {
+         "target": {
+          "type": "url",
+          "value": "{{ url }}"
+         },
+         "type": "downloaded_from"
+        }
+       ],
+       "tags": [],
+       "time": false,
+       "type": "file",
+       "value": null,
+       "volatile": false
+      },
+      {
+       "directives": [],
+       "display_type": null,
+       "display_value": null,
+       "fallback_type": null,
+       "field": "url",
+       "field_lookup_type": "dot",
+       "fields": [
+        "url"
+       ],
+       "fields_mode": "all",
+       "file_decoder": null,
+       "file_name": null,
+       "ignored_values": [],
+       "limit": null,
+       "relationships": [],
+       "tags": [],
+       "time": false,
+       "type": "url",
+       "value": "https://{{ url }}",
+       "volatile": false
+      }
+     ],
+     "offset": null,
+     "pivot_links": [],
+     "playbook_url": null,
+     "query": "index=main",
+     "query_path": null,
+     "query_prefix": null,
+     "query_suffix": null,
+     "query_timeout": "00:30:00",
+     "queue": "base-queue",
+     "search": null,
+     "splunk_app_context": null,
+     "splunk_config": "default",
+     "splunk_user_context": null,
+     "summary_details": [],
+     "suppression": null,
+     "tags": [
+      "from-base",
+      "from-defaults"
+     ],
+     "time_range": "00:10:00",
+     "time_ranges": null,
+     "type": "splunk",
+     "use_index_time": false,
+     "uuid": "00000000-0000-0000-0000-000000000012"
+    },
+    "files": [
+     "$ROOT/hunts/splunk/includes/deeper/base.include.yaml",
+     "$ROOT/hunts/splunk/includes/defaults.include.yaml",
+     "$ROOT/hunts/splunk/mapping_ok.yaml"
+    ],
+    "query": null
+   },
+   "path": "hunts/splunk/mapping_ok.yaml",
+   "type": "splunk"
+  },
+  {
+   "error": {
+    "class": "ValidationError",
+    "errors": [
+     {
+      "loc": [
+       "observable_mapping",
+       2
+      ],
+      "msg": "Value error, Either 'field' or 'fields' must be specified in observable mapping",
+      "type": "value_error"
+     },
+     {
+      "loc": [
+       "observable_mapping",
+       3
+      ],
+      "msg": "Value error, fields_mode='any' cannot be used with a custom 'value' template",
+      "type": "value_error"
+     },
+     {
+      "loc": [
+       "observable_mapping",
+       4
+      ],
+      "msg": "Value error, display_value is not supported for file type observables (type=file)",
+      "type": "value_error"
+     },
+     {
+      "loc": [
+       "observable_mapping",
+       5
+      ],
+      "msg": "Value error, fallback_type is only valid when 'type' is a Jinja template",
+      "type": "value_error"
+     },
+     {
+      "loc": [
+       "observable_mapping",
+       6
+      ],
+      "msg": "Value error, fallback_type cannot be 'file' (file observables require file_name handling)",
+      "type": "value_error"
+     },
+     {
+      "loc": [
+       "observable_mapping",
+       7,
+       "file_decoder"
+      ],
+      "msg": "Input should be 'base64' or 'ascii_hex'",
+      "type": "enum"
+     },
+     {
+      "loc": [
+       "observable_mapping",
+       8,
+       "limit"
+      ],
+      "msg": "Input should be greater than or equal to 1",
+      "type": "greater_than_equal"
+     },
+     {
+      "loc": [
+       "observable_mapping",
+       9,
+       "fields_mode"
+      ],
+      "msg": "Input should be 'any' or 'all'",
+      "type": "enum"
+     },
+     {
+      "loc": [
+       "observable_mapping",
+       10,
+       "relationships",
+       0,
+       "target",
+       "value"
+      ],
+      "msg": "Field required",
+      "type": "missing"
+     }
+    ],
+    "title": "SplunkHuntConfig"
+   },
+   "path": "hunts/splunk/mapping_errors.yaml",
+   "type": "splunk"
+  },
+  {
+   "loaded": {
+    "commands": [],
+    "config": {
+     "alert_template": null,
+     "alert_type": "hunter - splunk - cases",
+     "analysis_mode": "correlation",
+     "author": [
+      "one author"
+     ],
+     "auto_append": "| fields *",
+     "correlate": null,
+     "dedup_key": null,
+     "description": "values pydantic coerces",
+     "description_field": null,
+     "enabled": true,
+     "frequency": "*/5 * * * *",
+     "full_coverage": true,
+     "group_by": null,
+     "icon_configuration": null,
+     "ignored_values": [],
+     "instance_types": [],
+     "max_result_count": 50,
+     "max_time_range": null,
+     "name": "lax coercion",
+     "observable_mapping": [],
+     "offset": null,
+     "pivot_links": [
+      {
+       "anything": "kept",
+       "text": "{{ a }}",
+       "url": "https://example.com/{{ a }}"
+      }
+     ],
+     "playbook_url": null,
+     "query": "index=main",
+     "query_path": null,
+     "query_prefix": null,
+     "query_suffix": null,
+     "query_timeout": "00:30:00",
+     "queue": "default",
+     "search": null,
+     "splunk_app_context": null,
+     "splunk_config": "default",
+     "splunk_user_context": null,
+     "summary_details": [
+      {
+       "content": "{{ a }}",
+       "dedup_fields": null,
+       "format": "md",
+       "grouped": false,
+       "header": null,
+       "limit": 7,
+       "required_fields": null
+      }
+     ],
+     "suppression": null,
+     "tags": [],
+     "time_range": "00:05:00",
+     "time_ranges": null,
+     "type": "splunk",
+     "use_index_time": true,
+     "uuid": "00000000-0000-0000-0000-000000000006"
+    },
+    "files": [
+     "$ROOT/hunts/splunk/lax_coercion.yaml"
+    ],
+    "query": null
+   },
+   "path": "hunts/splunk/lax_coercion.yaml",
+   "type": "splunk"
+  },
+  {
+   "error": {
+    "class": "ValidationError",
+    "errors": [
+     {
+      "loc": [
+       "max_result_count"
+      ],
+      "msg": "Input should be a valid integer, got a number with a fractional part",
+      "type": "int_from_float"
+     },
+     {
+      "loc": [
+       "summary_details",
+       0,
+       "limit"
+      ],
+      "msg": "Input should be a valid integer, unable to parse string as an integer",
+      "type": "int_parsing"
+     }
+    ],
+    "title": "SplunkHuntConfig"
+   },
+   "path": "hunts/splunk/int_from_float.yaml",
+   "type": "splunk"
+  },
+  {
+   "loaded": {
+    "commands": [],
+    "config": {
+     "alert_template": null,
+     "alert_type": "hunter - splunk - cases",
+     "analysis_mode": "correlation",
+     "author": [],
+     "auto_append": "| fields *",
+     "correlate": null,
+     "dedup_key": null,
+     "description": "one file included under two spellings, which ace3 reads twice, and once more spelled the same",
+     "description_field": null,
+     "enabled": true,
+     "frequency": "00:10:00",
+     "full_coverage": true,
+     "group_by": null,
+     "icon_configuration": {
+      "blueprint_file_location": {
+       "name": "static",
+       "path": "images/alert_icons/splunk.png"
+      },
+      "url": null
+     },
+     "ignored_values": [],
+     "instance_types": [
+      "production"
+     ],
+     "max_result_count": 100,
+     "max_time_range": null,
+     "name": "include twice",
+     "observable_mapping": [
+      {
+       "directives": [],
+       "display_type": null,
+       "display_value": null,
+       "fallback_type": null,
+       "field": "src_ip",
+       "field_lookup_type": "key",
+       "fields": [
+        "src_ip"
+       ],
+       "fields_mode": "all",
+       "file_decoder": null,
+       "file_name": null,
+       "ignored_values": [],
+       "limit": null,
+       "relationships": [],
+       "tags": [
+        "base"
+       ],
+       "time": false,
+       "type": "ipv4",
+       "value": null,
+       "volatile": false
+      },
+      {
+       "directives": [],
+       "display_type": null,
+       "display_value": null,
+       "fallback_type": null,
+       "field": null,
+       "field_lookup_type": "key",
+       "fields": [
+        "user",
+        "domain"
+       ],
+       "fields_mode": "all",
+       "file_decoder": null,
+       "file_name": null,
+       "ignored_values": [],
+       "limit": null,
+       "relationships": [],
+       "tags": [],
+       "time": false,
+       "type": "user",
+       "value": null,
+       "volatile": false
+      }
+     ],
+     "offset": null,
+     "pivot_links": [],
+     "playbook_url": null,
+     "query": "index=main",
+     "query_path": null,
+     "query_prefix": null,
+     "query_suffix": null,
+     "query_timeout": "00:30:00",
+     "queue": "other-queue",
+     "search": null,
+     "splunk_app_context": null,
+     "splunk_config": "default",
+     "splunk_user_context": null,
+     "summary_details": [],
+     "suppression": null,
+     "tags": [
+      "from-base",
+      "from-defaults",
+      "other"
+     ],
+     "time_range": "00:10:00",
+     "time_ranges": null,
+     "type": "splunk",
+     "use_index_time": false,
+     "uuid": "00000000-0000-0000-0000-00000000001a"
+    },
+    "files": [
+     "$ROOT/hunts/splunk/include_twice.yaml",
+     "$ROOT/hunts/splunk/includes/deeper/../deeper/base.include.yaml",
+     "$ROOT/hunts/splunk/includes/deeper/base.include.yaml",
+     "$ROOT/hunts/splunk/includes/defaults.include.yaml",
+     "$ROOT/hunts/splunk/includes/other_queue.include.yaml"
+    ],
+    "query": null
+   },
+   "path": "hunts/splunk/include_twice.yaml",
+   "type": "splunk"
+  },
+  {
+   "error": {
+    "class": "ParserError",
+    "message": "while parsing a flow sequence\n  in \"$ROOT/hunts/splunk/includes/bad_syntax.include.yaml\", line 2, column 9\nexpected ',' or ']', but got '<stream end>'\n  in \"$ROOT/hunts/splunk/includes/bad_syntax.include.yaml\", line 3, column 1"
+   },
+   "path": "hunts/splunk/include_syntax.yaml",
+   "type": "splunk"
+  },
+  {
+   "error": {
+    "class": "OSError",
+    "message": "[Errno 36] File name too long: '$ROOT/hunts/splunk/includes/deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/../deeper/spelled.include.yaml'"
+   },
+   "path": "hunts/splunk/include_spelled_loop.yaml",
+   "type": "splunk"
+  },
+  {
+   "error": {
+    "class": "TypeError",
+    "message": "expected str, bytes or os.PathLike object, not int"
+   },
+   "path": "hunts/splunk/include_number.yaml",
+   "type": "splunk"
+  },
+  {
+   "error": {
+    "class": "ValueError",
+    "message": "include directives must be a list of strings in $ROOT/hunts/splunk/include_not_list.yaml"
+   },
+   "path": "hunts/splunk/include_not_list.yaml",
+   "type": "splunk"
+  },
+  {
+   "error": {
+    "class": "FileNotFoundError",
+    "message": "[Errno 2] No such file or directory: '$ROOT/hunts/splunk/includes/does_not_exist.include.yaml'"
+   },
+   "path": "hunts/splunk/include_missing.yaml",
+   "type": "splunk"
+  },
+  {
+   "loaded": {
+    "commands": [],
+    "config": {
+     "alert_template": null,
+     "alert_type": "hunter - splunk - cases",
+     "analysis_mode": "correlation",
+     "author": [],
+     "auto_append": "| fields *",
+     "correlate": null,
+     "dedup_key": null,
+     "description": "a loop of includes spelled the same way each time, which ace3 skips",
+     "description_field": null,
+     "enabled": true,
+     "frequency": "00:10:00",
+     "full_coverage": true,
+     "group_by": null,
+     "icon_configuration": {
+      "blueprint_file_location": {
+       "name": "static",
+       "path": "images/alert_icons/splunk.png"
+      },
+      "url": null
+     },
+     "ignored_values": [],
+     "instance_types": [
+      "production"
+     ],
+     "max_result_count": 100,
+     "max_time_range": null,
+     "name": "include loop",
+     "observable_mapping": [
+      {
+       "directives": [],
+       "display_type": null,
+       "display_value": null,
+       "fallback_type": null,
+       "field": "src_ip",
+       "field_lookup_type": "key",
+       "fields": [
+        "src_ip"
+       ],
+       "fields_mode": "all",
+       "file_decoder": null,
+       "file_name": null,
+       "ignored_values": [],
+       "limit": null,
+       "relationships": [],
+       "tags": [
+        "base"
+       ],
+       "time": false,
+       "type": "ipv4",
+       "value": null,
+       "volatile": false
+      },
+      {
+       "directives": [],
+       "display_type": null,
+       "display_value": null,
+       "fallback_type": null,
+       "field": null,
+       "field_lookup_type": "key",
+       "fields": [
+        "user",
+        "domain"
+       ],
+       "fields_mode": "all",
+       "file_decoder": null,
+       "file_name": null,
+       "ignored_values": [],
+       "limit": null,
+       "relationships": [],
+       "tags": [],
+       "time": false,
+       "type": "user",
+       "value": null,
+       "volatile": false
+      }
+     ],
+     "offset": null,
+     "pivot_links": [],
+     "playbook_url": null,
+     "query": "index=main",
+     "query_path": null,
+     "query_prefix": null,
+     "query_suffix": null,
+     "query_timeout": "00:30:00",
+     "queue": "base-queue",
+     "search": null,
+     "splunk_app_context": null,
+     "splunk_config": "default",
+     "splunk_user_context": null,
+     "summary_details": [],
+     "suppression": null,
+     "tags": [
+      "from-base",
+      "from-defaults",
+      "loop-b",
+      "loop-a"
+     ],
+     "time_range": "00:10:00",
+     "time_ranges": null,
+     "type": "splunk",
+     "use_index_time": false,
+     "uuid": "00000000-0000-0000-0000-000000000018"
+    },
+    "files": [
+     "$ROOT/hunts/splunk/include_loop.yaml",
+     "$ROOT/hunts/splunk/includes/deeper/base.include.yaml",
+     "$ROOT/hunts/splunk/includes/defaults.include.yaml",
+     "$ROOT/hunts/splunk/includes/loop_a.include.yaml",
+     "$ROOT/hunts/splunk/includes/loop_b.include.yaml"
+    ],
+    "query": null
+   },
+   "path": "hunts/splunk/include_loop.yaml",
+   "type": "splunk"
+  },
+  {
+   "loaded": {
+    "commands": [],
+    "config": {
+     "alert_template": "kept\n\n",
+     "alert_type": "hunter - splunk - cases",
+     "analysis_mode": "correlation",
+     "author": [],
+     "auto_append": "| fields *",
+     "correlate": null,
+     "dedup_key": "single 'quoted' over two lines",
+     "description": "plain and quoted scalars over several lines,\nwith a blank one",
+     "description_field": null,
+     "enabled": true,
+     "frequency": "00:10:00",
+     "full_coverage": true,
+     "group_by": null,
+     "icon_configuration": {
+      "blueprint_file_location": {
+       "name": "static",
+       "path": "images/alert_icons/splunk.png"
+      },
+      "url": null
+     },
+     "ignored_values": [],
+     "instance_types": [
+      "production"
+     ],
+     "max_result_count": 100,
+     "max_time_range": null,
+     "name": "folding",
+     "observable_mapping": [
+      {
+       "directives": [],
+       "display_type": null,
+       "display_value": null,
+       "fallback_type": null,
+       "field": "src_ip",
+       "field_lookup_type": "key",
+       "fields": [
+        "src_ip"
+       ],
+       "fields_mode": "all",
+       "file_decoder": null,
+       "file_name": null,
+       "ignored_values": [],
+       "limit": null,
+       "relationships": [],
+       "tags": [
+        "base"
+       ],
+       "time": false,
+       "type": "ipv4",
+       "value": null,
+       "volatile": false
+      },
+      {
+       "directives": [],
+       "display_type": null,
+       "display_value": null,
+       "fallback_type": null,
+       "field": null,
+       "field_lookup_type": "key",
+       "fields": [
+        "user",
+        "domain"
+       ],
+       "fields_mode": "all",
+       "file_decoder": null,
+       "file_name": null,
+       "ignored_values": [],
+       "limit": null,
+       "relationships": [],
+       "tags": [],
+       "time": false,
+       "type": "user",
+       "value": null,
+       "volatile": false
+      }
+     ],
+     "offset": null,
+     "pivot_links": [],
+     "playbook_url": "stripped folded",
+     "query": "a double-quoted query with an escaped break and a \t tab",
+     "query_path": null,
+     "query_prefix": null,
+     "query_suffix": null,
+     "query_timeout": "00:30:00",
+     "queue": "base-queue",
+     "search": null,
+     "splunk_app_context": null,
+     "splunk_config": "default",
+     "splunk_user_context": null,
+     "summary_details": [],
+     "suppression": null,
+     "tags": [
+      "from-base",
+      "from-defaults"
+     ],
+     "time_range": "00:10:00",
+     "time_ranges": null,
+     "type": "splunk",
+     "use_index_time": false,
+     "uuid": "00000000-0000-0000-0000-00000000001c"
+    },
+    "files": [
+     "$ROOT/hunts/splunk/folding.yaml",
+     "$ROOT/hunts/splunk/includes/deeper/base.include.yaml",
+     "$ROOT/hunts/splunk/includes/defaults.include.yaml"
+    ],
+    "query": null
+   },
+   "path": "hunts/splunk/folding.yaml",
+   "type": "splunk"
+  },
+  {
+   "error": {
+    "class": "ValidationError",
+    "errors": [
+     {
+      "loc": [
+       "observable_mapping",
+       2,
+       "shade"
+      ],
+      "msg": "Extra inputs are not permitted",
+      "type": "extra_forbidden"
+     },
+     {
+      "loc": [
+       "summary_details",
+       0,
+       "extra"
+      ],
+      "msg": "Extra inputs are not permitted",
+      "type": "extra_forbidden"
+     },
+     {
+      "loc": [
+       "icon_configuration",
+       "size"
+      ],
+      "msg": "Extra inputs are not permitted",
+      "type": "extra_forbidden"
+     },
+     {
+      "loc": [
+       "colour"
+      ],
+      "msg": "Extra inputs are not permitted",
+      "type": "extra_forbidden"
+     }
+    ],
+    "title": "SplunkHuntConfig"
+   },
+   "path": "hunts/splunk/extra_keys.yaml",
+   "type": "splunk"
+  },
+  {
+   "error": {
+    "class": "ValidationError",
+    "errors": [
+     {
+      "loc": [
+       "frequency"
+      ],
+      "msg": "Value error, frequency must not be empty",
+      "type": "value_error"
+     }
+    ],
+    "title": "SplunkHuntConfig"
+   },
+   "path": "hunts/splunk/empty_frequency.yaml",
+   "type": "splunk"
+  },
+  {
+   "error": {
+    "class": "AttributeError",
+    "message": "'NoneType' object has no attribute 'get'"
+   },
+   "path": "hunts/splunk/empty.yaml",
+   "type": "splunk"
+  },
+  {
+   "error": {
+    "class": "KeyError",
+    "message": "'duplicate hunt ok minimal'"
+   },
+   "path": "hunts/splunk/duplicate_name.yaml",
+   "type": "splunk"
+  },
+  {
+   "error": {
+    "class": "ValidationError",
+    "errors": [
+     {
+      "loc": [
+       "correlate"
+      ],
+      "msg": "Value error, invalid timespec: 'soon'",
+      "type": "value_error"
+     }
+    ],
+    "title": "SplunkHuntConfig"
+   },
+   "path": "hunts/splunk/correlate_timeout.yaml",
+   "type": "splunk"
+  },
+  {
+   "loaded": {
+    "commands": [
+     {
+      "args": [
+       "{{ name }}"
+      ],
+      "cache": null,
+      "description": "resolves a name",
+      "env": null,
+      "files": [
+       "$ROOT/hunts/scripts/data.json"
+      ],
+      "name": "lookup_dns",
+      "options": {},
+      "path": "$ROOT/hunts/scripts/dns.py",
+      "query": null,
+      "source": null,
+      "source_options": {},
+      "stdin": null,
+      "time_range": null,
+      "timeout": "10m",
+      "type": "executable"
+     },
+     {
+      "args": null,
+      "cache": null,
+      "description": null,
+      "env": null,
+      "files": null,
+      "name": "query_users",
+      "options": {},
+      "path": null,
+      "query": "index=users",
+      "source": "splunk",
+      "source_options": {},
+      "stdin": null,
+      "time_range": null,
+      "timeout": "10m",
+      "type": "query"
+     }
+    ],
+    "config": {
+     "alert_template": null,
+     "alert_type": "hunter - splunk - cases",
+     "analysis_mode": "correlation",
+     "author": [],
+     "auto_append": "| fields *",
+     "correlate": {
+      "logic": [
+       {
+        "debug": null,
+        "description": "look up the user",
+        "step": {
+         "command": {
+          "args": null,
+          "arguments": null,
+          "cache": null,
+          "env": null,
+          "files": null,
+          "name": null,
+          "options": {},
+          "path": null,
+          "query": "index=users user={{ user }}",
+          "source": "splunk",
+          "source_options": {},
+          "stdin": null,
+          "time_range": {
+           "after": "5m",
+           "before": "1h",
+           "relative_time_field": null,
+           "relative_time_format": null
+          },
+          "timeout": "10m",
+          "type": "query"
+         },
+         "merge_time_spec": null,
+         "method": "property",
+         "property_name": "myUser",
+         "property_type": "str",
+         "type": "event"
+        }
+       },
+       {
+        "debug": null,
+        "description": null,
+        "step": {
+         "else": [
+          {
+           "debug": null,
+           "description": null,
+           "step": {
+            "analysis_mode": null,
+            "log_level": "INFO",
+            "log_message": null,
+            "queue": "other",
+            "type": "alert"
+           }
+          },
+          {
+           "debug": null,
+           "description": null,
+           "step": {
+            "command": {
+             "args": null,
+             "arguments": {
+              "args": [
+               "{{ x }}"
+              ]
+             },
+             "cache": null,
+             "env": null,
+             "files": null,
+             "name": "lookup_dns",
+             "options": {},
+             "path": null,
+             "query": null,
+             "source": null,
+             "source_options": {},
+             "stdin": null,
+             "time_range": null,
+             "timeout": "10m",
+             "type": "defined"
+            },
+            "merge_time_spec": {
+             "l_field": "a",
+             "l_format": "x",
+             "r_field": "b",
+             "r_format": "y"
+            },
+            "method": "merge",
+            "property_name": null,
+            "property_type": "str",
+            "type": "stream"
+           }
+          }
+         ],
+         "execute": [
+          {
+           "debug": null,
+           "description": null,
+           "step": {
+            "analysis_mode": null,
+            "log_level": "INFO",
+            "log_message": null,
+            "queue": null,
+            "type": "filter"
+           }
+          }
+         ],
+         "when": {
+          "case_sensitive": true,
+          "property": null,
+          "type": "jinja",
+          "value": "{{ myUser }}"
+         }
+        }
+       },
+       {
+        "debug": "{{ a }}",
+        "description": null,
+        "step": {
+         "else": null,
+         "execute": [
+          {
+           "debug": null,
+           "description": null,
+           "step": {
+            "analysis_mode": null,
+            "log_level": "INFO",
+            "log_message": null,
+            "queue": null,
+            "type": "stop"
+           }
+          }
+         ],
+         "when": {
+          "case_sensitive": true,
+          "property": null,
+          "type": "and",
+          "value": [
+           {
+            "property": "a",
+            "type": "equals",
+            "value": "b"
+           },
+           "{{ c }}"
+          ]
+         }
+        }
+       },
+       {
+        "debug": null,
+        "description": null,
+        "step": {
+         "command": {
+          "args": [
+           "{{ a }}"
+          ],
+          "arguments": null,
+          "cache": null,
+          "env": null,
+          "files": [
+           "$ROOT/hunts/scripts/data.json",
+           "/abs/data.json"
+          ],
+          "name": null,
+          "options": {},
+          "path": "$ROOT/hunts/scripts/score.py",
+          "query": null,
+          "source": null,
+          "source_options": {},
+          "stdin": null,
+          "time_range": null,
+          "timeout": "10m",
+          "type": "executable"
+         },
+         "merge_time_spec": null,
+         "method": "property",
+         "property_name": "score",
+         "property_type": "str",
+         "type": "event"
+        }
+       },
+       {
+        "debug": null,
+        "description": null,
+        "step": {
+         "analysis_mode": null,
+         "log_level": "INFO",
+         "log_message": null,
+         "queue": null,
+         "type": "log"
+        }
+       }
+      ],
+      "timeout": "5m"
+     },
+     "dedup_key": null,
+     "description": "a correlate block with each kind of step",
+     "description_field": null,
+     "enabled": true,
+     "frequency": "00:10:00",
+     "full_coverage": true,
+     "group_by": null,
+     "icon_configuration": {
+      "blueprint_file_location": {
+       "name": "static",
+       "path": "images/alert_icons/splunk.png"
+      },
+      "url": null
+     },
+     "ignored_values": [],
+     "instance_types": [
+      "production"
+     ],
+     "max_result_count": 100,
+     "max_time_range": null,
+     "name": "correlate ok",
+     "observable_mapping": [
+      {
+       "directives": [],
+       "display_type": null,
+       "display_value": null,
+       "fallback_type": null,
+       "field": "src_ip",
+       "field_lookup_type": "key",
+       "fields": [
+        "src_ip"
+       ],
+       "fields_mode": "all",
+       "file_decoder": null,
+       "file_name": null,
+       "ignored_values": [],
+       "limit": null,
+       "relationships": [],
+       "tags": [
+        "base"
+       ],
+       "time": false,
+       "type": "ipv4",
+       "value": null,
+       "volatile": false
+      },
+      {
+       "directives": [],
+       "display_type": null,
+       "display_value": null,
+       "fallback_type": null,
+       "field": null,
+       "field_lookup_type": "key",
+       "fields": [
+        "user",
+        "domain"
+       ],
+       "fields_mode": "all",
+       "file_decoder": null,
+       "file_name": null,
+       "ignored_values": [],
+       "limit": null,
+       "relationships": [],
+       "tags": [],
+       "time": false,
+       "type": "user",
+       "value": null,
+       "volatile": false
+      }
+     ],
+     "offset": null,
+     "pivot_links": [],
+     "playbook_url": null,
+     "query": "index=main",
+     "query_path": null,
+     "query_prefix": null,
+     "query_suffix": null,
+     "query_timeout": "00:30:00",
+     "queue": "base-queue",
+     "search": null,
+     "splunk_app_context": null,
+     "splunk_config": "default",
+     "splunk_user_context": null,
+     "summary_details": [],
+     "suppression": null,
+     "tags": [
+      "from-base",
+      "from-defaults"
+     ],
+     "time_range": "00:10:00",
+     "time_ranges": null,
+     "type": "splunk",
+     "use_index_time": false,
+     "uuid": "00000000-0000-0000-0000-000000000013"
+    },
+    "files": [
+     "$ROOT/hunts/splunk/../commands/sample_commands.include.yaml",
+     "$ROOT/hunts/splunk/correlate_ok.yaml",
+     "$ROOT/hunts/splunk/includes/deeper/base.include.yaml",
+     "$ROOT/hunts/splunk/includes/defaults.include.yaml"
+    ],
+    "query": null
+   },
+   "path": "hunts/splunk/correlate_ok.yaml",
+   "type": "splunk"
+  },
+  {
+   "error": {
+    "class": "ValidationError",
+    "errors": [
+     {
+      "loc": [
+       "correlate",
+       "logic",
+       0
+      ],
+      "msg": "Value error, invalid action type: 'bogus'",
+      "type": "value_error"
+     }
+    ],
+    "title": "SplunkHuntConfig"
+   },
+   "path": "hunts/splunk/correlate_nested_error.yaml",
+   "type": "splunk"
+  },
+  {
+   "error": {
+    "class": "ValidationError",
+    "errors": [
+     {
+      "loc": [
+       "correlate",
+       "logic",
+       0
+      ],
+      "msg": "Value error, step must contain exactly one of 'when', 'transform', or 'action'; got ['when', 'action']",
+      "type": "value_error"
+     },
+     {
+      "loc": [
+       "correlate",
+       "logic",
+       1
+      ],
+      "msg": "Value error, step must contain 'when', 'transform', or 'action' key",
+      "type": "value_error"
+     },
+     {
+      "loc": [
+       "correlate",
+       "logic",
+       2
+      ],
+      "msg": "Value error, invalid action type: 'explode'",
+      "type": "value_error"
+     },
+     {
+      "loc": [
+       "correlate",
+       "logic",
+       3,
+       "command"
+      ],
+      "msg": "Value error, 'source' is required for query commands",
+      "type": "value_error"
+     },
+     {
+      "loc": [
+       "correlate",
+       "logic",
+       4
+      ],
+      "msg": "Value error, 'merge' method is only valid for stream transforms",
+      "type": "value_error"
+     },
+     {
+      "loc": [
+       "correlate",
+       "logic",
+       5,
+       "command"
+      ],
+      "msg": "Value error, 'options' is only valid for custom command types, not 'query' (did you mean 'source_options'?)",
+      "type": "value_error"
+     },
+     {
+      "loc": [
+       "correlate",
+       "logic",
+       6,
+       "command"
+      ],
+      "msg": "Value error, custom command type 'wiz_lookup' does not accept ['path']; put its settings under 'options'",
+      "type": "value_error"
+     },
+     {
+      "loc": [
+       "correlate",
+       "logic",
+       7,
+       "when",
+       "function-after[validate_expression(), ExpressionConfig]"
+      ],
+      "msg": "Value error, 'property' is required for expression type 'equals'",
+      "type": "value_error"
+     },
+     {
+      "loc": [
+       "correlate",
+       "logic",
+       7,
+       "when",
+       "str"
+      ],
+      "msg": "Input should be a valid string",
+      "type": "string_type"
+     },
+     {
+      "loc": [
+       "correlate",
+       "logic",
+       8
+      ],
+      "msg": "Value error, step has unexpected keys ['extra']; allowed: ['action', 'debug', 'description', 'transform']",
+      "type": "value_error"
+     }
+    ],
+    "title": "SplunkHuntConfig"
+   },
+   "path": "hunts/splunk/correlate_errors.yaml",
+   "type": "splunk"
+  },
+  {
+   "error": {
+    "class": "AttributeError",
+    "message": "'str' object has no attribute 'get'"
+   },
+   "path": "hunts/splunk/commands_not_list.yaml",
+   "type": "splunk"
+  },
+  {
+   "error": {
+    "class": "ValidationError",
+    "errors": [
+     {
+      "loc": [],
+      "msg": "Value error, custom command type 'wiz_lookup' does not accept ['path']; put its settings under 'options'",
+      "type": "value_error"
+     }
+    ],
+    "title": "PredefinedCommandConfig"
+   },
+   "path": "hunts/splunk/command_errors.yaml",
+   "type": "splunk"
+  },
+  {
+   "error": {
+    "class": "ValidationError",
+    "errors": [
+     {
+      "loc": [
+       "time_ranges",
+       "TIMESPEC",
+       "before"
+      ],
+      "msg": "Extra inputs are not permitted",
+      "type": "extra_forbidden"
+     }
+    ],
+    "title": "SplunkHuntConfig"
+   },
+   "path": "hunts/splunk/bad_time_ranges.yaml",
+   "type": "splunk"
+  },
+  {
+   "error": {
+    "class": "ValidationError",
+    "errors": [
+     {
+      "loc": [
+       "frequency"
+      ],
+      "msg": "Value error, frequency must be a timedelta string or a valid cron expression",
+      "type": "value_error"
+     }
+    ],
+    "title": "SplunkHuntConfig"
+   },
+   "path": "hunts/splunk/bad_frequency.yaml",
+   "type": "splunk"
+  },
+  {
+   "loaded": {
+    "commands": [],
+    "config": {
+     "alert_template": null,
+     "alert_type": "hunter - splunk - cases",
+     "analysis_mode": "correlation",
+     "author": [],
+     "auto_append": "| fields *",
+     "correlate": null,
+     "dedup_key": "anchors",
+     "description": "anchors",
+     "description_field": null,
+     "enabled": true,
+     "frequency": "00:10:00",
+     "full_coverage": true,
+     "group_by": null,
+     "icon_configuration": {
+      "blueprint_file_location": {
+       "name": "static",
+       "path": "images/alert_icons/splunk.png"
+      },
+      "url": null
+     },
+     "ignored_values": [],
+     "instance_types": [
+      "production"
+     ],
+     "max_result_count": 100,
+     "max_time_range": null,
+     "name": "anchors",
+     "observable_mapping": [
+      {
+       "directives": [],
+       "display_type": null,
+       "display_value": null,
+       "fallback_type": null,
+       "field": "src_ip",
+       "field_lookup_type": "key",
+       "fields": [
+        "src_ip"
+       ],
+       "fields_mode": "all",
+       "file_decoder": null,
+       "file_name": null,
+       "ignored_values": [],
+       "limit": null,
+       "relationships": [],
+       "tags": [
+        "base"
+       ],
+       "time": false,
+       "type": "ipv4",
+       "value": null,
+       "volatile": false
+      },
+      {
+       "directives": [],
+       "display_type": null,
+       "display_value": null,
+       "fallback_type": null,
+       "field": null,
+       "field_lookup_type": "key",
+       "fields": [
+        "user",
+        "domain"
+       ],
+       "fields_mode": "all",
+       "file_decoder": null,
+       "file_name": null,
+       "ignored_values": [],
+       "limit": null,
+       "relationships": [],
+       "tags": [],
+       "time": false,
+       "type": "user",
+       "value": null,
+       "volatile": false
+      }
+     ],
+     "offset": null,
+     "pivot_links": [],
+     "playbook_url": null,
+     "query": "index=main",
+     "query_path": null,
+     "query_prefix": null,
+     "query_suffix": null,
+     "query_timeout": "00:30:00",
+     "queue": "base-queue",
+     "search": null,
+     "splunk_app_context": null,
+     "splunk_config": "default",
+     "splunk_user_context": null,
+     "summary_details": [
+      {
+       "content": "{{ x }}",
+       "dedup_fields": null,
+       "format": "md",
+       "grouped": false,
+       "header": "one",
+       "limit": 100,
+       "required_fields": null
+      },
+      {
+       "content": "{{ x }}",
+       "dedup_fields": null,
+       "format": "md",
+       "grouped": false,
+       "header": "two",
+       "limit": 100,
+       "required_fields": null
+      }
+     ],
+     "suppression": null,
+     "tags": [
+      "from-base",
+      "from-defaults"
+     ],
+     "time_range": "00:10:00",
+     "time_ranges": null,
+     "type": "splunk",
+     "use_index_time": false,
+     "uuid": "00000000-0000-0000-0000-000000000009"
+    },
+    "files": [
+     "$ROOT/hunts/splunk/anchors.yaml",
+     "$ROOT/hunts/splunk/includes/deeper/base.include.yaml",
+     "$ROOT/hunts/splunk/includes/defaults.include.yaml"
+    ],
+    "query": null
+   },
+   "path": "hunts/splunk/anchors.yaml",
+   "type": "splunk"
+  },
+  {
+   "loaded": {
+    "commands": [],
+    "config": {
+     "alert_template": null,
+     "alert_type": "hunter - logscale - cases",
+     "analysis_mode": "correlation",
+     "author": [],
+     "auto_append": "",
+     "correlate": null,
+     "dedup_key": null,
+     "description": "a logscale hunt",
+     "description_field": null,
+     "enabled": true,
+     "frequency": "00:05:00",
+     "full_coverage": true,
+     "group_by": null,
+     "icon_configuration": null,
+     "ignored_values": [],
+     "instance_types": [],
+     "max_result_count": 100,
+     "max_time_range": null,
+     "name": "logscale ok",
+     "observable_mapping": [],
+     "offset": null,
+     "pivot_links": [],
+     "playbook_url": null,
+     "query": "#event_simpleName=ProcessRollup2",
+     "query_path": null,
+     "query_prefix": null,
+     "query_suffix": null,
+     "query_timeout": "00:30:00",
+     "queue": "default",
+     "repository": "search-all",
+     "search": null,
+     "summary_details": [],
+     "suppression": null,
+     "tags": [],
+     "time_range": "00:05:00",
+     "time_ranges": null,
+     "type": "logscale",
+     "use_index_time": true,
+     "uuid": "00000000-0000-0000-0000-000000000101"
+    },
+    "files": [
+     "$ROOT/hunts/logscale/ok.yaml"
+    ],
+    "query": null
+   },
+   "path": "hunts/logscale/ok.yaml",
+   "type": "logscale"
+  },
+  {
+   "error": {
+    "class": "ValidationError",
+    "errors": [
+     {
+      "loc": [
+       "repository"
+      ],
+      "msg": "Field required",
+      "type": "missing"
+     },
+     {
+      "loc": [
+       "splunk_config"
+      ],
+      "msg": "Extra inputs are not permitted",
+      "type": "extra_forbidden"
+     }
+    ],
+    "title": "LogscaleHuntConfig"
+   },
+   "path": "hunts/logscale/no_repository.yaml",
+   "type": "logscale"
+  },
+  {
+   "error": {
+    "class": "ValidationError",
+    "errors": [
+     {
+      "loc": [],
+      "msg": "Value error, Either 'time_range' or 'time_ranges' with a TIMESPEC entry must be specified",
+      "type": "value_error"
+     }
+    ],
+    "title": "Rapid7HuntConfig"
+   },
+   "path": "hunts/rapid7/two_checks.yaml",
+   "type": "rapid7"
+  },
+  {
+   "loaded": {
+    "commands": [],
+    "config": {
+     "alert_template": null,
+     "alert_type": "hunter - rapid7 - cases",
+     "analysis_mode": "correlation",
+     "author": [],
+     "auto_append": "",
+     "correlate": null,
+     "dedup_key": null,
+     "description": "a rapid7 hunt",
+     "description_field": null,
+     "enabled": true,
+     "frequency": "00:05:00",
+     "full_coverage": true,
+     "group_by": null,
+     "icon_configuration": null,
+     "ignored_values": [],
+     "instance_types": [],
+     "log_names": [
+      "Firewall Activity"
+     ],
+     "max_result_count": 100,
+     "max_time_range": null,
+     "name": "rapid7 ok",
+     "observable_mapping": [],
+     "offset": null,
+     "pivot_links": [],
+     "playbook_url": null,
+     "query": "where(x)",
+     "query_path": null,
+     "query_prefix": null,
+     "query_suffix": null,
+     "query_timeout": "00:30:00",
+     "queue": "default",
+     "search": null,
+     "summary_details": [],
+     "suppression": null,
+     "tags": [],
+     "time_range": "00:05:00",
+     "time_ranges": null,
+     "type": "rapid7",
+     "use_index_time": true,
+     "uuid": "00000000-0000-0000-0000-000000000201"
+    },
+    "files": [
+     "$ROOT/hunts/rapid7/ok.yaml"
+    ],
+    "query": null
+   },
+   "path": "hunts/rapid7/ok.yaml",
+   "type": "rapid7"
+  },
+  {
+   "error": {
+    "class": "ValidationError",
+    "errors": [
+     {
+      "loc": [
+       "log_names"
+      ],
+      "msg": "Field required",
+      "type": "missing"
+     }
+    ],
+    "title": "Rapid7HuntConfig"
+   },
+   "path": "hunts/rapid7/no_log_names.yaml",
+   "type": "rapid7"
+  },
+  {
+   "error": {
+    "class": "ValidationError",
+    "errors": [
+     {
+      "loc": [],
+      "msg": "Value error, use_index_time must be True for Rapid7 hunts. The Rapid7 Log Search API's from/to parameters filter by ingestion time, and LEQL does not support range filtering on event timestamps.",
+      "type": "value_error"
+     }
+    ],
+    "title": "Rapid7HuntConfig"
+   },
+   "path": "hunts/rapid7/event_time.yaml",
+   "type": "rapid7"
+  }
+ ],
+ "root_commit": null
+}

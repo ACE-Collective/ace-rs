@@ -1,0 +1,10 @@
+include:
+  - includes/defaults.include.yaml
+  - includes/deeper/../deeper/base.include.yaml
+  - includes/other_queue.include.yaml
+  - includes/deeper/base.include.yaml
+rule:
+  uuid: 00000000-0000-0000-0000-00000000001a
+  name: include twice
+  description: one file included under two spellings, which ace3 reads twice, and once more spelled the same
+  query: index=main

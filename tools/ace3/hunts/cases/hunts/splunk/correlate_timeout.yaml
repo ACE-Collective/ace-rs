@@ -1,0 +1,11 @@
+include:
+  - includes/defaults.include.yaml
+rule:
+  uuid: 00000000-0000-0000-0000-000000000016
+  name: correlate timeout
+  description: a timeout parse_timespec refuses
+  query: index=main
+  correlate:
+    timeout: soon
+    logic:
+      - action: filter

@@ -1,0 +1,93 @@
+#!/usr/bin/env python3
+"""Write what ace3's hunt loader makes of every hunt, for 6.2's comparison (PLAN.md step 6.2).
+
+    tools/ace3/hunts/make-hunts                 both sets below
+    tools/ace3/hunts/make-hunts cases           one of them
+
+load_hunts.py runs in ace3's dev container (ace-dev-1) for each set and writes one entry per hunt
+file, its normal form or its error. The sets:
+
+- `signatures`: the signatures checkout ace3's container has at /opt/ace/signatures, read where
+  it is, with the rule directories ace3's configuration gives the splunk, logscale and rapid7 hunt
+  types (etc/saq.yaml and the site_ace integrations' etc/saq.integration.yaml). ace3 has no other hunt
+  types with rule directories: mail_filter isn't schedulable, and hunts/sentinel holds only a README.
+- `cases`: tools/ace3/hunts/cases, hunts written for this comparison, copied into the container
+  under /tmp/ace4-dumps/hunts. They cover what the signatures don't: every kind of error ace3's
+  loader gives, and the YAML and coercion rules a hunt can trip on.
+
+Each lands in tools/ace3/hunts/reference/<set>.json. ace4's side is crates/ace-hunt: its tests diff
+the cases against reference/cases.json, and tools/ace3/hunts/compare diffs the signatures against
+reference/signatures.json. Both accept a difference only where differences.md has a row for it.
+
+Nothing is written under /opt/ace. The comparison follows the newest ace3 (PLAN.md decision 14), so
+rerun this when ace3 or the signatures move, then port or list whatever changed.
+"""
+
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+CONTAINER = os.environ.get("ACE4_ACE3_CONTAINER", "ace-dev-1")
+REMOTE = "/tmp/ace4-dumps/hunts"
+HERE = Path(__file__).resolve().parent
+OUT = HERE / "reference"
+
+RULE_DIRS = ["splunk=hunts/splunk", "logscale=hunts/logscale", "rapid7=hunts/rapid7"]
+
+SETS = {
+    "signatures": {"root": "/opt/ace/signatures", "copy": None},
+    "cases": {"root": f"{REMOTE}/cases", "copy": HERE / "cases"},
+}
+
+
+def docker(*args, stdin=None, check=True):
+    return subprocess.run(["docker", *args], input=stdin, capture_output=True, check=check)
+
+
+def make(name):
+    spec = SETS[name]
+    if spec["copy"] is not None:
+        # /tmp in the container is a tmpfs, which `docker cp` can't write to, so a tar stream; its
+        # members are sorted so the files are made in the same order each time
+        docker("exec", CONTAINER, "rm", "-rf", spec["root"])
+        docker("exec", CONTAINER, "mkdir", "-p", spec["root"])
+        files = sorted(str(p.relative_to(spec["copy"])) for p in spec["copy"].rglob("*") if p.is_file())
+        archive = subprocess.run(
+            ["tar", "--no-xattrs", "-C", str(spec["copy"]), "-cf", "-", *files],
+            capture_output=True, check=True, env={**os.environ, "COPYFILE_DISABLE": "1"},
+        ).stdout
+        docker("exec", "-i", CONTAINER, "tar", "-C", spec["root"], "-xf", "-", stdin=archive)
+
+    work = f"{REMOTE}/work-{name}"
+    args = ["--work", work, "--root", spec["root"]]
+    for rule_dir in RULE_DIRS:
+        args += ["--rule-dir", rule_dir]
+    script = (HERE / "load_hunts.py").read_bytes()
+    result = docker(
+        "exec", "-i", "-e", "PYTHONDONTWRITEBYTECODE=1", "-e", "SAQ_SKIP_LOCAL_SAQ_YAML=1", CONTAINER,
+        "/venv/bin/python3", "-", *args, stdin=script, check=False,
+    )
+    if result.returncode != 0:
+        sys.stderr.write(result.stderr.decode(errors="replace"))
+        raise SystemExit(f"load_hunts.py failed for {name}")
+
+    OUT.mkdir(exist_ok=True)
+    (OUT / f"{name}.json").write_bytes(docker("exec", CONTAINER, "cat", f"{work}/hunts.json").stdout)
+    print(f"{name}: wrote {OUT / f'{name}.json'}")
+
+
+def main():
+    names = sys.argv[1:] or list(SETS)
+    unknown = [n for n in names if n not in SETS]
+    if unknown:
+        raise SystemExit(f"unknown set {unknown}; choose from {list(SETS)}")
+    try:
+        for name in names:
+            make(name)
+    finally:
+        docker("exec", CONTAINER, "rm", "-rf", REMOTE, check=False)
+
+
+if __name__ == "__main__":
+    main()

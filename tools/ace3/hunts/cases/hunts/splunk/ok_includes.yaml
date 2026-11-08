@@ -1,0 +1,23 @@
+include:
+  - includes/defaults.include.yaml
+  - includes/deeper/base.include.yaml
+rule:
+  uuid: 00000000-0000-0000-0000-000000000002
+  name: ok includes
+  description: includes, nested, circular and repeated, merged in order
+  queue: hunt-queue
+  tags:
+    - from-defaults
+    - own
+  observable_mapping:
+    - field: src_ip
+      type: ipv4
+      tags: [replaced]
+    - fields: [domain, user]
+      type: user
+      directives: [crawl]
+    - field: dest
+      type: fqdn
+  icon_configuration:
+    url: https://example.com/icon.png
+  query: index=main

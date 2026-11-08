@@ -1,0 +1,20 @@
+include:
+  - includes/defaults.include.yaml
+rule:
+  uuid: 00000000-0000-0000-0000-00000000001c
+  name: folding
+  description: plain and quoted scalars
+    over several lines,
+
+    with a blank one
+  query: "a double-quoted
+    query \
+    with an escaped break and a \t tab"
+  dedup_key: 'single ''quoted''
+     over two lines'
+  alert_template: |+
+    kept
+
+  playbook_url: >-
+    stripped
+    folded

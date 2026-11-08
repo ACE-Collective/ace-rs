@@ -1,0 +1,29 @@
+include:
+  - includes/defaults.include.yaml
+rule:
+  uuid: 00000000-0000-0000-0000-000000000012
+  name: mapping ok
+  description: observable mappings with every option
+  query: index=main
+  ignored_values: ["^-$", "(unclosed"]
+  observable_mapping:
+    - fields: [a, b]
+      type: "{{ kind }}"
+      fallback_type: indicator
+      fields_mode: any
+      limit: 3
+      ignored_values: ["n/a"]
+      display_type: Kind
+      time: yes
+      volatile: true
+    - field: blob
+      type: file
+      file_name: "{{ name }}.bin"
+      file_decoder: base64
+      relationships:
+        - type: downloaded_from
+          target: {type: url, value: "{{ url }}"}
+    - field: url
+      type: url
+      value: "https://{{ url }}"
+      field_lookup_type: dot

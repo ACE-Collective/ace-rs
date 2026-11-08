@@ -1,0 +1,30 @@
+include:
+  - includes/defaults.include.yaml
+rule:
+  uuid: 00000000-0000-0000-0000-000000000014
+  name: correlate errors
+  description: correlate steps ace3 refuses
+  query: index=main
+  correlate:
+    timeout: soon
+    logic:
+      - when: "{{ a }}"
+        action: filter
+        execute: []
+      - {}
+      - action: explode
+      - transform:
+          command: {type: query}
+      - transform:
+          method: merge
+          command: {type: executable, path: x}
+      - transform:
+          property_name: p
+          command: {type: query, source: splunk, options: {a: 1}}
+      - transform:
+          property_name: p
+          command: {type: wiz_lookup, path: x, options: {a: 1}}
+      - when: {type: equals, value: b}
+        execute: []
+      - action: filter
+        extra: 1

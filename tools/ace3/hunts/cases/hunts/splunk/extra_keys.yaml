@@ -1,0 +1,17 @@
+include:
+  - includes/defaults.include.yaml
+rule:
+  uuid: 00000000-0000-0000-0000-000000000003
+  name: extra keys
+  description: unknown keys at each level
+  query: index=main
+  colour: blue
+  observable_mapping:
+    - field: host
+      type: hostname
+      shade: dark
+  summary_details:
+    - content: "{{ host }}"
+      extra: 1
+  icon_configuration:
+    size: 3

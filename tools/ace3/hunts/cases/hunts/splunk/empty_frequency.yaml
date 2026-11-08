@@ -1,0 +1,8 @@
+include:
+  - includes/defaults.include.yaml
+rule:
+  uuid: 00000000-0000-0000-0000-00000000000b
+  name: empty frequency
+  description: an empty frequency
+  frequency: ""
+  query: index=main

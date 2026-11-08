@@ -1,0 +1,8 @@
+include:
+  - includes/defaults.include.yaml
+  - includes/loop_a.include.yaml
+rule:
+  uuid: 00000000-0000-0000-0000-000000000018
+  name: include loop
+  description: a loop of includes spelled the same way each time, which ace3 skips
+  query: index=main

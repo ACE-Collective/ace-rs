@@ -1,0 +1,15 @@
+# Differences between ace3's and ace4's hunt loading
+
+PLAN.md 6.2. `make-hunts` writes what ace3's loader makes of each hunt, its normal form or its error, to `reference/`: `cases.json` for the hunts in `cases/`, written to cover each of ace3's errors and the YAML and coercion rules a hunt can trip on, and `signatures.json` for the signatures checkout. ace4's loader (`crates/ace-hunt`) writes the same shape. `the_cases_load_as_they_do_in_ace3` (`crates/ace-hunt/src/normal.rs`) diffs the cases and `compare` the signatures, and each fails on a difference no row here explains and on a row that explains nothing.
+
+A row needs a reason someone verified by reading both systems' code and looking at the values. Set is `cases` or `signatures`. In the Hunts column `*` matches any text in a hunt's path. The Path column is a JSON pointer into the hunt's entry: a `*` segment matches one segment, `**` any number, and a `*` inside a segment any text.
+
+Where ace4 raises the error ace3 does but words it differently, the row says so: the class, the location and pydantic's error type always match, and the text is ace3's except where a row names it (PLAN.md's brief on the scope of a port: match what the loader does with the file, not the wording of a parser's message).
+
+| Set | Hunts | Path | Why |
+|---|---|---|---|
+| cases | `hunts/splunk/yaml_syntax.yaml` | `/error/message` | Both raise PyYAML's ScannerError for the same token, at the same line and column. The text is yaml-rust2's, which ace4 parses with, where ace3's is PyYAML's: "mapping values are not allowed in this context" for "mapping values are not allowed here". |
+| cases | `hunts/splunk/include_syntax.yaml` | `/error/message` | Both raise a ParserError for the unclosed flow sequence in the include, at its end. PyYAML also names where the sequence began, and words it "expected ',' or ']', but got '<stream end>'"; yaml-rust2 says "while parsing a flow sequence, expected ',' or ']'". |
+| cases | `hunts/splunk/include_spelled_loop.yaml` | `/error/*` | `spelled.include.yaml` includes `../spelled_back.include.yaml`, which includes `deeper/spelled.include.yaml`: a loop whose path grows by `deeper/../` each time round. ace3 remembers the files it has read by the text of their paths, so it never sees the loop and recurses until the path is too long to open (OSError, ENAMETOOLONG). ace4 keeps that rule, so a loop spelled the same way each time is skipped as in ace3 (`include_loop.yaml`), but it also stops at a file already being read further up the chain, by its real path, and fails the hunt there with an ace4 limit. Both fail the hunt. |
+| cases | `hunts/splunk/ok_minimal.yaml` | `/*` | `duplicate_name.yaml` has the same name. ace3's HuntManager fails whichever of the two it lists second, and it lists a directory in `os.scandir` order: on the tmpfs make-hunts copies the cases to, that's newest first, so reverse name order, and `ok_minimal.yaml` loads. ace4 lists by name, so `duplicate_name.yaml` loads and this one fails with ace3's `KeyError('duplicate hunt ok minimal')`. |
+| cases | `hunts/splunk/duplicate_name.yaml` | `/*` | The other side of the row above. |

@@ -1,0 +1,11 @@
+commands:
+  - name: lookup_dns
+    description: resolves a name
+    type: executable
+    path: ../scripts/dns.py
+    files: [../scripts/data.json]
+    args: ["{{ name }}"]
+  - name: query_users
+    type: query
+    source: splunk
+    query: index=users
