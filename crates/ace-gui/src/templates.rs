@@ -114,6 +114,33 @@ pub struct LoginPage {
     pub next: Option<String>,
     /// Whether this is the answer to a login that failed.
     pub failed: bool,
+    /// Whether the visitor comes from changing their password, which ended their sessions.
+    pub password_changed: bool,
+}
+
+/// `/login/change`, ace3's `auth/change-password.html`: a signed-in user changing their own password.
+#[derive(Debug, Template)]
+#[template(path = "change_password.html")]
+pub struct ChangePasswordPage {
+    pub layout: Layout,
+    /// Why the last attempt was refused, or None for a first look.
+    pub problem: Option<String>,
+    /// `ace_service::MIN_PASSWORD_CHARS`, the rule the page states.
+    pub min_chars: usize,
+    /// `ace_service::MAX_PASSWORD_BYTES`.
+    pub max_bytes: usize,
+}
+
+impl ChangePasswordPage {
+    /// The page with the service's rules, and a problem or none.
+    pub fn new(layout: Layout, problem: Option<String>) -> Self {
+        ChangePasswordPage {
+            layout,
+            problem,
+            min_chars: ace_service::MIN_PASSWORD_CHARS,
+            max_bytes: ace_service::MAX_PASSWORD_BYTES,
+        }
+    }
 }
 
 /// A refusal or a failure, as a page.

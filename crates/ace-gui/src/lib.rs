@@ -15,7 +15,8 @@
 //! - `headers`: the security headers on every response, with a Content-Security-Policy whose nonce is
 //!   new for each page, which is how Datastar runs its expressions without `unsafe-eval`.
 //! - `session`: who the viewer is, through `Service::authenticate_request`.
-//! - `auth`: ace3's `/login` and `/logout`, with the CSRF check that a login has to make itself.
+//! - `auth`: ace3's `/login` and `/logout`, with the CSRF check that a login has to make itself, and its
+//!   password change, `/login/change` (5.11's auth area).
 //! - `preferences`: the theme form, and the alert page's section pins. The base layout draws every page
 //!   in the viewer's theme.
 //! - `alert`: an alert's page and its analysis tree, and the event stream that draws a result on an open
@@ -136,6 +137,10 @@ impl Gui {
             .route("/preferences/manage-columns", post(list::set_columns))
             .route("/login", get(auth::login_page).post(auth::login))
             .route("/logout", post(auth::logout))
+            .route(
+                "/login/change",
+                get(auth::change_password_page).post(auth::change_password),
+            )
             .route("/preferences/theme", post(preferences::set_theme))
             .route(
                 "/preferences/alert-section",

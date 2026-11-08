@@ -16,6 +16,17 @@
 //! logs the name or the password; the service logs a failed login's user id if the name was a user's,
 //! and this adds the address, which ace3 logs too.
 //!
+//! The password change is ace3's `/login/change` (`change_password`), over 5.4's
+//! `Service::change_own_password`, which needs no grant, as in ace3, checks the current password and the
+//! new one's strength, writes the audit row and ends every session of the user's. Its post is a
+//! `SignedIn` request, so `Service::authenticate_request` has checked it's from this site. A form ace3
+//! refuses comes back with why: the two new passwords differing or the new one too short or too long is
+//! 400, and a wrong current password 403, with ace3's message. A change clears the cookie and goes to
+//! `/login`, which says the password changed, as ace3 logs the user out and flashes it. The rules differ
+//! from ace3's form, whose 8 characters with a lower case, an upper case, a digit and a special one are
+//! `ace_service::MIN_PASSWORD_CHARS`' length rule here (5.4); its script that ticks the rules off as they
+//! type isn't ported, since the server says the same on a submit.
+//!
 //! What differs from ace3: no "keep me logged in", since a session ends 12 hours after its login
 //! (`ace_service::SESSION_LIFETIME_SECONDS`); no `username` cookie that refills the form, which ace3 sets
 //! for its jQuery; `next` must be a path on this site, where ace3 accepts any URL on its host.
@@ -32,13 +43,20 @@ use axum::response::{IntoResponse, Response};
 use serde::Deserialize;
 
 use crate::Gui;
-use crate::session::{Failure, Viewer, layout_for, local_path, render, request_parts, see_other};
-use crate::templates::LoginPage;
+use crate::session::{
+    Failure, SignedIn, Viewer, layout_for, local_path, render, request_parts, see_other,
+};
+use crate::templates::{ChangePasswordPage, LoginPage};
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct NextQuery {
     next: Option<String>,
+    /// `password` after a password change.
+    changed: Option<String>,
 }
+
+/// Where a password change goes, which `login_page` reads.
+const CHANGED: &str = "/login?changed=password";
 
 /// The login form's fields. Its `Debug` shows no password.
 #[derive(Deserialize)]
@@ -71,6 +89,7 @@ pub(crate) async fn login_page(viewer: Viewer, Query(query): Query<NextQuery>) -
         layout: viewer.layout,
         next,
         failed: false,
+        password_changed: query.changed.as_deref() == Some("password"),
     })
 }
 
@@ -112,6 +131,7 @@ pub(crate) async fn login(
                 layout: layout_for(&gui, None, &parts).await,
                 next,
                 failed: true,
+                password_changed: false,
             })
         }
         Err(error) => Failure::from_service(error, &parts).into_response(),
@@ -142,4 +162,68 @@ pub(crate) async fn logout(State(gui): State<Gui>, parts: Parts) -> Response {
         return Failure::from_service(error, &parts).into_response();
     }
     see_other("/login", Some(cookie.clear()))
+}
+
+/// The password change form's fields. Its `Debug` shows no password.
+#[derive(Deserialize)]
+pub(crate) struct ChangePasswordForm {
+    current_password: String,
+    new_password: String,
+    confirm: String,
+}
+
+/// `GET /login/change`: the form.
+pub(crate) async fn change_password_page(viewer: SignedIn) -> Response {
+    render(&ChangePasswordPage::new(viewer.layout, None))
+}
+
+/// `POST /login/change`: changes the user's own password, which ends their sessions, then clears the
+/// cookie and goes to `/login`.
+pub(crate) async fn change_password(
+    State(gui): State<Gui>,
+    viewer: SignedIn,
+    parts: Parts,
+    form: Result<Form<ChangePasswordForm>, FormRejection>,
+) -> Response {
+    let Ok(Form(form)) = form else {
+        return Failure::new(StatusCode::BAD_REQUEST, "The form wasn't complete.", &parts)
+            .into_response();
+    };
+    let refused = |status: StatusCode, problem: String| {
+        let mut response = render(&ChangePasswordPage::new(
+            viewer.layout.clone(),
+            Some(problem),
+        ));
+        *response.status_mut() = status;
+        response
+    };
+    if form.new_password != form.confirm {
+        return refused(
+            StatusCode::BAD_REQUEST,
+            "The new passwords don't match.".to_owned(),
+        );
+    }
+    match gui
+        .service
+        .change_own_password(
+            &viewer.actor,
+            Password::new(form.current_password),
+            Password::new(form.new_password),
+        )
+        .await
+    {
+        Ok(()) => {
+            tracing::info!(actor = %viewer.actor, source = %source(&parts), "a GUI password change");
+            see_other(CHANGED, Some(SessionCookie::new(gui.transport).clear()))
+        }
+        Err(ServiceError::NotAuthenticated) => refused(
+            StatusCode::FORBIDDEN,
+            "Current password is incorrect.".to_owned(),
+        ),
+        Err(error @ ServiceError::WeakPassword) => refused(
+            StatusCode::BAD_REQUEST,
+            format!("The new password is refused: {error}."),
+        ),
+        Err(error) => Failure::from_service(error, &parts).into_response(),
+    }
 }

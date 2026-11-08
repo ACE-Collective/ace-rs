@@ -7,6 +7,9 @@
   {%- if failed %}
   <p class="error" role="alert">Invalid username or password.</p>
   {%- endif %}
+  {%- if password_changed %}
+  <p class="notice" role="status">Your password is changed. Log in with the new one.</p>
+  {%- endif %}
   <form method="post" action="/login">
     {%- if let Some(next) = next %}
     <input type="hidden" name="next" value="{{ next }}">

@@ -22,7 +22,7 @@ use ace_core::orchestrator::Orchestrator;
 use ace_core::testing::TestDb;
 use ace_gui::alert::{AlertPage, AlertTreeFragment, tree_view};
 use ace_gui::list::{ListPage, ListQuery, list_view};
-use ace_gui::templates::{ErrorPage, Layout, LoginPage};
+use ace_gui::templates::{ChangePasswordPage, ErrorPage, Layout, LoginPage};
 use ace_gui::{Gui, LiveLimits, ObservableActions, Views, asset_named};
 use ace_service::{
     Actor, Addition, Alert, AlertDetection, AlertFile, AlertObservable, AlertSummary, AlertTree,
@@ -177,6 +177,7 @@ async fn the_base_layout_renders_for_a_visitor_and_a_user() {
         layout: Layout::signed_out("n0nce"),
         next: None,
         failed: false,
+        password_changed: false,
     }
     .render()
     .expect("renders");
@@ -407,6 +408,221 @@ async fn logging_in_rotates_the_session_and_logging_out_ends_it() {
     assert_eq!(home.status(), StatusCode::SEE_OTHER, "signed out");
 }
 
+// ---- PLAN.md 5.11's auth area: the password change ----
+
+/// ace3's `/login/change` drawn directly: the form, the service's rules, and a problem as text.
+#[test]
+fn the_password_change_view_draws_its_form_and_rules() {
+    let page = ChangePasswordPage::new(
+        Layout::new(
+            "n0nce",
+            Theme::Dark,
+            Some("alice".to_owned()),
+            "/login/change",
+        ),
+        None,
+    )
+    .render()
+    .expect("renders");
+    assert!(
+        page.contains(r#"<form method="post" action="/login/change">"#),
+        "{page}"
+    );
+    for field in ["current_password", "new_password", "confirm"] {
+        assert!(
+            page.contains(&format!(r#"name="{field}""#)),
+            "{field}: {page}"
+        );
+    }
+    assert!(page.contains(&format!(
+        "At least {} characters, and at most {} bytes",
+        ace_service::MIN_PASSWORD_CHARS,
+        ace_service::MAX_PASSWORD_BYTES
+    )));
+    assert!(page.contains(r#"<a href="/login/change">Change Password</a>"#));
+    assert!(!page.contains(r#"role="alert""#), "no problem yet: {page}");
+    assert!(inline_free(&page), "{page}");
+
+    let page = ChangePasswordPage::new(
+        Layout::new(
+            "n0nce",
+            Theme::Dark,
+            Some(HOSTILE.to_owned()),
+            "/login/change",
+        ),
+        Some(HOSTILE.to_owned()),
+    )
+    .render()
+    .expect("renders");
+    let escaped = "&#34;&#62;&#60;script&#62;alert(&#39;x&#39;)&#60;/script&#62;&#60;img src=x \
+                   onerror=alert(1)&#62;&#38;amp;";
+    assert!(
+        page.contains(&format!(r#"<p class="error" role="alert">{escaped}</p>"#)),
+        "{page}"
+    );
+    assert!(!page.contains("<script>alert"), "{page}");
+    assert!(!page.contains("<img"), "{page}");
+}
+
+/// The password change through the server: signed out goes to the login, a cross-site post and each form
+/// ace3 refuses change nothing, and a change ends every session of the user's, clears the cookie and says
+/// so at the login, with its audit row.
+#[tokio::test]
+async fn a_password_change_changes_it_and_ends_every_session() {
+    let stack = stack().await;
+    user(&stack, "alice").await;
+    let new = "a new password for alice";
+
+    // Signed out.
+    let page = stack.get("/login/change").send().await.expect("answered");
+    assert_eq!(page.status(), StatusCode::SEE_OTHER);
+    assert_eq!(location(&page), "/login?next=%2Flogin%2Fchange");
+    let post = stack
+        .post(
+            "/login/change",
+            &[
+                ("current_password", PASSWORD),
+                ("new_password", new),
+                ("confirm", new),
+            ],
+        )
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(post.status(), StatusCode::SEE_OTHER);
+    assert_eq!(location(&post), "/login");
+
+    let first = session_set(stack.log_in("alice", PASSWORD).await.headers()).expect("a session");
+    let second = session_set(stack.log_in("alice", PASSWORD).await.headers()).expect("a session");
+    let page = stack
+        .get("/login/change")
+        .header("cookie", cookie(&first))
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(page.status(), StatusCode::OK);
+    let page = page.text().await.expect("a page");
+    assert!(
+        page.contains(r#"<form method="post" action="/login/change">"#),
+        "{page}"
+    );
+    assert!(page.contains(r#"<span class="user" id="username">alice</span>"#));
+
+    let audit = stack.audit_count().await;
+    let change = |form: Vec<(&'static str, String)>| {
+        stack
+            .http
+            .post(format!("{}/login/change", stack.url))
+            .header("origin", &stack.url)
+            .header("cookie", cookie(&first))
+            .form(&form)
+    };
+    let full = |current: &str, new: &str, confirm: &str| {
+        vec![
+            ("current_password", current.to_owned()),
+            ("new_password", new.to_owned()),
+            ("confirm", confirm.to_owned()),
+        ]
+    };
+    for (what, request, status, says) in [
+        (
+            "two new passwords that differ",
+            change(full(PASSWORD, new, "a different new password")),
+            StatusCode::BAD_REQUEST,
+            "The new passwords don&#39;t match.",
+        ),
+        (
+            "a new password too short",
+            change(full(PASSWORD, "short", "short")),
+            StatusCode::BAD_REQUEST,
+            "The new password is refused: a password has to be at least 12 characters",
+        ),
+        (
+            "a wrong current password",
+            change(full("not alice's password", new, new)),
+            StatusCode::FORBIDDEN,
+            "Current password is incorrect.",
+        ),
+        (
+            "an incomplete form",
+            change(vec![("current_password", PASSWORD.to_owned())]),
+            StatusCode::BAD_REQUEST,
+            "The form wasn&#39;t complete.",
+        ),
+        (
+            "a post from another site",
+            stack
+                .http
+                .post(format!("{}/login/change", stack.url))
+                .header("origin", "https://evil.example")
+                .header("cookie", cookie(&first))
+                .form(&full(PASSWORD, new, new)),
+            StatusCode::FORBIDDEN,
+            "this request came from another site",
+        ),
+    ] {
+        let response = request.send().await.expect("answered");
+        assert_eq!(response.status(), status, "{what}");
+        assert!(response.headers().get(SET_COOKIE).is_none(), "{what}");
+        let page = response.text().await.expect("a page");
+        assert!(page.contains(says), "{what}: {page}");
+    }
+    assert_eq!(stack.audit_count().await, audit, "nothing changed");
+    for token in [&first, &second] {
+        stack
+            .service
+            .authenticate_session(token)
+            .await
+            .expect("still live");
+    }
+
+    let changed = change(full(PASSWORD, new, new))
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(changed.status(), StatusCode::SEE_OTHER);
+    assert_eq!(location(&changed), "/login?changed=password");
+    let cleared = changed.headers()[SET_COOKIE].to_str().expect("text");
+    assert!(cleared.starts_with("ace4_session=;"), "{cleared}");
+    for token in [&first, &second] {
+        assert!(matches!(
+            stack.service.authenticate_session(token).await,
+            Err(ServiceError::NotAuthenticated)
+        ));
+    }
+    let action: String =
+        sqlx::query_scalar("SELECT action FROM service.audit ORDER BY id DESC LIMIT 1")
+            .fetch_one(stack.test_db.db().pool())
+            .await
+            .expect("a row");
+    assert_eq!(action, "change_own_password");
+    assert_eq!(stack.audit_count().await, audit + 1);
+
+    let login = stack
+        .get("/login?changed=password")
+        .send()
+        .await
+        .expect("answered")
+        .text()
+        .await
+        .expect("a page");
+    assert!(
+        login.contains("Your password is changed. Log in with the new one."),
+        "{login}"
+    );
+    let plain = stack
+        .get("/login")
+        .send()
+        .await
+        .expect("answered")
+        .text()
+        .await
+        .expect("a page");
+    assert!(!plain.contains("Your password is changed"));
+    assert!(session_set(stack.log_in("alice", PASSWORD).await.headers()).is_none());
+    assert!(session_set(stack.log_in("alice", new).await.headers()).is_some());
+}
+
 /// The cookie follows the site's transport: under TLS it's `Secure` with the `__Host-` name.
 #[tokio::test]
 async fn under_tls_the_cookie_is_secure() {
@@ -624,6 +840,7 @@ fn datastar_name() -> String {
         layout: Layout::signed_out("x"),
         next: None,
         failed: false,
+        password_changed: false,
     }
     .render()
     .expect("renders");
@@ -977,9 +1194,24 @@ async fn no_credential_reaches_the_log_through_the_routes() {
         .send()
         .await
         .expect("answered");
+    let changed_to = "alice-s-changed-password";
+    stack
+        .post(
+            "/login/change",
+            &[
+                ("current_password", PASSWORD),
+                ("new_password", changed_to),
+                ("confirm", changed_to),
+            ],
+        )
+        .header("cookie", cookie(&second))
+        .send()
+        .await
+        .expect("answered");
+    let third = session_set(stack.log_in("alice", changed_to).await.headers()).expect("a session");
     stack
         .post("/logout", &[])
-        .header("cookie", cookie(&second))
+        .header("cookie", cookie(&third))
         .send()
         .await
         .expect("answered");
@@ -998,6 +1230,7 @@ async fn no_credential_reaches_the_log_through_the_routes() {
         "a GUI login failed",
         "a GUI login",
         "a cross-site login was refused",
+        "a GUI password change",
         "AUDIT",
         "service.sessions",
         "127.0.0.1",
@@ -1010,8 +1243,10 @@ async fn no_credential_reaches_the_log_through_the_routes() {
         "correct+horse".to_owned(),
         wrong.to_owned(),
         in_the_wrong_box.to_owned(),
+        changed_to.to_owned(),
         secret(&first),
         secret(&second),
+        secret(&third),
     ] {
         assert!(!log.contains(&credential), "{credential} is in the log");
     }

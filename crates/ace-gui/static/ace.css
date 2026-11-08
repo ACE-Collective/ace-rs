@@ -165,6 +165,21 @@ button[type="submit"] {
   color: var(--danger);
 }
 
+.notice {
+  color: var(--accent);
+}
+
+/* The password change (PLAN.md 5.11's auth area), in the login box's shape. */
+.login h2 {
+  margin-bottom: 0.25rem;
+  font-size: 1.1rem;
+}
+
+.requirements {
+  margin-top: 0;
+  padding-left: 1.25rem;
+}
+
 /* The alert view (PLAN.md 5.8). */
 .alert h1 {
   font-size: 1.3rem;
