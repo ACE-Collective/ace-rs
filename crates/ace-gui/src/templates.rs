@@ -85,6 +85,9 @@ pub struct Layout {
     pub events: bool,
     pub stylesheet: String,
     pub datastar: String,
+    /// The page's own scripts, after Datastar, each loaded with the nonce and deferred. Only the graph's
+    /// page (5.13) has any.
+    pub scripts: Vec<String>,
 }
 
 impl Layout {
@@ -100,6 +103,7 @@ impl Layout {
             events: false,
             stylesheet: STYLESHEET.url(),
             datastar: DATASTAR.url(),
+            scripts: Vec::new(),
         }
     }
 

@@ -50,7 +50,7 @@ use ace_core::eligibility::Catalog;
 use ace_core::modes::Modes;
 use ace_core::orchestrator::Orchestrator;
 use ace_core::testing::TestDb;
-use ace_gui::alert::{AlertPage, AlertTreeFragment, tree_view};
+use ace_gui::alert::{AlertPage, AlertTreeFragment, GraphPage, tree_view};
 use ace_gui::list::{ListPage, ListQuery, list_view};
 use ace_gui::templates::{ChangePasswordPage, ErrorPage, Layout, LoginPage};
 use ace_gui::{Gui, LiveLimits, ObservableActions, Views, asset_named};
@@ -2609,6 +2609,198 @@ async fn a_result_s_page_draws_it_with_its_view() {
     }
     let anonymous = stack.get(path).send().await.expect("answered");
     assert_eq!(anonymous.status(), StatusCode::SEE_OTHER);
+}
+
+/// The `<script>` tags of a page, as written.
+fn script_tags(page: &str) -> Vec<&str> {
+    page.match_indices("<script")
+        .map(|(at, _)| &page[at..at + page[at..].find('>').expect("the tag's end") + 1])
+        .collect()
+}
+
+/// PLAN.md 5.13: the graph's page, called directly and through the server. It holds the alert's title,
+/// escaped, and an empty `#graph` naming the JSON API's route, and loads vis.js and its own script with the
+/// response's nonce, so it has no inline script or style. It's refused as the alert's page is. vis.js is
+/// the release `vendor/README.md` records, by its hash.
+#[tokio::test]
+async fn the_graph_page_loads_vis_and_its_script_with_the_nonce() {
+    let id = uuid::Uuid::from_u128(0x513);
+    let alert = Alert {
+        summary: summary(id, HOSTILE),
+        observables: 0,
+        files: 0,
+        detections: 0,
+    };
+    let page = GraphPage::new(
+        Layout::new(
+            "n0nce",
+            Theme::Light,
+            Some("alice".to_owned()),
+            "/alerts/x/graph",
+        ),
+        &alert,
+    )
+    .render()
+    .expect("renders");
+    let escaped = "&#34;&#62;&#60;script&#62;alert(&#39;x&#39;)&#60;/script&#62;&#60;img src=x \
+                   onerror=alert(1)&#62;&#38;amp;";
+    contains_all(
+        &page,
+        &[
+            &format!("<h1>{escaped}</h1>"),
+            &format!("<a href=\"/alerts/{id}\">Back to Alert</a>"),
+            &format!(
+                r#"<div id="graph" class="graph" data-source="/api/alerts/v1/alerts/{id}/graph"></div>"#
+            ),
+            r#"<p id="graph-status" class="muted" role="status">"#,
+        ],
+    );
+    assert!(!page.contains(HOSTILE));
+    // the title's escaped text reads as a handler to inline_free, which looks for ` on<name>=` anywhere
+    assert!(inline_free(&page.replace(escaped, "")), "{page}");
+    let scripts = script_tags(&page);
+    assert_eq!(
+        scripts.len(),
+        3,
+        "Datastar, vis and the graph's: {scripts:?}"
+    );
+    let mut names = Vec::new();
+    for tag in &scripts {
+        assert!(tag.contains(r#" nonce="n0nce" src="/static/"#), "{tag}");
+        let name = tag
+            .split("src=\"/static/")
+            .nth(1)
+            .and_then(|rest| rest.split('"').next())
+            .expect("a source");
+        names.push(asset_named(name).expect("an embedded asset").name.clone());
+    }
+    assert!(names[0].starts_with("datastar-1.0.4."));
+    assert!(names[1].starts_with("vis-4.1.0."), "{names:?}");
+    assert!(names[2].starts_with("graph."), "{names:?}");
+    // no other page loads vis
+    let alert_page = AlertPage::new(
+        Layout::new("n0nce", Theme::Light, Some("alice".to_owned()), "/alerts/x"),
+        &fixture_tree().0,
+        &[],
+        &ObservableActions::empty(),
+        &std::collections::BTreeMap::new(),
+    )
+    .expect("a page")
+    .render()
+    .expect("renders");
+    assert_eq!(script_tags(&alert_page).len(), 1);
+    assert!(
+        alert_page
+            .contains(r#"<a href="/alerts/00000000-0000-0000-0000-000000005800/graph">Graph</a>"#)
+    );
+
+    // vis.js is the release the README records, served as the other assets are.
+    let readme = std::fs::read_to_string(
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../vendor/README.md"),
+    )
+    .expect("reads the README");
+    let recorded = readme
+        .split("## vis")
+        .nth(1)
+        .expect("vis's section")
+        .split('`')
+        .find(|part| part.len() == 64 && part.bytes().all(|b| b.is_ascii_hexdigit()))
+        .expect("a SHA-256");
+    assert_eq!(
+        recorded, "46976445f2254ccba5803dd9d9725fb5fccda2c88b381340046fc8cd1a225ee6",
+        "dist/vis.js of npm's vis 4.1.0, whose tarball's integrity npm records"
+    );
+
+    // Through the server.
+    let stack = stack().await;
+    let alice = user(&stack, "alice").await;
+    grant_alert_read(&stack, &alice).await;
+    let _bob = user(&stack, "bob").await;
+    let (root, _) = splunk_alert(&stack).await;
+    let path = format!("/alerts/{root}/graph");
+    let alice_session = session_of(&stack, "alice").await;
+    let response = stack
+        .get(&path)
+        .header("cookie", cookie(&alice_session))
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(response.status(), StatusCode::OK);
+    let policy = response.headers()["content-security-policy"]
+        .to_str()
+        .expect("text")
+        .to_owned();
+    assert!(!policy.contains("unsafe"), "{policy}");
+    let page = response.text().await.expect("a page");
+    let nonce = page
+        .split("data-nonce=\"")
+        .nth(1)
+        .and_then(|rest| rest.split('"').next())
+        .expect("the nonce");
+    assert!(policy.contains(&format!("script-src 'self' 'nonce-{nonce}';")));
+    assert!(inline_free(&page), "{page}");
+    contains_all(
+        &page,
+        &[
+            "<h1>Proxy &#60;correlation&#62;</h1>",
+            &format!(r#"data-source="/api/alerts/v1/alerts/{root}/graph""#),
+        ],
+    );
+    for tag in script_tags(&page) {
+        assert!(
+            tag.contains(&format!(" nonce=\"{nonce}\" src=\"/static/")),
+            "{tag}"
+        );
+        let url = tag
+            .split("src=\"")
+            .nth(1)
+            .and_then(|rest| rest.split('"').next())
+            .expect("a source");
+        let served = stack.get(url).send().await.expect("answered");
+        assert_eq!(served.status(), StatusCode::OK, "{url}");
+        assert_eq!(
+            served.headers()["content-type"],
+            "text/javascript; charset=utf-8"
+        );
+        assert_eq!(
+            served.headers()["cache-control"],
+            "public, max-age=31536000, immutable"
+        );
+        let bytes = served.bytes().await.expect("bytes");
+        if url.starts_with("/static/vis-") {
+            assert_eq!(hex::encode(Sha256::digest(&bytes)), recorded);
+            assert!(bytes.starts_with(b"/**\n * vis.js\n"));
+        }
+    }
+
+    // No alert:read; no such alert; and no session.
+    let bob_session = session_of(&stack, "bob").await;
+    let refused = stack
+        .get(&path)
+        .header("cookie", cookie(&bob_session))
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(refused.status(), StatusCode::FORBIDDEN);
+    assert!(!refused.text().await.expect("a page").contains("Proxy"));
+    for missing in [
+        "/alerts/x/graph".to_owned(),
+        format!("/alerts/{}/graph", uuid::Uuid::nil()),
+    ] {
+        let response = stack
+            .get(&missing)
+            .header("cookie", cookie(&alice_session))
+            .send()
+            .await
+            .expect("answered");
+        assert_eq!(response.status(), StatusCode::NOT_FOUND, "{missing}");
+    }
+    let anonymous = stack.get(&path).send().await.expect("answered");
+    assert_eq!(anonymous.status(), StatusCode::SEE_OTHER);
+    assert_eq!(
+        location(&anonymous),
+        format!("/login?{}", next_query(&path))
+    );
 }
 
 /// The open-source observable actions (PLAN.md 5.9, #1032): Add Comment on every observable the tree draws

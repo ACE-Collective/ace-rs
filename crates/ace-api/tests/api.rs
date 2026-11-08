@@ -324,6 +324,7 @@ const PING: &str = "/api/health/v1/ping";
 const LIST: &str = "/api/alerts/v1/alerts";
 const ONE: &str = "/api/alerts/v1/alerts/{id}";
 const OBSERVABLES: &str = "/api/alerts/v1/alerts/{id}/observables";
+const GRAPH: &str = "/api/alerts/v1/alerts/{id}/graph";
 const FILE: &str = "/api/alerts/v1/alerts/{id}/observables/{observable}/file";
 const DISPOSITION: &str = "/api/alerts/v1/alerts/{id}/disposition";
 const SUBMIT: &str = "/api/analysis/v1/submit";
@@ -496,7 +497,7 @@ async fn refuses_without_a_credential_or_a_permission(
         .map(|(method, route, _)| (method, route))
         .filter(|route| !public.contains(route))
         .collect();
-    assert_eq!(routes.len(), 82, "{routes:?}");
+    assert_eq!(routes.len(), 83, "{routes:?}");
     for (method, route) in routes {
         let method: Method = method.to_uppercase().parse().expect("a method");
         let path = fill(&route, id, file);
@@ -1147,6 +1148,159 @@ async fn reads_observables(client: &mut Client<'_>, token: &str, id: Uuid, file:
             Method::GET,
             ONE,
             &fill(ONE, root.id, 0),
+            Some(token),
+            Send::Nothing,
+            StatusCode::NOT_FOUND,
+        )
+        .await;
+}
+
+/// PLAN.md 5.13: an alert's graph, built from its tree's observables, results, additions, tags and
+/// relationships, with hostile text kept as it is; one past the bounds cut with a note; and its errors.
+async fn reads_graph(client: &mut Client<'_>, token: &str) {
+    let stack = client.stack;
+    let db = stack.test_db.db().pool();
+    let id = alert(
+        stack,
+        "<img src=x onerror=alert(1)>",
+        &[(ObservableKind::Fqdn, "evil.example.com")],
+    )
+    .await;
+    let fqdn: i64 = sqlx::query_scalar(
+        "UPDATE analysis.observables SET tags = ARRAY['<b>tag</b>'] WHERE root_id = $1 RETURNING id",
+    )
+    .bind(id)
+    .fetch_one(db)
+    .await
+    .expect("the fqdn");
+    let result: i64 = sqlx::query_scalar(
+        "INSERT INTO analysis.results (root_id, observable_id, module, analysis_type, schema_version, details)
+         VALUES ($1, $2, 'rdap_analyzer', 'test_stub', 1, '{}') RETURNING id",
+    )
+    .bind(id)
+    .bind(fqdn)
+    .fetch_one(db)
+    .await
+    .expect("a result");
+    let mut tx = stack.test_db.db().begin().await.expect("begins");
+    let ip = tree::upsert_observable(
+        &mut tx,
+        id,
+        &NewObservable::new(ObservableKind::Ip, "192.0.2.1"),
+    )
+    .await
+    .expect("adds")
+    .id
+    .0;
+    tx.commit().await.expect("commits");
+    sqlx::query("INSERT INTO analysis.result_additions (root_id, result_id, observable_id) VALUES ($1, $2, $3)")
+        .bind(id).bind(result).bind(ip).execute(db).await.expect("an addition");
+    sqlx::query(
+        "INSERT INTO analysis.relationships (root_id, observable_id, kind, target_type, target_value)
+         VALUES ($1, $2, 'related_to', 'fqdn', 'evil.example.com')",
+    )
+    .bind(id).bind(ip).execute(db).await.expect("a relationship");
+
+    let graph = client
+        .json(
+            Method::GET,
+            GRAPH,
+            &fill(GRAPH, id, 0),
+            Some(token),
+            Send::Nothing,
+            StatusCode::OK,
+        )
+        .await;
+    let (o, r, i) = (format!("o{fqdn}"), format!("r{result}"), format!("o{ip}"));
+    assert_eq!(graph["alert"], id.to_string());
+    assert_eq!(
+        graph["nodes"],
+        json!([
+            {"id": "alert", "kind": "alert", "label": "<img src=x onerror=alert(1)>", "observable": null, "result": null},
+            {"id": o, "kind": "observable", "label": "fqdn: evil.example.com", "observable": fqdn, "result": null},
+            {"id": "t0", "kind": "tag", "label": "<b>tag</b>", "observable": null, "result": null},
+            {"id": r, "kind": "result", "label": "rdap_analyzer", "observable": null, "result": result},
+            {"id": i, "kind": "observable", "label": "ip: 192.0.2.1", "observable": ip, "result": null},
+        ])
+    );
+    assert_eq!(
+        graph["edges"],
+        json!([
+            {"from": "alert", "to": o, "kind": "observed", "relationship": null},
+            {"from": o, "to": "t0", "kind": "tagged", "relationship": null},
+            {"from": o, "to": r, "kind": "analyzed", "relationship": null},
+            {"from": r, "to": i, "kind": "added", "relationship": null},
+            {"from": i, "to": o, "kind": "related", "relationship": "related_to"},
+        ])
+    );
+    assert_eq!(
+        (&graph["truncated"], &graph["note"]),
+        (&json!(false), &Value::Null)
+    );
+
+    // past its bounds: the alert and the first 999 of 1200 observables
+    let many: Vec<String> = (0..1200).map(|n| format!("h{n:04}.example")).collect();
+    let observables: Vec<(ObservableKind, &str)> = many
+        .iter()
+        .map(|value| (ObservableKind::Fqdn, value.as_str()))
+        .collect();
+    let big = alert(stack, "many", &observables).await;
+    let graph = client
+        .json(
+            Method::GET,
+            GRAPH,
+            &fill(GRAPH, big, 0),
+            Some(token),
+            Send::Nothing,
+            StatusCode::OK,
+        )
+        .await;
+    assert_eq!(
+        graph["nodes"].as_array().map(Vec::len),
+        Some(ace_service::MAX_GRAPH_NODES)
+    );
+    assert_eq!(
+        graph["edges"].as_array().map(Vec::len),
+        Some(ace_service::MAX_GRAPH_NODES - 1)
+    );
+    assert_eq!(graph["nodes"][999]["label"], "fqdn: h0998.example");
+    assert_eq!(graph["truncated"], true);
+    assert_eq!(
+        graph["note"],
+        "The graph was cut short: it shows 1000 of 1201 nodes and 999 of 1200 edges, those nearest the alert."
+    );
+
+    client
+        .json(
+            Method::GET,
+            GRAPH,
+            "/api/alerts/v1/alerts/x/graph",
+            Some(token),
+            Send::Nothing,
+            StatusCode::BAD_REQUEST,
+        )
+        .await;
+    let missing = client
+        .json(
+            Method::GET,
+            GRAPH,
+            &fill(GRAPH, Uuid::nil(), 0),
+            Some(token),
+            Send::Nothing,
+            StatusCode::NOT_FOUND,
+        )
+        .await;
+    assert_eq!(missing["error"], format!("no alert {}", Uuid::nil()));
+    // a root no detection made an alert isn't one
+    let root = NewRoot::new("analysis");
+    let mut tx = stack.test_db.db().begin().await.expect("begins");
+    tree::create_root(&mut tx, &root).await.expect("creates");
+    tx.commit().await.expect("commits");
+    client
+        .json(
+            Method::GET,
+            GRAPH,
+            &fill(GRAPH, root.id, 0),
             Some(token),
             Send::Nothing,
             StatusCode::NOT_FOUND,
@@ -3545,6 +3699,7 @@ async fn every_documented_status_is_tested() {
     lists(&mut client, &token).await;
     reads_one(&mut client, &token, id).await;
     reads_observables(&mut client, &token, id, file).await;
+    reads_graph(&mut client, &token).await;
     detection_points(&mut client, &token, id).await;
     downloads(&mut client, &token, id, file, &bytes).await;
     dispositions(&mut client, &token).await;

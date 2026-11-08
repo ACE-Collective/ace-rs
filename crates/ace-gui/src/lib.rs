@@ -9,8 +9,9 @@
 //! What's here:
 //! - `templates`: askama's templates, compiled into the binary and checked against their structs, so a
 //!   template that names a field its struct doesn't have fails the build. Every one escapes HTML.
-//! - `assets`: the stylesheet and Datastar, the one vendored file (`vendor/README.md`), embedded in the
-//!   binary and served under a hash of their bytes, cached for a year. Nothing is read from disk while
+//! - `assets`: the stylesheet, Datastar, and vis.js with the graph's own script (5.13), the vendored
+//!   files being Datastar and vis (`vendor/README.md`), embedded in the binary and served under a hash
+//!   of their bytes, cached for a year. Nothing is read from disk while
 //!   it runs, so nothing depends on where the checkout or the binary is (PLAN.md 0.7, ace3 #920).
 //! - `headers`: the security headers on every response, with a Content-Security-Policy whose nonce is
 //!   new for each page, which is how Datastar runs its expressions without `unsafe-eval`.
@@ -21,7 +22,7 @@
 //!   alert list's columns and the user's own API keys; the theme menu, and the alert page's section pins.
 //!   The base layout draws every page in the viewer's theme.
 //! - `alert`: an alert's page and its analysis tree, and the event stream that draws a result on an open
-//!   page when it lands (5.8), and a result's page (5.9).
+//!   page when it lands (5.8), a result's page (5.9), and the alert's relationship graph (5.13).
 //! - `analysis`: each analysis type's view, ace3's analysis templates, by type from the binary's list
 //!   (5.9).
 //! - `actions`: the observable actions the tree offers, from the binary's list, and the comment form
@@ -51,9 +52,9 @@
 //! From ace3's `app/templates/base.html` and `core.html`, and what differs: the layout keeps ace3's
 //! theme attribute on `<html>`, its five themes and its log out by POST. It has none of ace3's jQuery,
 //! Bootstrap, Google Fonts or CDN links: the stylesheet is this crate's own, and Datastar is the only
-//! script. ace3's inline script that resolves the `system` theme is a `prefers-color-scheme` rule in the
-//! stylesheet, so the page has no inline script. Its navigation links come with the pages they lead to
-//! (5.8 to 5.11). `/` is the alert list, as ace3's home page is its manage page.
+//! script but on the graph's page, which adds vis.js and its own. ace3's inline script that resolves the
+//! `system` theme is a `prefers-color-scheme` rule in the stylesheet, so the page has no inline script.
+//! Its navigation links come with the pages they lead to (5.8 to 5.11). `/` is the alert list, as ace3's home page is its manage page.
 
 use ace_service::{Service, Transport};
 use axum::Router;
@@ -281,6 +282,7 @@ impl Gui {
             )
             .route("/alerts/{id}", get(alert::page))
             .route("/alerts/{id}/live", get(alert::live))
+            .route("/alerts/{id}/graph", get(alert::graph_page))
             .route("/alerts/{id}/results/{result}", get(alert::result_page))
             .route(
                 "/alerts/{id}/observables/{observable}/comment",

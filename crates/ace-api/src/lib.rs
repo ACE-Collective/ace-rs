@@ -20,6 +20,7 @@
 //! |---|---|
 //! | `GET /alerts?f=&cursor=&limit=&tz=` | `GET /api/alerts/v1/alerts?f=&sort=&dir=&tz=&after=&limit=`, newest first or in the order asked, a page at a time, with `total` (5.10's filters and orders) |
 //! | `GET /alerts/{uuid}`, `/meta` | `GET /api/alerts/v1/alerts/{id}`, and its observables, results and detections in pages at `/observables` |
+//! | the GUI's `GET /json?alert_uuid=`, which fed its vis.js graph until ace3 removed both in `9f63a496` (5.13) | `GET /api/alerts/v1/alerts/{id}/graph`, at most 1000 nodes and 2000 edges, with a note when cut |
 //! | `GET /alerts/{uuid}/observables/{o}/zip`, `/download` | `GET /api/alerts/v1/alerts/{id}/observables/{o}/file`, one file, audited |
 //! | the GUI's disposition | `PUT /api/alerts/v1/alerts/{id}/disposition` |
 //! | `POST /analysis` | `POST /api/analysis/v1/submit` |
@@ -430,6 +431,7 @@ impl Web {
                     .delete(filters::delete)
                     .layer(json_limit),
             )
+            .route("/api/alerts/v1/alerts/{id}/graph", get(alerts::graph))
             .route(
                 "/api/alerts/v1/alerts/{id}/observables",
                 get(alerts::observables),
@@ -606,6 +608,7 @@ impl Web {
         alerts::list,
         alerts::one,
         alerts::observables,
+        alerts::graph,
         alerts::file,
         alerts::disposition,
         alerts::export_csv,

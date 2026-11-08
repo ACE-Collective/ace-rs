@@ -51,7 +51,7 @@
 //! `threat_types` and `threats` routers.
 //!
 //! `alert_view` reads an alert's whole tree for 5.8's alert view, and watches an alert for results landing
-//! on it, so an open page can show them.
+//! on it, so an open page can show them. `alert_graph` turns that tree into 5.13's relationship graph.
 //!
 //! `preferences` keeps a user's GUI preferences, ace3's `user_preferences` router, for 5.7's GUI and its
 //! routes under `/api/users/v1/me/preferences`.
@@ -69,6 +69,7 @@
 //!   (5.12), which its pool makes; its start and cancel are here.
 
 mod actor;
+mod alert_graph;
 mod alert_view;
 mod alerts;
 mod auth;
@@ -100,6 +101,10 @@ use uuid::Uuid;
 use gate::{Audited, Change, Gate, Recorded, TITLE_LIMIT, Target};
 
 pub use actor::{Actor, ApiKeyId, Component, InvalidComponent, UserId};
+pub use alert_graph::{
+    AlertGraph, GraphEdge, GraphEdgeKind, GraphNode, GraphNodeKind, MAX_GRAPH_EDGES,
+    MAX_GRAPH_NODES, MAX_LABEL_CHARS, graph_of,
+};
 pub use alert_view::{Addition, AlertTree, AlertWatch, MAX_TREE_OBSERVABLES, RESULTS_CHANNEL};
 pub use alerts::{
     Alert, AlertDetection, AlertFile, AlertObservable, AlertPage, AlertQuery, AlertSort,

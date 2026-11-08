@@ -1,4 +1,4 @@
-# Vendored crates
+# Vendored code
 
 ## qpdf-sys
 
@@ -53,3 +53,39 @@ as `datastar/datastar-<version>.js`, replace `LICENSE.md` from the same tag, and
 commit and hash here and the file name in `crates/ace-gui/src/assets.rs`. ace3's `docs/GUI_DATASTAR.md`
 lists the syntax that changed at 1.0: an attribute that's wrong does nothing, so check each page in a
 browser.
+
+## vis
+
+`vis/vis-4.1.0.js` is vis.js 4.1.0 (almende/vis, now the archived visjs/vis), the library and version ace3
+vendored as `app/static/js/vis.js` for its alert graph until it removed both as unused (ace3 commit
+`9f63a496`, 2026-10-01). ace4 uses it for the relationship graph (PLAN.md 5.13). It's `dist/vis.js` of the
+npm package `vis@4.1.0`, the release's published artifact: the tarball
+`https://registry.npmjs.org/vis/-/vis-4.1.0.tgz` matches the integrity npm records for it,
+`sha512-lu2jcGY8HVTysRhxCWki87pbCbFKX96zbT/fW8uLo+meJnPJMrQSfaOa7MAHm5SA1z2HAa2foToU7qTlM6GMgQ==`. The file
+is unchanged: 1,385,623 bytes, SHA-256 `46976445f2254ccba5803dd9d9725fb5fccda2c88b381340046fc8cd1a225ee6`.
+That hash was checked against the same file at the tag, `https://raw.githubusercontent.com/almende/vis/v4.1.0/dist/vis.js`
+(commit `62a844de3fd82a571dd07a045635f277e6635735`), and `https://cdn.jsdelivr.net/npm/vis@4.1.0/dist/vis.js`.
+ace3's copy is the same text with some lines ending in CRLF; this is upstream's, with LF. The GitHub tag has no
+release assets. npm is used only to fetch the tarball once: there's no build step, and `ace-gui` embeds the
+file in the binary. `crates/ace-gui/tests/gui.rs` fails if the bytes it serves stop matching the hash above.
+The unminified build is the one ace3 vendored; the release's `vis.min.js` names a source map, `vis.map`,
+that ace4 doesn't serve.
+
+It runs under 5.7's policy unchanged, which `tests/e2e/run` checks in its browser: it has no `eval` or
+`Function`, it styles what it creates through the CSSOM (`element.style`), which a policy doesn't restrict,
+and the network draws on a canvas. ace4 leaves out `vis.css`, which styles only the parts the graph doesn't
+use: the navigation buttons, the manipulation toolbar, the configurator and the tooltip. A node's `title`, vis's
+tooltip, is set as HTML, so `crates/ace-gui/static/graph.js` never sets one.
+
+vis 4.1.0 is from 2015 and the `vis` package is deprecated, split into vis-network and others. OSV lists no
+advisory against `vis` (queried 2026-11-08). The one against a successor, vis-timeline's CVE-2020-28487, is
+script injected through a timeline's items, a part of the bundle the graph doesn't use.
+
+Its licence is MIT or Apache-2.0, at the user's choice; `vis/LICENSE-MIT` and `vis/LICENSE-APACHE-2.0` are the
+package's own, identical to the tag's.
+
+To update: download `dist/vis.js` from the npm tarball of the new version, check the tarball against the
+registry's integrity and the file against the tag's, save it as `vis/vis-<version>.js`, replace both licences,
+and change the version, commit and hash here and the file name in `crates/ace-gui/src/assets.rs`. Then run
+`tests/e2e/run`, whose browser draws 2.30's alert with it under the policy. A later vis.js, or vis-network,
+may set `title` or labels differently, so read `graph.js` against its documentation first.

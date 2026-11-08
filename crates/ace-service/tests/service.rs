@@ -11758,3 +11758,219 @@ async fn commands_are_read_with_their_output_and_reaped_when_nothing_finishes_th
         .await;
     assert!(changed.is_err(), "an ended command stays ended");
 }
+
+// ---- PLAN.md 5.13: the relationship graph ----
+
+use ace_service::{
+    Addition, Alert, AlertFile, AlertObservable, AlertSummary, AlertTree, AnalysisState,
+    MAX_GRAPH_EDGES, MAX_GRAPH_NODES, MAX_LABEL_CHARS, ModuleResult, Relationship, graph_of,
+};
+
+fn graph_observable(id: i64, kind: &str, value: &str) -> AlertObservable {
+    AlertObservable {
+        id,
+        kind: kind.to_owned(),
+        value: value.to_owned(),
+        time: None,
+        tags: Vec::new(),
+        directives: Vec::new(),
+        exclude_modules: Vec::new(),
+        redirection: None,
+        display_type: None,
+        files: Vec::new(),
+        relationships: Vec::new(),
+        results: Vec::new(),
+        detections: Vec::new(),
+    }
+}
+
+fn graph_result(id: i64, module: &str) -> ModuleResult {
+    ModuleResult {
+        id,
+        module: module.to_owned(),
+        analysis_type: module.to_owned(),
+        schema_version: 1,
+        summary: None,
+        tags: Vec::new(),
+        details: serde_json::json!({}),
+        created_at: chrono::DateTime::from_timestamp(1_793_000_000, 0).expect("a time"),
+    }
+}
+
+fn graph_tree(
+    observables: Vec<AlertObservable>,
+    top: Vec<i64>,
+    additions: &[(i64, i64)],
+) -> AlertTree {
+    let at = chrono::DateTime::from_timestamp(1_793_000_000, 0).expect("a time");
+    AlertTree {
+        alert: Alert {
+            summary: AlertSummary {
+                id: uuid::Uuid::from_u128(0x513),
+                title: "<img src=x onerror=alert(1)>".to_owned(),
+                analysis_mode: "correlation".to_owned(),
+                event_time: None,
+                event_time_source: "unset".to_owned(),
+                created_at: at,
+                alerted_at: at,
+                disposition: None,
+                dispositioned_at: None,
+                dispositioned_by: None,
+                submitted_by: None,
+                analysis: AnalysisState::Complete,
+            },
+            observables: i64::try_from(observables.len()).expect("a count"),
+            files: 0,
+            detections: 0,
+        },
+        observables,
+        top,
+        additions: additions
+            .iter()
+            .map(|&(result, observable)| Addition { result, observable })
+            .collect(),
+        truncated: false,
+    }
+}
+
+/// The email of 2.30, in small: the email, its result, what that added, the archive's result, a
+/// relationship and tags.
+fn email_graph_tree() -> AlertTree {
+    let mut email = graph_observable(1, "file", "aa");
+    email.files.push(AlertFile {
+        path: "email.rfc822".to_owned(),
+        yara_meta: Vec::new(),
+    });
+    email.results.push(graph_result(10, "email_analyzer"));
+    let mut zip = graph_observable(2, "file", "bb");
+    zip.files.push(AlertFile {
+        path: "email.rfc822.parts/invoice.zip".to_owned(),
+        yara_meta: Vec::new(),
+    });
+    zip.tags = vec!["<b>email.attachment</b>".to_owned()];
+    zip.relationships.push(Relationship {
+        kind: "extracted_from".to_owned(),
+        target_type: "file".to_owned(),
+        target_value: "aa".to_owned(),
+    });
+    let mut archive = graph_result(11, "archive");
+    archive.tags = vec!["<b>email.attachment</b>".to_owned()];
+    zip.results.push(archive);
+    let domain = graph_observable(3, "fqdn", "example.com");
+    // a relationship to something that isn't in the alert draws nothing
+    let mut orphan = graph_observable(4, "url", "https://example.com/");
+    orphan.relationships.push(Relationship {
+        kind: "related_to".to_owned(),
+        target_type: "fqdn".to_owned(),
+        target_value: "elsewhere.example".to_owned(),
+    });
+    graph_tree(
+        vec![email, zip, domain, orphan],
+        vec![1],
+        &[(10, 2), (10, 3), (10, 2), (11, 1)],
+    )
+}
+
+#[test]
+fn a_graph_has_the_alert_its_observables_results_tags_and_relationships() {
+    let graph = graph_of(&email_graph_tree(), MAX_GRAPH_NODES, MAX_GRAPH_EDGES);
+    let nodes: Vec<(&str, &str, &str)> = graph
+        .nodes
+        .iter()
+        .map(|n| (n.id.as_str(), n.kind.as_str(), n.label.as_str()))
+        .collect();
+    assert_eq!(
+        nodes,
+        [
+            ("alert", "alert", "<img src=x onerror=alert(1)>"),
+            ("o1", "observable", "file: email.rfc822"),
+            ("r10", "result", "email_analyzer"),
+            ("o2", "observable", "file: email.rfc822.parts/invoice.zip"),
+            ("o3", "observable", "fqdn: example.com"),
+            ("t0", "tag", "<b>email.attachment</b>"),
+            ("r11", "result", "archive"),
+            ("o4", "observable", "url: https://example.com/"),
+        ]
+    );
+    assert_eq!(graph.nodes[1].observable, Some(1));
+    assert_eq!(graph.nodes[2].result, Some(10));
+    let edges: Vec<(&str, &str, &str, Option<&str>)> = graph
+        .edges
+        .iter()
+        .map(|e| {
+            (
+                e.from.as_str(),
+                e.to.as_str(),
+                e.kind.as_str(),
+                e.relationship.as_deref(),
+            )
+        })
+        .collect();
+    assert_eq!(
+        edges,
+        [
+            ("alert", "o1", "observed", None),
+            ("o1", "r10", "analyzed", None),
+            ("r10", "o2", "added", None),
+            ("r10", "o3", "added", None),
+            ("o2", "t0", "tagged", None),
+            ("o2", "r11", "analyzed", None),
+            ("r11", "t0", "tagged", None),
+            // the archive's result names the email again: an edge back, not a second node
+            ("r11", "o1", "added", None),
+            ("o2", "o1", "related", Some("extracted_from")),
+        ]
+    );
+    assert!(!graph.truncated);
+    assert_eq!(graph.note, None);
+}
+
+#[test]
+fn a_graph_past_its_bounds_keeps_what_is_nearest_the_alert_and_says_so() {
+    let graph = graph_of(&email_graph_tree(), 4, 3);
+    let ids: Vec<&str> = graph.nodes.iter().map(|n| n.id.as_str()).collect();
+    assert_eq!(ids, ["alert", "o1", "r10", "o2"]);
+    assert_eq!(graph.edges.len(), 3);
+    for edge in &graph.edges {
+        assert!(ids.contains(&edge.from.as_str()) && ids.contains(&edge.to.as_str()));
+    }
+    assert!(graph.truncated);
+    assert_eq!(
+        graph.note.as_deref(),
+        Some(
+            "The graph was cut short: it shows 4 of 8 nodes and 3 of 9 edges, those nearest the alert."
+        )
+    );
+
+    let mut cut = email_graph_tree();
+    cut.truncated = true;
+    let graph = graph_of(&cut, MAX_GRAPH_NODES, MAX_GRAPH_EDGES);
+    assert!(graph.truncated);
+    assert_eq!(
+        graph.note.as_deref(),
+        Some("The alert has more than 5000 observables, and this has the first 5000.")
+    );
+}
+
+#[test]
+fn a_long_label_is_cut_and_every_observable_is_in_the_graph() {
+    let long = "a".repeat(200);
+    // nothing added these, and neither is the submission's: each still has its node
+    let graph = graph_of(
+        &graph_tree(
+            vec![
+                graph_observable(1, "fqdn", &long),
+                graph_observable(2, "ip", "192.0.2.1"),
+            ],
+            vec![],
+            &[],
+        ),
+        MAX_GRAPH_NODES,
+        MAX_GRAPH_EDGES,
+    );
+    assert_eq!(graph.nodes.len(), 3);
+    let label = &graph.nodes[1].label;
+    assert_eq!(label.chars().count(), MAX_LABEL_CHARS);
+    assert!(label.starts_with("fqdn: aaa") && label.ends_with('…'));
+    assert!(graph.edges.is_empty());
+}

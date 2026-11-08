@@ -1,5 +1,5 @@
-//! `/api/alerts/v1`: the alert list with its filters, sorts and exports, one alert, its observables, a file's
-//! download and the disposition.
+//! `/api/alerts/v1`: the alert list with its filters, sorts and exports, one alert, its observables, its
+//! relationship graph, a file's download and the disposition.
 
 use std::io::{Seek, SeekFrom};
 
@@ -7,8 +7,8 @@ use ace_core::bucket::ALERT_FILES;
 use ace_results::Sha256;
 use ace_service::filters::{FilterScreen, decode};
 use ace_service::{
-    Actor, AlertDetection, AlertFile, AlertObservable, AlertQuery, AlertSort, AlertSummary,
-    AnalysisState, ModuleResult, RecordedActor, Relationship,
+    Actor, AlertDetection, AlertFile, AlertGraph, AlertObservable, AlertQuery, AlertSort,
+    AlertSummary, AnalysisState, GraphEdge, GraphNode, ModuleResult, RecordedActor, Relationship,
 };
 use axum::Json;
 use axum::body::Body;
@@ -586,6 +586,137 @@ pub(crate) async fn observables(
             .collect(),
         next: page.next,
     }))
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+#[serde(rename_all = "snake_case")]
+pub(crate) enum GraphNodeKindBody {
+    Alert,
+    Observable,
+    Result,
+    Tag,
+}
+
+/// A node of the graph.
+#[derive(Debug, Serialize, ToSchema)]
+pub(crate) struct GraphNodeBody {
+    /// `alert`, `o<id>`, `r<id>` or `t<n>`, unique in the graph, which its edges name.
+    id: String,
+    kind: GraphNodeKindBody,
+    /// The alert's title, an observable's type and value, a result's module or a tag, at most 80
+    /// characters. It's the alert's text: show it as text.
+    label: String,
+    /// An observable's id in the alert, as `/observables` gives it.
+    observable: Option<i64>,
+    /// A result's id in the alert.
+    result: Option<i64>,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+#[serde(rename_all = "snake_case")]
+pub(crate) enum GraphEdgeKindBody {
+    /// The alert to an observable its submission added.
+    Observed,
+    /// An observable to a result of it.
+    Analyzed,
+    /// A result to an observable it added.
+    Added,
+    /// An observable or result to its tag.
+    Tagged,
+    /// An observable to the observable a relationship of it names.
+    Related,
+}
+
+/// An edge of the graph, between two of its nodes.
+#[derive(Debug, Serialize, ToSchema)]
+pub(crate) struct GraphEdgeBody {
+    from: String,
+    to: String,
+    kind: GraphEdgeKindBody,
+    /// A `related` edge's relationship, such as `extracted_from`.
+    relationship: Option<String>,
+}
+
+/// An alert's relationship graph.
+#[derive(Debug, Serialize, ToSchema)]
+pub(crate) struct GraphBody {
+    alert: Uuid,
+    nodes: Vec<GraphNodeBody>,
+    edges: Vec<GraphEdgeBody>,
+    /// Whether the graph was cut short: it holds at most 1000 nodes and 2000 edges, nearest the alert
+    /// first, from a tree of at most 5000 observables.
+    truncated: bool,
+    /// What was left out, when anything was.
+    note: Option<String>,
+}
+
+impl From<AlertGraph> for GraphBody {
+    fn from(graph: AlertGraph) -> Self {
+        use ace_service::{GraphEdgeKind, GraphNodeKind};
+        GraphBody {
+            alert: graph.alert,
+            nodes: graph
+                .nodes
+                .into_iter()
+                .map(|node: GraphNode| GraphNodeBody {
+                    id: node.id,
+                    kind: match node.kind {
+                        GraphNodeKind::Alert => GraphNodeKindBody::Alert,
+                        GraphNodeKind::Observable => GraphNodeKindBody::Observable,
+                        GraphNodeKind::Result => GraphNodeKindBody::Result,
+                        GraphNodeKind::Tag => GraphNodeKindBody::Tag,
+                    },
+                    label: node.label,
+                    observable: node.observable,
+                    result: node.result,
+                })
+                .collect(),
+            edges: graph
+                .edges
+                .into_iter()
+                .map(|edge: GraphEdge| GraphEdgeBody {
+                    from: edge.from,
+                    to: edge.to,
+                    kind: match edge.kind {
+                        GraphEdgeKind::Observed => GraphEdgeKindBody::Observed,
+                        GraphEdgeKind::Analyzed => GraphEdgeKindBody::Analyzed,
+                        GraphEdgeKind::Added => GraphEdgeKindBody::Added,
+                        GraphEdgeKind::Tagged => GraphEdgeKindBody::Tagged,
+                        GraphEdgeKind::Related => GraphEdgeKindBody::Related,
+                    },
+                    relationship: edge.relationship,
+                })
+                .collect(),
+            truncated: graph.truncated,
+            note: graph.note,
+        }
+    }
+}
+
+/// An alert's relationship graph, which the GUI's graph page draws: a node for the alert, each
+/// observable, each result and each tag, and an edge for each observable the submission or a result
+/// added, each result of an observable, each tag and each relationship between two of the alert's
+/// observables. It's read from one snapshot of the alert's tree, and bounded, saying so when it was cut.
+#[utoipa::path(
+    get,
+    path = "/api/alerts/v1/alerts/{id}/graph",
+    tag = "alerts",
+    params(("id" = Uuid, Path, description = "The alert's id")),
+    responses(
+        (status = 200, description = "The graph", body = GraphBody),
+        (status = 400, description = "An id that isn't a uuid", body = ErrorBody),
+        (status = 401, description = "No credential, or one that isn't valid", body = ErrorBody),
+        (status = 403, description = "The actor doesn't hold alert:read", body = ErrorBody),
+        (status = 404, description = "No such alert", body = ErrorBody),
+    )
+)]
+pub(crate) async fn graph(
+    Authenticated(actor): Authenticated,
+    State(web): State<Web>,
+    id: Result<Path<Uuid>, PathRejection>,
+) -> Result<Json<GraphBody>, ApiError> {
+    let Path(id) = id?;
+    Ok(Json(web.service.alert_graph(&actor, id).await?.into()))
 }
 
 /// A file observable's bytes, as a zip encrypted with AES-256 and the password `infected`, as ace3's

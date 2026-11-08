@@ -40,6 +40,14 @@
 //! A result's summary links to its page, `GET /alerts/{id}/results/{result}` (5.9), which draws it with its
 //! type's view (`crate::analysis`) and lists the observables it added, as ace3's analysis page does.
 //!
+//! The page links to the alert's relationship graph, `GET /alerts/{id}/graph` (5.13, `GraphPage`), ace3's
+//! vis.js network of the alert, drawn in the browser from the JSON API's
+//! `/api/alerts/v1/alerts/{id}/graph` (`ace_service::graph_of`). ace3 drew it in a floating panel from a
+//! button, which ace3 had commented out before removing vis.js (`ace3` commit `9f63a496`); here it's a
+//! page of its own, so vis's 1.4 MB loads only where it's drawn. What differs: a click on a node selects
+//! it and does nothing more, where ace3's swapped its label for its details and opened an analysis's page
+//! in a new window; and relationships are edges, which ace3's graph didn't draw.
+//!
 //! From ace3, and what differs: the section ids, the tree's shape and the jump links are ace3's. Not here
 //! yet: observable actions (#1032), the pruned
 //! "Critical Analysis Overview", tag levels and colours, pivot links, summary details, and the other
@@ -675,6 +683,52 @@ pub(crate) async fn result_page(
     match ResultPage::new(viewer.layout, &tree, result, &gui.views) {
         Some(page) => render(&page),
         None => missing().into_response(),
+    }
+}
+
+/// `/alerts/{id}/graph` (5.13): the alert's relationship graph, ace3's vis.js network. The page holds the
+/// alert's title and an empty `#graph` naming the JSON API's graph route; `static/graph.js` fetches it and
+/// draws it with vis.js, both of which the base layout loads with the response's nonce (`Layout::scripts`),
+/// so the page has no inline script. vis paints each label on a canvas as text, so nothing an alert holds
+/// becomes markup.
+#[derive(Debug, Template)]
+#[template(path = "alert_graph.html")]
+pub struct GraphPage {
+    pub layout: Layout,
+    pub id: Uuid,
+    pub title: String,
+    /// The graph's JSON, `/api/alerts/v1/alerts/{id}/graph`.
+    pub source: String,
+}
+
+impl GraphPage {
+    pub fn new(mut layout: Layout, alert: &ace_service::Alert) -> Self {
+        let id = alert.summary.id;
+        layout.scripts = vec![crate::assets::VIS.url(), crate::assets::GRAPH_SCRIPT.url()];
+        GraphPage {
+            layout,
+            id,
+            title: alert.summary.title.clone(),
+            source: format!("/api/alerts/v1/alerts/{id}/graph"),
+        }
+    }
+}
+
+/// `GET /alerts/{id}/graph`. It reads the alert under `alert:read`, so the page is refused as its JSON
+/// would be.
+pub(crate) async fn graph_page(
+    State(gui): State<Gui>,
+    viewer: SignedIn,
+    parts: Parts,
+    Path(raw): Path<String>,
+) -> Response {
+    let id = match alert_id(&raw, &parts) {
+        Ok(id) => id,
+        Err(failure) => return failure.into_response(),
+    };
+    match gui.service.alert(&viewer.actor, id).await {
+        Ok(alert) => render(&GraphPage::new(viewer.layout, &alert)),
+        Err(error) => Failure::from_service(error, &parts).into_response(),
     }
 }
 

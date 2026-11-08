@@ -33,7 +33,9 @@ open alerts, which shows that alert, and a filter that matches nothing, which li
 the open alerts again, dispositions the alert through the JSON API with a key of its own, and the
 list's refresh has to drop it from the open page, again with no reload and nothing refused. It drives
 the browser over the DevTools protocol, with a WebSocket client here, so it needs nothing more than
-python3.
+python3. Before the list, it opens that alert's relationship graph (5.13) from the alert page's link and
+checks that vis.js drew a node for the alert and each of its observables, results and tags, with nothing
+refused and nothing thrown.
 
 It also runs a GUI command (PLAN.md 5.12): signed in as that analyst, it starts `ace --help` and `ace serve`
 through the JSON API with the session, which the parser pool runs contained, and checks that the help
@@ -682,6 +684,7 @@ def check_live_alert(email, failures):
         expect(not refused, f"the page's policy refused nothing: {refused}")
         check_result_pages(page, expect)
         wait_for(f"root {root} to complete", lambda: completed_after(root), within=300)
+        check_graph(page, root, expect)
         check_alert_list(page, root, expect)
     finally:
         page.close()
@@ -717,6 +720,80 @@ def check_result_pages(page, expect):
             and re.search(r"Content.Security.Policy|Refused to", e["params"]["entry"]["text"])
         ]
         expect(not refused, f"the {module} result's page: the policy refused nothing: {refused}")
+
+
+def check_graph(page, root, expect):
+    """PLAN.md 5.13: the alert page's Graph link opens its relationship graph, which vis.js draws from the
+    JSON API's graph of the alert. The library holds a node for the alert and for each observable, result
+    and tag the alert has, each laid out, the email, its attachment, the domain and each module's result
+    among them, and the page's policy refuses nothing and nothing throws."""
+    page.events.clear()
+    page.call("Page.navigate", url=f"{GUI_IN_STACK}/alerts/{root}")
+    page.wait("the alert page", "document.readyState === 'complete' && "
+              "document.getElementById('alert-tree') !== null", within=30)
+    href = page.evaluate(
+        "[...document.querySelectorAll('a')].find(a => a.textContent === 'Graph')?.getAttribute('href')"
+        " ?? null"
+    )
+    if not expect(href == f"/alerts/{root}/graph", f"the alert page links to its graph: {href}"):
+        return
+    page.call("Page.navigate", url=f"{GUI_IN_STACK}{href}")
+    try:
+        page.wait("vis.js to draw the graph", "document.getElementById('graph')?.dataset.drawn === 'true'",
+                  within=60)
+        drawn = True
+    except SystemExit as error:
+        log(str(error))
+        drawn = False
+    status = page.evaluate("document.getElementById('graph-status')?.textContent ?? null")
+    if not expect(drawn, f"vis.js drew the alert's graph: {status}"):
+        return
+    state = page.evaluate(
+        """(() => {
+            const graph = document.getElementById('graph');
+            const { network, nodes, edges } = graph.aceGraph;
+            const positions = network.getPositions();
+            const canvas = graph.querySelector('canvas');
+            return {
+                labels: nodes.get().map(n => n.label),
+                laidOut: nodes.getIds().every(id => Number.isFinite(positions[id]?.x)
+                                                    && Number.isFinite(positions[id]?.y)),
+                edges: edges.length,
+                canvas: canvas ? [canvas.width, canvas.height] : null,
+            };
+        })()"""
+    )
+    counts = sql(
+        f"""SELECT (SELECT count(*) FROM analysis.observables WHERE root_id = '{root}'),
+                   (SELECT count(*) FROM analysis.results WHERE root_id = '{root}'),
+                   (SELECT count(DISTINCT t) FROM (
+                      SELECT unnest(tags) AS t FROM analysis.observables WHERE root_id = '{root}'
+                      UNION SELECT unnest(tags) FROM analysis.results WHERE root_id = '{root}') tags)"""
+    )[0]
+    observables, results, tags = (int(n) for n in counts)
+    labels = state["labels"]
+    expect(len(labels) == 1 + observables + results + tags,
+           f"the graph has a node for the alert and each of its {observables} observables, {results} "
+           f"results and {tags} tags: {len(labels)}")
+    wanted = ["file: email.rfc822", "DKIM Signing Domain (email_dkim_signing_domain): example.com",
+              *MODULES]
+    missing = [label for label in wanted if label not in labels]
+    if not any(label.startswith("file: ") and label.endswith("invoice.zip") for label in labels):
+        missing.append("file: ...invoice.zip")
+    expect(not missing, f"the graph has the email, its attachment, the domain and each module's result: "
+                        f"missing {missing} of {sorted(labels)}")
+    expect(state["laidOut"] and state["edges"] >= len(labels) - 1 and state["canvas"]
+           and min(state["canvas"]) > 0,
+           f"vis.js laid out every node on its canvas: {state['edges']} edges, canvas {state['canvas']}")
+    refused = [
+        e["params"]["entry"]["text"] for e in page.events
+        if e["method"] == "Log.entryAdded"
+        and re.search(r"Content.Security.Policy|Refused to", e["params"]["entry"]["text"])
+    ]
+    expect(not refused, f"the graph's policy refused nothing: {refused}")
+    thrown = [e["params"]["exceptionDetails"].get("text") for e in page.events
+              if e["method"] == "Runtime.exceptionThrown"]
+    expect(not thrown, f"nothing on the graph's page threw: {thrown}")
 
 
 def disposition_elsewhere(root, disposition):

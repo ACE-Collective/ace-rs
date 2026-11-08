@@ -6,6 +6,7 @@
 {% block content %}
 <section class="alert" data-init="@get('/alerts/{{ id }}/live?v={{ version }}')">
   <h1>{{ title }}</h1>
+  <p class="alert-links"><a href="/alerts/{{ id }}/graph">Graph</a></p>
   <details class="section" data-section-id="{{ details_section.id }}"{% if details_section.open %} open{% endif %}>
     <summary>{{ details_section.title }}</summary>
     <table class="details">

@@ -186,6 +186,15 @@ button[type="submit"] {
   overflow-wrap: anywhere;
 }
 
+/* The relationship graph (5.13). vis.js paints on a canvas in its own colours, so the canvas is light in
+   every theme. */
+.graph {
+  height: 75vh;
+  min-height: 24rem;
+  border: 1px solid var(--border);
+  background: #ffffff;
+}
+
 .section,
 .overview {
   margin: 1rem 0;

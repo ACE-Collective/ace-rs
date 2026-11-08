@@ -498,6 +498,79 @@
         }
       }
     },
+    "/api/alerts/v1/alerts/{id}/graph": {
+      "get": {
+        "tags": [
+          "alerts"
+        ],
+        "summary": "An alert's relationship graph, which the GUI's graph page draws: a node for the alert, each\nobservable, each result and each tag, and an edge for each observable the submission or a result\nadded, each result of an observable, each tag and each relationship between two of the alert's\nobservables. It's read from one snapshot of the alert's tree, and bounded, saying so when it was cut.",
+        "operationId": "graph",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The alert's id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The graph",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GraphBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An id that isn't a uuid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold alert:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such alert",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/alerts/v1/alerts/{id}/observables": {
       "get": {
         "tags": [
@@ -7782,6 +7855,129 @@
           }
         },
         "additionalProperties": false
+      },
+      "GraphBody": {
+        "type": "object",
+        "description": "An alert's relationship graph.",
+        "required": [
+          "alert",
+          "nodes",
+          "edges",
+          "truncated"
+        ],
+        "properties": {
+          "alert": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "edges": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GraphEdgeBody"
+            }
+          },
+          "nodes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GraphNodeBody"
+            }
+          },
+          "note": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "What was left out, when anything was."
+          },
+          "truncated": {
+            "type": "boolean",
+            "description": "Whether the graph was cut short: it holds at most 1000 nodes and 2000 edges, nearest the alert\nfirst, from a tree of at most 5000 observables."
+          }
+        }
+      },
+      "GraphEdgeBody": {
+        "type": "object",
+        "description": "An edge of the graph, between two of its nodes.",
+        "required": [
+          "from",
+          "to",
+          "kind"
+        ],
+        "properties": {
+          "from": {
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/GraphEdgeKindBody"
+          },
+          "relationship": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "A `related` edge's relationship, such as `extracted_from`."
+          },
+          "to": {
+            "type": "string"
+          }
+        }
+      },
+      "GraphEdgeKindBody": {
+        "type": "string",
+        "enum": [
+          "observed",
+          "analyzed",
+          "added",
+          "tagged",
+          "related"
+        ]
+      },
+      "GraphNodeBody": {
+        "type": "object",
+        "description": "A node of the graph.",
+        "required": [
+          "id",
+          "kind",
+          "label"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "`alert`, `o<id>`, `r<id>` or `t<n>`, unique in the graph, which its edges name."
+          },
+          "kind": {
+            "$ref": "#/components/schemas/GraphNodeKindBody"
+          },
+          "label": {
+            "type": "string",
+            "description": "The alert's title, an observable's type and value, a result's module or a tag, at most 80\ncharacters. It's the alert's text: show it as text."
+          },
+          "observable": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "An observable's id in the alert, as `/observables` gives it."
+          },
+          "result": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "A result's id in the alert."
+          }
+        }
+      },
+      "GraphNodeKindBody": {
+        "type": "string",
+        "enum": [
+          "alert",
+          "observable",
+          "result",
+          "tag"
+        ]
       },
       "GroupBody": {
         "type": "object",

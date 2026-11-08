@@ -1,0 +1,13 @@
+{#- An alert's relationship graph (PLAN.md 5.13): ace3's vis.js network, from saq_analysis.js's graph_alert.
+    The base layout loads vis.js and static/graph.js with the response's nonce (GraphPage). graph.js
+    fetches #graph's data-source, draws it on a canvas, and writes #graph-status with textContent. -#}
+{% extends "base.html" %}
+{% block title %}Graph · {{ title }} · ACE{% endblock %}
+{% block content %}
+<section class="alert graph-page">
+  <p><a href="/alerts/{{ id }}">Back to Alert</a></p>
+  <h1>{{ title }}</h1>
+  <p id="graph-status" class="muted" role="status">The graph needs JavaScript.</p>
+  <div id="graph" class="graph" data-source="{{ source }}"></div>
+</section>
+{% endblock %}

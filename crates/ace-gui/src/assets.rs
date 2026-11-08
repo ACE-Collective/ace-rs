@@ -48,6 +48,27 @@ pub(crate) static DATASTAR: LazyLock<Asset> = LazyLock::new(|| {
     )
 });
 
+/// vis.js, from `vendor/vis` (`vendor/README.md`), unchanged, for the relationship graph (5.13). Only
+/// the graph's page loads it.
+pub(crate) static VIS: LazyLock<Asset> = LazyLock::new(|| {
+    Asset::new(
+        "vis-4.1.0",
+        "js",
+        include_bytes!("../../../vendor/vis/vis-4.1.0.js"),
+        "text/javascript; charset=utf-8",
+    )
+});
+
+/// The graph page's own script, which fetches the graph and draws it with vis.
+pub(crate) static GRAPH_SCRIPT: LazyLock<Asset> = LazyLock::new(|| {
+    Asset::new(
+        "graph",
+        "js",
+        include_bytes!("../static/graph.js"),
+        "text/javascript; charset=utf-8",
+    )
+});
+
 /// The stylesheet, with ace3's five themes.
 pub(crate) static STYLESHEET: LazyLock<Asset> = LazyLock::new(|| {
     Asset::new(
@@ -60,7 +81,7 @@ pub(crate) static STYLESHEET: LazyLock<Asset> = LazyLock::new(|| {
 
 /// The asset whose hashed name this is.
 pub fn asset_named(name: &str) -> Option<&'static Asset> {
-    [&*DATASTAR, &*STYLESHEET]
+    [&*DATASTAR, &*STYLESHEET, &*VIS, &*GRAPH_SCRIPT]
         .into_iter()
         .find(|asset| asset.name == name)
 }

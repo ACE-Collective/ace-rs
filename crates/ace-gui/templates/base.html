@@ -8,6 +8,9 @@
 <title>{% block title %}ACE{% endblock %}</title>
 <link rel="stylesheet" href="{{ layout.stylesheet }}">
 <script type="module" nonce="{{ layout.nonce }}" src="{{ layout.datastar }}"></script>
+{%- for script in layout.scripts %}
+<script nonce="{{ layout.nonce }}" src="{{ script }}" defer></script>
+{%- endfor %}
 </head>
 <body>
 <header class="bar">
