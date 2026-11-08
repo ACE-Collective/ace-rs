@@ -1,0 +1,174 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT d.id, d.root_id, d.observable_id, o.type, o.value,\n                                  res.module AS \"module?\", d.description, d.details, d.queue,\n                                  d.signature_uuid, d.signature_version, d.signature_family,\n                                  d.created_at\n                           FROM analysis.detections d\n                           JOIN analysis.roots r ON r.id = d.root_id\n                           JOIN analysis.observables o\n                             ON o.root_id = d.root_id AND o.id = d.observable_id\n                           LEFT JOIN analysis.results res ON res.id = d.result_id\n                           WHERE r.alerted_at IS NOT NULL\n                             AND ($2::uuid IS NULL OR d.root_id = $2)\n                             AND ($3::bigint IS NULL OR d.id > $3)\n                           ORDER BY d.id\n                           LIMIT $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "analysis.detections",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "root_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "analysis.detections",
+            "name": "root_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "observable_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "analysis.detections",
+            "name": "observable_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "type",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.observables",
+            "name": "type"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "value",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.observables",
+            "name": "value"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "module?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.results",
+            "name": "module"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "description",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.detections",
+            "name": "description"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "details",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "analysis.detections",
+            "name": "details"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "queue",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.detections",
+            "name": "queue"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "signature_uuid",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.detections",
+            "name": "signature_uuid"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "signature_version",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.detections",
+            "name": "signature_version"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "signature_family",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.detections",
+            "name": "signature_family"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "analysis.detections",
+            "name": "created_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Uuid",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "6c00ebd01a6bcfe742a4b31c93ce02ecdec512de40ca2381e9fb8c0d265ce5fb"
+}

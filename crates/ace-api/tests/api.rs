@@ -356,6 +356,7 @@ const QA_RECORD: &str = "/api/yara-qa/v1/matches/{id}/record";
 const QA_MATCH_DOWNLOAD: &str = "/api/yara-qa/v1/matches/{id}/download";
 const COMMENTS: &str = "/api/observables/v1/comments";
 const COMMENT: &str = "/api/observables/v1/comments/{id}";
+const DETECTIONS: &str = "/api/alerts/v1/detections";
 const OTHER_PASSWORD: &str = "a different long passphrase";
 
 /// A route with its `{...}` filled: a crash's `{id}` is a task's, which `observable` stands in for, since a
@@ -443,7 +444,7 @@ async fn refuses_without_a_credential_or_a_permission(
         .map(|(method, route, _)| (method, route))
         .filter(|route| !public.contains(route))
         .collect();
-    assert_eq!(routes.len(), 48, "{routes:?}");
+    assert_eq!(routes.len(), 49, "{routes:?}");
     for (method, route) in routes {
         let method: Method = method.to_uppercase().parse().expect("a method");
         let path = fill(&route, id, file);
@@ -809,6 +810,191 @@ async fn reads_one(client: &mut Client<'_>, token: &str, id: Uuid) {
         )
         .await;
     assert_eq!(missing["error"], format!("no alert {}", Uuid::nil()));
+}
+
+/// A detection on a root and the result that raised it, as the orchestrator writes one.
+async fn detection(stack: &Stack, root: Uuid, description: &str, details: Option<Value>) -> i64 {
+    let db = stack.test_db.db().pool();
+    let observable: i64 = sqlx::query_scalar(
+        "SELECT id FROM analysis.observables WHERE root_id = $1 ORDER BY id LIMIT 1",
+    )
+    .bind(root)
+    .fetch_one(db)
+    .await
+    .expect("an observable");
+    let result: i64 = sqlx::query_scalar(
+        "INSERT INTO analysis.results (root_id, observable_id, module, analysis_type, schema_version, details)
+         VALUES ($1, $2, 'rdap_analyzer', 'test_stub', 1, '{}')
+         ON CONFLICT ON CONSTRAINT results_one_per_module DO UPDATE SET details = excluded.details
+         RETURNING id",
+    )
+    .bind(root)
+    .bind(observable)
+    .fetch_one(db)
+    .await
+    .expect("a result");
+    sqlx::query_scalar(
+        "INSERT INTO analysis.detections
+           (root_id, observable_id, result_id, description, details, queue, signature_uuid,
+            signature_version, signature_family)
+         VALUES ($1, $2, $3, $4, $5, 'external', 'b5a1d3f2-0000-4000-8000-000000000001', 'abc123', 'yara')
+         RETURNING id",
+    )
+    .bind(root)
+    .bind(observable)
+    .bind(result)
+    .bind(description)
+    .bind(details)
+    .fetch_one(db)
+    .await
+    .expect("a detection")
+}
+
+/// ace3's `detection_points` router, and its alerts router's list of one alert's: every alert's detections
+/// in id order, a page at a time. A description and details a hostile rule wrote come back as written.
+async fn detection_points(client: &mut Client<'_>, token: &str, earlier: Uuid) {
+    let hostile = "<script>alert(1)</script> \"../../etc/passwd\"\n\u{fffd}";
+    let details =
+        json!({"rule": "<img src=x onerror=alert(1)>", "strings": ["$a", "\u{202e}gpj.exe"]});
+    let target = alert(
+        client.stack,
+        "detected",
+        &[(ObservableKind::Fqdn, "evil.example")],
+    )
+    .await;
+    let first = detection(client.stack, target, hostile, Some(details.clone())).await;
+    let second = detection(client.stack, target, "plain", None).await;
+    // a root no detection made an alert has no detection points
+    let quiet = NewRoot::new("analysis");
+    let mut tx = client.stack.test_db.db().begin().await.expect("begins");
+    tree::create_root(&mut tx, &quiet).await.expect("creates");
+    tree::upsert_observable(
+        &mut tx,
+        quiet.id,
+        &NewObservable::new(ObservableKind::Fqdn, "quiet.example"),
+    )
+    .await
+    .expect("adds");
+    tx.commit().await.expect("commits");
+    let hidden = detection(client.stack, quiet.id, "not an alert's", None).await;
+
+    let page = client
+        .json(
+            Method::GET,
+            DETECTIONS,
+            &format!("{DETECTIONS}?alert={target}&limit=1"),
+            Some(token),
+            Send::Nothing,
+            StatusCode::OK,
+        )
+        .await;
+    let fqdn: i64 = sqlx::query_scalar(
+        "SELECT id FROM analysis.observables WHERE root_id = $1 AND type = 'fqdn'",
+    )
+    .bind(target)
+    .fetch_one(client.stack.test_db.db().pool())
+    .await
+    .expect("the fqdn");
+    let listed = &page["detections"][0];
+    assert_eq!(listed["id"], first);
+    assert_eq!(listed["alert"], target.to_string());
+    assert_eq!(
+        listed["observable"],
+        json!({"id": fqdn, "type": "fqdn", "value": "evil.example"})
+    );
+    assert_eq!(listed["module"], "rdap_analyzer");
+    assert_eq!(listed["description"], hostile, "the description is data");
+    assert_eq!(listed["details"], details, "the details are data");
+    assert_eq!(listed["queue"], "external");
+    assert_eq!(
+        listed["signature_uuid"],
+        "b5a1d3f2-0000-4000-8000-000000000001"
+    );
+    assert_eq!(listed["signature_version"], "abc123");
+    assert_eq!(listed["signature_family"], "yara");
+    assert!(listed["created_at"].is_string());
+    assert_eq!(page["next"], first);
+    let rest = client
+        .json(
+            Method::GET,
+            DETECTIONS,
+            &format!("{DETECTIONS}?alert={target}&after={first}"),
+            Some(token),
+            Send::Nothing,
+            StatusCode::OK,
+        )
+        .await;
+    assert_eq!(rest["detections"].as_array().map(Vec::len), Some(1));
+    assert_eq!(rest["detections"][0]["id"], second);
+    assert_eq!(rest["detections"][0]["details"], Value::Null);
+    assert_eq!(rest["next"], Value::Null);
+
+    // every alert's, oldest first, paged to the end
+    let mut seen = Vec::new();
+    let mut after: Option<i64> = None;
+    loop {
+        let path = match after {
+            Some(after) => format!("{DETECTIONS}?limit=1&after={after}"),
+            None => format!("{DETECTIONS}?limit=1"),
+        };
+        let page = client
+            .json(
+                Method::GET,
+                DETECTIONS,
+                &path,
+                Some(token),
+                Send::Nothing,
+                StatusCode::OK,
+            )
+            .await;
+        for listed in page["detections"].as_array().expect("detections") {
+            seen.push((
+                listed["id"].as_i64().expect("an id"),
+                listed["alert"].as_str().expect("an alert").to_owned(),
+            ));
+        }
+        match page["next"].as_i64() {
+            Some(next) => after = Some(next),
+            None => break,
+        }
+    }
+    let ids: Vec<i64> = seen.iter().map(|(id, _)| *id).collect();
+    assert!(ids.is_sorted(), "{ids:?}");
+    assert!(ids.contains(&first) && ids.contains(&second), "{ids:?}");
+    assert!(
+        !ids.contains(&hidden),
+        "a root that isn't an alert isn't listed"
+    );
+    assert!(
+        seen.iter().any(|(_, alert)| *alert == earlier.to_string()),
+        "the earlier alert's detection is listed"
+    );
+
+    for bad in ["?limit=0", "?limit=1001", "?alert=x", "?after=x"] {
+        client
+            .json(
+                Method::GET,
+                DETECTIONS,
+                &format!("{DETECTIONS}{bad}"),
+                Some(token),
+                Send::Nothing,
+                StatusCode::BAD_REQUEST,
+            )
+            .await;
+    }
+    for missing in [Uuid::nil(), quiet.id] {
+        let body = client
+            .json(
+                Method::GET,
+                DETECTIONS,
+                &format!("{DETECTIONS}?alert={missing}"),
+                Some(token),
+                Send::Nothing,
+                StatusCode::NOT_FOUND,
+            )
+            .await;
+        assert_eq!(body["error"], format!("no alert {missing}"));
+    }
 }
 
 async fn reads_observables(client: &mut Client<'_>, token: &str, id: Uuid, file: i64) {
@@ -3086,6 +3272,7 @@ async fn every_documented_status_is_tested() {
     lists(&mut client, &token).await;
     reads_one(&mut client, &token, id).await;
     reads_observables(&mut client, &token, id, file).await;
+    detection_points(&mut client, &token, id).await;
     downloads(&mut client, &token, id, file, &bytes).await;
     dispositions(&mut client, &token).await;
     looks_up(&mut client, &token, id, &bytes).await;

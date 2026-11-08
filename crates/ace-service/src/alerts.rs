@@ -204,7 +204,7 @@ impl AlertRow {
     }
 }
 
-fn page_limit(limit: Option<u32>, max: u32) -> Result<i64, ServiceError> {
+pub(crate) fn page_limit(limit: Option<u32>, max: u32) -> Result<i64, ServiceError> {
     match limit {
         None => Ok(i64::from(max.min(100))),
         Some(limit) if (1..=max).contains(&limit) => Ok(i64::from(limit)),
@@ -214,7 +214,7 @@ fn page_limit(limit: Option<u32>, max: u32) -> Result<i64, ServiceError> {
     }
 }
 
-fn no_alert(id: Uuid) -> ServiceError {
+pub(crate) fn no_alert(id: Uuid) -> ServiceError {
     ServiceError::NotFound(format!("no alert {id}"))
 }
 

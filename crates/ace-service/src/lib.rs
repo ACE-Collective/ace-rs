@@ -35,6 +35,8 @@
 //!
 //! `crashes` reads failed tasks for 5.6's `crashes` router, and audits their download as a read.
 //!
+//! `detection_points` lists every alert's detections for 5.6's `detection_points` router.
+//!
 //! `yara_qa` reads the rules in QA mode and what they matched for 5.6's `yara_qa` router, audits a download
 //! of the files as a read, and purges matches as a write.
 //!
@@ -52,6 +54,7 @@ mod actor;
 mod alerts;
 mod auth;
 mod crashes;
+mod detection_points;
 mod gate;
 mod observable_comments;
 mod observables;
@@ -83,6 +86,9 @@ pub use auth::{
     Password, RequestParts, SESSION_LIFETIME_SECONDS, SessionCookie, Transport, Username,
 };
 pub use crashes::{Crash, CrashDetail, CrashFilter, CrashInput, CrashPage, MAX_CRASHES_PAGE};
+pub use detection_points::{
+    DetectionPoint, DetectionPointFilter, DetectionPointPage, MAX_DETECTIONS_PAGE,
+};
 pub use gate::Holder;
 pub use observable_comments::{CommentAuthor, MAX_COMMENT_CHARS, ObservableComment};
 pub use observables::{

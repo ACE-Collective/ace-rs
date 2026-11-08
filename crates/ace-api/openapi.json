@@ -427,6 +427,100 @@
         }
       }
     },
+    "/api/alerts/v1/detections": {
+      "get": {
+        "tags": [
+          "alerts"
+        ],
+        "summary": "Detections on alerts, oldest first, a page at a time. Follow `next` until it's null.",
+        "operationId": "list",
+        "parameters": [
+          {
+            "name": "alert",
+            "in": "query",
+            "description": "Only this alert's detections.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "How many, 1 to 1000; 100 when left out.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "description": "The `next` of the previous page.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of detections",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DetectionPointPageBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A limit out of range, or an alert or cursor that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold alert:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The alert filter names no alert",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/analysis/v1/submit": {
       "post": {
         "tags": [
@@ -4159,6 +4253,120 @@
               "null"
             ],
             "description": "The module whose result raised it."
+          }
+        }
+      },
+      "DetectionObservableBody": {
+        "type": "object",
+        "required": [
+          "id",
+          "type",
+          "value"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "description": "The observable's id in its alert."
+          },
+          "type": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string",
+            "description": "A file's value is its sha256."
+          }
+        }
+      },
+      "DetectionPointBody": {
+        "type": "object",
+        "description": "A detection: what made an alert worth an analyst's time.",
+        "required": [
+          "id",
+          "alert",
+          "observable",
+          "description",
+          "created_at"
+        ],
+        "properties": {
+          "alert": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "description": {
+            "type": "string",
+            "description": "As a module, a rule or a submission wrote it. Show it as text."
+          },
+          "details": {
+            "description": "Structured facts, such as the rule a YARA match came from, as they were written. Treat them as data."
+          },
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "description": "The detection's id, for `after`."
+          },
+          "module": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The module whose result raised it, or null for one a submission or the core added."
+          },
+          "observable": {
+            "$ref": "#/components/schemas/DetectionObservableBody",
+            "description": "The observable it's on."
+          },
+          "queue": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The alert queue it asks for."
+          },
+          "signature_family": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The kind of signature, such as `yara`."
+          },
+          "signature_uuid": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "signature_version": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "DetectionPointPageBody": {
+        "type": "object",
+        "required": [
+          "detections"
+        ],
+        "properties": {
+          "detections": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DetectionPointBody"
+            }
+          },
+          "next": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Pass as `after` for the next page; null on the last."
           }
         }
       },

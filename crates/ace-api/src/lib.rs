@@ -37,7 +37,7 @@
 //! - `collect-file`, `render`, `crawl`, `check-for-clickers` and `clicker-searches` ask modules for more
 //!   analysis on one observable. File collection is 7.9 and phishkit 7.7, and the clicker check needs the
 //!   core to rerun a module on an observable that has its result, which nothing does yet.
-//! - Detection points are their own router in 5.6.
+//! - Detection points are their own router in 5.6, below.
 //! - `PATCH /observables/interesting` sets a flag in ace3's index of every observable, which ace4 doesn't
 //!   have: a flag an analyst sets across alerts is one of 5.14's analyst-edited lists.
 //!
@@ -182,6 +182,32 @@
 //! - ace3's upload of a file into an alert saves the form's comment as a comment on that file. ace4 has no
 //!   such upload yet; it can call `Service::add_observable_comment`. The alert view's comments come with
 //!   it in 5.8, through `Service::alert_observable_comments`.
+//!
+//! ace3's `detection_points` router (PLAN.md 5.6), and its alerts router's list of one alert's, under
+//! `alert:read` as there (`ace_service`'s `detection_points` docs):
+//!
+//! | ace3 `/api/v2` | here |
+//! |---|---|
+//! | `GET /detection-points/?cursor=&limit=` | `GET /api/alerts/v1/detections?after=&limit=`, oldest first, a page at a time |
+//! | `GET /alerts/{uuid}/detection-points` | `GET /api/alerts/v1/detections?alert={id}`, paged the same way |
+//!
+//! What differs, or is left out, and why:
+//! - The path is under `alerts`, since a detection is an alert's. ace3's `detection` router, its list of
+//!   observables to detect, is another thing and comes with 7.6.
+//! - The `f` filters, `changed_since`, `tz` and the `export/ndjson` and `export/csv` routes use the
+//!   manage page's filter language, and come with 5.10. An export pages through this list to the end.
+//! - `verdict`, `verdict_source`, `override`, `override_user` and `override_set_at`, the verdict writes
+//!   under `/alerts/{uuid}/detection-points/{content_hash}/verdict` and the alert's `confirm` come with
+//!   detection verdicts in 7.14.
+//! - ace3's `content_hash` keys verdicts, so it comes with 7.14 too. A detection is named by its `id` here.
+//! - ace3's `node_kind`, `node_type`, `node_value_sha256` and `node_module_path` become `observable`, the
+//!   one it's on with its type and value, and `module`, the module whose result raised it. ace4 stores a
+//!   detection on an analysis on the observable that was analyzed (`ace_core::normal`'s docs), so ace3's
+//!   `analysis` and `observable` kinds aren't told apart, and its `root` kind has no row: every detection
+//!   here is on an observable.
+//! - `details` is the JSON that was written, where ace3 stores text and parses it back, falling back to
+//!   the text when it isn't JSON.
+//! - ace3 scopes the list to the alerts its node shows. Every node here shows every alert.
 
 use std::net::SocketAddr;
 
@@ -196,6 +222,7 @@ mod alerts;
 mod analysis;
 mod auth;
 mod crashes;
+mod detection_points;
 mod error;
 mod health;
 mod observable_comments;
@@ -273,6 +300,7 @@ impl Web {
             .route("/api/health/v1/ping", get(health::ping))
             .route("/api/alerts/v1/alerts", get(alerts::list))
             .route("/api/alerts/v1/alerts/{id}", get(alerts::one))
+            .route("/api/alerts/v1/detections", get(detection_points::list))
             .route(
                 "/api/alerts/v1/alerts/{id}/observables",
                 get(alerts::observables),
@@ -408,6 +436,7 @@ impl Web {
         alerts::observables,
         alerts::file,
         alerts::disposition,
+        detection_points::list,
         analysis::submit,
         observables::lookup,
         observables::observable_types,

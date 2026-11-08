@@ -36,11 +36,11 @@ use ace_core::{Db, queue};
 use ace_results::{AlertPath, AnalysisType, NewObservable, ObservableKind};
 use ace_sdk::{Lookup, Manifest, Module, ModuleError, Outcome, TaskContext};
 use ace_service::{
-    ALERT_WRITE, Actor, ApiKeyId, CATALOG, Component, CrashFilter, CrashInput, Effect, GroupId,
-    Holder, MAX_CRASHES_PAGE, MIN_PASSWORD_CHARS, NewSession, Password, PermissionName,
-    PermissionPattern, Profile, QaPurge, QaRuleFilter, QaSort, QaStatus, RequestParts,
-    SESSION_LIFETIME_SECONDS, Service, ServiceError, SessionCookie, Transport, USER_SELF,
-    USER_WRITE, UserId, Username, with_source_ip,
+    ALERT_WRITE, Actor, ApiKeyId, CATALOG, Component, CrashFilter, CrashInput,
+    DetectionPointFilter, Effect, GroupId, Holder, MAX_CRASHES_PAGE, MIN_PASSWORD_CHARS,
+    NewSession, Password, PermissionName, PermissionPattern, Profile, QaPurge, QaRuleFilter,
+    QaSort, QaStatus, RequestParts, SESSION_LIFETIME_SECONDS, Service, ServiceError, SessionCookie,
+    Transport, USER_SELF, USER_WRITE, UserId, Username, with_source_ip,
 };
 use ace_store::{BucketConfig, NodeCache, Store};
 use schemars::JsonSchema;
@@ -1640,6 +1640,168 @@ async fn download_crash_records_its_row(db: &Db) -> String {
 
 /// ace3's crash listing: failed tasks newest first, filtered by root and module, in pages, with one
 /// task's inputs as the bucket has them. Tasks in other states aren't crashes.
+/// A root with an fqdn, made an alert when `alerted`, and a detection on it as a module's result raises one.
+async fn detected(db: &Db, alerted: bool, description: &str) -> (Uuid, i64) {
+    let root = NewRoot::new("correlation");
+    let mut tx = db.begin().await.expect("begins");
+    tree::create_root(&mut tx, &root).await.expect("creates");
+    let observable = tree::upsert_observable(
+        &mut tx,
+        root.id,
+        &NewObservable::new(ObservableKind::Fqdn, "evil.example.com"),
+    )
+    .await
+    .expect("adds");
+    tx.commit().await.expect("commits");
+    if alerted {
+        sqlx::query("UPDATE analysis.roots SET alerted_at = now() WHERE id = $1")
+            .bind(root.id)
+            .execute(db.pool())
+            .await
+            .expect("makes it an alert");
+    }
+    let id = detection_on(db, root.id, observable.id.0, description).await;
+    (root.id, id)
+}
+
+async fn detection_on(db: &Db, root: Uuid, observable: i64, description: &str) -> i64 {
+    let result: i64 = sqlx::query_scalar(
+        "INSERT INTO analysis.results (root_id, observable_id, module, analysis_type, schema_version, details)
+         VALUES ($1, $2, 'rdap_analyzer', 'test_stub', 1, '{}')
+         ON CONFLICT ON CONSTRAINT results_one_per_module DO UPDATE SET details = excluded.details
+         RETURNING id",
+    )
+    .bind(root)
+    .bind(observable)
+    .fetch_one(db.pool())
+    .await
+    .expect("a result");
+    sqlx::query_scalar(
+        "INSERT INTO analysis.detections (root_id, observable_id, result_id, description, details)
+         VALUES ($1, $2, $3, $4, '{\"rule\": \"<b>x</b>\"}') RETURNING id",
+    )
+    .bind(root)
+    .bind(observable)
+    .bind(result)
+    .bind(description)
+    .fetch_one(db.pool())
+    .await
+    .expect("a detection")
+}
+
+#[tokio::test]
+async fn detection_points_page_through_every_alert_s_detections_once_while_more_arrive() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let actor = admin(db).await;
+    let (one, first) = detected(db, true, "first").await;
+    let (_, hidden) = detected(db, false, "on a root that isn't an alert").await;
+    let (two, second) = detected(db, true, "<script>alert(1)</script>").await;
+    let observable: i64 =
+        sqlx::query_scalar("SELECT id FROM analysis.observables WHERE root_id = $1")
+            .bind(one)
+            .fetch_one(db.pool())
+            .await
+            .expect("the fqdn");
+    let third = detection_on(db, one, observable, "third").await;
+
+    let all = DetectionPointFilter::default();
+    let page = service
+        .detection_points(&actor, &all, Some(2), None)
+        .await
+        .expect("lists");
+    let ids = |page: &ace_service::DetectionPointPage| {
+        page.detections.iter().map(|d| d.id).collect::<Vec<_>>()
+    };
+    assert_eq!(
+        ids(&page),
+        [first, second],
+        "oldest first, and only alerts'"
+    );
+    assert_eq!(page.next, Some(second));
+    let listed = &page.detections[1];
+    assert_eq!(listed.alert, two);
+    assert_eq!(
+        listed.description, "<script>alert(1)</script>",
+        "data, unchanged"
+    );
+    assert_eq!(listed.details, Some(json!({"rule": "<b>x</b>"})));
+    assert_eq!(listed.module.as_deref(), Some("rdap_analyzer"));
+    assert_eq!(
+        (
+            listed.observable_type.as_str(),
+            listed.observable_value.as_str()
+        ),
+        ("fqdn", "evil.example.com")
+    );
+
+    // one that arrives while a puller pages is on a later page, and nothing repeats
+    let (_, fourth) = detected(db, true, "arrived while paging").await;
+    let rest = service
+        .detection_points(&actor, &all, Some(2), page.next)
+        .await
+        .expect("lists");
+    assert_eq!(ids(&rest), [third, fourth]);
+    assert_eq!(rest.next, None, "a full last page says it's the last");
+    let past = service
+        .detection_points(&actor, &all, Some(2), Some(fourth))
+        .await
+        .expect("lists");
+    assert_eq!((ids(&past), past.next), (Vec::new(), None));
+    assert!(![&page, &rest].iter().any(|p| ids(p).contains(&hidden)));
+
+    let of_one = DetectionPointFilter { alert: Some(one) };
+    let page = service
+        .detection_points(&actor, &of_one, None, None)
+        .await
+        .expect("lists");
+    assert_eq!(ids(&page), [first, third]);
+    assert_eq!(page.next, None);
+
+    for limit in [0, ace_service::MAX_DETECTIONS_PAGE + 1] {
+        assert!(matches!(
+            service
+                .detection_points(&actor, &all, Some(limit), None)
+                .await,
+            Err(ServiceError::InvalidRequest(_))
+        ));
+    }
+    let missing = DetectionPointFilter {
+        alert: Some(Uuid::nil()),
+    };
+    assert!(matches!(
+        service.detection_points(&actor, &missing, None, None).await,
+        Err(ServiceError::NotFound(_))
+    ));
+    // alert:read is what it needs
+    let reader = user(UserId(Uuid::from_u128(0xDE7)));
+    exists(db, &Holder::User(UserId(Uuid::from_u128(0xDE7)))).await;
+    assert!(matches!(
+        service.detection_points(&reader, &all, None, None).await,
+        Err(ServiceError::PermissionDenied { .. })
+    ));
+    grant(
+        db,
+        &Holder::User(UserId(Uuid::from_u128(0xDE7))),
+        "alert",
+        "read",
+        Effect::Allow,
+    )
+    .await;
+    let audit = audit_rows(db).await.len();
+    assert_eq!(
+        service
+            .detection_points(&reader, &all, Some(1), None)
+            .await
+            .expect("lists")
+            .detections[0]
+            .id,
+        first
+    );
+    assert_eq!(audit_rows(db).await.len(), audit, "a read writes no row");
+}
+
 #[tokio::test]
 async fn crashes_are_failed_tasks() {
     let test_db = TestDb::new().await;
