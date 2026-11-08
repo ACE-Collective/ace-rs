@@ -83,6 +83,14 @@ impl Target {
         }
     }
 
+    /// A command run from the GUI, by its id.
+    pub(crate) fn command(id: i64) -> Self {
+        Target {
+            kind: "command",
+            id: id.to_string(),
+        }
+    }
+
     /// A YARA rule, by its uuid meta, as the QA matches name it.
     pub(crate) fn qa_rule(uuid: &str) -> Self {
         Target {

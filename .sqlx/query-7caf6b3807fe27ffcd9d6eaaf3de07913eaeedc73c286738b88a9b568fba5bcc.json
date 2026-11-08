@@ -1,0 +1,32 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE queue.commands\n             SET output = $3, output_truncated = $4,\n                 lease_expires_at = now() + make_interval(secs => $5)\n             WHERE id = $1 AND lease_owner = $2 AND state = 'running'\n             RETURNING cancel_requested",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "cancel_requested",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "queue.commands",
+            "name": "cancel_requested"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text",
+        "Text",
+        "Bool",
+        "Float8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "7caf6b3807fe27ffcd9d6eaaf3de07913eaeedc73c286738b88a9b568fba5bcc"
+}

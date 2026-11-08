@@ -35,6 +35,9 @@
 //!
 //! `crashes` reads failed tasks for 5.6's `crashes` router, and audits their download as a read.
 //!
+//! `commands` starts and cancels the commands analysts run from the GUI (5.12), ace3's `cli` router, and
+//! reads them with their output. A pool runs each, contained, until its deadline.
+//!
 //! `detection_points` lists every alert's detections for 5.6's `detection_points` router.
 //!
 //! `yara_qa` reads the rules in QA mode and what they matched for 5.6's `yara_qa` router, audits a download
@@ -62,12 +65,14 @@
 //!   and tests. Each gets a function here when a route for it appears (5.5, 5.6).
 //! - The lease API, `Orchestrator::land_result`, the reaper, the ruleset builder and the QA recorder
 //!   stay out for good. They are the engine's own writes, not requests: a pool authenticates with
-//!   its token, and a task's row names its `lease_owner`.
+//!   its token, and a task's row names its `lease_owner`. So do a GUI command's claim, reports and end
+//!   (5.12), which its pool makes; its start and cancel are here.
 
 mod actor;
 mod alert_view;
 mod alerts;
 mod auth;
+mod commands;
 mod crashes;
 mod detection_points;
 mod events;
@@ -105,6 +110,11 @@ pub use auth::{
     InvalidUsername, IssuedToken, MAX_PASSWORD_BYTES, MIN_PASSWORD_CHARS, NewApiKey, NewSession,
     Password, RequestParts, SESSION_LIFETIME_SECONDS, SessionCookie, Transport, Username,
 };
+pub use commands::{
+    CommandDetail, CommandPage, CommandRun, CommandState, DEFAULT_COMMAND_TIMEOUT_SECONDS,
+    MAX_COMMAND_CHARS, MAX_COMMAND_TIMEOUT_SECONDS, MAX_COMMAND_WORDS, MAX_COMMANDS_PAGE,
+    parse_command,
+};
 pub use crashes::{Crash, CrashDetail, CrashFilter, CrashInput, CrashPage, MAX_CRASHES_PAGE};
 pub use detection_points::{
     DetectionPoint, DetectionPointFilter, DetectionPointPage, MAX_DETECTIONS_PAGE,
@@ -129,10 +139,10 @@ pub use observables::{
     Lookup, MAX_EXCLUDED_ALERTS, MAX_LOOKUP_PAIRS, MAX_RECENT_ALERTS, OPEN, Prevalence, RecentAlert,
 };
 pub use permission::{
-    ADMIN_READ, ALERT_CREATE, ALERT_READ, ALERT_WRITE, CATALOG, CRASH_READ, CatalogEntry,
-    EVENT_READ, EVENT_WRITE, Effect, InvalidPermission, OBSERVABLE_READ, OBSERVABLE_WRITE,
-    PermissionName, PermissionPattern, SIGNATURE_DOWNLOAD, SIGNATURE_QA_PURGE, SIGNATURE_READ,
-    USER_READ, USER_SELF, USER_WRITE,
+    ADMIN_READ, ALERT_CREATE, ALERT_READ, ALERT_WRITE, CATALOG, CLI_EXECUTE, CRASH_READ,
+    CatalogEntry, EVENT_READ, EVENT_WRITE, Effect, InvalidPermission, OBSERVABLE_READ,
+    OBSERVABLE_WRITE, PermissionName, PermissionPattern, SIGNATURE_DOWNLOAD, SIGNATURE_QA_PURGE,
+    SIGNATURE_READ, USER_READ, USER_SELF, USER_WRITE,
 };
 pub use preferences::{
     AlertSectionsPreference, MANAGE_COLUMNS, MAX_ALERT_SECTIONS, ManageColumn,

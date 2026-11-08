@@ -1,0 +1,16 @@
+{#- One run of a command (PLAN.md 5.12), ace3's run card on admin/cli.html: its state and output, which
+    its fragment polls for while it runs, and its cancel (src/cli.rs). -#}
+{% extends "base.html" %}
+{% block title %}Run {{ run.row.id }} · CLI · ACE{% endblock %}
+{% block content %}
+<section class="admin cli">
+  <p><a href="/admin">Administration</a> / <a href="/admin/cli">CLI</a></p>
+  <h1>Run {{ run.row.id }}</h1>
+  {%- if let Some(problem) = problem %}
+  <p class="error" role="alert">{{ problem }}</p>
+  {%- endif %}
+  <div id="cli-run">
+    {% include "admin/cli_output.html" %}
+  </div>
+</section>
+{% endblock %}

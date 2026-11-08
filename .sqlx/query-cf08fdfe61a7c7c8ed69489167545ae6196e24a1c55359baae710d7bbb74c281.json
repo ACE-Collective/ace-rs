@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE queue.commands\n         SET state = 'abandoned', finished_at = now(),\n             error = 'no pool took it within its timeout'\n         WHERE state = 'queued' AND created_at + make_interval(secs => timeout_seconds) < now()",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "cf08fdfe61a7c7c8ed69489167545ae6196e24a1c55359baae710d7bbb74c281"
+}

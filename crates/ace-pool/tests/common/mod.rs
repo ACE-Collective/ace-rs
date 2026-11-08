@@ -23,7 +23,9 @@ pub const TOKEN: &str = "ace4-test-pool-token";
 /// The admin token, for replays.
 pub const ADMIN_TOKEN: &str = "ace4-test-admin-token";
 
-/// A core serving the lease API on a test database.
+/// A core serving the lease API on a test database. Pools reach it through a proxy on `port`, so a test
+/// can stop the API, which cuts every connection, and start a new one on the same port, as when
+/// `ace serve` restarts.
 pub struct Core {
     pub test_db: TestDb,
     pub bucket: Bucket,
@@ -31,13 +33,42 @@ pub struct Core {
     /// The lease API's base URL.
     pub url: String,
     pub port: u16,
-    server: tokio::task::JoinHandle<()>,
+    config: ApiConfig,
+    serving: std::sync::Mutex<Option<Serving>>,
     _cache: tempfile::TempDir,
+}
+
+/// One API and the proxy in front of it.
+struct Serving {
+    server: tokio::task::JoinHandle<()>,
+    proxy: tokio::task::JoinHandle<()>,
 }
 
 impl Drop for Core {
     fn drop(&mut self) {
-        self.server.abort();
+        if let Some(serving) = self.serving.lock().ok().and_then(|mut s| s.take()) {
+            serving.server.abort();
+            serving.proxy.abort();
+        }
+    }
+}
+
+/// Passes each connection on `listener` to `upstream`. Aborting it closes every one.
+async fn proxy(listener: tokio::net::TcpListener, upstream: std::net::SocketAddr) {
+    let mut connections = tokio::task::JoinSet::new();
+    loop {
+        let Ok((mut inbound, _)) = listener.accept().await else {
+            continue;
+        };
+        while connections.try_join_next().is_some() {}
+        connections.spawn(async move {
+            if let Ok(mut outbound) = tokio::net::TcpStream::connect(upstream).await {
+                // a cut connection is what a stopped API looks like, so it isn't an error here
+                if let Err(e) = tokio::io::copy_bidirectional(&mut inbound, &mut outbound).await {
+                    eprintln!("a proxied connection ended: {e}");
+                }
+            }
+        });
     }
 }
 
@@ -62,38 +93,75 @@ impl Core {
         );
         let bucket = Bucket::new(test_db.db().clone(), store, BucketSettings::default());
         let orchestrator = Orchestrator::new(catalog, modes);
-        let config = ApiConfig::new(vec![PoolAccess::new(
-            "test",
-            TOKEN,
-            pool_modules.iter().map(|m| (*m).to_owned()).collect(),
-        )])
-        .admin_token(ADMIN_TOKEN)
-        .lease(lease);
-        let api = Api::new(
-            test_db.db().clone(),
-            bucket.clone(),
-            orchestrator.clone(),
-            config,
-        )
-        .await
-        .expect("the API starts");
+        // the test pool also runs GUI commands (PLAN.md 5.12)
+        let modules = pool_modules
+            .iter()
+            .map(|m| (*m).to_owned())
+            .chain([ace_sdk::wire::COMMANDS.to_owned()])
+            .collect();
+        let config = ApiConfig::new(vec![PoolAccess::new("test", TOKEN, modules)])
+            .admin_token(ADMIN_TOKEN)
+            .lease(lease);
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
             .await
             .expect("binds");
         let port = listener.local_addr().expect("an address").port();
-        let server = tokio::spawn(async move {
-            if let Err(e) = ace_core::api::serve(listener, api, std::future::pending()).await {
-                eprintln!("the lease API stopped: {e}");
-            }
-        });
-        Core {
+        drop(listener);
+        let core = Core {
             test_db,
             bucket,
             orchestrator,
             url: format!("http://127.0.0.1:{port}"),
             port,
-            server,
+            config,
+            serving: std::sync::Mutex::new(None),
             _cache: cache,
+        };
+        core.start_api().await;
+        core
+    }
+
+    /// Starts a new lease API, with nothing of the last one's, behind `port`.
+    pub async fn start_api(&self) {
+        let api = Api::new(
+            self.test_db.db().clone(),
+            self.bucket.clone(),
+            self.orchestrator.clone(),
+            self.config.clone(),
+        )
+        .await
+        .expect("the API starts");
+        let upstream = tokio::net::TcpListener::bind("127.0.0.1:0")
+            .await
+            .expect("binds");
+        let address = upstream.local_addr().expect("an address");
+        let server = tokio::spawn(async move {
+            if let Err(e) = ace_core::api::serve(upstream, api, std::future::pending()).await {
+                eprintln!("the lease API stopped: {e}");
+            }
+        });
+        // tokio sets SO_REUSEADDR, so the port binds again as soon as the last proxy is gone
+        let listener = tokio::net::TcpListener::bind(("127.0.0.1", self.port))
+            .await
+            .expect("binds the API's port again");
+        let proxy = tokio::spawn(proxy(listener, address));
+        let old = self
+            .serving
+            .lock()
+            .expect("not poisoned")
+            .replace(Serving { server, proxy });
+        assert!(old.is_none(), "an API was serving already");
+    }
+
+    /// Stops the lease API: its port refuses connections, and those open are cut.
+    pub async fn stop_api(&self) {
+        let serving = self.serving.lock().expect("not poisoned").take();
+        if let Some(serving) = serving {
+            serving.proxy.abort();
+            serving.server.abort();
+            // aborted, so each ends cancelled; waiting for it is waiting for its port to close
+            assert!(serving.proxy.await.is_err_and(|e| e.is_cancelled()));
+            assert!(serving.server.await.is_err_and(|e| e.is_cancelled()));
         }
     }
 

@@ -34,6 +34,9 @@
 //! - `admin`: the administration area under `admin:read` (5.11's admin area), ace3's `admin/hub.html` and
 //!   `admin/manage.html`: users, groups, grants and keys over the `users` service. The base layout links
 //!   to it for whoever holds `admin:read`.
+//! - `cli`: Administration's CLI (5.12), ace3's `admin/cli.html`: the form that starts an `ace` command a
+//!   parser pool runs contained, the history of runs, a run's page that polls for its output while it
+//!   runs, and its cancel, over the `commands` service.
 //! - `signatures`: the signatures area under `signature:read` (5.11's signatures area), ace3's
 //!   `signatures/hub.html` and `yara_qa.html`: the YARA QA rules, their versions and kept files, the
 //!   links to the API's downloads, and purges with a confirm page, over the `yara_qa` service. The base
@@ -63,6 +66,7 @@ pub mod alert;
 pub mod analysis;
 mod assets;
 mod auth;
+pub mod cli;
 pub mod events;
 mod headers;
 pub mod list;
@@ -94,6 +98,7 @@ pub struct Gui {
     views: std::sync::Arc<Views>,
     actions: std::sync::Arc<ObservableActions>,
     refreshes: std::sync::Arc<places::Places>,
+    cli_refreshes: std::sync::Arc<places::Places>,
 }
 
 impl Gui {
@@ -112,6 +117,10 @@ impl Gui {
             refreshes: std::sync::Arc::new(places::Places::new(
                 list::REFRESH_LIMITS.0,
                 list::REFRESH_LIMITS.1,
+            )),
+            cli_refreshes: std::sync::Arc::new(places::Places::new(
+                cli::REFRESH_LIMITS.0,
+                cli::REFRESH_LIMITS.1,
             )),
         }
     }
@@ -221,6 +230,10 @@ impl Gui {
                 post(preferences::set_alert_section),
             )
             .route("/admin", get(admin::hub))
+            .route("/admin/cli", get(cli::console).post(cli::start))
+            .route("/admin/cli/{id}", get(cli::run_page))
+            .route("/admin/cli/{id}/output", get(cli::output))
+            .route("/admin/cli/{id}/cancel", post(cli::cancel))
             .route(
                 "/admin/users",
                 get(admin::users_page).post(admin::create_user),

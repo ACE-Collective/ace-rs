@@ -14,9 +14,10 @@
 //! its audit row. A refusal the service gives about the form, such as a taken name, a weak password or
 //! disabling yourself, draws the page again at 400 or 409 with the service's reason; anything else is the
 //! error page. ace3's views and their places here:
-//! - `admin.admin_hub` (`hub.html`): `GET /admin`, the tiles the viewer may open. Only Users & Roles is
-//!   here: ace3's Observables tile (`detection.html`) comes with 7.6, its CLI (`cli.html`) with 5.12, and
-//!   its Secrets (`secrets.html`) waits for the owner with 5.6's `secrets` router.
+//! - `admin.admin_hub` (`hub.html`): `GET /admin`, the tiles the viewer may open: Users & Roles, and the
+//!   CLI (`cli.html`, 5.12, `crate::cli`) for `cli:execute`, as ace3's hub shows it. ace3's Observables tile
+//!   (`detection.html`) comes with 7.6, and its Secrets (`secrets.html`) waits for the owner with 5.6's
+//!   `secrets` router.
 //! - `admin.manage_users` (`manage.html`): `GET /admin/users`, every user with their grants and groups,
 //!   every group, the keys with no owner, and the forms for a new user and a new group. ace3's "hide
 //!   disabled users" cookie is a link, `?disabled=hide`. ace3's page selects users with checkboxes and
@@ -48,9 +49,9 @@
 use std::collections::BTreeMap;
 
 use ace_service::{
-    ADMIN_READ, ApiKey, ApiKeyId, CATALOG, Effect, Grant, Group, GroupId, Holder, Password,
-    PermissionPattern, Profile, ServiceError, USER_READ, USER_SELF, USER_WRITE, User, UserDetail,
-    UserId, Username,
+    ADMIN_READ, ApiKey, ApiKeyId, CATALOG, CLI_EXECUTE, Effect, Grant, Group, GroupId, Holder,
+    Password, PermissionPattern, Profile, ServiceError, USER_READ, USER_SELF, USER_WRITE, User,
+    UserDetail, UserId, Username,
 };
 use askama::Template;
 use axum::body::Bytes;
@@ -76,11 +77,18 @@ pub struct Module {
     pub description: &'static str,
 }
 
-/// ace3's `ADMIN_MODULES`, of which this area has one so far.
+/// ace3's `ADMIN_MODULES`, of which this area has two so far.
 const USERS_AND_ROLES: Module = Module {
     href: "/admin/users",
     title: "Users & Roles",
     description: "Manage users, auth groups, and permission grants.",
+};
+
+/// ace3's CLI tile (PLAN.md 5.12).
+const CLI: Module = Module {
+    href: "/admin/cli",
+    title: "CLI",
+    description: "Run ACE CLI commands, contained on a parser pool, and see every run's output.",
 };
 
 /// `/admin`.
@@ -837,10 +845,12 @@ pub(crate) async fn hub(State(gui): State<Gui>, viewer: SignedIn, parts: Parts) 
         return failure.into_response();
     }
     let mut modules = Vec::new();
-    match gui.service.allowed(&viewer.actor, &USER_READ).await {
-        Ok(true) => modules.push(USERS_AND_ROLES),
-        Ok(false) => {}
-        Err(error) => return Failure::from_service(error, &parts).into_response(),
+    for (permission, module) in [(&USER_READ, USERS_AND_ROLES), (&CLI_EXECUTE, CLI)] {
+        match gui.service.allowed(&viewer.actor, permission).await {
+            Ok(true) => modules.push(module),
+            Ok(false) => {}
+            Err(error) => return Failure::from_service(error, &parts).into_response(),
+        }
     }
     render(&HubPage {
         layout: viewer.layout,

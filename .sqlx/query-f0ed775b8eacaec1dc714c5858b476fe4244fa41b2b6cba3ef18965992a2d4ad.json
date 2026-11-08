@@ -1,0 +1,72 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE queue.commands c\n               SET state = 'running', lease_owner = $1,\n                   lease_expires_at = now() + make_interval(secs => $2),\n                   started_at = now(), deadline_at = now() + make_interval(secs => c.timeout_seconds)\n               WHERE c.id = (SELECT id FROM queue.commands WHERE state = 'queued'\n                             ORDER BY id FOR UPDATE SKIP LOCKED LIMIT 1)\n               RETURNING c.id, c.argv, c.timeout_seconds, c.deadline_at AS \"deadline_at!\",\n                         extract(epoch FROM c.deadline_at - now())::float8 AS \"deadline_in!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "queue.commands",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "argv",
+        "type_info": "TextArray",
+        "origin": {
+          "Table": {
+            "table": "queue.commands",
+            "name": "argv"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "timeout_seconds",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "queue.commands",
+            "name": "timeout_seconds"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "deadline_at!",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "queue.commands",
+            "name": "deadline_at"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "deadline_in!",
+        "type_info": "Float8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Float8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      null
+    ]
+  },
+  "hash": "f0ed775b8eacaec1dc714c5858b476fe4244fa41b2b6cba3ef18965992a2d4ad"
+}

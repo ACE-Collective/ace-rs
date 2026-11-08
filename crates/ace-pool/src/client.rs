@@ -6,8 +6,8 @@ use std::time::Duration;
 use ace_results::Sha256;
 use ace_sdk::http::{HttpClient, HttpError};
 use ace_sdk::wire::{
-    ApiError, CurrentRuleset, LeaseRequest, LeasedTask, Presigned, Renewal, TaskEnd, UploadRequest,
-    paths,
+    ApiError, CommandEnd, CommandLeaseRequest, CommandReply, CommandReport, CurrentRuleset,
+    LeaseRequest, LeasedCommand, LeasedTask, Presigned, Renewal, TaskEnd, UploadRequest, paths,
 };
 use reqwest::StatusCode;
 use serde::de::DeserializeOwned;
@@ -145,6 +145,44 @@ impl LeaseClient {
             return Ok(None);
         }
         answer(response, 0).await.map(Some)
+    }
+
+    /// Leases a GUI command (PLAN.md 5.12), waiting up to `wait` for one.
+    pub async fn lease_command(
+        &self,
+        wait: Duration,
+    ) -> Result<Option<LeasedCommand>, ClientError> {
+        let request = self
+            .post(paths::COMMAND_LEASE)
+            .json(&CommandLeaseRequest {
+                worker: self.worker.clone(),
+                wait_seconds: wait.as_secs(),
+            })
+            .timeout(wait + CALL_TIMEOUT);
+        let response = self.http.send(request).await?;
+        if response.status() == StatusCode::NO_CONTENT {
+            return Ok(None);
+        }
+        answer(response, 0).await.map(Some)
+    }
+
+    /// Sends a command's output so far, which renews its lease. The answer says whether it was
+    /// cancelled.
+    pub async fn report_command(
+        &self,
+        command: i64,
+        report: &CommandReport,
+    ) -> Result<CommandReply, ClientError> {
+        let request = self.post(&paths::command(command, "report")).json(report);
+        let response = self.http.send(request).await?;
+        answer(response, command).await
+    }
+
+    /// Ends a command.
+    pub async fn end_command(&self, command: i64, end: &CommandEnd) -> Result<(), ClientError> {
+        let request = self.post(&paths::command(command, "end")).json(end);
+        let response = self.http.send(request).await?;
+        expect_empty(response, command).await
     }
 
     pub async fn renew(&self, task: i64) -> Result<Renewal, ClientError> {

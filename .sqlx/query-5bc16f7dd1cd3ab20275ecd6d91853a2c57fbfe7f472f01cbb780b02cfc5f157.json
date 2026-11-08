@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE queue.commands\n                 SET state = 'cancelled', cancel_requested = true, cancelled_by = $2,\n                     error = 'cancelled before a pool took it', finished_at = now()\n                 WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        {
+          "Custom": {
+            "name": "service.actor",
+            "kind": {
+              "Domain": "Jsonb"
+            }
+          }
+        }
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "5bc16f7dd1cd3ab20275ecd6d91853a2c57fbfe7f472f01cbb780b02cfc5f157"
+}

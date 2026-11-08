@@ -46,10 +46,10 @@ use ace_core::{Db, queue};
 use ace_results::{AlertPath, AnalysisType, NewObservable, ObservableKind};
 use ace_sdk::{Lookup, Manifest, Module, ModuleError, Outcome, TaskContext};
 use ace_service::{
-    ALERT_WRITE, Actor, ApiKeyId, CATALOG, CampaignChoice, Component, CrashFilter, CrashInput,
-    DetectionPointFilter, Effect, EventChoice, EventEdit, EventRef, EventTimes, GroupId, Holder,
-    MAX_CRASHES_PAGE, MIN_PASSWORD_CHARS, MalwareChoice, NewEvent, NewSession, Password,
-    PermissionName, PermissionPattern, PreferenceKey, PreferenceValue, Profile, QaPurge,
+    ALERT_WRITE, Actor, ApiKeyId, CATALOG, CampaignChoice, CommandState, Component, CrashFilter,
+    CrashInput, DetectionPointFilter, Effect, EventChoice, EventEdit, EventRef, EventTimes,
+    GroupId, Holder, MAX_CRASHES_PAGE, MIN_PASSWORD_CHARS, MalwareChoice, NewEvent, NewSession,
+    Password, PermissionName, PermissionPattern, PreferenceKey, PreferenceValue, Profile, QaPurge,
     QaRuleFilter, QaSort, QaStatus, RequestParts, SESSION_LIFETIME_SECONDS, Service, ServiceError,
     SessionCookie, Theme, ThemePreference, Transport, USER_SELF, USER_WRITE, UserId, Username,
     with_source_ip,
@@ -1487,6 +1487,8 @@ async fn every_write_function_has_an_audit_test() {
         edit_event_records_its_row(db).await,
         remove_alerts_records_its_row(db).await,
         add_event_tags_records_its_row(db).await,
+        start_command_records_its_row(db).await,
+        cancel_command_records_its_row(db).await,
     ]);
     assert_eq!(covered, write_functions(), "{WRITES_NEED_A_TEST}");
 }
@@ -3007,6 +3009,13 @@ async fn every_write_fails_when_its_audit_fails() {
         .event(&actor, EventRef::Id(event))
         .await
         .expect("reads the event");
+    let queued_command = service
+        .start_command(&actor, "--help", None)
+        .await
+        .expect("starts a command")
+        .run
+        .id;
+    let commands_before = command_rows(db).await;
     let before = (
         row(db, root).await,
         tasks(db, root).await,
@@ -3468,6 +3477,22 @@ async fn every_write_fails_when_its_audit_fails() {
                 .map(|_| ())
                 .expect_err("refused"),
         ),
+        (
+            "start_command",
+            service
+                .start_command(&actor, "--version", Some(5))
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "cancel_command",
+            service
+                .cancel_command(&actor, queued_command)
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
     ];
     let mut covered = BTreeSet::new();
     for (function, error) in &attempts {
@@ -3491,6 +3516,7 @@ async fn every_write_fails_when_its_audit_fails() {
         event_rows(db).await,
     );
     assert_eq!(after, before);
+    assert_eq!(command_rows(db).await, commands_before);
     assert_eq!(
         queue::completions(db, root).await.expect("reads"),
         [],
@@ -11343,4 +11369,392 @@ fn no_library_test_module_hides_where_library_tests_are_off() {
             }
         }
     }
+}
+
+// PLAN.md 5.12: commands analysts run from the GUI, ace3's `cli` router, queued for a pool.
+
+async fn command_rows(db: &Db) -> Vec<String> {
+    sqlx::query_scalar("SELECT row_to_json(c)::text FROM queue.commands c ORDER BY id")
+        .fetch_all(db.pool())
+        .await
+        .expect("reads")
+}
+
+/// A user holding nothing to do with commands.
+async fn no_commands(db: &Db) -> Actor {
+    let id = UserId(Uuid::from_u128(0xC0));
+    exists(db, &Holder::User(id)).await;
+    user(id)
+}
+
+fn admin_username() -> String {
+    format!("u{}", Uuid::from_u128(0xAD).simple())
+}
+
+async fn start_command_records_its_row(db: &Db) -> String {
+    let actor = admin(db).await;
+    let service = service(db);
+    let started = service
+        .start_command(
+            &actor,
+            "ace yara scan --rules '/a b' \"<script>\"",
+            Some(30),
+        )
+        .await
+        .expect("starts");
+    assert_eq!(started.run.state, CommandState::Queued);
+    assert_eq!(started.run.command, "yara scan --rules '/a b' '<script>'");
+    let id = started.run.id;
+    let row = last_audit(db).await;
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: boss_json(),
+            action: "start_command".to_owned(),
+            target: ("command".to_owned(), id.to_string()),
+            before: None,
+            after: Some(json!({
+                "command": "yara scan --rules '/a b' '<script>'",
+                "timeout_seconds": 30,
+                "username": admin_username(),
+            })),
+            details: json!({}),
+        }
+    );
+
+    // a line that isn't one, a timeout out of range, a key with no owner and a refusal have no row
+    let ownerless = ApiKeyId(Uuid::from_u128(0xC1));
+    exists(db, &Holder::ApiKey(ownerless)).await;
+    grant(
+        db,
+        &Holder::ApiKey(ownerless),
+        "cli",
+        "execute",
+        Effect::Allow,
+    )
+    .await;
+    let rows = audit_rows(db).await.len();
+    for line in ["", "ace", "-c /etc/x node list", "'open", "a\nb"] {
+        assert!(
+            matches!(
+                service.start_command(&actor, line, None).await,
+                Err(ServiceError::InvalidRequest(_))
+            ),
+            "{line:?}"
+        );
+    }
+    for timeout in [0, 3601] {
+        assert!(matches!(
+            service.start_command(&actor, "--help", Some(timeout)).await,
+            Err(ServiceError::InvalidRequest(_))
+        ));
+    }
+    let key = Actor::ApiKey {
+        id: ownerless,
+        name: "triage".to_owned(),
+        owner: None,
+    };
+    assert!(matches!(
+        service.start_command(&key, "--help", None).await,
+        Err(ServiceError::Forbidden(_))
+    ));
+    assert!(matches!(
+        service.start_command(&no_commands(db).await, "--help", None).await,
+        Err(ServiceError::PermissionDenied { ref permission, .. })
+            if permission.to_string() == "cli:execute"
+    ));
+    assert_eq!(audit_rows(db).await.len(), rows);
+    row.action
+}
+
+async fn cancel_command_records_its_row(db: &Db) -> String {
+    let actor = admin(db).await;
+    let service = service(db);
+    let id = service
+        .start_command(&actor, "--help", None)
+        .await
+        .expect("starts")
+        .run
+        .id;
+    let cancelled = service.cancel_command(&actor, id).await.expect("cancels");
+    assert_eq!(cancelled.run.state, CommandState::Cancelled);
+    assert_eq!(
+        cancelled.run.error.as_deref(),
+        Some("cancelled before a pool took it")
+    );
+    assert_eq!(
+        cancelled.run.cancelled_by.map(|by| by.id),
+        Some(Uuid::from_u128(0xAD).to_string())
+    );
+    assert!(cancelled.run.finished_at.is_some());
+    let row = last_audit(db).await;
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: boss_json(),
+            action: "cancel_command".to_owned(),
+            target: ("command".to_owned(), id.to_string()),
+            before: Some(json!({"state": "queued", "cancel_requested": false})),
+            after: Some(json!({"state": "cancelled", "cancel_requested": true})),
+            details: json!({"command": "--help"}),
+        }
+    );
+
+    // a running command is asked to stop once, with a row; asking again changes nothing
+    let running = service
+        .start_command(&actor, "--version", None)
+        .await
+        .expect("starts")
+        .run
+        .id;
+    let worker =
+        ace_core::commands::CommandWorker::new(db.clone(), "test/w", Duration::from_secs(30));
+    // the oldest is claimed first, and earlier tests here left theirs queued
+    while worker.claim().await.expect("claims").expect("a command").id != running {}
+    let asked = service.cancel_command(&actor, running).await.expect("asks");
+    assert_eq!(
+        (asked.run.state, asked.run.cancel_requested),
+        (CommandState::Running, true)
+    );
+    let row = last_audit(db).await;
+    assert_eq!(
+        row.before,
+        Some(json!({"state": "running", "cancel_requested": false}))
+    );
+    assert_eq!(
+        row.after,
+        Some(json!({"state": "running", "cancel_requested": true}))
+    );
+    let rows = audit_rows(db).await.len();
+    service
+        .cancel_command(&actor, running)
+        .await
+        .expect("changes nothing");
+    assert!(
+        worker.report(running, "", false).await.expect("reports"),
+        "the pool learns"
+    );
+
+    // one that has ended, no such command and a refusal have no row
+    assert!(matches!(
+        service.cancel_command(&actor, id).await,
+        Err(ServiceError::Conflict(_))
+    ));
+    assert!(matches!(
+        service.cancel_command(&actor, i64::MAX).await,
+        Err(ServiceError::NotFound(_))
+    ));
+    assert!(matches!(
+        service
+            .cancel_command(&no_commands(db).await, running)
+            .await,
+        Err(ServiceError::PermissionDenied { .. })
+    ));
+    assert_eq!(audit_rows(db).await.len(), rows);
+    row.action
+}
+
+/// The command line as ace3's `parse_command` takes it: split as a shell would, `ace` dropped, and no
+/// leading option but help or version.
+#[test]
+fn a_command_line_splits_as_a_shell_would() {
+    for (line, words) in [
+        ("--help", vec!["--help"]),
+        ("ace --help", vec!["--help"]),
+        (
+            "  ace   yara scan --json 'a b' \"c d\"",
+            vec!["yara", "scan", "--json", "a b", "c d"],
+        ),
+        ("-V", vec!["-V"]),
+        ("schema check\tx.json", vec!["schema", "check", "x.json"]),
+    ] {
+        assert_eq!(
+            ace_service::parse_command(line).expect(line),
+            words,
+            "{line:?}"
+        );
+    }
+    let long = "x".repeat(ace_service::MAX_COMMAND_CHARS + 1);
+    let many = "x ".repeat(ace_service::MAX_COMMAND_WORDS + 1);
+    for line in [
+        "",
+        "  ",
+        "ace",
+        "-c x",
+        "--config=x",
+        "'x",
+        "x\0y",
+        "x\ny",
+        &long,
+        &many,
+    ] {
+        assert!(
+            matches!(
+                ace_service::parse_command(line),
+                Err(ServiceError::InvalidRequest(_))
+            ),
+            "{line:?}"
+        );
+    }
+}
+
+/// The runs read under `cli:execute`, newest first a page at a time, and one with its output; the core
+/// keeps what a pool reports, bounded, and its end; the reaper ends what nothing will finish.
+#[tokio::test]
+async fn commands_are_read_with_their_output_and_reaped_when_nothing_finishes_them() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let actor = admin(db).await;
+    let mut ids = Vec::new();
+    for n in 0..3 {
+        ids.push(
+            service
+                .start_command(&actor, &format!("--help {n}"), Some(60))
+                .await
+                .expect("starts")
+                .run
+                .id,
+        );
+    }
+    let page = service
+        .commands(&actor, Some(2), None)
+        .await
+        .expect("lists");
+    assert_eq!(
+        page.commands.iter().map(|run| run.id).collect::<Vec<_>>(),
+        [ids[2], ids[1]]
+    );
+    assert_eq!(page.next, Some(ids[1]));
+    let page = service
+        .commands(&actor, Some(2), page.next)
+        .await
+        .expect("lists");
+    assert_eq!(
+        page.commands.iter().map(|run| run.id).collect::<Vec<_>>(),
+        [ids[0]]
+    );
+    assert_eq!(page.next, None);
+    for limit in [0, 201] {
+        assert!(matches!(
+            service.commands(&actor, Some(limit), None).await,
+            Err(ServiceError::InvalidRequest(_))
+        ));
+    }
+    let outsider = no_commands(db).await;
+    assert!(matches!(
+        service.commands(&outsider, None, None).await,
+        Err(ServiceError::PermissionDenied { .. })
+    ));
+    assert!(matches!(
+        service.command(&outsider, ids[0]).await,
+        Err(ServiceError::PermissionDenied { .. })
+    ));
+    assert!(matches!(
+        service.command(&actor, i64::MAX).await,
+        Err(ServiceError::NotFound(_))
+    ));
+
+    // a pool claims the oldest, its clock starting then, and its output is text with NUL as U+FFFD
+    let worker =
+        ace_core::commands::CommandWorker::new(db.clone(), "test/w", Duration::from_secs(30));
+    let claimed = worker.claim().await.expect("claims").expect("a command");
+    assert_eq!(
+        (claimed.id, claimed.argv.clone()),
+        (ids[0], vec!["--help".to_owned(), "0".to_owned()])
+    );
+    assert!(claimed.deadline_in <= Duration::from_secs(60));
+    assert!(claimed.deadline_in > Duration::from_secs(55));
+    assert!(
+        !worker
+            .report(ids[0], "<b>so far</b>\0", false)
+            .await
+            .expect("reports")
+    );
+    let read = service.command(&actor, ids[0]).await.expect("reads");
+    assert_eq!(read.run.state, CommandState::Running);
+    assert_eq!(read.output, "<b>so far</b>\u{fffd}");
+    let deadline = read.run.deadline_at.expect("a deadline");
+    assert_eq!(
+        deadline - read.run.started_at.expect("started"),
+        chrono::Duration::seconds(60)
+    );
+    let other =
+        ace_core::commands::CommandWorker::new(db.clone(), "test/other", Duration::from_secs(30));
+    assert!(
+        other.report(ids[0], "not mine", false).await.is_err(),
+        "only its holder reports"
+    );
+    worker
+        .end(
+            ids[0],
+            CommandState::Completed,
+            Some(0),
+            None,
+            "all of it",
+            false,
+        )
+        .await
+        .expect("ends");
+    let read = service.command(&actor, ids[0]).await.expect("reads");
+    assert_eq!(
+        (read.run.state, read.run.exit_code),
+        (CommandState::Completed, Some(0))
+    );
+    assert_eq!(read.output, "all of it");
+    assert!(
+        worker
+            .end(ids[0], CommandState::Failed, None, Some("again"), "", false)
+            .await
+            .is_err()
+    );
+
+    // a running command whose lease ran out and a queued one past its timeout are abandoned
+    let claimed = worker.claim().await.expect("claims").expect("a command");
+    sqlx::query(
+        "UPDATE queue.commands SET lease_expires_at = now() - interval '1 second' WHERE id = $1",
+    )
+    .bind(claimed.id)
+    .execute(db.pool())
+    .await
+    .expect("expires the lease");
+    sqlx::query("ALTER TABLE queue.commands DISABLE TRIGGER commands_keep_their_record")
+        .execute(db.pool())
+        .await
+        .expect("lets the test age the row");
+    sqlx::query(
+        "UPDATE queue.commands SET created_at = now() - interval '2 minutes' WHERE id = $1",
+    )
+    .bind(ids[2])
+    .execute(db.pool())
+    .await
+    .expect("ages it");
+    sqlx::query("ALTER TABLE queue.commands ENABLE TRIGGER commands_keep_their_record")
+        .execute(db.pool())
+        .await
+        .expect("restores the trigger");
+    let reaped = ace_core::commands::reap_commands(db).await.expect("reaps");
+    assert_eq!((reaped.unreported, reaped.untaken), (1, 1));
+    for (id, why) in [
+        (
+            claimed.id,
+            "its pool stopped reporting on it before it ended",
+        ),
+        (ids[2], "no pool took it within its timeout"),
+    ] {
+        let read = service.command(&actor, id).await.expect("reads");
+        assert_eq!(read.run.state, CommandState::Abandoned);
+        assert_eq!(read.run.error.as_deref(), Some(why));
+    }
+    assert!(
+        worker.report(claimed.id, "late", false).await.is_err(),
+        "its lease is gone"
+    );
+
+    // an ended run's record doesn't change
+    let changed = sqlx::query("UPDATE queue.commands SET state = 'queued' WHERE id = $1")
+        .bind(ids[0])
+        .execute(db.pool())
+        .await;
+    assert!(changed.is_err(), "an ended command stays ended");
 }

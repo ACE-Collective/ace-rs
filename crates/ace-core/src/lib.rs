@@ -2,10 +2,12 @@
 //! writes.
 //!
 //! The schema is SQL migrations in `migrations/`, one Postgres schema per area (`db::AREAS`).
-//! Workers reach the queue through the lease API (`api`), never the database.
+//! Workers reach the queue through the lease API (`api`), never the database. The commands analysts run
+//! from the GUI (`commands`, PLAN.md 5.12) are leased through it too.
 
 pub mod api;
 pub mod bucket;
+pub mod commands;
 pub mod db;
 pub mod eligibility;
 pub mod modes;

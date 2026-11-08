@@ -65,6 +65,8 @@ pub struct ParserPool {
     name: String,
     registry: Registry,
     rulesets: Option<Rulesets>,
+    /// It runs the commands analysts start from the GUI (PLAN.md 5.12).
+    commands: bool,
 }
 
 /// A network pool: lookups, many at a time as async tasks in one contained process (2.16).
@@ -204,7 +206,14 @@ impl App {
         };
         self.parser_pools
             .iter()
-            .map(|p| pool(&p.name, &p.registry))
+            .map(|p| {
+                let listed = pool(&p.name, &p.registry);
+                match (p.commands, listed.ends_with(':')) {
+                    (false, _) => listed,
+                    (true, true) => format!("{listed}{}", ace_sdk::wire::COMMANDS),
+                    (true, false) => format!("{listed},{}", ace_sdk::wire::COMMANDS),
+                }
+            })
             .chain(self.lookup_pools.iter().map(|p| pool(&p.name, &p.registry)))
             .collect::<Vec<_>>()
             .join(";")
@@ -218,7 +227,15 @@ impl ParserPool {
             name: name.to_owned(),
             registry: Registry::new(),
             rulesets: None,
+            commands: false,
         }
+    }
+
+    /// Runs the commands analysts start from the GUI's CLI page (PLAN.md 5.12), each in a contained
+    /// process as a task's parser runs, beside the pool's tasks. The core lists it with `@commands`.
+    pub fn commands(mut self) -> ParserPool {
+        self.commands = true;
+        self
     }
 
     pub fn module<M: Parser>(mut self) -> ParserPool {
@@ -266,12 +283,13 @@ mod tests {
             .parser_pool(
                 ParserPool::new("parsers")
                     .module::<ace_mod_email::EmailAnalyzer>()
-                    .module::<ace_mod_yara::YaraScanner>(),
+                    .module::<ace_mod_yara::YaraScanner>()
+                    .commands(),
             )
             .lookup_pool(LookupPool::new("lookups"));
         assert_eq!(
             app.pool_list(),
-            "parsers:email_analyzer,yara_scanner_v3_4;lookups:"
+            "parsers:email_analyzer,yara_scanner_v3_4,@commands;lookups:"
         );
         let names: Vec<&str> = app.registry().manifests().iter().map(|m| m.name).collect();
         assert_eq!(names, ["email_analyzer", "yara_scanner_v3_4"]);

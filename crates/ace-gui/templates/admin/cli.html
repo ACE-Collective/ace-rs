@@ -1,0 +1,45 @@
+{#- ace3's admin/cli.html (PLAN.md 5.12): the form that starts a command, and every run, newest first
+    (src/cli.rs). -#}
+{% extends "base.html" %}
+{% block title %}CLI · Administration · ACE{% endblock %}
+{% block content %}
+<section class="admin cli">
+  <p><a href="/admin">Administration</a></p>
+  <h1>CLI</h1>
+  <p class="muted">Runs an ACE command as <code>ace &lt;command&gt;</code> on a parser pool, contained like a task:
+    no files, no network and no credentials, until it exits or its timeout runs out from when the pool takes
+    it. Closing this page or signing out doesn't stop it. There's no terminal, so a command that prompts fails.
+    Every run is recorded with who ran it and its output, and everyone who can use this page sees it.</p>
+  {%- if let Some(problem) = view.problem %}
+  <p class="error" role="alert">{{ problem }}</p>
+  {%- endif %}
+  <form method="post" action="/admin/cli" class="fields" autocomplete="off">
+    <label for="cli-command">ace</label>
+    <input type="text" id="cli-command" name="command" value="{{ view.draft }}" maxlength="{{ view.max_chars }}"
+           spellcheck="false" placeholder="--help" required>
+    <label for="cli-timeout">Timeout (seconds)</label>
+    <input type="number" id="cli-timeout" name="timeout_seconds" min="1" max="{{ view.max_timeout }}"
+           value="{{ view.timeout }}">
+    <button type="submit">Run</button>
+  </form>
+
+  <h2>History</h2>
+  <table class="keys">
+    <thead><tr><th>#</th><th>Requested</th><th>User</th><th>Command</th><th>Status</th></tr></thead>
+    <tbody>
+      {%- for run in view.runs %}
+      <tr>
+        <td><a href="{{ run.href }}">{{ run.id }}</a></td>
+        <td class="nowrap">{{ run.created }}</td>
+        <td>{{ run.username }}</td>
+        <td class="cli-command"><code>{{ run.command }}</code></td>
+        <td><span class="badge cli-{{ run.state }}">{{ run.status }}</span></td>
+      </tr>
+      {%- else %}
+      <tr><td colspan="5" class="muted">No command has run.</td></tr>
+      {%- endfor %}
+    </tbody>
+  </table>
+  <p>{% if view.later %}<a href="/admin/cli">First</a>{% endif %}{% if let Some(next) = view.next %} <a href="{{ next }}">Next</a>{% endif %}</p>
+</section>
+{% endblock %}

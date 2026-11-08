@@ -1102,6 +1102,305 @@
         }
       }
     },
+    "/api/cli/v1/commands": {
+      "get": {
+        "tags": [
+          "cli"
+        ],
+        "summary": "Every run, newest first, without its output, a page at a time. Follow `next` until it's null.",
+        "operationId": "list",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "How many, 1 to 200; 50 when left out.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "description": "The `next` of the previous page.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of runs",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommandPageBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A limit out of range, or a cursor that isn't a number",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold cli:execute",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "cli"
+        ],
+        "summary": "Starts `ace <command>` for a parser pool to run, contained, with no paths, ports or credentials, until\nit exits or its deadline: when a pool takes it, plus its timeout. Closing the session that started it\ndoesn't stop it. Follow it at `GET /api/cli/v1/commands/{id}`.",
+        "operationId": "start",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewCommandRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "The command, queued for a pool",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommandDetailBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A command line that's empty, doesn't split, starts with an option or is too long, a timeout out of range, or a body that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold cli:execute, isn't a person (an API key with no owner), or a session's request came from another site",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cli/v1/commands/{id}": {
+      "get": {
+        "tags": [
+          "cli"
+        ],
+        "summary": "One run, with its output so far.",
+        "operationId": "one",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The run's id",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The run",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommandDetailBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An id that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold cli:execute",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No run with that id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cli/v1/commands/{id}/cancel": {
+      "post": {
+        "tags": [
+          "cli"
+        ],
+        "summary": "Cancels a run: a queued one ends at once, and a running one's pool kills it within a few seconds,\nwhen it next reports. Cancelling a run that was asked to stop already changes nothing.",
+        "operationId": "cancel",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The run's id",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The run as it is now",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommandDetailBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An id that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold cli:execute, or a session's request came from another site",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No run with that id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The run has ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/crashes/v1/crashes": {
       "get": {
         "tags": [
@@ -6395,6 +6694,156 @@
           }
         }
       },
+      "CommandBody": {
+        "type": "object",
+        "description": "One run of a command, without its output.",
+        "required": [
+          "id",
+          "command",
+          "state",
+          "username",
+          "started_by",
+          "timeout_seconds",
+          "cancel_requested",
+          "created_at"
+        ],
+        "properties": {
+          "cancel_requested": {
+            "type": "boolean"
+          },
+          "cancelled_by": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ActorBody"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "command": {
+            "type": "string",
+            "description": "The words after `ace`, quoted as a shell would take them."
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "deadline_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "When its pool kills it, if it's still running then: `started_at` plus its timeout."
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Why it didn't complete. It can quote what the command wrote: show it as text."
+          },
+          "exit_code": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "description": "How it exited, once it has completed."
+          },
+          "finished_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "started_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "When a pool took it."
+          },
+          "started_by": {
+            "$ref": "#/components/schemas/ActorBody",
+            "description": "The actor that started it."
+          },
+          "state": {
+            "type": "string",
+            "description": "`queued`, `running`, `completed`, `timed_out`, `cancelled`, `failed` or `abandoned`."
+          },
+          "timeout_seconds": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "user_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "Who it runs for; null once that user is deleted, and `username` stays."
+          },
+          "username": {
+            "type": "string"
+          }
+        }
+      },
+      "CommandDetailBody": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/CommandBody"
+          },
+          {
+            "type": "object",
+            "required": [
+              "output",
+              "output_truncated"
+            ],
+            "properties": {
+              "output": {
+                "type": "string",
+                "description": "Its stdout and stderr, interleaved, up to 1 MiB, with NUL as U+FFFD. Show it as text."
+              },
+              "output_truncated": {
+                "type": "boolean",
+                "description": "It wrote more than the 1 MiB kept."
+              }
+            }
+          }
+        ],
+        "description": "One run with what it has written so far."
+      },
+      "CommandPageBody": {
+        "type": "object",
+        "required": [
+          "commands"
+        ],
+        "properties": {
+          "commands": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CommandBody"
+            }
+          },
+          "next": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Pass as `after` for the next page; null on the last."
+          }
+        }
+      },
       "CommentBody": {
         "type": "object",
         "description": "A comment on an observable, which applies to it in every alert.",
@@ -7523,6 +7972,28 @@
               "$ref": "#/components/schemas/ScopeEntry"
             },
             "description": "Up to 64 patterns it's allowed. `*:*` is ace3's key that inherits its owner's permissions. Never\n`user:self`."
+          }
+        },
+        "additionalProperties": false
+      },
+      "NewCommandRequest": {
+        "type": "object",
+        "required": [
+          "command"
+        ],
+        "properties": {
+          "command": {
+            "type": "string",
+            "description": "The command line after `ace`, such as `--help`; a leading `ace` is dropped. It splits as a\nshell would, and can't start with an option but `-h`, `--help`, `-V` or `--version`."
+          },
+          "timeout_seconds": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "description": "How long it may run once a pool takes it, 1 to 3600 seconds; 300 when left out.",
+            "minimum": 0
           }
         },
         "additionalProperties": false
@@ -9116,6 +9587,10 @@
     {
       "name": "crashes",
       "description": "Failed tasks, their errors and their inputs"
+    },
+    {
+      "name": "cli",
+      "description": "ace commands run from the GUI, contained on a pool until their deadline"
     },
     {
       "name": "yara_qa",

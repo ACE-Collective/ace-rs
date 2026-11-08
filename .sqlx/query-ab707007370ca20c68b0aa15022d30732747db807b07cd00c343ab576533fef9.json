@@ -1,0 +1,35 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE queue.commands\n             SET state = $3::queue.command_state, exit_code = $4,\n                 error = CASE $3::queue.command_state\n                     WHEN 'timed_out'::queue.command_state THEN\n                         format('killed at its deadline, %s seconds after it started', timeout_seconds)\n                     WHEN 'cancelled'::queue.command_state THEN coalesce($5, 'cancelled while it ran')\n                     ELSE $5 END,\n                 output = $6, output_truncated = $7, finished_at = now(),\n                 lease_owner = NULL, lease_expires_at = NULL\n             WHERE id = $1 AND lease_owner = $2 AND state = 'running'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text",
+        {
+          "Custom": {
+            "name": "queue.command_state",
+            "kind": {
+              "Enum": [
+                "queued",
+                "running",
+                "completed",
+                "timed_out",
+                "cancelled",
+                "failed",
+                "abandoned"
+              ]
+            }
+          }
+        },
+        "Int4",
+        "Text",
+        "Text",
+        "Bool"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ab707007370ca20c68b0aa15022d30732747db807b07cd00c343ab576533fef9"
+}

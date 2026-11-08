@@ -345,6 +345,9 @@ const ME: &str = "/api/users/v1/me";
 const MY_PASSWORD: &str = "/api/users/v1/me/password";
 const MY_KEYS: &str = "/api/users/v1/me/keys";
 const MY_KEY: &str = "/api/users/v1/me/keys/{id}";
+const COMMANDS: &str = "/api/cli/v1/commands";
+const COMMAND: &str = "/api/cli/v1/commands/{id}";
+const CANCEL_COMMAND: &str = "/api/cli/v1/commands/{id}/cancel";
 const CRASHES: &str = "/api/crashes/v1/crashes";
 const CRASH: &str = "/api/crashes/v1/crashes/{id}";
 const CRASH_DOWNLOAD: &str = "/api/crashes/v1/crashes/{id}/download";
@@ -396,7 +399,10 @@ fn fill(route: &str, id: Uuid, observable: i64) -> String {
             .replace("{malware}", "1")
             .replace("{threat_type}", "1");
     }
-    if route.starts_with("/api/crashes/") || route.starts_with("/api/yara-qa/") || route == COMMENT
+    if route.starts_with("/api/crashes/")
+        || route.starts_with("/api/yara-qa/")
+        || route.starts_with("/api/cli/")
+        || route == COMMENT
     {
         return route
             .replace("{id}", &observable.to_string())
@@ -464,6 +470,7 @@ fn good_body(route: &str) -> Send {
         EVENT_STATUS => Send::Json(json!({"status": "OPEN"})),
         THREAT_TYPES | THREAT_TYPE => Send::Json(json!({"name": "refused"})),
         THREATS => Send::Json(json!({"malware_id": 1, "threat_type_id": 1})),
+        COMMANDS => Send::Json(json!({"command": "--help"})),
         _ => Send::Nothing,
     }
 }
@@ -489,7 +496,7 @@ async fn refuses_without_a_credential_or_a_permission(
         .map(|(method, route, _)| (method, route))
         .filter(|route| !public.contains(route))
         .collect();
-    assert_eq!(routes.len(), 78, "{routes:?}");
+    assert_eq!(routes.len(), 82, "{routes:?}");
     for (method, route) in routes {
         let method: Method = method.to_uppercase().parse().expect("a method");
         let path = fill(&route, id, file);
@@ -3547,6 +3554,7 @@ async fn every_documented_status_is_tested() {
     manages_users(&mut client, &admin).await;
     serves_me(&mut client).await;
     crashes(&mut client, &token, id, file, &bytes).await;
+    commands(&mut client).await;
     yara_qa(&mut client, &token, id, file, &bytes).await;
     comments(&mut client, id, &bytes).await;
     preferences(&mut client).await;
@@ -4925,4 +4933,226 @@ async fn events(client: &mut Client<'_>) {
         .await;
     // status, create, rename, add, remove and delete: one row each
     assert_eq!(audit_count(stack).await, rows + 6);
+}
+
+/// PLAN.md 5.12: ace3's `cli` router, a command queued for a pool and read back, and its cancel.
+async fn commands(client: &mut Client<'_>) {
+    use Method as M;
+    use StatusCode as S;
+    let json = Send::Json;
+    let stack = client.stack;
+    let (alice, alices) = session_of(stack, "operator", &["cli:execute"]).await;
+    let a = Some(alices.as_str());
+    let ownerless = key(stack, &["cli:execute"]).await;
+    let rows = audit_count(stack).await;
+
+    let started = client
+        .json(
+            M::POST,
+            COMMANDS,
+            COMMANDS,
+            a,
+            json(json!({"command": "ace yara scan '<script>alert(1)</script>'", "timeout_seconds": 30})),
+            S::ACCEPTED,
+        )
+        .await;
+    let id = started["id"].as_i64().expect("an id");
+    assert_eq!(started["command"], "yara scan '<script>alert(1)</script>'");
+    assert_eq!(started["state"], "queued");
+    assert_eq!(started["user_id"], json!(alice));
+    assert_eq!(started["username"], "operator");
+    assert_eq!(started["started_by"]["kind"], "user");
+    assert_eq!(started["timeout_seconds"], 30);
+    assert_eq!(started["output"], "");
+    assert_eq!(started["deadline_at"], Value::Null);
+    assert_eq!(audit_count(stack).await, rows + 1);
+    let second = client
+        .json(
+            M::POST,
+            COMMANDS,
+            COMMANDS,
+            a,
+            json(json!({"command": "--help"})),
+            S::ACCEPTED,
+        )
+        .await;
+    assert_eq!(second["timeout_seconds"], 300, "ace3's default");
+    let second = second["id"].as_i64().expect("an id");
+
+    // a line that isn't one, a timeout out of range or a body that isn't one is 400, too much is 413
+    for body in [
+        json!({"command": ""}),
+        json!({"command": "-c x node list"}),
+        json!({"command": "'open"}),
+        json!({"command": "--help", "timeout_seconds": 0}),
+        json!({"command": "--help", "timeout_seconds": 3601}),
+        json!({"command": "--help", "node_ids": [1]}),
+        json!({}),
+    ] {
+        client
+            .json(M::POST, COMMANDS, COMMANDS, a, json(body), S::BAD_REQUEST)
+            .await;
+    }
+    client
+        .json(
+            M::POST,
+            COMMANDS,
+            COMMANDS,
+            a,
+            too_large(),
+            S::PAYLOAD_TOO_LARGE,
+        )
+        .await;
+    // a key with no owner runs nothing: a run names its person
+    client
+        .json(
+            M::POST,
+            COMMANDS,
+            COMMANDS,
+            Some(&ownerless),
+            json(json!({"command": "--help"})),
+            S::FORBIDDEN,
+        )
+        .await;
+    assert_eq!(audit_count(stack).await, rows + 2, "no refusal has a row");
+
+    let page = client
+        .json(
+            M::GET,
+            COMMANDS,
+            &format!("{COMMANDS}?limit=1"),
+            Some(&ownerless),
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(page["commands"][0]["id"], second);
+    assert_eq!(page["next"], second);
+    assert!(
+        page["commands"][0].get("output").is_none(),
+        "a list has no output"
+    );
+    let page = client
+        .json(
+            M::GET,
+            COMMANDS,
+            &format!("{COMMANDS}?after={second}"),
+            a,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(page["commands"][0]["id"], id);
+    assert_eq!(page["next"], Value::Null);
+    for query in ["?limit=0", "?limit=201", "?after=x"] {
+        client
+            .json(
+                M::GET,
+                COMMANDS,
+                &format!("{COMMANDS}{query}"),
+                a,
+                Send::Nothing,
+                S::BAD_REQUEST,
+            )
+            .await;
+    }
+
+    // its output so far is text, as the pool reported it
+    let worker = ace_core::commands::CommandWorker::new(
+        stack.test_db.db().clone(),
+        "test/api",
+        std::time::Duration::from_secs(30),
+    );
+    let claimed = worker.claim().await.expect("claims").expect("a command");
+    assert_eq!(claimed.id, id);
+    let hostile = "<script>alert(1)</script>\0\u{1b}[31m";
+    worker.report(id, hostile, true).await.expect("reports");
+    let one = at(COMMAND, id, "");
+    let read = client
+        .json(M::GET, COMMAND, &one, a, Send::Nothing, S::OK)
+        .await;
+    assert_eq!(read["state"], "running");
+    assert_eq!(
+        read["output"],
+        "<script>alert(1)</script>\u{fffd}\u{1b}[31m"
+    );
+    assert_eq!(read["output_truncated"], true);
+    assert!(read["deadline_at"].is_string());
+    client
+        .json(
+            M::GET,
+            COMMAND,
+            &at(COMMAND, "x", ""),
+            a,
+            Send::Nothing,
+            S::BAD_REQUEST,
+        )
+        .await;
+    client
+        .json(
+            M::GET,
+            COMMAND,
+            &at(COMMAND, i64::MAX, ""),
+            a,
+            Send::Nothing,
+            S::NOT_FOUND,
+        )
+        .await;
+
+    // a cancel asks the running one to stop, and ends the queued one; an ended one is 409
+    let cancel = at(CANCEL_COMMAND, id, "");
+    let asked = client
+        .json(M::POST, CANCEL_COMMAND, &cancel, a, Send::Nothing, S::OK)
+        .await;
+    assert_eq!(
+        (asked["state"].clone(), asked["cancel_requested"].clone()),
+        (json!("running"), json!(true))
+    );
+    assert_eq!(asked["cancelled_by"]["id"], json!(alice));
+    let ended = client
+        .json(
+            M::POST,
+            CANCEL_COMMAND,
+            &at(CANCEL_COMMAND, second, ""),
+            a,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(ended["state"], "cancelled");
+    client
+        .json(
+            M::POST,
+            CANCEL_COMMAND,
+            &at(CANCEL_COMMAND, second, ""),
+            a,
+            Send::Nothing,
+            S::CONFLICT,
+        )
+        .await;
+    client
+        .json(
+            M::POST,
+            CANCEL_COMMAND,
+            &at(CANCEL_COMMAND, "x", ""),
+            a,
+            Send::Nothing,
+            S::BAD_REQUEST,
+        )
+        .await;
+    client
+        .json(
+            M::POST,
+            CANCEL_COMMAND,
+            &at(CANCEL_COMMAND, i64::MAX, ""),
+            a,
+            Send::Nothing,
+            S::NOT_FOUND,
+        )
+        .await;
+    assert_eq!(
+        audit_count(stack).await,
+        rows + 4,
+        "two cancels, each with its row"
+    );
 }

@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO queue.commands (argv, command, timeout_seconds, started_by, user_id, username)\n         VALUES ($1, $2, $3, $4, $5, $6)\n         RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "queue.commands",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "TextArray",
+        "Text",
+        "Int4",
+        {
+          "Custom": {
+            "name": "service.actor",
+            "kind": {
+              "Domain": "Jsonb"
+            }
+          }
+        },
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "faeee7f1a266a7a5f65e220c6bec99d65f4fb81522466cc32ad9002781e4906f"
+}

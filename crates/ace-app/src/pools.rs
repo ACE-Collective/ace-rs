@@ -16,7 +16,9 @@
 //! ```
 //!
 //! which gets the overlay's path and the ruleset directory as arguments, since it starts with
-//! an empty environment.
+//! an empty environment. A pool that runs GUI commands (`ParserPool::commands`, PLAN.md 5.12) also
+//! leases those, `ACE4_COMMAND_CONCURRENCY` (3) at once, and runs each as `<binary> command`, contained
+//! with no paths and no ports (`ace_pool::commands`), on `ace`'s own command line (`cli::run_contained`).
 //!
 //! A network pool reads `ACE4_API_URL`, `ACE4_POOL_TOKEN`, `ACE4_OVERLAY`, the variables and
 //! files the overlay's `secrets:` names for its modules' secrets, `ACE4_CONCURRENCY` (16) and
@@ -31,6 +33,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use ace_pool::client::LeaseClient;
+use ace_pool::commands::{CommandConfig, DEFAULT_CONCURRENCY};
 use ace_pool::modules::{Modules, Registry, StartError};
 use ace_pool::pool::{AsyncPool, POOL_ADDRESS_SPACE, PoolDefinition};
 use ace_pool::rulesets::RulesetWatcher;
@@ -204,13 +207,17 @@ async fn join_all(handles: Vec<(&str, tokio::task::JoinHandle<()>)>) {
     }
 }
 
-/// A parser pool's binary: its supervisor, or a task process when the first argument is `task`.
+/// A parser pool's binary: its supervisor, a task process when the first argument is `task`, or a
+/// GUI command's process when it's `command` (PLAN.md 5.12).
 pub fn parser_main(pool: &ParserPool) -> ExitCode {
     let mut args = std::env::args().skip(1);
-    if args.next().as_deref() == Some("task") {
-        return parser_task(pool, args.collect());
+    match args.next().as_deref() {
+        Some("task") => parser_task(pool, args.collect()),
+        Some("command") if pool.commands => {
+            ace_pool::commands::process_main(&crate::cli::run_contained)
+        }
+        _ => supervisor(pool),
     }
-    supervisor(pool)
 }
 
 /// A task process: builds the modules as the supervisor did, then runs the task on stdin.
@@ -307,7 +314,7 @@ fn supervisor(pool: &ParserPool) -> ExitCode {
         eprintln!("no span export: {e}");
     }
     let config = SupervisorConfig {
-        program,
+        program: program.clone(),
         args: task_args,
         user: Some(user),
         concurrency: number("ACE4_CONCURRENCY", 4),
@@ -317,7 +324,12 @@ fn supervisor(pool: &ParserPool) -> ExitCode {
     let watcher = rulesets.map(|(rulesets, dir)| {
         RulesetWatcher::new(client.clone(), dir, Arc::new(rulesets.check)).every(poll)
     });
-    let supervisor = Supervisor::new(client, modules, config);
+    let mut supervisor = Supervisor::new(client, modules, config);
+    if pool.commands {
+        let mut commands = CommandConfig::new(program, vec!["command".to_owned()], Some(user));
+        commands.concurrency = number("ACE4_COMMAND_CONCURRENCY", DEFAULT_CONCURRENCY);
+        supervisor = supervisor.with_commands(commands);
+    }
     with_runtime(async move {
         let stop = stop_on_signal();
         let mut handles = vec![(

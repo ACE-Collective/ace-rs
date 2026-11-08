@@ -1051,11 +1051,15 @@ pub async fn completions(db: &Db, root: Uuid) -> Result<Vec<Completion>, QueueEr
     .collect())
 }
 
-/// Runs `reap_expired_leases` every `interval` until `stop` fires.
+/// Runs `reap_expired_leases` and `commands::reap_commands` every `interval` until `stop` fires.
 pub async fn run_reaper(db: Db, interval: Duration, stop: CancellationToken) {
     loop {
         if let Err(e) = reap_expired_leases(&db).await {
             tracing::error!("the reaper failed: {e}");
+        }
+        // GUI commands (PLAN.md 5.12) never run twice, so their lost leases end them
+        if let Err(e) = crate::commands::reap_commands(&db).await {
+            tracing::error!("the reaper failed on commands: {e}");
         }
         tokio::select! {
             () = stop.cancelled() => return,

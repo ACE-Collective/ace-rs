@@ -32,7 +32,19 @@ pub mod paths {
     pub fn replay(id: i64) -> String {
         format!("/api/admin/v1/tasks/{id}/replay")
     }
+
+    /// A GUI command for a pool that runs them (PLAN.md 5.12).
+    pub const COMMAND_LEASE: &str = "/api/worker/v1/commands/lease";
+
+    /// `/api/worker/v1/commands/<id>/<action>`, where action is `report` or `end`.
+    pub fn command(id: i64, action: &str) -> String {
+        format!("/api/worker/v1/commands/{id}/{action}")
+    }
 }
+
+/// What a pool lists among its modules in `ACE4_POOLS` to run GUI commands (PLAN.md 5.12). No module
+/// can have the name, and it's the payload that wakes the pools waiting for a command.
+pub const COMMANDS: &str = "@commands";
 
 /// A worker asking for a task.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -230,3 +242,66 @@ pub struct ApiError {
 
 /// A failed task as `ace task replay` sees it: the leased form, with fresh download URLs.
 pub type ReplayTask = LeasedTask;
+
+/// A pool asking for a GUI command (PLAN.md 5.12).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CommandLeaseRequest {
+    pub worker: String,
+    #[serde(default)]
+    pub wait_seconds: u64,
+}
+
+/// A GUI command a pool holds the lease on: the words after `ace`, and how long it may run.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct LeasedCommand {
+    pub id: i64,
+    pub argv: Vec<String>,
+    pub timeout_seconds: u32,
+    /// How long from now until its deadline, by the core's clock: the pool kills it then.
+    pub deadline_seconds: f64,
+    /// How long each report extends the lease.
+    pub lease_seconds: f64,
+}
+
+/// What a running command has written so far, which also renews its lease.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CommandReport {
+    pub output: String,
+    pub output_truncated: bool,
+}
+
+/// The core's answer to a report.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CommandReply {
+    /// Someone cancelled it: kill it and end it as cancelled.
+    pub cancel_requested: bool,
+}
+
+/// How a command ended, as its pool saw it.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "state", rename_all = "snake_case", deny_unknown_fields)]
+pub enum CommandOutcome {
+    /// It exited with this code.
+    Completed { exit_code: i32 },
+    /// It was killed at its deadline.
+    TimedOut,
+    /// It was killed because someone cancelled it.
+    Cancelled,
+    /// It didn't run, or a signal killed it.
+    Failed { error: String },
+    /// Its pool stopped while it ran, and killed it.
+    Abandoned { error: String },
+}
+
+/// A command's end: how, and all it wrote.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CommandEnd {
+    pub outcome: CommandOutcome,
+    pub output: String,
+    pub output_truncated: bool,
+}

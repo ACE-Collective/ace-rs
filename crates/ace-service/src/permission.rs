@@ -251,6 +251,9 @@ pub const EVENT_WRITE: PermissionName = PermissionName::known("event", "write");
 pub const OBSERVABLE_READ: PermissionName = PermissionName::known("observable", "read");
 /// Comment on observables, and change or delete your own comments: ace3's `observable:write`.
 pub const OBSERVABLE_WRITE: PermissionName = PermissionName::known("observable", "write");
+/// Run `ace` commands from the GUI's CLI page, cancel them, and read every run and its output: ace3's
+/// `cli:execute`.
+pub const CLI_EXECUTE: PermissionName = PermissionName::known("cli", "execute");
 /// List failed tasks and download them with their inputs: ace3's `crash:read`.
 pub const CRASH_READ: PermissionName = PermissionName::known("crash", "read");
 /// See the rules in QA mode, their matches and the matches' records: ace3's `signature:read`.
@@ -294,6 +297,11 @@ pub static CATALOG: &[CatalogEntry] = &[
     CatalogEntry {
         name: ALERT_WRITE,
         description: "Change alerts, such as their disposition.",
+    },
+    CatalogEntry {
+        name: CLI_EXECUTE,
+        description: "Run ace commands from Administration's CLI page, each contained on a parser pool until \
+                      its deadline, cancel any run, and read every run and its output.",
     },
     CatalogEntry {
         name: CRASH_READ,

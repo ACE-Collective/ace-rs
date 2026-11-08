@@ -28,6 +28,7 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio_util::sync::CancellationToken;
 
 use crate::client::{ClientError, LeaseClient};
+use crate::commands::{CommandConfig, run_commands};
 use crate::containment::SandboxProfile;
 use crate::modules::Modules;
 use crate::pool::{PoolStats, Runner, SHUTDOWN_GRACE, lease_loop};
@@ -108,6 +109,7 @@ pub struct Supervisor {
     client: LeaseClient,
     modules: Arc<Modules>,
     config: SupervisorConfig,
+    commands: Option<CommandConfig>,
     lease_wait: Duration,
     grace: Duration,
 }
@@ -118,9 +120,16 @@ impl Supervisor {
             client,
             modules,
             config,
+            commands: None,
             lease_wait: Duration::from_secs(10),
             grace: SHUTDOWN_GRACE,
         }
+    }
+
+    /// Also leases GUI commands and runs each in a contained process (`crate::commands`, PLAN.md 5.12).
+    pub fn with_commands(mut self, commands: CommandConfig) -> Self {
+        self.commands = Some(commands);
+        self
     }
 
     pub fn lease_wait(mut self, wait: Duration) -> Self {
@@ -136,8 +145,24 @@ impl Supervisor {
     }
 
     /// Leases tasks and runs each in a task process, up to the concurrency limit, until `stop`
-    /// fires; then kills the running ones and gives their tasks back (`lease_loop`).
+    /// fires; then kills the running ones and gives their tasks back (`lease_loop`). With commands, it
+    /// leases and runs those beside the tasks, and ends the running ones as abandoned at the stop.
     pub async fn run(&self, stop: CancellationToken) -> PoolStats {
+        let commands = self.commands.clone().map(|config| {
+            let (client, stop, wait) = (self.client.clone(), stop.clone(), self.lease_wait);
+            tokio::spawn(async move { run_commands(&client, &config, wait, stop).await })
+        });
+        let stats = self.run_tasks(stop).await;
+        if let Some(commands) = commands {
+            match commands.await {
+                Ok(ran) => tracing::info!(commands = ran, "stopped running commands"),
+                Err(e) => tracing::error!("the command loop failed: {e}"),
+            }
+        }
+        stats
+    }
+
+    async fn run_tasks(&self, stop: CancellationToken) -> PoolStats {
         let (client, modules, config) = (
             self.client.clone(),
             self.modules.clone(),

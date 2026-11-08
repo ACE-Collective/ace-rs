@@ -19,6 +19,12 @@
 //!   counting the attempt, as a pool does at shutdown.
 //! - `GET /api/worker/v1/yara/ruleset`: the ruleset YARA pools should scan with, the latest the
 //!   core built (PLAN.md 2.26), with a presigned URL for its bytes; 204 before the first build.
+//! - `POST /api/worker/v1/commands/lease`: a GUI command (PLAN.md 5.12), for a pool whose list in
+//!   `ACE4_POOLS` has `@commands`, or 204 after waiting. Its claim starts its clock, and the answer says
+//!   how long it has until its deadline.
+//! - `POST /api/worker/v1/commands/<id>/report`: the command's output so far, which renews its lease; the
+//!   answer says whether it was cancelled.
+//! - `POST /api/worker/v1/commands/<id>/end`: how the command ended, with all it wrote.
 //! - `GET /api/admin/v1/tasks/<id>/replay`: any task in its leased form, with a fresh download
 //!   URL, for `ace task replay`. It takes the admin token, and takes no lease.
 //! - `GET /healthz`: 200 when the database answers, for the stack's healthcheck. It takes no
@@ -36,8 +42,10 @@ use std::time::Duration;
 
 use ace_results::{AlertPath, ObservableKind, ObservableRef, ResultEnvelope, Sha256, YaraMeta};
 use ace_sdk::wire::{
-    ApiError, CarryingEmail, CurrentRuleset, FieldError as WireFieldError, LeaseRequest,
-    LeasedTask, Presigned, Renewal, TaskEnd, TaskFile, TaskObservable, UploadRequest, paths,
+    ApiError, COMMANDS, CarryingEmail, CommandEnd, CommandLeaseRequest, CommandOutcome,
+    CommandReply, CommandReport, CurrentRuleset, FieldError as WireFieldError, LeaseRequest,
+    LeasedCommand, LeasedTask, Presigned, Renewal, TaskEnd, TaskFile, TaskObservable,
+    UploadRequest, paths,
 };
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{Path, State};
@@ -56,6 +64,7 @@ use tokio::task::JoinHandle;
 use tracing::Instrument;
 
 use crate::bucket::{ALERT_FILES, Bucket, BucketError, Hold};
+use crate::commands::{CommandState, CommandWorker};
 use crate::db::{Db, DbError, Isolation, Retryable};
 use crate::orchestrator::{Orchestrator, OrchestratorError, Rejected};
 use crate::queue::{QueueError, TASKS_CHANNEL, Task, TaskId, Worker};
@@ -74,14 +83,20 @@ pub struct PoolAccess {
     pub name: String,
     token_sha256: [u8; 32],
     pub modules: Vec<String>,
+    /// It runs GUI commands (PLAN.md 5.12): its list has `@commands` (`ace_sdk::wire::COMMANDS`).
+    pub commands: bool,
 }
 
 impl PoolAccess {
-    pub fn new(name: impl Into<String>, token: &str, modules: Vec<String>) -> Self {
+    /// A pool that runs `modules`, and GUI commands when they include `@commands`.
+    pub fn new(name: impl Into<String>, token: &str, mut modules: Vec<String>) -> Self {
+        let commands = modules.iter().any(|m| m == COMMANDS);
+        modules.retain(|m| m != COMMANDS);
         PoolAccess {
             name: name.into(),
             token_sha256: sha256(token),
             modules,
+            commands,
         }
     }
 }
@@ -91,6 +106,7 @@ impl std::fmt::Debug for PoolAccess {
         f.debug_struct("PoolAccess")
             .field("name", &self.name)
             .field("modules", &self.modules)
+            .field("commands", &self.commands)
             .finish_non_exhaustive()
     }
 }
@@ -278,6 +294,15 @@ impl Api {
                 )),
             )
             .route("/api/worker/v1/tasks/{id}/release", post(release))
+            .route(paths::COMMAND_LEASE, post(lease_command))
+            .route(
+                "/api/worker/v1/commands/{id}/report",
+                post(report_command).layer(axum::extract::DefaultBodyLimit::max(MAX_COMMAND_BODY)),
+            )
+            .route(
+                "/api/worker/v1/commands/{id}/end",
+                post(end_command).layer(axum::extract::DefaultBodyLimit::max(MAX_COMMAND_BODY)),
+            )
             .route(paths::RULESET, get(current_ruleset))
             .route("/api/admin/v1/tasks/{id}/replay", get(replay))
             .route("/healthz", get(health))
@@ -313,6 +338,77 @@ impl Api {
             modules,
             self.inner.config.lease,
         )
+    }
+
+    /// The pool a command request comes from, as a command worker named by `x-ace4-worker` or `name`.
+    fn command_worker(
+        &self,
+        headers: &HeaderMap,
+        name: Option<&str>,
+    ) -> Result<CommandWorker, Failure> {
+        let pool = self.pool(headers)?;
+        if !pool.commands {
+            return Err(Failure::Forbidden(format!(
+                "pool {} doesn't run commands",
+                pool.name
+            )));
+        }
+        let name = match name {
+            Some(name) => name,
+            None => headers
+                .get(WORKER_HEADER)
+                .and_then(|v| v.to_str().ok())
+                .ok_or_else(|| Failure::BadRequest(format!("no {WORKER_HEADER} header")))?,
+        };
+        if name.is_empty() {
+            return Err(Failure::BadRequest("no worker name".to_owned()));
+        }
+        Ok(CommandWorker::new(
+            self.inner.db.clone(),
+            format!("{}/{name}", pool.name),
+            self.inner.config.lease,
+        ))
+    }
+
+    /// Claims a command for `worker`, waiting up to `wait` for one.
+    async fn lease_command_for(
+        &self,
+        worker: &CommandWorker,
+        wait: Duration,
+    ) -> Result<Option<LeasedCommand>, Failure> {
+        let mut wakeups = self.inner.wakeups.subscribe();
+        let deadline = tokio::time::Instant::now() + wait;
+        loop {
+            if let Some(command) = worker.claim().await? {
+                return Ok(Some(LeasedCommand {
+                    id: command.id,
+                    argv: command.argv,
+                    timeout_seconds: command.timeout_seconds,
+                    deadline_seconds: command.deadline_in.as_secs_f64(),
+                    lease_seconds: worker.lease().as_secs_f64(),
+                }));
+            }
+            if self.inner.stopping.is_cancelled() {
+                return Ok(None);
+            }
+            let sleep = tokio::time::sleep_until(deadline);
+            tokio::pin!(sleep);
+            loop {
+                tokio::select! {
+                    () = &mut sleep => return Ok(None),
+                    () = self.inner.stopping.cancelled() => return Ok(None),
+                    woken = wakeups.recv() => match woken {
+                        Ok(payload) if payload == "*" || payload == COMMANDS => break,
+                        Ok(_) => {}
+                        Err(broadcast::error::RecvError::Lagged(_)) => break,
+                        Err(broadcast::error::RecvError::Closed) => {
+                            (&mut sleep).await;
+                            return Ok(None);
+                        }
+                    },
+                }
+            }
+        }
     }
 
     /// Claims a task for `worker`, waiting up to `wait` for one.
@@ -753,6 +849,67 @@ async fn lease_in(
     }
 }
 
+/// A command's report or end holds its output, up to `MAX_OUTPUT_BYTES`, which JSON's escapes of control
+/// characters can make six times as long.
+const MAX_COMMAND_BODY: usize = 8 * crate::commands::MAX_OUTPUT_BYTES;
+
+async fn lease_command(
+    State(api): State<Api>,
+    headers: HeaderMap,
+    Json(request): Json<CommandLeaseRequest>,
+) -> Result<Response, Failure> {
+    let worker = api.command_worker(&headers, Some(&request.worker))?;
+    let wait = Duration::from_secs(request.wait_seconds).min(api.inner.config.max_wait);
+    match api.lease_command_for(&worker, wait).await? {
+        Some(command) => Ok(Json(command).into_response()),
+        None => Ok(StatusCode::NO_CONTENT.into_response()),
+    }
+}
+
+async fn report_command(
+    State(api): State<Api>,
+    Path(id): Path<i64>,
+    headers: HeaderMap,
+    Json(report): Json<CommandReport>,
+) -> Result<Json<CommandReply>, Failure> {
+    let worker = api.command_worker(&headers, None)?;
+    let cancel_requested = worker
+        .report(id, &report.output, report.output_truncated)
+        .await?;
+    Ok(Json(CommandReply { cancel_requested }))
+}
+
+async fn end_command(
+    State(api): State<Api>,
+    Path(id): Path<i64>,
+    headers: HeaderMap,
+    Json(end): Json<CommandEnd>,
+) -> Result<StatusCode, Failure> {
+    let worker = api.command_worker(&headers, None)?;
+    let (state, exit_code, error) = match &end.outcome {
+        CommandOutcome::Completed { exit_code } => {
+            (CommandState::Completed, Some(*exit_code), None)
+        }
+        CommandOutcome::TimedOut => (CommandState::TimedOut, None, None),
+        CommandOutcome::Cancelled => (CommandState::Cancelled, None, None),
+        CommandOutcome::Failed { error } => (CommandState::Failed, None, Some(error.as_str())),
+        CommandOutcome::Abandoned { error } => {
+            (CommandState::Abandoned, None, Some(error.as_str()))
+        }
+    };
+    worker
+        .end(
+            id,
+            state,
+            exit_code,
+            error,
+            &end.output,
+            end.output_truncated,
+        )
+        .await?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
 async fn renew(
     State(api): State<Api>,
     Path(id): Path<i64>,
@@ -1079,5 +1236,21 @@ mod tests {
             ["rdap_analyzer", "splunk_api", "clicker_detection_splunk"]
         );
         assert_eq!(config.pools[1].modules, ["email_analyzer"]);
+    }
+
+    /// A pool runs GUI commands (PLAN.md 5.12) only when its list has `@commands`, which isn't a module.
+    #[test]
+    fn a_pool_runs_commands_only_when_it_lists_them() {
+        let config = ApiConfig::new(vec![
+            PoolAccess::new(
+                "parsers",
+                "a",
+                vec!["email_analyzer".to_owned(), COMMANDS.to_owned()],
+            ),
+            PoolAccess::new("lookups", "b", vec!["rdap_analyzer".to_owned()]),
+        ]);
+        assert!(config.pools[0].commands);
+        assert_eq!(config.pools[0].modules, ["email_analyzer"]);
+        assert!(!config.pools[1].commands);
     }
 }

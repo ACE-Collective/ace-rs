@@ -725,3 +725,36 @@ table.saved-filters .place {
   width: 100%;
   max-width: 40rem;
 }
+
+/* Administration's CLI (PLAN.md 5.12), ace3's admin/cli.html: a run's output as text, kept in its box. */
+.cli .cli-output {
+  max-height: 32rem;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.5rem;
+}
+
+.cli .cli-command {
+  overflow-wrap: anywhere;
+}
+
+.cli .cli-facts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.25rem 1rem;
+}
+
+.cli .cli-facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.cli #cli-command {
+  font-family: monospace;
+  width: 100%;
+  max-width: 40rem;
+}

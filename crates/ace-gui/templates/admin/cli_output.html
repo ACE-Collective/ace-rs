@@ -1,0 +1,36 @@
+{#- A run's state and output (PLAN.md 5.12). While it runs, it polls for itself, and Datastar morphs the
+    answer in by its id; once it has ended, the answer has no interval and the polling stops. The URL is
+    read from data-refresh, an attribute like any other. The output is what a process wrote, drawn as
+    text. -#}
+<div id="cli-output"{% if run.row.active %} data-refresh="{{ run.refresh }}"
+     data-on-interval__duration.{{ run.refresh_seconds }}s="!document.hidden && @get(el.dataset.refresh)"{% endif %}>
+  <dl class="cli-facts">
+    <dt>Command</dt><dd><code>ace {{ run.row.command }}</code></dd>
+    <dt>Status</dt><dd><span class="badge cli-{{ run.row.state }}">{{ run.row.status }}</span></dd>
+    <dt>User</dt><dd>{{ run.row.username }}</dd>
+    <dt>Timeout</dt><dd>{{ run.row.timeout_seconds }} seconds</dd>
+    <dt>Requested</dt><dd>{{ run.row.created }}</dd>
+    {%- if !run.row.started.is_empty() %}
+    <dt>Started</dt><dd>{{ run.row.started }}</dd>
+    <dt>Deadline</dt><dd>{{ run.row.deadline }}</dd>
+    {%- endif %}
+    {%- if !run.row.finished.is_empty() %}
+    <dt>Finished</dt><dd>{{ run.row.finished }}</dd>
+    {%- endif %}
+    {%- if let Some(by) = run.row.cancelled_by %}
+    <dt>Cancelled by</dt><dd>{{ by }}</dd>
+    {%- endif %}
+    {%- if let Some(error) = run.row.error %}
+    <dt>Why</dt><dd>{{ error }}</dd>
+    {%- endif %}
+  </dl>
+  <pre class="cli-output">{% if run.output.is_empty() %}{% if run.row.active %}waiting for output…{% else %}(no output){% endif %}{% else %}{{ run.output }}{% endif %}</pre>
+  {%- if run.output_truncated %}
+  <p class="warning">It wrote more than the 1 MiB kept: the rest was dropped.</p>
+  {%- endif %}
+  {%- if run.row.active && !run.row.cancel_requested %}
+  <form method="post" action="/admin/cli/{{ run.row.id }}/cancel" class="inline">
+    <button type="submit">Cancel</button>
+  </form>
+  {%- endif %}
+</div>

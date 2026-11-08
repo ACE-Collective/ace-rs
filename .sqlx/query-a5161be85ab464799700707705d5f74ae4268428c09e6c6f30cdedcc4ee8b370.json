@@ -1,0 +1,55 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT state AS \"state: CommandState\", cancel_requested FROM queue.commands\n           WHERE id = $1 FOR UPDATE",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "state: CommandState",
+        "type_info": {
+          "Custom": {
+            "name": "queue.command_state",
+            "kind": {
+              "Enum": [
+                "queued",
+                "running",
+                "completed",
+                "timed_out",
+                "cancelled",
+                "failed",
+                "abandoned"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "queue.commands",
+            "name": "state"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "cancel_requested",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "queue.commands",
+            "name": "cancel_requested"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "a5161be85ab464799700707705d5f74ae4268428c09e6c6f30cdedcc4ee8b370"
+}

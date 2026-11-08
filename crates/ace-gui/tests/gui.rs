@@ -34,6 +34,11 @@
 //! directly with an event's hostile text, and through the server under `event:read` and `event:write`:
 //! the list's filters, sorts and pages by its URL, the export sent on to the API's, and Close Event from
 //! this site only with its audit row, each refusal changing nothing.
+//!
+//! PLAN.md 5.12: Administration's CLI, the console and a run's page and fragment, drawn directly with a
+//! run's hostile command and output, and through the server under `admin:read` and `cli:execute`: a start
+//! and a cancel from this site only, each with its audit row, the fragment's poll that stops once a run
+//! has ended, and each refusal changing nothing. The command's own run is ace-pool's `hung_tasks` test.
 
 use std::collections::BTreeSet;
 use std::io::Write;
@@ -8552,4 +8557,349 @@ async fn an_event_is_edited_through_the_server() {
         "{page}"
     );
     assert!(!page.contains("datetime-local"));
+}
+
+fn command_run(id: i64, state: ace_service::CommandState, text: &str) -> ace_service::CommandRun {
+    let at = chrono::DateTime::from_timestamp(1_700_000_000, 0).expect("a time");
+    ace_service::CommandRun {
+        id,
+        command: text.to_owned(),
+        state,
+        user: None,
+        username: text.to_owned(),
+        started_by: RecordedActor {
+            kind: "user".to_owned(),
+            id: "u".to_owned(),
+            name: Some(text.to_owned()),
+        },
+        timeout_seconds: 30,
+        exit_code: (state == ace_service::CommandState::Completed).then_some(2),
+        error: Some(text.to_owned()),
+        cancel_requested: false,
+        cancelled_by: None,
+        created_at: at,
+        started_at: Some(at),
+        deadline_at: Some(at + chrono::Duration::seconds(30)),
+        finished_at: None,
+    }
+}
+
+/// PLAN.md 5.12: the console, a run's page and its fragment draw a run's command, user, error and output
+/// only as text, and a run's fragment polls only while the run hasn't ended.
+#[test]
+fn the_cli_pages_draw_a_run_as_text() {
+    use ace_gui::cli::{ConsolePage, RunFragment, RunPage, console_view, run_view};
+    use ace_service::{CommandDetail, CommandPage, CommandState};
+    let layout = || Layout::new("n0nce", Theme::Dark, Some("alice".to_owned()), "/admin/cli");
+    let running = CommandDetail {
+        run: command_run(7, CommandState::Running, HOSTILE),
+        output: format!("{HOSTILE}\n\u{fffd}"),
+        output_truncated: true,
+    };
+    let console = drawn_safely(&ConsolePage {
+        layout: layout(),
+        view: console_view(
+            &CommandPage {
+                commands: vec![
+                    running.run.clone(),
+                    command_run(6, CommandState::Completed, "--help"),
+                ],
+                next: Some(6),
+            },
+            false,
+        ),
+    });
+    for part in [
+        r#"<form method="post" action="/admin/cli" class="fields" autocomplete="off">"#,
+        r#"<a href="/admin/cli/7">7</a>"#,
+        &format!("<code>{HOSTILE_ESCAPED}</code>"),
+        "completed (exit 2)",
+        r#"<a href="/admin/cli?after=6">Next</a>"#,
+        r#"max="3600""#,
+    ] {
+        assert!(console.contains(part), "{part}: {console}");
+    }
+    let page = drawn_safely(&RunPage {
+        layout: layout(),
+        run: run_view(&running),
+        problem: Some(HOSTILE.to_owned()),
+    });
+    for part in [
+        &format!("<code>ace {HOSTILE_ESCAPED}</code>"),
+        &format!(r#"<pre class="cli-output">{HOSTILE_ESCAPED}"#),
+        r#"data-refresh="/admin/cli/7/output""#,
+        r#"data-on-interval__duration.2s="!document.hidden && @get(el.dataset.refresh)""#,
+        r#"action="/admin/cli/7/cancel""#,
+        "It wrote more than the 1 MiB kept",
+    ] {
+        assert!(page.contains(part), "{part}: {page}");
+    }
+    let ended = CommandDetail {
+        run: command_run(6, CommandState::TimedOut, "sleep"),
+        output: String::new(),
+        output_truncated: false,
+    };
+    let fragment = drawn_safely(&RunFragment {
+        run: run_view(&ended),
+    });
+    assert!(
+        fragment.starts_with(r#"<div id="cli-output">"#),
+        "{fragment}"
+    );
+    assert!(
+        !fragment.contains("data-on-interval"),
+        "an ended run doesn't poll"
+    );
+    assert!(!fragment.contains("/cancel"), "nor can it be cancelled");
+    assert!(fragment.contains("(no output)"));
+    assert!(fragment.contains("timed out"));
+}
+
+/// PLAN.md 5.12: the CLI through the server. A start and a cancel are this site's posts, each one
+/// audited write; the pages need `admin:read` and `cli:execute`; a refusal draws the form again or says
+/// why, and writes nothing.
+#[tokio::test]
+async fn the_cli_starts_follows_and_cancels_a_command() {
+    let stack = stack().await;
+    let operator = user(&stack, "operator").await;
+    grant_to(&stack, &operator, "admin", "read").await;
+    grant_to(&stack, &operator, "cli", "execute").await;
+    let admin_only = user(&stack, "admin-only").await;
+    grant_to(&stack, &admin_only, "admin", "read").await;
+    user(&stack, "nobody").await;
+    let session = |name: &'static str| {
+        let stack = &stack;
+        async move { session_set(stack.log_in(name, PASSWORD).await.headers()).expect("a session") }
+    };
+    let (op, adm, none) = (
+        session("operator").await,
+        session("admin-only").await,
+        session("nobody").await,
+    );
+
+    // the hub offers the CLI to whoever holds cli:execute
+    let hub = stack
+        .get("/admin")
+        .header("cookie", cookie(&op))
+        .send()
+        .await
+        .expect("answered");
+    assert!(
+        hub.text()
+            .await
+            .expect("text")
+            .contains(r#"href="/admin/cli""#)
+    );
+    let hub = stack
+        .get("/admin")
+        .header("cookie", cookie(&adm))
+        .send()
+        .await
+        .expect("answered");
+    assert!(
+        !hub.text()
+            .await
+            .expect("text")
+            .contains(r#"href="/admin/cli""#)
+    );
+
+    // a start from this site, which goes to the run's page
+    let rows = stack.audit_count().await;
+    let started = stack
+        .post(
+            "/admin/cli",
+            &[("command", "ace --help"), ("timeout_seconds", "60")],
+        )
+        .header("cookie", cookie(&op))
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(started.status(), StatusCode::SEE_OTHER);
+    let page = location(&started).to_owned();
+    let id: i64 = page
+        .strip_prefix("/admin/cli/")
+        .expect("a run")
+        .parse()
+        .expect("an id");
+    assert_eq!(stack.audit_count().await, rows + 1);
+    assert_eq!(last_action(&stack).await, "start_command");
+    let run = stack
+        .get(&page)
+        .header("cookie", cookie(&op))
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(run.status(), StatusCode::OK);
+    let html = run.text().await.expect("text");
+    assert!(html.contains("<code>ace --help</code>"), "{html}");
+    assert!(html.contains("waiting for output"), "{html}");
+    let console = stack
+        .get("/admin/cli")
+        .header("cookie", cookie(&op))
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(console.status(), StatusCode::OK);
+    assert!(
+        console
+            .text()
+            .await
+            .expect("text")
+            .contains(&format!(r#"href="/admin/cli/{id}""#))
+    );
+
+    // the fragment its page polls, while the run is queued
+    let fragment = stack
+        .get(&format!("/admin/cli/{id}/output"))
+        .header("cookie", cookie(&op))
+        .header("datastar-request", "true")
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(fragment.status(), StatusCode::OK);
+    assert!(
+        fragment
+            .text()
+            .await
+            .expect("text")
+            .contains("data-on-interval")
+    );
+
+    // refusals: a line the service won't take draws the form again with it, and writes nothing
+    let rows = stack.audit_count().await;
+    for (line, timeout) in [
+        ("-c x node list", "10"),
+        ("--help", "0"),
+        ("--help", "soon"),
+    ] {
+        let refused = stack
+            .post(
+                "/admin/cli",
+                &[("command", line), ("timeout_seconds", timeout)],
+            )
+            .header("cookie", cookie(&op))
+            .send()
+            .await
+            .expect("answered");
+        assert_eq!(
+            refused.status(),
+            StatusCode::BAD_REQUEST,
+            "{line} {timeout}"
+        );
+        let html = refused.text().await.expect("text");
+        assert!(html.contains("Nothing ran:"), "{html}");
+        assert!(html.contains(&format!(r#"value="{timeout}""#)), "{html}");
+    }
+    // another site's post, a viewer without cli:execute or admin:read, and one signed out
+    let cross = stack
+        .http
+        .post(format!("{}/admin/cli", stack.url))
+        .header("origin", "https://evil.example")
+        .header("cookie", cookie(&op))
+        .form(&[("command", "--help")])
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(cross.status(), StatusCode::FORBIDDEN);
+    for (token, path) in [
+        (&adm, "/admin/cli".to_owned()),
+        (&adm, page.clone()),
+        (&none, "/admin/cli".to_owned()),
+        (&none, page.clone()),
+    ] {
+        let refused = stack
+            .get(&path)
+            .header("cookie", cookie(token))
+            .send()
+            .await
+            .expect("answered");
+        assert_eq!(refused.status(), StatusCode::FORBIDDEN, "{path}");
+    }
+    for token in [&adm, &none] {
+        let refused = stack
+            .post("/admin/cli", &[("command", "--help")])
+            .header("cookie", cookie(token))
+            .send()
+            .await
+            .expect("answered");
+        assert_eq!(refused.status(), StatusCode::FORBIDDEN);
+        let refused = stack
+            .post(&format!("/admin/cli/{id}/cancel"), &[])
+            .header("cookie", cookie(token))
+            .send()
+            .await
+            .expect("answered");
+        assert_eq!(refused.status(), StatusCode::FORBIDDEN);
+        let refused = stack
+            .get(&format!("/admin/cli/{id}/output"))
+            .header("cookie", cookie(token))
+            .send()
+            .await
+            .expect("answered");
+        assert_eq!(refused.status(), StatusCode::FORBIDDEN);
+    }
+    let signed_out = stack.get(&page).send().await.expect("answered");
+    assert_eq!(signed_out.status(), StatusCode::SEE_OTHER);
+    assert!(location(&signed_out).starts_with("/login?next="));
+    let signed_out = stack
+        .get(&format!("/admin/cli/{id}/output"))
+        .header("datastar-request", "true")
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(signed_out.status(), StatusCode::UNAUTHORIZED);
+    for (path, status) in [
+        ("/admin/cli/x".to_owned(), StatusCode::BAD_REQUEST),
+        (format!("/admin/cli/{}", i64::MAX), StatusCode::NOT_FOUND),
+        ("/admin/cli?after=x".to_owned(), StatusCode::BAD_REQUEST),
+        (
+            format!("/admin/cli/{}/output", i64::MAX),
+            StatusCode::NOT_FOUND,
+        ),
+    ] {
+        let answered = stack
+            .get(&path)
+            .header("cookie", cookie(&op))
+            .send()
+            .await
+            .expect("answered");
+        assert_eq!(answered.status(), status, "{path}");
+    }
+    assert_eq!(stack.audit_count().await, rows, "no refusal wrote");
+
+    // a cancel ends the queued run, with its row; a second is a conflict on the run's page
+    let cancelled = stack
+        .post(&format!("/admin/cli/{id}/cancel"), &[])
+        .header("cookie", cookie(&op))
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(cancelled.status(), StatusCode::SEE_OTHER);
+    assert_eq!(location(&cancelled), page);
+    assert_eq!(last_action(&stack).await, "cancel_command");
+    let rows = stack.audit_count().await;
+    let again = stack
+        .post(&format!("/admin/cli/{id}/cancel"), &[])
+        .header("cookie", cookie(&op))
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(again.status(), StatusCode::CONFLICT);
+    assert!(
+        again
+            .text()
+            .await
+            .expect("text")
+            .contains("Nothing was cancelled")
+    );
+    assert_eq!(stack.audit_count().await, rows);
+    let fragment = stack
+        .get(&format!("/admin/cli/{id}/output"))
+        .header("cookie", cookie(&op))
+        .send()
+        .await
+        .expect("answered");
+    let html = fragment.text().await.expect("text");
+    assert!(html.contains("cancelled before a pool took it"), "{html}");
+    assert!(!html.contains("data-on-interval"), "it no longer polls");
 }

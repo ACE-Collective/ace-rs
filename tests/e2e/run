@@ -35,6 +35,10 @@ list's refresh has to drop it from the open page, again with no reload and nothi
 the browser over the DevTools protocol, with a WebSocket client here, so it needs nothing more than
 python3.
 
+It also runs a GUI command (PLAN.md 5.12): signed in as that analyst, it starts `ace --help` and `ace serve`
+through the JSON API with the session, which the parser pool runs contained, and checks that the help
+completed with ace's usage and that `serve` was refused, as a command a contained process can't run.
+
 Then the library diff's self-test runs (PLAN.md 4.8).
 
 It then runs `ace compare` (PLAN.md 3.3, crates/ace-app/src/compare.rs) over the sample set, each
@@ -69,6 +73,7 @@ Its modules differ from ace3's by design, so setting ACE4_E2E_SITE skips the com
 
 import base64
 import hashlib
+import http.client
 import json
 import os
 import re
@@ -78,6 +83,7 @@ import struct
 import subprocess
 import sys
 import time
+import urllib.parse
 import urllib.request
 import uuid
 from pathlib import Path
@@ -517,6 +523,65 @@ def _try_json(request):
         return None
 
 
+def web_request(method, path, body=None, headers=None):
+    """One request to the GUI's and the JSON API's port, not following a redirect: its status, headers
+    and body."""
+    connection = http.client.HTTPConnection("127.0.0.1", int(PORT), timeout=30)
+    try:
+        connection.request(method, path, body=body, headers=headers or {})
+        response = connection.getresponse()
+        return response.status, dict(response.getheaders()), response.read().decode()
+    finally:
+        connection.close()
+
+
+def check_gui_command(failures):
+    """PLAN.md 5.12: a command started with the analyst's session runs on the parser pool, contained,
+    on ace's own command line: --help completes with the usage, and a command that needs what a contained
+    process can't have is refused."""
+    origin = f"http://127.0.0.1:{PORT}"
+    form = urllib.parse.urlencode({"username": ANALYST, "password": ANALYST_PASSWORD})
+    status, headers, _ = web_request("POST", "/login", form, {
+        "Content-Type": "application/x-www-form-urlencoded", "Origin": origin})
+    cookie = (headers.get("Set-Cookie") or headers.get("set-cookie") or "").split(";")[0]
+    if status != 303 or not cookie:
+        log(f"FAIL  the analyst couldn't sign in for a GUI command ({status})")
+        failures.append("no session for a GUI command")
+        return
+    session = {"Cookie": cookie, "Origin": origin, "Content-Type": "application/json"}
+    ended = {}
+    for line in ("--help", "serve"):
+        status, _, body = web_request("POST", "/api/cli/v1/commands",
+                               json.dumps({"command": line, "timeout_seconds": 60}), session)
+        if status != 202:
+            log(f"FAIL  starting `ace {line}` answered {status}: {body}")
+            failures.append(f"`ace {line}` didn't start")
+            return
+        run = json.loads(body)["id"]
+
+        def done(run=run):
+            status, _, body = web_request("GET", f"/api/cli/v1/commands/{run}", None, session)
+            command = json.loads(body) if status == 200 else {}
+            return command if command.get("state") not in (None, "queued", "running") else None
+
+        ended[line] = wait_for(f"GUI command `ace {line}` to end", done, within=90)
+    help_run, serve_run = ended["--help"], ended["serve"]
+    ok = (help_run["state"] == "completed" and help_run["exit_code"] == 0
+          and "Usage: ace" in help_run["output"] and "serve" in help_run["output"])
+    log(("ok    " if ok else "FAIL  ")
+        + f"`ace --help` ran contained on the parser pool: {help_run['state']}, exit "
+        + f"{help_run['exit_code']}, {len(help_run['output'])} characters of output")
+    if not ok:
+        log(json.dumps(help_run, indent=2))
+        failures.append("`ace --help` didn't complete from the GUI")
+    ok = (serve_run["state"] == "completed" and serve_run["exit_code"] == 2
+          and "doesn't run from the GUI" in serve_run["output"])
+    log(("ok    " if ok else "FAIL  ") + "`ace serve` was refused as a GUI command: "
+        + serve_run["output"].strip())
+    if not ok:
+        failures.append("`ace serve` wasn't refused as a GUI command")
+
+
 def make_analyst():
     """The first user, holding every permission, as an operator makes one (PLAN.md 5.4)."""
     result = subprocess.run(
@@ -545,7 +610,6 @@ def check_live_alert(email, failures):
             failures.append(f"the browser test: {message}")
         return ok
 
-    make_analyst()
     page = open_page()
     try:
         page.call("Page.navigate", url=f"{GUI_IN_STACK}/login")
@@ -847,6 +911,8 @@ def main(argv):
                 failures.append("ace compare couldn't run every sample; see above")
             return finish(failures)
         check_gui(failures)
+        make_analyst()
+        check_gui_command(failures)
         email = (ROOT / "samples" / SAMPLE).read_bytes()
         first, undisturbed = run(email, kill=False, failures=failures)
         second, killed = run(email, kill=True, failures=failures)

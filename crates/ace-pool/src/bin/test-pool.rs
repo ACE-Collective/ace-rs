@@ -11,6 +11,11 @@
 //!     run as a parser pool's supervisor until SIGTERM, one task process per task; with
 //!     --rulesets, keep DIR on the core's current YARA ruleset, and lease nothing until the
 //!     first has loaded
+//! test-pool parsers ... --commands
+//!     the same, also leasing GUI commands and running each as `test-pool command`
+//! test-pool command
+//!     a GUI command's process: read a command on stdin, contain, run one of
+//!     `testing::run_test_command`'s commands
 //! test-pool task [--settings JSON]
 //!     a task process: read a task on stdin, contain, run it, write its end on stdout
 //! test-pool replay ID [--settings JSON]
@@ -43,6 +48,7 @@ struct Args {
     read_paths: Vec<std::path::PathBuf>,
     rulesets: Option<std::path::PathBuf>,
     ruleset_poll: Duration,
+    commands: bool,
 }
 
 fn parse() -> Result<Args, String> {
@@ -61,6 +67,7 @@ fn parse() -> Result<Args, String> {
         read_paths: Vec::new(),
         rulesets: None,
         ruleset_poll: ace_pool::rulesets::DEFAULT_EVERY,
+        commands: false,
     };
     while let Some(arg) = args.next() {
         match arg.as_str() {
@@ -70,6 +77,7 @@ fn parse() -> Result<Args, String> {
                 parsed.settings_text = text;
             }
             "--contained" => parsed.contained = true,
+            "--commands" => parsed.commands = true,
             "--task-user" => {
                 parsed.task_user = Some(args.next().ok_or("--task-user takes a name")?)
             }
@@ -99,6 +107,10 @@ fn parse() -> Result<Args, String> {
 }
 
 fn main() -> ExitCode {
+    // a command's process reads its request on stdin, and nothing else
+    if std::env::args().nth(1).as_deref() == Some("command") {
+        return ace_pool::commands::process_main(&ace_pool::testing::run_test_command);
+    }
     // logs now; span export, which starts threads, once any containment is in place
     let mut telemetry = ace_pool::telemetry::init("ace4-test-pool", "info");
     let args = match parse() {
@@ -186,7 +198,7 @@ fn main() -> ExitCode {
                 }
             };
             let config = SupervisorConfig {
-                program,
+                program: program.clone(),
                 args: vec![
                     "task".to_owned(),
                     "--settings".to_owned(),
@@ -200,7 +212,15 @@ fn main() -> ExitCode {
                 RulesetWatcher::new(client.clone(), dir, Arc::new(ace_mod_yara::check_ruleset))
                     .every(args.ruleset_poll)
             });
-            with_runtime(parsers(Supervisor::new(client, modules, config), watcher))
+            let mut supervisor = Supervisor::new(client, modules, config);
+            if args.commands {
+                supervisor = supervisor.with_commands(ace_pool::commands::CommandConfig::new(
+                    program,
+                    vec!["command".to_owned()],
+                    user,
+                ));
+            }
+            with_runtime(parsers(supervisor, watcher))
         }
         other => {
             eprintln!("unknown mode {other}");

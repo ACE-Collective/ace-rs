@@ -439,3 +439,90 @@ impl Lookup for Hung {
         })))
     }
 }
+
+/// The test pool's GUI commands (PLAN.md 5.12), run in a contained command process by
+/// `commands::process_main`:
+///
+/// - `echo WORDS...`: prints the words.
+/// - `exit N`: exits N.
+/// - `sleep forever|SECONDS`: prints `pid N`, then sleeps.
+/// - `fork`: starts a process, which seccomp answers with SIGSYS.
+/// - `open PATH`: opens PATH and prints what happened.
+/// - `flood BYTES`: prints that many bytes.
+/// - `nul`: prints a NUL between two letters.
+/// - `both`: writes to stdout, stderr and stdout again.
+pub fn run_test_command(argv: &[String]) -> u8 {
+    test_command(argv).unwrap_or(1)
+}
+
+fn test_command(argv: &[String]) -> std::io::Result<u8> {
+    use std::io::Write;
+    let words: Vec<&str> = argv.iter().map(String::as_str).collect();
+    let mut out = std::io::stdout().lock();
+    Ok(match words.as_slice() {
+        ["echo", rest @ ..] => {
+            writeln!(out, "{}", rest.join(" "))?;
+            0
+        }
+        ["exit", code] => code.parse().unwrap_or(1),
+        ["sleep", how] => {
+            writeln!(out, "pid {}", std::process::id())?;
+            out.flush()?;
+            let seconds = how.parse::<u64>().unwrap_or(u64::MAX);
+            let until = std::time::Instant::now() + Duration::from_secs(seconds.min(1 << 32));
+            while std::time::Instant::now() < until {
+                std::thread::sleep(Duration::from_millis(200));
+            }
+            0
+        }
+        ["fork"] => {
+            writeln!(out, "starting a process")?;
+            out.flush()?;
+            match std::process::Command::new("/bin/true").status() {
+                Ok(status) => {
+                    writeln!(out, "it ran: {status}")?;
+                    0
+                }
+                Err(e) => {
+                    writeln!(out, "it didn't: {e}")?;
+                    1
+                }
+            }
+        }
+        ["open", path] => match std::fs::read(path) {
+            Ok(bytes) => {
+                writeln!(out, "read {} bytes", bytes.len())?;
+                0
+            }
+            Err(e) => {
+                writeln!(out, "can't open {path}: {e}")?;
+                1
+            }
+        },
+        ["flood", bytes] => {
+            let mut left: usize = bytes.parse().unwrap_or(0);
+            let chunk = vec![b'x'; 64 * 1024];
+            while left > 0 {
+                let n = left.min(chunk.len());
+                out.write_all(&chunk[..n])?;
+                left -= n;
+            }
+            0
+        }
+        ["nul"] => {
+            out.write_all(b"a\0b\n")?;
+            0
+        }
+        ["both"] => {
+            writeln!(out, "out 1")?;
+            out.flush()?;
+            eprintln!("err 1");
+            writeln!(out, "out 2")?;
+            0
+        }
+        _ => {
+            eprintln!("no test command {words:?}");
+            2
+        }
+    })
+}

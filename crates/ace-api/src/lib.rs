@@ -257,6 +257,30 @@
 //!   filters in its URL, so there's nothing to hold between requests.
 //! - An API key with no owner is refused with 403 where ace3 answers 401, as with comments. Each write has
 //!   an audit row, and a user has at most 200 saved filters on a screen.
+//!
+//! ace3's `cli` router and the `engine` router's `cli` endpoint (PLAN.md 5.6, 5.12), under `cli:execute`
+//! as in ace3 (`ace_service`'s `commands` docs). A command is queued for a parser pool, which runs it
+//! contained until its deadline, so the session and the API that took it don't bound it (#973):
+//!
+//! | ace3 `/api/v2` | here, under `/api/cli/v1` |
+//! |---|---|
+//! | `POST /cli/executions`, one row per node | `POST /commands`, one run, 202, audited |
+//! | `GET /cli/executions?cursor=&limit=` | `GET /commands?after=&limit=`, newest first, without output |
+//! | `GET /cli/executions/{id}` | `GET /commands/{id}`, with its output so far |
+//! | none | `POST /commands/{id}/cancel`, audited |
+//! | `POST /engine/cli/{id}`, node to node with the automation key | the lease API's `POST /api/worker/v1/commands/lease`: a pool takes the run, rather than a node being told to start it |
+//!
+//! What differs, or is left out, and why:
+//! - `node_ids` and a run per node, and the node's name on a run: one node runs here, and any pool that
+//!   runs commands may take one. Multi-node is *Deferred*'s.
+//! - ace3's `pending` is `queued`; ace3's statuses are otherwise kept, and `cancelled` is new, since ace3
+//!   has no cancel. ace3 refuses more than 3 running at once on a node with 429; here a pool runs 3 at
+//!   once and the rest wait queued, up to their timeout, after which they're `abandoned`.
+//! - The timeout starts when a pool takes the run, which is its deadline; ace3's starts when its node
+//!   does.
+//! - ace3 refuses `--password` and other secret options. No ace4 command takes a secret on its command
+//!   line, so nothing is refused for one; a leading option other than help or version is, as there.
+//! - A key with no owner is refused with 403, as ace3 refuses a config key: a run names its person.
 use std::net::SocketAddr;
 
 use ace_core::bucket::Bucket;
@@ -269,6 +293,7 @@ use utoipa::OpenApi;
 mod alerts;
 mod analysis;
 mod auth;
+mod cli;
 mod crashes;
 mod detection_points;
 mod error;
@@ -472,6 +497,12 @@ impl Web {
                 "/api/events/v1/threats/{malware}/{threat_type}",
                 delete(events::remove_threat),
             )
+            .route(
+                "/api/cli/v1/commands",
+                get(cli::list).post(cli::start).layer(json_limit),
+            )
+            .route("/api/cli/v1/commands/{id}", get(cli::one))
+            .route("/api/cli/v1/commands/{id}/cancel", post(cli::cancel))
             .route("/api/crashes/v1/crashes", get(crashes::list))
             .route("/api/crashes/v1/crashes/{id}", get(crashes::one))
             .route(
@@ -643,6 +674,10 @@ impl Web {
         crashes::list,
         crashes::one,
         crashes::download,
+        cli::start,
+        cli::list,
+        cli::one,
+        cli::cancel,
         yara_qa::rules,
         yara_qa::rule,
         yara_qa::matches,
@@ -661,6 +696,7 @@ impl Web {
         (name = "users", description = "Users, groups, grants and API keys, and the caller's own account"),
         (name = "health", description = "Whether the API answers"),
         (name = "crashes", description = "Failed tasks, their errors and their inputs"),
+        (name = "cli", description = "ace commands run from the GUI, contained on a pool until their deadline"),
         (name = "yara_qa", description = "YARA rules in QA mode, the files they matched, and purges"),
         (name = "events", description = "Events, the alerts in them, threat types and malware's threats"),
         (name = "filters", description = "A list screen's filters, their share links, and the caller's saved filters"),

@@ -324,6 +324,7 @@ name = "ace-pool"
 version = "0.1.0"
 dependencies = [
  "ace-core",
+ "ace-gui",
  "ace-mod-archive",
  "ace-mod-email",
  "ace-mod-msoffice",
@@ -335,8 +336,10 @@ dependencies = [
  "ace-pool",
  "ace-results",
  "ace-sdk",
+ "ace-service",
  "ace-store",
  "ace-testkit",
+ "axum",
  "base64 0.22.1",
  "chrono",
  "flate2",
@@ -422,6 +425,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2 0.11.1",
+ "shlex",
  "sqlx",
  "subtle",
  "tempfile",
