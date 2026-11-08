@@ -354,12 +354,18 @@ const QA_PURGE: &str = "/api/yara-qa/v1/rules/{uuid}/purge";
 const QA_MATCH: &str = "/api/yara-qa/v1/matches/{id}";
 const QA_RECORD: &str = "/api/yara-qa/v1/matches/{id}/record";
 const QA_MATCH_DOWNLOAD: &str = "/api/yara-qa/v1/matches/{id}/download";
+const COMMENTS: &str = "/api/observables/v1/comments";
+const COMMENT: &str = "/api/observables/v1/comments/{id}";
 const OTHER_PASSWORD: &str = "a different long passphrase";
 
 /// A route with its `{...}` filled: a crash's `{id}` is a task's, which `observable` stands in for, since a
 /// refusal comes before the id is looked up.
 fn fill(route: &str, id: Uuid, observable: i64) -> String {
-    if route.starts_with("/api/crashes/") || route.starts_with("/api/yara-qa/") {
+    if route == COMMENTS {
+        return format!("{COMMENTS}?type=fqdn&value=a.example");
+    }
+    if route.starts_with("/api/crashes/") || route.starts_with("/api/yara-qa/") || route == COMMENT
+    {
         return route
             .replace("{id}", &observable.to_string())
             .replace("{uuid}", &id.to_string());
@@ -410,6 +416,8 @@ fn good_body(route: &str) -> Send {
         KEYS | KEY | MY_KEYS | MY_KEY => Send::Json(scope_body("refused", &[("alert", "read")])),
         MY_PASSWORD => Send::Json(json!({"current": PASSWORD, "new": OTHER_PASSWORD})),
         QA_PURGE => Send::Json(json!({"match_ids": [1]})),
+        COMMENTS => Send::Json(json!({"type": "fqdn", "value": "a.example", "comment": "x"})),
+        COMMENT => Send::Json(json!({"comment": "x"})),
         _ => Send::Nothing,
     }
 }
@@ -435,7 +443,7 @@ async fn refuses_without_a_credential_or_a_permission(
         .map(|(method, route, _)| (method, route))
         .filter(|route| !public.contains(route))
         .collect();
-    assert_eq!(routes.len(), 44, "{routes:?}");
+    assert_eq!(routes.len(), 48, "{routes:?}");
     for (method, route) in routes {
         let method: Method = method.to_uppercase().parse().expect("a method");
         let path = fill(&route, id, file);
@@ -2814,6 +2822,243 @@ async fn yara_qa(client: &mut Client<'_>, token: &str, root: Uuid, file: i64, by
     assert_eq!(error["error"], "this needs signature:read");
 }
 
+/// A user holding these, with a session's token.
+async fn session_of(stack: &Stack, name: &str, grants: &[&str]) -> (Uuid, String) {
+    let id = stack
+        .service
+        .create_user(
+            &bootstrap(),
+            &Username::new(name).expect("a name"),
+            Password::new(PASSWORD),
+            &Profile::default(),
+        )
+        .await
+        .expect("makes a user");
+    for grant in grants {
+        let (major, minor) = grant.split_once(':').expect("a grant");
+        stack
+            .service
+            .grant(
+                &bootstrap(),
+                &Holder::User(id),
+                &PermissionPattern::new(major, minor).expect("a pattern"),
+                Effect::Allow,
+            )
+            .await
+            .expect("grants");
+    }
+    let session = stack
+        .service
+        .login(name, Password::new(PASSWORD), None)
+        .await
+        .expect("logs in");
+    (id.0, session.token.expose().to_owned())
+}
+
+/// ace3's `observable_comments` router: a comment on a type and value, listed for it from any alert,
+/// written by a person, and changed or deleted only by its author. Its text comes back as sent.
+async fn comments(client: &mut Client<'_>, file_alert: Uuid, file_bytes: &[u8]) {
+    use Method as M;
+    use StatusCode as S;
+    let json = Send::Json;
+    let stack = client.stack;
+    let grants = ["observable:read", "observable:write"];
+    let (alice, alices) = session_of(stack, "commenter", &grants).await;
+    let (_, bobs) = session_of(stack, "other-commenter", &grants).await;
+    let (a, b) = (Some(alices.as_str()), Some(bobs.as_str()));
+    let ownerless = key(stack, &["observable:write"]).await;
+    let reader = bootstrap_reader(stack).await;
+    let rows = audit_count(stack).await;
+
+    let text = "<script>alert(1)</script>\r\n../../etc/passwd \u{FFFD}";
+    let sha256 = sha256_hex(file_bytes);
+    let added = client
+        .json(
+            M::POST,
+            COMMENTS,
+            COMMENTS,
+            a,
+            json(json!({"type": "file", "value": sha256.to_uppercase(), "comment": text})),
+            S::CREATED,
+        )
+        .await;
+    assert_eq!(added["type"], "file");
+    assert_eq!(added["value"], sha256, "matched as the lookup matches");
+    assert_eq!(added["comment"], text, "as it was sent");
+    assert_eq!(added["author"]["id"], json!(alice));
+    assert_eq!(added["author"]["username"], "commenter");
+    assert_eq!(added["created_by"]["kind"], "user");
+    assert_eq!(added["edited_at"], Value::Null);
+    let id = added["id"].as_i64().expect("an id");
+    assert_eq!(audit_count(stack).await, rows + 1);
+
+    // listed for the file, which the submitted alert holds, and in that alert's comments
+    let list = format!("{COMMENTS}?type=file&value={sha256}");
+    let listed = client
+        .json(M::GET, COMMENTS, &list, b, Send::Nothing, S::OK)
+        .await;
+    assert_eq!(listed, json!({"comments": [added.clone()]}));
+    let in_alert = stack
+        .service
+        .alert_observable_comments(&reader, file_alert)
+        .await
+        .expect("reads");
+    assert_eq!(in_alert.len(), 1);
+    assert_eq!(in_alert[0].id, id);
+    for bad in [
+        format!("{COMMENTS}?type=no_such_type&value=x"),
+        format!("{COMMENTS}?type=fqdn"),
+    ] {
+        client
+            .json(M::GET, COMMENTS, &bad, a, Send::Nothing, S::BAD_REQUEST)
+            .await;
+    }
+
+    // the author edits it; another user can't, and a key with no owner can't write one
+    let one = at(COMMENT, id, "");
+    let edited = client
+        .json(
+            M::PATCH,
+            COMMENT,
+            &one,
+            a,
+            json(json!({"comment": "the dropper"})),
+            S::OK,
+        )
+        .await;
+    assert_eq!(edited["comment"], "the dropper");
+    assert!(edited["edited_at"].is_string(), "{edited}");
+    let error = client
+        .json(
+            M::PATCH,
+            COMMENT,
+            &one,
+            b,
+            json(json!({"comment": "mine now"})),
+            S::FORBIDDEN,
+        )
+        .await;
+    assert_eq!(
+        error["error"],
+        "only a comment's author can change or delete it"
+    );
+    client
+        .json(M::DELETE, COMMENT, &one, b, Send::Nothing, S::FORBIDDEN)
+        .await;
+    let error = client
+        .json(
+            M::POST,
+            COMMENTS,
+            COMMENTS,
+            Some(&ownerless),
+            json(json!({"type": "fqdn", "value": "a.example", "comment": "x"})),
+            S::FORBIDDEN,
+        )
+        .await;
+    assert!(
+        error["error"]
+            .as_str()
+            .is_some_and(|e| e.starts_with("a comment is a person's")),
+        "{error}"
+    );
+
+    // what isn't taken
+    for body in [
+        json!({"type": "fqdn", "value": "a.example", "comment": "  "}),
+        json!({"type": "fqdn", "value": "a.example", "comment": "x".repeat(16385)}),
+        json!({"type": "no_such_type", "value": "a.example", "comment": "x"}),
+        json!({"type": "fqdn", "value": "a.example"}),
+    ] {
+        client
+            .json(M::POST, COMMENTS, COMMENTS, a, json(body), S::BAD_REQUEST)
+            .await;
+    }
+    client
+        .json(
+            M::PATCH,
+            COMMENT,
+            &one,
+            a,
+            json(json!({"comment": ""})),
+            S::BAD_REQUEST,
+        )
+        .await;
+    for route in [COMMENTS, COMMENT] {
+        let method = if route == COMMENTS { M::POST } else { M::PATCH };
+        let path = at(route, id, "");
+        let response = client.call(method, route, &path, a, too_large()).await;
+        assert_eq!(response.status(), S::PAYLOAD_TOO_LARGE, "{route}");
+    }
+    let not_an_id = at(COMMENT, "x", "");
+    client
+        .json(
+            M::PATCH,
+            COMMENT,
+            &not_an_id,
+            a,
+            json(json!({"comment": "x"})),
+            S::BAD_REQUEST,
+        )
+        .await;
+    client
+        .json(
+            M::DELETE,
+            COMMENT,
+            &not_an_id,
+            a,
+            Send::Nothing,
+            S::BAD_REQUEST,
+        )
+        .await;
+    assert_eq!(
+        audit_count(stack).await,
+        rows + 2,
+        "only the add and the edit"
+    );
+
+    // the author deletes it, and then it isn't there
+    let response = client
+        .call(M::DELETE, COMMENT, &one, a, Send::Nothing)
+        .await;
+    assert_eq!(response.status(), S::NO_CONTENT);
+    assert_eq!(audit_count(stack).await, rows + 3);
+    let listed = client
+        .json(M::GET, COMMENTS, &list, b, Send::Nothing, S::OK)
+        .await;
+    assert_eq!(listed, json!({"comments": []}));
+    client
+        .json(
+            M::PATCH,
+            COMMENT,
+            &one,
+            a,
+            json(json!({"comment": "x"})),
+            S::NOT_FOUND,
+        )
+        .await;
+    client
+        .json(M::DELETE, COMMENT, &one, a, Send::Nothing, S::NOT_FOUND)
+        .await;
+}
+
+/// A component that may read alerts, for a service call the API has no route for yet.
+async fn bootstrap_reader(stack: &Stack) -> Actor {
+    let reader = Actor::Internal {
+        id: Component::new("comment-reader").expect("a valid name"),
+    };
+    stack
+        .service
+        .grant(
+            &bootstrap(),
+            &Holder::Component(Component::new("comment-reader").expect("a valid name")),
+            &PermissionPattern::new("alert", "read").expect("a pattern"),
+            Effect::Allow,
+        )
+        .await
+        .expect("grants");
+    reader
+}
+
 /// The Done check.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn every_documented_status_is_tested() {
@@ -2850,6 +3095,7 @@ async fn every_documented_status_is_tested() {
     serves_me(&mut client).await;
     crashes(&mut client, &token, id, file, &bytes).await;
     yara_qa(&mut client, &token, id, file, &bytes).await;
+    comments(&mut client, id, &bytes).await;
     pings(&mut client, &token).await;
 
     assert_eq!(

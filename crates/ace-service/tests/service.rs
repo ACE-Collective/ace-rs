@@ -15,6 +15,9 @@
 //!
 //! PLAN.md 5.6's `yara_qa`: the rules in QA mode merge the current ruleset with the matches kept, a
 //! download is a row of what was read, and a purge releases only its own holds.
+//!
+//! PLAN.md 5.6's `observable_comments`: a comment is on a type and value across alerts, a person's, and
+//! changed or deleted only by its author, with a deleted one kept in its audit row.
 
 use std::collections::BTreeSet;
 use std::io::Write;
@@ -1443,6 +1446,9 @@ async fn every_write_function_has_an_audit_test() {
         download_qa_match_records_its_row(db).await,
         download_qa_matches_records_its_row(db).await,
         purge_qa_matches_records_its_row(db).await,
+        add_observable_comment_records_its_row(db).await,
+        edit_observable_comment_records_its_row(db).await,
+        delete_observable_comment_records_its_row(db).await,
         update_user_records_its_row(db).await,
         update_own_profile_records_its_row(db).await,
         create_group_records_its_row(db).await,
@@ -2765,6 +2771,10 @@ async fn every_write_fails_when_its_audit_fails() {
     let crash = failed_task(db, file_root, file, "crasher", "the module panicked").await;
     let qa = qa_match(db, &bucket, file_root, file, QA_UUID, "v1").await;
     let (submitted, files) = submission(&bucket, b"another file").await;
+    let comment = service
+        .add_observable_comment(&actor, "fqdn", "evil.example.com", "before")
+        .await
+        .expect("comments");
     let before = (
         row(db, root).await,
         tasks(db, root).await,
@@ -2774,6 +2784,7 @@ async fn every_write_fails_when_its_audit_fails() {
         root_count(db).await,
         group_rows(db).await,
         qa_state(db).await,
+        comment_rows(db).await,
     );
 
     sqlx::raw_sql("ALTER TABLE service.audit ADD CONSTRAINT broken CHECK (false) NOT VALID")
@@ -2944,6 +2955,30 @@ async fn every_write_fails_when_its_audit_fails() {
                 .expect_err("refused"),
         ),
         (
+            "add_observable_comment",
+            service
+                .add_observable_comment(&actor, "fqdn", "evil.example.com", "after")
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "edit_observable_comment",
+            service
+                .edit_observable_comment(&actor, comment.id, "after")
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "delete_observable_comment",
+            service
+                .delete_observable_comment(&actor, comment.id)
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
             "update_user",
             service
                 .update_user(&actor, bob, &display_name("Bob"))
@@ -3045,6 +3080,7 @@ async fn every_write_fails_when_its_audit_fails() {
         root_count(db).await,
         group_rows(db).await,
         qa_state(db).await,
+        comment_rows(db).await,
     );
     assert_eq!(after, before);
     assert_eq!(
@@ -6030,4 +6066,390 @@ fn the_catalog_lists_every_permission_checked() {
             }
         }
     }
+}
+
+// PLAN.md 5.6's `observable_comments`.
+
+/// Every comment row, whole.
+async fn comment_rows(db: &Db) -> Vec<String> {
+    sqlx::query_scalar(
+        "SELECT row_to_json(c)::text FROM analysis.observable_comments c ORDER BY id",
+    )
+    .fetch_all(db.pool())
+    .await
+    .expect("reads")
+}
+
+async fn add_observable_comment_records_its_row(db: &Db) -> String {
+    let actor = admin(db).await;
+    let added = service(db)
+        .add_observable_comment(&actor, "fqdn", "audited.example.com", "<b>bad</b>\r\n")
+        .await
+        .expect("comments");
+    assert_eq!(added.comment, "<b>bad</b>\r\n", "kept as it was sent");
+    let row = last_audit(db).await;
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: boss_json(),
+            action: "add_observable_comment".to_owned(),
+            target: ("observable_comment".to_owned(), added.id.to_string()),
+            before: None,
+            after: Some(json!({
+                "type": "fqdn",
+                "value": "audited.example.com",
+                "author": Uuid::from_u128(0xAD),
+                "comment": "<b>bad</b>\r\n",
+            })),
+            details: json!({}),
+        }
+    );
+
+    // a refusal, or a comment the service won't take, has no row
+    let rows = audit_rows(db).await.len();
+    let reader = UserId(Uuid::from_u128(0xC0));
+    exists(db, &Holder::User(reader)).await;
+    assert!(matches!(
+        service(db)
+            .add_observable_comment(&user(reader), "fqdn", "a.example", "x")
+            .await,
+        Err(ServiceError::PermissionDenied { ref permission, .. })
+            if permission.to_string() == "observable:write"
+    ));
+    assert!(matches!(
+        service(db)
+            .add_observable_comment(&actor, "fqdn", "a.example", " \n")
+            .await,
+        Err(ServiceError::InvalidRequest(_))
+    ));
+    assert_eq!(audit_rows(db).await.len(), rows);
+    row.action
+}
+
+async fn edit_observable_comment_records_its_row(db: &Db) -> String {
+    let actor = admin(db).await;
+    let service = service(db);
+    let added = service
+        .add_observable_comment(&actor, "ipv4", "192.0.2.1", "first\r\nthought")
+        .await
+        .expect("comments");
+    let edited = service
+        .edit_observable_comment(&actor, added.id, "second thought")
+        .await
+        .expect("edits");
+    assert!(edited.edited_at.is_some());
+    let row = last_audit(db).await;
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: boss_json(),
+            action: "edit_observable_comment".to_owned(),
+            target: ("observable_comment".to_owned(), added.id.to_string()),
+            before: Some(json!({"comment": "first\r\nthought"})),
+            after: Some(json!({"comment": "second thought"})),
+            details: json!({
+                "type": "ipv4",
+                "value": "192.0.2.1",
+                "author": Uuid::from_u128(0xAD),
+            }),
+        }
+    );
+
+    // the same text, trimmed or with LF line endings, isn't an edit, as in ace3
+    let rows = audit_rows(db).await.len();
+    let same = service
+        .edit_observable_comment(&actor, added.id, "  second thought\n")
+        .await
+        .expect("edits");
+    assert_eq!(same, edited, "nothing changed, not even when it was edited");
+    assert_eq!(audit_rows(db).await.len(), rows);
+    row.action
+}
+
+async fn delete_observable_comment_records_its_row(db: &Db) -> String {
+    let actor = admin(db).await;
+    let service = service(db);
+    let added = service
+        .add_observable_comment(&actor, "url", "http://bad.example/<x>", "phish")
+        .await
+        .expect("comments");
+    service
+        .delete_observable_comment(&actor, added.id)
+        .await
+        .expect("deletes");
+    let created_at: Value = sqlx::query_scalar(
+        "SELECT to_jsonb(created_at) FROM analysis.observable_comments WHERE id = $1",
+    )
+    .bind(added.id)
+    .fetch_optional(db.pool())
+    .await
+    .expect("reads")
+    .unwrap_or(Value::Null);
+    assert_eq!(created_at, Value::Null, "the row is gone");
+    let row = last_audit(db).await;
+    let before = row.before.clone().expect("a before");
+    assert!(before["created_at"].is_string(), "{before}");
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: boss_json(),
+            action: "delete_observable_comment".to_owned(),
+            target: ("observable_comment".to_owned(), added.id.to_string()),
+            before: Some(json!({
+                "type": "url",
+                "value": "http://bad.example/<x>",
+                "author": Uuid::from_u128(0xAD),
+                "comment": "phish",
+                "created_by": boss_json(),
+                "created_at": before["created_at"],
+                "edited_at": null,
+            })),
+            after: None,
+            details: json!({}),
+        }
+    );
+
+    // a comment that's gone is a 404, and has no row
+    let rows = audit_rows(db).await.len();
+    assert!(matches!(
+        service.delete_observable_comment(&actor, added.id).await,
+        Err(ServiceError::NotFound(_))
+    ));
+    assert_eq!(audit_rows(db).await.len(), rows);
+    row.action
+}
+
+/// ace3's comments: on a type and value, so they show in every alert that holds the observable; a person's,
+/// a key's being its owner's; and changed or deleted only by their author.
+#[tokio::test]
+async fn observable_comments_apply_across_alerts_and_only_their_author_changes_them() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let alice = holding(
+        &service,
+        db,
+        "alice",
+        &[("observable", "*"), ("alert", "read")],
+    )
+    .await;
+    let bob = holding(&service, db, "bob", &[("observable", "*")]).await;
+    let reader = holding(&service, db, "reader", &[("observable", "read")]).await;
+    let boss = admin(db).await;
+
+    // two alerts hold the same fqdn, and a comment on it shows in both
+    let (first, second) = (alert(db).await, alert(db).await);
+    for root in [first, second] {
+        sqlx::query("UPDATE analysis.roots SET alerted_at = now() WHERE id = $1")
+            .bind(root)
+            .execute(db.pool())
+            .await
+            .expect("makes it an alert");
+    }
+    let on_fqdn = service
+        .add_observable_comment(&alice, "fqdn", "evil.example.com", "seen in the phish")
+        .await
+        .expect("comments");
+    let by_bob = service
+        .add_observable_comment(
+            &bob,
+            "fqdn",
+            "evil.example.com",
+            "<script>alert(1)</script>",
+        )
+        .await
+        .expect("comments");
+    service
+        .add_observable_comment(&alice, "fqdn", "other.example.com", "not this one")
+        .await
+        .expect("comments");
+    // the fqdn's hash is the same in another type, which doesn't count
+    service
+        .add_observable_comment(&alice, "hostname", "evil.example.com", "a hostname")
+        .await
+        .expect("comments");
+    assert_eq!(on_fqdn.author.username, "alice");
+    assert_eq!(on_fqdn.created_by.kind, "user");
+    assert_eq!(on_fqdn.edited_at, None);
+    let listed = service
+        .observable_comments(&reader, "fqdn", "evil.example.com")
+        .await
+        .expect("reads");
+    assert_eq!(
+        listed,
+        vec![on_fqdn.clone(), by_bob.clone()],
+        "oldest first"
+    );
+    assert_eq!(listed[1].comment, "<script>alert(1)</script>", "as data");
+    for root in [first, second] {
+        assert_eq!(
+            service
+                .alert_observable_comments(&alice, root)
+                .await
+                .expect("reads"),
+            listed,
+            "in every alert that holds it"
+        );
+    }
+    assert!(matches!(
+        service.alert_observable_comments(&alice, Uuid::nil()).await,
+        Err(ServiceError::NotFound(_))
+    ));
+    assert!(matches!(
+        service.alert_observable_comments(&bob, first).await,
+        Err(ServiceError::PermissionDenied { ref permission, .. })
+            if permission.to_string() == "alert:read"
+    ));
+
+    // a file is matched by its sha256, which is lowercased as the lookup lowercases it
+    let sha256 = hex::encode(Sha256::digest(b"some file"));
+    let on_file = service
+        .add_observable_comment(&alice, "file", &sha256.to_uppercase(), "the dropper")
+        .await
+        .expect("comments");
+    assert_eq!(on_file.value, sha256);
+    assert_eq!(
+        service
+            .observable_comments(&reader, "file", &sha256)
+            .await
+            .expect("reads"),
+        vec![on_file]
+    );
+
+    // a key with an owner writes as its owner, who can then change it; one with no owner can't write
+    let alices_key = ApiKeyId(Uuid::from_u128(0xA11CE));
+    exists(db, &Holder::ApiKey(alices_key)).await;
+    grant(
+        db,
+        &Holder::ApiKey(alices_key),
+        "observable",
+        "write",
+        Effect::Allow,
+    )
+    .await;
+    let as_key = key(alices_key, Some(actor_id(&alice)));
+    let by_key = service
+        .add_observable_comment(&as_key, "ipv4", "198.51.100.7", "from a script")
+        .await
+        .expect("comments");
+    assert_eq!(by_key.author.id, actor_id(&alice));
+    assert_eq!(
+        (
+            by_key.created_by.kind.as_str(),
+            by_key.created_by.id.clone()
+        ),
+        ("api_key", alices_key.0.to_string())
+    );
+    service
+        .edit_observable_comment(&alice, by_key.id, "from alice's script")
+        .await
+        .expect("the owner edits it");
+    let ownerless = ApiKeyId(Uuid::from_u128(0x0B0E));
+    grant(
+        db,
+        &Holder::ApiKey(ownerless),
+        "observable",
+        "write",
+        Effect::Allow,
+    )
+    .await;
+    let rows = audit_rows(db).await.len();
+    assert!(matches!(
+        service
+            .add_observable_comment(&key(ownerless, None), "ipv4", "198.51.100.7", "x")
+            .await,
+        Err(ServiceError::Forbidden(_))
+    ));
+
+    // only the author edits or deletes, not another analyst and not an admin
+    for other in [&bob, &boss, &key(ownerless, None)] {
+        assert!(matches!(
+            service
+                .edit_observable_comment(other, on_fqdn.id, "mine now")
+                .await,
+            Err(ServiceError::Forbidden(_))
+        ));
+        assert!(matches!(
+            service.delete_observable_comment(other, on_fqdn.id).await,
+            Err(ServiceError::Forbidden(_))
+        ));
+    }
+    assert!(matches!(
+        service
+            .edit_observable_comment(&reader, on_fqdn.id, "x")
+            .await,
+        Err(ServiceError::PermissionDenied { ref permission, .. })
+            if permission.to_string() == "observable:write"
+    ));
+    assert!(matches!(
+        service.edit_observable_comment(&alice, i64::MAX, "x").await,
+        Err(ServiceError::NotFound(_))
+    ));
+    assert_eq!(audit_rows(db).await.len(), rows, "no refusal has a row");
+
+    // what the service won't take
+    let long = "x".repeat(ace_service::MAX_COMMENT_CHARS + 1);
+    for (kind, value, comment, why) in [
+        ("fqdn", "a.example", "", "a comment can't be empty"),
+        ("fqdn", "a.example", " \r\n\t", "a comment can't be empty"),
+        (
+            "fqdn",
+            "a.example",
+            long.as_str(),
+            "a comment is at most 16384 characters",
+        ),
+        (
+            "fqdn",
+            "a.example",
+            "a\0b",
+            "a comment can't hold a NUL character",
+        ),
+        (
+            "fqdn",
+            "a\0b",
+            "x",
+            "an observable's value can't hold a NUL character",
+        ),
+        ("fqdn", "", "x", "an empty value"),
+        ("no_such_type", "a.example", "x", "no_such_type"),
+        (
+            "file",
+            "not a sha256",
+            "x",
+            "a file is looked up by its sha256",
+        ),
+    ] {
+        let error = service
+            .add_observable_comment(&alice, kind, value, comment)
+            .await
+            .expect_err(why);
+        assert!(
+            matches!(&error, ServiceError::InvalidRequest(got) if got.contains(why)),
+            "{why}: {error}"
+        );
+    }
+    let longest = "é".repeat(ace_service::MAX_COMMENT_CHARS);
+    service
+        .add_observable_comment(&alice, "fqdn", "a.example", &longest)
+        .await
+        .expect("16384 characters, however many bytes");
+    assert!(matches!(
+        service
+            .edit_observable_comment(&alice, on_fqdn.id, "")
+            .await,
+        Err(ServiceError::InvalidRequest(_))
+    ));
+
+    // the author deletes it, and it's gone from every alert
+    service
+        .delete_observable_comment(&alice, on_fqdn.id)
+        .await
+        .expect("deletes");
+    assert_eq!(
+        service
+            .alert_observable_comments(&alice, second)
+            .await
+            .expect("reads"),
+        vec![by_bob]
+    );
 }

@@ -48,7 +48,7 @@ impl From<ServiceError> for ApiError {
         let status = match &error {
             // says nothing more, as the service's error doesn't
             ServiceError::NotAuthenticated => StatusCode::UNAUTHORIZED,
-            ServiceError::CrossSiteRequest => StatusCode::FORBIDDEN,
+            ServiceError::CrossSiteRequest | ServiceError::Forbidden(_) => StatusCode::FORBIDDEN,
             ServiceError::PermissionDenied { permission, .. } => {
                 return ApiError::new(StatusCode::FORBIDDEN, format!("this needs {permission}"));
             }

@@ -1,0 +1,131 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT c.id, c.type AS kind, c.value, c.author_id,\n                                  u.username::text AS \"username!\", u.display_name,\n                                  c.created_by AS \"created_by!: Value\", c.comment, c.created_at,\n                                  c.edited_at\n                           FROM analysis.observable_comments c\n                           JOIN service.users u ON u.id = c.author_id\n                           WHERE EXISTS (SELECT FROM analysis.observables o\n                                         WHERE o.root_id = $1 AND o.type = c.type\n                                           AND o.value_hash = c.value_hash AND o.value = c.value)\n                           ORDER BY c.created_at, c.id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "analysis.observable_comments",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "kind",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.observable_comments",
+            "name": "type"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "value",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.observable_comments",
+            "name": "value"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "author_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "analysis.observable_comments",
+            "name": "author_id"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "username!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 5,
+        "name": "display_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "service.users",
+            "name": "display_name"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "created_by!: Value",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "analysis.observable_comments",
+            "name": "created_by"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "comment",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.observable_comments",
+            "name": "comment"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "analysis.observable_comments",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "edited_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "analysis.observable_comments",
+            "name": "edited_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      null,
+      true,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "ae990cfaef607e85bde54bd210077e6bd3dc6ff8db1a63a40bbe28a80ffca54e"
+}

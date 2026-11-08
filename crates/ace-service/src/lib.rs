@@ -38,6 +38,9 @@
 //! `yara_qa` reads the rules in QA mode and what they matched for 5.6's `yara_qa` router, audits a download
 //! of the files as a read, and purges matches as a write.
 //!
+//! `observable_comments` keeps analysts' comments on an observable by its type and value, across alerts,
+//! for 5.6's `observable_comments` router, and reads an alert's for 5.8's alert view.
+//!
 //! Writes outside this crate today:
 //! - `Orchestrator::set_mode` and `queue::cancel_root` have no caller outside the core's own flows
 //!   and tests. Each gets a function here when a route for it appears (5.5, 5.6).
@@ -50,6 +53,7 @@ mod alerts;
 mod auth;
 mod crashes;
 mod gate;
+mod observable_comments;
 mod observables;
 mod permission;
 mod source;
@@ -80,13 +84,14 @@ pub use auth::{
 };
 pub use crashes::{Crash, CrashDetail, CrashFilter, CrashInput, CrashPage, MAX_CRASHES_PAGE};
 pub use gate::Holder;
+pub use observable_comments::{CommentAuthor, MAX_COMMENT_CHARS, ObservableComment};
 pub use observables::{
     Lookup, MAX_EXCLUDED_ALERTS, MAX_LOOKUP_PAIRS, MAX_RECENT_ALERTS, OPEN, Prevalence, RecentAlert,
 };
 pub use permission::{
     ALERT_CREATE, ALERT_READ, ALERT_WRITE, CATALOG, CRASH_READ, CatalogEntry, Effect,
-    InvalidPermission, OBSERVABLE_READ, PermissionName, PermissionPattern, SIGNATURE_DOWNLOAD,
-    SIGNATURE_QA_PURGE, SIGNATURE_READ, USER_READ, USER_SELF, USER_WRITE,
+    InvalidPermission, OBSERVABLE_READ, OBSERVABLE_WRITE, PermissionName, PermissionPattern,
+    SIGNATURE_DOWNLOAD, SIGNATURE_QA_PURGE, SIGNATURE_READ, USER_READ, USER_SELF, USER_WRITE,
 };
 pub use source::with_source_ip;
 pub use users::{ApiKey, Grant, Group, MAX_KEY_SCOPE, Profile, User, UserDetail};
@@ -153,6 +158,10 @@ pub enum ServiceError {
     /// written.
     #[error("{0}")]
     TooLarge(String),
+    /// A refusal that isn't about a permission the actor holds, such as changing another user's
+    /// comment. Nothing was written.
+    #[error("{0}")]
+    Forbidden(String),
     #[error(transparent)]
     Bucket(#[from] BucketError),
 }
@@ -178,6 +187,7 @@ impl Retryable for ServiceError {
             | ServiceError::InvalidRequest(_)
             | ServiceError::NotFound(_)
             | ServiceError::TooLarge(_)
+            | ServiceError::Forbidden(_)
             | ServiceError::PermissionDenied { .. }
             | ServiceError::InvalidPermission(_)
             | ServiceError::AuditEncoding(_)

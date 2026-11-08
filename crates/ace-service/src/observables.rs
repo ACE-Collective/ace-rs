@@ -69,7 +69,7 @@ pub struct RecentAlert {
 }
 
 /// The value a pair is matched as, or why it can't be.
-fn normalized(kind: &str, value: &str) -> Result<(ObservableKind, String), String> {
+pub(crate) fn normalized(kind: &str, value: &str) -> Result<(ObservableKind, String), String> {
     let kind: ObservableKind = kind.parse().map_err(|e| format!("{e}"))?;
     if value.is_empty() {
         return Err("an empty value".to_owned());

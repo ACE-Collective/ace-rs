@@ -239,8 +239,11 @@ pub const ALERT_READ: PermissionName = PermissionName::known("alert", "read");
 pub const ALERT_WRITE: PermissionName = PermissionName::known("alert", "write");
 /// Submit analysis: ace3's `alert:create`, which its submit route requires.
 pub const ALERT_CREATE: PermissionName = PermissionName::known("alert", "create");
-/// Look observables up across alerts, and list the observable types: ace3's `observable:read`.
+/// Look observables up across alerts, list the observable types, and read observables' comments:
+/// ace3's `observable:read`.
 pub const OBSERVABLE_READ: PermissionName = PermissionName::known("observable", "read");
+/// Comment on observables, and change or delete your own comments: ace3's `observable:write`.
+pub const OBSERVABLE_WRITE: PermissionName = PermissionName::known("observable", "write");
 /// List failed tasks and download them with their inputs: ace3's `crash:read`.
 pub const CRASH_READ: PermissionName = PermissionName::known("crash", "read");
 /// See the rules in QA mode, their matches and the matches' records: ace3's `signature:read`.
@@ -287,7 +290,13 @@ pub static CATALOG: &[CatalogEntry] = &[
     },
     CatalogEntry {
         name: OBSERVABLE_READ,
-        description: "Look observables up across alerts, and list the observable types.",
+        description: "Look observables up across alerts, list the observable types, and read the \
+                      comments on observables.",
+    },
+    CatalogEntry {
+        name: OBSERVABLE_WRITE,
+        description: "Comment on observables, and change or delete your own comments. Only the author \
+                      changes a comment.",
     },
     CatalogEntry {
         name: SIGNATURE_DOWNLOAD,

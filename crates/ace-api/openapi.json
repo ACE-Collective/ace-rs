@@ -760,6 +760,303 @@
         ]
       }
     },
+    "/api/observables/v1/comments": {
+      "get": {
+        "tags": [
+          "observables"
+        ],
+        "summary": "The comments on an observable, oldest first, whichever alerts hold it.",
+        "operationId": "list",
+        "parameters": [
+          {
+            "name": "type",
+            "in": "query",
+            "description": "The observable's type, such as `ipv4`.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "value",
+            "in": "query",
+            "description": "Its value; a file's is its sha256.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The observable's comments",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommentsBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A type that doesn't exist, a value that isn't one for it, or a missing parameter",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold observable:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "observables"
+        ],
+        "summary": "Comments on an observable, whether or not an alert holds it yet. The caller is the author: a user, or\nthe owner of the API key.",
+        "operationId": "add",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewCommentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "The comment",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommentBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A type that doesn't exist, a value that isn't one for it, a comment that's empty or too long, or a body that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold observable:write, isn't a person (an API key with no owner), or a session's request came from another site",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/observables/v1/comments/{id}": {
+      "delete": {
+        "tags": [
+          "observables"
+        ],
+        "summary": "Deletes a comment. Its audit row keeps what it said.",
+        "operationId": "delete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The comment's id",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The comment is gone"
+          },
+          "400": {
+            "description": "An id that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold observable:write, isn't the comment's author, or a session's request came from another site",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such comment",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "observables"
+        ],
+        "summary": "Replaces a comment's text and marks it edited. Text that differs only in line endings or the\nwhitespace at its ends changes nothing.",
+        "operationId": "edit",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The comment's id",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditCommentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The comment as it is now",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommentBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An id that isn't one, a comment that's empty or too long, or a body that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold observable:write, isn't the comment's author, or a session's request came from another site",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such comment",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/observables/v1/lookup": {
       "post": {
         "tags": [
@@ -3543,6 +3840,29 @@
         },
         "additionalProperties": false
       },
+      "AuthorBody": {
+        "type": "object",
+        "description": "The user a comment is by, as they're called now.",
+        "required": [
+          "id",
+          "username"
+        ],
+        "properties": {
+          "display_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "username": {
+            "type": "string"
+          }
+        }
+      },
       "CatalogEntryBody": {
         "type": "object",
         "required": [
@@ -3571,6 +3891,69 @@
         "properties": {
           "changed": {
             "type": "boolean"
+          }
+        }
+      },
+      "CommentBody": {
+        "type": "object",
+        "description": "A comment on an observable, which applies to it in every alert.",
+        "required": [
+          "id",
+          "type",
+          "value",
+          "author",
+          "created_by",
+          "comment",
+          "created_at"
+        ],
+        "properties": {
+          "author": {
+            "$ref": "#/components/schemas/AuthorBody"
+          },
+          "comment": {
+            "type": "string",
+            "description": "The text as it was sent. Show it as text."
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "created_by": {
+            "$ref": "#/components/schemas/ActorBody",
+            "description": "What wrote it: the author, or one of their API keys."
+          },
+          "edited_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "When the text last changed; null when it never has."
+          },
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "type": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string",
+            "description": "The value as it's matched, such as a lowercased sha256."
+          }
+        }
+      },
+      "CommentsBody": {
+        "type": "object",
+        "required": [
+          "comments"
+        ],
+        "properties": {
+          "comments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CommentBody"
+            }
           }
         }
       },
@@ -3817,6 +4200,19 @@
             "minimum": 0
           }
         }
+      },
+      "EditCommentRequest": {
+        "type": "object",
+        "required": [
+          "comment"
+        ],
+        "properties": {
+          "comment": {
+            "type": "string",
+            "description": "1 to 16384 characters, not all whitespace."
+          }
+        },
+        "additionalProperties": false
       },
       "EffectBody": {
         "type": "string",
@@ -4088,6 +4484,29 @@
               "$ref": "#/components/schemas/ScopeEntry"
             },
             "description": "Up to 64 patterns it's allowed. `*:*` is ace3's key that inherits its owner's permissions. Never\n`user:self`."
+          }
+        },
+        "additionalProperties": false
+      },
+      "NewCommentRequest": {
+        "type": "object",
+        "required": [
+          "type",
+          "value",
+          "comment"
+        ],
+        "properties": {
+          "comment": {
+            "type": "string",
+            "description": "1 to 16384 characters, not all whitespace."
+          },
+          "type": {
+            "type": "string",
+            "description": "The observable's type, such as `ipv4`."
+          },
+          "value": {
+            "type": "string",
+            "description": "Its value; a file's is its sha256."
           }
         },
         "additionalProperties": false

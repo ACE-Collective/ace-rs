@@ -99,6 +99,14 @@ impl Target {
         }
     }
 
+    /// A comment on an observable across alerts, by its id.
+    pub(crate) fn observable_comment(id: i64) -> Self {
+        Target {
+            kind: "observable_comment",
+            id: id.to_string(),
+        }
+    }
+
     pub(crate) fn holder(holder: &Holder) -> Self {
         let (kind, id) = match holder {
             Holder::User(id) => ("user", id.0.to_string()),

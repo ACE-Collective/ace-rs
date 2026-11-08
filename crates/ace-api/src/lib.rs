@@ -158,6 +158,30 @@
 //! - ace3's daily prune of expired rows: 2.27's holds expire on their own, and an expired row isn't
 //!   listed or served here. Deleting the rows is the scheduler's (6.7).
 //! - `ace yara-qa list` and the GUI page come with 5.11's signatures area.
+//!
+//! ace3's `observable_comments` router (PLAN.md 5.6), under ace3's `observable:read` and `observable:write`
+//! (`ace_service`'s `observable_comments` docs). A comment is on a type and value, across alerts:
+//!
+//! | ace3 `/api/v2/observable-comments` | here |
+//! |---|---|
+//! | `GET /{observable_id}` | `GET /api/observables/v1/comments?type=&value=`, oldest first |
+//! | `POST /`, `{observable_type, observable_value, comment}` | `POST /api/observables/v1/comments`, `{type, value, comment}` |
+//! | `PATCH /{comment_id}` | `PATCH /api/observables/v1/comments/{id}`, audited |
+//! | `DELETE /{comment_id}` | `DELETE /api/observables/v1/comments/{id}`, audited |
+//!
+//! What differs, or is left out, and why:
+//! - ace3 names an observable by the id of its row in its index of every observable, which a comment
+//!   creates when it's missing. ace4 has no index, so a list names the type and value, and a comment's
+//!   own row holds them. There's no `observable_id`.
+//! - The author is `author`, with the user's id, username and display name now, and `created_by` is the
+//!   actor that wrote it, a key when the user's key did. ace3 gives `user_id` and `user_display_name`.
+//! - An API key with no owner is refused with 403, where ace3 answers 401: it authenticated, but has no
+//!   user to be the author. Another user's comment is a 403, as in ace3.
+//! - A comment is 1 to 16384 characters and not all whitespace, where ace3's API takes any text and its
+//!   GUI refuses an empty one.
+//! - ace3's upload of a file into an alert saves the form's comment as a comment on that file. ace4 has no
+//!   such upload yet; it can call `Service::add_observable_comment`. The alert view's comments come with
+//!   it in 5.8, through `Service::alert_observable_comments`.
 
 use std::net::SocketAddr;
 
@@ -165,7 +189,7 @@ use ace_core::bucket::Bucket;
 use ace_service::{Service, Transport};
 use axum::Router;
 use axum::extract::DefaultBodyLimit;
-use axum::routing::{delete, get, post, put};
+use axum::routing::{delete, get, patch, post, put};
 use utoipa::OpenApi;
 
 mod alerts;
@@ -174,6 +198,7 @@ mod auth;
 mod crashes;
 mod error;
 mod health;
+mod observable_comments;
 mod observables;
 mod users;
 mod yara_qa;
@@ -272,6 +297,18 @@ impl Web {
             .route(
                 "/api/observables/v1/types",
                 get(observables::observable_types),
+            )
+            .route(
+                "/api/observables/v1/comments",
+                get(observable_comments::list)
+                    .post(observable_comments::add)
+                    .layer(json_limit),
+            )
+            .route(
+                "/api/observables/v1/comments/{id}",
+                patch(observable_comments::edit)
+                    .delete(observable_comments::delete)
+                    .layer(json_limit),
             )
             .route("/api/crashes/v1/crashes", get(crashes::list))
             .route("/api/crashes/v1/crashes/{id}", get(crashes::one))
@@ -374,6 +411,10 @@ impl Web {
         analysis::submit,
         observables::lookup,
         observables::observable_types,
+        observable_comments::list,
+        observable_comments::add,
+        observable_comments::edit,
+        observable_comments::delete,
         users::list_users,
         users::create_user,
         users::user,

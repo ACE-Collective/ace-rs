@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE analysis.observable_comments SET comment = $2, edited_at = now()\n                         WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "f8fb8d64bd31cfadf72bc3ef0f81a138cdbb970b9a47a1c49b40dda1e94a4204"
+}
