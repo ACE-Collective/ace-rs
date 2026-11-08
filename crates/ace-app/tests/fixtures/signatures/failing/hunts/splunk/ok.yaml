@@ -1,0 +1,21 @@
+rule:
+  uuid: 00000000-0000-0000-0000-00000000b001
+  name: "fixture ok for {{ user }}"
+  type: splunk
+  enabled: true
+  description: a hunt whose templates compile
+  alert_type: hunter - splunk - fixture
+  frequency: "00:05:00"
+  time_range: "00:05:00"
+  full_coverage: false
+  use_index_time: true
+  query: index=main | head 1
+  dedup_key: "{{ user | lower }}"
+  summary_details:
+    - content: "{% for e in events %}{{ e.user }}{% endfor %}"
+      format: jinja
+      grouped: true
+  observable_mapping:
+    - field: user
+      type: user
+      value: "{{ user | trim }}"

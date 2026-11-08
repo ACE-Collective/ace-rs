@@ -157,7 +157,31 @@ impl Ruleset {
 pub struct Loaded {
     pub ruleset: Ruleset,
     pub files: Vec<FileReport>,
-    pub warnings: Vec<String>,
+    pub warnings: Vec<CompileWarning>,
+}
+
+/// One of yara-x's warnings, such as `deprecated_field` for `pe.number_of_signatures`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CompileWarning {
+    /// yara-x's code for it, such as `slow_pattern`.
+    pub code: String,
+    /// The source it's about, `<namespace>/<file name>` as [`compile`] names each file, or None
+    /// when yara-x gives none.
+    pub origin: Option<String>,
+    /// The whole report, as yara-x writes it, with the lines it's about.
+    pub text: String,
+}
+
+impl CompileWarning {
+    fn of(warning: &yara_x::warnings::Warning) -> CompileWarning {
+        CompileWarning {
+            code: warning.code().to_owned(),
+            origin: warning
+                .labels()
+                .find_map(|label| label.origin().map(str::to_owned)),
+            text: warning.to_string(),
+        }
+    }
 }
 
 impl Loaded {
@@ -269,7 +293,7 @@ pub fn compile(namespaces: &[Namespace], options: &LoadOptions) -> Result<Loaded
 pub fn compile_together(
     namespaces: &[Namespace],
     options: &LoadOptions,
-) -> Result<(Ruleset, Vec<String>), LoadError> {
+) -> Result<(Ruleset, Vec<CompileWarning>), LoadError> {
     let mut survivors = Vec::new();
     for namespace in namespaces {
         let mut sources = Vec::new();
@@ -292,7 +316,7 @@ type Sources = Vec<(PathBuf, Vec<u8>)>;
 fn compile_sources(
     survivors: &[(&Namespace, Sources)],
     options: &LoadOptions,
-) -> Result<(Ruleset, Vec<String>), LoadError> {
+) -> Result<(Ruleset, Vec<CompileWarning>), LoadError> {
     let mut compiler = new_compiler();
     for (namespace, sources) in survivors {
         compiler.new_namespace(&namespace.name);
@@ -309,7 +333,7 @@ fn compile_sources(
     }
 
     let rules = compiler.build();
-    let warnings = rules.warnings().iter().map(|w| w.to_string()).collect();
+    let warnings = rules.warnings().iter().map(CompileWarning::of).collect();
     // Every rule's filter compiled when its file compiled alone.
     let ruleset = Ruleset::new(rules, options).map_err(|error| LoadError::Combined {
         path: PathBuf::new(),

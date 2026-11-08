@@ -358,17 +358,17 @@ impl Renderer {
         self.limits
     }
 
-    fn render(&self, template: &str, root: &Value, strict: bool) -> Rendered {
-        let env = if strict {
-            &self.strict
-        } else {
-            &self.permissive
-        };
-        let source = normalize_newlines(template);
-        let ast = match machinery::parse(&source, "<template>", Default::default()) {
-            Ok(ast) => ast,
-            Err(e) => return Rendered::Failed(format!("TemplateSyntaxError: {e}")),
-        };
+    /// Whether the template compiles as Jinja2 would compile it, without rendering it: its syntax,
+    /// and the filters and tests it names. A template that doesn't compile fails every render, which
+    /// ace3 logs and takes as `None` (PLAN.md 6.8 checks for this).
+    pub fn check(&self, template: &str) -> Result<(), String> {
+        self.compile(&normalize_newlines(template)).map(|_| ())
+    }
+
+    /// The template's tree with Python's semantics, or Jinja2's TemplateSyntaxError.
+    fn compile<'s>(&self, source: &'s str) -> Result<machinery::ast::Stmt<'s>, String> {
+        let ast = machinery::parse(source, "<template>", Default::default())
+            .map_err(|e| format!("TemplateSyntaxError: {e}"))?;
         let filter_names: Vec<&str> = filter_list(self.plain).map(|(n, _)| *n).collect();
         let test_names: Vec<&str> = filters::tests().iter().map(|(n, _)| *n).collect();
         let check = rewrite::Check {
@@ -376,9 +376,19 @@ impl Renderer {
             tests: &|n| test_names.contains(&n),
             cover: coverage::on(),
         };
-        let ast = match rewrite::rebuild(&ast, &check) {
+        rewrite::rebuild(&ast, &check).map_err(|e| format!("TemplateSyntaxError: {e}"))
+    }
+
+    fn render(&self, template: &str, root: &Value, strict: bool) -> Rendered {
+        let env = if strict {
+            &self.strict
+        } else {
+            &self.permissive
+        };
+        let source = normalize_newlines(template);
+        let ast = match self.compile(&source) {
             Ok(ast) => ast,
-            Err(e) => return Rendered::Failed(format!("TemplateSyntaxError: {e}")),
+            Err(e) => return Rendered::Failed(e),
         };
         let mut generator = CodeGenerator::new("<template>", &source);
         generator.compile_stmt(&ast);

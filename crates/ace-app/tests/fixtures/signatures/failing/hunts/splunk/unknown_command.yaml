@@ -1,0 +1,18 @@
+rule:
+  uuid: 00000000-0000-0000-0000-00000000b003
+  name: fixture unknown command
+  type: splunk
+  enabled: true
+  description: a hunt naming a correlation command type the binary doesn't have
+  alert_type: hunter - splunk - fixture
+  frequency: "00:05:00"
+  time_range: "00:05:00"
+  full_coverage: false
+  use_index_time: true
+  query: index=main | head 1
+  correlate:
+    logic:
+      - transform:
+          property_name: enriched
+          command:
+            type: fixture_no_such_type

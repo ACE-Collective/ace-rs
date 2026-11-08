@@ -17,8 +17,8 @@ pub mod ruleset;
 pub mod scan;
 
 pub use load::{
-    EXTERNALS, FileOutcome, FileReport, LoadError, LoadOptions, Loaded, Namespace, RuleInfo,
-    Ruleset, compile, discover, load_dir,
+    CompileWarning, EXTERNALS, FileOutcome, FileReport, LoadError, LoadOptions, Loaded, Namespace,
+    RuleInfo, Ruleset, compile, discover, load_dir,
 };
 pub use meta::{Meta, MetaValue};
 

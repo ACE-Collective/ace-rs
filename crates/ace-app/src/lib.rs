@@ -6,7 +6,8 @@
 //! observable actions its GUI offers. Each binary is a short `main` over one:
 //!
 //! ```text
-//! // the core: `ace serve`, `ace task replay`, `ace schema export`, `ace yara ...`, `ace user ...`
+//! // the core: `ace serve`, `ace task replay`, `ace schema export`, `ace yara ...`, `ace user ...`,
+//! // `ace signatures check`
 //! fn main() -> std::process::ExitCode {
 //!     site::app().ace_main()
 //! }
@@ -40,6 +41,7 @@ mod root;
 pub mod scheduler;
 mod schema;
 mod serve;
+mod signatures;
 mod task;
 mod user;
 mod yara;

@@ -22,6 +22,9 @@ enum Command {
     /// YARA rulesets and scans.
     #[command(subcommand)]
     Yara(crate::yara::YaraCommand),
+    /// Checks of a signatures checkout, such as the one an author runs before a push.
+    #[command(subcommand)]
+    Signatures(crate::signatures::SignaturesCommand),
     /// Serve the lease API to workers and the JSON API to people, and take back tasks whose lease
     /// expired.
     Serve,
@@ -48,11 +51,14 @@ enum Command {
 ///
 /// ace3's GUI runs any `ace` command but global options and secrets (`ace3/docs/GUI_CLI.md`). Of
 /// ace3's commands, ace4 has `yara scan` (here over a ruleset file, not ace3's scanner service) and
-/// `user`, whose `create-first` and `create-key` are an operator's, not ace3's `user add`; ace3's other
-/// commands (`alert`, `cache`, `cas`, `company`, `config`, `correlate`, `crash`, `cron`, `encryption`,
-/// `event`, `gui`, `hunt`, `integration`, `js-deobfuscator`, `modules`, `node`, `nrd`, `observables`,
-/// `partitions`, `perm`, `persistence`, `phishkit`, `remediation`, `search`, `service`, `signatures`,
-/// `storage`, `submit`, `svs`, `test` and `yara-qa`) wait for the steps that bring what they act on.
+/// `user`, whose `create-first` and `create-key` are an operator's, not ace3's `user add`. ace4's
+/// `signatures check` is new; ace3's `signatures` lists what a node loads (`list`, `locations`) and
+/// builds the Suricata lookup (`build-db`). ace3's other commands (`alert`, `cache`, `cas`,
+/// `company`, `config`, `correlate`, `crash`, `cron`, `encryption`, `event`, `gui`, `hunt`,
+/// `integration`, `js-deobfuscator`, `modules`, `node`, `nrd`, `observables`, `partitions`, `perm`,
+/// `persistence`, `phishkit`, `remediation`, `search`, `service`, `storage`, `submit`, `svs`, `test`
+/// and `yara-qa`), and those `signatures` subcommands, wait for the steps that bring what they act
+/// on.
 pub(crate) fn run_contained(argv: &[String]) -> u8 {
     let words = std::iter::once("ace".to_owned()).chain(argv.iter().cloned());
     match Cli::try_parse_from(words) {
@@ -82,6 +88,10 @@ fn refusal(command: &Command) -> (&'static str, &'static str) {
             "yara",
             "it reads signature directories and files on the node, and a GUI command can open none",
         ),
+        Command::Signatures(_) => (
+            "signatures",
+            "it reads a signatures checkout on the node, and a GUI command can open none",
+        ),
         Command::Serve => ("serve", "it's the service itself, not a command"),
         Command::Hunter => ("hunter", "it's a service of its own, not a command"),
         Command::Task(_) => (
@@ -107,12 +117,19 @@ fn refusal(command: &Command) -> (&'static str, &'static str) {
 pub fn main(app: &App) -> ExitCode {
     // Logs go to stderr, filtered by ACE4_LOG (tracing's EnvFilter syntax), WARN and up by
     // default. `ace serve` also exports spans when ACE4_OTLP_ENDPOINT is set.
-    let mut telemetry = ace_pool::telemetry::init("ace", "warn");
-
+    // `ace signatures check` reports each rule file that doesn't compile itself, so ace-yara's log of
+    // the file it leaves out would say it twice.
     let cli = Cli::parse();
+    let default_filter = match cli.command {
+        Command::Signatures(_) => "warn,ace_yara::load=off",
+        _ => "warn",
+    };
+    let mut telemetry = ace_pool::telemetry::init("ace", default_filter);
+
     let result = match cli.command {
         Command::Schema(command) => crate::schema::run(app, command),
         Command::Yara(command) => crate::yara::run(command),
+        Command::Signatures(command) => crate::signatures::run(app, command),
         Command::Serve => crate::serve::run(app, &mut telemetry),
         Command::Hunter => crate::hunter::run(app, &mut telemetry),
         Command::Task(command) => crate::task::run(app, command),
@@ -169,6 +186,7 @@ mod tests {
             "serve",
             "schema export /tmp/x",
             "yara scan --rules /x f",
+            "signatures check /x",
             "task replay 1",
             "root normal-form 00000000-0000-0000-0000-000000000000",
             "user create-key k --grant alert:read",

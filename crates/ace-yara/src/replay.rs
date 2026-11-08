@@ -259,7 +259,7 @@ pub fn run(workdir: &Path, typer: &MimeTyper) -> Result<ReplayResult, ReplayErro
     };
     result.combined_compile_seconds = Some(started.elapsed().as_secs_f64());
     result.files = loaded.files.iter().map(file_entry).collect();
-    result.warnings = loaded.warnings.clone();
+    result.warnings = loaded.warnings.iter().map(|w| w.text.clone()).collect();
     drop(loaded.ruleset);
 
     // 2. each namespace on its own, scanning every unit

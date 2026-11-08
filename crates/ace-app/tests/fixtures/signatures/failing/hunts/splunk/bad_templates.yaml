@@ -1,0 +1,15 @@
+rule:
+  uuid: 00000000-0000-0000-0000-00000000b002
+  name: fixture bad templates
+  type: splunk
+  enabled: true
+  description: a hunt whose templates don't compile
+  alert_type: hunter - splunk - fixture
+  frequency: "00:05:00"
+  time_range: "00:05:00"
+  full_coverage: false
+  use_index_time: true
+  query: index=main | head 1
+  dedup_key: "{% if user %}{{ user }}"
+  summary_details:
+    - content: "{{ user | fixture_no_such_filter }}"
