@@ -242,6 +242,10 @@ pub const ALERT_READ: PermissionName = PermissionName::known("alert", "read");
 pub const ALERT_WRITE: PermissionName = PermissionName::known("alert", "write");
 /// Submit analysis: ace3's `alert:create`, which its submit route requires.
 pub const ALERT_CREATE: PermissionName = PermissionName::known("alert", "create");
+/// Read events, their alerts, malware and threat types, and export them: ace3's `event:read`.
+pub const EVENT_READ: PermissionName = PermissionName::known("event", "read");
+/// Change events, and the threat types and malware's threats they record: ace3's `event:write`.
+pub const EVENT_WRITE: PermissionName = PermissionName::known("event", "write");
 /// Look observables up across alerts, list the observable types, and read observables' comments:
 /// ace3's `observable:read`.
 pub const OBSERVABLE_READ: PermissionName = PermissionName::known("observable", "read");
@@ -294,6 +298,15 @@ pub static CATALOG: &[CatalogEntry] = &[
     CatalogEntry {
         name: CRASH_READ,
         description: "List failed tasks and download them; the archive holds the file the module failed on.",
+    },
+    CatalogEntry {
+        name: EVENT_READ,
+        description: "View events, their alerts and details, the threat types and malware's threats, \
+                      and export events.",
+    },
+    CatalogEntry {
+        name: EVENT_WRITE,
+        description: "Change events, and add, rename and delete threat types and malware's threats.",
     },
     CatalogEntry {
         name: OBSERVABLE_READ,

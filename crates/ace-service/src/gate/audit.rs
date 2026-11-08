@@ -107,6 +107,30 @@ impl Target {
         }
     }
 
+    /// An event, by its numeric id.
+    pub(crate) fn event(id: i64) -> Self {
+        Target {
+            kind: "event",
+            id: id.to_string(),
+        }
+    }
+
+    /// A threat type, by its id.
+    pub(crate) fn threat_type(id: i32) -> Self {
+        Target {
+            kind: "threat_type",
+            id: id.to_string(),
+        }
+    }
+
+    /// One of a malware's threat types, as `<malware>/<threat type>`.
+    pub(crate) fn threat(malware: i32, threat_type: i32) -> Self {
+        Target {
+            kind: "threat",
+            id: format!("{malware}/{threat_type}"),
+        }
+    }
+
     /// One of a user's GUI preferences, as `<user>/<key>`.
     pub(crate) fn user_preference(user: Uuid, key: &str) -> Self {
         Target {

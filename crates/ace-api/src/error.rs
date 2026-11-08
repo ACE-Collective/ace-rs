@@ -64,6 +64,7 @@ impl From<ServiceError> for ApiError {
             ServiceError::UsernameTaken
             | ServiceError::GroupNameTaken
             | ServiceError::FilterNameTaken(_)
+            | ServiceError::Conflict(_)
             | ServiceError::UsersExist => StatusCode::CONFLICT,
             ServiceError::Bucket(BucketError::Deleting { .. }) => StatusCode::SERVICE_UNAVAILABLE,
             error if error.is_retryable() => StatusCode::SERVICE_UNAVAILABLE,

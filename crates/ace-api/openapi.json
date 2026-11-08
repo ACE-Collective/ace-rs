@@ -1341,6 +1341,912 @@
         }
       }
     },
+    "/api/events/v1/events/export/csv": {
+      "get": {
+        "tags": [
+          "events"
+        ],
+        "summary": "The events with these ids as CSV, in id order, with ace3's columns. An id with no event is left out.",
+        "operationId": "export_csv",
+        "parameters": [
+          {
+            "name": "ids",
+            "in": "query",
+            "description": "The events' ids, separated by commas, up to 1000.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The events",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ids that aren't a list of numbers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold event:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "More ids than an export holds",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/events/v1/events/open": {
+      "get": {
+        "tags": [
+          "events"
+        ],
+        "summary": "The events whose status is OPEN, in id order, a page at a time. Follow `next` until it's null.",
+        "operationId": "open",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "How many, 1 to 1000; 1000 when left out.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "description": "The `next` of the previous page.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of open events",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventPageBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A limit out of range, or a parameter that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold event:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/events/v1/events/{event}": {
+      "get": {
+        "tags": [
+          "events"
+        ],
+        "summary": "One event, by its numeric id or its uuid, with its alerts.",
+        "operationId": "one",
+        "parameters": [
+          {
+            "name": "event",
+            "in": "path",
+            "description": "The event's numeric id or its uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The event",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Neither an id nor a uuid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold event:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such event",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/events/v1/events/{event}/status": {
+      "put": {
+        "tags": [
+          "events"
+        ],
+        "summary": "Sets an event's status. The status it has changes nothing.",
+        "operationId": "set_status",
+        "parameters": [
+          {
+            "name": "event",
+            "in": "path",
+            "description": "The event's numeric id or its uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StatusRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The event as it is now",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Neither an id nor a uuid, a status that isn't one, or a body that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold event:write, or a session's request came from another site",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such event",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/events/v1/threat-types": {
+      "get": {
+        "tags": [
+          "events"
+        ],
+        "summary": "Every threat type, by name.",
+        "operationId": "threat_types",
+        "responses": {
+          "200": {
+            "description": "The threat types",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ThreatTypesBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold event:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "events"
+        ],
+        "summary": "Adds a threat type.",
+        "operationId": "create_threat_type",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ThreatTypeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "The threat type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ThreatTypeBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A name that isn't one, or a body that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold event:write, or a session's request came from another site",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "A threat type has that name",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/events/v1/threat-types/{id}": {
+      "get": {
+        "tags": [
+          "events"
+        ],
+        "summary": "One threat type.",
+        "operationId": "threat_type",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The threat type's id",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The threat type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ThreatTypeBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An id that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold event:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such threat type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "events"
+        ],
+        "summary": "Deletes a threat type that no malware has.",
+        "operationId": "delete_threat_type",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The threat type's id",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The threat type is gone"
+          },
+          "400": {
+            "description": "An id that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold event:write, or a session's request came from another site",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such threat type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Malware has the threat type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "events"
+        ],
+        "summary": "Renames a threat type. The name it has changes nothing.",
+        "operationId": "rename_threat_type",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The threat type's id",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ThreatTypeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The threat type as it is now",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ThreatTypeBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An id or a name that isn't one, or a body that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold event:write, or a session's request came from another site",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such threat type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Another threat type has that name",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/events/v1/threats": {
+      "get": {
+        "tags": [
+          "events"
+        ],
+        "summary": "The threats, by malware name, or one malware's.",
+        "operationId": "threats",
+        "parameters": [
+          {
+            "name": "malware",
+            "in": "query",
+            "description": "Only this malware's threats, by its id.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The threats",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ThreatsBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A malware id that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold event:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "events"
+        ],
+        "summary": "Gives malware a threat type.",
+        "operationId": "add_threat",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ThreatRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "The threat",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ThreatBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A body that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold event:write, or a session's request came from another site",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such malware or threat type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The malware has that threat type already",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/events/v1/threats/{malware}/{threat_type}": {
+      "delete": {
+        "tags": [
+          "events"
+        ],
+        "summary": "Takes a threat type from malware.",
+        "operationId": "remove_threat",
+        "parameters": [
+          {
+            "name": "malware",
+            "in": "path",
+            "description": "The malware's id",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "threat_type",
+            "in": "path",
+            "description": "The threat type's id",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The malware no longer has the threat type"
+          },
+          "400": {
+            "description": "An id that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold event:write, or a session's request came from another site",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The malware doesn't have that threat type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/filters/v1/saved": {
       "get": {
         "tags": [
@@ -5995,6 +6901,291 @@
           }
         }
       },
+      "EventAlertBody": {
+        "type": "object",
+        "description": "One of an event's alerts.",
+        "required": [
+          "id",
+          "title",
+          "added_at"
+        ],
+        "properties": {
+          "added_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When it was added to the event."
+          },
+          "alerted_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "disposition": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Null while it's open."
+          },
+          "dispositioned_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "dispositioned_by": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ActorBody"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string",
+            "description": "As its sender wrote it. Show it as text."
+          }
+        }
+      },
+      "EventBody": {
+        "type": "object",
+        "description": "An event: alerts an analyst grouped as one incident, and what they recorded about it.",
+        "required": [
+          "id",
+          "uuid",
+          "creation_date",
+          "name",
+          "status",
+          "remediation",
+          "type",
+          "vector",
+          "risk_level",
+          "prevention_tool",
+          "malware",
+          "disposition",
+          "alerts",
+          "tags",
+          "alert_tags",
+          "created_at"
+        ],
+        "properties": {
+          "alert_tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Its alerts' tags, from their observables and results."
+          },
+          "alert_time": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "alerts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EventAlertBody"
+            },
+            "description": "Oldest first."
+          },
+          "campaign": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "ace3's GUI calls it the threat actor."
+          },
+          "comment": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "contain_time": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "creation_date": {
+            "type": "string",
+            "format": "date",
+            "description": "The day of its first alert, or the day it was made."
+          },
+          "disposition": {
+            "type": "string",
+            "description": "The highest of its alerts' dispositions, OPEN while none has one, DELIVERY with no alerts."
+          },
+          "disposition_time": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "event_time": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "malware": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EventMalwareBody"
+            }
+          },
+          "name": {
+            "type": "string"
+          },
+          "owner": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EventOwnerBody"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "ownership_time": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "prevention_tool": {
+            "type": "string"
+          },
+          "remediation": {
+            "type": "string"
+          },
+          "remediation_time": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "risk_level": {
+            "type": "string",
+            "description": "ace3's GUI calls it the severity."
+          },
+          "status": {
+            "type": "string"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The event's own tags."
+          },
+          "type": {
+            "type": "string",
+            "description": "ace3's event type, such as `phish`."
+          },
+          "uuid": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "vector": {
+            "type": "string"
+          }
+        }
+      },
+      "EventMalwareBody": {
+        "type": "object",
+        "description": "Malware recorded on an event.",
+        "required": [
+          "id",
+          "name",
+          "threat_types"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string"
+          },
+          "threat_types": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Its threat types, by name."
+          }
+        }
+      },
+      "EventOwnerBody": {
+        "type": "object",
+        "description": "The user who owns an event, as they're called now.",
+        "required": [
+          "id",
+          "username"
+        ],
+        "properties": {
+          "display_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "username": {
+            "type": "string"
+          }
+        }
+      },
+      "EventPageBody": {
+        "type": "object",
+        "required": [
+          "events"
+        ],
+        "properties": {
+          "events": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EventBody"
+            }
+          },
+          "next": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Pass as `after` for the next page; null on the last."
+          }
+        }
+      },
       "FileBody": {
         "type": "object",
         "required": [
@@ -7546,6 +8737,19 @@
         },
         "additionalProperties": false
       },
+      "StatusRequest": {
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "properties": {
+          "status": {
+            "type": "string",
+            "description": "One of the site's event statuses, such as `OPEN` or `CLOSED`."
+          }
+        },
+        "additionalProperties": false
+      },
       "SubmissionBody": {
         "type": "object",
         "description": "The submission in the `analysis` field. This is `ace_core::submit::Submission` as the document shows\nit, and `tests/api.rs` checks that the two take the same fields.",
@@ -7683,6 +8887,107 @@
         },
         "additionalProperties": false
       },
+      "ThreatBody": {
+        "type": "object",
+        "description": "One of a malware's threat types.",
+        "required": [
+          "malware_id",
+          "malware_name",
+          "threat_type_id",
+          "threat_type_name"
+        ],
+        "properties": {
+          "malware_id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "malware_name": {
+            "type": "string"
+          },
+          "threat_type_id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "threat_type_name": {
+            "type": "string"
+          }
+        }
+      },
+      "ThreatRequest": {
+        "type": "object",
+        "required": [
+          "malware_id",
+          "threat_type_id"
+        ],
+        "properties": {
+          "malware_id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "threat_type_id": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ThreatTypeBody": {
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "ThreatTypeRequest": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "1 to 256 characters, not all whitespace, with no control characters."
+          }
+        },
+        "additionalProperties": false
+      },
+      "ThreatTypesBody": {
+        "type": "object",
+        "required": [
+          "threat_types"
+        ],
+        "properties": {
+          "threat_types": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ThreatTypeBody"
+            }
+          }
+        }
+      },
+      "ThreatsBody": {
+        "type": "object",
+        "required": [
+          "threats"
+        ],
+        "properties": {
+          "threats": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ThreatBody"
+            }
+          }
+        }
+      },
       "UserBody": {
         "type": "object",
         "description": "A user. Never their password or its hash.",
@@ -7815,6 +9120,10 @@
     {
       "name": "yara_qa",
       "description": "YARA rules in QA mode, the files they matched, and purges"
+    },
+    {
+      "name": "events",
+      "description": "Events, the alerts in them, threat types and malware's threats"
     },
     {
       "name": "filters",

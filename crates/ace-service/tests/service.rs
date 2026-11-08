@@ -44,7 +44,7 @@ use ace_results::{AlertPath, AnalysisType, NewObservable, ObservableKind};
 use ace_sdk::{Lookup, Manifest, Module, ModuleError, Outcome, TaskContext};
 use ace_service::{
     ALERT_WRITE, Actor, ApiKeyId, CATALOG, Component, CrashFilter, CrashInput,
-    DetectionPointFilter, Effect, GroupId, Holder, MAX_CRASHES_PAGE, MIN_PASSWORD_CHARS,
+    DetectionPointFilter, Effect, EventRef, GroupId, Holder, MAX_CRASHES_PAGE, MIN_PASSWORD_CHARS,
     NewSession, Password, PermissionName, PermissionPattern, PreferenceKey, PreferenceValue,
     Profile, QaPurge, QaRuleFilter, QaSort, QaStatus, RequestParts, SESSION_LIFETIME_SECONDS,
     Service, ServiceError, SessionCookie, Theme, ThemePreference, Transport, USER_SELF, USER_WRITE,
@@ -1473,6 +1473,12 @@ async fn every_write_function_has_an_audit_test() {
         update_saved_filter_records_its_row(db).await,
         delete_saved_filter_records_its_row(db).await,
         set_quick_filters_records_its_row(db).await,
+        set_event_status_records_its_row(db).await,
+        create_threat_type_records_its_row(db).await,
+        rename_threat_type_records_its_row(db).await,
+        delete_threat_type_records_its_row(db).await,
+        add_threat_records_its_row(db).await,
+        remove_threat_records_its_row(db).await,
     ]);
     assert_eq!(covered, write_functions(), "{WRITES_NEED_A_TEST}");
 }
@@ -2969,6 +2975,20 @@ async fn every_write_fails_when_its_audit_fails() {
         )
         .await
         .expect("saves bob's filter");
+    let event = event_with(db, "audit fails", &[root]).await;
+    let unused_type = service
+        .create_threat_type(&actor, "unused")
+        .await
+        .expect("adds a type");
+    let malware = malware_named(db, "audit-fails").await;
+    let threat = service
+        .add_threat(&actor, malware, unused_type.id)
+        .await
+        .expect("adds a threat");
+    let other_type = service
+        .create_threat_type(&actor, "other")
+        .await
+        .expect("adds a type");
     let before = (
         row(db, root).await,
         tasks(db, root).await,
@@ -2981,6 +3001,7 @@ async fn every_write_fails_when_its_audit_fails() {
         comment_rows(db).await,
         preference_rows(db).await,
         saved_rows(db).await,
+        event_rows(db).await,
     );
 
     sqlx::raw_sql("ALTER TABLE service.audit ADD CONSTRAINT broken CHECK (false) NOT VALID")
@@ -3318,6 +3339,54 @@ async fn every_write_fails_when_its_audit_fails() {
                 .map(|_| ())
                 .expect_err("refused"),
         ),
+        (
+            "set_event_status",
+            service
+                .set_event_status(&actor, EventRef::Id(event), "CLOSED")
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "create_threat_type",
+            service
+                .create_threat_type(&actor, "never made")
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "rename_threat_type",
+            service
+                .rename_threat_type(&actor, other_type.id, "never renamed")
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "delete_threat_type",
+            service
+                .delete_threat_type(&actor, other_type.id)
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "add_threat",
+            service
+                .add_threat(&actor, malware, other_type.id)
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "remove_threat",
+            service
+                .remove_threat(&actor, threat.malware_id, threat.threat_type_id)
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
     ];
     let mut covered = BTreeSet::new();
     for (function, error) in &attempts {
@@ -3338,6 +3407,7 @@ async fn every_write_fails_when_its_audit_fails() {
         comment_rows(db).await,
         preference_rows(db).await,
         saved_rows(db).await,
+        event_rows(db).await,
     );
     assert_eq!(after, before);
     assert_eq!(
@@ -8643,4 +8713,617 @@ async fn set_quick_filters_records_its_row(db: &Db) -> String {
         }
     );
     "set_quick_filters".to_owned()
+}
+
+// PLAN.md 5.11's events (6a): ace3's events, threat types and threats.
+
+/// An event named `name` on today's date with these alerts, written as ace3's GUI writes one: each
+/// reference row the first by id, the risk level the first by value, as ace3's `add_to_event` takes them.
+async fn event_with(db: &Db, name: &str, alerts: &[Uuid]) -> i64 {
+    let id: i64 = sqlx::query_scalar(
+        "INSERT INTO events.events
+             (creation_date, name, status_id, remediation_id, type_id, vector_id, risk_level_id,
+              prevention_tool_id)
+         VALUES (current_date, $1, (SELECT min(id) FROM events.statuses),
+                 (SELECT min(id) FROM events.remediations), (SELECT min(id) FROM events.types),
+                 (SELECT min(id) FROM events.vectors),
+                 (SELECT id FROM events.risk_levels ORDER BY value LIMIT 1),
+                 (SELECT min(id) FROM events.prevention_tools))
+         RETURNING id",
+    )
+    .bind(name)
+    .fetch_one(db.pool())
+    .await
+    .expect("makes an event");
+    for alert in alerts {
+        sqlx::query("INSERT INTO events.event_alerts (event_id, root_id) VALUES ($1, $2)")
+            .bind(id)
+            .bind(alert)
+            .execute(db.pool())
+            .await
+            .expect("adds an alert");
+    }
+    id
+}
+
+async fn malware_named(db: &Db, name: &str) -> i32 {
+    sqlx::query_scalar("INSERT INTO events.malware (name) VALUES ($1) RETURNING id")
+        .bind(name)
+        .fetch_one(db.pool())
+        .await
+        .expect("makes malware")
+}
+
+async fn threat_type_id(db: &Db, name: &str) -> i32 {
+    sqlx::query_scalar("SELECT id FROM events.threat_types WHERE name = $1")
+        .bind(name)
+        .fetch_one(db.pool())
+        .await
+        .expect("a seeded type")
+}
+
+/// Every row an event write could touch, whole.
+async fn event_rows(db: &Db) -> Vec<String> {
+    sqlx::query_scalar(
+        "SELECT 'event ' || row_to_json(e)::text FROM events.events e
+         UNION ALL SELECT 'type ' || row_to_json(t)::text FROM events.threat_types t
+         UNION ALL SELECT 'threat ' || row_to_json(m)::text FROM events.malware_threats m
+         ORDER BY 1",
+    )
+    .fetch_all(db.pool())
+    .await
+    .expect("reads")
+}
+
+/// A user holding nothing to do with events.
+async fn no_events(db: &Db) -> Actor {
+    let id = UserId(Uuid::from_u128(0xE0));
+    exists(db, &Holder::User(id)).await;
+    user(id)
+}
+
+async fn set_event_status_records_its_row(db: &Db) -> String {
+    let actor = admin(db).await;
+    let service = service(db);
+    let id = event_with(db, "<b>status</b>", &[]).await;
+    let uuid: Uuid = sqlx::query_scalar("SELECT uuid FROM events.events WHERE id = $1")
+        .bind(id)
+        .fetch_one(db.pool())
+        .await
+        .expect("reads");
+    let set = service
+        .set_event_status(&actor, EventRef::Uuid(uuid), "CLOSED")
+        .await
+        .expect("sets");
+    assert_eq!(set.status, "CLOSED");
+    let row = last_audit(db).await;
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: boss_json(),
+            action: "set_event_status".to_owned(),
+            target: ("event".to_owned(), id.to_string()),
+            before: Some(json!({"status": "OPEN"})),
+            after: Some(json!({"status": "CLOSED"})),
+            details: json!({"uuid": uuid, "name": "<b>status</b>"}),
+        }
+    );
+
+    // the status it has, one that isn't one, no such event and a refusal have no row
+    let rows = audit_rows(db).await.len();
+    let same = service
+        .set_event_status(&actor, EventRef::Id(id), "CLOSED")
+        .await
+        .expect("changes nothing");
+    assert_eq!(same, set);
+    assert!(matches!(
+        service
+            .set_event_status(&actor, EventRef::Id(id), "closed")
+            .await,
+        Err(ServiceError::InvalidRequest(_))
+    ));
+    assert!(matches!(
+        service
+            .set_event_status(&actor, EventRef::Id(i64::MAX), "OPEN")
+            .await,
+        Err(ServiceError::NotFound(_))
+    ));
+    assert!(matches!(
+        service
+            .set_event_status(&no_events(db).await, EventRef::Id(id), "OPEN")
+            .await,
+        Err(ServiceError::PermissionDenied { ref permission, .. })
+            if permission.to_string() == "event:write"
+    ));
+    assert_eq!(audit_rows(db).await.len(), rows);
+    row.action
+}
+
+async fn create_threat_type_records_its_row(db: &Db) -> String {
+    let actor = admin(db).await;
+    let service = service(db);
+    let made = service
+        .create_threat_type(&actor, "<script>x</script>")
+        .await
+        .expect("adds");
+    let row = last_audit(db).await;
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: boss_json(),
+            action: "create_threat_type".to_owned(),
+            target: ("threat_type".to_owned(), made.id.to_string()),
+            before: None,
+            after: Some(json!({"id": made.id, "name": "<script>x</script>"})),
+            details: json!({}),
+        }
+    );
+
+    // a taken name, one of ace3's seeded ones, a name that isn't one and a refusal have no row
+    let rows = audit_rows(db).await.len();
+    for taken in ["<script>x</script>", "ransomware"] {
+        assert!(
+            matches!(
+                service.create_threat_type(&actor, taken).await,
+                Err(ServiceError::Conflict(_))
+            ),
+            "{taken}"
+        );
+    }
+    assert!(matches!(
+        service.create_threat_type(&actor, " ").await,
+        Err(ServiceError::InvalidRequest(_))
+    ));
+    assert!(matches!(
+        service
+            .create_threat_type(&no_events(db).await, "refused")
+            .await,
+        Err(ServiceError::PermissionDenied { .. })
+    ));
+    assert_eq!(audit_rows(db).await.len(), rows);
+    row.action
+}
+
+async fn rename_threat_type_records_its_row(db: &Db) -> String {
+    let actor = admin(db).await;
+    let service = service(db);
+    let made = service
+        .create_threat_type(&actor, "before the rename")
+        .await
+        .expect("adds");
+    let renamed = service
+        .rename_threat_type(&actor, made.id, "after the rename")
+        .await
+        .expect("renames");
+    assert_eq!(renamed.name, "after the rename");
+    let row = last_audit(db).await;
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: boss_json(),
+            action: "rename_threat_type".to_owned(),
+            target: ("threat_type".to_owned(), made.id.to_string()),
+            before: Some(json!({"name": "before the rename"})),
+            after: Some(json!({"name": "after the rename"})),
+            details: json!({}),
+        }
+    );
+
+    let rows = audit_rows(db).await.len();
+    assert_eq!(
+        service
+            .rename_threat_type(&actor, made.id, "after the rename")
+            .await
+            .expect("changes nothing"),
+        renamed
+    );
+    assert!(matches!(
+        service.rename_threat_type(&actor, made.id, "rat").await,
+        Err(ServiceError::Conflict(_))
+    ));
+    assert!(matches!(
+        service.rename_threat_type(&actor, i32::MAX, "x").await,
+        Err(ServiceError::NotFound(_))
+    ));
+    assert_eq!(audit_rows(db).await.len(), rows);
+    row.action
+}
+
+async fn delete_threat_type_records_its_row(db: &Db) -> String {
+    let actor = admin(db).await;
+    let service = service(db);
+    let made = service
+        .create_threat_type(&actor, "to delete")
+        .await
+        .expect("adds");
+    service
+        .delete_threat_type(&actor, made.id)
+        .await
+        .expect("deletes");
+    let row = last_audit(db).await;
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: boss_json(),
+            action: "delete_threat_type".to_owned(),
+            target: ("threat_type".to_owned(), made.id.to_string()),
+            before: Some(json!({"id": made.id, "name": "to delete"})),
+            after: None,
+            details: json!({}),
+        }
+    );
+
+    // gone, and one that malware has stays, as in ace3
+    let rows = audit_rows(db).await.len();
+    assert!(matches!(
+        service.delete_threat_type(&actor, made.id).await,
+        Err(ServiceError::NotFound(_))
+    ));
+    let used = threat_type_id(db, "botnet").await;
+    let malware = malware_named(db, "delete-guard").await;
+    sqlx::query("INSERT INTO events.malware_threats VALUES ($1, $2)")
+        .bind(malware)
+        .bind(used)
+        .execute(db.pool())
+        .await
+        .expect("maps");
+    assert!(matches!(
+        service.delete_threat_type(&actor, used).await,
+        Err(ServiceError::Conflict(ref e)) if e.contains("used by 1 malware")
+    ));
+    assert_eq!(audit_rows(db).await.len(), rows);
+    row.action
+}
+
+async fn add_threat_records_its_row(db: &Db) -> String {
+    let actor = admin(db).await;
+    let service = service(db);
+    let malware = malware_named(db, "Emotet").await;
+    let kind = threat_type_id(db, "downloader").await;
+    let added = service
+        .add_threat(&actor, malware, kind)
+        .await
+        .expect("adds");
+    assert_eq!(added.threat_type_name, "downloader");
+    let row = last_audit(db).await;
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: boss_json(),
+            action: "add_threat".to_owned(),
+            target: ("threat".to_owned(), format!("{malware}/{kind}")),
+            before: None,
+            after: Some(json!({
+                "malware_id": malware,
+                "malware_name": "Emotet",
+                "threat_type_id": kind,
+                "threat_type_name": "downloader",
+            })),
+            details: json!({}),
+        }
+    );
+
+    // ace3's database refuses these with a 500; here they're a conflict and a 404
+    let rows = audit_rows(db).await.len();
+    assert!(matches!(
+        service.add_threat(&actor, malware, kind).await,
+        Err(ServiceError::Conflict(_))
+    ));
+    assert!(matches!(
+        service.add_threat(&actor, i32::MAX, kind).await,
+        Err(ServiceError::NotFound(ref e)) if e.contains("malware")
+    ));
+    assert!(matches!(
+        service.add_threat(&actor, malware, i32::MAX).await,
+        Err(ServiceError::NotFound(ref e)) if e.contains("threat type")
+    ));
+    assert_eq!(audit_rows(db).await.len(), rows);
+    row.action
+}
+
+async fn remove_threat_records_its_row(db: &Db) -> String {
+    let actor = admin(db).await;
+    let service = service(db);
+    let malware = malware_named(db, "Qakbot").await;
+    let kind = threat_type_id(db, "infostealer").await;
+    service
+        .add_threat(&actor, malware, kind)
+        .await
+        .expect("adds");
+    service
+        .remove_threat(&actor, malware, kind)
+        .await
+        .expect("removes");
+    let row = last_audit(db).await;
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: boss_json(),
+            action: "remove_threat".to_owned(),
+            target: ("threat".to_owned(), format!("{malware}/{kind}")),
+            before: Some(json!({
+                "malware_id": malware,
+                "malware_name": "Qakbot",
+                "threat_type_id": kind,
+                "threat_type_name": "infostealer",
+            })),
+            after: None,
+            details: json!({}),
+        }
+    );
+
+    let rows = audit_rows(db).await.len();
+    assert!(matches!(
+        service.remove_threat(&actor, malware, kind).await,
+        Err(ServiceError::NotFound(_))
+    ));
+    assert_eq!(audit_rows(db).await.len(), rows);
+    row.action
+}
+
+/// ace3's events as its router serves them: by id or uuid, with its alerts, its malware and their threat
+/// types, its owner, its tags and its alerts' tags, and a disposition rolled up from its alerts'; the open
+/// ones a page at a time; and the export's events. `event:read` is needed for each.
+#[tokio::test]
+async fn events_are_read_as_ace3_serves_them() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let boss = admin(db).await;
+    let reader = holding(&service, db, "event-reader", &[("event", "read")]).await;
+
+    // two alerts, one dispositioned, one with tagged observables
+    let first = alert(db).await;
+    let second = alert(db).await;
+    sqlx::query(
+        "UPDATE analysis.roots SET alerted_at = now() - interval '1 hour', description = '<i>first</i>'
+         WHERE id = $1",
+    )
+    .bind(first)
+    .execute(db.pool())
+    .await
+    .expect("alerts");
+    sqlx::query("UPDATE analysis.roots SET alerted_at = now() WHERE id = $1")
+        .bind(second)
+        .execute(db.pool())
+        .await
+        .expect("alerts");
+    service
+        .disposition(&boss, first, "DELIVERY")
+        .await
+        .expect("dispositions");
+    sqlx::query("UPDATE analysis.observables SET tags = '{zeta, Alpha}' WHERE root_id = $1")
+        .bind(second)
+        .execute(db.pool())
+        .await
+        .expect("tags");
+
+    let hostile = "<script>alert(1)</script>";
+    let id = event_with(db, hostile, &[second, first]).await;
+    let campaign: i32 =
+        sqlx::query_scalar("INSERT INTO events.campaigns (name) VALUES ('APT-x') RETURNING id")
+            .fetch_one(db.pool())
+            .await
+            .expect("a campaign");
+    let emotet = malware_named(db, "Emotet").await;
+    for kind in ["downloader", "botnet"] {
+        let kind = threat_type_id(db, kind).await;
+        service
+            .add_threat(&boss, emotet, kind)
+            .await
+            .expect("a threat");
+    }
+    let bare = malware_named(db, "Unnamed").await;
+    sqlx::query(
+        "UPDATE events.events SET owner_id = $2, campaign_id = $3, comment = $4,
+             alert_time = '2026-03-04T05:06:07Z' WHERE id = $1",
+    )
+    .bind(id)
+    .bind(Uuid::from_u128(0xAD))
+    .bind(campaign)
+    .bind(hostile)
+    .execute(db.pool())
+    .await
+    .expect("records");
+    for malware in [emotet, bare] {
+        sqlx::query("INSERT INTO events.event_malware VALUES ($1, $2)")
+            .bind(id)
+            .bind(malware)
+            .execute(db.pool())
+            .await
+            .expect("records malware");
+    }
+    sqlx::query("INSERT INTO events.event_tags VALUES ($1, 'phish-kit'), ($1, 'Campaign')")
+        .bind(id)
+        .execute(db.pool())
+        .await
+        .expect("tags the event");
+
+    let event = service
+        .event(&reader, EventRef::Id(id))
+        .await
+        .expect("reads");
+    assert_eq!(event.name, hostile, "as it was written");
+    assert_eq!(event.comment.as_deref(), Some(hostile));
+    assert_eq!(
+        (
+            event.status.as_str(),
+            event.remediation.as_str(),
+            event.kind.as_str(),
+            event.vector.as_str(),
+            event.risk_level.as_str(),
+            event.prevention_tool.as_str(),
+        ),
+        (
+            "OPEN",
+            "not remediated",
+            "phish",
+            "corporate email",
+            "0",
+            "response team"
+        ),
+        "ace3's defaults"
+    );
+    assert_eq!(event.campaign.as_deref(), Some("APT-x"));
+    let owner = event.owner.clone().expect("an owner");
+    assert_eq!(owner.id, UserId(Uuid::from_u128(0xAD)));
+    assert_eq!(event.disposition, "DELIVERY", "its alerts' highest");
+    assert_eq!(
+        event.alerts.iter().map(|a| a.id).collect::<Vec<_>>(),
+        [first, second],
+        "oldest alert first"
+    );
+    assert_eq!(event.alerts[0].title, "<i>first</i>");
+    assert_eq!(event.alerts[0].disposition.as_deref(), Some("DELIVERY"));
+    assert_eq!(
+        event.alerts[0]
+            .dispositioned_by
+            .as_ref()
+            .map(|a| a.kind.as_str()),
+        Some("user")
+    );
+    assert_eq!(event.alerts[1].disposition, None);
+    assert_eq!(event.tags, ["Campaign", "phish-kit"]);
+    assert_eq!(event.alert_tags, ["Alpha", "zeta"]);
+    assert_eq!(
+        event
+            .malware
+            .iter()
+            .map(|m| (m.name.as_str(), m.threat_types.clone()))
+            .collect::<Vec<_>>(),
+        [
+            ("Emotet", vec!["botnet".to_owned(), "downloader".to_owned()]),
+            ("Unnamed", vec![]),
+        ]
+    );
+    assert_eq!(event.threat_types(), ["botnet", "downloader"]);
+    assert_eq!(
+        service
+            .event(&reader, EventRef::Uuid(event.uuid))
+            .await
+            .expect("reads"),
+        event,
+        "by its uuid too"
+    );
+    for missing in [EventRef::Id(i64::MAX), EventRef::Uuid(Uuid::nil())] {
+        assert!(matches!(
+            service.event(&reader, missing).await,
+            Err(ServiceError::NotFound(_))
+        ));
+    }
+
+    // an event with no alerts is DELIVERY, as ace3's roll-up has it, and only open events are listed
+    let empty = event_with(db, "empty", &[]).await;
+    let closed = event_with(db, "closed", &[first]).await;
+    service
+        .set_event_status(&boss, EventRef::Id(closed), "CLOSED")
+        .await
+        .expect("closes");
+    let page = service.open_events(&reader, None, 1).await.expect("lists");
+    assert_eq!(page.events.len(), 1);
+    assert_eq!(page.events[0], event);
+    assert_eq!(page.next, Some(id));
+    let page = service
+        .open_events(&reader, page.next, 1)
+        .await
+        .expect("lists");
+    assert_eq!(page.events[0].id, empty);
+    assert_eq!(page.events[0].disposition, "DELIVERY");
+    assert_eq!(page.next, None, "the closed one isn't open");
+    for limit in [0, ace_service::MAX_EVENTS_PAGE + 1] {
+        assert!(matches!(
+            service.open_events(&reader, None, limit).await,
+            Err(ServiceError::InvalidRequest(_))
+        ));
+    }
+
+    // the export's events, in id order, leaving out an id with no event
+    let exported = service
+        .events_for_export(&reader, &[closed, i64::MAX, id])
+        .await
+        .expect("exports");
+    assert_eq!(
+        exported.iter().map(|e| e.id).collect::<Vec<_>>(),
+        [id, closed]
+    );
+    let too_many: Vec<i64> = (0..=ace_service::MAX_EXPORT_EVENTS as i64).collect();
+    assert!(matches!(
+        service.events_for_export(&reader, &too_many).await,
+        Err(ServiceError::TooLarge(_))
+    ));
+
+    // threat types by name, and the threats by malware
+    let types = service.threat_types(&reader).await.expect("lists");
+    assert_eq!(types.len(), 13, "ace3's seeded list");
+    let names: Vec<&str> = types.iter().map(|t| t.name.as_str()).collect();
+    let mut sorted = names.clone();
+    sorted.sort_unstable();
+    assert_eq!(names, sorted);
+    let botnet = threat_type_id(db, "botnet").await;
+    assert_eq!(
+        service
+            .threat_type(&reader, botnet)
+            .await
+            .expect("reads")
+            .name,
+        "botnet"
+    );
+    let threats = service.threats(&reader, Some(emotet)).await.expect("lists");
+    assert_eq!(
+        threats
+            .iter()
+            .map(|t| t.threat_type_name.as_str())
+            .collect::<Vec<_>>(),
+        ["botnet", "downloader"]
+    );
+    assert!(
+        service
+            .threats(&reader, Some(bare))
+            .await
+            .expect("lists")
+            .is_empty()
+    );
+    assert_eq!(
+        service.threats(&reader, None).await.expect("lists"),
+        threats
+    );
+
+    // a reader can't write, and someone with no event permission can't read
+    assert!(matches!(
+        service.create_threat_type(&reader, "nope").await,
+        Err(ServiceError::PermissionDenied { ref permission, .. })
+            if permission.to_string() == "event:write"
+    ));
+    let outsider = no_events(db).await;
+    let refused = [
+        service.event(&outsider, EventRef::Id(id)).await.map(|_| ()),
+        service.open_events(&outsider, None, 10).await.map(|_| ()),
+        service
+            .events_for_export(&outsider, &[id])
+            .await
+            .map(|_| ()),
+        service.threat_types(&outsider).await.map(|_| ()),
+        service.threat_type(&outsider, botnet).await.map(|_| ()),
+        service.threats(&outsider, None).await.map(|_| ()),
+    ];
+    for result in refused {
+        assert!(matches!(
+            result,
+            Err(ServiceError::PermissionDenied { ref permission, .. })
+                if permission.to_string() == "event:read"
+        ));
+    }
+
+    // an alert that's deleted leaves its events
+    sqlx::query("DELETE FROM analysis.roots WHERE id = $1")
+        .bind(second)
+        .execute(db.pool())
+        .await
+        .expect("deletes");
+    let event = service
+        .event(&reader, EventRef::Id(id))
+        .await
+        .expect("reads");
+    assert_eq!(event.alerts.len(), 1);
+    assert!(event.alert_tags.is_empty());
 }

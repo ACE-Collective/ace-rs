@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM events.malware_threats\n                         WHERE malware_id = $1 AND threat_type_id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "fb946164a5143fccceaef9a65ac3603c72a4ab3022cc5e23e1391a2fc2089af2"
+}

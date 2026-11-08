@@ -1,0 +1,275 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT e.id, e.uuid, e.creation_date, e.name, s.value AS status, rm.value AS remediation,\n                  t.value AS kind, v.value AS vector, rl.value AS risk_level,\n                  p.value AS prevention_tool, c.name AS \"campaign?\", e.comment, e.event_time,\n                  e.alert_time, e.ownership_time, e.disposition_time, e.contain_time,\n                  e.remediation_time, u.id AS \"owner_id?\", u.username::text AS \"owner_username?\",\n                  u.display_name AS \"owner_display_name?\", e.created_at\n           FROM events.events e\n           JOIN events.statuses s ON s.id = e.status_id\n           JOIN events.remediations rm ON rm.id = e.remediation_id\n           JOIN events.types t ON t.id = e.type_id\n           JOIN events.vectors v ON v.id = e.vector_id\n           JOIN events.risk_levels rl ON rl.id = e.risk_level_id\n           JOIN events.prevention_tools p ON p.id = e.prevention_tool_id\n           LEFT JOIN events.campaigns c ON c.id = e.campaign_id\n           LEFT JOIN service.users u ON u.id = e.owner_id\n           WHERE e.id = ANY($1)\n           ORDER BY e.id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "events.events",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "uuid",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "events.events",
+            "name": "uuid"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "creation_date",
+        "type_info": "Date",
+        "origin": {
+          "Table": {
+            "table": "events.events",
+            "name": "creation_date"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "events.events",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "status",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "events.statuses",
+            "name": "value"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "remediation",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "events.remediations",
+            "name": "value"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "kind",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "events.types",
+            "name": "value"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "vector",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "events.vectors",
+            "name": "value"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "risk_level",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "events.risk_levels",
+            "name": "value"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "prevention_tool",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "events.prevention_tools",
+            "name": "value"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "campaign?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "events.campaigns",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "comment",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "events.events",
+            "name": "comment"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "event_time",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "events.events",
+            "name": "event_time"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "alert_time",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "events.events",
+            "name": "alert_time"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "ownership_time",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "events.events",
+            "name": "ownership_time"
+          }
+        }
+      },
+      {
+        "ordinal": 15,
+        "name": "disposition_time",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "events.events",
+            "name": "disposition_time"
+          }
+        }
+      },
+      {
+        "ordinal": 16,
+        "name": "contain_time",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "events.events",
+            "name": "contain_time"
+          }
+        }
+      },
+      {
+        "ordinal": 17,
+        "name": "remediation_time",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "events.events",
+            "name": "remediation_time"
+          }
+        }
+      },
+      {
+        "ordinal": 18,
+        "name": "owner_id?",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "service.users",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 19,
+        "name": "owner_username?",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 20,
+        "name": "owner_display_name?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "service.users",
+            "name": "display_name"
+          }
+        }
+      },
+      {
+        "ordinal": 21,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "events.events",
+            "name": "created_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8Array"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      null,
+      true,
+      false
+    ]
+  },
+  "hash": "3e3321d55d28ea96a1281c8253a1642c69553368e14828c4725828502f519db5"
+}

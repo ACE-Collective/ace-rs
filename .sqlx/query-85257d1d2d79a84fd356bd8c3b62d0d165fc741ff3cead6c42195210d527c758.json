@@ -1,0 +1,64 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT mt.malware_id, m.name AS malware_name, mt.threat_type_id,\n                                  tt.name AS threat_type_name\n                           FROM events.malware_threats mt\n                           JOIN events.malware m ON m.id = mt.malware_id\n                           JOIN events.threat_types tt ON tt.id = mt.threat_type_id\n                           WHERE $1::integer IS NULL OR mt.malware_id = $1\n                           ORDER BY m.name, m.id, tt.name, tt.id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "malware_id",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "events.malware_threats",
+            "name": "malware_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "malware_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "events.malware",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "threat_type_id",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "events.malware_threats",
+            "name": "threat_type_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "threat_type_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "events.threat_types",
+            "name": "name"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "85257d1d2d79a84fd356bd8c3b62d0d165fc741ff3cead6c42195210d527c758"
+}

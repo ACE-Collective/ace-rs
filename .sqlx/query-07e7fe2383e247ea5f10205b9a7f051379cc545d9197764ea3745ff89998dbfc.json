@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO events.malware_threats (malware_id, threat_type_id)\n                         VALUES ($1, $2) ON CONFLICT DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "07e7fe2383e247ea5f10205b9a7f051379cc545d9197764ea3745ff89998dbfc"
+}

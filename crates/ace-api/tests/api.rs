@@ -371,6 +371,14 @@ const DECODE: &str = "/api/filters/v1/screens/{screen}/decode";
 const SAVED: &str = "/api/filters/v1/saved";
 const SAVED_ONE: &str = "/api/filters/v1/saved/{id}";
 const QUICK: &str = "/api/filters/v1/saved/quick";
+const OPEN_EVENTS: &str = "/api/events/v1/events/open";
+const EVENT: &str = "/api/events/v1/events/{event}";
+const EVENT_STATUS: &str = "/api/events/v1/events/{event}/status";
+const EVENT_CSV: &str = "/api/events/v1/events/export/csv";
+const THREAT_TYPES: &str = "/api/events/v1/threat-types";
+const THREAT_TYPE: &str = "/api/events/v1/threat-types/{id}";
+const THREATS: &str = "/api/events/v1/threats";
+const THREAT: &str = "/api/events/v1/threats/{malware}/{threat_type}";
 const OTHER_PASSWORD: &str = "a different long passphrase";
 
 /// A route with its `{...}` filled: a crash's `{id}` is a task's, which `observable` stands in for, since a
@@ -378,6 +386,15 @@ const OTHER_PASSWORD: &str = "a different long passphrase";
 fn fill(route: &str, id: Uuid, observable: i64) -> String {
     if route == COMMENTS {
         return format!("{COMMENTS}?type=fqdn&value=a.example");
+    }
+    if route == EVENT_CSV {
+        return format!("{EVENT_CSV}?ids=1");
+    }
+    if route == THREAT_TYPE || route == THREAT {
+        return route
+            .replace("{id}", "1")
+            .replace("{malware}", "1")
+            .replace("{threat_type}", "1");
     }
     if route.starts_with("/api/crashes/") || route.starts_with("/api/yara-qa/") || route == COMMENT
     {
@@ -391,6 +408,7 @@ fn fill(route: &str, id: Uuid, observable: i64) -> String {
         .replace("{user}", &id.to_string())
         .replace("{key}", "theme")
         .replace("{screen}", "alerts")
+        .replace("{event}", &id.to_string())
 }
 
 /// A route with `{id}` and `{user}` filled.
@@ -443,6 +461,9 @@ fn good_body(route: &str) -> Send {
         })),
         SAVED_ONE => Send::Json(json!({"name": "refused"})),
         QUICK => Send::Json(json!({"ids": []})),
+        EVENT_STATUS => Send::Json(json!({"status": "OPEN"})),
+        THREAT_TYPES | THREAT_TYPE => Send::Json(json!({"name": "refused"})),
+        THREATS => Send::Json(json!({"malware_id": 1, "threat_type_id": 1})),
         _ => Send::Nothing,
     }
 }
@@ -468,7 +489,7 @@ async fn refuses_without_a_credential_or_a_permission(
         .map(|(method, route, _)| (method, route))
         .filter(|route| !public.contains(route))
         .collect();
-    assert_eq!(routes.len(), 66, "{routes:?}");
+    assert_eq!(routes.len(), 78, "{routes:?}");
     for (method, route) in routes {
         let method: Method = method.to_uppercase().parse().expect("a method");
         let path = fill(&route, id, file);
@@ -3531,6 +3552,7 @@ async fn every_documented_status_is_tested() {
     preferences(&mut client).await;
     filters_and_exports(&mut client, &token).await;
     saved_filters(&mut client).await;
+    events(&mut client).await;
     pings(&mut client, &token).await;
 
     assert_eq!(
@@ -4397,4 +4419,510 @@ async fn saved_filters(client: &mut Client<'_>) {
             )
             .await;
     }
+}
+
+/// An event route with `{event}` filled.
+fn on_event(route: &str, event: impl std::fmt::Display) -> String {
+    route.replace("{event}", &event.to_string())
+}
+
+/// An event on today's date with ace3's defaults and these alerts, as `ace-service`'s tests make one.
+async fn event_of(stack: &Stack, name: &str, alerts: &[Uuid]) -> (i64, Uuid) {
+    let pool = stack.test_db.db().pool();
+    let (id, uuid): (i64, Uuid) = sqlx::query_as(
+        "INSERT INTO events.events
+             (creation_date, name, status_id, remediation_id, type_id, vector_id, risk_level_id,
+              prevention_tool_id, comment, alert_time)
+         VALUES (current_date, $1, (SELECT min(id) FROM events.statuses),
+                 (SELECT min(id) FROM events.remediations), (SELECT min(id) FROM events.types),
+                 (SELECT min(id) FROM events.vectors),
+                 (SELECT id FROM events.risk_levels ORDER BY value LIMIT 1),
+                 (SELECT min(id) FROM events.prevention_tools), $1, '2026-03-04T05:06:07Z')
+         RETURNING id, uuid",
+    )
+    .bind(name)
+    .fetch_one(pool)
+    .await
+    .expect("makes an event");
+    for alert in alerts {
+        sqlx::query("INSERT INTO events.event_alerts (event_id, root_id) VALUES ($1, $2)")
+            .bind(id)
+            .bind(alert)
+            .execute(pool)
+            .await
+            .expect("adds an alert");
+    }
+    (id, uuid)
+}
+
+/// PLAN.md 5.11's events (6a): ace3's events, threat_types and threats routers, every status each
+/// documents, each write audited.
+async fn events(client: &mut Client<'_>) {
+    use Method as M;
+    use StatusCode as S;
+    let json = Send::Json;
+    let stack = client.stack;
+    let reader = key(stack, &["event:read"]).await;
+    let writer = key(stack, &["event:read", "event:write"]).await;
+    let (r, w) = (Some(reader.as_str()), Some(writer.as_str()));
+    let pool = stack.test_db.db().pool();
+
+    let hostile = "=HYPERLINK(\"http://evil\") <script>";
+    let alerted = alert(
+        stack,
+        "in an event",
+        &[(ObservableKind::Fqdn, "event.example")],
+    )
+    .await;
+    let (id, uuid) = event_of(stack, hostile, &[alerted]).await;
+    let malware: i32 =
+        sqlx::query_scalar("INSERT INTO events.malware (name) VALUES ('Emotet') RETURNING id")
+            .fetch_one(pool)
+            .await
+            .expect("malware");
+    sqlx::query("INSERT INTO events.event_malware VALUES ($1, $2)")
+        .bind(id)
+        .bind(malware)
+        .execute(pool)
+        .await
+        .expect("records malware");
+
+    // one event, by id or uuid
+    let one = client
+        .json(M::GET, EVENT, &on_event(EVENT, id), r, Send::Nothing, S::OK)
+        .await;
+    assert_eq!(one["uuid"], json!(uuid));
+    assert_eq!(one["name"], hostile, "as it was written");
+    assert_eq!(one["type"], "phish");
+    assert_eq!(one["status"], "OPEN");
+    assert_eq!(one["disposition"], "OPEN", "its one alert is open");
+    assert_eq!(one["alerts"][0]["id"], json!(alerted));
+    assert_eq!(one["alerts"][0]["title"], "in an event");
+    assert_eq!(
+        one["malware"],
+        json!([{"id": malware, "name": "Emotet", "threat_types": []}])
+    );
+    let by_uuid = client
+        .json(
+            M::GET,
+            EVENT,
+            &on_event(EVENT, uuid),
+            r,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(by_uuid, one);
+    client
+        .json(
+            M::GET,
+            EVENT,
+            &on_event(EVENT, "443c-x"),
+            r,
+            Send::Nothing,
+            S::BAD_REQUEST,
+        )
+        .await;
+    client
+        .json(
+            M::GET,
+            EVENT,
+            &on_event(EVENT, Uuid::nil()),
+            r,
+            Send::Nothing,
+            S::NOT_FOUND,
+        )
+        .await;
+
+    // the open ones, a page at a time
+    let (second, _) = event_of(stack, "second", &[]).await;
+    let page = client
+        .json(
+            M::GET,
+            OPEN_EVENTS,
+            &format!("{OPEN_EVENTS}?limit=1"),
+            r,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(page["events"][0], one);
+    assert_eq!(page["next"], id);
+    let page = client
+        .json(
+            M::GET,
+            OPEN_EVENTS,
+            &format!("{OPEN_EVENTS}?limit=1&after={id}"),
+            r,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(page["events"][0]["id"], second);
+    assert_eq!(page["events"][0]["disposition"], "DELIVERY", "no alerts");
+    assert_eq!(page["next"], Value::Null);
+    client
+        .json(
+            M::GET,
+            OPEN_EVENTS,
+            &format!("{OPEN_EVENTS}?limit=0"),
+            r,
+            Send::Nothing,
+            S::BAD_REQUEST,
+        )
+        .await;
+
+    // a status: a reader can't, a status that isn't one, no such event, the one it has changes nothing
+    let status = on_event(EVENT_STATUS, id);
+    let rows = audit_count(stack).await;
+    client
+        .json(
+            M::PUT,
+            EVENT_STATUS,
+            &status,
+            r,
+            json(json!({"status": "CLOSED"})),
+            S::FORBIDDEN,
+        )
+        .await;
+    let closed = client
+        .json(
+            M::PUT,
+            EVENT_STATUS,
+            &status,
+            w,
+            json(json!({"status": "CLOSED"})),
+            S::OK,
+        )
+        .await;
+    assert_eq!(closed["status"], "CLOSED");
+    assert_eq!(audit_count(stack).await, rows + 1);
+    client
+        .json(
+            M::PUT,
+            EVENT_STATUS,
+            &status,
+            w,
+            json(json!({"status": "CLOSED"})),
+            S::OK,
+        )
+        .await;
+    assert_eq!(audit_count(stack).await, rows + 1, "no change, no row");
+    for bad in [
+        json(json!({"status": "NOPE"})),
+        json(json!({"state": "OPEN"})),
+    ] {
+        client
+            .json(M::PUT, EVENT_STATUS, &status, w, bad, S::BAD_REQUEST)
+            .await;
+    }
+    client
+        .json(
+            M::PUT,
+            EVENT_STATUS,
+            &on_event(EVENT_STATUS, i64::MAX),
+            w,
+            json(json!({"status": "OPEN"})),
+            S::NOT_FOUND,
+        )
+        .await;
+    client
+        .json(
+            M::PUT,
+            EVENT_STATUS,
+            &status,
+            w,
+            too_large(),
+            S::PAYLOAD_TOO_LARGE,
+        )
+        .await;
+    let page = client
+        .json(M::GET, OPEN_EVENTS, OPEN_EVENTS, r, Send::Nothing, S::OK)
+        .await;
+    assert_eq!(
+        page["events"].as_array().map(Vec::len),
+        Some(1),
+        "closed isn't open"
+    );
+
+    // the export, with ace3's columns and a formula guarded
+    let (got, kind, csv) = client
+        .text(
+            EVENT_CSV,
+            &format!("{EVENT_CSV}?ids={second},{id},999999"),
+            &reader,
+        )
+        .await;
+    assert_eq!(got, S::OK, "{csv}");
+    assert_eq!(kind, "text/csv; charset=utf-8");
+    let lines: Vec<&str> = csv.split("\r\n").collect();
+    assert_eq!(lines.len(), 4, "a header, two rows and the end: {csv:?}");
+    assert!(
+        lines[0].starts_with("id,uuid,creation_date,name,type,vector,threat_type,threat_name,"),
+        "{csv}"
+    );
+    assert!(
+        lines[0].ends_with("MAX(disposition),tags,alert_tags"),
+        "{csv}"
+    );
+    assert!(
+        lines[1].starts_with(&format!("{id},{uuid},")),
+        "in id order: {csv}"
+    );
+    assert!(
+        lines[1].contains(r#""'=HYPERLINK(""http://evil"") <script>""#),
+        "{csv}"
+    );
+    assert!(lines[1].contains(",Emotet,"), "{csv}");
+    assert!(lines[1].contains(",2026,Mar,OPEN,"), "{csv}");
+    assert!(!csv.contains(",="), "no cell starts a formula: {csv}");
+    let (got, _, _) = client
+        .text(EVENT_CSV, &format!("{EVENT_CSV}?ids=1,x"), &reader)
+        .await;
+    assert_eq!(got, S::BAD_REQUEST);
+    let many: Vec<String> = (0..=1000).map(|n| n.to_string()).collect();
+    let (got, _, _) = client
+        .text(
+            EVENT_CSV,
+            &format!("{EVENT_CSV}?ids={}", many.join(",")),
+            &reader,
+        )
+        .await;
+    assert_eq!(got, S::PAYLOAD_TOO_LARGE);
+
+    // threat types
+    let listed = client
+        .json(M::GET, THREAT_TYPES, THREAT_TYPES, r, Send::Nothing, S::OK)
+        .await;
+    assert_eq!(listed["threat_types"].as_array().map(Vec::len), Some(13));
+    let made = client
+        .json(
+            M::POST,
+            THREAT_TYPES,
+            THREAT_TYPES,
+            w,
+            json(json!({"name": hostile})),
+            S::CREATED,
+        )
+        .await;
+    assert_eq!(made["name"], hostile);
+    let made_id = made["id"].as_i64().expect("an id");
+    for (body, status) in [
+        (json(json!({"name": "ransomware"})), S::CONFLICT),
+        (json(json!({"name": " "})), S::BAD_REQUEST),
+        (too_large(), S::PAYLOAD_TOO_LARGE),
+    ] {
+        client
+            .json(M::POST, THREAT_TYPES, THREAT_TYPES, w, body, status)
+            .await;
+    }
+    let one_type = at(THREAT_TYPE, made_id, "");
+    let read = client
+        .json(M::GET, THREAT_TYPE, &one_type, r, Send::Nothing, S::OK)
+        .await;
+    assert_eq!(read, made);
+    client
+        .json(
+            M::GET,
+            THREAT_TYPE,
+            &at(THREAT_TYPE, "x", ""),
+            r,
+            Send::Nothing,
+            S::BAD_REQUEST,
+        )
+        .await;
+    client
+        .json(
+            M::GET,
+            THREAT_TYPE,
+            &at(THREAT_TYPE, i32::MAX, ""),
+            r,
+            Send::Nothing,
+            S::NOT_FOUND,
+        )
+        .await;
+    let renamed = client
+        .json(
+            M::PATCH,
+            THREAT_TYPE,
+            &one_type,
+            w,
+            json(json!({"name": "dropper"})),
+            S::OK,
+        )
+        .await;
+    assert_eq!(renamed["name"], "dropper");
+    for (path, body, status) in [
+        (one_type.clone(), json(json!({"name": "rat"})), S::CONFLICT),
+        (one_type.clone(), json(json!({})), S::BAD_REQUEST),
+        (
+            at(THREAT_TYPE, i32::MAX, ""),
+            json(json!({"name": "y"})),
+            S::NOT_FOUND,
+        ),
+        (one_type.clone(), too_large(), S::PAYLOAD_TOO_LARGE),
+    ] {
+        client
+            .json(M::PATCH, THREAT_TYPE, &path, w, body, status)
+            .await;
+    }
+
+    // threats: malware's threat types
+    let threat = client
+        .json(
+            M::POST,
+            THREATS,
+            THREATS,
+            w,
+            json(json!({"malware_id": malware, "threat_type_id": made_id})),
+            S::CREATED,
+        )
+        .await;
+    assert_eq!(
+        threat,
+        json!({
+            "malware_id": malware,
+            "malware_name": "Emotet",
+            "threat_type_id": made_id,
+            "threat_type_name": "dropper",
+        })
+    );
+    for (body, status) in [
+        (
+            json(json!({"malware_id": malware, "threat_type_id": made_id})),
+            S::CONFLICT,
+        ),
+        (
+            json(json!({"malware_id": i32::MAX, "threat_type_id": made_id})),
+            S::NOT_FOUND,
+        ),
+        (json(json!({"malware_id": "x"})), S::BAD_REQUEST),
+        (too_large(), S::PAYLOAD_TOO_LARGE),
+    ] {
+        client
+            .json(M::POST, THREATS, THREATS, w, body, status)
+            .await;
+    }
+    let listed = client
+        .json(
+            M::GET,
+            THREATS,
+            &format!("{THREATS}?malware={malware}"),
+            r,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(listed, json!({"threats": [threat]}));
+    client
+        .json(
+            M::GET,
+            THREATS,
+            &format!("{THREATS}?malware=x"),
+            r,
+            Send::Nothing,
+            S::BAD_REQUEST,
+        )
+        .await;
+    let event = client
+        .json(M::GET, EVENT, &on_event(EVENT, id), r, Send::Nothing, S::OK)
+        .await;
+    assert_eq!(event["malware"][0]["threat_types"], json!(["dropper"]));
+
+    // a type in use can't be deleted; once its threat is gone it can
+    client
+        .json(
+            M::DELETE,
+            THREAT_TYPE,
+            &one_type,
+            w,
+            Send::Nothing,
+            S::CONFLICT,
+        )
+        .await;
+    let threat_path = THREAT
+        .replace("{malware}", &malware.to_string())
+        .replace("{threat_type}", &made_id.to_string());
+    client
+        .json(
+            M::DELETE,
+            THREAT,
+            &threat_path,
+            r,
+            Send::Nothing,
+            S::FORBIDDEN,
+        )
+        .await;
+    let gone = client
+        .call(M::DELETE, THREAT, &threat_path, w, Send::Nothing)
+        .await;
+    assert_eq!(gone.status(), S::NO_CONTENT);
+    client
+        .json(
+            M::DELETE,
+            THREAT,
+            &threat_path,
+            w,
+            Send::Nothing,
+            S::NOT_FOUND,
+        )
+        .await;
+    client
+        .json(
+            M::DELETE,
+            THREAT,
+            &THREAT
+                .replace("{malware}", "x")
+                .replace("{threat_type}", "1"),
+            w,
+            Send::Nothing,
+            S::BAD_REQUEST,
+        )
+        .await;
+    let gone = client
+        .call(M::DELETE, THREAT_TYPE, &one_type, w, Send::Nothing)
+        .await;
+    assert_eq!(gone.status(), S::NO_CONTENT);
+    client
+        .json(
+            M::DELETE,
+            THREAT_TYPE,
+            &one_type,
+            w,
+            Send::Nothing,
+            S::NOT_FOUND,
+        )
+        .await;
+    client
+        .json(
+            M::DELETE,
+            THREAT_TYPE,
+            &at(THREAT_TYPE, "x", ""),
+            w,
+            Send::Nothing,
+            S::BAD_REQUEST,
+        )
+        .await;
+    client
+        .json(
+            M::PATCH,
+            THREAT_TYPE,
+            &at(THREAT_TYPE, "x", ""),
+            w,
+            json(json!({"name": "z"})),
+            S::BAD_REQUEST,
+        )
+        .await;
+    client
+        .json(
+            M::PUT,
+            EVENT_STATUS,
+            &on_event(EVENT_STATUS, "x-y"),
+            w,
+            json(json!({"status": "OPEN"})),
+            S::BAD_REQUEST,
+        )
+        .await;
+    // status, create, rename, add, remove and delete: one row each
+    assert_eq!(audit_count(stack).await, rows + 6);
 }

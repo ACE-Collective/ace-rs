@@ -1,0 +1,59 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT em.event_id, m.id, m.name,\n                  COALESCE(array_agg(tt.name ORDER BY tt.name) FILTER (WHERE tt.name IS NOT NULL),\n                           '{}') AS \"threat_types!\"\n           FROM events.event_malware em\n           JOIN events.malware m ON m.id = em.malware_id\n           LEFT JOIN events.malware_threats mt ON mt.malware_id = m.id\n           LEFT JOIN events.threat_types tt ON tt.id = mt.threat_type_id\n           WHERE em.event_id = ANY($1)\n           GROUP BY em.event_id, m.id, m.name\n           ORDER BY em.event_id, m.name",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "event_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "events.event_malware",
+            "name": "event_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "id",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "events.malware",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "events.malware",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "threat_types!",
+        "type_info": "TextArray",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8Array"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "1842ba53159dae0f74e57559656dd021941310480d22ffd74d714e32ec1f57e9"
+}

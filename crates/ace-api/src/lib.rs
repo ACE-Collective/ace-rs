@@ -232,6 +232,9 @@
 //!   the text when it isn't JSON.
 //! - ace3 scopes the list to the alerts its node shows. Every node here shows every alert.
 //!
+//! ace3's `events`, `threat_types` and `threats` routers (PLAN.md 5.6, 5.11) are under `/api/events/v1`, and
+//! `events`' docs map them.
+//!
 //! ace3's `filter_screens` and `saved_filters` routers (PLAN.md 5.6, 5.10), under the screen's permission,
 //! `alert:read` for both screens here, as in ace3 (`ace_service`'s `filters` and `saved_filters` docs):
 //!
@@ -269,6 +272,7 @@ mod auth;
 mod crashes;
 mod detection_points;
 mod error;
+mod events;
 mod export;
 mod filters;
 mod health;
@@ -438,6 +442,36 @@ impl Web {
                     .delete(observable_comments::delete)
                     .layer(json_limit),
             )
+            .route("/api/events/v1/events/open", get(events::open))
+            .route("/api/events/v1/events/export/csv", get(events::export_csv))
+            .route("/api/events/v1/events/{event}", get(events::one))
+            .route(
+                "/api/events/v1/events/{event}/status",
+                put(events::set_status).layer(json_limit),
+            )
+            .route(
+                "/api/events/v1/threat-types",
+                get(events::threat_types)
+                    .post(events::create_threat_type)
+                    .layer(json_limit),
+            )
+            .route(
+                "/api/events/v1/threat-types/{id}",
+                get(events::threat_type)
+                    .patch(events::rename_threat_type)
+                    .delete(events::delete_threat_type)
+                    .layer(json_limit),
+            )
+            .route(
+                "/api/events/v1/threats",
+                get(events::threats)
+                    .post(events::add_threat)
+                    .layer(json_limit),
+            )
+            .route(
+                "/api/events/v1/threats/{malware}/{threat_type}",
+                delete(events::remove_threat),
+            )
             .route("/api/crashes/v1/crashes", get(crashes::list))
             .route("/api/crashes/v1/crashes/{id}", get(crashes::one))
             .route(
@@ -594,6 +628,18 @@ impl Web {
         user_preferences::set,
         user_preferences::reset,
         health::ping,
+        events::open,
+        events::one,
+        events::set_status,
+        events::export_csv,
+        events::threat_types,
+        events::create_threat_type,
+        events::threat_type,
+        events::rename_threat_type,
+        events::delete_threat_type,
+        events::threats,
+        events::add_threat,
+        events::remove_threat,
         crashes::list,
         crashes::one,
         crashes::download,
@@ -616,6 +662,7 @@ impl Web {
         (name = "health", description = "Whether the API answers"),
         (name = "crashes", description = "Failed tasks, their errors and their inputs"),
         (name = "yara_qa", description = "YARA rules in QA mode, the files they matched, and purges"),
+        (name = "events", description = "Events, the alerts in them, threat types and malware's threats"),
         (name = "filters", description = "A list screen's filters, their share links, and the caller's saved filters"),
     )
 )]

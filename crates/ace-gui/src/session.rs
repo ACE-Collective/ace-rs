@@ -228,6 +228,7 @@ impl Failure {
             ServiceError::UsernameTaken
             | ServiceError::GroupNameTaken
             | ServiceError::FilterNameTaken(_)
+            | ServiceError::Conflict(_)
             | ServiceError::UsersExist => StatusCode::CONFLICT,
             _ => {
                 tracing::error!("a page failed: {error}");

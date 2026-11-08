@@ -43,6 +43,9 @@
 //! `observable_comments` keeps analysts' comments on an observable by its type and value, across alerts,
 //! for 5.6's `observable_comments` router, and reads an alert's for 5.8's alert view.
 //!
+//! `events` reads events, sets their status, and keeps the threat types and malware's threats, for 5.11's
+//! events area and ace3's `events`, `threat_types` and `threats` routers.
+//!
 //! `alert_view` reads an alert's whole tree for 5.8's alert view, and watches an alert for results landing
 //! on it, so an open page can show them.
 //!
@@ -66,6 +69,7 @@ mod alerts;
 mod auth;
 mod crashes;
 mod detection_points;
+mod events;
 pub mod filters;
 mod gate;
 mod observable_comments;
@@ -104,6 +108,10 @@ pub use crashes::{Crash, CrashDetail, CrashFilter, CrashInput, CrashPage, MAX_CR
 pub use detection_points::{
     DetectionPoint, DetectionPointFilter, DetectionPointPage, MAX_DETECTIONS_PAGE,
 };
+pub use events::{
+    Event, EventAlert, EventMalware, EventOwner, EventPage, EventRef, MAX_EVENTS_PAGE,
+    MAX_EXPORT_EVENTS, MAX_THREAT_TYPE_CHARS, Threat, ThreatType, disposition_rank, rolled_up,
+};
 pub use filters::{FilterEntry, FilterScreen, FilterValue};
 pub use gate::Holder;
 pub use observable_comments::{CommentAuthor, MAX_COMMENT_CHARS, ObservableComment};
@@ -111,9 +119,10 @@ pub use observables::{
     Lookup, MAX_EXCLUDED_ALERTS, MAX_LOOKUP_PAIRS, MAX_RECENT_ALERTS, OPEN, Prevalence, RecentAlert,
 };
 pub use permission::{
-    ADMIN_READ, ALERT_CREATE, ALERT_READ, ALERT_WRITE, CATALOG, CRASH_READ, CatalogEntry, Effect,
-    InvalidPermission, OBSERVABLE_READ, OBSERVABLE_WRITE, PermissionName, PermissionPattern,
-    SIGNATURE_DOWNLOAD, SIGNATURE_QA_PURGE, SIGNATURE_READ, USER_READ, USER_SELF, USER_WRITE,
+    ADMIN_READ, ALERT_CREATE, ALERT_READ, ALERT_WRITE, CATALOG, CRASH_READ, CatalogEntry,
+    EVENT_READ, EVENT_WRITE, Effect, InvalidPermission, OBSERVABLE_READ, OBSERVABLE_WRITE,
+    PermissionName, PermissionPattern, SIGNATURE_DOWNLOAD, SIGNATURE_QA_PURGE, SIGNATURE_READ,
+    USER_READ, USER_SELF, USER_WRITE,
 };
 pub use preferences::{
     AlertSectionsPreference, MANAGE_COLUMNS, MAX_ALERT_SECTIONS, ManageColumn,
@@ -202,6 +211,10 @@ pub enum ServiceError {
     /// comment. Nothing was written.
     #[error("{0}")]
     Forbidden(String),
+    /// A write that would clash with what's there, such as a name that's taken or a row something still
+    /// uses. Nothing was written.
+    #[error("{0}")]
+    Conflict(String),
     #[error(transparent)]
     Bucket(#[from] BucketError),
 }
@@ -228,6 +241,7 @@ impl Retryable for ServiceError {
             | ServiceError::NotFound(_)
             | ServiceError::TooLarge(_)
             | ServiceError::Forbidden(_)
+            | ServiceError::Conflict(_)
             | ServiceError::PermissionDenied { .. }
             | ServiceError::InvalidPermission(_)
             | ServiceError::AuditEncoding(_)
