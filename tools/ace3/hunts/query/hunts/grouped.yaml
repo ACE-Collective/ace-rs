@@ -1,0 +1,30 @@
+include:
+  - includes/defaults.include.yaml
+rule:
+  uuid: 00000000-0000-0000-0000-00000000a002
+  name: failed sign-ins
+  description: rows grouped by their source, each group suppressed for an hour once it alerts
+  query: index=auth ace4case=grouped action=failure
+  group_by: src_ip
+  suppression: "01:00:00"
+  full_coverage: true
+  use_index_time: true
+  max_time_range: "00:30:00"
+  offset: "00:02:00"
+  observable_mapping:
+    - field: src_ip
+      type: ip
+    - field: user
+      type: user
+      time: true
+  summary_details:
+    - content: "{{ user }} failed at {{ _time }}"
+      header: "From {{ src_ip }}"
+      limit: 2
+    - content: "{{ user }}"
+      dedup_fields: [user]
+      grouped: true
+    - format: jinja
+      grouped: true
+      content: "{% for e in events %}{{ e.user }};{% endfor %}"
+      header: "{{ src_ip }} users"

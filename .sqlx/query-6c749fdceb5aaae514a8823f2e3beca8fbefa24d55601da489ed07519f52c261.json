@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE hunts.state\n                         SET last_executed_time = $3, last_end_time = $4, last_alert_time = $5,\n                             last_alert_times = $6, updated_at = now()\n                         WHERE type = $1 AND name = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Timestamptz",
+        "Timestamptz",
+        "Timestamptz",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "6c749fdceb5aaae514a8823f2e3beca8fbefa24d55601da489ed07519f52c261"
+}

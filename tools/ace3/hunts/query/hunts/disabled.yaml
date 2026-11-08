@@ -1,0 +1,8 @@
+include:
+  - includes/defaults.include.yaml
+rule:
+  uuid: 00000000-0000-0000-0000-00000000a011
+  name: disabled hunt
+  description: a disabled hunt, which the manager never runs
+  enabled: false
+  query: index=auth ace4case=disabled

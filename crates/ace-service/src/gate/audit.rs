@@ -155,6 +155,22 @@ impl Target {
         }
     }
 
+    /// A hunt, as `<type>/<name>`, the key ace3 keeps its state under.
+    pub(crate) fn hunt(kind: &str, name: &str) -> Self {
+        Target {
+            kind: "hunt",
+            id: format!("{kind}/{name}"),
+        }
+    }
+
+    /// The hunts of one type, by the type's name.
+    pub(crate) fn hunt_type(kind: &str) -> Self {
+        Target {
+            kind: "hunt_type",
+            id: kind.to_owned(),
+        }
+    }
+
     /// A saved filter, by its id.
     pub(crate) fn saved_filter(id: Uuid) -> Self {
         Target {

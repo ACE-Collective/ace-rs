@@ -246,6 +246,12 @@ pub const ALERT_CREATE: PermissionName = PermissionName::known("alert", "create"
 pub const EVENT_READ: PermissionName = PermissionName::known("event", "read");
 /// Change events, and the threat types and malware's threats they record: ace3's `event:write`.
 pub const EVENT_WRITE: PermissionName = PermissionName::known("event", "write");
+/// List the hunts the hunter loaded and read a hunt's state (PLAN.md 6.4). ace3 has no such permission:
+/// its hunts were files, and their state pickles on the node.
+pub const HUNT_READ: PermissionName = PermissionName::known("hunt", "read");
+/// Validate a hunt through the `hunt` router, and, for the hunter, record the hunts it loaded: ace3's
+/// `hunt:write`.
+pub const HUNT_WRITE: PermissionName = PermissionName::known("hunt", "write");
 /// Read the analyst-edited lists, such as the email whitelists (PLAN.md 5.14). ace3 has no such
 /// permission: its lists were files on the node.
 pub const LIST_READ: PermissionName = PermissionName::known("list", "read");
@@ -322,6 +328,15 @@ pub static CATALOG: &[CatalogEntry] = &[
         name: EVENT_WRITE,
         description: "Make events, add alerts to them and change them, and add, rename and delete threat \
                       types and malware's threats.",
+    },
+    CatalogEntry {
+        name: HUNT_READ,
+        description: "List the hunts the hunter loaded, and read a hunt's state: when it last ran, the window \
+                      it last searched and when it last alerted.",
+    },
+    CatalogEntry {
+        name: HUNT_WRITE,
+        description: "Validate a hunt, running it over events given with it.",
     },
     CatalogEntry {
         name: LIST_READ,

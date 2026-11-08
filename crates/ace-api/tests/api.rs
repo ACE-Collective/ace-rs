@@ -425,6 +425,9 @@ const LISTS: &str = "/api/lists/v1/lists";
 const LIST_ONE: &str = "/api/lists/v1/lists/{list}";
 const ENTRIES: &str = "/api/lists/v1/lists/{list}/entries";
 const ENTRY: &str = "/api/lists/v1/lists/{list}/entries/{id}";
+const HUNTS: &str = "/api/hunts/v1/hunts";
+const HUNT: &str = "/api/hunts/v1/hunts/{uuid}";
+const VALIDATE: &str = "/api/hunts/v1/validate";
 const OTHER_PASSWORD: &str = "a different long passphrase";
 
 /// A route with its `{...}` filled: a crash's `{id}` is a task's, which `observable` stands in for, since a
@@ -520,6 +523,7 @@ fn good_body(route: &str) -> Send {
         THREATS => Send::Json(json!({"malware_id": 1, "threat_type_id": 1})),
         COMMANDS => Send::Json(json!({"command": "--help"})),
         ENTRIES | ENTRY => Send::Json(json!({"match": "exact", "value": "refused"})),
+        VALIDATE => Send::Json(json!({"compiled_hunt": {"target": "x.yaml", "assets": []}})),
         _ => Send::Nothing,
     }
 }
@@ -545,7 +549,7 @@ async fn refuses_without_a_credential_or_a_permission(
         .map(|(method, route, _)| (method, route))
         .filter(|route| !public.contains(route))
         .collect();
-    assert_eq!(routes.len(), 88, "{routes:?}");
+    assert_eq!(routes.len(), 91, "{routes:?}");
     for (method, route) in routes {
         let method: Method = method.to_uppercase().parse().expect("a method");
         let path = fill(&route, id, file);
@@ -3765,6 +3769,7 @@ async fn every_documented_status_is_tested() {
     saved_filters(&mut client).await;
     events(&mut client).await;
     lists_router(&mut client).await;
+    hunts_router(&mut client).await;
     pings(&mut client, &token).await;
 
     assert_eq!(
@@ -5801,4 +5806,214 @@ async fn an_edit_through_the_api_applies_to_the_next_task_without_a_restart() {
     assert_eq!(rows[0].1, "add_list_entry");
     assert_eq!(rows[rows.len() - 1].1, "delete_list_entry");
     server.abort();
+}
+
+/// A Splunk hunt of the test's own, as a compiled package's assets.
+fn hunt_package(rule: &str) -> Value {
+    json!({
+        "version": 2,
+        "target": "hunts/splunk/case.yaml",
+        "package_root": "/home/someone/signatures",
+        "assets": [
+            {"kind": "yaml", "path": "hunts/splunk/case.yaml", "content": rule},
+            {"kind": "query", "path": "hunts/splunk/case.spl", "content": "index=auth action=failure"},
+        ],
+    })
+}
+
+const HUNT_RULE: &str = "rule:
+  uuid: 00000000-0000-0000-0000-0000000000a1
+  name: \"{{ user }} failed\"
+  type: splunk
+  enabled: true
+  description: a hunt for the router's test
+  alert_type: hunter - splunk
+  frequency: \"00:10:00\"
+  time_range: \"00:10:00\"
+  full_coverage: false
+  use_index_time: false
+  search: __pkg__/hunts/splunk/case.spl
+  observable_mapping:
+    - field: user
+      type: user
+";
+
+/// ace3's `hunt` router and the loaded hunts (PLAN.md 6.4).
+async fn hunts_router(client: &mut Client<'_>) {
+    use Method as M;
+    use StatusCode as S;
+    let stack = client.stack;
+    let db = stack.test_db.db();
+    let reader = key(stack, &["hunt:read"]).await;
+    let r = Some(reader.as_str());
+    let writer = key(stack, &["hunt:write"]).await;
+    let w = Some(writer.as_str());
+
+    sqlx::query(
+        "INSERT INTO hunts.hunts (type, path, name, uuid, enabled, frequency, error, loaded_at) VALUES
+         ('splunk', 'hunts/splunk/a.yaml', '<b>a</b>', 'uuid-a', true, '00:10:00', NULL, now()),
+         ('splunk', 'hunts/splunk/b.yaml', NULL, NULL, NULL, NULL, 'ValueError: nope', now())",
+    )
+    .execute(db.pool())
+    .await
+    .expect("hunts");
+    sqlx::query(
+        "INSERT INTO hunts.state (type, name, last_executed_time, last_end_time, last_alert_times)
+         VALUES ('splunk', '<b>a</b>', '2026-11-01T12:00:00Z', '2026-11-01T12:00:00Z', '{\"10.1.1.1\": \"2026-11-01T12:00:00Z\"}')",
+    )
+    .execute(db.pool())
+    .await
+    .expect("state");
+
+    let listed = client
+        .json(M::GET, HUNTS, HUNTS, r, Send::Nothing, S::OK)
+        .await;
+    let hunts = listed["hunts"].as_array().expect("hunts");
+    assert_eq!(hunts.len(), 2);
+    assert_eq!(hunts[0]["name"], "<b>a</b>", "as the hunt names itself");
+    assert_eq!(hunts[0]["state"]["last_end_time"], "2026-11-01T12:00:00Z");
+    assert_eq!(
+        hunts[0]["state"]["last_alert_times"]["10.1.1.1"],
+        "2026-11-01T12:00:00Z"
+    );
+    assert_eq!(hunts[1]["error"], "ValueError: nope");
+    assert_eq!(hunts[1]["state"], Value::Null);
+    let one = client
+        .json(
+            M::GET,
+            HUNT,
+            &HUNT.replace("{uuid}", "uuid-a"),
+            r,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(one["path"], "hunts/splunk/a.yaml");
+    client
+        .json(
+            M::GET,
+            HUNT,
+            &HUNT.replace("{uuid}", "no-such"),
+            r,
+            Send::Nothing,
+            S::NOT_FOUND,
+        )
+        .await;
+    // a reader can't validate, and a validator can't list
+    client
+        .json(
+            M::POST,
+            VALIDATE,
+            VALIDATE,
+            r,
+            good_body(VALIDATE),
+            S::FORBIDDEN,
+        )
+        .await;
+    client
+        .json(M::GET, HUNTS, HUNTS, w, Send::Nothing, S::FORBIDDEN)
+        .await;
+
+    let rows = audit_count(stack).await;
+    let valid = client
+        .json(
+            M::POST,
+            VALIDATE,
+            VALIDATE,
+            w,
+            Send::Json(json!({"compiled_hunt": hunt_package(HUNT_RULE)})),
+            S::OK,
+        )
+        .await;
+    assert_eq!(valid, json!({"valid": true}));
+    assert_eq!(
+        audit_count(stack).await,
+        rows + 1,
+        "a validation is audited"
+    );
+    let (action, target): (String, String) =
+        sqlx::query_as("SELECT action, target_id FROM service.audit ORDER BY id DESC LIMIT 1")
+            .fetch_one(db.pool())
+            .await
+            .expect("reads");
+    assert_eq!(
+        (action.as_str(), target.as_str()),
+        ("validate_hunt", "splunk")
+    );
+
+    let ran = client
+        .json(
+            M::POST,
+            VALIDATE,
+            VALIDATE,
+            w,
+            Send::Json(json!({
+                "compiled_hunt": hunt_package(HUNT_RULE),
+                "execution_arguments": {"query_results": [
+                    {"_time": "2026-11-01T11:55:00.000+00:00", "user": "CORP\\alice"},
+                    {"user": "<script>"},
+                ]},
+            })),
+            S::OK,
+        )
+        .await;
+    let roots = ran["roots"].as_array().expect("roots");
+    assert_eq!(roots.len(), 2);
+    assert_eq!(roots[0]["description"], "CORP\\alice failed");
+    assert_eq!(roots[0]["event_time"], "2026-11-01T11:55:00+00:00");
+    assert_eq!(roots[0]["observables"][0]["value"], "alice");
+    assert_eq!(
+        roots[0]["details"]["query"],
+        Value::Null,
+        "nothing was searched"
+    );
+    assert_eq!(
+        roots[1]["description"], "<script> failed",
+        "as the row had it"
+    );
+
+    for (body, why) in [
+        (
+            json!({"compiled_hunt": hunt_package("rule: [")}),
+            "invalid hunt config",
+        ),
+        (
+            json!({"compiled_hunt": {"target": "../x.yaml", "assets": []}}),
+            "outside the package root",
+        ),
+        (
+            json!({"compiled_hunt": hunt_package(HUNT_RULE), "execution_arguments": {"start_time": "11/01/2026:11:50:00"}}),
+            "only ace hunter holds",
+        ),
+        (
+            json!({"compiled_hunt": hunt_package(HUNT_RULE), "execution_arguments": {"query_results": [], "create_alerts": true}}),
+            "create_alerts",
+        ),
+    ] {
+        let refused = client
+            .json(
+                M::POST,
+                VALIDATE,
+                VALIDATE,
+                w,
+                Send::Json(body),
+                S::BAD_REQUEST,
+            )
+            .await;
+        assert_eq!(refused["valid"], false);
+        assert!(
+            refused["error"].as_str().is_some_and(|e| e.contains(why)),
+            "{why}: {refused}"
+        );
+    }
+    client
+        .json(
+            M::POST,
+            VALIDATE,
+            VALIDATE,
+            w,
+            Send::Json(json!({"compiled": 1})),
+            S::UNPROCESSABLE_ENTITY,
+        )
+        .await;
 }

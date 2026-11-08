@@ -1,0 +1,19 @@
+include:
+  - includes/defaults.include.yaml
+rule:
+  uuid: 00000000-0000-0000-0000-00000000a004
+  name: everything at once
+  description: every row in one root, in analysis mode, with a dedup key
+  query: index=proxy ace4case=all
+  group_by: ALL
+  analysis_mode: analysis
+  queue: external
+  dedup_key: "{{ host }}"
+  alert_template: custom/proxy.html
+  icon_configuration:
+    url: https://example.com/icon.png
+  observable_mapping:
+    - field: host
+      type: hostname
+    - field: agent
+      type: user_agent

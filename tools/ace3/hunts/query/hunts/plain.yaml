@@ -1,0 +1,41 @@
+include:
+  - includes/defaults.include.yaml
+rule:
+  uuid: 00000000-0000-0000-0000-00000000a001
+  name: "{{ user }} signed in from {{ src_ip }}"
+  description: one alert a row, with the row's fields in its name, tags and links
+  query: index=auth ace4case=plain action=success
+  query_prefix: "`ace4_macro`"
+  query_suffix: "| eval seen=1"
+  description_field: app
+  playbook_url: "https://wiki.example.com/playbooks/{{ app }}"
+  tags:
+    - "app:{{ app }}"
+    - "{{ missing_field }}"
+  pivot_links:
+    - url: "https://splunk.example.com/search?q={{ user }}"
+      text: "{{ user }} in splunk"
+      icon: splunk
+    - url: "https://example.com/{{ nothing }}"
+      text: never
+  observable_mapping:
+    - field: src_ip
+      type: ip
+      time: true
+      display_type: Source IP
+      tags: ["seen:{{ app }}"]
+      directives: [crawl]
+    - field: user
+      type: user
+      directives: ["{{ directive }}"]
+    - field: email
+      type: email_address
+    - field: url
+      type: url
+    - field: domain
+      type: fqdn
+    - field: msgid
+      type: message_id
+    - field: src_ip
+      type: ip
+      directives: [whois]

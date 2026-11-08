@@ -24,6 +24,7 @@ name = "ace-api"
 version = "0.1.0"
 dependencies = [
  "ace-core",
+ "ace-hunt",
  "ace-results",
  "ace-sdk",
  "ace-service",
@@ -58,14 +59,18 @@ dependencies = [
  "ace-gui",
  "ace-hunt",
  "ace-mod-email",
+ "ace-mod-splunk",
  "ace-mod-yara",
  "ace-pool",
  "ace-results",
  "ace-sdk",
  "ace-service",
  "ace-store",
+ "ace-testkit",
  "ace-yara",
  "anyhow",
+ "chrono",
+ "chrono-tz",
  "clap",
  "reqwest",
  "serde",
@@ -143,6 +148,8 @@ dependencies = [
 name = "ace-hunt"
 version = "0.1.0"
 dependencies = [
+ "chrono",
+ "chrono-tz",
  "croner",
  "minijinja",
  "regex",
@@ -299,6 +306,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tempfile",
+ "thiserror 2.0.21",
  "tokio",
  "tracing",
 ]
@@ -1955,6 +1963,7 @@ version = "4.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "26d09284075f5c87675790d1ad74212a7863eb8bdf228cdbd364f08a152fc62d"
 dependencies = [
+ "chrono",
  "derive_builder",
  "strum 0.27.2",
 ]

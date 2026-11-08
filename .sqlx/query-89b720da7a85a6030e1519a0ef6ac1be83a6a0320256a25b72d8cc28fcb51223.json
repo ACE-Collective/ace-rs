@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM hunts.hunts WHERE type = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "89b720da7a85a6030e1519a0ef6ac1be83a6a0320256a25b72d8cc28fcb51223"
+}

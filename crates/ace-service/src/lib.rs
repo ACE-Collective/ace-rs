@@ -82,6 +82,7 @@ mod detection_points;
 mod events;
 pub mod filters;
 mod gate;
+mod hunts;
 mod lists;
 mod observable_comments;
 mod observables;
@@ -144,6 +145,7 @@ pub use filters::events::{
 };
 pub use filters::{FilterEntry, FilterScreen, FilterValue};
 pub use gate::Holder;
+pub use hunts::{HuntRow, HuntRun, HuntState, HuntValidation, LoadedHuntRow, RunRecorded};
 pub use lists::{ListEntry, ListSummary, ListView, NewListEntry};
 pub use observable_comments::{CommentAuthor, MAX_COMMENT_CHARS, ObservableComment};
 pub use observables::{
@@ -151,9 +153,9 @@ pub use observables::{
 };
 pub use permission::{
     ADMIN_READ, ALERT_CREATE, ALERT_READ, ALERT_WRITE, CATALOG, CLI_EXECUTE, CRASH_READ,
-    CatalogEntry, EVENT_READ, EVENT_WRITE, Effect, InvalidPermission, LIST_READ, LIST_WRITE,
-    OBSERVABLE_READ, OBSERVABLE_WRITE, PermissionName, PermissionPattern, SIGNATURE_DOWNLOAD,
-    SIGNATURE_QA_PURGE, SIGNATURE_READ, USER_READ, USER_SELF, USER_WRITE,
+    CatalogEntry, EVENT_READ, EVENT_WRITE, Effect, HUNT_READ, HUNT_WRITE, InvalidPermission,
+    LIST_READ, LIST_WRITE, OBSERVABLE_READ, OBSERVABLE_WRITE, PermissionName, PermissionPattern,
+    SIGNATURE_DOWNLOAD, SIGNATURE_QA_PURGE, SIGNATURE_READ, USER_READ, USER_SELF, USER_WRITE,
 };
 pub use preferences::{
     AlertSectionsPreference, MANAGE_COLUMNS, MAX_ALERT_SECTIONS, ManageColumn,

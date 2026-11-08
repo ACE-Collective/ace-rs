@@ -11,6 +11,13 @@
 //! root, adds the observables and the file observables, and queues what is eligible in the root's
 //! mode (`Orchestrator::start`). A file's path in the alert is the name it was sent with, and the
 //! submission's `file_yara_meta` can give a file `yara_meta` tags.
+//!
+//! A submitter inside ACE, such as the hunter (PLAN.md 6.4), adds an [`Origin`]: what the API's
+//! submission doesn't take yet. Its observables carry display types, relationships and detections,
+//! a detection makes the root an alert as it's created, as ace3's hunter does with a correlation
+//! root's detection point, and the rest of what the submitter said about the root, such as ace3's
+//! alert type, tool, queue and details, is kept as it said it in `analysis.roots.origin` until roots
+//! have columns for them.
 
 use std::collections::BTreeMap;
 
@@ -63,6 +70,24 @@ pub struct SubmittedObservable {
     pub exclude_modules: Vec<String>,
 }
 
+/// What a submitter inside ACE adds to a [`Submission`].
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct Origin {
+    /// The event time is the time the submitter processed the event, ace3's `query_time`, because
+    /// the event had no time of its own.
+    pub event_time_from_query: bool,
+    /// Observables with what the API's don't carry, added after the submission's own.
+    pub observables: Vec<NewObservable>,
+    /// What the submitter said about the root, kept as it is in `analysis.roots.origin`.
+    pub details: Option<serde_json::Value>,
+}
+
+impl Origin {
+    fn alerts(&self) -> bool {
+        self.observables.iter().any(|o| !o.detections.is_empty())
+    }
+}
+
 /// A submitted file: its bytes, spooled on this node, and its path in the alert.
 #[derive(Debug)]
 pub struct SubmittedFile {
@@ -109,6 +134,7 @@ impl Retryable for SubmitError {
 pub fn prepare(
     orchestrator: &Orchestrator,
     submission: &Submission,
+    origin: &Origin,
     files: &[SubmittedFile],
 ) -> Result<NewRoot, SubmitError> {
     let modes = orchestrator.modes();
@@ -121,7 +147,12 @@ pub fn prepare(
     }
     // Postgres refuses a NUL in text. A submitter can change what it sends, unlike a task's end
     // (`without_nul` in `api`), so it's told, rather than a value in the alert being altered.
-    if serde_json::to_string(submission).is_ok_and(|json| json.contains("\\u0000")) {
+    let has_nul =
+        |json: Result<String, serde_json::Error>| json.is_ok_and(|j| j.contains("\\u0000"));
+    if has_nul(serde_json::to_string(submission))
+        || has_nul(serde_json::to_string(&origin.observables))
+        || has_nul(serde_json::to_string(&origin.details))
+    {
         return Err(SubmitError::Invalid(
             "a submission can't hold a NUL character".to_owned(),
         ));
@@ -138,6 +169,7 @@ pub fn prepare(
     Ok(NewRoot {
         description: submission.description.clone(),
         event_time: match submission.event_time {
+            Some(time) if origin.event_time_from_query => EventTime::QueryTime(time),
             Some(time) => EventTime::Event(time),
             None => EventTime::Now(Utc::now()),
         },
@@ -153,10 +185,24 @@ pub async fn create(
     orchestrator: &Orchestrator,
     root: &NewRoot,
     submission: &Submission,
+    origin: &Origin,
     files: &[SubmittedFile],
 ) -> Result<Vec<TaskId>, SubmitError> {
     let hold = Hold::root(root.id);
     tree::create_root(tx, root).await?;
+    if origin.details.is_some() || origin.alerts() {
+        sqlx::query!(
+            "UPDATE analysis.roots
+             SET origin = $2, alerted_at = CASE WHEN $3 THEN now() ELSE alerted_at END
+             WHERE id = $1",
+            root.id,
+            origin.details,
+            origin.alerts(),
+        )
+        .execute(tx.conn())
+        .await
+        .map_err(DbError::from)?;
+    }
     for observable in &submission.observables {
         let mut new = NewObservable::new(observable.kind, observable.value.clone());
         new.time = observable.time;
@@ -164,6 +210,12 @@ pub async fn create(
         new.directives = observable.directives.clone();
         new.exclude_modules = observable.exclude_modules.clone();
         tree::upsert_observable(tx, root.id, &new).await?;
+    }
+    for observable in &origin.observables {
+        let id = tree::upsert_observable(tx, root.id, observable).await?.id;
+        for detection in &observable.detections {
+            tree::add_detection(tx, root.id, id, None, detection).await?;
+        }
     }
     for file in files {
         bucket

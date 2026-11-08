@@ -19,10 +19,23 @@ pub fn resolve(
     overlay: &Overlay,
     env: &dyn Fn(&str) -> Option<String>,
 ) -> Secrets {
-    let declared: std::collections::BTreeSet<&str> = manifests
+    let declared: Vec<&str> = manifests
         .iter()
         .flat_map(|m| m.secrets.iter().copied())
         .collect();
+    resolve_names(pool, &declared, overlay, env)
+}
+
+/// Resolves the secrets named in `declared`, as `resolve` does for a pool's manifests. A process
+/// that isn't a pool, such as the hunter (PLAN.md 6.4), declares its own and is held to them the
+/// same way.
+pub fn resolve_names(
+    pool: &str,
+    declared: &[&str],
+    overlay: &Overlay,
+    env: &dyn Fn(&str) -> Option<String>,
+) -> Secrets {
+    let declared: std::collections::BTreeSet<&str> = declared.iter().copied().collect();
     let mut secrets = Secrets::new();
     let mut unset: BTreeMap<&str, String> = BTreeMap::new();
     for name in declared {

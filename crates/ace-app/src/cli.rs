@@ -25,6 +25,9 @@ enum Command {
     /// Serve the lease API to workers and the JSON API to people, and take back tasks whose lease
     /// expired.
     Serve,
+    /// Run the hunts in the signatures checkout on their schedules and submit what they find
+    /// (`ACE4_HUNTER` names its configuration).
+    Hunter,
     /// Tools for one task, such as replaying it.
     #[command(subcommand)]
     Task(crate::task::TaskCommand),
@@ -80,6 +83,7 @@ fn refusal(command: &Command) -> (&'static str, &'static str) {
             "it reads signature directories and files on the node, and a GUI command can open none",
         ),
         Command::Serve => ("serve", "it's the service itself, not a command"),
+        Command::Hunter => ("hunter", "it's a service of its own, not a command"),
         Command::Task(_) => (
             "task",
             "a replay runs a module uncontained on purpose, so it runs from a shell",
@@ -110,6 +114,7 @@ pub fn main(app: &App) -> ExitCode {
         Command::Schema(command) => crate::schema::run(app, command),
         Command::Yara(command) => crate::yara::run(command),
         Command::Serve => crate::serve::run(app, &mut telemetry),
+        Command::Hunter => crate::hunter::run(app, &mut telemetry),
         Command::Task(command) => crate::task::run(app, command),
         Command::Root(command) => crate::root::run(command),
         Command::User(command) => crate::user::run(app, command),

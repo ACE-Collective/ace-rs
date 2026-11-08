@@ -3,7 +3,7 @@
 //! records who submitted it, on the root and in its audit row, in the same transaction.
 
 use ace_core::bucket::Bucket;
-use ace_core::submit::{self, Submission, SubmitError, Submitted, SubmittedFile};
+use ace_core::submit::{self, Origin, Submission, SubmitError, Submitted, SubmittedFile};
 use chrono::{DateTime, Utc};
 use serde::Serialize;
 use sqlx::types::Json;
@@ -53,6 +53,57 @@ fn capped(text: &str) -> &str {
     }
 }
 
+/// Creates a submission's root in the caller's transaction, records who made it, and gives the audit
+/// row's change. `Service::submit` and the hunter's runs (`crate::hunts`) both write through it.
+pub(crate) async fn submit_in(
+    tx: &mut ace_core::db::Tx<'_>,
+    service: &Service,
+    bucket: &Bucket,
+    actor: &crate::Actor,
+    submission: &Submission,
+    origin: &Origin,
+    files: &[SubmittedFile],
+) -> Result<(Submitted, Change), ServiceError> {
+    let root = submit::prepare(&service.orchestrator, submission, origin, files)?;
+    let queued = submit::create(
+        tx,
+        bucket,
+        &service.orchestrator,
+        &root,
+        submission,
+        origin,
+        files,
+    )
+    .await?;
+    sqlx::query!(
+        "UPDATE analysis.roots SET submitted_by = $2::jsonb WHERE id = $1",
+        root.id,
+        Json(actor) as _,
+    )
+    .execute(tx.conn())
+    .await?;
+    let change = Change::added(
+        Target::root(root.id),
+        &SubmissionRecord {
+            analysis_mode: &root.analysis_mode,
+            event_time: root.event_time.time(),
+            observables: submission.observables.len() + origin.observables.len(),
+            files: files.len(),
+            queued: queued.len(),
+        },
+    )?
+    .details(&Title {
+        title: capped(&root.description),
+    })?;
+    Ok((
+        Submitted {
+            uuid: root.id,
+            queued: queued.into_iter().map(|id| id.0).collect(),
+        },
+        change,
+    ))
+}
+
 impl Service {
     /// Creates a root from a submission, with its files already spooled on this node, and queues its
     /// first tasks. It needs `alert:create`, and the root records the actor in `submitted_by`. The
@@ -68,37 +119,17 @@ impl Service {
         self.gate
             .write(actor, "submit", &ALERT_CREATE, &|tx| {
                 Box::pin(async move {
-                    let root = submit::prepare(&self.orchestrator, submission, files)?;
-                    let queued =
-                        submit::create(tx, bucket, &self.orchestrator, &root, submission, files)
-                            .await?;
-                    sqlx::query!(
-                        "UPDATE analysis.roots SET submitted_by = $2::jsonb WHERE id = $1",
-                        root.id,
-                        Json(actor) as _,
+                    let (submitted, change) = submit_in(
+                        tx,
+                        self,
+                        bucket,
+                        actor,
+                        submission,
+                        &Origin::default(),
+                        files,
                     )
-                    .execute(tx.conn())
                     .await?;
-                    let change = Change::added(
-                        Target::root(root.id),
-                        &SubmissionRecord {
-                            analysis_mode: &root.analysis_mode,
-                            event_time: root.event_time.time(),
-                            observables: submission.observables.len(),
-                            files: files.len(),
-                            queued: queued.len(),
-                        },
-                    )?
-                    .details(&Title {
-                        title: capped(&root.description),
-                    })?;
-                    Ok(Audited::changed(
-                        Submitted {
-                            uuid: root.id,
-                            queued: queued.into_iter().map(|id| id.0).collect(),
-                        },
-                        change,
-                    ))
+                    Ok(Audited::changed(submitted, change))
                 })
             })
             .await

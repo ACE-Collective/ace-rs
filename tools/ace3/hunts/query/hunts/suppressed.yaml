@@ -1,0 +1,12 @@
+include:
+  - includes/defaults.include.yaml
+rule:
+  uuid: 00000000-0000-0000-0000-00000000a008
+  name: suppressed hunt
+  description: an ungrouped hunt suppressed for 30 minutes once it alerts
+  query: index=auth ace4case=suppressed
+  frequency: "00:05:00"
+  suppression: "00:30:00"
+  observable_mapping:
+    - field: user
+      type: user

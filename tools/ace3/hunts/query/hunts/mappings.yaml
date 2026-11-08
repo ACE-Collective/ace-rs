@@ -1,0 +1,41 @@
+include:
+  - includes/defaults.include.yaml
+rule:
+  uuid: 00000000-0000-0000-0000-00000000a005
+  name: mapping options
+  description: the observable mapping options one at a time
+  query: index=edr ace4case=mappings
+  ignored_values:
+    - "10\\.0\\.0\\.1"
+  observable_mapping:
+    - fields: [src, dst]
+      fields_mode: any
+      type: ip
+      ignored_values: ["192\\.168\\..*"]
+    - fields: [user, domain]
+      type: email_address
+      value: "{{ user }}@{{ domain }}"
+    - field: logs.*.ip
+      field_lookup_type: dot
+      type: ip
+      limit: 2
+    - field: indicator
+      type: "{{ indicator_type }}"
+      fallback_type: indicator
+    - field: command
+      type: command_line
+      display_value: the command
+      volatile: true
+    - field: host
+      type: hostname
+      relationships:
+        - type: executed_on
+          target:
+            type: command_line
+            value: "{{ command }}"
+    - field: hash
+      type: sha256
+    - field: missing
+      type: fqdn
+    - field: blank
+      type: fqdn

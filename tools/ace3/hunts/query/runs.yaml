@@ -1,0 +1,89 @@
+# The runs of each hunt in hunts/, in order: the time the hunter's clock reads for each tick, and
+# the rows the fake Splunk answers that tick's search with. A tick runs the hunt only when ace3's
+# manager would: enabled, not suppressed and ready. The rows are made up.
+plain.yaml:
+  - now: "2026-11-01T12:00:00+00:00"
+    rows:
+      - {_time: "2026-11-01T11:55:01.000+00:00", user: "CORP\\alice", src_ip: " 10.1.2.3 ", app: vpn, directive: sandbox,
+         email: "Alice <Alice@Example.COM>", url: " https://example.com/login ", domain: www.example.com, msgid: "abc@mail.example.com"}
+      - {user: bob, src_ip: not-an-ip, app: "", email: no-at-sign, domain: "not a domain", msgid: "<x@y>"}
+grouped.yaml:
+  - now: "2026-11-01T12:00:00+00:00"
+    rows:
+      - {_time: "2026-11-01T11:50:00.000+00:00", src_ip: 10.9.9.9, user: alice}
+      - {_time: "2026-11-01T11:49:00.000+00:00", src_ip: 10.9.9.9, user: bob}
+      - {_time: "2026-11-01T11:51:00.000+00:00", src_ip: 10.9.9.9, user: alice}
+      - {_time: "2026-11-01T11:52:00.000+00:00", src_ip: 10.8.8.8, user: carol}
+      - {_time: "2026-11-01T11:53:00.000+00:00", user: nobody}
+  - now: "2026-11-01T12:10:00+00:00"
+    rows:
+      - {_time: "2026-11-01T12:05:00.000+00:00", src_ip: 10.9.9.9, user: alice}
+      - {_time: "2026-11-01T12:06:00.000+00:00", src_ip: 10.7.7.7, user: dave}
+  - now: "2026-11-01T13:15:00+00:00"
+    rows:
+      - {_time: "2026-11-01T13:00:00.000+00:00", src_ip: 10.9.9.9, user: alice}
+grouped_described.yaml:
+  - now: "2026-11-01T12:00:00+00:00"
+    rows:
+      - {_time: "2026-11-01T11:58:00.000+00:00", recipient: [a@example.com, b@example.com], sender: x@evil.example, subject: Invoice}
+      - {_time: "2026-11-01T11:59:00.000+00:00", recipient: a@example.com, sender: y@evil.example}
+all.yaml:
+  - now: "2026-11-01T12:00:00+00:00"
+    rows:
+      - {_time: "2026-11-01T11:59:30.000+00:00", host: WS1, agent: curl/8.0}
+      - {_time: "2026-11-01T11:58:30.000+00:00", host: ws2, agent: curl/8.0}
+mappings.yaml:
+  - now: "2026-11-01T12:00:00+00:00"
+    rows:
+      - _time: "2026-11-01T11:57:00.000+00:00"
+        src: 10.0.0.1
+        dst: 10.2.2.2
+        user: alice
+        domain: example.com
+        logs: [{ip: 10.3.3.3}, {other: x}, {ip: 10.4.4.4}, {ip: 10.5.5.5}]
+        indicator: evil.example
+        indicator_type: FQDN
+        command: "cmd.exe /c whoami"
+        host: ws1
+        hash: E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
+        blank: "  "
+      - _time: "2026-11-01T11:58:00.000+00:00"
+        src: 192.168.1.1
+        user: bob
+        indicator: "1234"
+        indicator_type: not_a_type
+        hash: nothex
+timespec.yaml:
+  - now: "2026-11-01T12:00:00+00:00"
+    rows:
+      - {_time: "2026-11-01T11:59:00.000-05:00", host: db1}
+search_file.yaml:
+  - now: "2026-11-01T12:00:00+00:00"
+    rows:
+      - {fqdn: evil.example.com, count: "3"}
+suppressed.yaml:
+  - now: "2026-11-01T12:00:00+00:00"
+    rows:
+      - {_time: "2026-11-01T11:59:00.000+00:00", user: mallory}
+  - now: "2026-11-01T12:20:00+00:00"
+    rows:
+      - {_time: "2026-11-01T12:15:00.000+00:00", user: mallory}
+  - now: "2026-11-01T12:31:00+00:00"
+    rows:
+      - {_time: "2026-11-01T12:30:00.000+00:00", user: mallory}
+catch_up.yaml:
+  - now: "2026-11-01T12:00:00+00:00"
+    rows: []
+  - now: "2026-11-01T15:00:00+00:00"
+    rows:
+      - {_time: "2026-11-01T12:30:00.000+00:00", user: trudy}
+  - now: "2026-11-01T15:05:00+00:00"
+    rows: []
+  - now: "2026-11-01T15:11:00+00:00"
+    rows: []
+other_instance.yaml:
+  - now: "2026-11-01T12:00:00+00:00"
+    rows: []
+disabled.yaml:
+  - now: "2026-11-01T12:00:00+00:00"
+    rows: []

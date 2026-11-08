@@ -1,0 +1,13 @@
+rule:
+  uuid: 00000000-0000-0000-0000-00000000a010
+  name: qa only
+  type: splunk
+  enabled: true
+  description: a hunt for another instance type, which the manager never runs
+  alert_type: hunter - splunk - query cases
+  instance_types: [qa]
+  frequency: "00:10:00"
+  time_range: "00:10:00"
+  full_coverage: false
+  use_index_time: false
+  query: index=auth ace4case=other_instance

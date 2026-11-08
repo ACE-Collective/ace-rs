@@ -319,6 +319,7 @@ mod events;
 mod export;
 mod filters;
 mod health;
+mod hunts;
 mod lists;
 mod observable_comments;
 mod observables;
@@ -391,7 +392,10 @@ pub struct Web {
     service: Service,
     bucket: Bucket,
     config: WebConfig,
+    hunts: hunts::HuntSupport,
 }
+
+pub use hunts::HuntSupport;
 
 impl Web {
     pub fn new(service: Service, bucket: Bucket, config: WebConfig) -> Self {
@@ -399,7 +403,14 @@ impl Web {
             service,
             bucket,
             config,
+            hunts: HuntSupport::default(),
         }
+    }
+
+    /// The binary's hunt types and email normalizer, which the `hunt` router validates hunts with.
+    pub fn with_hunts(mut self, hunts: HuntSupport) -> Self {
+        self.hunts = hunts;
+        self
     }
 
     /// The API's routes. A JSON body is held to `max_json_bytes`, and a submission to
@@ -486,6 +497,12 @@ impl Web {
                 patch(observable_comments::edit)
                     .delete(observable_comments::delete)
                     .layer(json_limit),
+            )
+            .route("/api/hunts/v1/hunts", get(hunts::list))
+            .route("/api/hunts/v1/hunts/{uuid}", get(hunts::one))
+            .route(
+                "/api/hunts/v1/validate",
+                post(hunts::validate_hunt).layer(json_limit),
             )
             .route("/api/lists/v1/lists", get(lists::lists))
             .route("/api/lists/v1/lists/{list}", get(lists::list))
@@ -660,6 +677,9 @@ impl Web {
         observable_comments::add,
         observable_comments::edit,
         observable_comments::delete,
+        hunts::list,
+        hunts::one,
+        hunts::validate_hunt,
         lists::lists,
         lists::list,
         lists::add,
@@ -736,6 +756,7 @@ impl Web {
         (name = "yara_qa", description = "YARA rules in QA mode, the files they matched, and purges"),
         (name = "events", description = "Events, the alerts in them, threat types and malware's threats"),
         (name = "filters", description = "A list screen's filters, their share links, and the caller's saved filters"),
+        (name = "hunts", description = "The hunts the hunter loaded, their state, and validating a hunt"),
         (name = "lists", description = "The analyst-edited lists, such as the email whitelists, which apply to the next task that reads them"),
     )
 )]

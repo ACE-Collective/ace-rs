@@ -86,7 +86,12 @@ async fn serve(app: &App) -> Result<ExitCode> {
     let gui = ace_gui::Gui::new(service.clone(), web_config.transport)
         .with_views(app.views().clone())
         .with_actions(app.actions().clone());
-    let web = ace_api::Web::new(service, bucket.clone(), web_config);
+    let web =
+        ace_api::Web::new(service, bucket.clone(), web_config).with_hunts(ace_api::HuntSupport {
+            types: app.hunt_types().to_vec(),
+            email: ace_mod_email::py::normalize_email_address,
+            valid_type: |t| t.parse::<ace_results::ObservableKind>().is_ok(),
+        });
     let api = Api::new(db.clone(), bucket.clone(), orchestrator, config).await?;
     let stopping_api = api.clone();
     let listen = std::env::var("ACE4_API_LISTEN").unwrap_or_else(|_| "0.0.0.0:8080".to_owned());
@@ -174,7 +179,7 @@ async fn serve(app: &App) -> Result<ExitCode> {
 }
 
 /// Returns at SIGTERM or SIGINT.
-async fn wait_for_stop() {
+pub(crate) async fn wait_for_stop() {
     use tokio::signal::unix::{SignalKind, signal};
     match signal(SignalKind::terminate()) {
         Ok(mut terminate) => {

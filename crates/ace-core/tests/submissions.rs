@@ -70,7 +70,12 @@ async fn submit(
                 .expect("spools"),
         });
     }
-    let root = submit::prepare(&stack.orchestrator, &submission, &spooled)?;
+    let root = submit::prepare(
+        &stack.orchestrator,
+        &submission,
+        &submit::Origin::default(),
+        &spooled,
+    )?;
     let (root, submission, spooled) = (&root, &submission, &spooled);
     let queued = stack
         .test_db
@@ -83,6 +88,7 @@ async fn submit(
                     &stack.orchestrator,
                     root,
                     submission,
+                    &submit::Origin::default(),
                     spooled,
                 )
                 .await

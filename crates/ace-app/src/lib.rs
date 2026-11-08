@@ -33,6 +33,7 @@
 
 mod cli;
 mod compare;
+pub mod hunter;
 mod pools;
 mod root;
 mod schema;

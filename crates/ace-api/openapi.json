@@ -3374,6 +3374,180 @@
         ]
       }
     },
+    "/api/hunts/v1/hunts": {
+      "get": {
+        "tags": [
+          "hunts"
+        ],
+        "summary": "The hunts the hunter loaded, by type and path, each with its state.",
+        "operationId": "list",
+        "responses": {
+          "200": {
+            "description": "The hunts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HuntsBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold hunt:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/hunts/v1/hunts/{uuid}": {
+      "get": {
+        "tags": [
+          "hunts"
+        ],
+        "summary": "One hunt by its uuid, with its state.",
+        "operationId": "one",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "description": "The hunt's uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The hunt",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HuntBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold hunt:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No loaded hunt has that uuid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/hunts/v1/validate": {
+      "post": {
+        "tags": [
+          "hunts"
+        ],
+        "summary": "Checks a hunt package the way the hunter loads it and, with `execution_arguments.query_results`,\nruns it over those events. The answer is ace3's: 200 when it's valid, 400 when it isn't.",
+        "operationId": "validate_hunt",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ValidateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The hunt is valid, and what its run made",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The hunt isn't valid, or its run failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold hunt:write",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The body isn't a validation request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/lists/v1/lists": {
       "get": {
         "tags": [
@@ -7103,6 +7277,47 @@
         },
         "additionalProperties": false
       },
+      "AssetBody": {
+        "type": "object",
+        "description": "A file of a compiled hunt package.",
+        "required": [
+          "kind",
+          "path",
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "string"
+          },
+          "encoding": {
+            "type": "string",
+            "description": "`text` or `base64`."
+          },
+          "kind": {
+            "type": "string",
+            "description": "yaml, query, query_include, executable or support."
+          },
+          "original_abs": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Where it was on the compiling machine; never read."
+          },
+          "path": {
+            "type": "string",
+            "description": "Relative to the package root."
+          },
+          "permissions": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "minimum": 0
+          }
+        }
+      },
       "AuthorBody": {
         "type": "object",
         "description": "The user a comment is by, as they're called now.",
@@ -7367,6 +7582,36 @@
             "items": {
               "$ref": "#/components/schemas/CommentBody"
             }
+          }
+        }
+      },
+      "CompiledHuntBody": {
+        "type": "object",
+        "description": "ace3's `CompiledHunt`.",
+        "required": [
+          "target"
+        ],
+        "properties": {
+          "assets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AssetBody"
+            }
+          },
+          "package_root": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The package root on the compiling machine; never read."
+          },
+          "target": {
+            "type": "string",
+            "description": "The hunt's file, relative to the package root."
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
           }
         }
       },
@@ -8208,6 +8453,64 @@
           }
         }
       },
+      "ExecutionBody": {
+        "type": "object",
+        "description": "How to run the hunt; only `query_results` runs here (the module docs say why).",
+        "properties": {
+          "analyze_results": {
+            "type": "boolean"
+          },
+          "correlate_results": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "create_alerts": {
+            "type": "boolean"
+          },
+          "end_time": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "query_results": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "object"
+            },
+            "description": "The events to run the hunt over, in place of its search."
+          },
+          "queue": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "start_time": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "time_range_overrides": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "timezone": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
       "FileBody": {
         "type": "object",
         "required": [
@@ -8550,6 +8853,126 @@
           "group",
           "api_key"
         ]
+      },
+      "HuntBody": {
+        "type": "object",
+        "description": "A hunt file as the hunter last loaded it.",
+        "required": [
+          "type",
+          "path",
+          "loaded_at"
+        ],
+        "properties": {
+          "enabled": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Why it didn't load, in ace3's words; null for a hunt that loaded."
+          },
+          "frequency": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "loaded_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "path": {
+            "type": "string",
+            "description": "The file, relative to the signatures checkout."
+          },
+          "state": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/HuntStateBody",
+                "description": "Null for a hunt that hasn't run."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "type": {
+            "type": "string"
+          },
+          "uuid": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "HuntStateBody": {
+        "type": "object",
+        "description": "A hunt's state.",
+        "required": [
+          "last_alert_times"
+        ],
+        "properties": {
+          "last_alert_time": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "last_alert_times": {
+            "type": "object",
+            "description": "When each group last alerted, for a grouped hunt with a suppression.",
+            "additionalProperties": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "propertyNames": {
+              "type": "string"
+            }
+          },
+          "last_end_time": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "The end of the last window it searched."
+          },
+          "last_executed_time": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "HuntsBody": {
+        "type": "object",
+        "required": [
+          "hunts"
+        ],
+        "properties": {
+          "hunts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HuntBody"
+            }
+          }
+        }
       },
       "LeftOutBody": {
         "type": "object",
@@ -10315,6 +10738,56 @@
           }
         }
       },
+      "ValidateRequest": {
+        "type": "object",
+        "required": [
+          "compiled_hunt"
+        ],
+        "properties": {
+          "compiled_hunt": {
+            "$ref": "#/components/schemas/CompiledHuntBody"
+          },
+          "execution_arguments": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ExecutionBody"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "ValidationBody": {
+        "type": "object",
+        "description": "ace3's answer to a validation.",
+        "required": [
+          "valid"
+        ],
+        "properties": {
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Why it isn't valid, or why its run failed."
+          },
+          "roots": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "object"
+            },
+            "description": "What the run made, as ace3's hunter makes it."
+          },
+          "valid": {
+            "type": "boolean"
+          }
+        }
+      },
       "ZipBody": {
         "type": "string",
         "format": "binary",
@@ -10383,6 +10856,10 @@
     {
       "name": "filters",
       "description": "A list screen's filters, their share links, and the caller's saved filters"
+    },
+    {
+      "name": "hunts",
+      "description": "The hunts the hunter loaded, their state, and validating a hunt"
     },
     {
       "name": "lists",

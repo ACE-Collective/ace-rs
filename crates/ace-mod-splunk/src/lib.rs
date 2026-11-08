@@ -17,9 +17,12 @@
 //! time ranges, with the `gui_link` they set; pivot links and summary details; and most
 //! observable mapping options (see `ObservableMapping`). A query with an unfilled token fails at
 //! init.
+//!
+//! [`search`] is the client the hunter searches with (PLAN.md 6.4): one search waited for to its end.
 
 mod mapping;
 mod rest;
+pub mod search;
 
 use std::sync::Mutex;
 use std::time::Duration;

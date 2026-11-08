@@ -135,6 +135,11 @@ impl Secrets {
         self
     }
 
+    /// The secret named `name`, if it was resolved.
+    pub fn get(&self, name: &str) -> Option<&Secret> {
+        self.0.get(name)
+    }
+
     /// The names of the secrets held, in order.
     pub fn names(&self) -> Vec<&str> {
         self.0.keys().map(String::as_str).collect()

@@ -7,11 +7,14 @@
 //! `saq/collectors/hunter/loader.py` does, [`yaml`] parses it as PyYAML's SafeLoader does, within
 //! bounds, and [`model`] and [`correlate`] validate it as ace3's pydantic models do, error for
 //! error. [`types`] holds the hunt types. [`normal`] is the comparison with ace3's loader.
-//! [`render`] renders a hunt's templates as ace3's Jinja does (6.3).
+//! [`render`] renders a hunt's templates as ace3's Jinja does (6.3). [`query`] turns a query hunt's
+//! rows into the submissions ace3's hunter makes and says when the hunt runs and over what window,
+//! and [`splunk`] builds a Splunk hunt's search (6.4).
 //!
 //! This crate depends on nothing else in the workspace, so whatever runs hunts (6.4's hunter, 6.7's
 //! scheduler), checks them (6.8's `ace signatures check`) or serves them (6.4's `hunt` router) can
-//! use it without the core or the database. Running a hunt's query is 6.4's.
+//! use it without the core or the database. Sending a search, keeping a hunt's state and submitting
+//! are the hunter's (`ace_app::hunter`).
 
 pub mod correlate;
 pub mod loader;
@@ -20,7 +23,9 @@ pub mod merge;
 pub mod model;
 pub mod normal;
 pub mod paths;
+pub mod query;
 pub mod render;
+pub mod splunk;
 pub mod types;
 pub mod validate;
 pub mod value;

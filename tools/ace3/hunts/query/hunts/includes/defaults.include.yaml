@@ -1,0 +1,11 @@
+rule:
+  type: splunk
+  enabled: true
+  instance_types: [dev, production]
+  frequency: "00:10:00"
+  time_range: "00:10:00"
+  full_coverage: false
+  use_index_time: false
+  alert_type: hunter - splunk - query cases
+  tags:
+    - query-case

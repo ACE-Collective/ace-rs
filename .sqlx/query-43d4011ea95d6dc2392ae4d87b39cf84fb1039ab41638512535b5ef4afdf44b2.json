@@ -1,0 +1,65 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT last_executed_time, last_end_time, last_alert_time, last_alert_times\n                         FROM hunts.state WHERE type = $1 AND name = $2 FOR UPDATE",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "last_executed_time",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "hunts.state",
+            "name": "last_executed_time"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "last_end_time",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "hunts.state",
+            "name": "last_end_time"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "last_alert_time",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "hunts.state",
+            "name": "last_alert_time"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "last_alert_times",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "hunts.state",
+            "name": "last_alert_times"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      true,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "43d4011ea95d6dc2392ae4d87b39cf84fb1039ab41638512535b5ef4afdf44b2"
+}

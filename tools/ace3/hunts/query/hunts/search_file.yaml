@@ -1,0 +1,11 @@
+include:
+  - includes/defaults.include.yaml
+rule:
+  uuid: 00000000-0000-0000-0000-00000000a007
+  name: from a search file
+  description: a generating search from a file, with its own auto_append
+  search: $QUERIES/generating.spl
+  auto_append: "| table fqdn count"
+  observable_mapping:
+    - field: fqdn
+      type: fqdn

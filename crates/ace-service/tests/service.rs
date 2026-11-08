@@ -49,11 +49,12 @@ use ace_sdk::{Lookup, Manifest, Module, ModuleError, Outcome, TaskContext};
 use ace_service::{
     ALERT_WRITE, Actor, ApiKeyId, CATALOG, CampaignChoice, CommandState, Component, CrashFilter,
     CrashInput, DetectionPointFilter, Effect, EventChoice, EventEdit, EventRef, EventTimes,
-    GroupId, Holder, ListEntry, MAX_CRASHES_PAGE, MIN_PASSWORD_CHARS, MalwareChoice, MatchKind,
-    NewEvent, NewListEntry, NewSession, Password, PermissionName, PermissionPattern, PreferenceKey,
-    PreferenceValue, Profile, QaPurge, QaRuleFilter, QaSort, QaStatus, RequestParts,
-    SESSION_LIFETIME_SECONDS, Service, ServiceError, SessionCookie, Theme, ThemePreference,
-    Transport, USER_SELF, USER_WRITE, UserId, Username, with_source_ip,
+    GroupId, Holder, HuntRun, HuntState, HuntValidation, ListEntry, LoadedHuntRow,
+    MAX_CRASHES_PAGE, MIN_PASSWORD_CHARS, MalwareChoice, MatchKind, NewEvent, NewListEntry,
+    NewSession, Password, PermissionName, PermissionPattern, PreferenceKey, PreferenceValue,
+    Profile, QaPurge, QaRuleFilter, QaSort, QaStatus, RequestParts, SESSION_LIFETIME_SECONDS,
+    Service, ServiceError, SessionCookie, Theme, ThemePreference, Transport, USER_SELF, USER_WRITE,
+    UserId, Username, with_source_ip,
 };
 use ace_store::{BucketConfig, NodeCache, Store};
 use schemars::JsonSchema;
@@ -991,11 +992,13 @@ async fn an_actor_with_no_grants_is_refused_every_write() {
     assert_eq!(row(db, root).await, before);
     assert_eq!(tasks(db, root).await, before_tasks);
     let (rows,): (i64,) = sqlx::query_as(
-        "SELECT count(*) FROM service.permissions WHERE component IS DISTINCT FROM 'bootstrap'",
+        "SELECT count(*) FROM service.permissions
+         WHERE component IS NULL OR component NOT IN ('bootstrap', 'hunter')",
     )
     .fetch_one(db.pool())
     .await
     .expect("counts");
+    // the migrations' grants are the bootstrap's and the hunter's (0022, 0034)
     assert_eq!(rows, 0, "nothing was granted, and no admin was seeded");
 }
 
@@ -1531,6 +1534,9 @@ async fn every_write_function_has_an_audit_test() {
         add_list_entry_records_its_row(db).await,
         edit_list_entry_records_its_row(db).await,
         delete_list_entry_records_its_row(db).await,
+        sync_hunts_records_its_row(db).await,
+        record_hunt_run_records_its_row(db).await,
+        validate_hunt_records_its_row(db).await,
     ]);
     assert_eq!(covered, write_functions(), "{WRITES_NEED_A_TEST}");
 }
@@ -2964,6 +2970,7 @@ async fn every_write_fails_when_its_audit_fails() {
     let test_db = TestDb::new().await;
     let db = test_db.db();
     let service = service(db);
+    let (hunt_bucket, _hunt_cache) = bucket(db);
     let root = alert(db).await;
     let actor = admin(db).await;
     let held = Holder::User(UserId(Uuid::from_u128(2)));
@@ -3573,6 +3580,32 @@ async fn every_write_fails_when_its_audit_fails() {
             "delete_list_entry",
             service
                 .delete_list_entry(&actor, TEST_LIST.name, listed.id)
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "sync_hunts",
+            service
+                .sync_hunts(&hunter(), "splunk", &[loaded_hunt("a.yaml")])
+                .await
+                .expect_err("refused"),
+        ),
+        (
+            "validate_hunt",
+            service
+                .validate_hunt(&actor, &|| (validation(), ()))
+                .await
+                .expect_err("refused"),
+        ),
+        (
+            "record_hunt_run",
+            service
+                .record_hunt_run(
+                    &hunter(),
+                    &hunt_bucket,
+                    &hunt_run(HuntState::default(), vec![]),
+                )
                 .await
                 .map(|_| ())
                 .expect_err("refused"),
@@ -12451,4 +12484,302 @@ async fn a_list_takes_only_entries_a_module_can_compile() {
         service.lists(&user(nobody)).await,
         Err(ServiceError::PermissionDenied { ref permission, .. }) if permission.to_string() == "list:read"
     ));
+}
+
+/// The hunter, as `ace hunter` acts: the component migration 0034 grants.
+fn hunter() -> Actor {
+    Actor::Internal {
+        id: Component::new("hunter").expect("valid"),
+    }
+}
+
+fn hunter_json() -> Value {
+    json!({"kind": "internal", "id": "hunter"})
+}
+
+fn loaded_hunt(path: &str) -> LoadedHuntRow {
+    LoadedHuntRow {
+        kind: "splunk".to_owned(),
+        path: path.to_owned(),
+        name: Some("hunt".to_owned()),
+        uuid: Some("00000000-0000-0000-0000-00000000a001".to_owned()),
+        enabled: Some(true),
+        frequency: Some("00:10:00".to_owned()),
+        error: None,
+    }
+}
+
+fn hunt_time(text: &str) -> chrono::DateTime<chrono::Utc> {
+    chrono::DateTime::parse_from_rfc3339(text)
+        .expect("a time")
+        .with_timezone(&chrono::Utc)
+}
+
+fn hunt_run(read: HuntState, submissions: Vec<(Submission, ace_core::submit::Origin)>) -> HuntRun {
+    HuntRun {
+        kind: "splunk".to_owned(),
+        name: "hunt".to_owned(),
+        read,
+        state: HuntState {
+            last_executed_time: Some(hunt_time("2026-11-01T12:00:00Z")),
+            last_end_time: Some(hunt_time("2026-11-01T12:00:00Z")),
+            last_alert_time: Some(hunt_time("2026-11-01T12:00:00Z")),
+            last_alert_times: Default::default(),
+        },
+        window_start: Some(hunt_time("2026-11-01T11:50:00Z")),
+        window_end: Some(hunt_time("2026-11-01T12:00:00Z")),
+        submissions,
+        suppressed: 0,
+    }
+}
+
+/// A hunt's submission as the hunter makes one: its detection on its signature_id observable.
+fn hunt_submission() -> (Submission, ace_core::submit::Origin) {
+    let mut signature = NewObservable::new(
+        ObservableKind::SignatureId,
+        "00000000-0000-0000-0000-00000000a001",
+    );
+    signature.detections.push(ace_results::Detection {
+        description: "hunt hunt (splunk) matched".to_owned(),
+        details: None,
+        queue: None,
+        signature_uuid: Some("00000000-0000-0000-0000-00000000a001".to_owned()),
+        signature_version: Some("unknown".to_owned()),
+        signature_family: Some("hunt".to_owned()),
+    });
+    let mut ip = NewObservable::new(ObservableKind::Ip, "10.1.2.3");
+    ip.display_type = Some("Source IP".to_owned());
+    (
+        Submission {
+            description: "hunt: vpn".to_owned(),
+            analysis_mode: Some("correlation".to_owned()),
+            event_time: Some(hunt_time("2026-11-01T11:55:00Z")),
+            observables: vec![],
+            file_yara_meta: Default::default(),
+        },
+        ace_core::submit::Origin {
+            event_time_from_query: true,
+            observables: vec![ip, signature],
+            details: Some(json!({"alert_type": "hunter - splunk", "queue": "default"})),
+        },
+    )
+}
+
+async fn sync_hunts_records_its_row(db: &Db) -> String {
+    let service = service(db);
+    let failed = LoadedHuntRow {
+        name: None,
+        uuid: None,
+        enabled: None,
+        frequency: None,
+        error: Some("ValueError: nope".to_owned()),
+        ..loaded_hunt("b.yaml")
+    };
+    service
+        .sync_hunts(
+            &hunter(),
+            "splunk",
+            &[failed.clone(), loaded_hunt("a.yaml")],
+        )
+        .await
+        .expect("records");
+    let row = last_audit(db).await;
+    let hunt = json!({"type": "splunk", "path": "a.yaml", "name": "hunt", "uuid": "00000000-0000-0000-0000-00000000a001",
+                      "enabled": true, "frequency": "00:10:00", "error": null});
+    let bad = json!({"type": "splunk", "path": "b.yaml", "name": null, "uuid": null, "enabled": null,
+                     "frequency": null, "error": "ValueError: nope"});
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: hunter_json(),
+            action: "sync_hunts".to_owned(),
+            target: ("hunt_type".to_owned(), "splunk".to_owned()),
+            before: Some(json!({"hunts": []})),
+            after: Some(json!({"hunts": [hunt, bad]})),
+            details: json!({}),
+        }
+    );
+    // the same hunts again change nothing, so no row
+    let rows = audit_rows(db).await.len();
+    service
+        .sync_hunts(&hunter(), "splunk", &[loaded_hunt("a.yaml"), failed])
+        .await
+        .expect("records");
+    assert_eq!(audit_rows(db).await.len(), rows);
+    let listed = service.hunts(&admin(db).await).await.expect("lists");
+    assert_eq!(listed.len(), 2);
+    assert_eq!(listed[0].state, None, "it hasn't run");
+    row.action
+}
+
+async fn record_hunt_run_records_its_row(db: &Db) -> String {
+    let service = service(db);
+    let (bucket, _cache) = bucket(db);
+    let recorded = service
+        .record_hunt_run(
+            &hunter(),
+            &bucket,
+            &hunt_run(HuntState::default(), vec![hunt_submission()]),
+        )
+        .await
+        .expect("records");
+    assert_eq!(recorded.roots.len(), 1);
+    let root = recorded.roots[0];
+    let row = last_audit(db).await;
+    let after = json!({
+        "last_executed_time": "2026-11-01T12:00:00Z",
+        "last_end_time": "2026-11-01T12:00:00Z",
+        "last_alert_time": "2026-11-01T12:00:00Z",
+        "last_alert_times": {},
+    });
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: hunter_json(),
+            action: "record_hunt_run".to_owned(),
+            target: ("hunt".to_owned(), "splunk/hunt".to_owned()),
+            before: Some(
+                json!({"last_executed_time": null, "last_end_time": null, "last_alert_time": null, "last_alert_times": {}})
+            ),
+            after: Some(after),
+            details: json!({
+                "window_start": "2026-11-01T11:50:00Z",
+                "window_end": "2026-11-01T12:00:00Z",
+                "roots": [root],
+                "suppressed": 0,
+            }),
+        }
+    );
+    row.action
+}
+
+/// A run's roots and its state commit together, and a run that read a state another run has since
+/// moved writes nothing: so no window is searched twice or skipped.
+#[tokio::test]
+async fn a_hunt_run_commits_its_roots_with_its_state() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let (bucket, _cache) = bucket(db);
+    let recorded = service
+        .record_hunt_run(
+            &hunter(),
+            &bucket,
+            &hunt_run(HuntState::default(), vec![hunt_submission()]),
+        )
+        .await
+        .expect("records");
+    let root = recorded.roots[0];
+    let (alerted, origin, source): (Option<chrono::DateTime<chrono::Utc>>, Option<Value>, String) =
+        sqlx::query_as(
+            "SELECT alerted_at, origin, event_time_source::text FROM analysis.roots WHERE id = $1",
+        )
+        .bind(root)
+        .fetch_one(db.pool())
+        .await
+        .expect("the root");
+    assert!(alerted.is_some(), "the hunt's detection makes it an alert");
+    assert_eq!(
+        origin,
+        Some(json!({"alert_type": "hunter - splunk", "queue": "default"}))
+    );
+    assert_eq!(source, "query_time");
+    let (description, signature): (String, Option<String>) = sqlx::query_as(
+        "SELECT d.description, d.signature_family FROM analysis.detections d
+         JOIN analysis.observables o ON o.id = d.observable_id WHERE d.root_id = $1 AND o.type = 'signature_id'",
+    )
+    .bind(root)
+    .fetch_one(db.pool())
+    .await
+    .expect("the detection");
+    assert_eq!(
+        (description.as_str(), signature.as_deref()),
+        ("hunt hunt (splunk) matched", Some("hunt"))
+    );
+    let stored = service
+        .hunt_state(&hunter(), "splunk", "hunt")
+        .await
+        .expect("reads");
+    assert_eq!(stored, hunt_run(HuntState::default(), vec![]).state);
+
+    // a second run that read the state before the first committed: nothing written
+    let roots = root_count(db).await;
+    let stale = service
+        .record_hunt_run(
+            &hunter(),
+            &bucket,
+            &hunt_run(HuntState::default(), vec![hunt_submission()]),
+        )
+        .await;
+    assert!(matches!(stale, Err(ServiceError::Conflict(_))), "{stale:?}");
+    assert_eq!(root_count(db).await, roots);
+    assert_eq!(
+        service
+            .hunt_state(&hunter(), "splunk", "hunt")
+            .await
+            .expect("reads"),
+        stored
+    );
+
+    // and a component without the grant can't record one
+    let other = Actor::Internal {
+        id: Component::new("not-the-hunter").expect("valid"),
+    };
+    assert!(matches!(
+        service
+            .record_hunt_run(&other, &bucket, &hunt_run(stored.clone(), vec![]))
+            .await,
+        Err(ServiceError::PermissionDenied { .. })
+    ));
+}
+
+fn validation() -> HuntValidation {
+    HuntValidation {
+        target: "hunts/splunk/x.yaml".to_owned(),
+        kind: Some("splunk".to_owned()),
+        name: Some("x".to_owned()),
+        uuid: Some("u".to_owned()),
+        valid: true,
+        error: None,
+        events: Some(2),
+        roots: 1,
+    }
+}
+
+async fn validate_hunt_records_its_row(db: &Db) -> String {
+    let service = service(db);
+    let answer = service
+        .validate_hunt(&admin(db).await, &|| (validation(), 7))
+        .await
+        .expect("validates");
+    assert_eq!(answer, 7);
+    let row = last_audit(db).await;
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: boss_json(),
+            action: "validate_hunt".to_owned(),
+            target: ("hunt_type".to_owned(), "splunk".to_owned()),
+            before: None,
+            after: None,
+            details: json!({"target": "hunts/splunk/x.yaml", "type": "splunk", "name": "x", "uuid": "u",
+                            "valid": true, "error": null, "events": 2, "roots": 1}),
+        }
+    );
+    // one without hunt:write is refused before the validation runs
+    let ran = std::sync::atomic::AtomicBool::new(false);
+    let nobody = Actor::Internal {
+        id: Component::new("nobody").expect("valid"),
+    };
+    assert!(matches!(
+        service
+            .validate_hunt(&nobody, &|| {
+                ran.store(true, std::sync::atomic::Ordering::SeqCst);
+                (validation(), ())
+            })
+            .await,
+        Err(ServiceError::PermissionDenied { .. })
+    ));
+    assert!(!ran.load(std::sync::atomic::Ordering::SeqCst));
+    row.action
 }

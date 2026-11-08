@@ -1,0 +1,3 @@
+# a generating search, read from a file
+| tstats count where index=dns ace4case=search_file by query
+| rename query as fqdn
