@@ -93,6 +93,14 @@ pub(crate) async fn layout_for(gui: &Gui, actor: Option<&Actor>, parts: &Parts) 
             tracing::warn!(%actor, "checking signature:read failed, so the page has no signatures link: {error}");
             false
         });
+    layout.events = gui
+        .service
+        .allowed(actor, &ace_service::EVENT_READ)
+        .await
+        .unwrap_or_else(|error| {
+            tracing::warn!(%actor, "checking event:read failed, so the page has no events link: {error}");
+            false
+        });
     layout
 }
 

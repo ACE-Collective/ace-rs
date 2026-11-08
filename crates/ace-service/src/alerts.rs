@@ -67,6 +67,19 @@ pub enum AnalysisState {
     Cancelled,
 }
 
+impl AnalysisState {
+    /// From a root's pass, the pass that completed last, and whether it was cancelled.
+    pub(crate) fn of(pass: i32, completed_pass: i32, cancelled: bool) -> Self {
+        if cancelled {
+            AnalysisState::Cancelled
+        } else if pass > 0 && completed_pass == pass {
+            AnalysisState::Complete
+        } else {
+            AnalysisState::Running
+        }
+    }
+}
+
 /// One alert's row.
 #[derive(Debug, Clone, PartialEq)]
 pub struct AlertSummary {
@@ -346,13 +359,7 @@ struct AlertRow {
 
 impl AlertRow {
     fn summary(self) -> Result<AlertSummary, ServiceError> {
-        let analysis = if self.cancelled {
-            AnalysisState::Cancelled
-        } else if self.pass > 0 && self.completed_pass == self.pass {
-            AnalysisState::Complete
-        } else {
-            AnalysisState::Running
-        };
+        let analysis = AnalysisState::of(self.pass, self.completed_pass, self.cancelled);
         Ok(AlertSummary {
             id: self.id,
             title: self.description,

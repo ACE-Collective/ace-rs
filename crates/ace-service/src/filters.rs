@@ -18,6 +18,9 @@
 //! What's left out of ace3's filters, and the step that brings the field each one reads, is
 //! `FilterScreen::left_out`. ace3's alert filters also take `$USER` and `$USER_QUEUE`, which stand for the
 //! viewer in a stored filter; they only have meaning for the owner and queue filters, so they come with them.
+//!
+//! ace3's event list isn't a filter screen, as it has no saved filters or share links: its filters are
+//! `events`, under the same rules (5.11's events area).
 
 use std::collections::BTreeMap;
 
@@ -29,6 +32,7 @@ use crate::ServiceError;
 use crate::permission::{ALERT_READ, PermissionName};
 
 mod dates;
+pub mod events;
 
 /// The most entries a filter list holds, once merged.
 pub const MAX_FILTER_ENTRIES: usize = 32;

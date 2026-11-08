@@ -38,9 +38,11 @@
 //!   `signatures/hub.html` and `yara_qa.html`: the YARA QA rules, their versions and kept files, the
 //!   links to the API's downloads, and purges with a confirm page, over the `yara_qa` service. The base
 //!   layout links to it for whoever holds `signature:read`.
-//! - `events`: the events area (5.11's events area), so far ace3's add-to-event modal as a page, opened
-//!   from the alert list's bulk form, and Create Event, the same page with no alerts, over
-//!   `Service::add_to_event`.
+//! - `events`: the events area under `event:read` (5.11's events area): ace3's event list with its
+//!   filters, sorts and CSV export, an event's page with Close Event behind a confirm, and its
+//!   add-to-event modal as a page, opened from the alert list's bulk form, and Create Event, the same
+//!   page with no alerts, over `Service::add_to_event`. The base layout links to the list for whoever
+//!   holds `event:read`.
 //!
 //! From ace3's `app/templates/base.html` and `core.html`, and what differs: the layout keeps ace3's
 //! theme attribute on `<html>`, its five themes and its log out by POST. It has none of ace3's jQuery,
@@ -149,11 +151,18 @@ impl Gui {
                 post(list::bulk_disposition)
                     .layer(DefaultBodyLimit::max(list::MAX_BULK_FORM_BYTES)),
             )
+            .route("/events", get(events::list_page))
+            .route("/events/export", get(events::export))
             .route(
                 "/events/add",
                 get(events::add_page)
                     .post(events::add)
                     .layer(DefaultBodyLimit::max(events::MAX_ADD_FORM_BYTES)),
+            )
+            .route("/events/{event}", get(events::event_page))
+            .route(
+                "/events/{event}/close",
+                get(events::confirm_close).post(events::close),
             )
             .route(
                 "/filters/saved",

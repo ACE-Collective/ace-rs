@@ -1,0 +1,21 @@
+{#- Confirming Close Event (PLAN.md 5.11's events area, 6c), where ace3's script asks with
+    window.confirm (src/events.rs). -#}
+{% extends "base.html" %}
+{% block title %}Close Event · ACE{% endblock %}
+{% block content %}
+<section class="events">
+  <p><a href="/events">Events</a> / <a href="{{ view.href }}">{{ view.name }}</a></p>
+  {%- if view.closed %}
+  <h1>{{ view.label }} is closed</h1>
+  <p class="notice" role="status">There's nothing to do: the event is closed already.</p>
+  <p><a href="{{ view.href }}">Back to the event</a></p>
+  {%- else %}
+  <h1>Close {{ view.label }}?</h1>
+  <p>Its status becomes CLOSED. Nothing else about it or its alerts changes.</p>
+  <form method="post" action="{{ view.action }}" class="inline">
+    <button type="submit">Close Event</button>
+  </form>
+  <p><a href="{{ view.href }}">Cancel</a></p>
+  {%- endif %}
+</section>
+{% endblock %}

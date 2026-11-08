@@ -25,6 +25,9 @@
       <button type="submit">Apply</button>
     </form>
     <span class="user" id="username">{{ username }}</span>
+    {%- if layout.events %}
+    <a href="/events">Events</a>
+    {%- endif %}
     {%- if layout.admin %}
     <a href="/admin">Admin</a>
     {%- endif %}

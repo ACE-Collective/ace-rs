@@ -1,0 +1,60 @@
+{#- An event's page (PLAN.md 5.11's events area, 6c): ace3's events/index.html, event_details.html,
+    alert_summary.html, event_alerts.html and alerts_still_analyzing.html (src/events.rs). -#}
+{% extends "base.html" %}
+{% block title %}{{ view.name }} · Events · ACE{% endblock %}
+{% block content %}
+<section class="events event-page">
+  <p><a href="/events">Events</a></p>
+  <h1>{{ view.name }}</h1>
+  <p class="controls">
+    {%- if let Some(close) = view.close %}<a href="{{ close }}">Close Event</a>{% endif %}
+    {%- for tag in view.tags %} <span class="badge">{{ tag }}</span>{% endfor %}
+  </p>
+  {%- if view.still_analyzing %}
+  <p class="warning" role="status"><strong>ALERTS ARE STILL ANALYZING!</strong></p>
+  {%- endif %}
+  <div class="section">
+    <p><strong>Description:</strong> {{ view.comment }}</p>
+    <table class="keys">
+      <thead><tr>{% for time in view.times %}<th>{{ time.0 }} (UTC)</th>{% endfor %}</tr></thead>
+      <tbody><tr>{% for time in view.times %}<td class="nowrap">{{ time.1 }}</td>{% endfor %}</tr></tbody>
+    </table>
+    <table class="keys">
+      <thead>
+        <tr><th>Disposition</th><th>Status</th><th>Owner</th><th>Remediation</th><th>Type</th><th>Vector</th><th>Severity</th><th>Prevention Tool</th><th>Threat Actor</th><th>Threat Types</th><th>Threat Names</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>{{ view.disposition }}</td>
+          <td>{{ view.status }}</td>
+          <td>{{ view.owner }}</td>
+          <td>{{ view.remediation }}</td>
+          <td>{{ view.kind }}</td>
+          <td>{{ view.vector }}</td>
+          <td>{{ view.risk_level }}</td>
+          <td>{{ view.prevention_tool }}</td>
+          <td>{{ view.campaign }}</td>
+          <td>{% for t in view.threat_types %}<span class="badge">{{ t }}</span> {% endfor %}</td>
+          <td>{% for m in view.malware %}<span class="badge">{{ m }}</span> {% endfor %}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <h2 id="alerts">Alerts</h2>
+  <table class="keys">
+    <thead><tr><th>Date (UTC)</th><th>Alert</th><th>Disposition</th><th>Status</th></tr></thead>
+    <tbody>
+      {%- for alert in view.alerts %}
+      <tr>
+        <td class="nowrap">{{ alert.date }}</td>
+        <td><a href="{{ alert.href }}">{{ alert.title }}</a>{% for tag in alert.tags %} <span class="badge">{{ tag }}</span>{% endfor %}</td>
+        <td>{{ alert.disposition }}</td>
+        <td>{{ alert.status }}</td>
+      </tr>
+      {%- else %}
+      <tr><td colspan="4" class="muted">No alerts.</td></tr>
+      {%- endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

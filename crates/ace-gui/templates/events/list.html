@@ -1,0 +1,138 @@
+{#- The event list (PLAN.md 5.11's events area, 6c): ace3's events/manage.html, its filter dialog as a GET
+    form and its expanded row as a link to the event's alerts (src/events.rs). Every control is a link or
+    a form. -#}
+{% extends "base.html" %}
+{% block title %}Events · ACE{% endblock %}
+{% block content %}
+<section class="events event-list">
+  <h1>Events</h1>
+  <p class="controls">
+    <button type="submit" form="export">Export to CSV</button>
+    {%- if view.can_write %} <a href="/events/add">Create Event</a>{% endif %}
+    <a href="/events">Reset Filters</a>
+  </p>
+  {%- if let Some(error) = view.error %}
+  <p class="error" role="alert">The filters couldn't be read: {{ error }}</p>
+  {%- endif %}
+  <details class="section event-filters">
+    <summary>Edit Filters</summary>
+    <form method="get" action="/events" class="fields">
+      <input type="hidden" name="filtered" value="1">
+      <label for="created">Date Range</label>
+      <input type="text" id="created" name="created" value="{{ view.created }}" placeholder="MM-DD-YYYY HH:MM - MM-DD-YYYY HH:MM, or -7d">
+      <label for="status">Status</label>
+      <select multiple id="status" name="status">
+        {%- for c in view.statuses %}
+        <option value="{{ c.value }}"{% if c.selected %} selected{% endif %}>{{ c.label }}</option>
+        {%- endfor %}
+      </select>
+      <label for="owner">Owner</label>
+      <select multiple id="owner" name="owner">
+        {%- for c in view.owners %}
+        <option value="{{ c.value }}"{% if c.selected %} selected{% endif %}>{{ c.label }}</option>
+        {%- endfor %}
+      </select>
+      <label for="disposition">Disposition</label>
+      <select multiple id="disposition" name="disposition">
+        {%- for c in view.dispositions %}
+        <option value="{{ c.value }}"{% if c.selected %} selected{% endif %}>{{ c.label }}</option>
+        {%- endfor %}
+      </select>
+      <label for="type">Type</label>
+      <select id="type" name="type">
+        {%- for c in view.types %}
+        <option value="{{ c.value }}"{% if c.selected %} selected{% endif %}>{{ c.label }}</option>
+        {%- endfor %}
+      </select>
+      <label for="vector">Vector</label>
+      <select id="vector" name="vector">
+        {%- for c in view.vectors %}
+        <option value="{{ c.value }}"{% if c.selected %} selected{% endif %}>{{ c.label }}</option>
+        {%- endfor %}
+      </select>
+      <label for="prevention_tool">Prevention Tool</label>
+      <select id="prevention_tool" name="prevention_tool">
+        {%- for c in view.prevention_tools %}
+        <option value="{{ c.value }}"{% if c.selected %} selected{% endif %}>{{ c.label }}</option>
+        {%- endfor %}
+      </select>
+      <label for="risk_level">Severity</label>
+      <select id="risk_level" name="risk_level">
+        {%- for c in view.risk_levels %}
+        <option value="{{ c.value }}"{% if c.selected %} selected{% endif %}>{{ c.label }}</option>
+        {%- endfor %}
+      </select>
+      <label for="observable_type">Observable Type</label>
+      <select id="observable_type" name="observable_type">
+        {%- for c in view.observable_types %}
+        <option value="{{ c.value }}"{% if c.selected %} selected{% endif %}>{{ c.label }}</option>
+        {%- endfor %}
+      </select>
+      <label for="observable_value">Observable Value</label>
+      <input type="text" id="observable_value" name="observable_value" value="{{ view.observable_value }}">
+      <label for="tag">Tag</label>
+      <select multiple id="tag" name="tag">
+        {%- for c in view.tags %}
+        <option value="{{ c.value }}"{% if c.selected %} selected{% endif %}>{{ c.label }}</option>
+        {%- endfor %}
+      </select>
+      <fieldset>
+        <legend>Threat Actors</legend>
+        {%- for c in view.campaigns %}
+        <label class="choice"><input type="checkbox" name="campaign" value="{{ c.value }}"{% if c.selected %} checked{% endif %}> {{ c.label }}</label>
+        {%- else %}
+        <p class="muted">None recorded.</p>
+        {%- endfor %}
+      </fieldset>
+      <fieldset>
+        <legend>Threat</legend>
+        {%- for c in view.malware %}
+        <label class="choice"><input type="checkbox" name="malware" value="{{ c.value }}"{% if c.selected %} checked{% endif %}> {{ c.label }}</label>
+        {%- else %}
+        <p class="muted">None recorded.</p>
+        {%- endfor %}
+      </fieldset>
+      <button type="submit">Apply</button>
+    </form>
+  </details>
+  <form id="export" method="get" action="/events/export" class="inline"></form>
+  <p class="muted">{{ view.total }} event{% if view.total != 1 %}s{% endif %}. Export takes at most {{ view.max_export }} ticked.</p>
+  <table class="keys event-table">
+    <thead>
+      <tr>
+        <th></th>
+        {%- for column in view.columns %}
+        <th>{% if let Some(href) = column.href %}<a href="{{ href }}">{{ column.label }}{{ column.mark }}</a>{% else %}{{ column.label }}{% endif %}</th>
+        {%- endfor %}
+        <th>Alerts</th>
+      </tr>
+    </thead>
+    <tbody>
+      {%- for row in view.rows %}
+      <tr id="event-{{ row.id }}">
+        <td><input type="checkbox" form="export" name="id" value="{{ row.id }}" aria-label="Export event {{ row.id }}"></td>
+        <td class="nowrap">{{ row.date }}</td>
+        <td class="event-name">{{ row.kind }} - {{ row.vector }} - <a href="{{ row.href }}">{{ row.name }}</a>
+          {%- for tag in row.tags %} <span class="badge">{{ tag }}</span>{% endfor %}</td>
+        <td>{{ row.campaign }}</td>
+        <td>{% for t in row.threat_types %}<span class="badge">{{ t }}</span> {% endfor %}</td>
+        <td>{% for m in row.malware %}<span class="badge">{{ m }}</span> {% endfor %}</td>
+        <td>{{ row.risk_level }}</td>
+        <td>{{ row.disposition }}</td>
+        <td>{{ row.prevention_tool }}</td>
+        <td>{{ row.remediation }}</td>
+        <td>{{ row.status }}</td>
+        <td>{{ row.owner }}</td>
+        <td class="nowrap"><a href="{{ row.alerts_href }}">{{ row.alerts }} alert{% if row.alerts != 1 %}s{% endif %}</a></td>
+      </tr>
+      {%- else %}
+      <tr><td colspan="13" class="muted">No events match.</td></tr>
+      {%- endfor %}
+    </tbody>
+  </table>
+  <p class="pager">
+    {%- if let Some(first) = view.first %}<a href="{{ first }}">First</a>{% endif %}
+    {%- if let Some(next) = view.next %} <a href="{{ next }}" rel="next">Next</a>{% endif %}
+  </p>
+</section>
+{% endblock %}

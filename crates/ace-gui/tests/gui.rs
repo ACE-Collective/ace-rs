@@ -29,6 +29,11 @@
 //! PLAN.md 5.11's events area (6b): the add-to-event page, with the ticked alerts and as Create Event, and
 //! its answer, drawn directly with an event's hostile text, and through the server under `event:read` and
 //! `event:write`, each add one audited write, gone alerts said, and each refusal changing nothing.
+//!
+//! PLAN.md 5.11's events area (6c): the event list, an event's page and the Close Event confirm, drawn
+//! directly with an event's hostile text, and through the server under `event:read` and `event:write`:
+//! the list's filters, sorts and pages by its URL, the export sent on to the API's, and Close Event from
+//! this site only with its audit row, each refusal changing nothing.
 
 use std::collections::BTreeSet;
 use std::io::Write;
@@ -7224,5 +7229,583 @@ async fn alerts_are_added_to_an_event_through_the_form() {
         sqlx_count(&stack.test_db, "SELECT count(*) FROM events.events").await,
         20,
         "18 made by SQL, the new one and the empty one"
+    );
+}
+
+// ---- PLAN.md 5.11's events area (6c): the event list and an event's page ----
+
+use ace_gui::events::{
+    ClosePage, EventListPageHtml, EventListQuery, EventPageHtml, close_view, event_list_view,
+    event_view,
+};
+use ace_service::{
+    EventAlert, EventChoices, EventListPage, EventMalware, EventOwner, EventOwnerChoice,
+    EventOwnerFilter, EventSort, EventValue,
+};
+
+fn event_value(id: i32, value: &str) -> EventValue {
+    EventValue {
+        id,
+        value: value.to_owned(),
+    }
+}
+
+/// A fixture event full of hostile text: its name, comment, tags, campaign, malware and threat types, its
+/// owner's name and its alert's title and tags.
+fn hostile_event() -> GuiEvent {
+    let mut event = fixture_event(7, "2026-03-04", HOSTILE);
+    event.comment = Some(HOSTILE.to_owned());
+    event.tags = vec![HOSTILE.to_owned()];
+    event.campaign = Some(HOSTILE.to_owned());
+    event.kind = HOSTILE.to_owned();
+    event.alert_time = Some("2026-03-04T05:06:07Z".parse().expect("a time"));
+    event.owner = Some(EventOwner {
+        id: ace_service::UserId(uuid::Uuid::from_u128(0xA1)),
+        username: "alice".to_owned(),
+        display_name: Some(HOSTILE.to_owned()),
+    });
+    event.malware = vec![EventMalware {
+        id: 1,
+        name: HOSTILE.to_owned(),
+        threat_types: vec!["rat".to_owned(), HOSTILE.to_owned()],
+    }];
+    event.disposition = "DAMAGE".to_owned();
+    event.alerts = vec![
+        EventAlert {
+            id: uuid::Uuid::from_u128(0xA),
+            title: HOSTILE.to_owned(),
+            alerted_at: Some("2026-03-04T01:02:03Z".parse().expect("a time")),
+            disposition: Some("DAMAGE".to_owned()),
+            dispositioned_at: None,
+            dispositioned_by: None,
+            added_at: chrono::Utc::now(),
+            analysis: AnalysisState::Complete,
+            tags: vec![HOSTILE.to_owned()],
+        },
+        EventAlert {
+            id: uuid::Uuid::from_u128(0xB),
+            title: "second".to_owned(),
+            alerted_at: None,
+            disposition: None,
+            dispositioned_at: None,
+            dispositioned_by: None,
+            added_at: chrono::Utc::now(),
+            analysis: AnalysisState::Running,
+            tags: Vec::new(),
+        },
+    ];
+    event
+}
+
+fn fixture_choices() -> EventChoices {
+    EventChoices {
+        statuses: vec![event_value(2, "CLOSED"), event_value(1, "OPEN")],
+        types: vec![event_value(1, "phish"), event_value(2, HOSTILE)],
+        vectors: vec![event_value(1, "corporate email")],
+        prevention_tools: vec![event_value(1, "response team")],
+        risk_levels: vec![event_value(4, "0"), event_value(1, "1")],
+        owners: vec![EventOwnerChoice {
+            id: ace_service::UserId(uuid::Uuid::from_u128(0xA1)),
+            username: "alice".to_owned(),
+            display_name: Some(HOSTILE.to_owned()),
+        }],
+        malware: vec![event_value(1, HOSTILE)],
+        campaigns: vec![event_value(3, "APT-x")],
+        tags: vec![HOSTILE.to_owned(), "kit".to_owned()],
+    }
+}
+
+/// The view functions: the list draws ace3's columns with the event's alerts linked, its sort links and
+/// arrows, its filters' form with what's chosen, First and Next, Export and Create Event; the event's
+/// page its details, times, malware, threat types, alerts with their state, the still-analyzing note
+/// and Close Event; and the close confirm. Every value is escaped and nothing is inline.
+#[test]
+fn the_event_list_and_page_views_draw_ace3_s_columns() {
+    let event = hostile_event();
+    let pairs = |text: &str| -> Vec<(String, String)> {
+        serde_urlencoded::from_str(text).expect("a query")
+    };
+    let query = EventListQuery::parse(&pairs(
+        "filtered=1&status=OPEN&owner=None&type=phish&malware=1&tag=kit&sort=risk_level&dir=asc&after=x",
+    ))
+    .expect("parses");
+    assert_eq!(query.query.sort, EventSort::RiskLevel);
+    assert!(!query.query.descending);
+    assert_eq!(query.query.filters.owners, [EventOwnerFilter::Nobody]);
+    assert_eq!(query.query.filters.kind.as_deref(), Some("phish"));
+    let page = EventListPage {
+        events: vec![event.clone()],
+        next: Some("cursor".to_owned()),
+        total: 7,
+    };
+    let html = drawn_safely(&EventListPageHtml {
+        layout: Layout::signed_out("n"),
+        view: event_list_view(Some(&page), &query, &fixture_choices(), None, true),
+    });
+    assert!(
+        html.contains(&format!(
+            r#"{HOSTILE_ESCAPED} - corporate email - <a href="/events/7">{HOSTILE_ESCAPED}</a>"#
+        )),
+        "{html}"
+    );
+    assert!(
+        html.contains(r#"<a href="/events/7#alerts">2 alerts</a>"#),
+        "{html}"
+    );
+    assert!(html.contains(r#"<input type="checkbox" form="export" name="id" value="7""#));
+    assert!(html.contains(r#"<button type="submit" form="export">Export to CSV</button>"#));
+    assert!(html.contains(r#"<a href="/events/add">Create Event</a>"#));
+    assert!(html.contains("7 events."));
+    assert!(html.contains("<td>DAMAGE</td>"));
+    // the current sort turns around, another starts descending, and the filters go with each
+    assert!(
+        html.contains(r#"<a href="/events?filtered=1&#38;type=phish&#38;"#),
+        "{html}"
+    );
+    assert!(html.contains("sort=risk_level\">Severity↑</a>"), "{html}");
+    assert!(
+        html.contains("sort=disposition\">Disposition</a>"),
+        "{html}"
+    );
+    assert!(html.contains(r#">First</a>"#));
+    assert!(
+        html.contains(r#"after=cursor" rel="next">Next</a>"#),
+        "{html}"
+    );
+    // the form, with what's chosen
+    assert!(html.contains(r#"<option value="OPEN" selected>OPEN</option>"#));
+    assert!(html.contains(r#"<option value="CLOSED">CLOSED</option>"#));
+    assert!(html.contains(r#"<option value="None" selected>None</option>"#));
+    assert!(html.contains(r#"<option value="phish" selected>phish</option>"#));
+    assert!(html.contains(r#"<option value="ANY" selected>ANY</option>"#));
+    assert!(html.contains(r#"<option value="kit" selected>kit</option>"#));
+    assert!(html.contains(r#"name="malware" value="1" checked>"#));
+    assert!(html.contains(r#"name="campaign" value="3">"#));
+    assert!(html.contains(r#"<option value="ipv4">ipv4</option>"#));
+
+    // a filter that can't be read: said, with the form and no rows; and without event:write, no Create
+    let html = drawn_safely(&EventListPageHtml {
+        layout: Layout::signed_out("n"),
+        view: event_list_view(
+            None,
+            &EventListQuery::default(),
+            &fixture_choices(),
+            Some(HOSTILE.to_owned()),
+            false,
+        ),
+    });
+    assert!(html.contains(&format!("The filters couldn't be read: {HOSTILE_ESCAPED}")));
+    assert!(html.contains("No events match."));
+    assert!(!html.contains("Create Event"));
+    assert!(!html.contains("rel=\"next\""));
+
+    // the event's page
+    let html = drawn_safely(&EventPageHtml {
+        layout: Layout::signed_out("n"),
+        view: event_view(&event, true),
+    });
+    assert!(
+        html.contains(&format!("<h1>{HOSTILE_ESCAPED}</h1>")),
+        "{html}"
+    );
+    assert!(html.contains(&format!("<strong>Description:</strong> {HOSTILE_ESCAPED}")));
+    assert!(html.contains("<th>Alert Time (UTC)</th>"), "{html}");
+    assert!(html.contains("2026-03-04 05:06:07"));
+    assert!(html.contains("ALERTS ARE STILL ANALYZING!"));
+    assert!(html.contains(r#"<a href="/events/7/close">Close Event</a>"#));
+    assert!(html.contains(r#"<span class="badge">rat</span>"#));
+    assert!(html.contains(&format!(
+        r#"<a href="/alerts/{}">{HOSTILE_ESCAPED}</a>"#,
+        uuid::Uuid::from_u128(0xA)
+    )));
+    assert!(html.contains("<td>Completed</td>") && html.contains("<td>Analyzing</td>"));
+    assert!(html.contains("<td>OPEN</td>"), "an alert with none is open");
+    assert!(html.contains(r#"<h2 id="alerts">Alerts</h2>"#));
+    // closed, or without event:write: no Close Event; nothing running: no note
+    let mut closed = event.clone();
+    closed.status = "CLOSED".to_owned();
+    for alert in &mut closed.alerts {
+        alert.analysis = AnalysisState::Complete;
+    }
+    for (event, write) in [(&closed, true), (&event, false)] {
+        let html = drawn_safely(&EventPageHtml {
+            layout: Layout::signed_out("n"),
+            view: event_view(event, write),
+        });
+        assert!(!html.contains("Close Event"), "{html}");
+    }
+    let html = drawn_safely(&EventPageHtml {
+        layout: Layout::signed_out("n"),
+        view: event_view(&closed, true),
+    });
+    assert!(!html.contains("STILL ANALYZING"));
+
+    // the confirm, and the confirm of one closed already
+    let html = drawn_safely(&ClosePage {
+        layout: Layout::signed_out("n"),
+        view: close_view(&event),
+    });
+    assert!(
+        html.contains(r#"<form method="post" action="/events/7/close""#),
+        "{html}"
+    );
+    assert!(html.contains(&format!("Close 2026-03-04 - {HOSTILE_ESCAPED}")));
+    let html = drawn_safely(&ClosePage {
+        layout: Layout::signed_out("n"),
+        view: close_view(&closed),
+    });
+    assert!(!html.contains("<form method=\"post\""));
+    assert!(html.contains("closed already"));
+
+    // a list URL that's hand-made wrongly
+    for bad in [
+        "sort=nope",
+        "dir=up",
+        "filtered=1&owner=bob",
+        "filtered=1&malware=x",
+        "filtered=1&campaign=1.5",
+    ] {
+        assert!(EventListQuery::parse(&pairs(bad)).is_err(), "{bad}");
+    }
+    // without the form's field it's ace3's opening list; with it, exactly what was chosen
+    assert_eq!(
+        EventListQuery::parse(&pairs(""))
+            .expect("parses")
+            .query
+            .filters
+            .statuses,
+        ["OPEN"]
+    );
+    assert!(
+        EventListQuery::parse(&pairs("filtered=1&type=ANY"))
+            .expect("parses")
+            .query
+            .filters
+            == ace_service::EventFilters::default()
+    );
+}
+
+/// Through the server: signed out goes to the login; the list, an event's page and the export need
+/// `event:read`, and Close Event `event:write`; the list filters, sorts and pages by its URL; a filter
+/// that can't be read is said; an event is reached by its id or uuid; the export goes on to the API's;
+/// and Close Event confirms, then closes in one audited write, from this site only, and each refusal
+/// changes nothing.
+#[tokio::test]
+async fn the_event_list_and_an_event_s_page_through_the_server() {
+    let stack = stack().await;
+    let alice = user(&stack, "alice").await;
+    let session = session_of(&stack, "alice").await;
+    let one = list_alert(&stack, HOSTILE, "2026-05-01T10:00:00Z", Some("DAMAGE")).await;
+    let open = gui_event(&stack, HOSTILE, "2026-04-01", "OPEN").await;
+    let closed = gui_event(&stack, "closed one", "2026-04-02", "CLOSED").await;
+    sqlx::query("INSERT INTO events.event_alerts (event_id, root_id) VALUES ($1, $2)")
+        .bind(open)
+        .bind(one)
+        .execute(stack.test_db.db().pool())
+        .await
+        .expect("adds");
+    // enough open events for a second page
+    for n in 0..ace_gui::events::EVENTS_PAGE_SIZE {
+        gui_event(&stack, &format!("filler {n:03}"), "2026-03-01", "OPEN").await;
+    }
+    let get = |path: String| {
+        let request = stack.get(&path).header("cookie", cookie(&session));
+        async move { request.send().await.expect("answered") }
+    };
+    let close = |id: i64, origin: &str| {
+        let request = stack
+            .http
+            .post(format!("{}/events/{id}/close", stack.url))
+            .header("origin", origin)
+            .header("cookie", cookie(&session))
+            .form(&[("x", "y")]);
+        async move { request.send().await.expect("answered") }
+    };
+
+    // signed out
+    for path in [
+        "/events".to_owned(),
+        format!("/events/{open}"),
+        format!("/events/{open}/close"),
+        format!("/events/export?id={open}"),
+    ] {
+        let response = stack.get(&path).send().await.expect("answered");
+        assert_eq!(response.status(), StatusCode::SEE_OTHER, "{path}");
+        assert!(
+            location(&response).starts_with("/login?next=%2Fevents"),
+            "{path}"
+        );
+    }
+
+    // without event:read: refused, and no link in the menu
+    let audit = stack.audit_count().await;
+    for path in [
+        "/events".to_owned(),
+        format!("/events/{open}"),
+        format!("/events/export?id={open}"),
+        format!("/events/{open}/close"),
+    ] {
+        assert_eq!(
+            get(path.clone()).await.status(),
+            StatusCode::FORBIDDEN,
+            "{path}"
+        );
+    }
+    let home = get("/preferences".to_owned())
+        .await
+        .text()
+        .await
+        .expect("a page");
+    assert!(!home.contains(r#"<a href="/events">Events</a>"#));
+    assert_eq!(
+        close(open, &stack.url).await.status(),
+        StatusCode::FORBIDDEN
+    );
+    grant_to(&stack, &alice, "event", "read").await;
+    let audit = audit + 1;
+    assert_eq!(stack.audit_count().await, audit, "only the grant's row");
+    let home = get("/preferences".to_owned())
+        .await
+        .text()
+        .await
+        .expect("a page");
+    assert!(home.contains(r#"<a href="/events">Events</a>"#), "{home}");
+
+    // the list as ace3 opens it: the open events, newest first, a page of them, then the next
+    let response = get("/events".to_owned()).await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let page = response.text().await.expect("a page");
+    assert!(inline_free(&page.replace(HOSTILE_ESCAPED, "")));
+    assert!(!page.contains(HOSTILE));
+    assert!(page.contains("101 events."), "{page}");
+    assert!(page.contains(&format!(
+        r#"<a href="/events/{open}">{HOSTILE_ESCAPED}</a>"#
+    )));
+    assert!(page.contains(&format!(r#"<a href="/events/{open}#alerts">1 alert</a>"#)));
+    assert!(!page.contains("closed one"));
+    assert!(!page.contains("Create Event"), "no event:write");
+    let next = page
+        .split(r#"<a href=""#)
+        .find_map(|tail| {
+            let (href, rest) = tail.split_once('"')?;
+            rest.starts_with(r#" rel="next">"#)
+                .then(|| href.replace("&#38;", "&"))
+        })
+        .expect("a Next link");
+    let second = get(next).await.text().await.expect("a page");
+    assert!(second.contains("filler 000"), "{second}");
+    assert!(
+        !second.contains(&format!("/events/{open}\"")),
+        "on the first page"
+    );
+    assert!(second.contains(">First</a>"));
+    assert!(!second.contains(r#"rel="next""#));
+
+    // filters and sorts by the URL
+    let page = get("/events?filtered=1&status=CLOSED".to_owned())
+        .await
+        .text()
+        .await
+        .expect("a page");
+    assert!(
+        page.contains("closed one") && page.contains("1 event."),
+        "{page}"
+    );
+    let page = get("/events?filtered=1&disposition=DAMAGE&sort=date&dir=asc".to_owned())
+        .await
+        .text()
+        .await
+        .expect("a page");
+    assert!(page.contains("1 event.") && page.contains(&format!("/events/{open}\"")));
+    let page = get(format!(
+        "/events?filtered=1&observable_type=ANY&observable_value={}",
+        "evil.example.com"
+    ))
+    .await
+    .text()
+    .await
+    .expect("a page");
+    assert!(
+        page.contains("0 events."),
+        "the fixture alert holds no observable"
+    );
+    // a filter that can't be read is said, with the form
+    let response = get("/events?filtered=1&created=whenever".to_owned()).await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    let page = response.text().await.expect("a page");
+    assert!(page.contains("The filters couldn't be read"), "{page}");
+    assert!(page.contains(r#"value="whenever""#));
+    for bad in [
+        "/events?sort=nope",
+        "/events?dir=sideways",
+        "/events?filtered=1&owner=bob",
+        "/events?after=nope",
+    ] {
+        assert_eq!(
+            get(bad.to_owned()).await.status(),
+            StatusCode::BAD_REQUEST,
+            "{bad}"
+        );
+    }
+
+    // an event's page, by id and by uuid
+    let uuid: uuid::Uuid = sqlx::query_scalar("SELECT uuid FROM events.events WHERE id = $1")
+        .bind(open)
+        .fetch_one(stack.test_db.db().pool())
+        .await
+        .expect("reads");
+    for path in [format!("/events/{open}"), format!("/events/{uuid}")] {
+        let response = get(path).await;
+        assert_eq!(response.status(), StatusCode::OK);
+        let page = response.text().await.expect("a page");
+        assert!(inline_free(&page.replace(HOSTILE_ESCAPED, "")));
+        assert!(!page.contains(HOSTILE));
+        assert!(
+            page.contains(&format!(r#"<a href="/alerts/{one}">{HOSTILE_ESCAPED}</a>"#)),
+            "{page}"
+        );
+        assert!(page.contains("<td>DAMAGE</td>"));
+        assert!(!page.contains("Close Event"), "no event:write");
+    }
+    assert_eq!(
+        get(format!("/events/{}", i64::MAX)).await.status(),
+        StatusCode::NOT_FOUND
+    );
+    assert_eq!(
+        get("/events/nope".to_owned()).await.status(),
+        StatusCode::BAD_REQUEST
+    );
+
+    // the export goes on to the API's, with the ticked ids
+    let response = get(format!("/events/export?id={open}&id={closed}&id={open}")).await;
+    assert_eq!(response.status(), StatusCode::SEE_OTHER);
+    assert_eq!(
+        location(&response),
+        format!("/api/events/v1/events/export/csv?ids={open}%2C{closed}")
+    );
+    assert_eq!(
+        get("/events/export".to_owned()).await.status(),
+        StatusCode::BAD_REQUEST
+    );
+    assert_eq!(
+        get("/events/export?id=x".to_owned()).await.status(),
+        StatusCode::BAD_REQUEST
+    );
+    let too_many = (0..=ace_service::MAX_EXPORT_EVENTS)
+        .map(|n| format!("id={n}"))
+        .collect::<Vec<_>>()
+        .join("&");
+    assert_eq!(
+        get(format!("/events/export?{too_many}")).await.status(),
+        StatusCode::PAYLOAD_TOO_LARGE
+    );
+
+    // Close Event needs event:write
+    assert_eq!(
+        get(format!("/events/{open}/close")).await.status(),
+        StatusCode::FORBIDDEN
+    );
+    assert_eq!(
+        close(open, &stack.url).await.status(),
+        StatusCode::FORBIDDEN
+    );
+    assert_eq!(stack.audit_count().await, audit);
+    grant_to(&stack, &alice, "event", "write").await;
+    let audit = audit + 1;
+    let page = get(format!("/events/{open}"))
+        .await
+        .text()
+        .await
+        .expect("a page");
+    assert!(page.contains(&format!(
+        r#"<a href="/events/{open}/close">Close Event</a>"#
+    )));
+    let list = get("/events".to_owned())
+        .await
+        .text()
+        .await
+        .expect("a page");
+    assert!(list.contains(r#"<a href="/events/add">Create Event</a>"#));
+    let confirm = get(format!("/events/{open}/close")).await;
+    assert_eq!(confirm.status(), StatusCode::OK);
+    let page = confirm.text().await.expect("a page");
+    assert!(inline_free(&page.replace(HOSTILE_ESCAPED, "")));
+    assert!(
+        page.contains(&format!(r#"action="/events/{open}/close""#)),
+        "{page}"
+    );
+    assert_eq!(
+        get("/events/nope/close".to_owned()).await.status(),
+        StatusCode::BAD_REQUEST
+    );
+    assert_eq!(
+        get(format!("/events/{}/close", i64::MAX)).await.status(),
+        StatusCode::NOT_FOUND
+    );
+
+    // from another site, refused; an unknown event, 404; neither changes anything
+    assert_eq!(
+        close(open, "https://evil.example").await.status(),
+        StatusCode::FORBIDDEN
+    );
+    assert_eq!(
+        close(i64::MAX, &stack.url).await.status(),
+        StatusCode::NOT_FOUND
+    );
+    assert_eq!(stack.audit_count().await, audit);
+    let status = || async {
+        sqlx::query_scalar::<_, String>(
+            "SELECT s.value FROM events.events e JOIN events.statuses s ON s.id = e.status_id
+             WHERE e.id = $1",
+        )
+        .bind(open)
+        .fetch_one(stack.test_db.db().pool())
+        .await
+        .expect("reads")
+    };
+    assert_eq!(status().await, "OPEN");
+
+    // closing: one audited write, back to the event's page, which has no Close Event now
+    let response = close(open, &stack.url).await;
+    assert_eq!(response.status(), StatusCode::SEE_OTHER);
+    assert_eq!(location(&response), format!("/events/{open}"));
+    assert_eq!(status().await, "CLOSED");
+    assert_eq!(stack.audit_count().await, audit + 1);
+    assert_eq!(last_action(&stack).await, "set_event_status");
+    let page = get(format!("/events/{open}"))
+        .await
+        .text()
+        .await
+        .expect("a page");
+    assert!(!page.contains("Close Event</a>"));
+    let page = get(format!("/events/{open}/close"))
+        .await
+        .text()
+        .await
+        .expect("a page");
+    assert!(page.contains("closed already"));
+    // closing it again changes nothing
+    assert_eq!(
+        close(open, &stack.url).await.status(),
+        StatusCode::SEE_OTHER
+    );
+    assert_eq!(stack.audit_count().await, audit + 1);
+
+    // the answer to an add links to the event's page
+    let added = stack
+        .http
+        .post(format!("{}/events/add", stack.url))
+        .header("origin", &stack.url)
+        .header("cookie", cookie(&session))
+        .form(&[("event", closed.to_string()), ("alert", one.to_string())])
+        .send()
+        .await
+        .expect("answered")
+        .text()
+        .await
+        .expect("a page");
+    assert!(
+        added.contains(&format!(r#"<a href="/events/{closed}">"#)),
+        "{added}"
     );
 }

@@ -58,6 +58,18 @@
 //! changes nothing and has no row. The form's closed events, ace3's `load_more_events`, are
 //! `Service::closed_events`, a page at a time, newest first.
 //!
+//! The event list (6c), ace3's `events.manage`, is `Service::event_list`, under `event:read`: the events
+//! its filters match (`crate::filters::events`, with ace3's filters and sorts), in one static query in which
+//! each filter is a fixed condition a NULL parameter turns off and every value a bound parameter, under
+//! `LIST_TIMEOUT`. The rolled-up disposition is computed in the query from `DISPOSITION_RANKS`, bound as
+//! arrays, so it filters and sorts there, where ace3 filters and sorts it in Python after reading every
+//! event. Each order breaks a tie with the id, and the list is a keyset: a cursor names its last event and
+//! that event's sort key then, so an event changed meanwhile is where its new key puts it, as in any
+//! keyset. ace3 lists every event; this reads a page of at most `MAX_EVENTS_PAGE`, with the total.
+//! `Service::event_choices` is what the filters offer. An event's alerts carry their analysis state and
+//! tags, for its page and ace3's "still analyzing" note (`Event::still_analyzing`). Close Event is
+//! `set_event_status` to `CLOSED_STATUS`, which is all ace3's does.
+//!
 //! What adding an alert to an event does to its analysis: nothing, here or in ace3. ace3's GUI only
 //! writes the mapping (`app/analysis/views/edit/event.py`). Its `alert_added_to_event` module, which
 //! dispositioned mode runs, switches an alert in an event to `event` mode, which runs no modules in
@@ -73,7 +85,8 @@ use sqlx::PgConnection;
 use uuid::Uuid;
 
 use crate::actor::{Actor, UserId};
-use crate::alerts::RecordedActor;
+use crate::alerts::{AnalysisState, RecordedActor, SET_LIST_TIMEOUT, timed_out};
+use crate::filters::events::{EventOwnerFilter, EventQuery, EventSort};
 use crate::gate::{Audited, Change, Recorded, Target};
 use crate::observables::OPEN;
 use crate::permission::{EVENT_READ, EVENT_WRITE};
@@ -98,28 +111,33 @@ pub const CLOSED_EVENTS_PAGE: u32 = 15;
 /// ace3's disposition of an event with no alerts.
 const NO_ALERTS: &str = "DELIVERY";
 
-/// A disposition's rank from ace3's `saq.default.yaml`, which an event's roll-up takes the highest of.
-/// None for a name ace3 doesn't configure.
+/// ace3's dispositions and their ranks from its `saq.default.yaml`, which an event's roll-up takes the
+/// highest of and the event list sorts by.
+pub const DISPOSITION_RANKS: &[(&str, u16)] = &[
+    ("OPEN", 0),
+    ("IGNORE", 10),
+    ("FALSE_POSITIVE", 20),
+    ("UNKNOWN", 40),
+    ("REVIEWED", 50),
+    ("SIMULATED", 55),
+    ("GRAYWARE", 60),
+    ("POLICY_VIOLATION", 70),
+    ("RECONNAISSANCE", 80),
+    ("WEAPONIZATION", 90),
+    ("DELIVERY", 100),
+    ("EXPLOITATION", 110),
+    ("INSTALLATION", 120),
+    ("COMMAND_AND_CONTROL", 130),
+    ("EXFIL", 150),
+    ("DAMAGE", 160),
+];
+
+/// A disposition's rank (`DISPOSITION_RANKS`). None for a name ace3 doesn't configure.
 pub fn disposition_rank(disposition: &str) -> Option<u16> {
-    Some(match disposition {
-        "OPEN" => 0,
-        "IGNORE" => 10,
-        "FALSE_POSITIVE" => 20,
-        "UNKNOWN" => 40,
-        "REVIEWED" => 50,
-        "SIMULATED" => 55,
-        "GRAYWARE" => 60,
-        "POLICY_VIOLATION" => 70,
-        "RECONNAISSANCE" => 80,
-        "WEAPONIZATION" => 90,
-        "DELIVERY" => 100,
-        "EXPLOITATION" => 110,
-        "INSTALLATION" => 120,
-        "COMMAND_AND_CONTROL" => 130,
-        "EXFIL" => 150,
-        "DAMAGE" => 160,
-        _ => return None,
-    })
+    DISPOSITION_RANKS
+        .iter()
+        .find(|(name, _)| *name == disposition)
+        .map(|(_, rank)| *rank)
 }
 
 /// An event's disposition from its alerts', as ace3's `Event.disposition` rolls it up. An alert with none
@@ -196,6 +214,10 @@ pub struct EventAlert {
     pub dispositioned_by: Option<RecordedActor>,
     /// When it was added to the event.
     pub added_at: DateTime<Utc>,
+    /// Where its analysis is, ace3's alert `status`.
+    pub analysis: AnalysisState,
+    /// Its tags, from its observables and results, by name.
+    pub tags: Vec<String>,
 }
 
 /// An event, with everything ace3's `Event.json` gives that ace4 has.
@@ -233,6 +255,15 @@ pub struct Event {
 }
 
 impl Event {
+    /// Whether any of its alerts is still being analyzed, ace3's `alerts_still_analyzing`: ace3's alert
+    /// is until its status is `Completed`; here, while its pass runs. One whose analysis was cancelled
+    /// isn't running.
+    pub fn still_analyzing(&self) -> bool {
+        self.alerts
+            .iter()
+            .any(|alert| alert.analysis == AnalysisState::Running)
+    }
+
     /// The threat types of its malware, each once, by name: ace3's `Event.threats`.
     pub fn threat_types(&self) -> Vec<&str> {
         let mut types: Vec<&str> = self
@@ -251,6 +282,116 @@ impl Event {
 pub struct EventPage {
     pub events: Vec<Event>,
     pub next: Option<i64>,
+}
+
+/// A page of the event list (`Service::event_list`), the cursor of the next, None on the last, and how
+/// many events the filters match in all.
+#[derive(Debug, Clone, PartialEq)]
+pub struct EventListPage {
+    pub events: Vec<Event>,
+    pub next: Option<String>,
+    pub total: i64,
+}
+
+/// A reference row, such as a status or a type: its value.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EventValue {
+    pub id: i32,
+    pub value: String,
+}
+
+/// A user who owns an event, for the owner filter.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EventOwnerChoice {
+    pub id: UserId,
+    pub username: String,
+    pub display_name: Option<String>,
+}
+
+/// What the event list's filters offer, ace3's lists for its filter dialog: each reference table by
+/// value, as ace3 orders them, the owners, malware, campaigns and the events' own tags. Each list holds at
+/// most `MAX_EVENT_CHOICES`.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct EventChoices {
+    pub statuses: Vec<EventValue>,
+    pub types: Vec<EventValue>,
+    pub vectors: Vec<EventValue>,
+    pub prevention_tools: Vec<EventValue>,
+    pub risk_levels: Vec<EventValue>,
+    pub owners: Vec<EventOwnerChoice>,
+    pub malware: Vec<EventValue>,
+    pub campaigns: Vec<EventValue>,
+    pub tags: Vec<String>,
+}
+
+/// The most of each kind `EventChoices` lists.
+pub const MAX_EVENT_CHOICES: i64 = 1000;
+
+/// The status ace3's Close Event sets, its `events.closed_status`.
+pub const CLOSED_STATUS: &str = "CLOSED";
+
+/// Where a page of the event list ends: its order, its last event, and that event's sort key then, so the
+/// next page starts after it even if the event has changed since. As text it's
+/// `<sort>.<asc|desc>.<id>.<key>`, the key a JSON array of text in hex.
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct EventCursor {
+    sort: EventSort,
+    descending: bool,
+    id: i64,
+    key: Vec<String>,
+}
+
+/// The longest cursor that's read.
+const MAX_EVENT_CURSOR: usize = 4096;
+
+impl EventCursor {
+    fn encode(&self) -> String {
+        let dir = if self.descending { "desc" } else { "asc" };
+        let key = serde_json::to_vec(&self.key).expect("text encodes");
+        format!(
+            "{}.{dir}.{}.{}",
+            self.sort.as_str(),
+            self.id,
+            hex::encode(key)
+        )
+    }
+
+    fn decode(text: &str, query: &EventQuery) -> Result<Self, ServiceError> {
+        let bad = || ServiceError::InvalidRequest(format!("{text:?} isn't a cursor of this list"));
+        if text.len() > MAX_EVENT_CURSOR {
+            return Err(bad());
+        }
+        let mut parts = text.splitn(4, '.');
+        let sort = parts.next().and_then(EventSort::named).ok_or_else(bad)?;
+        let descending = match parts.next() {
+            Some("desc") => true,
+            Some("asc") => false,
+            _ => return Err(bad()),
+        };
+        let id = parts
+            .next()
+            .and_then(|id| id.parse().ok())
+            .ok_or_else(bad)?;
+        let key: Vec<String> = parts
+            .next()
+            .and_then(|key| hex::decode(key).ok())
+            .and_then(|key| serde_json::from_slice(&key).ok())
+            .ok_or_else(bad)?;
+        if !(1..=3).contains(&key.len()) {
+            return Err(bad());
+        }
+        if sort != query.sort || descending != query.descending {
+            return Err(ServiceError::InvalidRequest(format!(
+                "the cursor {text:?} pages another order: ask for the order of the request that gave it"
+            )));
+        }
+        Ok(EventCursor {
+            sort,
+            descending,
+            id,
+            key,
+        })
+    }
 }
 
 /// A threat type, such as `ransomware`.
@@ -604,10 +745,40 @@ async fn load_events(conn: &mut PgConnection, ids: &[i64]) -> Result<Vec<Event>,
         });
     }
 
+    // each alert's tags, from its observables and results
+    let mut tags_of: HashMap<(i64, Uuid), Vec<String>> = HashMap::new();
+    let mut alert_tags: HashMap<i64, Vec<String>> = HashMap::new();
+    for row in sqlx::query!(
+        r#"SELECT ea.event_id, ea.root_id, t.tag AS "tag!"
+           FROM events.event_alerts ea
+           CROSS JOIN LATERAL (
+               SELECT unnest(o.tags) FROM analysis.observables o WHERE o.root_id = ea.root_id
+               UNION
+               SELECT unnest(x.tags) FROM analysis.results x WHERE x.root_id = ea.root_id
+           ) t(tag)
+           WHERE ea.event_id = ANY($1)
+           GROUP BY ea.event_id, ea.root_id, t.tag
+           ORDER BY ea.event_id, lower(t.tag), t.tag, ea.root_id"#,
+        ids,
+    )
+    .fetch_all(&mut *conn)
+    .await?
+    {
+        let event = alert_tags.entry(row.event_id).or_default();
+        if event.last() != Some(&row.tag) {
+            event.push(row.tag.clone());
+        }
+        tags_of
+            .entry((row.event_id, row.root_id))
+            .or_default()
+            .push(row.tag);
+    }
+
     let mut alerts: HashMap<i64, Vec<EventAlert>> = HashMap::new();
     for row in sqlx::query!(
         r#"SELECT ea.event_id, r.id, r.description, r.alerted_at, r.disposition, r.dispositioned_at,
-                  r.dispositioned_by AS "dispositioned_by: Value", ea.added_at
+                  r.dispositioned_by AS "dispositioned_by: Value", ea.added_at,
+                  r.pass, r.completed_pass, r.cancelled_at IS NOT NULL AS "cancelled!"
            FROM events.event_alerts ea
            JOIN analysis.roots r ON r.id = ea.root_id
            WHERE ea.event_id = ANY($1)
@@ -625,6 +796,8 @@ async fn load_events(conn: &mut PgConnection, ids: &[i64]) -> Result<Vec<Event>,
             dispositioned_at: row.dispositioned_at,
             dispositioned_by: RecordedActor::from_row(row.dispositioned_by)?,
             added_at: row.added_at,
+            analysis: AnalysisState::of(row.pass, row.completed_pass, row.cancelled),
+            tags: tags_of.remove(&(row.event_id, row.id)).unwrap_or_default(),
         });
     }
 
@@ -638,26 +811,6 @@ async fn load_events(conn: &mut PgConnection, ids: &[i64]) -> Result<Vec<Event>,
     .await?
     {
         tags.entry(row.event_id).or_default().push(row.tag);
-    }
-
-    let mut alert_tags: HashMap<i64, Vec<String>> = HashMap::new();
-    for row in sqlx::query!(
-        r#"SELECT ea.event_id, t.tag AS "tag!"
-           FROM events.event_alerts ea
-           CROSS JOIN LATERAL (
-               SELECT unnest(o.tags) FROM analysis.observables o WHERE o.root_id = ea.root_id
-               UNION
-               SELECT unnest(x.tags) FROM analysis.results x WHERE x.root_id = ea.root_id
-           ) t(tag)
-           WHERE ea.event_id = ANY($1)
-           GROUP BY ea.event_id, t.tag
-           ORDER BY ea.event_id, lower(t.tag), t.tag"#,
-        ids,
-    )
-    .fetch_all(&mut *conn)
-    .await?
-    {
-        alert_tags.entry(row.event_id).or_default().push(row.tag);
     }
 
     Ok(rows
@@ -825,6 +978,314 @@ impl Service {
                     let mut events = load_events(tx.conn(), &ids).await?;
                     events.sort_by_key(|event| ids.iter().position(|id| *id == event.id));
                     Ok(EventPage { events, next })
+                })
+            })
+            .await
+    }
+
+    /// A page of the event list, ace3's `events.manage`: the events `query`'s filters match
+    /// (`EventFilters::check`), in its order with the id to break a tie, `limit` at a time after the
+    /// cursor `after`, a page's `next`. ace3's list isn't paged; this one is a keyset of at most
+    /// `MAX_EVENTS_PAGE`. A cursor of another order is `InvalidRequest`, and so is a filter that runs past
+    /// `LIST_TIMEOUT`.
+    pub async fn event_list(
+        &self,
+        actor: &Actor,
+        query: &EventQuery,
+        after: Option<&str>,
+        limit: u32,
+    ) -> Result<EventListPage, ServiceError> {
+        if !(1..=MAX_EVENTS_PAGE).contains(&limit) {
+            return Err(ServiceError::InvalidRequest(format!(
+                "a page holds 1 to {MAX_EVENTS_PAGE} events"
+            )));
+        }
+        let after = after
+            .map(|after| EventCursor::decode(after, query))
+            .transpose()?;
+        let page = self
+            .event_page(actor, query, after.as_ref(), i64::from(limit))
+            .await?;
+        if page.events.is_empty() && after.is_some() {
+            // past the end, the page has no row to carry the total, so the first page counts
+            let first = self.event_page(actor, query, None, 1).await?;
+            return Ok(EventListPage {
+                total: first.total,
+                ..page
+            });
+        }
+        Ok(page)
+    }
+
+    async fn event_page(
+        &self,
+        actor: &Actor,
+        query: &EventQuery,
+        after: Option<&EventCursor>,
+        limit: i64,
+    ) -> Result<EventListPage, ServiceError> {
+        let f = query.filters.check()?;
+        let (created_start, created_end) = match &f.created {
+            Some(range) => {
+                let (start, end) =
+                    crate::filters::date_window(range, Utc::now(), chrono_tz::Tz::UTC)?;
+                (Some(start), Some(end))
+            }
+            None => (None, None),
+        };
+        let some = |values: &Vec<String>| (!values.is_empty()).then(|| values.clone());
+        let dispositions = some(&f.dispositions);
+        let statuses = some(&f.statuses);
+        let tags = some(&f.tags);
+        let owners: Option<Vec<Uuid>> = (!f.owners.is_empty()).then(|| {
+            f.owners
+                .iter()
+                .filter_map(|owner| match owner {
+                    EventOwnerFilter::User(id) => Some(*id),
+                    EventOwnerFilter::Nobody => None,
+                })
+                .collect()
+        });
+        let nobody = f.owners.contains(&EventOwnerFilter::Nobody);
+        let malware = (!f.malware.is_empty()).then(|| f.malware.clone());
+        let campaigns = (!f.campaigns.is_empty()).then(|| f.campaigns.clone());
+        let rank_names: Vec<String> = DISPOSITION_RANKS
+            .iter()
+            .map(|(name, _)| (*name).to_owned())
+            .collect();
+        let rank_values: Vec<i32> = DISPOSITION_RANKS
+            .iter()
+            .map(|(_, rank)| i32::from(*rank))
+            .collect();
+        let sort = query.sort;
+        let descending = query.descending;
+        let after_id = after.map(|cursor| cursor.id);
+        let after_key = after.map(|cursor| cursor.key.clone());
+        let lists = (
+            &dispositions,
+            &statuses,
+            &owners,
+            &tags,
+            &malware,
+            &campaigns,
+            &rank_names,
+            &rank_values,
+            &after_key,
+        );
+        let f = &f;
+        self.gate
+            .read(actor, "event_list", &EVENT_READ, &|tx| {
+                Box::pin(async move {
+                    let (dispositions, statuses, owners, tags, malware, campaigns, rank_names, rank_values, after_key) =
+                        lists;
+                    sqlx::raw_sql(SET_LIST_TIMEOUT).execute(tx.conn()).await?;
+                    let rows = sqlx::query!(
+                        r#"WITH ranks(d, rank) AS (SELECT * FROM unnest($6::text[], $7::int[])),
+                           matched AS (
+                             SELECT e.id,
+                                    (CASE $1::text
+                                       WHEN 'date' THEN ARRAY[e.creation_date::text]
+                                       WHEN 'event' THEN ARRAY[t.value, v.value, e.name]
+                                       WHEN 'campaign' THEN
+                                         ARRAY[(c.name IS NOT NULL)::int::text, COALESCE(c.name, '')]
+                                       WHEN 'risk_level' THEN ARRAY[rl.value]
+                                       WHEN 'disposition' THEN
+                                         ARRAY[lpad(COALESCE(dr.rank, 0)::text, 10, '0')]
+                                       WHEN 'prevention' THEN ARRAY[p.value]
+                                       WHEN 'remediation' THEN ARRAY[rm.value]
+                                       WHEN 'status' THEN ARRAY[s.value]
+                                       ELSE ARRAY[(u.id IS NOT NULL)::int::text,
+                                                  COALESCE(u.display_name, u.username::text, '')]
+                                     END) COLLATE "C" AS k,
+                                    count(*) OVER () AS total
+                             FROM events.events e
+                             JOIN events.statuses s ON s.id = e.status_id
+                             JOIN events.remediations rm ON rm.id = e.remediation_id
+                             JOIN events.types t ON t.id = e.type_id
+                             JOIN events.vectors v ON v.id = e.vector_id
+                             JOIN events.risk_levels rl ON rl.id = e.risk_level_id
+                             JOIN events.prevention_tools p ON p.id = e.prevention_tool_id
+                             LEFT JOIN events.campaigns c ON c.id = e.campaign_id
+                             LEFT JOIN service.users u ON u.id = e.owner_id
+                             -- the rolled-up disposition: DELIVERY with no alerts, else the highest
+                             -- ranked of theirs, else OPEN (crate::rolled_up)
+                             CROSS JOIN LATERAL (
+                               SELECT CASE
+                                 WHEN NOT EXISTS (SELECT FROM events.event_alerts ea
+                                                  WHERE ea.event_id = e.id) THEN 'DELIVERY'
+                                 ELSE COALESCE((SELECT k.d FROM events.event_alerts ea
+                                                JOIN analysis.roots r ON r.id = ea.root_id
+                                                JOIN ranks k ON k.d = r.disposition AND k.rank > 0
+                                                WHERE ea.event_id = e.id
+                                                ORDER BY k.rank DESC LIMIT 1), 'OPEN')
+                               END AS disposition
+                             ) dd
+                             LEFT JOIN ranks dr ON dr.d = dd.disposition
+                             WHERE ($8::timestamptz IS NULL
+                                    OR (e.creation_date::timestamp AT TIME ZONE 'UTC') >= $8)
+                               AND ($9::timestamptz IS NULL
+                                    OR (e.creation_date::timestamp AT TIME ZONE 'UTC') <= $9)
+                               AND ($10::text[] IS NULL OR dd.disposition = ANY($10))
+                               AND ($11::text[] IS NULL OR s.value = ANY($11))
+                               AND ($12::uuid[] IS NULL OR e.owner_id = ANY($12)
+                                    OR ($13::boolean AND e.owner_id IS NULL))
+                               AND ($14::text IS NULL OR t.value = $14)
+                               AND ($15::text IS NULL OR v.value = $15)
+                               AND ($16::text IS NULL OR p.value = $16)
+                               AND ($17::text IS NULL OR rl.value = $17)
+                               -- an alert in it holding the observable, matched on its hash as the
+                               -- alert list's observable filter is
+                               AND (($18::text IS NULL AND $19::text IS NULL) OR EXISTS (
+                                     SELECT FROM events.event_alerts ea
+                                     JOIN analysis.observables o ON o.root_id = ea.root_id
+                                     WHERE ea.event_id = e.id
+                                       AND ($18::text IS NULL OR o.type = $18)
+                                       AND ($19::text IS NULL
+                                            OR (o.value_hash = analysis.value_hash($19) AND o.value = $19))))
+                               AND ($20::text[] IS NULL OR EXISTS (
+                                     SELECT FROM events.event_tags g
+                                     WHERE g.event_id = e.id AND g.tag = ANY($20)))
+                               AND ($21::int[] IS NULL OR EXISTS (
+                                     SELECT FROM events.event_malware em
+                                     WHERE em.event_id = e.id AND em.malware_id = ANY($21)))
+                               AND ($22::int[] IS NULL OR e.campaign_id = ANY($22))
+                           )
+                           SELECT m.id, m.k AS "k!", m.total AS "total!"
+                           FROM matched m
+                           WHERE $3::bigint IS NULL OR CASE
+                             WHEN $2::boolean THEN (m.k, m.id) < ($4::text[] COLLATE "C", $3)
+                             ELSE (m.k, m.id) > ($4::text[] COLLATE "C", $3)
+                           END
+                           ORDER BY
+                             CASE WHEN $2 THEN m.k END DESC,
+                             CASE WHEN NOT $2 THEN m.k END ASC,
+                             CASE WHEN $2 THEN m.id END DESC,
+                             CASE WHEN NOT $2 THEN m.id END ASC
+                           LIMIT $5"#,
+                        sort.as_str(),
+                        descending,
+                        after_id,
+                        after_key.as_deref(),
+                        limit + 1,
+                        rank_names.as_slice(),
+                        rank_values.as_slice(),
+                        created_start,
+                        created_end,
+                        dispositions.as_deref(),
+                        statuses.as_deref(),
+                        owners.as_deref(),
+                        nobody,
+                        f.kind.as_deref(),
+                        f.vector.as_deref(),
+                        f.prevention_tool.as_deref(),
+                        f.risk_level.as_deref(),
+                        f.observable_type.as_deref(),
+                        f.observable_value.as_deref(),
+                        tags.as_deref(),
+                        malware.as_deref(),
+                        campaigns.as_deref(),
+                    )
+                    .fetch_all(tx.conn())
+                    .await
+                    .map_err(timed_out)?;
+                    let total = rows.first().map_or(0, |row| row.total);
+                    let take = usize::try_from(limit).unwrap_or(usize::MAX);
+                    let more = rows.len() > take;
+                    let rows: Vec<_> = rows.into_iter().take(take).collect();
+                    let ids: Vec<i64> = rows.iter().map(|row| row.id).collect();
+                    let mut events = load_events(tx.conn(), &ids).await?;
+                    events.sort_by_key(|event| ids.iter().position(|id| *id == event.id));
+                    let next = match rows.last() {
+                        Some(last) if more => Some(
+                            EventCursor {
+                                sort,
+                                descending,
+                                id: last.id,
+                                key: last.k.clone(),
+                            }
+                            .encode(),
+                        ),
+                        _ => None,
+                    };
+                    Ok(EventListPage {
+                        events,
+                        next,
+                        total,
+                    })
+                })
+            })
+            .await
+    }
+
+    /// What the event list's filters offer (`EventChoices`), under `event:read`. The owners are the users
+    /// who own an event, where ace3 lists every user: filtering on anyone else finds nothing, and the list
+    /// tells an event reader no more than the events do.
+    pub async fn event_choices(&self, actor: &Actor) -> Result<EventChoices, ServiceError> {
+        self.gate
+            .read(actor, "event_choices", &EVENT_READ, &|tx| {
+                Box::pin(async move {
+                    let mut choices = EventChoices::default();
+                    for row in sqlx::query!(
+                        r#"SELECT 'status' AS "table!", id::int AS "id!", value AS "value!" FROM events.statuses
+                           UNION ALL SELECT 'type', id::int, value FROM events.types
+                           UNION ALL SELECT 'vector', id::int, value FROM events.vectors
+                           UNION ALL SELECT 'prevention', id::int, value FROM events.prevention_tools
+                           UNION ALL SELECT 'risk', id::int, value FROM events.risk_levels
+                           ORDER BY 1, 3, 2"#
+                    )
+                    .fetch_all(tx.conn())
+                    .await?
+                    {
+                        let value = EventValue {
+                            id: row.id,
+                            value: row.value,
+                        };
+                        match row.table.as_str() {
+                            "status" => choices.statuses.push(value),
+                            "type" => choices.types.push(value),
+                            "vector" => choices.vectors.push(value),
+                            "prevention" => choices.prevention_tools.push(value),
+                            _ => choices.risk_levels.push(value),
+                        }
+                    }
+                    choices.owners = sqlx::query!(
+                        r#"SELECT u.id, u.username::text AS "username!", u.display_name
+                           FROM service.users u
+                           WHERE EXISTS (SELECT FROM events.events e WHERE e.owner_id = u.id)
+                           ORDER BY COALESCE(u.display_name, u.username::text), u.id
+                           LIMIT $1"#,
+                        MAX_EVENT_CHOICES,
+                    )
+                    .fetch_all(tx.conn())
+                    .await?
+                    .into_iter()
+                    .map(|row| EventOwnerChoice {
+                        id: UserId(row.id),
+                        username: row.username,
+                        display_name: row.display_name,
+                    })
+                    .collect();
+                    choices.malware = sqlx::query_as!(
+                        EventValue,
+                        "SELECT id, name AS value FROM events.malware ORDER BY name, id LIMIT $1",
+                        MAX_EVENT_CHOICES,
+                    )
+                    .fetch_all(tx.conn())
+                    .await?;
+                    choices.campaigns = sqlx::query_as!(
+                        EventValue,
+                        "SELECT id, name AS value FROM events.campaigns ORDER BY name, id LIMIT $1",
+                        MAX_EVENT_CHOICES,
+                    )
+                    .fetch_all(tx.conn())
+                    .await?;
+                    choices.tags = sqlx::query_scalar!(
+                        "SELECT DISTINCT tag FROM events.event_tags ORDER BY tag LIMIT $1",
+                        MAX_EVENT_CHOICES,
+                    )
+                    .fetch_all(tx.conn())
+                    .await?;
+                    Ok(choices)
                 })
             })
             .await

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT ea.event_id, r.id, r.description, r.alerted_at, r.disposition, r.dispositioned_at,\n                  r.dispositioned_by AS \"dispositioned_by: Value\", ea.added_at\n           FROM events.event_alerts ea\n           JOIN analysis.roots r ON r.id = ea.root_id\n           WHERE ea.event_id = ANY($1)\n           ORDER BY ea.event_id, r.alerted_at NULLS LAST, r.id",
+  "query": "SELECT ea.event_id, r.id, r.description, r.alerted_at, r.disposition, r.dispositioned_at,\n                  r.dispositioned_by AS \"dispositioned_by: Value\", ea.added_at,\n                  r.pass, r.completed_pass, r.cancelled_at IS NOT NULL AS \"cancelled!\"\n           FROM events.event_alerts ea\n           JOIN analysis.roots r ON r.id = ea.root_id\n           WHERE ea.event_id = ANY($1)\n           ORDER BY ea.event_id, r.alerted_at NULLS LAST, r.id",
   "describe": {
     "columns": [
       {
@@ -90,6 +90,34 @@
             "name": "added_at"
           }
         }
+      },
+      {
+        "ordinal": 8,
+        "name": "pass",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "analysis.roots",
+            "name": "pass"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "completed_pass",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "analysis.roots",
+            "name": "completed_pass"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "cancelled!",
+        "type_info": "Bool",
+        "origin": "Expression"
       }
     ],
     "parameters": {
@@ -105,8 +133,11 @@
       true,
       true,
       true,
-      false
+      false,
+      false,
+      false,
+      null
     ]
   },
-  "hash": "d9fc0a14caf0e5a9af7c3c8b617b344b588ff4f65903503073efd543224f14c1"
+  "hash": "f2b34eb6824dd3450e35e23c358e53122c7277da54274392c2b6ad0fc570deac"
 }

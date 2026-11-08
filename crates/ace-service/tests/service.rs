@@ -25,6 +25,9 @@
 //! PLAN.md 5.10: the alert list filters and pages through fixture alerts, every filter and its inverse,
 //! every order both ways, with hostile values as data; ace3's share links and date ranges; the detection
 //! points' filters; saved filters, their owner and their audit rows; and `manage_columns`.
+//!
+//! PLAN.md 5.11's events (6c): the event list's filters checked, each filter and each order both ways
+//! through the keyset, the filters' choices, and an event's alerts with their state and tags.
 
 use std::collections::BTreeSet;
 use std::io::Write;
@@ -9782,4 +9785,558 @@ async fn adding_to_an_event_follows_ace3_s_rules() {
         Err(ServiceError::PermissionDenied { ref permission, .. })
             if permission.to_string() == "event:write"
     ));
+}
+
+// PLAN.md 5.11's events (6c): the event list, ace3's events.manage, and what an event's page reads.
+
+/// The event list's filters are checked and spelt canonically, and refused past their bounds or with a
+/// value of the wrong shape.
+#[test]
+fn the_event_list_s_filters_are_checked() {
+    use ace_service::{EventFilters, EventOwnerFilter, EventSort};
+    let filters = EventFilters {
+        created: Some("  ".to_owned()),
+        statuses: vec![" OPEN ".to_owned(), "OPEN".to_owned(), String::new()],
+        owners: vec![
+            EventOwnerFilter::User(Uuid::from_u128(2)),
+            EventOwnerFilter::Nobody,
+            EventOwnerFilter::User(Uuid::from_u128(2)),
+        ],
+        kind: Some(" phish ".to_owned()),
+        observable_type: Some("ipv4".to_owned()),
+        observable_value: Some(" 10.0.0.1 ".to_owned()),
+        malware: vec![3, 1, 3],
+        ..EventFilters::default()
+    }
+    .check()
+    .expect("checks");
+    assert_eq!(filters.created, None, "an empty range is no filter");
+    assert_eq!(filters.statuses, ["OPEN"]);
+    assert_eq!(
+        filters.owners,
+        [
+            EventOwnerFilter::Nobody,
+            EventOwnerFilter::User(Uuid::from_u128(2))
+        ]
+    );
+    assert_eq!(filters.kind.as_deref(), Some("phish"));
+    assert_eq!(filters.observable_value.as_deref(), Some("10.0.0.1"));
+    assert_eq!(filters.malware, [1, 3]);
+    assert_eq!(EventFilters::ace3_default().statuses, ["OPEN"]);
+
+    for bad in [
+        EventFilters {
+            created: Some("last tuesday".to_owned()),
+            ..EventFilters::default()
+        },
+        EventFilters {
+            observable_type: Some("no-such-type".to_owned()),
+            ..EventFilters::default()
+        },
+        EventFilters {
+            tags: vec!["a\nb".to_owned()],
+            ..EventFilters::default()
+        },
+        EventFilters {
+            kind: Some("x".repeat(257)),
+            ..EventFilters::default()
+        },
+        EventFilters {
+            statuses: (0..=ace_service::MAX_EVENT_FILTER_VALUES)
+                .map(|n| n.to_string())
+                .collect(),
+            ..EventFilters::default()
+        },
+        EventFilters {
+            campaigns: (0..=ace_service::MAX_EVENT_FILTER_IDS as i32).collect(),
+            ..EventFilters::default()
+        },
+    ] {
+        assert!(
+            matches!(bad.check(), Err(ServiceError::InvalidRequest(_))),
+            "{bad:?}"
+        );
+    }
+    for sort in EventSort::ALL {
+        assert_eq!(EventSort::named(sort.as_str()), Some(*sort));
+    }
+    assert_eq!(EventSort::named("risk_level"), Some(EventSort::RiskLevel));
+    assert_eq!(EventSort::named("nope"), None);
+}
+
+/// Sets an event's fields by SQL: its day, status, type, vector, risk level, prevention tool,
+/// remediation, campaign and owner, by value.
+#[allow(clippy::too_many_arguments)]
+async fn shape_event(
+    db: &Db,
+    id: i64,
+    day: &str,
+    status: &str,
+    kind: &str,
+    risk: &str,
+    campaign: Option<i32>,
+    owner: Option<Uuid>,
+) {
+    sqlx::query(
+        "UPDATE events.events SET creation_date = $2::date,
+             status_id = (SELECT id FROM events.statuses WHERE value = $3),
+             type_id = (SELECT id FROM events.types WHERE value = $4),
+             risk_level_id = (SELECT id FROM events.risk_levels WHERE value = $5),
+             campaign_id = $6, owner_id = $7
+         WHERE id = $1",
+    )
+    .bind(id)
+    .bind(day)
+    .bind(status)
+    .bind(kind)
+    .bind(risk)
+    .bind(campaign)
+    .bind(owner)
+    .execute(db.pool())
+    .await
+    .expect("shapes the event");
+}
+
+/// Every page of the list for a query, as ids, following the cursors.
+async fn every_page(
+    service: &Service,
+    actor: &Actor,
+    query: &ace_service::EventQuery,
+    limit: u32,
+) -> Vec<i64> {
+    let mut ids = Vec::new();
+    let mut after: Option<String> = None;
+    loop {
+        let page = service
+            .event_list(actor, query, after.as_deref(), limit)
+            .await
+            .expect("lists");
+        assert!(page.events.len() <= limit as usize);
+        ids.extend(page.events.iter().map(|e| e.id));
+        match page.next {
+            Some(next) => after = Some(next),
+            None => return ids,
+        }
+    }
+}
+
+/// The event list, through the service: every filter ace4 has a field for, each sort both ways with the id
+/// breaking ties, a keyset that pages through each once, the cursor checked, the total, hostile text as
+/// data, and `event:read`; the filters' choices; and an event's alerts with their state and tags.
+#[tokio::test]
+async fn the_event_list_filters_sorts_and_pages_as_ace3_does() {
+    use ace_service::{EventFilters, EventOwnerFilter, EventQuery, EventSort};
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let boss = admin(db).await;
+    let reader = holding(&service, db, "event-list-reader", &[("event", "read")]).await;
+    let owner = actor_id(&reader).0;
+
+    // alerts: one dispositioned DAMAGE, one FALSE_POSITIVE, one open and still running with a tag
+    let damage = alert(db).await;
+    let false_positive = alert(db).await;
+    let running = alert(db).await;
+    sqlx::query("UPDATE analysis.roots SET alerted_at = now(), pass = 1, completed_pass = 1")
+        .execute(db.pool())
+        .await
+        .expect("alerts");
+    sqlx::query("UPDATE analysis.roots SET pass = 2 WHERE id = $1")
+        .bind(running)
+        .execute(db.pool())
+        .await
+        .expect("runs");
+    service
+        .disposition(&boss, damage, "DAMAGE")
+        .await
+        .expect("dispositions");
+    service
+        .disposition(&boss, false_positive, "FALSE_POSITIVE")
+        .await
+        .expect("dispositions");
+    // a disposition can start a pass, so the two dispositioned ones are made idle after
+    sqlx::query("UPDATE analysis.roots SET completed_pass = pass WHERE id <> $1")
+        .bind(running)
+        .execute(db.pool())
+        .await
+        .expect("completes");
+    sqlx::query(
+        "INSERT INTO analysis.observables (root_id, type, value, tags)
+         VALUES ($1, 'ipv4', '10.0.0.9', '{beta, Alpha}')",
+    )
+    .bind(running)
+    .execute(db.pool())
+    .await
+    .expect("an observable");
+
+    let hostile = "<script>alert(1)</script>";
+    let campaign: i32 =
+        sqlx::query_scalar("INSERT INTO events.campaigns (name) VALUES ('APT-x') RETURNING id")
+            .fetch_one(db.pool())
+            .await
+            .expect("a campaign");
+    let emotet = malware_named(db, "Emotet").await;
+    // a: DAMAGE, b: FALSE_POSITIVE + the running alert, c: none (DELIVERY), d: closed, e: open, hostile
+    let a = event_with(db, "alpha", &[damage]).await;
+    let b = event_with(db, "bravo", &[false_positive, running]).await;
+    let c = event_with(db, "charlie", &[]).await;
+    let d = event_with(db, "delta", &[]).await;
+    let e = event_with(db, hostile, &[]).await;
+    shape_event(
+        db,
+        a,
+        "2026-01-05",
+        "OPEN",
+        "phish",
+        "3",
+        Some(campaign),
+        Some(owner),
+    )
+    .await;
+    shape_event(db, b, "2026-01-05", "OPEN", "recon", "1", None, None).await;
+    shape_event(db, c, "2026-01-03", "OPEN", "phish", "2", None, Some(owner)).await;
+    shape_event(
+        db,
+        d,
+        "2026-01-04",
+        "CLOSED",
+        "phish",
+        "0",
+        Some(campaign),
+        None,
+    )
+    .await;
+    shape_event(db, e, "2026-01-01", "OPEN", "pentest", "1", None, None).await;
+    sqlx::query("INSERT INTO events.event_malware VALUES ($1, $2)")
+        .bind(c)
+        .bind(emotet)
+        .execute(db.pool())
+        .await
+        .expect("records malware");
+    sqlx::query("INSERT INTO events.event_tags VALUES ($1, 'kit'), ($2, 'other')")
+        .bind(e)
+        .bind(d)
+        .execute(db.pool())
+        .await
+        .expect("tags");
+
+    let list = |filters: EventFilters| {
+        let query = EventQuery {
+            filters,
+            ..EventQuery::default()
+        };
+        let (service, reader) = (&service, &reader);
+        async move { every_page(service, reader, &query, 2).await }
+    };
+    let all = || EventFilters::default();
+
+    // ace3's list as it opens: the open events, newest first, the id breaking the tie between a and b
+    assert_eq!(
+        every_page(&service, &reader, &EventQuery::default(), 2).await,
+        [b, a, c, e]
+    );
+    assert_eq!(list(all()).await, [b, a, d, c, e], "every status");
+    let first = service
+        .event_list(&reader, &EventQuery::default(), None, 3)
+        .await
+        .expect("lists");
+    assert_eq!(first.total, 4);
+    let hostile_event = first.events.iter().find(|ev| ev.id == e);
+    assert!(hostile_event.is_none(), "not on the first page of 3");
+    let rest = service
+        .event_list(&reader, &EventQuery::default(), first.next.as_deref(), 3)
+        .await
+        .expect("lists");
+    assert_eq!(rest.events[0].name, hostile, "as it was written");
+    assert_eq!(rest.next, None);
+    assert_eq!(rest.total, 4);
+
+    // each filter
+    assert_eq!(
+        list(EventFilters {
+            created: Some("01-03-2026 00:00 - 01-04-2026 23:59".to_owned()),
+            ..all()
+        })
+        .await,
+        [d, c]
+    );
+    assert_eq!(
+        list(EventFilters {
+            dispositions: vec!["DAMAGE".to_owned(), "DELIVERY".to_owned()],
+            ..all()
+        })
+        .await,
+        [a, d, c, e],
+        "the rolled-up disposition, DELIVERY with no alerts"
+    );
+    assert_eq!(
+        list(EventFilters {
+            dispositions: vec!["FALSE_POSITIVE".to_owned()],
+            ..all()
+        })
+        .await,
+        [b],
+        "an open alert doesn't outrank a dispositioned one"
+    );
+    assert_eq!(
+        list(EventFilters {
+            statuses: vec!["CLOSED".to_owned()],
+            ..all()
+        })
+        .await,
+        [d]
+    );
+    assert_eq!(
+        list(EventFilters {
+            owners: vec![EventOwnerFilter::User(owner)],
+            ..all()
+        })
+        .await,
+        [a, c]
+    );
+    assert_eq!(
+        list(EventFilters {
+            owners: vec![EventOwnerFilter::Nobody],
+            ..all()
+        })
+        .await,
+        [b, d, e]
+    );
+    assert_eq!(
+        list(EventFilters {
+            owners: vec![EventOwnerFilter::Nobody, EventOwnerFilter::User(owner)],
+            ..all()
+        })
+        .await,
+        [b, a, d, c, e]
+    );
+    assert_eq!(
+        list(EventFilters {
+            kind: Some("phish".to_owned()),
+            risk_level: Some("0".to_owned()),
+            ..all()
+        })
+        .await,
+        [d]
+    );
+    assert_eq!(
+        list(EventFilters {
+            vector: Some("corporate email".to_owned()),
+            prevention_tool: Some("response team".to_owned()),
+            ..all()
+        })
+        .await
+        .len(),
+        5,
+        "ace3's defaults"
+    );
+    assert!(
+        list(EventFilters {
+            vector: Some("usb".to_owned()),
+            ..all()
+        })
+        .await
+        .is_empty()
+    );
+    assert!(
+        list(EventFilters {
+            kind: Some(hostile.to_owned()),
+            ..all()
+        })
+        .await
+        .is_empty(),
+        "hostile text is a value"
+    );
+    for (kind, value, want) in [
+        (Some("ipv4"), Some("10.0.0.9"), vec![b]),
+        (None, Some("10.0.0.9"), vec![b]),
+        (Some("ipv4"), None, vec![b]),
+        (Some("fqdn"), None, vec![b, a]),
+        (Some("fqdn"), Some("evil.example.com"), vec![b, a]),
+        (None, Some("10.0.0"), vec![]),
+        (Some("fqdn"), Some("10.0.0.9"), vec![]),
+    ] {
+        assert_eq!(
+            list(EventFilters {
+                observable_type: kind.map(str::to_owned),
+                observable_value: value.map(str::to_owned),
+                ..all()
+            })
+            .await,
+            want,
+            "{kind:?} {value:?}"
+        );
+    }
+    assert_eq!(
+        list(EventFilters {
+            tags: vec!["kit".to_owned(), "other".to_owned()],
+            ..all()
+        })
+        .await,
+        [d, e]
+    );
+    assert!(
+        list(EventFilters {
+            tags: vec!["Alpha".to_owned()],
+            ..all()
+        })
+        .await
+        .is_empty(),
+        "an alert's tag isn't the event's"
+    );
+    assert_eq!(
+        list(EventFilters {
+            malware: vec![emotet],
+            ..all()
+        })
+        .await,
+        [c]
+    );
+    assert_eq!(
+        list(EventFilters {
+            campaigns: vec![campaign, i32::MAX],
+            ..all()
+        })
+        .await,
+        [a, d]
+    );
+
+    // each sort both ways, paged two at a time, each event once, the id breaking ties
+    let sorted = |sort: EventSort, descending: bool| {
+        let query = EventQuery {
+            filters: all(),
+            sort,
+            descending,
+        };
+        let (service, reader) = (&service, &reader);
+        async move { every_page(service, reader, &query, 2).await }
+    };
+    for (sort, ascending) in [
+        (EventSort::Date, vec![e, c, d, a, b]),
+        // type, vector, name: pentest, phish (alpha, charlie, delta), recon
+        (EventSort::Event, vec![e, a, c, d, b]),
+        // none first going up, then APT-x
+        (EventSort::Campaign, vec![b, c, e, a, d]),
+        (EventSort::RiskLevel, vec![d, b, e, c, a]),
+        // FALSE_POSITIVE 20, DELIVERY 100, DAMAGE 160
+        (EventSort::Disposition, vec![b, c, d, e, a]),
+        (EventSort::Prevention, vec![a, b, c, d, e]),
+        (EventSort::Remediation, vec![a, b, c, d, e]),
+        (EventSort::Status, vec![d, a, b, c, e]),
+        // nobody first, then the reader's username
+        (EventSort::Owner, vec![b, d, e, a, c]),
+    ] {
+        assert_eq!(sorted(sort, false).await, ascending, "{sort:?} up");
+        let mut descending = ascending.clone();
+        descending.reverse();
+        assert_eq!(sorted(sort, true).await, descending, "{sort:?} down");
+    }
+
+    // a cursor of another order, a broken one, and a page past the end
+    let page = service
+        .event_list(&reader, &EventQuery::default(), None, 1)
+        .await
+        .expect("lists");
+    let cursor = page.next.expect("more");
+    let other = EventQuery {
+        descending: false,
+        ..EventQuery::default()
+    };
+    for bad in [
+        cursor.as_str(),
+        "date.desc.1",
+        "date.desc.1.zz",
+        "nope.desc.1.5b5d",
+    ] {
+        let query = if bad == cursor {
+            &other
+        } else {
+            &EventQuery::default()
+        };
+        assert!(
+            matches!(
+                service.event_list(&reader, query, Some(bad), 10).await,
+                Err(ServiceError::InvalidRequest(_))
+            ),
+            "{bad}"
+        );
+    }
+    for limit in [0, ace_service::MAX_EVENTS_PAGE + 1] {
+        assert!(matches!(
+            service
+                .event_list(&reader, &EventQuery::default(), None, limit)
+                .await,
+            Err(ServiceError::InvalidRequest(_))
+        ));
+    }
+    let bad_filter = EventQuery {
+        filters: EventFilters {
+            created: Some("whenever".to_owned()),
+            ..all()
+        },
+        ..EventQuery::default()
+    };
+    assert!(matches!(
+        service.event_list(&reader, &bad_filter, None, 10).await,
+        Err(ServiceError::InvalidRequest(_))
+    ));
+
+    // an event's alerts with their state and tags, and whether one still runs
+    let bravo = service
+        .event(&reader, EventRef::Id(b))
+        .await
+        .expect("reads");
+    let states: Vec<(Uuid, ace_service::AnalysisState, Vec<String>)> = bravo
+        .alerts
+        .iter()
+        .map(|alert| (alert.id, alert.analysis, alert.tags.clone()))
+        .collect();
+    assert!(states.contains(&(
+        running,
+        ace_service::AnalysisState::Running,
+        vec!["Alpha".to_owned(), "beta".to_owned()]
+    )));
+    assert!(states.contains(&(false_positive, ace_service::AnalysisState::Complete, vec![])));
+    assert!(bravo.still_analyzing());
+    assert_eq!(bravo.alert_tags, ["Alpha", "beta"]);
+    let alpha = service
+        .event(&reader, EventRef::Id(a))
+        .await
+        .expect("reads");
+    assert!(!alpha.still_analyzing());
+
+    // the filters' choices: each table by value, the owners of events, malware, campaigns and tags
+    let choices = service.event_choices(&reader).await.expect("reads");
+    let values = |v: &[ace_service::EventValue]| -> Vec<String> {
+        v.iter().map(|v| v.value.clone()).collect()
+    };
+    assert_eq!(values(&choices.statuses), ["CLOSED", "IGNORE", "OPEN"]);
+    assert_eq!(values(&choices.risk_levels), ["0", "1", "2", "3"]);
+    assert_eq!(choices.types.len(), 9);
+    assert_eq!(choices.vectors.len(), 9);
+    assert_eq!(choices.prevention_tools.len(), 9);
+    assert_eq!(
+        choices.owners.iter().map(|o| o.id.0).collect::<Vec<_>>(),
+        [owner],
+        "only users who own an event"
+    );
+    assert_eq!(values(&choices.malware), ["Emotet"]);
+    assert_eq!(values(&choices.campaigns), ["APT-x"]);
+    assert_eq!(choices.tags, ["kit", "other"]);
+
+    // someone with no event permission learns nothing
+    let outsider = no_events(db).await;
+    for result in [
+        service
+            .event_list(&outsider, &EventQuery::default(), None, 10)
+            .await
+            .map(|_| ()),
+        service.event_choices(&outsider).await.map(|_| ()),
+    ] {
+        assert!(matches!(
+            result,
+            Err(ServiceError::PermissionDenied { ref permission, .. })
+                if permission.to_string() == "event:read"
+        ));
+    }
 }

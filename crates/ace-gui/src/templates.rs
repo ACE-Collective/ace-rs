@@ -81,6 +81,8 @@ pub struct Layout {
     pub admin: bool,
     /// Whether the viewer holds `signature:read`, for the link to the signatures area.
     pub signatures: bool,
+    /// Whether the viewer holds `event:read`, for the link to the event list.
+    pub events: bool,
     pub stylesheet: String,
     pub datastar: String,
 }
@@ -95,6 +97,7 @@ impl Layout {
             path: path.to_owned(),
             admin: false,
             signatures: false,
+            events: false,
             stylesheet: STYLESHEET.url(),
             datastar: DATASTAR.url(),
         }
