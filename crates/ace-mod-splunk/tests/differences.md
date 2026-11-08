@@ -9,7 +9,6 @@
 | `*` | `/details/running_start_time` | When the module first saw the job running. A clock time, as `query_start`. |
 | `fqdn_www.example.com` | `/details/end_time` | When the module read the rows. A clock time, as `query_start`. The search that never finishes has none on either side. |
 | `*` | `/details/gui_link` | A Splunk web link, which ace3 sets only for a query with `<O_TIMESPEC>`, so it's null in both dumps. The port doesn't fill `<O_TIMESPEC>` and has no `gui_link` key. |
-| `fqdn_www.example.com` | `/observables/ip:*/display_type` | The mappings' `display_type` (`Source IP`, `Destination IP`), which ace3 stores on each observable. ace4's observables have no display type yet, so the port's mappings don't take one. |
 
 ## Behaviour the dumps don't exercise
 
@@ -24,5 +23,5 @@ These depart from ace3:
 - **Proxy.** ace3 can reach splunkd through the proxy its Splunk config names. The port uses no proxy.
 - **Job budgets.** ace3's client also abandons a job that stays queued past `dispatch_timeout` (900 seconds) or runs past 30 minutes, with an `HTTP 504` error. With the default `query_timeout` of 300 seconds the analyzer gives up first, so the port has only `query_timeout`.
 - **Query tokens.** `<O_TIMESPEC>`, `<O_VALUE1>` and the like, `<observable.*>` and named time ranges aren't filled, and a query that uses one fails at init. Nor are `query_path`, `pivot_links`, `summary_details` or the performance log CSVs ported; settings that name one fail to load.
-- **Observable mappings.** A mapping takes `field`, `type`, `tags`, `directives`, `time` and `ignored_values`. ace3's other options (`fields` and `fields_mode`, value and type templates, Jinja in tags and directives, dotted field paths, files, relationships, `limit`, `volatile`, `display_type`, `display_value`) aren't ported, and a mapping that uses one fails to load.
+- **Observable mappings.** A mapping takes `field`, `type`, `tags`, `directives`, `time`, `ignored_values` and `display_type`. ace3's other options (`fields` and `fields_mode`, value and type templates, Jinja in tags and directives, dotted field paths, files, relationships, `limit`, `volatile`, `display_value`) aren't ported, and a mapping that uses one fails to load.
 - **Values.** ace3 refuses a value its observable type doesn't accept, type by type. The port checks only IP addresses. `ignored_values` are Rust regular expressions, which lack Python's lookaround and backreferences.

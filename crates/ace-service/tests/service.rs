@@ -6851,8 +6851,10 @@ async fn preferences_are_a_user_s_own_and_checked_by_key() {
     .await
     .expect("adds a row");
     let all = service.preferences(&alice).await.expect("reads");
-    assert_eq!(all.len(), 1);
+    assert_eq!(all.len(), 2);
     assert_eq!(all[0].value, theme(Theme::Light));
+    assert_eq!(all[1].value.key(), PreferenceKey::AlertSections);
+    assert!(all[1].is_default);
 
     // Only a user has preferences. A key, even one of the user's own holding everything, and a
     // component are refused, and change nothing; their pages have the default theme.

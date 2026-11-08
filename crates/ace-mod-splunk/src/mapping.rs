@@ -15,7 +15,7 @@ use serde::Deserialize;
 use serde_json::{Map, Value};
 
 /// One field of a row to turn into observables, as an entry of ace3's `observable_mapping`.
-/// ace3's other options (several fields, value templates, files, relationships, display types
+/// ace3's other options (several fields, value templates, files, relationships, display values
 /// and the rest) aren't ported; a mapping that uses one fails to load.
 #[derive(Debug, Clone, PartialEq, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -35,6 +35,9 @@ pub struct ObservableMapping {
     /// Values to skip, as regular expressions that match the whole value.
     #[serde(default)]
     pub ignored_values: Vec<String>,
+    /// The label the alert view shows in place of the type's name, such as `Source IP`.
+    #[serde(default)]
+    pub display_type: Option<String>,
 }
 
 /// A mapping with its patterns compiled.
@@ -233,6 +236,10 @@ pub(crate) fn add_observables(
                     observable.directives.push(directive.clone());
                 }
             }
+            // ace3's mapping sets it on the one observable, so the last mapping with one names it
+            if let Some(display_type) = &spec.display_type {
+                observable.display_type = Some(display_type.clone());
+            }
         }
     }
 }
@@ -303,9 +310,10 @@ mod tests {
     #[test]
     fn rows_give_observables_once_each() {
         let mappings: Vec<Mapping> = [
-            json!({"field": "src_ip", "type": "ip", "tags": ["proxy"]}),
+            json!({"field": "src_ip", "type": "ip", "tags": ["proxy"], "display_type": "Source IP"}),
             json!({"field": "user", "type": "email_address", "ignored_values": ["-"]}),
             json!({"field": "dest", "type": "fqdn", "time": true}),
+            json!({"field": "dest_ip", "type": "ip", "display_type": "Destination IP"}),
         ]
         .iter()
         .map(|m| {
@@ -314,7 +322,7 @@ mod tests {
         .collect();
         let rows = [
             json!({"_time": "2026-10-30T14:02:11.000+00:00", "src_ip": "192.0.2.10", "user": "-", "dest": ["a.example.com", "b.example.com"]}),
-            json!({"_time": "2026-10-30T14:05:00.000+00:00", "src_ip": "192.0.2.10", "user": "alice@example.com", "dest": "a.example.com"}),
+            json!({"_time": "2026-10-30T14:05:00.000+00:00", "src_ip": "192.0.2.10", "user": "alice@example.com", "dest": "a.example.com", "dest_ip": "192.0.2.10"}),
             json!({"src_ip": "not an address", "user": "  "}),
         ];
         let now = DateTime::from_timestamp(1_767_225_600, 0).expect("a time");
@@ -332,22 +340,24 @@ mod tests {
             .iter()
             .map(|o| {
                 format!(
-                    "{}:{} {:?} {:?}",
+                    "{}:{} {:?} {:?} {:?}",
                     o.kind,
                     o.value,
                     o.time.map(|t| t.to_rfc3339()),
-                    o.tags
+                    o.tags,
+                    o.display_type,
                 )
             })
             .collect();
         assert_eq!(
             seen,
             [
-                r#"ip:192.0.2.10 None ["proxy"]"#,
-                r#"fqdn:a.example.com Some("2026-10-30T14:02:11+00:00") []"#,
-                r#"fqdn:b.example.com Some("2026-10-30T14:02:11+00:00") []"#,
-                r#"email_address:alice@example.com None []"#,
-                r#"fqdn:a.example.com Some("2026-10-30T14:05:00+00:00") []"#,
+                // the second row's dest_ip is the same address, and its mapping's label is the last
+                r#"ip:192.0.2.10 None ["proxy"] Some("Destination IP")"#,
+                r#"fqdn:a.example.com Some("2026-10-30T14:02:11+00:00") [] None"#,
+                r#"fqdn:b.example.com Some("2026-10-30T14:02:11+00:00") [] None"#,
+                r#"email_address:alice@example.com None [] None"#,
+                r#"fqdn:a.example.com Some("2026-10-30T14:05:00+00:00") [] None"#,
             ]
         );
     }

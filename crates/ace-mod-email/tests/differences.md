@@ -34,4 +34,4 @@ These depart from ace3:
 - Sender and recipient whitelisting waits for analyst-edited lists (PLAN.md 5.14).
 - The SMTP collector's `smtp_rcpt_to` and `smtp_mail_from` observables, the `remediate` directive copied from a `message_id` observable, and renaming the alert from the subject all need the rest of the alert, which a module doesn't see until the core exists.
 - An outbound journaled message skipped under `scan_inbound_only` is skipped without being whitelisted, because a skipped task stores nothing.
-- ace3 labels the IP addresses from `X-Originating-IP` and `X-Sender-IP` "Originating IP" and "Sender IP", and the decoded subject "Decoded Subject". Observables have no display type yet.
+- ace3 labels the IP addresses from `X-Originating-IP` and `X-Sender-IP` "Originating IP" and "Sender IP", and the decoded subject "Decoded Subject". An observable can carry a display type since PLAN.md 5.8, but this module doesn't set one yet: its reference dumps were made before `tools/ace3/dumps/run_module.py` recorded display types (the Splunk dumps of 1.24 added that), so they'd have to be made again for the comparison to see these labels.

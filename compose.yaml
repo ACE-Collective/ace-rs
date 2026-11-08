@@ -329,6 +329,26 @@ services:
       start_period: 5s
       retries: 3
 
+  # The end-to-end test's headless browser (PLAN.md 5.8): Chromium's headless shell, pinned by digest,
+  # behind the e2e profile. tests/e2e/run drives it over the DevTools protocol on 9222, which publishes
+  # on an ephemeral host port bound to ACE4_BIND_ADDRESS, and it opens the GUI at http://ace:8000 on the
+  # stack's network. It holds no data and reaches nothing outside the stack.
+  browser:
+    image: chromedp/headless-shell:156.0.8078.36@sha256:53cc0f33c0598ff244f6e45458f6dfaf0ae4206d388ae7364903afd1d9d14f0a
+    profiles: [e2e]
+    depends_on:
+      stack-guard:
+        condition: service_completed_successfully
+    ports:
+      - "${ACE4_BIND_ADDRESS:-127.0.0.1}::9222"
+    mem_limit: ${ACE4_BROWSER_MEM_LIMIT:-1g}
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/9222"]
+      interval: 5s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+
 volumes:
   postgres-data:
   bucket-data:

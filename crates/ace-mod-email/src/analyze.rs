@@ -363,8 +363,8 @@ pub fn analyze_headers<'a, 'm>(
         email.x_mailer = Some(x_mailer);
     }
 
-    // ace3 labels these two "Originating IP" and "Sender IP"; observables have no display type
-    // yet
+    // ace3 labels these two "Originating IP" and "Sender IP"; the module doesn't set display types
+    // until its dumps record them (tests/differences.md)
     if let Some(ip) = headers
         .decoded("x-originating-ip")
         .and_then(|v| headers::normalize_ip_header_value(&v))

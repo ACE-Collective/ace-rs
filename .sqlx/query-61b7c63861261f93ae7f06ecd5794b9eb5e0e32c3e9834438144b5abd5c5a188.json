@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, type, value, time, tags, directives, exclude_modules,\n                                redirection_type, redirection_value\n                         FROM analysis.observables\n                         WHERE root_id = $1 AND id > $2\n                         ORDER BY id LIMIT $3",
+  "query": "SELECT id, type, value, time, tags, directives, exclude_modules,\n                redirection_type, redirection_value, display_type\n         FROM analysis.observables\n         WHERE root_id = $1 AND id > $2\n         ORDER BY id LIMIT $3",
   "describe": {
     "columns": [
       {
@@ -101,6 +101,17 @@
             "name": "redirection_value"
           }
         }
+      },
+      {
+        "ordinal": 9,
+        "name": "display_type",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.observables",
+            "name": "display_type"
+          }
+        }
       }
     ],
     "parameters": {
@@ -119,8 +130,9 @@
       false,
       false,
       true,
+      true,
       true
     ]
   },
-  "hash": "dcc6bafc8154c74de6b1f474efc58618547269282a4992a4d6e18b47645a37a8"
+  "hash": "61b7c63861261f93ae7f06ecd5794b9eb5e0e32c3e9834438144b5abd5c5a188"
 }

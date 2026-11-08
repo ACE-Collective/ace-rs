@@ -5038,6 +5038,13 @@
               "type": "string"
             }
           },
+          "display_type": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The label a module gave it in place of its type's name, such as `Source IP`, or null."
+          },
           "exclude_modules": {
             "type": "array",
             "items": {
@@ -5280,7 +5287,7 @@
           },
           "value": {
             "type": "object",
-            "description": "Its value, in the shape its key has. `theme`'s is `{\"mode\": \"system\" | \"light\" | \"dark\" | \"jd\" |\n\"halloween\"}`."
+            "description": "Its value, in the shape its key has. `theme`'s is `{\"mode\": \"system\" | \"light\" | \"dark\" | \"jd\" |\n\"halloween\"}`. `alert_sections`' is `{\"sections\": {\"<section id>\": true | false}}`, whether each\nsection of the alert page starts open, with at most 100 ids of 1 to 64 of `a-z`, `0-9` and `_`."
           }
         }
       },

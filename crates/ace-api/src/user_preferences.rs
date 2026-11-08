@@ -22,7 +22,8 @@ pub(crate) struct PreferenceBody {
     /// The preference's name, such as `theme`.
     key: &'static str,
     /// Its value, in the shape its key has. `theme`'s is `{"mode": "system" | "light" | "dark" | "jd" |
-    /// "halloween"}`.
+    /// "halloween"}`. `alert_sections`' is `{"sections": {"<section id>": true | false}}`, whether each
+    /// section of the alert page starts open, with at most 100 ids of 1 to 64 of `a-z`, `0-9` and `_`.
     #[schema(value_type = Object)]
     value: Value,
     /// When the stored value last changed, or null when nothing is stored.

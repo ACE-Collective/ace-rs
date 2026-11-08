@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT observable_id, kind, target_type, target_value\n                         FROM analysis.relationships\n                         WHERE root_id = $1 AND observable_id = ANY($2)\n                         ORDER BY observable_id, kind, target_type, target_value",
+  "query": "SELECT observable_id, kind, target_type, target_value\n         FROM analysis.relationships\n         WHERE root_id = $1 AND observable_id = ANY($2)\n         ORDER BY observable_id, kind, target_type, target_value",
   "describe": {
     "columns": [
       {
@@ -61,5 +61,5 @@
       false
     ]
   },
-  "hash": "f4548376316d6663c3c095fa3fa8d71273efe0d71b75ba8dc820acd8fa824f86"
+  "hash": "52be3495459e4d74ce6447c37fb9d2a8ccb6bfbeeb45f5f569620912138c0d5c"
 }

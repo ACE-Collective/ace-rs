@@ -164,3 +164,75 @@ button[type="submit"] {
 .error {
   color: var(--danger);
 }
+
+/* The alert view (PLAN.md 5.8). */
+.alert h1 {
+  font-size: 1.3rem;
+  overflow-wrap: anywhere;
+}
+
+.section,
+.overview {
+  margin: 1rem 0;
+  padding: 0.75rem 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.section summary {
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.overview h2 {
+  margin-top: 0;
+  font-size: 1.1rem;
+}
+
+.details th {
+  text-align: left;
+  padding-right: 1rem;
+}
+
+.pin {
+  margin-top: 0.5rem;
+}
+
+.tree ul {
+  list-style: disc;
+  padding-left: 1.25rem;
+  margin: 0.15rem 0;
+}
+
+.tree li {
+  overflow-wrap: anywhere;
+}
+
+.tree .result {
+  list-style: circle;
+}
+
+.tree .tag {
+  display: inline-block;
+  padding: 0 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 0.85em;
+}
+
+.tree .detection {
+  color: var(--danger);
+  font-weight: bold;
+  font-size: 0.85em;
+}
+
+.tree .time,
+.muted {
+  color: var(--muted);
+}
+
+.tree .comments {
+  list-style: none;
+  font-size: 0.9em;
+}

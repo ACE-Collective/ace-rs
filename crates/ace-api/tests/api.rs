@@ -3266,6 +3266,7 @@ async fn preferences(client: &mut Client<'_>) {
         all,
         json!({"preferences": [
             {"key": "theme", "value": {"mode": "system"}, "updated_at": null, "is_default": true},
+            {"key": "alert_sections", "value": {"sections": {}}, "updated_at": null, "is_default": true},
         ]})
     );
     let one = client
@@ -3334,6 +3335,54 @@ async fn preferences(client: &mut Client<'_>) {
             S::PAYLOAD_TOO_LARGE,
         )
         .await;
+    // 5.8's alert_sections: section ids as ace3's schema has them, at most 100
+    let sections = "/api/users/v1/me/preferences/alert_sections";
+    let set = client
+        .json(
+            M::PUT,
+            PREFERENCE,
+            sections,
+            t,
+            Send::Json(json!({"sections": {"alert_details": false, "url_clicks": true}})),
+            S::OK,
+        )
+        .await;
+    assert_eq!(
+        set["value"],
+        json!({"sections": {"alert_details": false, "url_clicks": true}})
+    );
+    let many: serde_json::Map<String, Value> =
+        (0..101).map(|i| (format!("s{i}"), json!(true))).collect();
+    for bad in [
+        json!({"sections": {"Alert Details": true}}),
+        json!({"sections": {"": true}}),
+        json!({"sections": {"x".repeat(65): true}}),
+        json!({"sections": {"alert_details": "yes"}}),
+        json!({"sections": many}),
+        json!({"sections": {}, "extra": 1}),
+    ] {
+        let error = client
+            .json(
+                M::PUT,
+                PREFERENCE,
+                sections,
+                t,
+                Send::Json(bad.clone()),
+                S::BAD_REQUEST,
+            )
+            .await;
+        assert!(
+            error["error"]
+                .as_str()
+                .is_some_and(|e| e.contains("alert_sections preference")),
+            "{bad}: {error}"
+        );
+    }
+    let read = client
+        .json(M::GET, PREFERENCE, sections, t, Send::Nothing, S::OK)
+        .await;
+    assert_eq!(read, set, "a refused value changes nothing");
+
     let unknown = "/api/users/v1/me/preferences/manage_columns";
     for method in [M::GET, M::DELETE] {
         let error = client

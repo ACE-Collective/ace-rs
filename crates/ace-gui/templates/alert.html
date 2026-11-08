@@ -1,0 +1,33 @@
+{#- One alert (PLAN.md 5.8): ace3's analysis/index.html and alert.html, with its Alert Details section and
+    its analysis tree. data-init opens the live stream, whose URL holds only the alert's uuid and the
+    tree's hex version (src/alert.rs). -#}
+{% extends "base.html" %}
+{% block title %}{{ title }} · ACE{% endblock %}
+{% block content %}
+<section class="alert" data-init="@get('/alerts/{{ id }}/live?v={{ version }}')">
+  <h1>{{ title }}</h1>
+  <details class="section" data-section-id="{{ details_section.id }}"{% if details_section.open %} open{% endif %}>
+    <summary>{{ details_section.title }}</summary>
+    <table class="details">
+      {%- for detail in details %}
+      <tr><th>{{ detail.name }}</th><td>{{ detail.value }}</td></tr>
+      {%- endfor %}
+    </table>
+    <form method="post" action="/preferences/alert-section" class="pin">
+      <input type="hidden" name="section" value="{{ details_section.id }}">
+      <input type="hidden" name="next" value="{{ layout.path }}">
+      {%- if details_section.open %}
+      <input type="hidden" name="open" value="false">
+      <button type="submit" title="How this section starts on every alert you open. Only you are affected.">Open by default</button>
+      {%- else %}
+      <input type="hidden" name="open" value="true">
+      <button type="submit" title="How this section starts on every alert you open. Only you are affected.">Collapsed by default</button>
+      {%- endif %}
+    </form>
+  </details>
+  <section class="overview">
+    <h2>Analysis Overview</h2>
+    {% include "alert_tree.html" %}
+  </section>
+</section>
+{% endblock %}

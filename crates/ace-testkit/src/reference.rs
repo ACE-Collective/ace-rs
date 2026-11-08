@@ -23,8 +23,7 @@
 //!
 //! Each observable carries `tags`, `directives`, `yara_meta`, `detections`, `relationships`
 //! (`"<kind> <type>:<value>"`), `excluded_analysis` (module names), and `time`, `redirection`,
-//! `sha256` and `size` when it has them. An ace3 observable also carries the `display_type` an
-//! observable mapping gave it, which ace4's observables have no counterpart for. Sets are
+//! `sha256` and `size` when it has them, and `display_type` when a module gave it one. Sets are
 //! objects whose keys are the members, so a difference names the member. ace3 keeps `yara_meta`
 //! tags among the directives as `yara_meta:name=value`; the normal form keeps them only under
 //! `yara_meta`.
@@ -329,6 +328,9 @@ fn ace4_observable(o: &NewObservable) -> (String, Value) {
         "excluded_analysis": set(o.exclude_modules.iter().cloned()),
     });
     ace4_links(&o.relationships, &o.redirection, &mut normal);
+    if let Some(display_type) = &o.display_type {
+        normal["display_type"] = json!(display_type);
+    }
     if let Some(time) = o.time {
         normal["time"] = json!(time.to_rfc3339_opts(SecondsFormat::AutoSi, true));
     }

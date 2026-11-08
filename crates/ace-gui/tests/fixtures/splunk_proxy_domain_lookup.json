@@ -1,0 +1,93 @@
+{
+  "analysis_type": "splunk_api_analysis",
+  "schema_version": 1,
+  "details": {
+    "dispatch_state": "DONE",
+    "end_time": "2026-01-01T00:00:00.000-00:00",
+    "query": "index=network_proxy_web (transport=HTTPS OR transport=HTTP) hostname=\"www.example.com\"\n| eval full_url = lower(transport) . \"://\" . url\n",
+    "query_error": null,
+    "query_results": [
+      {
+        "_time": "2026-10-30T14:02:11.000+00:00",
+        "dest_ip": "198.51.100.20",
+        "full_url": "https://www.example.com/login",
+        "src_ip": "192.0.2.10",
+        "src_translated_ip": "198.51.100.7",
+        "user": "alice@example.com"
+      },
+      {
+        "_time": "2026-10-30T14:05:42.000+00:00",
+        "dest_ip": "198.51.100.20",
+        "full_url": "http://www.example.com/",
+        "src_ip": "192.0.2.11",
+        "src_translated_ip": "198.51.100.7",
+        "user": "bob@example.com"
+      },
+      {
+        "_time": "2026-10-30T14:09:03.000+00:00",
+        "dest_ip": "198.51.100.21",
+        "full_url": "https://www.example.com/static/app.js",
+        "src_ip": "192.0.2.12"
+      }
+    ],
+    "query_start": 1767225596.0,
+    "query_summary": "Proxy correlation",
+    "question": "Was this domain seen in proxy logs?",
+    "running_start_time": "2026-01-01T00:00:00.000-00:00",
+    "search_id": "1767225600.1",
+    "start_time": "2026-01-01T00:00:00.000-00:00"
+  },
+  "summary": "Proxy correlation: (3 results)",
+  "observables": [
+    {
+      "type": "ip",
+      "value": "192.0.2.10",
+      "display_type": "Source IP"
+    },
+    {
+      "type": "ip",
+      "value": "198.51.100.7",
+      "display_type": "Source IP"
+    },
+    {
+      "type": "ip",
+      "value": "198.51.100.20",
+      "display_type": "Destination IP"
+    },
+    {
+      "type": "url",
+      "value": "https://www.example.com/login"
+    },
+    {
+      "type": "email_address",
+      "value": "alice@example.com"
+    },
+    {
+      "type": "ip",
+      "value": "192.0.2.11",
+      "display_type": "Source IP"
+    },
+    {
+      "type": "url",
+      "value": "http://www.example.com/"
+    },
+    {
+      "type": "email_address",
+      "value": "bob@example.com"
+    },
+    {
+      "type": "ip",
+      "value": "192.0.2.12",
+      "display_type": "Source IP"
+    },
+    {
+      "type": "ip",
+      "value": "198.51.100.21",
+      "display_type": "Destination IP"
+    },
+    {
+      "type": "url",
+      "value": "https://www.example.com/static/app.js"
+    }
+  ]
+}

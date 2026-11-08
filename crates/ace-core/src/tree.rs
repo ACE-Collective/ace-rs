@@ -169,7 +169,8 @@ pub async fn root<'e>(executor: impl PgExecutor<'e>, id: Uuid) -> Result<Option<
 
 /// Adds an observable to a root, or merges it into the one with the same type and value: the
 /// stored time is kept if it has one, and tags, directives, excluded modules and relationships it
-/// lacks are added. Of two redirections the lowest is kept, so a tree doesn't depend on which task
+/// lacks are added. A display type replaces the stored one, as ace3's setter does on the one
+/// observable it keeps per type and value, so the last result to land with one names it. Of two redirections the lowest is kept, so a tree doesn't depend on which task
 /// ended first: a macro in a `.docm` is in the `.docm` and in the `vbaProject.bin` taken out of it,
 /// each redirecting to where it was found.
 pub async fn upsert_observable(
@@ -180,10 +181,11 @@ pub async fn upsert_observable(
     let row = sqlx::query!(
         r#"INSERT INTO analysis.observables AS o
                (root_id, type, value, time, tags, directives, exclude_modules, redirection_type,
-                redirection_value)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                redirection_value, display_type)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
            ON CONFLICT (root_id, type, value_hash) DO UPDATE SET
                time = COALESCE(o.time, EXCLUDED.time),
+               display_type = COALESCE(EXCLUDED.display_type, o.display_type),
                redirection_type = CASE
                    WHEN o.redirection_value IS NULL
                      OR (EXCLUDED.redirection_type, EXCLUDED.redirection_value)
@@ -207,6 +209,7 @@ pub async fn upsert_observable(
         &observable.exclude_modules,
         observable.redirection.as_ref().map(|r| r.kind.as_str()),
         observable.redirection.as_ref().map(|r| r.value.as_str()),
+        observable.display_type,
     )
     .fetch_one(tx.conn())
     .await?;

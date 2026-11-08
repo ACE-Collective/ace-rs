@@ -103,6 +103,8 @@ pub struct Relationship {
 /// What one module found about an observable.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ModuleResult {
+    /// The result's id in this alert, which the tree's additions name.
+    pub id: i64,
     pub module: String,
     pub analysis_type: String,
     pub schema_version: i32,
@@ -132,10 +134,29 @@ pub struct AlertObservable {
     pub exclude_modules: Vec<String>,
     /// The observable an analyst should look at instead, as (type, value).
     pub redirection: Option<(String, String)>,
+    /// The label a module gave it in place of its type's name, such as `Source IP`, or None.
+    pub display_type: Option<String>,
     pub files: Vec<AlertFile>,
     pub relationships: Vec<Relationship>,
     pub results: Vec<ModuleResult>,
     pub detections: Vec<AlertDetection>,
+}
+
+impl AlertObservable {
+    /// What the alert view calls its type, as ace3's `Observable.display_type`: the label a module gave
+    /// it, else its type's default label, either followed by the type's name in parentheses, else the
+    /// type's name alone. So the Splunk module's `src_ip` reads `Source IP (ip)`.
+    pub fn display_label(&self) -> String {
+        let default = self
+            .kind
+            .parse::<ace_results::ObservableKind>()
+            .ok()
+            .and_then(|kind| kind.default_display_type());
+        match self.display_type.as_deref().or(default) {
+            Some(label) => format!("{label} ({})", self.kind),
+            None => self.kind.clone(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -288,40 +309,7 @@ impl Service {
     pub async fn alert(&self, actor: &crate::Actor, id: Uuid) -> Result<Alert, ServiceError> {
         self.gate
             .read(actor, "alert", &ALERT_READ, &|tx| {
-                Box::pin(async move {
-                    let row = sqlx::query_as!(
-                        AlertRow,
-                        r#"SELECT r.id, r.description, r.analysis_mode, r.event_time,
-                                  r.event_time_source::text AS "event_time_source!",
-                                  r.created_at, r.alerted_at AS "alerted_at!", r.disposition,
-                                  r.dispositioned_at,
-                                  r.dispositioned_by AS "dispositioned_by: Value",
-                                  r.submitted_by AS "submitted_by: Value",
-                                  r.pass, r.completed_pass,
-                                  r.cancelled_at IS NOT NULL AS "cancelled!"
-                           FROM analysis.roots r
-                           WHERE r.id = $1 AND r.alerted_at IS NOT NULL"#,
-                        id,
-                    )
-                    .fetch_optional(tx.conn())
-                    .await?
-                    .ok_or_else(|| no_alert(id))?;
-                    let counts = sqlx::query!(
-                        r#"SELECT
-                             (SELECT count(*) FROM analysis.observables WHERE root_id = $1) AS "observables!",
-                             (SELECT count(*) FROM analysis.files WHERE root_id = $1) AS "files!",
-                             (SELECT count(*) FROM analysis.detections WHERE root_id = $1) AS "detections!""#,
-                        id,
-                    )
-                    .fetch_one(tx.conn())
-                    .await?;
-                    Ok(Alert {
-                        summary: row.summary()?,
-                        observables: counts.observables,
-                        files: counts.files,
-                        detections: counts.detections,
-                    })
-                })
+                Box::pin(async move { alert_in(tx, id).await })
             })
             .await
     }
@@ -350,121 +338,7 @@ impl Service {
                     if alert != Some(true) {
                         return Err(no_alert(id));
                     }
-                    let mut rows = sqlx::query!(
-                        "SELECT id, type, value, time, tags, directives, exclude_modules,
-                                redirection_type, redirection_value
-                         FROM analysis.observables
-                         WHERE root_id = $1 AND id > $2
-                         ORDER BY id LIMIT $3",
-                        id,
-                        after.unwrap_or(0),
-                        limit + 1,
-                    )
-                    .fetch_all(tx.conn())
-                    .await?;
-                    let more = rows.len() > usize::try_from(limit).unwrap_or(usize::MAX);
-                    rows.truncate(usize::try_from(limit).unwrap_or(usize::MAX));
-                    let ids: Vec<i64> = rows.iter().map(|row| row.id).collect();
-                    let mut observables: Vec<AlertObservable> = rows
-                        .into_iter()
-                        .map(|row| AlertObservable {
-                            id: row.id,
-                            kind: row.r#type,
-                            value: row.value,
-                            time: row.time,
-                            tags: row.tags,
-                            directives: row.directives,
-                            exclude_modules: row.exclude_modules,
-                            redirection: row.redirection_type.zip(row.redirection_value),
-                            files: Vec::new(),
-                            relationships: Vec::new(),
-                            results: Vec::new(),
-                            detections: Vec::new(),
-                        })
-                        .collect();
-                    let at = |observable: i64| ids.binary_search(&observable).ok();
-
-                    for row in sqlx::query!(
-                        "SELECT observable_id, path, yara_meta FROM analysis.files
-                         WHERE root_id = $1 AND observable_id = ANY($2)
-                         ORDER BY observable_id, path",
-                        id,
-                        &ids,
-                    )
-                    .fetch_all(tx.conn())
-                    .await?
-                    {
-                        if let Some(i) = at(row.observable_id) {
-                            observables[i].files.push(AlertFile {
-                                path: row.path,
-                                yara_meta: row.yara_meta,
-                            });
-                        }
-                    }
-                    for row in sqlx::query!(
-                        "SELECT observable_id, kind, target_type, target_value
-                         FROM analysis.relationships
-                         WHERE root_id = $1 AND observable_id = ANY($2)
-                         ORDER BY observable_id, kind, target_type, target_value",
-                        id,
-                        &ids,
-                    )
-                    .fetch_all(tx.conn())
-                    .await?
-                    {
-                        if let Some(i) = at(row.observable_id) {
-                            observables[i].relationships.push(Relationship {
-                                kind: row.kind,
-                                target_type: row.target_type,
-                                target_value: row.target_value,
-                            });
-                        }
-                    }
-                    for row in sqlx::query!(
-                        "SELECT observable_id, module, analysis_type, schema_version, summary, tags,
-                                details, created_at
-                         FROM analysis.results
-                         WHERE root_id = $1 AND observable_id = ANY($2)
-                         ORDER BY observable_id, module",
-                        id,
-                        &ids,
-                    )
-                    .fetch_all(tx.conn())
-                    .await?
-                    {
-                        if let Some(i) = at(row.observable_id) {
-                            observables[i].results.push(ModuleResult {
-                                module: row.module,
-                                analysis_type: row.analysis_type,
-                                schema_version: row.schema_version,
-                                summary: row.summary,
-                                tags: row.tags,
-                                details: row.details,
-                                created_at: row.created_at,
-                            });
-                        }
-                    }
-                    for row in sqlx::query!(
-                        r#"SELECT d.observable_id, d.description, d.details,
-                                  r.module AS "module?"
-                           FROM analysis.detections d
-                           LEFT JOIN analysis.results r ON r.id = d.result_id
-                           WHERE d.root_id = $1 AND d.observable_id = ANY($2)
-                           ORDER BY d.id"#,
-                        id,
-                        &ids,
-                    )
-                    .fetch_all(tx.conn())
-                    .await?
-                    {
-                        if let Some(i) = at(row.observable_id) {
-                            observables[i].detections.push(AlertDetection {
-                                description: row.description,
-                                details: row.details,
-                                module: row.module,
-                            });
-                        }
-                    }
+                    let (observables, more) = observables_in(tx, id, after, limit).await?;
                     let next = if more {
                         observables.last().map(|observable| observable.id)
                     } else {
@@ -529,4 +403,171 @@ impl Service {
             })
             .await
     }
+}
+
+/// One alert and its counts, in a read's transaction.
+pub(crate) async fn alert_in(
+    tx: &mut ace_core::db::Tx<'_>,
+    id: Uuid,
+) -> Result<Alert, ServiceError> {
+    let row = sqlx::query_as!(
+        AlertRow,
+        r#"SELECT r.id, r.description, r.analysis_mode, r.event_time,
+                  r.event_time_source::text AS "event_time_source!",
+                  r.created_at, r.alerted_at AS "alerted_at!", r.disposition,
+                  r.dispositioned_at,
+                  r.dispositioned_by AS "dispositioned_by: Value",
+                  r.submitted_by AS "submitted_by: Value",
+                  r.pass, r.completed_pass,
+                  r.cancelled_at IS NOT NULL AS "cancelled!"
+           FROM analysis.roots r
+           WHERE r.id = $1 AND r.alerted_at IS NOT NULL"#,
+        id,
+    )
+    .fetch_optional(tx.conn())
+    .await?
+    .ok_or_else(|| no_alert(id))?;
+    let counts = sqlx::query!(
+        r#"SELECT
+             (SELECT count(*) FROM analysis.observables WHERE root_id = $1) AS "observables!",
+             (SELECT count(*) FROM analysis.files WHERE root_id = $1) AS "files!",
+             (SELECT count(*) FROM analysis.detections WHERE root_id = $1) AS "detections!""#,
+        id,
+    )
+    .fetch_one(tx.conn())
+    .await?;
+    Ok(Alert {
+        summary: row.summary()?,
+        observables: counts.observables,
+        files: counts.files,
+        detections: counts.detections,
+    })
+}
+
+/// Up to `limit` of an alert's observables after `after`, in the order they were added, each with its
+/// files, relationships, results and detections, and whether there are more.
+pub(crate) async fn observables_in(
+    tx: &mut ace_core::db::Tx<'_>,
+    id: Uuid,
+    after: Option<i64>,
+    limit: i64,
+) -> Result<(Vec<AlertObservable>, bool), ServiceError> {
+    let mut rows = sqlx::query!(
+        "SELECT id, type, value, time, tags, directives, exclude_modules,
+                redirection_type, redirection_value, display_type
+         FROM analysis.observables
+         WHERE root_id = $1 AND id > $2
+         ORDER BY id LIMIT $3",
+        id,
+        after.unwrap_or(0),
+        limit + 1,
+    )
+    .fetch_all(tx.conn())
+    .await?;
+    let more = rows.len() > usize::try_from(limit).unwrap_or(usize::MAX);
+    rows.truncate(usize::try_from(limit).unwrap_or(usize::MAX));
+    let ids: Vec<i64> = rows.iter().map(|row| row.id).collect();
+    let mut observables: Vec<AlertObservable> = rows
+        .into_iter()
+        .map(|row| AlertObservable {
+            id: row.id,
+            kind: row.r#type,
+            value: row.value,
+            time: row.time,
+            tags: row.tags,
+            directives: row.directives,
+            exclude_modules: row.exclude_modules,
+            redirection: row.redirection_type.zip(row.redirection_value),
+            display_type: row.display_type,
+            files: Vec::new(),
+            relationships: Vec::new(),
+            results: Vec::new(),
+            detections: Vec::new(),
+        })
+        .collect();
+    let at = |observable: i64| ids.binary_search(&observable).ok();
+
+    for row in sqlx::query!(
+        "SELECT observable_id, path, yara_meta FROM analysis.files
+         WHERE root_id = $1 AND observable_id = ANY($2)
+         ORDER BY observable_id, path",
+        id,
+        &ids,
+    )
+    .fetch_all(tx.conn())
+    .await?
+    {
+        if let Some(i) = at(row.observable_id) {
+            observables[i].files.push(AlertFile {
+                path: row.path,
+                yara_meta: row.yara_meta,
+            });
+        }
+    }
+    for row in sqlx::query!(
+        "SELECT observable_id, kind, target_type, target_value
+         FROM analysis.relationships
+         WHERE root_id = $1 AND observable_id = ANY($2)
+         ORDER BY observable_id, kind, target_type, target_value",
+        id,
+        &ids,
+    )
+    .fetch_all(tx.conn())
+    .await?
+    {
+        if let Some(i) = at(row.observable_id) {
+            observables[i].relationships.push(Relationship {
+                kind: row.kind,
+                target_type: row.target_type,
+                target_value: row.target_value,
+            });
+        }
+    }
+    for row in sqlx::query!(
+        "SELECT id, observable_id, module, analysis_type, schema_version, summary, tags,
+                details, created_at
+         FROM analysis.results
+         WHERE root_id = $1 AND observable_id = ANY($2)
+         ORDER BY observable_id, module",
+        id,
+        &ids,
+    )
+    .fetch_all(tx.conn())
+    .await?
+    {
+        if let Some(i) = at(row.observable_id) {
+            observables[i].results.push(ModuleResult {
+                id: row.id,
+                module: row.module,
+                analysis_type: row.analysis_type,
+                schema_version: row.schema_version,
+                summary: row.summary,
+                tags: row.tags,
+                details: row.details,
+                created_at: row.created_at,
+            });
+        }
+    }
+    for row in sqlx::query!(
+        r#"SELECT d.observable_id, d.description, d.details,
+                  r.module AS "module?"
+           FROM analysis.detections d
+           LEFT JOIN analysis.results r ON r.id = d.result_id
+           WHERE d.root_id = $1 AND d.observable_id = ANY($2)
+           ORDER BY d.id"#,
+        id,
+        &ids,
+    )
+    .fetch_all(tx.conn())
+    .await?
+    {
+        if let Some(i) = at(row.observable_id) {
+            observables[i].detections.push(AlertDetection {
+                description: row.description,
+                details: row.details,
+                module: row.module,
+            });
+        }
+    }
+    Ok((observables, more))
 }

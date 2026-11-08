@@ -197,6 +197,8 @@ pub(crate) struct ObservableBody {
     exclude_modules: Vec<String>,
     /// The observable an analyst should look at instead.
     redirection: Option<RedirectionBody>,
+    /// The label a module gave it in place of its type's name, such as `Source IP`, or null.
+    display_type: Option<String>,
     files: Vec<FileBody>,
     relationships: Vec<RelationshipBody>,
     results: Vec<ResultBody>,
@@ -216,6 +218,7 @@ impl From<AlertObservable> for ObservableBody {
             redirection: observable
                 .redirection
                 .map(|(kind, value)| RedirectionBody { kind, value }),
+            display_type: observable.display_type,
             files: observable
                 .files
                 .into_iter()

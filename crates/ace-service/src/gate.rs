@@ -201,6 +201,11 @@ impl Gate {
             .await
     }
 
+    /// A connection of its own that listens for notifications, such as `alert_view`'s.
+    pub(crate) async fn listener(&self) -> Result<sqlx::postgres::PgListener, ServiceError> {
+        Ok(sqlx::postgres::PgListener::connect_with(self.db.pool()).await?)
+    }
+
     pub(crate) async fn allowed(
         &self,
         actor: &Actor,

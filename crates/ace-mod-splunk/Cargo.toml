@@ -24,6 +24,7 @@ serde_json = "1.0.154"
 tracing = "0.1.44"
 
 [dev-dependencies]
+ace-sdk = { path = "../ace-sdk" }
 ace-testkit = { path = "../ace-testkit" }
 tempfile = "3.27.0"
 tokio = { version = "1.54.1", features = ["macros", "rt"] }

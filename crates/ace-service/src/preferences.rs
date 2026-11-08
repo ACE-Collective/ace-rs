@@ -5,8 +5,8 @@
 //! Each key has a type that checks its value, `PreferenceKey::parse`, and a default, so every key has a
 //! value for every user. A stored value is checked again when it's read, so a row a later release can't
 //! read falls back to the default with a warning, as ace3's does, rather than breaking the page. 5.7 brings
-//! `theme`; `alert_sections` comes with 5.8 and `manage_columns` with 5.10, each as a `PreferenceKey`
-//! and a `PreferenceValue` variant.
+//! `theme` and 5.8 `alert_sections`; `manage_columns` comes with 5.10, as a `PreferenceKey` and a
+//! `PreferenceValue` variant.
 //!
 //! As in ace3, a preference is the caller's own: there's no user id to name, and it needs no grant,
 //! since it changes only how the caller's own pages look. Setting or resetting one goes through
@@ -14,8 +14,10 @@
 //! key that inherits its owner's scope change its owner's, but here every key is refused, as the rest of
 //! `/me` refuses keys (`users`). A set that changes nothing and a reset of a default have no row.
 
+use std::collections::BTreeMap;
+
 use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 use uuid::Uuid;
 
@@ -28,15 +30,17 @@ use crate::{Service, ServiceError};
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum PreferenceKey {
     Theme,
+    AlertSections,
 }
 
 impl PreferenceKey {
     /// Every key, in the order a list of them is given.
-    pub const ALL: &'static [PreferenceKey] = &[PreferenceKey::Theme];
+    pub const ALL: &'static [PreferenceKey] = &[PreferenceKey::Theme, PreferenceKey::AlertSections];
 
     pub fn name(self) -> &'static str {
         match self {
             PreferenceKey::Theme => "theme",
+            PreferenceKey::AlertSections => "alert_sections",
         }
     }
 
@@ -49,6 +53,9 @@ impl PreferenceKey {
     pub fn default_value(self) -> PreferenceValue {
         match self {
             PreferenceKey::Theme => PreferenceValue::Theme(ThemePreference::default()),
+            PreferenceKey::AlertSections => {
+                PreferenceValue::AlertSections(AlertSectionsPreference::default())
+            }
         }
     }
 
@@ -69,6 +76,9 @@ impl PreferenceKey {
             PreferenceKey::Theme => serde_json::from_value(value)
                 .map(PreferenceValue::Theme)
                 .map_err(invalid),
+            PreferenceKey::AlertSections => serde_json::from_value(value)
+                .map(PreferenceValue::AlertSections)
+                .map_err(invalid),
         }
     }
 }
@@ -84,12 +94,14 @@ impl std::fmt::Display for PreferenceKey {
 #[serde(untagged)]
 pub enum PreferenceValue {
     Theme(ThemePreference),
+    AlertSections(AlertSectionsPreference),
 }
 
 impl PreferenceValue {
     pub fn key(&self) -> PreferenceKey {
         match self {
             PreferenceValue::Theme(_) => PreferenceKey::Theme,
+            PreferenceValue::AlertSections(_) => PreferenceKey::AlertSections,
         }
     }
 
@@ -105,6 +117,46 @@ impl PreferenceValue {
 pub struct ThemePreference {
     #[serde(default)]
     pub mode: Theme,
+}
+
+/// ace3's `AlertSectionsPreference`: which collapsible sections of the alert page start open for this
+/// analyst, by section id, true for open. A section it doesn't list starts the way the page defaults it,
+/// so a section a later release adds isn't changed by earlier choices. As in ace3, ids aren't checked
+/// against a list, since templates name them, but each is 1 to 64 of `a-z`, `0-9` and `_`, and there
+/// are at most `MAX_ALERT_SECTIONS`, so a client can't grow the row without limit.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AlertSectionsPreference {
+    #[serde(default, deserialize_with = "section_choices")]
+    pub sections: BTreeMap<String, bool>,
+}
+
+/// The most sections `alert_sections` holds, as ace3's `max_length`.
+pub const MAX_ALERT_SECTIONS: usize = 100;
+
+/// Whether a name is a section id: ace3's `^[a-z0-9_]{1,64}$`.
+pub fn is_section_id(name: &str) -> bool {
+    (1..=64).contains(&name.len())
+        && name
+            .bytes()
+            .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'_')
+}
+
+fn section_choices<'de, D: Deserializer<'de>>(
+    deserializer: D,
+) -> Result<BTreeMap<String, bool>, D::Error> {
+    let sections = BTreeMap::<String, bool>::deserialize(deserializer)?;
+    if sections.len() > MAX_ALERT_SECTIONS {
+        return Err(serde::de::Error::custom(format!(
+            "at most {MAX_ALERT_SECTIONS} sections"
+        )));
+    }
+    if let Some(bad) = sections.keys().find(|name| !is_section_id(name)) {
+        return Err(serde::de::Error::custom(format!(
+            "{bad:?} isn't a section id, which is 1 to 64 of a-z, 0-9 and _"
+        )));
+    }
+    Ok(sections)
 }
 
 /// ace3's five themes. `System` follows the browser's `prefers-color-scheme`, so the page's stylesheet
@@ -291,6 +343,25 @@ impl Service {
         }
         match self.preference(actor, PreferenceKey::Theme).await?.value {
             PreferenceValue::Theme(theme) => Ok(theme.mode),
+            PreferenceValue::AlertSections(_) => Ok(Theme::default()),
+        }
+    }
+
+    /// Which alert page sections start open for this actor: the user's choices, or none for anyone else.
+    pub async fn alert_sections(
+        &self,
+        actor: &Actor,
+    ) -> Result<BTreeMap<String, bool>, ServiceError> {
+        if !matches!(actor, Actor::User { .. }) {
+            return Ok(BTreeMap::new());
+        }
+        match self
+            .preference(actor, PreferenceKey::AlertSections)
+            .await?
+            .value
+        {
+            PreferenceValue::AlertSections(sections) => Ok(sections.sections),
+            PreferenceValue::Theme(_) => Ok(BTreeMap::new()),
         }
     }
 

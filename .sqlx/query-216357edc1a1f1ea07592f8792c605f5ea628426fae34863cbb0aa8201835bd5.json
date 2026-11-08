@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT d.observable_id, d.description, d.details,\n                                  r.module AS \"module?\"\n                           FROM analysis.detections d\n                           LEFT JOIN analysis.results r ON r.id = d.result_id\n                           WHERE d.root_id = $1 AND d.observable_id = ANY($2)\n                           ORDER BY d.id",
+  "query": "SELECT d.observable_id, d.description, d.details,\n                  r.module AS \"module?\"\n           FROM analysis.detections d\n           LEFT JOIN analysis.results r ON r.id = d.result_id\n           WHERE d.root_id = $1 AND d.observable_id = ANY($2)\n           ORDER BY d.id",
   "describe": {
     "columns": [
       {
@@ -61,5 +61,5 @@
       false
     ]
   },
-  "hash": "ee79e030faf8c2a0e63e7e8f33a82987eb793b4f804bf3950f9a20e0c08245c1"
+  "hash": "216357edc1a1f1ea07592f8792c605f5ea628426fae34863cbb0aa8201835bd5"
 }

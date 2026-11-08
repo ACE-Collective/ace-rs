@@ -56,6 +56,49 @@ async fn upserting_an_observable_twice_leaves_one_row() {
     assert_eq!(stored[0].exclude_modules, ["rdap_analyzer"]);
 }
 
+/// PLAN.md 5.8: a display type is ace3's `_display_type` on its one observable per type and value, so
+/// one that names a label replaces the stored one, and one that names none leaves it.
+#[tokio::test]
+async fn the_last_display_type_given_is_the_observable_s() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let mut tx = db.begin().await.expect("begins");
+    let root = NewRoot::new("analysis");
+    tree::create_root(&mut tx, &root).await.expect("creates");
+    let labelled = |label: Option<&str>| {
+        let mut observable = NewObservable::new(ObservableKind::Ip, "192.0.2.10");
+        observable.display_type = label.map(str::to_owned);
+        observable
+    };
+    upsert_observable(&mut tx, root.id, &labelled(None))
+        .await
+        .expect("adds");
+    assert_eq!(stored_display_type(&mut tx, root.id).await, None);
+    for (given, kept) in [
+        (Some("Source IP"), Some("Source IP")),
+        (None, Some("Source IP")),
+        (Some("Destination IP"), Some("Destination IP")),
+    ] {
+        upsert_observable(&mut tx, root.id, &labelled(given))
+            .await
+            .expect("merges");
+        assert_eq!(
+            stored_display_type(&mut tx, root.id).await.as_deref(),
+            kept,
+            "after {given:?}"
+        );
+    }
+    tx.commit().await.expect("commits");
+}
+
+async fn stored_display_type(tx: &mut ace_core::db::Tx<'_>, root: uuid::Uuid) -> Option<String> {
+    sqlx::query_scalar("SELECT display_type FROM analysis.observables WHERE root_id = $1")
+        .bind(root)
+        .fetch_one(tx.conn())
+        .await
+        .expect("reads")
+}
+
 #[tokio::test]
 async fn type_value_and_root_each_make_an_observable_distinct() {
     let test_db = TestDb::new().await;

@@ -1,0 +1,43 @@
+{#- The analysis tree of an alert (PLAN.md 5.8): ace3's display_tree_node, drawn from `TreeView`'s lines
+    in order, so it needs no recursion. The page includes it, and the live stream sends it alone, which
+    Datastar morphs into the page by its id. -#}
+<div id="alert-tree" class="tree">
+{%- if tree.is_empty() %}
+<p class="muted">Nothing has been added to this alert.</p>
+{%- else %}
+<ul>
+{%- for line in tree.lines %}
+{%- match line %}
+{%- when TreeLine::Observable(node) %}
+<li class="observable"{% if !node.reference %} id="{{ node.anchor }}"{% endif %}>
+<b class="type">{{ node.label }}</b> : <span class="value">{{ node.value }}</span>
+{%- if let Some(time) = node.time %} <span class="time">@ {{ time }}</span>{% endif %}
+{%- for detection in node.detections %} <span class="detection" title="{{ detection }}">detection: {{ detection }}</span>{% endfor %}
+{%- for tag in node.tags %} <span class="tag">{{ tag }}</span>{% endfor %}
+{%- if !node.comments.is_empty() %}
+<ul class="comments">
+{%- for comment in node.comments %}
+<li class="comment"><span class="author">{{ comment.author }}</span> <span class="time">{{ comment.when }}</span>: {{ comment.text }}</li>
+{%- endfor %}
+</ul>
+{%- endif %}
+{%- when TreeLine::Result(node) %}
+<li class="result" id="{{ node.anchor }}" data-module="{{ node.module }}">
+<span class="summary" title="{{ node.module }}">{{ node.title }}</span>
+{%- for tag in node.tags %} <span class="tag">{{ tag }}</span>{% endfor %}
+{%- when TreeLine::Jump(anchor) %}
+<li class="jump"><a href="#{{ anchor }}">Jump To Analysis</a></li>
+{%- when TreeLine::Children %}
+<ul>
+{%- when TreeLine::EndChildren %}
+</ul>
+{%- when TreeLine::EndItem %}
+</li>
+{%- endmatch %}
+{%- endfor %}
+</ul>
+{%- endif %}
+{%- if tree.truncated %}
+<p class="muted">This alert has more observables than the view shows.</p>
+{%- endif %}
+</div>

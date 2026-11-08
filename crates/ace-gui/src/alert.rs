@@ -1,0 +1,773 @@
+//! The alert view (PLAN.md 5.8): ace3's `analysis/index.html` and `alert.html`, its analysis tree, and the
+//! stream that draws a result on an open page when it lands.
+//!
+//! `GET /alerts/{id}` reads the alert's tree through `Service::alert_tree`, its observables' comments
+//! through `Service::alert_observable_comments` and the viewer's `alert_sections`, each under
+//! `alert:read`, and draws them. `tree_view` turns a tree into what the template draws, as ace3's
+//! `TreeNode` walk does: the observables the submission added at the top, under each observable its
+//! modules' results, under each result the observables it added, and so on down. An observable is drawn
+//! in full where the walk first meets it, and anywhere else as itself with a link to that place (ace3's
+//! "Jump To Analysis"), so a loop ends. The walk keeps its own stack, so a deep tree can't overflow one.
+//! An observable's type reads as ace3's `display_type` does, a module's label such as `Source IP (ip)`
+//! first (`AlertObservable::display_label`).
+//!
+//! `GET /alerts/{id}/live` is a Datastar server-sent event stream. The page starts it with `data-init`.
+//! When a result lands, `Service::watch_alert` wakes it, and it reads the tree again and sends it as a
+//! `datastar-patch-elements` event, which Datastar morphs into `#alert-tree`. What it sends is the same
+//! fragment the page drew, so a reload and a push can't disagree. Each event's id is a hash of the
+//! fragment, and the page's own hash is in the stream's URL, so a stream that opens or reopens after a
+//! landing sends the tree only if it changed, and one that doesn't is quiet.
+//!
+//! Its bounds:
+//! - A stream reads and draws one tree at a time, and draws the next only once the last is written, since
+//!   the body is pulled: a client that reads slowly holds one tree in memory, not a queue of them. A burst
+//!   of landings is one wakeup (`ace-service`'s `alert_view`), and two reads of the tree are at least
+//!   `MIN_REDRAW` apart.
+//! - At most `LiveLimits::streams` are open at once, and `LiveLimits::per_user` for one user. Past
+//!   either, the stream answers 503 and the page stays as it was drawn, still correct but not live.
+//! - Every `LiveLimits::heartbeat` the stream sends a comment and checks the session again with the
+//!   cookie it opened with, so it ends within one heartbeat of a logout, an expiry, a password change or
+//!   a disable. A draw checks `alert:read` again, so it ends when that goes too.
+//! - It spawns nothing. When the client goes, the server drops the stream and with it the watch, and
+//!   the listener stops once nothing watches. A client that stays connected and stops reading isn't
+//!   noticed until the socket's buffers fill and a write blocks; the two limits bound how many of those
+//!   there can be.
+//!
+//! Escaping: every string from an alert, its modules or its comments goes through askama's escaper
+//! (`templates`). The `data-init` expression holds only the alert's uuid and a hex hash, which can't
+//! hold a quote. The page has no inline script or style, so it keeps 5.7's policy.
+//!
+//! From ace3, and what differs: the section ids, the tree's shape and the jump links are ace3's. Not here
+//! yet: the analysis templates of each module (5.9), observable actions (5.9, #1032), the pruned
+//! "Critical Analysis Overview", tag levels and colours, pivot links, summary details, and the other
+//! sections of ace3's page, which come with what they show. A section opens and closes with `<details>`,
+//! with no script, and its pin is a form that posts to `/preferences/alert-section`, which comes back
+//! here.
+
+use std::collections::{BTreeMap, HashMap, HashSet};
+use std::convert::Infallible;
+use std::sync::{Arc, Mutex};
+use std::time::Duration;
+
+use ace_service::{
+    Actor, AlertObservable, AlertTree, AlertWatch, ModuleResult, ObservableComment, RequestParts,
+    ServiceError, Transport,
+};
+use askama::Template;
+use axum::extract::{Path, State};
+use axum::http::request::Parts;
+use axum::http::{HeaderMap, StatusCode, header};
+use axum::response::sse::{Event, Sse};
+use axum::response::{IntoResponse, Response};
+use futures_util::stream;
+use sha2::{Digest, Sha256};
+use tokio::sync::{OwnedSemaphorePermit, Semaphore};
+use uuid::Uuid;
+
+use crate::Gui;
+use crate::session::{Failure, SignedIn, render};
+use crate::templates::Layout;
+
+/// The shortest time between two draws a stream sends, so a burst of landings is drawn once.
+const MIN_REDRAW: Duration = Duration::from_millis(250);
+
+/// The sections this page has, ace3's ids, and whether each starts open for an analyst who hasn't
+/// chosen.
+pub const SECTIONS: &[(&str, &str, bool)] = &[("alert_details", "Alert Details", true)];
+
+/// How many live streams may be open, and how often each checks its session.
+#[derive(Debug, Clone, Copy)]
+pub struct LiveLimits {
+    /// The most streams open at once.
+    pub streams: usize,
+    /// The most one user may have open.
+    pub per_user: usize,
+    pub heartbeat: Duration,
+}
+
+impl Default for LiveLimits {
+    fn default() -> Self {
+        LiveLimits {
+            streams: 256,
+            per_user: 16,
+            heartbeat: Duration::from_secs(15),
+        }
+    }
+}
+
+/// The open streams, counted.
+#[derive(Debug)]
+pub(crate) struct Live {
+    limits: LiveLimits,
+    streams: Arc<Semaphore>,
+    users: Arc<Mutex<HashMap<String, usize>>>,
+}
+
+impl Live {
+    pub(crate) fn new(limits: LiveLimits) -> Self {
+        Live {
+            limits,
+            streams: Arc::new(Semaphore::new(limits.streams)),
+            users: Arc::default(),
+        }
+    }
+
+    /// A place for one more stream of this actor's, or None past a limit.
+    fn admit(&self, actor: &Actor) -> Option<Admitted> {
+        let permit = self.streams.clone().try_acquire_owned().ok()?;
+        let user = actor.to_string();
+        let mut users = self.users.lock().unwrap_or_else(|e| e.into_inner());
+        let open = users.entry(user.clone()).or_default();
+        if *open >= self.limits.per_user {
+            return None;
+        }
+        *open += 1;
+        Some(Admitted {
+            _permit: permit,
+            user,
+            users: self.users.clone(),
+        })
+    }
+
+    /// How many streams are open, for a test to see that a closed page leaves none.
+    pub(crate) fn open(&self) -> usize {
+        self.limits.streams - self.streams.available_permits()
+    }
+}
+
+/// One stream's place, given back when the stream goes.
+struct Admitted {
+    _permit: OwnedSemaphorePermit,
+    user: String,
+    users: Arc<Mutex<HashMap<String, usize>>>,
+}
+
+impl Drop for Admitted {
+    fn drop(&mut self) {
+        let mut users = self.users.lock().unwrap_or_else(|e| e.into_inner());
+        if let Some(open) = users.get_mut(&self.user) {
+            *open -= 1;
+            if *open == 0 {
+                users.remove(&self.user);
+            }
+        }
+    }
+}
+
+/// A comment on an observable, as the tree shows it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CommentView {
+    pub author: String,
+    pub text: String,
+    pub when: String,
+}
+
+/// An observable where the tree shows it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ObservableNode {
+    /// `o<id>`, the anchor of its place in full, which a reference links to.
+    pub anchor: String,
+    /// Whether this is a reference to where it's drawn in full.
+    pub reference: bool,
+    /// Whether it has results, so a reference has somewhere to jump to.
+    pub analyzed: bool,
+    /// Its type as ace3's `display_type` reads.
+    pub label: String,
+    /// Its value, or for a file its first path.
+    pub value: String,
+    pub time: Option<String>,
+    pub tags: Vec<String>,
+    pub detections: Vec<String>,
+    pub comments: Vec<CommentView>,
+}
+
+/// A module's result where the tree shows it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ResultNode {
+    /// `r<id>`.
+    pub anchor: String,
+    pub module: String,
+    /// Its summary, or the module's name when it has none, as ace3 shows the analysis itself.
+    pub title: String,
+    pub tags: Vec<String>,
+}
+
+/// One step of drawing the tree: the template draws these in order, so it needs no recursion.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum TreeLine {
+    /// Opens an item: `<li>` and the node.
+    Observable(ObservableNode),
+    Result(ResultNode),
+    /// A reference's link to where it's drawn in full.
+    Jump(String),
+    /// `<ul>` below the item last opened.
+    Children,
+    EndChildren,
+    EndItem,
+}
+
+/// The tree as the template draws it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TreeView {
+    pub lines: Vec<TreeLine>,
+    /// The alert had more observables than one tree holds.
+    pub truncated: bool,
+}
+
+impl TreeView {
+    pub fn is_empty(&self) -> bool {
+        self.lines.is_empty()
+    }
+}
+
+/// What the walk visits next.
+enum Step<'a> {
+    Observable(i64),
+    Result(&'a ModuleResult),
+    Line(TreeLine),
+}
+
+/// The tree's lines, from a snapshot and the comments on its observables. This is the view function the
+/// page and the stream both draw with, and a test calls with a fixture.
+pub fn tree_view(tree: &AlertTree, comments: &[ObservableComment]) -> TreeView {
+    let by_id: HashMap<i64, &AlertObservable> =
+        tree.observables.iter().map(|o| (o.id, o)).collect();
+    let mut added_by: HashMap<i64, Vec<i64>> = HashMap::new();
+    let mut added: HashSet<i64> = HashSet::new();
+    for addition in &tree.additions {
+        let list = added_by.entry(addition.result).or_default();
+        if !list.contains(&addition.observable) {
+            list.push(addition.observable);
+        }
+        added.insert(addition.observable);
+    }
+    let mut comments_of: HashMap<(&str, &str), Vec<CommentView>> = HashMap::new();
+    for comment in comments {
+        comments_of
+            .entry((comment.kind.as_str(), comment.value.as_str()))
+            .or_default()
+            .push(CommentView {
+                author: comment
+                    .author
+                    .display_name
+                    .clone()
+                    .unwrap_or_else(|| comment.author.username.clone()),
+                text: comment.comment.clone(),
+                when: comment
+                    .created_at
+                    .format("%Y-%m-%d %H:%M:%S UTC")
+                    .to_string(),
+            });
+    }
+
+    // The submission's observables, then any that no result added, then any the walk didn't reach,
+    // such as one a result added to itself: each starts a walk at the top, so nothing is left out.
+    let top: HashSet<i64> = tree.top.iter().copied().collect();
+    let starts = tree
+        .observables
+        .iter()
+        .filter(|o| top.contains(&o.id))
+        .chain(
+            tree.observables
+                .iter()
+                .filter(|o| !top.contains(&o.id) && !added.contains(&o.id)),
+        )
+        .chain(tree.observables.iter())
+        .map(|o| o.id);
+    let mut drawn: HashSet<i64> = HashSet::new();
+    let mut lines = Vec::new();
+    let mut stack: Vec<Step<'_>> = Vec::new();
+    for start in starts {
+        if drawn.contains(&start) {
+            continue;
+        }
+        stack.push(Step::Observable(start));
+        walk(
+            &mut stack,
+            &mut drawn,
+            &mut lines,
+            &by_id,
+            &added_by,
+            &comments_of,
+        );
+    }
+    TreeView {
+        lines,
+        truncated: tree.truncated,
+    }
+}
+
+/// Draws what's on the stack, and everything below it.
+fn walk<'a>(
+    stack: &mut Vec<Step<'a>>,
+    drawn: &mut HashSet<i64>,
+    lines: &mut Vec<TreeLine>,
+    by_id: &HashMap<i64, &'a AlertObservable>,
+    added_by: &HashMap<i64, Vec<i64>>,
+    comments_of: &HashMap<(&str, &str), Vec<CommentView>>,
+) {
+    while let Some(step) = stack.pop() {
+        match step {
+            Step::Line(line) => lines.push(line),
+            Step::Observable(id) => {
+                // past MAX_TREE_OBSERVABLES, which the view says
+                let Some(observable) = by_id.get(&id) else {
+                    continue;
+                };
+                let reference = !drawn.insert(id);
+                let node = observable_node(
+                    observable,
+                    reference,
+                    comments_of
+                        .get(&(observable.kind.as_str(), observable.value.as_str()))
+                        .cloned()
+                        .unwrap_or_default(),
+                );
+                let anchor = node.anchor.clone();
+                lines.push(TreeLine::Observable(node));
+                if observable.results.is_empty() {
+                    lines.push(TreeLine::EndItem);
+                } else if reference {
+                    lines.extend([
+                        TreeLine::Children,
+                        TreeLine::Jump(anchor),
+                        TreeLine::EndChildren,
+                        TreeLine::EndItem,
+                    ]);
+                } else {
+                    lines.push(TreeLine::Children);
+                    stack.push(Step::Line(TreeLine::EndItem));
+                    stack.push(Step::Line(TreeLine::EndChildren));
+                    stack.extend(observable.results.iter().rev().map(Step::Result));
+                }
+            }
+            Step::Result(result) => {
+                lines.push(TreeLine::Result(ResultNode {
+                    anchor: format!("r{}", result.id),
+                    module: result.module.clone(),
+                    title: result
+                        .summary
+                        .clone()
+                        .unwrap_or_else(|| result.module.clone()),
+                    tags: result.tags.clone(),
+                }));
+                match added_by.get(&result.id) {
+                    Some(children) if !children.is_empty() => {
+                        lines.push(TreeLine::Children);
+                        stack.push(Step::Line(TreeLine::EndItem));
+                        stack.push(Step::Line(TreeLine::EndChildren));
+                        stack.extend(children.iter().rev().map(|id| Step::Observable(*id)));
+                    }
+                    _ => lines.push(TreeLine::EndItem),
+                }
+            }
+        }
+    }
+}
+
+fn observable_node(
+    observable: &AlertObservable,
+    reference: bool,
+    comments: Vec<CommentView>,
+) -> ObservableNode {
+    let mut detections: Vec<String> = Vec::new();
+    for detection in &observable.detections {
+        if !detections.contains(&detection.description) {
+            detections.push(detection.description.clone());
+        }
+    }
+    ObservableNode {
+        anchor: format!("o{}", observable.id),
+        reference,
+        analyzed: !observable.results.is_empty(),
+        label: observable.display_label(),
+        value: match observable.files.first() {
+            Some(file) if observable.kind == "file" => file.path.clone(),
+            _ => observable.value.clone(),
+        },
+        time: observable
+            .time
+            .map(|time| time.format("%Y-%m-%d %H:%M:%S %z").to_string()),
+        tags: observable.tags.clone(),
+        detections,
+        comments,
+    }
+}
+
+/// The tree on its own: what the page includes and what the stream sends.
+#[derive(Debug, Template)]
+#[template(path = "alert_tree.html")]
+pub struct AlertTreeFragment {
+    pub tree: TreeView,
+}
+
+impl AlertTreeFragment {
+    /// The fragment's HTML and its version, a hash of it.
+    pub fn render_versioned(&self) -> Result<(String, String), askama::Error> {
+        let html = self.render()?;
+        let version = hex::encode(&Sha256::digest(html.as_bytes())[..8]);
+        Ok((html, version))
+    }
+}
+
+/// A section of the page, with whether it starts open.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Section {
+    pub id: &'static str,
+    pub title: &'static str,
+    pub open: bool,
+}
+
+/// One row of the alert's details.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Detail {
+    pub name: &'static str,
+    pub value: String,
+}
+
+/// `/alerts/{id}`.
+#[derive(Debug, Template)]
+#[template(path = "alert.html")]
+pub struct AlertPage {
+    pub layout: Layout,
+    pub id: Uuid,
+    pub title: String,
+    pub details_section: Section,
+    pub details: Vec<Detail>,
+    pub tree: TreeView,
+    /// The tree's version, which the stream starts from.
+    pub version: String,
+}
+
+impl AlertPage {
+    /// The page for a tree, its comments and the viewer's section choices.
+    pub fn new(
+        layout: Layout,
+        tree: &AlertTree,
+        comments: &[ObservableComment],
+        sections: &BTreeMap<String, bool>,
+    ) -> Result<Self, askama::Error> {
+        let view = tree_view(tree, comments);
+        let (_, version) = AlertTreeFragment { tree: view.clone() }.render_versioned()?;
+        let summary = &tree.alert.summary;
+        let section = |id: &'static str| {
+            let (id, title, default) = SECTIONS
+                .iter()
+                .copied()
+                .find(|(name, _, _)| *name == id)
+                .expect("a section of this page");
+            Section {
+                id,
+                title,
+                open: sections.get(id).copied().unwrap_or(default),
+            }
+        };
+        let time =
+            |time: chrono::DateTime<chrono::Utc>| time.format("%Y-%m-%d %H:%M:%S UTC").to_string();
+        let mut details = vec![
+            Detail {
+                name: "Alerted",
+                value: time(summary.alerted_at),
+            },
+            Detail {
+                name: "Event time",
+                value: summary
+                    .event_time
+                    .map(time)
+                    .map(|t| format!("{t} ({})", summary.event_time_source))
+                    .unwrap_or_else(|| "none".to_owned()),
+            },
+            Detail {
+                name: "Analysis mode",
+                value: summary.analysis_mode.clone(),
+            },
+            Detail {
+                name: "Analysis",
+                value: format!("{:?}", summary.analysis).to_lowercase(),
+            },
+            Detail {
+                name: "Disposition",
+                value: summary
+                    .disposition
+                    .clone()
+                    .unwrap_or_else(|| "OPEN".to_owned()),
+            },
+            Detail {
+                name: "Observables",
+                value: tree.alert.observables.to_string(),
+            },
+            Detail {
+                name: "Detections",
+                value: tree.alert.detections.to_string(),
+            },
+        ];
+        if let Some(by) = &summary.submitted_by {
+            details.push(Detail {
+                name: "Submitted by",
+                value: by.name.clone().unwrap_or_else(|| by.id.clone()),
+            });
+        }
+        Ok(AlertPage {
+            layout,
+            id: summary.id,
+            title: summary.title.clone(),
+            details_section: section("alert_details"),
+            details,
+            tree: view,
+            version,
+        })
+    }
+}
+
+fn alert_id(raw: &str, parts: &Parts) -> Result<Uuid, Failure> {
+    raw.parse()
+        .map_err(|_| Failure::new(StatusCode::NOT_FOUND, "There's no such alert.", parts))
+}
+
+/// `GET /alerts/{id}`.
+pub(crate) async fn page(
+    State(gui): State<Gui>,
+    viewer: SignedIn,
+    parts: Parts,
+    Path(raw): Path<String>,
+) -> Response {
+    let id = match alert_id(&raw, &parts) {
+        Ok(id) => id,
+        Err(failure) => return failure.into_response(),
+    };
+    let actor = &viewer.actor;
+    let tree = match gui.service.alert_tree(actor, id).await {
+        Ok(tree) => tree,
+        Err(error) => return Failure::from_service(error, &parts).into_response(),
+    };
+    let comments = match gui.service.alert_observable_comments(actor, id).await {
+        Ok(comments) => comments,
+        Err(error) => return Failure::from_service(error, &parts).into_response(),
+    };
+    let sections = gui.service.alert_sections(actor).await.unwrap_or_else(|error| {
+        tracing::warn!(%actor, "reading alert_sections failed, so the page has the defaults: {error}");
+        BTreeMap::new()
+    });
+    match AlertPage::new(viewer.layout, &tree, &comments, &sections) {
+        Ok(page) => render(&page),
+        Err(error) => {
+            tracing::error!("an alert page couldn't be drawn: {error}");
+            (StatusCode::INTERNAL_SERVER_ERROR, "internal error").into_response()
+        }
+    }
+}
+
+/// What a stream needs to check its session again: the headers it opened with.
+struct Credentials {
+    transport: Transport,
+    cookie: Option<String>,
+    host: Option<String>,
+}
+
+impl Credentials {
+    fn from(headers: &HeaderMap, transport: Transport) -> Self {
+        let text = |name: header::HeaderName| {
+            headers
+                .get(name)
+                .and_then(|value| value.to_str().ok())
+                .map(str::to_owned)
+        };
+        Credentials {
+            transport,
+            cookie: text(header::COOKIE),
+            host: text(header::HOST),
+        }
+    }
+
+    fn parts(&self) -> RequestParts<'_> {
+        RequestParts {
+            transport: self.transport,
+            method: "GET",
+            authorization: None,
+            cookie: self.cookie.as_deref(),
+            sec_fetch_site: None,
+            origin: None,
+            host: self.host.as_deref(),
+        }
+    }
+}
+
+/// A stream's state between events.
+struct Streaming {
+    gui: Gui,
+    actor: Actor,
+    credentials: Credentials,
+    watch: AlertWatch,
+    /// The version the client has.
+    version: String,
+    /// Whether to read the tree before waiting: at the start, since a result may have landed between
+    /// the page's read and the watch.
+    dirty: bool,
+    /// When it last read the tree, so the next read waits out `MIN_REDRAW`.
+    drawn_at: Option<tokio::time::Instant>,
+    heartbeat: tokio::time::Interval,
+    _admitted: Admitted,
+}
+
+/// What a stream does next.
+enum Next {
+    Draw,
+    Beat,
+}
+
+impl Streaming {
+    /// The next event, or None to end the stream.
+    async fn next(mut self) -> Option<(Result<Event, Infallible>, Self)> {
+        loop {
+            let next = if self.dirty {
+                Next::Draw
+            } else {
+                tokio::select! {
+                    () = self.watch.changed() => Next::Draw,
+                    _ = self.heartbeat.tick() => Next::Beat,
+                }
+            };
+            match next {
+                Next::Beat => {
+                    match self
+                        .gui
+                        .service
+                        .authenticate_request(&self.credentials.parts())
+                        .await
+                    {
+                        Ok(actor) if actor == self.actor => {}
+                        Ok(_) | Err(ServiceError::NotAuthenticated) => {
+                            tracing::debug!(actor = %self.actor, "an alert stream's session ended");
+                            return None;
+                        }
+                        Err(error) => {
+                            tracing::warn!(actor = %self.actor, "an alert stream couldn't check its session: {error}");
+                            return None;
+                        }
+                    }
+                    return Some((Ok(Event::default().comment("heartbeat")), self));
+                }
+                Next::Draw => {
+                    self.dirty = false;
+                    if let Some(drawn_at) = self.drawn_at {
+                        // landings meanwhile wake the watch once, and this read sees them all
+                        tokio::time::sleep_until(drawn_at + MIN_REDRAW).await;
+                    }
+                    self.drawn_at = Some(tokio::time::Instant::now());
+                    let root = self.watch.root();
+                    let read = async {
+                        let tree = self.gui.service.alert_tree(&self.actor, root).await?;
+                        let comments = self
+                            .gui
+                            .service
+                            .alert_observable_comments(&self.actor, root)
+                            .await?;
+                        Ok::<_, ServiceError>((tree, comments))
+                    };
+                    let (tree, comments) = match read.await {
+                        Ok(read) => read,
+                        Err(error) => {
+                            tracing::info!(actor = %self.actor, %root, "an alert stream ends: {error}");
+                            return None;
+                        }
+                    };
+                    let fragment = AlertTreeFragment {
+                        tree: tree_view(&tree, &comments),
+                    };
+                    let (html, version) = match fragment.render_versioned() {
+                        Ok(drawn) => drawn,
+                        Err(error) => {
+                            tracing::error!("an alert tree couldn't be drawn: {error}");
+                            return None;
+                        }
+                    };
+                    if version == self.version {
+                        continue;
+                    }
+                    self.version = version;
+                    let event = patch_elements(&html, &self.version);
+                    return Some((Ok(event), self));
+                }
+            }
+        }
+    }
+}
+
+/// A `datastar-patch-elements` event that morphs the element of the fragment's id. Each line of the HTML
+/// is a `data: elements` line; a carriage return can't be in one, so it's written as its entity, which
+/// is the same text inside an element or an attribute.
+fn patch_elements(html: &str, version: &str) -> Event {
+    let data = html
+        .replace('\r', "&#13;")
+        .lines()
+        .map(|line| format!("elements {line}"))
+        .collect::<Vec<_>>()
+        .join("\n");
+    Event::default()
+        .event("datastar-patch-elements")
+        .id(version)
+        .data(data)
+}
+
+/// `GET /alerts/{id}/live`.
+pub(crate) async fn live(
+    State(gui): State<Gui>,
+    viewer: SignedIn,
+    parts: Parts,
+    Path(raw): Path<String>,
+) -> Response {
+    let id = match alert_id(&raw, &parts) {
+        Ok(id) => id,
+        Err(_) => return StatusCode::NOT_FOUND.into_response(),
+    };
+    // A reconnect says what it last had; the page's own version is in the URL.
+    let version = parts
+        .headers
+        .get("last-event-id")
+        .and_then(|value| value.to_str().ok())
+        .map(str::to_owned)
+        .or_else(|| {
+            parts.uri.query().and_then(|query| {
+                serde_urlencoded::from_str::<Vec<(String, String)>>(query)
+                    .ok()?
+                    .into_iter()
+                    .find(|(name, _)| name == "v")
+                    .map(|(_, value)| value)
+            })
+        })
+        .unwrap_or_default();
+    let Some(admitted) = gui.live.admit(&viewer.actor) else {
+        tracing::warn!(actor = %viewer.actor, "an alert stream was refused: too many are open");
+        return StatusCode::SERVICE_UNAVAILABLE.into_response();
+    };
+    let watch = match gui.service.watch_alert(&viewer.actor, id).await {
+        Ok(watch) => watch,
+        Err(error) => {
+            let status = match error {
+                ServiceError::PermissionDenied { .. } => StatusCode::FORBIDDEN,
+                ServiceError::NotFound(_) => StatusCode::NOT_FOUND,
+                error => {
+                    tracing::error!("an alert stream couldn't start: {error}");
+                    StatusCode::INTERNAL_SERVER_ERROR
+                }
+            };
+            return status.into_response();
+        }
+    };
+    let mut heartbeat = tokio::time::interval(gui.live.limits.heartbeat);
+    heartbeat.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
+    // the first tick is now; the first heartbeat is one period on
+    heartbeat.reset();
+    let state = Streaming {
+        credentials: Credentials::from(&parts.headers, gui.transport),
+        gui,
+        actor: viewer.actor,
+        watch,
+        version,
+        dirty: true,
+        drawn_at: None,
+        heartbeat,
+        _admitted: admitted,
+    };
+    Sse::new(stream::unfold(state, Streaming::next)).into_response()
+}

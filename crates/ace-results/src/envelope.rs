@@ -173,6 +173,11 @@ pub struct NewObservable {
     /// the part sandboxes the document.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub redirection: Option<ObservableRef>,
+    /// The label the alert view shows in place of the type's name, such as `Source IP`, as ace3's
+    /// `display_type`, which an observable mapping or a module sets. The alert keeps one per
+    /// observable: a later result's label replaces an earlier one, and a result without one leaves it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub display_type: Option<String>,
 }
 
 impl NewObservable {
@@ -187,6 +192,7 @@ impl NewObservable {
             detections: Vec::new(),
             relationships: Vec::new(),
             redirection: None,
+            display_type: None,
         }
     }
 }

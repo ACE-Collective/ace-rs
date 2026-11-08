@@ -1,6 +1,11 @@
 //! PLAN.md 5.7: the base layout for a visitor and for a signed-in user, login and logout over 5.4's
 //! service with the CSRF check, the security headers, the embedded assets, escaping, and the theme. The
 //! Done check, that a template using a missing field fails the build, is `templates`' doctests.
+//!
+//! PLAN.md 5.8: the alert view, drawn by its view function from a fixture tree and through the service
+//! from Postgres, with the Splunk module's result showing ace3's display types; the live stream that
+//! pushes a result as it lands, ends with the session, is bounded, and leaves nothing when its client
+//! goes; and the section pins. The browser's half of the Done check is `tests/e2e/run`'s.
 
 use std::collections::BTreeSet;
 use std::io::Write;
@@ -12,10 +17,14 @@ use ace_core::eligibility::Catalog;
 use ace_core::modes::Modes;
 use ace_core::orchestrator::Orchestrator;
 use ace_core::testing::TestDb;
+use ace_gui::alert::{AlertPage, AlertTreeFragment, tree_view};
 use ace_gui::templates::{ErrorPage, HomePage, Layout, LoginPage};
-use ace_gui::{Gui, asset_named};
+use ace_gui::{Gui, LiveLimits, asset_named};
 use ace_service::{
-    Actor, Component, Password, Profile, Service, ServiceError, Theme, Transport, Username,
+    Actor, Addition, Alert, AlertDetection, AlertFile, AlertObservable, AlertSummary, AlertTree,
+    AnalysisState, CommentAuthor, Component, Effect, Holder, ModuleResult, ObservableComment,
+    Password, PermissionPattern, Profile, RecordedActor, Service, ServiceError, Theme, Transport,
+    Username,
 };
 use askama::Template;
 use reqwest::StatusCode;
@@ -27,6 +36,7 @@ const PASSWORD: &str = "correct horse battery staple";
 struct Stack {
     test_db: TestDb,
     service: Service,
+    gui: Gui,
     url: String,
     http: reqwest::Client,
     task: tokio::task::JoinHandle<()>,
@@ -39,10 +49,15 @@ impl Drop for Stack {
 }
 
 async fn stack() -> Stack {
+    stack_with(LiveLimits::default()).await
+}
+
+async fn stack_with(limits: LiveLimits) -> Stack {
     let test_db = TestDb::new().await;
     let orchestrator = Orchestrator::new(Catalog::new(vec![]), Modes::ace3());
     let service = Service::new(test_db.db().clone(), orchestrator);
-    let router = Gui::new(service.clone(), Transport::Plain).router();
+    let gui = Gui::with_limits(service.clone(), Transport::Plain, limits);
+    let router = gui.router();
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
         .await
         .expect("binds");
@@ -64,6 +79,7 @@ async fn stack() -> Stack {
     Stack {
         test_db,
         service,
+        gui,
         url,
         http,
         task,
@@ -931,4 +947,808 @@ async fn no_credential_reaches_the_log_through_the_routes() {
     ] {
         assert!(!log.contains(&credential), "{credential} is in the log");
     }
+}
+
+// ---- PLAN.md 5.8: the alert view ----
+
+fn summary(id: uuid::Uuid, title: &str) -> AlertSummary {
+    let at = chrono::DateTime::from_timestamp(1_793_000_000, 0).expect("a time");
+    AlertSummary {
+        id,
+        title: title.to_owned(),
+        analysis_mode: "correlation".to_owned(),
+        event_time: Some(at),
+        event_time_source: "event".to_owned(),
+        created_at: at,
+        alerted_at: at,
+        disposition: None,
+        dispositioned_at: None,
+        dispositioned_by: None,
+        submitted_by: Some(RecordedActor {
+            kind: "api_key".to_owned(),
+            id: "k".to_owned(),
+            name: Some("<the submitter>".to_owned()),
+        }),
+        analysis: AnalysisState::Running,
+    }
+}
+
+fn observable(id: i64, kind: &str, value: &str) -> AlertObservable {
+    AlertObservable {
+        id,
+        kind: kind.to_owned(),
+        value: value.to_owned(),
+        time: None,
+        tags: Vec::new(),
+        directives: Vec::new(),
+        exclude_modules: Vec::new(),
+        redirection: None,
+        display_type: None,
+        files: Vec::new(),
+        relationships: Vec::new(),
+        results: Vec::new(),
+        detections: Vec::new(),
+    }
+}
+
+fn module_result(id: i64, module: &str, summary: Option<&str>) -> ModuleResult {
+    ModuleResult {
+        id,
+        module: module.to_owned(),
+        analysis_type: format!("{module}_analysis"),
+        schema_version: 1,
+        summary: summary.map(str::to_owned),
+        tags: Vec::new(),
+        details: serde_json::json!({}),
+        created_at: chrono::DateTime::from_timestamp(1_793_000_000, 0).expect("a time"),
+    }
+}
+
+/// A tree with a loop and a repeat in it, and hostile text everywhere a module can put text.
+fn fixture_tree() -> (AlertTree, Vec<ObservableComment>) {
+    let id = uuid::Uuid::from_u128(0x5800);
+    let mut email = observable(
+        1,
+        "file",
+        "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    );
+    email.files.push(AlertFile {
+        path: "email.rfc822".to_owned(),
+        yara_meta: Vec::new(),
+    });
+    let mut parsed = module_result(10, "email_analyzer", Some("Email <b>Analysis</b>"));
+    parsed.tags = vec!["x\"onmouseover=\"y".to_owned()];
+    email.results.push(parsed);
+    let mut sender = observable(2, "email_from", "a@example.com");
+    sender.tags = vec!["<script>alert(1)</script>".to_owned()];
+    sender.detections.push(AlertDetection {
+        description: "a known <bad> sender".to_owned(),
+        details: None,
+        module: Some("email_analyzer".to_owned()),
+    });
+    let mut ip = observable(3, "ip", "192.0.2.10");
+    ip.display_type = Some("Source IP".to_owned());
+    ip.results.push(module_result(11, "rdap_analyzer", None));
+    let fqdn = observable(4, "fqdn", "evil.example.com'><img src=x>");
+    let tree = AlertTree {
+        alert: Alert {
+            summary: summary(id, "<i>Phish</i>"),
+            observables: 4,
+            files: 1,
+            detections: 1,
+        },
+        observables: vec![email, sender, ip, fqdn],
+        top: vec![1],
+        additions: [
+            (10, 2),
+            (10, 3),
+            // the email's own result names it again, so the walk meets it twice
+            (10, 1),
+            (11, 4),
+            (11, 2),
+        ]
+        .into_iter()
+        .map(|(result, observable)| Addition { result, observable })
+        .collect(),
+        truncated: false,
+    };
+    let comments = vec![ObservableComment {
+        id: 1,
+        kind: "ip".to_owned(),
+        value: "192.0.2.10".to_owned(),
+        author: CommentAuthor {
+            id: ace_service::UserId(uuid::Uuid::from_u128(1)),
+            username: "alice".to_owned(),
+            display_name: Some("Alice <A>".to_owned()),
+        },
+        created_by: RecordedActor {
+            kind: "user".to_owned(),
+            id: "1".to_owned(),
+            name: Some("alice".to_owned()),
+        },
+        comment: "seen </li><li>before".to_owned(),
+        created_at: chrono::DateTime::from_timestamp(1_793_000_000, 0).expect("a time"),
+        edited_at: None,
+    }];
+    (tree, comments)
+}
+
+/// PLAN.md 5.8's Done check, its first part: the view function, called directly, draws a fixture tree as
+/// ace3's walk does, with each module's text escaped and a display type in place of the type's name.
+#[test]
+fn the_view_function_draws_a_fixture_tree() {
+    let (tree, comments) = fixture_tree();
+    let view = tree_view(&tree, &comments);
+    let html = AlertTreeFragment { tree: view.clone() }
+        .render()
+        .expect("renders");
+    let compact: String = html.lines().map(str::trim).collect();
+    // the shape: the email at the top, its result, what that added, a jump back to the email, and the
+    // IP's result with the fqdn and a reference to the sender, which has no analysis to jump to
+    let order = [
+        r#"<div id="alert-tree" class="tree">"#,
+        r#"<li class="observable" id="o1"><b class="type">file</b> : <span class="value">email.rfc822</span>"#,
+        r#"<li class="result" id="r10" data-module="email_analyzer"><span class="summary" title="email_analyzer">Email &#60;b&#62;Analysis&#60;/b&#62;</span> <span class="tag">x&#34;onmouseover=&#34;y</span>"#,
+        r#"<li class="observable" id="o2"><b class="type">Mail From (email_from)</b> : <span class="value">a@example.com</span> <span class="detection" title="a known &#60;bad&#62; sender">detection: a known &#60;bad&#62; sender</span> <span class="tag">&#60;script&#62;alert(1)&#60;/script&#62;</span></li>"#,
+        r#"<li class="observable" id="o3"><b class="type">Source IP (ip)</b> : <span class="value">192.0.2.10</span>"#,
+        r#"<li class="comment"><span class="author">Alice &#60;A&#62;</span> <span class="time">2026-10-26 07:33:20 UTC</span>: seen &#60;/li&#62;&#60;li&#62;before</li>"#,
+        r#"<li class="result" id="r11" data-module="rdap_analyzer"><span class="summary" title="rdap_analyzer">rdap_analyzer</span>"#,
+        r#"<li class="observable" id="o4"><b class="type">fqdn</b> : <span class="value">evil.example.com&#39;&#62;&#60;img src=x&#62;</span></li>"#,
+        r#"<li class="observable"><b class="type">Mail From (email_from)</b> : <span class="value">a@example.com</span>"#,
+        r##"<li class="observable"><b class="type">file</b> : <span class="value">email.rfc822</span><ul><li class="jump"><a href="#o1">Jump To Analysis</a></li></ul></li>"##,
+    ];
+    let mut at = 0;
+    for part in order {
+        let found = compact[at..]
+            .find(part)
+            .unwrap_or_else(|| panic!("{part}\nisn't after byte {at} of\n{compact}"));
+        at += found + part.len();
+    }
+    assert_eq!(
+        compact.matches(r#"id="o1""#).count(),
+        1,
+        "one place in full"
+    );
+    assert_eq!(
+        compact.matches("<li").count(),
+        compact.matches("</li>").count()
+    );
+    assert_eq!(
+        compact.matches("<ul").count(),
+        compact.matches("</ul>").count()
+    );
+    for raw in [
+        "<b>Analysis",
+        "<script>",
+        "<img",
+        "<bad>",
+        "</li><li>before",
+        "<A>",
+    ] {
+        assert!(!html.contains(raw), "{raw} unescaped in {html}");
+    }
+
+    // The page around it, with its details, its section and the stream it starts.
+    let open = AlertPage::new(
+        Layout::new("n0nce", Theme::Light, Some("alice".to_owned()), "/alerts/x"),
+        &tree,
+        &comments,
+        &std::collections::BTreeMap::new(),
+    )
+    .expect("a page");
+    let version = open.version.clone();
+    assert_eq!(version.len(), 16);
+    assert_eq!(
+        AlertTreeFragment { tree: view }
+            .render_versioned()
+            .expect("renders")
+            .1,
+        version,
+        "the page's version is its tree's"
+    );
+    let page = open.render().expect("renders");
+    assert!(page.contains(&format!(
+        r#"<section class="alert" data-init="@get('/alerts/{}/live?v={version}')">"#,
+        tree.alert.summary.id
+    )));
+    assert!(
+        page.contains("<h1>&#60;i&#62;Phish&#60;/i&#62;</h1>"),
+        "{page}"
+    );
+    assert!(page.contains(r#"<details class="section" data-section-id="alert_details" open>"#));
+    assert!(page.contains("<th>Submitted by</th><td>&#60;the submitter&#62;</td>"));
+    assert!(page.contains(r#"<div id="alert-tree" class="tree">"#));
+    assert!(
+        !page.contains("style="),
+        "no inline style, which the policy refuses"
+    );
+    assert!(!page.contains("<script>"), "no inline script");
+    let closed = AlertPage::new(
+        Layout::new("n0nce", Theme::Light, Some("alice".to_owned()), "/alerts/x"),
+        &tree,
+        &comments,
+        &[("alert_details".to_owned(), false)].into_iter().collect(),
+    )
+    .expect("a page")
+    .render()
+    .expect("renders");
+    assert!(closed.contains(r#"<details class="section" data-section-id="alert_details">"#));
+    assert!(closed.contains("Collapsed by default"));
+}
+
+fn grant_alert_read(stack: &Stack, actor: &Actor) -> impl std::future::Future<Output = ()> {
+    let Actor::User { id, .. } = actor else {
+        panic!("a user");
+    };
+    let (service, holder) = (stack.service.clone(), Holder::User(*id));
+    async move {
+        service
+            .grant(
+                &bootstrap(),
+                &holder,
+                &PermissionPattern::new("alert", "read").expect("a pattern"),
+                Effect::Allow,
+            )
+            .await
+            .expect("grants");
+    }
+}
+
+/// What a module's result adds, landed as the orchestrator lands it.
+async fn land(
+    stack: &Stack,
+    root: uuid::Uuid,
+    on: ace_core::tree::ObservableId,
+    module: &str,
+    result: &ace_results::ResultEnvelope<serde_json::Value>,
+) {
+    let db = stack.test_db.db();
+    let mut tx = db.begin().await.expect("begins");
+    let id = ace_core::tree::insert_result(&mut tx, root, on, module, result)
+        .await
+        .expect("stores the result");
+    for observable in &result.observables {
+        let added = ace_core::tree::upsert_observable(&mut tx, root, observable)
+            .await
+            .expect("adds")
+            .id;
+        ace_core::tree::add_result_addition(&mut tx, root, id, added, None)
+            .await
+            .expect("records the addition");
+    }
+    tx.commit().await.expect("commits");
+}
+
+fn stub_result(
+    analysis_type: &str,
+    summary: &str,
+) -> ace_results::ResultEnvelope<serde_json::Value> {
+    serde_json::from_value(serde_json::json!({
+        "analysis_type": analysis_type,
+        "schema_version": 1,
+        "details": {},
+        "summary": summary,
+    }))
+    .expect("a result")
+}
+
+/// An alert on `www.example.com` holding what the Splunk module wrote for ace3's reference search
+/// (`crates/ace-mod-splunk/tests/reference.rs` keeps the fixture its result), and its fqdn's row.
+async fn splunk_alert(stack: &Stack) -> (uuid::Uuid, ace_core::tree::ObservableId) {
+    let root = ace_core::tree::NewRoot {
+        description: "Proxy <correlation>".to_owned(),
+        ..ace_core::tree::NewRoot::new("correlation")
+    };
+    let db = stack.test_db.db();
+    let mut tx = db.begin().await.expect("begins");
+    ace_core::tree::create_root(&mut tx, &root)
+        .await
+        .expect("creates");
+    let fqdn = ace_core::tree::upsert_observable(
+        &mut tx,
+        root.id,
+        &ace_results::NewObservable::new(ace_results::ObservableKind::Fqdn, "www.example.com"),
+    )
+    .await
+    .expect("adds")
+    .id;
+    tx.commit().await.expect("commits");
+    sqlx::query("UPDATE analysis.roots SET alerted_at = now() WHERE id = $1")
+        .bind(root.id)
+        .execute(db.pool())
+        .await
+        .expect("an alert");
+    let fixture: serde_json::Value = serde_json::from_str(
+        &std::fs::read_to_string(
+            Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("tests/fixtures/splunk_proxy_domain_lookup.json"),
+        )
+        .expect("the fixture reads"),
+    )
+    .expect("JSON");
+    let result = serde_json::from_value(fixture).expect("a result envelope");
+    land(stack, root.id, fqdn, "proxy_domain_lookup", &result).await;
+    (root.id, fqdn)
+}
+
+async fn session_of(stack: &Stack, name: &str) -> String {
+    let response = stack.log_in(name, PASSWORD).await;
+    session_set(response.headers()).expect("a session")
+}
+
+/// PLAN.md 5.8: the page reads its tree from Postgres through the service, under `alert:read`, and the
+/// Splunk module's IP observables read as ace3's do, `Source IP` and `Destination IP`, by the labels in
+/// ace3's own reference dump of the same search.
+#[tokio::test]
+async fn the_alert_page_draws_the_tree_from_postgres_with_ace3_s_display_types() {
+    let stack = stack().await;
+    let alice = user(&stack, "alice").await;
+    grant_alert_read(&stack, &alice).await;
+    let _bob = user(&stack, "bob").await;
+    let (root, _) = splunk_alert(&stack).await;
+    let path = format!("/alerts/{root}");
+
+    let alice_session = session_of(&stack, "alice").await;
+    let response = stack
+        .get(&path)
+        .header("cookie", cookie(&alice_session))
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(response.status(), StatusCode::OK);
+    let policy = response.headers()["content-security-policy"]
+        .to_str()
+        .expect("text")
+        .to_owned();
+    let page = response.text().await.expect("a page");
+    assert!(policy.contains("script-src 'self' 'nonce-"), "{policy}");
+    assert!(
+        page.contains("<h1>Proxy &#60;correlation&#62;</h1>"),
+        "{page}"
+    );
+    assert!(
+        page.contains(r#"<b class="type">fqdn</b> : <span class="value">www.example.com</span>"#)
+    );
+    assert!(page.contains(r#"data-module="proxy_domain_lookup""#));
+    assert!(page.contains("Proxy correlation: (3 results)"));
+
+    // Every IP observable ace3's dump labels, labelled the same, and none of them without.
+    let dump: serde_json::Value = serde_json::from_str(
+        &std::fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join(
+            "../../tools/ace3/dumps/reference/proxy_domain_lookup/fqdn_www.example.com.json",
+        ))
+        .expect("ace3's dump reads"),
+    )
+    .expect("JSON");
+    let mut labelled = 0;
+    for observable in dump["analyses"][0]["observables"]
+        .as_array()
+        .expect("a list")
+    {
+        let (kind, value) = (
+            observable["type"].as_str().expect("a type"),
+            observable["value"].as_str().expect("a value"),
+        );
+        // ace3's Observable.display_type: "<label> (<type>)", or the type alone
+        let label = match observable["display_type"].as_str() {
+            Some(label) => {
+                labelled += 1;
+                format!("{label} ({kind})")
+            }
+            None => kind.to_owned(),
+        };
+        let drawn = format!(r#"<b class="type">{label}</b> : <span class="value">{value}</span>"#);
+        assert!(page.contains(&drawn), "{drawn} isn't in {page}");
+    }
+    assert_eq!(labelled, 6, "the dump's six addresses");
+    for label in ["Source IP (ip)", "Destination IP (ip)"] {
+        assert!(page.contains(label));
+    }
+
+    // No alert:read, no such alert, not an id, and no session.
+    let bob_session = session_of(&stack, "bob").await;
+    let refused = stack
+        .get(&path)
+        .header("cookie", cookie(&bob_session))
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(refused.status(), StatusCode::FORBIDDEN);
+    assert!(
+        !refused
+            .text()
+            .await
+            .expect("a page")
+            .contains("www.example.com")
+    );
+    for missing in [
+        format!("/alerts/{}", uuid::Uuid::nil()),
+        "/alerts/x".to_owned(),
+    ] {
+        let response = stack
+            .get(&missing)
+            .header("cookie", cookie(&alice_session))
+            .send()
+            .await
+            .expect("answered");
+        assert_eq!(response.status(), StatusCode::NOT_FOUND, "{missing}");
+    }
+    let anonymous = stack.get(&path).send().await.expect("answered");
+    assert_eq!(anonymous.status(), StatusCode::SEE_OTHER);
+    assert_eq!(
+        location(&anonymous),
+        format!("/login?next=%2Falerts%2F{root}")
+    );
+}
+
+/// Reads a stream's body until `done` says what it has so far is enough, or `within` passes. Returns
+/// the text, and whether the stream ended.
+async fn read_stream(
+    response: &mut reqwest::Response,
+    within: std::time::Duration,
+    done: impl Fn(&str) -> bool,
+) -> (String, bool) {
+    let mut text = String::new();
+    let deadline = tokio::time::Instant::now() + within;
+    loop {
+        if done(&text) {
+            return (text, false);
+        }
+        match tokio::time::timeout_at(deadline, response.chunk()).await {
+            Err(_) => return (text, false),
+            Ok(Ok(Some(chunk))) => text.push_str(&String::from_utf8_lossy(&chunk)),
+            Ok(Ok(None)) => return (text, true),
+            Ok(Err(error)) => panic!("the stream failed: {error}"),
+        }
+    }
+}
+
+impl Stack {
+    async fn open_stream(&self, path: &str, session: &str) -> reqwest::Response {
+        self.get(path)
+            .header("cookie", cookie(session))
+            .header("datastar-request", "true")
+            .send()
+            .await
+            .expect("answered")
+    }
+
+    async fn page_version(&self, root: uuid::Uuid, session: &str) -> String {
+        let page = self
+            .get(&format!("/alerts/{root}"))
+            .header("cookie", cookie(session))
+            .send()
+            .await
+            .expect("answered")
+            .text()
+            .await
+            .expect("a page");
+        page.split("/live?v=")
+            .nth(1)
+            .and_then(|rest| rest.split('\'').next())
+            .expect("the stream's URL")
+            .to_owned()
+    }
+
+    /// Waits until nothing watches and no stream is open.
+    async fn wait_until_closed(&self) {
+        let deadline = tokio::time::Instant::now() + std::time::Duration::from_secs(10);
+        while self.service.watching() != (0, false) || self.gui.open_streams() != 0 {
+            assert!(
+                tokio::time::Instant::now() < deadline,
+                "still watching {:?} with {} streams open",
+                self.service.watching(),
+                self.gui.open_streams()
+            );
+            tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+        }
+    }
+}
+
+/// PLAN.md 5.8: when Postgres notifies of a new result, the open page's stream sends the tree with it as
+/// a Datastar fragment; a stream that opens behind the page catches up; and when the client goes, its
+/// watch, its place and the listener go too.
+#[tokio::test]
+async fn a_result_that_lands_is_pushed_to_an_open_stream() {
+    let stack = stack_with(LiveLimits {
+        heartbeat: std::time::Duration::from_secs(60),
+        ..LiveLimits::default()
+    })
+    .await;
+    let alice = user(&stack, "alice").await;
+    grant_alert_read(&stack, &alice).await;
+    let (root, fqdn) = splunk_alert(&stack).await;
+    let session = session_of(&stack, "alice").await;
+    let version = stack.page_version(root, &session).await;
+    assert_eq!(
+        stack.service.watching(),
+        (0, false),
+        "a page alone watches nothing"
+    );
+
+    let mut stream = stack
+        .open_stream(&format!("/alerts/{root}/live?v={version}"), &session)
+        .await;
+    assert_eq!(stream.status(), StatusCode::OK);
+    assert_eq!(
+        stream.headers()["content-type"].to_str().expect("text"),
+        "text/event-stream"
+    );
+    assert!(stream.headers().contains_key("content-security-policy"));
+    // the page has this version, so there's nothing to send yet
+    let (quiet, _) = read_stream(&mut stream, std::time::Duration::from_millis(600), |_| {
+        false
+    })
+    .await;
+    assert_eq!(quiet, "", "nothing changed");
+    assert_eq!(stack.service.watching(), (1, true));
+    assert_eq!(stack.gui.open_streams(), 1);
+
+    land(
+        &stack,
+        root,
+        fqdn,
+        "rdap_analyzer",
+        &stub_result("rdap_analysis", "RDAP <lookup>"),
+    )
+    .await;
+    let (pushed, ended) = read_stream(&mut stream, std::time::Duration::from_secs(10), |text| {
+        text.contains("\n\n")
+    })
+    .await;
+    assert!(!ended);
+    assert!(
+        pushed.starts_with("event: datastar-patch-elements\n"),
+        "{pushed}"
+    );
+    assert!(
+        pushed.contains(r#"data: elements <div id="alert-tree" class="tree">"#),
+        "{pushed}"
+    );
+    assert!(
+        pushed.contains(r#"data-module="rdap_analyzer""#),
+        "{pushed}"
+    );
+    assert!(
+        pushed.contains("RDAP &#60;lookup&#62;"),
+        "escaped: {pushed}"
+    );
+    assert!(pushed.contains("Source IP (ip)"));
+    let pushed_version = pushed
+        .lines()
+        .find_map(|line| line.strip_prefix("id: "))
+        .expect("an id")
+        .to_owned();
+    assert_ne!(pushed_version, version);
+    assert_eq!(
+        stack.page_version(root, &session).await,
+        pushed_version,
+        "a reload draws what the stream sent"
+    );
+
+    // A stream behind the page, as after a landing it missed, sends the tree at once; one that says it
+    // has the current version by Last-Event-ID, as Datastar's reconnect does, sends nothing.
+    let mut behind = stack
+        .open_stream(&format!("/alerts/{root}/live?v={version}"), &session)
+        .await;
+    let (caught_up, _) = read_stream(&mut behind, std::time::Duration::from_secs(10), |text| {
+        text.contains("\n\n")
+    })
+    .await;
+    assert!(
+        caught_up.contains(&format!("id: {pushed_version}\n")),
+        "{caught_up}"
+    );
+    let mut current = stack
+        .get(&format!("/alerts/{root}/live?v={version}"))
+        .header("cookie", cookie(&session))
+        .header("last-event-id", &pushed_version)
+        .send()
+        .await
+        .expect("answered");
+    let (nothing, _) = read_stream(&mut current, std::time::Duration::from_millis(600), |_| {
+        false
+    })
+    .await;
+    assert_eq!(nothing, "");
+    assert_eq!(
+        stack.service.watching(),
+        (1, true),
+        "three streams, one alert"
+    );
+    assert_eq!(stack.gui.open_streams(), 3);
+
+    drop((stream, behind, current));
+    stack.wait_until_closed().await;
+}
+
+/// The stream checks its session at each heartbeat, so a logout ends it; and it refuses a visitor, an
+/// actor without `alert:read` and an alert that isn't one.
+#[tokio::test]
+async fn a_stream_ends_with_its_session_and_checks_its_reader() {
+    let stack = stack_with(LiveLimits {
+        heartbeat: std::time::Duration::from_millis(200),
+        ..LiveLimits::default()
+    })
+    .await;
+    let alice = user(&stack, "alice").await;
+    grant_alert_read(&stack, &alice).await;
+    let _bob = user(&stack, "bob").await;
+    let (root, _) = splunk_alert(&stack).await;
+    let session = session_of(&stack, "alice").await;
+    let version = stack.page_version(root, &session).await;
+    let live = format!("/alerts/{root}/live?v={version}");
+
+    let mut stream = stack.open_stream(&live, &session).await;
+    let (beats, ended) = read_stream(&mut stream, std::time::Duration::from_secs(5), |text| {
+        text.matches(": heartbeat\n").count() >= 2
+    })
+    .await;
+    assert!(!ended, "{beats}");
+    let logout = stack
+        .post("/logout", &[])
+        .header("cookie", cookie(&session))
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(logout.status(), StatusCode::SEE_OTHER);
+    let (_, ended) = read_stream(&mut stream, std::time::Duration::from_secs(5), |_| false).await;
+    assert!(ended, "the stream ended with the session");
+    stack.wait_until_closed().await;
+
+    let anonymous = stack
+        .get(&live)
+        .header("datastar-request", "true")
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(anonymous.status(), StatusCode::UNAUTHORIZED);
+    let bob = session_of(&stack, "bob").await;
+    assert_eq!(
+        stack.open_stream(&live, &bob).await.status(),
+        StatusCode::FORBIDDEN
+    );
+    let alice_again = session_of(&stack, "alice").await;
+    for missing in [
+        format!("/alerts/{}/live", uuid::Uuid::nil()),
+        "/alerts/x/live".to_owned(),
+    ] {
+        assert_eq!(
+            stack.open_stream(&missing, &alice_again).await.status(),
+            StatusCode::NOT_FOUND,
+            "{missing}"
+        );
+    }
+    stack.wait_until_closed().await;
+}
+
+/// At most `per_user` streams for one user and `streams` in all; past either, 503, and a stream that
+/// goes gives its place back.
+#[tokio::test]
+async fn streams_are_bounded_per_user_and_in_all() {
+    let stack = stack_with(LiveLimits {
+        streams: 2,
+        per_user: 1,
+        heartbeat: std::time::Duration::from_secs(60),
+    })
+    .await;
+    let mut sessions = Vec::new();
+    for name in ["alice", "bob", "carol"] {
+        let actor = user(&stack, name).await;
+        grant_alert_read(&stack, &actor).await;
+        sessions.push(session_of(&stack, name).await);
+    }
+    let (root, _) = splunk_alert(&stack).await;
+    let version = stack.page_version(root, &sessions[0]).await;
+    let live = format!("/alerts/{root}/live?v={version}");
+
+    let alice = stack.open_stream(&live, &sessions[0]).await;
+    assert_eq!(alice.status(), StatusCode::OK);
+    assert_eq!(
+        stack.open_stream(&live, &sessions[0]).await.status(),
+        StatusCode::SERVICE_UNAVAILABLE,
+        "one each"
+    );
+    let bob = stack.open_stream(&live, &sessions[1]).await;
+    assert_eq!(bob.status(), StatusCode::OK);
+    assert_eq!(
+        stack.open_stream(&live, &sessions[2]).await.status(),
+        StatusCode::SERVICE_UNAVAILABLE,
+        "two in all"
+    );
+    drop(alice);
+    let deadline = tokio::time::Instant::now() + std::time::Duration::from_secs(10);
+    let carol = loop {
+        let carol = stack.open_stream(&live, &sessions[2]).await;
+        if carol.status() == StatusCode::OK {
+            break carol;
+        }
+        assert!(
+            tokio::time::Instant::now() < deadline,
+            "alice's place never came back"
+        );
+        tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+    };
+    drop((bob, carol));
+    stack.wait_until_closed().await;
+}
+
+/// The section pin sets the viewer's `alert_sections` through the service, with an audit row, and the
+/// page starts the section that way.
+#[tokio::test]
+async fn a_section_pin_sets_how_it_starts() {
+    let stack = stack().await;
+    let alice = user(&stack, "alice").await;
+    grant_alert_read(&stack, &alice).await;
+    let (root, _) = splunk_alert(&stack).await;
+    let session = session_of(&stack, "alice").await;
+    let path = format!("/alerts/{root}");
+    let page = |stack: &Stack| {
+        let request = stack.get(&path).header("cookie", cookie(&session));
+        async move {
+            request
+                .send()
+                .await
+                .expect("answered")
+                .text()
+                .await
+                .expect("a page")
+        }
+    };
+    assert!(
+        page(&stack)
+            .await
+            .contains(r#"data-section-id="alert_details" open>"#)
+    );
+
+    let audits = stack.audit_count().await;
+    let pin = stack
+        .post(
+            "/preferences/alert-section",
+            &[
+                ("section", "alert_details"),
+                ("open", "false"),
+                ("next", &path),
+            ],
+        )
+        .header("cookie", cookie(&session))
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(pin.status(), StatusCode::SEE_OTHER);
+    assert_eq!(location(&pin), path);
+    assert_eq!(stack.audit_count().await, audits + 1);
+    assert!(
+        page(&stack)
+            .await
+            .contains(r#"data-section-id="alert_details">"#)
+    );
+    assert_eq!(
+        stack.service.alert_sections(&alice).await.expect("reads"),
+        [("alert_details".to_owned(), false)].into_iter().collect()
+    );
+
+    for form in [
+        [("section", "Alert Details"), ("open", "true")],
+        [("section", "alert_details"), ("open", "yes")],
+    ] {
+        let refused = stack
+            .post("/preferences/alert-section", &form)
+            .header("cookie", cookie(&session))
+            .send()
+            .await
+            .expect("answered");
+        assert_eq!(refused.status(), StatusCode::BAD_REQUEST, "{form:?}");
+    }
+    let cross_site = stack
+        .http
+        .post(format!("{}/preferences/alert-section", stack.url))
+        .header("cookie", cookie(&session))
+        .header("origin", "http://evil.example")
+        .form(&[("section", "alert_details"), ("open", "true")])
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(cross_site.status(), StatusCode::FORBIDDEN);
+    assert_eq!(stack.audit_count().await, audits + 1);
 }

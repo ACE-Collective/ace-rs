@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT o.id FROM analysis.observables o\n                         JOIN analysis.roots r ON r.id = o.root_id\n                         WHERE o.root_id = $1 AND o.created_at = r.created_at\n                         ORDER BY o.id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "analysis.observables",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "2675f6dbb187089347ab95a983008155ff4df049d754643bed5e7e1ad87911f8"
+}

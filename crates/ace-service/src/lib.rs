@@ -43,6 +43,9 @@
 //! `observable_comments` keeps analysts' comments on an observable by its type and value, across alerts,
 //! for 5.6's `observable_comments` router, and reads an alert's for 5.8's alert view.
 //!
+//! `alert_view` reads an alert's whole tree for 5.8's alert view, and watches an alert for results landing
+//! on it, so an open page can show them.
+//!
 //! `preferences` keeps a user's GUI preferences, ace3's `user_preferences` router, for 5.7's GUI and its
 //! routes under `/api/users/v1/me/preferences`.
 //!
@@ -54,6 +57,7 @@
 //!   its token, and a task's row names its `lease_owner`.
 
 mod actor;
+mod alert_view;
 mod alerts;
 mod auth;
 mod crashes;
@@ -80,6 +84,7 @@ use uuid::Uuid;
 use gate::{Audited, Change, Gate, Recorded, TITLE_LIMIT, Target};
 
 pub use actor::{Actor, ApiKeyId, Component, InvalidComponent, UserId};
+pub use alert_view::{Addition, AlertTree, AlertWatch, MAX_TREE_OBSERVABLES, RESULTS_CHANNEL};
 pub use alerts::{
     Alert, AlertDetection, AlertFile, AlertObservable, AlertPage, AlertSummary, AnalysisState,
     FileDownload, MAX_ALERTS_PAGE, MAX_OBSERVABLES_PAGE, ModuleResult, ObservablePage,
@@ -103,7 +108,10 @@ pub use permission::{
     InvalidPermission, OBSERVABLE_READ, OBSERVABLE_WRITE, PermissionName, PermissionPattern,
     SIGNATURE_DOWNLOAD, SIGNATURE_QA_PURGE, SIGNATURE_READ, USER_READ, USER_SELF, USER_WRITE,
 };
-pub use preferences::{Preference, PreferenceKey, PreferenceValue, Theme, ThemePreference};
+pub use preferences::{
+    AlertSectionsPreference, MAX_ALERT_SECTIONS, Preference, PreferenceKey, PreferenceValue, Theme,
+    ThemePreference, is_section_id,
+};
 pub use source::with_source_ip;
 pub use users::{ApiKey, Grant, Group, MAX_KEY_SCOPE, Profile, User, UserDetail};
 pub use yara_qa::{
@@ -255,6 +263,8 @@ pub struct Service {
     gate: Gate,
     orchestrator: Orchestrator,
     passwords: auth::Passwords,
+    /// The result listener, which the alert view's watches share.
+    feed: std::sync::Arc<alert_view::Feed>,
 }
 
 impl Service {
@@ -263,6 +273,7 @@ impl Service {
             gate: Gate::new(db),
             orchestrator,
             passwords: auth::Passwords::new(),
+            feed: std::sync::Arc::default(),
         }
     }
 

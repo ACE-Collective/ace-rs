@@ -157,6 +157,13 @@ expression: text
           },
           "type": "array"
         },
+        "display_type": {
+          "description": "The label the alert view shows in place of the type's name, such as `Source IP`, as ace3's\n`display_type`, which an observable mapping or a module sets. The alert keeps one per\nobservable: a later result's label replaces an earlier one, and a result without one leaves it.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "exclude_modules": {
           "description": "Modules that must not analyze this observable, as ace3's `exclude_analysis`.",
           "items": {

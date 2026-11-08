@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT r.id, r.description, r.analysis_mode, r.event_time,\n                                  r.event_time_source::text AS \"event_time_source!\",\n                                  r.created_at, r.alerted_at AS \"alerted_at!\", r.disposition,\n                                  r.dispositioned_at,\n                                  r.dispositioned_by AS \"dispositioned_by: Value\",\n                                  r.submitted_by AS \"submitted_by: Value\",\n                                  r.pass, r.completed_pass,\n                                  r.cancelled_at IS NOT NULL AS \"cancelled!\"\n                           FROM analysis.roots r\n                           WHERE r.id = $1 AND r.alerted_at IS NOT NULL",
+  "query": "SELECT r.id, r.description, r.analysis_mode, r.event_time,\n                  r.event_time_source::text AS \"event_time_source!\",\n                  r.created_at, r.alerted_at AS \"alerted_at!\", r.disposition,\n                  r.dispositioned_at,\n                  r.dispositioned_by AS \"dispositioned_by: Value\",\n                  r.submitted_by AS \"submitted_by: Value\",\n                  r.pass, r.completed_pass,\n                  r.cancelled_at IS NOT NULL AS \"cancelled!\"\n           FROM analysis.roots r\n           WHERE r.id = $1 AND r.alerted_at IS NOT NULL",
   "describe": {
     "columns": [
       {
@@ -170,5 +170,5 @@
       null
     ]
   },
-  "hash": "6e1885506865003d48513b4faa5ef1093df789462e0bb578db95c340ca155e17"
+  "hash": "c560589ed27e9e0b7c40730b4fc9495b5e44e9968e9f0e989263f1d93b6685a5"
 }

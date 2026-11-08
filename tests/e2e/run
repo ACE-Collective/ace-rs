@@ -24,6 +24,13 @@ results from all five modules and complete; the second only later. The same emai
 times, so their trees in the normal form (PLAN.md 3.1) must be the same text, which goes to
 <work>/normal-form.json.
 
+Then the browser test (PLAN.md 5.8): the e2e profile's headless Chromium, pinned by digest in
+compose.yaml, logs in to the GUI as an analyst that `ace user create-first` makes and opens a third
+submission's alert page while the network pool is frozen, so the page has no RDAP result. The pool is
+let go, and the RDAP result has to appear on the open page, pushed by its live stream, with no reload
+and nothing the page's Content-Security-Policy refused. It drives the browser over the DevTools
+protocol, with a WebSocket client here, so it needs nothing more than python3.
+
 Then the library diff's self-test runs (PLAN.md 4.8).
 
 It then runs `ace compare` (PLAN.md 3.3, crates/ace-app/src/compare.rs) over the sample set, each
@@ -56,11 +63,14 @@ A site repository runs the same scenario, without the comparison with ace3, agai
 Its modules differ from ace3's by design, so setting ACE4_E2E_SITE skips the comparison.
 """
 
+import base64
 import hashlib
 import json
 import os
 import re
 import shutil
+import socket
+import struct
 import subprocess
 import sys
 import time
@@ -109,6 +119,10 @@ ENV = {
 ENV.pop("COMPOSE_PROJECT_NAME", None)
 COMPOSE = ["docker", "compose", "-f", str(COMPOSE_FILE), "--profile", "e2e"]
 SERVICES = ["postgres", "bucket", "ace", "parsers", "lookups", "responder"]
+# The analyst the browser test logs in as, and the GUI as the browser reaches it on the stack's network.
+ANALYST = "e2e-analyst"
+ANALYST_PASSWORD = "e2e analyst password, not a secret"
+GUI_IN_STACK = "http://ace:8000"
 # Ports of Python libraries: each must have results from both systems, because a comparison with
 # nothing compared passes.
 LIBRARY_PORTS = [
@@ -378,6 +392,231 @@ def check_normal_form(text, failures):
            "it holds no row timestamp")
 
 
+class DevTools:
+    """A page in the headless browser, over the DevTools protocol: a WebSocket (RFC 6455) client on a
+    socket, enough for text frames, which is all the protocol uses."""
+
+    def __init__(self, url, timeout=30):
+        match = re.match(r"ws://([^/:]+):(\d+)(/.*)", url)
+        if not match:
+            raise SystemExit(f"e2e: not a DevTools URL: {url}")
+        host, port, path = match.group(1), int(match.group(2)), match.group(3)
+        self.sock = socket.create_connection((host, port), timeout=timeout)
+        key = base64.b64encode(os.urandom(16)).decode()
+        self.sock.sendall(
+            f"GET {path} HTTP/1.1\r\nHost: {host}:{port}\r\nUpgrade: websocket\r\n"
+            f"Connection: Upgrade\r\nSec-WebSocket-Key: {key}\r\nSec-WebSocket-Version: 13\r\n\r\n"
+            .encode()
+        )
+        head = b""
+        while b"\r\n\r\n" not in head:
+            chunk = self.sock.recv(4096)
+            if not chunk:
+                raise SystemExit("e2e: the browser closed the DevTools connection")
+            head += chunk
+        head, self.buffer = head.split(b"\r\n\r\n", 1)
+        if not head.startswith(b"HTTP/1.1 101"):
+            raise SystemExit(f"e2e: the browser refused the DevTools connection: {head[:200]!r}")
+        self.next_id = 0
+        self.events = []
+
+    def _read(self, n):
+        while len(self.buffer) < n:
+            chunk = self.sock.recv(65536)
+            if not chunk:
+                raise SystemExit("e2e: the browser closed the DevTools connection")
+            self.buffer += chunk
+        data, self.buffer = self.buffer[:n], self.buffer[n:]
+        return data
+
+    def _frame(self):
+        """The next message's text, joining continuation frames."""
+        message = b""
+        while True:
+            first, second = self._read(2)
+            length = second & 0x7F
+            if length == 126:
+                length = struct.unpack(">H", self._read(2))[0]
+            elif length == 127:
+                length = struct.unpack(">Q", self._read(8))[0]
+            payload = self._read(length)
+            opcode = first & 0x0F
+            if opcode == 8:
+                raise SystemExit("e2e: the browser closed the DevTools connection")
+            if opcode == 9:
+                self._send(10, payload)
+                continue
+            message += payload
+            if first & 0x80:
+                return message.decode()
+
+    def _send(self, opcode, payload):
+        mask = os.urandom(4)
+        header = bytes([0x80 | opcode])
+        if len(payload) < 126:
+            header += bytes([0x80 | len(payload)])
+        elif len(payload) < 1 << 16:
+            header += bytes([0x80 | 126]) + struct.pack(">H", len(payload))
+        else:
+            header += bytes([0x80 | 127]) + struct.pack(">Q", len(payload))
+        masked = bytes(b ^ mask[i % 4] for i, b in enumerate(payload))
+        self.sock.sendall(header + mask + masked)
+
+    def call(self, method, **params):
+        """Calls a method and returns its result, keeping the events that come meanwhile."""
+        self.next_id += 1
+        self._send(1, json.dumps({"id": self.next_id, "method": method, "params": params}).encode())
+        while True:
+            message = json.loads(self._frame())
+            if message.get("id") == self.next_id:
+                if "error" in message:
+                    raise SystemExit(f"e2e: DevTools {method} failed: {message['error']}")
+                return message.get("result", {})
+            if "method" in message:
+                self.events.append(message)
+
+    def evaluate(self, expression):
+        result = self.call("Runtime.evaluate", expression=expression, returnByValue=True)
+        if "exceptionDetails" in result:
+            raise SystemExit(f"e2e: the page threw on {expression!r}: {result['exceptionDetails']}")
+        return result["result"].get("value")
+
+    def wait(self, what, expression, within):
+        return wait_for(what, lambda: self.evaluate(expression), within=within, every=0.2)
+
+    def close(self):
+        self.sock.close()
+
+
+def open_page():
+    """A new tab in the browser, as a DevTools connection."""
+    port = compose("port", "browser", "9222", capture=True).strip().rsplit(":", 1)[1]
+    request = urllib.request.Request(f"http://127.0.0.1:{port}/json/new?about:blank", method="PUT")
+    target = wait_for(
+        "the browser to answer",
+        lambda: _try_json(request),
+        within=30,
+    )
+    # the browser names its own address; it's reached at the published port
+    url = re.sub(r"^ws://[^/]+", f"ws://127.0.0.1:{port}", target["webSocketDebuggerUrl"])
+    page = DevTools(url)
+    for domain in ("Page", "Runtime", "Log"):
+        page.call(f"{domain}.enable")
+    return page
+
+
+def _try_json(request):
+    try:
+        with urllib.request.urlopen(request, timeout=10) as response:
+            return json.load(response)
+    except OSError:
+        return None
+
+
+def make_analyst():
+    """The first user, holding every permission, as an operator makes one (PLAN.md 5.4)."""
+    result = subprocess.run(
+        [*COMPOSE, "exec", "-T", "ace", ACE_COMMAND, "user", "create-first", ANALYST,
+         "--password-stdin"],
+        env=ENV, cwd=COMPOSE_FILE.parent, input=ANALYST_PASSWORD + "\n", text=True,
+        capture_output=True,
+    )
+    if result.returncode != 0:
+        raise SystemExit(f"e2e: `ace user create-first` failed:\n{result.stderr}")
+
+
+def has_browser():
+    """Whether the Compose file has the browser service. ace4's does; a site's may not yet, and then the
+    browser test is skipped, saying so."""
+    services = compose("config", "--services", capture=True).split()
+    return "browser" in services
+
+
+def check_live_alert(email, failures):
+    """PLAN.md 5.8: a result that lands appears on an open alert page without a reload."""
+
+    def expect(ok, message):
+        log(("ok    " if ok else "FAIL  ") + message)
+        if not ok:
+            failures.append(f"the browser test: {message}")
+        return ok
+
+    make_analyst()
+    page = open_page()
+    try:
+        page.call("Page.navigate", url=f"{GUI_IN_STACK}/login")
+        page.wait("the login page", "document.readyState === 'complete' && "
+                  "document.querySelector('form[action=\"/login\"]') !== null", within=30)
+        page.evaluate(
+            "(() => { const f = document.querySelector('form[action=\"/login\"]');"
+            f" f.username.value = {json.dumps(ANALYST)}; f.password.value = {json.dumps(ANALYST_PASSWORD)};"
+            " f.submit(); })()"
+        )
+        page.wait("the login", "location.pathname === '/' && document.readyState === 'complete' && "
+                  f"document.getElementById('username')?.textContent === {json.dumps(ANALYST)}",
+                  within=30)
+        log("ok    the browser logged in to the GUI")
+
+        compose("restart", "responder")
+        compose("up", "-d", "--wait", "responder")
+        compose("pause", "lookups")
+        try:
+            root = submit(email)
+            log(f"submitted root {root} with the network pool frozen")
+            try:
+                wait_for(
+                    f"root {root} to be an alert with its YARA result",
+                    lambda: sql(
+                        f"""SELECT 1 FROM analysis.roots r WHERE r.id = '{root}'
+                            AND r.alerted_at IS NOT NULL AND EXISTS (
+                              SELECT FROM analysis.results x WHERE x.root_id = r.id
+                              AND x.module = 'yara_scanner_v3_4')"""
+                    ),
+                    within=120,
+                )
+            except SystemExit:
+                for row in tasks(root):
+                    log("  task " + " | ".join(row))
+                raise
+            page.events.clear()
+            page.call("Page.navigate", url=f"{GUI_IN_STACK}/alerts/{root}")
+            page.wait("the alert page", "document.readyState === 'complete' && "
+                      "document.getElementById('alert-tree') !== null", within=30)
+            page.evaluate("window.ace4E2eMarker = 'the page as it was loaded'")
+            navigations = len([e for e in page.events if e["method"] == "Page.frameNavigated"])
+            before = page.evaluate(
+                "[...document.querySelectorAll('#alert-tree .result')].map(r => r.dataset.module)"
+            )
+            expect("yara_scanner_v3_4" in before and "rdap_analyzer" not in before,
+                   f"the open page has the parser pool's results and no RDAP result: {before}")
+        finally:
+            compose("unpause", "lookups")
+        log("let the network pool go; waiting for the RDAP result on the open page")
+        try:
+            page.wait(
+                "the RDAP result to appear on the open page",
+                "document.querySelector('#alert-tree [data-module=\"rdap_analyzer\"]') !== null",
+                within=120,
+            )
+            appeared = True
+        except SystemExit as error:
+            log(str(error))
+            appeared = False
+        expect(appeared, "the RDAP result appeared on the open page")
+        same = page.evaluate("window.ace4E2eMarker") == "the page as it was loaded"
+        later = len([e for e in page.events if e["method"] == "Page.frameNavigated"])
+        expect(same and later == navigations, "the page wasn't reloaded or navigated")
+        refused = [
+            e["params"]["entry"]["text"] for e in page.events
+            if e["method"] == "Log.entryAdded"
+            and re.search(r"Content.Security.Policy|Refused to", e["params"]["entry"]["text"])
+        ]
+        expect(not refused, f"the page's policy refused nothing: {refused}")
+        wait_for(f"root {root} to complete", lambda: completed_after(root), within=300)
+    finally:
+        page.close()
+
+
 def check_library_diff(failures):
     """That the library diff (PLAN.md 4.8) has teeth. Its full run over the sample set is a separate
     invocation, tools/library-diff/run --all, since it takes as long as the comparison."""
@@ -481,7 +720,10 @@ def main(argv):
     WORK.mkdir(parents=True, exist_ok=True)
     commit = make_signatures()
     log(f"signatures at {WORK / 'signatures'}, commit {commit}")
-    compose("up", "-d", "--build", "--wait", *SERVICES)
+    browser = has_browser()
+    if not browser and "ACE4_E2E_COMPOSE" not in os.environ:
+        raise SystemExit("e2e: compose.yaml has no browser service")
+    compose("up", "-d", "--build", "--wait", *SERVICES, *(["browser"] if browser else []))
     failures = []
     try:
         make_key()
@@ -517,6 +759,14 @@ def main(argv):
         else:
             log("FAIL  the roots' normal forms differ; see normal-form*.json in " + str(WORK))
             failures.append("the same email's two roots have different normal forms")
+        if browser:
+            try:
+                check_live_alert(email, failures)
+            except SystemExit as error:
+                log(f"FAIL  the browser test: {error}")
+                failures.append(f"the browser test: {error}")
+        else:
+            log("SKIP  the browser test: the Compose file has no browser service")
         if "ACE4_E2E_SITE" not in os.environ:
             check_library_diff(failures)
             compare_failed = compare_with_ace3(threshold=True) != 0
@@ -529,7 +779,7 @@ def main(argv):
                     "in differences.md, and every row matched one")
     finally:
         if failures or keep:
-            for service in ("ace", "parsers", "lookups", "responder"):
+            for service in ("ace", "parsers", "lookups", "responder", *(["browser"] if browser else [])):
                 print(f"----- {service} logs (last 40 lines)")
                 print(compose("logs", "--no-color", "--tail", "40", service, capture=True,
                               check=False))

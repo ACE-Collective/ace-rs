@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT\n                             (SELECT count(*) FROM analysis.observables WHERE root_id = $1) AS \"observables!\",\n                             (SELECT count(*) FROM analysis.files WHERE root_id = $1) AS \"files!\",\n                             (SELECT count(*) FROM analysis.detections WHERE root_id = $1) AS \"detections!\"",
+  "query": "SELECT\n             (SELECT count(*) FROM analysis.observables WHERE root_id = $1) AS \"observables!\",\n             (SELECT count(*) FROM analysis.files WHERE root_id = $1) AS \"files!\",\n             (SELECT count(*) FROM analysis.detections WHERE root_id = $1) AS \"detections!\"",
   "describe": {
     "columns": [
       {
@@ -33,5 +33,5 @@
       null
     ]
   },
-  "hash": "a2c63b519622eebfe04bf148b9dbaca9f885e3e33432d89085d9a6a8fe604795"
+  "hash": "b2e634f19d785b3bb3b30fefbc10664ceec03b17aab8344294435c6a625d41d6"
 }

@@ -16,7 +16,10 @@
 //!   new for each page, which is how Datastar runs its expressions without `unsafe-eval`.
 //! - `session`: who the viewer is, through `Service::authenticate_request`.
 //! - `auth`: ace3's `/login` and `/logout`, with the CSRF check that a login has to make itself.
-//! - `preferences`: the theme form. The base layout draws every page in the viewer's theme.
+//! - `preferences`: the theme form, and the alert page's section pins. The base layout draws every page
+//!   in the viewer's theme.
+//! - `alert`: an alert's page and its analysis tree, and the event stream that draws a result on an open
+//!   page when it lands (5.8).
 //!
 //! From ace3's `app/templates/base.html` and `core.html`, and what differs: the layout keeps ace3's
 //! theme attribute on `<html>`, its five themes and its log out by POST. It has none of ace3's jQuery,
@@ -30,6 +33,7 @@ use axum::Router;
 use axum::extract::DefaultBodyLimit;
 use axum::routing::{get, post};
 
+pub mod alert;
 mod assets;
 mod auth;
 mod headers;
@@ -37,6 +41,7 @@ mod preferences;
 mod session;
 pub mod templates;
 
+pub use alert::LiveLimits;
 pub use assets::{Asset, asset_named};
 pub use headers::content_security_policy;
 
@@ -51,11 +56,26 @@ const MAX_FORM_BYTES: usize = 16 << 10;
 pub struct Gui {
     service: Service,
     transport: Transport,
+    live: std::sync::Arc<alert::Live>,
 }
 
 impl Gui {
     pub fn new(service: Service, transport: Transport) -> Self {
-        Gui { service, transport }
+        Gui::with_limits(service, transport, LiveLimits::default())
+    }
+
+    /// A GUI whose alert streams have these limits, rather than the defaults.
+    pub fn with_limits(service: Service, transport: Transport, limits: LiveLimits) -> Self {
+        Gui {
+            service,
+            transport,
+            live: std::sync::Arc::new(alert::Live::new(limits)),
+        }
+    }
+
+    /// How many alert streams are open.
+    pub fn open_streams(&self) -> usize {
+        self.live.open()
     }
 
     /// The GUI's routes, to merge with the JSON API's. Each response has `headers`' security headers,
@@ -66,6 +86,12 @@ impl Gui {
             .route("/login", get(auth::login_page).post(auth::login))
             .route("/logout", post(auth::logout))
             .route("/preferences/theme", post(preferences::set_theme))
+            .route(
+                "/preferences/alert-section",
+                post(preferences::set_alert_section),
+            )
+            .route("/alerts/{id}", get(alert::page))
+            .route("/alerts/{id}/live", get(alert::live))
             .route("/static/{name}", get(assets::serve))
             .layer(DefaultBodyLimit::max(MAX_FORM_BYTES))
             .layer(axum::middleware::from_fn(headers::secure))

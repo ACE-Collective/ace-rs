@@ -16,8 +16,7 @@ pub const SPLUNKD: &str = "https://127.0.0.1:8089";
 pub const PASSWORD: &str = "ace4-fake-password";
 
 /// proxy_domain_lookup, the example ace3 ships in etc/saq.splunk_modules.yaml, as make-dumps
-/// ran it: on fqdn rather than the `domain` type ace3 doesn't have, and without the mappings'
-/// display types, which the port has no counterpart for.
+/// ran it: on fqdn rather than the `domain` type ace3 doesn't have.
 pub fn proxy_domain_lookup(base_url: &str) -> Value {
     json!({
         "base_url": base_url,
@@ -28,9 +27,9 @@ pub fn proxy_domain_lookup(base_url: &str) -> Value {
         "query": "index=network_proxy_web (transport=HTTPS OR transport=HTTP) hostname=\"<O_VALUE>\"\n| eval full_url = lower(transport) . \"://\" . url\n",
         "valid_observable_types": ["fqdn"],
         "observable_mapping": [
-            {"field": "src_ip", "type": "ip"},
-            {"field": "src_translated_ip", "type": "ip"},
-            {"field": "dest_ip", "type": "ip"},
+            {"field": "src_ip", "type": "ip", "display_type": "Source IP"},
+            {"field": "src_translated_ip", "type": "ip", "display_type": "Source IP"},
+            {"field": "dest_ip", "type": "ip", "display_type": "Destination IP"},
             {"field": "full_url", "type": "url"},
             {"field": "user", "type": "email_address"},
         ],

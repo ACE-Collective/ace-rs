@@ -9,6 +9,8 @@ use std::path::Path;
 
 use ace_mod_splunk::{PASSWORD, SplunkAnalyzer};
 use ace_results::ObservableKind;
+use ace_results::types::splunk::SplunkApiAnalysis;
+use ace_sdk::Outcome;
 use ace_testkit::Harness;
 use ace_testkit::reference::{Dump, ListedDifferences, diff, dumps_dir, normal_form};
 use ace_testkit::replay::HttpReplay;
@@ -63,6 +65,9 @@ async fn matches_the_reference_dumps_or_lists_each_difference() {
             delays.len(),
             replay.requested()
         );
+        if dump.short_name() == "fqdn_www.example.com" {
+            check_view_fixture(&outcome);
+        }
         compared.push((
             dump.short_name().to_owned(),
             diff(
@@ -74,4 +79,33 @@ async fn matches_the_reference_dumps_or_lists_each_difference() {
     if let Err(report) = listed.check(&compared, &[]) {
         panic!("{report}");
     }
+}
+
+/// The result of the search that finishes, as JSON, is the fixture `ace-gui`'s alert view test lands and
+/// draws (PLAN.md 5.8), so the view is checked on what this module writes. `ACE4_WRITE_FIXTURES=1`
+/// writes it again.
+fn check_view_fixture(outcome: &Outcome<SplunkApiAnalysis>) {
+    let Outcome::Done(result) = outcome else {
+        panic!("the search that finishes stores a result");
+    };
+    let path = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../ace-gui/tests/fixtures/splunk_proxy_domain_lookup.json");
+    let written = serde_json::to_string_pretty(&result.to_raw().expect("serializes"))
+        .expect("serializes")
+        + "\n";
+    if std::env::var_os("ACE4_WRITE_FIXTURES").is_some() {
+        std::fs::create_dir_all(path.parent().expect("a directory")).expect("makes it");
+        std::fs::write(&path, &written).expect("writes the fixture");
+    }
+    // as values, since a workspace build may give serde_json `preserve_order`, which orders the text
+    let fixture: serde_json::Value = serde_json::from_str(
+        &std::fs::read_to_string(&path).expect("the alert view's fixture reads"),
+    )
+    .expect("JSON");
+    let written: serde_json::Value = serde_json::from_str(&written).expect("JSON");
+    assert!(
+        fixture == written,
+        "{} isn't this module's result; ACE4_WRITE_FIXTURES=1 writes it",
+        path.display()
+    );
 }
