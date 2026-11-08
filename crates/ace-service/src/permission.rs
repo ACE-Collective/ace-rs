@@ -306,7 +306,8 @@ pub static CATALOG: &[CatalogEntry] = &[
     },
     CatalogEntry {
         name: EVENT_WRITE,
-        description: "Change events, and add, rename and delete threat types and malware's threats.",
+        description: "Make events, add alerts to them and change them, and add, rename and delete threat \
+                      types and malware's threats.",
     },
     CatalogEntry {
         name: OBSERVABLE_READ,

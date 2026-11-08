@@ -1,0 +1,35 @@
+{#- What adding alerts to an event did (PLAN.md 5.11's events area, 6b): where ace3 flashes how many
+    ticked alerts were gone, this lists them (src/events.rs). -#}
+{% extends "base.html" %}
+{% block title %}{% if view.made %}Event made{% else %}Added to event{% endif %} · ACE{% endblock %}
+{% block content %}
+<section class="events bulk-result">
+  <h1>{% if view.made %}Made the event{% else %}Added to the event{% endif %}</h1>
+  <p class="notice" role="status">{{ view.event.label }}: {{ view.added.len() }} alert{% if view.added.len() != 1 %}s{% endif %} added{% if !view.already.is_empty() %}, {{ view.already.len() }} in it already{% endif %}.</p>
+  {%- if !view.added.is_empty() %}
+  <ul class="done">
+    {%- for id in view.added %}
+    <li><a href="/alerts/{{ id }}">{{ id }}</a></li>
+    {%- endfor %}
+  </ul>
+  {%- endif %}
+  {%- if !view.already.is_empty() %}
+  <h2>In the event already</h2>
+  <ul class="done">
+    {%- for id in view.already %}
+    <li><a href="/alerts/{{ id }}">{{ id }}</a></li>
+    {%- endfor %}
+  </ul>
+  {%- endif %}
+  {%- if !view.missing.is_empty() %}
+  <h2>Not added</h2>
+  <p class="warning">{{ view.missing.len() }} of the ticked alerts no longer exist and weren't added to the event.</p>
+  <ul class="failed">
+    {%- for id in view.missing %}
+    <li>{{ id }}</li>
+    {%- endfor %}
+  </ul>
+  {%- endif %}
+  <p><a href="{{ view.next }}">Back</a></p>
+</section>
+{% endblock %}

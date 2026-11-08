@@ -16,6 +16,7 @@
         {%- endfor %}
       </select>
       <button type="submit">Set Disposition</button>
+      <button type="submit" formaction="/events/add" formmethod="get">Add to Event</button>
     </form>
     <span class="exports">Export: <a href="{{ view.export_csv }}">CSV</a> <a href="{{ view.export_ndjson }}">NDJSON</a></span>
   </div>

@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO events.event_alerts (event_id, root_id)\n                         SELECT $1, unnest($2::uuid[])\n                         ON CONFLICT DO NOTHING\n                         RETURNING root_id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "root_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "events.event_alerts",
+            "name": "root_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "ed137b58babcf5e7e4bfedd42ddd2e246c6346d686d310955ca0b200e69cedf7"
+}

@@ -1,0 +1,67 @@
+{#- Adding alerts to an event (PLAN.md 5.11's events area, 6b): ace3's event modal in base.html as a page,
+    and the event list's Create Event when no alerts are ticked (src/events.rs). Every control is a form. -#}
+{% extends "base.html" %}
+{% block title %}{% if view.creating() %}Create Event{% else %}Add to Event{% endif %} · ACE{% endblock %}
+{% block content %}
+<section class="events">
+  <h1>{% if view.creating() %}Create Event{% else %}Add {{ view.alerts.len() }} alert{% if view.alerts.len() != 1 %}s{% endif %} to an event{% endif %}</h1>
+  <form id="add-to-event" method="post" action="/events/add" class="add-to-event">
+    <input type="hidden" name="next" value="{{ view.next }}">
+    {%- for id in view.alerts %}
+    <input type="hidden" name="alert" value="{{ id }}">
+    {%- endfor %}
+    {%- if view.creating() %}
+    <input type="hidden" name="event" value="NEW">
+    {%- else %}
+    <fieldset class="event-choices">
+      <legend>Open events</legend>
+      {%- for event in view.open %}
+      <label class="choice"><input type="radio" name="event" value="{{ event.id }}"> {{ event.label }}</label>
+      {%- else %}
+      <p class="muted">No open events.</p>
+      {%- endfor %}
+      {%- if view.more_open %}
+      <p class="muted">More open events than these exist; the newest by id aren't listed.</p>
+      {%- endif %}
+    </fieldset>
+    <fieldset class="event-choices">
+      <legend>Closed events</legend>
+      {%- for event in view.closed %}
+      <label class="choice"><input type="radio" name="event" value="{{ event.id }}"> {{ event.label }}</label>
+      {%- else %}
+      <p class="muted">No closed events{% if view.closed_later %} after these{% endif %}.</p>
+      {%- endfor %}
+      <p>
+        {%- if view.closed_later %}<button type="submit" form="more-events" name="closed_after" value="">First</button>{% endif %}
+        {%- if let Some(after) = view.closed_next %} <button type="submit" form="more-events" name="closed_after" value="{{ after }}">Show more…</button>{% endif %}
+      </p>
+    </fieldset>
+    {%- endif %}
+    <fieldset class="new-event">
+      <legend>{% if view.creating() %}The event{% else %}<label class="choice"><input type="radio" name="event" value="NEW"> New Event</label>{% endif %}</legend>
+      <label for="event-name">Name</label>
+      <textarea id="event-name" name="name" rows="2" maxlength="{{ view.max_name }}"></textarea>
+      <label for="event-comment">Comment</label>
+      <textarea id="event-comment" name="comment" rows="3" maxlength="{{ view.max_comment }}"></textarea>
+      <details class="section">
+        <summary>Times (UTC)</summary>
+        <p class="muted">Each no earlier than the one before it.</p>
+        {%- for time in view.times %}
+        <label for="{{ time.0 }}">{{ time.1 }}</label>
+        <input type="datetime-local" step="1" id="{{ time.0 }}" name="{{ time.0 }}">
+        {%- endfor %}
+      </details>
+    </fieldset>
+    <button type="submit">Save</button>
+  </form>
+  {%- if !view.creating() %}
+  <form id="more-events" method="get" action="/events/add" class="inline">
+    <input type="hidden" name="next" value="{{ view.next }}">
+    {%- for id in view.alerts %}
+    <input type="hidden" name="alert" value="{{ id }}">
+    {%- endfor %}
+  </form>
+  {%- endif %}
+  <p><a href="{{ view.next }}">Nevermind</a></p>
+</section>
+{% endblock %}

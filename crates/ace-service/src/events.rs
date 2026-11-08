@@ -29,6 +29,35 @@
 //! - A name is checked: 1 to 256 characters for a threat type, as ace3's column, with something besides
 //!   whitespace and no control characters.
 //!
+//! Adding alerts to an event (6b), ace3's `add_to_event` (`app/analysis/views/edit/event.py`), is
+//! `Service::add_to_event`, under `event:write` as ace3's route is, one transaction and one audit row
+//! whose `after` lists the alerts it added. As in ace3:
+//! - The event is one that exists, open or closed, or a new one by name. A new one is dated by the
+//!   oldest of its ticked alerts that's still there, or today (UTC) when none is, takes the first row by
+//!   id of each reference table but the risk level, which it takes first by value, as ace3's defaults
+//!   are, and its owner is the actor's user: an API key's owner, or none for a key without one or a
+//!   component. It keeps the comment and the six times given.
+//! - ace3's unique key is (creation date, name), and a new event whose name its day has already adds the
+//!   alerts to that one, with that one's comment and times. ace3 looks before it inserts, so two analysts
+//!   making the same event at once can both miss it and one gets a 500 from the key; here the insert
+//!   is `ON CONFLICT DO NOTHING` and the second finds the first's event once it commits.
+//! - The times given are in order, each no earlier than the one before it: event, alert, ownership,
+//!   disposition, contain, remediation. ace3's message says some steps are strictly later, but its check
+//!   is a sort, which lets two be equal; this is the check. ace3 checks them when adding to an event that
+//!   exists too, and then ignores them; here only a new event takes times, so there's nothing to check.
+//! - A ticked alert that's gone, or never was one, isn't added, and the answer names it, where ace3
+//!   flashes how many there were. An alert in the event already is left as it is, as ace3's `INSERT
+//!   IGNORE` leaves it; two adds of one alert at once both succeed and it's in the event once. The alerts
+//!   found are held (`FOR KEY SHARE`) until the commit, so one deleted meanwhile is either added before
+//!   the delete runs or reported gone, never an error.
+//!
+//! What differs: a name is checked (1 to `MAX_EVENT_NAME_CHARS` after trimming, no control characters),
+//! where ace3 makes an event with an empty name; ace3's company mapping is left out, as roots have none;
+//! and ace3's `touch_alerts`, which changes each alert's version token, has nothing to change, since roots
+//! have none (migration 0031). Adding only alerts already in the event, or none, to an event that exists
+//! changes nothing and has no row. The form's closed events, ace3's `load_more_events`, are
+//! `Service::closed_events`, a page at a time, newest first.
+//!
 //! What adding an alert to an event does to its analysis: nothing, here or in ace3. ace3's GUI only
 //! writes the mapping (`app/analysis/views/edit/event.py`). Its `alert_added_to_event` module, which
 //! dispositioned mode runs, switches an alert in an event to `event` mode, which runs no modules in
@@ -56,6 +85,15 @@ pub const MAX_EVENTS_PAGE: u32 = 1000;
 pub const MAX_EXPORT_EVENTS: usize = 1000;
 /// The longest threat type name, in characters: ace3's column.
 pub const MAX_THREAT_TYPE_CHARS: usize = 256;
+
+/// The most alerts one `add_to_event` takes.
+pub const MAX_EVENT_ALERTS: usize = 1000;
+/// The longest event name, in characters: ace3's column.
+pub const MAX_EVENT_NAME_CHARS: usize = 128;
+/// The longest event comment, in characters: the table's check, after ace3's `TEXT`.
+pub const MAX_EVENT_COMMENT_CHARS: usize = 65535;
+/// How many closed events a page of the add-to-event form shows: ace3's `CLOSED_EVENT_LIMIT`.
+pub const CLOSED_EVENTS_PAGE: u32 = 15;
 
 /// ace3's disposition of an event with no alerts.
 const NO_ALERTS: &str = "DELIVERY";
@@ -259,6 +297,203 @@ struct ThreatTypeName<'a> {
 }
 
 impl Recorded for ThreatTypeName<'_> {}
+
+/// An event's six times, ace3's, each optional.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize)]
+pub struct EventTimes {
+    pub event_time: Option<DateTime<Utc>>,
+    pub alert_time: Option<DateTime<Utc>>,
+    pub ownership_time: Option<DateTime<Utc>>,
+    pub disposition_time: Option<DateTime<Utc>>,
+    pub contain_time: Option<DateTime<Utc>>,
+    pub remediation_time: Option<DateTime<Utc>>,
+}
+
+impl EventTimes {
+    /// Whether the times given are in ace3's order, each no earlier than the one before, as ace3's
+    /// `dates == sorted(dates)` checks.
+    pub fn in_order(&self) -> bool {
+        let given: Vec<DateTime<Utc>> = [
+            self.event_time,
+            self.alert_time,
+            self.ownership_time,
+            self.disposition_time,
+            self.contain_time,
+            self.remediation_time,
+        ]
+        .into_iter()
+        .flatten()
+        .collect();
+        given.windows(2).all(|pair| pair[0] <= pair[1])
+    }
+}
+
+/// A new event for `add_to_event`, as ace3's form names it.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct NewEvent {
+    pub name: String,
+    pub comment: Option<String>,
+    pub times: EventTimes,
+}
+
+/// The event `add_to_event` adds to: one that exists, or a new one.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum EventChoice {
+    Existing(EventRef),
+    New(NewEvent),
+}
+
+/// What `add_to_event` did.
+#[derive(Debug, Clone, PartialEq)]
+pub struct AddedToEvent {
+    /// The event, as it is after.
+    pub event: Event,
+    /// Whether this made it. False for one that existed, a new one's name found on its day among them.
+    pub made: bool,
+    /// The ticked alerts it added, in the order they were ticked.
+    pub added: Vec<Uuid>,
+    /// Those in the event already.
+    pub already: Vec<Uuid>,
+    /// Those that are gone since they were ticked, or never were alerts.
+    pub missing: Vec<Uuid>,
+}
+
+/// A new event's name, trimmed as ace3 trims it, or why it can't be one.
+fn event_name(name: &str) -> Result<&str, ServiceError> {
+    let name = name.trim();
+    let fits = !name.is_empty()
+        && name.chars().count() <= MAX_EVENT_NAME_CHARS
+        && !name.chars().any(char::is_control);
+    if fits {
+        Ok(name)
+    } else {
+        Err(ServiceError::InvalidRequest(format!(
+            "an event's name is 1 to {MAX_EVENT_NAME_CHARS} characters, not all whitespace, with no control characters"
+        )))
+    }
+}
+
+/// A new event as `add_to_event` stores it, or why it can't be stored: its name trimmed, an empty comment
+/// none, and its times in order.
+fn checked_new_event(new: &NewEvent) -> Result<NewEvent, ServiceError> {
+    let name = event_name(&new.name)?.to_owned();
+    let comment = new.comment.as_deref().filter(|c| !c.trim().is_empty());
+    if comment.is_some_and(|c| c.chars().count() > MAX_EVENT_COMMENT_CHARS) {
+        return Err(ServiceError::InvalidRequest(format!(
+            "an event's comment is at most {MAX_EVENT_COMMENT_CHARS} characters"
+        )));
+    }
+    if !new.times.in_order() {
+        return Err(ServiceError::InvalidRequest(
+            "one or more of the times is out of order: each of event time, alert time, ownership time, \
+             disposition time, contain time and remediation time is no earlier than the one before it"
+                .to_owned(),
+        ));
+    }
+    Ok(NewEvent {
+        name,
+        comment: comment.map(str::to_owned),
+        times: new.times,
+    })
+}
+
+/// A made event as its audit row keeps it, with the alerts added to it.
+#[derive(Serialize)]
+struct EventMade<'a> {
+    uuid: Uuid,
+    creation_date: NaiveDate,
+    name: &'a str,
+    status: &'a str,
+    remediation: &'a str,
+    #[serde(rename = "type")]
+    kind: &'a str,
+    vector: &'a str,
+    risk_level: &'a str,
+    prevention_tool: &'a str,
+    comment: Option<&'a str>,
+    #[serde(flatten)]
+    times: EventTimes,
+    owner: Option<Uuid>,
+    alerts: &'a [Uuid],
+}
+
+impl Recorded for EventMade<'_> {}
+
+/// The alerts added to an event that existed.
+#[derive(Serialize)]
+struct AlertsAdded<'a> {
+    alerts: &'a [Uuid],
+}
+
+impl Recorded for AlertsAdded<'_> {}
+
+/// What an add's row says the event is, and the ticked alerts that were gone.
+#[derive(Serialize)]
+struct AddedDetails<'a> {
+    uuid: Uuid,
+    name: &'a str,
+    missing: &'a [Uuid],
+}
+
+impl Recorded for AddedDetails<'_> {}
+
+/// The id of a new event `add_to_event` makes on `day`, with ace3's defaults, and true; or the id of the
+/// one of its name on that day, and false. `ON CONFLICT` waits for an insert of the same key that hasn't
+/// committed, so the event it finds then is visible to the select after it.
+async fn make_or_find(
+    conn: &mut PgConnection,
+    day: NaiveDate,
+    new: &NewEvent,
+    owner: Option<Uuid>,
+) -> Result<(i64, bool), ServiceError> {
+    for _ in 0..3 {
+        let made = sqlx::query_scalar!(
+            "INSERT INTO events.events
+                 (creation_date, name, status_id, remediation_id, type_id, vector_id, risk_level_id,
+                  prevention_tool_id, comment, event_time, alert_time, ownership_time,
+                  disposition_time, contain_time, remediation_time, owner_id)
+             VALUES ($1, $2,
+                     (SELECT id FROM events.statuses ORDER BY id LIMIT 1),
+                     (SELECT id FROM events.remediations ORDER BY id LIMIT 1),
+                     (SELECT id FROM events.types ORDER BY id LIMIT 1),
+                     (SELECT id FROM events.vectors ORDER BY id LIMIT 1),
+                     (SELECT id FROM events.risk_levels ORDER BY value, id LIMIT 1),
+                     (SELECT id FROM events.prevention_tools ORDER BY id LIMIT 1),
+                     $3, $4, $5, $6, $7, $8, $9, $10)
+             ON CONFLICT ON CONSTRAINT event_names_are_unique_per_day DO NOTHING
+             RETURNING id",
+            day,
+            new.name,
+            new.comment,
+            new.times.event_time,
+            new.times.alert_time,
+            new.times.ownership_time,
+            new.times.disposition_time,
+            new.times.contain_time,
+            new.times.remediation_time,
+            owner,
+        )
+        .fetch_optional(&mut *conn)
+        .await?;
+        if let Some(id) = made {
+            return Ok((id, true));
+        }
+        let found = sqlx::query_scalar!(
+            "SELECT id FROM events.events WHERE creation_date = $1 AND name = $2 FOR KEY SHARE",
+            day,
+            new.name,
+        )
+        .fetch_optional(&mut *conn)
+        .await?;
+        if let Some(id) = found {
+            return Ok((id, false));
+        }
+    }
+    Err(ServiceError::Conflict(format!(
+        "the event {:?} of {day} kept changing; try again",
+        new.name
+    )))
+}
 
 fn no_event(event: EventRef) -> ServiceError {
     ServiceError::NotFound(match event {
@@ -547,6 +782,185 @@ impl Service {
                     let next = more.then(|| ids.last().copied()).flatten();
                     let events = load_events(tx.conn(), &ids).await?;
                     Ok(EventPage { events, next })
+                })
+            })
+            .await
+    }
+
+    /// The events whose status is `CLOSED`, newest first by creation date, as ace3's add-to-event form
+    /// lists them, `limit` at a time after the event `after`, ace3's `load_more_events`. ace3 reads them
+    /// all and slices; this reads one page.
+    pub async fn closed_events(
+        &self,
+        actor: &Actor,
+        after: Option<i64>,
+        limit: u32,
+    ) -> Result<EventPage, ServiceError> {
+        if !(1..=MAX_EVENTS_PAGE).contains(&limit) {
+            return Err(ServiceError::InvalidRequest(format!(
+                "a page holds 1 to {MAX_EVENTS_PAGE} events"
+            )));
+        }
+        let take = i64::from(limit);
+        self.gate
+            .read(actor, "closed_events", &EVENT_READ, &|tx| {
+                Box::pin(async move {
+                    let mut ids = sqlx::query_scalar!(
+                        "SELECT e.id FROM events.events e
+                         JOIN events.statuses s ON s.id = e.status_id
+                         WHERE s.value = 'CLOSED'
+                           AND ($1::bigint IS NULL
+                                OR (e.creation_date, e.id) <
+                                   (SELECT c.creation_date, c.id FROM events.events c WHERE c.id = $1))
+                         ORDER BY e.creation_date DESC, e.id DESC
+                         LIMIT $2",
+                        after,
+                        take + 1,
+                    )
+                    .fetch_all(tx.conn())
+                    .await?;
+                    let more = ids.len() > limit as usize;
+                    ids.truncate(limit as usize);
+                    let next = more.then(|| ids.last().copied()).flatten();
+                    let mut events = load_events(tx.conn(), &ids).await?;
+                    events.sort_by_key(|event| ids.iter().position(|id| *id == event.id));
+                    Ok(EventPage { events, next })
+                })
+            })
+            .await
+    }
+
+    /// Adds alerts to an event, ace3's `add_to_event`: to one that exists, or to a new one, made unless
+    /// its name is taken on its day (the module's docs). One transaction, and one audit row whose `after`
+    /// lists the alerts added. At most `MAX_EVENT_ALERTS` ticked alerts; one ticked twice counts once.
+    pub async fn add_to_event(
+        &self,
+        actor: &Actor,
+        event: &EventChoice,
+        alerts: &[Uuid],
+    ) -> Result<AddedToEvent, ServiceError> {
+        if alerts.len() > MAX_EVENT_ALERTS {
+            return Err(ServiceError::TooLarge(format!(
+                "at most {MAX_EVENT_ALERTS} alerts are added to an event at once"
+            )));
+        }
+        let mut ticked: Vec<Uuid> = Vec::with_capacity(alerts.len());
+        for alert in alerts {
+            if !ticked.contains(alert) {
+                ticked.push(*alert);
+            }
+        }
+        let choice = match event {
+            EventChoice::Existing(event) => EventChoice::Existing(*event),
+            EventChoice::New(new) => EventChoice::New(checked_new_event(new)?),
+        };
+        let owner = match actor {
+            Actor::User { id, .. } => Some(id.0),
+            Actor::ApiKey { owner, .. } => owner.map(|owner| owner.0),
+            Actor::Internal { .. } => None,
+        };
+        let (ticked, choice) = (ticked.as_slice(), &choice);
+        self.gate
+            .write(actor, "add_to_event", &EVENT_WRITE, &|tx| {
+                Box::pin(async move {
+                    // held until the commit, so an alert found here isn't deleted before it's added
+                    let found = sqlx::query!(
+                        r#"SELECT id, alerted_at AS "alerted_at!" FROM analysis.roots
+                           WHERE id = ANY($1) AND alerted_at IS NOT NULL
+                           FOR KEY SHARE"#,
+                        ticked,
+                    )
+                    .fetch_all(tx.conn())
+                    .await?;
+                    let present: Vec<Uuid> = ticked
+                        .iter()
+                        .copied()
+                        .filter(|id| found.iter().any(|row| row.id == *id))
+                        .collect();
+                    let missing: Vec<Uuid> = ticked
+                        .iter()
+                        .copied()
+                        .filter(|id| !present.contains(id))
+                        .collect();
+                    let (id, made) = match choice {
+                        EventChoice::Existing(event) => (event_id(tx.conn(), *event).await?, false),
+                        EventChoice::New(new) => {
+                            // ace3 dates it by the oldest alert's insert date, or today
+                            let day = found
+                                .iter()
+                                .map(|row| row.alerted_at)
+                                .min()
+                                .unwrap_or_else(Utc::now)
+                                .date_naive();
+                            make_or_find(tx.conn(), day, new, owner).await?
+                        }
+                    };
+                    let inserted = sqlx::query_scalar!(
+                        "INSERT INTO events.event_alerts (event_id, root_id)
+                         SELECT $1, unnest($2::uuid[])
+                         ON CONFLICT DO NOTHING
+                         RETURNING root_id",
+                        id,
+                        &present,
+                    )
+                    .fetch_all(tx.conn())
+                    .await?;
+                    let (added, already): (Vec<Uuid>, Vec<Uuid>) = present
+                        .iter()
+                        .copied()
+                        .partition(|id| inserted.contains(id));
+                    let event = one_event(tx.conn(), id).await?;
+                    let details = AddedDetails {
+                        uuid: event.uuid,
+                        name: &event.name,
+                        missing: &missing,
+                    };
+                    let change = if made {
+                        Some(Change::added(
+                            Target::event(id),
+                            &EventMade {
+                                uuid: event.uuid,
+                                creation_date: event.creation_date,
+                                name: &event.name,
+                                status: &event.status,
+                                remediation: &event.remediation,
+                                kind: &event.kind,
+                                vector: &event.vector,
+                                risk_level: &event.risk_level,
+                                prevention_tool: &event.prevention_tool,
+                                comment: event.comment.as_deref(),
+                                times: EventTimes {
+                                    event_time: event.event_time,
+                                    alert_time: event.alert_time,
+                                    ownership_time: event.ownership_time,
+                                    disposition_time: event.disposition_time,
+                                    contain_time: event.contain_time,
+                                    remediation_time: event.remediation_time,
+                                },
+                                owner: event.owner.as_ref().map(|owner| owner.id.0),
+                                alerts: &added,
+                            },
+                        )?)
+                    } else if added.is_empty() {
+                        None
+                    } else {
+                        Some(Change::added(
+                            Target::event(id),
+                            &AlertsAdded { alerts: &added },
+                        )?)
+                    };
+                    let change = change.map(|change| change.details(&details)).transpose()?;
+                    let value = AddedToEvent {
+                        event,
+                        made,
+                        added,
+                        already,
+                        missing,
+                    };
+                    Ok(match change {
+                        Some(change) => Audited::changed(value, change),
+                        None => Audited::unchanged(value),
+                    })
                 })
             })
             .await

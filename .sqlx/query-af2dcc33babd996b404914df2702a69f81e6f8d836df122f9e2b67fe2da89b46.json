@@ -1,0 +1,37 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO events.events\n                 (creation_date, name, status_id, remediation_id, type_id, vector_id, risk_level_id,\n                  prevention_tool_id, comment, event_time, alert_time, ownership_time,\n                  disposition_time, contain_time, remediation_time, owner_id)\n             VALUES ($1, $2,\n                     (SELECT id FROM events.statuses ORDER BY id LIMIT 1),\n                     (SELECT id FROM events.remediations ORDER BY id LIMIT 1),\n                     (SELECT id FROM events.types ORDER BY id LIMIT 1),\n                     (SELECT id FROM events.vectors ORDER BY id LIMIT 1),\n                     (SELECT id FROM events.risk_levels ORDER BY value, id LIMIT 1),\n                     (SELECT id FROM events.prevention_tools ORDER BY id LIMIT 1),\n                     $3, $4, $5, $6, $7, $8, $9, $10)\n             ON CONFLICT ON CONSTRAINT event_names_are_unique_per_day DO NOTHING\n             RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "events.events",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Date",
+        "Text",
+        "Text",
+        "Timestamptz",
+        "Timestamptz",
+        "Timestamptz",
+        "Timestamptz",
+        "Timestamptz",
+        "Timestamptz",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "af2dcc33babd996b404914df2702a69f81e6f8d836df122f9e2b67fe2da89b46"
+}

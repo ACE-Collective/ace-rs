@@ -704,3 +704,24 @@ table.saved-filters .place {
   gap: 0.35rem;
   max-width: 40rem;
 }
+
+/* Adding alerts to an event (PLAN.md 5.11's events area), ace3's event modal as a page. */
+.events fieldset {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  margin: 0 0 1rem;
+  padding: 0.5rem 1rem;
+}
+
+.events .choice {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.events .new-event label:not(.choice),
+.events .new-event textarea,
+.events .new-event input {
+  display: block;
+  width: 100%;
+  max-width: 40rem;
+}

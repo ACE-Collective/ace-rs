@@ -44,11 +44,11 @@ use ace_results::{AlertPath, AnalysisType, NewObservable, ObservableKind};
 use ace_sdk::{Lookup, Manifest, Module, ModuleError, Outcome, TaskContext};
 use ace_service::{
     ALERT_WRITE, Actor, ApiKeyId, CATALOG, Component, CrashFilter, CrashInput,
-    DetectionPointFilter, Effect, EventRef, GroupId, Holder, MAX_CRASHES_PAGE, MIN_PASSWORD_CHARS,
-    NewSession, Password, PermissionName, PermissionPattern, PreferenceKey, PreferenceValue,
-    Profile, QaPurge, QaRuleFilter, QaSort, QaStatus, RequestParts, SESSION_LIFETIME_SECONDS,
-    Service, ServiceError, SessionCookie, Theme, ThemePreference, Transport, USER_SELF, USER_WRITE,
-    UserId, Username, with_source_ip,
+    DetectionPointFilter, Effect, EventChoice, EventRef, EventTimes, GroupId, Holder,
+    MAX_CRASHES_PAGE, MIN_PASSWORD_CHARS, NewEvent, NewSession, Password, PermissionName,
+    PermissionPattern, PreferenceKey, PreferenceValue, Profile, QaPurge, QaRuleFilter, QaSort,
+    QaStatus, RequestParts, SESSION_LIFETIME_SECONDS, Service, ServiceError, SessionCookie, Theme,
+    ThemePreference, Transport, USER_SELF, USER_WRITE, UserId, Username, with_source_ip,
 };
 use ace_store::{BucketConfig, NodeCache, Store};
 use schemars::JsonSchema;
@@ -1479,6 +1479,7 @@ async fn every_write_function_has_an_audit_test() {
         delete_threat_type_records_its_row(db).await,
         add_threat_records_its_row(db).await,
         remove_threat_records_its_row(db).await,
+        add_to_event_records_its_row(db).await,
     ]);
     assert_eq!(covered, write_functions(), "{WRITES_NEED_A_TEST}");
 }
@@ -2976,6 +2977,12 @@ async fn every_write_fails_when_its_audit_fails() {
         .await
         .expect("saves bob's filter");
     let event = event_with(db, "audit fails", &[root]).await;
+    let other_alert = alert(db).await;
+    sqlx::query("UPDATE analysis.roots SET alerted_at = now() WHERE id = ANY($1)")
+        .bind(vec![root, other_alert])
+        .execute(db.pool())
+        .await
+        .expect("makes them alerts");
     let unused_type = service
         .create_threat_type(&actor, "unused")
         .await
@@ -3383,6 +3390,33 @@ async fn every_write_fails_when_its_audit_fails() {
             "remove_threat",
             service
                 .remove_threat(&actor, threat.malware_id, threat.threat_type_id)
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "add_to_event",
+            service
+                .add_to_event(
+                    &actor,
+                    &EventChoice::New(NewEvent {
+                        name: "never made".to_owned(),
+                        ..NewEvent::default()
+                    }),
+                    &[root],
+                )
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "add_to_event",
+            service
+                .add_to_event(
+                    &actor,
+                    &EventChoice::Existing(EventRef::Id(event)),
+                    &[other_alert],
+                )
                 .await
                 .map(|_| ())
                 .expect_err("refused"),
@@ -8768,6 +8802,7 @@ async fn event_rows(db: &Db) -> Vec<String> {
         "SELECT 'event ' || row_to_json(e)::text FROM events.events e
          UNION ALL SELECT 'type ' || row_to_json(t)::text FROM events.threat_types t
          UNION ALL SELECT 'threat ' || row_to_json(m)::text FROM events.malware_threats m
+         UNION ALL SELECT 'in event ' || row_to_json(a)::text FROM events.event_alerts a
          ORDER BY 1",
     )
     .fetch_all(db.pool())
@@ -9305,6 +9340,7 @@ async fn events_are_read_as_ace3_serves_them() {
         service.threat_types(&outsider).await.map(|_| ()),
         service.threat_type(&outsider, botnet).await.map(|_| ()),
         service.threats(&outsider, None).await.map(|_| ()),
+        service.closed_events(&outsider, None, 10).await.map(|_| ()),
     ];
     for result in refused {
         assert!(matches!(
@@ -9326,4 +9362,424 @@ async fn events_are_read_as_ace3_serves_them() {
         .expect("reads");
     assert_eq!(event.alerts.len(), 1);
     assert!(event.alert_tags.is_empty());
+}
+
+// PLAN.md 5.11's events (6b): adding alerts to an event, ace3's add_to_event.
+
+/// A root made an alert at `at`.
+async fn alert_at(db: &Db, at: &str) -> Uuid {
+    let root = alert(db).await;
+    sqlx::query("UPDATE analysis.roots SET alerted_at = $2::timestamptz WHERE id = $1")
+        .bind(root)
+        .bind(at)
+        .execute(db.pool())
+        .await
+        .expect("makes it an alert");
+    root
+}
+
+fn at(text: &str) -> chrono::DateTime<chrono::Utc> {
+    text.parse().expect("a time")
+}
+
+fn new_event(name: &str) -> EventChoice {
+    EventChoice::New(NewEvent {
+        name: name.to_owned(),
+        ..NewEvent::default()
+    })
+}
+
+/// The alerts in an event, by id.
+async fn in_event(db: &Db, event: i64) -> BTreeSet<Uuid> {
+    sqlx::query_scalar("SELECT root_id FROM events.event_alerts WHERE event_id = $1")
+        .bind(event)
+        .fetch_all(db.pool())
+        .await
+        .expect("reads")
+        .into_iter()
+        .collect()
+}
+
+async fn add_to_event_records_its_row(db: &Db) -> String {
+    let actor = admin(db).await;
+    let service = service(db);
+    let older = alert_at(db, "2026-01-02T03:04:05Z").await;
+    let newer = alert_at(db, "2026-01-03T00:00:00Z").await;
+    let not_an_alert = alert(db).await;
+    let gone = Uuid::from_u128(0x6011E);
+    let times = EventTimes {
+        event_time: Some(at("2026-01-01T00:00:00Z")),
+        alert_time: Some(at("2026-01-02T03:04:05Z")),
+        ownership_time: Some(at("2026-01-02T03:04:05Z")),
+        ..EventTimes::default()
+    };
+    let added = service
+        .add_to_event(
+            &actor,
+            &EventChoice::New(NewEvent {
+                name: "  <b>new</b> event  ".to_owned(),
+                comment: Some("first look".to_owned()),
+                times,
+            }),
+            &[newer, older, gone, not_an_alert, older],
+        )
+        .await
+        .expect("adds");
+    assert!(added.made);
+    assert_eq!(added.added, [newer, older]);
+    assert_eq!(added.missing, [gone, not_an_alert]);
+    assert!(added.already.is_empty());
+    let event = &added.event;
+    assert_eq!(event.name, "<b>new</b> event", "trimmed, as ace3 trims it");
+    assert_eq!(
+        event.creation_date.to_string(),
+        "2026-01-02",
+        "its oldest alert's day"
+    );
+    assert_eq!(
+        (
+            event.status.as_str(),
+            event.remediation.as_str(),
+            event.kind.as_str(),
+            event.vector.as_str(),
+            event.risk_level.as_str(),
+            event.prevention_tool.as_str(),
+        ),
+        (
+            "OPEN",
+            "not remediated",
+            "phish",
+            "corporate email",
+            "0",
+            "response team"
+        ),
+        "ace3's defaults: the first of each by id, the risk level first by value"
+    );
+    assert_eq!(event.owner.as_ref().map(|o| o.id), Some(actor_id(&actor)));
+    assert_eq!(event.comment.as_deref(), Some("first look"));
+    assert_eq!(event.event_time, times.event_time);
+    assert_eq!(event.contain_time, None);
+    assert_eq!(in_event(db, event.id).await, BTreeSet::from([older, newer]));
+    let row = last_audit(db).await;
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: boss_json(),
+            action: "add_to_event".to_owned(),
+            target: ("event".to_owned(), event.id.to_string()),
+            before: None,
+            after: Some(json!({
+                "uuid": event.uuid,
+                "creation_date": "2026-01-02",
+                "name": "<b>new</b> event",
+                "status": "OPEN",
+                "remediation": "not remediated",
+                "type": "phish",
+                "vector": "corporate email",
+                "risk_level": "0",
+                "prevention_tool": "response team",
+                "comment": "first look",
+                "event_time": "2026-01-01T00:00:00Z",
+                "alert_time": "2026-01-02T03:04:05Z",
+                "ownership_time": "2026-01-02T03:04:05Z",
+                "disposition_time": null,
+                "contain_time": null,
+                "remediation_time": null,
+                "owner": Uuid::from_u128(0xAD),
+                "alerts": [newer, older],
+            })),
+            details: json!({
+                "uuid": event.uuid,
+                "name": "<b>new</b> event",
+                "missing": [gone, not_an_alert],
+            }),
+        }
+    );
+
+    // to an event that exists, by its id: one row naming the alert it added
+    let third = alert_at(db, "2026-01-04T00:00:00Z").await;
+    let again = service
+        .add_to_event(
+            &actor,
+            &EventChoice::Existing(EventRef::Id(event.id)),
+            &[older, third],
+        )
+        .await
+        .expect("adds");
+    assert!(!again.made);
+    assert_eq!(again.added, [third]);
+    assert_eq!(again.already, [older]);
+    let second_row = last_audit(db).await;
+    assert_eq!(
+        second_row,
+        AuditRow {
+            actor: boss_json(),
+            action: "add_to_event".to_owned(),
+            target: ("event".to_owned(), event.id.to_string()),
+            before: None,
+            after: Some(json!({"alerts": [third]})),
+            details: json!({"uuid": event.uuid, "name": "<b>new</b> event", "missing": []}),
+        }
+    );
+
+    // nothing new to add, a name or times that aren't, too many, no such event and a refusal have no row
+    let rows = audit_rows(db).await.len();
+    let same = service
+        .add_to_event(
+            &actor,
+            &EventChoice::Existing(EventRef::Uuid(event.uuid)),
+            &[older, gone],
+        )
+        .await
+        .expect("changes nothing");
+    assert!(same.added.is_empty());
+    assert_eq!(same.missing, [gone]);
+    for name in [
+        "",
+        "   ",
+        "a\nb",
+        &"x".repeat(ace_service::MAX_EVENT_NAME_CHARS + 1),
+    ] {
+        assert!(
+            matches!(
+                service
+                    .add_to_event(&actor, &new_event(name), &[older])
+                    .await,
+                Err(ServiceError::InvalidRequest(_))
+            ),
+            "{name:?}"
+        );
+    }
+    let out_of_order = EventChoice::New(NewEvent {
+        name: "bad times".to_owned(),
+        comment: None,
+        times: EventTimes {
+            event_time: Some(at("2026-01-02T00:00:00Z")),
+            remediation_time: Some(at("2026-01-01T00:00:00Z")),
+            ..EventTimes::default()
+        },
+    });
+    assert!(matches!(
+        service.add_to_event(&actor, &out_of_order, &[older]).await,
+        Err(ServiceError::InvalidRequest(ref why)) if why.contains("out of order")
+    ));
+    let too_long = EventChoice::New(NewEvent {
+        name: "long comment".to_owned(),
+        comment: Some("x".repeat(ace_service::MAX_EVENT_COMMENT_CHARS + 1)),
+        times: EventTimes::default(),
+    });
+    assert!(matches!(
+        service.add_to_event(&actor, &too_long, &[older]).await,
+        Err(ServiceError::InvalidRequest(_))
+    ));
+    let too_many: Vec<Uuid> = (0..=ace_service::MAX_EVENT_ALERTS as u128)
+        .map(Uuid::from_u128)
+        .collect();
+    assert!(matches!(
+        service
+            .add_to_event(&actor, &new_event("too many"), &too_many)
+            .await,
+        Err(ServiceError::TooLarge(_))
+    ));
+    assert!(matches!(
+        service
+            .add_to_event(
+                &actor,
+                &EventChoice::Existing(EventRef::Id(i64::MAX)),
+                &[older]
+            )
+            .await,
+        Err(ServiceError::NotFound(_))
+    ));
+    assert!(matches!(
+        service
+            .add_to_event(&no_events(db).await, &new_event("refused"), &[older])
+            .await,
+        Err(ServiceError::PermissionDenied { ref permission, .. })
+            if permission.to_string() == "event:write"
+    ));
+    assert_eq!(audit_rows(db).await.len(), rows);
+    row.action
+}
+
+/// ace3's rules for adding to an event: a new event's name taken on its day adds to that one, even when
+/// several analysts make it at once; another day's is another event; a new event with none of its alerts
+/// left is dated today; a closed event takes alerts; an alert added by two at once is in it once; and the
+/// form's closed events come a page at a time, newest first.
+#[tokio::test]
+async fn adding_to_an_event_follows_ace3_s_rules() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let boss = admin(db).await;
+    let writer = holding(&service, db, "event-writer", &[("event", "write")]).await;
+
+    let first = alert_at(db, "2026-03-01T08:00:00Z").await;
+    let made = service
+        .add_to_event(
+            &writer,
+            &EventChoice::New(NewEvent {
+                name: "Phish".to_owned(),
+                comment: Some("the first".to_owned()),
+                times: EventTimes::default(),
+            }),
+            &[first],
+        )
+        .await
+        .expect("makes it");
+    assert!(made.made);
+    assert_eq!(
+        made.event.owner.as_ref().map(|o| o.username.as_str()),
+        Some("event-writer")
+    );
+
+    // the same name on the same day is the same event, keeping its comment
+    let second = alert_at(db, "2026-03-01T23:59:59Z").await;
+    let found = service
+        .add_to_event(
+            &writer,
+            &EventChoice::New(NewEvent {
+                name: " Phish ".to_owned(),
+                comment: Some("ignored".to_owned()),
+                times: EventTimes::default(),
+            }),
+            &[second],
+        )
+        .await
+        .expect("adds to it");
+    assert!(!found.made);
+    assert_eq!(found.event.id, made.event.id);
+    assert_eq!(found.event.comment.as_deref(), Some("the first"));
+    assert_eq!(found.added, [second]);
+    // another day's is another event
+    let next_day = alert_at(db, "2026-03-02T00:00:00Z").await;
+    let other = service
+        .add_to_event(&writer, &new_event("Phish"), &[next_day])
+        .await
+        .expect("makes another");
+    assert!(other.made);
+    assert_ne!(other.event.id, made.event.id);
+    // none of its alerts left: dated today
+    let today = service
+        .add_to_event(&writer, &new_event("all gone"), &[Uuid::from_u128(0xDEAD)])
+        .await
+        .expect("makes it");
+    assert!(today.made);
+    assert_eq!(today.event.creation_date, chrono::Utc::now().date_naive());
+    assert!(today.event.alerts.is_empty());
+
+    // several making one event at once: one makes it, the others add to it, and none fails
+    let racers: Vec<Uuid> = {
+        let mut racers = Vec::new();
+        for _ in 0..8 {
+            racers.push(alert_at(db, "2026-04-01T12:00:00Z").await);
+        }
+        racers
+    };
+    let mut racing = tokio::task::JoinSet::new();
+    for alert in racers.iter().copied() {
+        let service = service.clone();
+        let writer = writer.clone();
+        racing.spawn(async move {
+            service
+                .add_to_event(&writer, &new_event("at once"), &[alert])
+                .await
+        });
+    }
+    let results: Vec<_> = racing
+        .join_all()
+        .await
+        .into_iter()
+        .map(|r| r.expect("each succeeds"))
+        .collect();
+    assert_eq!(results.iter().filter(|r| r.made).count(), 1);
+    let race_event = results[0].event.id;
+    assert!(results.iter().all(|r| r.event.id == race_event));
+    assert_eq!(
+        in_event(db, race_event).await,
+        racers.iter().copied().collect()
+    );
+
+    // one alert added to one event by several at once is in it once
+    let shared = alert_at(db, "2026-04-02T00:00:00Z").await;
+    let mut racing = tokio::task::JoinSet::new();
+    for _ in 0..4 {
+        let service = service.clone();
+        let writer = writer.clone();
+        racing.spawn(async move {
+            service
+                .add_to_event(
+                    &writer,
+                    &EventChoice::Existing(EventRef::Id(race_event)),
+                    &[shared],
+                )
+                .await
+        });
+    }
+    let added: usize = racing
+        .join_all()
+        .await
+        .into_iter()
+        .map(|r| r.expect("each succeeds").added.len())
+        .sum();
+    assert_eq!(added, 1);
+
+    // a closed event takes alerts
+    service
+        .set_event_status(&boss, EventRef::Id(other.event.id), "CLOSED")
+        .await
+        .expect("closes");
+    let late = alert_at(db, "2026-03-05T00:00:00Z").await;
+    let to_closed = service
+        .add_to_event(
+            &writer,
+            &EventChoice::Existing(EventRef::Id(other.event.id)),
+            &[late],
+        )
+        .await
+        .expect("adds");
+    assert_eq!(to_closed.added, [late]);
+    assert_eq!(to_closed.event.status, "CLOSED");
+
+    // the closed events a page at a time, newest first
+    service
+        .set_event_status(&boss, EventRef::Id(made.event.id), "CLOSED")
+        .await
+        .expect("closes");
+    service
+        .set_event_status(&boss, EventRef::Id(race_event), "CLOSED")
+        .await
+        .expect("closes");
+    let reader = holding(&service, db, "event-reader", &[("event", "read")]).await;
+    let page = service
+        .closed_events(&reader, None, 2)
+        .await
+        .expect("lists");
+    assert_eq!(
+        page.events.iter().map(|e| e.id).collect::<Vec<_>>(),
+        [race_event, other.event.id],
+        "2026-04-01, then 2026-03-02"
+    );
+    assert_eq!(page.next, Some(other.event.id));
+    let page = service
+        .closed_events(&reader, page.next, 2)
+        .await
+        .expect("lists");
+    assert_eq!(
+        page.events.iter().map(|e| e.id).collect::<Vec<_>>(),
+        [made.event.id]
+    );
+    assert_eq!(page.next, None);
+    for limit in [0, ace_service::MAX_EVENTS_PAGE + 1] {
+        assert!(matches!(
+            service.closed_events(&reader, None, limit).await,
+            Err(ServiceError::InvalidRequest(_))
+        ));
+    }
+    // a reader can't add
+    assert!(matches!(
+        service.add_to_event(&reader, &new_event("reader's"), &[first]).await,
+        Err(ServiceError::PermissionDenied { ref permission, .. })
+            if permission.to_string() == "event:write"
+    ));
 }

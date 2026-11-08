@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT e.id FROM events.events e\n                         JOIN events.statuses s ON s.id = e.status_id\n                         WHERE s.value = 'CLOSED'\n                           AND ($1::bigint IS NULL\n                                OR (e.creation_date, e.id) <\n                                   (SELECT c.creation_date, c.id FROM events.events c WHERE c.id = $1))\n                         ORDER BY e.creation_date DESC, e.id DESC\n                         LIMIT $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "events.events",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "e2024aae79d43646797a5b81d2cc579346f137f67fdc4e921a0e8b1009c1214e"
+}

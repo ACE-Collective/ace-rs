@@ -46,8 +46,9 @@
 //! `Service::disposition`, which checks `alert:write` and writes its audit row, so the result is per alert:
 //! the page lists the alerts it dispositioned and those it couldn't, with why. ace3's runs them in one
 //! transaction and skips the ones another analyst owns; ace4's alerts have no owner. At most
-//! `MAX_BULK` alerts go in one request. ace3's other bulk actions (review, comment, ownership, tags,
-//! remediation, events, add observable) come with what they write.
+//! `MAX_BULK` alerts go in one request. "Add to Event" is the same form's other button, which opens
+//! `crate::events`' page with the ticked alerts (5.11's events area). ace3's other bulk actions (review,
+//! comment, ownership, tags, remediation, add observable) come with what they write.
 //!
 //! What ace3's page has that this leaves out: its search box (7.11), the remediation, queue and owner
 //! columns and the queue-mix warning, the tag badges and comments under a title, the SVS status, and the

@@ -25,6 +25,10 @@
 //! confirm and its answer, drawn directly with a rule's and a file's hostile text, and through the server
 //! under `signature:read`, `signature:download` and `signature:qa_purge`, the purge from this site only
 //! with its audit row, and each refusal changing nothing.
+//!
+//! PLAN.md 5.11's events area (6b): the add-to-event page, with the ticked alerts and as Create Event, and
+//! its answer, drawn directly with an event's hostile text, and through the server under `event:read` and
+//! `event:write`, each add one audited write, gone alerts said, and each refusal changing nothing.
 
 use std::collections::BTreeSet;
 use std::io::Write;
@@ -6789,4 +6793,436 @@ async fn the_signatures_area_needs_signature_read_then_download_and_purge() {
     assert_eq!(qa_rows(&stack).await, 1);
     assert_eq!(stack.audit_count().await, audit + 2);
     let _ = third;
+}
+
+// ---- PLAN.md 5.11's events area (6b): adding alerts to an event ----
+
+use ace_gui::events::{AddPage, AddedPage, add_view, added_view};
+use ace_service::{AddedToEvent, Event as GuiEvent};
+
+fn fixture_event(id: i64, day: &str, name: &str) -> GuiEvent {
+    GuiEvent {
+        id,
+        uuid: uuid::Uuid::from_u128(id as u128),
+        creation_date: day.parse().expect("a date"),
+        name: name.to_owned(),
+        status: "OPEN".to_owned(),
+        remediation: "not remediated".to_owned(),
+        kind: "phish".to_owned(),
+        vector: "corporate email".to_owned(),
+        risk_level: "0".to_owned(),
+        prevention_tool: "response team".to_owned(),
+        campaign: None,
+        comment: None,
+        event_time: None,
+        alert_time: None,
+        ownership_time: None,
+        disposition_time: None,
+        contain_time: None,
+        remediation_time: None,
+        owner: None,
+        malware: Vec::new(),
+        disposition: "DELIVERY".to_owned(),
+        alerts: Vec::new(),
+        tags: Vec::new(),
+        alert_tags: Vec::new(),
+        created_at: chrono::Utc::now(),
+    }
+}
+
+/// The view functions draw the open and closed events to choose, labelled as ace3 labels them, the
+/// closed ones' Show more and First, a new event's fields and times, and with no alerts only those; the
+/// answer says what was added and what was gone. Every value is escaped and nothing is inline.
+#[test]
+fn the_event_views_draw_the_choices_and_the_answer() {
+    let alerts = vec![uuid::Uuid::from_u128(1), uuid::Uuid::from_u128(2)];
+    let open = [
+        fixture_event(3, "2026-01-01", "older"),
+        fixture_event(4, "2026-02-01", HOSTILE),
+    ];
+    let closed = [fixture_event(9, "2025-12-01", "closed one")];
+    let view = add_view(
+        alerts.clone(),
+        &open,
+        true,
+        &closed,
+        Some(9),
+        true,
+        "/?f=disposition:OPEN".to_owned(),
+    );
+    assert_eq!(view.open[0].id, 4, "newest first");
+    let page = drawn_safely(&AddPage {
+        layout: Layout::signed_out("n"),
+        view,
+    });
+    assert!(page.contains("Add 2 alerts to an event"), "{page}");
+    assert!(page.contains(&format!(
+        "2026-02-01 - phish - corporate email - {HOSTILE_ESCAPED}"
+    )));
+    for id in &alerts {
+        assert_eq!(
+            page.matches(&format!(r#"name="alert" value="{id}""#))
+                .count(),
+            2,
+            "in the add form and the Show more form"
+        );
+    }
+    assert!(page.contains(r#"<input type="radio" name="event" value="4">"#));
+    assert!(page.contains(r#"<input type="radio" name="event" value="9">"#));
+    assert!(page.contains(r#"<input type="radio" name="event" value="NEW">"#));
+    assert!(page.contains(r#"form="more-events" name="closed_after" value="9">Show more…"#));
+    assert!(page.contains(r#"form="more-events" name="closed_after" value="">First"#));
+    assert!(page.contains("More open events than these exist"));
+    assert!(page.contains(r#"name="remediation_time""#));
+    assert!(page.contains(r#"<input type="hidden" name="next" value="/?f=disposition:OPEN">"#));
+
+    // Create Event: no alerts, no events to choose, a new one's fields
+    let page = drawn_safely(&AddPage {
+        layout: Layout::signed_out("n"),
+        view: add_view(Vec::new(), &[], false, &[], None, false, "/".to_owned()),
+    });
+    assert!(page.contains("<h1>Create Event</h1>"), "{page}");
+    assert!(page.contains(r#"<input type="hidden" name="event" value="NEW">"#));
+    assert!(!page.contains(r#"type="radio""#));
+    assert!(!page.contains("more-events"));
+
+    // the answer
+    let mut event = fixture_event(4, "2026-02-01", HOSTILE);
+    event.alerts = Vec::new();
+    let added = AddedToEvent {
+        event,
+        made: false,
+        added: vec![alerts[0]],
+        already: vec![alerts[1]],
+        missing: vec![uuid::Uuid::from_u128(0xDEAD)],
+    };
+    let page = drawn_safely(&AddedPage {
+        layout: Layout::signed_out("n"),
+        view: added_view(&added, "/".to_owned()),
+    });
+    assert!(page.contains("Added to the event"), "{page}");
+    assert!(page.contains(HOSTILE_ESCAPED));
+    assert!(page.contains("1 alert added, 1 in it already"), "{page}");
+    assert!(page.contains(&format!(r#"<a href="/alerts/{}">"#, alerts[0])));
+    assert!(page.contains("1 of the ticked alerts no longer exist"));
+    assert!(page.contains(&uuid::Uuid::from_u128(0xDEAD).to_string()));
+}
+
+/// A time as the add form sends it: a `datetime-local` value, with or without seconds, or ace3's form, in
+/// UTC; empty is none.
+#[test]
+fn an_event_time_is_read_as_the_form_sends_it() {
+    use ace_gui::events::form_time;
+    let want: chrono::DateTime<chrono::Utc> = "2026-01-02T03:04:05Z".parse().expect("a time");
+    assert_eq!(form_time("2026-01-02T03:04:05"), Ok(Some(want)));
+    assert_eq!(form_time("2026-01-02 03:04:05"), Ok(Some(want)));
+    assert_eq!(
+        form_time("2026-01-02T03:04"),
+        Ok(Some("2026-01-02T03:04:00Z".parse().expect("a time")))
+    );
+    assert_eq!(form_time("  "), Ok(None));
+    assert!(form_time("yesterday").is_err());
+    assert!(form_time("2026-13-01T00:00").is_err());
+}
+
+/// An event made by SQL on a day, with a status, as ace3's defaults make one.
+async fn gui_event(stack: &Stack, name: &str, day: &str, status: &str) -> i64 {
+    sqlx::query_scalar(
+        "INSERT INTO events.events
+             (creation_date, name, status_id, remediation_id, type_id, vector_id, risk_level_id,
+              prevention_tool_id)
+         VALUES ($2::date, $1, (SELECT id FROM events.statuses WHERE value = $3),
+                 (SELECT min(id) FROM events.remediations), (SELECT min(id) FROM events.types),
+                 (SELECT min(id) FROM events.vectors), (SELECT min(id) FROM events.risk_levels),
+                 (SELECT min(id) FROM events.prevention_tools))
+         RETURNING id",
+    )
+    .bind(name)
+    .bind(day)
+    .bind(status)
+    .fetch_one(stack.test_db.db().pool())
+    .await
+    .expect("makes an event")
+}
+
+async fn alerts_in_event(stack: &Stack, event: i64) -> BTreeSet<uuid::Uuid> {
+    sqlx::query_scalar("SELECT root_id FROM events.event_alerts WHERE event_id = $1")
+        .bind(event)
+        .fetch_all(stack.test_db.db().pool())
+        .await
+        .expect("reads")
+        .into_iter()
+        .collect()
+}
+
+/// Through the server: signed out goes to the login; the page and its post need `event:write`, and the
+/// page `event:read` too; the alert list's form opens it with the ticked alerts; the closed events come a
+/// page at a time; a post adds to an event, or makes one, in one audited write and says which alerts
+/// were gone; Create Event makes one with none; and each refusal, a cross-site post among them, changes
+/// nothing.
+#[tokio::test]
+async fn alerts_are_added_to_an_event_through_the_form() {
+    let stack = stack().await;
+    let alice = user(&stack, "alice").await;
+    grant_alert_read(&stack, &alice).await;
+    let session = session_of(&stack, "alice").await;
+    let one = list_alert(&stack, "one", "2026-05-01T10:00:00Z", None).await;
+    let two = list_alert(&stack, "two", "2026-05-02T10:00:00Z", None).await;
+    let gone = uuid::Uuid::from_u128(0x6011E);
+    let open = gui_event(&stack, HOSTILE, "2026-04-01", "OPEN").await;
+    let mut closed = Vec::new();
+    for day in 1..=17 {
+        closed.push(
+            gui_event(
+                &stack,
+                &format!("closed {day}"),
+                &format!("2026-03-{day:02}"),
+                "CLOSED",
+            )
+            .await,
+        );
+    }
+    let get = |path: String| {
+        let request = stack.get(&path).header("cookie", cookie(&session));
+        async move { request.send().await.expect("answered") }
+    };
+    let post = |form: Vec<(&'static str, String)>| {
+        let request = stack
+            .http
+            .post(format!("{}/events/add", stack.url))
+            .header("origin", &stack.url)
+            .header("cookie", cookie(&session))
+            .form(&form);
+        async move { request.send().await.expect("answered") }
+    };
+    let ticked = format!("/events/add?alert={one}&alert={two}&alert={gone}&next=%2F%3Fsize%3D10");
+
+    // the alert list's bulk form opens it
+    let list = get("/".to_owned()).await.text().await.expect("a page");
+    assert!(
+        list.contains(r#"<button type="submit" formaction="/events/add" formmethod="get">Add to Event</button>"#),
+        "{list}"
+    );
+
+    // signed out
+    let signed_out = stack.get(&ticked).send().await.expect("answered");
+    assert_eq!(signed_out.status(), StatusCode::SEE_OTHER);
+    assert!(location(&signed_out).starts_with("/login?next=%2Fevents%2Fadd"));
+
+    // without event:write, then without event:read, refused, and the post changes nothing
+    let audit = stack.audit_count().await;
+    assert_eq!(get(ticked.clone()).await.status(), StatusCode::FORBIDDEN);
+    let refused = post(vec![
+        ("event", open.to_string()),
+        ("alert", one.to_string()),
+    ])
+    .await;
+    assert_eq!(refused.status(), StatusCode::FORBIDDEN);
+    grant_to(&stack, &alice, "event", "write").await;
+    assert_eq!(get(ticked.clone()).await.status(), StatusCode::FORBIDDEN);
+    grant_to(&stack, &alice, "event", "read").await;
+    let audit = audit + 2;
+    assert_eq!(stack.audit_count().await, audit, "only the grants' rows");
+    assert!(alerts_in_event(&stack, open).await.is_empty());
+
+    // the page: the open event, the newest 15 closed, Show more, and the ticked alerts
+    let response = get(ticked.clone()).await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let page = response.text().await.expect("a page");
+    assert!(inline_free(&page.replace(HOSTILE_ESCAPED, "")));
+    assert!(page.contains("Add 3 alerts to an event"), "{page}");
+    assert!(page.contains(HOSTILE_ESCAPED));
+    assert!(!page.contains(HOSTILE));
+    assert!(page.contains(&format!(r#"value="{}"> 2026-03-17 - phish"#, closed[16])));
+    assert!(page.contains(&format!(r#"value="{}"> 2026-03-03 - phish"#, closed[2])));
+    assert!(!page.contains("2026-03-02 - phish"));
+    assert!(page.contains(&format!(
+        r#"name="closed_after" value="{}">Show more…"#,
+        closed[2]
+    )));
+    assert!(page.contains(r#"<input type="hidden" name="next" value="/?size=10">"#));
+    // the next page of closed events
+    let more = get(format!("{ticked}&closed_after={}", closed[2]))
+        .await
+        .text()
+        .await
+        .expect("a page");
+    assert!(more.contains("2026-03-02 - phish") && more.contains("2026-03-01 - phish"));
+    assert!(!more.contains("2026-03-03 - phish"));
+    assert!(!more.contains("Show more"));
+    assert!(more.contains(r#"name="closed_after" value="">First"#));
+    // a page asked for wrongly
+    for bad in [
+        "/events/add?alert=x".to_owned(),
+        "/events/add?alert=1&closed_after=nope".to_owned(),
+        format!(
+            "/events/add?{}",
+            (0..=ace_gui::list::MAX_BULK)
+                .map(|_| format!("alert={one}"))
+                .collect::<Vec<_>>()
+                .join("&")
+        ),
+    ] {
+        assert_eq!(get(bad).await.status(), StatusCode::BAD_REQUEST);
+    }
+
+    // adding to the open event: one row, the gone alert said
+    let alerts = |ids: &[uuid::Uuid]| {
+        ids.iter()
+            .map(|id| ("alert", id.to_string()))
+            .collect::<Vec<_>>()
+    };
+    let mut form = vec![
+        ("event", open.to_string()),
+        ("next", "/?size=10".to_owned()),
+    ];
+    form.extend(alerts(&[one, gone]));
+    let response = post(form).await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let page = response.text().await.expect("a page");
+    assert!(inline_free(&page.replace(HOSTILE_ESCAPED, "")));
+    assert!(!page.contains(HOSTILE));
+    assert!(page.contains("Added to the event"), "{page}");
+    assert!(page.contains("1 alert added"), "{page}");
+    assert!(
+        page.contains("1 of the ticked alerts no longer exist"),
+        "{page}"
+    );
+    assert!(page.contains(&gone.to_string()));
+    assert!(page.contains(r#"<a href="/?size=10">Back</a>"#));
+    assert_eq!(stack.audit_count().await, audit + 1);
+    assert_eq!(last_action(&stack).await, "add_to_event");
+    assert_eq!(alerts_in_event(&stack, open).await, BTreeSet::from([one]));
+
+    // a new event, dated by its oldest alert, with its comment and times
+    let mut form = vec![
+        ("event", "NEW".to_owned()),
+        ("name", " <i>new</i> ".to_owned()),
+        ("comment", "seen twice".to_owned()),
+        ("event_time", "2026-05-01T09:00".to_owned()),
+        ("alert_time", "2026-05-01T10:00:00".to_owned()),
+        ("ownership_time", String::new()),
+    ];
+    form.extend(alerts(&[two, one]));
+    let response = post(form).await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let page = response.text().await.expect("a page");
+    assert!(page.contains("Made the event"), "{page}");
+    assert!(
+        page.contains("2026-05-01 - phish - corporate email - &#60;i&#62;new&#60;/i&#62;"),
+        "{page}"
+    );
+    assert_eq!(stack.audit_count().await, audit + 2);
+    let (made, comment, event_time): (i64, Option<String>, Option<chrono::DateTime<chrono::Utc>>) =
+        sqlx::query_as(
+            "SELECT id, comment, event_time FROM events.events WHERE name = '<i>new</i>'",
+        )
+        .fetch_one(stack.test_db.db().pool())
+        .await
+        .expect("made");
+    assert_eq!(comment.as_deref(), Some("seen twice"));
+    assert_eq!(
+        event_time,
+        Some("2026-05-01T09:00:00Z".parse().expect("a time"))
+    );
+    assert_eq!(
+        alerts_in_event(&stack, made).await,
+        BTreeSet::from([one, two])
+    );
+
+    // Create Event: the page with no alerts, and a post that makes one with none
+    let create = get("/events/add".to_owned()).await;
+    assert_eq!(create.status(), StatusCode::OK);
+    let page = create.text().await.expect("a page");
+    assert!(page.contains("<h1>Create Event</h1>"), "{page}");
+    let response = post(vec![
+        ("event", "NEW".to_owned()),
+        ("name", "empty".to_owned()),
+    ])
+    .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    assert!(
+        response
+            .text()
+            .await
+            .expect("a page")
+            .contains("0 alerts added")
+    );
+    assert_eq!(stack.audit_count().await, audit + 3);
+
+    // refusals change nothing
+    let audit = stack.audit_count().await;
+    let refusals: Vec<(Vec<(&'static str, String)>, StatusCode)> = vec![
+        (vec![("alert", one.to_string())], StatusCode::BAD_REQUEST),
+        (vec![("event", "nope".to_owned())], StatusCode::BAD_REQUEST),
+        (vec![("event", "new".to_owned())], StatusCode::BAD_REQUEST),
+        (vec![("event", "-1".to_owned())], StatusCode::BAD_REQUEST),
+        (vec![("event", "".to_owned())], StatusCode::BAD_REQUEST),
+        (
+            vec![("event", "NEW".to_owned()), ("name", "  ".to_owned())],
+            StatusCode::BAD_REQUEST,
+        ),
+        (
+            vec![
+                ("event", "NEW".to_owned()),
+                ("name", "bad times".to_owned()),
+                ("event_time", "2026-05-02T00:00".to_owned()),
+                ("contain_time", "2026-05-01T00:00".to_owned()),
+            ],
+            StatusCode::BAD_REQUEST,
+        ),
+        (
+            vec![
+                ("event", "NEW".to_owned()),
+                ("name", "x".to_owned()),
+                ("event_time", "soon".to_owned()),
+            ],
+            StatusCode::BAD_REQUEST,
+        ),
+        (
+            vec![
+                ("event", "NEW".to_owned()),
+                ("name", "x".to_owned()),
+                ("alert", "x".to_owned()),
+            ],
+            StatusCode::BAD_REQUEST,
+        ),
+        (
+            vec![("event", i64::MAX.to_string()), ("alert", one.to_string())],
+            StatusCode::NOT_FOUND,
+        ),
+    ];
+    for (form, status) in refusals {
+        let response = post(form.clone()).await;
+        assert_eq!(response.status(), status, "{form:?}");
+        if form.iter().any(|(_, v)| v == "bad times") {
+            assert!(
+                response
+                    .text()
+                    .await
+                    .expect("a page")
+                    .contains("out of order")
+            );
+        }
+    }
+    let cross = stack
+        .http
+        .post(format!("{}/events/add", stack.url))
+        .header("origin", "https://evil.example")
+        .header("cookie", cookie(&session))
+        .form(&[
+            ("event", "NEW"),
+            ("name", "cross-site"),
+            ("alert", &two.to_string()),
+        ])
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(cross.status(), StatusCode::FORBIDDEN);
+    assert_eq!(stack.audit_count().await, audit);
+    assert_eq!(
+        sqlx_count(&stack.test_db, "SELECT count(*) FROM events.events").await,
+        20,
+        "18 made by SQL, the new one and the empty one"
+    );
 }

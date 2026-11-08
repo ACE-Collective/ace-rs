@@ -38,6 +38,9 @@
 //!   `signatures/hub.html` and `yara_qa.html`: the YARA QA rules, their versions and kept files, the
 //!   links to the API's downloads, and purges with a confirm page, over the `yara_qa` service. The base
 //!   layout links to it for whoever holds `signature:read`.
+//! - `events`: the events area (5.11's events area), so far ace3's add-to-event modal as a page, opened
+//!   from the alert list's bulk form, and Create Event, the same page with no alerts, over
+//!   `Service::add_to_event`.
 //!
 //! From ace3's `app/templates/base.html` and `core.html`, and what differs: the layout keeps ace3's
 //! theme attribute on `<html>`, its five themes and its log out by POST. It has none of ace3's jQuery,
@@ -57,6 +60,7 @@ pub mod alert;
 pub mod analysis;
 mod assets;
 mod auth;
+pub mod events;
 mod headers;
 pub mod list;
 mod places;
@@ -144,6 +148,12 @@ impl Gui {
                 "/alerts/disposition",
                 post(list::bulk_disposition)
                     .layer(DefaultBodyLimit::max(list::MAX_BULK_FORM_BYTES)),
+            )
+            .route(
+                "/events/add",
+                get(events::add_page)
+                    .post(events::add)
+                    .layer(DefaultBodyLimit::max(events::MAX_ADD_FORM_BYTES)),
             )
             .route(
                 "/filters/saved",

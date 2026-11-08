@@ -109,8 +109,10 @@ pub use detection_points::{
     DetectionPoint, DetectionPointFilter, DetectionPointPage, MAX_DETECTIONS_PAGE,
 };
 pub use events::{
-    Event, EventAlert, EventMalware, EventOwner, EventPage, EventRef, MAX_EVENTS_PAGE,
-    MAX_EXPORT_EVENTS, MAX_THREAT_TYPE_CHARS, Threat, ThreatType, disposition_rank, rolled_up,
+    AddedToEvent, CLOSED_EVENTS_PAGE, Event, EventAlert, EventChoice, EventMalware, EventOwner,
+    EventPage, EventRef, EventTimes, MAX_EVENT_ALERTS, MAX_EVENT_COMMENT_CHARS,
+    MAX_EVENT_NAME_CHARS, MAX_EVENTS_PAGE, MAX_EXPORT_EVENTS, MAX_THREAT_TYPE_CHARS, NewEvent,
+    Threat, ThreatType, disposition_rank, rolled_up,
 };
 pub use filters::{FilterEntry, FilterScreen, FilterValue};
 pub use gate::Holder;
