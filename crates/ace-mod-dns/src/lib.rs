@@ -13,7 +13,7 @@
 //! The queries go to the nameservers in the settings, or those in `/etc/resolv.conf`, as
 //! dnspython's stub resolver asks them (`resolve`).
 
-mod resolve;
+pub mod resolve;
 
 use std::net::SocketAddr;
 use std::time::Duration;
@@ -241,7 +241,7 @@ async fn nameservers(configured: &[String]) -> Result<Vec<SocketAddr>, ModuleErr
 }
 
 /// The `nameserver` lines of a resolv.conf, on port 53.
-fn resolv_conf_nameservers(conf: &str) -> Vec<SocketAddr> {
+pub fn resolv_conf_nameservers(conf: &str) -> Vec<SocketAddr> {
     conf.lines()
         .filter_map(|line| {
             let mut words = line.split_whitespace();

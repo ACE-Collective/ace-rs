@@ -41,6 +41,7 @@ mod raw;
 
 pub use ace_pycompat::PyErr;
 pub use cert::{Certificate, load_der_x509_certificate, load_pem_x509_certificate};
+pub use oid_names::oid_name;
 pub use pyasn1::is_der_bytes;
 pub use pyobj::{AttrValue, DateTime, Name, NameAttribute, Rdn};
 

@@ -1,9 +1,9 @@
-//! `test_trace.py`: 35 cases, 3 waiting (an executable's output). ace3 stores secrets in its
+//! `test_trace.py`: 35 cases; the 3 whose executable ran a one-liner run [`super::Echo`]. ace3 stores secrets in its
 //! encrypted store for the engine to load; ace4's caller hands the run its secrets.
 
 use serde_json::{Value as Json, json};
 
-use super::{Fixture, config, ev, evs, logic, v};
+use super::{Fixture, config, echo_path, ev, evs, logic, v};
 use crate::correlate::action::Level;
 use crate::correlate::expr::{Evaluator, Scope};
 use crate::correlate::trace::{Branch, EventTrace, ExpressionTrace, sanitize, sanitize_opt};
@@ -359,11 +359,10 @@ fn test_description_in_trace() {
 }
 
 #[test]
-#[ignore = "runs a type: executable command, which waits for the owner's decision on how one runs (PLAN.md 6.6)"]
 fn test_transform_with_property_trace() {
     let config = logic(
         json!([{"transform": {"type": "event", "method": "property", "property_name": "enriched",
-        "property_type": "str", "command": {"type": "executable", "path": "/bin/echo", "args": ["enriched_value"]}}}]),
+        "property_type": "str", "command": {"type": "executable", "path": echo_path(), "args": ["print", "enriched_value"]}}}]),
     );
     let result = Fixture::default().simple(&config, evs(json!([{"id": 1}])));
     let et = &result.trace.event_traces[0];
@@ -383,7 +382,7 @@ fn test_transform_with_property_trace() {
     assert!(
         t.rendered_command
             .as_deref()
-            .is_some_and(|c| c.contains("/bin/echo enriched_value"))
+            .is_some_and(|c| c.contains(&format!("{} print enriched_value", echo_path())))
     );
     assert_eq!(t.merge_dropped, None);
 }
@@ -547,17 +546,17 @@ fn test_secrets_stripped_from_action_log_message() {
 }
 
 #[test]
-#[ignore = "runs a type: executable command, which waits for the owner's decision on how one runs (PLAN.md 6.6)"]
 fn test_env_value_absent_from_rendered_command_trace() {
     // the summary renders the path and arguments, never env, so an env value stays out of it
     let config = logic(
         json!([{"transform": {"type": "event", "method": "property", "property_name": "result",
-        "command": {"type": "executable", "path": "/usr/bin/python3",
-            "args": ["-c", "import os; print(os.environ['API_KEY'][:2])"], "env": {"API_KEY": "{{ _event.token }}"}}}}]),
+        "command": {"type": "executable", "path": echo_path(),
+            "args": ["env", "API_KEY"], "env": {"API_KEY": "{{ _event.token }}"}}}}]),
     );
     let result =
         Fixture::default().simple(&config, evs(json!([{"id": 1, "token": "supersecret"}])));
-    assert_eq!(super::js(&result.events[0])["result"], json!("su"));
+    // ace3's one-liner printed the value's first two characters; Echo prints it whole
+    assert_eq!(super::js(&result.events[0])["result"], json!("supersecret"));
     let t = result.trace.event_traces[0].steps[0]
         .step
         .transform()
@@ -577,13 +576,12 @@ fn test_env_value_absent_from_rendered_command_trace() {
 }
 
 #[test]
-#[ignore = "runs a type: executable command, which waits for the owner's decision on how one runs (PLAN.md 6.6)"]
 fn test_transform_error_is_sanitized() {
     // a script that echoes a credential to stderr doesn't write it into the trace
     let config = logic(
         json!([{"transform": {"type": "event", "method": "property", "property_name": "result",
-        "command": {"type": "executable", "path": "/usr/bin/python3",
-            "args": ["-c", "import os, sys; sys.stderr.write(os.environ['API_KEY']); sys.exit(1)"],
+        "command": {"type": "executable", "path": echo_path(),
+            "args": ["fail-env", "1", "API_KEY"],
             "env": {"API_KEY": "{{ _event.token }}"}}}}]),
     );
     let f = Fixture::default().secrets(&["supersecret"]);

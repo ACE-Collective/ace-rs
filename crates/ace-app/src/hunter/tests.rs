@@ -122,6 +122,7 @@ fn config(base_url: &str, signatures: &Path, instance_type: &str) -> HunterConfi
         concurrency: 1,
         query_sources: default_query_sources(),
         correlation_cache_bytes: 1 << 20,
+        scripts: BTreeMap::new(),
     }
 }
 

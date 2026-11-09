@@ -6,11 +6,14 @@
 //! run's [`LogLine`](super::action::LogLine)s for `caplog`, a mock clock for a patched
 //! `datetime`, and registration for importing.
 //!
-//! Cases that run a `type: executable` command wait for the owner's decision on how such a command
-//! runs (PLAN.md 6.6): each is an ignored test with the ace3 case's inputs and expected output and
-//! the reason. A case whose executable only had to fail (`/bin/false`) runs: ace4's executable step
-//! fails the same way. `test_sandbox.py`'s cases test ace3's sandbox runner, which ace4 doesn't have
-//! until that decision; [`sandbox`] lists each with its reason.
+//! A case that runs a `type: executable` command ran a Python one-liner (`python3 -c ...`) to see
+//! what the engine hands a script and does with what it gives back. ace4 runs no script (PLAN.md
+//! decision 16), so such a case runs [`Echo`], a script command type registered for a test path
+//! that does what the one-liner did: print its arguments, its stdin or a variable of its `env:`,
+//! exit with a code, or outlast its timeout. A case whose executable only had to fail (`/bin/false`)
+//! runs as it is: an executable that isn't a script type fails its step the same way.
+//! `test_sandbox.py`'s cases test ace3's sandbox runner; [`sandbox`] says which still hold and why
+//! the rest don't apply.
 //!
 //! `test_sources_loader.py` and `test_splunk_source.py` test the hunter's sources, so they're in
 //! `ace_app::hunter`'s tests.
@@ -38,6 +41,7 @@ use serde_json::{Map as JsonMap, Value as Json};
 use super::cache::{Cache, NoCache};
 use super::command::CommandTypes;
 use super::engine::{Correlated, Engine, HuntRun, Limits, Runtime};
+use super::script::{Script, ScriptCall, ScriptExit};
 use super::source::{QuerySource, Sources};
 use super::time::Time;
 use super::{Correlate, PredefinedCommand};
@@ -241,7 +245,11 @@ impl Default for Fixture {
         Fixture {
             renderer: Renderer::correlation(RenderLimits::default()),
             sources: Sources::new(),
-            types: CommandTypes::new(),
+            types: {
+                let mut types = CommandTypes::new();
+                types.register_script("hunts/scripts/echo.py", "echo", Arc::new(Echo));
+                types
+            },
             cache: Arc::new(NoCache),
             secrets: Vec::new(),
             now: Arc::new(Mutex::new(utc("2024-06-01T12:00:00+00:00"))),
@@ -303,6 +311,83 @@ impl Fixture {
     pub fn simple(&self, config: &Correlate, events: Vec<Map>) -> Correlated {
         let start = *self.now.lock().expect("clock");
         self.run(config, &[], HuntRun::at(start), events)
+    }
+}
+
+/// The path of [`Echo`]'s script, a file in a hunt repository made for the tests.
+pub fn echo_path() -> String {
+    static DIR: std::sync::LazyLock<tempfile::TempDir> = std::sync::LazyLock::new(|| {
+        let dir = tempfile::tempdir().expect("a directory");
+        let scripts = dir.path().join("hunts/scripts");
+        std::fs::create_dir_all(&scripts).expect("made");
+        std::fs::write(scripts.join("echo.py"), "").expect("written");
+        std::fs::write(scripts.join("data.txt"), "staged data\n").expect("written");
+        dir
+    });
+    DIR.path()
+        .join("hunts/scripts/echo.py")
+        .to_string_lossy()
+        .into_owned()
+}
+
+/// A script command type for the tests, registered for [`echo_path`] in every [`Fixture`], standing in for ace3's `python3 -c` one-liners. Its
+/// first argument says what it does:
+///
+/// - `print ARGS...`: prints the rest, joined by spaces;
+/// - `stdin`: prints its input;
+/// - `env NAME`: prints the variable of the command's `env:`, or fails as a KeyError;
+/// - `env-keys`: prints the names of its environment as a JSON list, sorted;
+/// - `fail CODE TEXT`: exits with CODE, TEXT on stderr;
+/// - `fail-env CODE NAME`: exits with CODE, the variable NAME of its `env:` on stderr;
+/// - `read NAME`: prints the staged file beside it, or fails as a FileNotFoundError;
+/// - `slow`: runs past its deadline.
+pub struct Echo;
+
+impl Script for Echo {
+    fn run(&self, call: &ScriptCall<'_>) -> Result<String, ScriptExit> {
+        let args = call.argv;
+        let rest = |from: usize| args.get(from..).unwrap_or_default().join(" ");
+        match args.first().map(String::as_str) {
+            Some("print") => Ok(format!("{}\n", rest(1))),
+            Some("stdin") => Ok(call.stdin.unwrap_or_default().to_owned()),
+            Some("env") => {
+                let name = args.get(1).map(String::as_str).unwrap_or_default();
+                match call.env.iter().find(|(k, _)| k == name) {
+                    Some((_, v)) => Ok(format!("{v}\n")),
+                    None => Err(ScriptExit::raised("KeyError", &format!("'{name}'"))),
+                }
+            }
+            Some("env-keys") => {
+                let mut keys: Vec<&str> = call.env.iter().map(|(k, _)| k.as_str()).collect();
+                keys.sort();
+                Ok(format!("{}\n", serde_json::to_string(&keys).expect("JSON")))
+            }
+            Some("fail") => Err(ScriptExit {
+                code: args.get(1).and_then(|c| c.parse().ok()).unwrap_or(1),
+                stderr: rest(2),
+            }),
+            Some("fail-env") => Err(ScriptExit {
+                code: args.get(1).and_then(|c| c.parse().ok()).unwrap_or(1),
+                stderr: call
+                    .env
+                    .iter()
+                    .find(|(k, _)| Some(k) == args.get(2))
+                    .map(|(_, v)| v.clone())
+                    .unwrap_or_default(),
+            }),
+            Some("read") => match call.files.read_beside_script(&rest(1)) {
+                Some(Ok(bytes)) => Ok(String::from_utf8_lossy(&bytes).into_owned()),
+                _ => Err(ScriptExit::raised("FileNotFoundError", &rest(1))),
+            },
+            Some("slow") => {
+                while !call.timed_out() {
+                    std::thread::sleep(std::time::Duration::from_millis(10));
+                }
+                std::thread::sleep(std::time::Duration::from_millis(10));
+                Ok(String::new())
+            }
+            other => Err(ScriptExit::raised("ValueError", &format!("{other:?}"))),
+        }
     }
 }
 

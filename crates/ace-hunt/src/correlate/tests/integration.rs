@@ -1,10 +1,10 @@
-//! `test_integration.py`: 9 cases, 2 waiting (an executable's output).
+//! `test_integration.py`: 9 cases; the 2 whose executable ran a one-liner run [`super::Echo`].
 
 use std::sync::Arc;
 
 use serde_json::{Value as Json, json};
 
-use super::{Fixture, TestSource, config, evs, hunt, js, logic, predefined, time, utc};
+use super::{Fixture, TestSource, config, echo_path, evs, hunt, js, logic, predefined, time, utc};
 
 fn ids(events: &[crate::value::Map], key: &str) -> Vec<Json> {
     events.iter().map(|e| js(e)[key].clone()).collect()
@@ -41,16 +41,15 @@ fn test_full_pipeline_filter_and_alert() {
 }
 
 #[test]
-#[ignore = "runs a type: executable command, which waits for the owner's decision on how one runs (PLAN.md 6.6)"]
 fn test_predefined_command_with_executable() {
     let predef = [predefined(
-        json!({"name": "enrich_user", "type": "executable", "path": "/usr/bin/python3",
-        "args": ["-c", "print('default')"]}),
+        json!({"name": "enrich_user", "type": "executable", "path": echo_path(),
+        "args": ["print", "default"]}),
     )];
     let config = logic(
         json!([{"transform": {"type": "event", "method": "property", "property_name": "enrichment",
         "command": {"type": "defined", "name": "enrich_user",
-            "arguments": {"args": ["-c", "import sys; print(f'enriched_{sys.argv[1]}')", "{{ _event.user }}"]}}}}]),
+            "arguments": {"args": ["print", "enriched_{{ _event.user }}"]}}}}]),
     );
     let f = Fixture::default();
     let start = *f.now.lock().expect("clock");
@@ -115,11 +114,10 @@ fn test_stop_preserves_earlier_alerts() {
 }
 
 #[test]
-#[ignore = "runs a type: executable command, which waits for the owner's decision on how one runs (PLAN.md 6.6)"]
 fn test_stream_mutate_transform() {
     let config = logic(json!([{"transform": {"type": "stream", "method": "mutate",
-        "command": {"type": "executable", "path": "/usr/bin/python3",
-            "args": ["-c", "import json; [print(json.dumps(e)) for e in [{'new': 1}, {'new': 2}]]"]}}}]));
+        "command": {"type": "executable", "path": echo_path(),
+            "args": ["print", "{\"new\": 1}\n{\"new\": 2}"]}}}]));
     let result =
         Fixture::default().simple(&config, evs(json!([{"old": 1}, {"old": 2}, {"old": 3}])));
     let events: Vec<Json> = result.events.iter().map(js).collect();

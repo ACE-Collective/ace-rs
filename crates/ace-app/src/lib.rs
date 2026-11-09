@@ -25,7 +25,8 @@
 //! Each kind of thing an ace3 integration can add (`ace3/docs/INTEGRATIONS.md`) becomes an entry
 //! here once its feature exists in ace4: analysis modules and observable types (2.31), analysis
 //! templates and observable actions (5.9, `analysis_view`, `observable_action`), hunt types (6.2,
-//! `hunt_type`), correlation command types (6.6, `command_type`), scheduled tasks (6.7,
+//! `hunt_type`), correlation command types (6.6, `command_type`), the script command types that
+//! stand in for hunt scripts (decision 16, `hunt_script`), scheduled tasks (6.7,
 //! `scheduled_task`), collectors with the first collector (6.1), and the rest with the phases that build
 //! them.
 //!
@@ -68,8 +69,20 @@ pub struct App {
     actions: ace_gui::ObservableActions,
     hunt_types: Vec<Arc<dyn ace_hunt::HuntType>>,
     command_types: Vec<(String, CommandTypeFactory)>,
+    hunt_scripts: Vec<(String, String, HuntScriptFactory)>,
     scheduled_tasks: Vec<scheduler::Task>,
 }
+
+/// What builds a script command type from the hunter's network and the type's settings (its entry
+/// in the hunter configuration's `scripts`, or null), or why it can't be built.
+pub type HuntScriptFactory = Arc<
+    dyn Fn(
+            &ace_hunt::correlate::net::Net,
+            &serde_json::Value,
+        ) -> Result<Arc<dyn ace_hunt::correlate::script::Script>, String>
+        + Send
+        + Sync,
+>;
 
 /// What builds a correlation command type: the handler, or why it can't be built, in the words a
 /// hunt that uses it is told.
@@ -170,6 +183,67 @@ impl App {
         self.command_types.retain(|(n, _)| n != name);
         self.command_types.push((name.to_owned(), Arc::new(build)));
         self
+    }
+
+    /// Adds a script command type (PLAN.md decision 16): an executable correlation command whose
+    /// path ends with `suffix`, such as `hunts/scripts/dns_lookup.py`, runs the type `build` makes,
+    /// named `name`, rather than the script. Only `ace hunter` builds them, with its network; `ace
+    /// serve` validates a hunt that runs one but has none to run. One with a suffix already added
+    /// takes its place.
+    pub fn hunt_script(
+        mut self,
+        suffix: &str,
+        name: &str,
+        build: impl Fn(
+            &ace_hunt::correlate::net::Net,
+            &serde_json::Value,
+        ) -> Result<Arc<dyn ace_hunt::correlate::script::Script>, String>
+        + Send
+        + Sync
+        + 'static,
+    ) -> App {
+        self.hunt_scripts.retain(|(s, _, _)| s != suffix);
+        self.hunt_scripts
+            .push((suffix.to_owned(), name.to_owned(), Arc::new(build)));
+        self
+    }
+
+    /// The script command types' names, each with the suffix it serves.
+    pub fn hunt_script_names(&self) -> Vec<(&str, &str)> {
+        self.hunt_scripts
+            .iter()
+            .map(|(suffix, name, _)| (suffix.as_str(), name.as_str()))
+            .collect()
+    }
+
+    /// Builds the script command types into `types` over `net`, each with its entry of `settings`;
+    /// one that fails to build is recorded with its error, which a hunt running it fails with. An
+    /// entry of `settings` for no type is refused, as a mistake in the configuration.
+    pub fn build_hunt_scripts(
+        &self,
+        types: &mut ace_hunt::correlate::command::CommandTypes,
+        net: &ace_hunt::correlate::net::Net,
+        settings: &std::collections::BTreeMap<String, serde_json::Value>,
+    ) -> Result<(), String> {
+        if let Some(unknown) = settings
+            .keys()
+            .find(|k| !self.hunt_scripts.iter().any(|(_, n, _)| n == *k))
+        {
+            return Err(format!(
+                "the hunter's configuration has settings for the script type {unknown}, which this binary hasn't"
+            ));
+        }
+        for (suffix, name, build) in &self.hunt_scripts {
+            let empty = serde_json::Value::Null;
+            match build(net, settings.get(name).unwrap_or(&empty)) {
+                Ok(handler) => types.register_script(suffix, name, handler),
+                Err(e) => {
+                    tracing::error!(name, "failed to load script command type {name}: {e}");
+                    types.scripts_mut().failed(suffix, name, &e);
+                }
+            }
+        }
+        Ok(())
     }
 
     /// Adds a scheduled task to `ace serve`'s scheduler (PLAN.md 6.7), as an ace3 integration adds an
@@ -368,6 +442,44 @@ impl LookupPool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A script type is built with its settings; one that can't be is recorded and fails the
+    /// steps that run it, and settings for a type the binary hasn't are refused (decision 16).
+    #[test]
+    fn hunt_scripts_are_built_with_their_settings() {
+        let mut app = App::new();
+        for (suffix, name) in ace_hunt::correlate::scripts::SCRIPTS {
+            app = app.hunt_script(suffix, name, move |net, settings| {
+                ace_hunt::correlate::scripts::build(name, net, settings)
+            });
+        }
+        let net = hunter::net::net().expect("a network");
+        let mut types = ace_hunt::correlate::command::CommandTypes::new();
+        app.build_hunt_scripts(&mut types, &net, &std::collections::BTreeMap::new())
+            .expect("built");
+        let path = |name: &str| format!("/signatures/hunts/commands/../scripts/{name}.py");
+        assert!(matches!(
+            types.scripts().find(&path("removed_hunt_three")),
+            Some(("removed_hunt_three", Err(e))) if e.contains("home_tenant")
+        ));
+        assert!(matches!(
+            types.scripts().find(&path("dns_lookup")),
+            Some(("dns_lookup", Ok(_)))
+        ));
+        let settings = std::collections::BTreeMap::from([(
+            "removed_hunt_three".to_owned(),
+            serde_json::json!({"home_tenant": "Example.onmicrosoft.com"}),
+        )]);
+        app.build_hunt_scripts(&mut types, &net, &settings)
+            .expect("built");
+        assert!(matches!(
+            types.scripts().find(&path("removed_hunt_three")),
+            Some((_, Ok(_)))
+        ));
+        let unknown =
+            std::collections::BTreeMap::from([("nope".to_owned(), serde_json::json!({}))]);
+        assert!(app.build_hunt_scripts(&mut types, &net, &unknown).is_err());
+    }
 
     #[test]
     fn the_core_lists_each_pool_and_its_modules() {

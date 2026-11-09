@@ -15,12 +15,14 @@
 //! [`check`] the checks hunt validation adds. [`time`] reads times as ace3 does and [`pyjson`]
 //! writes JSON as Python does.
 //!
-//! **`type: executable` doesn't run.** ace3 runs a hunt's executable, which in the signatures is a
-//! Python script under `hunts/scripts/`, in a Landlock sandbox (`saq/sandbox/`). ace4 has no Python
-//! and no sandbox runner, and how such a command runs waits for the owner: a sandbox runner with an
-//! interpreter for hunt scripts, or the scripts' work as built-in command types (PLAN.md 6.6). Until
-//! then an executable step fails as a step error, so its event falls through to an alert, as ace3's
-//! does where Landlock is missing. A hunt that names one loads and validates.
+//! **`type: executable` runs no script** (PLAN.md decision 16). ace3 runs a hunt's executable, in
+//! the signatures one of the Python scripts under `hunts/scripts/`, in a Landlock sandbox
+//! (`saq/sandbox/`). ace4 has no Python and runs no hunt code: each of those scripts is a built-in
+//! script command type ([`scripts`]), Rust that computes what the script does, and an executable
+//! whose path is one of theirs runs it with what ace3 would hand the script ([`script`]). An
+//! executable that isn't one fails its step, so its event falls through to an alert, as ace3's does
+//! where Landlock is missing; a hunt that names one loads and validates. [`net`] is the network the
+//! types use, which `ace hunter` gives them.
 
 pub mod action;
 pub mod cache;
@@ -28,7 +30,10 @@ pub mod check;
 pub mod command;
 pub mod engine;
 pub mod expr;
+pub mod net;
 pub mod pyjson;
+pub mod script;
+pub mod scripts;
 pub mod source;
 pub mod time;
 pub mod trace;

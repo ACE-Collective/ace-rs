@@ -148,6 +148,28 @@ fn decode_hex(text: &str) -> Option<Vec<u8>> {
         .collect()
 }
 
+/// A UDP socket and a TCP listener on the same port of `listen`. When `listen`'s port is 0, the
+/// UDP socket takes a free port, and that port's TCP side can already belong to another test's
+/// listener, so a new port is tried then.
+async fn bind_pair(listen: &str) -> Result<(UdpSocket, TcpListener), HarnessError> {
+    let mut tries = 0;
+    loop {
+        let udp = UdpSocket::bind(listen).await?;
+        let addr = udp.local_addr()?;
+        match TcpListener::bind(addr).await {
+            Ok(tcp) => return Ok((udp, tcp)),
+            Err(e)
+                if e.kind() == std::io::ErrorKind::AddrInUse
+                    && listen.ends_with(":0")
+                    && tries < 20 =>
+            {
+                tries += 1;
+            }
+            Err(e) => return Err(e.into()),
+        }
+    }
+}
+
 impl DnsReplay {
     /// Serves the recordings at `paths` on a free port of 127.0.0.1.
     pub async fn start(paths: &[&Path]) -> Result<DnsReplay, HarnessError> {
@@ -161,9 +183,8 @@ impl DnsReplay {
             load(path, &mut answers)?;
         }
         let answers = Arc::new(answers);
-        let udp = UdpSocket::bind(listen).await?;
+        let (udp, tcp) = bind_pair(listen).await?;
         let addr = udp.local_addr()?;
-        let tcp = TcpListener::bind(addr).await?;
         let log = Arc::new(Mutex::new(Log::default()));
         let udp_task = {
             let (answers, log) = (answers.clone(), log.clone());

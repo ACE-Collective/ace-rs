@@ -40,7 +40,10 @@
 //! `SplunkQuerySource` does. Its custom command types are the binary's (`App::command_type`), a
 //! command's `cache:` is kept in memory (`correlation_cache_bytes`), and what the run logs and the
 //! trace holds is scrubbed of the Splunk credentials the hunter holds, which no template can read.
-//! A `type: executable` command fails its step until the owner decides how one runs (PLAN.md 6.6).
+//! A `type: executable` command runs no script (PLAN.md decision 16): one of the signatures' hunt
+//! scripts runs as the script command type the binary registers for its path (`App::hunt_script`),
+//! built over the hunter's network ([`net`]) with its settings in the configuration's `scripts`, and
+//! its `files:` are read from the signatures checkout. Any other executable fails its step.
 //!
 //! What waits: LogScale and Rapid7 hunts for their clients in 7.8 (their hunts load, and the
 //! hunter skips them, saying so), and their correlation sources with them; a file mapping's files
@@ -107,6 +110,10 @@ pub struct HunterConfig {
     /// The bytes of correlation command outputs kept for their `cache:`.
     #[serde(default = "default_cache_bytes")]
     pub correlation_cache_bytes: usize,
+    /// Each script command type's settings, by its name (`App::hunt_script`), such as
+    /// `removed_hunt_three`'s home tenant (PLAN.md decision 16).
+    #[serde(default)]
+    pub scripts: BTreeMap<String, Json>,
 }
 
 /// A correlation query source: a Splunk instance of [`HunterConfig::splunk`].
@@ -858,8 +865,15 @@ async fn hunt(app: &App) -> Result<ExitCode> {
         &overlay,
         &ace_pool::secrets::process_env,
     );
-    let hunter =
-        Arc::new(Hunter::new(config.clone(), &secrets)?.with_command_types(app.command_types()));
+    let mut command_types = app.command_types();
+    app.build_hunt_scripts(&mut command_types, &net::net()?, &config.scripts)
+        .map_err(anyhow::Error::msg)?;
+    // a script's `files:` are read from the signatures checkout, as ace3 stages them from its hunt
+    // repositories
+    command_types
+        .scripts_mut()
+        .set_roots(vec![config.signatures.clone()]);
+    let hunter = Arc::new(Hunter::new(config.clone(), &secrets)?.with_command_types(command_types));
 
     let db = Db::connect(&DbConfig::from_env("ace-hunter")?)
         .await
@@ -1009,5 +1023,6 @@ async fn reload(
     hunts
 }
 
+pub mod net;
 #[cfg(test)]
 mod tests;

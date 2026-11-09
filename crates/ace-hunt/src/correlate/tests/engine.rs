@@ -1,4 +1,4 @@
-//! `test_engine.py`: 18 cases, 1 waiting (an executable's output). ace3 patches the engine's
+//! `test_engine.py`: 18 cases; the one whose executable ran a one-liner runs [`super::Echo`]. ace3 patches the engine's
 //! `datetime` to drive its timeout; here the run's clock is the fixture's, which a source moves.
 
 use std::sync::Arc;
@@ -286,8 +286,8 @@ fn test_event_query_captures_event_anchored_time_range() {
 
 #[test]
 fn test_executable_transform_has_no_query_timespec() {
-    // an executable runs against no query source, so the timespec fields stay None; in ace4 the
-    // step fails, as an executable does until the owner decides, and they stay None all the same
+    // an executable runs against no query source, so the timespec fields stay None; /bin/echo is
+    // no script type in ace4, so the step fails, and they stay None all the same
     let config = logic(
         json!([{"transform": {"type": "event", "method": "property", "property_name": "enriched",
         "property_type": "str", "command": {"type": "executable", "path": "/bin/echo", "args": ["x"]}}}]),
@@ -505,13 +505,12 @@ fn test_midevent_timeout_is_visible_and_fails_safe() {
 }
 
 #[test]
-#[ignore = "runs a type: executable command, which waits for the owner's decision on how one runs (PLAN.md 6.6)"]
 fn test_secret_export_failure_does_not_fail_steps() {
     // ace3 loads its secret store only to scrub output, so a store that fails doesn't stop a step;
     // ace4's caller hands over the secrets, and this case's step is an executable printing "ok"
     let config = logic(
         json!([{"transform": {"type": "event", "method": "property", "property_name": "result",
-        "command": {"type": "executable", "path": "/usr/bin/python3", "args": ["-c", "print('ok')"]}}}]),
+        "command": {"type": "executable", "path": super::echo_path(), "args": ["print", "ok"]}}}]),
     );
     let result = Fixture::default().simple(&config, evs(json!([{"id": 1}])));
     assert_ne!(result.trace.event_traces[0].outcome, "error");

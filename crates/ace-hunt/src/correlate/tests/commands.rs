@@ -1,4 +1,5 @@
-//! `test_commands.py`: 39 cases, 20 of them waiting (an executable runs). ace3 patches
+//! `test_commands.py`: 39 cases. Those whose executable ran a `python3 -c` one-liner run [`Echo`]
+//! (`super`'s docs say why), with the same rendering, input, caching and scrubbing. ace3 patches
 //! `get_cached_result` and `set_cached_result`; here the run's cache is a [`TestCache`], and
 //! "called once with these arguments" is "looked up once under these arguments' key". ace3's
 //! `execute_command` takes the engine's state as arguments; here it's the engine's method.
@@ -8,14 +9,12 @@ use std::sync::Arc;
 use chrono::TimeDelta;
 use serde_json::{Map as JsonMap, Value as Json, json};
 
-use super::{Fixture, TestCache, TestSource, ev, evs, logic, predefined, time, utc, v};
+use super::{Fixture, TestCache, TestSource, echo_path, ev, evs, logic, predefined, time, utc, v};
 use crate::correlate::cache::cache_key;
 use crate::correlate::command::Call;
 use crate::correlate::engine::{Engine, HuntRun};
 use crate::correlate::expr::Scope;
 use crate::correlate::{Command, PredefinedCommand};
-
-const PYTHON: &str = "/usr/bin/python3";
 
 fn command(json: Json) -> Command {
     Command::from_value(&v(json)).expect("a valid command")
@@ -114,11 +113,10 @@ fn test_query_command_omitted_source_options_is_empty_dict() {
 }
 
 #[test]
-#[ignore = "runs a type: executable command, which waits for the owner's decision on how one runs (PLAN.md 6.6)"]
 fn test_executable_with_jinja_args() {
     let cmd = command(json!({
-        "type": "executable", "path": PYTHON,
-        "args": ["-c", "import sys; print(sys.argv[1], sys.argv[2])", "{{ _event.user }}", "{{ _event.host }}"],
+        "type": "executable", "path": echo_path(),
+        "args": ["print", "{{ _event.user }}", "{{ _event.host }}"],
     }));
     let result = exec(
         &Fixture::default(),
@@ -131,11 +129,10 @@ fn test_executable_with_jinja_args() {
 }
 
 #[test]
-#[ignore = "runs a type: executable command, which waits for the owner's decision on how one runs (PLAN.md 6.6)"]
 fn test_executable_with_stdin_event() {
     let cmd = command(json!({
-        "type": "executable", "path": PYTHON,
-        "args": ["-c", "import sys; print(sys.stdin.read(), end='')"], "stdin": true,
+        "type": "executable", "path": echo_path(),
+        "args": ["stdin"], "stdin": true,
     }));
     let result = exec(
         &Fixture::default(),
@@ -152,14 +149,13 @@ fn test_executable_with_stdin_event() {
 }
 
 #[test]
-#[ignore = "runs a type: executable command, which waits for the owner's decision on how one runs (PLAN.md 6.6)"]
 fn test_defined_command() {
     let predef = predefined(
-        json!({"name": "lookup", "type": "executable", "path": PYTHON, "args": ["-c", "print('default')"]}),
+        json!({"name": "lookup", "type": "executable", "path": echo_path(), "args": ["print", "default"]}),
     );
     let cmd = command(json!({
         "type": "defined", "name": "lookup",
-        "arguments": {"args": ["-c", "import sys; print(sys.argv[1])", "{{ _event.user }}"]},
+        "arguments": {"args": ["print", "{{ _event.user }}"]},
     }));
     let result = exec(
         &Fixture::default(),
@@ -214,11 +210,10 @@ fn test_stream_query_memoization() {
 }
 
 #[test]
-#[ignore = "runs a type: executable command, which waits for the owner's decision on how one runs (PLAN.md 6.6)"]
 fn test_executable_with_jinja_env() {
     let cmd = command(json!({
-        "type": "executable", "path": PYTHON,
-        "args": ["-c", "import os; print(os.environ['USER_NAME'])"], "env": {"USER_NAME": "{{ _event.user }}"},
+        "type": "executable", "path": echo_path(),
+        "args": ["env", "USER_NAME"], "env": {"USER_NAME": "{{ _event.user }}"},
     }));
     let result = exec(
         &Fixture::default(),
@@ -231,45 +226,44 @@ fn test_executable_with_jinja_env() {
 }
 
 #[test]
-#[ignore = "runs a type: executable command, which waits for the owner's decision on how one runs (PLAN.md 6.6)"]
 fn test_executable_without_env_does_not_inherit_ace_env() {
-    // ace3 sets ACE_TEST_SENTINEL_PASSWORD in its own environment and the script must not see it,
-    // and sees only the allowlist; with the sandbox runner, this checks the same
+    // ace3 sets ACE_TEST_SENTINEL_PASSWORD in its own environment and the script must not see it;
+    // a script type sees no environment but the command's `env:`, here none
     let cmd = command(json!({
-        "type": "executable", "path": PYTHON,
-        "args": ["-c", "import json, os; print(json.dumps(sorted(os.environ)))"],
+        "type": "executable", "path": echo_path(),
+        "args": ["env-keys"],
     }));
     let result = exec(&Fixture::default(), &cmd, json!({}), "event", &[]).expect("runs");
     let keys: Vec<String> = serde_json::from_str(&result).expect("JSON");
     assert!(!keys.contains(&"ACE_TEST_SENTINEL_PASSWORD".to_owned()));
+    assert!(keys.is_empty());
 }
 
 #[test]
-#[ignore = "runs a type: executable command, which waits for the owner's decision on how one runs (PLAN.md 6.6)"]
 fn test_executable_with_env_sees_only_allowlist_and_its_own_keys() {
+    // ace3's script also sees its allowlist of the process's variables, PATH among them; nothing is
+    // executed here, so a script type sees its own keys and nothing else
     let cmd = command(json!({
-        "type": "executable", "path": PYTHON,
-        "args": ["-c", "import json, os; print(json.dumps(sorted(os.environ)))"], "env": {"MY_VAR": "test"},
+        "type": "executable", "path": echo_path(),
+        "args": ["env-keys"], "env": {"MY_VAR": "test"},
     }));
     let result = exec(&Fixture::default(), &cmd, json!({}), "event", &[]).expect("runs");
     let keys: Vec<String> = serde_json::from_str(&result).expect("JSON");
-    assert!(keys.contains(&"MY_VAR".to_owned()));
-    assert!(keys.contains(&"PATH".to_owned()));
+    assert_eq!(keys, ["MY_VAR"]);
 }
 
 /// Four parameters: `env` and `args`, each with `_secrets` and `_config`.
 #[test]
-#[ignore = "runs a type: executable command, which waits for the owner's decision on how one runs (PLAN.md 6.6)"]
 fn test_executable_templates_cannot_see_secrets_or_config() {
     for field in ["env", "args"] {
         for name in ["_secrets", "_config"] {
             let template = format!("{{{{ {name} is defined }}}}");
             let cmd = if field == "env" {
-                command(json!({"type": "executable", "path": PYTHON,
-                    "args": ["-c", "import os; print(os.environ['PROBE'])"], "env": {"PROBE": template}}))
+                command(json!({"type": "executable", "path": echo_path(),
+                    "args": ["env", "PROBE"], "env": {"PROBE": template}}))
             } else {
-                command(json!({"type": "executable", "path": PYTHON,
-                    "args": ["-c", "import sys; print(sys.argv[1])", template]}))
+                command(json!({"type": "executable", "path": echo_path(),
+                    "args": ["print", template]}))
             };
             let f = Fixture::default().secrets(&["REAL_KEY"]);
             let result = exec(&f, &cmd, json!({}), "event", &[]);
@@ -284,15 +278,14 @@ fn test_executable_templates_cannot_see_secrets_or_config() {
 
 /// Two parameters.
 #[test]
-#[ignore = "runs a type: executable command, which waits for the owner's decision on how one runs (PLAN.md 6.6)"]
 fn test_executable_env_reading_secrets_fails() {
     // a hunt written against the removed `_secrets` or `_config` fails before its script runs
     for template in [
         "{{ _secrets['vendor.api_key'] }}",
         "{{ _config['vendor']['api_key'] }}",
     ] {
-        let cmd = command(json!({"type": "executable", "path": PYTHON,
-            "args": ["-c", "import os; print(os.environ['API_KEY'])"], "env": {"API_KEY": template}}));
+        let cmd = command(json!({"type": "executable", "path": echo_path(),
+            "args": ["env", "API_KEY"], "env": {"API_KEY": template}}));
         let result = exec(
             &Fixture::default().secrets(&["REAL_KEY"]),
             &cmd,
@@ -308,10 +301,9 @@ fn test_executable_env_reading_secrets_fails() {
 }
 
 #[test]
-#[ignore = "runs a type: executable command, which waits for the owner's decision on how one runs (PLAN.md 6.6)"]
 fn test_executable_stderr_is_sanitized() {
-    let cmd = command(json!({"type": "executable", "path": PYTHON,
-        "args": ["-c", "import sys; sys.stderr.write('REAL_KEY'); sys.exit(1)"]}));
+    let cmd = command(json!({"type": "executable", "path": echo_path(),
+        "args": ["fail", "1", "REAL_KEY"]}));
     let result = exec(
         &Fixture::default().secrets(&["REAL_KEY"]),
         &cmd,
@@ -323,10 +315,9 @@ fn test_executable_stderr_is_sanitized() {
 }
 
 #[test]
-#[ignore = "runs a type: executable command, which waits for the owner's decision on how one runs (PLAN.md 6.6)"]
 fn test_executable_stdout_is_sanitized() {
     let cmd =
-        command(json!({"type": "executable", "path": PYTHON, "args": ["-c", "print('REAL_KEY')"]}));
+        command(json!({"type": "executable", "path": echo_path(), "args": ["print", "REAL_KEY"]}));
     let result = exec(
         &Fixture::default().secrets(&["REAL_KEY"]),
         &cmd,
@@ -356,22 +347,20 @@ fn test_query_text_cannot_see_secrets_or_config() {
 }
 
 #[test]
-#[ignore = "runs a type: executable command, which waits for the owner's decision on how one runs (PLAN.md 6.6)"]
 fn test_executable_timeout() {
-    let cmd = command(json!({"type": "executable", "path": PYTHON,
-        "args": ["-c", "import time; time.sleep(60)"], "timeout": "1s"}));
+    let cmd = command(json!({"type": "executable", "path": echo_path(),
+        "args": ["slow"], "timeout": "1s"}));
     let result = exec(&Fixture::default(), &cmd, json!({}), "event", &[]);
     assert!(matches!(result, Err(e) if e.contains("timed out")));
 }
 
 fn executable_key(args_list: Json, env: Json) -> String {
     cache_key(&args(
-        json!({"type": "executable", "path": PYTHON, "args": args_list, "env": env}),
+        json!({"type": "executable", "path": echo_path(), "args": args_list, "env": env}),
     ))
 }
 
 #[test]
-#[ignore = "runs a type: executable command, which waits for the owner's decision on how one runs (PLAN.md 6.6)"]
 fn test_executable_cache_hit() {
     let cache = Arc::new(TestCache {
         answer: Some("cached value".to_owned()),
@@ -379,7 +368,7 @@ fn test_executable_cache_hit() {
     });
     let f = Fixture::default().cache(cache.clone());
     let cmd = command(
-        json!({"type": "executable", "path": PYTHON, "args": ["-c", "print('hello')"], "cache": "1h"}),
+        json!({"type": "executable", "path": echo_path(), "args": ["print", "hello"], "cache": "1h"}),
     );
     assert_eq!(
         exec(&f, &cmd, json!({}), "event", &[]).as_deref(),
@@ -387,24 +376,23 @@ fn test_executable_cache_hit() {
     );
     assert_eq!(
         cache.gets(),
-        [executable_key(json!(["-c", "print('hello')"]), Json::Null)]
+        [executable_key(json!(["print", "hello"]), Json::Null)]
     );
 }
 
 #[test]
-#[ignore = "runs a type: executable command, which waits for the owner's decision on how one runs (PLAN.md 6.6)"]
 fn test_executable_cache_miss_stores_result() {
     let cache = no_cache();
     let f = Fixture::default().cache(cache.clone());
     let cmd = command(
-        json!({"type": "executable", "path": PYTHON, "args": ["-c", "print('hello')"], "cache": "1h"}),
+        json!({"type": "executable", "path": echo_path(), "args": ["print", "hello"], "cache": "1h"}),
     );
     let result = exec(&f, &cmd, json!({}), "event", &[]).expect("runs");
     assert_eq!(result.trim(), "hello");
     assert_eq!(
         cache.sets(),
         [(
-            executable_key(json!(["-c", "print('hello')"]), Json::Null),
+            executable_key(json!(["print", "hello"]), Json::Null),
             result,
             3600
         )]
@@ -412,46 +400,43 @@ fn test_executable_cache_miss_stores_result() {
 }
 
 #[test]
-#[ignore = "runs a type: executable command, which waits for the owner's decision on how one runs (PLAN.md 6.6)"]
 fn test_executable_no_cache_skips_cache() {
     let cache = no_cache();
     let f = Fixture::default().cache(cache.clone());
     let cmd =
-        command(json!({"type": "executable", "path": PYTHON, "args": ["-c", "print('hello')"]}));
+        command(json!({"type": "executable", "path": echo_path(), "args": ["print", "hello"]}));
     let result = exec(&f, &cmd, json!({}), "event", &[]).expect("runs");
     assert_eq!(result.trim(), "hello");
     assert!(cache.gets().is_empty() && cache.sets().is_empty());
 }
 
 #[test]
-#[ignore = "runs a type: executable command, which waits for the owner's decision on how one runs (PLAN.md 6.6)"]
 fn test_executable_cache_key_includes_rendered_args() {
     let cache = no_cache();
     let f = Fixture::default().cache(cache.clone());
-    let cmd = command(json!({"type": "executable", "path": PYTHON,
-        "args": ["-c", "print('hello')", "{{ _event.user }}"], "cache": "1h"}));
+    let cmd = command(json!({"type": "executable", "path": echo_path(),
+        "args": ["print", "hello", "{{ _event.user }}"], "cache": "1h"}));
     exec(&f, &cmd, json!({"user": "admin"}), "event", &[]).expect("runs");
     assert_eq!(
         cache.gets(),
         [executable_key(
-            json!(["-c", "print('hello')", "admin"]),
+            json!(["print", "hello", "admin"]),
             Json::Null
         )]
     );
 }
 
 #[test]
-#[ignore = "runs a type: executable command, which waits for the owner's decision on how one runs (PLAN.md 6.6)"]
 fn test_executable_cache_key_includes_rendered_env() {
     let cache = no_cache();
     let f = Fixture::default().cache(cache.clone());
-    let cmd = command(json!({"type": "executable", "path": PYTHON,
-        "args": ["-c", "import os; print(os.environ['MY_VAR'])"], "env": {"MY_VAR": "{{ _event.val }}"}, "cache": "1h"}));
+    let cmd = command(json!({"type": "executable", "path": echo_path(),
+        "args": ["env", "MY_VAR"], "env": {"MY_VAR": "{{ _event.val }}"}, "cache": "1h"}));
     exec(&f, &cmd, json!({"val": "test123"}), "event", &[]).expect("runs");
     assert_eq!(
         cache.gets(),
         [executable_key(
-            json!(["-c", "import os; print(os.environ['MY_VAR'])"]),
+            json!(["env", "MY_VAR"]),
             json!({"MY_VAR": "test123"})
         )]
     );
@@ -771,4 +756,29 @@ fn a_query_s_timeout_is_its_command_s() {
         command(json!({"type": "query", "source": "test_source", "query": "q", "timeout": "45s"}));
     exec(&f, &cmd, json!({}), "event", &[]).expect("runs");
     assert_eq!(source.calls()[0].timeout, TimeDelta::seconds(45));
+}
+
+/// Not in ace3 (PLAN.md decision 16): a script command type that failed to build, such as one
+/// whose settings the hunter's configuration lacks, fails the step that runs its script.
+#[test]
+fn a_script_type_that_failed_to_build_fails_its_step() {
+    let mut f = Fixture::default();
+    f.types
+        .scripts_mut()
+        .failed("hunts/scripts/echo.py", "echo", "echo needs settings");
+    let cmd = command(json!({"type": "executable", "path": echo_path(), "args": ["print", "x"]}));
+    let result = exec(&f, &cmd, json!({}), "event", &[]);
+    assert_eq!(
+        result,
+        Err(
+            "ValueError: script command type 'echo' failed to load: echo needs settings".to_owned()
+        )
+    );
+    // removed_hunt_three needs a home tenant
+    let built = crate::correlate::scripts::build(
+        "removed_hunt_three",
+        &crate::correlate::scripts::cases::Fake::new(json!({})).net(),
+        &Json::Null,
+    );
+    assert!(built.is_err());
 }

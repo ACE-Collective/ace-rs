@@ -1,7 +1,7 @@
 //! A transform's command (`commands.py`, `command_types.py`): a `query` against a
 //! [`QuerySource`](super::source::QuerySource), a `defined` command (a predefined one by name, its
-//! `arguments` replacing fields), an `executable`, which ace4 doesn't run (the module docs of
-//! [`super`] say why), or a custom type an integration registers ([`CommandType`]).
+//! `arguments` replacing fields), an `executable`, which runs the script command type registered
+//! for its path ([`super::script`]), or a custom type an integration registers ([`CommandType`]).
 //!
 //! A query's text, a custom type's options and an executable's arguments render with the event as
 //! `_event` and the stream as `_events`, and nothing else. The output is a string: JSON lines for a
@@ -26,6 +26,7 @@ use super::cache::{get_cached, json_lines, set_cached};
 use super::engine::{Engine, EngineError};
 use super::expr::{Scope, render};
 use super::pyjson::dumps_json;
+use super::script::{Script, Scripts};
 use super::time::{Time, parse_time_value};
 use super::trace::sanitize;
 use super::{BUILTIN_COMMAND_TYPES, Command, TimespecError, parse_timespec};
@@ -112,6 +113,7 @@ static NAME: LazyLock<Regex> =
 pub struct CommandTypes {
     types: BTreeMap<String, Arc<dyn CommandType>>,
     errors: BTreeMap<String, String>,
+    scripts: Scripts,
 }
 
 impl CommandTypes {
@@ -169,11 +171,23 @@ impl CommandTypes {
     pub fn clear(&mut self) {
         self.types.clear();
         self.errors.clear();
+        self.scripts = Scripts::default();
+    }
+
+    /// Registers a script command type for the executables whose path ends with `suffix`
+    /// ([`Scripts::register`]).
+    pub fn register_script(&mut self, suffix: &str, name: &str, handler: Arc<dyn Script>) {
+        self.scripts.register(suffix, name, handler);
+    }
+
+    pub fn scripts(&self) -> &Scripts {
+        &self.scripts
+    }
+
+    pub fn scripts_mut(&mut self) -> &mut Scripts {
+        &mut self.scripts
     }
 }
-
-/// Why an executable command doesn't run in ace4.
-pub const EXECUTABLE_WAITS: &str = "RuntimeError: executable commands don't run in ace4: how a hunt's scripts run waits for the owner's decision (PLAN.md 6.6)";
 
 /// A timespec as a duration, or ace3's ValueError or OverflowError.
 pub fn timespec(text: &str) -> Result<TimeDelta, String> {
@@ -251,7 +265,7 @@ impl Engine<'_> {
                 return self.execute_command(&resolved, call);
             }
             "query" => self.execute_query(command, call)?,
-            "executable" => return Err(EXECUTABLE_WAITS.to_owned()),
+            "executable" => self.execute_executable(command, call)?,
             _ => self.execute_custom(command, call)?,
         };
         Ok(output)
