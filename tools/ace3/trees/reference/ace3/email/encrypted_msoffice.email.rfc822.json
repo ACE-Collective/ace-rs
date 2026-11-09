@@ -658,6 +658,15 @@
       },
       "relationships": {},
       "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "866195ca1ecf838967b5bbf59d0799fc",
+            "sha1": "6189b4106df7d9bd17c8b310c6f0d8ac886fe284",
+            "sha256": "ce3af53d22189d65f561fa45ff655a020c9ef96c17c83e748cd773eff8ef96e8"
+          },
+          "summary": null,
+          "tags": {}
+        },
         "file_type": {
           "details": {
             "is_email_file": false,
@@ -716,6 +725,15 @@
       },
       "relationships": {},
       "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "af93ae2e4dc1d242f984a2325d709e86",
+            "sha1": "b0d77acbb65a534e1ab0a57d69e6e014e5d72452",
+            "sha256": "e42f4cd8ff57dc0c9756242193462dcb03b4e7fef955985a2e953a6053324055"
+          },
+          "summary": null,
+          "tags": {}
+        },
         "file_type": {
           "details": {
             "is_email_file": false,
@@ -1779,6 +1797,26 @@
         "xlm4:no_cells": true
       }
     },
+    "md5:866195ca1ecf838967b5bbf59d0799fc": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:ce3af53d22189d65f561fa45ff655a020c9ef96c17c83e748cd773eff8ef96e8": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:af93ae2e4dc1d242f984a2325d709e86": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:e42f4cd8ff57dc0c9756242193462dcb03b4e7fef955985a2e953a6053324055": true
+      },
+      "results": {},
+      "tags": {}
+    },
     "message_id:<272b53ff0e5579755277c19266a3e9e5c7283287@tovarioseni9.fun>": {
       "detections": {},
       "directives": {},
@@ -1789,6 +1827,26 @@
       "results": {},
       "tags": {},
       "time": "2020-09-07T15:47:06Z"
+    },
+    "sha256:ce3af53d22189d65f561fa45ff655a020c9ef96c17c83e748cd773eff8ef96e8": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:ce3af53d22189d65f561fa45ff655a020c9ef96c17c83e748cd773eff8ef96e8": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:e42f4cd8ff57dc0c9756242193462dcb03b4e7fef955985a2e953a6053324055": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:e42f4cd8ff57dc0c9756242193462dcb03b4e7fef955985a2e953a6053324055": true
+      },
+      "results": {},
+      "tags": {}
     },
     "url:https://component.pw/wp-index.php": {
       "detections": {},

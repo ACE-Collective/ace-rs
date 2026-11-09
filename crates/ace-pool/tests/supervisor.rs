@@ -285,7 +285,16 @@ async fn task_state(
 ) -> (String, Option<String>, f64) {
     let started = std::time::Instant::now();
     loop {
-        let (state, error) = task_of(core, root, module).await;
+        // a module that depends on another has no task until the other's result lands
+        let (state, error): (String, Option<String>) = sqlx::query_as(
+            "SELECT state::text, error FROM queue.tasks WHERE root_id = $1 AND module = $2",
+        )
+        .bind(root)
+        .bind(module)
+        .fetch_optional(core.test_db.db().pool())
+        .await
+        .expect("the task")
+        .unwrap_or_else(|| ("queued".to_owned(), None));
         if state != "queued" && state != "running" {
             return (state, error, started.elapsed().as_secs_f64());
         }
@@ -354,8 +363,12 @@ async fn last_task_state(
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn xlm_and_pcode_finish_in_contained_task_processes() {
     let core = Core::start(
-        vec![ace_mod_xlm::XLM_MANIFEST, ace_mod_xlm::PCODE_MANIFEST],
-        &["xlmdeobfuscator", "pcodedmp"],
+        vec![
+            ace_mod_files::file_type::MANIFEST,
+            ace_mod_xlm::XLM_MANIFEST,
+            ace_mod_xlm::PCODE_MANIFEST,
+        ],
+        &["file_type", "xlmdeobfuscator", "pcodedmp"],
         Duration::from_secs(300),
     )
     .await;
@@ -491,8 +504,16 @@ async fn measure_hostile_oletools() {
 /// The email module and the Office one, on real emails, as the parser pool runs them.
 async fn email_and_office_core() -> Core {
     Core::start(
-        vec![ace_mod_email::MANIFEST, ace_mod_msoffice::MANIFEST],
-        &["email_analyzer", "msoffice_encryption_analyzer"],
+        vec![
+            ace_mod_files::file_type::MANIFEST,
+            ace_mod_email::MANIFEST,
+            ace_mod_msoffice::MANIFEST,
+        ],
+        &[
+            "file_type",
+            "email_analyzer",
+            "msoffice_encryption_analyzer",
+        ],
         Duration::from_secs(400),
     )
     .await
@@ -615,16 +636,20 @@ async fn the_yara_module_scans_in_a_contained_task_process() {
     let settings = json!({"yara_scanner_v3_4": {"signature_dir": rules.path()}}).to_string();
 
     let core = Core::start(
-        vec![ace_mod_yara::MANIFEST],
-        &["yara_scanner_v3_4"],
+        vec![ace_mod_files::file_type::MANIFEST, ace_mod_yara::MANIFEST],
+        &["file_type", "yara_scanner_v3_4"],
         Duration::from_secs(30),
     )
     .await;
     let (root, _) = root_with_bytes(&core, "yara", b"xxEVILxx", "payload.bin").await;
     let mut pool = supervisor(&core, &["--settings", &settings]);
     wait_until_idle(&core, root, Duration::from_secs(60)).await;
+    let (file_type, file_type_error) = task_of(&core, root, "file_type").await;
+    assert_eq!(file_type, "done", "{file_type_error:?}");
+    // the YARA module waits for file_type, so its task comes once file_type's result lands
+    let (state, error, _) =
+        task_state(&core, root, "yara_scanner_v3_4", Duration::from_secs(60)).await;
     let stderr = pool.stop();
-    let (state, error) = task_of(&core, root, "yara_scanner_v3_4").await;
     assert_eq!(state, "done", "{error:?}\n{stderr}");
     assert!(stderr.contains("contained: Contained"), "{stderr}");
     let rule: String = sqlx::query_scalar(
@@ -885,8 +910,11 @@ async fn extracted_urls(core: &Core, root: uuid::Uuid) -> Vec<String> {
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn url_extraction_runs_contained() {
     let core = Core::start(
-        vec![ace_mod_urls::url_extraction::MANIFEST],
-        &["url_extraction"],
+        vec![
+            ace_mod_files::file_type::MANIFEST,
+            ace_mod_urls::url_extraction::MANIFEST,
+        ],
+        &["file_type", "url_extraction"],
         Duration::from_secs(120),
     )
     .await;
@@ -925,7 +953,12 @@ async fn measure_url_extraction() {
         "ioc_extraction" => (ace_mod_urls::ioc_extraction::MANIFEST, "extract_iocs"),
         _ => (ace_mod_urls::url_extraction::MANIFEST, "extract_urls"),
     };
-    let core = Core::start(vec![manifest], &[module.as_str()], Duration::from_secs(300)).await;
+    let core = Core::start(
+        vec![ace_mod_files::file_type::MANIFEST, manifest],
+        &["file_type", module.as_str()],
+        Duration::from_secs(300),
+    )
+    .await;
     let mut names: Vec<_> = std::fs::read_dir(&dir)
         .expect("the directory")
         .map(|entry| {
@@ -952,6 +985,66 @@ async fn measure_url_extraction() {
                 "{name}\t{}\t{run}\t{state}\t{seconds:.2}\t{}\t{error}",
                 bytes.len(),
                 urls.len()
+            );
+            assert!(pool.running(), "the supervisor kept running after {name}");
+        }
+    }
+    let _ = pool.stop();
+}
+
+/// What `docs/measurements/file-identity.md` records: each file of the directory
+/// `ACE4_FILES_HOSTILE` names (`tools/samples/make-identity-hostile`) whose name starts with
+/// `ACE4_FILES_MODULE` (file_type, x509_analyzer or lnk_parser), `ACE4_FILES_RUNS` times (3 by
+/// default), as a contained task of that module with its limits, file_type first for the module
+/// that depends on it. A run's root holds the file under a name with the run's number, so no run
+/// reuses another's result.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[ignore = "a measurement, with files tools/samples/make-identity-hostile makes"]
+async fn measure_file_identity() {
+    let dir = std::env::var("ACE4_FILES_HOSTILE").expect("ACE4_FILES_HOSTILE");
+    let runs: usize = std::env::var("ACE4_FILES_RUNS")
+        .ok()
+        .and_then(|r| r.parse().ok())
+        .unwrap_or(3);
+    let module = std::env::var("ACE4_FILES_MODULE").unwrap_or_else(|_| "file_type".to_owned());
+    let mut manifests = vec![ace_mod_files::file_type::MANIFEST];
+    match module.as_str() {
+        "x509_analyzer" => manifests.push(ace_mod_files::x509::MANIFEST),
+        "lnk_parser" => manifests.push(ace_mod_files::lnk::MANIFEST),
+        "dhash" => manifests.push(ace_mod_files::dhash::MANIFEST),
+        _ => {}
+    }
+    let directives: &[&str] = if module == "dhash" { &["dhash"] } else { &[] };
+    let settings = serde_json::json!({"dhash": {"source_dir": format!(
+        "{}/../../tools/ace3/dumps/fixtures/dhash/analyst_data/dhash",
+        env!("CARGO_MANIFEST_DIR")
+    )}})
+    .to_string();
+    let names: Vec<&str> = manifests.iter().map(|m| m.name).collect();
+    let core = Core::start(manifests.clone(), &names, Duration::from_secs(600)).await;
+    let mut files: Vec<_> = std::fs::read_dir(&dir)
+        .expect("the directory")
+        .map(|entry| {
+            entry
+                .expect("an entry")
+                .file_name()
+                .into_string()
+                .expect("a name")
+        })
+        .filter(|name| name.starts_with(module.as_str()))
+        .collect();
+    files.sort();
+    let mut pool = supervisor(&core, &["--settings", &settings]);
+    for name in files {
+        let bytes = std::fs::read(format!("{dir}/{name}")).expect("the file");
+        for run in 0..runs {
+            let (root, _) =
+                root_with_file(&core, "file", &bytes, &format!("{run}_{name}"), directives).await;
+            let (state, error, seconds) = last_task_state(&core, root, &module).await;
+            let error: String = error.unwrap_or_default().chars().take(120).collect();
+            println!(
+                "{name}\t{}\t{run}\t{state}\t{seconds:.2}\t{error}",
+                bytes.len()
             );
             assert!(pool.running(), "the supervisor kept running after {name}");
         }

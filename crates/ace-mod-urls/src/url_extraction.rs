@@ -10,9 +10,8 @@
 //! - urlfinderlib returns a set, and ace3 orders its URLs from that set's order, which changes with
 //!   each process's hash seed; where two domains have as many URLs, which comes first changes from
 //!   run to run. Here the set is sorted first, so the order is the same each time.
-//! - ace3 waits for `file_type` and `yara_scanner_v3_4`. `file_type` isn't ported (7.5 batch 2),
-//!   so the mime type is the one the core stored for the file, which is `file --mime-type`'s, as
-//!   ace3's `FileTypeAnalysis.mime_type` is. ace4 has no dependency on the YARA module, because a
+//! - ace3 waits for `file_type` and `yara_scanner_v3_4`. ace4 waits for `file_type`, whose
+//!   `yara_meta` types it reads, and has no dependency on the YARA module, because a
 //!   dependency there waits for a result and the YARA module stores none when no rule matches. A
 //!   directive a rule adds still brings this module in, when the YARA result lands.
 //! - A file downloaded from a URL (`downloaded_from`) resolves relative URLs against it in ace3.
@@ -26,6 +25,7 @@ use std::fs;
 use std::time::Duration;
 
 use ace_pycompat::pystr;
+use ace_results::types::file_type::FileTypeAnalysis;
 use ace_results::types::url_extraction::UrlExtractionAnalysis;
 use ace_results::{AnalysisType, NewObservable, ObservableKind, ResultEnvelope};
 use ace_sdk::{Manifest, Module, ModuleError, Outcome, Parser, Resources, TaskContext};
@@ -84,6 +84,7 @@ impl Module for UrlExtraction {
     const NAME: &'static str = UrlExtractionAnalysis::MODULE;
     const INPUTS: &'static [ObservableKind] = &[ObservableKind::File];
     const REQUIRED_DIRECTIVES: &'static [&'static str] = &[DIRECTIVE_EXTRACT_URLS];
+    const DEPENDS_ON: &'static [&'static str] = &[FileTypeAnalysis::MODULE];
     // ace3's maximum_analysis_time, 15 s. docs/measurements/url-extraction.md has what a crafted file
     // costs.
     const RESOURCES: Resources = Resources {
@@ -242,8 +243,8 @@ impl Parser for UrlExtraction {
         let file = ctx.input_file()?;
         let settings = ctx.settings();
         // ace3 returns without an analysis when file_type has none
-        if file.mime_type.is_none() {
-            return Ok(Outcome::Skipped("no mime type for the file".to_owned()));
+        if ctx.dependency_result::<FileTypeAnalysis>()?.is_none() {
+            return Ok(Outcome::Skipped("no file type analysis".to_owned()));
         }
         if file.size == 0 {
             return Ok(Outcome::Skipped("an empty file".to_owned()));

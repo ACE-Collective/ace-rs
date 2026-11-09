@@ -1,0 +1,30 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [],
+  "input": {
+    "directives": [],
+    "label": "fixtures/files/crlf.txt as crlf.txt",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "crlf.txt",
+      "size": 20,
+      "type": "file",
+      "value": "6612d9c94c2da8d2544e1188348fc7baf717ffff1bacde51929a166404a41ffc"
+    }
+  },
+  "module": "binary_file_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "crlf.txt",
+    "relationships": [],
+    "size": 20,
+    "tags": [],
+    "type": "file",
+    "value": "6612d9c94c2da8d2544e1188348fc7baf717ffff1bacde51929a166404a41ffc",
+    "yara_meta": []
+  }
+}

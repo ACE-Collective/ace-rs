@@ -1,0 +1,30 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [],
+  "input": {
+    "directives": [],
+    "label": "fixtures/files/email_cr.txt as email_cr.txt",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "email_cr.txt",
+      "size": 68,
+      "type": "file",
+      "value": "8487260419d9208dbc3816d650ba4ff4ca02af02d576d320031330f8f007e9a1"
+    }
+  },
+  "module": "binary_file_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "email_cr.txt",
+    "relationships": [],
+    "size": 68,
+    "tags": [],
+    "type": "file",
+    "value": "8487260419d9208dbc3816d650ba4ff4ca02af02d576d320031330f8f007e9a1",
+    "yara_meta": []
+  }
+}

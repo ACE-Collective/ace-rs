@@ -1,0 +1,18 @@
+[package]
+name = "ace-lnkparse"
+version = "0.1.0"
+description = "A port of LnkParse3 1.6.0 as ace3's lnk_parser module uses it: get_json(get_all=True), lnk_command, and the two JSON forms of the result"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+serde_json = "1.0.154"
+sha2 = "0.11.1"
+
+[dev-dependencies]
+base64 = "0.22.1"
+
+[lints]
+workspace = true

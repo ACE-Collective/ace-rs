@@ -1,0 +1,58 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "text/html",
+        "type": "HTML document, ASCII text"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: HTML document, ASCII text (text/html)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/files/page.html as page.html",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "page.html",
+      "size": 80,
+      "type": "file",
+      "value": "7ea937cdf0d66b28c431cd0ce3f6133aedde30dd8ed06a46650b0483a1001c5e"
+    }
+  },
+  "module": "file_type",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=document.html"
+    ],
+    "excluded_analysis": [],
+    "file_path": "page.html",
+    "relationships": [],
+    "size": 80,
+    "tags": [],
+    "type": "file",
+    "value": "7ea937cdf0d66b28c431cd0ce3f6133aedde30dd8ed06a46650b0483a1001c5e",
+    "yara_meta": [
+      "type=document.html"
+    ]
+  }
+}

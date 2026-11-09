@@ -20,6 +20,15 @@
         "extracted_from file:f68ba01d524f39a2832632eeb77772feb30440d2dbbf92fc83de39494cff4076": true
       },
       "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "9193bc49572e26809b0e4dbe870b41fc",
+            "sha1": "bc93e4d296f70d182ce90ea12b49b4c7cb192a48",
+            "sha256": "234001d104b81822d825068e6e39b434c768df40b979eefe9a12f8fc5434c417"
+          },
+          "summary": null,
+          "tags": {}
+        },
         "file_type": {
           "details": {
             "is_email_file": false,
@@ -45,7 +54,7 @@
         "pdf": true
       }
     },
-    "file:7f22d3d7c6c3d7fc06c2355c86e71fcda4bd78238d3ab64a76716aff30bac0d2": {
+    "file:7d00f7d595d09c440b77df74723c5bf724a0f98e621124300bb8ac5deb8d0f7b": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -114,6 +123,15 @@
         "extracted_from file:f68ba01d524f39a2832632eeb77772feb30440d2dbbf92fc83de39494cff4076": true
       },
       "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "3806add15e1d7fa4a747a2b6b9be16f8",
+            "sha1": "fb64343e6cb3d25284e44d98cf388264b96b8824",
+            "sha256": "882e0af675b1cdd312b8e9afb70c9b1382f7507d2558e180f0dc98f24fbb9ec0"
+          },
+          "summary": null,
+          "tags": {}
+        },
         "file_type": {
           "details": {
             "is_email_file": false,
@@ -268,6 +286,15 @@
       },
       "relationships": {},
       "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "7ce09edcfb50c83c332e47c96420e288",
+            "sha1": "7fcc61e079cdbd9dd4641a6a91e8a4ffe686e686",
+            "sha256": "f68ba01d524f39a2832632eeb77772feb30440d2dbbf92fc83de39494cff4076"
+          },
+          "summary": null,
+          "tags": {}
+        },
         "file_type": {
           "details": {
             "is_email_file": false,
@@ -317,6 +344,66 @@
         "encrypted_pdf_empty_password": true,
         "pdf": true
       }
+    },
+    "md5:3806add15e1d7fa4a747a2b6b9be16f8": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:882e0af675b1cdd312b8e9afb70c9b1382f7507d2558e180f0dc98f24fbb9ec0": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:7ce09edcfb50c83c332e47c96420e288": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:f68ba01d524f39a2832632eeb77772feb30440d2dbbf92fc83de39494cff4076": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:9193bc49572e26809b0e4dbe870b41fc": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:234001d104b81822d825068e6e39b434c768df40b979eefe9a12f8fc5434c417": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:234001d104b81822d825068e6e39b434c768df40b979eefe9a12f8fc5434c417": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:234001d104b81822d825068e6e39b434c768df40b979eefe9a12f8fc5434c417": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:882e0af675b1cdd312b8e9afb70c9b1382f7507d2558e180f0dc98f24fbb9ec0": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:882e0af675b1cdd312b8e9afb70c9b1382f7507d2558e180f0dc98f24fbb9ec0": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:f68ba01d524f39a2832632eeb77772feb30440d2dbbf92fc83de39494cff4076": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:f68ba01d524f39a2832632eeb77772feb30440d2dbbf92fc83de39494cff4076": true
+      },
+      "results": {},
+      "tags": {}
     },
     "url:http://12tkj5.my.id/blog/642ec2b466aed.zip": {
       "detections": {},

@@ -12,6 +12,15 @@
       },
       "relationships": {},
       "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "2125b1de879952a7c806c867d82fef67",
+            "sha1": "14b9185418bbce8faa1507bfd627d145d27cacc1",
+            "sha256": "215d0ac0c460504e67fc536f5965260addfddda8cc8f92d19914bd859d05088a"
+          },
+          "summary": null,
+          "tags": {}
+        },
         "file_type": {
           "details": {
             "is_email_file": false,
@@ -39,7 +48,7 @@
                 "file_name": "<root>/files/vba_codepage_unknown.doc",
                 "local_path": "a2982fd01877e34c3240428597204753c26397cb08e18522ec8783b5ef17d5bb",
                 "stream_path": "Macros/VBA/Module1",
-                "vba_code": "Sub A()\nEnd Sub\n�",
+                "vba_code": "Sub A()\nEnd Sub\n\ufffd",
                 "vba_filename": "Module1.bas"
               }
             ],
@@ -93,6 +102,26 @@
       "tags": {
         "macro": true
       }
+    },
+    "md5:2125b1de879952a7c806c867d82fef67": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:215d0ac0c460504e67fc536f5965260addfddda8cc8f92d19914bd859d05088a": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:215d0ac0c460504e67fc536f5965260addfddda8cc8f92d19914bd859d05088a": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:215d0ac0c460504e67fc536f5965260addfddda8cc8f92d19914bd859d05088a": true
+      },
+      "results": {},
+      "tags": {}
     }
   }
 }

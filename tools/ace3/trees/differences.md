@@ -6,7 +6,7 @@ A row covering only samples under `local/` has to name them, because those sampl
 
 ace3's trees ran at the commit in `reference/index.json`, which is newer than the commit the five modules were ported from (`tools/ace3/dumps/reference/index.json`). A row marked *drift* is something ace3 added after the port. The trees follow the newest ace3 (`PLAN.md` decision 14), so rerun `make-trees` after ace3 moves, then port or list whatever changed.
 
-A module ace4 doesn't have, such as `file_type` (7.5), isn't listed: the command takes its results out of both forms and counts them. When a module is ported its results start being compared, and what it added outside its results moves out of *Effects of modules not ported*.
+A module ace3's trees ran and ace4 doesn't have isn't listed: the command takes its results out of both forms and counts them. When a module is ported its results start being compared, and what it added outside its results moves out of *Effects of modules not ported*.
 
 ## Explained
 
@@ -118,30 +118,32 @@ A module ace4 doesn't have, such as `file_type` (7.5), isn't listed: the command
 | `*` | `/observables/*/results/url_extraction/details/urls_grouped_by_domain/*/*` | The same order, in each domain's list. | `same members` |
 | `ace4/pdf/duplicate_names.pdf` | `/observables/file:2b827014b27d850fa53f2250136dbb00258e9ce0ddbddab8bf6fad2126ed88f4/results/url_extraction/details/**` | ace3 writes both fields named `same` to one path, `duplicate_names.pdf.field_same_decoded.bin`, and each observable is the bytes it had when added. So when its url_extraction reads the first field's observable, the file holds the second field's bytes, with `QUJD` decoded to `ABC`. Checked in `ace-dev-1`: ace3's `find_urls` on 2b827014's own 117 bytes returns ace4's URL, and on the 120 bytes left on disk ace3's. | |
 | `ace4/pdf/duplicate_names.pdf` | `/observables/url:https:~1~1example.com~1form-field-payload~1https:~1~1example.com~1form-field-payload~1https:~1~1example.com~1form-field-payload` | That URL's observable. ace3 has only the second field's. | `ace4 only` |
+| `ace4/x509/*` | `/observables/file:*` | The certificate's metadata file, `<sha256>.metadata`, which ace3 never adds: its `write_metadata_to_file` returns the path relative to the root's directory and `add_file_observable` looks for it relative to the working directory, so it logs `FileNotFoundError` (`crates/ace-mod-files/tests/differences.md`). ace4 adds it, with `type=metadata.x509`, as ace3 means to. | `ace4 only` |
+| `ace4/x509/cert.*` | `/observables/*/results/x509_analyzer/details/serial_number` | A 160-bit serial: ace3 writes a JSON number, which serde_json reads as a float, and ace4 its digits as text. Checked: the tree's text is the number ace4 writes. |  |
+| `ace3/archive/dhl_report.ace` | `/observables/md5:*` | file_hash_analyzer's hash of the file ace3 extracted from the ACE archive, which ace4 doesn't read (above). |  |
+| `ace3/archive/dhl_report.ace` | `/observables/sha256:*` | The same file's SHA-256. |  |
+| `ace3/archive/*.jar` | `/observables/md5:*` | The hashes of the members each side chose to extract past the limit (above): each side hashes the files it has. |  |
+| `ace3/archive/*.jar` | `/observables/sha256:*` | The same. |  |
+| `ace3/pdf/718148a5712c1fec7b50acc89eee2aa0` | `/observables/md5:*` | The hash of ace3's Ghostscript rewrite, `718148a5712c1fec7b50acc89eee2aa0.gs.pdf`, which ace4 doesn't make (below). ace3's `ignore_pattern_gs` is `*.pdf.gs.pdf`, which this name, with no `.pdf`, doesn't match. |  |
+| `ace3/pdf/718148a5712c1fec7b50acc89eee2aa0` | `/observables/sha256:*` | The same file's SHA-256. |  |
+| `ace3/pdf/ComplaintApril_424256637.pdf` | `/observables/md5:*` | The hashes of the decrypted copy, whose bytes differ (above). |  |
+| `ace3/pdf/ComplaintApril_424256637.pdf` | `/observables/sha256:*` | The same. |  |
+| `ace4/pdf/encrypted_with_xmp.pdf` | `/observables/md5:*` | The hashes of the decrypted copy, whose bytes differ (above). |  |
+| `ace4/pdf/encrypted_with_xmp.pdf` | `/observables/sha256:*` | The same. |  |
+| `ace4/rtf/bracket[1].rtf` | `/observables/md5:*` | The hash of the object ace3 doesn't extract (above). | `ace4 only` |
+| `ace4/rtf/bracket[1].rtf` | `/observables/sha256:*` | The same object's SHA-256. | `ace4 only` |
+| `ace4/x509/*` | `/observables/md5:*` | The hash of the metadata file ace3 never adds (above). | `ace4 only` |
+| `ace4/x509/*` | `/observables/sha256:*` | The same file's SHA-256. | `ace4 only` |
+| `ace3/email/extra_message_id*` | `/observables/file:*/paths/*/type=*` | file_type's types on a path a file gained after file_type ran. ace4 analyzes a file once, under its first path (`tree::first_file`), and a result's `yara_meta` goes on the paths the file has then; ace3 has an observable per path and runs file_type on each. These paths are the nested messages' second names, above. |  |
+| `ace3/email/nested_rfc822_bom*` | `/observables/file:*/paths/*/type=*` | The same, for the HTML body the nested message writes again under its own name. |  |
 
 ## Effects of modules not ported
 
-What a module ace4 doesn't have added outside its own result. The form doesn't say who added a tag, so these stay differences, reported apart. Each is checked against `saq/modules/file_analysis/file_type.py` at ace3's commit, whose only tags are `microsoft_office`, `ole`, `rtf`, `pdf`, `executable`, `zip`, `lnk`, `x509`, `jar` and `email`, and whose only `yara_meta` types are `image`, `document.pdf`, `document.rtf`, `executable`, `archive.jar`, `certificate.x509`, `email`, `document.html` and `script.javascript`. A row here matches only what ace3 has and ace4 doesn't. What such a tag leads to, such as a rule that can't match, isn't listed, and shows as the difference it is.
+What a module ace4 doesn't have added outside its own result. The form doesn't say who added a tag, so these stay differences, reported apart. A row here matches only what ace3 has and ace4 doesn't. What such an addition leads to, such as a rule that can't match, isn't listed, and shows as the difference it is. file_type's tags and `yara_meta` types were rows here until 7.5 batch 2 ported it.
 
 | Samples | Path | Why | When |
 |---|---|---|---|
 | `*` | `/observables/file:*` | `<file>.gs.pdf`, Ghostscript's rewrite of a PDF, which ace3's `PDFAnalyzer` scans for URLs. It's a process, which a contained task can't start, and PLAN.md 4.9 names only pikepdf and `pdf-parser.py`. It's also new bytes each run, from gs's dates and `/ID`, so a port would be listed anyway. 7.3's inventory has to decide it, and doesn't name it yet. | `ace3 holds .gs.pdf` |
-| `*` | `/observables/file:*/tags/email` | file_type's tag. |  |
-| `*` | `/observables/file:*/tags/zip` | file_type's tag. |  |
-| `*` | `/observables/file:*/tags/jar` | file_type's tag. |  |
-| `*` | `/observables/file:*/tags/microsoft_office` | file_type's tag. |  |
-| `*` | `/observables/file:*/tags/ole` | file_type's tag. |  |
-| `*` | `/observables/file:*/tags/pdf` | file_type's tag. |  |
-| `*` | `/observables/file:*/tags/rtf` | file_type's tag. |  |
-| `*` | `/observables/file:*/tags/executable` | file_type's tag. |  |
-| `*` | `/observables/file:*/paths/*/type=email` | file_type's `yara_meta` tag. Until it's ported, a rule that needs this tag can't match in ace4. |  |
-| `*` | `/observables/file:*/paths/*/type=archive.jar` | file_type's `yara_meta` tag. |  |
-| `*` | `/observables/file:*/paths/*/type=document.html` | file_type's `yara_meta` tag. |  |
-| `*` | `/observables/file:*/paths/*/type=document.pdf` | file_type's `yara_meta` tag. |  |
-| `*` | `/observables/file:*/paths/*/type=image` | file_type's `yara_meta` tag. |  |
-| `*` | `/observables/file:*/paths/*/type=document.rtf` | file_type's `yara_meta` tag. |  |
-| `*` | `/observables/file:*/paths/*/type=executable` | file_type's `yara_meta` tag. |  |
-| `ace3/archive/test.zip` | `/observables/file:*/paths/*/type=script.javascript` | file_type's `yara_meta` tag. |  |
 
 ## Harness limits
 

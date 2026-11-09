@@ -58,6 +58,22 @@ pub fn modules(settings: &Value) -> Result<Modules, SetupError> {
             block("email_analyzer"),
             &secrets,
         )?)
+        .with_parser(Entry::<ace_mod_files::FileType>::parser(
+            block("file_type"),
+            &secrets,
+        )?)
+        .with_parser(Entry::<ace_mod_files::X509Analyzer>::parser(
+            block("x509_analyzer"),
+            &secrets,
+        )?)
+        .with_parser(Entry::<ace_mod_files::DHashImageAnalyzer>::parser(
+            block("dhash"),
+            &secrets,
+        )?)
+        .with_parser(Entry::<ace_mod_files::LnkParseAnalyzer>::parser(
+            block("lnk_parser"),
+            &secrets,
+        )?)
         .with_parser(Entry::<ace_mod_urls::UrlExtraction>::parser(
             block("url_extraction"),
             &secrets,

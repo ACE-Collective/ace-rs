@@ -331,6 +331,15 @@
       },
       "relationships": {},
       "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "9c84d6cffc6aa2f846bf715f17b821a2",
+            "sha1": "136423b2afd8c00aca2f18979cccf16f13a1134f",
+            "sha256": "36864eee438b967e41dfe6d07a539cfd49b604f2d7baac04540047618b6e14c2"
+          },
+          "summary": null,
+          "tags": {}
+        },
         "file_type": {
           "details": {
             "is_email_file": true,
@@ -1792,6 +1801,15 @@
       },
       "relationships": {},
       "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "a56301688b85d664efe6d39b466dbce5",
+            "sha1": "d656b3eb757b8008cd407a81bed843f8286930a4",
+            "sha256": "9a659f1d7b54c368a291a3a8fd8256fd0c9db1e37dd387e593fbbd679610550e"
+          },
+          "summary": null,
+          "tags": {}
+        },
         "file_type": {
           "details": {
             "is_email_file": true,
@@ -2022,6 +2040,15 @@
           "summary": "Email Analysis: From Postmaster <> To Jacob Picklefoot<jrobinson@company.com> Subject RFQ-03167218 IGOL MEF project 2018.rar",
           "tags": {}
         },
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "f99c0fac6a983f1f2bf0e44333c49c2e",
+            "sha1": "ffea3a8b5658698df40fc8855476d60594dae82f",
+            "sha256": "b77316e64d3138a7c9cbe2888eae8dfa522a544291baec39dc5cc62886a21e85"
+          },
+          "summary": null,
+          "tags": {}
+        },
         "file_type": {
           "details": {
             "is_email_file": true,
@@ -2088,6 +2115,36 @@
       },
       "tags": {}
     },
+    "md5:9c84d6cffc6aa2f846bf715f17b821a2": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:36864eee438b967e41dfe6d07a539cfd49b604f2d7baac04540047618b6e14c2": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:a56301688b85d664efe6d39b466dbce5": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:9a659f1d7b54c368a291a3a8fd8256fd0c9db1e37dd387e593fbbd679610550e": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:f99c0fac6a983f1f2bf0e44333c49c2e": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:b77316e64d3138a7c9cbe2888eae8dfa522a544291baec39dc5cc62886a21e85": true
+      },
+      "results": {},
+      "tags": {}
+    },
     "message_id:<20180712054835.897463934aacad0d98225fa80f3b9477.32ef5a540c.mailapi@email19.godaddy.com>": {
       "detections": {},
       "directives": {},
@@ -2116,6 +2173,36 @@
         "message_id_analyzer_v2": true
       },
       "relationships": {},
+      "results": {},
+      "tags": {}
+    },
+    "sha256:36864eee438b967e41dfe6d07a539cfd49b604f2d7baac04540047618b6e14c2": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:36864eee438b967e41dfe6d07a539cfd49b604f2d7baac04540047618b6e14c2": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:9a659f1d7b54c368a291a3a8fd8256fd0c9db1e37dd387e593fbbd679610550e": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:9a659f1d7b54c368a291a3a8fd8256fd0c9db1e37dd387e593fbbd679610550e": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:b77316e64d3138a7c9cbe2888eae8dfa522a544291baec39dc5cc62886a21e85": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:b77316e64d3138a7c9cbe2888eae8dfa522a544291baec39dc5cc62886a21e85": true
+      },
       "results": {},
       "tags": {}
     },

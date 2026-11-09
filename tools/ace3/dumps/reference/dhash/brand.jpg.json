@@ -1,0 +1,62 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "DHashImageAnalysis",
+      "details": {
+        "scores": [
+          {
+            "image_file": "brand.png",
+            "score": 98.2421875,
+            "threshold": 90.0
+          },
+          {
+            "image_file": "noise.png",
+            "score": 48.046875,
+            "threshold": 75.5
+          }
+        ]
+      },
+      "detections": [],
+      "module_path": "saq.modules.dhash:DHashImageAnalysis",
+      "observables": [],
+      "summary": "DHash Image Analysis: brand.png 98.24% of 90.00%, noise.png 48.05% of 75.50%",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [
+      "dhash"
+    ],
+    "label": "fixtures/dhash/images/brand.jpg with dhash",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "brand.jpg",
+      "size": 3179,
+      "type": "file",
+      "value": "5b2eed154f965b734b6cf2a0080ba96307ad794e29a01afcc2daa93d3e1fd190"
+    }
+  },
+  "module": "dhash",
+  "observable_after": {
+    "detections": [
+      {
+        "description": "matches brand.png 98.24% (threshold 90.00%)",
+        "details": null
+      }
+    ],
+    "directives": [
+      "dhash"
+    ],
+    "excluded_analysis": [],
+    "file_path": "brand.jpg",
+    "relationships": [],
+    "size": 3179,
+    "tags": [],
+    "type": "file",
+    "value": "5b2eed154f965b734b6cf2a0080ba96307ad794e29a01afcc2daa93d3e1fd190",
+    "yara_meta": []
+  }
+}

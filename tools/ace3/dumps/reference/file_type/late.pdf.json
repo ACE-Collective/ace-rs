@@ -1,0 +1,60 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": true,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "application/pdf",
+        "type": "PDF document, version 1.7, ASCII text, with very long lines (608)"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: PDF document, version 1.7, ASCII text, with very long lines (608) (application/pdf) (pdf document)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/files/late.pdf as late.pdf",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "late.pdf",
+      "size": 609,
+      "type": "file",
+      "value": "f7b091f7f6ee196cf03d60eb58d624a8a1ce6304f252065ad45466f9dff93841"
+    }
+  },
+  "module": "file_type",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=document.pdf"
+    ],
+    "excluded_analysis": [],
+    "file_path": "late.pdf",
+    "relationships": [],
+    "size": 609,
+    "tags": [
+      "pdf"
+    ],
+    "type": "file",
+    "value": "f7b091f7f6ee196cf03d60eb58d624a8a1ce6304f252065ad45466f9dff93841",
+    "yara_meta": [
+      "type=document.pdf"
+    ]
+  }
+}

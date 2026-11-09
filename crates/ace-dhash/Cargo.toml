@@ -1,0 +1,19 @@
+[package]
+name = "ace-dhash"
+version = "0.1.0"
+description = "A port of ace3's dhash module over Pillow 13.0.0: whether bytes open as an image, and the image's difference hash"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+ace-pycompat = { path = "../ace-pycompat" }
+image-webp = "0.2.4"
+
+[dev-dependencies]
+base64 = "0.22.1"
+serde_json = "1.0.154"
+
+[lints]
+workspace = true

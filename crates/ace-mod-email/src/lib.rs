@@ -31,7 +31,8 @@ mod settings;
 use std::fs;
 
 use ace_results::types::email::EmailAnalysis;
-use ace_results::{NewFile, ObservableKind, ResultEnvelope, YaraMeta};
+use ace_results::types::file_type::FileTypeAnalysis;
+use ace_results::{AnalysisType, NewFile, ObservableKind, ResultEnvelope, YaraMeta};
 use ace_sdk::{
     FileOutputError, ListSpec, Manifest, Module, ModuleError, Outcome, Parser, TaskContext,
 };
@@ -67,6 +68,7 @@ pub struct EmailAnalyzer;
 impl Module for EmailAnalyzer {
     const NAME: &'static str = "email_analyzer";
     const INPUTS: &'static [ObservableKind] = &[ObservableKind::File];
+    const DEPENDS_ON: &'static [&'static str] = &[FileTypeAnalysis::MODULE];
     const LISTS: &'static [ListSpec] = &[SENDER_WHITELIST, RECIPIENT_WHITELIST];
     type Output = EmailAnalysis;
     type Settings = EmailAnalyzerSettings;
@@ -86,16 +88,25 @@ impl Parser for EmailAnalyzer {
         if file.path.as_str().ends_with(".headers") {
             return Ok(Outcome::Skipped("a headers file".to_owned()));
         }
-        let bytes = fs::read(&file.local_path)?;
+        // ace3 waits for file_type, and reads whether this is an email from its result
+        let Some(file_type) = ctx.dependency_result::<FileTypeAnalysis>()? else {
+            return Ok(Outcome::Skipped("no file type analysis".to_owned()));
+        };
+        if file_type.file_type.is_empty() {
+            return Ok(Outcome::Skipped("file_type has no description".to_owned()));
+        }
         let directives = &ctx.observable().directives;
-        let is_email = file.mime_type.as_deref() == Some("message/rfc822")
+        let is_email = file_type.file_type.contains("RFC 822 mail")
+            || file_type.file_type.contains("message/rfc822")
+            || file_type.mime.contains("message/rfc822")
             || directives
                 .iter()
                 .any(|d| d == analyze::DIRECTIVE_ORIGINAL_EMAIL)
-            || is_email_file(&bytes);
+            || file_type.is_email_file;
         if !is_email {
             return Ok(Outcome::Skipped("not an RFC 822 message".to_owned()));
         }
+        let bytes = fs::read(&file.local_path)?;
         ctx.check_cancelled()?;
 
         // ace3 parses through a text wrapper with universal newlines (BytesParser.parse), which
@@ -288,41 +299,4 @@ fn summary(details: &EmailAnalysis) -> Option<String> {
         summary = format!("{summary} Subject {subject}");
     }
     Some(summary)
-}
-
-/// `is_email_file` in ace3's `is_file_type.py`: the file starts with plain ASCII header lines
-/// that include From, Subject and Message-ID.
-fn is_email_file(bytes: &[u8]) -> bool {
-    const COMMON: [&str; 3] = ["from", "subject", "message-id"];
-    let Ok(text) = std::str::from_utf8(bytes) else {
-        return false;
-    };
-    let mut found: Vec<String> = Vec::new();
-    for line in text.split_inclusive(['\n', '\r']) {
-        if !line.is_ascii() {
-            return false;
-        }
-        let line = line.trim_end_matches(['\n', '\r']);
-        // a continuation
-        if line.starts_with(char::is_whitespace) && !line.trim().is_empty() {
-            continue;
-        }
-        if line.trim().is_empty() {
-            return false;
-        }
-        let Some((name, _)) = line.split_once(':') else {
-            return false;
-        };
-        if name.is_empty() || !name.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-') {
-            return false;
-        }
-        let name = name.to_lowercase();
-        if COMMON.contains(&name.as_str()) && !found.contains(&name) {
-            found.push(name);
-        }
-        if found.len() == COMMON.len() {
-            return true;
-        }
-    }
-    false
 }

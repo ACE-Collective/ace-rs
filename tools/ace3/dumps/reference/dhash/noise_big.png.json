@@ -1,0 +1,62 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "DHashImageAnalysis",
+      "details": {
+        "scores": [
+          {
+            "image_file": "brand.png",
+            "score": 48.828125,
+            "threshold": 90.0
+          },
+          {
+            "image_file": "noise.png",
+            "score": 99.4140625,
+            "threshold": 75.5
+          }
+        ]
+      },
+      "detections": [],
+      "module_path": "saq.modules.dhash:DHashImageAnalysis",
+      "observables": [],
+      "summary": "DHash Image Analysis: brand.png 48.83% of 90.00%, noise.png 99.41% of 75.50%",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [
+      "dhash"
+    ],
+    "label": "fixtures/dhash/images/noise_big.png with dhash",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "noise_big.png",
+      "size": 32157,
+      "type": "file",
+      "value": "cab925c984f00a3a2b44056b940c67c34c02c9aa5afb5076927cf262431ae942"
+    }
+  },
+  "module": "dhash",
+  "observable_after": {
+    "detections": [
+      {
+        "description": "matches noise.png 99.41% (threshold 75.50%)",
+        "details": null
+      }
+    ],
+    "directives": [
+      "dhash"
+    ],
+    "excluded_analysis": [],
+    "file_path": "noise_big.png",
+    "relationships": [],
+    "size": 32157,
+    "tags": [],
+    "type": "file",
+    "value": "cab925c984f00a3a2b44056b940c67c34c02c9aa5afb5076927cf262431ae942",
+    "yara_meta": []
+  }
+}

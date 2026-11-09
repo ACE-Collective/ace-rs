@@ -1,0 +1,30 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [],
+  "input": {
+    "directives": [],
+    "label": "fixtures/files/invoice.JS as invoice.JS",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "invoice.JS",
+      "size": 11,
+      "type": "file",
+      "value": "5747ff2cf11cc6d2125b728abfb646c946ea8d14beb66b7fed9a64f38a1fefb1"
+    }
+  },
+  "module": "binary_file_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "invoice.JS",
+    "relationships": [],
+    "size": 11,
+    "tags": [],
+    "type": "file",
+    "value": "5747ff2cf11cc6d2125b728abfb646c946ea8d14beb66b7fed9a64f38a1fefb1",
+    "yara_meta": []
+  }
+}

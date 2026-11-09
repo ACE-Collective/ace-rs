@@ -99,6 +99,12 @@ impl Dump {
             .find(|a| a["class"] == class)
     }
 
+    /// The details of ace3's file_type analysis of the input, which a module that depends on
+    /// file_type gets as its dependency result.
+    pub fn file_type(&self) -> Option<&Value> {
+        self.analysis("FileTypeAnalysis").map(|a| &a["details"])
+    }
+
     /// The mime type ace3's file_type module gave the input.
     pub fn mime_type(&self) -> Option<&str> {
         self.analysis("FileTypeAnalysis")?["details"]["mime"].as_str()

@@ -31,7 +31,12 @@ same name as the email\n\
 
 #[test]
 fn hostile_names_are_cleaned_and_taken_names_get_suffixes() {
-    let harness = Harness::<EmailAnalyzer>::new().expect("harness");
+    let harness = Harness::<EmailAnalyzer>::new()
+        .expect("harness")
+        .dependency_result(
+            "file_type",
+            ace_testkit::file_type_details("RFC 822 mail, ASCII text", "message/rfc822"),
+        );
     let email = harness
         .file_bytes("email.rfc822", HOSTILE_NAMES, &[])
         .expect("fixture");

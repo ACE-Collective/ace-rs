@@ -1,0 +1,162 @@
+{
+  "form": 1,
+  "observables": {
+    "file:9ba0ebb34a636848747f907a34656ab8253d2feee43eca83c031024af33806ca": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "network.lnk": {
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "b20cb2edbfb82cae305af5ea78335cce",
+            "sha1": "a6414a677add8edac8acf80cec5fdbcb783fb883",
+            "sha256": "9ba0ebb34a636848747f907a34656ab8253d2feee43eca83c031024af33806ca"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": true,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/x-ms-shortcut",
+            "type": "MS Windows shortcut, Points to a file or directory, Has Description string, Unicoded, Archive, ctime=Thu Dec  3 12:26:40 2020, atime=Thu Dec  3 12:26:52 2020, length=1234, window=normal, hot key A+CONTROL, LinkInfoSize 0x4a, LinkInfoHeaderSize 0x1c, CommonNetworkRelativeLinkAndPathSuffix, CommonNetworkRelativeLinkOffset 0x1c, CommonPathSuffixOffset 0x42, CommonPathSuffixOffsetUnicode 0x3"
+          },
+          "summary": "File Type Analysis: MS Windows shortcut, Points to a file or directory, Has Description string, Unicoded, Archive, ctime=Thu Dec  3 12:26:40 2020, atime=Thu Dec  3 12:26:52 2020, length=1234, window=normal, hot key A+CONTROL, LinkInfoSize 0x4a, LinkInfoHeaderSize 0x1c, CommonNetworkRelativeLinkAndPathSuffix, CommonNetworkRelativeLinkOffset 0x1c, CommonPathSuffixOffset 0x42, CommonPathSuffixOffsetUnicode 0x3 (application/x-ms-shortcut) (windows shortcut)",
+          "tags": {}
+        },
+        "lnk_parser": {
+          "details": {
+            "error": null,
+            "info": {
+              "data": {
+                "description": "A shortcut"
+              },
+              "extra": {},
+              "header": {
+                "accessed_time": "2020-12-03T12:26:52.345679+0000",
+                "creation_time": "2020-12-03T12:26:40.000000+0000",
+                "file_flags": [
+                  "FILE_ATTRIBUTE_ARCHIVE"
+                ],
+                "file_size": 1234,
+                "guid": "00021401-0000-0000-C000-000000000046",
+                "header_size": 76,
+                "hotkey": "CONTROL - A {0x4102}",
+                "icon_index": 0,
+                "link_flags": [
+                  "HasLinkInfo",
+                  "HasName",
+                  "IsUnicode"
+                ],
+                "modified_time": null,
+                "r_file_flags": 32,
+                "r_hotkey": 577,
+                "r_link_flags": 134,
+                "reserved0": 0,
+                "reserved1": 0,
+                "reserved2": 0,
+                "windowstyle": "SW_SHOWNORMAL"
+              },
+              "link_info": {
+                "common_network_relative_link_offset": 28,
+                "common_path_suffix": "doc.txt",
+                "common_path_suffix_offset": 66,
+                "link_info_flags": 2,
+                "link_info_header_size": 28,
+                "link_info_size": 74,
+                "local_base_path_offset": 0,
+                "location": "Network",
+                "location_info": {
+                  "common_network_relative_link_flags": 3,
+                  "common_network_relative_link_size": 38,
+                  "device_name": "Z:",
+                  "device_name_offset": 35,
+                  "net_name": "\\\\SERVER\\SHARE",
+                  "net_name_offset": 20,
+                  "network_provider_type": "WNNC_NET_DECORB",
+                  "r_network_provider_type": "0x20000"
+                },
+                "volume_id_offset": 0
+              },
+              "size": 176
+            }
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "lnk": true
+      }
+    },
+    "file:bd4d6a418f339b2d0806512abff6fc468b7b170a89d768be70d0f17c6309a3fe": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "network.lnk.lnkparser.json": {
+          "type=metadata.lnk": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/json",
+            "type": "JSON text data"
+          },
+          "summary": "File Type Analysis: JSON text data (application/json)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "md5:b20cb2edbfb82cae305af5ea78335cce": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:9ba0ebb34a636848747f907a34656ab8253d2feee43eca83c031024af33806ca": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:9ba0ebb34a636848747f907a34656ab8253d2feee43eca83c031024af33806ca": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:9ba0ebb34a636848747f907a34656ab8253d2feee43eca83c031024af33806ca": true
+      },
+      "results": {},
+      "tags": {}
+    }
+  }
+}

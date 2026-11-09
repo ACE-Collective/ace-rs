@@ -1,0 +1,61 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": true,
+        "is_office_ext": true,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": true,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "text/plain",
+        "type": "ASCII text, with no line terminators"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: ASCII text, with no line terminators (text/plain) (ms office document) (rtf document)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/files/loose.rtf as loose.rtf",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "loose.rtf",
+      "size": 15,
+      "type": "file",
+      "value": "5983b2130844dcdff6ccd6f9004e73eb5178ee2efa956167f9e16198fcd72ade"
+    }
+  },
+  "module": "file_type",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=document.rtf"
+    ],
+    "excluded_analysis": [],
+    "file_path": "loose.rtf",
+    "relationships": [],
+    "size": 15,
+    "tags": [
+      "microsoft_office",
+      "rtf"
+    ],
+    "type": "file",
+    "value": "5983b2130844dcdff6ccd6f9004e73eb5178ee2efa956167f9e16198fcd72ade",
+    "yara_meta": [
+      "type=document.rtf"
+    ]
+  }
+}

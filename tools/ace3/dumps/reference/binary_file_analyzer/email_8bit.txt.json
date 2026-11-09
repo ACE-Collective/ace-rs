@@ -1,0 +1,30 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [],
+  "input": {
+    "directives": [],
+    "label": "fixtures/files/email_8bit.txt as email_8bit.txt",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "email_8bit.txt",
+      "size": 70,
+      "type": "file",
+      "value": "4306274cd926aae5225837c16dc7bed23d2fd495f268c20419dda56a8212804d"
+    }
+  },
+  "module": "binary_file_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "email_8bit.txt",
+    "relationships": [],
+    "size": 70,
+    "tags": [],
+    "type": "file",
+    "value": "4306274cd926aae5225837c16dc7bed23d2fd495f268c20419dda56a8212804d",
+    "yara_meta": []
+  }
+}

@@ -211,6 +211,15 @@
           "summary": "Archive Analysis: extracted 4 of 4 files: ([Content_Types].xml, xl/vbaProject.bin, xl/workbook.bin, _rels/.rels)",
           "tags": {}
         },
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "2444a16a34685510ae9a84ee9c05cb91",
+            "sha1": "d526b55b8768d54a21d9889cb6187bfebd3389cb",
+            "sha256": "4558d5fd273bce9b9251c4b3b8abec915d5256936c215997408e84f504759325"
+          },
+          "summary": null,
+          "tags": {}
+        },
         "file_type": {
           "details": {
             "is_email_file": false,
@@ -340,6 +349,26 @@
           "tags": {}
         }
       },
+      "tags": {}
+    },
+    "md5:2444a16a34685510ae9a84ee9c05cb91": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:4558d5fd273bce9b9251c4b3b8abec915d5256936c215997408e84f504759325": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:4558d5fd273bce9b9251c4b3b8abec915d5256936c215997408e84f504759325": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:4558d5fd273bce9b9251c4b3b8abec915d5256936c215997408e84f504759325": true
+      },
+      "results": {},
       "tags": {}
     }
   }

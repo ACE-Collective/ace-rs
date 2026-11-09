@@ -1,0 +1,56 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": true,
+        "is_office_ext": true,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "text/plain",
+        "type": "ASCII text"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: ASCII text (text/plain) (ms office document)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/files/table.csv as table.csv",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "table.csv",
+      "size": 8,
+      "type": "file",
+      "value": "492d5ea496056f1a6a6592241032fab764c321596317930b4fa0e1e8bc3b7470"
+    }
+  },
+  "module": "file_type",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "table.csv",
+    "relationships": [],
+    "size": 8,
+    "tags": [
+      "microsoft_office"
+    ],
+    "type": "file",
+    "value": "492d5ea496056f1a6a6592241032fab764c321596317930b4fa0e1e8bc3b7470",
+    "yara_meta": []
+  }
+}

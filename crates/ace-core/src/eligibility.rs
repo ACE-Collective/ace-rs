@@ -4,7 +4,7 @@
 //! takes the observable's type (or a type that type extends), the root's analysis mode runs it,
 //! none of the observable's directives keeps it off, the observable has every directive the module
 //! requires and doesn't exclude it, and every module it depends on has a result for the
-//! observable. A whitelisted observable, one with the
+//! observable, if the root's mode runs that module and the binary has it. A whitelisted observable, one with the
 //! `whitelisted` tag or directive, is eligible for nothing, as ace3's executor skips one. The inputs come from the component (the manifest's, or an instance's
 //! narrower list), the dependencies and skip directives from the module's manifest, and the
 //! mode's modules from `Modes`.
@@ -115,12 +115,13 @@ pub enum Ineligible {
     MissingDirective(String),
     /// The observable excludes the module.
     Excluded,
-    /// A module this one depends on has no result for the observable yet.
+    /// A module this one depends on, which the root's mode runs, has no result for the observable
+    /// yet.
     WaitingFor(String),
 }
 
 /// Whether `component` may run on an observable with `facts`, in a mode that runs
-/// `mode_modules`, given the components that have results for the observable.
+/// `mode_modules` (those of the mode the catalog has), given the components that have results for the observable.
 pub fn check(
     component: &Component,
     facts: Facts<'_>,
@@ -149,7 +150,10 @@ pub fn check(
     if let Some(waiting) = manifest
         .depends_on
         .iter()
-        .find(|dependency| !results.contains(**dependency))
+        // a dependency the root's mode doesn't run, or the binary doesn't have, never has a
+        // result, and doesn't hold the module back, as ace3's YARA-only mode runs its module
+        // without file_type
+        .find(|dependency| mode_modules.contains(**dependency) && !results.contains(**dependency))
     {
         return Err(Ineligible::WaitingFor((*waiting).to_owned()));
     }

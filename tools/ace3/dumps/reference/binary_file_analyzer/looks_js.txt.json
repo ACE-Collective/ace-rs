@@ -1,0 +1,30 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [],
+  "input": {
+    "directives": [],
+    "label": "fixtures/files/looks_js.txt as looks_js.txt",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "looks_js.txt",
+      "size": 60,
+      "type": "file",
+      "value": "6e1a6593905bb6e0bc21680ad4f40cd6e59005a7a910982e4c92cc520dd6b2f2"
+    }
+  },
+  "module": "binary_file_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "looks_js.txt",
+    "relationships": [],
+    "size": 60,
+    "tags": [],
+    "type": "file",
+    "value": "6e1a6593905bb6e0bc21680ad4f40cd6e59005a7a910982e4c92cc520dd6b2f2",
+    "yara_meta": []
+  }
+}

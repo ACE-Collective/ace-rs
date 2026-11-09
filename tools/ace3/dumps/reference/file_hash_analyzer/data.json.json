@@ -1,0 +1,56 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "application/json",
+        "type": "JSON text data"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: JSON text data (application/json)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/files/data.json as data.json",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "data.json",
+      "size": 17,
+      "type": "file",
+      "value": "4fcf70d07b2513652e5d2f2d4b35f0074a7487ade895836511d42a6218473023"
+    }
+  },
+  "module": "file_hash_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "data.json",
+    "relationships": [],
+    "size": 17,
+    "tags": [],
+    "type": "file",
+    "value": "4fcf70d07b2513652e5d2f2d4b35f0074a7487ade895836511d42a6218473023",
+    "yara_meta": []
+  }
+}

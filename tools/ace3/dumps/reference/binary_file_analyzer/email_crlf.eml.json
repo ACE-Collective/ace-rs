@@ -1,0 +1,30 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [],
+  "input": {
+    "directives": [],
+    "label": "fixtures/files/email_crlf.eml as email_crlf.eml",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "email_crlf.eml",
+      "size": 133,
+      "type": "file",
+      "value": "43cce663a1be8089b5738281e82699d78f230b2b77ea1bcf42d63f7308a83e07"
+    }
+  },
+  "module": "binary_file_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "email_crlf.eml",
+    "relationships": [],
+    "size": 133,
+    "tags": [],
+    "type": "file",
+    "value": "43cce663a1be8089b5738281e82699d78f230b2b77ea1bcf42d63f7308a83e07",
+    "yara_meta": []
+  }
+}

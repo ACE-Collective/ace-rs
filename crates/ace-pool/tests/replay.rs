@@ -87,8 +87,16 @@ async fn replaying_the_hung_task_reproduces_the_hang() {
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn replaying_a_task_reads_the_body_of_its_carrying_email() {
     let core = Core::start(
-        vec![ace_mod_email::MANIFEST, ace_mod_msoffice::MANIFEST],
-        &["email_analyzer", "msoffice_encryption_analyzer"],
+        vec![
+            ace_mod_files::file_type::MANIFEST,
+            ace_mod_email::MANIFEST,
+            ace_mod_msoffice::MANIFEST,
+        ],
+        &[
+            "file_type",
+            "email_analyzer",
+            "msoffice_encryption_analyzer",
+        ],
         Duration::from_secs(60),
     )
     .await;

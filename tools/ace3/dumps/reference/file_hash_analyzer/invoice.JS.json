@@ -1,0 +1,104 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "text/plain",
+        "type": "ASCII text"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: ASCII text (text/plain)",
+      "tags": []
+    },
+    {
+      "class": "FileHashAnalysis",
+      "details": {
+        "md5": "525d0c7b851cdc9d67183051ff4b449b",
+        "sha1": "17384ca4fcb1c569ff5e5a638e498a6be4ed35cc",
+        "sha256": "5747ff2cf11cc6d2125b728abfb646c946ea8d14beb66b7fed9a64f38a1fefb1"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.hash:FileHashAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "5747ff2cf11cc6d2125b728abfb646c946ea8d14beb66b7fed9a64f38a1fefb1"
+              },
+              "type": "is_hash_of"
+            }
+          ],
+          "tags": [],
+          "type": "md5",
+          "value": "525d0c7b851cdc9d67183051ff4b449b"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "5747ff2cf11cc6d2125b728abfb646c946ea8d14beb66b7fed9a64f38a1fefb1"
+              },
+              "type": "is_hash_of"
+            }
+          ],
+          "tags": [],
+          "type": "sha256",
+          "value": "5747ff2cf11cc6d2125b728abfb646c946ea8d14beb66b7fed9a64f38a1fefb1"
+        }
+      ],
+      "summary": null,
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/files/invoice.JS as invoice.JS",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "invoice.JS",
+      "size": 11,
+      "type": "file",
+      "value": "5747ff2cf11cc6d2125b728abfb646c946ea8d14beb66b7fed9a64f38a1fefb1"
+    }
+  },
+  "module": "file_hash_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "invoice.JS",
+    "relationships": [],
+    "size": 11,
+    "tags": [],
+    "type": "file",
+    "value": "5747ff2cf11cc6d2125b728abfb646c946ea8d14beb66b7fed9a64f38a1fefb1",
+    "yara_meta": []
+  }
+}

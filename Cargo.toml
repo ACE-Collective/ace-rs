@@ -80,3 +80,32 @@ opt-level = 3
 opt-level = 3
 [profile.dev.package.rustc-hash]
 opt-level = 3
+
+# file_type parses JavaScript with oxc in a contained task, whose main thread has an 8 MiB stack,
+# and a nested file must parse within it (crates/ace-mod-files/src/javascript.rs). Unoptimized,
+# oxc's frames are several times larger.
+[profile.dev.package.oxc_parser]
+opt-level = 3
+[profile.dev.package.oxc_semantic]
+opt-level = 3
+[profile.dev.package.oxc_ast]
+opt-level = 3
+[profile.dev.package.oxc_ast_visit]
+opt-level = 3
+[profile.dev.package.oxc_regular_expression]
+opt-level = 3
+[profile.dev.package.oxc_allocator]
+opt-level = 3
+[profile.dev.package.oxc_syntax]
+opt-level = 3
+[profile.dev.package.oxc_span]
+opt-level = 3
+[profile.dev.package.oxc_ecmascript]
+opt-level = 3
+
+# dhash decodes an image as Pillow does, with libjpeg-turbo's decoder ported (crates/ace-dhash),
+# which on a large image is slow unoptimized.
+[profile.dev.package.ace-dhash]
+opt-level = 3
+[profile.dev.package.image-webp]
+opt-level = 3

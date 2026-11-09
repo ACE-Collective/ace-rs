@@ -65,6 +65,15 @@
         "extracted_from file:9faf161d193fcc38645ed142a627fdb872feab791e1e1a341578a536eb2c3ae8": true
       },
       "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "2f6dfa7598e25f42f91b9ad284e083e4",
+            "sha1": "c0f727a1ad67d49c90ed77a674c482f98c8f59de",
+            "sha256": "6d5fe21689cb547ccaf39e0e0a78aed0ab4e71eb56ab773acac77f6a20b047ee"
+          },
+          "summary": null,
+          "tags": {}
+        },
         "file_type": {
           "details": {
             "is_email_file": false,
@@ -107,6 +116,15 @@
       },
       "relationships": {},
       "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "7cb9ffc2b90c6f7bce84a76abe02b1ac",
+            "sha1": "9a2c04eb7d47717a4053c34da91f7b7d37990c0d",
+            "sha256": "9faf161d193fcc38645ed142a627fdb872feab791e1e1a341578a536eb2c3ae8"
+          },
+          "summary": null,
+          "tags": {}
+        },
         "file_type": {
           "details": {
             "is_email_file": false,
@@ -136,7 +154,7 @@
         "pdf": true
       }
     },
-    "file:af7f2f972b0c90482833913f4e38ef62ae0ed10fbf9b553187c1a64886aa97be": {
+    "file:d954cc56b725d0e79cdc877101d7ec2463fe49d8d7059f8d5ef7eb6049d3889e": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -186,6 +204,46 @@
       "tags": {
         "pdf": true
       }
+    },
+    "md5:2f6dfa7598e25f42f91b9ad284e083e4": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:6d5fe21689cb547ccaf39e0e0a78aed0ab4e71eb56ab773acac77f6a20b047ee": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:7cb9ffc2b90c6f7bce84a76abe02b1ac": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:9faf161d193fcc38645ed142a627fdb872feab791e1e1a341578a536eb2c3ae8": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:6d5fe21689cb547ccaf39e0e0a78aed0ab4e71eb56ab773acac77f6a20b047ee": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:6d5fe21689cb547ccaf39e0e0a78aed0ab4e71eb56ab773acac77f6a20b047ee": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:9faf161d193fcc38645ed142a627fdb872feab791e1e1a341578a536eb2c3ae8": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:9faf161d193fcc38645ed142a627fdb872feab791e1e1a341578a536eb2c3ae8": true
+      },
+      "results": {},
+      "tags": {}
     }
   }
 }

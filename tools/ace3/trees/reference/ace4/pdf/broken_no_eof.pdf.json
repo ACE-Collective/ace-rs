@@ -69,6 +69,15 @@
       },
       "relationships": {},
       "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "b313dc16fa25f68b0b555977f4a32bad",
+            "sha1": "3566373a5e88467333d532a9f154ac4caedfdd65",
+            "sha256": "4f953c7ea6baf349eb6d6e1fe503fec21c3cd7ffaacd53460bad74287280425d"
+          },
+          "summary": null,
+          "tags": {}
+        },
         "file_type": {
           "details": {
             "is_email_file": false,
@@ -116,6 +125,15 @@
         "extracted_from file:4f953c7ea6baf349eb6d6e1fe503fec21c3cd7ffaacd53460bad74287280425d": true
       },
       "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "9eee5157af52a87d40f8c02d62f655ce",
+            "sha1": "22569c9b8e59aa729ea2e839be3659a68815e2cd",
+            "sha256": "7485896e9be2727603200c88a41c8eb0f081feb974a04e072d4872b69bda1e66"
+          },
+          "summary": null,
+          "tags": {}
+        },
         "file_type": {
           "details": {
             "is_email_file": false,
@@ -138,19 +156,19 @@
         "url_extraction": {
           "details": {
             "urls": [
-              "https://example.com/•bullet",
+              "https://example.com/\u2022bullet",
               "https://example.com/indirect",
               "https://example.com/hex",
               "https://example.com/literal",
-              "https://example.com/ü"
+              "https://example.com/\u00fc"
             ],
             "urls_grouped_by_domain": {
               "example.com": [
-                "https://example.com/•bullet",
+                "https://example.com/\u2022bullet",
                 "https://example.com/indirect",
                 "https://example.com/hex",
                 "https://example.com/literal",
-                "https://example.com/ü"
+                "https://example.com/\u00fc"
               ]
             }
           },
@@ -160,7 +178,7 @@
       },
       "tags": {}
     },
-    "file:953bde108d90a8dc6075ef560fc92e3aa4e7c5b426acb6023ffe863d3ffa5d39": {
+    "file:c8c4dd141a7fe64560b09c5647576588d69364dec79ca7fb3ffa72f23e1dceb3": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -211,6 +229,46 @@
         "pdf": true
       }
     },
+    "md5:9eee5157af52a87d40f8c02d62f655ce": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:7485896e9be2727603200c88a41c8eb0f081feb974a04e072d4872b69bda1e66": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:b313dc16fa25f68b0b555977f4a32bad": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:4f953c7ea6baf349eb6d6e1fe503fec21c3cd7ffaacd53460bad74287280425d": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:4f953c7ea6baf349eb6d6e1fe503fec21c3cd7ffaacd53460bad74287280425d": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:4f953c7ea6baf349eb6d6e1fe503fec21c3cd7ffaacd53460bad74287280425d": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:7485896e9be2727603200c88a41c8eb0f081feb974a04e072d4872b69bda1e66": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:7485896e9be2727603200c88a41c8eb0f081feb974a04e072d4872b69bda1e66": true
+      },
+      "results": {},
+      "tags": {}
+    },
     "url:https://example.com/200bullet": {
       "detections": {},
       "directives": {},
@@ -243,7 +301,7 @@
       "results": {},
       "tags": {}
     },
-    "url:https://example.com/ü": {
+    "url:https://example.com/\u00fc": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {},
@@ -251,7 +309,7 @@
       "results": {},
       "tags": {}
     },
-    "url:https://example.com/•bullet": {
+    "url:https://example.com/\u2022bullet": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {},

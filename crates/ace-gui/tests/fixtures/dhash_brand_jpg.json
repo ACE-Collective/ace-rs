@@ -1,0 +1,27 @@
+{
+  "analysis_type": "dhash_image_analysis",
+  "schema_version": 1,
+  "details": {
+    "scores": [
+      {
+        "image_file": "brand.png",
+        "score": 98.2421875,
+        "threshold": 90.0
+      },
+      {
+        "image_file": "noise.png",
+        "score": 48.046875,
+        "threshold": 75.5
+      }
+    ]
+  },
+  "summary": "DHash Image Analysis: brand.png 98.24% of 90.00%, noise.png 48.05% of 75.50%",
+  "analyzed": {
+    "detections": [
+      {
+        "description": "matches brand.png 98.24% (threshold 90.00%)",
+        "signature_uuid": "10d1e320-3b07-45f1-9bcf-078044643b7e"
+      }
+    ]
+  }
+}

@@ -2235,6 +2235,12 @@ fn each_module_s_view_draws_its_fixture() {
         "pdf_encrypted_aes_128",
         "urls_page_html",
         "iocs_report_txt",
+        "file_type_script_js",
+        "file_hash_notes_zip",
+        "binary_nul_rtf",
+        "lnk_shortcut",
+        "x509_cert_pem",
+        "dhash_brand_jpg",
     ];
     let mut types = BTreeSet::new();
     for name in fixtures {
@@ -2432,6 +2438,27 @@ fn each_module_s_view_draws_its_fixture() {
                     "<li>198.51.100.23</li>",
                     "<h3>ignored</h3>",
                 ],
+            ),
+            "file_type_script_js" => contains_all(
+                &html,
+                &[
+                    "<tr><th>mime</th><td>text/plain</td></tr>",
+                    "<tr><th>is_zip_file</th><td>false</td></tr>",
+                ],
+            ),
+            "file_hash_notes_zip" => contains_all(&html, &["<tr><th>sha256</th><td>"]),
+            "binary_nul_rtf" => contains_all(&html, &["No details"]),
+            "lnk_shortcut" => contains_all(&html, &["<tr><th>target</th><td>"]),
+            "x509_cert_pem" => contains_all(
+                &html,
+                &[
+                    "<tr><th>common_name</th><td>*.login.example.com</td></tr>",
+                    "<tr><th>san_ip_addresses</th><td>192.0.2.10</td></tr>",
+                ],
+            ),
+            "dhash_brand_jpg" => contains_all(
+                &html,
+                &["<tr><th>score</th><td>brand.png: 98.24% of 90.00%</td></tr>"],
             ),
             other => panic!("no checks for {other}"),
         }

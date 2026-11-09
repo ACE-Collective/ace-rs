@@ -15,6 +15,15 @@
         "extracted_from file:aa870e220274ab9616f844e51f7097f13098b5958d2549d36cb35e704232ee24": true
       },
       "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "ab8aff4ee2a6a6ef46f8de2195cbc666",
+            "sha1": "803df267cb2470ad74e189d800cce02159ec95c6",
+            "sha256": "2216d9fff221a56e50e6fee2cefcc44b91fc4ceb916f94dcb00430d93b413e54"
+          },
+          "summary": null,
+          "tags": {}
+        },
         "file_type": {
           "details": {
             "is_email_file": false,
@@ -68,6 +77,15 @@
             "file_count": 2
           },
           "summary": "Archive Analysis: extracted 2 of 2 files: ([Content_Types].xml, _rels/.rels)",
+          "tags": {}
+        },
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "512213aba706e2a5bc95ecfe9086dedf",
+            "sha1": "13b346beac4856f515a19a9d9a31e28122e2bd3c",
+            "sha256": "aa870e220274ab9616f844e51f7097f13098b5958d2549d36cb35e704232ee24"
+          },
+          "summary": null,
           "tags": {}
         },
         "file_type": {
@@ -147,6 +165,46 @@
           "tags": {}
         }
       },
+      "tags": {}
+    },
+    "md5:512213aba706e2a5bc95ecfe9086dedf": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:aa870e220274ab9616f844e51f7097f13098b5958d2549d36cb35e704232ee24": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:ab8aff4ee2a6a6ef46f8de2195cbc666": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:2216d9fff221a56e50e6fee2cefcc44b91fc4ceb916f94dcb00430d93b413e54": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:2216d9fff221a56e50e6fee2cefcc44b91fc4ceb916f94dcb00430d93b413e54": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:2216d9fff221a56e50e6fee2cefcc44b91fc4ceb916f94dcb00430d93b413e54": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:aa870e220274ab9616f844e51f7097f13098b5958d2549d36cb35e704232ee24": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:aa870e220274ab9616f844e51f7097f13098b5958d2549d36cb35e704232ee24": true
+      },
+      "results": {},
       "tags": {}
     }
   }

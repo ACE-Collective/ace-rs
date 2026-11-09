@@ -87,6 +87,15 @@
           "summary": "Archive Analysis: extracted 5 of 5 files: ([Content_Types].xml, xl/workbook.xml, xl/macrosheets/sheet1.xml, xl/_rels/workbook.xml.rels, _rels/.rels)",
           "tags": {}
         },
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "2e7f47232b685d1a7a7031fceeb3058c",
+            "sha1": "e71effcff5860ead6071c608a80437235e2828d6",
+            "sha256": "58dbf5bcd8781bd3d43541a627cf913ea1416a504ac566ab4739077da75cfe0e"
+          },
+          "summary": null,
+          "tags": {}
+        },
         "file_type": {
           "details": {
             "is_email_file": false,
@@ -411,6 +420,26 @@
           "tags": {}
         }
       },
+      "tags": {}
+    },
+    "md5:2e7f47232b685d1a7a7031fceeb3058c": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:58dbf5bcd8781bd3d43541a627cf913ea1416a504ac566ab4739077da75cfe0e": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:58dbf5bcd8781bd3d43541a627cf913ea1416a504ac566ab4739077da75cfe0e": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:58dbf5bcd8781bd3d43541a627cf913ea1416a504ac566ab4739077da75cfe0e": true
+      },
+      "results": {},
       "tags": {}
     },
     "url:HTTP://Upper.example.com/a": {

@@ -1,0 +1,60 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": true,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "message/rfc822",
+        "type": "news or mail, ISO-8859 text"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: news or mail, ISO-8859 text (message/rfc822) (email)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/files/email_8bit_body.txt as email_8bit_body.txt",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "email_8bit_body.txt",
+      "size": 74,
+      "type": "file",
+      "value": "ec35ad3d6262c7ecf6f428b042b660222a8e8ca0023c31e85b8428ca50a5bb37"
+    }
+  },
+  "module": "file_type",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email"
+    ],
+    "excluded_analysis": [],
+    "file_path": "email_8bit_body.txt",
+    "relationships": [],
+    "size": 74,
+    "tags": [
+      "email"
+    ],
+    "type": "file",
+    "value": "ec35ad3d6262c7ecf6f428b042b660222a8e8ca0023c31e85b8428ca50a5bb37",
+    "yara_meta": [
+      "type=email"
+    ]
+  }
+}

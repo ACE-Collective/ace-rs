@@ -20,17 +20,17 @@ Versions are those of ace3's image: Python packages from `installer/requirements
 
 | Pool | Modules | Ported |
 |---|---|---|
-| parser | 54 | 11 |
+| parser | 53 | 17 |
 | lookup | 17 | 9 |
 | core | 3 | 0 |
-| sandbox | 14 | 0 |
+| sandbox | 15 | 0 |
 | scanner | 2 | 0 |
-| all | 90 | 20 |
+| all | 90 | 26 |
 
 | Step | Modules |
 |---|---|
-| done | 20 |
-| 7.5 | 60 |
+| done | 26 |
+| 7.5 | 54 |
 | 7.6 | 5 |
 | 7.7 | 2 |
 | 7.10 | 2 |
@@ -42,8 +42,8 @@ No ace3 module goes to 7.8 or 7.9: 7.8's integrations are a site's (below), and 
 
 In order. Batches 10 to 13 run programs in the sandbox runner, which batch 10 builds (*External tools*).
 
-1. **URLs and indicators in text**: done. `url_extraction` and `ioc_extraction`, in `ace-mod-urls`, on `ace-urlfinder`, a port of urlfinderlib 0.27.1 whose `Url` and child URLs other modules can use too, with `ace-pycompat` (Python's urllib.parse, html, base64, json, csv and unicodedata, and the idna, validators and tld packages) and `ace-lxml` (libxml2 2.14.6 as lxml 6.1.3 bundles it, with lxml's tree and BeautifulSoup's `get_text()` over it). Until file_type is ported `url_extraction` reads the mime type the core gives every input file.
-2. **File identity**: `file_type`, `file_hash_analyzer`, `ssdeep`, `lnk_parser`, `binary_file_analyzer`, `x509_analyzer`, `dhash`. file_type first: many later modules read its result, its tags and its `yara_meta` types.
+1. **URLs and indicators in text**: done. `url_extraction` and `ioc_extraction`, in `ace-mod-urls`, on `ace-urlfinder`, a port of urlfinderlib 0.27.1 whose `Url` and child URLs other modules can use too, with `ace-pycompat` (Python's urllib.parse, html, base64, json, csv and unicodedata, and the idna, validators and tld packages) and `ace-lxml` (libxml2 2.14.6 as lxml 6.1.3 bundles it, with lxml's tree and BeautifulSoup's `get_text()` over it). `url_extraction` waits for `file_type`, ported in batch 2.
+2. **File identity**: done. `file_type`, `file_hash_analyzer`, `lnk_parser`, `binary_file_analyzer`, `x509_analyzer` and `dhash`, in `ace-mod-files`. file_type first: many later modules read its result, its tags and its `yara_meta` types. `ssdeep` moved to batch 10: fuzzyhash doesn't give ssdeep's scores (`docs/measurements/ssdeep.md`).
 3. **Observable values**: `command_line_analyzer`, `file_location_analysis`, `file_path_analysis`, `network_identifier`, `parse_url`, `idna_analyzer`, `email_address_fqdn_analyzer`, `protected_url_analyzer`. Strings in, observables out; no files.
 4. **HTML**: `html_data_url_extraction`, `har_extraction`, `html_js_extraction`, `mhtml`. HTML, MHTML and HAR files, with the DOM snapshots 7.7's js-deobfuscator reads.
 5. **Office containers**: `onenote_extraction`, `officeparser3`, `office_xml_rel`, `xml_binary_analyzer`, `xml_plain_text_analyzer`, `extracted_ole_analyzer`, `hidden_mime`, `active_mime`. OLE streams, Office XML, OneNote and MIME blobs, on `ace-mod-oletools`' olefile port.
@@ -51,7 +51,7 @@ In order. Batches 10 to 13 run programs in the sandbox runner, which batch 10 bu
 7. **Encrypted files**: `zip_encryption_analyzer`, `rar_encryption_analyzer`, `pdf_encryption_analyzer`. No John (7.3): the email's wordlist tried in the task, as 4.11 did for Office.
 8. **Email tree**: `mailbox_email_analyzer`, `lure_url_analyzer`, `email_conversation_attachment_analyzer`, `email_conversation_link_analyzer`. Modules that read the email's analysis; the two conversation modules after 7.4's frequency analyzer.
 9. **Email archive**: `email_archiver`, `encrypted_archive_analyzer`, `url_email_pivot_analyzer`, `message_id_analyzer_v2`. Brings ace3's `email` router (5.6) and the `daily/partitions` task's archive half (6.7). Lookup modules, on 7.2's reads (`crates/ace-core/src/reads.md`).
-10. **PDF and image text**: `ocr`, `qrcode`, `exif`, `pdftotext`. The tools that turn PDFs and images into text YARA scans. Builds the sandbox runner and the sandbox pool's image, and adds Ghostscript's rewrite to `pdf_analyzer` and ACE archives to `archive`, which move to the sandbox pool.
+10. **PDF and image text**: `ocr`, `qrcode`, `exif`, `pdftotext`, `ssdeep`. The tools that turn PDFs and images into text YARA scans. Builds the sandbox runner and the sandbox pool's image, and adds Ghostscript's rewrite to `pdf_analyzer` and ACE archives to `archive`, which move to the sandbox pool.
 11. **Executables**: `java_class_decompiler`, `upx`, `autoit`, `de4dot`, `ilspy`. Unpackers and decompilers, on the runner; the JVM and .NET in the image wait for the owner (*External tools*).
 12. **macOS images**: `dmg_analyzer`, `cve_2021_30657_analyzer`. dmg2img and 7z on the runner.
 13. **Packet captures**: `pcap_analyzer`, `pcap_dns`, `pcap_tls`, `pcap_http`, `pcap_files`, `pcap_tls_decryption`, `tls_keylog`. tshark on the sandbox runner.
@@ -137,9 +137,9 @@ The sandbox image's packages, by Debian's installed size: the JRE 199 MB, Wiresh
 | unace 2.5 | `archive` | none, listing and extracting | no crate reads ACE archives | **runner**, added to `archive` in batch 10 | unace-nonfree 0.2 MB; the Public UnAce Licence, which forbids using it to make an ACE compressor, nothing ACE does |
 | 7z, unrar, unzip, `bin/unjar` | `archive`, `zip_encryption_analyzer`, `rar_encryption_analyzer` | not run | zip, sevenz-rust2 and unrar (1.29) | **crate** | none |
 | John the Ripper 1.9.0-jumbo-1, zip2john, rar2john, pdf2john.pl, office2john.py | `msoffice_encryption_analyzer`, `zip_encryption_analyzer`, `rar_encryption_analyzer`, `pdf_encryption_analyzer` | john: 10 threads (OpenMP; it links libgomp), no process; zip2john and pdf2john.pl: none | ace3 runs John only with `--wordlist`, the email body's candidates (up to `list_limit`, 5,000), and no rules, so trying each word with the format's own library gives the same password | **crate**: the wordlist tried in the task, as 4.11 does for Office, with zip, unrar and libqpdf | none; saves John's 310 MB build |
-| file (libmagic 5.46) | `archive`, `file_type`, `de4dot`, `ilspy`, `cve_2021_30657_analyzer` | none | libmagic through `ace_yara::mime` | **crate** | none |
-| node `--check`, grep | `file_type`, `extracted_ole_analyzer` | node: 7 threads, no process | oxc_parser 0.157.0 (MIT, kept up) checks syntax; V8 and oxc may disagree at the edges, which batch 2 measures | **crate** | none; saves Node.js, 237 MB |
-| ssdeep 2.14.1 | `ssdeep` | none | fuzzyhash 0.2.2 (MIT, pure Rust, last release 2023); ssdeep 0.7.0 binds libfuzzy and is GPL-3 | **crate**: fuzzyhash, checked against ssdeep's hashes and `-m` scores in batch 2. If they differ, the module moves to the runner. | none |
+| file (libmagic 5.46) | `archive`, `file_type`, `de4dot`, `ilspy`, `cve_2021_30657_analyzer` | none | libmagic in the task: `ace_yara::mime` for the core's mime type, and `ace-mod-files`' own cookies, from the database's bytes, for file_type's description and mime type | **crate** | none |
+| node `--check`, grep | `file_type`, `extracted_ole_analyzer` | node: 7 threads, no process | oxc_parser 0.157.0 (MIT, kept up) checks syntax; batch 2 measured it against node 24 on 850 cases, with no disagreement once the proposals V8 13.6 lacks are refused (`docs/measurements/javascript-check.md`) | **crate** | none; saves Node.js, 237 MB |
+| ssdeep 2.14.1 | `ssdeep` | none | fuzzyhash 0.2.2 (MIT, pure Rust, last release 2023) gives ssdeep's hashes but not its `-m` scores, batch 2 found (`docs/measurements/ssdeep.md`); ssdeep 0.7.0 binds libfuzzy and is GPL-3 | **runner**, in batch 10 | ssdeep 0.3 MB; GPL-2+ |
 | pdf-parser.py, xlmdeobfuscator, pcodedmp, rtfobj, officeparser3 | `pdf_analyzer`, `xlmdeobfuscator`, `pcodedmp`, `rtfole`, `officeparser3` | Python, gone | ported in 4.9, 4.10 and 4.12; officeparser3 onto `ace-mod-oletools`' olefile port in batch 5 | **crate** | none |
 | jscript.decode.pl | `microsoft_script_encoding_analysis` | none | about 80 lines of Perl, ported | **crate** | none |
 | git | `yara_scanner_v3_4`, `observable_modifier`, `svs_yara_sample_capture` | not run | the ruleset records its commit (2.26) | **none** | none |
@@ -154,7 +154,7 @@ The sandbox image's packages, by Debian's installed size: the JRE 199 MB, Wiresh
 | `pcap_tls_decryption` | sandbox | tshark 4.4.19 (and capinfos 4.4.19 from the same dir) via saq.sandbox.runner.run_sandboxed + build_sandbox_argv directly (NOT AnalysisModule.run_sandboxed_tool): argv is `python3 -I -S saq/sandbox/launcher.py --max-processes=64 --deadline=... -- /usr/bin/prlimit --as --fsize --nofile --cpu --core=0 -- setpriv --no-new-privs --landlock-access fs ... -- tshark -n -r input ...`; env is only PATH/LANG/HOME; refuses to run when landlock_available() is false (PcapNodeError); one run: `tshark -n -r input -T json -Y ... -e ... --export-objects ... -o tls.keylog_file:keylog` (no statistics/capinfos pass) | tshark: **runner** |
 | `tls_keylog` | sandbox | tshark 4.4.19 (and capinfos 4.4.19 from the same dir) via saq.sandbox.runner.run_sandboxed + build_sandbox_argv directly (NOT AnalysisModule.run_sandboxed_tool): argv is `python3 -I -S saq/sandbox/launcher.py --max-processes=64 --deadline=... -- /usr/bin/prlimit --as --fsize --nofile --cpu --core=0 -- setpriv --no-new-privs --landlock-access fs ... -- tshark -n -r input ...`; env is only PATH/LANG/HOME; refuses to run when landlock_available() is false (PcapNodeError) -- only for late key logs: one tshark run per pcap with a completed PcapTlsDecryptionAnalysis that this key log has new session keys (or RSA keys) for | tshark: **runner** |
 | `javascript_deobfuscation` | scanner | none started by ACE itself; the js-deobfuscator manager container (docker:dind image, Alpine python3 venv with celery[redis] + pyyaml, unpinned) runs `docker run --rm --network none -v <stack>_js-deobfuscator:/js-deobfuscator ${ACE3_JS_DEOBFUSCATOR_IMAGE_URL:-js-deobfuscator} node /opt/app/harness.js <input> <output>/deobfuscated.js` via subprocess.Popen on the host docker socket, killed after scanner_timeout (30 s); scanner image: node:26-alpine with webcrack 2.15.1 (npm, --ignore-scripts, isolated-vm not built); harness.js uses node:vm (webcrack sandbox 10 s timeout, dynamic run 5 s per script) | **scanner** (7.7) |
-| `ssdeep` | parser | ssdeep 2.14.1 via run_tool (plain subprocess.run, unsandboxed): `ssdeep -m <ssdeep_hashes> <file>` | ssdeep: **crate** (fuzzyhash, checked in batch 2) |
+| `ssdeep` | sandbox | ssdeep 2.14.1 via run_tool (plain subprocess.run, unsandboxed): `ssdeep -m <ssdeep_hashes> <file>` | ssdeep: **runner** (fuzzyhash's scores differ, batch 2) |
 | `archive` | parser | 7z (7zip 25.01, with 7zip-rar 25.00) via run_sandboxed_tool: `7z -y -pinfected l` and `7z -y -pinfected -o<dir> x` (and `7z -y -o<dir> x` for MSI); unrar 7.1.8 via run_sandboxed_tool: `unrar la` and `unrar e -y -o+ -idq -kb`; unzip via run_sandboxed_tool: `unzip -l -P infected` and `unzip -qq ... -x xl/activeX/* ... -d <dir>`; unace-nonfree 2.5 via run_sandboxed_tool on a copy in a temp staging dir: `unace l` and `unace x -y -o`; bin/unjar (python3 script using custom_zipfile.extractall) via run_sandboxed_tool for jar files; file via Popen `file -b -L` (unsandboxed, no timeout) in is_msi_file, called up to twice | 7z, unrar, unzip, unjar: **crate** (1.29); unace: **runner**, in batch 10; file: **crate** |
 | `java_class_decompiler` | sandbox | java (default-jre, OpenJDK 21) running /usr/local/bin/cfr.jar (cfr 0.151) via run_sandboxed_tool: `java -Xmx1g -XX:CompressedClassSpaceSize=128m -XX:ReservedCodeCacheSize=128m -XX:-UsePerfData -jar cfr.jar <class>` | java with CFR: **runner** |
 | `officeparser3` | parser | officeparser3 (unixfreak0037/officeparser3, pip-installed from git master; config officeparser_path /venv/bin/officeparser3) via subprocess.Popen directly, NOT sandboxed, timeout config 90s | **crate**: `ace-mod-oletools`' olefile port |
@@ -162,7 +162,7 @@ The sandbox image's packages, by Debian's installed size: the JRE 199 MB, Wiresh
 | `pcodedmp` | parser | bin/pcodedmp_wrapper (bash) via subprocess.Popen, NOT sandboxed: `timeout --foreground --signal=KILL 30 /venv/bin/pcodedmp <file> \| sed -ne '/^Module streams:/,$ p' \| egrep '^[[:space:]]'`; pcodedmp 1.2.6 (pip, uses oletools/olefile) | **crate** (4.12) |
 | `msoffice_encryption_analyzer` | parser | bin/office2john.py (vendored, bundles an old olefile 0.42) via run_sandboxed_tool with the venv python3 -I (sandbox_python()); john 1.9.0-jumbo-1 (openwall git master, built with plain ./configure, so OpenMP is enabled if detected) via saq/cracking.py crack_password(): two run_sandboxed_tool calls, `john --session=john --pot=john.pot --wordlist=<abs> <hash>` (pot moved out as {hash}.pot) then `john --pot=<pot> --show <hash>` | office2john.py and John: **crate**, the wordlist tried in the task (4.11) |
 | `extracted_ole_analyzer` | parser | node (nodejs 24.22) `node --check <file or hard link {file}-<uuid>.js>` via subprocess.Popen from is_javascript_file(), NOT sandboxed, no timeout; grep -Eq <JS keyword regex> <file> via Popen, no timeout | node and grep: **crate** (oxc_parser) |
-| `file_type` | parser | file (libmagic 5.46) via run_tool (plain subprocess.run, unsandboxed), twice: `file -b -L` and `file -b --mime-type -L`; node 24.22 via Popen `node --check <file or hard link>.js` (unsandboxed, no timeout) in is_javascript_file, only when mime is a JS type or extension is .js/.mjs/.cjs/.jse; grep via Popen `grep -Eq <js keyword regex>` (unsandboxed) after node --check succeeds | file: **crate** (`ace_yara::mime`); node and grep: **crate** (oxc_parser) |
+| `file_type` | parser | file (libmagic 5.46) via run_tool (plain subprocess.run, unsandboxed), twice: `file -b -L` and `file -b --mime-type -L`; node 24.22 via Popen `node --check <file or hard link>.js` (unsandboxed, no timeout) in is_javascript_file, only when mime is a JS type or extension is .js/.mjs/.cjs/.jse; grep via Popen `grep -Eq <js keyword regex>` (unsandboxed) after node --check succeeds | file: **crate** (libmagic); node and grep: **crate** (oxc_parser) |
 | `pdf_analyzer` | parser | python3 bin/pdf-parser.py (Didier Stevens pdf-parser 0.7.12, vendored) via run_tool (plain subprocess.run, unsandboxed), timeout 10 s, run on the file and again on the decrypted copy; gs (ghostscript 10.05.1) via run_sandboxed_tool: `gs -sDEVICE=pdfwrite -o output.pdf -f <file>`, timeout 10 s | pdf-parser.py: **crate** (4.9); gs: **runner**, in batch 10 |
 | `upx` | sandbox | upx (upx-ucl 4.2.4) via run_sandboxed_tool: `upx -t <file>` then `upx -d -ounpacked.exe <file>` | upx: **runner** |
 | `autoit` | sandbox | unautoit (vendored Go build from third_party/unautoit) via run_tool (plain subprocess.run, UNSANDBOXED): `unautoit list <file>` and `unautoit extract-all --output-dir {file}.autoit <file>` | unautoit: **runner** |
@@ -225,8 +225,8 @@ In the config's order. ace4 is the crate a ported module is in.
 | `email_thread_analyzer` | `EmailThreadAnalyzer` | `ace-mod-brocess` | lookup | done | correlation | analysis, cli, correlation |
 | `url_email_pivot_analyzer` | `URLEmailPivotAnalyzer` | not yet | lookup | 7.5 batch 9 | correlation | analysis, cli, correlation |
 | `email_logger` | `EmailLoggingAnalyzer` | `ace-mod-brocess` | lookup | done | - | email |
-| `file_hash_analyzer` | `FileHashAnalyzer` | not yet | parser | 7.5 batch 2 | file | analysis, binary, cli, correlation, email, file |
-| `ssdeep` | `SsdeepAnalyzer` | not yet | parser | 7.5 batch 2 | file | analysis, binary, cli, correlation, email, file |
+| `file_hash_analyzer` | `FileHashAnalyzer` | `ace-mod-files` | parser | done | file | analysis, binary, cli, correlation, email, file |
+| `ssdeep` | `SsdeepAnalyzer` | not yet | sandbox | 7.5 batch 10 | file | analysis, binary, cli, correlation, email, file |
 | `archive` | `ArchiveAnalyzer` | `ace-mod-archive` | parser | done | file | analysis, binary, cli, correlation, email, file |
 | `java_class_decompiler` | `JavaClassDecompilerAnalysisModule` | not yet | sandbox | 7.5 batch 11 | file | analysis, binary, cli, correlation, email, file |
 | `olevba_v1_2` | `OLEVBA_Analyzer_v1_2` | `ace-mod-oletools` | parser | done | file | analysis, binary, cli, correlation, email, file |
@@ -239,11 +239,11 @@ In the config's order. ace4 is the crate a ported module is in.
 | `xml_binary_analyzer` | `XMLBinaryDataAnalyzer` | not yet | parser | 7.5 batch 5 | file | analysis, binary, cli, correlation, email, file |
 | `xml_plain_text_analyzer` | `XMLPlainTextAnalyzer` | not yet | parser | 7.5 batch 5 | file | analysis, binary, cli, correlation, email, file |
 | `extracted_ole_analyzer` | `ExtractedOLEAnalyzer` | not yet | parser | 7.5 batch 5 | file | analysis, binary, cli, correlation, email, file |
-| `file_type` | `FileTypeAnalyzer` | not yet | parser | 7.5 batch 2 | file | analysis, binary, cli, correlation, email, file |
+| `file_type` | `FileTypeAnalyzer` | `ace-mod-files` | parser | done | file | analysis, binary, cli, correlation, email, file |
 | `pdf_analyzer` | `PDFAnalyzer` | `ace-mod-pdf` | parser | done | file | analysis, binary, cli, correlation, email, file |
 | `upx` | `UPXAnalyzer` | not yet | sandbox | 7.5 batch 11 | file | analysis, binary, cli, correlation, email, file |
 | `autoit` | `AutoItAnalyzer` | not yet | sandbox | 7.5 batch 11 | file | analysis, binary, cli, correlation, email, file |
-| `lnk_parser` | `LnkParseAnalyzer` | not yet | parser | 7.5 batch 2 | file | analysis, binary, cli, correlation, email, file |
+| `lnk_parser` | `LnkParseAnalyzer` | `ace-mod-files` | parser | done | file | analysis, binary, cli, correlation, email, file |
 | `de4dot` | `De4dotAnalyzer` | not yet | sandbox | 7.5 batch 11 | file | analysis, binary, cli, correlation, email, file |
 | `ilspy` | `IlspyAnalyzer` | not yet | sandbox | 7.5 batch 11 | file | analysis, binary, cli, correlation, email, file |
 | `ocr` | `OCRAnalyzer` | not yet | sandbox | 7.5 batch 10 | file | analysis, binary, cli, correlation, email, file |
@@ -255,12 +255,12 @@ In the config's order. ace4 is the crate a ported module is in.
 | `exif` | `ExifAnalyzer` | not yet | sandbox | 7.5 batch 10 | file | analysis, binary, cli, correlation, email, file |
 | `pdftotext` | `PDFTextAnalyzer` | not yet | sandbox | 7.5 batch 10 | file | analysis, binary, cli, correlation, email, file |
 | `yara_scanner_v3_4` | `YaraScanner_v3_4` | `ace-mod-yara` | parser | done | file, yara | analysis, binary, cli, correlation, email, file, yara |
-| `binary_file_analyzer` | `BinaryFileAnalyzer` | not yet | parser | 7.5 batch 2 | file | analysis, binary, cli, correlation, email, file |
+| `binary_file_analyzer` | `BinaryFileAnalyzer` | `ace-mod-files` | parser | done | file | analysis, binary, cli, correlation, email, file |
 | `microsoft_script_encoding_analysis` | `MicrosoftScriptEncodingAnalyzer` | not yet | parser | 7.5 batch 6 | file | analysis, binary, cli, correlation, email, file |
 | `url_extraction` | `URLExtractionAnalyzer` | `ace-mod-urls` | parser | done | file | analysis, binary, cli, correlation, email, file |
 | `ioc_extraction` | `IOCExtractionAnalyzer` | `ace-mod-urls` | parser | done | file | analysis, binary, cli, correlation, email, file |
 | `observable_modifier` | `ObservableModifierAnalyzer` | not yet | core | 7.6 | common | analysis, binary, cli, correlation, email, file |
-| `x509_analyzer` | `X509Analyzer` | not yet | parser | 7.5 batch 2 | file | analysis, binary, cli, correlation, email, file |
+| `x509_analyzer` | `X509Analyzer` | `ace-mod-files` | parser | done | file | analysis, binary, cli, correlation, email, file |
 | `protected_url_analyzer` | `ProtectedURLAnalyzer` | not yet | parser | 7.5 batch 3 | common | analysis, binary, cli, correlation, email, file |
 | `rtfole` | `RTFOLEObjectAnalyzer` | `ace-mod-oletools` | parser | done | file | analysis, binary, cli, correlation, email, file |
 | `extracted_rtf_analyzer` | `ExtractedRTFAnalyzer` | not yet | parser | 7.5 batch 6 | file | analysis, binary, cli, correlation, email, file |
@@ -276,7 +276,7 @@ In the config's order. ace4 is the crate a ported module is in.
 | `alert_added_to_event` | `AlertAddedToEventAnalyzer` | not yet | core | owner | - | dispositioned |
 | `svs_yara_sample_capture` | `YaraSampleCapture` | not yet | lookup | 7.10 | - | dispositioned |
 | `svs_alert_tagger` | `SVSAlertTagger` | not yet | lookup | 7.10 | - | correlation |
-| `dhash` | `DHashImageAnalyzer` | not yet | parser | 7.5 batch 2 | file | analysis, binary, cli, correlation, email, file |
+| `dhash` | `DHashImageAnalyzer` | `ace-mod-files` | parser | done | file | analysis, binary, cli, correlation, email, file |
 | `observable_detection` | `ObservableDetectionAnalyzer` | not yet | lookup | 7.6 | common | analysis, binary, cli, correlation, email, file |
 | `phishkit_analyzer` | `PhishkitAnalyzer` | not yet | scanner | 7.7 | correlation, file | analysis, binary, cli, correlation, email, file |
 | `clicker_detection_splunk` | `SplunkClickerDetectionAnalyzer` | `ace-mod-splunk` | lookup | done | correlation | analysis, cli, correlation |
@@ -1025,9 +1025,9 @@ In the config's order. ace4 is the crate a ported module is in.
 ### file_hash_analyzer
 
 - **Section**: `analysis_module_file_hash_analyzer`, class `FileHashAnalyzer` in `saq/modules/file_analysis/hash.py`, enabled by default.
-- **ace4**: not yet.
+- **ace4**: ported in `ace-mod-files`. ace3's `ignore_pattern_*` and `ignore_mime_type_*` keys are two maps; a path pattern is matched on the alert path under a directory, as ace3's node path ends with it, so the two patterns that don't start with `*` never match, as in ace3. The misspelled `ignore_pattenr_*` keys, which ace3 never reads, are gone.
 - **Pool**: parser. Hashing in the task's process.
-- **Step**: 7.5 batch 2 (File identity).
+- **Step**: done.
 - **Does**: Computes md5/sha1/sha256 of a file and adds md5 and sha256 observables linked to it, unless the file path or its mime type matches a configured ignore pattern.
 - **Input**: file.
 - **Groups and modes**: groups file; modes analysis, binary, cli, correlation, email, file.
@@ -1046,9 +1046,9 @@ In the config's order. ace4 is the crate a ported module is in.
 ### ssdeep
 
 - **Section**: `analysis_module_ssdeep`, class `SsdeepAnalyzer` in `saq/modules/file_analysis/ssdeep.py`, disabled by default.
-- **ace4**: not yet.
-- **Pool**: parser. Runs the ssdeep binary today; a fuzzy-hash crate computes and compares the same hashes. Disabled by default.
-- **Step**: 7.5 batch 2 (File identity).
+- **ace4**: not yet. fuzzyhash 0.2.2 gives ssdeep's hashes but not its `-m` scores (`docs/measurements/ssdeep.md`), so it moves to the runner with ssdeep 2.14.1, as 7.3 said.
+- **Pool**: sandbox. ssdeep 2.14.1 in the sandbox runner. Disabled by default.
+- **Step**: 7.5 batch 10 (PDF and image text), which builds the runner.
 - **Does**: Runs `ssdeep -m` to match a file (1 KB to maximum_size) against a list of known fuzzy hashes and tags/sandboxes it when a match scores at or above the threshold.
 - **Input**: file.
 - **Groups and modes**: groups file; modes analysis, binary, cli, correlation, email, file.
@@ -1326,9 +1326,9 @@ In the config's order. ace4 is the crate a ported module is in.
 ### file_type
 
 - **Section**: `analysis_module_file_type`, class `FileTypeAnalyzer` in `saq/modules/file_analysis/file_type.py`, enabled by default.
-- **ace4**: not yet.
-- **Pool**: parser. Magic bytes and headers. Its `file` runs become the magic crate, as the core already uses for an input's mime type, and `node --check` a Rust JavaScript parser.
-- **Step**: 7.5 batch 2 (File identity).
+- **ace4**: ported in `ace-mod-files`. libmagic runs in the task on the database ace3's `file` reads, loaded from its bytes before containment (`libmagic.rs`), and matches `file -b -L` and `file -b --mime-type -L` on every file of every sample's tree. `node --check` is oxc_parser 0.157.0, as CommonJS then as an ES module, with oxc's early errors and V8 13.6's missing proposals refused: it agrees with node 24 on 850 cases (`docs/measurements/javascript-check.md`, which also has nesting and the stack). ace3's mime stamp on the observable and its image preview size are the core's and the GUI's business. The email, url_extraction, pcodedmp and YARA modules depend on it, and email and pcodedmp read its result.
+- **Pool**: parser. Magic bytes, libmagic and a JavaScript parse in the task's process.
+- **Step**: done.
 - **Does**: Runs `file` twice on a file to record its human-readable type and mime type, checks magic bytes for office/OLE/RTF/PDF/PE/zip/x509/lnk/jar/email, then tags the file and stamps yara_meta type directives.
 - **Input**: file.
 - **Groups and modes**: groups file; modes analysis, binary, cli, correlation, email, file.
@@ -1414,9 +1414,9 @@ In the config's order. ace4 is the crate a ported module is in.
 ### lnk_parser
 
 - **Section**: `analysis_module_lnk_parser`, class `LnkParseAnalyzer` in `saq/modules/file_analysis/lnk_parser.py`, enabled by default.
-- **ace4**: not yet.
-- **Pool**: parser. Parses an attacker's shortcut with a library; a crate replaces LnkParse3.
-- **Step**: 7.5 batch 2 (File identity).
+- **ace4**: ported in `ace-mod-files`. It runs on `ace-lnkparse`, a port of LnkParse3 1.6.0 that matches it on 134 hand-made shortcuts and 6,000 mutations of them, values, both JSON forms and exception text.
+- **Pool**: parser. Parses an attacker's shortcut in the task's process.
+- **Step**: done.
 - **Does**: Parses a Windows shortcut (.lnk magic) with LnkParse3, stores its JSON in details and writes it to a file observable.
 - **Input**: file.
 - **Groups and modes**: groups file; modes analysis, binary, cli, correlation, email, file.
@@ -1674,9 +1674,9 @@ In the config's order. ace4 is the crate a ported module is in.
 ### binary_file_analyzer
 
 - **Section**: `analysis_module_binary_file_analyzer`, class `BinaryFileAnalyzer` in `saq/modules/file_analysis/binary.py`, enabled by default.
-- **ace4**: not yet.
+- **ace4**: ported in `ace-mod-files`. `.doc` is looked for in the alert path, where ace3 looks in its node path.
 - **Pool**: parser. Reads bytes.
-- **Step**: 7.5 batch 2 (File identity).
+- **Step**: done.
 - **Does**: For RTF files (and EPS files with '.doc' in the path), flags the file for sandboxing if it contains a null byte anywhere but the last byte.
 - **Input**: file.
 - **Groups and modes**: groups file; modes analysis, binary, cli, correlation, email, file.
@@ -1716,7 +1716,7 @@ In the config's order. ace4 is the crate a ported module is in.
 ### url_extraction
 
 - **Section**: `analysis_module_url_extraction`, class `URLExtractionAnalyzer` in `saq/modules/file_analysis/url_extraction.py`, enabled by default.
-- **ace4**: ported in `ace-mod-urls`. urlfinderlib is `ace-urlfinder`'s port, which matches urlfinderlib on every sample and on hand-made and generated HTML, text, JSON, CSV, XML, iCalendar and PDF-like blobs in each of its modes. Its sets are sorted, so where ace3's order of URLs follows its hash seed, ace4's is the same each run. The mime type is the core's, `file_type` not being ported; there's no dependency on the YARA module, whose skipped tasks store no result; a `downloaded_from` file has no base URL, since a task carries no relationships and no ported module adds that one; observables aren't volatile, which ace4 doesn't have. `crates/ace-mod-urls/tests/differences.md` and `docs/measurements/url-extraction.md` have the rest.
+- **ace4**: ported in `ace-mod-urls`. urlfinderlib is `ace-urlfinder`'s port, which matches urlfinderlib on every sample and on hand-made and generated HTML, text, JSON, CSV, XML, iCalendar and PDF-like blobs in each of its modes. Its sets are sorted, so where ace3's order of URLs follows its hash seed, ace4's is the same each run. It depends on `file_type`, whose `yara_meta` types it reads; there's no dependency on the YARA module, whose skipped tasks store no result; a `downloaded_from` file has no base URL, since a task carries no relationships and no ported module adds that one; observables aren't volatile, which ace4 doesn't have. `crates/ace-mod-urls/tests/differences.md` and `docs/measurements/url-extraction.md` have the rest.
 - **Pool**: parser. Parses an attacker's file for URLs in the task's process.
 - **Step**: done.
 - **Does**: For files with the extract_urls directive, extracts URLs with urlfinderlib, filters excluded domains, orders them by interest and adds up to max_extracted_urls as URL observables.
@@ -1779,9 +1779,9 @@ In the config's order. ace4 is the crate a ported module is in.
 ### x509_analyzer
 
 - **Section**: `analysis_module_x509_analyzer`, class `X509Analyzer` in `saq/modules/x509.py`, enabled by default.
-- **ace4**: not yet.
-- **Pool**: parser. Parses a certificate.
-- **Step**: 7.5 batch 2 (File identity).
+- **ace4**: ported in `ace-mod-files`. It runs on `ace-x509`, which uses cryptography's own Rust structures and asn1 crate, so it accepts what cryptography does, and ports pyasn1's DER check and cryptography's printing of names and extensions: it matches ace3's `saq/x509.py` on 4,303 cases but three nested past 100 levels, which it refuses. A serial past 64 bits is decimal text; a file under a URL observable can't be told apart, so only `no_crawl` stops the URLs.
+- **Pool**: parser. Parses a certificate in the task's process.
+- **Step**: done.
 - **Does**: For a file FileTypeAnalysis marks as an x509 certificate, parses it and adds the common name and SAN names as fqdn (and crawlable http/https URL) observables, SAN IPs, and the certificate's sha256, and writes the metadata to a file observable.
 - **Input**: file.
 - **Groups and modes**: groups file; modes analysis, binary, cli, correlation, email, file.
@@ -2119,9 +2119,9 @@ In the config's order. ace4 is the crate a ported module is in.
 ### dhash
 
 - **Section**: `analysis_module_dhash`, class `DHashImageAnalyzer` in `saq/modules/dhash.py`, enabled by default.
-- **ace4**: not yet.
-- **Pool**: parser. Decodes an image and compares hashes; the reference images come from the analyst data repository.
-- **Step**: 7.5 batch 2 (File identity).
+- **ace4**: ported in `ace-mod-files`. It runs on `ace-dhash`, which opens, decodes, converts and resizes images as Pillow 13 does, ported, with libjpeg-turbo's decoder: it matches Pillow on 1,684 of 1,709 cases; the rest are decoders not ported (AVIF, JPEG 2000, EPS, DDS, BLP, ICNS, TIFF with JPEG or G4), which the module skips where ace3 hashes, and five corrupt lossy WebP and JPEG files. The reference images are read and hashed once when the module starts, from its `source_dir` setting, since a contained task can't read the directory, and are scored in name order where ace3 takes `os.listdir`'s.
+- **Pool**: parser. Decodes an image in the task's process; the reference images are read before containment.
+- **Step**: done.
 - **Does**: For an image with the dhash directive, computes a 16x16 difference hash and compares it with each .png in the analyst data repo's dhash directory, raising a detection when similarity reaches that image's .score threshold.
 - **Input**: file.
 - **Groups and modes**: groups file; modes analysis, binary, cli, correlation, email, file.

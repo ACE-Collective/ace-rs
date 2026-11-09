@@ -52,6 +52,15 @@
       },
       "relationships": {},
       "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "2b2b0a840618f4a6f990cd4b3ca293ea",
+            "sha1": "54a8db452d959862e2e84e741270e7ed92d4848c",
+            "sha256": "cbe71154dd4a588ba57aa21e8338b03186877f087b77c389735832ffd13d7926"
+          },
+          "summary": null,
+          "tags": {}
+        },
         "file_type": {
           "details": {
             "is_email_file": false,
@@ -80,9 +89,9 @@
               {
                 "file_name": "<root>/files/vba_codepage_932.doc",
                 "local_path": "5dc9b93612f39c1cd2c501104e04f2ecc503bf04104a94a4af6a4f13ae303a7e",
-                "stream_path": "Macros/VBA/モジュール1",
-                "vba_code": "Sub A()\n MsgBox \"テスト\" & Chr(65)\nEnd Sub",
-                "vba_filename": "モジュール1.bas"
+                "stream_path": "Macros/VBA/\u30e2\u30b8\u30e5\u30fc\u30eb1",
+                "vba_code": "Sub A()\n MsgBox \"\u30c6\u30b9\u30c8\" & Chr(65)\nEnd Sub",
+                "vba_filename": "\u30e2\u30b8\u30e5\u30fc\u30eb1.bas"
               }
             ],
             "type": "OLE"
@@ -95,6 +104,26 @@
         "microsoft_office": true,
         "ole": true
       }
+    },
+    "md5:2b2b0a840618f4a6f990cd4b3ca293ea": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:cbe71154dd4a588ba57aa21e8338b03186877f087b77c389735832ffd13d7926": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:cbe71154dd4a588ba57aa21e8338b03186877f087b77c389735832ffd13d7926": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:cbe71154dd4a588ba57aa21e8338b03186877f087b77c389735832ffd13d7926": true
+      },
+      "results": {},
+      "tags": {}
     }
   }
 }

@@ -984,7 +984,12 @@ fn logger_fixture(name: &str) -> std::path::PathBuf {
 
 /// The email module's result for the email at `path`, as ace4 parses it.
 fn parsed_email(path: &std::path::Path) -> ace_results::ResultEnvelope<serde_json::Value> {
-    let harness = ace_testkit::Harness::<ace_mod_email::EmailAnalyzer>::new().expect("harness");
+    let harness = ace_testkit::Harness::<ace_mod_email::EmailAnalyzer>::new()
+        .expect("harness")
+        .dependency_result(
+            "file_type",
+            ace_testkit::file_type_details("RFC 822 mail, ASCII text", "message/rfc822"),
+        );
     let observable = harness
         .file("email.rfc822", path, &[])
         .expect("a file")

@@ -114,9 +114,13 @@ fn compare<M: ace_sdk::Parser>(
     fixture_dir: &str,
     normalize: impl Fn(&mut Value, &Value),
 ) -> Vec<(String, Vec<ace_testkit::reference::Difference>)> {
-    let harness = Harness::<M>::new().expect("harness");
     let mut compared = Vec::new();
     for dump in Dump::all(module).expect("the dumps read") {
+        // url_extraction depends on file_type, whose result the dump holds
+        let mut harness = Harness::<M>::new().expect("harness");
+        if let Some(file_type) = dump.file_type() {
+            harness = harness.dependency_result("file_type", file_type.clone());
+        }
         let observable =
             input(&harness, &dump, fixture_dir).unwrap_or_else(|e| panic!("{}: {e}", dump.name));
         let outcome = harness

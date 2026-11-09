@@ -188,7 +188,10 @@ impl Orchestrator {
         scope: Scope<'_>,
         requeue_cancelled: bool,
     ) -> Result<Vec<TaskId>, OrchestratorError> {
-        let mode_modules = self.modes.modules_in(mode);
+        // what the mode runs and the binary has: a dependency outside it never has a result
+        let catalog = self.catalog.keys();
+        let mut mode_modules = self.modes.modules_in(mode);
+        mode_modules.retain(|m| catalog.contains(m));
         let only: Option<Vec<i64>> = match scope {
             Scope::All => None,
             Scope::Observables(ids) => Some(ids.iter().map(|id| id.0).collect()),

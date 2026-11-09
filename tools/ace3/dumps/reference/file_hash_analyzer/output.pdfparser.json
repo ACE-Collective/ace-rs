@@ -1,0 +1,56 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "application/pdf",
+        "type": "PDF document, version 1.4"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: PDF document, version 1.4 (application/pdf)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/files/output.pdfparser as output.pdfparser",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "output.pdfparser",
+      "size": 23,
+      "type": "file",
+      "value": "33788015a4eeb4d864f80b27d2746c6866c0f6414759e106a089908acb42f300"
+    }
+  },
+  "module": "file_hash_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "output.pdfparser",
+    "relationships": [],
+    "size": 23,
+    "tags": [],
+    "type": "file",
+    "value": "33788015a4eeb4d864f80b27d2746c6866c0f6414759e106a089908acb42f300",
+    "yara_meta": []
+  }
+}

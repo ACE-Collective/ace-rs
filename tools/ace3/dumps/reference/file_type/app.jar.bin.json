@@ -1,0 +1,61 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": true,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": true,
+        "mime": "application/zip",
+        "type": "Zip archive data, made by v2.0 UNIX, extract using at least v2.0, last modified Jan 01 2020 00:00:00, uncompressed size 22, method=store"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: Zip archive data, made by v2.0 UNIX, extract using at least v2.0, last modified Jan 01 2020 00:00:00, uncompressed size 22, method=store (application/zip) (zip archive) (java archive)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/files/app.jar.bin as app.jar.bin",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "app.jar.bin",
+      "size": 258,
+      "type": "file",
+      "value": "f2a110c038fd97cecb5f6a866a22a0f033615abffb7fdc325a3214c2d52645ce"
+    }
+  },
+  "module": "file_type",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=archive.jar"
+    ],
+    "excluded_analysis": [],
+    "file_path": "app.jar.bin",
+    "relationships": [],
+    "size": 258,
+    "tags": [
+      "jar",
+      "zip"
+    ],
+    "type": "file",
+    "value": "f2a110c038fd97cecb5f6a866a22a0f033615abffb7fdc325a3214c2d52645ce",
+    "yara_meta": [
+      "type=archive.jar"
+    ]
+  }
+}

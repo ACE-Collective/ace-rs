@@ -15,6 +15,15 @@
         "extracted_from file:537160beef312d6a731b54d143fd5af4bfad45f5309622a6faa9685484285ac0": true
       },
       "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "b78e53325f45a16ab719c392444f2983",
+            "sha1": "bf7d3d0d0a4e6bfb49774c84298e1a48dbc1e08a",
+            "sha256": "170b804293599496c29d816cfe408adc5a99e767eb930b0c0cf9e7db62436abe"
+          },
+          "summary": null,
+          "tags": {}
+        },
         "file_type": {
           "details": {
             "is_email_file": false,
@@ -76,6 +85,15 @@
         "extracted_from file:537160beef312d6a731b54d143fd5af4bfad45f5309622a6faa9685484285ac0": true
       },
       "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "1cdb3f60d20b871afb09adf47215a023",
+            "sha1": "f2ee3b2a463219a20fa57ed0ab584ab5ff8b15be",
+            "sha256": "1cd0c7a7a4c9da7bb43963ff19f61a3a2caadba175829370db9a2c06f46472f8"
+          },
+          "summary": null,
+          "tags": {}
+        },
         "file_type": {
           "details": {
             "is_email_file": false,
@@ -130,6 +148,15 @@
             "file_count": 3
           },
           "summary": "Archive Analysis: extracted 3 of 3 files: ([Content_Types].xml, word/vbaProject.bin, _rels/.rels)",
+          "tags": {}
+        },
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "1431c7c42eff73f42856088a92d1a93d",
+            "sha1": "fc5339c0f10e569e82742dda42bb169b2f4337ec",
+            "sha256": "537160beef312d6a731b54d143fd5af4bfad45f5309622a6faa9685484285ac0"
+          },
+          "summary": null,
           "tags": {}
         },
         "file_type": {
@@ -249,6 +276,66 @@
           "tags": {}
         }
       },
+      "tags": {}
+    },
+    "md5:1431c7c42eff73f42856088a92d1a93d": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:537160beef312d6a731b54d143fd5af4bfad45f5309622a6faa9685484285ac0": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:1cdb3f60d20b871afb09adf47215a023": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:1cd0c7a7a4c9da7bb43963ff19f61a3a2caadba175829370db9a2c06f46472f8": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:b78e53325f45a16ab719c392444f2983": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:170b804293599496c29d816cfe408adc5a99e767eb930b0c0cf9e7db62436abe": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:170b804293599496c29d816cfe408adc5a99e767eb930b0c0cf9e7db62436abe": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:170b804293599496c29d816cfe408adc5a99e767eb930b0c0cf9e7db62436abe": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:1cd0c7a7a4c9da7bb43963ff19f61a3a2caadba175829370db9a2c06f46472f8": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:1cd0c7a7a4c9da7bb43963ff19f61a3a2caadba175829370db9a2c06f46472f8": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:537160beef312d6a731b54d143fd5af4bfad45f5309622a6faa9685484285ac0": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:537160beef312d6a731b54d143fd5af4bfad45f5309622a6faa9685484285ac0": true
+      },
+      "results": {},
       "tags": {}
     }
   }

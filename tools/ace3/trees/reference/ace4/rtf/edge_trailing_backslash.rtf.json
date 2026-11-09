@@ -13,6 +13,20 @@
       },
       "relationships": {},
       "results": {
+        "binary_file_analyzer": {
+          "details": {},
+          "summary": null,
+          "tags": {}
+        },
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "1ede86c71ad87b0ec9cec9069b3c374a",
+            "sha1": "af6bd360dd4ce64f4d850d9a95995fa76ea59eaa",
+            "sha256": "693a9ec384dea3d26f390adeaa1649c0d2e1ead842c064f48670267c79abb8c4"
+          },
+          "summary": null,
+          "tags": {}
+        },
         "file_type": {
           "details": {
             "is_email_file": false,
@@ -47,6 +61,26 @@
         "microsoft_office": true,
         "rtf": true
       }
+    },
+    "md5:1ede86c71ad87b0ec9cec9069b3c374a": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:693a9ec384dea3d26f390adeaa1649c0d2e1ead842c064f48670267c79abb8c4": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:693a9ec384dea3d26f390adeaa1649c0d2e1ead842c064f48670267c79abb8c4": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:693a9ec384dea3d26f390adeaa1649c0d2e1ead842c064f48670267c79abb8c4": true
+      },
+      "results": {},
+      "tags": {}
     }
   }
 }

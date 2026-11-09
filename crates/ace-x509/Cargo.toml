@@ -1,0 +1,22 @@
+[package]
+name = "ace-x509"
+version = "0.1.0"
+description = "A port of ace3's saq/x509.py on cryptography 50.0.2 and pyasn1 0.6.5: is_x509, and what x509_analyzer reads from a certificate"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+ace-pycompat = { path = "../ace-pycompat" }
+asn1 = { version = "0.24.1", default-features = false }
+pem = { version = "4.0.0", default-features = false }
+serde_json = "1.0.154"
+sha2 = "0.11.1"
+
+[dev-dependencies]
+base64 = "0.22.1"
+flate2 = "1.1.10"
+
+[lints]
+workspace = true

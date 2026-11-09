@@ -45,6 +45,18 @@ use uuid::Uuid;
 pub use insta as __insta;
 
 /// The root uuid every harness task runs under.
+/// The details of a `file_type` result with this description and mime type and every check
+/// false but `is_email_file`, which is true for `message/rfc822`: what a module that depends on
+/// file_type is sent for a file in a test that doesn't run file_type itself.
+pub fn file_type_details(description: &str, mime: &str) -> Value {
+    json!({
+        "type": description, "mime": mime, "is_office_ext": false, "is_ole_file": false,
+        "is_rtf_file": false, "is_pdf_file": false, "is_pe_file": false, "is_zip_file": false,
+        "is_x509": false, "is_lnk_file": false, "is_jar_file": false,
+        "is_email_file": mime == "message/rfc822", "is_office_document": false,
+    })
+}
+
 pub const ROOT: Uuid = Uuid::from_u128(0x00000000_0000_4000_8000_000000000001);
 
 /// The time a harness task treats as now: 2026-01-01T00:00:00Z.

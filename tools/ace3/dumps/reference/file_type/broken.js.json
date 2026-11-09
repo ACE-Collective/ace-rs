@@ -1,0 +1,54 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "text/plain",
+        "type": "ASCII text"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: ASCII text (text/plain)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/files/broken.js as broken.js",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "broken.js",
+      "size": 11,
+      "type": "file",
+      "value": "b9ef0f79b7d0a7f693e6177a6702a8ba67b3eba2b7af221e83fe3a333bda0586"
+    }
+  },
+  "module": "file_type",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "broken.js",
+    "relationships": [],
+    "size": 11,
+    "tags": [],
+    "type": "file",
+    "value": "b9ef0f79b7d0a7f693e6177a6702a8ba67b3eba2b7af221e83fe3a333bda0586",
+    "yara_meta": []
+  }
+}

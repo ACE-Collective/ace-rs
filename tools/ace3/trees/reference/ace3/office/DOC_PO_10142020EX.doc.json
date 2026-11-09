@@ -54,6 +54,15 @@
       },
       "relationships": {},
       "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "4ffcb03e5638679058e8be355f4c7e18",
+            "sha1": "b8ad74f235446810dd6ae754d5534b7c700cff2d",
+            "sha256": "3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a"
+          },
+          "summary": null,
+          "tags": {}
+        },
         "file_type": {
           "details": {
             "is_email_file": false,
@@ -195,6 +204,26 @@
       "tags": {
         "macro": true
       }
+    },
+    "md5:4ffcb03e5638679058e8be355f4c7e18": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a": true
+      },
+      "results": {},
+      "tags": {}
     }
   }
 }

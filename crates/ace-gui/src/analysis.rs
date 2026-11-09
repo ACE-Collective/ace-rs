@@ -39,12 +39,17 @@ use std::fmt;
 
 use ace_results::bytes::TextOrBytes;
 use ace_results::types::archive::ArchiveAnalysis;
+use ace_results::types::binary::BinaryFileAnalysis;
 use ace_results::types::brocess::{
     EmailConversationFrequencyAnalysis, EmailThreadAnalysis, Lookalike, ThreadMessage,
 };
+use ace_results::types::dhash::DHashImageAnalysis;
 use ace_results::types::dns::FqdnAnalysis;
 use ace_results::types::email::EmailAnalysis;
+use ace_results::types::file_hash::FileHashAnalysis;
+use ace_results::types::file_type::FileTypeAnalysis;
 use ace_results::types::ioc_extraction::IocExtractionAnalysis;
+use ace_results::types::lnk::LnkParseAnalysis;
 use ace_results::types::msoffice::MsofficeEncryptionAnalysis;
 use ace_results::types::nrd::NrdAnalysis;
 use ace_results::types::olevba::{OlevbaAnalysis, OlevbaMacro};
@@ -56,6 +61,7 @@ use ace_results::types::snort::SnortSignatureAnalysis;
 use ace_results::types::splunk::{SplunkApiAnalysis, SplunkClickerDetectionAnalysis};
 use ace_results::types::url_extraction::UrlExtractionAnalysis;
 use ace_results::types::user::UserAnalysis;
+use ace_results::types::x509::{SerialNumber, X509Analysis};
 use ace_results::types::xlm::XlmDeobfuscatorAnalysis;
 use ace_results::types::yara::{ScanResult, YaraScanResults};
 use ace_results::{AnalysisType, sort_json_keys};
@@ -178,6 +184,12 @@ impl Views {
             .with(ViewEntry::of::<PdfAnalysis>())
             .with(ViewEntry::of::<UrlExtractionAnalysis>())
             .with(ViewEntry::of::<IocExtractionAnalysis>())
+            .with(ViewEntry::of::<FileTypeAnalysis>())
+            .with(ViewEntry::of::<FileHashAnalysis>())
+            .with(ViewEntry::of::<BinaryFileAnalysis>())
+            .with(ViewEntry::of::<LnkParseAnalysis>())
+            .with(ViewEntry::of::<X509Analysis>())
+            .with(ViewEntry::of::<DHashImageAnalysis>())
     }
 
     /// These views with `entry`, which takes the place of any view of the same type and version, so a
@@ -1503,5 +1515,161 @@ impl AnalysisView for PdfAnalysis {
     type View<'a> = PdfView<'a>;
     fn view(&self) -> PdfView<'_> {
         PdfView { analysis: self }
+    }
+}
+
+// ---- file identity: ace3's default_template.html ----
+
+/// A result shown as ace3's `default_template.html` shows its details: each field by its key, in
+/// the order ace3 writes them.
+#[derive(Debug, Template)]
+#[template(path = "analysis/fields.html")]
+pub struct FieldsView {
+    pub fields: Vec<Field>,
+}
+
+impl FieldsView {
+    pub fn fields(&self) -> &[Field] {
+        &self.fields
+    }
+}
+
+/// `file_type_analysis`: libmagic's description and mime type, and each check.
+impl AnalysisView for FileTypeAnalysis {
+    type View<'a> = FieldsView;
+    fn view(&self) -> FieldsView {
+        let a = self;
+        let fields = [
+            field("type", Some(&a.file_type)),
+            field("mime", Some(&a.mime)),
+            field("is_office_ext", Some(a.is_office_ext)),
+            field("is_ole_file", Some(a.is_ole_file)),
+            field("is_rtf_file", Some(a.is_rtf_file)),
+            field("is_pdf_file", Some(a.is_pdf_file)),
+            field("is_pe_file", Some(a.is_pe_file)),
+            field("is_zip_file", Some(a.is_zip_file)),
+            field("is_x509", Some(a.is_x509)),
+            field("is_lnk_file", Some(a.is_lnk_file)),
+            field("is_jar_file", Some(a.is_jar_file)),
+            field("is_email_file", Some(a.is_email_file)),
+            field("is_office_document", Some(a.is_office_document)),
+        ];
+        FieldsView {
+            fields: fields.into_iter().flatten().collect(),
+        }
+    }
+}
+
+/// `file_hash_analysis`: the three digests.
+impl AnalysisView for FileHashAnalysis {
+    type View<'a> = FieldsView;
+    fn view(&self) -> FieldsView {
+        let fields = [
+            field("md5", self.md5.as_ref()),
+            field("sha1", self.sha1.as_ref()),
+            field("sha256", self.sha256.as_ref()),
+        ];
+        FieldsView {
+            fields: fields.into_iter().flatten().collect(),
+        }
+    }
+}
+
+/// `binary_file_analysis`, whose details are empty: what it found is the file's tag.
+impl AnalysisView for BinaryFileAnalysis {
+    type View<'a> = FieldsView;
+    fn view(&self) -> FieldsView {
+        FieldsView { fields: Vec::new() }
+    }
+}
+
+/// `lnk_parse_analysis`: what ace3's summary picks out of LnkParse3's JSON, which is also a file
+/// of the alert, `<file>.lnkparser.json`.
+impl AnalysisView for LnkParseAnalysis {
+    type View<'a> = FieldsView;
+    fn view(&self) -> FieldsView {
+        let data = self.info.get("data");
+        let text = |key: &str| {
+            data.and_then(|d| d.get(key))
+                .and_then(Value::as_str)
+                .filter(|s| !s.is_empty())
+                .map(str::to_owned)
+        };
+        let target = self
+            .info
+            .pointer("/target/items")
+            .and_then(Value::as_array)
+            .map(|items| {
+                items
+                    .iter()
+                    .filter_map(|i| {
+                        i.get("primary_name")
+                            .or_else(|| i.get("data"))
+                            .and_then(Value::as_str)
+                    })
+                    .collect::<Vec<_>>()
+                    .join(" \\ ")
+            })
+            .filter(|t| !t.is_empty());
+        let fields = [
+            field("error", self.error.as_ref()),
+            field("target", target),
+            field("command_line_arguments", text("command_line_arguments")),
+            field("icon_location", text("icon_location")),
+            field("working_directory", text("working_directory")),
+        ];
+        FieldsView {
+            fields: fields.into_iter().flatten().collect(),
+        }
+    }
+}
+
+/// `x509_analysis`: the certificate's names, dates and hash. ace3's `x509_file_analysis.html`
+/// shows these and its extension tree, which here is in the metadata file the module adds.
+impl AnalysisView for X509Analysis {
+    type View<'a> = FieldsView;
+    fn view(&self) -> FieldsView {
+        let names = &self.subject_alternative_names;
+        let serial = self.serial_number.as_ref().map(|s| match s {
+            SerialNumber::Number(n) => n.to_string(),
+            SerialNumber::Text(t) => t.clone(),
+        });
+        let fields = [
+            field("common_name", self.common_name.as_ref()),
+            field("subject", self.subject.as_ref()),
+            field("issuer", self.issuer.as_ref()),
+            field("not_valid_before", self.not_valid_before.as_ref()),
+            field("not_valid_after", self.not_valid_after.as_ref()),
+            field("serial_number", serial),
+            field("sha256_hash", self.sha256_hash.as_ref()),
+            field(
+                "san_dns_names",
+                (!names.san_dns_names.is_empty()).then(|| list_text(&names.san_dns_names)),
+            ),
+            field(
+                "san_ip_addresses",
+                (!names.san_ip_addresses.is_empty()).then(|| list_text(&names.san_ip_addresses)),
+            ),
+        ];
+        FieldsView {
+            fields: fields.into_iter().flatten().collect(),
+        }
+    }
+}
+
+/// `dhash_image_analysis`: each reference image's score against its threshold.
+impl AnalysisView for DHashImageAnalysis {
+    type View<'a> = FieldsView;
+    fn view(&self) -> FieldsView {
+        let fields = self
+            .scores
+            .iter()
+            .take(MAX_ITEMS)
+            .map(|s| Field {
+                name: "score",
+                value: format!("{}: {:.2}% of {:.2}%", s.image_file, s.score, s.threshold),
+            })
+            .collect();
+        FieldsView { fields }
     }
 }

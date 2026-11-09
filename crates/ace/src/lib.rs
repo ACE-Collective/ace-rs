@@ -3,7 +3,8 @@
 
 use ace_app::{App, LookupPool, ParserPool};
 
-/// The parser pool: the email, archive, PDF, olevba, rtfole, YARA, URL and IOC extraction modules, with the YARA module on the core's
+/// The parser pool: the email, archive, PDF, olevba, rtfole, YARA, URL and IOC extraction, file type,
+/// file hash, binary file, shortcut, certificate and dhash modules, with the YARA module on the core's
 /// current ruleset (2.26), and the commands analysts start from the GUI (5.12).
 pub fn parser_pool() -> ParserPool {
     ParserPool::new("parsers")
@@ -18,6 +19,12 @@ pub fn parser_pool() -> ParserPool {
         .module::<ace_mod_yara::YaraScanner>()
         .module::<ace_mod_urls::UrlExtraction>()
         .module::<ace_mod_urls::IocExtraction>()
+        .module::<ace_mod_files::FileType>()
+        .module::<ace_mod_files::FileHashAnalyzer>()
+        .module::<ace_mod_files::BinaryFileAnalyzer>()
+        .module::<ace_mod_files::LnkParseAnalyzer>()
+        .module::<ace_mod_files::X509Analyzer>()
+        .module::<ace_mod_files::DHashImageAnalyzer>()
         .yara_rulesets::<ace_mod_yara::YaraScanner>(ace_mod_yara::check_ruleset)
         .commands()
 }

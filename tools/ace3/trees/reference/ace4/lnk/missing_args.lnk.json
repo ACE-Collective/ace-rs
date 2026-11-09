@@ -1,0 +1,109 @@
+{
+  "form": 1,
+  "observables": {
+    "file:6452a3ba59a9a9c0b745a5276b7b38037224dbfb1676c5f884b64709688a9f6b": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "missing_args.lnk": {
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "8e412e2e2770a05c084e5294f16a4deb",
+            "sha1": "e82f6184d98c1105c5fd5530289572cd590261a0",
+            "sha256": "6452a3ba59a9a9c0b745a5276b7b38037224dbfb1676c5f884b64709688a9f6b"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": true,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/x-ms-shortcut",
+            "type": "MS Windows shortcut, Has Relative path, Has command line arguments, Unicoded, Archive, ctime=Thu Dec  3 12:26:40 2020, atime=Thu Dec  3 12:26:52 2020, length=1234, window=normal, hot key A+CONTROL"
+          },
+          "summary": "File Type Analysis: MS Windows shortcut, Has Relative path, Has command line arguments, Unicoded, Archive, ctime=Thu Dec  3 12:26:40 2020, atime=Thu Dec  3 12:26:52 2020, length=1234, window=normal, hot key A+CONTROL (application/x-ms-shortcut) (windows shortcut)",
+          "tags": {}
+        },
+        "lnk_parser": {
+          "details": {
+            "error": "sequence item 1: expected str instance, NoneType found",
+            "info": {
+              "data": {
+                "relative_path": "cmd.exe"
+              },
+              "extra": {},
+              "header": {
+                "accessed_time": "2020-12-03T12:26:52.345679+0000",
+                "creation_time": "2020-12-03T12:26:40.000000+0000",
+                "file_flags": [
+                  "FILE_ATTRIBUTE_ARCHIVE"
+                ],
+                "file_size": 1234,
+                "guid": "00021401-0000-0000-C000-000000000046",
+                "header_size": 76,
+                "hotkey": "CONTROL - A {0x4102}",
+                "icon_index": 0,
+                "link_flags": [
+                  "HasRelativePath",
+                  "HasArguments",
+                  "IsUnicode"
+                ],
+                "modified_time": null,
+                "r_file_flags": 32,
+                "r_hotkey": 577,
+                "r_link_flags": 168,
+                "reserved0": 0,
+                "reserved1": 0,
+                "reserved2": 0,
+                "windowstyle": "SW_SHOWNORMAL"
+              },
+              "link_info": {},
+              "size": 92
+            }
+          },
+          "summary": "LnkParse Analysis: sequence item 1: expected str instance, NoneType found",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "lnk": true
+      }
+    },
+    "md5:8e412e2e2770a05c084e5294f16a4deb": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:6452a3ba59a9a9c0b745a5276b7b38037224dbfb1676c5f884b64709688a9f6b": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:6452a3ba59a9a9c0b745a5276b7b38037224dbfb1676c5f884b64709688a9f6b": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:6452a3ba59a9a9c0b745a5276b7b38037224dbfb1676c5f884b64709688a9f6b": true
+      },
+      "results": {},
+      "tags": {}
+    }
+  }
+}

@@ -1,0 +1,68 @@
+{
+  "form": 1,
+  "observables": {
+    "file:a17e00615d656dbedeef49e6117044edc38aababadddc8df8ff469bd41674286": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "loader.mjs": {
+          "type=email.attachment": true,
+          "type=script.javascript": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "fa0a2ae878cc28cfe8d71a7ca32d4d26",
+            "sha1": "4ad61bdb0c78633b25d370665abf53d0127cea52",
+            "sha256": "a17e00615d656dbedeef49e6117044edc38aababadddc8df8ff469bd41674286"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/javascript",
+            "type": "JavaScript source, ASCII text"
+          },
+          "summary": "File Type Analysis: JavaScript source, ASCII text (application/javascript)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "md5:fa0a2ae878cc28cfe8d71a7ca32d4d26": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:a17e00615d656dbedeef49e6117044edc38aababadddc8df8ff469bd41674286": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:a17e00615d656dbedeef49e6117044edc38aababadddc8df8ff469bd41674286": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:a17e00615d656dbedeef49e6117044edc38aababadddc8df8ff469bd41674286": true
+      },
+      "results": {},
+      "tags": {}
+    }
+  }
+}

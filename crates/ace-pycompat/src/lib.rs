@@ -34,6 +34,7 @@
 pub mod base64;
 pub mod codecs_idna;
 pub mod csv;
+pub mod fnmatch;
 pub mod html;
 pub mod idna;
 pub mod ipaddress;

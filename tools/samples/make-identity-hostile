@@ -1,0 +1,82 @@
+#!/usr/bin/env python3
+"""Makes the crafted files of docs/measurements/file-identity.md, which measure what a file can make
+batch 2's modules do against their limits in a contained task (PLAN.md 7.5).
+
+    make-identity-hostile <out dir>
+
+Each file is named for the module it aims at: file_type's JavaScript check, its zip and email
+checks and libmagic, the certificate check and x509_analyzer, and lnk_parser.
+"""
+
+import struct
+import sys
+from pathlib import Path
+
+MB = 1024 * 1024
+
+
+def zip_many(count):
+    """A zip whose central directory lists `count` empty stored files."""
+    local, central, offset = [], [], 0
+    for i in range(count):
+        name = f"f{i}.txt".encode()
+        header = struct.pack("<IHHHHHIIIHH", 0x04034B50, 20, 0, 0, 0, 0, 0, 0, 0, len(name), 0) + name
+        local.append(header)
+        central.append(struct.pack("<IHHHHHHIIIHHHHHII", 0x02014B50, 20, 20, 0, 0, 0, 0, 0, 0, 0,
+                                   len(name), 0, 0, 0, 0, 0, offset) + name)
+        offset += len(header)
+    cd = b"".join(central)
+    end = struct.pack("<IHHHHIIH", 0x06054B50, 0, 0, min(count, 0xFFFF), min(count, 0xFFFF), len(cd), offset, 0)
+    return b"".join(local) + cd + end
+
+
+def lnk_extra(blocks):
+    """A shortcut with no target, no info, no strings and `blocks` unknown extra data blocks."""
+    header = struct.pack("<I16sIIIQQQIIIHHII", 0x4C, bytes.fromhex("0114020000000000c000000000000046"),
+                         0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0)
+    block = struct.pack("<II", 16, 0xA0000099) + b"\x00" * 8
+    return header + block * blocks + b"\x00\x00\x00\x00"
+
+
+def png(width, height, rows):
+    """A greyscale PNG of `width` by `height`, its pixels from `rows(y)`, compressed as it goes."""
+    import zlib
+    chunk = lambda kind, data: struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data))
+    z = zlib.compressobj(9)
+    idat = b"".join(z.compress(b"\x00" + rows(y)) for y in range(height)) + z.flush()
+    return (b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 0, 0, 0, 0))
+            + chunk(b"IDAT", idat) + chunk(b"IEND", b""))
+
+
+def main(out):
+    out = Path(out)
+    out.mkdir(parents=True, exist_ok=True)
+    files = {
+        # deeper than V8's limit: the bracket count refuses it before oxc parses
+        "file_type_parens_10mb.js": b"var a = " + b"(" * (10 * MB),
+        # nested without brackets, the most stack oxc takes for a level
+        "file_type_arrows_1mb.js": b"x=>" * (MB // 3) + b"1",
+        # ordinary code too large for the parse's stack bound, so it fails the check
+        "file_type_minified_8mb.js": b"var a=b+c;function f(x){return x*2}" * (8 * MB // 36),
+        # just under the stack bound: the largest file oxc parses
+        "file_type_minified_2mb.js": b"var a=b+c;function f(x){return x*2}" * (2 * MB // 36),
+        "file_type_zip_65535.zip": zip_many(65535),
+        # header lines all the way, with only two of the three headers is_email_file wants
+        "file_type_headers_20mb.txt": b"From: a@example.com\nSubject: s\n" + b"X-Long: value\n" * (20 * MB // 14),
+        "file_type_text_100mb.txt": b"the quick brown fox jumps over the lazy dog\n" * (100 * MB // 44),
+        # PEM labels everywhere, so the certificate check loads the whole file
+        "x509_analyzer_labels_20mb.pem": b"-----BEGIN CERTIFICATE-----\nAAAA\n-----END CERTIFICATE-----\n" * (20 * MB // 60),
+        "lnk_parser_blocks_10mb.lnk": lnk_extra(10 * MB // 16),
+        # 169 million pixels, under Pillow's bomb limit of 178,956,970, so it decodes and resizes
+        "dhash_13000x13000.png": png(13000, 13000, lambda y: bytes([y % 256]) * 13000),
+        # past the limit: not an image
+        "dhash_bomb.png": png(20000, 20000, lambda y: b"\x00" * 20000)[:2000],
+    }
+    for name, data in files.items():
+        (out / name).write_bytes(data)
+        print(name, len(data))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1]))

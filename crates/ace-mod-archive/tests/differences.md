@@ -7,7 +7,7 @@ In the Dumps column, `*` matches any text in a dump's name. In the Path column, 
 | Dumps | Path | Why |
 |---|---|---|
 | `ace3/archive/dhl_report.ace` | `/` | ACE archives aren't read: ace3 runs `unace`, and no Rust crate reads the format. The module skips the file, so there is no result. |
-| `*` | `/analyzed/tags/zip` | ace3's file_type module tags a zip file `zip`. The dumps ran it as the archive module's dependency; ace4 has no file_type module yet. |
+| `*` | `/analyzed/tags/zip` | ace3's file_type module tags a zip file `zip`. The dumps ran it as the archive module's dependency. In ace4 that's `file_type`'s own result (`crates/ace-mod-files`), which this test doesn't run; the trees compare its tags. |
 | `*` | `/analyzed/tags/jar` | file_type's tag for a JAR. |
 | `*` | `/analyzed/yara_meta/type=archive.jar` | file_type's `yara_meta` tag for a JAR. |
 | `*` | `/observables/*/tags/*` | file_type's tags on the extracted files (`zip`, `jar`, `executable`). The archive module tags no file. |

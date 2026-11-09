@@ -1,0 +1,30 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [],
+  "input": {
+    "directives": [],
+    "label": "fixtures/files/tiny.exe as tiny.exe",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "tiny.exe",
+      "size": 64,
+      "type": "file",
+      "value": "014b8ce9fed0aaf124de966f635da95bf7025bee91d1a1c12d6ff5854eba3307"
+    }
+  },
+  "module": "binary_file_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "tiny.exe",
+    "relationships": [],
+    "size": 64,
+    "tags": [],
+    "type": "file",
+    "value": "014b8ce9fed0aaf124de966f635da95bf7025bee91d1a1c12d6ff5854eba3307",
+    "yara_meta": []
+  }
+}

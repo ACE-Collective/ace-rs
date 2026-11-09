@@ -5277,6 +5277,175 @@
       "meta_tags": [
         "type=email.attachment"
       ]
+    },
+    {
+      "path": "ace4/x509/cert.pem",
+      "sha256": "1bd9f3516b54184356af6f061380c6c6c48d83dcee8a0a9a2aedc83e135ccfea",
+      "size": 769,
+      "kinds": [
+        "x509"
+      ],
+      "source": "made by tools/samples/make-x509: a wildcard CN, two DNS names and an IP address, PEM",
+      "in_git": true,
+      "alert_path": "cert.pem",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/x509/cert.der",
+      "sha256": "632e2973acdd48febc6cb5016863a6a032623d3955dd198be8a4cb313cdda068",
+      "size": 527,
+      "kinds": [
+        "x509"
+      ],
+      "source": "made by tools/samples/make-x509: the same certificate, DER",
+      "in_git": true,
+      "alert_path": "cert.der",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/x509/no_cn.pem",
+      "sha256": "22c4bf2b6c236e704eead8f781d461979b058d8671425c69aeb2aba4cde685a1",
+      "size": 661,
+      "kinds": [
+        "x509"
+      ],
+      "source": "made by tools/samples/make-x509: no common name, after a line of text",
+      "in_git": true,
+      "alert_path": "no_cn.pem",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/lnk/shortcut.lnk",
+      "sha256": "15e18daee0dd709c076438da99b29b9779f997583cd07a1c54a46663f32914da",
+      "size": 1374,
+      "kinds": [
+        "lnk"
+      ],
+      "source": "made by crates/ace-lnkparse/tests/data/oracle.py, its case typical_local",
+      "in_git": true,
+      "alert_path": "shortcut.lnk",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/lnk/kitchen_sink.lnk",
+      "sha256": "1b9201cb3fe11a6926e18e9bac2e2d7651f4d4ba0a4901bd213602b8da5341bb",
+      "size": 1613,
+      "kinds": [
+        "lnk"
+      ],
+      "source": "made by crates/ace-lnkparse/tests/data/oracle.py, its case kitchen_sink: every block",
+      "in_git": true,
+      "alert_path": "kitchen_sink.lnk",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/lnk/network.lnk",
+      "sha256": "9ba0ebb34a636848747f907a34656ab8253d2feee43eca83c031024af33806ca",
+      "size": 176,
+      "kinds": [
+        "lnk"
+      ],
+      "source": "made by crates/ace-lnkparse/tests/data/oracle.py, its case info_network",
+      "in_git": true,
+      "alert_path": "network.lnk",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/lnk/missing_args.lnk",
+      "sha256": "6452a3ba59a9a9c0b745a5276b7b38037224dbfb1676c5f884b64709688a9f6b",
+      "size": 92,
+      "kinds": [
+        "lnk"
+      ],
+      "source": "made by crates/ace-lnkparse/tests/data/oracle.py, its case strings_missing_args: LnkParse3 raises building the command",
+      "in_git": true,
+      "alert_path": "missing_args.lnk",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/js/dropper.js",
+      "sha256": "4bcb59f7ca66c88ab96a6dbb2069a2822d920d4fef4c176690d99db49ecba517",
+      "size": 104,
+      "kinds": [
+        "js"
+      ],
+      "source": "hand-made: a WScript dropper",
+      "in_git": true,
+      "alert_path": "dropper.js",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/js/report.JS",
+      "sha256": "c4da8664fbdec242a03810e9cb01932488af2e0d488ec05274f1ffa89cc4c7b6",
+      "size": 21,
+      "kinds": [
+        "js"
+      ],
+      "source": "hand-made: a .JS name, which node refuses",
+      "in_git": true,
+      "alert_path": "report.JS",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/js/broken.js",
+      "sha256": "469ffd53d3d26f6bb2d0bbe7760da92d3f36e0066b8b21b714a14104034fe4ac",
+      "size": 21,
+      "kinds": [
+        "js"
+      ],
+      "source": "hand-made: not valid JavaScript",
+      "in_git": true,
+      "alert_path": "broken.js",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/js/loader.mjs",
+      "sha256": "a17e00615d656dbedeef49e6117044edc38aababadddc8df8ff469bd41674286",
+      "size": 86,
+      "kinds": [
+        "js"
+      ],
+      "source": "hand-made: an ES module",
+      "in_git": true,
+      "alert_path": "loader.mjs",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/rtf/nul_byte.rtf",
+      "sha256": "2fc8f016584d950c5288f79848b62356e4517fe8b0b33feb99a2a829f39e8fac",
+      "size": 70,
+      "kinds": [
+        "rtf",
+        "rtf/hand-made"
+      ],
+      "source": "hand-made: an RTF file with a NUL byte, which binary_file_analyzer sandboxes",
+      "in_git": true,
+      "alert_path": "nul_byte.rtf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
     }
   ]
 }

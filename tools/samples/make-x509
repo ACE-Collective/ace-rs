@@ -1,0 +1,32 @@
+#!/usr/bin/env python3
+"""Writes samples/ace4/x509: a certificate with a wildcard CN, two DNS names and an IP address as
+PEM and DER, and one with no common name after a line of text, signed by a made-up CA. Needs
+cryptography: run it in ace3's dev container with /venv/bin/python3 -I make-x509 <dir>. The
+keys are new each run, so the bytes are too."""
+import datetime, ipaddress, sys, os
+from cryptography import x509
+from cryptography.x509.oid import NameOID, ExtendedKeyUsageOID
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import ec
+out = sys.argv[1]; os.makedirs(out, exist_ok=True)
+ca_key = ec.generate_private_key(ec.SECP256R1())
+key = ec.generate_private_key(ec.SECP256R1())
+ca_name = x509.Name([x509.NameAttribute(NameOID.COUNTRY_NAME, "US"), x509.NameAttribute(NameOID.ORGANIZATION_NAME, "Example CA, Inc."), x509.NameAttribute(NameOID.COMMON_NAME, "Example Issuing CA")])
+def cert(subject, sans, serial, ca=False):
+    b = (x509.CertificateBuilder().subject_name(subject).issuer_name(ca_name).public_key(key.public_key())
+         .serial_number(serial).not_valid_before(datetime.datetime(2026, 1, 1, tzinfo=datetime.timezone.utc))
+         .not_valid_after(datetime.datetime(2027, 1, 1, tzinfo=datetime.timezone.utc))
+         .add_extension(x509.BasicConstraints(ca=ca, path_length=None), critical=True)
+         .add_extension(x509.KeyUsage(True, False, True, False, False, False, False, False, False), critical=True)
+         .add_extension(x509.ExtendedKeyUsage([ExtendedKeyUsageOID.SERVER_AUTH]), critical=False)
+         .add_extension(x509.SubjectKeyIdentifier.from_public_key(key.public_key()), critical=False))
+    if sans:
+        b = b.add_extension(x509.SubjectAlternativeName(sans), critical=False)
+    return b.sign(ca_key, hashes.SHA256())
+c = cert(x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "*.login.example.com"), x509.NameAttribute(NameOID.ORGANIZATION_NAME, "Phish, \"Ltd\"")]),
+         [x509.DNSName("*.login.example.com"), x509.DNSName("login.example.net"), x509.IPAddress(ipaddress.ip_address("192.0.2.10"))],
+         0x5e1f2a3b4c5d6e7f8091a2b3c4d5e6f701234567)
+open(f"{out}/cert.pem", "wb").write(c.public_bytes(serialization.Encoding.PEM))
+open(f"{out}/cert.der", "wb").write(c.public_bytes(serialization.Encoding.DER))
+small = cert(x509.Name([x509.NameAttribute(NameOID.ORGANIZATION_NAME, "No Common Name")]), [], 4660)
+open(f"{out}/no_cn.pem", "wb").write(b"Some text before the certificate.\n" + small.public_bytes(serialization.Encoding.PEM))

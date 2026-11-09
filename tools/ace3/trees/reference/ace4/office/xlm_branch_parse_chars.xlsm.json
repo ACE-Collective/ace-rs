@@ -159,6 +159,15 @@
           "summary": "Archive Analysis: extracted 5 of 5 files: ([Content_Types].xml, xl/workbook.xml, xl/macrosheets/sheet1.xml, xl/_rels/workbook.xml.rels, _rels/.rels)",
           "tags": {}
         },
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "d9b546593b8199d3016657a0b941ebaa",
+            "sha1": "b0110d1c821c4d87b2ff635d2ca775acc6965ed0",
+            "sha256": "7933ef8c76bd4f3cf390201be54d9acb1fb495c76a3deedff45443b0435e3410"
+          },
+          "summary": null,
+          "tags": {}
+        },
         "file_type": {
           "details": {
             "is_email_file": false,
@@ -375,6 +384,26 @@
           "tags": {}
         }
       },
+      "tags": {}
+    },
+    "md5:d9b546593b8199d3016657a0b941ebaa": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:7933ef8c76bd4f3cf390201be54d9acb1fb495c76a3deedff45443b0435e3410": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:7933ef8c76bd4f3cf390201be54d9acb1fb495c76a3deedff45443b0435e3410": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:7933ef8c76bd4f3cf390201be54d9acb1fb495c76a3deedff45443b0435e3410": true
+      },
+      "results": {},
       "tags": {}
     }
   }

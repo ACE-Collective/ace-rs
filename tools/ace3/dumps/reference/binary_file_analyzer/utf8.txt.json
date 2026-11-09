@@ -1,0 +1,30 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [],
+  "input": {
+    "directives": [],
+    "label": "fixtures/files/utf8.txt as utf8.txt",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "utf8.txt",
+      "size": 15,
+      "type": "file",
+      "value": "df6218efba0448e02da73a8da78e6efc7767275852a9316efb66a474778d5954"
+    }
+  },
+  "module": "binary_file_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "utf8.txt",
+    "relationships": [],
+    "size": 15,
+    "tags": [],
+    "type": "file",
+    "value": "df6218efba0448e02da73a8da78e6efc7767275852a9316efb66a474778d5954",
+    "yara_meta": []
+  }
+}

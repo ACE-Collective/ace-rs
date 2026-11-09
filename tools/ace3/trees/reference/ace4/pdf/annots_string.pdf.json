@@ -1,53 +1,7 @@
 {
   "form": 1,
   "observables": {
-    "file:5c32a96922bd35365c1b577835ec13ca65fa7a1b88084af894e4003d05d83fcd": {
-      "detections": {},
-      "directives": {
-        "extract_urls": true
-      },
-      "excluded_analysis": {},
-      "paths": {
-        "annots_string.pdf.pdfparser": {
-          "type=document.pdf.object": true
-        }
-      },
-      "redirection": "file:aad8a97acbe86d8911784138ac04b15b2ce42a23a94f96195524f88db94738aa",
-      "relationships": {
-        "extracted_from file:aad8a97acbe86d8911784138ac04b15b2ce42a23a94f96195524f88db94738aa": true
-      },
-      "results": {
-        "file_type": {
-          "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": false,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "application/pdf",
-            "type": "PDF document, version 1.7, 1 page(s), Unicode text, UTF-8 text"
-          },
-          "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s), Unicode text, UTF-8 text (application/pdf)",
-          "tags": {}
-        },
-        "url_extraction": {
-          "details": {
-            "urls": [],
-            "urls_grouped_by_domain": {}
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:a44a34a0c1155d789751123a23f473b06b44bf6fb85be0c782af1e5bb872c98a": {
+    "file:2800322456406a2f48112dcbb5939ebe4fe56040db727a59bef882ea4eceee32": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -98,6 +52,52 @@
         "pdf": true
       }
     },
+    "file:5c32a96922bd35365c1b577835ec13ca65fa7a1b88084af894e4003d05d83fcd": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "annots_string.pdf.pdfparser": {
+          "type=document.pdf.object": true
+        }
+      },
+      "redirection": "file:aad8a97acbe86d8911784138ac04b15b2ce42a23a94f96195524f88db94738aa",
+      "relationships": {
+        "extracted_from file:aad8a97acbe86d8911784138ac04b15b2ce42a23a94f96195524f88db94738aa": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/pdf",
+            "type": "PDF document, version 1.7, 1 page(s), Unicode text, UTF-8 text"
+          },
+          "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s), Unicode text, UTF-8 text (application/pdf)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:aad8a97acbe86d8911784138ac04b15b2ce42a23a94f96195524f88db94738aa": {
       "detections": {},
       "directives": {},
@@ -110,6 +110,15 @@
       },
       "relationships": {},
       "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "665d2ad615ea83d06d3ff7a723fd23b9",
+            "sha1": "647bf650c77d71b192a856efae34cc1c1d821bdf",
+            "sha256": "aad8a97acbe86d8911784138ac04b15b2ce42a23a94f96195524f88db94738aa"
+          },
+          "summary": null,
+          "tags": {}
+        },
         "file_type": {
           "details": {
             "is_email_file": false,
@@ -138,6 +147,26 @@
       "tags": {
         "pdf": true
       }
+    },
+    "md5:665d2ad615ea83d06d3ff7a723fd23b9": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:aad8a97acbe86d8911784138ac04b15b2ce42a23a94f96195524f88db94738aa": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:aad8a97acbe86d8911784138ac04b15b2ce42a23a94f96195524f88db94738aa": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:aad8a97acbe86d8911784138ac04b15b2ce42a23a94f96195524f88db94738aa": true
+      },
+      "results": {},
+      "tags": {}
     }
   }
 }

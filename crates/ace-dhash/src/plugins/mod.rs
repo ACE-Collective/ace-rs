@@ -1,0 +1,22 @@
+//! Pillow's image plugins, one module each (several small ones share misc).
+pub(crate) mod avif;
+pub(crate) mod bmp;
+pub(crate) mod dds;
+pub(crate) mod eps;
+pub(crate) mod gif;
+pub(crate) mod icns;
+pub(crate) mod ico;
+pub(crate) mod im;
+pub(crate) mod jpeg;
+pub(crate) mod jpeg2k;
+pub(crate) mod misc;
+pub(crate) mod ole;
+pub(crate) mod pcx;
+pub(crate) mod png;
+pub(crate) mod ppm;
+pub(crate) mod psd;
+pub(crate) mod raw;
+pub(crate) mod stub;
+pub(crate) mod tga;
+pub(crate) mod tiff;
+pub(crate) mod webp;

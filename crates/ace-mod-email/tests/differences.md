@@ -7,7 +7,7 @@ In the Dumps column, `*` matches any text in a dump's name. In the Path column, 
 | Dumps | Path | Why |
 |---|---|---|
 | `*` | `/details/email/log_entry/date` | The time the message was scanned. The harness fixes the clock at 2026-01-01, and ace3's dumps carry the time they were made. |
-| `*` | `/analyzed/tags/email` | ace3's file_type module tags an email file `email`. The dumps ran it as the email module's dependency; ace4 has no file_type module yet, and the email module reads libmagic's mime type instead. |
+| `*` | `/analyzed/tags/email` | ace3's file_type module tags an email file `email`. The dumps ran it as the email module's dependency. In ace4 that's `file_type`'s own result (`crates/ace-mod-files`), which this test gives the module but doesn't run; the trees compare its tags. |
 | `*` | `/analyzed/yara_meta/type=email` | Also file_type's: it gives an email file the `yara_meta` tag `type=email`. |
 | `*` | `/observables/file:*/tags/*` | Every tag on a file in these dumps is file_type's, which ran on each file the email module wrote: `email` on the headers file, the combined file and nested messages, `pdf`, `zip`, `ole` and `microsoft_office` on attachments. The email module itself tags no file. |
 | `*` | `/observables/file:*/yara_meta/type=email` | file_type's `type=email`, on the headers file, the combined file and nested messages. |

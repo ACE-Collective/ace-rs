@@ -10,14 +10,13 @@
 //!
 //! It's a separate crate from `ace-mod-oletools` because it links yara-x, for ace3's rule file.
 
-use std::fs::File;
-use std::io::{Read, Seek, SeekFrom};
 use std::path::Path;
 use std::sync::LazyLock;
 use std::time::{Duration, Instant};
 
 use ace_mod_oletools::olevba::pcodedmp_process_file;
 use ace_mod_oletools::xlmdeob::run_command;
+use ace_results::types::file_type::FileTypeAnalysis;
 use ace_results::types::pcode::PCodeAnalysis;
 use ace_results::types::xlm::XlmDeobfuscatorAnalysis;
 use ace_results::{
@@ -372,15 +371,13 @@ impl Parser for XlmDeobfuscator {
 }
 
 /// ace3's `PCodeAnalyzer`. `VBScriptAnalyzer` in `vbs.py` doesn't use pcodedmp and stays for 7.5.
-pub struct PCode {
-    /// libmagic's database, opened before containment, which can't open it, and only read when a file's
-    /// extension doesn't decide. A hostile file then meets libmagic inside containment.
-    database: Result<File, String>,
-}
+pub struct PCode;
 
 impl Module for PCode {
     const NAME: &'static str = PCodeAnalysis::MODULE;
     const INPUTS: &'static [ObservableKind] = &[ObservableKind::File];
+    /// ace3's `is_office_file` reads file_type's description of the file.
+    const DEPENDS_ON: &'static [&'static str] = &[FileTypeAnalysis::MODULE];
     // The 30 s bin/pcodedmp_wrapper gives pcodedmp. ace3 then keeps nothing and says so in a log; here
     // the task fails, with its stack in the row.
     const RESOURCES: Resources = Resources {
@@ -392,9 +389,7 @@ impl Module for PCode {
     type Settings = ();
 
     fn init(_: &()) -> Result<Self, ModuleError> {
-        Ok(PCode {
-            database: File::open(MAGIC_DATABASE).map_err(|error| error.to_string()),
-        })
+        Ok(PCode)
     }
 }
 
@@ -413,34 +408,18 @@ fn extension(name: &str) -> Option<&str> {
     Some(&name[at + 1..])
 }
 
-const MAGIC_DATABASE: &str = "/usr/lib/file/magic.mgc";
-
 impl PCode {
-    /// ace3's is_office_file: by the extension, or by what libmagic calls the file.
-    fn is_office_file(&self, file: &InputFile) -> Result<bool, ModuleError> {
+    /// ace3's is_office_file: by the extension, or by what file_type's libmagic description calls
+    /// the file.
+    fn is_office_file(file: &InputFile, file_type: Option<&FileTypeAnalysis>) -> bool {
         if extension(file.name()).is_some_and(|ext| KNOWN_OFFICE_EXTENSIONS.contains(&ext)) {
-            return Ok(true);
+            return true;
         }
-        let fail = |error: String| ModuleError::other(format!("libmagic: {error}"));
-        let mut database = self.database.as_ref().map_err(|e| fail(e.clone()))?;
-        let mut bytes = Vec::new();
-        database
-            .seek(SeekFrom::Start(0))
-            .map_err(|e| fail(e.to_string()))?;
-        database
-            .read_to_end(&mut bytes)
-            .map_err(|e| fail(e.to_string()))?;
-        // `file -b -L`
-        let cookie =
-            magic::Cookie::open(magic::cookie::Flags::SYMLINK).map_err(|e| fail(e.to_string()))?;
-        let cookie = cookie
-            .load_buffers(&[bytes.as_slice()])
-            .map_err(|e| fail(e.to_string()))?;
-        let description = cookie
-            .file(&file.local_path)
-            .map_err(|e| fail(e.to_string()))?
-            .to_lowercase();
-        Ok([
+        let Some(file_type) = file_type else {
+            return false;
+        };
+        let description = file_type.file_type.to_lowercase();
+        [
             "microsoft powerpoint",
             "microsoft excel",
             "microsoft word",
@@ -448,7 +427,7 @@ impl PCode {
             "opendocument",
         ]
         .iter()
-        .any(|name| description.contains(name)))
+        .any(|name| description.contains(name))
     }
 }
 
@@ -484,7 +463,8 @@ fn is_posix_space(c: char) -> bool {
 impl Parser for PCode {
     fn analyze(&self, ctx: &TaskContext<()>) -> Result<Outcome<PCodeAnalysis>, ModuleError> {
         let file = ctx.input_file()?;
-        if !self.is_office_file(file)? {
+        let file_type = ctx.dependency_result::<FileTypeAnalysis>()?;
+        if !Self::is_office_file(file, file_type.as_ref()) {
             return Ok(Outcome::Skipped("not an Office file".to_owned()));
         }
         let data = read_input(&file.local_path)?;
@@ -653,7 +633,13 @@ mod tests {
 
     #[test]
     fn a_macro_document_has_its_disassembly_and_others_have_none() {
-        let harness = Harness::<PCode>::new().expect("harness");
+        let harness = Harness::<PCode>::new().expect("harness").dependency_result(
+            "file_type",
+            ace_testkit::file_type_details(
+                "Composite Document File V2 Document",
+                "application/msword",
+            ),
+        );
         let input = harness
             .sample("ace3/office/receipt_687790.doc")
             .expect("a sample");

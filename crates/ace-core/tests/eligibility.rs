@@ -32,6 +32,12 @@ fn modes() -> Modes {
     Modes::ace3()
         .with_mode(test("test"))
         .with_mode(test("test_again"))
+        .with_mode(AnalysisMode {
+            name: "test_without_archive".to_owned(),
+            module_groups: Vec::new(),
+            enabled_modules: vec!["test_depends_on_archive".to_owned()],
+            disabled_modules: Vec::new(),
+        })
 }
 
 fn orchestrator() -> Orchestrator {
@@ -193,6 +199,13 @@ fn each_rule() {
             "test",
             Err(Ineligible::WaitingFor("archive".to_owned())),
         ),
+        case(
+            "a dependency the mode doesn't run doesn't hold it back",
+            "test_depends_on_archive",
+            FILE,
+            "test_without_archive",
+            Ok(()),
+        ),
         Case {
             results: &["archive"],
             ..case(
@@ -255,6 +268,9 @@ fn each_rule() {
         let directives = strings(case.directives);
         let exclude = strings(case.exclude);
         let results: BTreeSet<&str> = case.results.iter().copied().collect();
+        // as the orchestrator passes them: what the mode runs and the catalog has
+        let mut mode_modules = modes.modules_in(case.mode);
+        mode_modules.retain(|m| catalog.keys().contains(m));
         let got = check(
             component,
             Facts {
@@ -263,7 +279,7 @@ fn each_rule() {
                 directives: &directives,
                 exclude_modules: &exclude,
             },
-            &modes.modules_in(case.mode),
+            &mode_modules,
             &results,
         );
         assert_eq!(got, case.expected, "{}", case.what);

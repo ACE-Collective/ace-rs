@@ -68,6 +68,15 @@
       },
       "relationships": {},
       "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "631b6aca399b51c25443bc27e4d72bb5",
+            "sha1": "dbd7668a5d59804aa89054b25df56bd062623fc4",
+            "sha256": "691dba66dbcf8e2426d636d273e8f6fc8e8d0f5008169543424d08d6aa71117e"
+          },
+          "summary": null,
+          "tags": {}
+        },
         "file_type": {
           "details": {
             "is_email_file": false,
@@ -254,6 +263,26 @@
           "tags": {}
         }
       },
+      "tags": {}
+    },
+    "md5:631b6aca399b51c25443bc27e4d72bb5": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:691dba66dbcf8e2426d636d273e8f6fc8e8d0f5008169543424d08d6aa71117e": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:691dba66dbcf8e2426d636d273e8f6fc8e8d0f5008169543424d08d6aa71117e": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:691dba66dbcf8e2426d636d273e8f6fc8e8d0f5008169543424d08d6aa71117e": true
+      },
+      "results": {},
       "tags": {}
     },
     "url:http://xlm-biff8.example.com/stage2.exe": {

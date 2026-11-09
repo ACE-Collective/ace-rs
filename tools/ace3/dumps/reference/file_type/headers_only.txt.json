@@ -1,0 +1,60 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": true,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "message/rfc822",
+        "type": "news or mail, ASCII text"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/files/headers_only.txt as headers_only.txt",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "headers_only.txt",
+      "size": 62,
+      "type": "file",
+      "value": "581a316f7e3ca0a0f3d48501d553a9f3f3ddefb7c68477a77a63c7d7a9143edb"
+    }
+  },
+  "module": "file_type",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email"
+    ],
+    "excluded_analysis": [],
+    "file_path": "headers_only.txt",
+    "relationships": [],
+    "size": 62,
+    "tags": [
+      "email"
+    ],
+    "type": "file",
+    "value": "581a316f7e3ca0a0f3d48501d553a9f3f3ddefb7c68477a77a63c7d7a9143edb",
+    "yara_meta": [
+      "type=email"
+    ]
+  }
+}

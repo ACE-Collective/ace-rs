@@ -13,6 +13,15 @@
       },
       "relationships": {},
       "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "718148a5712c1fec7b50acc89eee2aa0",
+            "sha1": "61aec2a1e293659a81722f834d0ea4b5ff1604b1",
+            "sha256": "5b677d297fb862c2d223973697479ee53a91d03073b14556f421b3d74f136b9d"
+          },
+          "summary": null,
+          "tags": {}
+        },
         "file_type": {
           "details": {
             "is_email_file": false,
@@ -42,7 +51,7 @@
         "pdf": true
       }
     },
-    "file:9ec817ad58722d3172432a91d218f27b9e2a08ad0e29fc713ee2343824dfb17c": {
+    "file:a9c3b0e9f8530288c2838ef90cfb9111289b941cb1e6ac5d43c1c2165bdcc8a6": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -61,6 +70,15 @@
         "extracted_from file:5b677d297fb862c2d223973697479ee53a91d03073b14556f421b3d74f136b9d": true
       },
       "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "05b9f977df9ca8e0b61b6b3330eba519",
+            "sha1": "f4243f0a002166ff1483bac2b0eef1f658c6d3e0",
+            "sha256": "a9c3b0e9f8530288c2838ef90cfb9111289b941cb1e6ac5d43c1c2165bdcc8a6"
+          },
+          "summary": null,
+          "tags": {}
+        },
         "file_type": {
           "details": {
             "is_email_file": false,
@@ -143,6 +161,46 @@
           "tags": {}
         }
       },
+      "tags": {}
+    },
+    "md5:05b9f977df9ca8e0b61b6b3330eba519": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:a9c3b0e9f8530288c2838ef90cfb9111289b941cb1e6ac5d43c1c2165bdcc8a6": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:718148a5712c1fec7b50acc89eee2aa0": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:5b677d297fb862c2d223973697479ee53a91d03073b14556f421b3d74f136b9d": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:5b677d297fb862c2d223973697479ee53a91d03073b14556f421b3d74f136b9d": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:5b677d297fb862c2d223973697479ee53a91d03073b14556f421b3d74f136b9d": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:a9c3b0e9f8530288c2838ef90cfb9111289b941cb1e6ac5d43c1c2165bdcc8a6": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:a9c3b0e9f8530288c2838ef90cfb9111289b941cb1e6ac5d43c1c2165bdcc8a6": true
+      },
+      "results": {},
       "tags": {}
     },
     "url:https://microsoft.com": {

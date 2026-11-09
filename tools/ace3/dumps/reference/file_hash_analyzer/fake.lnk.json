@@ -1,0 +1,106 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": true,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "application/octet-stream",
+        "type": "data"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: data (application/octet-stream) (windows shortcut)",
+      "tags": []
+    },
+    {
+      "class": "FileHashAnalysis",
+      "details": {
+        "md5": "4c1b1e46b5c1ba954bc8b273e0430342",
+        "sha1": "0456b52248696bfdcc8d9a0298a0cb3576fd2bae",
+        "sha256": "f7a2182081a5956879415fab0d673e723838856a8a31d17ad0c891291d21617d"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.hash:FileHashAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "f7a2182081a5956879415fab0d673e723838856a8a31d17ad0c891291d21617d"
+              },
+              "type": "is_hash_of"
+            }
+          ],
+          "tags": [],
+          "type": "md5",
+          "value": "4c1b1e46b5c1ba954bc8b273e0430342"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "f7a2182081a5956879415fab0d673e723838856a8a31d17ad0c891291d21617d"
+              },
+              "type": "is_hash_of"
+            }
+          ],
+          "tags": [],
+          "type": "sha256",
+          "value": "f7a2182081a5956879415fab0d673e723838856a8a31d17ad0c891291d21617d"
+        }
+      ],
+      "summary": null,
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/files/fake.lnk as fake.lnk",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "fake.lnk",
+      "size": 76,
+      "type": "file",
+      "value": "f7a2182081a5956879415fab0d673e723838856a8a31d17ad0c891291d21617d"
+    }
+  },
+  "module": "file_hash_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "fake.lnk",
+    "relationships": [],
+    "size": 76,
+    "tags": [
+      "lnk"
+    ],
+    "type": "file",
+    "value": "f7a2182081a5956879415fab0d673e723838856a8a31d17ad0c891291d21617d",
+    "yara_meta": []
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [],
+  "input": {
+    "directives": [],
+    "label": "fixtures/files/loose.rtf as loose.rtf",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "loose.rtf",
+      "size": 15,
+      "type": "file",
+      "value": "5983b2130844dcdff6ccd6f9004e73eb5178ee2efa956167f9e16198fcd72ade"
+    }
+  },
+  "module": "binary_file_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "loose.rtf",
+    "relationships": [],
+    "size": 15,
+    "tags": [],
+    "type": "file",
+    "value": "5983b2130844dcdff6ccd6f9004e73eb5178ee2efa956167f9e16198fcd72ade",
+    "yara_meta": []
+  }
+}

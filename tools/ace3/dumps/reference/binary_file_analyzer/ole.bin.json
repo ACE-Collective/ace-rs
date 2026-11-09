@@ -1,0 +1,30 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [],
+  "input": {
+    "directives": [],
+    "label": "fixtures/files/ole.bin as ole.bin",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "ole.bin",
+      "size": 512,
+      "type": "file",
+      "value": "a899fb4496afa7230c378d5be03cf3461990994993110fd2dad3257111081275"
+    }
+  },
+  "module": "binary_file_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "ole.bin",
+    "relationships": [],
+    "size": 512,
+    "tags": [],
+    "type": "file",
+    "value": "a899fb4496afa7230c378d5be03cf3461990994993110fd2dad3257111081275",
+    "yara_meta": []
+  }
+}

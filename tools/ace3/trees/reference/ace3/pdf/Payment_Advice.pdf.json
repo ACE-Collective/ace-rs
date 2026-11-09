@@ -53,7 +53,7 @@
       },
       "tags": {}
     },
-    "file:cdf0f5d3011615671469dc1ef044bca66cb81459ffaf231a625e20406f73a211": {
+    "file:437a6f31444750ea1ddfbb61cac132733aed15d287e1c5e70d5a7cce7625e0de": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -122,6 +122,15 @@
         "extracted_from file:fa13c652534f9207beec811a50948860f5b3194aeae686fcdecac645fae65d15": true
       },
       "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "754d033564019eeccf220308f04892f8",
+            "sha1": "a0eaa86bf3c6647224989e833425fb4e21d43689",
+            "sha256": "f5514d9b2c68d82c0e76e4967c0a2173ef0c24cafaab5699b96904b9b245b7b0"
+          },
+          "summary": null,
+          "tags": {}
+        },
         "file_type": {
           "details": {
             "is_email_file": false,
@@ -170,6 +179,15 @@
       },
       "relationships": {},
       "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "8b78be4e5640e2a2b1798bdab46d0cab",
+            "sha1": "7594ed30c9340c5fed394dfbaf181c02c903c467",
+            "sha256": "fa13c652534f9207beec811a50948860f5b3194aeae686fcdecac645fae65d15"
+          },
+          "summary": null,
+          "tags": {}
+        },
         "file_type": {
           "details": {
             "is_email_file": false,
@@ -198,6 +216,46 @@
       "tags": {
         "pdf": true
       }
+    },
+    "md5:754d033564019eeccf220308f04892f8": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:f5514d9b2c68d82c0e76e4967c0a2173ef0c24cafaab5699b96904b9b245b7b0": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:8b78be4e5640e2a2b1798bdab46d0cab": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:fa13c652534f9207beec811a50948860f5b3194aeae686fcdecac645fae65d15": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:f5514d9b2c68d82c0e76e4967c0a2173ef0c24cafaab5699b96904b9b245b7b0": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:f5514d9b2c68d82c0e76e4967c0a2173ef0c24cafaab5699b96904b9b245b7b0": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:fa13c652534f9207beec811a50948860f5b3194aeae686fcdecac645fae65d15": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:fa13c652534f9207beec811a50948860f5b3194aeae686fcdecac645fae65d15": true
+      },
+      "results": {},
+      "tags": {}
     },
     "url:http://www.williamtoms.com/wp-includes/354387473a/autodomain/autodomain/autodomain/autofil": {
       "detections": {},

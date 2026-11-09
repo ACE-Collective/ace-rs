@@ -101,6 +101,15 @@
         "extracted_from file:8495d37825dab8744f7d2c8049fc6b70b1777b9184f0abe69ce314795480ce39": true
       },
       "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "12fbdab5e8e99fd318f5fbdcdc92670a",
+            "sha1": "90103cbc494e4481329d458fbebd5bcd9286de1c",
+            "sha256": "714dbe370b0a7063669217d91b287566fe8babbc8599b629b24476ff81b83593"
+          },
+          "summary": null,
+          "tags": {}
+        },
         "file_type": {
           "details": {
             "is_email_file": false,
@@ -198,6 +207,15 @@
             "file_count": 12
           },
           "summary": "Archive Analysis: extracted 12 of 12 files: (settings.xml, styles.xml, content.xml, meta.xml, Basic/script-lc.xml, Basic/Standard/script-lb.xml, Basic/Standard/Module1.xml, META-INF/manifest.xml, Configurations2/accelerator/current.xml, manifest.rdf, mimetype, Thumbnails/thumbnail.png)",
+          "tags": {}
+        },
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "2b8205c7ab16752cf63ec437ba12011a",
+            "sha1": "9fe803330dbc27bed675d053c1c7d4c257e26a32",
+            "sha256": "8495d37825dab8744f7d2c8049fc6b70b1777b9184f0abe69ce314795480ce39"
+          },
+          "summary": null,
           "tags": {}
         },
         "file_type": {
@@ -580,6 +598,46 @@
           "tags": {}
         }
       },
+      "tags": {}
+    },
+    "md5:12fbdab5e8e99fd318f5fbdcdc92670a": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:714dbe370b0a7063669217d91b287566fe8babbc8599b629b24476ff81b83593": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:2b8205c7ab16752cf63ec437ba12011a": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:8495d37825dab8744f7d2c8049fc6b70b1777b9184f0abe69ce314795480ce39": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:714dbe370b0a7063669217d91b287566fe8babbc8599b629b24476ff81b83593": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:714dbe370b0a7063669217d91b287566fe8babbc8599b629b24476ff81b83593": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:8495d37825dab8744f7d2c8049fc6b70b1777b9184f0abe69ce314795480ce39": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:8495d37825dab8744f7d2c8049fc6b70b1777b9184f0abe69ce314795480ce39": true
+      },
+      "results": {},
       "tags": {}
     },
     "url:http://192.168.0.138:8080/tnczG37zU": {

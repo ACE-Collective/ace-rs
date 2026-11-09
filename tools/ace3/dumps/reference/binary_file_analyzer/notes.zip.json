@@ -1,0 +1,30 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [],
+  "input": {
+    "directives": [],
+    "label": "fixtures/files/notes.zip as notes.zip",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "notes.zip",
+      "size": 124,
+      "type": "file",
+      "value": "6b6b2fbfe9de36056b14f79b1692fed6645499a618d2415683e1d54f245bc0af"
+    }
+  },
+  "module": "binary_file_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "notes.zip",
+    "relationships": [],
+    "size": 124,
+    "tags": [],
+    "type": "file",
+    "value": "6b6b2fbfe9de36056b14f79b1692fed6645499a618d2415683e1d54f245bc0af",
+    "yara_meta": []
+  }
+}

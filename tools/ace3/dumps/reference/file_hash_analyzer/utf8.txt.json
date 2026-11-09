@@ -1,0 +1,104 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "text/plain",
+        "type": "Unicode text, UTF-8 text"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: Unicode text, UTF-8 text (text/plain)",
+      "tags": []
+    },
+    {
+      "class": "FileHashAnalysis",
+      "details": {
+        "md5": "db7767c9fd3cc9c67b43af78a413ddba",
+        "sha1": "646dba6fbe6d274e792f0aefb5e47a32e93a1f4d",
+        "sha256": "df6218efba0448e02da73a8da78e6efc7767275852a9316efb66a474778d5954"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.hash:FileHashAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "df6218efba0448e02da73a8da78e6efc7767275852a9316efb66a474778d5954"
+              },
+              "type": "is_hash_of"
+            }
+          ],
+          "tags": [],
+          "type": "md5",
+          "value": "db7767c9fd3cc9c67b43af78a413ddba"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "df6218efba0448e02da73a8da78e6efc7767275852a9316efb66a474778d5954"
+              },
+              "type": "is_hash_of"
+            }
+          ],
+          "tags": [],
+          "type": "sha256",
+          "value": "df6218efba0448e02da73a8da78e6efc7767275852a9316efb66a474778d5954"
+        }
+      ],
+      "summary": null,
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/files/utf8.txt as utf8.txt",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "utf8.txt",
+      "size": 15,
+      "type": "file",
+      "value": "df6218efba0448e02da73a8da78e6efc7767275852a9316efb66a474778d5954"
+    }
+  },
+  "module": "file_hash_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "utf8.txt",
+    "relationships": [],
+    "size": 15,
+    "tags": [],
+    "type": "file",
+    "value": "df6218efba0448e02da73a8da78e6efc7767275852a9316efb66a474778d5954",
+    "yara_meta": []
+  }
+}

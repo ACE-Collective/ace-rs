@@ -1,0 +1,30 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [],
+  "input": {
+    "directives": [],
+    "label": "fixtures/files/app.jar.bin as app.jar.bin",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "app.jar.bin",
+      "size": 258,
+      "type": "file",
+      "value": "f2a110c038fd97cecb5f6a866a22a0f033615abffb7fdc325a3214c2d52645ce"
+    }
+  },
+  "module": "binary_file_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "app.jar.bin",
+    "relationships": [],
+    "size": 258,
+    "tags": [],
+    "type": "file",
+    "value": "f2a110c038fd97cecb5f6a866a22a0f033615abffb7fdc325a3214c2d52645ce",
+    "yara_meta": []
+  }
+}

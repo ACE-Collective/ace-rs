@@ -162,6 +162,15 @@
           "summary": "Archive Analysis: extracted 8 of 8 files: ([Content_Types].xml, xl/styles.xml, xl/sharedStrings.xml, xl/workbook.xml, xl/worksheets/sheet2.xml, xl/macrosheets/sheet1.xml, xl/_rels/workbook.xml.rels, _rels/.rels)",
           "tags": {}
         },
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "fe46afab85de1d3b76e613f0005ff1bc",
+            "sha1": "882dc60739df0c8025eaf3f508329269fdf74dd7",
+            "sha256": "26626a5234836f7222738a4898cfce8bacd1d0fa898f4cc38eba8f6f228fae84"
+          },
+          "summary": null,
+          "tags": {}
+        },
         "file_type": {
           "details": {
             "is_email_file": false,
@@ -510,6 +519,26 @@
           "tags": {}
         }
       },
+      "tags": {}
+    },
+    "md5:fe46afab85de1d3b76e613f0005ff1bc": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:26626a5234836f7222738a4898cfce8bacd1d0fa898f4cc38eba8f6f228fae84": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:26626a5234836f7222738a4898cfce8bacd1d0fa898f4cc38eba8f6f228fae84": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:26626a5234836f7222738a4898cfce8bacd1d0fa898f4cc38eba8f6f228fae84": true
+      },
+      "results": {},
       "tags": {}
     }
   }

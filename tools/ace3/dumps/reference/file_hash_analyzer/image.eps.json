@@ -1,0 +1,104 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "application/postscript",
+        "type": "PostScript document text conforming DSC level 3.0, type EPS"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: PostScript document text conforming DSC level 3.0, type EPS (application/postscript)",
+      "tags": []
+    },
+    {
+      "class": "FileHashAnalysis",
+      "details": {
+        "md5": "45af45132bd1c15970afce60d3481578",
+        "sha1": "82e9408f039f0b83317a6ffe5ed91c5d90c0f596",
+        "sha256": "1c592dafa02f6c6f01a56a568929907bf63fb50593d377aa0d3cdcb0c70b0b04"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.hash:FileHashAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "1c592dafa02f6c6f01a56a568929907bf63fb50593d377aa0d3cdcb0c70b0b04"
+              },
+              "type": "is_hash_of"
+            }
+          ],
+          "tags": [],
+          "type": "md5",
+          "value": "45af45132bd1c15970afce60d3481578"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "1c592dafa02f6c6f01a56a568929907bf63fb50593d377aa0d3cdcb0c70b0b04"
+              },
+              "type": "is_hash_of"
+            }
+          ],
+          "tags": [],
+          "type": "sha256",
+          "value": "1c592dafa02f6c6f01a56a568929907bf63fb50593d377aa0d3cdcb0c70b0b04"
+        }
+      ],
+      "summary": null,
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/files/image.eps as image.eps",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "image.eps",
+      "size": 49,
+      "type": "file",
+      "value": "1c592dafa02f6c6f01a56a568929907bf63fb50593d377aa0d3cdcb0c70b0b04"
+    }
+  },
+  "module": "file_hash_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "image.eps",
+    "relationships": [],
+    "size": 49,
+    "tags": [],
+    "type": "file",
+    "value": "1c592dafa02f6c6f01a56a568929907bf63fb50593d377aa0d3cdcb0c70b0b04",
+    "yara_meta": []
+  }
+}

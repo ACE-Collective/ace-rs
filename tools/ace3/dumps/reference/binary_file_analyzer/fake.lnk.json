@@ -1,0 +1,30 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [],
+  "input": {
+    "directives": [],
+    "label": "fixtures/files/fake.lnk as fake.lnk",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "fake.lnk",
+      "size": 76,
+      "type": "file",
+      "value": "f7a2182081a5956879415fab0d673e723838856a8a31d17ad0c891291d21617d"
+    }
+  },
+  "module": "binary_file_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "fake.lnk",
+    "relationships": [],
+    "size": 76,
+    "tags": [],
+    "type": "file",
+    "value": "f7a2182081a5956879415fab0d673e723838856a8a31d17ad0c891291d21617d",
+    "yara_meta": []
+  }
+}

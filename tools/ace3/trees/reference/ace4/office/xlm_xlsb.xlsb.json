@@ -291,6 +291,15 @@
           "summary": "Archive Analysis: extracted 5 of 5 files: ([Content_Types].xml, xl/workbook.bin, xl/macrosheets/sheet1.bin, xl/_rels/workbook.bin.rels, _rels/.rels)",
           "tags": {}
         },
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "e4a211af78a074ebac82577be4ec978e",
+            "sha1": "1f86402a7e2bb3561bca82f2798869f47470c8c2",
+            "sha256": "a1021c3991487674597bfd9db6b9859d36e3b713ba220f381994caac53c12360"
+          },
+          "summary": null,
+          "tags": {}
+        },
         "file_type": {
           "details": {
             "is_email_file": false,
@@ -365,6 +374,26 @@
           "tags": {}
         }
       },
+      "tags": {}
+    },
+    "md5:e4a211af78a074ebac82577be4ec978e": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:a1021c3991487674597bfd9db6b9859d36e3b713ba220f381994caac53c12360": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:a1021c3991487674597bfd9db6b9859d36e3b713ba220f381994caac53c12360": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:a1021c3991487674597bfd9db6b9859d36e3b713ba220f381994caac53c12360": true
+      },
+      "results": {},
       "tags": {}
     },
     "url:http://xlm-xlsb.example.com/stage2.exe": {

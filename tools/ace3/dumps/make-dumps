@@ -696,6 +696,50 @@ def ioc_runs():
     ]
 
 
+VENV_PATH = "PATH=/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
+# batch 2's file identity runs on fixtures/files, each file under its own name, and the EPS file
+# also inside a Word document's extraction, where binary_file_analyzer reads it
+FILE_RUNS = [
+    ("file_type", []),
+    ("file_hash_analyzer", ["file_type"]),
+    ("binary_file_analyzer", []),
+]
+FILE_ALERT_PATHS = {"image.eps": ["image.eps", "report.doc.extracted/image.eps"]}
+
+
+def files_runs():
+    runs = []
+    names = sorted(p.name for p in (HERE / "fixtures" / "files").iterdir() if p.name != ".DS_Store")
+    for module, enable in FILE_RUNS:
+        for name in names:
+            for alert_path in FILE_ALERT_PATHS.get(name, [name]):
+                label = alert_path.replace("/", "_")
+                runs.append({
+                    "module": module,
+                    "enable": enable,
+                    "name": label,
+                    "args": ["--file", f"{REMOTE}/fixtures/files/{name}", "--alert-path", alert_path],
+                    "label": f"fixtures/files/{name} as {alert_path}",
+                })
+    return runs
+
+
+def dhash_runs():
+    images = sorted(p.name for p in (HERE / "fixtures" / "dhash" / "images").iterdir() if p.name != ".DS_Store")
+    return [
+        {
+            "module": "dhash",
+            "enable": [],
+            "name": name,
+            "args": ["--file", f"{REMOTE}/fixtures/dhash/images/{name}", "--alert-path", name,
+                     "--directive", "dhash", "--config", f"{REMOTE}/fixtures/dhash/analyst.yaml"],
+            "label": f"fixtures/dhash/images/{name} with dhash",
+        }
+        for name in images
+    ]
+
+
 RUNS = {
     "email": lambda: file_runs("email_analyzer", ["file_type"], "email"),
     "archive": lambda: file_runs("archive", ["file_type"], "archive/"),
@@ -712,6 +756,12 @@ RUNS = {
     "clicker": clicker_runs,
     "urls": url_runs,
     "iocs": ioc_runs,
+    "files": files_runs,
+    # lnk_parser's verify_environment wants the lnkparse program, which is the virtualenv's
+    "lnk": lambda: [{**run, "env": [VENV_PATH]} for run in file_runs("lnk_parser", [], "lnk")],
+    "x509": lambda: file_runs("x509_analyzer", ["file_type"], "x509") + file_runs("file_type", [], "x509"),
+    "js": lambda: file_runs("file_type", [], "js"),
+    "dhash": dhash_runs,
 }
 
 
@@ -862,6 +912,12 @@ def run(spec):
         "clicker_detection_splunk": "SplunkClickerDetectionAnalysis",
         "url_extraction": "URLExtractionAnalysis",
         "ioc_extraction": "IOCExtractionAnalysis",
+        "file_type": "FileTypeAnalysis",
+        "file_hash_analyzer": "FileHashAnalysis",
+        "binary_file_analyzer": "BinaryFileAnalysis",
+        "lnk_parser": "LnkParseAnalysis",
+        "x509_analyzer": "X509Analysis",
+        "dhash": "DHashImageAnalysis",
     }[spec["module"]]
     analysis = next((a for a in parsed["analyses"] if a["class"] == target_class), None)
     return {

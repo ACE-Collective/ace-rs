@@ -1,0 +1,37 @@
+{
+  "analysis_type": "file_hash_analysis",
+  "schema_version": 1,
+  "details": {
+    "md5": "ab6950ddad0af22c8e78f4a90e94d0a2",
+    "sha1": "c93c96bd310042a272f257148884ad815f9f01ef",
+    "sha256": "6b6b2fbfe9de36056b14f79b1692fed6645499a618d2415683e1d54f245bc0af"
+  },
+  "observables": [
+    {
+      "type": "md5",
+      "value": "ab6950ddad0af22c8e78f4a90e94d0a2",
+      "relationships": [
+        {
+          "type": "is_hash_of",
+          "target": {
+            "type": "file",
+            "value": "6b6b2fbfe9de36056b14f79b1692fed6645499a618d2415683e1d54f245bc0af"
+          }
+        }
+      ]
+    },
+    {
+      "type": "sha256",
+      "value": "6b6b2fbfe9de36056b14f79b1692fed6645499a618d2415683e1d54f245bc0af",
+      "relationships": [
+        {
+          "type": "is_hash_of",
+          "target": {
+            "type": "file",
+            "value": "6b6b2fbfe9de36056b14f79b1692fed6645499a618d2415683e1d54f245bc0af"
+          }
+        }
+      ]
+    }
+  ]
+}

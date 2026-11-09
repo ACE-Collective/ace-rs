@@ -1,0 +1,40 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "BinaryFileAnalysis",
+      "details": {},
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.binary:BinaryFileAnalysis",
+      "observables": [],
+      "summary": null,
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/files/nul_at_end.rtf as nul_at_end.rtf",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "nul_at_end.rtf",
+      "size": 19,
+      "type": "file",
+      "value": "abc88e4d9cdbadeffbc3c5016345f831a39afbe4046105dff6f50aafddd56df8"
+    }
+  },
+  "module": "binary_file_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "nul_at_end.rtf",
+    "relationships": [],
+    "size": 19,
+    "tags": [],
+    "type": "file",
+    "value": "abc88e4d9cdbadeffbc3c5016345f831a39afbe4046105dff6f50aafddd56df8",
+    "yara_meta": []
+  }
+}

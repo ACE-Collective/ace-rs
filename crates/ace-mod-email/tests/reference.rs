@@ -13,11 +13,15 @@ fn matches_the_reference_dumps_or_lists_each_difference() {
         &Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/differences.md"),
     )
     .expect("differences.md reads");
-    let harness = Harness::<EmailAnalyzer>::new().expect("harness");
     let mut compared = Vec::new();
     let mut skipped = Vec::new();
     for dump in Dump::all("email_analyzer").expect("the dumps read") {
         let sample = dump.sample().expect("an email dump analyzed a file");
+        // the module depends on file_type, whose result the dump holds
+        let mut harness = Harness::<EmailAnalyzer>::new().expect("harness");
+        if let Some(file_type) = dump.file_type() {
+            harness = harness.dependency_result("file_type", file_type.clone());
+        }
         let mut observable = match harness.sample(sample) {
             Ok(observable) => observable,
             // samples/local/ is git-ignored, so CI doesn't have it

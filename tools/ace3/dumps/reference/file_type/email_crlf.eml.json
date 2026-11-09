@@ -1,0 +1,60 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": true,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "message/rfc822",
+        "type": "RFC 822 mail, ASCII text, with CRLF line terminators"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: RFC 822 mail, ASCII text, with CRLF line terminators (message/rfc822) (email)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/files/email_crlf.eml as email_crlf.eml",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "email_crlf.eml",
+      "size": 133,
+      "type": "file",
+      "value": "43cce663a1be8089b5738281e82699d78f230b2b77ea1bcf42d63f7308a83e07"
+    }
+  },
+  "module": "file_type",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email"
+    ],
+    "excluded_analysis": [],
+    "file_path": "email_crlf.eml",
+    "relationships": [],
+    "size": 133,
+    "tags": [
+      "email"
+    ],
+    "type": "file",
+    "value": "43cce663a1be8089b5738281e82699d78f230b2b77ea1bcf42d63f7308a83e07",
+    "yara_meta": [
+      "type=email"
+    ]
+  }
+}

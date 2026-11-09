@@ -1,48 +1,7 @@
 {
   "form": 1,
   "observables": {
-    "file:59f4fca7c91c06050dc2946f62f55d167f55c4d90e125922df864060453f087a": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {},
-      "paths": {
-        "js_names_name.pdf": {
-          "type=document.pdf": true,
-          "type=email.attachment": true
-        }
-      },
-      "relationships": {},
-      "results": {
-        "file_type": {
-          "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": true,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "application/pdf",
-            "type": "PDF document, version 1.7, 1 page(s)"
-          },
-          "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
-          "tags": {}
-        },
-        "pdf_analyzer": {
-          "details": {},
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {
-        "pdf": true
-      }
-    },
-    "file:b3cbfab8d6663512f82151a946e40191a8714add9f888aa7624822e5b5602bb3": {
+    "file:1f371e17f21df4ce0e0de82b3e2445a2a1072e18420731dd2d6cae706e4a63a4": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -85,6 +44,56 @@
             "urls": [],
             "urls_grouped_by_domain": {}
           },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "pdf": true
+      }
+    },
+    "file:59f4fca7c91c06050dc2946f62f55d167f55c4d90e125922df864060453f087a": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "js_names_name.pdf": {
+          "type=document.pdf": true,
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "46172fd90343bc360b230c1fbe086ba6",
+            "sha1": "a4eecfb936d9b49e9c452bb1f12463cdd4caaabf",
+            "sha256": "59f4fca7c91c06050dc2946f62f55d167f55c4d90e125922df864060453f087a"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": true,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/pdf",
+            "type": "PDF document, version 1.7, 1 page(s)"
+          },
+          "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
+          "tags": {}
+        },
+        "pdf_analyzer": {
+          "details": {},
           "summary": null,
           "tags": {}
         }
@@ -137,6 +146,26 @@
           "tags": {}
         }
       },
+      "tags": {}
+    },
+    "md5:46172fd90343bc360b230c1fbe086ba6": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:59f4fca7c91c06050dc2946f62f55d167f55c4d90e125922df864060453f087a": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:59f4fca7c91c06050dc2946f62f55d167f55c4d90e125922df864060453f087a": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:59f4fca7c91c06050dc2946f62f55d167f55c4d90e125922df864060453f087a": true
+      },
+      "results": {},
       "tags": {}
     }
   }

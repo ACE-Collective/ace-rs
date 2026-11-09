@@ -319,7 +319,12 @@ async fn the_email_logger_matches_the_reference_dumps_or_lists_each_difference()
     use ace_mod_email::EmailAnalyzer;
 
     let listed = listed_for("email_logger");
-    let email = Harness::<EmailAnalyzer>::new().expect("harness");
+    let email = Harness::<EmailAnalyzer>::new()
+        .expect("harness")
+        .dependency_result(
+            "file_type",
+            ace_testkit::file_type_details("RFC 822 mail, ASCII text", "message/rfc822"),
+        );
     let fixtures =
         Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tools/ace3/dumps/fixtures/email_logger");
     let mut compared = Vec::new();

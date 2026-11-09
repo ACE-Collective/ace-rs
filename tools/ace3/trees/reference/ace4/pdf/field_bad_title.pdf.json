@@ -1,61 +1,7 @@
 {
   "form": 1,
   "observables": {
-    "file:2b827014b27d850fa53f2250136dbb00258e9ce0ddbddab8bf6fad2126ed88f4": {
-      "detections": {},
-      "directives": {
-        "extract_urls": true
-      },
-      "excluded_analysis": {
-        "pdf_analyzer": true
-      },
-      "paths": {
-        "field_bad_title.pdf.field_kept_decoded.bin": {
-          "type=document.pdf.form_field": true
-        }
-      },
-      "redirection": "file:f399412c90d9329ed0603d16ca3910f282310ebbb8eaf2bd28a10cd0145319ac",
-      "relationships": {
-        "extracted_from file:f399412c90d9329ed0603d16ca3910f282310ebbb8eaf2bd28a10cd0145319ac": true
-      },
-      "results": {
-        "file_type": {
-          "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": false,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "text/plain",
-            "type": "ASCII text, with no line terminators"
-          },
-          "summary": "File Type Analysis: ASCII text, with no line terminators (text/plain)",
-          "tags": {}
-        },
-        "url_extraction": {
-          "details": {
-            "urls": [
-              "https://example.com/form-field-payload/https://example.com/form-field-payload/https://example.com/form-field-payload"
-            ],
-            "urls_grouped_by_domain": {
-              "example.com": [
-                "https://example.com/form-field-payload/https://example.com/form-field-payload/https://example.com/form-field-payload"
-              ]
-            }
-          },
-          "summary": "URL Extraction Analysis (example.com)",
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:302ca172ee6d337f35f55ec77abd8cce2a66fd2e902d499e5a8e62faaee0c77d": {
+    "file:06a9acc51beeb245b384dcefd00769737042f5df40166e1f77954d4f7d88765e": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -105,6 +51,69 @@
       "tags": {
         "pdf": true
       }
+    },
+    "file:2b827014b27d850fa53f2250136dbb00258e9ce0ddbddab8bf6fad2126ed88f4": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {
+        "pdf_analyzer": true
+      },
+      "paths": {
+        "field_bad_title.pdf.field_kept_decoded.bin": {
+          "type=document.pdf.form_field": true
+        }
+      },
+      "redirection": "file:f399412c90d9329ed0603d16ca3910f282310ebbb8eaf2bd28a10cd0145319ac",
+      "relationships": {
+        "extracted_from file:f399412c90d9329ed0603d16ca3910f282310ebbb8eaf2bd28a10cd0145319ac": true
+      },
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "ad1db51941c466d7d81b9f958a693d89",
+            "sha1": "f9ef0df321507baa41106b06b7db4a01e47c60da",
+            "sha256": "2b827014b27d850fa53f2250136dbb00258e9ce0ddbddab8bf6fad2126ed88f4"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text, with no line terminators"
+          },
+          "summary": "File Type Analysis: ASCII text, with no line terminators (text/plain)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [
+              "https://example.com/form-field-payload/https://example.com/form-field-payload/https://example.com/form-field-payload"
+            ],
+            "urls_grouped_by_domain": {
+              "example.com": [
+                "https://example.com/form-field-payload/https://example.com/form-field-payload/https://example.com/form-field-payload"
+              ]
+            }
+          },
+          "summary": "URL Extraction Analysis (example.com)",
+          "tags": {}
+        }
+      },
+      "tags": {}
     },
     "file:b55e8c8d89d74b2b96c1b1f2d5afac769df2670c933a71731d00c3eb4bb795a6": {
       "detections": {},
@@ -164,6 +173,15 @@
       },
       "relationships": {},
       "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "6f79ba196cdfc20c1f5aeab0a532b3da",
+            "sha1": "54e3e729dad64478ff884fed6e3886de81ffd936",
+            "sha256": "f399412c90d9329ed0603d16ca3910f282310ebbb8eaf2bd28a10cd0145319ac"
+          },
+          "summary": null,
+          "tags": {}
+        },
         "file_type": {
           "details": {
             "is_email_file": false,
@@ -192,6 +210,46 @@
       "tags": {
         "pdf": true
       }
+    },
+    "md5:6f79ba196cdfc20c1f5aeab0a532b3da": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:f399412c90d9329ed0603d16ca3910f282310ebbb8eaf2bd28a10cd0145319ac": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:ad1db51941c466d7d81b9f958a693d89": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:2b827014b27d850fa53f2250136dbb00258e9ce0ddbddab8bf6fad2126ed88f4": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:2b827014b27d850fa53f2250136dbb00258e9ce0ddbddab8bf6fad2126ed88f4": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:2b827014b27d850fa53f2250136dbb00258e9ce0ddbddab8bf6fad2126ed88f4": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:f399412c90d9329ed0603d16ca3910f282310ebbb8eaf2bd28a10cd0145319ac": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:f399412c90d9329ed0603d16ca3910f282310ebbb8eaf2bd28a10cd0145319ac": true
+      },
+      "results": {},
+      "tags": {}
     },
     "url:https://example.com/form-field-payload/https://example.com/form-field-payload/https://example.com/form-field-payload": {
       "detections": {},

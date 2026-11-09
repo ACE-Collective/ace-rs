@@ -28,7 +28,11 @@ fn a_spoof_of_a_local_domain_is_tagged_and_gets_deliveries() {
     let harness = Harness::<EmailAnalyzer>::with_settings(json!({
         "local_email_domains": ["company.com"],
     }))
-    .expect("harness");
+    .expect("harness")
+    .dependency_result(
+        "file_type",
+        ace_testkit::file_type_details("RFC 822 mail, ASCII text", "message/rfc822"),
+    );
     let email = harness
         .sample("ace3/email/direct_send_spoof.email.rfc822")
         .expect("sample");
@@ -81,7 +85,11 @@ fn assert_whitelisted(outcome: &Outcome<EmailAnalysis>, tags: &[&str]) {
 #[test]
 fn outbound_journaled_mail_is_whitelisted_when_scanning_inbound_only() {
     let harness = Harness::<EmailAnalyzer>::with_settings(json!({"scan_inbound_only": true}))
-        .expect("harness");
+        .expect("harness")
+        .dependency_result(
+            "file_type",
+            ace_testkit::file_type_details("RFC 822 mail, ASCII text", "message/rfc822"),
+        );
     let email = harness
         .file_bytes("email.rfc822", OUTBOUND_JOURNAL_REPORT, &[])
         .expect("fixture")
@@ -111,6 +119,10 @@ fn entry(id: i64, kind: MatchKind, value: &str, ignore_case: bool) -> Entry {
 fn run_with(spec: &ListSpec, entries: Vec<Entry>) -> Outcome<EmailAnalysis> {
     let harness = Harness::<EmailAnalyzer>::new()
         .expect("harness")
+        .dependency_result(
+            "file_type",
+            ace_testkit::file_type_details("RFC 822 mail, ASCII text", "message/rfc822"),
+        )
         .list(spec, entries);
     let email = harness
         .file_bytes("email.rfc822", PLAIN, &[])
@@ -201,7 +213,11 @@ fn an_outbound_exception_is_scanned_and_tagged() {
         "scan_inbound_only": true,
         "outbound_exceptions": ["Archive@Company.com"],
     }))
-    .expect("harness");
+    .expect("harness")
+    .dependency_result(
+        "file_type",
+        ace_testkit::file_type_details("RFC 822 mail, ASCII text", "message/rfc822"),
+    );
     let email = harness
         .file_bytes("email.rfc822", OUTBOUND_JOURNAL_REPORT, &[])
         .expect("fixture")
@@ -217,11 +233,26 @@ fn an_outbound_exception_is_scanned_and_tagged() {
 
 #[test]
 fn a_file_that_isnt_an_email_is_skipped() {
-    let harness = Harness::<EmailAnalyzer>::new().expect("harness");
+    let harness = Harness::<EmailAnalyzer>::new()
+        .expect("harness")
+        .dependency_result(
+            "file_type",
+            ace_testkit::file_type_details("ASCII text", "text/plain"),
+        );
     let notes = harness
         .file_bytes("notes.txt", b"just some notes\n", &[])
         .expect("fixture");
     let outcome = harness.run_parser(notes).expect("runs");
+    assert!(matches!(outcome, Outcome::Skipped(_)), "{outcome:?}");
+}
+
+#[test]
+fn without_file_type_s_result_nothing_runs() {
+    let harness = Harness::<EmailAnalyzer>::new().expect("harness");
+    let email = harness
+        .file_bytes("email.rfc822", PLAIN, &[])
+        .expect("fixture");
+    let outcome = harness.run_parser(email).expect("runs");
     assert!(matches!(outcome, Outcome::Skipped(_)), "{outcome:?}");
 }
 

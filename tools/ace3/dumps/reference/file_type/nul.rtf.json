@@ -1,0 +1,61 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": true,
+        "is_office_ext": true,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": true,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "text/rtf",
+        "type": "Rich Text Format data, version 1, ANSI"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: Rich Text Format data, version 1, ANSI (text/rtf) (ms office document) (rtf document)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/files/nul.rtf as nul.rtf",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "nul.rtf",
+      "size": 24,
+      "type": "file",
+      "value": "a6c05f25c4424b6f5e46afc48334153207bfbcd93bdc80804a99db778f3b83a4"
+    }
+  },
+  "module": "file_type",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=document.rtf"
+    ],
+    "excluded_analysis": [],
+    "file_path": "nul.rtf",
+    "relationships": [],
+    "size": 24,
+    "tags": [
+      "microsoft_office",
+      "rtf"
+    ],
+    "type": "file",
+    "value": "a6c05f25c4424b6f5e46afc48334153207bfbcd93bdc80804a99db778f3b83a4",
+    "yara_meta": [
+      "type=document.rtf"
+    ]
+  }
+}

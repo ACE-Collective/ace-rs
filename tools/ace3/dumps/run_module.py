@@ -543,6 +543,11 @@ TREE_MODULES = {
     "NRDAnalysis": "nrd_analyzer",
     "URLExtractionAnalysis": "url_extraction",
     "IOCExtractionAnalysis": "ioc_extraction",
+    "FileHashAnalysis": "file_hash_analyzer",
+    "BinaryFileAnalysis": "binary_file_analyzer",
+    "LnkParseAnalysis": "lnk_parser",
+    "X509Analysis": "x509_analyzer",
+    "DHashImageAnalysis": "dhash",
 }
 TREE_RUN_FIELDS = {
     "EmailAnalysis": ["details/email/log_entry/date"],

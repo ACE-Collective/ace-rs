@@ -1,0 +1,111 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": true,
+        "is_office_ext": true,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": true,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "text/rtf",
+        "type": "Rich Text Format data, version 1, ANSI"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: Rich Text Format data, version 1, ANSI (text/rtf) (ms office document) (rtf document)",
+      "tags": []
+    },
+    {
+      "class": "FileHashAnalysis",
+      "details": {
+        "md5": "e0095277029bd3b57d0c4143bbf45457",
+        "sha1": "8e3bdaa64b57600e600c699ca69cc1e41311afce",
+        "sha256": "abc88e4d9cdbadeffbc3c5016345f831a39afbe4046105dff6f50aafddd56df8"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.hash:FileHashAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "abc88e4d9cdbadeffbc3c5016345f831a39afbe4046105dff6f50aafddd56df8"
+              },
+              "type": "is_hash_of"
+            }
+          ],
+          "tags": [],
+          "type": "md5",
+          "value": "e0095277029bd3b57d0c4143bbf45457"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "abc88e4d9cdbadeffbc3c5016345f831a39afbe4046105dff6f50aafddd56df8"
+              },
+              "type": "is_hash_of"
+            }
+          ],
+          "tags": [],
+          "type": "sha256",
+          "value": "abc88e4d9cdbadeffbc3c5016345f831a39afbe4046105dff6f50aafddd56df8"
+        }
+      ],
+      "summary": null,
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/files/nul_at_end.rtf as nul_at_end.rtf",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "nul_at_end.rtf",
+      "size": 19,
+      "type": "file",
+      "value": "abc88e4d9cdbadeffbc3c5016345f831a39afbe4046105dff6f50aafddd56df8"
+    }
+  },
+  "module": "file_hash_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=document.rtf"
+    ],
+    "excluded_analysis": [],
+    "file_path": "nul_at_end.rtf",
+    "relationships": [],
+    "size": 19,
+    "tags": [
+      "microsoft_office",
+      "rtf"
+    ],
+    "type": "file",
+    "value": "abc88e4d9cdbadeffbc3c5016345f831a39afbe4046105dff6f50aafddd56df8",
+    "yara_meta": [
+      "type=document.rtf"
+    ]
+  }
+}

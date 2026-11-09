@@ -1,0 +1,58 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "application/javascript",
+        "type": "JavaScript source, ASCII text"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: JavaScript source, ASCII text (application/javascript)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/files/module.mjs as module.mjs",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "module.mjs",
+      "size": 39,
+      "type": "file",
+      "value": "4f9f785848efd5e96ac2e7c880e8c87219b7040e0d1bb30e97d8f8d9de06da7a"
+    }
+  },
+  "module": "file_type",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=script.javascript"
+    ],
+    "excluded_analysis": [],
+    "file_path": "module.mjs",
+    "relationships": [],
+    "size": 39,
+    "tags": [],
+    "type": "file",
+    "value": "4f9f785848efd5e96ac2e7c880e8c87219b7040e0d1bb30e97d8f8d9de06da7a",
+    "yara_meta": [
+      "type=script.javascript"
+    ]
+  }
+}

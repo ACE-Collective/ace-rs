@@ -58,6 +58,15 @@
       },
       "relationships": {},
       "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "ec06ab2341c7a58b0e6537ed4f52eb3d",
+            "sha1": "a73aaf9971b3dea238a8204a9dad7e1bd27b0398",
+            "sha256": "3e3f189ac36ec0c2a480bfa7ac4d80ef8dd2ca8d91b4f4a8697df966afd0784b"
+          },
+          "summary": null,
+          "tags": {}
+        },
         "file_type": {
           "details": {
             "is_email_file": false,
@@ -428,6 +437,16 @@
       },
       "tags": {}
     },
+    "md5:ec06ab2341c7a58b0e6537ed4f52eb3d": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:3e3f189ac36ec0c2a480bfa7ac4d80ef8dd2ca8d91b4f4a8697df966afd0784b": true
+      },
+      "results": {},
+      "tags": {}
+    },
     "message_id:<encrypted_rc4_wrong.email.rfc822@example.com>": {
       "detections": {},
       "directives": {},
@@ -435,6 +454,16 @@
         "message_id_analyzer_v2": true
       },
       "relationships": {},
+      "results": {},
+      "tags": {}
+    },
+    "sha256:3e3f189ac36ec0c2a480bfa7ac4d80ef8dd2ca8d91b4f4a8697df966afd0784b": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:3e3f189ac36ec0c2a480bfa7ac4d80ef8dd2ca8d91b4f4a8697df966afd0784b": true
+      },
       "results": {},
       "tags": {}
     }

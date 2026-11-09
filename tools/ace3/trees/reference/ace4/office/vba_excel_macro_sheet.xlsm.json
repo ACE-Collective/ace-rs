@@ -208,6 +208,15 @@
         "extracted_from file:f50d459cdb507027309bc0e674295160e43d28c339e0b11b1b74451063d445d8": true
       },
       "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "f019ee9a03978aff9f9b78d0ddf3edb7",
+            "sha1": "db9aa86632c6f2cc99684a2dd15d2b64828e7622",
+            "sha256": "29114363f749a0226b6988dda3ca2492a954117ab6b5f382706c20300dabc079"
+          },
+          "summary": null,
+          "tags": {}
+        },
         "file_type": {
           "details": {
             "is_email_file": false,
@@ -295,6 +304,15 @@
         "extracted_from file:f50d459cdb507027309bc0e674295160e43d28c339e0b11b1b74451063d445d8": true
       },
       "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "147057fa188d8e59b898c12b0f6ef317",
+            "sha1": "8561ad972e0f63ebfef0b2cf23b15693df255288",
+            "sha256": "7a47acb442c89d4385f5d64720a0a6f047498ea7a3ae25ff14f402049be3c0a7"
+          },
+          "summary": null,
+          "tags": {}
+        },
         "file_type": {
           "details": {
             "is_email_file": false,
@@ -397,6 +415,15 @@
           "summary": "Archive Analysis: extracted 5 of 5 files: ([Content_Types].xml, xl/workbook.xml, xl/macrosheets/sheet1.xml, xl/vbaProject.bin, _rels/.rels)",
           "tags": {}
         },
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "cf194eddf4c3e4b4550be35fa53761a2",
+            "sha1": "09dff468079fc7f57d3fd1528dd3e16bb6f8d954",
+            "sha256": "f50d459cdb507027309bc0e674295160e43d28c339e0b11b1b74451063d445d8"
+          },
+          "summary": null,
+          "tags": {}
+        },
         "file_type": {
           "details": {
             "is_email_file": false,
@@ -491,6 +518,66 @@
           "tags": {}
         }
       },
+      "tags": {}
+    },
+    "md5:147057fa188d8e59b898c12b0f6ef317": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:7a47acb442c89d4385f5d64720a0a6f047498ea7a3ae25ff14f402049be3c0a7": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:cf194eddf4c3e4b4550be35fa53761a2": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:f50d459cdb507027309bc0e674295160e43d28c339e0b11b1b74451063d445d8": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:f019ee9a03978aff9f9b78d0ddf3edb7": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:29114363f749a0226b6988dda3ca2492a954117ab6b5f382706c20300dabc079": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:29114363f749a0226b6988dda3ca2492a954117ab6b5f382706c20300dabc079": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:29114363f749a0226b6988dda3ca2492a954117ab6b5f382706c20300dabc079": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:7a47acb442c89d4385f5d64720a0a6f047498ea7a3ae25ff14f402049be3c0a7": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:7a47acb442c89d4385f5d64720a0a6f047498ea7a3ae25ff14f402049be3c0a7": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:f50d459cdb507027309bc0e674295160e43d28c339e0b11b1b74451063d445d8": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:f50d459cdb507027309bc0e674295160e43d28c339e0b11b1b74451063d445d8": true
+      },
+      "results": {},
       "tags": {}
     }
   }
