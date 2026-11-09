@@ -40,6 +40,15 @@
           "summary": "File Type Analysis: MIME entity, ASCII text, with CRLF line terminators (text/plain)",
           "tags": {}
         },
+        "hidden_mime": {
+          "details": {
+            "extracted_files": [
+              "<root>/files/vba_mht_bad_mso.mht.mime/extracted-0"
+            ]
+          },
+          "summary": "Hidden MIME Analysis: extracted <root>/files/vba_mht_bad_mso.mht.mime/extracted-0",
+          "tags": {}
+        },
         "html_js_extraction": {
           "details": {
             "dom_snapshot_files": [],
@@ -73,9 +82,12 @@
         "vba_mht_bad_mso.mht.extracted/file_0": {
           "type=document.mhtml.part": true,
           "type=email.attachment": true
-        }
+        },
+        "vba_mht_bad_mso.mht.mime/extracted-0": {}
       },
-      "relationships": {},
+      "relationships": {
+        "extracted_from file:53d025637a192bc60bb1d121917fe14b5e62e15f39517dfc961de2bdd32fbfad": true
+      },
       "results": {
         "file_hash_analyzer": {
           "details": {

@@ -1,0 +1,56 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "text/plain",
+        "type": "multipart/mixed; boundary=e, ASCII text"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: multipart/mixed; boundary=e, ASCII text (text/plain)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/office/mime/empty_parts.txt",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "empty_parts.txt",
+      "size": 84,
+      "type": "file",
+      "value": "82a56afcb89d6578c1ef39f1fcbe2f28dafc27747315d0fd885b0aad0b7ab340"
+    }
+  },
+  "module": "hidden_mime",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "empty_parts.txt",
+    "relationships": [],
+    "size": 84,
+    "tags": [],
+    "type": "file",
+    "value": "82a56afcb89d6578c1ef39f1fcbe2f28dafc27747315d0fd885b0aad0b7ab340",
+    "yara_meta": []
+  }
+}

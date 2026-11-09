@@ -1101,7 +1101,7 @@ async fn measure_html() {
         .ok()
         .and_then(|r| r.parse().ok())
         .unwrap_or(3);
-    let mut manifests = match module.as_str() {
+    let manifests = match module.as_str() {
         "html_data_url_extraction" => vec![ace_mod_html::data_url::MANIFEST],
         "mhtml" => vec![
             ace_mod_files::file_type::MANIFEST,
@@ -1114,10 +1114,25 @@ async fn measure_html() {
         "har_extraction" => vec![ace_mod_html::har::MANIFEST],
         other => panic!("{other} isn't a module of the batch"),
     };
+    measure_files(&dir, &module, runs, manifests, |run, name| {
+        format!("{run}_{name}")
+    })
+    .await;
+}
+
+/// Runs each file in `dir` whose name starts with `module`, `runs` times, as a contained task of the
+/// module, each in a root of its own under the name `alert_name` gives it, and prints the times.
+async fn measure_files(
+    dir: &str,
+    module: &str,
+    runs: usize,
+    mut manifests: Vec<ace_sdk::Manifest>,
+    alert_name: fn(usize, &str) -> String,
+) {
     manifests.dedup_by_key(|m| m.name);
     let names: Vec<&str> = manifests.iter().map(|m| m.name).collect();
     let core = Core::start(manifests.clone(), &names, Duration::from_secs(600)).await;
-    let mut files: Vec<_> = std::fs::read_dir(&dir)
+    let mut files: Vec<_> = std::fs::read_dir(dir)
         .expect("the directory")
         .map(|entry| {
             entry
@@ -1126,7 +1141,7 @@ async fn measure_html() {
                 .into_string()
                 .expect("a name")
         })
-        .filter(|name| name.starts_with(module.as_str()))
+        .filter(|name| name.starts_with(module))
         .collect();
     files.sort();
     let mut pool = supervisor(&core, &[]);
@@ -1134,7 +1149,7 @@ async fn measure_html() {
         let bytes = std::fs::read(format!("{dir}/{name}")).expect("the file");
         for run in 0..runs {
             let (root, _) =
-                root_with_file(&core, "file", &bytes, &format!("{run}_{name}"), &[]).await;
+                root_with_file(&core, "file", &bytes, &alert_name(run, &name), &[]).await;
             // the module's task on the file itself, the first of the root's: the files it writes
             // may queue more of the same module, such as mhtml on each part
             let started = Instant::now();
@@ -1144,7 +1159,7 @@ async fn measure_html() {
                      ORDER BY id LIMIT 1",
                 )
                 .bind(root)
-                .bind(&module)
+                .bind(module)
                 .fetch_optional(core.test_db.db().pool())
                 .await
                 .expect("the task");
@@ -1165,7 +1180,7 @@ async fn measure_html() {
                 "SELECT summary FROM analysis.results WHERE root_id = $1 AND module = $2",
             )
             .bind(root)
-            .bind(&module)
+            .bind(module)
             .fetch_optional(core.test_db.db().pool())
             .await
             .expect("reads")
@@ -1200,6 +1215,45 @@ async fn measure_html() {
         }
     }
     let _ = pool.stop();
+}
+
+/// PLAN.md 7.5 batch 5: what crafted files cost the Office container modules
+/// (docs/measurements/office-containers.md), as `measure_html` measures the HTML ones: each file
+/// `tools/samples/make-office-hostile` wrote to `ACE4_OFFICE_HOSTILE` whose name starts with the
+/// module `ACE4_OFFICE_MODULE` names, `ACE4_OFFICE_RUNS` times (3 by default), file_type first for
+/// the modules that wait for it. A `.rels` file is named `document.xml.rels` in the alert, the
+/// only name `office_xml_rel` reads.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[ignore = "a measurement, with files tools/samples/make-office-hostile makes"]
+async fn measure_office() {
+    let dir = std::env::var("ACE4_OFFICE_HOSTILE").expect("ACE4_OFFICE_HOSTILE");
+    let module = std::env::var("ACE4_OFFICE_MODULE").expect("ACE4_OFFICE_MODULE");
+    let runs: usize = std::env::var("ACE4_OFFICE_RUNS")
+        .ok()
+        .and_then(|r| r.parse().ok())
+        .unwrap_or(3);
+    let manifests = match module.as_str() {
+        "officeparser3" => vec![
+            ace_mod_files::file_type::MANIFEST,
+            ace_mod_office::officeparser::MANIFEST,
+        ],
+        "onenote_extraction" => vec![ace_mod_office::onenote::MANIFEST],
+        "active_mime" => vec![ace_mod_office::active_mime::MANIFEST],
+        "hidden_mime" => vec![
+            ace_mod_files::file_type::MANIFEST,
+            ace_mod_office::hidden_mime::MANIFEST,
+        ],
+        "xml_binary_analyzer" => vec![ace_mod_office::xml::XML_BINARY_MANIFEST],
+        "office_xml_rel" => vec![ace_mod_office::xml::OFFICE_XML_REL_MANIFEST],
+        other => panic!("{other} isn't a module of the batch"),
+    };
+    measure_files(&dir, &module, runs, manifests, |run, name| {
+        match name.strip_suffix(".rels") {
+            Some(stem) => format!("{run}_{stem}/document.xml.rels"),
+            None => format!("{run}_{name}"),
+        }
+    })
+    .await;
 }
 
 /// PLAN.md 7.5 batch 3: what crafted observable values cost the modules that read them

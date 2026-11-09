@@ -627,18 +627,6 @@
       "meta_tags": []
     },
     {
-      "path": "ace4/email/url_newsletter.email.rfc822",
-      "sha256": "71c2b71030bea5a106315fb1a75f56241b967e7b4ab330f8a9e8e6f3d8dab17d",
-      "size": 1558,
-      "kinds": [
-        "email"
-      ],
-      "source": "made by tools/samples/gather: Python email",
-      "in_git": true,
-      "alert_path": "email.rfc822",
-      "meta_tags": []
-    },
-    {
       "path": "ace4/email/encrypted_agile_sha1.email.rfc822",
       "sha256": "ff5afa436c7f30a3e713002877993c80cc39226157ea4a8a939a019c04fcfd2c",
       "size": 24855,
@@ -886,6 +874,18 @@
       "meta_tags": []
     },
     {
+      "path": "ace4/email/url_newsletter.email.rfc822",
+      "sha256": "71c2b71030bea5a106315fb1a75f56241b967e7b4ab330f8a9e8e6f3d8dab17d",
+      "size": 1558,
+      "kinds": [
+        "email"
+      ],
+      "source": "made by tools/samples/gather: Python email",
+      "in_git": true,
+      "alert_path": "email.rfc822",
+      "meta_tags": []
+    },
+    {
       "path": "ace4/html/html2text_long.txt",
       "sha256": "6a65653a34bbc2acd7a7d2e30f310c53779b2c8571b9885e0be2a3090e20d66f",
       "size": 983,
@@ -965,6 +965,118 @@
       "source": "made by tools/samples/gather: HTML_BODIES",
       "in_git": true,
       "alert_path": "html2text_unicode.html",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/js/broken.js",
+      "sha256": "469ffd53d3d26f6bb2d0bbe7760da92d3f36e0066b8b21b714a14104034fe4ac",
+      "size": 21,
+      "kinds": [
+        "js"
+      ],
+      "source": "hand-made: not valid JavaScript",
+      "in_git": true,
+      "alert_path": "broken.js",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/js/dropper.js",
+      "sha256": "4bcb59f7ca66c88ab96a6dbb2069a2822d920d4fef4c176690d99db49ecba517",
+      "size": 104,
+      "kinds": [
+        "js"
+      ],
+      "source": "hand-made: a WScript dropper",
+      "in_git": true,
+      "alert_path": "dropper.js",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/js/loader.mjs",
+      "sha256": "a17e00615d656dbedeef49e6117044edc38aababadddc8df8ff469bd41674286",
+      "size": 86,
+      "kinds": [
+        "js"
+      ],
+      "source": "hand-made: an ES module",
+      "in_git": true,
+      "alert_path": "loader.mjs",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/js/report.JS",
+      "sha256": "c4da8664fbdec242a03810e9cb01932488af2e0d488ec05274f1ffa89cc4c7b6",
+      "size": 21,
+      "kinds": [
+        "js"
+      ],
+      "source": "hand-made: a .JS name, which node refuses",
+      "in_git": true,
+      "alert_path": "report.JS",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/lnk/kitchen_sink.lnk",
+      "sha256": "1b9201cb3fe11a6926e18e9bac2e2d7651f4d4ba0a4901bd213602b8da5341bb",
+      "size": 1613,
+      "kinds": [
+        "lnk"
+      ],
+      "source": "made by crates/ace-lnkparse/tests/data/oracle.py, its case kitchen_sink: every block",
+      "in_git": true,
+      "alert_path": "kitchen_sink.lnk",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/lnk/missing_args.lnk",
+      "sha256": "6452a3ba59a9a9c0b745a5276b7b38037224dbfb1676c5f884b64709688a9f6b",
+      "size": 92,
+      "kinds": [
+        "lnk"
+      ],
+      "source": "made by crates/ace-lnkparse/tests/data/oracle.py, its case strings_missing_args: LnkParse3 raises building the command",
+      "in_git": true,
+      "alert_path": "missing_args.lnk",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/lnk/network.lnk",
+      "sha256": "9ba0ebb34a636848747f907a34656ab8253d2feee43eca83c031024af33806ca",
+      "size": 176,
+      "kinds": [
+        "lnk"
+      ],
+      "source": "made by crates/ace-lnkparse/tests/data/oracle.py, its case info_network",
+      "in_git": true,
+      "alert_path": "network.lnk",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/lnk/shortcut.lnk",
+      "sha256": "15e18daee0dd709c076438da99b29b9779f997583cd07a1c54a46663f32914da",
+      "size": 1374,
+      "kinds": [
+        "lnk"
+      ],
+      "source": "made by crates/ace-lnkparse/tests/data/oracle.py, its case typical_local",
+      "in_git": true,
+      "alert_path": "shortcut.lnk",
       "meta_tags": [
         "type=email.attachment"
       ]
@@ -1516,6 +1628,20 @@
       ]
     },
     {
+      "path": "ace4/office/external_ole.docx",
+      "sha256": "c64b0c7a028512ace7fd98bb12c5fe0812f04e100b09577edce2f05ad864aa36",
+      "size": 1273,
+      "kinds": [
+        "office/containers"
+      ],
+      "source": "tools/samples/make-office-containers",
+      "in_git": true,
+      "alert_path": "external_ole.docx",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
       "path": "ace4/office/garbage.doc",
       "sha256": "10fc3c51a152e90e5b90319b601d92ccf37290ef53c35ff92507687d8a911a08",
       "size": 2048,
@@ -1530,6 +1656,20 @@
       ]
     },
     {
+      "path": "ace4/office/hidden_mime.bin",
+      "sha256": "c3ce1983c63b328862137b7d05fee20b6f81d53cb200f2d4297bc2526a1c2b83",
+      "size": 408,
+      "kinds": [
+        "office/containers"
+      ],
+      "source": "tools/samples/make-office-containers",
+      "in_git": true,
+      "alert_path": "hidden_mime.bin",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
       "path": "ace4/office/html_named.doc",
       "sha256": "c7adecb278fcff407858c2be8ab67837370598bc1ff322673a29c9fefed472eb",
       "size": 46,
@@ -1539,6 +1679,20 @@
       "source": "made by tools/samples/gather: by hand",
       "in_git": true,
       "alert_path": "html_named.doc",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/invoice.one",
+      "sha256": "b332dfb36c066e2f7cfd78cbe5d82bf257003ab63e66d106cfc4b21bdf45a731",
+      "size": 1322,
+      "kinds": [
+        "office/containers"
+      ],
+      "source": "tools/samples/make-office-containers",
+      "in_git": true,
+      "alert_path": "invoice.one",
       "meta_tags": [
         "type=email.attachment"
       ]
@@ -1903,6 +2057,34 @@
       "source": "tools/samples/make-oletools",
       "in_git": true,
       "alert_path": "ole_wide_directory.doc",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/oledata.mso",
+      "sha256": "e771da88ff76c35e9e6e841ad684356e5d33663a10924729875a70ff9de9b462",
+      "size": 930,
+      "kinds": [
+        "office/containers"
+      ],
+      "source": "tools/samples/make-office-containers",
+      "in_git": true,
+      "alert_path": "oledata.mso",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/package_object.doc",
+      "sha256": "eecb200c85b4d29b859fe3d4415c4c410e5d498d141c371928b797ab04309476",
+      "size": 5147,
+      "kinds": [
+        "office/containers"
+      ],
+      "source": "tools/samples/make-office-containers",
+      "in_git": true,
+      "alert_path": "package_object.doc",
       "meta_tags": [
         "type=email.attachment"
       ]
@@ -2337,6 +2519,20 @@
       "source": "tools/samples/make-oletools",
       "in_git": true,
       "alert_path": "vba_xlm_obfuscated.xlsm",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/office/word2003.xml",
+      "sha256": "3c5b6f7844104c9efe7899f7e274266a7faa92fe72a14702912b5a2de1c00fb4",
+      "size": 32402,
+      "kinds": [
+        "office/containers"
+      ],
+      "source": "tools/samples/make-office-containers",
+      "in_git": true,
+      "alert_path": "word2003.xml",
       "meta_tags": [
         "type=email.attachment"
       ]
@@ -5102,6 +5298,21 @@
       ]
     },
     {
+      "path": "ace4/rtf/nul_byte.rtf",
+      "sha256": "2fc8f016584d950c5288f79848b62356e4517fe8b0b33feb99a2a829f39e8fac",
+      "size": 70,
+      "kinds": [
+        "rtf",
+        "rtf/hand-made"
+      ],
+      "source": "hand-made: an RTF file with a NUL byte, which binary_file_analyzer sandboxes",
+      "in_git": true,
+      "alert_path": "nul_byte.rtf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
       "path": "ace4/rtf/objects.rtf",
       "sha256": "0d652dc8b0cc3ecb9d3111ea218e2f1f78fbe553fac50594a1aafc80e81a000b",
       "size": 443613,
@@ -5127,6 +5338,144 @@
       "source": "made by tools/samples/gather: by hand",
       "in_git": true,
       "alert_path": "text_named.rtf",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/web/data_urls.html",
+      "sha256": "d320c25f51ca1ca49426e3eedb1c27b867712969251b8f8ec24be7115c731055",
+      "size": 549,
+      "kinds": [
+        "web/html"
+      ],
+      "source": "hand-made for 7.5 batch 4, the same as tools/ace3/dumps/fixtures/html/data_urls.html",
+      "in_git": true,
+      "alert_path": "data_urls.html",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/web/drawing.svg",
+      "sha256": "9c9e609f574140b24f1667a6c30dca7b96a7b595ac2493da44b0c9276d7611cd",
+      "size": 453,
+      "kinds": [
+        "web/svg"
+      ],
+      "source": "hand-made for 7.5 batch 4, the same as tools/ace3/dumps/fixtures/html/drawing.svg",
+      "in_git": true,
+      "alert_path": "drawing.svg",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/web/frames.mhtml",
+      "sha256": "4880667e988518410c24822a4fe85e35cece707221453eb0cf5530bc1428af5b",
+      "size": 472,
+      "kinds": [
+        "web/mhtml"
+      ],
+      "source": "hand-made for 7.5 batch 4, the same as tools/ace3/dumps/fixtures/html/frames.mhtml",
+      "in_git": true,
+      "alert_path": "frames.mhtml",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/web/html_body.email.rfc822",
+      "sha256": "1092c7c7616fb9b569cc5c935eebb70272fd24db68c5a12149d9111f87e9e6a1",
+      "size": 1130,
+      "kinds": [
+        "email"
+      ],
+      "source": "hand-made for 7.5 batch 4: an HTML email with a data URL image, a script, an event handler and an MHTML attachment",
+      "in_git": true,
+      "alert_path": "email.rfc822",
+      "meta_tags": []
+    },
+    {
+      "path": "ace4/web/page.mht",
+      "sha256": "ada40a782656b1a955d51f67e51c47eae5059779e765a73114079979ec7c2703",
+      "size": 1302,
+      "kinds": [
+        "web/mhtml"
+      ],
+      "source": "hand-made for 7.5 batch 4: tools/ace3/dumps/fixtures/html/page.mht with MIME-Version first, so it isn't also an email, as a page saved by Blink, starting From:, is",
+      "in_git": true,
+      "alert_path": "page.mht",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/web/scripts.html",
+      "sha256": "2035a8f88ae48690b8b88a2f2a4287ab4c4187990a35387eb1e1bf7093962f7b",
+      "size": 10454,
+      "kinds": [
+        "web/html"
+      ],
+      "source": "hand-made for 7.5 batch 4, the same as tools/ace3/dumps/fixtures/html/scripts.html",
+      "in_git": true,
+      "alert_path": "scripts.html",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/web/session.har",
+      "sha256": "51d8c6fee3b88dcf2a07ce7170b372898d2e6ad91a88937e41e6d86ed4d7afe3",
+      "size": 6372,
+      "kinds": [
+        "web/har"
+      ],
+      "source": "hand-made for 7.5 batch 4, the same as tools/ace3/dumps/fixtures/html/session.har",
+      "in_git": true,
+      "alert_path": "session.har",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/x509/cert.der",
+      "sha256": "632e2973acdd48febc6cb5016863a6a032623d3955dd198be8a4cb313cdda068",
+      "size": 527,
+      "kinds": [
+        "x509"
+      ],
+      "source": "made by tools/samples/make-x509: the same certificate, DER",
+      "in_git": true,
+      "alert_path": "cert.der",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/x509/cert.pem",
+      "sha256": "1bd9f3516b54184356af6f061380c6c6c48d83dcee8a0a9a2aedc83e135ccfea",
+      "size": 769,
+      "kinds": [
+        "x509"
+      ],
+      "source": "made by tools/samples/make-x509: a wildcard CN, two DNS names and an IP address, PEM",
+      "in_git": true,
+      "alert_path": "cert.pem",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/x509/no_cn.pem",
+      "sha256": "22c4bf2b6c236e704eead8f781d461979b058d8671425c69aeb2aba4cde685a1",
+      "size": 661,
+      "kinds": [
+        "x509"
+      ],
+      "source": "made by tools/samples/make-x509: no common name, after a line of text",
+      "in_git": true,
+      "alert_path": "no_cn.pem",
       "meta_tags": [
         "type=email.attachment"
       ]
@@ -5277,271 +5626,6 @@
       "meta_tags": [
         "type=email.attachment"
       ]
-    },
-    {
-      "path": "ace4/x509/cert.pem",
-      "sha256": "1bd9f3516b54184356af6f061380c6c6c48d83dcee8a0a9a2aedc83e135ccfea",
-      "size": 769,
-      "kinds": [
-        "x509"
-      ],
-      "source": "made by tools/samples/make-x509: a wildcard CN, two DNS names and an IP address, PEM",
-      "in_git": true,
-      "alert_path": "cert.pem",
-      "meta_tags": [
-        "type=email.attachment"
-      ]
-    },
-    {
-      "path": "ace4/x509/cert.der",
-      "sha256": "632e2973acdd48febc6cb5016863a6a032623d3955dd198be8a4cb313cdda068",
-      "size": 527,
-      "kinds": [
-        "x509"
-      ],
-      "source": "made by tools/samples/make-x509: the same certificate, DER",
-      "in_git": true,
-      "alert_path": "cert.der",
-      "meta_tags": [
-        "type=email.attachment"
-      ]
-    },
-    {
-      "path": "ace4/x509/no_cn.pem",
-      "sha256": "22c4bf2b6c236e704eead8f781d461979b058d8671425c69aeb2aba4cde685a1",
-      "size": 661,
-      "kinds": [
-        "x509"
-      ],
-      "source": "made by tools/samples/make-x509: no common name, after a line of text",
-      "in_git": true,
-      "alert_path": "no_cn.pem",
-      "meta_tags": [
-        "type=email.attachment"
-      ]
-    },
-    {
-      "path": "ace4/lnk/shortcut.lnk",
-      "sha256": "15e18daee0dd709c076438da99b29b9779f997583cd07a1c54a46663f32914da",
-      "size": 1374,
-      "kinds": [
-        "lnk"
-      ],
-      "source": "made by crates/ace-lnkparse/tests/data/oracle.py, its case typical_local",
-      "in_git": true,
-      "alert_path": "shortcut.lnk",
-      "meta_tags": [
-        "type=email.attachment"
-      ]
-    },
-    {
-      "path": "ace4/lnk/kitchen_sink.lnk",
-      "sha256": "1b9201cb3fe11a6926e18e9bac2e2d7651f4d4ba0a4901bd213602b8da5341bb",
-      "size": 1613,
-      "kinds": [
-        "lnk"
-      ],
-      "source": "made by crates/ace-lnkparse/tests/data/oracle.py, its case kitchen_sink: every block",
-      "in_git": true,
-      "alert_path": "kitchen_sink.lnk",
-      "meta_tags": [
-        "type=email.attachment"
-      ]
-    },
-    {
-      "path": "ace4/lnk/network.lnk",
-      "sha256": "9ba0ebb34a636848747f907a34656ab8253d2feee43eca83c031024af33806ca",
-      "size": 176,
-      "kinds": [
-        "lnk"
-      ],
-      "source": "made by crates/ace-lnkparse/tests/data/oracle.py, its case info_network",
-      "in_git": true,
-      "alert_path": "network.lnk",
-      "meta_tags": [
-        "type=email.attachment"
-      ]
-    },
-    {
-      "path": "ace4/lnk/missing_args.lnk",
-      "sha256": "6452a3ba59a9a9c0b745a5276b7b38037224dbfb1676c5f884b64709688a9f6b",
-      "size": 92,
-      "kinds": [
-        "lnk"
-      ],
-      "source": "made by crates/ace-lnkparse/tests/data/oracle.py, its case strings_missing_args: LnkParse3 raises building the command",
-      "in_git": true,
-      "alert_path": "missing_args.lnk",
-      "meta_tags": [
-        "type=email.attachment"
-      ]
-    },
-    {
-      "path": "ace4/js/dropper.js",
-      "sha256": "4bcb59f7ca66c88ab96a6dbb2069a2822d920d4fef4c176690d99db49ecba517",
-      "size": 104,
-      "kinds": [
-        "js"
-      ],
-      "source": "hand-made: a WScript dropper",
-      "in_git": true,
-      "alert_path": "dropper.js",
-      "meta_tags": [
-        "type=email.attachment"
-      ]
-    },
-    {
-      "path": "ace4/js/report.JS",
-      "sha256": "c4da8664fbdec242a03810e9cb01932488af2e0d488ec05274f1ffa89cc4c7b6",
-      "size": 21,
-      "kinds": [
-        "js"
-      ],
-      "source": "hand-made: a .JS name, which node refuses",
-      "in_git": true,
-      "alert_path": "report.JS",
-      "meta_tags": [
-        "type=email.attachment"
-      ]
-    },
-    {
-      "path": "ace4/js/broken.js",
-      "sha256": "469ffd53d3d26f6bb2d0bbe7760da92d3f36e0066b8b21b714a14104034fe4ac",
-      "size": 21,
-      "kinds": [
-        "js"
-      ],
-      "source": "hand-made: not valid JavaScript",
-      "in_git": true,
-      "alert_path": "broken.js",
-      "meta_tags": [
-        "type=email.attachment"
-      ]
-    },
-    {
-      "path": "ace4/js/loader.mjs",
-      "sha256": "a17e00615d656dbedeef49e6117044edc38aababadddc8df8ff469bd41674286",
-      "size": 86,
-      "kinds": [
-        "js"
-      ],
-      "source": "hand-made: an ES module",
-      "in_git": true,
-      "alert_path": "loader.mjs",
-      "meta_tags": [
-        "type=email.attachment"
-      ]
-    },
-    {
-      "path": "ace4/rtf/nul_byte.rtf",
-      "sha256": "2fc8f016584d950c5288f79848b62356e4517fe8b0b33feb99a2a829f39e8fac",
-      "size": 70,
-      "kinds": [
-        "rtf",
-        "rtf/hand-made"
-      ],
-      "source": "hand-made: an RTF file with a NUL byte, which binary_file_analyzer sandboxes",
-      "in_git": true,
-      "alert_path": "nul_byte.rtf",
-      "meta_tags": [
-        "type=email.attachment"
-      ]
-    },
-    {
-      "path": "ace4/web/scripts.html",
-      "sha256": "2035a8f88ae48690b8b88a2f2a4287ab4c4187990a35387eb1e1bf7093962f7b",
-      "size": 10454,
-      "kinds": [
-        "web/html"
-      ],
-      "source": "hand-made for 7.5 batch 4, the same as tools/ace3/dumps/fixtures/html/scripts.html",
-      "in_git": true,
-      "alert_path": "scripts.html",
-      "meta_tags": [
-        "type=email.attachment"
-      ]
-    },
-    {
-      "path": "ace4/web/drawing.svg",
-      "sha256": "9c9e609f574140b24f1667a6c30dca7b96a7b595ac2493da44b0c9276d7611cd",
-      "size": 453,
-      "kinds": [
-        "web/svg"
-      ],
-      "source": "hand-made for 7.5 batch 4, the same as tools/ace3/dumps/fixtures/html/drawing.svg",
-      "in_git": true,
-      "alert_path": "drawing.svg",
-      "meta_tags": [
-        "type=email.attachment"
-      ]
-    },
-    {
-      "path": "ace4/web/page.mht",
-      "sha256": "ada40a782656b1a955d51f67e51c47eae5059779e765a73114079979ec7c2703",
-      "size": 1302,
-      "kinds": [
-        "web/mhtml"
-      ],
-      "source": "hand-made for 7.5 batch 4: tools/ace3/dumps/fixtures/html/page.mht with MIME-Version first, so it isn't also an email, as a page saved by Blink, starting From:, is",
-      "in_git": true,
-      "alert_path": "page.mht",
-      "meta_tags": [
-        "type=email.attachment"
-      ]
-    },
-    {
-      "path": "ace4/web/session.har",
-      "sha256": "51d8c6fee3b88dcf2a07ce7170b372898d2e6ad91a88937e41e6d86ed4d7afe3",
-      "size": 6372,
-      "kinds": [
-        "web/har"
-      ],
-      "source": "hand-made for 7.5 batch 4, the same as tools/ace3/dumps/fixtures/html/session.har",
-      "in_git": true,
-      "alert_path": "session.har",
-      "meta_tags": [
-        "type=email.attachment"
-      ]
-    },
-    {
-      "path": "ace4/web/data_urls.html",
-      "sha256": "d320c25f51ca1ca49426e3eedb1c27b867712969251b8f8ec24be7115c731055",
-      "size": 549,
-      "kinds": [
-        "web/html"
-      ],
-      "source": "hand-made for 7.5 batch 4, the same as tools/ace3/dumps/fixtures/html/data_urls.html",
-      "in_git": true,
-      "alert_path": "data_urls.html",
-      "meta_tags": [
-        "type=email.attachment"
-      ]
-    },
-    {
-      "path": "ace4/web/frames.mhtml",
-      "sha256": "4880667e988518410c24822a4fe85e35cece707221453eb0cf5530bc1428af5b",
-      "size": 472,
-      "kinds": [
-        "web/mhtml"
-      ],
-      "source": "hand-made for 7.5 batch 4, the same as tools/ace3/dumps/fixtures/html/frames.mhtml",
-      "in_git": true,
-      "alert_path": "frames.mhtml",
-      "meta_tags": [
-        "type=email.attachment"
-      ]
-    },
-    {
-      "path": "ace4/web/html_body.email.rfc822",
-      "sha256": "1092c7c7616fb9b569cc5c935eebb70272fd24db68c5a12149d9111f87e9e6a1",
-      "size": 1130,
-      "kinds": [
-        "email"
-      ],
-      "source": "hand-made for 7.5 batch 4: an HTML email with a data URL image, a script, an event handler and an MHTML attachment",
-      "in_git": true,
-      "alert_path": "email.rfc822",
-      "meta_tags": []
     }
   ]
 }

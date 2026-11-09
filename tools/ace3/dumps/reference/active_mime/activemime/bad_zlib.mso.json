@@ -1,0 +1,30 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [],
+  "input": {
+    "directives": [],
+    "label": "fixtures/office/activemime/bad_zlib.mso",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "bad_zlib.mso",
+      "size": 67,
+      "type": "file",
+      "value": "59d4eb7573c7b88c0e79e0903c965ec81381b9cea8c284726a85b0a8810a7bc6"
+    }
+  },
+  "module": "active_mime",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "bad_zlib.mso",
+    "relationships": [],
+    "size": 67,
+    "tags": [],
+    "type": "file",
+    "value": "59d4eb7573c7b88c0e79e0903c965ec81381b9cea8c284726a85b0a8810a7bc6",
+    "yara_meta": []
+  }
+}

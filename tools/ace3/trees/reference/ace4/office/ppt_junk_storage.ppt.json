@@ -1,6 +1,57 @@
 {
   "form": 1,
   "observables": {
+    "file:2f42b5d33619d0c3b33d9bf636ee54ab1165385b64d3b9e2b3cfa4cfb6721d79": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "ppt_junk_storage.ppt.officeparser/stream_1_0.dat": {}
+      },
+      "redirection": "file:7590c212e4152ea350b0e8f76dbc75fd02729269a8313baa1aba6ee63139c43d",
+      "relationships": {
+        "extracted_from file:7590c212e4152ea350b0e8f76dbc75fd02729269a8313baa1aba6ee63139c43d": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:7590c212e4152ea350b0e8f76dbc75fd02729269a8313baa1aba6ee63139c43d": {
       "detections": {},
       "directives": {
@@ -42,6 +93,16 @@
           "summary": "File Type Analysis: Composite Document File V2 Document, Cannot read section info (application/x-ole-storage) (ms office document) (ole compound file)",
           "tags": {}
         },
+        "officeparser3": {
+          "details": {
+            "extracted_files": [
+              "stream_1_0.dat",
+              "stream_2_0.dat"
+            ]
+          },
+          "summary": "OfficeParser3 Analysis: extracted 2 files",
+          "tags": {}
+        },
         "olevba_v1_2": {
           "details": {
             "keyword_summary": {},
@@ -57,6 +118,57 @@
         "ole": true,
         "olevba_failed": true
       }
+    },
+    "file:b9866cdfd09baad802633307bcd281100988de54b00bf9f480267d8c3e6e936d": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "ppt_junk_storage.ppt.officeparser/stream_2_0.dat": {}
+      },
+      "redirection": "file:7590c212e4152ea350b0e8f76dbc75fd02729269a8313baa1aba6ee63139c43d",
+      "relationships": {
+        "extracted_from file:7590c212e4152ea350b0e8f76dbc75fd02729269a8313baa1aba6ee63139c43d": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
     },
     "md5:f15d1291c2b93f87b2c215affc4caf0d": {
       "detections": {},

@@ -1,0 +1,205 @@
+{
+  "form": 1,
+  "observables": {
+    "file:2e91b674b68e4b790b75d756bf8cfe7e68d52c9631dc9f58247dd26b854c63e5": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "hidden_mime.bin.mime/extracted-1": {
+          "type=executable": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:c3ce1983c63b328862137b7d05fee20b6f81d53cb200f2d4297bc2526a1c2b83": true
+      },
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "3b95bcb4f07bf61de668c71da15c29bf",
+            "sha1": "e8866cc697026612cd7d387ed3435600c3624868",
+            "sha256": "2e91b674b68e4b790b75d756bf8cfe7e68d52c9631dc9f58247dd26b854c63e5"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": true,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/x-dosexec",
+            "type": "MS-DOS executable, MZ for MS-DOS"
+          },
+          "summary": "File Type Analysis: MS-DOS executable, MZ for MS-DOS (application/x-dosexec) (portable executable)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "executable": true
+      }
+    },
+    "file:5d260513a9bd166079119e4d5acff833260ab117813682edc1a144dcfb2bb181": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "hidden_mime.bin.mime/extracted-0": {}
+      },
+      "relationships": {
+        "extracted_from file:c3ce1983c63b328862137b7d05fee20b6f81d53cb200f2d4297bc2526a1c2b83": true
+      },
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "5baaac923d03a9eb677c873742665577",
+            "sha1": "409ae89079fb3813d73e3ba8da5db6a8fbb11ae1",
+            "sha256": "5d260513a9bd166079119e4d5acff833260ab117813682edc1a144dcfb2bb181"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text, with no line terminators"
+          },
+          "summary": "File Type Analysis: ASCII text, with no line terminators (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:c3ce1983c63b328862137b7d05fee20b6f81d53cb200f2d4297bc2526a1c2b83": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "hidden_mime.bin": {
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "02ec29f458b023cb5c688f3b4d5cbfda",
+            "sha1": "0df999f732265f0a120eaee0f420190fdf6d168c",
+            "sha256": "c3ce1983c63b328862137b7d05fee20b6f81d53cb200f2d4297bc2526a1c2b83"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        },
+        "hidden_mime": {
+          "details": {
+            "extracted_files": [
+              "<root>/files/hidden_mime.bin.mime/extracted-0",
+              "<root>/files/hidden_mime.bin.mime/extracted-1"
+            ]
+          },
+          "summary": "Hidden MIME Analysis: extracted <root>/files/hidden_mime.bin.mime/extracted-0, <root>/files/hidden_mime.bin.mime/extracted-1",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "md5:02ec29f458b023cb5c688f3b4d5cbfda": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:c3ce1983c63b328862137b7d05fee20b6f81d53cb200f2d4297bc2526a1c2b83": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:3b95bcb4f07bf61de668c71da15c29bf": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:2e91b674b68e4b790b75d756bf8cfe7e68d52c9631dc9f58247dd26b854c63e5": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:5baaac923d03a9eb677c873742665577": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:5d260513a9bd166079119e4d5acff833260ab117813682edc1a144dcfb2bb181": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:2e91b674b68e4b790b75d756bf8cfe7e68d52c9631dc9f58247dd26b854c63e5": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:2e91b674b68e4b790b75d756bf8cfe7e68d52c9631dc9f58247dd26b854c63e5": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:5d260513a9bd166079119e4d5acff833260ab117813682edc1a144dcfb2bb181": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:5d260513a9bd166079119e4d5acff833260ab117813682edc1a144dcfb2bb181": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:c3ce1983c63b328862137b7d05fee20b6f81d53cb200f2d4297bc2526a1c2b83": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:c3ce1983c63b328862137b7d05fee20b6f81d53cb200f2d4297bc2526a1c2b83": true
+      },
+      "results": {},
+      "tags": {}
+    }
+  }
+}

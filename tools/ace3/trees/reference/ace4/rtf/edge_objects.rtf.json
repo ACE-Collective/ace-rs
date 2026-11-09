@@ -184,6 +184,15 @@
           "summary": "File Type Analysis: Composite Document File V2 Document, Cannot read section info (application/x-ole-storage) (ms office document) (ole compound file)",
           "tags": {}
         },
+        "officeparser3": {
+          "details": {
+            "extracted_files": [
+              "stream_1_0.dat"
+            ]
+          },
+          "summary": "OfficeParser3 Analysis: extracted 1 files",
+          "tags": {}
+        },
         "olevba_v1_2": {
           "details": {
             "keyword_summary": {},
@@ -407,6 +416,57 @@
       "tags": {
         "extracted_rtf": true
       }
+    },
+    "file:72996563049cc84daa2c3f31fd5c3d10770e69d6ebbb8da5b6d76db303dbae43": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "edge_objects.rtf.rtfobj/edge_objects.rtf_object_000018EF.bin.officeparser/stream_1_0.dat": {}
+      },
+      "redirection": "file:2435de8f3a91f59c8529adb3784b3f1cad0b3f6a5f9b28a4c21fa1fba1cfe89d",
+      "relationships": {
+        "extracted_from file:2435de8f3a91f59c8529adb3784b3f1cad0b3f6a5f9b28a4c21fa1fba1cfe89d": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "MGR bitmap, old format, 1-bit deep, 16-bit aligned"
+          },
+          "summary": "File Type Analysis: MGR bitmap, old format, 1-bit deep, 16-bit aligned (text/plain)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
     },
     "file:7d601f9d20703a97b8cb530538dbbadaa3e4bdfa5f333977e4232f51eebdc47a": {
       "detections": {},
@@ -677,6 +737,57 @@
         "extracted_rtf": true
       }
     },
+    "file:a1fce4363854ff888cff4b8e7875d600c2682390412a8cf79b37d0b11148b0fa": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "edge_objects.rtf.rtfobj/edge_objects.rtf_object_0000047E.doc.officeparser/stream_1_0.dat": {}
+      },
+      "redirection": "file:b5c6d9e6193925ff9fe61706dcedca703f5b983e3ae9a0170c9b1f4e72bb9c7a",
+      "relationships": {
+        "extracted_from file:b5c6d9e6193925ff9fe61706dcedca703f5b983e3ae9a0170c9b1f4e72bb9c7a": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "very short file (no magic)"
+          },
+          "summary": "File Type Analysis: very short file (no magic) (application/octet-stream)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:b5c6d9e6193925ff9fe61706dcedca703f5b983e3ae9a0170c9b1f4e72bb9c7a": {
       "detections": {},
       "directives": {},
@@ -717,6 +828,15 @@
             "type": "Composite Document File V2 Document, Cannot read section info"
           },
           "summary": "File Type Analysis: Composite Document File V2 Document, Cannot read section info (application/x-ole-storage) (ms office document) (ole compound file)",
+          "tags": {}
+        },
+        "officeparser3": {
+          "details": {
+            "extracted_files": [
+              "stream_1_0.dat"
+            ]
+          },
+          "summary": "OfficeParser3 Analysis: extracted 1 files",
           "tags": {}
         },
         "olevba_v1_2": {

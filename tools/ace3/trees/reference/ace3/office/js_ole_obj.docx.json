@@ -41,9 +41,77 @@
           },
           "summary": null,
           "tags": {}
+        },
+        "xml_plain_text_analyzer": {
+          "details": {
+            "xml_plain_text": "js_ole_obj.docx.extracted/word/header1.xml.noxml"
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
+    },
+    "file:08723326cf75980fc041ce208252650c68825761d762e849832386d85f1b40a7": {
+      "detections": {
+        "OLE attachment js_ole_obj.docx.extracted/word/embeddings/oleObject2.bin.officeparser/Text File 30032018 is a javascript file": [
+          null
+        ]
+      },
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "js_ole_obj.docx.extracted/word/embeddings/oleObject2.bin.officeparser/Text File 30032018": {
+          "type=script.javascript": true
+        }
+      },
+      "redirection": "file:7fb4d8857922a72e50815fd32af023baef9b11eed1794b35c7392c3884113ea1",
+      "relationships": {
+        "extracted_from file:7fb4d8857922a72e50815fd32af023baef9b11eed1794b35c7392c3884113ea1": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": [
+              "js_ole_obj.docx.extracted/word/embeddings/oleObject2.bin.officeparser/Text File 30032018"
+            ]
+          },
+          "summary": "Extracted OLE Analysis: identified (js_ole_obj.docx.extracted/word/embeddings/oleObject2.bin.officeparser/Text File 30032018) as suspect files",
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/javascript",
+            "type": "JavaScript source, ASCII text, with very long lines (10481), with no line terminators"
+          },
+          "summary": "File Type Analysis: JavaScript source, ASCII text, with very long lines (10481), with no line terminators (application/javascript)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "suspect_ole_attachment": true
+      }
     },
     "file:0e10f65a582c636090bbfad35c75710ac052fd7fdbbbc942e0790c5225f8c312": {
       "detections": {},
@@ -85,6 +153,17 @@
           "summary": "File Type Analysis: Composite Document File V2 Document, Cannot read section info (application/x-ole-storage) (ms office document) (ole compound file)",
           "tags": {}
         },
+        "officeparser3": {
+          "details": {
+            "extracted_files": [
+              "Font Update v.3627.3.001",
+              "stream_1_0.dat",
+              "stream_2_0.dat"
+            ]
+          },
+          "summary": "OfficeParser3 Analysis: extracted 3 files",
+          "tags": {}
+        },
         "olevba_v1_2": {
           "details": {
             "keyword_summary": {},
@@ -99,6 +178,37 @@
         "microsoft_office": true,
         "ole": true
       }
+    },
+    "file:12341c16af7713e92e8733ea7acd9cf85ffe0e4ae62ab8c13189bcc69c3fc653": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "js_ole_obj.docx.extracted/word/footer1.xml.noxml": {}
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "Unicode text, UTF-8 text, with no line terminators"
+          },
+          "summary": "File Type Analysis: Unicode text, UTF-8 text, with no line terminators (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {}
     },
     "file:1b067ffe3a9403c6f72f2f7adb9da925f1370ea44e34086db0b4169a2346b762": {
       "detections": {},
@@ -137,6 +247,13 @@
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "xml_plain_text_analyzer": {
+          "details": {
+            "xml_plain_text": null
           },
           "summary": null,
           "tags": {}
@@ -184,6 +301,13 @@
           },
           "summary": null,
           "tags": {}
+        },
+        "xml_plain_text_analyzer": {
+          "details": {
+            "xml_plain_text": null
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -225,6 +349,13 @@
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "xml_plain_text_analyzer": {
+          "details": {
+            "xml_plain_text": null
           },
           "summary": null,
           "tags": {}
@@ -272,6 +403,13 @@
           },
           "summary": null,
           "tags": {}
+        },
+        "xml_plain_text_analyzer": {
+          "details": {
+            "xml_plain_text": null
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -313,6 +451,13 @@
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "xml_plain_text_analyzer": {
+          "details": {
+            "xml_plain_text": null
           },
           "summary": null,
           "tags": {}
@@ -360,6 +505,44 @@
           },
           "summary": null,
           "tags": {}
+        },
+        "xml_plain_text_analyzer": {
+          "details": {
+            "xml_plain_text": "js_ole_obj.docx.extracted/word/glossary/document.xml.noxml"
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:38550fb8dbaaea7f6efb38de5f036429c7ef666722ac639a0e30d4ee0a58f0bf": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "js_ole_obj.docx.extracted/docProps/app.xml.noxml": {}
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "Unicode text, UTF-8 text, with no line terminators"
+          },
+          "summary": "File Type Analysis: Unicode text, UTF-8 text, with no line terminators (text/plain)",
+          "tags": {}
         }
       },
       "tags": {}
@@ -401,6 +584,13 @@
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "xml_plain_text_analyzer": {
+          "details": {
+            "xml_plain_text": null
           },
           "summary": null,
           "tags": {}
@@ -448,6 +638,13 @@
           },
           "summary": null,
           "tags": {}
+        },
+        "xml_plain_text_analyzer": {
+          "details": {
+            "xml_plain_text": null
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -483,6 +680,64 @@
             "type": "XML 1.0 document, ASCII text, with CRLF line terminators"
           },
           "summary": "File Type Analysis: XML 1.0 document, ASCII text, with CRLF line terminators (text/xml)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "xml_plain_text_analyzer": {
+          "details": {
+            "xml_plain_text": null
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:5d0e192d75254bc2c452de16963eb161c58eae7b33f84ab7534057e02f145875": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "js_ole_obj.docx.extracted/word/embeddings/oleObject1.bin.officeparser/stream_2_0.dat": {}
+      },
+      "redirection": "file:0e10f65a582c636090bbfad35c75710ac052fd7fdbbbc942e0790c5225f8c312",
+      "relationships": {
+        "extracted_from file:0e10f65a582c636090bbfad35c75710ac052fd7fdbbbc942e0790c5225f8c312": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
           "tags": {}
         },
         "url_extraction": {
@@ -536,6 +791,44 @@
           },
           "summary": null,
           "tags": {}
+        },
+        "xml_plain_text_analyzer": {
+          "details": {
+            "xml_plain_text": null
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:62973d22c4410bf75654e39d50ce8ba0b844c9fc88843f4dac14db612809e25b": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "js_ole_obj.docx.extracted/word/glossary/document.xml.noxml": {}
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "Unicode text, UTF-8 text, with no line terminators"
+          },
+          "summary": "File Type Analysis: Unicode text, UTF-8 text, with no line terminators (text/plain)",
+          "tags": {}
         }
       },
       "tags": {}
@@ -577,6 +870,13 @@
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "xml_plain_text_analyzer": {
+          "details": {
+            "xml_plain_text": null
           },
           "summary": null,
           "tags": {}
@@ -719,6 +1019,71 @@
           "summary": "File Type Analysis: XML 1.0 document, ASCII text, with very long lines (628), with CRLF line terminators (text/xml)",
           "tags": {}
         },
+        "office_xml_rel": {
+          "details": {
+            "urls": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "xml_plain_text_analyzer": {
+          "details": {
+            "xml_plain_text": null
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:6d21e4521cc21c30c57cab3bd8a3d31e435e1f43ca48ca511682355b5803582c": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "js_ole_obj.docx.extracted/word/embeddings/oleObject2.bin.officeparser/stream_2_0.dat": {}
+      },
+      "redirection": "file:7fb4d8857922a72e50815fd32af023baef9b11eed1794b35c7392c3884113ea1",
+      "relationships": {
+        "extracted_from file:7fb4d8857922a72e50815fd32af023baef9b11eed1794b35c7392c3884113ea1": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [],
@@ -770,6 +1135,44 @@
           },
           "summary": null,
           "tags": {}
+        },
+        "xml_plain_text_analyzer": {
+          "details": {
+            "xml_plain_text": null
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:751eebbbc0f8df28338688db6981e8ed1ad53a360352e38860529469355149fc": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "js_ole_obj.docx.extracted/customXml/item1.xml.noxml": {}
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text, with no line terminators"
+          },
+          "summary": "File Type Analysis: ASCII text, with no line terminators (text/plain)",
+          "tags": {}
         }
       },
       "tags": {}
@@ -812,6 +1215,17 @@
             "type": "Composite Document File V2 Document, Cannot read section info"
           },
           "summary": "File Type Analysis: Composite Document File V2 Document, Cannot read section info (application/x-ole-storage) (ms office document) (ole compound file)",
+          "tags": {}
+        },
+        "officeparser3": {
+          "details": {
+            "extracted_files": [
+              "Text File 30032018",
+              "stream_1_0.dat",
+              "stream_2_0.dat"
+            ]
+          },
+          "summary": "OfficeParser3 Analysis: extracted 3 files",
           "tags": {}
         },
         "olevba_v1_2": {
@@ -869,6 +1283,44 @@
           },
           "summary": null,
           "tags": {}
+        },
+        "xml_plain_text_analyzer": {
+          "details": {
+            "xml_plain_text": null
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:8165a779e51ea86810e9bbd9cd993e96ca2b9c89a6c11b465674134f98f0b373": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "js_ole_obj.docx.extracted/word/header1.xml.noxml": {}
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text, with no line terminators"
+          },
+          "summary": "File Type Analysis: ASCII text, with no line terminators (text/plain)",
+          "tags": {}
         }
       },
       "tags": {}
@@ -910,6 +1362,13 @@
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "xml_plain_text_analyzer": {
+          "details": {
+            "xml_plain_text": null
           },
           "summary": null,
           "tags": {}
@@ -1036,6 +1495,66 @@
           },
           "summary": null,
           "tags": {}
+        },
+        "xml_plain_text_analyzer": {
+          "details": {
+            "xml_plain_text": null
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:95b696148e88b97cc95d8bec1177cba7c0e599817a6f328b40ed673ed2754b98": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "js_ole_obj.docx.extracted/word/embeddings/oleObject1.bin.officeparser/stream_1_0.dat": {},
+        "js_ole_obj.docx.extracted/word/embeddings/oleObject2.bin.officeparser/stream_1_0.dat": {}
+      },
+      "redirection": "file:0e10f65a582c636090bbfad35c75710ac052fd7fdbbbc942e0790c5225f8c312",
+      "relationships": {
+        "extracted_from file:0e10f65a582c636090bbfad35c75710ac052fd7fdbbbc942e0790c5225f8c312": true,
+        "extracted_from file:7fb4d8857922a72e50815fd32af023baef9b11eed1794b35c7392c3884113ea1": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -1080,6 +1599,13 @@
           },
           "summary": null,
           "tags": {}
+        },
+        "xml_plain_text_analyzer": {
+          "details": {
+            "xml_plain_text": "js_ole_obj.docx.extracted/customXml/item1.xml.noxml"
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -1117,10 +1643,24 @@
           "summary": "File Type Analysis: XML 1.0 document, ASCII text, with very long lines (2550), with CRLF line terminators (text/xml)",
           "tags": {}
         },
+        "office_xml_rel": {
+          "details": {
+            "urls": []
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "xml_plain_text_analyzer": {
+          "details": {
+            "xml_plain_text": null
           },
           "summary": null,
           "tags": {}
@@ -1168,6 +1708,13 @@
           },
           "summary": null,
           "tags": {}
+        },
+        "xml_plain_text_analyzer": {
+          "details": {
+            "xml_plain_text": "js_ole_obj.docx.extracted/word/document.xml.noxml"
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -1211,6 +1758,44 @@
             "urls_grouped_by_domain": {}
           },
           "summary": null,
+          "tags": {}
+        },
+        "xml_plain_text_analyzer": {
+          "details": {
+            "xml_plain_text": "js_ole_obj.docx.extracted/docProps/app.xml.noxml"
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "js_ole_obj.docx.extracted/customXml/item2.xml.noxml": {}
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text, with no line terminators"
+          },
+          "summary": "File Type Analysis: ASCII text, with no line terminators (text/plain)",
           "tags": {}
         }
       },
@@ -1256,9 +1841,95 @@
           },
           "summary": null,
           "tags": {}
+        },
+        "xml_plain_text_analyzer": {
+          "details": {
+            "xml_plain_text": null
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
+    },
+    "file:ca4a1d6f92c6839e4fdf7f2c45a881871dc99cf0b95f3cfa59f58ca5e273863d": {
+      "detections": {
+        "OLE attachment js_ole_obj.docx.extracted/word/embeddings/oleObject1.bin.officeparser/Font Update v.3627.3.001 is a javascript file": [
+          null
+        ]
+      },
+      "directives": {
+        "extract_urls": true,
+        "sandbox": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "js_ole_obj.docx.extracted/word/embeddings/oleObject1.bin.officeparser/Font Update v.3627.3.001": {
+          "type=script.javascript": true
+        },
+        "js_ole_obj.docx.extracted/word/embeddings/oleObject1.bin.officeparser/Font Update v.3627.3.001.extracted/Font Update v.3627.3": {
+          "type=script.javascript": true
+        }
+      },
+      "redirection": "file:0e10f65a582c636090bbfad35c75710ac052fd7fdbbbc942e0790c5225f8c312",
+      "relationships": {
+        "extracted_from file:0e10f65a582c636090bbfad35c75710ac052fd7fdbbbc942e0790c5225f8c312": true,
+        "extracted_from file:ca4a1d6f92c6839e4fdf7f2c45a881871dc99cf0b95f3cfa59f58ca5e273863d": true
+      },
+      "results": {
+        "archive": {
+          "details": {
+            "extracted_files": [
+              "Font Update v.3627.3"
+            ],
+            "extraction_error": null,
+            "file_count": 1
+          },
+          "summary": "Archive Analysis: extracted 1 of 1 files: (Font Update v.3627.3)",
+          "tags": {
+            "single_file_zip": true
+          }
+        },
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": [
+              "js_ole_obj.docx.extracted/word/embeddings/oleObject1.bin.officeparser/Font Update v.3627.3.001"
+            ]
+          },
+          "summary": "Extracted OLE Analysis: identified (js_ole_obj.docx.extracted/word/embeddings/oleObject1.bin.officeparser/Font Update v.3627.3.001) as suspect files",
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/javascript",
+            "type": "JavaScript source, ASCII text, with very long lines (12766), with no line terminators"
+          },
+          "summary": "File Type Analysis: JavaScript source, ASCII text, with very long lines (12766), with no line terminators (application/javascript)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "suspect_ole_attachment": true
+      }
     },
     "file:cca9ca37e7268681edb1aa6c509e9c654801774516f50ff73defc080f372d653": {
       "detections": {},
@@ -1297,6 +1968,13 @@
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "xml_plain_text_analyzer": {
+          "details": {
+            "xml_plain_text": "js_ole_obj.docx.extracted/docProps/core.xml.noxml"
           },
           "summary": null,
           "tags": {}
@@ -1344,6 +2022,13 @@
           },
           "summary": null,
           "tags": {}
+        },
+        "xml_plain_text_analyzer": {
+          "details": {
+            "xml_plain_text": null
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -1387,6 +2072,44 @@
             "urls_grouped_by_domain": {}
           },
           "summary": null,
+          "tags": {}
+        },
+        "xml_plain_text_analyzer": {
+          "details": {
+            "xml_plain_text": null
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:d5f99cb41a64c36600555bd602c84e26e6e50748e550f2a0a0478a947407f8d5": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "js_ole_obj.docx.extracted/docProps/core.xml.noxml": {}
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text, with no line terminators"
+          },
+          "summary": "File Type Analysis: ASCII text, with no line terminators (text/plain)",
           "tags": {}
         }
       },
@@ -1432,6 +2155,44 @@
           },
           "summary": null,
           "tags": {}
+        },
+        "xml_plain_text_analyzer": {
+          "details": {
+            "xml_plain_text": null
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:da686cf66db7aa0f751ea9a109ee7d931a5cdc2ac80f6392d46a454953b7ca9e": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "js_ole_obj.docx.extracted/word/document.xml.noxml": {}
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "Unicode text, UTF-8 text, with very long lines (325), with no line terminators"
+          },
+          "summary": "File Type Analysis: Unicode text, UTF-8 text, with very long lines (325), with no line terminators (text/plain)",
+          "tags": {}
         }
       },
       "tags": {}
@@ -1473,6 +2234,13 @@
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "xml_plain_text_analyzer": {
+          "details": {
+            "xml_plain_text": null
           },
           "summary": null,
           "tags": {}
@@ -1520,6 +2288,13 @@
           },
           "summary": null,
           "tags": {}
+        },
+        "xml_plain_text_analyzer": {
+          "details": {
+            "xml_plain_text": null
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -1561,6 +2336,13 @@
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "xml_plain_text_analyzer": {
+          "details": {
+            "xml_plain_text": null
           },
           "summary": null,
           "tags": {}
@@ -1608,6 +2390,13 @@
           },
           "summary": null,
           "tags": {}
+        },
+        "xml_plain_text_analyzer": {
+          "details": {
+            "xml_plain_text": "js_ole_obj.docx.extracted/customXml/item2.xml.noxml"
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -1652,6 +2441,13 @@
           },
           "summary": null,
           "tags": {}
+        },
+        "xml_plain_text_analyzer": {
+          "details": {
+            "xml_plain_text": null
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -1693,6 +2489,13 @@
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "xml_plain_text_analyzer": {
+          "details": {
+            "xml_plain_text": null
           },
           "summary": null,
           "tags": {}
@@ -1780,6 +2583,13 @@
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "xml_plain_text_analyzer": {
+          "details": {
+            "xml_plain_text": "js_ole_obj.docx.extracted/word/footer1.xml.noxml"
           },
           "summary": null,
           "tags": {}

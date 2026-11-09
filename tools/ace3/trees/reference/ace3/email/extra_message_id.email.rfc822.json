@@ -1837,6 +1837,15 @@
           "summary": "File Type Analysis: ASCII text, with very long lines (904) (text/plain)",
           "tags": {}
         },
+        "hidden_mime": {
+          "details": {
+            "extracted_files": [
+              "<root>/files/email.rfc822.unknown_text_plain_000.txt.mime/extracted-0"
+            ]
+          },
+          "summary": "Hidden MIME Analysis: extracted <root>/files/email.rfc822.unknown_text_plain_000.txt.mime/extracted-0",
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [],
@@ -1882,6 +1891,15 @@
           "summary": "File Type Analysis: HTML document, ASCII text, with very long lines (1035) (text/html)",
           "tags": {}
         },
+        "hidden_mime": {
+          "details": {
+            "extracted_files": [
+              "<root>/files/email.rfc822.unknown_text_html_000.html.mime/extracted-0"
+            ]
+          },
+          "summary": "Hidden MIME Analysis: extracted <root>/files/email.rfc822.unknown_text_html_000.html.mime/extracted-0",
+          "tags": {}
+        },
         "html_js_extraction": {
           "details": {
             "dom_snapshot_files": [],
@@ -1901,6 +1919,39 @@
             "urls_grouped_by_domain": {}
           },
           "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:87c607798257769b5afa3a33abed30f6dbdb8c4c77c7efcac5b2a2637f3ca9ec": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "email.rfc822.unknown_text_html_000.html.mime/extracted-0": {}
+      },
+      "relationships": {
+        "extracted_from file:85d4721050cd43a6bd03de6dd434018ab26b978832f71c70c622ba099cdfc708": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text, with very long lines (1035)"
+          },
+          "summary": "File Type Analysis: ASCII text, with very long lines (1035) (text/plain)",
           "tags": {}
         }
       },
@@ -2094,6 +2145,39 @@
             "urls_grouped_by_domain": {}
           },
           "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:a83a831a43dd4b4307252e793778b6fb24303165238c5f982be5e05ff76297b1": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "email.rfc822.unknown_text_plain_000.txt.mime/extracted-0": {}
+      },
+      "relationships": {
+        "extracted_from file:83a2a1cd3be355d137bd2a5d03c709854274d38089a35f81dad5ad315b303357": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text, with very long lines (904)"
+          },
+          "summary": "File Type Analysis: ASCII text, with very long lines (904) (text/plain)",
           "tags": {}
         }
       },

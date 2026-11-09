@@ -1,6 +1,252 @@
 {
   "form": 1,
   "observables": {
+    "email_address:alice@example.com": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "email_address_fqdn_analyzer": {
+          "details": {
+            "domain": "example.com"
+          },
+          "summary": "Email Address FQDN: example.com",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "email_address:bob@example.com": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "email_address_fqdn_analyzer": {
+          "details": {
+            "domain": "example.com"
+          },
+          "summary": "Email Address FQDN: example.com",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:09ddbe6d159c1fae7299f5d4e1281dad6068331d9f651f45a51265277b80f0ed": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "Past Due Invoices.doc.officeparser/stream_2_0.dat.extracted/theme/theme/themeManager.xml": {}
+      },
+      "relationships": {
+        "extracted_from file:2cdd9d9c81d7183c0aa1c2be4c48c728126028c93faf88bc78017ee0265fef27": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/xml",
+            "type": "XML 1.0 document, ASCII text, with CRLF line terminators"
+          },
+          "summary": "File Type Analysis: XML 1.0 document, ASCII text, with CRLF line terminators (text/xml)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:0be3e4b641f04d9188b887d81176a7de26a5e6b5cf53788e8e40ef3e5bb5e788": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true,
+        "sandbox": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "Past Due Invoices.doc.officeparser/AwfzKPwC.bas": {
+          "type=script.macro": true
+        }
+      },
+      "redirection": "file:b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f",
+      "relationships": {
+        "extracted_from file:b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text, with very long lines (457), with CRLF line terminators"
+          },
+          "summary": "File Type Analysis: ASCII text, with very long lines (457), with CRLF line terminators (text/plain)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [
+              "https://YrbfRVIQROLaIJQ.com/IJ",
+              "https://YrbfRVIQROLaIJQ.com/IJ'+'Swi+SwiQ+IJQo20Pv+0PvxIJQ+IJ'+'Q7Bx/?hIJQ'+'+IJQtI0Pv+0PlcdYcFwJjUqmRmkHloKN"
+            ],
+            "urls_grouped_by_domain": {
+              "yrbfrviqrolaijq.com": [
+                "https://YrbfRVIQROLaIJQ.com/IJ",
+                "https://YrbfRVIQROLaIJQ.com/IJ'+'Swi+SwiQ+IJQo20Pv+0PvxIJQ+IJ'+'Q7Bx/?hIJQ'+'+IJQtI0Pv+0PlcdYcFwJjUqmRmkHloKN"
+              ]
+            }
+          },
+          "summary": "URL Extraction Analysis (yrbfrviqrolaijq.com)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "macro": true
+      }
+    },
+    "file:1bb140d364d1fe4506b1a81438b072fd3ba5a43129f0e25537a08706ae8f46ac": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "Past Due Invoices.doc.officeparser/stream_8_0.dat": {}
+      },
+      "redirection": "file:b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f",
+      "relationships": {
+        "extracted_from file:b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:2383d6ac4151be8d639f1b6fe4dfad5dbe125ec511272a605b9a9cfae262eb81": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true,
+        "sandbox": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "Past Due Invoices.doc.officeparser/jOipwUYmtLb.bas": {
+          "type=script.macro": true
+        }
+      },
+      "redirection": "file:b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f",
+      "relationships": {
+        "extracted_from file:b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text, with CRLF line terminators"
+          },
+          "summary": "File Type Analysis: ASCII text, with CRLF line terminators (text/plain)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "macro": true
+      }
+    },
     "file:275732af392b42b2e718188d60d6e345339513199a6817baafbf78cc04d3739b": {
       "detections": {},
       "directives": {
@@ -41,6 +287,49 @@
         "macro": true
       }
     },
+    "file:2983db3781942d11b9497551888ee8774f861ff9cbc5c64ddb79eaa0698f87bd": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "Past Due Invoices.doc.officeparser/stream_2_0.dat.extracted/theme/theme/_rels/themeManager.xml.rels": {}
+      },
+      "relationships": {
+        "extracted_from file:2cdd9d9c81d7183c0aa1c2be4c48c728126028c93faf88bc78017ee0265fef27": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/xml",
+            "type": "XML 1.0 document, ASCII text, with CRLF line terminators"
+          },
+          "summary": "File Type Analysis: XML 1.0 document, ASCII text, with CRLF line terminators (text/xml)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:2a2479d153e2be2f49ea1d685f1b12c349f7a74b42747d0514957539743637b5": {
       "detections": {},
       "directives": {
@@ -74,6 +363,292 @@
             "type": "ASCII text, with very long lines (457)"
           },
           "summary": "File Type Analysis: ASCII text, with very long lines (457) (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "macro": true
+      }
+    },
+    "file:2cdd9d9c81d7183c0aa1c2be4c48c728126028c93faf88bc78017ee0265fef27": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "Past Due Invoices.doc.officeparser/stream_2_0.dat": {}
+      },
+      "redirection": "file:b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f",
+      "relationships": {
+        "extracted_from file:b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f": true
+      },
+      "results": {
+        "archive": {
+          "details": {
+            "extracted_files": [
+              "[Content_Types].xml",
+              "theme/theme/theme1.xml",
+              "theme/theme/themeManager.xml",
+              "theme/theme/_rels/themeManager.xml.rels",
+              "_rels/.rels"
+            ],
+            "extraction_error": null,
+            "file_count": 5
+          },
+          "summary": "Archive Analysis: extracted 5 of 5 files: ([Content_Types].xml, theme/theme/theme1.xml, theme/theme/themeManager.xml, theme/theme/_rels/themeManager.xml.rels, _rels/.rels)",
+          "tags": {}
+        },
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": true,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream) (zip archive)",
+          "tags": {}
+        },
+        "olevba_v1_2": {
+          "details": {
+            "keyword_summary": {},
+            "macros": [],
+            "type": "OpenXML"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "zip": true
+      }
+    },
+    "file:2fc1eb21b61950e440496e896ec96386689edad2ca3bd95df0c134b32afe6431": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "Past Due Invoices.doc.officeparser/stream_2_0.dat.extracted/theme/theme/theme1.xml": {}
+      },
+      "relationships": {
+        "extracted_from file:2cdd9d9c81d7183c0aa1c2be4c48c728126028c93faf88bc78017ee0265fef27": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/xml",
+            "type": "XML 1.0 document, Unicode text, UTF-8 text, with very long lines (6686), with CRLF line terminators"
+          },
+          "summary": "File Type Analysis: XML 1.0 document, Unicode text, UTF-8 text, with very long lines (6686), with CRLF line terminators (text/xml)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:3365575b114220213e636e43906b1ed908ab6b7e49cfb8bd1feb1bf318ef4899": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "Past Due Invoices.doc.officeparser/stream_9_0.dat": {}
+      },
+      "redirection": "file:b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f",
+      "relationships": {
+        "extracted_from file:b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [
+              "https://YrbfRVIQROLaIJQ.com/IJ",
+              "https://YrbfRVIQROLaIJQ.com/IJ'+'Swi+SwiQ+IJQo20Pv+0PvxIJQ+IJ'+'Q7Bx/?hIJQ'+'+IJQtI0Pv+0PlcdYcFwJjUqmRmkHloKN"
+            ],
+            "urls_grouped_by_domain": {
+              "yrbfrviqrolaijq.com": [
+                "https://YrbfRVIQROLaIJQ.com/IJ",
+                "https://YrbfRVIQROLaIJQ.com/IJ'+'Swi+SwiQ+IJQo20Pv+0PvxIJQ+IJ'+'Q7Bx/?hIJQ'+'+IJQtI0Pv+0PlcdYcFwJjUqmRmkHloKN"
+              ]
+            }
+          },
+          "summary": "URL Extraction Analysis (yrbfrviqrolaijq.com)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:378580a13706076956b9f18f244d0a8e9de9a820f85157c6fabe52b33376c714": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "Past Due Invoices.doc.officeparser/stream_11_0.dat": {}
+      },
+      "redirection": "file:b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f",
+      "relationships": {
+        "extracted_from file:b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:40799693a35bc92f3c92bb4701cd4f9ee8dd4f399b776fdc642b7f4ed55fcc07": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true,
+        "sandbox": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "Past Due Invoices.doc.officeparser/sqCcMbbcbPjYF.bas": {
+          "type=script.macro": true
+        }
+      },
+      "redirection": "file:b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f",
+      "relationships": {
+        "extracted_from file:b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text, with CRLF line terminators"
+          },
+          "summary": "File Type Analysis: ASCII text, with CRLF line terminators (text/plain)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
           "tags": {}
         }
       },
@@ -121,6 +696,355 @@
         "macro": true
       }
     },
+    "file:644077429eb7ab18f50b5ba5e57d566d20c9368cb95df9223f5c71facc8e75a1": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "Past Due Invoices.doc.officeparser/stream_15_0.dat": {}
+      },
+      "redirection": "file:b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f",
+      "relationships": {
+        "extracted_from file:b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:66d691a987c305b29de55631b454e07ccf64d0e9ed14b68e5d2c487132f9e9d9": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "Past Due Invoices.doc.officeparser/stream_1_0.dat": {}
+      },
+      "redirection": "file:b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f",
+      "relationships": {
+        "extracted_from file:b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:6bed1dcf60d33d3907832ba5ca22467684fcf5183bed7feecc839b388042dba8": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "Past Due Invoices.doc.officeparser/stream_16_0.dat": {}
+      },
+      "redirection": "file:b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f",
+      "relationships": {
+        "extracted_from file:b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text, with CRLF line terminators"
+          },
+          "summary": "File Type Analysis: ASCII text, with CRLF line terminators (text/plain)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:6c98d4f2b62b4db730884f9bd6d27e5360693eaad02d9cdbaa0e71c4c747450b": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "Past Due Invoices.doc.officeparser/stream_2_0.dat.extracted/[Content_Types].xml": {}
+      },
+      "relationships": {
+        "extracted_from file:2cdd9d9c81d7183c0aa1c2be4c48c728126028c93faf88bc78017ee0265fef27": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/xml",
+            "type": "XML 1.0 document, ASCII text, with very long lines (483), with CRLF line terminators"
+          },
+          "summary": "File Type Analysis: XML 1.0 document, ASCII text, with very long lines (483), with CRLF line terminators (text/xml)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:794700af5b1f1d032372ffa72482f6908eda7360f42b48134b881f91b8ea2902": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "Past Due Invoices.doc.officeparser/stream_5_0.dat": {}
+      },
+      "redirection": "file:b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f",
+      "relationships": {
+        "extracted_from file:b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:81faa93fbac42ae10a73ed3962d70fac6ef6675dce46636104921d38ac984a53": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "Past Due Invoices.doc.officeparser/stream_14_0.dat": {}
+      },
+      "redirection": "file:b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f",
+      "relationships": {
+        "extracted_from file:b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:8d451bc2ca48680c7f369363eebe1f03fba69febd5d98d966be53ba7a784ad4a": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "Past Due Invoices.doc.officeparser/stream_13_0.dat": {}
+      },
+      "redirection": "file:b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f",
+      "relationships": {
+        "extracted_from file:b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f": {
       "detections": {},
       "directives": {
@@ -160,6 +1084,33 @@
             "type": "Composite Document File V2 Document, Little Endian, Os: Windows, Version 6.1, Code page: 1252, Author: WNWrpQiR, Template: Normal.dotm, Revision Number: 1, Name of Creating Application: Microsoft Office Word, Create Time/Date: Thu Feb 15 15:36:00 2018, Last Saved Time/Date: Thu Feb 15 15:36:00 2018, Number of Pages: 1, Number of Words: 0, Number of Characters: 1, Security: 0"
           },
           "summary": "File Type Analysis: Composite Document File V2 Document, Little Endian, Os: Windows, Version 6.1, Code page: 1252, Author: WNWrpQiR, Template: Normal.dotm, Revision Number: 1, Name of Creating Application: Microsoft Office Word, Create Time/Date: Thu Feb 15 15:36:00 2018, Last Saved Time/Date: Thu Feb 15 15:36:00 2018, Number of Pages: 1, Number of Words: 0, Number of Characters: 1, Security: 0 (application/msword) (ms office document) (ole compound file)",
+          "tags": {}
+        },
+        "officeparser3": {
+          "details": {
+            "extracted_files": [
+              "stream_1_0.dat",
+              "stream_2_0.dat",
+              "stream_3_0.dat",
+              "stream_4_0.dat",
+              "stream_5_0.dat",
+              "stream_8_0.dat",
+              "stream_9_0.dat",
+              "stream_10_0.dat",
+              "stream_11_0.dat",
+              "stream_12_0.dat",
+              "stream_13_0.dat",
+              "stream_14_0.dat",
+              "stream_15_0.dat",
+              "stream_16_0.dat",
+              "stream_17_0.dat",
+              "AwfzKPwC.bas",
+              "QsZikAkvJTuV.bas",
+              "jOipwUYmtLb.bas",
+              "sqCcMbbcbPjYF.bas"
+            ]
+          },
+          "summary": "OfficeParser3 Analysis: extracted 19 files",
           "tags": {}
         },
         "olevba_v1_2": {
@@ -258,6 +1209,57 @@
         "macro": true
       }
     },
+    "file:c45c1f0bd17eb1b2d4c6b01c32272f40d762bb12825d812dea80a4bc3a6496e9": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "Past Due Invoices.doc.officeparser/stream_4_0.dat": {}
+      },
+      "redirection": "file:b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f",
+      "relationships": {
+        "extracted_from file:b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:d1d63ec9ec3fcc356d5fc1a1dd7049c5c8c53c769f8cdff7ba9747872823413c": {
       "detections": {},
       "directives": {},
@@ -292,6 +1294,628 @@
       },
       "tags": {}
     },
+    "file:d2d8276ca63e307268dbf1bef2fbf45ba4c65c27494555a7742761c22984f1af": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "Past Due Invoices.doc.officeparser/stream_2_0.dat.extracted/_rels/.rels": {}
+      },
+      "relationships": {
+        "extracted_from file:2cdd9d9c81d7183c0aa1c2be4c48c728126028c93faf88bc78017ee0265fef27": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/xml",
+            "type": "XML 1.0 document, ASCII text, with CRLF line terminators"
+          },
+          "summary": "File Type Analysis: XML 1.0 document, ASCII text, with CRLF line terminators (text/xml)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:f234bd21a5f6bc9f33624a07f078ce2ca8f4247fb5243a1ab951353ecd6d5a68": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "Past Due Invoices.doc.officeparser/stream_3_0.dat": {}
+      },
+      "redirection": "file:b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f",
+      "relationships": {
+        "extracted_from file:b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:f3d5c6f0ce633e70b50e969bf703d9c389079fb356eb89801f0e7cdd45948412": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "Past Due Invoices.doc.officeparser/stream_10_0.dat": {}
+      },
+      "redirection": "file:b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f",
+      "relationships": {
+        "extracted_from file:b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:f69243a2521ddc81199f2ef6903e95accad48412642479f790cdd69bc1fbc8e1": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "Past Due Invoices.doc.officeparser/stream_12_0.dat": {}
+      },
+      "redirection": "file:b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f",
+      "relationships": {
+        "extracted_from file:b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:f70fe384c672865fff4bb8ab60d73098bc751e8f2aa915b8aff2e2085648b428": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "Past Due Invoices.doc.officeparser/stream_17_0.dat": {}
+      },
+      "redirection": "file:b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f",
+      "relationships": {
+        "extracted_from file:b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:f71dfc339597e1ed526f70563e18e9e34369eca78fb2b83435f05f26a6d3a286": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true,
+        "sandbox": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "Past Due Invoices.doc.officeparser/QsZikAkvJTuV.bas": {
+          "type=script.macro": true
+        }
+      },
+      "redirection": "file:b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f",
+      "relationships": {
+        "extracted_from file:b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text, with CRLF line terminators"
+          },
+          "summary": "File Type Analysis: ASCII text, with CRLF line terminators (text/plain)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "macro": true
+      }
+    },
+    "fqdn:example.com": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "fqdn_analyzer": {
+          "details": {
+            "aliaslist": [],
+            "all_resolutions": [
+              "192.0.2.10",
+              "192.0.2.2"
+            ],
+            "ip_address": "192.0.2.10",
+            "mx": [
+              "backup.example.com",
+              "mail.example.com"
+            ],
+            "resolution_count": 2,
+            "status": "ok",
+            "wildcard_dns": false
+          },
+          "summary": "DNS Analysis: ip addresses (192.0.2.10, 192.0.2.2) mx (backup.example.com, mail.example.com)",
+          "tags": {}
+        },
+        "proxy_domain_splunk": {
+          "details": {
+            "dispatch_state": "DONE",
+            "gui_link": null,
+            "query": "index=proxy hostname=\"example.com\"",
+            "query_error": null,
+            "query_results": [
+              {
+                "_time": "2026-10-30T14:02:11.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "https://www.example.com/login",
+                "src_ip": "192.0.2.10",
+                "src_translated_ip": "198.51.100.7",
+                "user": "alice@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:05:42.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "http://www.example.com/",
+                "src_ip": "192.0.2.11",
+                "src_translated_ip": "198.51.100.7",
+                "user": "bob@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:09:03.000+00:00",
+                "dest_ip": "198.51.100.21",
+                "full_url": "https://www.example.com/static/app.js",
+                "src_ip": "192.0.2.12"
+              }
+            ],
+            "query_summary": "Proxy correlation",
+            "question": "Was this domain seen in proxy logs?"
+          },
+          "summary": "Proxy correlation: (3 results)",
+          "tags": {}
+        },
+        "rdap_analyzer": {
+          "details": {
+            "assignment_type": null,
+            "country": null,
+            "datetime_created": "1995-08-14 04:00:00+00:00",
+            "datetime_expiration": "2027-08-13 04:00:00+00:00",
+            "datetime_of_last_update": "2026-08-14 08:01:43+00:00",
+            "domain_name": "EXAMPLE.COM",
+            "emails": [],
+            "error": null,
+            "ip_version": null,
+            "lookup_protocol": "rdap",
+            "name_servers": [
+              "ELLIOTT.NS.CLOUDFLARE.COM",
+              "HERA.NS.CLOUDFLARE.COM"
+            ],
+            "network_cidr": null,
+            "network_name": null,
+            "rdap_attempt_error": null,
+            "rdap_data": {
+              "copyright_notice": "",
+              "description": [],
+              "dnssec": true,
+              "dnssec_ds_data": [
+                {
+                  "algorithm": 13,
+                  "digest": "C988EC423E3880EB8DD8A46FE06CA230EE23F35B578D64E78B29C3E1C83D245A",
+                  "digest_type": 2,
+                  "key_tag": 2371
+                }
+              ],
+              "dnssec_key_data": [],
+              "entities": {
+                "abuse": [
+                  {
+                    "name": "",
+                    "parent_handle": "376",
+                    "parent_name": "RESERVED-Internet Assigned Numbers Authority",
+                    "type": "entity"
+                  }
+                ],
+                "registrar": [
+                  {
+                    "handle": "376",
+                    "name": "RESERVED-Internet Assigned Numbers Authority",
+                    "public_ids": [
+                      {
+                        "identifier": "376",
+                        "type": "IANA Registrar ID"
+                      }
+                    ],
+                    "type": "entity"
+                  }
+                ]
+              },
+              "events": [
+                {
+                  "action": "registration",
+                  "actor": "",
+                  "date": "1995-08-14T04:00:00.000000+0000"
+                },
+                {
+                  "action": "expiration",
+                  "actor": "",
+                  "date": "2027-08-13T04:00:00.000000+0000"
+                },
+                {
+                  "action": "last changed",
+                  "actor": "",
+                  "date": "2026-08-14T08:01:43.000000+0000"
+                },
+                {
+                  "action": "last update of rdap database",
+                  "actor": "",
+                  "date": "2026-11-02T15:28:17.000000+0000"
+                }
+              ],
+              "expiration_date": "2027-08-13T04:00:00.000000+0000",
+              "handle": "2336799_DOMAIN_COM-VRSN",
+              "last_changed_date": "2026-08-14T08:01:43.000000+0000",
+              "links": [
+                {
+                  "href": "https://rdap.verisign.com/com/v1/domain/example.com",
+                  "rel": "self",
+                  "type": "application/rdap+json"
+                }
+              ],
+              "name": "EXAMPLE.COM",
+              "nameserver_ips": {
+                "ELLIOTT.NS.CLOUDFLARE.COM": [],
+                "HERA.NS.CLOUDFLARE.COM": []
+              },
+              "nameservers": [
+                "ELLIOTT.NS.CLOUDFLARE.COM",
+                "HERA.NS.CLOUDFLARE.COM"
+              ],
+              "notices": [
+                {
+                  "description": [
+                    "Service subject to Terms of Use."
+                  ],
+                  "links": [
+                    "https://www.verisign.com/domain-names/registration-data-access-protocol/terms-service/index.xhtml"
+                  ],
+                  "title": "Terms of Service",
+                  "type": ""
+                },
+                {
+                  "description": [
+                    "For more information on domain status codes, please visit https://icann.org/epp"
+                  ],
+                  "links": [
+                    "https://icann.org/epp"
+                  ],
+                  "title": "Status Codes",
+                  "type": ""
+                },
+                {
+                  "description": [
+                    "URL of the ICANN RDDS Inaccuracy Complaint Form: https://icann.org/wicf"
+                  ],
+                  "links": [
+                    "https://icann.org/wicf"
+                  ],
+                  "title": "RDDS Inaccuracy Complaint Form",
+                  "type": ""
+                }
+              ],
+              "parent_handle": "",
+              "public_ids": [],
+              "redacted": [],
+              "registrar_url": "",
+              "registration_date": "1995-08-14T04:00:00.000000+0000",
+              "remarks": [],
+              "rir": "",
+              "status": [
+                "client delete prohibited",
+                "client transfer prohibited",
+                "client update prohibited"
+              ],
+              "terms_of_service_url": "https://www.verisign.com/domain-names/registration-data-access-protocol/terms-service/index.xhtml",
+              "type": "domain",
+              "unicode_name": "",
+              "url": "https://rdap.verisign.com/com/v1/domain/example.com",
+              "whois_server": ""
+            },
+            "rdap_raw_json": "{\"objectClassName\":\"domain\",\"handle\":\"2336799_DOMAIN_COM-VRSN\",\"ldhName\":\"EXAMPLE.COM\",\"links\":[{\"value\":\"https://rdap.verisign.com/com/v1/domain/example.com\",\"rel\":\"self\",\"href\":\"https://rdap.verisign.com/com/v1/domain/example.com\",\"type\":\"application/rdap+json\"}],\"status\":[\"client delete prohibited\",\"client transfer prohibited\",\"client update prohibited\"],\"entities\":[{\"objectClassName\":\"entity\",\"handle\":\"376\",\"roles\":[\"registrar\"],\"publicIds\":[{\"type\":\"IANA Registrar ID\",\"identifier\":\"376\"}],\"vcardArray\":[\"vcard\",[[\"version\",{},\"text\",\"4.0\"],[\"fn\",{},\"text\",\"RESERVED-Internet Assigned Numbers Authority\"]]],\"entities\":[{\"objectClassName\":\"entity\",\"roles\":[\"abuse\"],\"vcardArray\":[\"vcard\",[[\"version\",{},\"text\",\"4.0\"],[\"fn\",{},\"text\",\"\"],[\"tel\",{\"type\":\"voice\"},\"uri\",\"\"],[\"email\",{},\"text\",\"\"]]]}]}],\"events\":[{\"eventAction\":\"registration\",\"eventDate\":\"1995-08-14T04:00:00Z\"},{\"eventAction\":\"expiration\",\"eventDate\":\"2027-08-13T04:00:00Z\"},{\"eventAction\":\"last changed\",\"eventDate\":\"2026-08-14T08:01:43Z\"},{\"eventAction\":\"last update of RDAP database\",\"eventDate\":\"2026-11-02T15:28:17Z\"}],\"secureDNS\":{\"delegationSigned\":true,\"dsData\":[{\"keyTag\":2371,\"algorithm\":13,\"digestType\":2,\"digest\":\"C988EC423E3880EB8DD8A46FE06CA230EE23F35B578D64E78B29C3E1C83D245A\"}]},\"nameservers\":[{\"objectClassName\":\"nameserver\",\"ldhName\":\"ELLIOTT.NS.CLOUDFLARE.COM\"},{\"objectClassName\":\"nameserver\",\"ldhName\":\"HERA.NS.CLOUDFLARE.COM\"}],\"rdapConformance\":[\"rdap_level_0\",\"icann_rdap_technical_implementation_guide_1\",\"icann_rdap_response_profile_1\"],\"notices\":[{\"title\":\"Terms of Service\",\"description\":[\"Service subject to Terms of Use.\"],\"links\":[{\"href\":\"https://www.verisign.com/domain-names/registration-data-access-protocol/terms-service/index.xhtml\",\"type\":\"text/html\",\"value\":\"https://rdap.verisign.com/com/v1/domain/example.com\",\"rel\":\"terms-of-service\"}]},{\"title\":\"Status Codes\",\"description\":[\"For more information on domain status codes, please visit https://icann.org/epp\"],\"links\":[{\"href\":\"https://icann.org/epp\",\"type\":\"text/html\",\"value\":\"https://rdap.verisign.com/com/v1/domain/example.com\",\"rel\":\"glossary\"}]},{\"title\":\"RDDS Inaccuracy Complaint Form\",\"description\":[\"URL of the ICANN RDDS Inaccuracy Complaint Form: https://icann.org/wicf\"],\"links\":[{\"href\":\"https://icann.org/wicf\",\"type\":\"text/html\",\"value\":\"https://rdap.verisign.com/com/v1/domain/example.com\",\"rel\":\"help\"}]}]}",
+            "rdap_service_url": "https://rdap.verisign.com/com/v1/domain/example.com",
+            "registrar": "RESERVED-Internet Assigned Numbers Authority",
+            "whois_data": null,
+            "whois_raw_text": null
+          },
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "fqdn:yrbfrviqrolaijq.com": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "fqdn_analyzer": {
+          "details": {
+            "aliaslist": [],
+            "all_resolutions": [],
+            "ip_address": null,
+            "mx": null,
+            "resolution_count": null,
+            "status": "nxdomain",
+            "wildcard_dns": null
+          },
+          "summary": "DNS Analysis: does not exist (nxdomain)",
+          "tags": {}
+        },
+        "proxy_domain_splunk": {
+          "details": {
+            "dispatch_state": "DONE",
+            "gui_link": null,
+            "query": "index=proxy hostname=\"yrbfrviqrolaijq.com\"",
+            "query_error": null,
+            "query_results": [
+              {
+                "_time": "2026-10-30T14:02:11.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "https://www.example.com/login",
+                "src_ip": "192.0.2.10",
+                "src_translated_ip": "198.51.100.7",
+                "user": "alice@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:05:42.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "http://www.example.com/",
+                "src_ip": "192.0.2.11",
+                "src_translated_ip": "198.51.100.7",
+                "user": "bob@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:09:03.000+00:00",
+                "dest_ip": "198.51.100.21",
+                "full_url": "https://www.example.com/static/app.js",
+                "src_ip": "192.0.2.12"
+              }
+            ],
+            "query_summary": "Proxy correlation",
+            "question": "Was this domain seen in proxy logs?"
+          },
+          "summary": "Proxy correlation: (3 results)",
+          "tags": {}
+        },
+        "rdap_analyzer": {
+          "details": {
+            "assignment_type": null,
+            "country": null,
+            "datetime_created": null,
+            "datetime_expiration": null,
+            "datetime_of_last_update": null,
+            "domain_name": null,
+            "emails": null,
+            "error": "rdap: Failed to make a GET request to https://rdap.verisign.com/com/v1/domain/yrbfrviqrolaijq.com: nothing recorded for GET https://rdap.verisign.com/com/v1/domain/yrbfrviqrolaijq.com; whois: no WHOIS in a replay",
+            "ip_version": null,
+            "lookup_protocol": null,
+            "name_servers": null,
+            "network_cidr": null,
+            "network_name": null,
+            "rdap_attempt_error": "Failed to make a GET request to https://rdap.verisign.com/com/v1/domain/yrbfrviqrolaijq.com: nothing recorded for GET https://rdap.verisign.com/com/v1/domain/yrbfrviqrolaijq.com",
+            "rdap_data": null,
+            "rdap_raw_json": null,
+            "rdap_service_url": null,
+            "registrar": null,
+            "whois_data": null,
+            "whois_raw_text": null
+          },
+          "tags": {}
+        }
+      },
+      "tags": {
+        "domain_in_url": true
+      }
+    },
+    "ip:192.0.2.10": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "network_identifier": {
+          "details": {
+            "identified_networks": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "md5:f453c7f705ff80f70832a00b958ecb2b": {
       "detections": {},
       "directives": {},
@@ -310,6 +1934,80 @@
         "is_hash_of file:b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f": true
       },
       "results": {},
+      "tags": {}
+    },
+    "uri_path:/IJ": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
+    },
+    "uri_path:/IJ'+'Swi+SwiQ+IJQo20Pv+0PvxIJQ+IJ'+'Q7Bx/?hIJQ'+'+IJQtI0Pv+0PlcdYcFwJjUqmRmkHloKN": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
+    },
+    "url:https://YrbfRVIQROLaIJQ.com/IJ": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "parse_url": {
+          "details": {
+            "fragment": "",
+            "netloc": "YrbfRVIQROLaIJQ.com",
+            "params": null,
+            "path": "/IJ",
+            "query": "",
+            "scheme": "https"
+          },
+          "summary": "URL Parser: scheme=https, netloc=YrbfRVIQROLaIJQ.com, path=/IJ",
+          "tags": {}
+        },
+        "protected_url_analyzer": {
+          "details": {
+            "extracted_url": "https://YrbfRVIQROLaIJQ.com/IJ",
+            "protection_type": "unprotected"
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "url:https://YrbfRVIQROLaIJQ.com/IJ'+'Swi+SwiQ+IJQo20Pv+0PvxIJQ+IJ'+'Q7Bx/?hIJQ'+'+IJQtI0Pv+0PlcdYcFwJjUqmRmkHloKN": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "parse_url": {
+          "details": {
+            "fragment": "",
+            "netloc": "YrbfRVIQROLaIJQ.com",
+            "params": null,
+            "path": "/IJ'+'Swi+SwiQ+IJQo20Pv+0PvxIJQ+IJ'+'Q7Bx/",
+            "query": "hIJQ'+'+IJQtI0Pv+0PlcdYcFwJjUqmRmkHloKN",
+            "scheme": "https"
+          },
+          "summary": "URL Parser: scheme=https, netloc=YrbfRVIQROLaIJQ.com, path=/IJ'+'Swi+SwiQ+IJQo20Pv+0PvxIJQ+IJ'+'Q7Bx/, query=hIJQ'+'+IJQtI0Pv+0PlcdYcFwJjUqmRmkHloKN, params=(hIJQ' ' IJQtI0Pv 0PlcdYcFwJjUqmRmkHloKN=)",
+          "tags": {}
+        },
+        "protected_url_analyzer": {
+          "details": {
+            "extracted_url": "https://YrbfRVIQROLaIJQ.com/IJ'+'Swi+SwiQ+IJQo20Pv+0PvxIJQ+IJ'+'Q7Bx/?hIJQ'+'+IJQtI0Pv+0PlcdYcFwJjUqmRmkHloKN",
+            "protection_type": "unprotected"
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     }
   }

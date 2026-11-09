@@ -1,0 +1,81 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "application/octet-stream",
+        "type": "data"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: data (application/octet-stream)",
+      "tags": []
+    },
+    {
+      "class": "ExtractedOLEAnalysis",
+      "details": {
+        "suspect_files": []
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.ole:ExtractedOLEAnalysis",
+      "observables": [],
+      "summary": null,
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "extracted_from": {
+      "added_by": "saq.modules.file_analysis.officeparser3:OfficeParserAnalysis3",
+      "file_path": "native.doc",
+      "tags": [],
+      "value": "eecb200c85b4d29b859fe3d4415c4c410e5d498d141c371928b797ab04309476"
+    },
+    "label": "fixtures/office/extracted/stream_1_0.dat written by officeparser3",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "native.doc.officeparser/stream_1_0.dat",
+      "size": 10,
+      "type": "file",
+      "value": "1410cb75c8516cbc87ba7487eb25dedc6d2370b7fc5173d1b45125483fa78c9b"
+    }
+  },
+  "module": "extracted_ole_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "native.doc.officeparser/stream_1_0.dat",
+    "relationships": [
+      {
+        "target": {
+          "type": "file",
+          "value": "eecb200c85b4d29b859fe3d4415c4c410e5d498d141c371928b797ab04309476"
+        },
+        "type": "extracted_from"
+      }
+    ],
+    "size": 10,
+    "tags": [],
+    "type": "file",
+    "value": "1410cb75c8516cbc87ba7487eb25dedc6d2370b7fc5173d1b45125483fa78c9b",
+    "yara_meta": []
+  }
+}

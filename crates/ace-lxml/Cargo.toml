@@ -10,6 +10,8 @@ links = "xml2"
 
 [dependencies]
 ace-pycompat = { path = "../ace-pycompat" }
+# zlib's gzread, which lxml's libxml2 reads a file through
+flate2 = "1.1.10"
 
 [dev-dependencies]
 base64 = "0.22.1"

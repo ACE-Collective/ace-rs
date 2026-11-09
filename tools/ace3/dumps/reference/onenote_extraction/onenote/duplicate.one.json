@@ -1,0 +1,72 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "OneNoteFileAnalysis",
+      "details": {
+        "extracted_files": [
+          "e9b4ff075e05eb59b9ff8037003dbf17321d0eb75b9a56b738c6789fee69ee5b",
+          "e9b4ff075e05eb59b9ff8037003dbf17321d0eb75b9a56b738c6789fee69ee5b"
+        ]
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.one_note:OneNoteFileAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=document.onenote.embedded"
+          ],
+          "excluded_analysis": [],
+          "file_path": "duplicate.one.extracted-e9b4ff",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "3f8bc98796fc4fcdfe6723f540af11c01be86fc34d6b184da111af1bb98d3490"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 144,
+          "tags": [],
+          "type": "file",
+          "value": "e9b4ff075e05eb59b9ff8037003dbf17321d0eb75b9a56b738c6789fee69ee5b",
+          "yara_meta": [
+            "type=document.onenote.embedded"
+          ]
+        }
+      ],
+      "summary": "OneNote File Analysis: extracted files e9b4ff075e05eb59b9ff8037003dbf17321d0eb75b9a56b738c6789fee69ee5b, e9b4ff075e05eb59b9ff8037003dbf17321d0eb75b9a56b738c6789fee69ee5b",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/office/onenote/duplicate.one",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "duplicate.one",
+      "size": 1400,
+      "type": "file",
+      "value": "3f8bc98796fc4fcdfe6723f540af11c01be86fc34d6b184da111af1bb98d3490"
+    }
+  },
+  "module": "onenote_extraction",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "duplicate.one",
+    "relationships": [],
+    "size": 1400,
+    "tags": [
+      "onenote"
+    ],
+    "type": "file",
+    "value": "3f8bc98796fc4fcdfe6723f540af11c01be86fc34d6b184da111af1bb98d3490",
+    "yara_meta": []
+  }
+}

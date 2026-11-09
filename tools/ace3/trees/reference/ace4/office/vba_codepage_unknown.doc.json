@@ -1,6 +1,164 @@
 {
   "form": 1,
   "observables": {
+    "file:0f2b39fab432bcbaafc3efabdd678e9d2d27e2099b2a061fb0d4ce10e7ffb46d": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "vba_codepage_unknown.doc.officeparser/stream_3_0.dat": {}
+      },
+      "redirection": "file:215d0ac0c460504e67fc536f5965260addfddda8cc8f92d19914bd859d05088a",
+      "relationships": {
+        "extracted_from file:215d0ac0c460504e67fc536f5965260addfddda8cc8f92d19914bd859d05088a": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:14df647de5ac06a3b8d489fedc525785a8f60bb7f0d7c0a4185fa2c3a7151cc6": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "vba_codepage_unknown.doc.officeparser/stream_4_0.dat": {}
+      },
+      "redirection": "file:215d0ac0c460504e67fc536f5965260addfddda8cc8f92d19914bd859d05088a",
+      "relationships": {
+        "extracted_from file:215d0ac0c460504e67fc536f5965260addfddda8cc8f92d19914bd859d05088a": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:16ea5b09667a0dbacc2c5cdf7d2f9daf4c7141bbc54c46f47c36f1935f2e7c8d": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true,
+        "sandbox": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "vba_codepage_unknown.doc.officeparser/Module1.bas": {
+          "type=script.macro": true
+        }
+      },
+      "redirection": "file:215d0ac0c460504e67fc536f5965260addfddda8cc8f92d19914bd859d05088a",
+      "relationships": {
+        "extracted_from file:215d0ac0c460504e67fc536f5965260addfddda8cc8f92d19914bd859d05088a": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ISO-8859 text, with CRLF line terminators"
+          },
+          "summary": "File Type Analysis: ISO-8859 text, with CRLF line terminators (text/plain)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "macro": true
+      }
+    },
     "file:215d0ac0c460504e67fc536f5965260addfddda8cc8f92d19914bd859d05088a": {
       "detections": {},
       "directives": {},
@@ -40,6 +198,19 @@
           "summary": "File Type Analysis: Composite Document File V2 Document, Cannot read section info (application/x-ole-storage) (ms office document) (ole compound file)",
           "tags": {}
         },
+        "officeparser3": {
+          "details": {
+            "extracted_files": [
+              "stream_3_0.dat",
+              "stream_4_0.dat",
+              "stream_5_0.dat",
+              "stream_6_0.dat",
+              "Module1.bas"
+            ]
+          },
+          "summary": "OfficeParser3 Analysis: extracted 5 files",
+          "tags": {}
+        },
         "olevba_v1_2": {
           "details": {
             "keyword_summary": {},
@@ -62,6 +233,57 @@
         "microsoft_office": true,
         "ole": true
       }
+    },
+    "file:4bc03d883e84c6e66e0e608c1a98f8a4347cd41642277aacfdbb48255334ac60": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "vba_codepage_unknown.doc.officeparser/stream_5_0.dat": {}
+      },
+      "redirection": "file:215d0ac0c460504e67fc536f5965260addfddda8cc8f92d19914bd859d05088a",
+      "relationships": {
+        "extracted_from file:215d0ac0c460504e67fc536f5965260addfddda8cc8f92d19914bd859d05088a": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ISO-8859 text, with no line terminators"
+          },
+          "summary": "File Type Analysis: ISO-8859 text, with no line terminators (text/plain)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
     },
     "file:a2982fd01877e34c3240428597204753c26397cb08e18522ec8783b5ef17d5bb": {
       "detections": {},
@@ -102,6 +324,57 @@
       "tags": {
         "macro": true
       }
+    },
+    "file:cdeaf2a6c8b044b1779b04b3578860b126c0c55265e040798e3f2898ef413226": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "vba_codepage_unknown.doc.officeparser/stream_6_0.dat": {}
+      },
+      "redirection": "file:215d0ac0c460504e67fc536f5965260addfddda8cc8f92d19914bd859d05088a",
+      "relationships": {
+        "extracted_from file:215d0ac0c460504e67fc536f5965260addfddda8cc8f92d19914bd859d05088a": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text, with CRLF line terminators"
+          },
+          "summary": "File Type Analysis: ASCII text, with CRLF line terminators (text/plain)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
     },
     "md5:2125b1de879952a7c806c867d82fef67": {
       "detections": {},

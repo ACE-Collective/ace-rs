@@ -13,6 +13,7 @@
 
 mod ffi;
 pub mod soup;
+pub mod target;
 
 use std::cell::{Cell, RefCell};
 use std::ffi::{CStr, c_char, c_int, c_void};

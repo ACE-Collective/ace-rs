@@ -1,0 +1,30 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [],
+  "input": {
+    "directives": [],
+    "label": "fixtures/office/activemime/header_only.mso",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "header_only.mso",
+      "size": 14,
+      "type": "file",
+      "value": "4a5fd9852c0d1547cdee493fab73ce070cd861a84b99b58beb3cd6551c1eebab"
+    }
+  },
+  "module": "active_mime",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "header_only.mso",
+    "relationships": [],
+    "size": 14,
+    "tags": [],
+    "type": "file",
+    "value": "4a5fd9852c0d1547cdee493fab73ce070cd861a84b99b58beb3cd6551c1eebab",
+    "yara_meta": []
+  }
+}

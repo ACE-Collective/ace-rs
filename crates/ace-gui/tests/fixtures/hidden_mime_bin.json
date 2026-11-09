@@ -1,0 +1,41 @@
+{
+  "analysis_type": "hidden_mime_analysis",
+  "schema_version": 1,
+  "details": {
+    "extracted_files": [
+      "hidden.bin.mime/extracted-0",
+      "hidden.bin.mime/extracted-1"
+    ]
+  },
+  "summary": "Hidden MIME Analysis: extracted hidden.bin.mime/extracted-0, hidden.bin.mime/extracted-1",
+  "files": [
+    {
+      "path": "hidden.bin.mime/extracted-0",
+      "sha256": "5d260513a9bd166079119e4d5acff833260ab117813682edc1a144dcfb2bb181",
+      "size": 17,
+      "relationships": [
+        {
+          "type": "extracted_from",
+          "target": {
+            "type": "file",
+            "value": "c3ce1983c63b328862137b7d05fee20b6f81d53cb200f2d4297bc2526a1c2b83"
+          }
+        }
+      ]
+    },
+    {
+      "path": "hidden.bin.mime/extracted-1",
+      "sha256": "2e91b674b68e4b790b75d756bf8cfe7e68d52c9631dc9f58247dd26b854c63e5",
+      "size": 102,
+      "relationships": [
+        {
+          "type": "extracted_from",
+          "target": {
+            "type": "file",
+            "value": "c3ce1983c63b328862137b7d05fee20b6f81d53cb200f2d4297bc2526a1c2b83"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [],
+  "input": {
+    "directives": [],
+    "label": "fixtures/office/activemime/big_field.mso",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "big_field.mso",
+      "size": 61,
+      "type": "file",
+      "value": "320a445767a996a4bc05296c26ba2576c9896c13fc28d3ca18d468a5b474e037"
+    }
+  },
+  "module": "active_mime",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "big_field.mso",
+    "relationships": [],
+    "size": 61,
+    "tags": [],
+    "type": "file",
+    "value": "320a445767a996a4bc05296c26ba2576c9896c13fc28d3ca18d468a5b474e037",
+    "yara_meta": []
+  }
+}

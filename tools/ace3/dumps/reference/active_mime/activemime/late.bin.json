@@ -1,0 +1,30 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [],
+  "input": {
+    "directives": [],
+    "label": "fixtures/office/activemime/late.bin",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "late.bin",
+      "size": 931,
+      "type": "file",
+      "value": "016ec9ac2b3b21c9b83983e5cfe220e7e9cfda42380d855e4f99b80669711da6"
+    }
+  },
+  "module": "active_mime",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "late.bin",
+    "relationships": [],
+    "size": 931,
+    "tags": [],
+    "type": "file",
+    "value": "016ec9ac2b3b21c9b83983e5cfe220e7e9cfda42380d855e4f99b80669711da6",
+    "yara_meta": []
+  }
+}

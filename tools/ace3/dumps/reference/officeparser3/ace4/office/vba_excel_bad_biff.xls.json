@@ -1,0 +1,246 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": true,
+        "is_office_ext": true,
+        "is_ole_file": true,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "application/vnd.ms-excel",
+        "type": "CDFV2 Microsoft Excel"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: CDFV2 Microsoft Excel (application/vnd.ms-excel) (ms office document) (ole compound file)",
+      "tags": []
+    },
+    {
+      "class": "OfficeParserAnalysis3",
+      "details": {
+        "extracted_files": [
+          "stream_1_0.dat",
+          "stream_4_0.dat",
+          "stream_5_0.dat",
+          "stream_6_0.dat",
+          "stream_7_0.dat",
+          "Module1.bas"
+        ]
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.officeparser3:OfficeParserAnalysis3",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "vba_excel_bad_biff.xls.officeparser/stream_1_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "713376c89836c2a00399cd35ad60e4aa11054b05f1619628370587b8a9590dfe"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "713376c89836c2a00399cd35ad60e4aa11054b05f1619628370587b8a9590dfe"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 60,
+          "tags": [],
+          "type": "file",
+          "value": "095984fa2fc2fd51c3c95b1095b325b7dbd0e6d19dcd73369f253446161c56f4",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "vba_excel_bad_biff.xls.officeparser/stream_4_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "713376c89836c2a00399cd35ad60e4aa11054b05f1619628370587b8a9590dfe"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "713376c89836c2a00399cd35ad60e4aa11054b05f1619628370587b8a9590dfe"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 276,
+          "tags": [],
+          "type": "file",
+          "value": "e99da4c234de115f06ba35b2467754227cef29ede76177e48232b9fd94b07cca",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "vba_excel_bad_biff.xls.officeparser/stream_5_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "713376c89836c2a00399cd35ad60e4aa11054b05f1619628370587b8a9590dfe"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "713376c89836c2a00399cd35ad60e4aa11054b05f1619628370587b8a9590dfe"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 489,
+          "tags": [],
+          "type": "file",
+          "value": "9209d9f87d9a971a3c75208a0303e66e48b0a0fc923c0e81254bec0fb6368437",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "vba_excel_bad_biff.xls.officeparser/stream_6_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "713376c89836c2a00399cd35ad60e4aa11054b05f1619628370587b8a9590dfe"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "713376c89836c2a00399cd35ad60e4aa11054b05f1619628370587b8a9590dfe"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 7,
+          "tags": [],
+          "type": "file",
+          "value": "4bc03d883e84c6e66e0e608c1a98f8a4347cd41642277aacfdbb48255334ac60",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "vba_excel_bad_biff.xls.officeparser/stream_7_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "713376c89836c2a00399cd35ad60e4aa11054b05f1619628370587b8a9590dfe"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "713376c89836c2a00399cd35ad60e4aa11054b05f1619628370587b8a9590dfe"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 80,
+          "tags": [],
+          "type": "file",
+          "value": "cdeaf2a6c8b044b1779b04b3578860b126c0c55265e040798e3f2898ef413226",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls",
+            "sandbox",
+            "yara_meta:type=script.macro"
+          ],
+          "excluded_analysis": [],
+          "file_path": "vba_excel_bad_biff.xls.officeparser/Module1.bas",
+          "redirection": {
+            "type": "file",
+            "value": "713376c89836c2a00399cd35ad60e4aa11054b05f1619628370587b8a9590dfe"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "713376c89836c2a00399cd35ad60e4aa11054b05f1619628370587b8a9590dfe"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 432,
+          "tags": [
+            "macro"
+          ],
+          "type": "file",
+          "value": "1e85c37df423fa45af669a3d0225466a36e57ab1eb898f102f8ff2ec3196d4eb",
+          "yara_meta": [
+            "type=script.macro"
+          ]
+        }
+      ],
+      "summary": "OfficeParser3 Analysis: extracted 6 files",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace4/office/vba_excel_bad_biff.xls",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "vba_excel_bad_biff.xls",
+      "size": 4608,
+      "type": "file",
+      "value": "713376c89836c2a00399cd35ad60e4aa11054b05f1619628370587b8a9590dfe"
+    }
+  },
+  "module": "officeparser3",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "vba_excel_bad_biff.xls",
+    "relationships": [],
+    "size": 4608,
+    "tags": [
+      "microsoft_office",
+      "ole"
+    ],
+    "type": "file",
+    "value": "713376c89836c2a00399cd35ad60e4aa11054b05f1619628370587b8a9590dfe",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

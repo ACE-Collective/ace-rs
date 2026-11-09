@@ -52,7 +52,8 @@ ENABLE = [
     "ioc_extraction", "file_hash_analyzer", "binary_file_analyzer", "x509_analyzer", "lnk_parser", "dhash",
     "command_line_analyzer", "file_location_analysis", "file_path_analysis", "network_identifier", "parse_url",
     "idna_analyzer", "email_address_fqdn_analyzer", "protected_url_analyzer", "html_data_url_extraction",
-    "har_extraction", "html_js_extraction", "mhtml",
+    "har_extraction", "html_js_extraction", "mhtml", "onenote_extraction", "officeparser3", "office_xml_rel",
+    "xml_binary_analyzer", "xml_plain_text_analyzer", "extracted_ole_analyzer", "hidden_mime", "active_mime",
 ]
 BROCESS = HERE / "brocess.json"
 NRD = HERE / "nrd.json"

@@ -1,0 +1,966 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": true,
+        "is_office_ext": true,
+        "is_ole_file": true,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": true,
+        "mime": "application/msword",
+        "type": "Composite Document File V2 Document, Little Endian, Os: Windows, Version 6.2, Code page: 1252, Title: Iure., Author: Adrien Perrot, Template: Normal.dotm, Revision Number: 1, Name of Creating Application: Microsoft Office Word, Create Time/Date: Wed Oct 14 12:13:00 2020, Last Saved Time/Date: Wed Oct 14 12:14:00 2020, Number of Pages: 1, Number of Words: 1544, Number of Characters: 8807, Security: 8"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: Composite Document File V2 Document, Little Endian, Os: Windows, Version 6.2, Code page: 1252, Title: Iure., Author: Adrien Perrot, Template: Normal.dotm, Revision Number: 1, Name of Creating Application: Microsoft Office Word, Create Time/Date: Wed Oct 14 12:13:00 2020, Last Saved Time/Date: Wed Oct 14 12:14:00 2020, Number of Pages: 1, Number of Words: 1544, Number of Characters: 8807, Security: 8 (application/msword) (ms office document) (ole compound file) (zip archive)",
+      "tags": []
+    },
+    {
+      "class": "OfficeParserAnalysis3",
+      "details": {
+        "extracted_files": [
+          "stream_1_0.dat",
+          "stream_2_0.dat",
+          "stream_3_0.dat",
+          "stream_4_0.dat",
+          "stream_5_0.dat",
+          "stream_8_0.dat",
+          "stream_9_0.dat",
+          "stream_10_0.dat",
+          "stream_11_0.dat",
+          "stream_12_0.dat",
+          "stream_13_0.dat",
+          "stream_14_0.dat",
+          "stream_15_0.dat",
+          "stream_16_0.dat",
+          "stream_17_0.dat",
+          "stream_18_0.dat",
+          "stream_20_0.dat",
+          "stream_21_0.dat",
+          "stream_23_0.dat",
+          "stream_24_0.dat",
+          "stream_25_0.dat",
+          "stream_27_0.dat",
+          "stream_29_0.dat",
+          "stream_31_0.dat",
+          "stream_33_0.dat",
+          "stream_34_0.dat",
+          "stream_35_0.dat",
+          "stream_36_0.dat",
+          "stream_37_0.dat",
+          "Vufp3qemgme18z3.cls",
+          "Yan8boy3v12dg.frm",
+          "D6imzn9bmimax3kt20.bas"
+        ]
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.officeparser3:OfficeParserAnalysis3",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "DOC_PO_10142020EX.doc.officeparser/stream_1_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 48748,
+          "tags": [],
+          "type": "file",
+          "value": "5dfce00f23d203c49721b2f493c48d69f538e9e0a4dcb828129debe4fc7b09bd",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "DOC_PO_10142020EX.doc.officeparser/stream_2_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 6802,
+          "tags": [
+            "zip"
+          ],
+          "type": "file",
+          "value": "2288709d3b72f57f52530d39ec504c47ffa0f6eea16f73867b61fe30d7d82067",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "DOC_PO_10142020EX.doc.officeparser/stream_3_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 13870,
+          "tags": [],
+          "type": "file",
+          "value": "a4e2a21642500b61ba7e546e713230e946bfcab67a365aafb405b14c533fe9e4",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "DOC_PO_10142020EX.doc.officeparser/stream_4_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 420,
+          "tags": [],
+          "type": "file",
+          "value": "322816733e0c22a391c595a40b5b8487382cbf8cf4262f9761ceba1fa9f15342",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "DOC_PO_10142020EX.doc.officeparser/stream_5_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 352,
+          "tags": [],
+          "type": "file",
+          "value": "e426c001c2fae43d2a6bff9b5251376105dd8e059b5004872fb2daef5290d44e",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "DOC_PO_10142020EX.doc.officeparser/stream_8_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 955,
+          "tags": [],
+          "type": "file",
+          "value": "bf690c6204e4691e571688c0c3b4a52008a646885a36df0a5344e405629f0921",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "DOC_PO_10142020EX.doc.officeparser/stream_9_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 1610,
+          "tags": [],
+          "type": "file",
+          "value": "55329e3c456ddc683c6fdbfebe307e554fa50f72caab7d33c888faafe5bc4b08",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "DOC_PO_10142020EX.doc.officeparser/stream_10_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 110,
+          "tags": [],
+          "type": "file",
+          "value": "32cb509fb56ed003c486ea32d390b8343a81b18ae0aeddfb1e880d366cfece0c",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "DOC_PO_10142020EX.doc.officeparser/stream_11_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 304,
+          "tags": [],
+          "type": "file",
+          "value": "f10d1284b87adbfefd06727eb7a4d7ab7edaa4efaae8fd51b07744f543e0d249",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "DOC_PO_10142020EX.doc.officeparser/stream_12_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 103,
+          "tags": [],
+          "type": "file",
+          "value": "0f5446f18afcdcc4cdc556a282a003426452067a6d4576976d0b9864634b21d1",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "DOC_PO_10142020EX.doc.officeparser/stream_13_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 9585,
+          "tags": [],
+          "type": "file",
+          "value": "14612259ed2de5b6ffd77736825fcd22635187ebd06dfb09de5055d4a46505e2",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "DOC_PO_10142020EX.doc.officeparser/stream_14_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 19666,
+          "tags": [],
+          "type": "file",
+          "value": "2e6c52b432c91b0b47dc59c28cac7574d933ac61bf13fc56ed14dbfa3655ed45",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "DOC_PO_10142020EX.doc.officeparser/stream_15_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 1315,
+          "tags": [],
+          "type": "file",
+          "value": "d54f18b3dbac23d055ef860a444b46199a379e18b547c7ac1783c915730ca16c",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "DOC_PO_10142020EX.doc.officeparser/stream_16_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 6260,
+          "tags": [],
+          "type": "file",
+          "value": "87746046091d9c7cbcacbaa7739424e01e1c02df3cd8c9aa635bcadd2c3fb619",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "DOC_PO_10142020EX.doc.officeparser/stream_17_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 582,
+          "tags": [],
+          "type": "file",
+          "value": "aea31c9c392b8f4486da2464039bb9245c2746931fad561e91d290718a9b1c84",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "DOC_PO_10142020EX.doc.officeparser/stream_18_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 149,
+          "tags": [],
+          "type": "file",
+          "value": "9b8cb74e64d698faceef150b0e03c2290623be4469b6fd7475428906027abb4b",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "DOC_PO_10142020EX.doc.officeparser/stream_20_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 474,
+          "tags": [],
+          "type": "file",
+          "value": "a59913d0fd74781f493f0d0d56c63acfbd6a0fee49fe7d6247f73c49b3348f56",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "DOC_PO_10142020EX.doc.officeparser/stream_21_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 512,
+          "tags": [],
+          "type": "file",
+          "value": "b100222fd897d7ff1d41bbee82928575cfe3aec360db306ee874933be2b6db08",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "DOC_PO_10142020EX.doc.officeparser/stream_23_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 176,
+          "tags": [],
+          "type": "file",
+          "value": "08cb3fdff2cc734e7720584a2cb8c564e29a31ce3e3b6edb1bec993a135e7901",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "DOC_PO_10142020EX.doc.officeparser/stream_24_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 144,
+          "tags": [],
+          "type": "file",
+          "value": "05fe5187ba8405c48931c049759653ff39b0ab6b4316be9cff408f73c2181e49",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls",
+            "yara_meta:type=image"
+          ],
+          "excluded_analysis": [],
+          "file_path": "DOC_PO_10142020EX.doc.officeparser/stream_25_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 48,
+          "tags": [],
+          "type": "file",
+          "value": "81e660c0a31169e852ec232be20999e11992a508001545252c369aaf43389185",
+          "yara_meta": [
+            "type=image"
+          ]
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "DOC_PO_10142020EX.doc.officeparser/stream_27_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 40,
+          "tags": [],
+          "type": "file",
+          "value": "aa1ff1e1e482004cd8e6ad1dfde91e7df89fa36587b60d6656d96964409e36f6",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "DOC_PO_10142020EX.doc.officeparser/stream_29_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 110,
+          "tags": [],
+          "type": "file",
+          "value": "864ff89013730cf69bcea86d88fd94b248dddf183dfb1ad8ccde8ce6c8183c7d",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "DOC_PO_10142020EX.doc.officeparser/stream_31_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 40,
+          "tags": [],
+          "type": "file",
+          "value": "aa1ff1e1e482004cd8e6ad1dfde91e7df89fa36587b60d6656d96964409e36f6",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "DOC_PO_10142020EX.doc.officeparser/stream_33_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 110,
+          "tags": [],
+          "type": "file",
+          "value": "864ff89013730cf69bcea86d88fd94b248dddf183dfb1ad8ccde8ce6c8183c7d",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "DOC_PO_10142020EX.doc.officeparser/stream_34_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 115,
+          "tags": [],
+          "type": "file",
+          "value": "81051ff4bf424aef18995fb1be348a111ae21371c8605eeb65d0e7603ab4af78",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "DOC_PO_10142020EX.doc.officeparser/stream_35_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 97,
+          "tags": [],
+          "type": "file",
+          "value": "057e3d39cd6e6b882c9cebfb56920db712f49cd628b35bf58e1fd544c0bea20b",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "DOC_PO_10142020EX.doc.officeparser/stream_36_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 297,
+          "tags": [],
+          "type": "file",
+          "value": "81dc82dd65910967964e1b131c38e2d7aa6a416f42f57e86a8652cc62a2296b1",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "DOC_PO_10142020EX.doc.officeparser/stream_37_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 114,
+          "tags": [],
+          "type": "file",
+          "value": "f70fe384c672865fff4bb8ab60d73098bc751e8f2aa915b8aff2e2085648b428",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls",
+            "sandbox",
+            "yara_meta:type=script.macro"
+          ],
+          "excluded_analysis": [],
+          "file_path": "DOC_PO_10142020EX.doc.officeparser/Vufp3qemgme18z3.cls",
+          "redirection": {
+            "type": "file",
+            "value": "3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 360,
+          "tags": [
+            "macro"
+          ],
+          "type": "file",
+          "value": "6316337b15b0b59274ecf4eb205ff1d55988d967c59afede6f6a626feaf42a5d",
+          "yara_meta": [
+            "type=script.macro"
+          ]
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls",
+            "sandbox",
+            "yara_meta:type=script.macro"
+          ],
+          "excluded_analysis": [],
+          "file_path": "DOC_PO_10142020EX.doc.officeparser/Yan8boy3v12dg.frm",
+          "redirection": {
+            "type": "file",
+            "value": "3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 7088,
+          "tags": [
+            "macro"
+          ],
+          "type": "file",
+          "value": "f296f58ff7de3739d426a49f814fcfdf8a8bc734b9a0c177c7a44e6d2b2c1e7e",
+          "yara_meta": [
+            "type=script.macro"
+          ]
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls",
+            "sandbox",
+            "yara_meta:type=script.macro"
+          ],
+          "excluded_analysis": [],
+          "file_path": "DOC_PO_10142020EX.doc.officeparser/D6imzn9bmimax3kt20.bas",
+          "redirection": {
+            "type": "file",
+            "value": "3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 2025,
+          "tags": [
+            "macro"
+          ],
+          "type": "file",
+          "value": "ef74d216aa6c92477a69ccd3b669138ac9a9d4fef7aa86af0c163e01bca30e7a",
+          "yara_meta": [
+            "type=script.macro"
+          ]
+        }
+      ],
+      "summary": "OfficeParser3 Analysis: extracted 32 files",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace3/office/DOC_PO_10142020EX.doc",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "DOC_PO_10142020EX.doc",
+      "size": 132953,
+      "type": "file",
+      "value": "3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a"
+    }
+  },
+  "module": "officeparser3",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "DOC_PO_10142020EX.doc",
+    "relationships": [],
+    "size": 132953,
+    "tags": [
+      "microsoft_office",
+      "ole",
+      "zip"
+    ],
+    "type": "file",
+    "value": "3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

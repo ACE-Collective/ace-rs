@@ -1,6 +1,48 @@
 {
   "form": 1,
   "observables": {
+    "file:347a5abf15e9461fdc6286e983eb615af94214825bfeee97a2399620ad64aa0a": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "surrogate_name.doc.mime/extracted-0": {}
+      },
+      "relationships": {
+        "extracted_from file:ce1de06fb0126976a9e5504e5768812190ca3ece921467aaa2ef780b69d6cbf7": true
+      },
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "0d7f3a5c6ffaa5713d2033bca0d408bb",
+            "sha1": "36c44c9b6bbd6ac4513784f6072ec7ec01159713",
+            "sha256": "347a5abf15e9461fdc6286e983eb615af94214825bfeee97a2399620ad64aa0a"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:5f6215a036890aff7ce33ebbda20fc8beb7ca7d1d1ebd71364750df0ab3ba5f9": {
       "detections": {},
       "directives": {
@@ -82,6 +124,15 @@
           "summary": "File Type Analysis: data (application/octet-stream) (ms office document)",
           "tags": {}
         },
+        "hidden_mime": {
+          "details": {
+            "extracted_files": [
+              "<root>/files/surrogate_name.doc.mime/extracted-0"
+            ]
+          },
+          "summary": "Hidden MIME Analysis: extracted <root>/files/surrogate_name.doc.mime/extracted-0",
+          "tags": {}
+        },
         "olevba_v1_2": {
           "details": {
             "keyword_summary": {
@@ -156,6 +207,26 @@
       "excluded_analysis": {},
       "relationships": {
         "is_hash_of file:ce1de06fb0126976a9e5504e5768812190ca3ece921467aaa2ef780b69d6cbf7": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:0d7f3a5c6ffaa5713d2033bca0d408bb": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:347a5abf15e9461fdc6286e983eb615af94214825bfeee97a2399620ad64aa0a": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:347a5abf15e9461fdc6286e983eb615af94214825bfeee97a2399620ad64aa0a": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:347a5abf15e9461fdc6286e983eb615af94214825bfeee97a2399620ad64aa0a": true
       },
       "results": {},
       "tags": {}

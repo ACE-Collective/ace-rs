@@ -1,0 +1,44 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "OneNoteFileAnalysis",
+      "details": {
+        "extracted_files": []
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.one_note:OneNoteFileAnalysis",
+      "observables": [],
+      "summary": null,
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/office/onenote/short_header.one",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "short_header.one",
+      "size": 17,
+      "type": "file",
+      "value": "9ab94737c8132834c3d0335fe7d6f46481b903439d23fb72918d1eba7970d74a"
+    }
+  },
+  "module": "onenote_extraction",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "short_header.one",
+    "relationships": [],
+    "size": 17,
+    "tags": [
+      "onenote"
+    ],
+    "type": "file",
+    "value": "9ab94737c8132834c3d0335fe7d6f46481b903439d23fb72918d1eba7970d74a",
+    "yara_meta": []
+  }
+}

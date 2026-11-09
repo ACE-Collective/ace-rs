@@ -1,0 +1,52 @@
+{
+  "analysis_type": "onenote_file_analysis",
+  "schema_version": 1,
+  "details": {
+    "extracted_files": [
+      "e9b4ff075e05eb59b9ff8037003dbf17321d0eb75b9a56b738c6789fee69ee5b",
+      "6ac60d7880f05e06a90757b7bce30951bb020b14f935509e6ef1af0c1e96b9d1"
+    ]
+  },
+  "summary": "OneNote File Analysis: extracted files e9b4ff075e05eb59b9ff8037003dbf17321d0eb75b9a56b738c6789fee69ee5b, 6ac60d7880f05e06a90757b7bce30951bb020b14f935509e6ef1af0c1e96b9d1",
+  "analyzed": {
+    "tags": [
+      "onenote"
+    ]
+  },
+  "files": [
+    {
+      "path": "two_files.one.extracted-e9b4ff",
+      "sha256": "e9b4ff075e05eb59b9ff8037003dbf17321d0eb75b9a56b738c6789fee69ee5b",
+      "size": 144,
+      "yara_meta": [
+        "type=document.onenote.embedded"
+      ],
+      "relationships": [
+        {
+          "type": "extracted_from",
+          "target": {
+            "type": "file",
+            "value": "b332dfb36c066e2f7cfd78cbe5d82bf257003ab63e66d106cfc4b21bdf45a731"
+          }
+        }
+      ]
+    },
+    {
+      "path": "two_files.one.extracted-6ac60d",
+      "sha256": "6ac60d7880f05e06a90757b7bce30951bb020b14f935509e6ef1af0c1e96b9d1",
+      "size": 66,
+      "yara_meta": [
+        "type=document.onenote.embedded"
+      ],
+      "relationships": [
+        {
+          "type": "extracted_from",
+          "target": {
+            "type": "file",
+            "value": "b332dfb36c066e2f7cfd78cbe5d82bf257003ab63e66d106cfc4b21bdf45a731"
+          }
+        }
+      ]
+    }
+  ]
+}

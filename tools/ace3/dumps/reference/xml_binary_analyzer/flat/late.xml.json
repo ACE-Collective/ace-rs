@@ -1,0 +1,30 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [],
+  "input": {
+    "directives": [],
+    "label": "fixtures/office/flat/late.xml",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "late.xml",
+      "size": 1444,
+      "type": "file",
+      "value": "1999e1e0d35298045764ee66311ee824a3232cfef8f6b47d00f0f872d1a0cc5c"
+    }
+  },
+  "module": "xml_binary_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "late.xml",
+    "relationships": [],
+    "size": 1444,
+    "tags": [],
+    "type": "file",
+    "value": "1999e1e0d35298045764ee66311ee824a3232cfef8f6b47d00f0f872d1a0cc5c",
+    "yara_meta": []
+  }
+}

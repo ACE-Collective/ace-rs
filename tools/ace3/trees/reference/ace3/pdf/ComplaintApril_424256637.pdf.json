@@ -33,6 +33,57 @@
       },
       "tags": {}
     },
+    "file:087942d427187ab658a0b996d01bf05943024a92b5d684ffc65f876c24c2d9a7": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {
+        "pdf_analyzer": true
+      },
+      "paths": {
+        "ComplaintApril_424256637.pdf.gs.pdf": {
+          "type=document.pdf": true,
+          "type=document.pdf.rendered": true
+        }
+      },
+      "redirection": "file:f68ba01d524f39a2832632eeb77772feb30440d2dbbf92fc83de39494cff4076",
+      "relationships": {
+        "extracted_from file:f68ba01d524f39a2832632eeb77772feb30440d2dbbf92fc83de39494cff4076": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": true,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/pdf",
+            "type": "PDF document, version 1.7, 1 page(s)"
+          },
+          "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "pdf": true
+      }
+    },
     "file:234001d104b81822d825068e6e39b434c768df40b979eefe9a12f8fc5434c417": {
       "detections": {},
       "directives": {},
@@ -208,57 +259,6 @@
         }
       },
       "tags": {}
-    },
-    "file:c03005f2dab4d87f6ac6e50f00be51b4eab59e9477089fdfa0994a1bc4e8c14c": {
-      "detections": {},
-      "directives": {
-        "extract_urls": true
-      },
-      "excluded_analysis": {
-        "pdf_analyzer": true
-      },
-      "paths": {
-        "ComplaintApril_424256637.pdf.gs.pdf": {
-          "type=document.pdf": true,
-          "type=document.pdf.rendered": true
-        }
-      },
-      "redirection": "file:f68ba01d524f39a2832632eeb77772feb30440d2dbbf92fc83de39494cff4076",
-      "relationships": {
-        "extracted_from file:f68ba01d524f39a2832632eeb77772feb30440d2dbbf92fc83de39494cff4076": true
-      },
-      "results": {
-        "file_type": {
-          "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": true,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "application/pdf",
-            "type": "PDF document, version 1.7, 1 page(s)"
-          },
-          "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
-          "tags": {}
-        },
-        "url_extraction": {
-          "details": {
-            "urls": [],
-            "urls_grouped_by_domain": {}
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {
-        "pdf": true
-      }
     },
     "file:f3494a3ad0d407af43a45d0b12de066f1830d28bca30f3f4a29ab437faaa73fd": {
       "detections": {},

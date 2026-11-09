@@ -1,0 +1,70 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "XMLPlainTextAnalysis",
+      "details": {
+        "xml_plain_text": "invoice.docx.extracted/word/cp1252.xml.noxml"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.xml:XMLPlainTextAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "file_path": "invoice.docx.extracted/word/cp1252.xml.noxml",
+          "relationships": [],
+          "size": 12,
+          "tags": [],
+          "type": "file",
+          "value": "675587678ab187204408a9804299a93a49763fc568c472e5663e86cb1d62521c",
+          "yara_meta": []
+        }
+      ],
+      "summary": null,
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "extracted_from": {
+      "file_path": "invoice.docx",
+      "tags": [
+        "microsoft_office"
+      ],
+      "value": "1bcbb19fadc8e5388a2702a7afd6a60e3cd0841d58f847a412803f53951becd2"
+    },
+    "label": "fixtures/office/plain/cp1252.xml extracted from a microsoft_office file",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "invoice.docx.extracted/word/cp1252.xml",
+      "size": 60,
+      "type": "file",
+      "value": "3ad44ab471078f8860c78e01a558e636bd9c786f863b44c3230911651ae8efb4"
+    }
+  },
+  "module": "xml_plain_text_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "invoice.docx.extracted/word/cp1252.xml",
+    "relationships": [
+      {
+        "target": {
+          "type": "file",
+          "value": "1bcbb19fadc8e5388a2702a7afd6a60e3cd0841d58f847a412803f53951becd2"
+        },
+        "type": "extracted_from"
+      }
+    ],
+    "size": 60,
+    "tags": [],
+    "type": "file",
+    "value": "3ad44ab471078f8860c78e01a558e636bd9c786f863b44c3230911651ae8efb4",
+    "yara_meta": []
+  }
+}

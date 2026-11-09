@@ -1,0 +1,30 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [],
+  "input": {
+    "directives": [],
+    "label": "fixtures/office/flat/no_xml_decl.txt",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "no_xml_decl.txt",
+      "size": 270,
+      "type": "file",
+      "value": "6e8370b7361572300cd278ea588535c4bfbdf9eabf94ad6948d42098efecad61"
+    }
+  },
+  "module": "xml_binary_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "no_xml_decl.txt",
+    "relationships": [],
+    "size": 270,
+    "tags": [],
+    "type": "file",
+    "value": "6e8370b7361572300cd278ea588535c4bfbdf9eabf94ad6948d42098efecad61",
+    "yara_meta": []
+  }
+}

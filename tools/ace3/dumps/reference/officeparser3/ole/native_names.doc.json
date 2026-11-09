@@ -1,0 +1,679 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": true,
+        "is_office_ext": true,
+        "is_ole_file": true,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "application/x-ole-storage",
+        "type": "Composite Document File V2 Document, Cannot read section info"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: Composite Document File V2 Document, Cannot read section info (application/x-ole-storage) (ms office document) (ole compound file)",
+      "tags": []
+    },
+    {
+      "class": "OfficeParserAnalysis3",
+      "details": {
+        "extracted_files": [
+          "stream_1_0.dat",
+          "dup.txt",
+          "dup.txt",
+          "Module1.bas",
+          "stream_3_0.dat",
+          "stream_4_0.dat",
+          "stream_5_0.dat",
+          "stream_6_0.dat",
+          "stream_10_0.dat",
+          "stream_11_0.dat",
+          "stream_13_0.dat",
+          "stream_14_0.dat",
+          "stream_16_0.dat",
+          "stream_17_0.dat",
+          "stream_19_0.dat",
+          "stream_20_0.dat",
+          "stream_22_0.dat",
+          "stream_23_0.dat",
+          "stream_25_0.dat",
+          "stream_26_0.dat",
+          "stream_28_0.dat",
+          "stream_29_0.dat",
+          "Module1_1.bas"
+        ]
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.officeparser3:OfficeParserAnalysis3",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "native_names.doc.officeparser/stream_1_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "17313abc4298b02b7f741930fad224cad70c6cfb429abaad6892dcaeb58d0776"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "17313abc4298b02b7f741930fad224cad70c6cfb429abaad6892dcaeb58d0776"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 19,
+          "tags": [],
+          "type": "file",
+          "value": "9d7f5898a5ecbd7a91a5d04650ccdb9d47aec8556c39c5c7ba50c54015e7b20e",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "native_names.doc.officeparser/dup.txt",
+          "redirection": {
+            "type": "file",
+            "value": "17313abc4298b02b7f741930fad224cad70c6cfb429abaad6892dcaeb58d0776"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "17313abc4298b02b7f741930fad224cad70c6cfb429abaad6892dcaeb58d0776"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 6,
+          "tags": [],
+          "type": "file",
+          "value": "16367aacb67a4a017c8da8ab95682ccb390863780f7114dda0a0e0c55644c7c4",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls",
+            "sandbox",
+            "yara_meta:type=script.macro"
+          ],
+          "excluded_analysis": [],
+          "file_path": "native_names.doc.officeparser/Module1.bas",
+          "redirection": {
+            "type": "file",
+            "value": "17313abc4298b02b7f741930fad224cad70c6cfb429abaad6892dcaeb58d0776"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "17313abc4298b02b7f741930fad224cad70c6cfb429abaad6892dcaeb58d0776"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 18,
+          "tags": [
+            "macro"
+          ],
+          "type": "file",
+          "value": "f5fe3a8105c4087b2975a805f5b6d688960b3eea8e20d3e0a9c15a03ef3fd414",
+          "yara_meta": [
+            "type=script.macro"
+          ]
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "native_names.doc.officeparser/stream_3_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "17313abc4298b02b7f741930fad224cad70c6cfb429abaad6892dcaeb58d0776"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "17313abc4298b02b7f741930fad224cad70c6cfb429abaad6892dcaeb58d0776"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 276,
+          "tags": [],
+          "type": "file",
+          "value": "e99da4c234de115f06ba35b2467754227cef29ede76177e48232b9fd94b07cca",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "native_names.doc.officeparser/stream_4_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "17313abc4298b02b7f741930fad224cad70c6cfb429abaad6892dcaeb58d0776"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "17313abc4298b02b7f741930fad224cad70c6cfb429abaad6892dcaeb58d0776"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 107,
+          "tags": [],
+          "type": "file",
+          "value": "9d5e64886e22c13bc8585f68b7a4f0d60a00412c9602fc257fcc7e21af596a11",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "native_names.doc.officeparser/stream_5_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "17313abc4298b02b7f741930fad224cad70c6cfb429abaad6892dcaeb58d0776"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "17313abc4298b02b7f741930fad224cad70c6cfb429abaad6892dcaeb58d0776"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 7,
+          "tags": [],
+          "type": "file",
+          "value": "4bc03d883e84c6e66e0e608c1a98f8a4347cd41642277aacfdbb48255334ac60",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "native_names.doc.officeparser/stream_6_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "17313abc4298b02b7f741930fad224cad70c6cfb429abaad6892dcaeb58d0776"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "17313abc4298b02b7f741930fad224cad70c6cfb429abaad6892dcaeb58d0776"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 80,
+          "tags": [],
+          "type": "file",
+          "value": "cdeaf2a6c8b044b1779b04b3578860b126c0c55265e040798e3f2898ef413226",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "native_names.doc.officeparser/stream_10_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "17313abc4298b02b7f741930fad224cad70c6cfb429abaad6892dcaeb58d0776"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "17313abc4298b02b7f741930fad224cad70c6cfb429abaad6892dcaeb58d0776"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 28,
+          "tags": [],
+          "type": "file",
+          "value": "6e5c83cfbc6fce046f237dbee7a36bb926ae1869c9cf47ca2d165e4eef8e58ed",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "native_names.doc.officeparser/stream_11_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "17313abc4298b02b7f741930fad224cad70c6cfb429abaad6892dcaeb58d0776"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "17313abc4298b02b7f741930fad224cad70c6cfb429abaad6892dcaeb58d0776"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 48,
+          "tags": [],
+          "type": "file",
+          "value": "ae28a81a20c4139481552f8b153c64a41de7a5afb9aab2843a344b5c6d010008",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "native_names.doc.officeparser/stream_13_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "17313abc4298b02b7f741930fad224cad70c6cfb429abaad6892dcaeb58d0776"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "17313abc4298b02b7f741930fad224cad70c6cfb429abaad6892dcaeb58d0776"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 28,
+          "tags": [],
+          "type": "file",
+          "value": "6e5c83cfbc6fce046f237dbee7a36bb926ae1869c9cf47ca2d165e4eef8e58ed",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "native_names.doc.officeparser/stream_14_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "17313abc4298b02b7f741930fad224cad70c6cfb429abaad6892dcaeb58d0776"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "17313abc4298b02b7f741930fad224cad70c6cfb429abaad6892dcaeb58d0776"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 70,
+          "tags": [],
+          "type": "file",
+          "value": "c6bfe933210fcdbb8bf1d1b7f8372281a036aa10c72ce0b3e61d3cbbae384a68",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "native_names.doc.officeparser/stream_16_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "17313abc4298b02b7f741930fad224cad70c6cfb429abaad6892dcaeb58d0776"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "17313abc4298b02b7f741930fad224cad70c6cfb429abaad6892dcaeb58d0776"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 28,
+          "tags": [],
+          "type": "file",
+          "value": "6e5c83cfbc6fce046f237dbee7a36bb926ae1869c9cf47ca2d165e4eef8e58ed",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "native_names.doc.officeparser/stream_17_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "17313abc4298b02b7f741930fad224cad70c6cfb429abaad6892dcaeb58d0776"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "17313abc4298b02b7f741930fad224cad70c6cfb429abaad6892dcaeb58d0776"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 70,
+          "tags": [],
+          "type": "file",
+          "value": "f8fbf86d6ed94d80b46a1c152b08ea7c3c1c8fcd3f96da3e78a6c259eca89b10",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "native_names.doc.officeparser/stream_19_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "17313abc4298b02b7f741930fad224cad70c6cfb429abaad6892dcaeb58d0776"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "17313abc4298b02b7f741930fad224cad70c6cfb429abaad6892dcaeb58d0776"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 28,
+          "tags": [],
+          "type": "file",
+          "value": "6e5c83cfbc6fce046f237dbee7a36bb926ae1869c9cf47ca2d165e4eef8e58ed",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "native_names.doc.officeparser/stream_20_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "17313abc4298b02b7f741930fad224cad70c6cfb429abaad6892dcaeb58d0776"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "17313abc4298b02b7f741930fad224cad70c6cfb429abaad6892dcaeb58d0776"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 49,
+          "tags": [],
+          "type": "file",
+          "value": "4f6a7a086ab9004e29efe99d27709bd883046e7fa56b86addc6e9f094be118ef",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "native_names.doc.officeparser/stream_22_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "17313abc4298b02b7f741930fad224cad70c6cfb429abaad6892dcaeb58d0776"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "17313abc4298b02b7f741930fad224cad70c6cfb429abaad6892dcaeb58d0776"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 28,
+          "tags": [],
+          "type": "file",
+          "value": "6e5c83cfbc6fce046f237dbee7a36bb926ae1869c9cf47ca2d165e4eef8e58ed",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "native_names.doc.officeparser/stream_23_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "17313abc4298b02b7f741930fad224cad70c6cfb429abaad6892dcaeb58d0776"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "17313abc4298b02b7f741930fad224cad70c6cfb429abaad6892dcaeb58d0776"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 50,
+          "tags": [],
+          "type": "file",
+          "value": "adbcd0fab1fc072a4dfe71682457b34c081c8f8cd36d4dd51918ab957a70ddf9",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "native_names.doc.officeparser/stream_25_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "17313abc4298b02b7f741930fad224cad70c6cfb429abaad6892dcaeb58d0776"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "17313abc4298b02b7f741930fad224cad70c6cfb429abaad6892dcaeb58d0776"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 28,
+          "tags": [],
+          "type": "file",
+          "value": "6e5c83cfbc6fce046f237dbee7a36bb926ae1869c9cf47ca2d165e4eef8e58ed",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "native_names.doc.officeparser/stream_26_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "17313abc4298b02b7f741930fad224cad70c6cfb429abaad6892dcaeb58d0776"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "17313abc4298b02b7f741930fad224cad70c6cfb429abaad6892dcaeb58d0776"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 66,
+          "tags": [],
+          "type": "file",
+          "value": "9bd23846657d01d3eb74b217876838c988e320cb9c868c7fc4b584c5e2d048e5",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "native_names.doc.officeparser/stream_28_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "17313abc4298b02b7f741930fad224cad70c6cfb429abaad6892dcaeb58d0776"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "17313abc4298b02b7f741930fad224cad70c6cfb429abaad6892dcaeb58d0776"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 28,
+          "tags": [],
+          "type": "file",
+          "value": "6e5c83cfbc6fce046f237dbee7a36bb926ae1869c9cf47ca2d165e4eef8e58ed",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "native_names.doc.officeparser/stream_29_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "17313abc4298b02b7f741930fad224cad70c6cfb429abaad6892dcaeb58d0776"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "17313abc4298b02b7f741930fad224cad70c6cfb429abaad6892dcaeb58d0776"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 72,
+          "tags": [],
+          "type": "file",
+          "value": "a05213e21412e643df067255df3b1690f8ae56686ee2bb6803d287b9055f5c19",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls",
+            "sandbox",
+            "yara_meta:type=script.macro"
+          ],
+          "excluded_analysis": [],
+          "file_path": "native_names.doc.officeparser/Module1_1.bas",
+          "redirection": {
+            "type": "file",
+            "value": "17313abc4298b02b7f741930fad224cad70c6cfb429abaad6892dcaeb58d0776"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "17313abc4298b02b7f741930fad224cad70c6cfb429abaad6892dcaeb58d0776"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 92,
+          "tags": [
+            "macro"
+          ],
+          "type": "file",
+          "value": "dc14beeac0e90f3b0855882a425a07407d58d4e038d1180e16d420660fd5ae29",
+          "yara_meta": [
+            "type=script.macro"
+          ]
+        }
+      ],
+      "summary": "OfficeParser3 Analysis: extracted 23 files",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/office/ole/native_names.doc",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "native_names.doc",
+      "size": 7680,
+      "type": "file",
+      "value": "17313abc4298b02b7f741930fad224cad70c6cfb429abaad6892dcaeb58d0776"
+    }
+  },
+  "module": "officeparser3",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "native_names.doc",
+    "relationships": [],
+    "size": 7680,
+    "tags": [
+      "microsoft_office",
+      "ole"
+    ],
+    "type": "file",
+    "value": "17313abc4298b02b7f741930fad224cad70c6cfb429abaad6892dcaeb58d0776",
+    "yara_meta": []
+  }
+}

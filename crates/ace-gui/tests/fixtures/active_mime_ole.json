@@ -1,0 +1,30 @@
+{
+  "analysis_type": "active_mime_analysis",
+  "schema_version": 1,
+  "details": {
+    "extracted_file": "ole.mso.activemime"
+  },
+  "summary": "Active MIME Analysis: extracted ole.mso.activemime",
+  "files": [
+    {
+      "path": "ole.mso.activemime",
+      "sha256": "eecb200c85b4d29b859fe3d4415c4c410e5d498d141c371928b797ab04309476",
+      "size": 5147,
+      "yara_meta": [
+        "type=document.activemime"
+      ],
+      "tags": [
+        "activemime"
+      ],
+      "relationships": [
+        {
+          "type": "extracted_from",
+          "target": {
+            "type": "file",
+            "value": "e771da88ff76c35e9e6e841ad684356e5d33663a10924729875a70ff9de9b462"
+          }
+        }
+      ]
+    }
+  ]
+}

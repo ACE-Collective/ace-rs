@@ -1,0 +1,126 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": true,
+        "is_office_ext": true,
+        "is_ole_file": true,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "application/x-ole-storage",
+        "type": "Composite Document File V2 Document, Cannot read section info"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: Composite Document File V2 Document, Cannot read section info (application/x-ole-storage) (ms office document) (ole compound file)",
+      "tags": []
+    },
+    {
+      "class": "OfficeParserAnalysis3",
+      "details": {
+        "extracted_files": [
+          "stream_1_0.dat",
+          "stream_2_0.dat"
+        ]
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.officeparser3:OfficeParserAnalysis3",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "big_stream.doc.officeparser/stream_1_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "4c548f0dfabb4b2cd191a9441359f935392f836e6dc318dfd403611e449a4b3d"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "4c548f0dfabb4b2cd191a9441359f935392f836e6dc318dfd403611e449a4b3d"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 10000,
+          "tags": [],
+          "type": "file",
+          "value": "0e4bbfff4bbfb86b373fdfcd608de625c7364d608c93cb8801892991810af62c",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "big_stream.doc.officeparser/stream_2_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "4c548f0dfabb4b2cd191a9441359f935392f836e6dc318dfd403611e449a4b3d"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "4c548f0dfabb4b2cd191a9441359f935392f836e6dc318dfd403611e449a4b3d"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 100,
+          "tags": [],
+          "type": "file",
+          "value": "4f4315674f2f1f05af46fe488463c3b8da0bdb0b58c11bccc6d08f1c252fb677",
+          "yara_meta": []
+        }
+      ],
+      "summary": "OfficeParser3 Analysis: extracted 2 files",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/office/ole/big_stream.doc",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "big_stream.doc",
+      "size": 12800,
+      "type": "file",
+      "value": "4c548f0dfabb4b2cd191a9441359f935392f836e6dc318dfd403611e449a4b3d"
+    }
+  },
+  "module": "officeparser3",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "big_stream.doc",
+    "relationships": [],
+    "size": 12800,
+    "tags": [
+      "microsoft_office",
+      "ole"
+    ],
+    "type": "file",
+    "value": "4c548f0dfabb4b2cd191a9441359f935392f836e6dc318dfd403611e449a4b3d",
+    "yara_meta": []
+  }
+}

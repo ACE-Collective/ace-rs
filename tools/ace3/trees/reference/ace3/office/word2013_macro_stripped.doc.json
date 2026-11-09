@@ -1,22 +1,70 @@
 {
   "form": 1,
   "observables": {
-    "file:1a5ce2eb33e4dcd8bf09a57d740649e2aec359dc2c0fd952ac0d19d4a63d0c42": {
+    "file:09ddbe6d159c1fae7299f5d4e1281dad6068331d9f651f45a51265277b80f0ed": {
       "detections": {},
       "directives": {
-        "sandbox": true
+        "extract_urls": true
       },
-      "excluded_analysis": {
-        "olevba_v1_2": true
-      },
+      "excluded_analysis": {},
       "paths": {
-        "word2013_macro_stripped.doc.olevba/macro_0.bas": {
-          "type=script.macro.vba": true
+        "word2013_macro_stripped.doc.officeparser/stream_1_0.dat.extracted/theme/theme/themeManager.xml": {}
+      },
+      "relationships": {
+        "extracted_from file:9b26f26bc5db1e349a98264cfe84a2a299194107c683a67affd2147af8c8fcaf": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/xml",
+            "type": "XML 1.0 document, ASCII text, with CRLF line terminators"
+          },
+          "summary": "File Type Analysis: XML 1.0 document, ASCII text, with CRLF line terminators (text/xml)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
         }
       },
+      "tags": {}
+    },
+    "file:0cdc7fab2c7a67d7e7f91e8f84a82ab037778cf69ce2e44ef3ab334196fbdb30": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "word2013_macro_stripped.doc.officeparser/stream_6_0.dat": {}
+      },
       "redirection": "file:1dff27c2897cd3d48c589166d8f33ae160c3d249c7456c0421aa9a0a6ed1e3c5",
-      "relationships": {},
+      "relationships": {
+        "extracted_from file:1dff27c2897cd3d48c589166d8f33ae160c3d249c7456c0421aa9a0a6ed1e3c5": true
+      },
       "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
         "file_type": {
           "details": {
             "is_email_file": false,
@@ -34,6 +82,73 @@
             "type": "data"
           },
           "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:1a5ce2eb33e4dcd8bf09a57d740649e2aec359dc2c0fd952ac0d19d4a63d0c42": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true,
+        "sandbox": true
+      },
+      "excluded_analysis": {
+        "olevba_v1_2": true
+      },
+      "paths": {
+        "word2013_macro_stripped.doc.officeparser/ThisDocument.cls": {
+          "type=script.macro": true
+        },
+        "word2013_macro_stripped.doc.olevba/macro_0.bas": {
+          "type=script.macro.vba": true
+        }
+      },
+      "redirection": "file:1dff27c2897cd3d48c589166d8f33ae160c3d249c7456c0421aa9a0a6ed1e3c5",
+      "relationships": {
+        "extracted_from file:1dff27c2897cd3d48c589166d8f33ae160c3d249c7456c0421aa9a0a6ed1e3c5": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
           "tags": {}
         }
       },
@@ -82,6 +197,25 @@
           "summary": "File Type Analysis: Composite Document File V2 Document, Little Endian, Os: Windows, Version 10.0, Code page: 1251, Author: Vesselin Bontchev, Template: Normal.dotm, Last Saved By: Dimitrina Polimirova, Revision Number: 2, Name of Creating Application: Microsoft Office Word, Total Editing Time: 02:00, Create Time/Date: Wed Sep 21 13:54:00 2016, Last Saved Time/Date: Thu Sep 22 20:23:00 2016, Number of Pages: 1, Number of Words: 0, Number of Characters: 0, Security: 0 (application/msword) (ms office document) (ole compound file) (zip archive)",
           "tags": {}
         },
+        "officeparser3": {
+          "details": {
+            "extracted_files": [
+              "stream_1_0.dat",
+              "stream_4_0.dat",
+              "stream_5_0.dat",
+              "stream_6_0.dat",
+              "stream_7_0.dat",
+              "stream_8_0.dat",
+              "stream_9_0.dat",
+              "stream_10_0.dat",
+              "stream_11_0.dat",
+              "stream_12_0.dat",
+              "ThisDocument.cls"
+            ]
+          },
+          "summary": "OfficeParser3 Analysis: extracted 11 files",
+          "tags": {}
+        },
         "olevba_v1_2": {
           "details": {
             "keyword_summary": {
@@ -125,6 +259,49 @@
         "zip": true
       }
     },
+    "file:2983db3781942d11b9497551888ee8774f861ff9cbc5c64ddb79eaa0698f87bd": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "word2013_macro_stripped.doc.officeparser/stream_1_0.dat.extracted/theme/theme/_rels/themeManager.xml.rels": {}
+      },
+      "relationships": {
+        "extracted_from file:9b26f26bc5db1e349a98264cfe84a2a299194107c683a67affd2147af8c8fcaf": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/xml",
+            "type": "XML 1.0 document, ASCII text, with CRLF line terminators"
+          },
+          "summary": "File Type Analysis: XML 1.0 document, ASCII text, with CRLF line terminators (text/xml)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:2d4f8142bdb14e53e947b814efb27603533d6fce48928ceb5b510ba536b9a9a2": {
       "detections": {},
       "directives": {
@@ -165,6 +342,373 @@
         "macro": true
       }
     },
+    "file:4813796761016213b59e87f1e485b0b4c410b979003629cd29763e440d948e35": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "word2013_macro_stripped.doc.officeparser/stream_10_0.dat": {}
+      },
+      "redirection": "file:1dff27c2897cd3d48c589166d8f33ae160c3d249c7456c0421aa9a0a6ed1e3c5",
+      "relationships": {
+        "extracted_from file:1dff27c2897cd3d48c589166d8f33ae160c3d249c7456c0421aa9a0a6ed1e3c5": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:50ba4a4df615f8716bd551db7a5d023b43ca8dea68d14664280895c45146c721": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "word2013_macro_stripped.doc.officeparser/stream_12_0.dat": {}
+      },
+      "redirection": "file:1dff27c2897cd3d48c589166d8f33ae160c3d249c7456c0421aa9a0a6ed1e3c5",
+      "relationships": {
+        "extracted_from file:1dff27c2897cd3d48c589166d8f33ae160c3d249c7456c0421aa9a0a6ed1e3c5": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:51a7a43d4af9a6fa8251a7da2fbbb5ef50d3eb70f8f825514aabaa6e1c99c999": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "word2013_macro_stripped.doc.officeparser/stream_11_0.dat": {}
+      },
+      "redirection": "file:1dff27c2897cd3d48c589166d8f33ae160c3d249c7456c0421aa9a0a6ed1e3c5",
+      "relationships": {
+        "extracted_from file:1dff27c2897cd3d48c589166d8f33ae160c3d249c7456c0421aa9a0a6ed1e3c5": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:6c98d4f2b62b4db730884f9bd6d27e5360693eaad02d9cdbaa0e71c4c747450b": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "word2013_macro_stripped.doc.officeparser/stream_1_0.dat.extracted/[Content_Types].xml": {}
+      },
+      "relationships": {
+        "extracted_from file:9b26f26bc5db1e349a98264cfe84a2a299194107c683a67affd2147af8c8fcaf": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/xml",
+            "type": "XML 1.0 document, ASCII text, with very long lines (483), with CRLF line terminators"
+          },
+          "summary": "File Type Analysis: XML 1.0 document, ASCII text, with very long lines (483), with CRLF line terminators (text/xml)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:95e9db2278364c40d924d624dc9865105d277c22ddee7b3f459b069338b8c56a": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "word2013_macro_stripped.doc.officeparser/stream_1_0.dat.extracted/theme/theme/theme1.xml": {}
+      },
+      "relationships": {
+        "extracted_from file:9b26f26bc5db1e349a98264cfe84a2a299194107c683a67affd2147af8c8fcaf": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/xml",
+            "type": "XML 1.0 document, Unicode text, UTF-8 text, with very long lines (6678), with CRLF line terminators"
+          },
+          "summary": "File Type Analysis: XML 1.0 document, Unicode text, UTF-8 text, with very long lines (6678), with CRLF line terminators (text/xml)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:9b26f26bc5db1e349a98264cfe84a2a299194107c683a67affd2147af8c8fcaf": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "word2013_macro_stripped.doc.officeparser/stream_1_0.dat": {}
+      },
+      "redirection": "file:1dff27c2897cd3d48c589166d8f33ae160c3d249c7456c0421aa9a0a6ed1e3c5",
+      "relationships": {
+        "extracted_from file:1dff27c2897cd3d48c589166d8f33ae160c3d249c7456c0421aa9a0a6ed1e3c5": true
+      },
+      "results": {
+        "archive": {
+          "details": {
+            "extracted_files": [
+              "[Content_Types].xml",
+              "theme/theme/theme1.xml",
+              "theme/theme/themeManager.xml",
+              "theme/theme/_rels/themeManager.xml.rels",
+              "_rels/.rels"
+            ],
+            "extraction_error": null,
+            "file_count": 5
+          },
+          "summary": "Archive Analysis: extracted 5 of 5 files: ([Content_Types].xml, theme/theme/theme1.xml, theme/theme/themeManager.xml, theme/theme/_rels/themeManager.xml.rels, _rels/.rels)",
+          "tags": {}
+        },
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": true,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream) (zip archive)",
+          "tags": {}
+        },
+        "olevba_v1_2": {
+          "details": {
+            "keyword_summary": {},
+            "macros": [],
+            "type": "OpenXML"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "zip": true
+      }
+    },
+    "file:9cce1ad34b73141d7ffc0fc2f5dc95030af9b517a655b6b8fda771778e48618a": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "word2013_macro_stripped.doc.officeparser/stream_4_0.dat": {}
+      },
+      "redirection": "file:1dff27c2897cd3d48c589166d8f33ae160c3d249c7456c0421aa9a0a6ed1e3c5",
+      "relationships": {
+        "extracted_from file:1dff27c2897cd3d48c589166d8f33ae160c3d249c7456c0421aa9a0a6ed1e3c5": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "shared library"
+          },
+          "summary": "File Type Analysis: shared library (application/octet-stream)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:c198d34ea6f73bc5be9f403e94d588919db98b79a996161faaec2197346b8a8d": {
       "detections": {},
       "directives": {},
@@ -194,6 +738,253 @@
             "type": "ASCII text"
           },
           "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:ce49436dec0282ca0c2acb2966441b42d2620cd614f363ac0b43420dfdd687ed": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "word2013_macro_stripped.doc.officeparser/stream_8_0.dat": {}
+      },
+      "redirection": "file:1dff27c2897cd3d48c589166d8f33ae160c3d249c7456c0421aa9a0a6ed1e3c5",
+      "relationships": {
+        "extracted_from file:1dff27c2897cd3d48c589166d8f33ae160c3d249c7456c0421aa9a0a6ed1e3c5": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:d2d8276ca63e307268dbf1bef2fbf45ba4c65c27494555a7742761c22984f1af": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "word2013_macro_stripped.doc.officeparser/stream_1_0.dat.extracted/_rels/.rels": {}
+      },
+      "relationships": {
+        "extracted_from file:9b26f26bc5db1e349a98264cfe84a2a299194107c683a67affd2147af8c8fcaf": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/xml",
+            "type": "XML 1.0 document, ASCII text, with CRLF line terminators"
+          },
+          "summary": "File Type Analysis: XML 1.0 document, ASCII text, with CRLF line terminators (text/xml)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:e384d8756188847aa8ee20de73cd647c8e6039c47b5d3d708fbbe5159a3f1a4a": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "word2013_macro_stripped.doc.officeparser/stream_7_0.dat": {}
+      },
+      "redirection": "file:1dff27c2897cd3d48c589166d8f33ae160c3d249c7456c0421aa9a0a6ed1e3c5",
+      "relationships": {
+        "extracted_from file:1dff27c2897cd3d48c589166d8f33ae160c3d249c7456c0421aa9a0a6ed1e3c5": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text, with CRLF line terminators"
+          },
+          "summary": "File Type Analysis: ASCII text, with CRLF line terminators (text/plain)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:f70fe384c672865fff4bb8ab60d73098bc751e8f2aa915b8aff2e2085648b428": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "word2013_macro_stripped.doc.officeparser/stream_9_0.dat": {}
+      },
+      "redirection": "file:1dff27c2897cd3d48c589166d8f33ae160c3d249c7456c0421aa9a0a6ed1e3c5",
+      "relationships": {
+        "extracted_from file:1dff27c2897cd3d48c589166d8f33ae160c3d249c7456c0421aa9a0a6ed1e3c5": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:f8ecd2eb59e2a31f8aac91d0bb351394040f5b150aa7a20e74b7b83b8e92dba9": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "word2013_macro_stripped.doc.officeparser/stream_5_0.dat": {}
+      },
+      "redirection": "file:1dff27c2897cd3d48c589166d8f33ae160c3d249c7456c0421aa9a0a6ed1e3c5",
+      "relationships": {
+        "extracted_from file:1dff27c2897cd3d48c589166d8f33ae160c3d249c7456c0421aa9a0a6ed1e3c5": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
           "tags": {}
         }
       },

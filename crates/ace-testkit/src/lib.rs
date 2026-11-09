@@ -30,6 +30,7 @@ use ace_results::{
 };
 use ace_sdk::lists::{Entry as ListEntry, ListSpec, WireList};
 use ace_sdk::reads::Reader;
+use ace_sdk::wire::RelatedTags;
 use ace_sdk::writes::WireWrite;
 use ace_sdk::{
     CarryingEmail, Delay, DelayedRun, FileStore, InputFile, LocalFileStore, Lookup, Module,
@@ -103,6 +104,8 @@ pub struct Harness<M: Module> {
     reader: Option<Arc<dyn Reader>>,
     dependency_results: Vec<(String, Value)>,
     observables_below: Vec<ObservableRef>,
+    added_by: Vec<String>,
+    related_tags: Vec<RelatedTags>,
 }
 
 impl<M: Module> Harness<M> {
@@ -134,6 +137,8 @@ impl<M: Module> Harness<M> {
             reader: None,
             dependency_results: Vec::new(),
             observables_below: Vec::new(),
+            added_by: Vec::new(),
+            related_tags: Vec::new(),
         })
     }
 
@@ -173,6 +178,24 @@ impl<M: Module> Harness<M> {
     /// (`Module::READS_BELOW`).
     pub fn observables_below(mut self, observables: Vec<ObservableRef>) -> Self {
         self.observables_below = observables;
+        self
+    }
+
+    /// The modules whose results added the observable, as the core sends them to a module that
+    /// reads them (`Module::READS_ADDED_BY`).
+    pub fn added_by(mut self, modules: &[&str]) -> Self {
+        self.added_by = modules.iter().map(|m| (*m).to_owned()).collect();
+        self
+    }
+
+    /// The tags of an observable the analyzed one is related to, as the core sends them to a module
+    /// that reads them (`Module::READS_RELATED_TAGS`).
+    pub fn related_tags(mut self, observable: ObservableRef, tags: &[&str]) -> Self {
+        self.related_tags.retain(|r| r.observable != observable);
+        self.related_tags.push(RelatedTags {
+            observable,
+            tags: tags.iter().map(|t| (*t).to_owned()).collect(),
+        });
         self
     }
 
@@ -286,7 +309,9 @@ impl<M: Module> Harness<M> {
             .with_lists(self.lists.clone())
             .with_reader(self.reader.clone())
             .with_dependency_results(self.dependency_results.clone())
-            .with_observables_below(self.observables_below.clone());
+            .with_observables_below(self.observables_below.clone())
+            .with_added_by(self.added_by.clone())
+            .with_related_tags(self.related_tags.clone());
         let ctx = match &self.reader {
             Some(_) => ctx.with_task_id(1),
             None => ctx,

@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT r.module AS \"module!\"\n           FROM analysis.result_additions a\n           JOIN analysis.results r ON r.id = a.result_id\n           WHERE a.root_id = $1 AND a.observable_id = $2\n           GROUP BY r.module\n           ORDER BY min(a.id)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "module!",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.results",
+            "name": "module"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "a88bdbbc9358381132f1e97e0fde9b24c768e2a1fb7ef3407713f93f7ea40456"
+}

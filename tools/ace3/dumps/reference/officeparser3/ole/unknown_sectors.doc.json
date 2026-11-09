@@ -1,0 +1,126 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": true,
+        "is_office_ext": true,
+        "is_ole_file": true,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "application/x-ole-storage",
+        "type": "Composite Document File V2 Document, Cannot read section info"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: Composite Document File V2 Document, Cannot read section info (application/x-ole-storage) (ms office document) (ole compound file)",
+      "tags": []
+    },
+    {
+      "class": "OfficeParserAnalysis3",
+      "details": {
+        "extracted_files": [
+          "stream_1_0.dat",
+          "unknown_sectors_0.dat"
+        ]
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.officeparser3:OfficeParserAnalysis3",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "unknown_sectors.doc.officeparser/stream_1_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "6fbde5b52a694f24400b9c6d4aa8da487e7a90a75b180104aa64688b4695d587"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "6fbde5b52a694f24400b9c6d4aa8da487e7a90a75b180104aa64688b4695d587"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 12,
+          "tags": [],
+          "type": "file",
+          "value": "8a6fe89d5b36e1dd4b30ddba84117e3dccb39f7d42f3b2dc72b94c582b83c682",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "unknown_sectors.doc.officeparser/unknown_sectors_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "6fbde5b52a694f24400b9c6d4aa8da487e7a90a75b180104aa64688b4695d587"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "6fbde5b52a694f24400b9c6d4aa8da487e7a90a75b180104aa64688b4695d587"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 30,
+          "tags": [],
+          "type": "file",
+          "value": "be1c19c8f0afb5782f48d2150ce49dec13f96d292e1fff0f6bb7e313265df002",
+          "yara_meta": []
+        }
+      ],
+      "summary": "OfficeParser3 Analysis: extracted 2 files",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/office/ole/unknown_sectors.doc",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "unknown_sectors.doc",
+      "size": 66078,
+      "type": "file",
+      "value": "6fbde5b52a694f24400b9c6d4aa8da487e7a90a75b180104aa64688b4695d587"
+    }
+  },
+  "module": "officeparser3",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "unknown_sectors.doc",
+    "relationships": [],
+    "size": 66078,
+    "tags": [
+      "microsoft_office",
+      "ole"
+    ],
+    "type": "file",
+    "value": "6fbde5b52a694f24400b9c6d4aa8da487e7a90a75b180104aa64688b4695d587",
+    "yara_meta": []
+  }
+}

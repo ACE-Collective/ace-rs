@@ -1,6 +1,108 @@
 {
   "form": 1,
   "observables": {
+    "file:0817180ed734dec3249a1790171953930a559fa6724e94a768e9438a553fc525": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "encrypted_rc4.doc.officeparser/stream_4_0.dat": {}
+      },
+      "redirection": "file:2f881ed02b6b7a84fcb77a001472d84331d76a99e7e5eb3e51dca0312f49fc76",
+      "relationships": {
+        "extracted_from file:2f881ed02b6b7a84fcb77a001472d84331d76a99e7e5eb3e51dca0312f49fc76": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "DOS 2.0 backup id file, sequence 255"
+          },
+          "summary": "File Type Analysis: DOS 2.0 backup id file, sequence 255 (application/octet-stream)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:20bc7d114382458144dfc7e3681ea806337d40786f166c60864eeac4fc5ba11d": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "encrypted_rc4.doc.officeparser/stream_3_0.dat": {}
+      },
+      "redirection": "file:2f881ed02b6b7a84fcb77a001472d84331d76a99e7e5eb3e51dca0312f49fc76",
+      "relationships": {
+        "extracted_from file:2f881ed02b6b7a84fcb77a001472d84331d76a99e7e5eb3e51dca0312f49fc76": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "DOS 2.0 backup id file, sequence 255"
+          },
+          "summary": "File Type Analysis: DOS 2.0 backup id file, sequence 255 (application/octet-stream)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:2f881ed02b6b7a84fcb77a001472d84331d76a99e7e5eb3e51dca0312f49fc76": {
       "detections": {},
       "directives": {},
@@ -55,6 +157,19 @@
           "summary": "MSOffice Encryption Analysis: could not crack password",
           "tags": {}
         },
+        "officeparser3": {
+          "details": {
+            "extracted_files": [
+              "stream_1_0.dat",
+              "stream_2_0.dat",
+              "stream_3_0.dat",
+              "stream_4_0.dat",
+              "stream_5_0.dat"
+            ]
+          },
+          "summary": "OfficeParser3 Analysis: extracted 5 files",
+          "tags": {}
+        },
         "olevba_v1_2": {
           "details": {
             "keyword_summary": {},
@@ -70,6 +185,159 @@
         "microsoft_office": true,
         "ole": true
       }
+    },
+    "file:c70dd71cc48ec8ac794f8c57b51c93d51694c92bed330b5aba7314c57015cd36": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "encrypted_rc4.doc.officeparser/stream_1_0.dat": {}
+      },
+      "redirection": "file:2f881ed02b6b7a84fcb77a001472d84331d76a99e7e5eb3e51dca0312f49fc76",
+      "relationships": {
+        "extracted_from file:2f881ed02b6b7a84fcb77a001472d84331d76a99e7e5eb3e51dca0312f49fc76": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:d30dfd00e2cb02556256d38bb67e7da3bcbbf8ebdb1c5779e26f8bcd49dc340f": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "encrypted_rc4.doc.officeparser/stream_2_0.dat": {}
+      },
+      "redirection": "file:2f881ed02b6b7a84fcb77a001472d84331d76a99e7e5eb3e51dca0312f49fc76",
+      "relationships": {
+        "extracted_from file:2f881ed02b6b7a84fcb77a001472d84331d76a99e7e5eb3e51dca0312f49fc76": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:f70fe384c672865fff4bb8ab60d73098bc751e8f2aa915b8aff2e2085648b428": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "encrypted_rc4.doc.officeparser/stream_5_0.dat": {}
+      },
+      "redirection": "file:2f881ed02b6b7a84fcb77a001472d84331d76a99e7e5eb3e51dca0312f49fc76",
+      "relationships": {
+        "extracted_from file:2f881ed02b6b7a84fcb77a001472d84331d76a99e7e5eb3e51dca0312f49fc76": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
     },
     "md5:8d680f4190fc9603561925de02a4034e": {
       "detections": {},

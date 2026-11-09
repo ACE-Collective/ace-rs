@@ -1,0 +1,65 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": true,
+        "is_office_ext": true,
+        "is_ole_file": true,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "application/octet-stream",
+        "type": "OLE 2 Compound Document, v3.62, SecID 0x3, Mini FAT start sector 0x2"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: OLE 2 Compound Document, v3.62, SecID 0x3, Mini FAT start sector 0x2 (application/octet-stream) (ms office document) (ole compound file)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace4/office/ole_huge_sector_shift.doc",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "ole_huge_sector_shift.doc",
+      "size": 3584,
+      "type": "file",
+      "value": "011ceac3c01a40b8857ecd483b0f6a15af10516c887c9961633c3e6cb4a6b448"
+    }
+  },
+  "module": "officeparser3",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "ole_huge_sector_shift.doc",
+    "relationships": [],
+    "size": 3584,
+    "tags": [
+      "microsoft_office",
+      "ole"
+    ],
+    "type": "file",
+    "value": "011ceac3c01a40b8857ecd483b0f6a15af10516c887c9961633c3e6cb4a6b448",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

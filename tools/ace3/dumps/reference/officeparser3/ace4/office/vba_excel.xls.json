@@ -1,0 +1,273 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": true,
+        "is_office_ext": true,
+        "is_ole_file": true,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "application/vnd.ms-excel",
+        "type": "CDFV2 Microsoft Excel"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: CDFV2 Microsoft Excel (application/vnd.ms-excel) (ms office document) (ole compound file)",
+      "tags": []
+    },
+    {
+      "class": "OfficeParserAnalysis3",
+      "details": {
+        "extracted_files": [
+          "stream_1_0.dat",
+          "stream_4_0.dat",
+          "stream_5_0.dat",
+          "stream_6_0.dat",
+          "stream_7_0.dat",
+          "stream_8_0.dat",
+          "ThisDocument.cls"
+        ]
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.officeparser3:OfficeParserAnalysis3",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "vba_excel.xls.officeparser/stream_1_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "b3cc32f1f58086b8c0ffd7a164e8c39d6631e26c9971495bdc7ae670e0142432"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "b3cc32f1f58086b8c0ffd7a164e8c39d6631e26c9971495bdc7ae670e0142432"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 4096,
+          "tags": [],
+          "type": "file",
+          "value": "eb51aebfefb312eefa59fbc5eb68147242989a566dedc0dd30199a41963547f4",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "vba_excel.xls.officeparser/stream_4_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "b3cc32f1f58086b8c0ffd7a164e8c39d6631e26c9971495bdc7ae670e0142432"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "b3cc32f1f58086b8c0ffd7a164e8c39d6631e26c9971495bdc7ae670e0142432"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 516,
+          "tags": [],
+          "type": "file",
+          "value": "6abcffd4b8ab01c91122f2a8e6dffad54560556425cd0591005816b5b292d431",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "vba_excel.xls.officeparser/stream_5_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "b3cc32f1f58086b8c0ffd7a164e8c39d6631e26c9971495bdc7ae670e0142432"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "b3cc32f1f58086b8c0ffd7a164e8c39d6631e26c9971495bdc7ae670e0142432"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 15111,
+          "tags": [],
+          "type": "file",
+          "value": "0358080e2e605ea402899b472a947131403e1a48594a0a91f4e19564bab51d60",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "vba_excel.xls.officeparser/stream_6_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "b3cc32f1f58086b8c0ffd7a164e8c39d6631e26c9971495bdc7ae670e0142432"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "b3cc32f1f58086b8c0ffd7a164e8c39d6631e26c9971495bdc7ae670e0142432"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 4208,
+          "tags": [],
+          "type": "file",
+          "value": "827ef1fb270218d5b261add9b3dd6877a72a3870bef4632df04c9d52b03a1661",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "vba_excel.xls.officeparser/stream_7_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "b3cc32f1f58086b8c0ffd7a164e8c39d6631e26c9971495bdc7ae670e0142432"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "b3cc32f1f58086b8c0ffd7a164e8c39d6631e26c9971495bdc7ae670e0142432"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 371,
+          "tags": [],
+          "type": "file",
+          "value": "1df37560acb55f64e9774ea539c37f41ac19f8632352a1a649fdf74582d3a322",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "vba_excel.xls.officeparser/stream_8_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "b3cc32f1f58086b8c0ffd7a164e8c39d6631e26c9971495bdc7ae670e0142432"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "b3cc32f1f58086b8c0ffd7a164e8c39d6631e26c9971495bdc7ae670e0142432"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 41,
+          "tags": [],
+          "type": "file",
+          "value": "ce49436dec0282ca0c2acb2966441b42d2620cd614f363ac0b43420dfdd687ed",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls",
+            "sandbox",
+            "yara_meta:type=script.macro"
+          ],
+          "excluded_analysis": [],
+          "file_path": "vba_excel.xls.officeparser/ThisDocument.cls",
+          "redirection": {
+            "type": "file",
+            "value": "b3cc32f1f58086b8c0ffd7a164e8c39d6631e26c9971495bdc7ae670e0142432"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "b3cc32f1f58086b8c0ffd7a164e8c39d6631e26c9971495bdc7ae670e0142432"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 7757,
+          "tags": [
+            "macro"
+          ],
+          "type": "file",
+          "value": "12f38cb4a227f1f4e8834440f7565e9ea65d7d432ec67d28a0e3f16096a12329",
+          "yara_meta": [
+            "type=script.macro"
+          ]
+        }
+      ],
+      "summary": "OfficeParser3 Analysis: extracted 7 files",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace4/office/vba_excel.xls",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "vba_excel.xls",
+      "size": 28160,
+      "type": "file",
+      "value": "b3cc32f1f58086b8c0ffd7a164e8c39d6631e26c9971495bdc7ae670e0142432"
+    }
+  },
+  "module": "officeparser3",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "vba_excel.xls",
+    "relationships": [],
+    "size": 28160,
+    "tags": [
+      "microsoft_office",
+      "ole"
+    ],
+    "type": "file",
+    "value": "b3cc32f1f58086b8c0ffd7a164e8c39d6631e26c9971495bdc7ae670e0142432",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

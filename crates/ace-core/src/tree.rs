@@ -16,6 +16,7 @@ use sqlx::{PgExecutor, PgPool};
 use uuid::Uuid;
 
 use crate::db::{DbError, Tx};
+use ace_sdk::wire::RelatedTags;
 
 /// Where a root's event time came from (ace3 #850).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, sqlx::Type)]
@@ -601,6 +602,63 @@ pub async fn results_of(
 
 /// The observables of `kinds` added below an observable, by any route, as ace3's `recurse_tree`
 /// finds them, in the order they were added. A file that contains its own ancestor ends the walk.
+/// The modules whose results added `observable`, by name, in the order of their first such result:
+/// what ace3's `iterate_all_references` finds holding it (`Module::READS_ADDED_BY`).
+pub async fn added_by(
+    pool: &PgPool,
+    root: Uuid,
+    observable: ObservableId,
+) -> Result<Vec<String>, DbError> {
+    let rows = sqlx::query!(
+        r#"SELECT r.module AS "module!"
+           FROM analysis.result_additions a
+           JOIN analysis.results r ON r.id = a.result_id
+           WHERE a.root_id = $1 AND a.observable_id = $2
+           GROUP BY r.module
+           ORDER BY min(a.id)"#,
+        root,
+        observable as ObservableId,
+    )
+    .fetch_all(pool)
+    .await?;
+    Ok(rows.into_iter().map(|row| row.module).collect())
+}
+
+/// The tags of each observable `observable` has a relationship to, in the order of its
+/// relationships (`Module::READS_RELATED_TAGS`). A target the root doesn't hold has none.
+pub async fn related_tags(
+    pool: &PgPool,
+    root: Uuid,
+    observable: ObservableId,
+) -> Result<Vec<RelatedTags>, DbError> {
+    let rows = sqlx::query!(
+        r#"SELECT DISTINCT rel.target_type, rel.target_value,
+                  COALESCE(o.tags, '{}') AS "tags!"
+           FROM analysis.relationships rel
+           LEFT JOIN analysis.observables o
+             ON o.root_id = rel.root_id AND o.type = rel.target_type
+            AND o.value_hash = rel.target_value_hash
+           WHERE rel.root_id = $1 AND rel.observable_id = $2
+           ORDER BY rel.target_type, rel.target_value"#,
+        root,
+        observable as ObservableId,
+    )
+    .fetch_all(pool)
+    .await?;
+    rows.into_iter()
+        .map(|row| {
+            let kind = row
+                .target_type
+                .parse()
+                .map_err(|e| DbError::Decode(format!("observable {}: {e}", observable.0)))?;
+            Ok(RelatedTags {
+                observable: ObservableRef::new(kind, row.target_value),
+                tags: row.tags,
+            })
+        })
+        .collect()
+}
+
 pub async fn observables_below(
     pool: &PgPool,
     root: Uuid,

@@ -7,7 +7,8 @@ use ace_app::{App, LookupPool, ParserPool};
 /// file hash, binary file, shortcut, certificate and dhash modules, the modules that read an
 /// observable's value (command lines, file paths and locations, networks, URLs, IDNA, email
 /// addresses' domains and protected URLs), the HTML modules (data URLs, HTTP archives, scripts in HTML
-/// and MHTML), with the YARA module on the core's current ruleset (2.26), and the commands analysts
+/// and MHTML), the Office container modules (OneNote, compound files, Office XML, hidden MIME and
+/// ActiveMime), with the YARA module on the core's current ruleset (2.26), and the commands analysts
 /// start from the GUI (5.12).
 pub fn parser_pool() -> ParserPool {
     ParserPool::new("parsers")
@@ -40,6 +41,14 @@ pub fn parser_pool() -> ParserPool {
         .module::<ace_mod_html::HarExtractor>()
         .module::<ace_mod_html::HtmlJavaScriptExtractor>()
         .module::<ace_mod_html::MhtmlAnalyzer>()
+        .module::<ace_mod_office::OneNoteAnalyzer>()
+        .module::<ace_mod_office::OfficeParserAnalyzer>()
+        .module::<ace_mod_office::OfficeXmlRelAnalyzer>()
+        .module::<ace_mod_office::XmlBinaryAnalyzer>()
+        .module::<ace_mod_office::XmlPlainTextAnalyzer>()
+        .module::<ace_mod_office::ExtractedOleAnalyzer>()
+        .module::<ace_mod_office::HiddenMimeAnalyzer>()
+        .module::<ace_mod_office::ActiveMimeAnalyzer>()
         .yara_rulesets::<ace_mod_yara::YaraScanner>(ace_mod_yara::check_ruleset)
         .commands()
 }

@@ -1,57 +1,7 @@
 {
   "form": 1,
   "observables": {
-    "file:1d4708bec612e110285b0a0b242ad9d194ad2e8e15a310fca1cd4f0e989d47b8": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {},
-      "paths": {
-        "parser_nested_994.pdf": {
-          "type=document.pdf": true,
-          "type=email.attachment": true
-        }
-      },
-      "relationships": {},
-      "results": {
-        "file_hash_analyzer": {
-          "details": {
-            "md5": "eb48271de968c6b78da82f84cbb1c550",
-            "sha1": "3dcf28bb16a438f5af522296bb277254eca0d3fe",
-            "sha256": "1d4708bec612e110285b0a0b242ad9d194ad2e8e15a310fca1cd4f0e989d47b8"
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "file_type": {
-          "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": true,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "application/pdf",
-            "type": "PDF document, version 1.7"
-          },
-          "summary": "File Type Analysis: PDF document, version 1.7 (application/pdf) (pdf document)",
-          "tags": {}
-        },
-        "pdf_analyzer": {
-          "details": {},
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {
-        "pdf": true
-      }
-    },
-    "file:2b82701a3ed37f9a4d37fb9df3b6dfe8a09afbcba0930543524e26e666dd15cf": {
+    "file:070f9476955a02197187fa59cc302253e3dff47b1985ac4185cda6c8cbedc360": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -94,6 +44,56 @@
             "urls": [],
             "urls_grouped_by_domain": {}
           },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "pdf": true
+      }
+    },
+    "file:1d4708bec612e110285b0a0b242ad9d194ad2e8e15a310fca1cd4f0e989d47b8": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "parser_nested_994.pdf": {
+          "type=document.pdf": true,
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "eb48271de968c6b78da82f84cbb1c550",
+            "sha1": "3dcf28bb16a438f5af522296bb277254eca0d3fe",
+            "sha256": "1d4708bec612e110285b0a0b242ad9d194ad2e8e15a310fca1cd4f0e989d47b8"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": true,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/pdf",
+            "type": "PDF document, version 1.7"
+          },
+          "summary": "File Type Analysis: PDF document, version 1.7 (application/pdf) (pdf document)",
+          "tags": {}
+        },
+        "pdf_analyzer": {
+          "details": {},
           "summary": null,
           "tags": {}
         }

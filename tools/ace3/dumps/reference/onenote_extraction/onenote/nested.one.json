@@ -1,0 +1,96 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "OneNoteFileAnalysis",
+      "details": {
+        "extracted_files": [
+          "e55a4b6f6ef8c99788540f88df50db77e18fc6a12cc0901fd4cbb3e2e1ffc0b2",
+          "dcd37ae6cf48227a80dd4b06366832bf7d5756d7cb6aeb702a234224d95afc49"
+        ]
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.one_note:OneNoteFileAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=document.onenote.embedded"
+          ],
+          "excluded_analysis": [],
+          "file_path": "nested.one.extracted-e55a4b",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "8a8c32c530d2167e19e2a1f9cd304d4b6a1fdda35616c494f6b9def458002d97"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 61,
+          "tags": [],
+          "type": "file",
+          "value": "e55a4b6f6ef8c99788540f88df50db77e18fc6a12cc0901fd4cbb3e2e1ffc0b2",
+          "yara_meta": [
+            "type=document.onenote.embedded"
+          ]
+        },
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=document.onenote.embedded"
+          ],
+          "excluded_analysis": [],
+          "file_path": "nested.one.extracted-dcd37a",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "8a8c32c530d2167e19e2a1f9cd304d4b6a1fdda35616c494f6b9def458002d97"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 14,
+          "tags": [],
+          "type": "file",
+          "value": "dcd37ae6cf48227a80dd4b06366832bf7d5756d7cb6aeb702a234224d95afc49",
+          "yara_meta": [
+            "type=document.onenote.embedded"
+          ]
+        }
+      ],
+      "summary": "OneNote File Analysis: extracted files e55a4b6f6ef8c99788540f88df50db77e18fc6a12cc0901fd4cbb3e2e1ffc0b2, dcd37ae6cf48227a80dd4b06366832bf7d5756d7cb6aeb702a234224d95afc49",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/office/onenote/nested.one",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "nested.one",
+      "size": 1129,
+      "type": "file",
+      "value": "8a8c32c530d2167e19e2a1f9cd304d4b6a1fdda35616c494f6b9def458002d97"
+    }
+  },
+  "module": "onenote_extraction",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "nested.one",
+    "relationships": [],
+    "size": 1129,
+    "tags": [
+      "onenote"
+    ],
+    "type": "file",
+    "value": "8a8c32c530d2167e19e2a1f9cd304d4b6a1fdda35616c494f6b9def458002d97",
+    "yara_meta": []
+  }
+}

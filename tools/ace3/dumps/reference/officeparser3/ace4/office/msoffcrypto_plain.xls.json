@@ -1,0 +1,162 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": true,
+        "is_office_ext": true,
+        "is_ole_file": true,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": true,
+        "mime": "application/vnd.ms-excel",
+        "type": "Composite Document File V2 Document, Little Endian, Os: MacOS, Version 13.10, Code page: 10000, Name of Creating Application: Microsoft Macintosh Excel, Create Time/Date: Tue Sep 11 09:53:58 2018, Last Saved Time/Date: Tue Sep 11 09:55:27 2018, Security: 0"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: Composite Document File V2 Document, Little Endian, Os: MacOS, Version 13.10, Code page: 10000, Name of Creating Application: Microsoft Macintosh Excel, Create Time/Date: Tue Sep 11 09:53:58 2018, Last Saved Time/Date: Tue Sep 11 09:55:27 2018, Security: 0 (application/vnd.ms-excel) (ms office document) (ole compound file) (zip archive)",
+      "tags": []
+    },
+    {
+      "class": "OfficeParserAnalysis3",
+      "details": {
+        "extracted_files": [
+          "stream_1_0.dat",
+          "stream_2_0.dat",
+          "stream_3_0.dat"
+        ]
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.officeparser3:OfficeParserAnalysis3",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "msoffcrypto_plain.xls.officeparser/stream_1_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "0d57ed3cb8f9e09b0986a7d8d76407de6cb2dce84a2f30048eab9103225437f5"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "0d57ed3cb8f9e09b0986a7d8d76407de6cb2dce84a2f30048eab9103225437f5"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 15625,
+          "tags": [
+            "zip"
+          ],
+          "type": "file",
+          "value": "9f333fd6df24b013c712eb799108c249790725529fe7791da4707cfd965f4235",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "msoffcrypto_plain.xls.officeparser/stream_2_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "0d57ed3cb8f9e09b0986a7d8d76407de6cb2dce84a2f30048eab9103225437f5"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "0d57ed3cb8f9e09b0986a7d8d76407de6cb2dce84a2f30048eab9103225437f5"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 4096,
+          "tags": [],
+          "type": "file",
+          "value": "88d0d274e20da269164df3606f3708c42eea5df2d52d371347673c50ef8cf781",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "msoffcrypto_plain.xls.officeparser/stream_3_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "0d57ed3cb8f9e09b0986a7d8d76407de6cb2dce84a2f30048eab9103225437f5"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "0d57ed3cb8f9e09b0986a7d8d76407de6cb2dce84a2f30048eab9103225437f5"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 4096,
+          "tags": [],
+          "type": "file",
+          "value": "7ba284d96e0009a005c318c93a8c23929b89e6c3291fa8b6e578fab6bd24bf1c",
+          "yara_meta": []
+        }
+      ],
+      "summary": "OfficeParser3 Analysis: extracted 3 files",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace4/office/msoffcrypto_plain.xls",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "msoffcrypto_plain.xls",
+      "size": 25600,
+      "type": "file",
+      "value": "0d57ed3cb8f9e09b0986a7d8d76407de6cb2dce84a2f30048eab9103225437f5"
+    }
+  },
+  "module": "officeparser3",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "msoffcrypto_plain.xls",
+    "relationships": [],
+    "size": 25600,
+    "tags": [
+      "microsoft_office",
+      "ole",
+      "zip"
+    ],
+    "type": "file",
+    "value": "0d57ed3cb8f9e09b0986a7d8d76407de6cb2dce84a2f30048eab9103225437f5",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

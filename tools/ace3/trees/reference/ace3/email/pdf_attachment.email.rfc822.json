@@ -1272,57 +1272,6 @@
       },
       "tags": {}
     },
-    "file:cf3c93962038b5308e370d88fa13b9ea74189818e0098fcec7320762a738a1ca": {
-      "detections": {},
-      "directives": {
-        "extract_urls": true
-      },
-      "excluded_analysis": {
-        "pdf_analyzer": true
-      },
-      "paths": {
-        "spectre.pdf.gs.pdf": {
-          "type=document.pdf": true,
-          "type=document.pdf.rendered": true
-        }
-      },
-      "redirection": "file:d1a3c8c49faea6321bd01e706e0957012c18a94e1a187f1a5477c0e82270dc51",
-      "relationships": {
-        "extracted_from file:d1a3c8c49faea6321bd01e706e0957012c18a94e1a187f1a5477c0e82270dc51": true
-      },
-      "results": {
-        "file_type": {
-          "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": true,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "application/pdf",
-            "type": "PDF document, version 1.7, 16 page(s)"
-          },
-          "summary": "File Type Analysis: PDF document, version 1.7, 16 page(s) (application/pdf) (pdf document)",
-          "tags": {}
-        },
-        "url_extraction": {
-          "details": {
-            "urls": [],
-            "urls_grouped_by_domain": {}
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {
-        "pdf": true
-      }
-    },
     "file:d1a3c8c49faea6321bd01e706e0957012c18a94e1a187f1a5477c0e82270dc51": {
       "detections": {},
       "directives": {
@@ -1383,6 +1332,57 @@
             }
           },
           "summary": "URL Extraction Analysis (www.ams.org)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "pdf": true
+      }
+    },
+    "file:dcafc8cb55c00ccdb71461e9638f902a2b9b483868208c4da2f7b7e13b734ea3": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {
+        "pdf_analyzer": true
+      },
+      "paths": {
+        "spectre.pdf.gs.pdf": {
+          "type=document.pdf": true,
+          "type=document.pdf.rendered": true
+        }
+      },
+      "redirection": "file:d1a3c8c49faea6321bd01e706e0957012c18a94e1a187f1a5477c0e82270dc51",
+      "relationships": {
+        "extracted_from file:d1a3c8c49faea6321bd01e706e0957012c18a94e1a187f1a5477c0e82270dc51": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": true,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/pdf",
+            "type": "PDF document, version 1.7, 16 page(s)"
+          },
+          "summary": "File Type Analysis: PDF document, version 1.7, 16 page(s) (application/pdf) (pdf document)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
           "tags": {}
         }
       },

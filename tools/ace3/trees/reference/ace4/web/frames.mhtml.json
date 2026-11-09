@@ -72,6 +72,16 @@
           "summary": "File Type Analysis: MIME entity, ASCII text (text/plain)",
           "tags": {}
         },
+        "hidden_mime": {
+          "details": {
+            "extracted_files": [
+              "<root>/files/frames.mhtml.mime/extracted-0",
+              "<root>/files/frames.mhtml.mime/extracted-1"
+            ]
+          },
+          "summary": "Hidden MIME Analysis: extracted <root>/files/frames.mhtml.mime/extracted-0, <root>/files/frames.mhtml.mime/extracted-1",
+          "tags": {}
+        },
         "html_js_extraction": {
           "details": {
             "dom_snapshot_files": [
@@ -117,9 +127,14 @@
           "type=document.html": true,
           "type=document.mhtml.part": true,
           "type=email.attachment": true
+        },
+        "frames.mhtml.mime/extracted-0": {
+          "type=document.html": true
         }
       },
-      "relationships": {},
+      "relationships": {
+        "extracted_from file:4880667e988518410c24822a4fe85e35cece707221453eb0cf5530bc1428af5b": true
+      },
       "results": {
         "file_hash_analyzer": {
           "details": {
@@ -185,6 +200,10 @@
           "type=email.attachment": true,
           "type=script.javascript": true
         },
+        "frames.mhtml.mime/extracted-1_js_inline_1_ae7cb0eb.js": {
+          "type=document.html": true,
+          "type=script.javascript": true
+        },
         "frames_js_inline_1_ae7cb0eb.js": {
           "type=email.attachment": true,
           "type=script.javascript": true
@@ -245,6 +264,14 @@
           "type=email.attachment": true,
           "type=script.javascript": true
         },
+        "frames.mhtml.mime/extracted-0_js_inline_0_dc5cb263.js": {
+          "type=document.html": true,
+          "type=script.javascript": true
+        },
+        "frames.mhtml.mime/extracted-1_js_inline_0_dc5cb263.js": {
+          "type=document.html": true,
+          "type=script.javascript": true
+        },
         "frames_js_inline_0_dc5cb263.js": {
           "type=email.attachment": true,
           "type=script.javascript": true
@@ -296,9 +323,14 @@
           "type=document.html": true,
           "type=document.mhtml.part": true,
           "type=email.attachment": true
+        },
+        "frames.mhtml.mime/extracted-1": {
+          "type=document.html": true
         }
       },
-      "relationships": {},
+      "relationships": {
+        "extracted_from file:4880667e988518410c24822a4fe85e35cece707221453eb0cf5530bc1428af5b": true
+      },
       "results": {
         "file_hash_analyzer": {
           "details": {

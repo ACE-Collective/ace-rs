@@ -1,0 +1,105 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": true,
+        "is_office_ext": true,
+        "is_ole_file": true,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "application/vnd.ms-excel",
+        "type": "CDFV2 Microsoft Excel"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: CDFV2 Microsoft Excel (application/vnd.ms-excel) (ms office document) (ole compound file)",
+      "tags": []
+    },
+    {
+      "class": "OfficeParserAnalysis3",
+      "details": {
+        "extracted_files": [
+          "stream_1_0.dat"
+        ]
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.officeparser3:OfficeParserAnalysis3",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "xlm_biff8.xls.officeparser/stream_1_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "6f6e50a6b29203c9e893782e92c340196c6447cc06051f5d3bfc8686236f4e70"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "6f6e50a6b29203c9e893782e92c340196c6447cc06051f5d3bfc8686236f4e70"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 4096,
+          "tags": [],
+          "type": "file",
+          "value": "4f3abc9a7cc7b46963f25fa25d315e222e129dde1044c62f05c8319baf3e8a03",
+          "yara_meta": []
+        }
+      ],
+      "summary": "OfficeParser3 Analysis: extracted 1 files",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace4/office/xlm_biff8.xls",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "xlm_biff8.xls",
+      "size": 5632,
+      "type": "file",
+      "value": "6f6e50a6b29203c9e893782e92c340196c6447cc06051f5d3bfc8686236f4e70"
+    }
+  },
+  "module": "officeparser3",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "xlm_biff8.xls",
+    "relationships": [],
+    "size": 5632,
+    "tags": [
+      "microsoft_office",
+      "ole"
+    ],
+    "type": "file",
+    "value": "6f6e50a6b29203c9e893782e92c340196c6447cc06051f5d3bfc8686236f4e70",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

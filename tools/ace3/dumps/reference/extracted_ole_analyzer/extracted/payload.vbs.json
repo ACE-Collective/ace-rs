@@ -1,0 +1,90 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "text/plain",
+        "type": "ASCII text, with CRLF line terminators"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: ASCII text, with CRLF line terminators (text/plain)",
+      "tags": []
+    },
+    {
+      "class": "ExtractedOLEAnalysis",
+      "details": {
+        "suspect_files": [
+          "native.doc.officeparser/payload.vbs"
+        ]
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.ole:ExtractedOLEAnalysis",
+      "observables": [],
+      "summary": "Extracted OLE Analysis: identified (native.doc.officeparser/payload.vbs) as suspect files",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "extracted_from": {
+      "added_by": "saq.modules.file_analysis.officeparser3:OfficeParserAnalysis3",
+      "file_path": "native.doc",
+      "tags": [],
+      "value": "eecb200c85b4d29b859fe3d4415c4c410e5d498d141c371928b797ab04309476"
+    },
+    "label": "fixtures/office/extracted/payload.vbs written by officeparser3",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "native.doc.officeparser/payload.vbs",
+      "size": 46,
+      "type": "file",
+      "value": "21981392a0b43fec8ad03a93ea0e567305aa7bcef0089e80f03a423f6f8704a9"
+    }
+  },
+  "module": "extracted_ole_analyzer",
+  "observable_after": {
+    "detections": [
+      {
+        "description": "OLE attachment has suspect file ext vbs",
+        "details": null
+      }
+    ],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "native.doc.officeparser/payload.vbs",
+    "relationships": [
+      {
+        "target": {
+          "type": "file",
+          "value": "eecb200c85b4d29b859fe3d4415c4c410e5d498d141c371928b797ab04309476"
+        },
+        "type": "extracted_from"
+      }
+    ],
+    "size": 46,
+    "tags": [
+      "suspect_ole_attachment"
+    ],
+    "type": "file",
+    "value": "21981392a0b43fec8ad03a93ea0e567305aa7bcef0089e80f03a423f6f8704a9",
+    "yara_meta": []
+  }
+}

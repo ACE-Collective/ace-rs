@@ -1,0 +1,23 @@
+Content-Type: multipart/mixed; boundary=outer
+
+--outer
+Content-Type: multipart/alternative; boundary=inner
+
+--inner
+Content-Type: text/plain
+
+inner one
+--inner
+Content-Type: text/html
+
+<b>inner two</b>
+--inner--
+--outer
+Content-Type: text/plain
+Content-Transfer-Encoding: x-uuencode
+
+begin 644 a.txt
+#86)C
+`
+end
+--outer--

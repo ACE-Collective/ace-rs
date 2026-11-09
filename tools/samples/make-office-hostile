@@ -1,0 +1,229 @@
+#!/usr/bin/env python3
+"""Writes the crafted files PLAN.md 7.5 batch 5's Office container modules are measured on
+(docs/measurements/office-containers.md), each named after the module it's for. They're large, so
+they go to a directory given here, not into the repository.
+
+    tools/samples/make-office-hostile DIR
+"""
+
+import base64
+import importlib.machinery
+import importlib.util
+import struct
+import sys
+import zlib
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent.parent
+_loader = importlib.machinery.SourceFileLoader("make_office", str(ROOT / "tools" / "samples" / "make-office-containers"))
+_spec = importlib.util.spec_from_loader("make_office", _loader)
+office = importlib.util.module_from_spec(_spec)
+_loader.exec_module(office)
+
+END = 0xFFFFFFFE
+FREE = 0xFFFFFFFF
+FATSECT = 0xFFFFFFFD
+DIFSECT = 0xFFFFFFFC
+MB = 1024 * 1024
+
+
+def header(fat_sectors, dir_start, difat, dif_start=END, dif_count=0, minifat_start=END):
+    out = b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1" + bytes(16)
+    out += struct.pack("<HHHHH", 0x3E, 3, 0xFFFE, 9, 6) + bytes(6)
+    out += struct.pack("<IIIIIIIII", 0, fat_sectors, dir_start, 0, 4096, minifat_start, 0, dif_start, dif_count)
+    out += struct.pack("<109I", *(list(difat) + [FREE] * (109 - len(difat))))
+    return out
+
+
+def direntry(name, kind, start, size, right=FREE, child=FREE):
+    raw = name.encode("utf-16-le")[:62]
+    return raw.ljust(64, b"\0") + struct.pack("<HBB", len(raw) + 2, kind, 1) + struct.pack("<III", FREE, right, child) + bytes(36) + struct.pack("<II", start, size) + bytes(4)
+
+
+def compound(sectors, fat, directory_entries):
+    """Sectors of data, then the directory, then the FAT, then any DIF sectors, which this lays out."""
+    data_count = len(sectors)
+    directory = b"".join(directory_entries)
+    directory += bytes(-len(directory) % 512)
+    dir_count = len(directory) // 512
+    fat = list(fat) + [i + 1 for i in range(data_count, data_count + dir_count - 1)] + [END]
+    fat_sectors, dif_sectors = 1, 0
+    while True:
+        total = data_count + dir_count + fat_sectors + dif_sectors
+        need_fat = -(-total // 128)
+        need_dif = max(0, -(-(need_fat - 109) // 127))
+        if (need_fat, need_dif) == (fat_sectors, dif_sectors):
+            break
+        fat_sectors, dif_sectors = need_fat, need_dif
+    first_fat = data_count + dir_count
+    first_dif = first_fat + fat_sectors
+    fat += [FATSECT] * fat_sectors + [DIFSECT] * dif_sectors
+    fat += [FREE] * (-len(fat) % 128)
+    fat_numbers = list(range(first_fat, first_fat + fat_sectors))
+    difs = b""
+    rest = fat_numbers[109:]
+    for i in range(dif_sectors):
+        values = rest[i * 127:(i + 1) * 127]
+        values += [FREE] * (127 - len(values))
+        nxt = first_dif + i + 1 if i + 1 < dif_sectors else END
+        difs += struct.pack("<128I", *values, nxt)
+    body = b"".join(sectors) + directory + struct.pack(f"<{len(fat)}I", *fat) + difs
+    head = header(fat_sectors, data_count, fat_numbers[:109], first_dif if dif_sectors else END, dif_sectors)
+    return head + body
+
+
+def many_streams():
+    """One 64 KiB chain, and 40,000 directory entries that each name it: officeparser3 writes 2.6 GB."""
+    sectors = [bytes([i % 256]) * 512 for i in range(128)]
+    fat = list(range(1, 128)) + [END]
+    entries = [direntry("Root Entry", 5, END, 0)] + [direntry(f"s{i}", 2, 0, 128 * 512) for i in range(40000)]
+    return compound(sectors, fat, entries)
+
+
+def long_chain():
+    """A stream of 98,304 sectors, 48 MiB, whose chain Python checks against every sector before it."""
+    count = 98304
+    sectors = [b"L" * 512] * count
+    fat = list(range(1, count)) + [END]
+    entries = [direntry("Root Entry", 5, END, 0), direntry("long", 2, 0, count * 512)]
+    data = compound(sectors, fat, entries)
+    return data
+
+
+def dif_repeats():
+    """A DIFAT that names one FAT sector over and over: the FAT grows past what Python can hold."""
+    sectors = [b"\0" * 512]
+    count = 20000
+    # DIF sectors after the data, each 127 copies of sector 0 and a pointer on
+    difs = []
+    for i in range(count):
+        nxt = 1 + i + 1 if i + 1 < count else END
+        difs.append(struct.pack("<127I", *([0] * 127)) + struct.pack("<I", nxt))
+    return header(1, END, [0], dif_start=1, dif_count=count) + b"".join(sectors) + b"".join(difs)
+
+
+def check_loop():
+    """A stream whose chain comes back on itself: officeparser3's check never ends."""
+    sectors = [b"C" * 512] * 16
+    fat = list(range(1, 16)) + [0]
+    entries = [direntry("Root Entry", 5, END, 0), direntry("loop", 2, 0, 16 * 512)]
+    return compound(sectors, fat, entries)
+
+
+def big_macro():
+    """A VBA project whose module is 4 MB of source, which Python decompresses a byte at a time."""
+    source = (b"' " + b"x" * 60 + b"\r\n") * 64000
+    cfb = office.Cfb({"Macros": office.vba_project([("Module1", source)])})
+    return cfb.build()
+
+
+def copy_tokens():
+    """A dir stream of copy tokens that each repeat what came before, past 64 KiB in one chunk."""
+    chunk = bytearray(b"\x01")
+    body = bytearray(b"\x00abcdefgh")
+    while len(body) < 4000:
+        body += b"\xff" + struct.pack("<H", 0x0FFF) * 8
+    chunk += struct.pack("<H", 0xB000 | (len(body) + 2 - 3)) + body
+    tree = {"PROJECT": b"Module=Module1\r\n", "VBA": {"dir": bytes(chunk), "Module1": b"x"}}
+    return office.Cfb(tree).build()
+
+
+def onenote_many():
+    """10 MB of small objects, each payload different."""
+    count = 10 * MB // (36 + 8 + 8)
+    return office.onenote(*(office.fdso(b"%08d" % i) for i in range(count)))
+
+
+def onenote_huge():
+    return office.onenote(office.fdso(b"H" * (90 * MB)))
+
+
+def onenote_lengths():
+    """Objects whose lengths run past the end of the file, one after another."""
+    return office.onenote(*([office.fdso(b"", length=2**63)] * 100000))
+
+
+def active_mime_bomb():
+    payload = zlib.compress(b"\0" * (1024 * MB), 9)
+    return office.activemime(b"", compressed=payload)
+
+
+def hidden_mime_parts():
+    part = b"--b\nContent-Type: text/plain\n\nx\n"
+    out = b"Content-Type: multipart/mixed; boundary=b\n\n" + part * (10 * MB // len(part)) + b"--b--\n"
+    return out
+
+
+def hidden_mime_nested():
+    return office.nested_mime(100000)
+
+
+def hidden_mime_headers():
+    """10 MB of content-type lines without a boundary, then one with it."""
+    return b"Content-Type: text/plain; charset=x\n" * (10 * MB // 36) + b"Content-Type: multipart/mixed; boundary=z\n\n--z\n\nend\n--z--\n"
+
+
+def xml_binary_parts():
+    part = '<pkg:part pkg:name="/p.bin"><pkg:binaryData>QUJD</pkg:binaryData></pkg:part>'
+    return office.flat([]).replace("</pkg:package>", part * (10 * MB // len(part)) + "</pkg:package>").encode()
+
+
+def xml_binary_big():
+    return office.flat([("/big.bin", "binary", base64.b64encode(b"\0" * (60 * MB)).decode())]).encode()
+
+
+def xml_binary_deep():
+    return office.flat([]).replace("</pkg:package>", "<a>" * 100000 + "</a>" * 100000 + "</pkg:package>").encode()
+
+
+def xml_binary_laughs():
+    entities = "<!ENTITY a0 'aaaaaaaaaa'>" + "".join(f"<!ENTITY a{i} '{('&a' + str(i - 1) + ';') * 10}'>" for i in range(1, 10))
+    doc = office.flat([("/x.bin", "binary", "&a9;")])
+    return doc.replace("<?mso-application", f"<!DOCTYPE pkg:package [{entities}]><?mso-application", 1).encode()
+
+
+def rels_many():
+    rel = '<Relationship Type="x/oleObject" TargetMode="External" Target="http://a.example/x"/>'
+    return ('<?xml version="1.0"?><Relationships xmlns="urn:r">' + rel * (10 * MB // len(rel)) + "</Relationships>").encode()
+
+
+def rels_hosts():
+    """Every target a host of its own: as many URLs as fit in 10 MB."""
+    rels = "".join(f'<Relationship Type="x/oleObject" TargetMode="External" Target="http://h{i}.example/"/>' for i in range(110000))
+    return ('<?xml version="1.0"?><Relationships xmlns="urn:r">' + rels + "</Relationships>").encode()
+
+
+FILES = {
+    "officeparser3_many_streams.doc": many_streams,
+    "officeparser3_long_chain.doc": long_chain,
+    "officeparser3_dif_repeats.doc": dif_repeats,
+    "officeparser3_check_loop.doc": check_loop,
+    "officeparser3_big_macro.doc": big_macro,
+    "officeparser3_copy_tokens.doc": copy_tokens,
+    "onenote_extraction_many_10mb.one": onenote_many,
+    "onenote_extraction_huge_90mb.one": onenote_huge,
+    "onenote_extraction_lengths.one": onenote_lengths,
+    "active_mime_bomb_1gib.mso": active_mime_bomb,
+    "hidden_mime_parts_10mb.txt": hidden_mime_parts,
+    "hidden_mime_nested_100000.txt": hidden_mime_nested,
+    "hidden_mime_headers_10mb.txt": hidden_mime_headers,
+    "xml_binary_analyzer_parts_10mb.xml": xml_binary_parts,
+    "xml_binary_analyzer_big_80mb.xml": xml_binary_big,
+    "xml_binary_analyzer_deep_100000.xml": xml_binary_deep,
+    "xml_binary_analyzer_laughs.xml": xml_binary_laughs,
+    "office_xml_rel_many_10mb.rels": rels_many,
+    "office_xml_rel_hosts.rels": rels_hosts,
+}
+
+
+def main(out):
+    out = Path(out)
+    out.mkdir(parents=True, exist_ok=True)
+    for name, make in FILES.items():
+        data = make()
+        (out / name).write_bytes(data)
+        print(f"{name}\t{len(data)}")
+
+
+if __name__ == "__main__":
+    main(sys.argv[1])

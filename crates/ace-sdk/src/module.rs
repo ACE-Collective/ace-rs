@@ -68,6 +68,15 @@ pub trait Module: Sized + Send + Sync + 'static {
     /// reads, as ace3's `recurse_tree` finds them, such as the email logger's URLs. The core adds
     /// them to its tasks, which read them with `TaskContext::observables_below`.
     const READS_BELOW: &'static [ObservableKind] = &[];
+    /// True for a module that reads which modules' results added its observable, as ace3's
+    /// `iterate_all_references` finds the analyses that hold one. The core adds their names to its
+    /// tasks, which read them with `TaskContext::added_by`. A result that lands after the task is
+    /// leased isn't among them, so such a module usually runs last too.
+    const READS_ADDED_BY: bool = false;
+    /// True for a module that reads the tags of the observables its observable is related to, as
+    /// ace3's modules read the tags of the file one was `extracted_from`. The core adds them to its
+    /// tasks, which read them with `TaskContext::related_tags`, as they are when it's leased.
+    const READS_RELATED_TAGS: bool = false;
     /// The analyst-edited lists the module reads (PLAN.md 5.14), such as the email module's
     /// whitelists. The core adds each to the module's tasks as it is when the task is leased, and
     /// the module reads it with `TaskContext::list`. The lists a binary knows are its modules'.

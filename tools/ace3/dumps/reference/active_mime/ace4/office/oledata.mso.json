@@ -1,0 +1,75 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "ActiveMimeAnalysis",
+      "details": {
+        "extracted_file": "<root>/files/oledata.mso.activemime"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.mime:ActiveMimeAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=document.activemime"
+          ],
+          "excluded_analysis": [],
+          "file_path": "oledata.mso.activemime",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "e771da88ff76c35e9e6e841ad684356e5d33663a10924729875a70ff9de9b462"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 5147,
+          "tags": [
+            "activemime"
+          ],
+          "type": "file",
+          "value": "eecb200c85b4d29b859fe3d4415c4c410e5d498d141c371928b797ab04309476",
+          "yara_meta": [
+            "type=document.activemime"
+          ]
+        }
+      ],
+      "summary": "Active MIME Analysis: extracted <root>/files/oledata.mso.activemime",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace4/office/oledata.mso",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "oledata.mso",
+      "size": 930,
+      "type": "file",
+      "value": "e771da88ff76c35e9e6e841ad684356e5d33663a10924729875a70ff9de9b462"
+    }
+  },
+  "module": "active_mime",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "oledata.mso",
+    "relationships": [],
+    "size": 930,
+    "tags": [],
+    "type": "file",
+    "value": "e771da88ff76c35e9e6e841ad684356e5d33663a10924729875a70ff9de9b462",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

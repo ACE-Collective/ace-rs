@@ -1,6 +1,164 @@
 {
   "form": 1,
   "observables": {
+    "file:0358080e2e605ea402899b472a947131403e1a48594a0a91f4e19564bab51d60": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "vba_excel.xls.officeparser/stream_5_0.dat": {}
+      },
+      "redirection": "file:b3cc32f1f58086b8c0ffd7a164e8c39d6631e26c9971495bdc7ae670e0142432",
+      "relationships": {
+        "extracted_from file:b3cc32f1f58086b8c0ffd7a164e8c39d6631e26c9971495bdc7ae670e0142432": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:12f38cb4a227f1f4e8834440f7565e9ea65d7d432ec67d28a0e3f16096a12329": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true,
+        "sandbox": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "vba_excel.xls.officeparser/ThisDocument.cls": {
+          "type=script.macro": true
+        }
+      },
+      "redirection": "file:b3cc32f1f58086b8c0ffd7a164e8c39d6631e26c9971495bdc7ae670e0142432",
+      "relationships": {
+        "extracted_from file:b3cc32f1f58086b8c0ffd7a164e8c39d6631e26c9971495bdc7ae670e0142432": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text, with very long lines (748), with CRLF line terminators"
+          },
+          "summary": "File Type Analysis: ASCII text, with very long lines (748), with CRLF line terminators (text/plain)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "macro": true
+      }
+    },
+    "file:1df37560acb55f64e9774ea539c37f41ac19f8632352a1a649fdf74582d3a322": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "vba_excel.xls.officeparser/stream_7_0.dat": {}
+      },
+      "redirection": "file:b3cc32f1f58086b8c0ffd7a164e8c39d6631e26c9971495bdc7ae670e0142432",
+      "relationships": {
+        "extracted_from file:b3cc32f1f58086b8c0ffd7a164e8c39d6631e26c9971495bdc7ae670e0142432": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text, with CRLF line terminators"
+          },
+          "summary": "File Type Analysis: ASCII text, with CRLF line terminators (text/plain)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:5f6215a036890aff7ce33ebbda20fc8beb7ca7d1d1ebd71364750df0ab3ba5f9": {
       "detections": {},
       "directives": {
@@ -40,6 +198,108 @@
       "tags": {
         "macro": true
       }
+    },
+    "file:6abcffd4b8ab01c91122f2a8e6dffad54560556425cd0591005816b5b292d431": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "vba_excel.xls.officeparser/stream_4_0.dat": {}
+      },
+      "redirection": "file:b3cc32f1f58086b8c0ffd7a164e8c39d6631e26c9971495bdc7ae670e0142432",
+      "relationships": {
+        "extracted_from file:b3cc32f1f58086b8c0ffd7a164e8c39d6631e26c9971495bdc7ae670e0142432": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:827ef1fb270218d5b261add9b3dd6877a72a3870bef4632df04c9d52b03a1661": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "vba_excel.xls.officeparser/stream_6_0.dat": {}
+      },
+      "redirection": "file:b3cc32f1f58086b8c0ffd7a164e8c39d6631e26c9971495bdc7ae670e0142432",
+      "relationships": {
+        "extracted_from file:b3cc32f1f58086b8c0ffd7a164e8c39d6631e26c9971495bdc7ae670e0142432": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
     },
     "file:b3cc32f1f58086b8c0ffd7a164e8c39d6631e26c9971495bdc7ae670e0142432": {
       "detections": {},
@@ -82,6 +342,21 @@
           "summary": "File Type Analysis: CDFV2 Microsoft Excel (application/vnd.ms-excel) (ms office document) (ole compound file)",
           "tags": {}
         },
+        "officeparser3": {
+          "details": {
+            "extracted_files": [
+              "stream_1_0.dat",
+              "stream_4_0.dat",
+              "stream_5_0.dat",
+              "stream_6_0.dat",
+              "stream_7_0.dat",
+              "stream_8_0.dat",
+              "ThisDocument.cls"
+            ]
+          },
+          "summary": "OfficeParser3 Analysis: extracted 7 files",
+          "tags": {}
+        },
         "olevba_v1_2": {
           "details": {
             "keyword_summary": {
@@ -116,6 +391,108 @@
         "ole": true,
         "olevba": true
       }
+    },
+    "file:ce49436dec0282ca0c2acb2966441b42d2620cd614f363ac0b43420dfdd687ed": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "vba_excel.xls.officeparser/stream_8_0.dat": {}
+      },
+      "redirection": "file:b3cc32f1f58086b8c0ffd7a164e8c39d6631e26c9971495bdc7ae670e0142432",
+      "relationships": {
+        "extracted_from file:b3cc32f1f58086b8c0ffd7a164e8c39d6631e26c9971495bdc7ae670e0142432": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:eb51aebfefb312eefa59fbc5eb68147242989a566dedc0dd30199a41963547f4": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "vba_excel.xls.officeparser/stream_1_0.dat": {}
+      },
+      "redirection": "file:b3cc32f1f58086b8c0ffd7a164e8c39d6631e26c9971495bdc7ae670e0142432",
+      "relationships": {
+        "extracted_from file:b3cc32f1f58086b8c0ffd7a164e8c39d6631e26c9971495bdc7ae670e0142432": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "Applesoft BASIC program data, first line number 16"
+          },
+          "summary": "File Type Analysis: Applesoft BASIC program data, first line number 16 (application/octet-stream)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
     },
     "file:fe0957024595307c9b083effc3231498bc7b7945d28bc1d5aa6d97d9e0729c25": {
       "detections": {},

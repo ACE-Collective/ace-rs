@@ -1,0 +1,61 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "OfficeXMLRelationshipExternalURLAnalysis",
+      "details": {
+        "urls": [
+          "http://xml-rel.example.com/first"
+        ]
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.msoffice:OfficeXMLRelationshipExternalURLAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "force_download"
+          ],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "url",
+          "value": "http://xml-rel.example.com/first"
+        }
+      ],
+      "summary": "Office XML URL Analysis: xml-rel.example.com",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/office/rels/broken/document.xml.rels",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "invoice.docx.extracted/word/_rels/document.xml.rels",
+      "size": 336,
+      "type": "file",
+      "value": "23873d590173c337e505fa0d49ec42562aa15dd84629e58f6296fc40eace3523"
+    }
+  },
+  "module": "office_xml_rel",
+  "observable_after": {
+    "detections": [
+      {
+        "description": "invoice.docx.extracted/word/_rels/document.xml.rels contains a link to an external oleobject",
+        "details": null
+      }
+    ],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "invoice.docx.extracted/word/_rels/document.xml.rels",
+    "relationships": [],
+    "size": 336,
+    "tags": [],
+    "type": "file",
+    "value": "23873d590173c337e505fa0d49ec42562aa15dd84629e58f6296fc40eace3523",
+    "yara_meta": []
+  }
+}

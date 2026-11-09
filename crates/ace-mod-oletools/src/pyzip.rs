@@ -1884,7 +1884,7 @@ impl LzmaDecoder {
 
 /// `zlib.decompress` when `whole`, and otherwise a `decompressobj()` fed everything, which keeps what
 /// a truncated stream gave. A zlib error is Python's kind and message, as `read_member` reports them.
-pub(crate) fn zlib_decompress(data: &[u8], whole: bool, limit: usize) -> PyResult<Vec<u8>> {
+pub fn zlib_decompress(data: &[u8], whole: bool, limit: usize) -> PyResult<Vec<u8>> {
     let zlib_error = |message: &str| {
         PyErr::new(
             "error",

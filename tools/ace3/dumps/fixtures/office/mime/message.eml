@@ -1,0 +1,11 @@
+From: a@example.com
+To: b@example.com
+Subject: s
+Message-ID: <1@example.com>
+Content-Type: multipart/mixed; boundary=z
+
+--z
+Content-Type: text/plain
+
+inside an email
+--z--

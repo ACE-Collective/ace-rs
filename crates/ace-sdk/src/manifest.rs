@@ -91,6 +91,10 @@ pub struct Manifest {
     /// The observable types below its observable a module that runs last reads
     /// (`Module::READS_BELOW`).
     pub reads_below: &'static [ObservableKind],
+    /// The module reads which modules' results added its observable (`Module::READS_ADDED_BY`).
+    pub reads_added_by: bool,
+    /// The module reads its related observables' tags (`Module::READS_RELATED_TAGS`).
+    pub reads_related_tags: bool,
     /// The analyst-edited lists the module reads (`Module::LISTS`).
     pub lists: &'static [ListSpec],
     /// The reads of ACE's own data the module makes (`Module::READS`).
@@ -145,6 +149,8 @@ impl Manifest {
             reads_carrying_email: M::READS_CARRYING_EMAIL,
             runs_last: M::RUNS_LAST,
             reads_below: M::READS_BELOW,
+            reads_added_by: M::READS_ADDED_BY,
+            reads_related_tags: M::READS_RELATED_TAGS,
             lists: M::LISTS,
             reads: M::READS,
             writes: M::WRITES,

@@ -356,9 +356,14 @@
           "type=document.html": true,
           "type=document.mhtml.part": true,
           "type=email.attachment": true
+        },
+        "saved.mht.mime/extracted-0": {
+          "type=document.html": true
         }
       },
-      "relationships": {},
+      "relationships": {
+        "extracted_from file:cef4d5f65cd495087b73ffce1fa0d9b756b2ec2570de36a3c34b9c1025651d92": true
+      },
       "results": {
         "file_hash_analyzer": {
           "details": {
@@ -471,9 +476,12 @@
         "saved.mht.extracted/file_1": {
           "type=document.mhtml.part": true,
           "type=email.attachment": true
-        }
+        },
+        "saved.mht.mime/extracted-1": {}
       },
-      "relationships": {},
+      "relationships": {
+        "extracted_from file:cef4d5f65cd495087b73ffce1fa0d9b756b2ec2570de36a3c34b9c1025651d92": true
+      },
       "results": {
         "file_hash_analyzer": {
           "details": {
@@ -767,6 +775,16 @@
           "summary": "File Type Analysis: HTML document, ASCII text (text/html)",
           "tags": {}
         },
+        "hidden_mime": {
+          "details": {
+            "extracted_files": [
+              "<root>/files/saved.mht.mime/extracted-0",
+              "<root>/files/saved.mht.mime/extracted-1"
+            ]
+          },
+          "summary": "Hidden MIME Analysis: extracted <root>/files/saved.mht.mime/extracted-0, <root>/files/saved.mht.mime/extracted-1",
+          "tags": {}
+        },
         "html_js_extraction": {
           "details": {
             "dom_snapshot_files": [
@@ -870,6 +888,10 @@
           "type=document.html": true,
           "type=document.mhtml.part": true,
           "type=email.attachment": true,
+          "type=script.javascript": true
+        },
+        "saved.mht.mime/extracted-0_js_inline_0_e200500c.js": {
+          "type=document.html": true,
           "type=script.javascript": true
         },
         "saved_js_inline_0_e200500c.js": {

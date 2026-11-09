@@ -1,0 +1,109 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "XMLBinaryDataAnalysis",
+      "details": {
+        "extracted_files": [
+          "files/names.xml.xml/_",
+          "files/names.xml.xml/__000/_/etc/escape.txt",
+          "files/names.xml.xml/a_b.txt",
+          "files/names.xml.xml/same.bin",
+          "files/names.xml.xml/same_000.bin"
+        ]
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.xml:XMLBinaryDataAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "file_path": "names.xml.xml/_",
+          "relationships": [],
+          "size": 5,
+          "tags": [],
+          "type": "file",
+          "value": "939d59d1285efa522f3964451c00cbfea1e22d19a6769b9aa00317fecd681e93",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "file_path": "names.xml.xml/__000/_/etc/escape.txt",
+          "relationships": [],
+          "size": 4,
+          "tags": [],
+          "type": "file",
+          "value": "0517cf1abcfd20eb941789b07f44fbfbe7ae3415fce3d0c834213235b2f228cc",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "file_path": "names.xml.xml/a_b.txt",
+          "relationships": [],
+          "size": 9,
+          "tags": [],
+          "type": "file",
+          "value": "dcc8bea64340a9d9a29f443dae6a680eb612e746106ecf2760235a7e3328477b",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "file_path": "names.xml.xml/same.bin",
+          "relationships": [],
+          "size": 5,
+          "tags": [],
+          "type": "file",
+          "value": "a7937b64b8caa58f03721bb6bacf5c78cb235febe0e70b1b84cd99541461a08e",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "file_path": "names.xml.xml/same_000.bin",
+          "relationships": [],
+          "size": 6,
+          "tags": [],
+          "type": "file",
+          "value": "16367aacb67a4a017c8da8ab95682ccb390863780f7114dda0a0e0c55644c7c4",
+          "yara_meta": []
+        }
+      ],
+      "summary": "XML Binary Data Analysis: extracted files/names.xml.xml/_, files/names.xml.xml/__000/_/etc/escape.txt, files/names.xml.xml/a_b.txt, files/names.xml.xml/same.bin, files/names.xml.xml/same_000.bin",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/office/flat/names.xml",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "names.xml",
+      "size": 1062,
+      "type": "file",
+      "value": "5a4dba747d795928b341ece265ecae6c825afbaac52ba32bc4ff0902f749b01f"
+    }
+  },
+  "module": "xml_binary_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "names.xml",
+    "relationships": [],
+    "size": 1062,
+    "tags": [],
+    "type": "file",
+    "value": "5a4dba747d795928b341ece265ecae6c825afbaac52ba32bc4ff0902f749b01f",
+    "yara_meta": []
+  }
+}

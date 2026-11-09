@@ -1056,6 +1056,107 @@ async fn a_task_reads_what_is_below_its_observable_and_what_it_depends_on() {
     );
 }
 
+/// What a module reads of where its observable came from (PLAN.md 7.5 batch 5): the modules
+/// whose results added it, each once in the order of its first, and the tags of the observables
+/// it's related to, none for a target the root doesn't hold.
+#[tokio::test]
+async fn a_task_reads_who_added_its_observable_and_its_relatives_tags() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let hash = |c: &str| c.repeat(64);
+    let (doc, stream, other, copy) = (hash("a"), hash("b"), hash("c"), hash("d"));
+    let (root, ids) = root_with(
+        db,
+        "test",
+        &[
+            (ObservableKind::File, doc.as_str()),
+            (ObservableKind::File, stream.as_str()),
+            (ObservableKind::File, copy.as_str()),
+        ],
+    )
+    .await;
+    let (doc_id, stream_id, copy_id) = (ids[0], ids[1], ids[2]);
+    add_result(
+        db,
+        root,
+        doc_id,
+        "olevba_v1_2",
+        json!({}),
+        &[(stream_id, Some("a.doc.olevba/x"))],
+    )
+    .await;
+    add_result(
+        db,
+        root,
+        doc_id,
+        "officeparser3",
+        json!({}),
+        &[(stream_id, Some("a.doc.officeparser/x"))],
+    )
+    .await;
+    add_result(
+        db,
+        root,
+        copy_id,
+        "olevba_v1_2",
+        json!({}),
+        &[(stream_id, None)],
+    )
+    .await;
+    assert_eq!(
+        tree::added_by(db.pool(), root, stream_id)
+            .await
+            .expect("reads"),
+        ["olevba_v1_2", "officeparser3"]
+    );
+    assert!(
+        tree::added_by(db.pool(), root, doc_id)
+            .await
+            .expect("reads")
+            .is_empty()
+    );
+
+    let mut tx = db.begin().await.expect("begins");
+    tree::add_to_observable(
+        &mut tx,
+        root,
+        doc_id,
+        &serde_json::from_value(json!({"tags": ["microsoft_office", "ole"]})).expect("additions"),
+    )
+    .await
+    .expect("tags");
+    let mut related = ace_results::NewObservable::new(ObservableKind::File, stream.as_str());
+    for target in [doc.as_str(), other.as_str()] {
+        related.relationships.push(ace_results::Relationship::new(
+            ace_results::RelationshipKind::ExtractedFrom,
+            ace_results::ObservableRef::new(ObservableKind::File, target),
+        ));
+    }
+    tree::upsert_observable(&mut tx, root, &related)
+        .await
+        .expect("relates");
+    tx.commit().await.expect("commits");
+    let tags = tree::related_tags(db.pool(), root, stream_id)
+        .await
+        .expect("reads");
+    let tags: Vec<(&str, Vec<&str>)> = tags
+        .iter()
+        .map(|r| {
+            (
+                r.observable.value.as_str(),
+                r.tags.iter().map(String::as_str).collect(),
+            )
+        })
+        .collect();
+    assert_eq!(
+        tags,
+        [
+            (doc.as_str(), vec!["microsoft_office", "ole"]),
+            (other.as_str(), vec![])
+        ]
+    );
+}
+
 /// A file's relationships and redirection reach the tree, and what a module adds to the
 /// redirection lands on the file it redirects to, with its `yara_meta` tags on that file's path.
 #[tokio::test]

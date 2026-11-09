@@ -48,6 +48,108 @@
       },
       "tags": {}
     },
+    "file:30812268cfefcc8320d3b990169f35de93d7fc7dd749a0b25b9993c0d1347776": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "encrypted_xor_velvet.xls.officeparser/stream_2_0.dat": {}
+      },
+      "redirection": "file:8a11042aaed553905bf28fcd0815b926cc7245104b1a332258e93b62441ff637",
+      "relationships": {
+        "extracted_from file:8a11042aaed553905bf28fcd0815b926cc7245104b1a332258e93b62441ff637": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:4137c040feddd71feefc2bc6b8dd7469966c310036ad2276bc78a404d8e17c51": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "encrypted_xor_velvet.xls.officeparser/stream_3_0.dat": {}
+      },
+      "redirection": "file:8a11042aaed553905bf28fcd0815b926cc7245104b1a332258e93b62441ff637",
+      "relationships": {
+        "extracted_from file:8a11042aaed553905bf28fcd0815b926cc7245104b1a332258e93b62441ff637": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:8a11042aaed553905bf28fcd0815b926cc7245104b1a332258e93b62441ff637": {
       "detections": {},
       "directives": {},
@@ -99,6 +201,17 @@
           "summary": "MSOffice Encryption Analysis: office2john.py failed: encrypted_xor_velvet.xls : XOR obfuscation detected, key : b'59b3', hash : b'0a9a'\n",
           "tags": {}
         },
+        "officeparser3": {
+          "details": {
+            "extracted_files": [
+              "stream_1_0.dat",
+              "stream_2_0.dat",
+              "stream_3_0.dat"
+            ]
+          },
+          "summary": "OfficeParser3 Analysis: extracted 3 files",
+          "tags": {}
+        },
         "olevba_v1_2": {
           "details": {
             "keyword_summary": {},
@@ -123,6 +236,57 @@
         "xlm4:error": true,
         "xlm4:no_cells": true
       }
+    },
+    "file:987afc975e92ca47becf6472cd185bba8faa63d8d5de1556d96ddc68d30e2e49": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "encrypted_xor_velvet.xls.officeparser/stream_1_0.dat": {}
+      },
+      "redirection": "file:8a11042aaed553905bf28fcd0815b926cc7245104b1a332258e93b62441ff637",
+      "relationships": {
+        "extracted_from file:8a11042aaed553905bf28fcd0815b926cc7245104b1a332258e93b62441ff637": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "Applesoft BASIC program data, first line number 16"
+          },
+          "summary": "File Type Analysis: Applesoft BASIC program data, first line number 16 (application/octet-stream)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
     },
     "md5:677adab342b1231e54d0fb7ff89be938": {
       "detections": {},

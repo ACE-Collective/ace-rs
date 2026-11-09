@@ -9,9 +9,12 @@
         "vba_mht.mht.extracted/file_0": {
           "type=document.mhtml.part": true,
           "type=email.attachment": true
-        }
+        },
+        "vba_mht.mht.mime/extracted-0": {}
       },
-      "relationships": {},
+      "relationships": {
+        "extracted_from file:a39385604f7dc5756d199a0a7d611dd8d65f5c14f7aef305abbe4896f37d24a5": true
+      },
       "results": {
         "file_hash_analyzer": {
           "details": {
@@ -52,9 +55,12 @@
         "vba_mht.mht.extracted/file_1": {
           "type=document.mhtml.part": true,
           "type=email.attachment": true
-        }
+        },
+        "vba_mht.mht.mime/extracted-1": {}
       },
-      "relationships": {},
+      "relationships": {
+        "extracted_from file:a39385604f7dc5756d199a0a7d611dd8d65f5c14f7aef305abbe4896f37d24a5": true
+      },
       "results": {
         "file_hash_analyzer": {
           "details": {
@@ -124,6 +130,16 @@
             "type": "MIME entity, ASCII text, with very long lines (1192), with CRLF line terminators"
           },
           "summary": "File Type Analysis: MIME entity, ASCII text, with very long lines (1192), with CRLF line terminators (text/plain)",
+          "tags": {}
+        },
+        "hidden_mime": {
+          "details": {
+            "extracted_files": [
+              "<root>/files/vba_mht.mht.mime/extracted-0",
+              "<root>/files/vba_mht.mht.mime/extracted-1"
+            ]
+          },
+          "summary": "Hidden MIME Analysis: extracted <root>/files/vba_mht.mht.mime/extracted-0, <root>/files/vba_mht.mht.mime/extracted-1",
           "tags": {}
         },
         "html_js_extraction": {

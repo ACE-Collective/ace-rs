@@ -1,0 +1,70 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "XMLPlainTextAnalysis",
+      "details": {
+        "xml_plain_text": "invoice.docx.extracted/word/unicode.xml.noxml"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.xml:XMLPlainTextAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "file_path": "invoice.docx.extracted/word/unicode.xml.noxml",
+          "relationships": [],
+          "size": 14,
+          "tags": [],
+          "type": "file",
+          "value": "ad193b3e893ac1f3924130289cc307f59a780acd607222a1a61022a144eb73e2",
+          "yara_meta": []
+        }
+      ],
+      "summary": null,
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "extracted_from": {
+      "file_path": "invoice.docx",
+      "tags": [
+        "microsoft_office"
+      ],
+      "value": "1bcbb19fadc8e5388a2702a7afd6a60e3cd0841d58f847a412803f53951becd2"
+    },
+    "label": "fixtures/office/plain/unicode.xml extracted from a microsoft_office file",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "invoice.docx.extracted/word/unicode.xml",
+      "size": 59,
+      "type": "file",
+      "value": "8bc2951f1bafb112ffd8a0ba358560bf69abc985579c6b09f3211fe4c6c6cc9d"
+    }
+  },
+  "module": "xml_plain_text_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "invoice.docx.extracted/word/unicode.xml",
+    "relationships": [
+      {
+        "target": {
+          "type": "file",
+          "value": "1bcbb19fadc8e5388a2702a7afd6a60e3cd0841d58f847a412803f53951becd2"
+        },
+        "type": "extracted_from"
+      }
+    ],
+    "size": 59,
+    "tags": [],
+    "type": "file",
+    "value": "8bc2951f1bafb112ffd8a0ba358560bf69abc985579c6b09f3211fe4c6c6cc9d",
+    "yara_meta": []
+  }
+}

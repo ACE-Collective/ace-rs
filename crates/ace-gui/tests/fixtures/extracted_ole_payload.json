@@ -1,0 +1,21 @@
+{
+  "analysis_type": "extracted_ole_analysis",
+  "schema_version": 1,
+  "details": {
+    "suspect_files": [
+      "native.doc.officeparser/payload.vbs"
+    ]
+  },
+  "summary": "Extracted OLE Analysis: identified (native.doc.officeparser/payload.vbs) as suspect files",
+  "analyzed": {
+    "tags": [
+      "suspect_ole_attachment"
+    ],
+    "detections": [
+      {
+        "description": "OLE attachment has suspect file ext vbs",
+        "signature_uuid": "827c5aab-9fa2-45d9-8c5e-a13cd1be9812"
+      }
+    ]
+  }
+}

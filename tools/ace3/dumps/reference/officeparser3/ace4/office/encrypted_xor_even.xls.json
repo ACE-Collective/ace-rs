@@ -1,0 +1,159 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": true,
+        "is_office_ext": true,
+        "is_ole_file": true,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "application/vnd.ms-excel",
+        "type": "Composite Document File V2 Document, Little Endian, Os: Windows, Version 10.0, Code page: 1252, Name of Creating Application: Microsoft Excel, Create Time/Date: Fri Jun  5 18:17:20 2015, Last Saved Time/Date: Mon Sep  7 15:00:28 2020, Security: 1"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: Composite Document File V2 Document, Little Endian, Os: Windows, Version 10.0, Code page: 1252, Name of Creating Application: Microsoft Excel, Create Time/Date: Fri Jun  5 18:17:20 2015, Last Saved Time/Date: Mon Sep  7 15:00:28 2020, Security: 1 (application/vnd.ms-excel) (ms office document) (ole compound file)",
+      "tags": []
+    },
+    {
+      "class": "OfficeParserAnalysis3",
+      "details": {
+        "extracted_files": [
+          "stream_1_0.dat",
+          "stream_2_0.dat",
+          "stream_3_0.dat"
+        ]
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.officeparser3:OfficeParserAnalysis3",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "encrypted_xor_even.xls.officeparser/stream_1_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "c547ac83bd3a093ddc9acb76125b18ea9b35522038cea4f0ff02306d88706f63"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "c547ac83bd3a093ddc9acb76125b18ea9b35522038cea4f0ff02306d88706f63"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 58605,
+          "tags": [],
+          "type": "file",
+          "value": "04175eb17dac189b69f8805c18f2b4e721dd1c0790b3a5899b35b392de0fc912",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "encrypted_xor_even.xls.officeparser/stream_2_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "c547ac83bd3a093ddc9acb76125b18ea9b35522038cea4f0ff02306d88706f63"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "c547ac83bd3a093ddc9acb76125b18ea9b35522038cea4f0ff02306d88706f63"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 4096,
+          "tags": [],
+          "type": "file",
+          "value": "30812268cfefcc8320d3b990169f35de93d7fc7dd749a0b25b9993c0d1347776",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "encrypted_xor_even.xls.officeparser/stream_3_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "c547ac83bd3a093ddc9acb76125b18ea9b35522038cea4f0ff02306d88706f63"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "c547ac83bd3a093ddc9acb76125b18ea9b35522038cea4f0ff02306d88706f63"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 4096,
+          "tags": [],
+          "type": "file",
+          "value": "4137c040feddd71feefc2bc6b8dd7469966c310036ad2276bc78a404d8e17c51",
+          "yara_meta": []
+        }
+      ],
+      "summary": "OfficeParser3 Analysis: extracted 3 files",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace4/office/encrypted_xor_even.xls",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "encrypted_xor_even.xls",
+      "size": 69125,
+      "type": "file",
+      "value": "c547ac83bd3a093ddc9acb76125b18ea9b35522038cea4f0ff02306d88706f63"
+    }
+  },
+  "module": "officeparser3",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "encrypted_xor_even.xls",
+    "relationships": [],
+    "size": 69125,
+    "tags": [
+      "microsoft_office",
+      "ole"
+    ],
+    "type": "file",
+    "value": "c547ac83bd3a093ddc9acb76125b18ea9b35522038cea4f0ff02306d88706f63",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

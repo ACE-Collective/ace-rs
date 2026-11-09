@@ -1,6 +1,108 @@
 {
   "form": 1,
   "observables": {
+    "file:289a10f8bc1c09112a2824fb932252c1a61f224ee18cf09afcc837b75de4d0e4": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "encrypted_cryptoapi_large.ppt.officeparser/stream_1_0.dat": {}
+      },
+      "redirection": "file:c41dfb9f640d4986971b5495cc2bd74999b8cd7f14209c547ded916f400f54da",
+      "relationships": {
+        "extracted_from file:c41dfb9f640d4986971b5495cc2bd74999b8cd7f14209c547ded916f400f54da": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:716bc4f9a5b59bbdee5ead8cb25f65de3f5d88505fdfe39c335796c0bfaa447e": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "encrypted_cryptoapi_large.ppt.officeparser/stream_2_0.dat": {}
+      },
+      "redirection": "file:c41dfb9f640d4986971b5495cc2bd74999b8cd7f14209c547ded916f400f54da",
+      "relationships": {
+        "extracted_from file:c41dfb9f640d4986971b5495cc2bd74999b8cd7f14209c547ded916f400f54da": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:c41dfb9f640d4986971b5495cc2bd74999b8cd7f14209c547ded916f400f54da": {
       "detections": {},
       "directives": {},
@@ -53,6 +155,16 @@
             ]
           },
           "summary": "MSOffice Encryption Analysis: could not crack password",
+          "tags": {}
+        },
+        "officeparser3": {
+          "details": {
+            "extracted_files": [
+              "stream_1_0.dat",
+              "stream_2_0.dat"
+            ]
+          },
+          "summary": "OfficeParser3 Analysis: extracted 2 files",
           "tags": {}
         },
         "olevba_v1_2": {

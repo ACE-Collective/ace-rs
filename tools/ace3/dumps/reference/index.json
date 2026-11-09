@@ -3,6 +3,123 @@
   "not_made": [],
   "runs": [
     {
+      "ace3_commit": "f72f8946",
+      "analysis": "ActiveMimeAnalysis",
+      "dump": "active_mime/ace4/office/oledata.mso.json",
+      "input": "ace4/office/oledata.mso",
+      "module": "active_mime",
+      "observables_added": 1,
+      "summary": "Active MIME Analysis: extracted <root>/files/oledata.mso.activemime"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "active_mime/activemime/bad_zlib.mso.json",
+      "input": "fixtures/office/activemime/bad_zlib.mso",
+      "module": "active_mime",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "active_mime/activemime/big_field.mso.json",
+      "input": "fixtures/office/activemime/big_field.mso",
+      "module": "active_mime",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "ActiveMimeAnalysis",
+      "dump": "active_mime/activemime/empty_payload.mso.json",
+      "input": "fixtures/office/activemime/empty_payload.mso",
+      "module": "active_mime",
+      "observables_added": 1,
+      "summary": "Active MIME Analysis: extracted <root>/files/empty_payload.mso.activemime"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "active_mime/activemime/field_e.mso.json",
+      "input": "fixtures/office/activemime/field_e.mso",
+      "module": "active_mime",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "active_mime/activemime/header_only.mso.json",
+      "input": "fixtures/office/activemime/header_only.mso",
+      "module": "active_mime",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "active_mime/activemime/late.bin.json",
+      "input": "fixtures/office/activemime/late.bin",
+      "module": "active_mime",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "active_mime/activemime/not_activemime.mso.json",
+      "input": "fixtures/office/activemime/not_activemime.mso",
+      "module": "active_mime",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "ActiveMimeAnalysis",
+      "dump": "active_mime/activemime/ole.mso.json",
+      "input": "fixtures/office/activemime/ole.mso",
+      "module": "active_mime",
+      "observables_added": 1,
+      "summary": "Active MIME Analysis: extracted <root>/files/ole.mso.activemime"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "active_mime/activemime/short.mso.json",
+      "input": "fixtures/office/activemime/short.mso",
+      "module": "active_mime",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "ActiveMimeAnalysis",
+      "dump": "active_mime/activemime/text.mso.json",
+      "input": "fixtures/office/activemime/text.mso",
+      "module": "active_mime",
+      "observables_added": 1,
+      "summary": "Active MIME Analysis: extracted <root>/files/text.mso.activemime"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "ActiveMimeAnalysis",
+      "dump": "active_mime/activemime/trailing.mso.json",
+      "input": "fixtures/office/activemime/trailing.mso",
+      "module": "active_mime",
+      "observables_added": 1,
+      "summary": "Active MIME Analysis: extracted <root>/files/trailing.mso.activemime"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "active_mime/activemime/truncated_zlib.mso.json",
+      "input": "fixtures/office/activemime/truncated_zlib.mso",
+      "module": "active_mime",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
       "ace3_commit": "844e3584",
       "analysis": "ArchiveAnalysis",
       "dump": "archive/ace3/archive/dhl_report.ace.json",
@@ -1507,6 +1624,69 @@
     },
     {
       "ace3_commit": "f72f8946",
+      "analysis": "ExtractedOLEAnalysis",
+      "dump": "extracted_ole_analyzer/extracted/PAYLOAD.EXE.json",
+      "input": "fixtures/office/extracted/PAYLOAD.EXE written by officeparser3",
+      "module": "extracted_ole_analyzer",
+      "observables_added": 0,
+      "summary": "Extracted OLE Analysis: identified (native.doc.officeparser/PAYLOAD.EXE) as suspect files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "extracted_ole_analyzer/extracted/payload.vbs.alone.json",
+      "input": "fixtures/office/extracted/payload.vbs added by the root",
+      "module": "extracted_ole_analyzer",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "ExtractedOLEAnalysis",
+      "dump": "extracted_ole_analyzer/extracted/payload.vbs.json",
+      "input": "fixtures/office/extracted/payload.vbs written by officeparser3",
+      "module": "extracted_ole_analyzer",
+      "observables_added": 0,
+      "summary": "Extracted OLE Analysis: identified (native.doc.officeparser/payload.vbs) as suspect files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "ExtractedOLEAnalysis",
+      "dump": "extracted_ole_analyzer/extracted/plain.txt.json",
+      "input": "fixtures/office/extracted/plain.txt written by officeparser3",
+      "module": "extracted_ole_analyzer",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "ExtractedOLEAnalysis",
+      "dump": "extracted_ole_analyzer/extracted/script.dat.json",
+      "input": "fixtures/office/extracted/script.dat written by officeparser3",
+      "module": "extracted_ole_analyzer",
+      "observables_added": 0,
+      "summary": "Extracted OLE Analysis: identified (native.doc.officeparser/script.dat) as suspect files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "ExtractedOLEAnalysis",
+      "dump": "extracted_ole_analyzer/extracted/shortcut.dat.json",
+      "input": "fixtures/office/extracted/shortcut.dat written by officeparser3",
+      "module": "extracted_ole_analyzer",
+      "observables_added": 0,
+      "summary": "Extracted OLE Analysis: identified (native.doc.officeparser/shortcut.dat) as suspect files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "ExtractedOLEAnalysis",
+      "dump": "extracted_ole_analyzer/extracted/stream_1_0.dat.json",
+      "input": "fixtures/office/extracted/stream_1_0.dat written by officeparser3",
+      "module": "extracted_ole_analyzer",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
       "analysis": "FileHashAnalysis",
       "dump": "file_hash_analyzer/app.jar.bin.json",
       "input": "fixtures/files/app.jar.bin as app.jar.bin",
@@ -2449,6 +2629,159 @@
       "module": "har_extraction",
       "observables_added": 0,
       "summary": "HTTP Archive: failed: not valid JSON: Expecting value: line 1 column 22 (char 21)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "HiddenMIMEAnalysis",
+      "dump": "hidden_mime/ace4/office/hidden_mime.bin.json",
+      "input": "ace4/office/hidden_mime.bin",
+      "module": "hidden_mime",
+      "observables_added": 2,
+      "summary": "Hidden MIME Analysis: extracted <root>/files/hidden_mime.bin.mime/extracted-0, <root>/files/hidden_mime.bin.mime/extracted-1"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "HiddenMIMEAnalysis",
+      "dump": "hidden_mime/ace4/office/vba_mht.mht.json",
+      "input": "ace4/office/vba_mht.mht",
+      "module": "hidden_mime",
+      "observables_added": 2,
+      "summary": "Hidden MIME Analysis: extracted <root>/files/vba_mht.mht.mime/extracted-0, <root>/files/vba_mht.mht.mime/extracted-1"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "hidden_mime/mime/boundary_only.txt.json",
+      "input": "fixtures/office/mime/boundary_only.txt",
+      "module": "hidden_mime",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "hidden_mime/mime/capture.pcap.json",
+      "input": "fixtures/office/mime/capture.pcap",
+      "module": "hidden_mime",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "hidden_mime/mime/email.rfc822.json",
+      "input": "fixtures/office/mime/email.rfc822",
+      "module": "hidden_mime",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "hidden_mime/mime/empty_parts.txt.json",
+      "input": "fixtures/office/mime/empty_parts.txt",
+      "module": "hidden_mime",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "HiddenMIMEAnalysis",
+      "dump": "hidden_mime/mime/hidden.bin.json",
+      "input": "fixtures/office/mime/hidden.bin",
+      "module": "hidden_mime",
+      "observables_added": 2,
+      "summary": "Hidden MIME Analysis: extracted <root>/files/hidden.bin.mime/extracted-0, <root>/files/hidden.bin.mime/extracted-1"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "hidden_mime/mime/hidden.bin.original_email.json",
+      "input": "fixtures/office/mime/hidden.bin with ['original_email']",
+      "module": "hidden_mime",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "hidden_mime/mime/message.eml.json",
+      "input": "fixtures/office/mime/message.eml",
+      "module": "hidden_mime",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "HiddenMIMEAnalysis",
+      "dump": "hidden_mime/mime/nested.txt.json",
+      "input": "fixtures/office/mime/nested.txt",
+      "module": "hidden_mime",
+      "observables_added": 3,
+      "summary": "Hidden MIME Analysis: extracted <root>/files/nested.txt.mime/extracted-0, <root>/files/nested.txt.mime/extracted-1, <root>/files/nested.txt.mime/extracted-2"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "HiddenMIMEAnalysis",
+      "dump": "hidden_mime/mime/nested_971.txt.json",
+      "input": "fixtures/office/mime/nested_971.txt",
+      "module": "hidden_mime",
+      "observables_added": 1,
+      "summary": "Hidden MIME Analysis: extracted <root>/files/nested_971.txt.mime/extracted-0"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "hidden_mime/mime/nested_972.txt.json",
+      "input": "fixtures/office/mime/nested_972.txt",
+      "module": "hidden_mime",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "hidden_mime/mime/no_mime.txt.json",
+      "input": "fixtures/office/mime/no_mime.txt",
+      "module": "hidden_mime",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "HiddenMIMEAnalysis",
+      "dump": "hidden_mime/mime/regex.txt.json",
+      "input": "fixtures/office/mime/regex.txt",
+      "module": "hidden_mime",
+      "observables_added": 1,
+      "summary": "Hidden MIME Analysis: extracted <root>/files/regex.txt.mime/extracted-0"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "HiddenMIMEAnalysis",
+      "dump": "hidden_mime/mime/single.txt.json",
+      "input": "fixtures/office/mime/single.txt",
+      "module": "hidden_mime",
+      "observables_added": 1,
+      "summary": "Hidden MIME Analysis: extracted <root>/files/single.txt.mime/extracted-0"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "HiddenMIMEAnalysis",
+      "dump": "hidden_mime/mime/unquoted.txt.json",
+      "input": "fixtures/office/mime/unquoted.txt",
+      "module": "hidden_mime",
+      "observables_added": 1,
+      "summary": "Hidden MIME Analysis: extracted <root>/files/unquoted.txt.mime/extracted-0"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "HiddenMIMEAnalysis",
+      "dump": "hidden_mime/mime/vba_mht.mht.json",
+      "input": "fixtures/office/mime/vba_mht.mht",
+      "module": "hidden_mime",
+      "observables_added": 2,
+      "summary": "Hidden MIME Analysis: extracted <root>/files/vba_mht.mht.mime/extracted-0, <root>/files/vba_mht.mht.mime/extracted-1"
     },
     {
       "ace3_commit": "f72f8946",
@@ -3505,6 +3838,1113 @@
     },
     {
       "ace3_commit": "f72f8946",
+      "analysis": "OfficeXMLRelationshipExternalURLAnalysis",
+      "dump": "office_xml_rel/rels/broken/document.xml.rels.json",
+      "input": "fixtures/office/rels/broken/document.xml.rels",
+      "module": "office_xml_rel",
+      "observables_added": 1,
+      "summary": "Office XML URL Analysis: xml-rel.example.com"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeXMLRelationshipExternalURLAnalysis",
+      "dump": "office_xml_rel/rels/external/document.xml.rels.json",
+      "input": "fixtures/office/rels/external/document.xml.rels",
+      "module": "office_xml_rel",
+      "observables_added": 2,
+      "summary": "Office XML URL Analysis: xml-rel.example.com"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeXMLRelationshipExternalURLAnalysis",
+      "dump": "office_xml_rel/rels/gzip/document.xml.rels.json",
+      "input": "fixtures/office/rels/gzip/document.xml.rels",
+      "module": "office_xml_rel",
+      "observables_added": 2,
+      "summary": "Office XML URL Analysis: xml-rel.example.com"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeXMLRelationshipExternalURLAnalysis",
+      "dump": "office_xml_rel/rels/none/document.xml.rels.json",
+      "input": "fixtures/office/rels/none/document.xml.rels",
+      "module": "office_xml_rel",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeXMLRelationshipExternalURLAnalysis",
+      "dump": "office_xml_rel/rels/prefixed/document.xml.rels.json",
+      "input": "fixtures/office/rels/prefixed/document.xml.rels",
+      "module": "office_xml_rel",
+      "observables_added": 1,
+      "summary": "Office XML URL Analysis: xml-rel.example.com"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "office_xml_rel/rels/renamed/other.xml.rels.json",
+      "input": "fixtures/office/rels/renamed/other.xml.rels",
+      "module": "office_xml_rel",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace3/office/DOC_PO_10142020EX.doc.json",
+      "input": "ace3/office/DOC_PO_10142020EX.doc",
+      "module": "officeparser3",
+      "observables_added": 32,
+      "summary": "OfficeParser3 Analysis: extracted 32 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace3/office/Outstanding Invoices.doc.json",
+      "input": "ace3/office/Outstanding Invoices.doc",
+      "module": "officeparser3",
+      "observables_added": 17,
+      "summary": "OfficeParser3 Analysis: extracted 17 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace3/office/Paid Invoice.doc.json",
+      "input": "ace3/office/Paid Invoice.doc",
+      "module": "officeparser3",
+      "observables_added": 17,
+      "summary": "OfficeParser3 Analysis: extracted 17 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace3/office/Past Due Invoices.doc.json",
+      "input": "ace3/office/Past Due Invoices.doc",
+      "module": "officeparser3",
+      "observables_added": 19,
+      "summary": "OfficeParser3 Analysis: extracted 19 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace3/office/doc.doc.json",
+      "input": "ace3/office/doc.doc",
+      "module": "officeparser3",
+      "observables_added": 5,
+      "summary": "OfficeParser3 Analysis: extracted 5 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace3/office/receipt_687790.doc.json",
+      "input": "ace3/office/receipt_687790.doc",
+      "module": "officeparser3",
+      "observables_added": 43,
+      "summary": "OfficeParser3 Analysis: extracted 43 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace3/office/word2013_macro_stripped.doc.json",
+      "input": "ace3/office/word2013_macro_stripped.doc",
+      "module": "officeparser3",
+      "observables_added": 11,
+      "summary": "OfficeParser3 Analysis: extracted 11 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/encrypted_agile.docx.json",
+      "input": "ace4/office/encrypted_agile.docx",
+      "module": "officeparser3",
+      "observables_added": 6,
+      "summary": "OfficeParser3 Analysis: extracted 6 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/encrypted_agile_sha1.docx.json",
+      "input": "ace4/office/encrypted_agile_sha1.docx",
+      "module": "officeparser3",
+      "observables_added": 6,
+      "summary": "OfficeParser3 Analysis: extracted 6 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/encrypted_agile_sha256.docx.json",
+      "input": "ace4/office/encrypted_agile_sha256.docx",
+      "module": "officeparser3",
+      "observables_added": 6,
+      "summary": "OfficeParser3 Analysis: extracted 6 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/encrypted_agile_sha384.docx.json",
+      "input": "ace4/office/encrypted_agile_sha384.docx",
+      "module": "officeparser3",
+      "observables_added": 6,
+      "summary": "OfficeParser3 Analysis: extracted 6 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/encrypted_bad_hash_name.docx.json",
+      "input": "ace4/office/encrypted_bad_hash_name.docx",
+      "module": "officeparser3",
+      "observables_added": 6,
+      "summary": "OfficeParser3 Analysis: extracted 6 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/encrypted_bad_key_bits.docx.json",
+      "input": "ace4/office/encrypted_bad_key_bits.docx",
+      "module": "officeparser3",
+      "observables_added": 6,
+      "summary": "OfficeParser3 Analysis: extracted 6 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/encrypted_bad_key_bits_text.docx.json",
+      "input": "ace4/office/encrypted_bad_key_bits_text.docx",
+      "module": "officeparser3",
+      "observables_added": 6,
+      "summary": "OfficeParser3 Analysis: extracted 6 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/encrypted_bad_kind.xls.json",
+      "input": "ace4/office/encrypted_bad_kind.xls",
+      "module": "officeparser3",
+      "observables_added": 3,
+      "summary": "OfficeParser3 Analysis: extracted 3 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/encrypted_bad_no_encrypted_key.docx.json",
+      "input": "ace4/office/encrypted_bad_no_encrypted_key.docx",
+      "module": "officeparser3",
+      "observables_added": 6,
+      "summary": "OfficeParser3 Analysis: extracted 6 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/encrypted_bad_no_key_data.docx.json",
+      "input": "ace4/office/encrypted_bad_no_key_data.docx",
+      "module": "officeparser3",
+      "observables_added": 6,
+      "summary": "OfficeParser3 Analysis: extracted 6 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/encrypted_bad_prefixed_key_data.docx.json",
+      "input": "ace4/office/encrypted_bad_prefixed_key_data.docx",
+      "module": "officeparser3",
+      "observables_added": 6,
+      "summary": "OfficeParser3 Analysis: extracted 6 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/encrypted_bad_salt.docx.json",
+      "input": "ace4/office/encrypted_bad_salt.docx",
+      "module": "officeparser3",
+      "observables_added": 6,
+      "summary": "OfficeParser3 Analysis: extracted 6 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/encrypted_bad_short_info.docx.json",
+      "input": "ace4/office/encrypted_bad_short_info.docx",
+      "module": "officeparser3",
+      "observables_added": 6,
+      "summary": "OfficeParser3 Analysis: extracted 6 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/encrypted_bad_spin.docx.json",
+      "input": "ace4/office/encrypted_bad_spin.docx",
+      "module": "officeparser3",
+      "observables_added": 6,
+      "summary": "OfficeParser3 Analysis: extracted 6 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/encrypted_bad_standard_name.docx.json",
+      "input": "ace4/office/encrypted_bad_standard_name.docx",
+      "module": "officeparser3",
+      "observables_added": 6,
+      "summary": "OfficeParser3 Analysis: extracted 6 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/encrypted_bad_standard_short.docx.json",
+      "input": "ace4/office/encrypted_bad_standard_short.docx",
+      "module": "officeparser3",
+      "observables_added": 6,
+      "summary": "OfficeParser3 Analysis: extracted 6 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/encrypted_bad_version.doc.json",
+      "input": "ace4/office/encrypted_bad_version.doc",
+      "module": "officeparser3",
+      "observables_added": 5,
+      "summary": "OfficeParser3 Analysis: extracted 5 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/encrypted_bad_version.docx.json",
+      "input": "ace4/office/encrypted_bad_version.docx",
+      "module": "officeparser3",
+      "observables_added": 6,
+      "summary": "OfficeParser3 Analysis: extracted 6 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/encrypted_bad_version.xls.json",
+      "input": "ace4/office/encrypted_bad_version.xls",
+      "module": "officeparser3",
+      "observables_added": 3,
+      "summary": "OfficeParser3 Analysis: extracted 3 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/encrypted_bad_xml.docx.json",
+      "input": "ace4/office/encrypted_bad_xml.docx",
+      "module": "officeparser3",
+      "observables_added": 6,
+      "summary": "OfficeParser3 Analysis: extracted 6 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/encrypted_cryptoapi.doc.json",
+      "input": "ace4/office/encrypted_cryptoapi.doc",
+      "module": "officeparser3",
+      "observables_added": 5,
+      "summary": "OfficeParser3 Analysis: extracted 5 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/encrypted_cryptoapi.ppt.json",
+      "input": "ace4/office/encrypted_cryptoapi.ppt",
+      "module": "officeparser3",
+      "observables_added": 2,
+      "summary": "OfficeParser3 Analysis: extracted 2 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/encrypted_cryptoapi.xls.json",
+      "input": "ace4/office/encrypted_cryptoapi.xls",
+      "module": "officeparser3",
+      "observables_added": 3,
+      "summary": "OfficeParser3 Analysis: extracted 3 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/encrypted_cryptoapi_40.doc.json",
+      "input": "ace4/office/encrypted_cryptoapi_40.doc",
+      "module": "officeparser3",
+      "observables_added": 5,
+      "summary": "OfficeParser3 Analysis: extracted 5 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/encrypted_cryptoapi_large.ppt.json",
+      "input": "ace4/office/encrypted_cryptoapi_large.ppt",
+      "module": "officeparser3",
+      "observables_added": 2,
+      "summary": "OfficeParser3 Analysis: extracted 2 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/encrypted_extensible.docx.json",
+      "input": "ace4/office/encrypted_extensible.docx",
+      "module": "officeparser3",
+      "observables_added": 6,
+      "summary": "OfficeParser3 Analysis: extracted 6 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/encrypted_no_email.docx.json",
+      "input": "ace4/office/encrypted_no_email.docx",
+      "module": "officeparser3",
+      "observables_added": 6,
+      "summary": "OfficeParser3 Analysis: extracted 6 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/encrypted_not_zip.docx.json",
+      "input": "ace4/office/encrypted_not_zip.docx",
+      "module": "officeparser3",
+      "observables_added": 6,
+      "summary": "OfficeParser3 Analysis: extracted 6 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/encrypted_ppt_no_session.ppt.json",
+      "input": "ace4/office/encrypted_ppt_no_session.ppt",
+      "module": "officeparser3",
+      "observables_added": 2,
+      "summary": "OfficeParser3 Analysis: extracted 2 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/encrypted_rc4.doc.json",
+      "input": "ace4/office/encrypted_rc4.doc",
+      "module": "officeparser3",
+      "observables_added": 5,
+      "summary": "OfficeParser3 Analysis: extracted 5 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/encrypted_rc4.xls.json",
+      "input": "ace4/office/encrypted_rc4.xls",
+      "module": "officeparser3",
+      "observables_added": 3,
+      "summary": "OfficeParser3 Analysis: extracted 3 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/encrypted_rc4_not_in_list.doc.json",
+      "input": "ace4/office/encrypted_rc4_not_in_list.doc",
+      "module": "officeparser3",
+      "observables_added": 5,
+      "summary": "OfficeParser3 Analysis: extracted 5 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/encrypted_standard.docx.json",
+      "input": "ace4/office/encrypted_standard.docx",
+      "module": "officeparser3",
+      "observables_added": 6,
+      "summary": "OfficeParser3 Analysis: extracted 6 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/encrypted_velvet.docx.json",
+      "input": "ace4/office/encrypted_velvet.docx",
+      "module": "officeparser3",
+      "observables_added": 6,
+      "summary": "OfficeParser3 Analysis: extracted 6 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/encrypted_xor.doc.json",
+      "input": "ace4/office/encrypted_xor.doc",
+      "module": "officeparser3",
+      "observables_added": 5,
+      "summary": "OfficeParser3 Analysis: extracted 5 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/encrypted_xor.xls.json",
+      "input": "ace4/office/encrypted_xor.xls",
+      "module": "officeparser3",
+      "observables_added": 3,
+      "summary": "OfficeParser3 Analysis: extracted 3 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/encrypted_xor_even.xls.json",
+      "input": "ace4/office/encrypted_xor_even.xls",
+      "module": "officeparser3",
+      "observables_added": 3,
+      "summary": "OfficeParser3 Analysis: extracted 3 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/encrypted_xor_odd.xls.json",
+      "input": "ace4/office/encrypted_xor_odd.xls",
+      "module": "officeparser3",
+      "observables_added": 3,
+      "summary": "OfficeParser3 Analysis: extracted 3 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/encrypted_xor_velvet.xls.json",
+      "input": "ace4/office/encrypted_xor_velvet.xls",
+      "module": "officeparser3",
+      "observables_added": 3,
+      "summary": "OfficeParser3 Analysis: extracted 3 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/msoffcrypto_ecma376standard_password.docx.json",
+      "input": "ace4/office/msoffcrypto_ecma376standard_password.docx",
+      "module": "officeparser3",
+      "observables_added": 2,
+      "summary": "OfficeParser3 Analysis: extracted 2 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/msoffcrypto_example_password.docx.json",
+      "input": "ace4/office/msoffcrypto_example_password.docx",
+      "module": "officeparser3",
+      "observables_added": 6,
+      "summary": "OfficeParser3 Analysis: extracted 6 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/msoffcrypto_example_password.xlsx.json",
+      "input": "ace4/office/msoffcrypto_example_password.xlsx",
+      "module": "officeparser3",
+      "observables_added": 6,
+      "summary": "OfficeParser3 Analysis: extracted 6 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/msoffcrypto_plain.doc.json",
+      "input": "ace4/office/msoffcrypto_plain.doc",
+      "module": "officeparser3",
+      "observables_added": 5,
+      "summary": "OfficeParser3 Analysis: extracted 5 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/msoffcrypto_plain.ppt.json",
+      "input": "ace4/office/msoffcrypto_plain.ppt",
+      "module": "officeparser3",
+      "observables_added": 4,
+      "summary": "OfficeParser3 Analysis: extracted 4 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/msoffcrypto_plain.xls.json",
+      "input": "ace4/office/msoffcrypto_plain.xls",
+      "module": "officeparser3",
+      "observables_added": 3,
+      "summary": "OfficeParser3 Analysis: extracted 3 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/msoffcrypto_rc4cryptoapi_password.doc.json",
+      "input": "ace4/office/msoffcrypto_rc4cryptoapi_password.doc",
+      "module": "officeparser3",
+      "observables_added": 5,
+      "summary": "OfficeParser3 Analysis: extracted 5 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/msoffcrypto_rc4cryptoapi_password.ppt.json",
+      "input": "ace4/office/msoffcrypto_rc4cryptoapi_password.ppt",
+      "module": "officeparser3",
+      "observables_added": 4,
+      "summary": "OfficeParser3 Analysis: extracted 4 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/msoffcrypto_rc4cryptoapi_password.xls.json",
+      "input": "ace4/office/msoffcrypto_rc4cryptoapi_password.xls",
+      "module": "officeparser3",
+      "observables_added": 3,
+      "summary": "OfficeParser3 Analysis: extracted 3 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/msoffcrypto_xor_password_123456789012345.xls.json",
+      "input": "ace4/office/msoffcrypto_xor_password_123456789012345.xls",
+      "module": "officeparser3",
+      "observables_added": 3,
+      "summary": "OfficeParser3 Analysis: extracted 3 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "officeparser3/ace4/office/ole_bad_difat.doc.json",
+      "input": "ace4/office/ole_bad_difat.doc",
+      "module": "officeparser3",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "officeparser3/ace4/office/ole_bad_difat_count.doc.json",
+      "input": "ace4/office/ole_bad_difat_count.doc",
+      "module": "officeparser3",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "officeparser3/ace4/office/ole_bad_directory_start.doc.json",
+      "input": "ace4/office/ole_bad_directory_start.doc",
+      "module": "officeparser3",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/ole_bad_name_length.doc.json",
+      "input": "ace4/office/ole_bad_name_length.doc",
+      "module": "officeparser3",
+      "observables_added": 5,
+      "summary": "OfficeParser3 Analysis: extracted 5 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "officeparser3/ace4/office/ole_bad_sector_shift.doc.json",
+      "input": "ace4/office/ole_bad_sector_shift.doc",
+      "module": "officeparser3",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/ole_broken_minifat.doc.json",
+      "input": "ace4/office/ole_broken_minifat.doc",
+      "module": "officeparser3",
+      "observables_added": 5,
+      "summary": "OfficeParser3 Analysis: extracted 5 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/ole_deep_directory.doc.json",
+      "input": "ace4/office/ole_deep_directory.doc",
+      "module": "officeparser3",
+      "observables_added": 499,
+      "summary": "OfficeParser3 Analysis: extracted 499 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/ole_dir_cycle.doc.json",
+      "input": "ace4/office/ole_dir_cycle.doc",
+      "module": "officeparser3",
+      "observables_added": 5,
+      "summary": "OfficeParser3 Analysis: extracted 5 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/ole_fat_loop.doc.json",
+      "input": "ace4/office/ole_fat_loop.doc",
+      "module": "officeparser3",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "officeparser3/ace4/office/ole_header_only.doc.json",
+      "input": "ace4/office/ole_header_only.doc",
+      "module": "officeparser3",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "officeparser3/ace4/office/ole_huge_sector_shift.doc.json",
+      "input": "ace4/office/ole_huge_sector_shift.doc",
+      "module": "officeparser3",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/ole_orphan_module.doc.json",
+      "input": "ace4/office/ole_orphan_module.doc",
+      "module": "officeparser3",
+      "observables_added": 5,
+      "summary": "OfficeParser3 Analysis: extracted 5 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "officeparser3/ace4/office/ole_short.doc.json",
+      "input": "ace4/office/ole_short.doc",
+      "module": "officeparser3",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "officeparser3/ace4/office/ole_small_sector_shift.doc.json",
+      "input": "ace4/office/ole_small_sector_shift.doc",
+      "module": "officeparser3",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "officeparser3/ace4/office/ole_truncated.doc.json",
+      "input": "ace4/office/ole_truncated.doc",
+      "module": "officeparser3",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/ole_wide_directory.doc.json",
+      "input": "ace4/office/ole_wide_directory.doc",
+      "module": "officeparser3",
+      "observables_added": 400,
+      "summary": "OfficeParser3 Analysis: extracted 400 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/package_object.doc.json",
+      "input": "ace4/office/package_object.doc",
+      "module": "officeparser3",
+      "observables_added": 10,
+      "summary": "OfficeParser3 Analysis: extracted 10 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/ppt_bad_info.ppt.json",
+      "input": "ace4/office/ppt_bad_info.ppt",
+      "module": "officeparser3",
+      "observables_added": 2,
+      "summary": "OfficeParser3 Analysis: extracted 2 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/ppt_bad_zlib.ppt.json",
+      "input": "ace4/office/ppt_bad_zlib.ppt",
+      "module": "officeparser3",
+      "observables_added": 2,
+      "summary": "OfficeParser3 Analysis: extracted 2 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/ppt_junk_storage.ppt.json",
+      "input": "ace4/office/ppt_junk_storage.ppt",
+      "module": "officeparser3",
+      "observables_added": 2,
+      "summary": "OfficeParser3 Analysis: extracted 2 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/vba_codepage_1251.doc.json",
+      "input": "ace4/office/vba_codepage_1251.doc",
+      "module": "officeparser3",
+      "observables_added": 5,
+      "summary": "OfficeParser3 Analysis: extracted 5 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/vba_codepage_932.doc.json",
+      "input": "ace4/office/vba_codepage_932.doc",
+      "module": "officeparser3",
+      "observables_added": 4,
+      "summary": "OfficeParser3 Analysis: extracted 4 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/vba_codepage_unknown.doc.json",
+      "input": "ace4/office/vba_codepage_unknown.doc",
+      "module": "officeparser3",
+      "observables_added": 5,
+      "summary": "OfficeParser3 Analysis: extracted 5 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/vba_excel.xls.json",
+      "input": "ace4/office/vba_excel.xls",
+      "module": "officeparser3",
+      "observables_added": 7,
+      "summary": "OfficeParser3 Analysis: extracted 7 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/vba_excel_bad_biff.xls.json",
+      "input": "ace4/office/vba_excel_bad_biff.xls",
+      "module": "officeparser3",
+      "observables_added": 6,
+      "summary": "OfficeParser3 Analysis: extracted 6 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/vba_excel_bad_biff_formula.xls.json",
+      "input": "ace4/office/vba_excel_bad_biff_formula.xls",
+      "module": "officeparser3",
+      "observables_added": 6,
+      "summary": "OfficeParser3 Analysis: extracted 6 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/vba_excel_small.xls.json",
+      "input": "ace4/office/vba_excel_small.xls",
+      "module": "officeparser3",
+      "observables_added": 6,
+      "summary": "OfficeParser3 Analysis: extracted 6 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/vba_form_strings.doc.json",
+      "input": "ace4/office/vba_form_strings.doc",
+      "module": "officeparser3",
+      "observables_added": 7,
+      "summary": "OfficeParser3 Analysis: extracted 7 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/vba_powerpoint.ppt.json",
+      "input": "ace4/office/vba_powerpoint.ppt",
+      "module": "officeparser3",
+      "observables_added": 2,
+      "summary": "OfficeParser3 Analysis: extracted 2 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/vba_powerpoint_raw.ppt.json",
+      "input": "ace4/office/vba_powerpoint_raw.ppt",
+      "module": "officeparser3",
+      "observables_added": 2,
+      "summary": "OfficeParser3 Analysis: extracted 2 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/vba_stomped.doc.json",
+      "input": "ace4/office/vba_stomped.doc",
+      "module": "officeparser3",
+      "observables_added": 6,
+      "summary": "OfficeParser3 Analysis: extracted 6 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/vba_xlm_biff8.xls.json",
+      "input": "ace4/office/vba_xlm_biff8.xls",
+      "module": "officeparser3",
+      "observables_added": 6,
+      "summary": "OfficeParser3 Analysis: extracted 6 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/xlm_biff8.xls.json",
+      "input": "ace4/office/xlm_biff8.xls",
+      "module": "officeparser3",
+      "observables_added": 1,
+      "summary": "OfficeParser3 Analysis: extracted 1 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ace4/office/xlm_info_3805.xls.json",
+      "input": "ace4/office/xlm_info_3805.xls",
+      "module": "officeparser3",
+      "observables_added": 3,
+      "summary": "OfficeParser3 Analysis: extracted 3 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ole/big_stream.doc.json",
+      "input": "fixtures/office/ole/big_stream.doc",
+      "module": "officeparser3",
+      "observables_added": 2,
+      "summary": "OfficeParser3 Analysis: extracted 2 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ole/missing_module.doc.json",
+      "input": "fixtures/office/ole/missing_module.doc",
+      "module": "officeparser3",
+      "observables_added": 4,
+      "summary": "OfficeParser3 Analysis: extracted 4 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ole/native.doc.json",
+      "input": "fixtures/office/ole/native.doc",
+      "module": "officeparser3",
+      "observables_added": 10,
+      "summary": "OfficeParser3 Analysis: extracted 10 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ole/native_empty_name.doc.json",
+      "input": "fixtures/office/ole/native_empty_name.doc",
+      "module": "officeparser3",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ole/native_long_name.doc.json",
+      "input": "fixtures/office/ole/native_long_name.doc",
+      "module": "officeparser3",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ole/native_manifest.doc.json",
+      "input": "fixtures/office/ole/native_manifest.doc",
+      "module": "officeparser3",
+      "observables_added": 3,
+      "summary": "OfficeParser3 Analysis: extracted 3 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ole/native_missing_dir.doc.json",
+      "input": "fixtures/office/ole/native_missing_dir.doc",
+      "module": "officeparser3",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ole/native_names.doc.json",
+      "input": "fixtures/office/ole/native_names.doc",
+      "module": "officeparser3",
+      "observables_added": 22,
+      "summary": "OfficeParser3 Analysis: extracted 23 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ole/native_short.doc.json",
+      "input": "fixtures/office/ole/native_short.doc",
+      "module": "officeparser3",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "officeparser3/ole/not_ole.doc.json",
+      "input": "fixtures/office/ole/not_ole.doc",
+      "module": "officeparser3",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "officeparser3/ole/plain.msi.json",
+      "input": "fixtures/office/ole/plain.msi",
+      "module": "officeparser3",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ole/stream_cycle.doc.json",
+      "input": "fixtures/office/ole/stream_cycle.doc",
+      "module": "officeparser3",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ole/two_modules.doc.json",
+      "input": "fixtures/office/ole/two_modules.doc",
+      "module": "officeparser3",
+      "observables_added": 6,
+      "summary": "OfficeParser3 Analysis: extracted 6 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ole/unknown_sectors.doc.json",
+      "input": "fixtures/office/ole/unknown_sectors.doc",
+      "module": "officeparser3",
+      "observables_added": 2,
+      "summary": "OfficeParser3 Analysis: extracted 2 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OfficeParserAnalysis3",
+      "dump": "officeparser3/ole/vba_project.bin.json",
+      "input": "fixtures/office/ole/vba_project.bin",
+      "module": "officeparser3",
+      "observables_added": 6,
+      "summary": "OfficeParser3 Analysis: extracted 6 files"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OneNoteFileAnalysis",
+      "dump": "onenote_extraction/ace4/office/invoice.one.json",
+      "input": "ace4/office/invoice.one",
+      "module": "onenote_extraction",
+      "observables_added": 2,
+      "summary": "OneNote File Analysis: extracted files e9b4ff075e05eb59b9ff8037003dbf17321d0eb75b9a56b738c6789fee69ee5b, 6ac60d7880f05e06a90757b7bce30951bb020b14f935509e6ef1af0c1e96b9d1"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OneNoteFileAnalysis",
+      "dump": "onenote_extraction/onenote/by_header.bin.json",
+      "input": "fixtures/office/onenote/by_header.bin",
+      "module": "onenote_extraction",
+      "observables_added": 1,
+      "summary": "OneNote File Analysis: extracted files e9b4ff075e05eb59b9ff8037003dbf17321d0eb75b9a56b738c6789fee69ee5b"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OneNoteFileAnalysis",
+      "dump": "onenote_extraction/onenote/duplicate.one.json",
+      "input": "fixtures/office/onenote/duplicate.one",
+      "module": "onenote_extraction",
+      "observables_added": 1,
+      "summary": "OneNote File Analysis: extracted files e9b4ff075e05eb59b9ff8037003dbf17321d0eb75b9a56b738c6789fee69ee5b, e9b4ff075e05eb59b9ff8037003dbf17321d0eb75b9a56b738c6789fee69ee5b"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "onenote_extraction/onenote/empty.one.json",
+      "input": "fixtures/office/onenote/empty.one",
+      "module": "onenote_extraction",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OneNoteFileAnalysis",
+      "dump": "onenote_extraction/onenote/empty_payload.one.json",
+      "input": "fixtures/office/onenote/empty_payload.one",
+      "module": "onenote_extraction",
+      "observables_added": 2,
+      "summary": "OneNote File Analysis: extracted files e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855, 6ac60d7880f05e06a90757b7bce30951bb020b14f935509e6ef1af0c1e96b9d1"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OneNoteFileAnalysis",
+      "dump": "onenote_extraction/onenote/nested.one.json",
+      "input": "fixtures/office/onenote/nested.one",
+      "module": "onenote_extraction",
+      "observables_added": 2,
+      "summary": "OneNote File Analysis: extracted files e55a4b6f6ef8c99788540f88df50db77e18fc6a12cc0901fd4cbb3e2e1ffc0b2, dcd37ae6cf48227a80dd4b06366832bf7d5756d7cb6aeb702a234224d95afc49"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OneNoteFileAnalysis",
+      "dump": "onenote_extraction/onenote/no_objects.one.json",
+      "input": "fixtures/office/onenote/no_objects.one",
+      "module": "onenote_extraction",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "onenote_extraction/onenote/plain.txt.json",
+      "input": "fixtures/office/onenote/plain.txt",
+      "module": "onenote_extraction",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OneNoteFileAnalysis",
+      "dump": "onenote_extraction/onenote/short_header.one.json",
+      "input": "fixtures/office/onenote/short_header.one",
+      "module": "onenote_extraction",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OneNoteFileAnalysis",
+      "dump": "onenote_extraction/onenote/truncated.one.json",
+      "input": "fixtures/office/onenote/truncated.one",
+      "module": "onenote_extraction",
+      "observables_added": 1,
+      "summary": "OneNote File Analysis: extracted files 6ac60d7880f05e06a90757b7bce30951bb020b14f935509e6ef1af0c1e96b9d1"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OneNoteFileAnalysis",
+      "dump": "onenote_extraction/onenote/two_files.one.json",
+      "input": "fixtures/office/onenote/two_files.one",
+      "module": "onenote_extraction",
+      "observables_added": 2,
+      "summary": "OneNote File Analysis: extracted files e9b4ff075e05eb59b9ff8037003dbf17321d0eb75b9a56b738c6789fee69ee5b, 6ac60d7880f05e06a90757b7bce30951bb020b14f935509e6ef1af0c1e96b9d1"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "OneNoteFileAnalysis",
+      "dump": "onenote_extraction/onenote/two_files.one.small.json",
+      "input": "fixtures/office/onenote/two_files.one with max_bytes 1100",
+      "module": "onenote_extraction",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
       "analysis": "ParseURLAnalysis",
       "dump": "parse_url/bare_host.json",
       "input": "url ftp://example.org",
@@ -4303,6 +5743,213 @@
       "module": "x509_analyzer",
       "observables_added": 1,
       "summary": "X509 Analysis: None | Issuer=CN=Example Issuing CA,O=Example CA\\, Inc.,C=US | NotValidBefore=2026-01-01 00:00:00+00:00 | Subject Alternative Names:  DNS Names,  IP Addresses"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "xml_binary_analyzer/ace4/office/vba_flatopc.xml.json",
+      "input": "ace4/office/vba_flatopc.xml",
+      "module": "xml_binary_analyzer",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "XMLBinaryDataAnalysis",
+      "dump": "xml_binary_analyzer/ace4/office/word2003.xml.json",
+      "input": "ace4/office/word2003.xml",
+      "module": "xml_binary_analyzer",
+      "observables_added": 1,
+      "summary": "XML Binary Data Analysis: extracted files/word2003.xml.xml/word/vbaProject.bin"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "XMLBinaryDataAnalysis",
+      "dump": "xml_binary_analyzer/flat/bad_base64.xml.json",
+      "input": "fixtures/office/flat/bad_base64.xml",
+      "module": "xml_binary_analyzer",
+      "observables_added": 1,
+      "summary": "XML Binary Data Analysis: extracted files/bad_base64.xml.xml/three.bin"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "XMLBinaryDataAnalysis",
+      "dump": "xml_binary_analyzer/flat/broken.xml.json",
+      "input": "fixtures/office/flat/broken.xml",
+      "module": "xml_binary_analyzer",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "XMLBinaryDataAnalysis",
+      "dump": "xml_binary_analyzer/flat/entities.xml.json",
+      "input": "fixtures/office/flat/entities.xml",
+      "module": "xml_binary_analyzer",
+      "observables_added": 1,
+      "summary": "XML Binary Data Analysis: extracted files/entities.xml.xml/e.bin"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "XMLBinaryDataAnalysis",
+      "dump": "xml_binary_analyzer/flat/flat.xml.json",
+      "input": "fixtures/office/flat/flat.xml",
+      "module": "xml_binary_analyzer",
+      "observables_added": 2,
+      "summary": "XML Binary Data Analysis: extracted files/flat.xml.xml/word/vbaProject.bin, files/flat.xml.xml/word/media/image1.png"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "xml_binary_analyzer/flat/late.xml.json",
+      "input": "fixtures/office/flat/late.xml",
+      "module": "xml_binary_analyzer",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "XMLBinaryDataAnalysis",
+      "dump": "xml_binary_analyzer/flat/names.xml.json",
+      "input": "fixtures/office/flat/names.xml",
+      "module": "xml_binary_analyzer",
+      "observables_added": 5,
+      "summary": "XML Binary Data Analysis: extracted files/names.xml.xml/_, files/names.xml.xml/__000/_/etc/escape.txt, files/names.xml.xml/a_b.txt, files/names.xml.xml/same.bin, files/names.xml.xml/same_000.bin"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "xml_binary_analyzer/flat/no_xml_decl.txt.json",
+      "input": "fixtures/office/flat/no_xml_decl.txt",
+      "module": "xml_binary_analyzer",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "xml_binary_analyzer/flat/not_word.xml.json",
+      "input": "fixtures/office/flat/not_word.xml",
+      "module": "xml_binary_analyzer",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "xml_plain_text_analyzer/plain/already.noxml.json",
+      "input": "fixtures/office/plain/already.noxml extracted from a microsoft_office file",
+      "module": "xml_plain_text_analyzer",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "xml_plain_text_analyzer/plain/big.xml.json",
+      "input": "fixtures/office/plain/big.xml extracted from a microsoft_office file",
+      "module": "xml_plain_text_analyzer",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "XMLPlainTextAnalysis",
+      "dump": "xml_plain_text_analyzer/plain/broken.xml.json",
+      "input": "fixtures/office/plain/broken.xml extracted from a microsoft_office file",
+      "module": "xml_plain_text_analyzer",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "XMLPlainTextAnalysis",
+      "dump": "xml_plain_text_analyzer/plain/cp1252.xml.json",
+      "input": "fixtures/office/plain/cp1252.xml extracted from a microsoft_office file",
+      "module": "xml_plain_text_analyzer",
+      "observables_added": 1,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "xml_plain_text_analyzer/plain/document.xml.alone.json",
+      "input": "fixtures/office/plain/document.xml extracted from nothing",
+      "module": "xml_plain_text_analyzer",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "XMLPlainTextAnalysis",
+      "dump": "xml_plain_text_analyzer/plain/document.xml.json",
+      "input": "fixtures/office/plain/document.xml extracted from a microsoft_office file",
+      "module": "xml_plain_text_analyzer",
+      "observables_added": 1,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "xml_plain_text_analyzer/plain/document.xml.untagged.json",
+      "input": "fixtures/office/plain/document.xml extracted from a file with no tags",
+      "module": "xml_plain_text_analyzer",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "XMLPlainTextAnalysis",
+      "dump": "xml_plain_text_analyzer/plain/instr_namespace.xml.json",
+      "input": "fixtures/office/plain/instr_namespace.xml extracted from a microsoft_office file",
+      "module": "xml_plain_text_analyzer",
+      "observables_added": 1,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "XMLPlainTextAnalysis",
+      "dump": "xml_plain_text_analyzer/plain/latin1.xml.json",
+      "input": "fixtures/office/plain/latin1.xml extracted from a microsoft_office file",
+      "module": "xml_plain_text_analyzer",
+      "observables_added": 1,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "XMLPlainTextAnalysis",
+      "dump": "xml_plain_text_analyzer/plain/no_text.xml.json",
+      "input": "fixtures/office/plain/no_text.xml extracted from a microsoft_office file",
+      "module": "xml_plain_text_analyzer",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "xml_plain_text_analyzer/plain/not_xml.txt.json",
+      "input": "fixtures/office/plain/not_xml.txt extracted from a microsoft_office file",
+      "module": "xml_plain_text_analyzer",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "XMLPlainTextAnalysis",
+      "dump": "xml_plain_text_analyzer/plain/unicode.xml.json",
+      "input": "fixtures/office/plain/unicode.xml extracted from a microsoft_office file",
+      "module": "xml_plain_text_analyzer",
+      "observables_added": 1,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "xml_plain_text_analyzer/plain/utf16.xml.json",
+      "input": "fixtures/office/plain/utf16.xml extracted from a microsoft_office file",
+      "module": "xml_plain_text_analyzer",
+      "observables_added": 0,
+      "summary": null
     },
     {
       "ace3_commit": "844e3584",

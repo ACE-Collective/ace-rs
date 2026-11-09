@@ -1,0 +1,30 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [],
+  "input": {
+    "directives": [],
+    "label": "fixtures/office/plain/document.xml extracted from nothing",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "document.xml",
+      "size": 540,
+      "type": "file",
+      "value": "1a2d85284a5121bc9649a1e7072f8e66a042ec5153d6311d8f95e6e844cef4c5"
+    }
+  },
+  "module": "xml_plain_text_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "document.xml",
+    "relationships": [],
+    "size": 540,
+    "tags": [],
+    "type": "file",
+    "value": "1a2d85284a5121bc9649a1e7072f8e66a042ec5153d6311d8f95e6e844cef4c5",
+    "yara_meta": []
+  }
+}

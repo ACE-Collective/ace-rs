@@ -1,0 +1,557 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": true,
+        "is_office_ext": true,
+        "is_ole_file": true,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "application/msword",
+        "type": "Composite Document File V2 Document, Little Endian, Os: Windows, Version 6.1, Code page: 1252, Author: bczbRaSZ, Template: Normal.dotm, Revision Number: 1, Name of Creating Application: Microsoft Office Word, Create Time/Date: Mon Feb 12 09:29:00 2018, Last Saved Time/Date: Mon Feb 12 09:29:00 2018, Number of Pages: 1, Number of Words: 0, Number of Characters: 1, Security: 0"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: Composite Document File V2 Document, Little Endian, Os: Windows, Version 6.1, Code page: 1252, Author: bczbRaSZ, Template: Normal.dotm, Revision Number: 1, Name of Creating Application: Microsoft Office Word, Create Time/Date: Mon Feb 12 09:29:00 2018, Last Saved Time/Date: Mon Feb 12 09:29:00 2018, Number of Pages: 1, Number of Words: 0, Number of Characters: 1, Security: 0 (application/msword) (ms office document) (ole compound file)",
+      "tags": []
+    },
+    {
+      "class": "OfficeParserAnalysis3",
+      "details": {
+        "extracted_files": [
+          "stream_1_0.dat",
+          "stream_2_0.dat",
+          "stream_3_0.dat",
+          "stream_4_0.dat",
+          "stream_5_0.dat",
+          "stream_8_0.dat",
+          "stream_9_0.dat",
+          "stream_10_0.dat",
+          "stream_11_0.dat",
+          "stream_12_0.dat",
+          "stream_13_0.dat",
+          "stream_14_0.dat",
+          "stream_15_0.dat",
+          "stream_16_0.dat",
+          "btGXzLIfLi.bas",
+          "adtAZldRw.bas",
+          "icVBZFuXzN.bas"
+        ]
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.officeparser3:OfficeParserAnalysis3",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "Paid Invoice.doc.officeparser/stream_1_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "fb9fc26235d7b3f7465a6da2d0a60ebf395785372d06a16c9f558b773b0b2c01"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "fb9fc26235d7b3f7465a6da2d0a60ebf395785372d06a16c9f558b773b0b2c01"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 36202,
+          "tags": [],
+          "type": "file",
+          "value": "5decd151b4e567be5a1f24a12c7a336bfcd8d622771c92dd188992198ba5095e",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "Paid Invoice.doc.officeparser/stream_2_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "fb9fc26235d7b3f7465a6da2d0a60ebf395785372d06a16c9f558b773b0b2c01"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "fb9fc26235d7b3f7465a6da2d0a60ebf395785372d06a16c9f558b773b0b2c01"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 7225,
+          "tags": [
+            "zip"
+          ],
+          "type": "file",
+          "value": "6f164a4e1a2b03ec01942f2b26b25a9c844111def20ea505bd51019557d49a81",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "Paid Invoice.doc.officeparser/stream_3_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "fb9fc26235d7b3f7465a6da2d0a60ebf395785372d06a16c9f558b773b0b2c01"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "fb9fc26235d7b3f7465a6da2d0a60ebf395785372d06a16c9f558b773b0b2c01"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 4096,
+          "tags": [],
+          "type": "file",
+          "value": "a1afddd8819145c74f23f7f293f9e424067bd008a05203b1eac56eb9ba4a2155",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "Paid Invoice.doc.officeparser/stream_4_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "fb9fc26235d7b3f7465a6da2d0a60ebf395785372d06a16c9f558b773b0b2c01"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "fb9fc26235d7b3f7465a6da2d0a60ebf395785372d06a16c9f558b773b0b2c01"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 392,
+          "tags": [],
+          "type": "file",
+          "value": "526f204da6161d9f684d26e136c41d91588ea2efdc0cf2d63cc1aed768a3259c",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "Paid Invoice.doc.officeparser/stream_5_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "fb9fc26235d7b3f7465a6da2d0a60ebf395785372d06a16c9f558b773b0b2c01"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "fb9fc26235d7b3f7465a6da2d0a60ebf395785372d06a16c9f558b773b0b2c01"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 4096,
+          "tags": [],
+          "type": "file",
+          "value": "794700af5b1f1d032372ffa72482f6908eda7360f42b48134b881f91b8ea2902",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "Paid Invoice.doc.officeparser/stream_8_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "fb9fc26235d7b3f7465a6da2d0a60ebf395785372d06a16c9f558b773b0b2c01"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "fb9fc26235d7b3f7465a6da2d0a60ebf395785372d06a16c9f558b773b0b2c01"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 924,
+          "tags": [],
+          "type": "file",
+          "value": "d125c8e1ad3a1bc86c6ee2031f4295648b496754a372100b5effdba4542ce34e",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "Paid Invoice.doc.officeparser/stream_9_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "fb9fc26235d7b3f7465a6da2d0a60ebf395785372d06a16c9f558b773b0b2c01"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "fb9fc26235d7b3f7465a6da2d0a60ebf395785372d06a16c9f558b773b0b2c01"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 29472,
+          "tags": [],
+          "type": "file",
+          "value": "2b96c4c9533d869d5fb0e3bcd661b7924f690720125a04a15711fee2ad52750d",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "Paid Invoice.doc.officeparser/stream_10_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "fb9fc26235d7b3f7465a6da2d0a60ebf395785372d06a16c9f558b773b0b2c01"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "fb9fc26235d7b3f7465a6da2d0a60ebf395785372d06a16c9f558b773b0b2c01"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 8974,
+          "tags": [],
+          "type": "file",
+          "value": "8569fc287eb50ee8e35cc5a86f2809c49e320897ec10c0f71f67a2aafa7ff830",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "Paid Invoice.doc.officeparser/stream_11_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "fb9fc26235d7b3f7465a6da2d0a60ebf395785372d06a16c9f558b773b0b2c01"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "fb9fc26235d7b3f7465a6da2d0a60ebf395785372d06a16c9f558b773b0b2c01"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 7765,
+          "tags": [],
+          "type": "file",
+          "value": "cd851b7ed48d343087059de89822c11f7c08dd243a2bf6ffb4e349a8944f376f",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "Paid Invoice.doc.officeparser/stream_12_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "fb9fc26235d7b3f7465a6da2d0a60ebf395785372d06a16c9f558b773b0b2c01"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "fb9fc26235d7b3f7465a6da2d0a60ebf395785372d06a16c9f558b773b0b2c01"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 22636,
+          "tags": [],
+          "type": "file",
+          "value": "080900a91a932caf5147cb55ce978579152b53b8048004fb4264b5affb08797d",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "Paid Invoice.doc.officeparser/stream_13_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "fb9fc26235d7b3f7465a6da2d0a60ebf395785372d06a16c9f558b773b0b2c01"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "fb9fc26235d7b3f7465a6da2d0a60ebf395785372d06a16c9f558b773b0b2c01"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 685,
+          "tags": [],
+          "type": "file",
+          "value": "bad44fabb73aa7cdf283035325af18f1e61647f54127582caa26f8ccfb5d8d97",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "Paid Invoice.doc.officeparser/stream_14_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "fb9fc26235d7b3f7465a6da2d0a60ebf395785372d06a16c9f558b773b0b2c01"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "fb9fc26235d7b3f7465a6da2d0a60ebf395785372d06a16c9f558b773b0b2c01"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 137,
+          "tags": [],
+          "type": "file",
+          "value": "b5a0599af653ddd2cafd26e1058c9cc51a47a6dee7420914892c98a203d832ba",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "Paid Invoice.doc.officeparser/stream_15_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "fb9fc26235d7b3f7465a6da2d0a60ebf395785372d06a16c9f558b773b0b2c01"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "fb9fc26235d7b3f7465a6da2d0a60ebf395785372d06a16c9f558b773b0b2c01"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 512,
+          "tags": [],
+          "type": "file",
+          "value": "0dd336b4a922b737c27e6270dce0550c0662b8555fd7560b782543e8d3b9687b",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "Paid Invoice.doc.officeparser/stream_16_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "fb9fc26235d7b3f7465a6da2d0a60ebf395785372d06a16c9f558b773b0b2c01"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "fb9fc26235d7b3f7465a6da2d0a60ebf395785372d06a16c9f558b773b0b2c01"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 114,
+          "tags": [],
+          "type": "file",
+          "value": "f70fe384c672865fff4bb8ab60d73098bc751e8f2aa915b8aff2e2085648b428",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls",
+            "sandbox",
+            "yara_meta:type=script.macro"
+          ],
+          "excluded_analysis": [],
+          "file_path": "Paid Invoice.doc.officeparser/btGXzLIfLi.bas",
+          "redirection": {
+            "type": "file",
+            "value": "fb9fc26235d7b3f7465a6da2d0a60ebf395785372d06a16c9f558b773b0b2c01"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "fb9fc26235d7b3f7465a6da2d0a60ebf395785372d06a16c9f558b773b0b2c01"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 17263,
+          "tags": [
+            "macro"
+          ],
+          "type": "file",
+          "value": "6ff3ef85d042452d2b5feccdb10dad7aa4b74c93a30b138b8c5d0d821fec6c8c",
+          "yara_meta": [
+            "type=script.macro"
+          ]
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls",
+            "sandbox",
+            "yara_meta:type=script.macro"
+          ],
+          "excluded_analysis": [],
+          "file_path": "Paid Invoice.doc.officeparser/adtAZldRw.bas",
+          "redirection": {
+            "type": "file",
+            "value": "fb9fc26235d7b3f7465a6da2d0a60ebf395785372d06a16c9f558b773b0b2c01"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "fb9fc26235d7b3f7465a6da2d0a60ebf395785372d06a16c9f558b773b0b2c01"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 4935,
+          "tags": [
+            "macro"
+          ],
+          "type": "file",
+          "value": "8b28d726a1b118a0d64cf9b6af0744185238f046e3175aa12c3ad54e2c25ddeb",
+          "yara_meta": [
+            "type=script.macro"
+          ]
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls",
+            "sandbox",
+            "yara_meta:type=script.macro"
+          ],
+          "excluded_analysis": [],
+          "file_path": "Paid Invoice.doc.officeparser/icVBZFuXzN.bas",
+          "redirection": {
+            "type": "file",
+            "value": "fb9fc26235d7b3f7465a6da2d0a60ebf395785372d06a16c9f558b773b0b2c01"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "fb9fc26235d7b3f7465a6da2d0a60ebf395785372d06a16c9f558b773b0b2c01"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 4245,
+          "tags": [
+            "macro"
+          ],
+          "type": "file",
+          "value": "4ac596b07705314bf771e906573ae340de9a15c8844ec797a26ebb8a8298e415",
+          "yara_meta": [
+            "type=script.macro"
+          ]
+        }
+      ],
+      "summary": "OfficeParser3 Analysis: extracted 17 files",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace3/office/Paid Invoice.doc",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "Paid Invoice.doc",
+      "size": 134656,
+      "type": "file",
+      "value": "fb9fc26235d7b3f7465a6da2d0a60ebf395785372d06a16c9f558b773b0b2c01"
+    }
+  },
+  "module": "officeparser3",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "Paid Invoice.doc",
+    "relationships": [],
+    "size": 134656,
+    "tags": [
+      "microsoft_office",
+      "ole"
+    ],
+    "type": "file",
+    "value": "fb9fc26235d7b3f7465a6da2d0a60ebf395785372d06a16c9f558b773b0b2c01",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "XMLBinaryDataAnalysis",
+      "details": {
+        "extracted_files": []
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.xml:XMLBinaryDataAnalysis",
+      "observables": [],
+      "summary": null,
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/office/flat/broken.xml",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "broken.xml",
+      "size": 451,
+      "type": "file",
+      "value": "19be2bd09d94b1cc0357c5373eac1817b89f96febd8e946b931659beb3dbcfa9"
+    }
+  },
+  "module": "xml_binary_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "broken.xml",
+    "relationships": [],
+    "size": 451,
+    "tags": [],
+    "type": "file",
+    "value": "19be2bd09d94b1cc0357c5373eac1817b89f96febd8e946b931659beb3dbcfa9",
+    "yara_meta": []
+  }
+}

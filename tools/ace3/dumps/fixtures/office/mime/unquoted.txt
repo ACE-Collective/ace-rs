@@ -1,0 +1,12 @@
+preamble text
+cOnTeNt-TyPe :  multipart/related;   boundary=abc123
+
+--abc123
+Content-Type: text/html
+Content-Transfer-Encoding: quoted-printable
+
+<p>a=3Db</p>
+--abc123
+Content-Type: text/plain
+
+no end boundary follows

@@ -2254,6 +2254,14 @@ fn each_module_s_view_draws_its_fixture() {
         "mhtml_page",
         "html_js_scripts",
         "har_session",
+        "onenote_two_files",
+        "active_mime_ole",
+        "hidden_mime_bin",
+        "xml_binary_flat",
+        "xml_plain_text_document",
+        "office_xml_rel_external",
+        "officeparser_native",
+        "extracted_ole_payload",
     ];
     let mut types = BTreeSet::new();
     for name in fixtures {
@@ -2538,6 +2546,47 @@ fn each_module_s_view_draws_its_fixture() {
                     "<tr><th>creator</th><td>WebInspector 537.36</td></tr>",
                     "<tr><th>entry_count</th><td>19</td></tr>",
                 ],
+            ),
+            "onenote_two_files" => contains_all(
+                &html,
+                &[
+                    "<tr><th>extracted_file</th><td>e9b4ff075e05eb59b9ff8037003dbf17321d0eb75b9a56b738c6789fee69ee5b</td></tr>",
+                ],
+            ),
+            "active_mime_ole" => contains_all(
+                &html,
+                &["<tr><th>extracted_file</th><td>ole.mso.activemime</td></tr>"],
+            ),
+            "hidden_mime_bin" => contains_all(
+                &html,
+                &["<tr><th>extracted_file</th><td>hidden.bin.mime/extracted-1</td></tr>"],
+            ),
+            "xml_binary_flat" => contains_all(
+                &html,
+                &[
+                    "<tr><th>extracted_file</th><td>files/flat.xml.xml/word/media/image1.png</td></tr>",
+                ],
+            ),
+            "xml_plain_text_document" => contains_all(
+                &html,
+                &[
+                    "<tr><th>xml_plain_text</th><td>invoice.docx.extracted/word/document.xml.noxml</td></tr>",
+                ],
+            ),
+            "office_xml_rel_external" => contains_all(
+                &html,
+                &["<tr><th>url</th><td>file:///C:/Users/Public/evil.hta</td></tr>"],
+            ),
+            "officeparser_native" => contains_all(
+                &html,
+                &[
+                    "<tr><th>extracted_file</th><td>payload.vbs</td></tr>",
+                    "<tr><th>extracted_file</th><td>Module1.bas</td></tr>",
+                ],
+            ),
+            "extracted_ole_payload" => contains_all(
+                &html,
+                &["<tr><th>suspect_file</th><td>native.doc.officeparser/payload.vbs</td></tr>"],
             ),
             other => panic!("no checks for {other}"),
         }

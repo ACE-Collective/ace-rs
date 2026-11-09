@@ -37,6 +37,10 @@ does (saq/cli/commands/correlate.py) with all modules disabled except the ones n
 - with --sidecars SUFFIX, the dump keeps the text of each file the run left in the root's file
   directory whose name ends in SUFFIX, by its path there, such as the DOM snapshots ace3's HTML
   modules write beside the scripts they extract, which aren't observables;
+- with --extracted-from FILE ALERT_PATH, the root also holds that file, the observable is
+  extracted_from it, and --source-tag tags it, as a document file_type called microsoft_office;
+- with --added-by MODULE:CLASS, the observable is added by an analysis of that class on the
+  --extracted-from file rather than by the root, such as an output of OfficeParserAnalysis3;
 - with --tree, it also writes tree.json, the whole root in the normal form of PLAN.md 3.1
   (crates/ace-core/src/normal.rs), which tools/ace3/trees/make-trees collects.
 
@@ -90,6 +94,15 @@ def parse_args():
         "--relationship", nargs=3, action="append", default=[], metavar=("KIND", "TYPE", "VALUE"),
         help="a relationship of the observable to another the root also holds, such as executed_on hostname H",
     )
+    parser.add_argument(
+        "--extracted-from", nargs=2, metavar=("FILE", "ALERT_PATH"),
+        help="a file the root also holds, which the observable is extracted_from",
+    )
+    parser.add_argument("--source-tag", action="append", default=[], help="a tag for the --extracted-from file")
+    parser.add_argument(
+        "--added-by", metavar="MODULE:CLASS",
+        help="the observable is added by an analysis of this class on the --extracted-from file",
+    )
     parser.add_argument("--yara-rules", help="scan with the local YARA scanner over this signature directory")
     parser.add_argument("--record-http", action="store_true", help="record HTTP requests made through requests")
     parser.add_argument("--config", action="append", default=[], help="a YAML file ace3 loads over its configuration")
@@ -108,6 +121,8 @@ def parse_args():
     args = parser.parse_args(sys.argv[1:])
     if bool(args.file) == bool(args.observable):
         parser.error("give exactly one of --file and --observable")
+    if args.added_by and not args.extracted_from:
+        parser.error("--added-by needs --extracted-from")
     if not args.work.startswith("/tmp/"):
         parser.error("--work must be under /tmp")
     return args
@@ -582,6 +597,14 @@ TREE_MODULES = {
     "HARAnalysis": "har_extraction",
     "HTMLJavaScriptExtractionAnalysis": "html_js_extraction",
     "MHTMLAnalysis": "mhtml",
+    "OneNoteFileAnalysis": "onenote_extraction",
+    "OfficeParserAnalysis3": "officeparser3",
+    "OfficeXMLRelationshipExternalURLAnalysis": "office_xml_rel",
+    "XMLBinaryDataAnalysis": "xml_binary_analyzer",
+    "XMLPlainTextAnalysis": "xml_plain_text_analyzer",
+    "ExtractedOLEAnalysis": "extracted_ole_analyzer",
+    "HiddenMIMEAnalysis": "hidden_mime",
+    "ActiveMimeAnalysis": "active_mime",
 }
 TREE_RUN_FIELDS = {
     "EmailAnalysis": ["details/email/log_entry/date"],
@@ -627,6 +650,14 @@ TREE_EXCLUDED = {
     "HTMLJavaScriptExtractor": "html_js_extraction",
     "MHTMLAnalysisModule": "mhtml",
     "OCRAnalyzer": "ocr",
+    "OneNoteFileAnalyzer": "onenote_extraction",
+    "OfficeParserAnalyzer3": "officeparser3",
+    "OfficeXMLRelationshipExternalURLAnalyzer": "office_xml_rel",
+    "XMLBinaryDataAnalyzer": "xml_binary_analyzer",
+    "XMLPlainTextAnalyzer": "xml_plain_text_analyzer",
+    "ExtractedOLEAnalyzer": "extracted_ole_analyzer",
+    "HiddenMIMEAnalyzer": "hidden_mime",
+    "ActiveMimeAnalyzer": "active_mime",
 }
 
 
@@ -949,8 +980,21 @@ def main():
     root.set_event_time(datetime.datetime.now(), EventTimeSource.NOW)
     root.details = {"comment": "ace4 reference dump"}
 
-    if args.file:
+    source = None
+    if args.extracted_from:
+        source = root.add_file_observable(args.extracted_from[0], target_path=args.extracted_from[1])
+        for tag in args.source_tag:
+            source.add_tag(tag)
+    if args.file and args.added_by:
+        import importlib
+
+        module_name, class_name = args.added_by.split(":")
+        adder = getattr(importlib.import_module(module_name), class_name)()
+        source.add_analysis(adder)
+        observable = adder.add_file_observable(args.file, target_path=args.alert_path)
+    elif args.file:
         observable = root.add_file_observable(args.file, target_path=args.alert_path)
+    if args.file:
         for tag in args.meta_tag:
             name, value = tag.split("=", 1)
             observable.add_yara_meta(name, value)
@@ -960,6 +1004,10 @@ def main():
         sys.exit("ace3 refused the observable")
     for directive in args.directive:
         observable.add_directive(directive)
+    if source is not None:
+        from saq.constants import R_EXTRACTED_FROM
+
+        observable.add_relationship(R_EXTRACTED_FROM, source)
     for kind, other_type, other_value in args.relationship:
         other = root.add_observable_by_spec(other_type, other_value)
         if other is None:
@@ -1005,6 +1053,18 @@ def main():
         | (
             {"relationships": [{"type": k, "target": {"type": t, "value": v}} for k, t, v in args.relationship]}
             if args.relationship
+            else {}
+        )
+        | (
+            {
+                "extracted_from": {
+                    "file_path": source.file_path,
+                    "value": source.value,
+                    "tags": sorted(str(tag) for tag in source.tags),
+                }
+                | ({"added_by": args.added_by} if args.added_by else {})
+            }
+            if source is not None
             else {}
         ),
         "observable_after": dump_observable(target),

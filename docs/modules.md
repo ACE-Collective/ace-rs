@@ -20,17 +20,17 @@ Versions are those of ace3's image: Python packages from `installer/requirements
 
 | Pool | Modules | Ported |
 |---|---|---|
-| parser | 53 | 29 |
+| parser | 53 | 37 |
 | lookup | 17 | 9 |
 | core | 3 | 0 |
 | sandbox | 15 | 0 |
 | scanner | 2 | 0 |
-| all | 90 | 38 |
+| all | 90 | 46 |
 
 | Step | Modules |
 |---|---|
-| done | 38 |
-| 7.5 | 42 |
+| done | 46 |
+| 7.5 | 34 |
 | 7.6 | 5 |
 | 7.7 | 2 |
 | 7.10 | 2 |
@@ -46,7 +46,7 @@ In order. Batches 10 to 13 run programs in the sandbox runner, which batch 10 bu
 2. **File identity**: done. `file_type`, `file_hash_analyzer`, `lnk_parser`, `binary_file_analyzer`, `x509_analyzer` and `dhash`, in `ace-mod-files`. file_type first: many later modules read its result, its tags and its `yara_meta` types. `ssdeep` moved to batch 10: fuzzyhash doesn't give ssdeep's scores (`docs/measurements/ssdeep.md`).
 3. **Observable values**: done. `command_line_analyzer`, `file_location_analysis`, `file_path_analysis`, `network_identifier`, `parse_url`, `idna_analyzer`, `email_address_fqdn_analyzer`, `protected_url_analyzer`, in `ace-mod-values`, on `ace-urlfinder` and `ace-pycompat`. Strings in, observables out; no files but command lines' payloads. `protected_url_analyzer`'s 1drv.ms links go to `protected_url_one_drive` on the lookup pool (its entry has the decision).
 4. **HTML**: done. `html_data_url_extraction`, `har_extraction`, `html_js_extraction`, `mhtml`, in `ace-mod-html`, on `ace-lxml`'s BeautifulSoup tree, `ace-mod-oletools`' port of Python's feed parser and `ace-pycompat`. HTML, MHTML and HAR files, with the DOM snapshots 7.7's js-deobfuscator reads, which ride in the results' `dom_snapshots` rather than in files beside the scripts.
-5. **Office containers**: `onenote_extraction`, `officeparser3`, `office_xml_rel`, `xml_binary_analyzer`, `xml_plain_text_analyzer`, `extracted_ole_analyzer`, `hidden_mime`, `active_mime`. OLE streams, Office XML, OneNote and MIME blobs, on `ace-mod-oletools`' olefile port.
+5. **Office containers**: done. `onenote_extraction`, `officeparser3`, `office_xml_rel`, `xml_binary_analyzer`, `xml_plain_text_analyzer`, `extracted_ole_analyzer`, `hidden_mime`, `active_mime`, in `ace-mod-office`. OneNote, compound files, Office XML, hidden MIME and ActiveMime. XML is parsed by `ace_lxml::target`, lxml's target parser over the vendored libxml2, which matches lxml on 472 inputs; MIME by `ace-mod-oletools`' feed parser; compound files by a port of officeparser3's own reader, not olefile's, since what officeparser3 writes for a damaged file follows from how it reads one. `extracted_ole_analyzer` reads on the lease which modules added its file, and runs last; `xml_plain_text_analyzer` reads the tags of the file its file came from, and the archive module now waits for file_type, as ace3's does, so those tags are there.
 6. **RTF and scripts**: `microsoft_script_encoding_analysis`, `extracted_rtf_analyzer`, `vbscript_analyzer`, `nowhitespace_analyzer`. Checks and transforms of RTF and script files.
 7. **Encrypted files**: `zip_encryption_analyzer`, `rar_encryption_analyzer`, `pdf_encryption_analyzer`. No John (7.3): the email's wordlist tried in the task, as 4.11 did for Office.
 8. **Email tree**: `mailbox_email_analyzer`, `lure_url_analyzer`, `email_conversation_attachment_analyzer`, `email_conversation_link_analyzer`. Modules that read the email's analysis; the two conversation modules after 7.4's frequency analyzer.
@@ -140,7 +140,7 @@ The sandbox image's packages, by Debian's installed size: the JRE 199 MB, Wiresh
 | file (libmagic 5.46) | `archive`, `file_type`, `de4dot`, `ilspy`, `cve_2021_30657_analyzer` | none | libmagic in the task: `ace_yara::mime` for the core's mime type, and `ace-mod-files`' own cookies, from the database's bytes, for file_type's description and mime type | **crate** | none |
 | node `--check`, grep | `file_type`, `extracted_ole_analyzer` | node: 7 threads, no process | oxc_parser 0.157.0 (MIT, kept up) checks syntax; batch 2 measured it against node 24 on 850 cases, with no disagreement once the proposals V8 13.6 lacks are refused (`docs/measurements/javascript-check.md`) | **crate** | none; saves Node.js, 237 MB |
 | ssdeep 2.14.1 | `ssdeep` | none | fuzzyhash 0.2.2 (MIT, pure Rust, last release 2023) gives ssdeep's hashes but not its `-m` scores, batch 2 found (`docs/measurements/ssdeep.md`); ssdeep 0.7.0 binds libfuzzy and is GPL-3 | **runner**, in batch 10 | ssdeep 0.3 MB; GPL-2+ |
-| pdf-parser.py, xlmdeobfuscator, pcodedmp, rtfobj, officeparser3 | `pdf_analyzer`, `xlmdeobfuscator`, `pcodedmp`, `rtfole`, `officeparser3` | Python, gone | ported in 4.9, 4.10 and 4.12; officeparser3 onto `ace-mod-oletools`' olefile port in batch 5 | **crate** | none |
+| pdf-parser.py, xlmdeobfuscator, pcodedmp, rtfobj, officeparser3 | `pdf_analyzer`, `xlmdeobfuscator`, `pcodedmp`, `rtfole`, `officeparser3` | Python, gone | ported in 4.9, 4.10 and 4.12; officeparser3 in batch 5, as a port of its own compound file reader in `ace-mod-office` | **crate** | none |
 | jscript.decode.pl | `microsoft_script_encoding_analysis` | none | about 80 lines of Perl, ported | **crate** | none |
 | git | `yara_scanner_v3_4`, `observable_modifier`, `svs_yara_sample_capture` | not run | the ruleset records its commit (2.26) | **none** | none |
 | version probes (`probe_binary_version`) | `ocr`, `qrcode` | not run | they key ace3's analysis result cache, which ace4 doesn't have (6.7) | **none** | none |
@@ -157,7 +157,7 @@ The sandbox image's packages, by Debian's installed size: the JRE 199 MB, Wiresh
 | `ssdeep` | sandbox | ssdeep 2.14.1 via run_tool (plain subprocess.run, unsandboxed): `ssdeep -m <ssdeep_hashes> <file>` | ssdeep: **runner** (fuzzyhash's scores differ, batch 2) |
 | `archive` | parser | 7z (7zip 25.01, with 7zip-rar 25.00) via run_sandboxed_tool: `7z -y -pinfected l` and `7z -y -pinfected -o<dir> x` (and `7z -y -o<dir> x` for MSI); unrar 7.1.8 via run_sandboxed_tool: `unrar la` and `unrar e -y -o+ -idq -kb`; unzip via run_sandboxed_tool: `unzip -l -P infected` and `unzip -qq ... -x xl/activeX/* ... -d <dir>`; unace-nonfree 2.5 via run_sandboxed_tool on a copy in a temp staging dir: `unace l` and `unace x -y -o`; bin/unjar (python3 script using custom_zipfile.extractall) via run_sandboxed_tool for jar files; file via Popen `file -b -L` (unsandboxed, no timeout) in is_msi_file, called up to twice | 7z, unrar, unzip, unjar: **crate** (1.29); unace: **runner**, in batch 10; file: **crate** |
 | `java_class_decompiler` | sandbox | java (default-jre, OpenJDK 21) running /usr/local/bin/cfr.jar (cfr 0.151) via run_sandboxed_tool: `java -Xmx1g -XX:CompressedClassSpaceSize=128m -XX:ReservedCodeCacheSize=128m -XX:-UsePerfData -jar cfr.jar <class>` | java with CFR: **runner** |
-| `officeparser3` | parser | officeparser3 (unixfreak0037/officeparser3, pip-installed from git master; config officeparser_path /venv/bin/officeparser3) via subprocess.Popen directly, NOT sandboxed, timeout config 90s | **crate**: `ace-mod-oletools`' olefile port |
+| `officeparser3` | parser | officeparser3 (unixfreak0037/officeparser3, pip-installed from git master; config officeparser_path /venv/bin/officeparser3) via subprocess.Popen directly, NOT sandboxed, timeout config 90s | **crate**: a port of officeparser3 in `ace-mod-office` |
 | `xlmdeobfuscator` | parser | xlmdeobfuscator CLI (DissectMalware/XLMMacroDeobfuscator master, with xlrd2 and pyxlsb2 master) resolved from PATH via subprocess.Popen, NOT sandboxed: `xlmdeobfuscator -f <file>` and `xlmdeobfuscator -x -f <file>`, timeout config 30s each | **crate** (4.12) |
 | `pcodedmp` | parser | bin/pcodedmp_wrapper (bash) via subprocess.Popen, NOT sandboxed: `timeout --foreground --signal=KILL 30 /venv/bin/pcodedmp <file> \| sed -ne '/^Module streams:/,$ p' \| egrep '^[[:space:]]'`; pcodedmp 1.2.6 (pip, uses oletools/olefile) | **crate** (4.12) |
 | `msoffice_encryption_analyzer` | parser | bin/office2john.py (vendored, bundles an old olefile 0.42) via run_sandboxed_tool with the venv python3 -I (sandbox_python()); john 1.9.0-jumbo-1 (openwall git master, built with plain ./configure, so OpenMP is enabled if detected) via saq/cracking.py crack_password(): two run_sandboxed_tool calls, `john --session=john --pot=john.pot --wordlist=<abs> <hash>` (pot moved out as {hash}.pot) then `john --pot=<pot> --show <hash>` | office2john.py and John: **crate**, the wordlist tried in the task (4.11) |
@@ -200,7 +200,7 @@ In the config's order. ace4 is the crate a ported module is in.
 | `pcap_tls_decryption` | `PcapTlsDecryptor` | not yet | sandbox | 7.5 batch 13 | file | analysis, binary, cli, correlation, email, file |
 | `tls_keylog` | `TlsKeylogAnalyzer` | not yet | sandbox | 7.5 batch 13 | file | analysis, binary, cli, correlation, email, file |
 | `html_js_extraction` | `HTMLJavaScriptExtractor` | `ace-mod-html` | parser | done | file | analysis, binary, cli, correlation, email, file |
-| `onenote_extraction` | `OneNoteFileAnalyzer` | not yet | parser | 7.5 batch 5 | file | analysis, binary, cli, correlation, email, file |
+| `onenote_extraction` | `OneNoteFileAnalyzer` | `ace-mod-office` | parser | done | file | analysis, binary, cli, correlation, email, file |
 | `javascript_deobfuscation` | `JavaScriptDeobfuscationAnalyzer` | not yet | scanner | 7.7 | file | analysis, binary, cli, correlation, email, file |
 | `command_line_analyzer` | `CommandLineAnalyzer` | `ace-mod-values` | parser | done | common | analysis, binary, cli, correlation, email, file |
 | `mailbox_email_analyzer` | `MailboxEmailAnalyzer` | not yet | parser | 7.5 batch 8 | email | analysis, cli, correlation, email |
@@ -230,15 +230,15 @@ In the config's order. ace4 is the crate a ported module is in.
 | `archive` | `ArchiveAnalyzer` | `ace-mod-archive` | parser | done | file | analysis, binary, cli, correlation, email, file |
 | `java_class_decompiler` | `JavaClassDecompilerAnalysisModule` | not yet | sandbox | 7.5 batch 11 | file | analysis, binary, cli, correlation, email, file |
 | `olevba_v1_2` | `OLEVBA_Analyzer_v1_2` | `ace-mod-oletools` | parser | done | file | analysis, binary, cli, correlation, email, file |
-| `officeparser3` | `OfficeParserAnalyzer3` | not yet | parser | 7.5 batch 5 | file | analysis, binary, cli, correlation, email, file |
+| `officeparser3` | `OfficeParserAnalyzer3` | `ace-mod-office` | parser | done | file | analysis, binary, cli, correlation, email, file |
 | `xlmdeobfuscator` | `XLMMacroDeobfuscatorAnalyzer` | `ace-mod-xlm` | parser | done | file | analysis, binary, cli, correlation, email, file |
 | `mhtml` | `MHTMLAnalysisModule` | `ace-mod-html` | parser | done | file | analysis, binary, cli, correlation, email, file |
 | `pcodedmp` | `PCodeAnalyzer` | `ace-mod-xlm` | parser | done | file | analysis, binary, cli, correlation, email, file |
-| `office_xml_rel` | `OfficeXMLRelationshipExternalURLAnalyzer` | not yet | parser | 7.5 batch 5 | file | analysis, binary, cli, correlation, email, file |
+| `office_xml_rel` | `OfficeXMLRelationshipExternalURLAnalyzer` | `ace-mod-office` | parser | done | file | analysis, binary, cli, correlation, email, file |
 | `msoffice_encryption_analyzer` | `MSOfficeEncryptionAnalyzer` | `ace-mod-msoffice` | parser | done | file | analysis, binary, cli, correlation, email, file |
-| `xml_binary_analyzer` | `XMLBinaryDataAnalyzer` | not yet | parser | 7.5 batch 5 | file | analysis, binary, cli, correlation, email, file |
-| `xml_plain_text_analyzer` | `XMLPlainTextAnalyzer` | not yet | parser | 7.5 batch 5 | file | analysis, binary, cli, correlation, email, file |
-| `extracted_ole_analyzer` | `ExtractedOLEAnalyzer` | not yet | parser | 7.5 batch 5 | file | analysis, binary, cli, correlation, email, file |
+| `xml_binary_analyzer` | `XMLBinaryDataAnalyzer` | `ace-mod-office` | parser | done | file | analysis, binary, cli, correlation, email, file |
+| `xml_plain_text_analyzer` | `XMLPlainTextAnalyzer` | `ace-mod-office` | parser | done | file | analysis, binary, cli, correlation, email, file |
+| `extracted_ole_analyzer` | `ExtractedOLEAnalyzer` | `ace-mod-office` | parser | done | file | analysis, binary, cli, correlation, email, file |
 | `file_type` | `FileTypeAnalyzer` | `ace-mod-files` | parser | done | file | analysis, binary, cli, correlation, email, file |
 | `pdf_analyzer` | `PDFAnalyzer` | `ace-mod-pdf` | parser | done | file | analysis, binary, cli, correlation, email, file |
 | `upx` | `UPXAnalyzer` | not yet | sandbox | 7.5 batch 11 | file | analysis, binary, cli, correlation, email, file |
@@ -248,8 +248,8 @@ In the config's order. ace4 is the crate a ported module is in.
 | `ilspy` | `IlspyAnalyzer` | not yet | sandbox | 7.5 batch 11 | file | analysis, binary, cli, correlation, email, file |
 | `ocr` | `OCRAnalyzer` | not yet | sandbox | 7.5 batch 10 | file | analysis, binary, cli, correlation, email, file |
 | `qrcode` | `QRCodeAnalyzer` | not yet | sandbox | 7.5 batch 10 | file | analysis, binary, cli, correlation, email, file |
-| `hidden_mime` | `HiddenMIMEAnalyzer` | not yet | parser | 7.5 batch 5 | file | analysis, binary, cli, correlation, email, file |
-| `active_mime` | `ActiveMimeAnalyzer` | not yet | parser | 7.5 batch 5 | file | analysis, binary, cli, correlation, email, file |
+| `hidden_mime` | `HiddenMIMEAnalyzer` | `ace-mod-office` | parser | done | file | analysis, binary, cli, correlation, email, file |
+| `active_mime` | `ActiveMimeAnalyzer` | `ace-mod-office` | parser | done | file | analysis, binary, cli, correlation, email, file |
 | `dmg_analyzer` | `DMGAnalyzer` | not yet | sandbox | 7.5 batch 12 | file | analysis, binary, cli, correlation, email, file |
 | `cve_2021_30657_analyzer` | `CVE_2021_30657_Analyzer` | not yet | sandbox | 7.5 batch 12 | file | analysis, binary, cli, correlation, email, file |
 | `exif` | `ExifAnalyzer` | not yet | sandbox | 7.5 batch 10 | file | analysis, binary, cli, correlation, email, file |
@@ -499,9 +499,9 @@ In the config's order. ace4 is the crate a ported module is in.
 ### onenote_extraction
 
 - **Section**: `analysis_module_onenote_extraction`, class `OneNoteFileAnalyzer` in `saq/modules/file_analysis/one_note.py`, enabled by default.
-- **ace4**: not yet.
+- **ace4**: ported in `ace-mod-office`. The FileDataStoreObject is read as construct reads it, and an object that runs past the bytes read ends the search there with what was found before, as the exception does in ace3. It writes at most 499 files, as ace3's root holds 500 with the file itself (`docs/measurements/office-containers.md`).
 - **Pool**: parser. Binary parsing of an attacker's file.
-- **Step**: 7.5 batch 5 (Office containers).
+- **Step**: done.
 - **Does**: For a OneNote file (.one extension or the OneNote header GUID), finds every FileDataStoreObject by its GUID and writes each embedded file payload out as a file observable.
 - **Input**: file.
 - **Groups and modes**: groups file; modes analysis, binary, cli, correlation, email, file.
@@ -1067,7 +1067,7 @@ In the config's order. ace4 is the crate a ported module is in.
 ### archive
 
 - **Section**: `analysis_module_archive`, class `ArchiveAnalyzer` in `saq/modules/file_analysis/archive.py`, enabled by default.
-- **ace4**: ported in `ace-mod-archive`.
+- **ace4**: ported in `ace-mod-archive`. It waits for file_type, as ace3's config has it, since 7.5 batch 5, whose `xml_plain_text_analyzer` reads the tags file_type puts on the archive.
 - **Pool**: parser. zip, sevenz-rust2 and unrar in the task's process (1.29). ACE archives, which ace3 opens with unace, go to the sandbox runner (7.3), and with them the module moves to the sandbox pool in 7.5's batch 10.
 - **Step**: done.
 - **Does**: Lists and extracts archive files (rar, jar, xlsx-style zip, ACE, MSI, and anything else 7z opens, password 'infected') into {file}.extracted/ and adds each member as a file observable, flagging single-file archives holding executables, scripts, lnk, jnlp or OneNote files.
@@ -1132,9 +1132,9 @@ In the config's order. ace4 is the crate a ported module is in.
 ### officeparser3
 
 - **Section**: `analysis_module_officeparser3`, class `OfficeParserAnalyzer3` in `saq/modules/file_analysis/officeparser3.py`, enabled by default.
-- **ace4**: not yet.
-- **Pool**: parser. Runs officeparser3, a Python CLI, unsandboxed today; what it does (dump an OLE file's streams and macros) is `ace-mod-oletools`'s olefile port, so no process is needed.
-- **Step**: 7.5 batch 5 (Office containers).
+- **ace4**: ported in `ace-mod-office`. It is a port of officeparser3 at `af70dd43` that runs in the task, with its output directory in memory, rather than one onto `ace-mod-oletools`' olefile port, which this entry named: officeparser3 reads the compound file itself, and what it writes for a damaged one, where it raises, exits or loops for ever, decides the manifest; olefile reads such files differently. A FAT that goes in a circle makes officeparser3's checks loop until ace3's 90 seconds; the port knows the loop when it comes back to a sector and ends as ace3 does, `officeparser_failed` and `sandbox` and an empty manifest. The port is fast where officeparser3 is quadratic, so a file only slow in ace3 finishes here; it stops as if killed past 256 MiB written and raises `MemoryError` past 64 Mi FAT entries (`docs/measurements/office-containers.md`).
+- **Pool**: parser. Runs officeparser3, a Python CLI, unsandboxed today; a port of it runs in the task's process (batch 5), so no process is needed.
+- **Step**: done.
 - **Does**: Runs the officeparser3 CLI on an OLE compound document (magic D0CF11E0, not .msi or 'windows installer') to extract streams, OLE streams, macros and unknown sectors, then adds every non-empty file named in its manifest.
 - **Input**: file.
 - **Groups and modes**: groups file; modes analysis, binary, cli, correlation, email, file.
@@ -1219,9 +1219,9 @@ In the config's order. ace4 is the crate a ported module is in.
 ### office_xml_rel
 
 - **Section**: `analysis_module_office_xml_rel`, class `OfficeXMLRelationshipExternalURLAnalyzer` in `saq/modules/file_analysis/msoffice.py`, enabled by default.
-- **ace4**: not yet.
+- **ace4**: ported in `ace-mod-office`. It parses with `ace_lxml::target`, lxml's target parser over the vendored libxml2, which reads a gzip file as lxml's does and refuses external entities as lxml 6's `resolve_entities='internal'` does; it matches lxml on 472 inputs. It adds at most 500 URLs, ace3's root limit.
 - **Pool**: parser. XML parsing of an extracted part.
-- **Step**: 7.5 batch 5 (Office containers).
+- **Step**: done.
 - **Does**: Parses a file named document.xml.rels with lxml and adds the Target of every Relationship whose Type ends /oleObject and TargetMode is External as a URL.
 - **Input**: file.
 - **Groups and modes**: groups file; modes analysis, binary, cli, correlation, email, file.
@@ -1262,9 +1262,9 @@ In the config's order. ace4 is the crate a ported module is in.
 ### xml_binary_analyzer
 
 - **Section**: `analysis_module_xml_binary_analyzer`, class `XMLBinaryDataAnalyzer` in `saq/modules/file_analysis/xml.py`, enabled by default.
-- **ace4**: not yet.
+- **ace4**: ported in `ace-mod-office`. Part names are cleaned and numbered as ace3's `create_output_file` does, a task seeing only its own input and outputs. It writes at most 499 files, as ace3's root holds 500 with the file itself.
 - **Pool**: parser. XML and base64 of an attacker's file.
-- **Step**: 7.5 batch 5 (Office containers).
+- **Step**: done.
 - **Does**: For an XML file whose first 1KB has '<?xml' and 'Word.Document' (Word 2003 flat XML package), base64-decodes every pkg:part's pkg:binaryData into its own file.
 - **Input**: file.
 - **Groups and modes**: groups file; modes analysis, binary, cli, correlation, email, file.
@@ -1283,9 +1283,9 @@ In the config's order. ace4 is the crate a ported module is in.
 ### xml_plain_text_analyzer
 
 - **Section**: `analysis_module_xml_plain_text_analyzer`, class `XMLPlainTextAnalyzer` in `saq/modules/file_analysis/xml.py`, enabled by default.
-- **ace4**: not yet.
+- **ace4**: ported in `ace-mod-office`. It reads the tags of the file it was extracted from on the lease (`Module::READS_RELATED_TAGS`). The archive module, which extracts Office parts, waits for file_type as ace3's config has it, so file_type has tagged that file by then, as in ace3, which runs this a pass later.
 - **Pool**: parser. XML text extraction.
-- **Step**: 7.5 batch 5 (Office containers).
+- **Step**: done.
 - **Does**: For an XML file (<=131072 bytes) extracted from a document tagged microsoft_office, writes the text content and any attribute whose name contains 'instr' (e.g. field instructions) to a .noxml file.
 - **Input**: file.
 - **Groups and modes**: groups file; modes analysis, binary, cli, correlation, email, file.
@@ -1304,9 +1304,9 @@ In the config's order. ace4 is the crate a ported module is in.
 ### extracted_ole_analyzer
 
 - **Section**: `analysis_module_extracted_ole_analyzer`, class `ExtractedOLEAnalyzer` in `saq/modules/file_analysis/ole.py`, enabled by default.
-- **ace4**: not yet.
+- **ace4**: ported in `ace-mod-office`. It reads on the lease which modules' results added its file (`Module::READS_ADDED_BY`) and runs once the rest of the root has finished, so officeparser3's result has landed even where another module added the same bytes first. `node --check` and grep are file_type's port of them.
 - **Pool**: parser. String checks, and `node --check` as a JavaScript syntax test, unsandboxed today, which a Rust JavaScript parser replaces (the same check as file_type's).
-- **Step**: 7.5 batch 5 (Office containers).
+- **Step**: done.
 - **Does**: For a file that is an output of OfficeParserAnalysis3, flags it as a suspect OLE attachment by file type (file command output), extension, or because node --check accepts it as JavaScript.
 - **Input**: file.
 - **Groups and modes**: groups file; modes analysis, binary, cli, correlation, email, file.
@@ -1523,9 +1523,9 @@ In the config's order. ace4 is the crate a ported module is in.
 ### hidden_mime
 
 - **Section**: `analysis_module_hidden_mime`, class `HiddenMIMEAnalyzer` in `saq/modules/file_analysis/mime.py`, enabled by default.
-- **ace4**: not yet.
+- **ace4**: ported in `ace-mod-office`. It parses with `ace-mod-oletools`' port of Python's feed parser, raising `RecursionError` past 971 nested multiparts, as ace3 does. It writes at most 499 files.
 - **Pool**: parser. MIME parsing of an attacker's file.
-- **Step**: 7.5 batch 5 (Office containers).
+- **Step**: done.
 - **Does**: Searches a non-email, non-pcap file for a 'content-type: ... boundary=' header and parses the MIME body from there with the stdlib email parser, writing each decoded part.
 - **Input**: file.
 - **Groups and modes**: groups file; modes analysis, binary, cli, correlation, email, file.
@@ -1544,9 +1544,9 @@ In the config's order. ace4 is the crate a ported module is in.
 ### active_mime
 
 - **Section**: `analysis_module_active_mime`, class `ActiveMimeAnalyzer` in `saq/modules/file_analysis/mime.py`, enabled by default.
-- **ace4**: not yet.
+- **ace4**: ported in `ace-mod-office`. It inflates with `ace-mod-oletools`' port of `zlib.decompress`, up to 256 MiB, past which ace3 would run out of memory; past that there is no result.
 - **Pool**: parser. A header walk and zlib.
-- **Step**: 7.5 batch 5 (Office containers).
+- **Step**: done.
 - **Does**: For a file starting 'ActiveMime', walks its header fields and zlib-decompresses the payload into a .activemime file.
 - **Input**: file.
 - **Groups and modes**: groups file; modes analysis, binary, cli, correlation, email, file.

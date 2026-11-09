@@ -188,6 +188,22 @@ pub struct LeasedTask {
     /// (`Module::READS_BELOW`), in the order they were added.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub observables_below: Vec<ObservableRef>,
+    /// For a module that reads them (`Module::READS_ADDED_BY`), the modules whose results added the
+    /// task's observable, by name, in order.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub added_by: Vec<String>,
+    /// For a module that reads them (`Module::READS_RELATED_TAGS`), the tags of each observable the
+    /// task's observable has a relationship to, in the order of its relationships.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub related_tags: Vec<RelatedTags>,
+}
+
+/// An observable the task's observable is related to, and its tags.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RelatedTags {
+    pub observable: ObservableRef,
+    pub tags: Vec<String>,
 }
 
 /// What a module may read of the email that carried its observable (PLAN.md 4.6). A worker holds no

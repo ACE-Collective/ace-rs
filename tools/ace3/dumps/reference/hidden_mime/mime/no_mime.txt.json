@@ -1,0 +1,56 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "text/plain",
+        "type": "ASCII text"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: ASCII text (text/plain)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/office/mime/no_mime.txt",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "no_mime.txt",
+      "size": 32,
+      "type": "file",
+      "value": "14c6dc133ddb773f6dc18fed806289fe50d4cb089dc834adf6c72aeb54c6829a"
+    }
+  },
+  "module": "hidden_mime",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "no_mime.txt",
+    "relationships": [],
+    "size": 32,
+    "tags": [],
+    "type": "file",
+    "value": "14c6dc133ddb773f6dc18fed806289fe50d4cb089dc834adf6c72aeb54c6829a",
+    "yara_meta": []
+  }
+}

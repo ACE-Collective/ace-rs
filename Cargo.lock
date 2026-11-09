@@ -16,6 +16,7 @@ dependencies = [
  "ace-mod-html",
  "ace-mod-msoffice",
  "ace-mod-nrd",
+ "ace-mod-office",
  "ace-mod-oletools",
  "ace-mod-pdf",
  "ace-mod-rdap",
@@ -211,6 +212,7 @@ dependencies = [
  "ace-pycompat",
  "base64 0.22.1",
  "cc",
+ "flate2",
  "serde_json",
 ]
 
@@ -370,6 +372,29 @@ dependencies = [
  "serde",
  "serde_json",
  "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "ace-mod-office"
+version = "0.1.0"
+dependencies = [
+ "ace-lxml",
+ "ace-mod-email",
+ "ace-mod-files",
+ "ace-mod-oletools",
+ "ace-mod-urls",
+ "ace-pycompat",
+ "ace-results",
+ "ace-sdk",
+ "ace-testkit",
+ "flate2",
+ "memchr",
+ "regex",
+ "schemars 1.2.3",
+ "serde",
+ "serde_json",
+ "sha2 0.11.1",
  "tracing",
 ]
 
@@ -580,6 +605,7 @@ dependencies = [
  "ace-mod-html",
  "ace-mod-msoffice",
  "ace-mod-nrd",
+ "ace-mod-office",
  "ace-mod-oletools",
  "ace-mod-pdf",
  "ace-mod-snort",

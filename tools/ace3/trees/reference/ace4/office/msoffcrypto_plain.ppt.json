@@ -1,6 +1,100 @@
 {
   "form": 1,
   "observables": {
+    "file:0e7ac03251337ecbaf6c8ca13619db1caeda5c90c4e3210d45d6c3f5df4de103": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "msoffcrypto_plain.ppt.officeparser/stream_1_0.dat.extracted/tableStyles.xml": {}
+      },
+      "relationships": {
+        "extracted_from file:9a47488a3595fdd17a5b508f2f230d60f1207a086e44eefdb1f10cf9b2a0c2d0": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/xml",
+            "type": "XML 1.0 document, ASCII text, with CRLF line terminators"
+          },
+          "summary": "File Type Analysis: XML 1.0 document, ASCII text, with CRLF line terminators (text/xml)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:1213d019736bf183e3946b32d7171203c0ab00b657b51bdfe20ac55cda594365": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "msoffcrypto_plain.ppt.officeparser/stream_2_0.dat": {}
+      },
+      "redirection": "file:18555251635eaab62a1fce9886026156d375615bd96f5639df7dc005e2488347",
+      "relationships": {
+        "extracted_from file:18555251635eaab62a1fce9886026156d375615bd96f5639df7dc005e2488347": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "DOS 2.0 backup id file, sequence 255"
+          },
+          "summary": "File Type Analysis: DOS 2.0 backup id file, sequence 255 (application/octet-stream)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:18555251635eaab62a1fce9886026156d375615bd96f5639df7dc005e2488347": {
       "detections": {},
       "directives": {},
@@ -40,6 +134,18 @@
           "summary": "File Type Analysis: Composite Document File V2 Document, Little Endian, Os: MacOS, Version 13.10, Code page: 10000, Title: Lorem ipsum, Author: Microsoft Office User, Last Saved By: Microsoft Office User, Revision Number: 2, Name of Creating Application: Microsoft Macintosh PowerPoint, Total Editing Time: 01:15, Create Time/Date: Wed Mar 20 13:43:09 2019, Last Saved Time/Date: Wed Mar 20 13:44:24 2019, Number of Words: 2 (application/vnd.ms-powerpoint) (ms office document) (ole compound file) (zip archive)",
           "tags": {}
         },
+        "officeparser3": {
+          "details": {
+            "extracted_files": [
+              "stream_1_0.dat",
+              "stream_2_0.dat",
+              "stream_3_0.dat",
+              "stream_4_0.dat"
+            ]
+          },
+          "summary": "OfficeParser3 Analysis: extracted 4 files",
+          "tags": {}
+        },
         "olevba_v1_2": {
           "details": {
             "keyword_summary": {},
@@ -55,6 +161,269 @@
         "ole": true,
         "zip": true
       }
+    },
+    "file:3e896545ca0f12221ba16769618a9632e8b4cbd27bdef670ca58b1eea4d43e98": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "msoffcrypto_plain.ppt.officeparser/stream_3_0.dat": {}
+      },
+      "redirection": "file:18555251635eaab62a1fce9886026156d375615bd96f5639df7dc005e2488347",
+      "relationships": {
+        "extracted_from file:18555251635eaab62a1fce9886026156d375615bd96f5639df7dc005e2488347": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "DOS 2.0 backup id file, sequence 255"
+          },
+          "summary": "File Type Analysis: DOS 2.0 backup id file, sequence 255 (application/octet-stream)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:44515cc7a29b63d74680a3ff11e939bf39a3398ac797951e81b41252e5b6e31c": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "msoffcrypto_plain.ppt.officeparser/stream_1_0.dat.extracted/[Content_Types].xml": {}
+      },
+      "relationships": {
+        "extracted_from file:9a47488a3595fdd17a5b508f2f230d60f1207a086e44eefdb1f10cf9b2a0c2d0": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/xml",
+            "type": "XML 1.0 document, ASCII text, with very long lines (368), with CRLF line terminators"
+          },
+          "summary": "File Type Analysis: XML 1.0 document, ASCII text, with very long lines (368), with CRLF line terminators (text/xml)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:9a47488a3595fdd17a5b508f2f230d60f1207a086e44eefdb1f10cf9b2a0c2d0": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "msoffcrypto_plain.ppt.officeparser/stream_1_0.dat": {}
+      },
+      "redirection": "file:18555251635eaab62a1fce9886026156d375615bd96f5639df7dc005e2488347",
+      "relationships": {
+        "extracted_from file:18555251635eaab62a1fce9886026156d375615bd96f5639df7dc005e2488347": true
+      },
+      "results": {
+        "archive": {
+          "details": {
+            "extracted_files": [
+              "tableStyles.xml",
+              "[Content_Types].xml",
+              "_rels/.rels"
+            ],
+            "extraction_error": null,
+            "file_count": 3
+          },
+          "summary": "Archive Analysis: extracted 3 of 3 files: (tableStyles.xml, [Content_Types].xml, _rels/.rels)",
+          "tags": {}
+        },
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": true,
+            "mime": "font/x-amiga-font",
+            "type": "AmigaOS bitmap font \"\\322\\013\", fc_YSize 25088, 59395 elements"
+          },
+          "summary": "File Type Analysis: AmigaOS bitmap font \"\\322\\013\", fc_YSize 25088, 59395 elements (font/x-amiga-font) (zip archive)",
+          "tags": {}
+        },
+        "olevba_v1_2": {
+          "details": {
+            "keyword_summary": {},
+            "macros": [],
+            "type": "OpenXML"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "zip": true
+      }
+    },
+    "file:a643c635d15a7ae5cc22e043865c810ff5b611a9702fa006e258b1bbaf198f40": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "msoffcrypto_plain.ppt.officeparser/stream_4_0.dat": {}
+      },
+      "redirection": "file:18555251635eaab62a1fce9886026156d375615bd96f5639df7dc005e2488347",
+      "relationships": {
+        "extracted_from file:18555251635eaab62a1fce9886026156d375615bd96f5639df7dc005e2488347": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:ce2f2da3dc47b38d1d8c9f8971a8553cb19e20d24926cc0bbfa3bd773e5444c6": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "msoffcrypto_plain.ppt.officeparser/stream_1_0.dat.extracted/_rels/.rels": {}
+      },
+      "relationships": {
+        "extracted_from file:9a47488a3595fdd17a5b508f2f230d60f1207a086e44eefdb1f10cf9b2a0c2d0": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/xml",
+            "type": "XML 1.0 document, ASCII text, with CRLF line terminators"
+          },
+          "summary": "File Type Analysis: XML 1.0 document, ASCII text, with CRLF line terminators (text/xml)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
     },
     "md5:7e1d21aa05bcf4305aff35cb934fb9cf": {
       "detections": {},

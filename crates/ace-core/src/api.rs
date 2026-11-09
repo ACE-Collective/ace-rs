@@ -557,10 +557,13 @@ impl Api {
             Vec::new()
         };
         let (dependency_results, observables_below) = self.tree_reads(&task, runs_last).await?;
+        let (added_by, related_tags) = self.lineage_reads(&task).await?;
         // read after the claim, so an edit committed before it is in the task (`lists`' docs)
         let lists = self.lists_for(&task.module).await?;
         let mut leased = self.wire_task(task, file, redirection);
         leased.observable.relationships = relationships;
+        leased.added_by = added_by;
+        leased.related_tags = related_tags;
         leased.carrying_email = carrying_email;
         leased.emails_pending = emails_pending;
         leased.yara_rules_below = yara_rules_below;
@@ -595,6 +598,31 @@ impl Api {
             Vec::new()
         };
         Ok((results.into_iter().collect(), below))
+    }
+
+    /// What a task reads of where its observable came from, for a module that reads it: the modules
+    /// whose results added it (`Module::READS_ADDED_BY`) and the tags of what it's related to
+    /// (`Module::READS_RELATED_TAGS`).
+    async fn lineage_reads(
+        &self,
+        task: &Task,
+    ) -> Result<(Vec<String>, Vec<ace_sdk::wire::RelatedTags>), Failure> {
+        let catalog = self.inner.orchestrator.catalog();
+        let Some(manifest) = catalog.get(&task.module) else {
+            return Ok(Default::default());
+        };
+        let pool = self.inner.db.pool();
+        let added_by = if manifest.reads_added_by {
+            tree::added_by(pool, task.root, task.observable.id).await?
+        } else {
+            Vec::new()
+        };
+        let related_tags = if manifest.reads_related_tags {
+            tree::related_tags(pool, task.root, task.observable.id).await?
+        } else {
+            Vec::new()
+        };
+        Ok((added_by, related_tags))
     }
 
     /// The analyst-edited lists `module` reads, as they are now.
@@ -682,6 +710,8 @@ impl Api {
             lists: Vec::new(),
             dependency_results: Default::default(),
             observables_below: Vec::new(),
+            added_by: Vec::new(),
+            related_tags: Vec::new(),
         }
     }
 
@@ -1262,9 +1292,12 @@ async fn replay(
         .get(&task.module)
         .is_some_and(|manifest| manifest.runs_last);
     let (dependency_results, observables_below) = api.tree_reads(&task, runs_last).await?;
+    let (added_by, related_tags) = api.lineage_reads(&task).await?;
     let mut leased = api.wire_task(task, file, redirection);
     leased.dependency_results = dependency_results;
     leased.observables_below = observables_below;
+    leased.added_by = added_by;
+    leased.related_tags = related_tags;
     // what the task read when it ran, if its email has been parsed by now, as it usually has
     leased.carrying_email = carrying_email;
     // the lists as they are now, which may have changed since it ran

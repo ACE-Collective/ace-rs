@@ -143,6 +143,57 @@
         "email": true
       }
     },
+    "file:167181108f6fd083cd67d569e9906a592ca923bc2d4c571ed1242caf92ed48f8": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "invoice.docx.officeparser/stream_6_0.dat": {}
+      },
+      "redirection": "file:a1040eae21a229a1435b0bf019fd65887811abcac9ae900e41e3a3fa8cab8dc4",
+      "relationships": {
+        "extracted_from file:a1040eae21a229a1435b0bf019fd65887811abcac9ae900e41e3a3fa8cab8dc4": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:5b0bab3732443808206ca47ec7c2125aac009722235718fe1a89f83d68d78a13": {
       "detections": {},
       "directives": {
@@ -174,6 +225,57 @@
             "type": "ASCII text"
           },
           "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:990349482cd707ba3093d6fff5bb72167a38f0831e58789a92c25cdeb01f7f93": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "invoice.docx.officeparser/stream_9_0.dat": {}
+      },
+      "redirection": "file:a1040eae21a229a1435b0bf019fd65887811abcac9ae900e41e3a3fa8cab8dc4",
+      "relationships": {
+        "extracted_from file:a1040eae21a229a1435b0bf019fd65887811abcac9ae900e41e3a3fa8cab8dc4": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
           "tags": {}
         },
         "url_extraction": {
@@ -241,6 +343,20 @@
           "summary": "MSOffice Encryption Analysis: office2john.py failed: invoice.docx uses un-supported hashing algorithm SHA256, please file a bug! \n",
           "tags": {}
         },
+        "officeparser3": {
+          "details": {
+            "extracted_files": [
+              "stream_1_0.dat",
+              "stream_3_0.dat",
+              "stream_4_0.dat",
+              "stream_6_0.dat",
+              "stream_9_0.dat",
+              "stream_10_0.dat"
+            ]
+          },
+          "summary": "OfficeParser3 Analysis: extracted 6 files",
+          "tags": {}
+        },
         "olevba_v1_2": {
           "details": {
             "keyword_summary": {},
@@ -264,6 +380,108 @@
         "microsoft_office": true,
         "ole": true
       }
+    },
+    "file:b520d7662070c97304b0bbff09af9f61baaa6872976663ed1a886abc7c29cb15": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "invoice.docx.officeparser/stream_4_0.dat": {}
+      },
+      "redirection": "file:a1040eae21a229a1435b0bf019fd65887811abcac9ae900e41e3a3fa8cab8dc4",
+      "relationships": {
+        "extracted_from file:a1040eae21a229a1435b0bf019fd65887811abcac9ae900e41e3a3fa8cab8dc4": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:c02f5a2c56246c8d7720e5c39a5d4a717ab879da5f465714713f6a48be2a8de5": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "invoice.docx.officeparser/stream_1_0.dat": {}
+      },
+      "redirection": "file:a1040eae21a229a1435b0bf019fd65887811abcac9ae900e41e3a3fa8cab8dc4",
+      "relationships": {
+        "extracted_from file:a1040eae21a229a1435b0bf019fd65887811abcac9ae900e41e3a3fa8cab8dc4": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
     },
     "file:dc3a0a5df81d628324a0b7fe8198497ab67c815efb7171ec8e119498608c287f": {
       "detections": {},
@@ -439,6 +657,115 @@
       "tags": {
         "email": true
       }
+    },
+    "file:e5ac57abce785a83495a6aeecaebb5a1c484d467d2860218841090bfdf433048": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "invoice.docx.officeparser/stream_10_0.dat": {}
+      },
+      "redirection": "file:a1040eae21a229a1435b0bf019fd65887811abcac9ae900e41e3a3fa8cab8dc4",
+      "relationships": {
+        "extracted_from file:a1040eae21a229a1435b0bf019fd65887811abcac9ae900e41e3a3fa8cab8dc4": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/x-stargallery-thm",
+            "type": "StarOffice Gallery theme @, 1836597052 objects, 1st sion=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
+          },
+          "summary": "File Type Analysis: StarOffice Gallery theme @, 1836597052 objects, 1st sion=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?> (application/x-stargallery-thm)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "xml_plain_text_analyzer": {
+          "details": {
+            "xml_plain_text": null
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:e81d2d7f4d8b4aa96a9d1ac9aad489caa06f24c3de2b66471479daf34672ce3a": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "invoice.docx.officeparser/stream_3_0.dat": {}
+      },
+      "redirection": "file:a1040eae21a229a1435b0bf019fd65887811abcac9ae900e41e3a3fa8cab8dc4",
+      "relationships": {
+        "extracted_from file:a1040eae21a229a1435b0bf019fd65887811abcac9ae900e41e3a3fa8cab8dc4": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
     },
     "file:fc8f89fcbd53875bd4f555b7fb07ece0879730e2d0449fd06200778eb2241f5f": {
       "detections": {},

@@ -191,6 +191,169 @@
       },
       "tags": {}
     },
+    "file:09ddbe6d159c1fae7299f5d4e1281dad6068331d9f651f45a51265277b80f0ed": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "info_3805.xls.decrypted.officeparser/stream_1_0.dat.extracted/theme/theme/themeManager.xml": {}
+      },
+      "relationships": {
+        "extracted_from file:18875c0447d54bc222ec7d10817a98d1f56efffa6a3760a5f81d75f2755a4fc7": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/xml",
+            "type": "XML 1.0 document, ASCII text, with CRLF line terminators"
+          },
+          "summary": "File Type Analysis: XML 1.0 document, ASCII text, with CRLF line terminators (text/xml)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:18875c0447d54bc222ec7d10817a98d1f56efffa6a3760a5f81d75f2755a4fc7": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "info_3805.xls.decrypted.officeparser/stream_1_0.dat": {}
+      },
+      "redirection": "file:ce3af53d22189d65f561fa45ff655a020c9ef96c17c83e748cd773eff8ef96e8",
+      "relationships": {
+        "extracted_from file:ce3af53d22189d65f561fa45ff655a020c9ef96c17c83e748cd773eff8ef96e8": true
+      },
+      "results": {
+        "archive": {
+          "details": {
+            "extracted_files": [
+              "[Content_Types].xml",
+              "theme/theme/theme1.xml",
+              "theme/theme/themeManager.xml",
+              "theme/theme/_rels/themeManager.xml.rels",
+              "_rels/.rels"
+            ],
+            "extraction_error": null,
+            "file_count": 5
+          },
+          "summary": "Archive Analysis: extracted 5 of 5 files: ([Content_Types].xml, theme/theme/theme1.xml, theme/theme/themeManager.xml, theme/theme/_rels/themeManager.xml.rels, _rels/.rels)",
+          "tags": {}
+        },
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": true,
+            "mime": "application/octet-stream",
+            "type": "Applesoft BASIC program data, first line number 16"
+          },
+          "summary": "File Type Analysis: Applesoft BASIC program data, first line number 16 (application/octet-stream) (zip archive)",
+          "tags": {}
+        },
+        "olevba_v1_2": {
+          "details": {
+            "keyword_summary": {},
+            "macros": [],
+            "type": "OpenXML"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "zip": true
+      }
+    },
+    "file:1a73bbcac110fe0137415fd3c1847031464891744879db49b6a78981934a1ccb": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "info_3805.xls.decrypted.officeparser/stream_1_0.dat.extracted/theme/theme/theme1.xml": {}
+      },
+      "relationships": {
+        "extracted_from file:18875c0447d54bc222ec7d10817a98d1f56efffa6a3760a5f81d75f2755a4fc7": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/xml",
+            "type": "XML 1.0 document, Unicode text, UTF-8 text, with very long lines (6401), with CRLF line terminators"
+          },
+          "summary": "File Type Analysis: XML 1.0 document, Unicode text, UTF-8 text, with very long lines (6401), with CRLF line terminators (text/xml)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:256504ada6a6ecc24ae46a4780b32a30070b0aeea011b2b920d3c32f7403becb": {
       "detections": {},
       "directives": {
@@ -286,6 +449,206 @@
         "email": true
       }
     },
+    "file:2983db3781942d11b9497551888ee8774f861ff9cbc5c64ddb79eaa0698f87bd": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "info_3805.xls.decrypted.officeparser/stream_1_0.dat.extracted/theme/theme/_rels/themeManager.xml.rels": {}
+      },
+      "relationships": {
+        "extracted_from file:18875c0447d54bc222ec7d10817a98d1f56efffa6a3760a5f81d75f2755a4fc7": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/xml",
+            "type": "XML 1.0 document, ASCII text, with CRLF line terminators"
+          },
+          "summary": "File Type Analysis: XML 1.0 document, ASCII text, with CRLF line terminators (text/xml)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:30812268cfefcc8320d3b990169f35de93d7fc7dd749a0b25b9993c0d1347776": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "info_3805.xls.decrypted.officeparser/stream_2_0.dat": {},
+        "info_3805.xls.officeparser/stream_2_0.dat": {}
+      },
+      "redirection": "file:ce3af53d22189d65f561fa45ff655a020c9ef96c17c83e748cd773eff8ef96e8",
+      "relationships": {
+        "extracted_from file:ce3af53d22189d65f561fa45ff655a020c9ef96c17c83e748cd773eff8ef96e8": true,
+        "extracted_from file:e42f4cd8ff57dc0c9756242193462dcb03b4e7fef955985a2e953a6053324055": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:4137c040feddd71feefc2bc6b8dd7469966c310036ad2276bc78a404d8e17c51": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "info_3805.xls.decrypted.officeparser/stream_3_0.dat": {},
+        "info_3805.xls.officeparser/stream_3_0.dat": {}
+      },
+      "redirection": "file:ce3af53d22189d65f561fa45ff655a020c9ef96c17c83e748cd773eff8ef96e8",
+      "relationships": {
+        "extracted_from file:ce3af53d22189d65f561fa45ff655a020c9ef96c17c83e748cd773eff8ef96e8": true,
+        "extracted_from file:e42f4cd8ff57dc0c9756242193462dcb03b4e7fef955985a2e953a6053324055": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:43d660c446fd186dafd3fd99a6fcaff491c46b14b2d6e2f2f80278e8e6ed66f2": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "info_3805.xls.officeparser/stream_1_0.dat": {}
+      },
+      "redirection": "file:e42f4cd8ff57dc0c9756242193462dcb03b4e7fef955985a2e953a6053324055",
+      "relationships": {
+        "extracted_from file:e42f4cd8ff57dc0c9756242193462dcb03b4e7fef955985a2e953a6053324055": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "Applesoft BASIC program data, first line number 16"
+          },
+          "summary": "File Type Analysis: Applesoft BASIC program data, first line number 16 (application/octet-stream)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:5afdbe5aa42339a6936769e916c7094d70eb370458480dcd1e36de8ce99106d6": {
       "detections": {},
       "directives": {
@@ -333,6 +696,49 @@
             }
           },
           "summary": "URL Extraction Analysis (component.pw)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:6c98d4f2b62b4db730884f9bd6d27e5360693eaad02d9cdbaa0e71c4c747450b": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "info_3805.xls.decrypted.officeparser/stream_1_0.dat.extracted/[Content_Types].xml": {}
+      },
+      "relationships": {
+        "extracted_from file:18875c0447d54bc222ec7d10817a98d1f56efffa6a3760a5f81d75f2755a4fc7": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/xml",
+            "type": "XML 1.0 document, ASCII text, with very long lines (483), with CRLF line terminators"
+          },
+          "summary": "File Type Analysis: XML 1.0 document, ASCII text, with very long lines (483), with CRLF line terminators (text/xml)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
           "tags": {}
         }
       },
@@ -765,6 +1171,17 @@
           "summary": "File Type Analysis: Composite Document File V2 Document, Little Endian, Os: Windows, Version 10.0, Code page: 1252, Name of Creating Application: Microsoft Excel, Create Time/Date: Fri Jun  5 18:17:20 2015, Last Saved Time/Date: Mon Sep  7 15:00:28 2020, Security: 1 (application/vnd.ms-excel) (ms office document) (ole compound file) (zip archive)",
           "tags": {}
         },
+        "officeparser3": {
+          "details": {
+            "extracted_files": [
+              "stream_1_0.dat",
+              "stream_2_0.dat",
+              "stream_3_0.dat"
+            ]
+          },
+          "summary": "OfficeParser3 Analysis: extracted 3 files",
+          "tags": {}
+        },
         "olevba_v1_2": {
           "details": {
             "keyword_summary": {},
@@ -789,6 +1206,49 @@
         "xlm4": true,
         "zip": true
       }
+    },
+    "file:d2d8276ca63e307268dbf1bef2fbf45ba4c65c27494555a7742761c22984f1af": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "info_3805.xls.decrypted.officeparser/stream_1_0.dat.extracted/_rels/.rels": {}
+      },
+      "relationships": {
+        "extracted_from file:18875c0447d54bc222ec7d10817a98d1f56efffa6a3760a5f81d75f2755a4fc7": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/xml",
+            "type": "XML 1.0 document, ASCII text, with CRLF line terminators"
+          },
+          "summary": "File Type Analysis: XML 1.0 document, ASCII text, with CRLF line terminators (text/xml)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
     },
     "file:e42f4cd8ff57dc0c9756242193462dcb03b4e7fef955985a2e953a6053324055": {
       "detections": {},
@@ -1841,6 +2301,17 @@
             ]
           },
           "summary": "MSOffice Encryption Analysis: password 709384",
+          "tags": {}
+        },
+        "officeparser3": {
+          "details": {
+            "extracted_files": [
+              "stream_1_0.dat",
+              "stream_2_0.dat",
+              "stream_3_0.dat"
+            ]
+          },
+          "summary": "OfficeParser3 Analysis: extracted 3 files",
           "tags": {}
         },
         "olevba_v1_2": {

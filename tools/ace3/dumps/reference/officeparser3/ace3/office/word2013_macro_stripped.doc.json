@@ -1,0 +1,384 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": true,
+        "is_office_ext": true,
+        "is_ole_file": true,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": true,
+        "mime": "application/msword",
+        "type": "Composite Document File V2 Document, Little Endian, Os: Windows, Version 10.0, Code page: 1251, Author: Vesselin Bontchev, Template: Normal.dotm, Last Saved By: Dimitrina Polimirova, Revision Number: 2, Name of Creating Application: Microsoft Office Word, Total Editing Time: 02:00, Create Time/Date: Wed Sep 21 13:54:00 2016, Last Saved Time/Date: Thu Sep 22 20:23:00 2016, Number of Pages: 1, Number of Words: 0, Number of Characters: 0, Security: 0"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: Composite Document File V2 Document, Little Endian, Os: Windows, Version 10.0, Code page: 1251, Author: Vesselin Bontchev, Template: Normal.dotm, Last Saved By: Dimitrina Polimirova, Revision Number: 2, Name of Creating Application: Microsoft Office Word, Total Editing Time: 02:00, Create Time/Date: Wed Sep 21 13:54:00 2016, Last Saved Time/Date: Thu Sep 22 20:23:00 2016, Number of Pages: 1, Number of Words: 0, Number of Characters: 0, Security: 0 (application/msword) (ms office document) (ole compound file) (zip archive)",
+      "tags": []
+    },
+    {
+      "class": "OfficeParserAnalysis3",
+      "details": {
+        "extracted_files": [
+          "stream_1_0.dat",
+          "stream_4_0.dat",
+          "stream_5_0.dat",
+          "stream_6_0.dat",
+          "stream_7_0.dat",
+          "stream_8_0.dat",
+          "stream_9_0.dat",
+          "stream_10_0.dat",
+          "stream_11_0.dat",
+          "stream_12_0.dat",
+          "ThisDocument.cls"
+        ]
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.officeparser3:OfficeParserAnalysis3",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "word2013_macro_stripped.doc.officeparser/stream_1_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "1dff27c2897cd3d48c589166d8f33ae160c3d249c7456c0421aa9a0a6ed1e3c5"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "1dff27c2897cd3d48c589166d8f33ae160c3d249c7456c0421aa9a0a6ed1e3c5"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 6780,
+          "tags": [
+            "zip"
+          ],
+          "type": "file",
+          "value": "9b26f26bc5db1e349a98264cfe84a2a299194107c683a67affd2147af8c8fcaf",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "word2013_macro_stripped.doc.officeparser/stream_4_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "1dff27c2897cd3d48c589166d8f33ae160c3d249c7456c0421aa9a0a6ed1e3c5"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "1dff27c2897cd3d48c589166d8f33ae160c3d249c7456c0421aa9a0a6ed1e3c5"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 520,
+          "tags": [],
+          "type": "file",
+          "value": "9cce1ad34b73141d7ffc0fc2f5dc95030af9b517a655b6b8fda771778e48618a",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "word2013_macro_stripped.doc.officeparser/stream_5_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "1dff27c2897cd3d48c589166d8f33ae160c3d249c7456c0421aa9a0a6ed1e3c5"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "1dff27c2897cd3d48c589166d8f33ae160c3d249c7456c0421aa9a0a6ed1e3c5"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 1517,
+          "tags": [],
+          "type": "file",
+          "value": "f8ecd2eb59e2a31f8aac91d0bb351394040f5b150aa7a20e74b7b83b8e92dba9",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "word2013_macro_stripped.doc.officeparser/stream_6_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "1dff27c2897cd3d48c589166d8f33ae160c3d249c7456c0421aa9a0a6ed1e3c5"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "1dff27c2897cd3d48c589166d8f33ae160c3d249c7456c0421aa9a0a6ed1e3c5"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 2378,
+          "tags": [],
+          "type": "file",
+          "value": "0cdc7fab2c7a67d7e7f91e8f84a82ab037778cf69ce2e44ef3ab334196fbdb30",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "word2013_macro_stripped.doc.officeparser/stream_7_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "1dff27c2897cd3d48c589166d8f33ae160c3d249c7456c0421aa9a0a6ed1e3c5"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "1dff27c2897cd3d48c589166d8f33ae160c3d249c7456c0421aa9a0a6ed1e3c5"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 363,
+          "tags": [],
+          "type": "file",
+          "value": "e384d8756188847aa8ee20de73cd647c8e6039c47b5d3d708fbbe5159a3f1a4a",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "word2013_macro_stripped.doc.officeparser/stream_8_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "1dff27c2897cd3d48c589166d8f33ae160c3d249c7456c0421aa9a0a6ed1e3c5"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "1dff27c2897cd3d48c589166d8f33ae160c3d249c7456c0421aa9a0a6ed1e3c5"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 41,
+          "tags": [],
+          "type": "file",
+          "value": "ce49436dec0282ca0c2acb2966441b42d2620cd614f363ac0b43420dfdd687ed",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "word2013_macro_stripped.doc.officeparser/stream_9_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "1dff27c2897cd3d48c589166d8f33ae160c3d249c7456c0421aa9a0a6ed1e3c5"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "1dff27c2897cd3d48c589166d8f33ae160c3d249c7456c0421aa9a0a6ed1e3c5"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 114,
+          "tags": [],
+          "type": "file",
+          "value": "f70fe384c672865fff4bb8ab60d73098bc751e8f2aa915b8aff2e2085648b428",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "word2013_macro_stripped.doc.officeparser/stream_10_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "1dff27c2897cd3d48c589166d8f33ae160c3d249c7456c0421aa9a0a6ed1e3c5"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "1dff27c2897cd3d48c589166d8f33ae160c3d249c7456c0421aa9a0a6ed1e3c5"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 4096,
+          "tags": [],
+          "type": "file",
+          "value": "4813796761016213b59e87f1e485b0b4c410b979003629cd29763e440d948e35",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "word2013_macro_stripped.doc.officeparser/stream_11_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "1dff27c2897cd3d48c589166d8f33ae160c3d249c7456c0421aa9a0a6ed1e3c5"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "1dff27c2897cd3d48c589166d8f33ae160c3d249c7456c0421aa9a0a6ed1e3c5"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 4096,
+          "tags": [],
+          "type": "file",
+          "value": "51a7a43d4af9a6fa8251a7da2fbbb5ef50d3eb70f8f825514aabaa6e1c99c999",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "word2013_macro_stripped.doc.officeparser/stream_12_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "1dff27c2897cd3d48c589166d8f33ae160c3d249c7456c0421aa9a0a6ed1e3c5"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "1dff27c2897cd3d48c589166d8f33ae160c3d249c7456c0421aa9a0a6ed1e3c5"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 4096,
+          "tags": [],
+          "type": "file",
+          "value": "50ba4a4df615f8716bd551db7a5d023b43ca8dea68d14664280895c45146c721",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls",
+            "sandbox",
+            "yara_meta:type=script.macro"
+          ],
+          "excluded_analysis": [],
+          "file_path": "word2013_macro_stripped.doc.officeparser/ThisDocument.cls",
+          "redirection": {
+            "type": "file",
+            "value": "1dff27c2897cd3d48c589166d8f33ae160c3d249c7456c0421aa9a0a6ed1e3c5"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "1dff27c2897cd3d48c589166d8f33ae160c3d249c7456c0421aa9a0a6ed1e3c5"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 250,
+          "tags": [
+            "macro"
+          ],
+          "type": "file",
+          "value": "1a5ce2eb33e4dcd8bf09a57d740649e2aec359dc2c0fd952ac0d19d4a63d0c42",
+          "yara_meta": [
+            "type=script.macro"
+          ]
+        }
+      ],
+      "summary": "OfficeParser3 Analysis: extracted 11 files",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace3/office/word2013_macro_stripped.doc",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "word2013_macro_stripped.doc",
+      "size": 28160,
+      "type": "file",
+      "value": "1dff27c2897cd3d48c589166d8f33ae160c3d249c7456c0421aa9a0a6ed1e3c5"
+    }
+  },
+  "module": "officeparser3",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "word2013_macro_stripped.doc",
+    "relationships": [],
+    "size": 28160,
+    "tags": [
+      "microsoft_office",
+      "ole",
+      "zip"
+    ],
+    "type": "file",
+    "value": "1dff27c2897cd3d48c589166d8f33ae160c3d249c7456c0421aa9a0a6ed1e3c5",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

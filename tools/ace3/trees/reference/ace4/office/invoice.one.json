@@ -1,0 +1,293 @@
+{
+  "form": 1,
+  "observables": {
+    "file:6ac60d7880f05e06a90757b7bce30951bb020b14f935509e6ef1af0c1e96b9d1": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "invoice.one.extracted-6ac60d": {
+          "type=document.onenote.embedded": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:b332dfb36c066e2f7cfd78cbe5d82bf257003ab63e66d106cfc4b21bdf45a731": true
+      },
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "15cb14752fcfc74a01b5c5156631362d",
+            "sha1": "05538b3747e01f86dedf51d1a85e1b40537db0c8",
+            "sha256": "6ac60d7880f05e06a90757b7bce30951bb020b14f935509e6ef1af0c1e96b9d1"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/x-msdos-batch",
+            "type": "DOS batch file, ASCII text, with CRLF line terminators"
+          },
+          "summary": "File Type Analysis: DOS batch file, ASCII text, with CRLF line terminators (text/x-msdos-batch)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:8cf6542ab41f3d900a93a99de2c245dee92f2adef222005e43561277a3e98647": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "html_js_extraction": true
+      },
+      "paths": {
+        "invoice.one_js_inline_0_8cf6542a.js": {
+          "type=document.html": true,
+          "type=document.onenote.embedded": true,
+          "type=script.javascript": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:e9b4ff075e05eb59b9ff8037003dbf17321d0eb75b9a56b738c6789fee69ee5b": true
+      },
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "ac0860a2dae392ad13ab5407e432ac49",
+            "sha1": "8dd50fb955f93f4412d8b7d8c9f8c3c214bc34e4",
+            "sha256": "8cf6542ab41f3d900a93a99de2c245dee92f2adef222005e43561277a3e98647"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text, with no line terminators"
+          },
+          "summary": "File Type Analysis: ASCII text, with no line terminators (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:b332dfb36c066e2f7cfd78cbe5d82bf257003ab63e66d106cfc4b21bdf45a731": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "invoice.one": {
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "0aeed61e34148a24b651ddbde548b76f",
+            "sha1": "74a4d1006556b404a7ac9d1127e4d3db84737861",
+            "sha256": "b332dfb36c066e2f7cfd78cbe5d82bf257003ab63e66d106cfc4b21bdf45a731"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/onenote",
+            "type": "Microsoft OneNote"
+          },
+          "summary": "File Type Analysis: Microsoft OneNote (application/onenote)",
+          "tags": {}
+        },
+        "onenote_extraction": {
+          "details": {
+            "extracted_files": [
+              "e9b4ff075e05eb59b9ff8037003dbf17321d0eb75b9a56b738c6789fee69ee5b",
+              "6ac60d7880f05e06a90757b7bce30951bb020b14f935509e6ef1af0c1e96b9d1"
+            ]
+          },
+          "summary": "OneNote File Analysis: extracted files e9b4ff075e05eb59b9ff8037003dbf17321d0eb75b9a56b738c6789fee69ee5b, 6ac60d7880f05e06a90757b7bce30951bb020b14f935509e6ef1af0c1e96b9d1",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "onenote": true
+      }
+    },
+    "file:e9b4ff075e05eb59b9ff8037003dbf17321d0eb75b9a56b738c6789fee69ee5b": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "invoice.one.extracted-e9b4ff": {
+          "type=document.html": true,
+          "type=document.onenote.embedded": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:b332dfb36c066e2f7cfd78cbe5d82bf257003ab63e66d106cfc4b21bdf45a731": true
+      },
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "383ecf8635a7aa746e13a3384383615f",
+            "sha1": "1caef298f4a25607bafe6aec336be60ae7a2c470",
+            "sha256": "e9b4ff075e05eb59b9ff8037003dbf17321d0eb75b9a56b738c6789fee69ee5b"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/html",
+            "type": "HTML document, ASCII text"
+          },
+          "summary": "File Type Analysis: HTML document, ASCII text (text/html)",
+          "tags": {}
+        },
+        "html_js_extraction": {
+          "details": {
+            "dom_snapshot_files": [
+              "invoice.one_js_inline_0_8cf6542a.js.dom.json"
+            ],
+            "duplicate_count": 0,
+            "extracted_files": [
+              "invoice.one_js_inline_0_8cf6542a.js"
+            ],
+            "extracted_uri_paths": [],
+            "extracted_urls": [],
+            "inline_handlers": [],
+            "script_count": 1
+          },
+          "summary": "HTML JavaScript Extraction: 1 inline script(s)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "md5:0aeed61e34148a24b651ddbde548b76f": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:b332dfb36c066e2f7cfd78cbe5d82bf257003ab63e66d106cfc4b21bdf45a731": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:15cb14752fcfc74a01b5c5156631362d": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:6ac60d7880f05e06a90757b7bce30951bb020b14f935509e6ef1af0c1e96b9d1": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:383ecf8635a7aa746e13a3384383615f": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:e9b4ff075e05eb59b9ff8037003dbf17321d0eb75b9a56b738c6789fee69ee5b": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:ac0860a2dae392ad13ab5407e432ac49": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:8cf6542ab41f3d900a93a99de2c245dee92f2adef222005e43561277a3e98647": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:6ac60d7880f05e06a90757b7bce30951bb020b14f935509e6ef1af0c1e96b9d1": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:6ac60d7880f05e06a90757b7bce30951bb020b14f935509e6ef1af0c1e96b9d1": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:8cf6542ab41f3d900a93a99de2c245dee92f2adef222005e43561277a3e98647": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:8cf6542ab41f3d900a93a99de2c245dee92f2adef222005e43561277a3e98647": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:b332dfb36c066e2f7cfd78cbe5d82bf257003ab63e66d106cfc4b21bdf45a731": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:b332dfb36c066e2f7cfd78cbe5d82bf257003ab63e66d106cfc4b21bdf45a731": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:e9b4ff075e05eb59b9ff8037003dbf17321d0eb75b9a56b738c6789fee69ee5b": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:e9b4ff075e05eb59b9ff8037003dbf17321d0eb75b9a56b738c6789fee69ee5b": true
+      },
+      "results": {},
+      "tags": {}
+    }
+  }
+}

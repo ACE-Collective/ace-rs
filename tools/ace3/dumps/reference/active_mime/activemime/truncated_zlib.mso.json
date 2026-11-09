@@ -1,0 +1,30 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [],
+  "input": {
+    "directives": [],
+    "label": "fixtures/office/activemime/truncated_zlib.mso",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "truncated_zlib.mso",
+      "size": 56,
+      "type": "file",
+      "value": "9fbacd6bb230df6eb960ee8bef0171c26206c3a87ee02e4803b8282a90f99269"
+    }
+  },
+  "module": "active_mime",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "truncated_zlib.mso",
+    "relationships": [],
+    "size": 56,
+    "tags": [],
+    "type": "file",
+    "value": "9fbacd6bb230df6eb960ee8bef0171c26206c3a87ee02e4803b8282a90f99269",
+    "yara_meta": []
+  }
+}

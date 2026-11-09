@@ -1,0 +1,69 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "ActiveMimeAnalysis",
+      "details": {
+        "extracted_file": "<root>/files/trailing.mso.activemime"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.mime:ActiveMimeAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=document.activemime"
+          ],
+          "excluded_analysis": [],
+          "file_path": "trailing.mso.activemime",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "25dfd2313c426db40e0f5a57d0ea3a2a84d163f38d433f375024532e34a837b9"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 35,
+          "tags": [
+            "activemime"
+          ],
+          "type": "file",
+          "value": "4b66b60eb160bd7a66d57a333df3f395b870cca13d99cce40699ec16e07eceb0",
+          "yara_meta": [
+            "type=document.activemime"
+          ]
+        }
+      ],
+      "summary": "Active MIME Analysis: extracted <root>/files/trailing.mso.activemime",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/office/activemime/trailing.mso",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "trailing.mso",
+      "size": 106,
+      "type": "file",
+      "value": "25dfd2313c426db40e0f5a57d0ea3a2a84d163f38d433f375024532e34a837b9"
+    }
+  },
+  "module": "active_mime",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "trailing.mso",
+    "relationships": [],
+    "size": 106,
+    "tags": [],
+    "type": "file",
+    "value": "25dfd2313c426db40e0f5a57d0ea3a2a84d163f38d433f375024532e34a837b9",
+    "yara_meta": []
+  }
+}

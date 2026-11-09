@@ -1,0 +1,57 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "XMLBinaryDataAnalysis",
+      "details": {
+        "extracted_files": [
+          "files/entities.xml.xml/e.bin"
+        ]
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.xml:XMLBinaryDataAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "file_path": "entities.xml.xml/e.bin",
+          "relationships": [],
+          "size": 4,
+          "tags": [],
+          "type": "file",
+          "value": "e12e115acf4552b2568b55e93cbd39394c4ef81c82447fafc997882a02d23677",
+          "yara_meta": []
+        }
+      ],
+      "summary": "XML Binary Data Analysis: extracted files/entities.xml.xml/e.bin",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/office/flat/entities.xml",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "entities.xml",
+      "size": 325,
+      "type": "file",
+      "value": "66fb62f88dcb031d817ddedc9b9b5715b8ba57c67c23b410e5fcefc120842800"
+    }
+  },
+  "module": "xml_binary_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "entities.xml",
+    "relationships": [],
+    "size": 325,
+    "tags": [],
+    "type": "file",
+    "value": "66fb62f88dcb031d817ddedc9b9b5715b8ba57c67c23b410e5fcefc120842800",
+    "yara_meta": []
+  }
+}

@@ -14,6 +14,7 @@ pub mod ioc_extraction;
 pub mod lnk;
 pub mod msoffice;
 pub mod nrd;
+pub mod office;
 pub mod olevba;
 pub mod pcode;
 pub mod pdf;

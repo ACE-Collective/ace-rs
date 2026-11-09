@@ -1,0 +1,45 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [],
+  "input": {
+    "directives": [],
+    "extracted_from": {
+      "file_path": "invoice.docx",
+      "tags": [
+        "microsoft_office"
+      ],
+      "value": "1bcbb19fadc8e5388a2702a7afd6a60e3cd0841d58f847a412803f53951becd2"
+    },
+    "label": "fixtures/office/plain/not_xml.txt extracted from a microsoft_office file",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "invoice.docx.extracted/word/not_xml.txt",
+      "size": 26,
+      "type": "file",
+      "value": "8e7cf45d80cb7235c1c762dc6af908f6a0ce0187d5985db7bdda70fd6ef6db0e"
+    }
+  },
+  "module": "xml_plain_text_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "invoice.docx.extracted/word/not_xml.txt",
+    "relationships": [
+      {
+        "target": {
+          "type": "file",
+          "value": "1bcbb19fadc8e5388a2702a7afd6a60e3cd0841d58f847a412803f53951becd2"
+        },
+        "type": "extracted_from"
+      }
+    ],
+    "size": 26,
+    "tags": [],
+    "type": "file",
+    "value": "8e7cf45d80cb7235c1c762dc6af908f6a0ce0187d5985db7bdda70fd6ef6db0e",
+    "yara_meta": []
+  }
+}

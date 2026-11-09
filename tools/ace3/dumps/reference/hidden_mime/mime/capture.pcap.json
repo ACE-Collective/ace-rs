@@ -1,0 +1,56 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "application/vnd.tcpdump.pcap",
+        "type": "pcap capture file, microsecond ts (little-endian) - version 2.4 (Ethernet, capture length 65535)"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: pcap capture file, microsecond ts (little-endian) - version 2.4 (Ethernet, capture length 65535) (application/vnd.tcpdump.pcap)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/office/mime/capture.pcap",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "capture.pcap",
+      "size": 91,
+      "type": "file",
+      "value": "3d5956ad6117dff0a48784c20161707b6f3d35f20890c1ba32be8e7ea12bfebf"
+    }
+  },
+  "module": "hidden_mime",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "capture.pcap",
+    "relationships": [],
+    "size": 91,
+    "tags": [],
+    "type": "file",
+    "value": "3d5956ad6117dff0a48784c20161707b6f3d35f20890c1ba32be8e7ea12bfebf",
+    "yara_meta": []
+  }
+}

@@ -55,6 +55,11 @@ use ace_results::types::ioc_extraction::IocExtractionAnalysis;
 use ace_results::types::lnk::LnkParseAnalysis;
 use ace_results::types::msoffice::MsofficeEncryptionAnalysis;
 use ace_results::types::nrd::NrdAnalysis;
+use ace_results::types::office::{
+    ActiveMimeAnalysis, ExtractedOleAnalysis, HiddenMimeAnalysis, OfficeParserAnalysis,
+    OfficeXmlRelationshipAnalysis, OneNoteFileAnalysis, XmlBinaryDataAnalysis,
+    XmlPlainTextAnalysis,
+};
 use ace_results::types::olevba::{OlevbaAnalysis, OlevbaMacro};
 use ace_results::types::pcode::PCodeAnalysis;
 use ace_results::types::pdf::PdfAnalysis;
@@ -211,6 +216,14 @@ impl Views {
             .with(ViewEntry::of::<MhtmlAnalysis>())
             .with(ViewEntry::of::<HtmlJavaScriptExtractionAnalysis>())
             .with(ViewEntry::of::<HarAnalysis>())
+            .with(ViewEntry::of::<OneNoteFileAnalysis>())
+            .with(ViewEntry::of::<OfficeParserAnalysis>())
+            .with(ViewEntry::of::<OfficeXmlRelationshipAnalysis>())
+            .with(ViewEntry::of::<XmlBinaryDataAnalysis>())
+            .with(ViewEntry::of::<XmlPlainTextAnalysis>())
+            .with(ViewEntry::of::<ExtractedOleAnalysis>())
+            .with(ViewEntry::of::<HiddenMimeAnalysis>())
+            .with(ViewEntry::of::<ActiveMimeAnalysis>())
     }
 
     /// These views with `entry`, which takes the place of any view of the same type and version, so a
@@ -1908,5 +1921,71 @@ impl AnalysisView for HarAnalysis {
             .into_iter()
             .chain(item_rows("response", &responses)),
         )
+    }
+}
+
+// ---- Office containers: ace3's default_template.html ----
+
+/// `onenote_file_analysis`: the sha256 of each embedded file written out.
+impl AnalysisView for OneNoteFileAnalysis {
+    type View<'a> = FieldsView;
+    fn view(&self) -> FieldsView {
+        fields_view(item_rows("extracted_file", &self.extracted_files))
+    }
+}
+
+/// `officeparser_analysis`: the manifest's names of the files added.
+impl AnalysisView for OfficeParserAnalysis {
+    type View<'a> = FieldsView;
+    fn view(&self) -> FieldsView {
+        fields_view(item_rows("extracted_file", &self.extracted_files))
+    }
+}
+
+/// `office_xml_relationship_analysis`: each external `oleObject` target.
+impl AnalysisView for OfficeXmlRelationshipAnalysis {
+    type View<'a> = FieldsView;
+    fn view(&self) -> FieldsView {
+        fields_view(item_rows("url", &self.urls))
+    }
+}
+
+/// `xml_binary_data_analysis`: each part written out.
+impl AnalysisView for XmlBinaryDataAnalysis {
+    type View<'a> = FieldsView;
+    fn view(&self) -> FieldsView {
+        fields_view(item_rows("extracted_file", &self.extracted_files))
+    }
+}
+
+/// `xml_plain_text_analysis`: the `.noxml` file, when there is one.
+impl AnalysisView for XmlPlainTextAnalysis {
+    type View<'a> = FieldsView;
+    fn view(&self) -> FieldsView {
+        fields_view([field("xml_plain_text", self.xml_plain_text.as_ref())])
+    }
+}
+
+/// `extracted_ole_analysis`: the file, when it is suspect.
+impl AnalysisView for ExtractedOleAnalysis {
+    type View<'a> = FieldsView;
+    fn view(&self) -> FieldsView {
+        fields_view(item_rows("suspect_file", &self.suspect_files))
+    }
+}
+
+/// `hidden_mime_analysis`: each part written out.
+impl AnalysisView for HiddenMimeAnalysis {
+    type View<'a> = FieldsView;
+    fn view(&self) -> FieldsView {
+        fields_view(item_rows("extracted_file", &self.extracted_files))
+    }
+}
+
+/// `active_mime_analysis`: the decompressed payload.
+impl AnalysisView for ActiveMimeAnalysis {
+    type View<'a> = FieldsView;
+    fn view(&self) -> FieldsView {
+        fields_view([field("extracted_file", Some(&self.extracted_file))])
     }
 }

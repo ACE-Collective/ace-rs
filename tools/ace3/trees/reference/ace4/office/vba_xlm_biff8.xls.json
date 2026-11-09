@@ -33,6 +33,76 @@
       },
       "tags": {}
     },
+    "file:1e85c37df423fa45af669a3d0225466a36e57ab1eb898f102f8ff2ec3196d4eb": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true,
+        "sandbox": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "vba_xlm_biff8.xls.officeparser/Module1.bas": {
+          "type=script.macro": true
+        }
+      },
+      "redirection": "file:691dba66dbcf8e2426d636d273e8f6fc8e8d0f5008169543424d08d6aa71117e",
+      "relationships": {
+        "extracted_from file:691dba66dbcf8e2426d636d273e8f6fc8e8d0f5008169543424d08d6aa71117e": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text, with CRLF line terminators, with overstriking"
+          },
+          "summary": "File Type Analysis: ASCII text, with CRLF line terminators, with overstriking (text/plain)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [
+              "http://example.com/payload.exe",
+              "http://example.com/x",
+              "http://192.0.2.1:8080/a b.vbs",
+              "http://192.0.2.1:8080/a"
+            ],
+            "urls_grouped_by_domain": {
+              "example.com": [
+                "http://example.com/payload.exe",
+                "http://example.com/x"
+              ],
+              "no_tld": [
+                "http://192.0.2.1:8080/a b.vbs",
+                "http://192.0.2.1:8080/a"
+              ]
+            }
+          },
+          "summary": "URL Extraction Analysis (192.0.2.1, example.com)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "macro": true
+      }
+    },
     "file:22888723cf1034079a29a62afab5e7e6483c2244598f463dcf366136e6b87daa": {
       "detections": {},
       "directives": {
@@ -83,6 +153,108 @@
       },
       "tags": {}
     },
+    "file:4bc03d883e84c6e66e0e608c1a98f8a4347cd41642277aacfdbb48255334ac60": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "vba_xlm_biff8.xls.officeparser/stream_6_0.dat": {}
+      },
+      "redirection": "file:691dba66dbcf8e2426d636d273e8f6fc8e8d0f5008169543424d08d6aa71117e",
+      "relationships": {
+        "extracted_from file:691dba66dbcf8e2426d636d273e8f6fc8e8d0f5008169543424d08d6aa71117e": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ISO-8859 text, with no line terminators"
+          },
+          "summary": "File Type Analysis: ISO-8859 text, with no line terminators (text/plain)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:4f3abc9a7cc7b46963f25fa25d315e222e129dde1044c62f05c8319baf3e8a03": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "vba_xlm_biff8.xls.officeparser/stream_1_0.dat": {}
+      },
+      "redirection": "file:691dba66dbcf8e2426d636d273e8f6fc8e8d0f5008169543424d08d6aa71117e",
+      "relationships": {
+        "extracted_from file:691dba66dbcf8e2426d636d273e8f6fc8e8d0f5008169543424d08d6aa71117e": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "Applesoft BASIC program data, first line number 16"
+          },
+          "summary": "File Type Analysis: Applesoft BASIC program data, first line number 16 (application/octet-stream)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:691dba66dbcf8e2426d636d273e8f6fc8e8d0f5008169543424d08d6aa71117e": {
       "detections": {
         "A url was found in an Excel 4.0 macro.": [
@@ -126,6 +298,20 @@
             "type": "CDFV2 Microsoft Excel"
           },
           "summary": "File Type Analysis: CDFV2 Microsoft Excel (application/vnd.ms-excel) (ms office document) (ole compound file)",
+          "tags": {}
+        },
+        "officeparser3": {
+          "details": {
+            "extracted_files": [
+              "stream_1_0.dat",
+              "stream_4_0.dat",
+              "stream_5_0.dat",
+              "stream_6_0.dat",
+              "stream_7_0.dat",
+              "Module1.bas"
+            ]
+          },
+          "summary": "OfficeParser3 Analysis: extracted 6 files",
           "tags": {}
         },
         "olevba_v1_2": {
@@ -213,6 +399,108 @@
         "macro": true
       }
     },
+    "file:9209d9f87d9a971a3c75208a0303e66e48b0a0fc923c0e81254bec0fb6368437": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "vba_xlm_biff8.xls.officeparser/stream_5_0.dat": {}
+      },
+      "redirection": "file:691dba66dbcf8e2426d636d273e8f6fc8e8d0f5008169543424d08d6aa71117e",
+      "relationships": {
+        "extracted_from file:691dba66dbcf8e2426d636d273e8f6fc8e8d0f5008169543424d08d6aa71117e": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:cdeaf2a6c8b044b1779b04b3578860b126c0c55265e040798e3f2898ef413226": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "vba_xlm_biff8.xls.officeparser/stream_7_0.dat": {}
+      },
+      "redirection": "file:691dba66dbcf8e2426d636d273e8f6fc8e8d0f5008169543424d08d6aa71117e",
+      "relationships": {
+        "extracted_from file:691dba66dbcf8e2426d636d273e8f6fc8e8d0f5008169543424d08d6aa71117e": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text, with CRLF line terminators"
+          },
+          "summary": "File Type Analysis: ASCII text, with CRLF line terminators (text/plain)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:e058931096278bcc4a93d131d179150561912d4070407e7daceb5e1117789b8c": {
       "detections": {},
       "directives": {
@@ -252,6 +540,57 @@
       "tags": {
         "macro": true
       }
+    },
+    "file:e99da4c234de115f06ba35b2467754227cef29ede76177e48232b9fd94b07cca": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "vba_xlm_biff8.xls.officeparser/stream_4_0.dat": {}
+      },
+      "redirection": "file:691dba66dbcf8e2426d636d273e8f6fc8e8d0f5008169543424d08d6aa71117e",
+      "relationships": {
+        "extracted_from file:691dba66dbcf8e2426d636d273e8f6fc8e8d0f5008169543424d08d6aa71117e": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
     },
     "file:fad0d28e07a37f3906c62ac517b865e347f217800d106f18100757921c25d29b": {
       "detections": {},
@@ -513,7 +852,9 @@
           "tags": {}
         }
       },
-      "tags": {}
+      "tags": {
+        "domain_in_url": true
+      }
     },
     "fqdn:xlm-biff8.example.com": {
       "detections": {},
@@ -729,6 +1070,24 @@
         "domain_in_url": true
       }
     },
+    "ip:192.0.2.1": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "network_identifier": {
+          "details": {
+            "identified_networks": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "ip_in_url": true
+      }
+    },
     "ip:192.0.2.10": {
       "detections": {},
       "directives": {},
@@ -765,12 +1124,160 @@
       "results": {},
       "tags": {}
     },
+    "uri_path:/a": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
+    },
+    "uri_path:/a b.vbs": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
+    },
+    "uri_path:/payload.exe": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
+    },
     "uri_path:/stage2.exe": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {},
       "relationships": {},
       "results": {},
+      "tags": {}
+    },
+    "uri_path:/x": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
+    },
+    "url:http://192.0.2.1:8080/a": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "parse_url": {
+          "details": {
+            "fragment": "",
+            "netloc": "192.0.2.1:8080",
+            "params": null,
+            "path": "/a",
+            "query": "",
+            "scheme": "http"
+          },
+          "summary": "URL Parser: scheme=http, netloc=192.0.2.1:8080, path=/a",
+          "tags": {}
+        },
+        "protected_url_analyzer": {
+          "details": {
+            "extracted_url": "http://192.0.2.1:8080/a",
+            "protection_type": "unprotected"
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "url:http://192.0.2.1:8080/a b.vbs": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "parse_url": {
+          "details": {
+            "fragment": "",
+            "netloc": "192.0.2.1:8080",
+            "params": null,
+            "path": "/a b.vbs",
+            "query": "",
+            "scheme": "http"
+          },
+          "summary": "URL Parser: scheme=http, netloc=192.0.2.1:8080, path=/a b.vbs",
+          "tags": {}
+        },
+        "protected_url_analyzer": {
+          "details": {
+            "extracted_url": "http://192.0.2.1:8080/a b.vbs",
+            "protection_type": "unprotected"
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "url:http://example.com/payload.exe": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "parse_url": {
+          "details": {
+            "fragment": "",
+            "netloc": "example.com",
+            "params": null,
+            "path": "/payload.exe",
+            "query": "",
+            "scheme": "http"
+          },
+          "summary": "URL Parser: scheme=http, netloc=example.com, path=/payload.exe",
+          "tags": {}
+        },
+        "protected_url_analyzer": {
+          "details": {
+            "extracted_url": "http://example.com/payload.exe",
+            "protection_type": "unprotected"
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "url:http://example.com/x": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "parse_url": {
+          "details": {
+            "fragment": "",
+            "netloc": "example.com",
+            "params": null,
+            "path": "/x",
+            "query": "",
+            "scheme": "http"
+          },
+          "summary": "URL Parser: scheme=http, netloc=example.com, path=/x",
+          "tags": {}
+        },
+        "protected_url_analyzer": {
+          "details": {
+            "extracted_url": "http://example.com/x",
+            "protection_type": "unprotected"
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "url:http://xlm-biff8.example.com/stage2.exe": {

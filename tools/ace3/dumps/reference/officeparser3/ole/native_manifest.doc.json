@@ -1,0 +1,153 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": true,
+        "is_office_ext": true,
+        "is_ole_file": true,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "application/x-ole-storage",
+        "type": "Composite Document File V2 Document, Cannot read section info"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: Composite Document File V2 Document, Cannot read section info (application/x-ole-storage) (ms office document) (ole compound file)",
+      "tags": []
+    },
+    {
+      "class": "OfficeParserAnalysis3",
+      "details": {
+        "extracted_files": [
+          "manifest",
+          "stream_3_0.dat",
+          "stream_4_0.dat"
+        ]
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.officeparser3:OfficeParserAnalysis3",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "native_manifest.doc.officeparser/manifest",
+          "redirection": {
+            "type": "file",
+            "value": "7d64253bdc636e330cfb743ed29d154f3083b42b089b72c552c0f6bd8b660dca"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "7d64253bdc636e330cfb743ed29d154f3083b42b089b72c552c0f6bd8b660dca"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 61,
+          "tags": [],
+          "type": "file",
+          "value": "52fc14d090a913cf20f7b007cb139d56d2ecacf1684f07056da8d33120eae9ce",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "native_manifest.doc.officeparser/stream_3_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "7d64253bdc636e330cfb743ed29d154f3083b42b089b72c552c0f6bd8b660dca"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "7d64253bdc636e330cfb743ed29d154f3083b42b089b72c552c0f6bd8b660dca"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 28,
+          "tags": [],
+          "type": "file",
+          "value": "6e5c83cfbc6fce046f237dbee7a36bb926ae1869c9cf47ca2d165e4eef8e58ed",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "native_manifest.doc.officeparser/stream_4_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "7d64253bdc636e330cfb743ed29d154f3083b42b089b72c552c0f6bd8b660dca"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "7d64253bdc636e330cfb743ed29d154f3083b42b089b72c552c0f6bd8b660dca"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 69,
+          "tags": [],
+          "type": "file",
+          "value": "3f57e4e551cbf7c80fb6658b60b78020801b1dcdfa4debd1714acf2e837d15d2",
+          "yara_meta": []
+        }
+      ],
+      "summary": "OfficeParser3 Analysis: extracted 3 files",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/office/ole/native_manifest.doc",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "native_manifest.doc",
+      "size": 3072,
+      "type": "file",
+      "value": "7d64253bdc636e330cfb743ed29d154f3083b42b089b72c552c0f6bd8b660dca"
+    }
+  },
+  "module": "officeparser3",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "native_manifest.doc",
+    "relationships": [],
+    "size": 3072,
+    "tags": [
+      "microsoft_office",
+      "ole"
+    ],
+    "type": "file",
+    "value": "7d64253bdc636e330cfb743ed29d154f3083b42b089b72c552c0f6bd8b660dca",
+    "yara_meta": []
+  }
+}

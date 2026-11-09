@@ -20,6 +20,7 @@ use crate::files::{FileOutputError, FileStore, write_file};
 use crate::lists::{List, ListSpec, WireList};
 use crate::module::{Module, ModuleError};
 use crate::reads::{Read as DeclaredRead, ReadError, ReadKind, Reader};
+use crate::wire::RelatedTags;
 use crate::writes::{WireWrite, Write as DeclaredWrite, WriteKind};
 
 /// The observable a task analyzes.
@@ -231,6 +232,8 @@ pub struct TaskContext<S> {
     /// The results the observable has from the modules this one depends on, by module.
     dependency_results: BTreeMap<String, serde_json::Value>,
     observables_below: Vec<ObservableRef>,
+    added_by: Vec<String>,
+    related_tags: Vec<RelatedTags>,
 }
 
 impl<S> TaskContext<S> {
@@ -266,6 +269,8 @@ impl<S> TaskContext<S> {
             writes: Mutex::new(Vec::new()),
             dependency_results: BTreeMap::new(),
             observables_below: Vec::new(),
+            added_by: Vec::new(),
+            related_tags: Vec::new(),
         }
     }
 
@@ -333,6 +338,34 @@ impl<S> TaskContext<S> {
     /// a module that runs last.
     pub fn observables_below(&self) -> &[ObservableRef] {
         &self.observables_below
+    }
+
+    /// The modules whose results added the task's observable (`Module::READS_ADDED_BY`).
+    pub fn with_added_by(mut self, modules: Vec<String>) -> Self {
+        self.added_by = modules;
+        self
+    }
+
+    /// The modules whose results added the task's observable, by name, for a module that reads
+    /// them: the analyses ace3's `iterate_all_references` finds holding it.
+    pub fn added_by(&self) -> &[String] {
+        &self.added_by
+    }
+
+    /// The tags of the observables the task's observable is related to
+    /// (`Module::READS_RELATED_TAGS`).
+    pub fn with_related_tags(mut self, related: Vec<RelatedTags>) -> Self {
+        self.related_tags = related;
+        self
+    }
+
+    /// The tags of `observable`, one the task's observable has a relationship to, for a module
+    /// that reads them. None for any other.
+    pub fn related_tags(&self, observable: &ObservableRef) -> Option<&[String]> {
+        self.related_tags
+            .iter()
+            .find(|r| &r.observable == observable)
+            .map(|r| r.tags.as_slice())
     }
 
     /// What makes the task's reads (`Module::READS`): the pool's lease API client.

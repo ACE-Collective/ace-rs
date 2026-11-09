@@ -990,6 +990,84 @@ def html_runs():
     return runs
 
 
+# 7.5 batch 5's Office container modules on fixtures/office, written by tools/samples/make-office-containers,
+# and the samples they take. Each dump is named <folder>/<fixture>, with a suffix for a run of its own.
+OFFICE_FIXTURES = HERE / "fixtures" / "office"
+OFFICE_CLASS = "saq.modules.file_analysis.officeparser3:OfficeParserAnalysis3"
+
+
+def office_runs():
+    runs = []
+
+    def fixtures(folder):
+        root = OFFICE_FIXTURES / folder
+        return sorted(str(p.relative_to(root)) for p in root.rglob("*") if p.is_file() and p.name != ".DS_Store")
+
+    def add(module, enable, folder, name, suffix="", args=(), label="", alert_path=None):
+        runs.append({
+            "module": module,
+            "enable": enable,
+            "name": f"{folder}/{name}{suffix}",
+            "args": ["--file", f"{REMOTE}/fixtures/office/{folder}/{name}", "--alert-path", alert_path or Path(name).name,
+                     *args],
+            "label": f"fixtures/office/{folder}/{name}{label}",
+        })
+
+    def samples(module, enable, wanted):
+        for sample in json.loads((SAMPLES / "manifest.json").read_text())["samples"]:
+            if wanted(sample):
+                runs.append({
+                    "module": module,
+                    "enable": enable,
+                    "name": sample["path"],
+                    "args": ["--file", f"{REMOTE}/samples/{sample['path']}", "--alert-path", sample["alert_path"]]
+                    + [arg for tag in sample["meta_tags"] for arg in ("--meta-tag", tag)],
+                    "label": sample["path"],
+                })
+
+    def sample_is(*names):
+        return lambda sample: sample["path"] in names
+
+    def is_ole(sample):
+        with open(SAMPLES / sample["path"], "rb") as fp:
+            return fp.read(8) == bytes.fromhex("d0cf11e0a1b11ae1")
+
+    source = ["--extracted-from", f"{REMOTE}/fixtures/office/source.docx", "invoice.docx"]
+    for name in fixtures("onenote"):
+        add("onenote_extraction", [], "onenote", name)
+    add("onenote_extraction", [], "onenote", "two_files.one", ".small",
+        ["--config", f"{REMOTE}/fixtures/office/small_onenote.yaml"], " with max_bytes 1100")
+    samples("onenote_extraction", [], sample_is("ace4/office/invoice.one"))
+    for name in fixtures("activemime"):
+        add("active_mime", [], "activemime", name)
+    samples("active_mime", [], sample_is("ace4/office/oledata.mso"))
+    for name in fixtures("mime"):
+        add("hidden_mime", ["file_type"], "mime", name)
+    add("hidden_mime", ["file_type"], "mime", "hidden.bin", ".original_email", ["--directive", "original_email"],
+        " with ['original_email']")
+    samples("hidden_mime", ["file_type"], sample_is("ace4/office/hidden_mime.bin", "ace4/office/vba_mht.mht"))
+    for name in fixtures("flat"):
+        add("xml_binary_analyzer", [], "flat", name)
+    samples("xml_binary_analyzer", [], sample_is("ace4/office/word2003.xml", "ace4/office/vba_flatopc.xml"))
+    for name in fixtures("plain"):
+        add("xml_plain_text_analyzer", [], "plain", name, "", [*source, "--source-tag", "microsoft_office"],
+            " extracted from a microsoft_office file", alert_path=f"invoice.docx.extracted/word/{name}")
+    add("xml_plain_text_analyzer", [], "plain", "document.xml", ".alone", [], " extracted from nothing")
+    add("xml_plain_text_analyzer", [], "plain", "document.xml", ".untagged", source,
+        " extracted from a file with no tags")
+    for name in fixtures("rels"):
+        add("office_xml_rel", [], "rels", name, alert_path=f"invoice.docx.extracted/word/_rels/{Path(name).name}")
+    for name in fixtures("ole"):
+        add("officeparser3", ["file_type"], "ole", name)
+    samples("officeparser3", ["file_type"], is_ole)
+    for name in fixtures("extracted"):
+        add("extracted_ole_analyzer", ["file_type"], "extracted", name, "",
+            ["--extracted-from", f"{REMOTE}/fixtures/office/ole/native.doc", "native.doc", "--added-by", OFFICE_CLASS],
+            " written by officeparser3", alert_path=f"native.doc.officeparser/{name}")
+    add("extracted_ole_analyzer", ["file_type"], "extracted", "payload.vbs", ".alone", [], " added by the root")
+    return runs
+
+
 RUNS = {
     "email": lambda: file_runs("email_analyzer", ["file_type"], "email"),
     "archive": lambda: file_runs("archive", ["file_type"], "archive/"),
@@ -1015,6 +1093,7 @@ RUNS = {
     "dhash": dhash_runs,
     "values": value_runs,
     "html": html_runs,
+    "office": office_runs,
 }
 
 
@@ -1183,6 +1262,14 @@ def run(spec):
         "har_extraction": "HARAnalysis",
         "html_js_extraction": "HTMLJavaScriptExtractionAnalysis",
         "mhtml": "MHTMLAnalysis",
+        "onenote_extraction": "OneNoteFileAnalysis",
+        "officeparser3": "OfficeParserAnalysis3",
+        "office_xml_rel": "OfficeXMLRelationshipExternalURLAnalysis",
+        "xml_binary_analyzer": "XMLBinaryDataAnalysis",
+        "xml_plain_text_analyzer": "XMLPlainTextAnalysis",
+        "extracted_ole_analyzer": "ExtractedOLEAnalysis",
+        "hidden_mime": "HiddenMIMEAnalysis",
+        "active_mime": "ActiveMimeAnalysis",
     }[spec["module"]]
     analysis = next((a for a in parsed["analyses"] if a["class"] == target_class), None)
     return {

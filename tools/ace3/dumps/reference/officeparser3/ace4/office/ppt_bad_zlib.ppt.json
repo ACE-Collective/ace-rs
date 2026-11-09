@@ -1,0 +1,132 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": true,
+        "is_office_ext": true,
+        "is_ole_file": true,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "application/x-ole-storage",
+        "type": "Composite Document File V2 Document, Cannot read section info"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: Composite Document File V2 Document, Cannot read section info (application/x-ole-storage) (ms office document) (ole compound file)",
+      "tags": []
+    },
+    {
+      "class": "OfficeParserAnalysis3",
+      "details": {
+        "extracted_files": [
+          "stream_1_0.dat",
+          "stream_2_0.dat"
+        ]
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.officeparser3:OfficeParserAnalysis3",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "ppt_bad_zlib.ppt.officeparser/stream_1_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "89cda29aedc3344557e064ea49951df36164f64a841f78706bae0a231c5cc7d9"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "89cda29aedc3344557e064ea49951df36164f64a841f78706bae0a231c5cc7d9"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 33,
+          "tags": [],
+          "type": "file",
+          "value": "2f42b5d33619d0c3b33d9bf636ee54ab1165385b64d3b9e2b3cfa4cfb6721d79",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "ppt_bad_zlib.ppt.officeparser/stream_2_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "89cda29aedc3344557e064ea49951df36164f64a841f78706bae0a231c5cc7d9"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "89cda29aedc3344557e064ea49951df36164f64a841f78706bae0a231c5cc7d9"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 48,
+          "tags": [],
+          "type": "file",
+          "value": "65ff3e8dfec34e2e579cf71d073f90daff29db1215869dd83f184f75f80b861c",
+          "yara_meta": []
+        }
+      ],
+      "summary": "OfficeParser3 Analysis: extracted 2 files",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace4/office/ppt_bad_zlib.ppt",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "ppt_bad_zlib.ppt",
+      "size": 2560,
+      "type": "file",
+      "value": "89cda29aedc3344557e064ea49951df36164f64a841f78706bae0a231c5cc7d9"
+    }
+  },
+  "module": "officeparser3",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "ppt_bad_zlib.ppt",
+    "relationships": [],
+    "size": 2560,
+    "tags": [
+      "microsoft_office",
+      "ole"
+    ],
+    "type": "file",
+    "value": "89cda29aedc3344557e064ea49951df36164f64a841f78706bae0a231c5cc7d9",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

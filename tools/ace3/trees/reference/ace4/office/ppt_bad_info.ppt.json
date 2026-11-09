@@ -40,6 +40,16 @@
           "summary": "File Type Analysis: Composite Document File V2 Document, Cannot read section info (application/x-ole-storage) (ms office document) (ole compound file)",
           "tags": {}
         },
+        "officeparser3": {
+          "details": {
+            "extracted_files": [
+              "stream_1_0.dat",
+              "stream_2_0.dat"
+            ]
+          },
+          "summary": "OfficeParser3 Analysis: extracted 2 files",
+          "tags": {}
+        },
         "olevba_v1_2": {
           "details": {
             "keyword_summary": {},
@@ -54,6 +64,108 @@
         "microsoft_office": true,
         "ole": true
       }
+    },
+    "file:127c0f33d934dc9b2cf4eb5043e1b39567a12527538d422da6d85659b9ce06b4": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "ppt_bad_info.ppt.officeparser/stream_2_0.dat": {}
+      },
+      "redirection": "file:1015c2bf2724c015bbb5e6f9296fa1f861a370dd2f1ea32d6e29a26cbcefa651",
+      "relationships": {
+        "extracted_from file:1015c2bf2724c015bbb5e6f9296fa1f861a370dd2f1ea32d6e29a26cbcefa651": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:2f42b5d33619d0c3b33d9bf636ee54ab1165385b64d3b9e2b3cfa4cfb6721d79": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "ppt_bad_info.ppt.officeparser/stream_1_0.dat": {}
+      },
+      "redirection": "file:1015c2bf2724c015bbb5e6f9296fa1f861a370dd2f1ea32d6e29a26cbcefa651",
+      "relationships": {
+        "extracted_from file:1015c2bf2724c015bbb5e6f9296fa1f861a370dd2f1ea32d6e29a26cbcefa651": true
+      },
+      "results": {
+        "extracted_ole_analyzer": {
+          "details": {
+            "suspect_files": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
     },
     "md5:abaffdc1282a743e3555f864d1f491eb": {
       "detections": {},

@@ -1,0 +1,617 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": true,
+        "is_office_ext": true,
+        "is_ole_file": true,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "application/msword",
+        "type": "Composite Document File V2 Document, Little Endian, Os: Windows, Version 6.1, Code page: 1252, Author: WNWrpQiR, Template: Normal.dotm, Revision Number: 1, Name of Creating Application: Microsoft Office Word, Create Time/Date: Thu Feb 15 15:36:00 2018, Last Saved Time/Date: Thu Feb 15 15:36:00 2018, Number of Pages: 1, Number of Words: 0, Number of Characters: 1, Security: 0"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: Composite Document File V2 Document, Little Endian, Os: Windows, Version 6.1, Code page: 1252, Author: WNWrpQiR, Template: Normal.dotm, Revision Number: 1, Name of Creating Application: Microsoft Office Word, Create Time/Date: Thu Feb 15 15:36:00 2018, Last Saved Time/Date: Thu Feb 15 15:36:00 2018, Number of Pages: 1, Number of Words: 0, Number of Characters: 1, Security: 0 (application/msword) (ms office document) (ole compound file)",
+      "tags": []
+    },
+    {
+      "class": "OfficeParserAnalysis3",
+      "details": {
+        "extracted_files": [
+          "stream_1_0.dat",
+          "stream_2_0.dat",
+          "stream_3_0.dat",
+          "stream_4_0.dat",
+          "stream_5_0.dat",
+          "stream_8_0.dat",
+          "stream_9_0.dat",
+          "stream_10_0.dat",
+          "stream_11_0.dat",
+          "stream_12_0.dat",
+          "stream_13_0.dat",
+          "stream_14_0.dat",
+          "stream_15_0.dat",
+          "stream_16_0.dat",
+          "stream_17_0.dat",
+          "AwfzKPwC.bas",
+          "QsZikAkvJTuV.bas",
+          "jOipwUYmtLb.bas",
+          "sqCcMbbcbPjYF.bas"
+        ]
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.officeparser3:OfficeParserAnalysis3",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "Past Due Invoices.doc.officeparser/stream_1_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 36202,
+          "tags": [],
+          "type": "file",
+          "value": "66d691a987c305b29de55631b454e07ccf64d0e9ed14b68e5d2c487132f9e9d9",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "Past Due Invoices.doc.officeparser/stream_2_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 7237,
+          "tags": [
+            "zip"
+          ],
+          "type": "file",
+          "value": "2cdd9d9c81d7183c0aa1c2be4c48c728126028c93faf88bc78017ee0265fef27",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "Past Due Invoices.doc.officeparser/stream_3_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 4096,
+          "tags": [],
+          "type": "file",
+          "value": "f234bd21a5f6bc9f33624a07f078ce2ca8f4247fb5243a1ab951353ecd6d5a68",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "Past Due Invoices.doc.officeparser/stream_4_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 392,
+          "tags": [],
+          "type": "file",
+          "value": "c45c1f0bd17eb1b2d4c6b01c32272f40d762bb12825d812dea80a4bc3a6496e9",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "Past Due Invoices.doc.officeparser/stream_5_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 4096,
+          "tags": [],
+          "type": "file",
+          "value": "794700af5b1f1d032372ffa72482f6908eda7360f42b48134b881f91b8ea2902",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "Past Due Invoices.doc.officeparser/stream_8_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 924,
+          "tags": [],
+          "type": "file",
+          "value": "1bb140d364d1fe4506b1a81438b072fd3ba5a43129f0e25537a08706ae8f46ac",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "Past Due Invoices.doc.officeparser/stream_9_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 31539,
+          "tags": [],
+          "type": "file",
+          "value": "3365575b114220213e636e43906b1ed908ab6b7e49cfb8bd1feb1bf318ef4899",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "Past Due Invoices.doc.officeparser/stream_10_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 8973,
+          "tags": [],
+          "type": "file",
+          "value": "f3d5c6f0ce633e70b50e969bf703d9c389079fb356eb89801f0e7cdd45948412",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "Past Due Invoices.doc.officeparser/stream_11_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 7919,
+          "tags": [],
+          "type": "file",
+          "value": "378580a13706076956b9f18f244d0a8e9de9a820f85157c6fabe52b33376c714",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "Past Due Invoices.doc.officeparser/stream_12_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 1002,
+          "tags": [],
+          "type": "file",
+          "value": "f69243a2521ddc81199f2ef6903e95accad48412642479f790cdd69bc1fbc8e1",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "Past Due Invoices.doc.officeparser/stream_13_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 27946,
+          "tags": [],
+          "type": "file",
+          "value": "8d451bc2ca48680c7f369363eebe1f03fba69febd5d98d966be53ba7a784ad4a",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "Past Due Invoices.doc.officeparser/stream_14_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 756,
+          "tags": [],
+          "type": "file",
+          "value": "81faa93fbac42ae10a73ed3962d70fac6ef6675dce46636104921d38ac984a53",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "Past Due Invoices.doc.officeparser/stream_15_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 185,
+          "tags": [],
+          "type": "file",
+          "value": "644077429eb7ab18f50b5ba5e57d566d20c9368cb95df9223f5c71facc8e75a1",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "Past Due Invoices.doc.officeparser/stream_16_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 579,
+          "tags": [],
+          "type": "file",
+          "value": "6bed1dcf60d33d3907832ba5ca22467684fcf5183bed7feecc839b388042dba8",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "Past Due Invoices.doc.officeparser/stream_17_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 114,
+          "tags": [],
+          "type": "file",
+          "value": "f70fe384c672865fff4bb8ab60d73098bc751e8f2aa915b8aff2e2085648b428",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls",
+            "sandbox",
+            "yara_meta:type=script.macro"
+          ],
+          "excluded_analysis": [],
+          "file_path": "Past Due Invoices.doc.officeparser/AwfzKPwC.bas",
+          "redirection": {
+            "type": "file",
+            "value": "b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 18833,
+          "tags": [
+            "macro"
+          ],
+          "type": "file",
+          "value": "0be3e4b641f04d9188b887d81176a7de26a5e6b5cf53788e8e40ef3e5bb5e788",
+          "yara_meta": [
+            "type=script.macro"
+          ]
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls",
+            "sandbox",
+            "yara_meta:type=script.macro"
+          ],
+          "excluded_analysis": [],
+          "file_path": "Past Due Invoices.doc.officeparser/QsZikAkvJTuV.bas",
+          "redirection": {
+            "type": "file",
+            "value": "b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 5069,
+          "tags": [
+            "macro"
+          ],
+          "type": "file",
+          "value": "f71dfc339597e1ed526f70563e18e9e34369eca78fb2b83435f05f26a6d3a286",
+          "yara_meta": [
+            "type=script.macro"
+          ]
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls",
+            "sandbox",
+            "yara_meta:type=script.macro"
+          ],
+          "excluded_analysis": [],
+          "file_path": "Past Due Invoices.doc.officeparser/jOipwUYmtLb.bas",
+          "redirection": {
+            "type": "file",
+            "value": "b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 4403,
+          "tags": [
+            "macro"
+          ],
+          "type": "file",
+          "value": "2383d6ac4151be8d639f1b6fe4dfad5dbe125ec511272a605b9a9cfae262eb81",
+          "yara_meta": [
+            "type=script.macro"
+          ]
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls",
+            "sandbox",
+            "yara_meta:type=script.macro"
+          ],
+          "excluded_analysis": [],
+          "file_path": "Past Due Invoices.doc.officeparser/sqCcMbbcbPjYF.bas",
+          "redirection": {
+            "type": "file",
+            "value": "b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 144,
+          "tags": [
+            "macro"
+          ],
+          "type": "file",
+          "value": "40799693a35bc92f3c92bb4701cd4f9ee8dd4f399b776fdc642b7f4ed55fcc07",
+          "yara_meta": [
+            "type=script.macro"
+          ]
+        }
+      ],
+      "summary": "OfficeParser3 Analysis: extracted 19 files",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace3/office/Past Due Invoices.doc",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "Past Due Invoices.doc",
+      "size": 143360,
+      "type": "file",
+      "value": "b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f"
+    }
+  },
+  "module": "officeparser3",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "Past Due Invoices.doc",
+    "relationships": [],
+    "size": 143360,
+    "tags": [
+      "microsoft_office",
+      "ole"
+    ],
+    "type": "file",
+    "value": "b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

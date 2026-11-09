@@ -70,6 +70,9 @@ pub struct ArchiveAnalyzer;
 impl Module for ArchiveAnalyzer {
     const NAME: &'static str = "archive";
     const INPUTS: &'static [ObservableKind] = &[ObservableKind::File];
+    /// ace3's config makes it wait for file_type, so a file's tags are there before what's
+    /// extracted from it is analyzed, which `xml_plain_text_analyzer` reads (7.5 batch 5).
+    const DEPENDS_ON: &'static [&'static str] = &["file_type"];
     type Output = ArchiveAnalysis;
     type Settings = ArchiveSettings;
 

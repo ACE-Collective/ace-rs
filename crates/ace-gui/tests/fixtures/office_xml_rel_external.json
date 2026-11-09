@@ -1,0 +1,36 @@
+{
+  "analysis_type": "office_xml_relationship_analysis",
+  "schema_version": 1,
+  "details": {
+    "urls": [
+      "http://xml-rel.example.com/payload.doc",
+      "https:..",
+      "file:///C:/Users/Public/evil.hta"
+    ]
+  },
+  "summary": "Office XML URL Analysis: xml-rel.example.com",
+  "analyzed": {
+    "detections": [
+      {
+        "description": "invoice.docx.extracted/word/_rels/document.xml.rels contains a link to an external oleobject",
+        "signature_uuid": "6ee4fb89-87d9-4cf0-85ec-52f7760b9a1d"
+      }
+    ]
+  },
+  "observables": [
+    {
+      "type": "url",
+      "value": "http://xml-rel.example.com/payload.doc",
+      "directives": [
+        "force_download"
+      ]
+    },
+    {
+      "type": "url",
+      "value": "file:///C:/Users/Public/evil.hta",
+      "directives": [
+        "force_download"
+      ]
+    }
+  ]
+}

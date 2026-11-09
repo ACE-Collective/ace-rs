@@ -122,6 +122,38 @@ pub fn modules(settings: &Value) -> Result<Modules, SetupError> {
             block("har_extraction"),
             &secrets,
         )?)
+        .with_parser(Entry::<ace_mod_office::OneNoteAnalyzer>::parser(
+            block("onenote_extraction"),
+            &secrets,
+        )?)
+        .with_parser(Entry::<ace_mod_office::OfficeParserAnalyzer>::parser(
+            block("officeparser3"),
+            &secrets,
+        )?)
+        .with_parser(Entry::<ace_mod_office::OfficeXmlRelAnalyzer>::parser(
+            block("office_xml_rel"),
+            &secrets,
+        )?)
+        .with_parser(Entry::<ace_mod_office::XmlBinaryAnalyzer>::parser(
+            block("xml_binary_analyzer"),
+            &secrets,
+        )?)
+        .with_parser(Entry::<ace_mod_office::XmlPlainTextAnalyzer>::parser(
+            block("xml_plain_text_analyzer"),
+            &secrets,
+        )?)
+        .with_parser(Entry::<ace_mod_office::ExtractedOleAnalyzer>::parser(
+            block("extracted_ole_analyzer"),
+            &secrets,
+        )?)
+        .with_parser(Entry::<ace_mod_office::HiddenMimeAnalyzer>::parser(
+            block("hidden_mime"),
+            &secrets,
+        )?)
+        .with_parser(Entry::<ace_mod_office::ActiveMimeAnalyzer>::parser(
+            block("active_mime"),
+            &secrets,
+        )?)
         .with_lookup(Entry::<Counted>::lookup(block(Counted::NAME), &secrets)?)
         .with_lookup(Entry::<Panicky>::lookup(block(Panicky::NAME), &secrets)?)
         .with_lookup(Entry::<Connect>::lookup(block(Connect::NAME), &secrets)?)

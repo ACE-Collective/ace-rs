@@ -23,7 +23,7 @@
 mod analyze;
 pub mod headers;
 mod mime;
-mod naming;
+pub mod naming;
 mod parts;
 pub mod py;
 mod settings;
