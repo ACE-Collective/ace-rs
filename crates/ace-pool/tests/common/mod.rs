@@ -119,7 +119,6 @@ impl Core {
             .await
             .expect("binds");
         let port = listener.local_addr().expect("an address").port();
-        drop(listener);
         let core = Core {
             test_db,
             bucket,
@@ -130,12 +129,19 @@ impl Core {
             serving: std::sync::Mutex::new(None),
             _cache: cache,
         };
-        core.start_api().await;
+        // the first API keeps the listener that chose the port: closing it and binding the port
+        // again left a moment in which another test's connection could take it (AddrInUse)
+        core.serve_api(Some(listener)).await;
         core
     }
 
     /// Starts a new lease API, with nothing of the last one's, behind `port`.
     pub async fn start_api(&self) {
+        self.serve_api(None).await;
+    }
+
+    /// As `start_api`, on `listener` when the port is still held, or on the port bound again.
+    async fn serve_api(&self, listener: Option<tokio::net::TcpListener>) {
         let api = Api::new(
             self.test_db.db().clone(),
             self.bucket.clone(),
@@ -154,9 +160,12 @@ impl Core {
             }
         });
         // tokio sets SO_REUSEADDR, so the port binds again as soon as the last proxy is gone
-        let listener = tokio::net::TcpListener::bind(("127.0.0.1", self.port))
-            .await
-            .expect("binds the API's port again");
+        let listener = match listener {
+            Some(listener) => listener,
+            None => tokio::net::TcpListener::bind(("127.0.0.1", self.port))
+                .await
+                .expect("binds the API's port again"),
+        };
         let proxy = tokio::spawn(proxy(listener, address));
         let old = self
             .serving
