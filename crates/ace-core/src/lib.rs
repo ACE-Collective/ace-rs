@@ -16,6 +16,7 @@ pub mod eligibility;
 pub mod lists;
 pub mod modes;
 pub mod normal;
+pub mod nrd;
 pub mod orchestrator;
 pub mod queue;
 pub mod reads;

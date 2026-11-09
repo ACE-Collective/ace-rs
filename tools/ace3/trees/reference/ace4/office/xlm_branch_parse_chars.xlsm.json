@@ -213,42 +213,6 @@
       },
       "tags": {}
     },
-    "file:c6cd8f46e7e4189bc1ffbfc798f32dff083b5645d18e6271736b8171edb1f5cb": {
-      "detections": {},
-      "directives": {
-        "crawl_extracted_urls": true,
-        "extract_urls": true
-      },
-      "excluded_analysis": {},
-      "paths": {
-        "xlm_branch_parse_chars.xlsm.xlmdeobfuscator/xlmdeobfuscator.stdout": {
-          "type=script.macro.xlm": true
-        }
-      },
-      "relationships": {},
-      "results": {
-        "file_type": {
-          "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": false,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "text/plain",
-            "type": "ASCII text"
-          },
-          "summary": "File Type Analysis: ASCII text (text/plain)",
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:d87a0c781f59e2c9269c0b016130182bf2560d81c2204f3f55f877cbe14abee3": {
       "detections": {},
       "directives": {
@@ -280,6 +244,42 @@
             "type": "XML 1.0 document, ASCII text"
           },
           "summary": "File Type Analysis: XML 1.0 document, ASCII text (text/xml)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:f4b7c2bbb65bb77fa63b7a1f93bf024ec537f66f1b7d5cba7a88dab55d9b01fd": {
+      "detections": {},
+      "directives": {
+        "crawl_extracted_urls": true,
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "xlm_branch_parse_chars.xlsm.xlmdeobfuscator/xlmdeobfuscator.stdout": {
+          "type=script.macro.xlm": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
           "tags": {}
         }
       },

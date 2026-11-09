@@ -51,3 +51,63 @@ impl AnalysisType for SplunkApiAnalysis {
     const VERSION: u32 = 1;
     const MODULE: &'static str = "splunk_api";
 }
+
+/// One click a clicker search found: ace3's `ClickerEvent` as its analysis keeps it, each mapped
+/// field as the row gave it (a string, a list for a multivalue field, or null when unmapped).
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct ClickerEvent {
+    /// `<source>:<search name>`, such as `splunk:url_clicks`.
+    pub source: String,
+    /// A Splunk web link to the search.
+    pub portal_url: Option<String>,
+    pub timestamp: Value,
+    pub user: Value,
+    pub action_type: Value,
+    pub url: Value,
+    /// The observable's value, which the search was about.
+    pub searched_value: String,
+    pub network_message_id: Value,
+}
+
+/// `splunk_clicker_detection_analysis`: who clicked a URL or visited a domain, by the clicker
+/// searches an analyst configured (ace3's `SplunkClickerDetectionAnalysis`,
+/// `saq/modules/clicker_detection.py` and `saq/clicker_detection/`), with the keys
+/// `SplunkAPIAnalysis` gives it. Its searches run one after another, so the job keys are reset
+/// after each and are null at the end, and `query` and `query_results` stay null: the events are
+/// in `clicker_events`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct SplunkClickerDetectionAnalysis {
+    pub query: Option<String>,
+    pub query_results: Option<Vec<Map<String, Value>>>,
+    /// Each failed search's `<name>: <error>`, joined by `; `.
+    pub query_error: Option<String>,
+    pub question: Option<String>,
+    pub query_summary: Option<String>,
+    /// When the analysis started, in seconds since the epoch.
+    pub query_start: Option<f64>,
+    /// A Splunk web link to the last search.
+    pub gui_link: Option<String>,
+    pub gui_link_label: Option<String>,
+    pub search_id: Option<String>,
+    pub dispatch_state: Option<String>,
+    pub start_time: Option<String>,
+    pub running_start_time: Option<String>,
+    pub end_time: Option<String>,
+    /// The searches that applied, by name, in order.
+    pub clicker_plan: Option<Vec<String>>,
+    /// How many of them have run.
+    pub clicker_index: Option<usize>,
+    /// The clicker config's source, such as `splunk`.
+    pub clicker_source: Option<String>,
+    pub clicker_events: Option<Vec<ClickerEvent>>,
+    /// How many values the searches matched: the URL and its child URLs, or the domain.
+    pub matched_url_count: Option<usize>,
+}
+
+impl AnalysisType for SplunkClickerDetectionAnalysis {
+    const NAME: &'static str = "splunk_clicker_detection_analysis";
+    const VERSION: u32 = 1;
+    const MODULE: &'static str = "clicker_detection_splunk";
+}

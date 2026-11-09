@@ -37,6 +37,7 @@ use ace_sdk::{
 };
 use mail_parser::MessageParser;
 
+pub use analyze::is_local_email_domain;
 pub use settings::{EmailAnalyzerSettings, ProviderHeaders};
 
 /// The module's manifest.

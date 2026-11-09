@@ -66,6 +66,8 @@ const RUN_FIELDS: &[(&str, &str)] = &[
     ("rdap_analysis", "/details/age_created_in_days"),
     ("rdap_analysis", "/details/age_last_updated_in_days"),
     ("rdap_analysis", "/details/datetime_of_analysis"),
+    // when the hit was found
+    ("nrd_analysis", "/details/matched_at"),
     ("splunk_api_analysis", "/details/end_time"),
     ("splunk_api_analysis", "/details/query_start"),
     ("splunk_api_analysis", "/details/running_start_time"),

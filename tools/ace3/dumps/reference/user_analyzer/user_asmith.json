@@ -1,0 +1,99 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "UserAnalysis",
+      "details": {
+        "ldap": {
+          "cn": "asmith",
+          "displayName": "Smith, Alice",
+          "division": "Finance",
+          "entitlements": [
+            {
+              "group": "CN=Finance,OU=Groups,DC=company,DC=example",
+              "privileged": false
+            }
+          ],
+          "l": "Springfield",
+          "mail": "Alice.Smith@company.example",
+          "manager": "CN=ceo,OU=Users,DC=company,DC=example",
+          "manager_cn": "ceo",
+          "memberOf": [
+            "CN=Finance,OU=Groups,DC=company,DC=example"
+          ],
+          "msExchRecipientTypeDetails": 2147483648,
+          "objectClass": [
+            "top",
+            "person",
+            "organizationalPerson",
+            "user"
+          ],
+          "on_prem": false,
+          "primary_email": "Alice.Smith@company.example",
+          "proxyAddresses": [
+            "SMTP:Alice.Smith@company.example"
+          ],
+          "title": "Director"
+        },
+        "manager_ldap": {
+          "cn": "ceo",
+          "displayName": "Officer, Chief",
+          "mail": "ceo@company.example",
+          "msExchRecipientTypeDetails": 4096,
+          "objectClass": [
+            "top",
+            "person",
+            "organizationalPerson",
+            "user"
+          ],
+          "on_prem": true,
+          "primary_email": "ceo@company.example",
+          "proxyAddresses": [
+            "SMTP:ceo@company.example"
+          ],
+          "title": "Chief Executive"
+        }
+      },
+      "detections": [],
+      "module_path": "saq.modules.user:UserAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "skip_user_analysis"
+          ],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_address",
+          "value": "alice.smith@company.example"
+        }
+      ],
+      "summary": "Smith, Alice - Springfield - Finance - Director",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "user asmith, against fake_ldap.py over fixtures/ldap/directory.json",
+    "meta_tags": [],
+    "observable": {
+      "type": "user",
+      "value": "asmith"
+    }
+  },
+  "module": "user_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "relationships": [],
+    "tags": [
+      "executive"
+    ],
+    "type": "user",
+    "value": "asmith"
+  }
+}

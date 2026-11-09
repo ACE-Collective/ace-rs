@@ -1,0 +1,25 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [],
+  "input": {
+    "directives": [],
+    "label": "fqdn click.example.com without the directive, against fake_splunk.py with --running-polls 4",
+    "meta_tags": [],
+    "observable": {
+      "type": "fqdn",
+      "value": "click.example.com"
+    }
+  },
+  "module": "clicker_detection_splunk",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "relationships": [],
+    "tags": [],
+    "type": "fqdn",
+    "value": "click.example.com"
+  }
+}

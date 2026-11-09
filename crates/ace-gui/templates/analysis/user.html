@@ -1,0 +1,33 @@
+{#- user_analysis (src/analysis.rs), from ace3's analysis/user.html: the user's and the manager's fields,
+    the groups split into name, organization and domain, and the attributes. -#}
+<table class="fields">
+{%- for row in self.fields() %}
+<tr><th>{{ row.name }}</th><td>{% if row.mail %}<a href="mailto:{{ row.value }}">{{ row.value }}</a>{% else %}{{ row.value }}{% endif %}</td></tr>
+{%- endfor %}
+</table>
+<p><b>Group Membership</b></p>
+<table class="fields">
+{%- let groups = self.groups() %}
+{%- if self.has_entitlements() %}
+<tr><th>Group</th><th>Organization</th><th>Domain</th></tr>
+{%- for group in groups.items %}
+<tr><td>{{ group.0 }}</td><td>{{ group.1 }}</td><td>{{ group.2 }}</td></tr>
+{%- endfor %}
+{%- else %}
+{%- for group in groups.items %}
+<tr><td>{{ group.0 }}</td></tr>
+{%- endfor %}
+{%- endif %}
+</table>
+{%- if groups.more > 0 %}
+<p class="clipped">{{ groups.more }} more groups not shown.</p>
+{%- endif %}
+{%- if let Some(attributes) = self.attributes() %}
+<details class="block">
+<summary>ldap</summary>
+<pre class="json">{{ attributes.text }}</pre>
+{%- if attributes.more > 0 %}
+<p class="clipped">{{ attributes.more }} more bytes of the attributes not shown.</p>
+{%- endif %}
+</details>
+{%- endif %}

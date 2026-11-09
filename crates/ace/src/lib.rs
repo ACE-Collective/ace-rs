@@ -21,7 +21,7 @@ pub fn parser_pool() -> ParserPool {
 }
 
 /// The network pool: the RDAP, DNS, snort signature, conversation frequency, email logger, email
-/// thread and Splunk modules.
+/// thread, newly registered domains, user (LDAP), Splunk and Splunk clicker detection modules.
 pub fn lookup_pool() -> LookupPool {
     LookupPool::new("lookups")
         .module::<ace_mod_rdap::RdapAnalyzer>()
@@ -30,7 +30,10 @@ pub fn lookup_pool() -> LookupPool {
         .module::<ace_mod_brocess::EmailConversationFrequencyAnalyzer>()
         .module::<ace_mod_brocess::EmailLogger>()
         .module::<ace_mod_brocess::EmailThreadAnalyzer>()
+        .module::<ace_mod_nrd::NrdAnalyzer>()
+        .module::<ace_mod_user::UserAnalyzer>()
         .module::<ace_mod_splunk::SplunkAnalyzer>()
+        .module::<ace_mod_splunk::ClickerDetection>()
 }
 
 /// The open-source binaries' list: the two pools, no observable types beyond ace3's, and ace3's

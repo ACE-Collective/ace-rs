@@ -1,0 +1,25 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [],
+  "input": {
+    "directives": [],
+    "label": "email_address someone@other.example, against fake_ldap.py over fixtures/ldap/directory.json",
+    "meta_tags": [],
+    "observable": {
+      "type": "email_address",
+      "value": "someone@other.example"
+    }
+  },
+  "module": "user_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "relationships": [],
+    "tags": [],
+    "type": "email_address",
+    "value": "someone@other.example"
+  }
+}

@@ -1,0 +1,132 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "UserAnalysis",
+      "details": {
+        "ldap": {
+          "accountExpires": "9999-12-31 23:59:59.999999+00:00",
+          "cn": "jdoe",
+          "department": "Accounts Payable",
+          "displayName": "Doe, John",
+          "division": "Finance",
+          "entitlements": [
+            {
+              "group": "CN=Finance,OU=Groups,DC=company,DC=example",
+              "privileged": false
+            },
+            {
+              "group": "CN=VPN Users,OU=Groups,DC=company,DC=example",
+              "privileged": false
+            }
+          ],
+          "extensionAttribute1": [
+            "not in the schema"
+          ],
+          "l": "Springfield",
+          "lastLogonTimestamp": "2025-11-01 19:46:40.123455+00:00",
+          "mail": "John.Doe@company.example",
+          "manager": "CN=asmith,OU=Users,DC=company,DC=example",
+          "manager_cn": "asmith",
+          "memberOf": [
+            "CN=Finance,OU=Groups,DC=company,DC=example",
+            "CN=VPN Users,OU=Groups,DC=company,DC=example"
+          ],
+          "msExchRecipientTypeDetails": 1,
+          "objectClass": [
+            "top",
+            "person",
+            "organizationalPerson",
+            "user"
+          ],
+          "objectGUID": "{67452301-0a89-debc-f012-3456789abcde}",
+          "objectSid": "S-1-5-21-67305985-134678021-202050057-1105",
+          "on_prem": true,
+          "primary_email": "John.Doe@company.example",
+          "proxyAddresses": [
+            "SMTP:John.Doe@company.example",
+            "smtp:jdoe@company.example",
+            "X500:/o=Company/ou=Exchange/cn=Recipients/cn=jdoe"
+          ],
+          "pwdLastSet": "2022-06-18 04:26:40+00:00",
+          "streetAddress": "1 Main St",
+          "telephoneNumber": "+1 555 0100",
+          "thumbnailPhoto": "\\x89PNG\\r\\n\\'\\\\\\x00\\x7f\\xff\"",
+          "title": "Analyst",
+          "userAccountControl": 512,
+          "whenCreated": "2020-01-15 09:30:00+00:00"
+        },
+        "manager_ldap": {
+          "cn": "asmith",
+          "displayName": "Smith, Alice",
+          "division": "Finance",
+          "l": "Springfield",
+          "mail": "Alice.Smith@company.example",
+          "manager": "CN=ceo,OU=Users,DC=company,DC=example",
+          "manager_cn": "ceo",
+          "memberOf": [
+            "CN=Finance,OU=Groups,DC=company,DC=example"
+          ],
+          "msExchRecipientTypeDetails": 2147483648,
+          "objectClass": [
+            "top",
+            "person",
+            "organizationalPerson",
+            "user"
+          ],
+          "on_prem": false,
+          "primary_email": "Alice.Smith@company.example",
+          "proxyAddresses": [
+            "SMTP:Alice.Smith@company.example"
+          ],
+          "title": "Director"
+        }
+      },
+      "detections": [],
+      "module_path": "saq.modules.user:UserAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "crawl",
+            "skip_user_analysis"
+          ],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "user",
+          "value": "jdoe"
+        }
+      ],
+      "summary": "Doe, John - Springfield - Finance - Analyst",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [
+      "crawl"
+    ],
+    "label": "email_address John.Doe@company.example with directives ['crawl'], against fake_ldap.py over fixtures/ldap/directory.json",
+    "meta_tags": [],
+    "observable": {
+      "type": "email_address",
+      "value": "john.doe@company.example"
+    }
+  },
+  "module": "user_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "crawl"
+    ],
+    "excluded_analysis": [],
+    "relationships": [],
+    "tags": [
+      "executive"
+    ],
+    "type": "email_address",
+    "value": "john.doe@company.example"
+  }
+}

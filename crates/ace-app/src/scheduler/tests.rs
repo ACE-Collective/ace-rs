@@ -2,7 +2,8 @@
 //! acts as, and does what ace3's does: `bucket_gc` deletes the unheld objects and expired holds and keeps
 //! a held one, `yara_qa_prune` removes the expired QA matches with their holds and an audit row and keeps
 //! a live one, `bucket_orphans` deletes bytes no index row names, and `bucket_verify` records an intact
-//! object and fails on a corrupt one, which it keeps. Then the scheduler's own rules: one run across
+//! object and fails on a corrupt one, which it keeps, and `nrd_refresh` rebuilds the newly registered
+//! domains list as ace3's refresh did. Then the scheduler's own rules: one run across
 //! replicas, missed due times run once, a lease no run starts under, an abandoned run, a hung task
 //! stopped at its timeout without holding up another, a bounded shutdown, and the overlay's section.
 //!
@@ -430,6 +431,7 @@ async fn each_task_acts_as_its_own_component_with_only_its_grant() {
         ace_service::BUCKET_GC,
         ace_service::BUCKET_VERIFY,
         ace_service::SIGNATURE_QA_PURGE,
+        ace_service::NRD_REFRESH,
         ace_service::ALERT_READ,
     ];
     for (task, holds) in [
@@ -437,6 +439,7 @@ async fn each_task_acts_as_its_own_component_with_only_its_grant() {
         ("bucket_orphans", ace_service::BUCKET_GC),
         ("bucket_verify", ace_service::BUCKET_VERIFY),
         ("yara_qa_prune", ace_service::SIGNATURE_QA_PURGE),
+        ("nrd_refresh", ace_service::NRD_REFRESH),
     ] {
         let actor = builtin(task).actor;
         for name in &names {
@@ -745,6 +748,7 @@ fn the_overlay_s_scheduler_section_sets_each_task_over_its_defaults() {
             ("yara_qa_prune", "0 5 * * *", 3600, true),
             ("bucket_orphans", "0 5 * * 1", 14400, true),
             ("bucket_verify", "0 5 * * 1", 14400, true),
+            ("nrd_refresh", "*/30 * * * *", 1500, true),
         ]
     );
     let actors: Vec<String> = defaults.iter().map(|t| t.actor.to_string()).collect();
@@ -755,6 +759,7 @@ fn the_overlay_s_scheduler_section_sets_each_task_over_its_defaults() {
             "internal:scheduler:yara_qa_prune",
             "internal:scheduler:bucket_orphans",
             "internal:scheduler:bucket_verify",
+            "internal:scheduler:nrd_refresh",
         ]
     );
     // ace3's 05:00 UTC on a Monday
@@ -775,7 +780,7 @@ fn the_overlay_s_scheduler_section_sets_each_task_over_its_defaults() {
         "scheduler:\n  bucket_gc:\n    schedule: '*/15 * * * *'\n    timeout_seconds: 600\n  \
          bucket_verify:\n    enabled: false\n  cas_node_stats:\n    enabled: true\n",
     );
-    assert_eq!(set.len(), 4, "the removed task is skipped");
+    assert_eq!(set.len(), 5, "the removed task is skipped");
     assert_eq!(
         (
             set[0].schedule.as_str(),
@@ -820,4 +825,460 @@ fn the_overlay_s_scheduler_section_sets_each_task_over_its_defaults() {
             .expect("refused");
         assert!(error.starts_with(why), "{error}");
     }
+}
+
+// ---- nrd_refresh (PLAN.md 7.4) ----
+
+/// What the fake feed server serves at a path: the file, its ETag and Last-Modified, and how many
+/// of the next requests for it answer 503 or break off their body.
+#[derive(Clone, Default)]
+struct Feed {
+    body: Vec<u8>,
+    etag: Option<String>,
+    last_modified: Option<String>,
+    unavailable: usize,
+    broken: usize,
+}
+
+#[derive(Default)]
+struct Feeds {
+    files: std::collections::HashMap<String, Feed>,
+    requests: Vec<(String, String)>,
+}
+
+/// A feed server on 127.0.0.1, over TLS with a self-signed certificate for `localhost` when `tls`.
+/// Returns its base URL, its state, and the certificate's PEM.
+async fn feed_server(tls: bool) -> (String, Arc<std::sync::Mutex<Feeds>>, Option<String>) {
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    let feeds = Arc::new(std::sync::Mutex::new(Feeds::default()));
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
+        .await
+        .expect("binds");
+    let port = listener.local_addr().expect("an address").port();
+    let (acceptor, pem) = if tls {
+        let certified = rcgen::generate_simple_self_signed(vec!["localhost".to_owned()])
+            .expect("a certificate");
+        let pem = certified.cert.pem();
+        let key = rustls::pki_types::PrivateKeyDer::Pkcs8(
+            rustls::pki_types::PrivatePkcs8KeyDer::from(certified.signing_key.serialize_der()),
+        );
+        let config = rustls::ServerConfig::builder_with_provider(Arc::new(
+            rustls::crypto::aws_lc_rs::default_provider(),
+        ))
+        .with_safe_default_protocol_versions()
+        .expect("TLS versions")
+        .with_no_client_auth()
+        .with_single_cert(vec![certified.cert.der().clone()], key)
+        .expect("a server config");
+        (
+            Some(tokio_rustls::TlsAcceptor::from(Arc::new(config))),
+            Some(pem),
+        )
+    } else {
+        (None, None)
+    };
+    async fn serve<S: AsyncReadExt + AsyncWriteExt + Unpin>(
+        mut stream: S,
+        feeds: Arc<std::sync::Mutex<Feeds>>,
+    ) {
+        let mut request = Vec::new();
+        let mut buf = [0u8; 4096];
+        while !request.windows(4).any(|w| w == b"\r\n\r\n") {
+            match stream.read(&mut buf).await {
+                Ok(0) | Err(_) => return,
+                Ok(n) => request.extend_from_slice(&buf[..n]),
+            }
+        }
+        let text = String::from_utf8_lossy(&request).into_owned();
+        let mut words = text.split_whitespace();
+        let method = words.next().unwrap_or_default().to_owned();
+        let path = words.next().unwrap_or_default().to_owned();
+        let feed = {
+            let mut feeds = feeds.lock().expect("unpoisoned");
+            feeds.requests.push((method.clone(), path.clone()));
+            feeds.files.get_mut(&path).map(|feed| {
+                let served = feed.clone();
+                if feed.unavailable > 0 {
+                    feed.unavailable -= 1;
+                } else if method == "GET" && feed.broken > 0 {
+                    feed.broken -= 1;
+                }
+                served
+            })
+        };
+        let response = match feed {
+            None => b"HTTP/1.1 404 Not Found\r\ncontent-length: 0\r\nconnection: close\r\n\r\n".to_vec(),
+            Some(feed) if feed.unavailable > 0 => {
+                b"HTTP/1.1 503 Service Unavailable\r\ncontent-length: 0\r\nconnection: close\r\n\r\n"
+                    .to_vec()
+            }
+            Some(feed) => {
+                let mut head = format!(
+                    "HTTP/1.1 200 OK\r\ncontent-type: text/plain\r\ncontent-length: {}\r\nconnection: close\r\n",
+                    feed.body.len()
+                );
+                if let Some(etag) = &feed.etag {
+                    head.push_str(&format!("etag: {etag}\r\n"));
+                }
+                if let Some(lm) = &feed.last_modified {
+                    head.push_str(&format!("last-modified: {lm}\r\n"));
+                }
+                head.push_str("\r\n");
+                let mut response = head.into_bytes();
+                if method == "GET" {
+                    if feed.broken > 0 {
+                        // half the body, then the connection closes: a body that broke off
+                        response.extend_from_slice(&feed.body[..feed.body.len() / 2]);
+                    } else {
+                        response.extend_from_slice(&feed.body);
+                    }
+                }
+                response
+            }
+        };
+        if stream.write_all(&response).await.is_ok() {
+            stream.shutdown().await.ok();
+        }
+    }
+    let served = feeds.clone();
+    tokio::spawn(async move {
+        while let Ok((stream, _)) = listener.accept().await {
+            let feeds = served.clone();
+            let acceptor = acceptor.clone();
+            tokio::spawn(async move {
+                match acceptor {
+                    Some(acceptor) => {
+                        if let Ok(tls) = acceptor.accept(stream).await {
+                            serve(tls, feeds).await;
+                        }
+                    }
+                    None => serve(stream, feeds).await,
+                }
+            });
+        }
+    });
+    let base = if tls {
+        format!("https://localhost:{port}")
+    } else {
+        format!("http://127.0.0.1:{port}")
+    };
+    (base, feeds, pem)
+}
+
+fn nrd_fixture(name: &str) -> Vec<u8> {
+    std::fs::read(
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../tools/ace3/dumps/fixtures/nrd/lists")
+            .join(name),
+    )
+    .expect("the fixture reads")
+}
+
+fn serve_feed(
+    feeds: &std::sync::Mutex<Feeds>,
+    path: &str,
+    file: &str,
+    etag: Option<&str>,
+    lm: Option<&str>,
+) {
+    feeds.lock().expect("unpoisoned").files.insert(
+        path.to_owned(),
+        Feed {
+            body: nrd_fixture(file),
+            etag: etag.map(str::to_owned),
+            last_modified: lm.map(str::to_owned),
+            ..Feed::default()
+        },
+    );
+}
+
+fn nrd_actor() -> Actor {
+    builtin("nrd_refresh").actor
+}
+
+fn nrd_section(base: &str, lists: &[(&str, &[&str])]) -> ace_sdk::NrdSection {
+    ace_sdk::NrdSection {
+        url_lists: lists
+            .iter()
+            .map(|(url, backups)| ace_sdk::NrdList {
+                url: format!("{base}{url}"),
+                backups: backups.iter().map(|b| format!("{base}{b}")).collect(),
+            })
+            .collect(),
+        ..ace_sdk::NrdSection::default()
+    }
+}
+
+async fn age_nrd_state(db: &Db, hours: i64) {
+    sqlx::query("UPDATE nrd.state SET last_refreshed_at = now() - make_interval(hours => $1::int)")
+        .bind(hours as i32)
+        .execute(db.pool())
+        .await
+        .expect("ages the state");
+}
+
+/// What a step left: its sources with the server's base as ace3's was, and the list's domains.
+async fn nrd_left(db: &Db, base: &str) -> Value {
+    let state = ace_core::nrd::state(db).await.expect("reads");
+    let domains = ace_core::nrd::domains(db).await.expect("reads");
+    let Some(state) = state else {
+        return Value::Null;
+    };
+    let rebase = |url: &str| url.replacen(base, "http://127.0.0.1:8091", 1);
+    let sources: Vec<Value> = state
+        .sources
+        .iter()
+        .map(|s| {
+            json!({
+                "content_length": s.content_length,
+                "etag": s.etag,
+                "fetched_from": rebase(&s.fetched_from),
+                "last_modified": s.last_modified,
+                "row_count": s.row_count,
+                "url": rebase(&s.url),
+            })
+        })
+        .collect();
+    json!({"row_count": state.row_count, "sources": sources, "domains": domains})
+}
+
+/// The steps ace3's refresh went through in tools/ace3/dumps/nrd_reference.py, against the same
+/// feeds served the same way: each makes the same requests and leaves the same list and sources, a
+/// failed one leaving the list as it was. The URLs differ only by the server's port.
+#[tokio::test]
+async fn nrd_refresh_goes_through_ace3_s_steps_as_ace3_did() {
+    let fixture = Fixture::new().await;
+    let (base, feeds, _) = feed_server(false).await;
+    let reference: Value = serde_json::from_str(
+        &String::from_utf8(nrd_fixture("../../../reference/nrd/reference.json")).expect("UTF-8"),
+    )
+    .expect("JSON");
+    let refresher = crate::nrd::Refresher::new(&ace_sdk::NrdSection::default())
+        .expect("a client")
+        .without_backoff();
+    serve_feed(
+        &feeds,
+        "/first.txt",
+        "first.txt",
+        Some("\"first-1\""),
+        Some("Sat, 07 Nov 2026 10:00:00 GMT"),
+    );
+    serve_feed(
+        &feeds,
+        "/second.txt",
+        "second.txt",
+        None,
+        Some("Sat, 07 Nov 2026 11:00:00 GMT"),
+    );
+    serve_feed(
+        &feeds,
+        "/backup.txt",
+        "backup.txt",
+        Some("\"backup-1\""),
+        None,
+    );
+    let mut refreshed_at = Vec::new();
+    for step in reference["refresh"].as_array().expect("steps").iter() {
+        let name = step["step"].as_str().expect("a name");
+        match name {
+            "after the interval, unchanged upstream" => age_nrd_state(fixture.db(), 25).await,
+            "after the interval, changed upstream" => {
+                age_nrd_state(fixture.db(), 25).await;
+                serve_feed(
+                    &feeds,
+                    "/first.txt",
+                    "changed.txt",
+                    Some("\"first-2\""),
+                    Some("Sun, 08 Nov 2026 10:00:00 GMT"),
+                );
+            }
+            _ => {}
+        }
+        let lists: Vec<(String, Vec<String>)> = step["url_lists"]
+            .as_array()
+            .expect("lists")
+            .iter()
+            .map(|l| {
+                (
+                    l["url"].as_str().expect("a url").to_owned(),
+                    l["backups"]
+                        .as_array()
+                        .expect("backups")
+                        .iter()
+                        .map(|b| b.as_str().expect("a url").to_owned())
+                        .collect(),
+                )
+            })
+            .collect();
+        let borrowed: Vec<(&str, Vec<&str>)> = lists
+            .iter()
+            .map(|(u, b)| (u.as_str(), b.iter().map(String::as_str).collect()))
+            .collect();
+        let as_slices: Vec<(&str, &[&str])> =
+            borrowed.iter().map(|(u, b)| (*u, b.as_slice())).collect();
+        let section = nrd_section(&base, &as_slices);
+        let outcome = refresher
+            .refresh(&fixture.service, &nrd_actor(), &section)
+            .await;
+        assert_eq!(
+            i32::from(outcome.is_err()),
+            step["exit_code"].as_i64().expect("a code") as i32,
+            "{name}: {outcome:?}"
+        );
+        let requests: Vec<Value> = std::mem::take(&mut feeds.lock().expect("unpoisoned").requests)
+            .into_iter()
+            .map(|(m, p)| json!([m, p]))
+            .collect();
+        assert_eq!(Value::Array(requests), step["requests"], "{name}");
+        let left = nrd_left(fixture.db(), &base).await;
+        let ace3 = &step["database"];
+        assert_eq!(left["domains"], ace3["domains"], "{name}");
+        assert_eq!(left["row_count"], ace3["meta"]["row_count"], "{name}");
+        assert_eq!(left["sources"], ace3["meta"]["sources"], "{name}");
+        refreshed_at.push(
+            ace_core::nrd::state(fixture.db())
+                .await
+                .expect("reads")
+                .map(|s| s.last_refreshed_at),
+        );
+    }
+    // a run that changed nothing didn't move the clock; the HEAD check keeps asking until upstream changes
+    assert_eq!(refreshed_at[1], refreshed_at[0]);
+    assert_eq!(
+        refreshed_at[5], refreshed_at[4],
+        "a failed rebuild leaves the list as it was"
+    );
+}
+
+/// As ace3's, a 503 and a body that breaks off are each tried once more, and a list with neither
+/// left is fetched from its backup.
+#[tokio::test]
+async fn nrd_refresh_retries_a_server_error_and_a_broken_body_once() {
+    let fixture = Fixture::new().await;
+    let (base, feeds, _) = feed_server(false).await;
+    let refresher = crate::nrd::Refresher::new(&ace_sdk::NrdSection::default())
+        .expect("a client")
+        .without_backoff();
+    serve_feed(&feeds, "/first.txt", "first.txt", Some("\"a\""), None);
+    serve_feed(&feeds, "/backup.txt", "backup.txt", None, None);
+    {
+        let mut feeds = feeds.lock().expect("unpoisoned");
+        feeds
+            .files
+            .get_mut("/first.txt")
+            .expect("served")
+            .unavailable = 1;
+        feeds.files.get_mut("/first.txt").expect("served").broken = 1;
+    }
+    let section = nrd_section(&base, &[("/first.txt", &["/backup.txt"])]);
+    let done = refresher
+        .refresh(&fixture.service, &nrd_actor(), &section)
+        .await
+        .expect("rebuilt");
+    let crate::nrd::Refreshed::Rebuilt { state, .. } = done else {
+        panic!("a rebuild: {done:?}");
+    };
+    assert_eq!(state.sources[0].fetched_from, format!("{base}/first.txt"));
+    assert_eq!(
+        state.row_count, 11,
+        "the broken half was undone, then all of it taken"
+    );
+    let requests = std::mem::take(&mut feeds.lock().expect("unpoisoned").requests);
+    // the 503, then the broken body, then the whole one
+    assert_eq!(requests.len(), 3, "{requests:?}");
+
+    // two broken bodies move on to the backup
+    feeds
+        .lock()
+        .expect("unpoisoned")
+        .files
+        .get_mut("/first.txt")
+        .expect("served")
+        .broken = 2;
+    let section = nrd_section(&base, &[("/first.txt", &["/backup.txt"])]);
+    sqlx::query("DELETE FROM nrd.state")
+        .execute(fixture.db().pool())
+        .await
+        .expect("deletes");
+    let done = refresher
+        .refresh(&fixture.service, &nrd_actor(), &section)
+        .await
+        .expect("rebuilt");
+    let crate::nrd::Refreshed::Rebuilt { state, .. } = done else {
+        panic!("a rebuild: {done:?}");
+    };
+    assert_eq!(state.sources[0].fetched_from, format!("{base}/backup.txt"));
+    assert_eq!(
+        ace_core::nrd::domains(fixture.db()).await.expect("reads"),
+        ["ace4-backup.net"]
+    );
+}
+
+/// The feeds are fetched with verified TLS: a certificate nobody trusts fails the run and leaves
+/// the list as it was, and the same server with its CA in `nrd.ca_certificates` is fetched. A run
+/// as a component without `nrd:refresh` reads and writes nothing. The task runs once through the
+/// scheduler, as `scheduler:nrd_refresh`.
+#[tokio::test]
+async fn nrd_refresh_verifies_certificates_and_runs_as_its_component() {
+    let fixture = Fixture::new().await;
+    let (base, feeds, pem) = feed_server(true).await;
+    serve_feed(&feeds, "/first.txt", "first.txt", Some("\"a\""), None);
+    let section = nrd_section(&base, &[("/first.txt", &[])]);
+    let untrusted = crate::nrd::Refresher::new(&section)
+        .expect("a client")
+        .without_backoff()
+        .refresh(&fixture.service, &nrd_actor(), &section)
+        .await;
+    assert!(untrusted.is_err(), "{untrusted:?}");
+    assert_eq!(
+        ace_core::nrd::state(fixture.db()).await.expect("reads"),
+        None
+    );
+
+    let dir = tempfile::tempdir().expect("a directory");
+    let ca = dir.path().join("ca.pem");
+    std::fs::write(&ca, pem.expect("a certificate")).expect("writes");
+    let section = ace_sdk::NrdSection {
+        ca_certificates: Some(ca),
+        ..section
+    };
+    let mut task = builtin("nrd_refresh");
+    make_due(fixture.db(), &task).await;
+    let overlay = ace_sdk::Overlay {
+        nrd: section.clone(),
+        ..ace_sdk::Overlay::default()
+    };
+    let stop = CancellationToken::new();
+    let running = tokio::spawn(
+        fixture
+            .scheduler(vec![task.clone()], "test/1")
+            .with_overlay(overlay.clone())
+            .run(stop.clone()),
+    );
+    let runs = ended_runs(fixture.db(), "nrd_refresh", 1).await;
+    stop.cancel();
+    running.await.expect("the scheduler stops");
+    assert_eq!(runs[0].outcome.as_deref(), Some("succeeded"), "{runs:?}");
+    assert_eq!(
+        runs[0].summary.as_ref().map(|s| s["row_count"].clone()),
+        Some(json!(11))
+    );
+    let before = ace_core::nrd::domains(fixture.db()).await.expect("reads");
+    assert_eq!(before.len(), 11);
+
+    task.actor = Actor::Internal {
+        id: Component::new("scheduler:nobody").expect("valid"),
+    };
+    let refused = crate::nrd::Refresher::new(&section)
+        .expect("a client")
+        .refresh(&fixture.service, &task.actor, &section)
+        .await;
+    assert_eq!(
+        refused.err().as_deref(),
+        Some("internal:scheduler:nobody doesn't hold nrd:refresh")
+    );
+    assert_eq!(
+        ace_core::nrd::domains(fixture.db()).await.expect("reads"),
+        before
+    );
 }

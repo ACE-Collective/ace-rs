@@ -42,7 +42,26 @@
       "excluded_analysis": {},
       "relationships": {},
       "results": {
-        "clicker_detection_splunk": {
+        "fqdn_analyzer": {
+          "details": {
+            "aliaslist": [],
+            "all_resolutions": [
+              "192.0.2.10",
+              "192.0.2.2"
+            ],
+            "ip_address": "192.0.2.10",
+            "mx": [
+              "backup.example.com",
+              "mail.example.com"
+            ],
+            "resolution_count": 2,
+            "status": "ok",
+            "wildcard_dns": false
+          },
+          "summary": "DNS Analysis: ip addresses (192.0.2.10, 192.0.2.2) mx (backup.example.com, mail.example.com)",
+          "tags": {}
+        },
+        "proxy_domain_splunk": {
           "details": {
             "dispatch_state": "DONE",
             "gui_link": null,
@@ -76,25 +95,6 @@
             "question": "Was this domain seen in proxy logs?"
           },
           "summary": "Proxy correlation: (3 results)",
-          "tags": {}
-        },
-        "fqdn_analyzer": {
-          "details": {
-            "aliaslist": [],
-            "all_resolutions": [
-              "192.0.2.10",
-              "192.0.2.2"
-            ],
-            "ip_address": "192.0.2.10",
-            "mx": [
-              "backup.example.com",
-              "mail.example.com"
-            ],
-            "resolution_count": 2,
-            "status": "ok",
-            "wildcard_dns": false
-          },
-          "summary": "DNS Analysis: ip addresses (192.0.2.10, 192.0.2.2) mx (backup.example.com, mail.example.com)",
           "tags": {}
         },
         "rdap_analyzer": {

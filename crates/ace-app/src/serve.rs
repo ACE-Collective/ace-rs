@@ -76,7 +76,8 @@ async fn serve(app: &App) -> Result<ExitCode> {
     let scheduled = crate::scheduler::configure(&app.scheduled_tasks(), &overlay.scheduler)
         .map_err(anyhow::Error::msg)
         .context("the overlay's scheduler section")?;
-    let orchestrator = Orchestrator::new(Catalog::of(components), app.modes());
+    let modes = app.modes_with(&components);
+    let orchestrator = Orchestrator::new(Catalog::of(components), modes);
     // a pool that lists a module leases its overlay instances too
     let config = ApiConfig::from_env(&app.pool_list()).with_instances(orchestrator.catalog());
     for pool in &config.pools {
@@ -84,7 +85,8 @@ async fn serve(app: &App) -> Result<ExitCode> {
     }
     let service = ace_service::Service::new(db.clone(), orchestrator.clone());
     let scheduler =
-        crate::scheduler::Scheduler::new(db.clone(), service.clone(), bucket.clone(), scheduled);
+        crate::scheduler::Scheduler::new(db.clone(), service.clone(), bucket.clone(), scheduled)
+            .with_overlay(overlay.clone());
     let web_config = ace_api::WebConfig::from_env().map_err(anyhow::Error::msg)?;
     for (module, name, version) in app.modules_without_a_view() {
         tracing::warn!(

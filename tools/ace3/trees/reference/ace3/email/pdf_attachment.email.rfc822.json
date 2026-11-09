@@ -42,7 +42,20 @@
       "excluded_analysis": {},
       "relationships": {},
       "results": {
-        "clicker_detection_splunk": {
+        "fqdn_analyzer": {
+          "details": {
+            "aliaslist": [],
+            "all_resolutions": [],
+            "ip_address": null,
+            "mx": null,
+            "resolution_count": null,
+            "status": "nxdomain",
+            "wildcard_dns": null
+          },
+          "summary": "DNS Analysis: does not exist (nxdomain)",
+          "tags": {}
+        },
+        "proxy_domain_splunk": {
           "details": {
             "dispatch_state": "DONE",
             "gui_link": null,
@@ -76,19 +89,6 @@
             "question": "Was this domain seen in proxy logs?"
           },
           "summary": "Proxy correlation: (3 results)",
-          "tags": {}
-        },
-        "fqdn_analyzer": {
-          "details": {
-            "aliaslist": [],
-            "all_resolutions": [],
-            "ip_address": null,
-            "mx": null,
-            "resolution_count": null,
-            "status": "nxdomain",
-            "wildcard_dns": null
-          },
-          "summary": "DNS Analysis: does not exist (nxdomain)",
           "tags": {}
         },
         "rdap_analyzer": {
@@ -239,7 +239,45 @@
         "email": true
       }
     },
-    "file:2aa872ecf821a57541771923b8de2bf02b6b132ea0bb025bf6592bf2b1ef88f4": {
+    "file:386dc4c2ef2b5f3fc8302e5ccb1d74d64d4c54fcea574d5cf690908d18de387a": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "email_analyzer": true
+      },
+      "paths": {
+        "email.rfc822.combined": {
+          "type=email": true,
+          "type=email.combined": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": true,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "message/rfc822",
+            "type": "RFC 822 mail, ASCII text, with very long lines (981)"
+          },
+          "summary": "File Type Analysis: RFC 822 mail, ASCII text, with very long lines (981) (message/rfc822) (email)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "email": true
+      }
+    },
+    "file:6394f3c2a3234abcabac4bfbd10320ccc6741287947ce32dc8c7fe3d53063553": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -280,44 +318,6 @@
       },
       "tags": {
         "pdf": true
-      }
-    },
-    "file:386dc4c2ef2b5f3fc8302e5ccb1d74d64d4c54fcea574d5cf690908d18de387a": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "email_analyzer": true
-      },
-      "paths": {
-        "email.rfc822.combined": {
-          "type=email": true,
-          "type=email.combined": true
-        }
-      },
-      "relationships": {},
-      "results": {
-        "file_type": {
-          "details": {
-            "is_email_file": true,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": false,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "message/rfc822",
-            "type": "RFC 822 mail, ASCII text, with very long lines (981)"
-          },
-          "summary": "File Type Analysis: RFC 822 mail, ASCII text, with very long lines (981) (message/rfc822) (email)",
-          "tags": {}
-        }
-      },
-      "tags": {
-        "email": true
       }
     },
     "file:694b8f9f32e3c7fb62f5efa622b0f8b88c37893699599c1b4d28e6b39a931782": {

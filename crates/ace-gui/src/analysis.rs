@@ -11,7 +11,7 @@
 //! list is fixed when the binary is built.
 //!
 //! What a view is ported from: `email_analysis.html`, `rdap.html`, `yara_analysis_v3_4.html` and
-//! `email_thread.html`, and the Splunk module's `api_analysis.html`. ace3 draws the other ported modules' results with
+//! `email_thread.html`, `user.html`, and the Splunk modules' `api_analysis.html`. ace3 draws the other ported modules' results with
 //! `default_template.html`, which prints the details with `pprint`; here each has a view of its own
 //! fields in the same order, which reads the same and needs no Python repr of bytes.
 //!
@@ -45,13 +45,15 @@ use ace_results::types::brocess::{
 use ace_results::types::dns::FqdnAnalysis;
 use ace_results::types::email::EmailAnalysis;
 use ace_results::types::msoffice::MsofficeEncryptionAnalysis;
+use ace_results::types::nrd::NrdAnalysis;
 use ace_results::types::olevba::{OlevbaAnalysis, OlevbaMacro};
 use ace_results::types::pcode::PCodeAnalysis;
 use ace_results::types::pdf::PdfAnalysis;
 use ace_results::types::rdap::RdapAnalysis;
 use ace_results::types::rtf::RtfOleObjectAnalysis;
 use ace_results::types::snort::SnortSignatureAnalysis;
-use ace_results::types::splunk::SplunkApiAnalysis;
+use ace_results::types::splunk::{SplunkApiAnalysis, SplunkClickerDetectionAnalysis};
+use ace_results::types::user::UserAnalysis;
 use ace_results::types::xlm::XlmDeobfuscatorAnalysis;
 use ace_results::types::yara::{ScanResult, YaraScanResults};
 use ace_results::{AnalysisType, sort_json_keys};
@@ -162,7 +164,10 @@ impl Views {
             .with(ViewEntry::of::<SnortSignatureAnalysis>())
             .with(ViewEntry::of::<EmailConversationFrequencyAnalysis>())
             .with(ViewEntry::of::<EmailThreadAnalysis>())
+            .with(ViewEntry::of::<NrdAnalysis>())
+            .with(ViewEntry::of::<UserAnalysis>())
             .with(ViewEntry::of::<SplunkApiAnalysis>())
+            .with(ViewEntry::of::<SplunkClickerDetectionAnalysis>())
             .with(ViewEntry::of::<OlevbaAnalysis>())
             .with(ViewEntry::of::<RtfOleObjectAnalysis>())
             .with(ViewEntry::of::<MsofficeEncryptionAnalysis>())
@@ -844,6 +849,204 @@ impl AnalysisView for EmailConversationFrequencyAnalysis {
     }
 }
 
+// ---- newly registered domains: ace3's default_template.html ----
+
+/// `nrd_analysis`. ace3 prints its details with `default_template.html`: the hit, when it was
+/// found, and the registration RDAP gave or why there's none.
+#[derive(Debug, Template)]
+#[template(path = "analysis/nrd.html")]
+pub struct NrdView<'a> {
+    pub analysis: &'a NrdAnalysis,
+}
+
+impl NrdView<'_> {
+    pub fn fields(&self) -> Vec<Field> {
+        let a = self.analysis;
+        [
+            field("is_nrd", a.is_nrd),
+            field("matched_at", a.matched_at.as_deref()),
+            field("datetime_created", a.datetime_created.as_deref()),
+            field("age_created_in_days", a.age_created_in_days.as_deref()),
+            field("lookup_protocol", a.lookup_protocol.as_deref()),
+            field("lookup_error", a.lookup_error.as_deref()),
+        ]
+        .into_iter()
+        .flatten()
+        .collect()
+    }
+}
+
+impl AnalysisView for NrdAnalysis {
+    type View<'a> = NrdView<'a>;
+    fn view(&self) -> NrdView<'_> {
+        NrdView { analysis: self }
+    }
+}
+
+// ---- user: ace3's user.html ----
+
+/// Python's `str()` of a JSON value, as ace3's template prints one: a string as it is, a list as
+/// its repr.
+fn py_text(value: &Value) -> String {
+    fn repr(value: &Value) -> String {
+        match value {
+            Value::String(s) => format!("'{}'", s.replace('\\', "\\\\").replace('\'', "\\'")),
+            other => py_text(other),
+        }
+    }
+    match value {
+        Value::Null => "None".to_owned(),
+        Value::Bool(b) => if *b { "True" } else { "False" }.to_owned(),
+        Value::Number(n) => n.to_string(),
+        Value::String(s) => s.clone(),
+        Value::Array(items) => format!(
+            "[{}]",
+            items.iter().map(repr).collect::<Vec<_>>().join(", ")
+        ),
+        Value::Object(_) => value.to_string(),
+    }
+}
+
+/// A row of the user view, which links an address.
+pub struct UserField {
+    pub name: &'static str,
+    pub value: String,
+    pub mail: bool,
+}
+
+/// `user_analysis`, from ace3's `user.html`: the user's fields and the manager's, in ace3's order,
+/// each only when the entry has it; the groups, each `memberOf` DN split into its `CN`, `OU` and
+/// other parts and sorted by name; and the attributes, where ace3 prints them with `pprint`.
+#[derive(Debug, Template)]
+#[template(path = "analysis/user.html")]
+pub struct UserView<'a> {
+    pub analysis: &'a UserAnalysis,
+}
+
+/// The groups the view lists: name, organization and domain, or only the DN without entitlements.
+pub type Group = (String, String, String);
+
+/// The groups shown, at most `MAX_ITEMS`, and how many more there are.
+pub struct Groups {
+    pub items: Vec<Group>,
+    pub more: usize,
+}
+
+impl UserView<'_> {
+    pub fn fields(&self) -> Vec<UserField> {
+        let mut rows = Vec::new();
+        let mut add = |map: &serde_json::Map<String, Value>, key: &str, name: &'static str| {
+            if let Some(value) = map.get(key) {
+                rows.push(UserField {
+                    name,
+                    value: py_text(value),
+                    mail: key == "mail",
+                });
+            }
+        };
+        if let Some(ldap) = &self.analysis.ldap {
+            for (key, name) in [
+                ("displayName", "Name"),
+                ("mail", "Email"),
+                ("company", "Company"),
+                ("department", "Department"),
+                ("division", "Division"),
+                ("wWWHomePage", "Group"),
+                ("title", "Title"),
+                ("streetAddress", "Address"),
+                ("l", "Location"),
+                ("st", "State/Province"),
+                ("co", "Country"),
+                ("telephoneNumber", "Phone"),
+                ("pwdLastSet", "Password Last Set"),
+            ] {
+                add(ldap, key, name);
+            }
+        }
+        if let Some(Some(manager)) = &self.analysis.manager_ldap {
+            for (key, name) in [
+                ("displayName", "Manager"),
+                ("mail", "Manager Email"),
+                ("telephoneNumber", "Manager Phone"),
+            ] {
+                add(manager, key, name);
+            }
+        }
+        rows
+    }
+
+    pub fn has_entitlements(&self) -> bool {
+        self.analysis
+            .ldap
+            .as_ref()
+            .is_some_and(|l| l.contains_key("entitlements"))
+    }
+
+    pub fn groups(&self) -> Groups {
+        let Some(ldap) = &self.analysis.ldap else {
+            return Groups {
+                items: Vec::new(),
+                more: 0,
+            };
+        };
+        let mut groups: Vec<Group> =
+            if let Some(Value::Array(entitlements)) = ldap.get("entitlements") {
+                entitlements
+                    .iter()
+                    .map(|e| {
+                        let dn = e["group"]
+                            .as_str()
+                            .map(str::to_owned)
+                            .unwrap_or_else(|| py_text(&e["group"]));
+                        let (mut name, mut org, mut domain) = (Vec::new(), Vec::new(), Vec::new());
+                        for part in dn.split(',') {
+                            let rest = part.get(3..).unwrap_or_default().to_owned();
+                            if part.starts_with("CN=") {
+                                name.push(rest);
+                            } else if part.starts_with("OU=") {
+                                org.push(rest);
+                            } else {
+                                domain.push(rest);
+                            }
+                        }
+                        (name.join("."), org.join("."), domain.join("."))
+                    })
+                    .collect()
+            } else if let Some(Value::Array(member_of)) = ldap.get("memberOf") {
+                member_of
+                    .iter()
+                    .map(|g| (py_text(g), String::new(), String::new()))
+                    .collect()
+            } else {
+                Vec::new()
+            };
+        if self.has_entitlements() {
+            // Jinja's sort ignores case by default
+            groups.sort_by_key(|g| g.0.to_lowercase());
+        }
+        let more = groups.len().saturating_sub(MAX_ITEMS);
+        groups.truncate(MAX_ITEMS);
+        Groups {
+            items: groups,
+            more,
+        }
+    }
+
+    pub fn attributes(&self) -> Option<Clipped> {
+        let ldap = self.analysis.ldap.as_ref()?;
+        let value = sort_json_keys(Value::Object(ldap.clone()));
+        let text = serde_json::to_string_pretty(&value).ok()?;
+        Some(clip(&text, MAX_TEXT))
+    }
+}
+
+impl AnalysisView for UserAnalysis {
+    type View<'a> = UserView<'a>;
+    fn view(&self) -> UserView<'_> {
+        UserView { analysis: self }
+    }
+}
+
 // ---- email thread: ace3's email_thread.html ----
 
 /// `email_thread_analysis`, from ace3's `email_thread.html`: how the conversation was assembled, the
@@ -977,6 +1180,76 @@ impl AnalysisView for SplunkApiAnalysis {
     type View<'a> = SplunkView<'a>;
     fn view(&self) -> SplunkView<'_> {
         SplunkView { analysis: self }
+    }
+}
+
+// ---- clicker detection: ace3's api_analysis.html ----
+
+/// One click as the view lists it: its time, user, action, the URL it reached, and the search.
+pub type Click = (String, String, String, String, String);
+
+/// The clicks shown, at most `MAX_ITEMS`, and how many more there are.
+pub struct Clicks {
+    pub items: Vec<Click>,
+    pub more: usize,
+}
+
+/// `splunk_clicker_detection_analysis`, which ace3 draws with `api_analysis.html`: the link to the
+/// last search, the question, an error and the raw details, with the clicks, which ace3 lists in the
+/// alert's URL Clicks panel.
+#[derive(Debug, Template)]
+#[template(path = "analysis/clicker.html")]
+pub struct ClickerView<'a> {
+    pub analysis: &'a SplunkClickerDetectionAnalysis,
+}
+
+impl ClickerView<'_> {
+    /// The link, when it's an HTTPS one, as the module makes it.
+    pub fn link(&self) -> Option<&str> {
+        self.analysis
+            .gui_link
+            .as_deref()
+            .filter(|l| l.starts_with("https://"))
+    }
+
+    pub fn link_label(&self) -> &str {
+        self.analysis
+            .gui_link_label
+            .as_deref()
+            .unwrap_or("Open Search")
+    }
+
+    pub fn clicks(&self) -> Clicks {
+        let events = self.analysis.clicker_events.as_deref().unwrap_or_default();
+        let items: Vec<Click> = events
+            .iter()
+            .take(MAX_ITEMS)
+            .map(|e| {
+                (
+                    cell(Some(&e.timestamp)),
+                    cell(Some(&e.user)),
+                    cell(Some(&e.action_type)),
+                    cell(Some(&e.url)),
+                    e.source.clone(),
+                )
+            })
+            .collect();
+        Clicks {
+            more: events.len() - items.len(),
+            items,
+        }
+    }
+
+    pub fn raw(&self) -> Clipped {
+        let json = serde_json::to_value(self.analysis).unwrap_or_default();
+        clip(&json_text(&json), MAX_JSON)
+    }
+}
+
+impl AnalysisView for SplunkClickerDetectionAnalysis {
+    type View<'a> = ClickerView<'a>;
+    fn view(&self) -> ClickerView<'_> {
+        ClickerView { analysis: self }
     }
 }
 

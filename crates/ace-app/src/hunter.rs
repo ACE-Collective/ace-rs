@@ -872,7 +872,8 @@ async fn hunt(app: &App) -> Result<ExitCode> {
     );
     let bucket = Bucket::new(db.clone(), store, BucketSettings::default());
     let components = crate::cli::components(&app.registry(), &overlay)?;
-    let orchestrator = Orchestrator::new(Catalog::of(components), app.modes());
+    let modes = app.modes_with(&components);
+    let orchestrator = Orchestrator::new(Catalog::of(components), modes);
     let service = ace_service::Service::new(db, orchestrator);
     let actor = ace_service::Actor::Internal {
         id: ace_service::Component::new("hunter")?,

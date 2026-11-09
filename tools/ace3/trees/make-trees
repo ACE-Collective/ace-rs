@@ -12,6 +12,8 @@ systems see the same world, as tests/e2e/run gives ace4:
 - brocess is tools/ace3/trees/brocess.json, empty: its smtplog for the frequency module and its
   thread store for the thread module (run_module.py --brocess-store), as tests/e2e/run empties
   ace4's before its comparison;
+- the newly registered domains list is tools/ace3/trees/nrd.json, unverified by RDAP, as
+  tests/e2e/run gives ace4 the same list;
 - DNS is answered by fake_dns.py from tools/ace3/dumps/fixtures/dns/zone.json, and what it answered
   is kept in tools/ace3/trees/dns.json, which tests/e2e/run's responder replays to ace4.
 
@@ -44,20 +46,29 @@ _loader.exec_module(dumps)
 
 CONTAINER, REMOTE, docker, put = dumps.CONTAINER, dumps.REMOTE, dumps.docker, dumps.put
 ENABLE = [
-    "file_type", "archive", "yara_scanner_v3_4", "rdap_analyzer", "ace4_proxy_splunk", "olevba_v1_2",
+    "file_type", "archive", "yara_scanner_v3_4", "rdap_analyzer", "proxy_domain_splunk", "olevba_v1_2",
     "rtfole", "msoffice_encryption_analyzer", "xlmdeobfuscator", "pcodedmp", "pdf_analyzer", "fqdn_analyzer",
-    "email_conversation_frequency_analyzer", "email_thread_analyzer",
+    "email_conversation_frequency_analyzer", "email_thread_analyzer", "nrd_analyzer",
 ]
 BROCESS = HERE / "brocess.json"
+NRD = HERE / "nrd.json"
+NRD_DB = f"{REMOTE}/trees-nrd.db"
+# the newly registered domains list of nrd.json, which ace3 reads from a SQLite file as its refresh
+# builds one; RDAP knows nothing of its domains, so a hit isn't verified
+NRD_CONFIG = f"""\
+nrd:
+  database_path: {NRD_DB}
+analysis_module_nrd_analyzer:
+  max_registration_age_days: 0
+"""
 DNS_RECORDING = HERE / "dns.json"
 RDAP_RECORDING = DUMPS / "reference" / "rdap_analyzer" / "fqdn_example.com.http"
 FAKE = f"{REMOTE}/fake/trees"
-# tests/e2e/site/overlay.yaml's clicker_detection_splunk. ace3 has a module of that name, which its
-# own config file defines, so this one has a name of its own. run_module.py writes any Splunk
-# module's results under ace4's name.
+# tests/e2e/site/overlay.yaml's proxy_domain_splunk, by the same name, which ace3 has no module of.
+# run_module.py writes a SplunkAPIAnalyzer's results under it.
 SPLUNK_INSTANCE = """\
-analysis_module_ace4_proxy_splunk:
-  name: ace4_proxy_splunk
+analysis_module_proxy_domain_splunk:
+  name: proxy_domain_splunk
   python_module: saq.modules.splunk
   python_class: SplunkAPIAnalyzer
   enabled: true
@@ -76,7 +87,7 @@ analysis_module_ace4_proxy_splunk:
 def splunk_config():
     """make-dumps' fake Splunk connection and defaults, with this instance in place of its query."""
     config = dumps.SPLUNK_CONFIG.format(port=dumps.SPLUNK_PORT, query_timeout="")
-    return config[: config.index("analysis_module_proxy_domain_lookup:")] + SPLUNK_INSTANCE
+    return config[: config.index("analysis_module_proxy_domain_lookup:")] + SPLUNK_INSTANCE + NRD_CONFIG
 
 
 def copy_tree(source, target):
@@ -164,6 +175,15 @@ def main():
     copy_tree(HERE / "signatures", f"{REMOTE}/signatures")
     copy_tree(RDAP_RECORDING, f"{REMOTE}/rdap")
     put(f"{REMOTE}/trees-brocess.json", BROCESS.read_bytes())
+    put(f"{REMOTE}/trees-nrd.json", NRD.read_bytes())
+    docker(
+        "exec", CONTAINER, "/venv/bin/python3", "-I", "-c",
+        "import json, sqlite3, sys; db = sqlite3.connect(sys.argv[2]); "
+        "db.execute('CREATE TABLE nrd (domain TEXT PRIMARY KEY) WITHOUT ROWID'); "
+        "db.executemany('INSERT INTO nrd VALUES (?)', [(d,) for d in json.load(open(sys.argv[1]))['domains']]); "
+        "db.commit()",
+        f"{REMOTE}/trees-nrd.json", NRD_DB,
+    )
     start_fake()
     try:
         with dumps.fake_dns(f"{FAKE}/dns"):

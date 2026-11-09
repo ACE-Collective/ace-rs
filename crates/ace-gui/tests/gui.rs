@@ -2223,6 +2223,9 @@ fn each_module_s_view_draws_its_fixture() {
         "snort_sig_9000001",
         "brocess_frequent_conversation",
         "brocess_email_thread",
+        "nrd_fqdn_ace4_fresh_com",
+        "user_jdoe",
+        "splunk_clicker_click_example_com",
         "splunk_proxy_domain_lookup",
         "olevba_receipt_doc",
         "rtfole_objects_rtf",
@@ -2299,6 +2302,35 @@ fn each_module_s_view_draws_its_fixture() {
                 &[
                     "<tr><th>signature_id</th><td>9000001 rev 3</td></tr>",
                     "<pre class=\"wrap\">alert http $HOME_NET any -&#62; $EXTERNAL_NET any (msg:&#34;ACE4 TEST fixture beacon&#34;;",
+                ],
+            ),
+            "nrd_fqdn_ace4_fresh_com" => contains_all(
+                &html,
+                &[
+                    "<tr><th>is_nrd</th><td>true</td></tr>",
+                    "<tr><th>datetime_created</th><td>2026-11-01 12:30:00+00:00</td></tr>",
+                    "<tr><th>age_created_in_days</th><td>7</td></tr>",
+                    "<tr><th>lookup_protocol</th><td>rdap</td></tr>",
+                ],
+            ),
+            "splunk_clicker_click_example_com" => contains_all(
+                &html,
+                &[
+                    "rel=\"noopener noreferrer\">Open in Splunk</a>",
+                    "<strong>Did anyone click this URL or visit this domain?</strong>",
+                    "<td>2026-11-08T10:00:00.1234567Z</td><td>alice@example.com</td><td>ClickAllowed</td>",
+                    "<td>splunk:proxy</td>",
+                ],
+            ),
+            "user_jdoe" => contains_all(
+                &html,
+                &[
+                    "<tr><th>Name</th><td>Doe, John</td></tr>",
+                    "<tr><th>Email</th><td><a href=\"mailto:John.Doe@company.example\">John.Doe@company.example</a></td></tr>",
+                    "<tr><th>Password Last Set</th><td>2022-06-18 04:26:40+00:00</td></tr>",
+                    "<tr><th>Manager</th><td>Smith, Alice</td></tr>",
+                    "<tr><td>VPN Users</td><td>Groups</td><td>company.example</td></tr>",
+                    "&#34;objectSid&#34;: &#34;S-1-5-21-67305985-134678021-202050057-1105&#34;",
                 ],
             ),
             "brocess_frequent_conversation" => contains_all(
@@ -9138,4 +9170,52 @@ async fn the_cli_starts_follows_and_cancels_a_command() {
     let html = fragment.text().await.expect("text");
     assert!(html.contains("cancelled before a pool took it"), "{html}");
     assert!(!html.contains("data-on-interval"), "it no longer polls");
+}
+
+/// PLAN.md 7.4's three views draw hostile text escaped: the user's attributes and groups, the
+/// newly registered domain's error, and the clicker's clicks, with a link that isn't HTTPS left out.
+#[test]
+fn the_network_pool_s_new_views_escape_what_a_module_wrote() {
+    let views = Views::builtin();
+    let hostile = "<script>alert(1)</script>\"'&";
+    let draw = |name: &str, details: serde_json::Value| {
+        let html = views.draw(name, 1, &details);
+        assert_eq!(html.fallback, None, "{name}");
+        let html = html.html.as_str().to_owned();
+        assert!(!html.contains("<script>"), "{name}: {html}");
+        assert!(inline_free(&html), "{name}: {html}");
+        html
+    };
+    let user = draw(
+        "user_analysis",
+        serde_json::json!({"ldap": {
+            "displayName": hostile, "mail": format!("x@example.com\" data-x=\"{hostile}"),
+            "entitlements": [{"group": format!("CN={hostile},OU=a,DC=b"), "privileged": false}],
+        }, "manager_ldap": null}),
+    );
+    assert!(
+        user.contains("&#60;script&#62;alert(1)&#60;/script&#62;"),
+        "{user}"
+    );
+    assert!(!user.contains("\" data-x=\""), "{user}");
+    let nrd = draw(
+        "nrd_analysis",
+        serde_json::json!({"is_nrd": true, "matched_at": null, "datetime_created": null,
+            "age_created_in_days": null, "lookup_protocol": null, "lookup_error": hostile}),
+    );
+    assert!(nrd.contains("&#60;script&#62;"), "{nrd}");
+    let clicker = draw(
+        "splunk_clicker_detection_analysis",
+        serde_json::json!({"query": null, "query_results": null, "query_error": hostile,
+            "question": hostile, "query_summary": null, "query_start": null,
+            "gui_link": "javascript:alert(1)", "gui_link_label": hostile,
+            "search_id": null, "dispatch_state": null, "start_time": null,
+            "running_start_time": null, "end_time": null, "clicker_plan": [], "clicker_index": 0,
+            "clicker_source": "splunk", "matched_url_count": 1,
+            "clicker_events": [{"source": hostile, "portal_url": null, "timestamp": hostile,
+                "user": [hostile, "b"], "action_type": null, "url": hostile,
+                "searched_value": hostile, "network_message_id": null}]}),
+    );
+    assert!(!clicker.contains("href=\"javascript:"), "{clicker}");
+    assert!(clicker.contains("<td>&#60;script&#62;"), "{clicker}");
 }

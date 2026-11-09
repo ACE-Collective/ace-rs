@@ -165,6 +165,69 @@
       "summary": null
     },
     {
+      "ace3_commit": "f72f8946",
+      "analysis": "SplunkClickerDetectionAnalysis",
+      "dump": "clicker_detection_splunk/fqdn_click.example.com.json",
+      "input": "fqdn click.example.com with directives ['clicker_detection'], against fake_splunk.py with --running-polls 4",
+      "module": "clicker_detection_splunk",
+      "observables_added": 6,
+      "summary": "URL Clicks (Splunk): 5 clicks found"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "clicker_detection_splunk/fqdn_click.example.com.no-directive.json",
+      "input": "fqdn click.example.com without the directive, against fake_splunk.py with --running-polls 4",
+      "module": "clicker_detection_splunk",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "SplunkClickerDetectionAnalysis",
+      "dump": "clicker_detection_splunk/url_https:__click.example.com_login.json",
+      "input": "url https://click.example.com/login with directives ['clicker_detection'], against fake_splunk.py with --running-polls 4",
+      "module": "clicker_detection_splunk",
+      "observables_added": 4,
+      "summary": "URL Clicks (Splunk): 4 clicks found"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "SplunkClickerDetectionAnalysis",
+      "dump": "clicker_detection_splunk/url_https:__click.example.com_login.never-done.json",
+      "input": "url https://click.example.com/login with directives ['clicker_detection'], against fake_splunk.py with --never-done",
+      "module": "clicker_detection_splunk",
+      "observables_added": 0,
+      "summary": "URL Clicks (Splunk): ERROR: url_clicks: timed out; proxy: timed out"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "SplunkClickerDetectionAnalysis",
+      "dump": "clicker_detection_splunk/url_https:__click.example.com_r?u=https:__click.example.com_login.json",
+      "input": "url https://click.example.com/r?u=https://click.example.com/login with directives ['clicker_detection'], against fake_splunk.py with --running-polls 4",
+      "module": "clicker_detection_splunk",
+      "observables_added": 4,
+      "summary": "URL Clicks (Splunk): 4 clicks found"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "SplunkClickerDetectionAnalysis",
+      "dump": "clicker_detection_splunk/url_https:__multi.example.com_x.json",
+      "input": "url https://multi.example.com/x with directives ['clicker_detection'], against fake_splunk.py with --running-polls 4",
+      "module": "clicker_detection_splunk",
+      "observables_added": 2,
+      "summary": "URL Clicks (Splunk): 1 click found"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "SplunkClickerDetectionAnalysis",
+      "dump": "clicker_detection_splunk/url_https:__quiet.example.com_x.json",
+      "input": "url https://quiet.example.com/x with directives ['clicker_detection'], against fake_splunk.py with --running-polls 4",
+      "module": "clicker_detection_splunk",
+      "observables_added": 0,
+      "summary": "URL Clicks (Splunk): no clicks found"
+    },
+    {
       "ace3_commit": "844e3584",
       "analysis": "EmailAnalysis",
       "dump": "email_analyzer/ace3/email/direct_send_spoof.email.rfc822.json",
@@ -957,6 +1020,96 @@
       "summary": "DNS Analysis: aliaslist (edge.example.net, cdn.example.org) ip addresses (192.0.2.30)"
     },
     {
+      "ace3_commit": "f72f8946",
+      "analysis": "NRDAnalysis",
+      "dump": "nrd_analyzer/fqdn_ace4-fresh.com.json",
+      "input": "fqdn ace4-fresh.com, against fixtures/nrd's lists, with max_registration_age_days 90",
+      "module": "nrd_analyzer",
+      "observables_added": 0,
+      "summary": "Newly Registered Domain: present in local NRD list (registered 7 day(s) ago)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "NRDAnalysis",
+      "dump": "nrd_analyzer/fqdn_ace4-missing.com.json",
+      "input": "fqdn ace4-missing.com, against fixtures/nrd's lists, with max_registration_age_days 90",
+      "module": "nrd_analyzer",
+      "observables_added": 0,
+      "summary": "Newly Registered Domain: present in local NRD list (registration age unverified: rdap: domain not found: RDAP GET request to https://rdap.verisign.com/com/v1/domain/ace4-missing.com returned a 404 error, the resource does not exist)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "NRDAnalysis",
+      "dump": "nrd_analyzer/fqdn_ace4-norecord.com.json",
+      "input": "fqdn ace4-norecord.com, against fixtures/nrd's lists, with max_registration_age_days 90",
+      "module": "nrd_analyzer",
+      "observables_added": 0,
+      "summary": "Newly Registered Domain: present in local NRD list (registration age unverified: rdap: rdap result has no registration date; whois: no WHOIS in a replay)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "NRDAnalysis",
+      "dump": "nrd_analyzer/fqdn_caf\u00e9.com.json",
+      "input": "fqdn caf\u00e9.com, against fixtures/nrd's lists, with max_registration_age_days 90",
+      "module": "nrd_analyzer",
+      "observables_added": 0,
+      "summary": "Newly Registered Domain: present in local NRD list (registered 19 day(s) ago)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "nrd_analyzer/fqdn_example.com.json",
+      "input": "fqdn example.com, against fixtures/nrd's lists, with max_registration_age_days 90",
+      "module": "nrd_analyzer",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "NRDAnalysis",
+      "dump": "nrd_analyzer/fqdn_example.com.unverified.json",
+      "input": "fqdn example.com, against fixtures/nrd's lists, with max_registration_age_days 0",
+      "module": "nrd_analyzer",
+      "observables_added": 0,
+      "summary": "Newly Registered Domain: present in local NRD list"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "NRDAnalysis",
+      "dump": "nrd_analyzer/fqdn_login.ace4-fresh.com.json",
+      "input": "fqdn login.ace4-fresh.com, against fixtures/nrd's lists, with max_registration_age_days 90",
+      "module": "nrd_analyzer",
+      "observables_added": 0,
+      "summary": "Newly Registered Domain: present in local NRD list (registered 7 day(s) ago)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "nrd_analyzer/fqdn_not-listed.example.com.json",
+      "input": "fqdn not-listed.example.com, against fixtures/nrd's lists, with max_registration_age_days 90",
+      "module": "nrd_analyzer",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "nrd_analyzer/url_ftp:__ace4-fresh.com_file.json",
+      "input": "url ftp://ace4-fresh.com/file, against fixtures/nrd's lists, with max_registration_age_days 90",
+      "module": "nrd_analyzer",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "NRDAnalysis",
+      "dump": "nrd_analyzer/url_https:__user:pw@ACE4-fresh.com:8443_path?q=1.json",
+      "input": "url https://user:pw@ACE4-fresh.com:8443/path?q=1, against fixtures/nrd's lists, with max_registration_age_days 90",
+      "module": "nrd_analyzer",
+      "observables_added": 0,
+      "summary": "Newly Registered Domain: present in local NRD list (registered 7 day(s) ago)"
+    },
+    {
       "ace3_commit": "844e3584",
       "analysis": "SplunkAPIAnalysis",
       "dump": "proxy_domain_lookup/fqdn_www.example.com.json",
@@ -1036,6 +1189,150 @@
       "module": "snort_signature_analysis_v1",
       "observables_added": 0,
       "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "UserAnalysis",
+      "dump": "user_analyzer/email_address_JDOE@Company.Example.json",
+      "input": "email_address JDOE@Company.Example, against fake_ldap.py over fixtures/ldap/directory.json",
+      "module": "user_analyzer",
+      "observables_added": 1,
+      "summary": "Doe, John - Springfield - Finance - Analyst"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "UserAnalysis",
+      "dump": "user_analyzer/email_address_John.Doe@company.example.crawl.json",
+      "input": "email_address John.Doe@company.example with directives ['crawl'], against fake_ldap.py over fixtures/ldap/directory.json",
+      "module": "user_analyzer",
+      "observables_added": 1,
+      "summary": "Doe, John - Springfield - Finance - Analyst"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "user_analyzer/email_address_nobody@company.example.json",
+      "input": "email_address nobody@company.example, against fake_ldap.py over fixtures/ldap/directory.json",
+      "module": "user_analyzer",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "UserAnalysis",
+      "dump": "user_analyzer/email_address_shared@company.example.json",
+      "input": "email_address shared@company.example, against fake_ldap.py over fixtures/ldap/directory.json",
+      "module": "user_analyzer",
+      "observables_added": 1,
+      "summary": "Shared folder - None - None - None"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "user_analyzer/email_address_someone@other.example.json",
+      "input": "email_address someone@other.example, against fake_ldap.py over fixtures/ldap/directory.json",
+      "module": "user_analyzer",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "user_analyzer/user_a*.json",
+      "input": "user a*, against fake_ldap.py over fixtures/ldap/directory.json",
+      "module": "user_analyzer",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "UserAnalysis",
+      "dump": "user_analyzer/user_a*b.json",
+      "input": "user a*b, against fake_ldap.py over fixtures/ldap/directory.json",
+      "module": "user_analyzer",
+      "observables_added": 0,
+      "summary": "Star, In Name - None - None - None"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "UserAnalysis",
+      "dump": "user_analyzer/user_asmith.json",
+      "input": "user asmith, against fake_ldap.py over fixtures/ldap/directory.json",
+      "module": "user_analyzer",
+      "observables_added": 1,
+      "summary": "Smith, Alice - Springfield - Finance - Director"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "UserAnalysis",
+      "dump": "user_analyzer/user_ceo.json",
+      "input": "user ceo, against fake_ldap.py over fixtures/ldap/directory.json",
+      "module": "user_analyzer",
+      "observables_added": 1,
+      "summary": "Officer, Chief - None - None - Chief Executive"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "UserAnalysis",
+      "dump": "user_analyzer/user_dup.json",
+      "input": "user dup, against fake_ldap.py over fixtures/ldap/directory.json",
+      "module": "user_analyzer",
+      "observables_added": 0,
+      "summary": "Dup, Second - None - None - Second of two"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "UserAnalysis",
+      "dump": "user_analyzer/user_dup.page-limit-1.json",
+      "input": "user dup, against fake_ldap.py over fixtures/ldap/directory.json with 1 entry a page",
+      "module": "user_analyzer",
+      "observables_added": 0,
+      "summary": "Dup, First - None - None - First of two"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "UserAnalysis",
+      "dump": "user_analyzer/user_jdoe.json",
+      "input": "user jdoe, against fake_ldap.py over fixtures/ldap/directory.json",
+      "module": "user_analyzer",
+      "observables_added": 1,
+      "summary": "Doe, John - Springfield - Finance - Analyst"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "user_analyzer/user_jdoe.skip_user_analysis.json",
+      "input": "user jdoe with directives ['skip_user_analysis'], against fake_ldap.py over fixtures/ldap/directory.json",
+      "module": "user_analyzer",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "UserAnalysis",
+      "dump": "user_analyzer/user_noattrs.json",
+      "input": "user noattrs, against fake_ldap.py over fixtures/ldap/directory.json",
+      "module": "user_analyzer",
+      "observables_added": 0,
+      "summary": "None, None - None - None - None"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "user_analyzer/user_nobody.json",
+      "input": "user nobody, against fake_ldap.py over fixtures/ldap/directory.json",
+      "module": "user_analyzer",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "UserAnalysis",
+      "dump": "user_analyzer/user_odd.json",
+      "input": "user odd, against fake_ldap.py over fixtures/ldap/directory.json",
+      "module": "user_analyzer",
+      "observables_added": 0,
+      "summary": "Caf\\xe9 \\xff - None - None - None"
     },
     {
       "ace3_commit": "844e3584",

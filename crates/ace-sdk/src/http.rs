@@ -26,6 +26,7 @@ pub const DEFAULT_CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
 pub struct HttpClientBuilder {
     timeout: Duration,
     connect_timeout: Duration,
+    read_timeout: Option<Duration>,
     extra_roots: Vec<Certificate>,
     proxy: Option<reqwest::Proxy>,
     user_agent: String,
@@ -36,6 +37,7 @@ impl Default for HttpClientBuilder {
         HttpClientBuilder {
             timeout: DEFAULT_TIMEOUT,
             connect_timeout: DEFAULT_CONNECT_TIMEOUT,
+            read_timeout: None,
             extra_roots: Vec::new(),
             proxy: None,
             user_agent: concat!("ace4/", env!("CARGO_PKG_VERSION")).to_owned(),
@@ -56,6 +58,13 @@ impl HttpClientBuilder {
 
     pub fn connect_timeout(mut self, timeout: Duration) -> Self {
         self.connect_timeout = timeout;
+        self
+    }
+
+    /// The longest a read may wait for the next bytes of a response, as for a long download whose
+    /// whole-request timeout is long. None by default: the whole-request timeout bounds it.
+    pub fn read_timeout(mut self, timeout: Duration) -> Self {
+        self.read_timeout = Some(timeout);
         self
     }
 
@@ -85,6 +94,9 @@ impl HttpClientBuilder {
             .connect_timeout(self.connect_timeout)
             .user_agent(self.user_agent)
             .tls_certs_merge(self.extra_roots);
+        if let Some(timeout) = self.read_timeout {
+            builder = builder.read_timeout(timeout);
+        }
         builder = match self.proxy {
             Some(proxy) => builder.proxy(proxy),
             None => builder.no_proxy(),

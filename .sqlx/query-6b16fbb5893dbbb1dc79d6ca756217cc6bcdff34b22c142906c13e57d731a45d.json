@@ -1,0 +1,62 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT config_hash, last_refreshed_at, row_count, sources FROM nrd.state WHERE id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "config_hash",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "nrd.state",
+            "name": "config_hash"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "last_refreshed_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "nrd.state",
+            "name": "last_refreshed_at"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "row_count",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "nrd.state",
+            "name": "row_count"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "sources",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "nrd.state",
+            "name": "sources"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "6b16fbb5893dbbb1dc79d6ca756217cc6bcdff34b22c142906c13e57d731a45d"
+}

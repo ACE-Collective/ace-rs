@@ -238,12 +238,14 @@ async fn reads_core(rules: std::path::PathBuf) -> Core {
     let modules = [
         "snort_signature_analysis_v1",
         "email_conversation_frequency_analyzer",
+        "nrd_analyzer",
         "archive",
     ];
     Core::start_configured(
         ace_core::eligibility::Catalog::new([
             ace_mod_snort::MANIFEST,
             ace_mod_brocess::frequency::MANIFEST,
+            ace_mod_nrd::MANIFEST,
             ace_mod_archive::MANIFEST,
         ]),
         ace_core::modes::Modes::ace3(),
@@ -763,6 +765,189 @@ async fn the_frequency_module_reads_its_counts_through_the_lease_api() {
     assert_eq!(
         summary.as_deref(),
         Some("Email Conversation Frequency Analysis - 10 emails received before, 7 to this user")
+    );
+}
+
+// ---- nrd_analyzer: the newly-registered read ----
+
+/// The domains ace3's first refresh left in the list its nrd_analyzer dumps read
+/// (tools/ace3/dumps/reference/nrd/reference.json), in the core's list.
+async fn insert_nrd_fixture(core: &Core) {
+    let reference: serde_json::Value = serde_json::from_str(
+        &std::fs::read_to_string(ace_testkit::reference::dumps_dir().join("nrd/reference.json"))
+            .expect("the reference reads"),
+    )
+    .expect("JSON");
+    let domains: Vec<String> = reference["refresh"][0]["database"]["domains"]
+        .as_array()
+        .expect("domains")
+        .iter()
+        .map(|d| d.as_str().expect("a domain").to_owned())
+        .collect();
+    sqlx::query("INSERT INTO nrd.domains (domain) SELECT unnest($1::text[])")
+        .bind(&domains)
+        .execute(core.test_db.db().pool())
+        .await
+        .expect("inserts");
+}
+
+/// `newly-registered` (PLAN.md 7.4): for each value ace3's nrd_analyzer dumps have, the core finds
+/// it in the list, or doesn't, as ace3's `is_newly_registered` did over the same domains; it
+/// answers only for the task's own observable; and the refusals every read makes.
+#[tokio::test]
+async fn newly_registered_answers_as_ace3_s_list_did_and_only_for_the_task_s_own_observable() {
+    let core = reads_core(snort_rules()).await;
+    insert_nrd_fixture(&core).await;
+    let client =
+        ace_pool::client::LeaseClient::new(&core.url, common::TOKEN, "w1").expect("a client");
+    let dumps = ace_testkit::reference::Dump::all("nrd_analyzer").expect("the dumps read");
+    assert_eq!(dumps.len(), 10);
+    for dump in dumps {
+        let input = &dump.value["input"]["observable"];
+        let kind: ace_results::ObservableKind = input["type"]
+            .as_str()
+            .expect("a type")
+            .parse()
+            .expect("a kind");
+        let value = input["value"].as_str().expect("a value");
+        root_of(&core, kind, &[value], "nrd_analyzer").await;
+        let task = client
+            .lease(&["nrd_analyzer".to_owned()], Duration::ZERO)
+            .await
+            .expect("leases")
+            .expect("a task");
+        let answer = client
+            .read(task.id, "newly-registered", &serde_json::json!({}), false)
+            .await
+            .expect("answers");
+        // ace3 made an analysis for every hit but example.com and its subdomain, a hit by its
+        // parent, which RDAP said was registered in 1995, so it dropped them
+        let ace3_listed = dump.analysis("NRDAnalysis").is_some()
+            || ["fqdn_example.com", "fqdn_not-listed.example.com"].contains(&dump.short_name());
+        assert_eq!(
+            answer,
+            serde_json::json!({"listed": ace3_listed}),
+            "{value}"
+        );
+        client
+            .end(
+                task.id,
+                &ace_sdk::wire::TaskEnd::Skipped {
+                    reason: "checked".into(),
+                    writes: Vec::new(),
+                },
+            )
+            .await
+            .expect("ends");
+    }
+
+    let root = root_of(
+        &core,
+        ace_results::ObservableKind::Fqdn,
+        &["ace4-fresh.com", "ace4-second.org"],
+        "nrd_analyzer",
+    )
+    .await;
+    let elsewhere = root_of(
+        &core,
+        ace_results::ObservableKind::Fqdn,
+        &["x.example.com"],
+        "archive",
+    )
+    .await;
+    let task = client
+        .lease(&["nrd_analyzer".to_owned()], Duration::ZERO)
+        .await
+        .expect("leases")
+        .expect("a task");
+    assert_eq!(task.root, root);
+    let own = serde_json::json!({"subject": {"type": "fqdn", "value": "ace4-fresh.com"}});
+    assert_eq!(
+        client
+            .read(task.id, "newly-registered", &own, false)
+            .await
+            .expect("answers"),
+        serde_json::json!({"listed": true})
+    );
+    // another observable of its own root, listed or not, isn't the task's own
+    let sibling = serde_json::json!({"subject": {"type": "fqdn", "value": "ace4-second.org"}});
+    assert_eq!(
+        status(
+            &client
+                .read(task.id, "newly-registered", &sibling, false)
+                .await
+        ),
+        Some(403)
+    );
+    let archive_task = client
+        .lease(&["archive".to_owned()], Duration::ZERO)
+        .await
+        .expect("leases")
+        .expect("a task");
+    assert_eq!(archive_task.root, elsewhere);
+    assert_refusals(
+        &core,
+        task.id,
+        "newly-registered",
+        serde_json::json!({}),
+        serde_json::json!({"subject": {"type": "fqdn", "value": "x.example.com"}}),
+        archive_task.id,
+    )
+    .await;
+}
+
+/// The newly registered domains module run as the lookups pool runs it, with verification off:
+/// its read goes through the pool's client, and its result and tag land.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn the_nrd_module_reads_the_list_through_the_lease_api() {
+    let core = reads_core(snort_rules()).await;
+    insert_nrd_fixture(&core).await;
+    let root = root_of(
+        &core,
+        ace_results::ObservableKind::Url,
+        &["https://login.ACE4-fresh.com/x"],
+        "nrd_analyzer",
+    )
+    .await;
+    let client =
+        ace_pool::client::LeaseClient::new(&core.url, common::TOKEN, "pool").expect("a client");
+    let settings = serde_json::json!({"max_registration_age_days": 0});
+    let modules = std::sync::Arc::new(
+        ace_pool::modules::Modules::new().with_lookup(
+            ace_pool::modules::Entry::<ace_mod_nrd::NrdAnalyzer>::lookup(
+                Some(&settings),
+                &ace_sdk::Secrets::new(),
+            )
+            .expect("the module"),
+        ),
+    );
+    let task = client
+        .lease(&[], Duration::ZERO)
+        .await
+        .expect("leases")
+        .expect("a task");
+    let end = ace_pool::run::run_in_process(
+        &client,
+        &modules,
+        task,
+        &tokio_util::sync::CancellationToken::new(),
+    )
+    .await
+    .expect("runs");
+    assert!(
+        matches!(end, ace_sdk::wire::TaskEnd::Done { .. }),
+        "{end:?}"
+    );
+    let summary: Option<String> = sqlx::query_scalar(
+        "SELECT summary FROM analysis.results WHERE root_id = $1 AND module = 'nrd_analyzer'",
+    )
+    .bind(root)
+    .fetch_one(core.test_db.db().pool())
+    .await
+    .expect("a result");
+    assert_eq!(
+        summary.as_deref(),
+        Some("Newly Registered Domain: present in local NRD list")
     );
 }
 

@@ -240,6 +240,9 @@ pub const BUCKET_GC: PermissionName = PermissionName::known("bucket", "gc");
 /// Re-hash a sample of the bucket's objects and record when each was found intact, as ace3's `ace cas
 /// verify` does. Only the scheduler's `scheduler:bucket_verify` holds it.
 pub const BUCKET_VERIFY: PermissionName = PermissionName::known("bucket", "verify");
+/// Rebuild the newly registered domains list from its feeds, as ace3's `ace nrd refresh` does. Only
+/// the scheduler's `scheduler:nrd_refresh` holds it.
+pub const NRD_REFRESH: PermissionName = PermissionName::known("nrd", "refresh");
 /// Enter the GUI's administration area: ace3's `admin:read`, its umbrella gate. Each page there needs its
 /// own permission too, such as `user:read` for Users & Roles.
 pub const ADMIN_READ: PermissionName = PermissionName::known("admin", "read");
@@ -363,6 +366,10 @@ pub static CATALOG: &[CatalogEntry] = &[
         name: LIST_WRITE,
         description: "Add, change and delete entries on the analyst-edited lists. An entry applies to the \
                       next task that reads its list: a whitelist entry stops the analysis of what it matches.",
+    },
+    CatalogEntry {
+        name: NRD_REFRESH,
+        description: "Rebuild the newly registered domains list from its feeds. The scheduler holds it.",
     },
     CatalogEntry {
         name: OBSERVABLE_READ,

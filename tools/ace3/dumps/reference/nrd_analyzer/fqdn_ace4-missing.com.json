@@ -1,0 +1,44 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "NRDAnalysis",
+      "details": {
+        "age_created_in_days": null,
+        "datetime_created": null,
+        "is_nrd": true,
+        "lookup_error": "rdap: domain not found: RDAP GET request to https://rdap.verisign.com/com/v1/domain/ace4-missing.com returned a 404 error, the resource does not exist",
+        "lookup_protocol": null,
+        "matched_at": "2026-11-08T23:04:34.449956+00:00"
+      },
+      "detections": [],
+      "module_path": "saq.modules.nrd:NRDAnalysis",
+      "observables": [],
+      "summary": "Newly Registered Domain: present in local NRD list (registration age unverified: rdap: domain not found: RDAP GET request to https://rdap.verisign.com/com/v1/domain/ace4-missing.com returned a 404 error, the resource does not exist)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fqdn ace4-missing.com, against fixtures/nrd's lists, with max_registration_age_days 90",
+    "meta_tags": [],
+    "observable": {
+      "type": "fqdn",
+      "value": "ace4-missing.com"
+    }
+  },
+  "module": "nrd_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "relationships": [],
+    "tags": [
+      "suspect:nrd"
+    ],
+    "type": "fqdn",
+    "value": "ace4-missing.com"
+  }
+}

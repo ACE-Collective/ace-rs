@@ -12,6 +12,9 @@
 //!
 //! ace3 falls back to WHOIS when RDAP can't answer. That isn't ported: the module records RDAP's
 //! error instead.
+//!
+//! `CreationDates` is ace3's `lookup_domain_creation_date`, the same lookup for a domain's
+//! registration date alone, which the newly registered domains module verifies a hit with.
 
 mod bootstrap;
 mod parse;
@@ -29,6 +32,7 @@ use serde::Deserialize;
 use serde_json::Value;
 
 use crate::bootstrap::{Bootstrap, BootstrapError, Kind};
+pub use crate::parse::RdapDate;
 
 /// The module's manifest.
 pub const MANIFEST: Manifest = Manifest::lookup::<RdapAnalyzer>();
@@ -154,6 +158,110 @@ fn first_line(text: &str) -> String {
         .to_owned()
 }
 
+/// What RDAP said about a domain or an address.
+enum Query {
+    /// The response, with the registrar's merged in for a domain, and what ace3 reads of it.
+    Found {
+        raw: Value,
+        parsed: Box<parse::Parsed>,
+    },
+    /// The registry said the resource doesn't exist: ace3's error for it.
+    NotFound(String),
+    /// RDAP couldn't answer, for this reason.
+    Failed(String),
+}
+
+/// Asks RDAP about `target`: the bootstrap's server for it, then, for a domain, the registrar's
+/// related link, as whoisit's `domain` and `ip` do.
+async fn query(
+    client: &HttpClient,
+    bootstrap: &Bootstrap,
+    target: &str,
+    ip: Option<IpAddr>,
+) -> Result<Query, ModuleError> {
+    let kind = match ip {
+        Some(IpAddr::V4(_)) => Kind::Ipv4,
+        Some(IpAddr::V6(_)) => Kind::Ipv6,
+        None => Kind::Dns,
+    };
+    let registry = match bootstrap.registry(client, kind).await {
+        Ok(registry) => registry,
+        Err(BootstrapError::Http(e)) if e.is_unavailable() => return Err(e.into()),
+        Err(e) => {
+            return Ok(Query::Failed(first_line(&format!("bootstrap failed: {e}"))));
+        }
+    };
+
+    let (urls, what) = match ip {
+        Some(ip) => (registry.for_ip(ip), "ip"),
+        None => {
+            let labels: Vec<&str> = target.split('.').collect();
+            if labels.len() < 2 {
+                return Ok(Query::Failed(format!(
+                    "Failed to extract TLD from domain \"{target}\""
+                )));
+            }
+            // whoisit tries the last two labels before the TLD
+            let sld = labels[labels.len() - 2..].join(".");
+            let tld = labels[labels.len() - 1];
+            (
+                registry.for_tld(&sld).or_else(|| registry.for_tld(tld)),
+                "domain",
+            )
+        }
+    };
+    let Some(base) = urls.and_then(bootstrap::preferred) else {
+        let thing = if ip.is_some() { "address" } else { "TLD" };
+        return Ok(Query::Failed(format!(
+            "no RDAP service for {thing}: {target} has no known RDAP endpoint"
+        )));
+    };
+    let base = if base.ends_with('/') {
+        base
+    } else {
+        format!("{base}/")
+    };
+    let url = format!("{base}{what}/{target}");
+
+    let mut raw = match get(client, &url).await? {
+        Fetched::Json(raw) => raw,
+        Fetched::NotFound => {
+            let message = format!(
+                "RDAP GET request to {url} returned a 404 error, the resource does not exist"
+            );
+            let mut error = first_line(&format!("rdap: domain not found: {message}"));
+            error.truncate(
+                error
+                    .char_indices()
+                    .nth(200)
+                    .map_or(error.len(), |(i, _)| i),
+            );
+            return Ok(Query::NotFound(error));
+        }
+        Fetched::Error(error) => return Ok(Query::Failed(first_line(&error))),
+    };
+
+    if ip.is_none() {
+        // overlay the registrar's answer over the registry's, as whoisit's follow_related
+        if let Some(related) = related_link(&raw) {
+            match get(client, &related).await {
+                Ok(Fetched::Json(more)) => merge(&mut raw, more),
+                Ok(_) | Err(_) => tracing::warn!("the related RDAP query failed"),
+            }
+        }
+    }
+
+    match parse::parse(&raw, ip) {
+        Ok(parsed) => Ok(Query::Found {
+            raw,
+            parsed: Box::new(parsed),
+        }),
+        Err(e) => Ok(Query::Failed(first_line(&format!(
+            "rdap client error: {e}"
+        )))),
+    }
+}
+
 impl RdapAnalyzer {
     async fn try_rdap(
         &self,
@@ -162,88 +270,13 @@ impl RdapAnalyzer {
         analysis: &mut RdapAnalysis,
         now: chrono::DateTime<chrono::Utc>,
     ) -> Result<Attempt, ModuleError> {
-        let kind = match ip {
-            Some(IpAddr::V4(_)) => Kind::Ipv4,
-            Some(IpAddr::V6(_)) => Kind::Ipv6,
-            None => Kind::Dns,
-        };
-        let registry = match self.bootstrap.registry(&self.client, kind).await {
-            Ok(registry) => registry,
-            Err(BootstrapError::Http(e)) if e.is_unavailable() => return Err(e.into()),
-            Err(e) => {
-                return Ok(Attempt::Failed(first_line(&format!(
-                    "bootstrap failed: {e}"
-                ))));
-            }
-        };
-
-        let (urls, what) = match ip {
-            Some(ip) => (registry.for_ip(ip), "ip"),
-            None => {
-                let labels: Vec<&str> = target.split('.').collect();
-                if labels.len() < 2 {
-                    return Ok(Attempt::Failed(format!(
-                        "Failed to extract TLD from domain \"{target}\""
-                    )));
-                }
-                // whoisit tries the last two labels before the TLD
-                let sld = labels[labels.len() - 2..].join(".");
-                let tld = labels[labels.len() - 1];
-                (
-                    registry.for_tld(&sld).or_else(|| registry.for_tld(tld)),
-                    "domain",
-                )
-            }
-        };
-        let Some(base) = urls.and_then(bootstrap::preferred) else {
-            let thing = if ip.is_some() { "address" } else { "TLD" };
-            return Ok(Attempt::Failed(format!(
-                "no RDAP service for {thing}: {target} has no known RDAP endpoint"
-            )));
-        };
-        let base = if base.ends_with('/') {
-            base
-        } else {
-            format!("{base}/")
-        };
-        let url = format!("{base}{what}/{target}");
-
-        let mut raw = match self.get(&url).await? {
-            Fetched::Json(raw) => raw,
-            Fetched::NotFound => {
-                let message = format!(
-                    "RDAP GET request to {url} returned a 404 error, the resource does not exist"
-                );
-                let mut error = first_line(&format!("rdap: domain not found: {message}"));
-                error.truncate(
-                    error
-                        .char_indices()
-                        .nth(200)
-                        .map_or(error.len(), |(i, _)| i),
-                );
+        let (raw, parsed) = match query(&self.client, &self.bootstrap, target, ip).await? {
+            Query::Found { raw, parsed } => (raw, *parsed),
+            Query::NotFound(error) => {
                 analysis.error = Some(error);
                 return Ok(Attempt::NotFound);
             }
-            Fetched::Error(error) => return Ok(Attempt::Failed(first_line(&error))),
-        };
-
-        if ip.is_none() {
-            // overlay the registrar's answer over the registry's, as whoisit's follow_related
-            if let Some(related) = related_link(&raw) {
-                match self.get(&related).await {
-                    Ok(Fetched::Json(more)) => merge(&mut raw, more),
-                    Ok(_) | Err(_) => tracing::warn!("the related RDAP query failed"),
-                }
-            }
-        }
-
-        let parsed = match parse::parse(&raw, ip) {
-            Ok(parsed) => parsed,
-            Err(e) => {
-                return Ok(Attempt::Failed(first_line(&format!(
-                    "rdap client error: {e}"
-                ))));
-            }
+            Query::Failed(error) => return Ok(Attempt::Failed(error)),
         };
         analysis.rdap_raw_json = Some(raw.to_string());
         analysis.domain_name = Some(if parsed.name.is_empty() {
@@ -279,46 +312,45 @@ impl RdapAnalyzer {
         }
         Ok(Attempt::Done)
     }
+}
 
-    /// A GET that answers with JSON. A peer that can't be reached fails the task, so it runs
-    /// again later.
-    async fn get(&self, url: &str) -> Result<Fetched, ModuleError> {
-        let request = self
-            .client
-            .get(url)
-            .header("Accept", "application/rdap+json, application/json");
-        let response = match self.client.send(request).await {
-            Ok(response) => response,
-            Err(e) if e.is_unavailable() => return Err(e.into()),
-            Err(e) => return Ok(Fetched::Error(format!("rdap client error: {e}"))),
-        };
-        let status = response.status();
-        let response = match check_status(response) {
-            Ok(response) => response,
-            Err(e) if e.is_unavailable() => return Err(e.into()),
-            Err(e) if e.kind() == HttpErrorKind::Status(reqwest::StatusCode::NOT_FOUND) => {
-                return Ok(Fetched::NotFound);
-            }
-            Err(_) => {
-                // whoisit's messages for the statuses it names
-                let what = match status.as_u16() {
-                    401 => "a 401 error, unauthorized".to_owned(),
-                    403 => "a 403 error, forbidden".to_owned(),
-                    422 => "a 422 error, the request was unprocessable".to_owned(),
-                    500 => "a 500 error, the resource returned a remote server error".to_owned(),
-                    code => format!("a non-200 status code of {code}"),
-                };
-                return Ok(Fetched::Error(format!(
-                    "RDAP GET request to {url} returned {what}"
-                )));
-            }
-        };
-        match response.json::<Value>().await {
-            Ok(raw) => Ok(Fetched::Json(raw)),
-            Err(e) => Ok(Fetched::Error(format!(
-                "Failed to parse RDAP Query response as JSON: {e}"
-            ))),
+/// A GET that answers with JSON. A peer that can't be reached fails the task, so it runs again
+/// later.
+async fn get(client: &HttpClient, url: &str) -> Result<Fetched, ModuleError> {
+    let request = client
+        .get(url)
+        .header("Accept", "application/rdap+json, application/json");
+    let response = match client.send(request).await {
+        Ok(response) => response,
+        Err(e) if e.is_unavailable() => return Err(e.into()),
+        Err(e) => return Ok(Fetched::Error(format!("rdap client error: {e}"))),
+    };
+    let status = response.status();
+    let response = match check_status(response) {
+        Ok(response) => response,
+        Err(e) if e.is_unavailable() => return Err(e.into()),
+        Err(e) if e.kind() == HttpErrorKind::Status(reqwest::StatusCode::NOT_FOUND) => {
+            return Ok(Fetched::NotFound);
         }
+        Err(_) => {
+            // whoisit's messages for the statuses it names
+            let what = match status.as_u16() {
+                401 => "a 401 error, unauthorized".to_owned(),
+                403 => "a 403 error, forbidden".to_owned(),
+                422 => "a 422 error, the request was unprocessable".to_owned(),
+                500 => "a 500 error, the resource returned a remote server error".to_owned(),
+                code => format!("a non-200 status code of {code}"),
+            };
+            return Ok(Fetched::Error(format!(
+                "RDAP GET request to {url} returned {what}"
+            )));
+        }
+    };
+    match response.json::<Value>().await {
+        Ok(raw) => Ok(Fetched::Json(raw)),
+        Err(e) => Ok(Fetched::Error(format!(
+            "Failed to parse RDAP Query response as JSON: {e}"
+        ))),
     }
 }
 
@@ -479,5 +511,98 @@ mod tests {
                 "port43": "whois.example",
             })
         );
+    }
+}
+
+/// What `CreationDates::lookup` found, ace3's `DomainCreationLookup`: the registration date and
+/// the protocol that gave it, or why there's none.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CreationLookup {
+    pub created: Option<RdapDate>,
+    /// `rdap` when there's a date.
+    pub protocol: Option<&'static str>,
+    pub error: Option<String>,
+}
+
+/// How many successful lookups `CreationDates` remembers, ace3's `_CREATION_DATE_MEMO_MAX`.
+pub const CREATION_MEMO_MAX: usize = 4096;
+
+/// ace3's `lookup_domain_creation_date`: a registrable domain's registration date from RDAP, with
+/// the successes remembered for the process, at most `CREATION_MEMO_MAX`, the oldest dropped
+/// first. A failure isn't remembered, so it's tried again next time. ace3 asks WHOIS when RDAP
+/// can't answer; that isn't ported, so the error is RDAP's alone.
+pub struct CreationDates {
+    client: HttpClient,
+    bootstrap: Bootstrap,
+    memo: std::sync::Mutex<(
+        std::collections::HashMap<String, CreationLookup>,
+        std::collections::VecDeque<String>,
+    )>,
+}
+
+impl CreationDates {
+    pub fn new(client: HttpClient, bootstrap_url: &str, bootstrap_ttl: Duration) -> Self {
+        CreationDates {
+            client,
+            bootstrap: Bootstrap::new(bootstrap_url, bootstrap_ttl),
+            memo: std::sync::Mutex::default(),
+        }
+    }
+
+    /// The registration date of `domain`, a normalized registrable domain. An RDAP server that
+    /// can't be reached fails with `ModuleError::Unavailable`, as the RDAP module's lookup does.
+    pub async fn lookup(&self, domain: &str) -> Result<CreationLookup, ModuleError> {
+        if let Some(found) = self
+            .memo
+            .lock()
+            .ok()
+            .and_then(|memo| memo.0.get(domain).cloned())
+        {
+            return Ok(found);
+        }
+        let rdap_error = match query(&self.client, &self.bootstrap, domain, None).await? {
+            Query::Found { parsed, .. } => match parsed.registration {
+                Some(created) => {
+                    let found = CreationLookup {
+                        created: Some(created),
+                        protocol: Some("rdap"),
+                        error: None,
+                    };
+                    self.remember(domain, &found);
+                    return Ok(found);
+                }
+                // the registry left the registration event out; ace3 asks WHOIS next
+                None => "rdap result has no registration date".to_owned(),
+            },
+            // an authoritative not found is the answer, with no WHOIS after it
+            Query::NotFound(error) => {
+                return Ok(CreationLookup {
+                    created: None,
+                    protocol: None,
+                    error: Some(error),
+                });
+            }
+            Query::Failed(error) => error,
+        };
+        Ok(CreationLookup {
+            created: None,
+            protocol: None,
+            error: Some(format!("rdap: {rdap_error}")),
+        })
+    }
+
+    fn remember(&self, domain: &str, found: &CreationLookup) {
+        let Ok(mut memo) = self.memo.lock() else {
+            return;
+        };
+        let (map, order) = &mut *memo;
+        if map.len() >= CREATION_MEMO_MAX
+            && let Some(oldest) = order.pop_front()
+        {
+            map.remove(&oldest);
+        }
+        if map.insert(domain.to_owned(), found.clone()).is_none() {
+            order.push_back(domain.to_owned());
+        }
     }
 }

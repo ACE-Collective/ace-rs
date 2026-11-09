@@ -52,6 +52,10 @@ ace-core = { path = "../ace-core", features = ["testing"] }
 ace-mod-yara = { path = "../ace-mod-yara" }
 # The hunter's test replays ace3's exchanges with the fake Splunk.
 ace-testkit = { path = "../ace-testkit" }
+# The NRD refresh's tests serve its feeds over TLS with a certificate made for the test (PLAN.md 7.4).
+rcgen = "0.14.10"
+rustls = { version = "0.23", default-features = false, features = ["aws_lc_rs"] }
+tokio-rustls = "0.26.6"
 # The scheduler's tests (PLAN.md 6.7) set up and read rows directly.
 sqlx = { version = "0.9.0", default-features = false, features = ["chrono", "json", "postgres", "runtime-tokio", "uuid"] }
 

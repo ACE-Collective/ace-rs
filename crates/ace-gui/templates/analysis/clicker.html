@@ -1,0 +1,39 @@
+{#- splunk_clicker_detection_analysis (src/analysis.rs), from ace3's analysis/api_analysis.html, which ace3
+    draws this type with: the link to the search, the question, an error and the raw details. ace3 shows
+    the clicks in the alert's URL Clicks panel; here they're a table of their own. -#}
+{%- if let Some(link) = self.link() %}
+<p><a href="{{ link }}" rel="noopener noreferrer">{{ self.link_label() }}</a></p>
+{%- endif %}
+{%- if analysis.question.is_some() || analysis.query_summary.is_some() %}
+<p class="muted">
+{%- if let Some(question) = analysis.question %}<strong>{{ question }}</strong><br>{% endif %}
+{%- if let Some(summary) = analysis.query_summary %}{{ summary }}{% endif %}
+</p>
+{%- endif %}
+{%- if let Some(error) = analysis.query_error %}
+<p class="error" role="alert"><strong>Query Error:</strong> {{ error }}</p>
+{%- endif %}
+{%- let clicks = self.clicks() %}
+{%- if !clicks.items.is_empty() %}
+<div class="scroll">
+<table class="rows">
+<thead><tr><th>Time</th><th>User</th><th>Action</th><th>URL</th><th>Source</th></tr></thead>
+<tbody>
+{%- for click in clicks.items %}
+<tr><td>{{ click.0 }}</td><td>{{ click.1 }}</td><td>{{ click.2 }}</td><td>{{ click.3 }}</td><td>{{ click.4 }}</td></tr>
+{%- endfor %}
+</tbody>
+</table>
+</div>
+{%- if clicks.more > 0 %}
+<p class="clipped">{{ clicks.more }} more clicks not shown.</p>
+{%- endif %}
+{%- endif %}
+{%- let raw = self.raw() %}
+<details class="block">
+<summary>Raw Details</summary>
+<pre class="json">{{ raw.text }}</pre>
+{%- if raw.more > 0 %}
+<p class="clipped">{{ raw.more }} more bytes of the details not shown.</p>
+{%- endif %}
+</details>

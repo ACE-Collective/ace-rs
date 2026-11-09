@@ -1,0 +1,756 @@
+{
+  "about": "What ace3's saq.nrd code did with tools/ace3/dumps/fixtures/nrd, written by tools/ace3/dumps/nrd_reference.py. The list server was at http://127.0.0.1:8091.",
+  "lines": [
+    {
+      "kept": "ace4-backup.net",
+      "line": "ace4-backup.net",
+      "list": "backup.txt"
+    },
+    {
+      "kept": "ace4-changed.com",
+      "line": "ace4-changed.com",
+      "list": "changed.txt"
+    },
+    {
+      "kept": "ace4-fresh.com",
+      "line": "ace4-fresh.com",
+      "list": "changed.txt"
+    },
+    {
+      "kept": null,
+      "line": "# Made-up newly registered domains for ace4's NRD fixtures. No feed produced these.",
+      "list": "first.txt"
+    },
+    {
+      "kept": null,
+      "line": "",
+      "list": "first.txt"
+    },
+    {
+      "kept": "ace4-fresh.com",
+      "line": "ace4-fresh.com",
+      "list": "first.txt"
+    },
+    {
+      "kept": "ace4-upper.com",
+      "line": "ACE4-Upper.com",
+      "list": "first.txt"
+    },
+    {
+      "kept": "trailing-dot.com",
+      "line": "trailing-dot.com.",
+      "list": "first.txt"
+    },
+    {
+      "kept": "spaced.net",
+      "line": "   spaced.net   ",
+      "list": "first.txt"
+    },
+    {
+      "kept": "example.com",
+      "line": "example.com",
+      "list": "first.txt"
+    },
+    {
+      "kept": "xn--caf-dma.com",
+      "line": "café.com",
+      "list": "first.txt"
+    },
+    {
+      "kept": "xn--bcher-kva.com",
+      "line": "xn--bcher-kva.com",
+      "list": "first.txt"
+    },
+    {
+      "kept": "xn--qj8hl9g.st",
+      "line": "xn--qj8hl9g.st",
+      "list": "first.txt"
+    },
+    {
+      "kept": null,
+      "line": "bad_domain.com",
+      "list": "first.txt"
+    },
+    {
+      "kept": null,
+      "line": "*.wildcard.com",
+      "list": "first.txt"
+    },
+    {
+      "kept": null,
+      "line": "192.0.2.1",
+      "list": "first.txt"
+    },
+    {
+      "kept": null,
+      "line": "not a domain",
+      "list": "first.txt"
+    },
+    {
+      "kept": null,
+      "line": "http://url.com/x",
+      "list": "first.txt"
+    },
+    {
+      "kept": "ace4-fresh.com",
+      "line": "ace4-fresh.com",
+      "list": "first.txt"
+    },
+    {
+      "kept": null,
+      "line": "nodot",
+      "list": "first.txt"
+    },
+    {
+      "kept": "example.co.uk",
+      "line": "example.co.uk",
+      "list": "first.txt"
+    },
+    {
+      "kept": "-leading-hyphen.com",
+      "line": "-leading-hyphen.com",
+      "list": "first.txt"
+    },
+    {
+      "kept": "ace4-norecord.com",
+      "line": "ace4-norecord.com",
+      "list": "first.txt"
+    },
+    {
+      "kept": null,
+      "line": "# a comment after the domains",
+      "list": "first.txt"
+    },
+    {
+      "kept": "ace4-second.org",
+      "line": "ace4-second.org",
+      "list": "second.txt"
+    },
+    {
+      "kept": "ace4-missing.com",
+      "line": "ace4-missing.com",
+      "list": "second.txt"
+    },
+    {
+      "kept": "ace4-fresh.com",
+      "line": "ACE4-FRESH.com",
+      "list": "second.txt"
+    },
+    {
+      "kept": null,
+      "line": "",
+      "list": "second.txt"
+    },
+    {
+      "kept": "xn--ber-goa.example",
+      "line": "über.example",
+      "list": "second.txt"
+    }
+  ],
+  "lookups": [
+    {
+      "candidates": [
+        "ace4-fresh.com"
+      ],
+      "normalized": "ace4-fresh.com",
+      "registrable_domain": "ace4-fresh.com",
+      "value": "ace4-fresh.com"
+    },
+    {
+      "candidates": [
+        "ace4-fresh.com"
+      ],
+      "normalized": "ace4-fresh.com",
+      "registrable_domain": "ace4-fresh.com",
+      "value": "ACE4-Fresh.COM."
+    },
+    {
+      "candidates": [
+        "login.ace4-fresh.com",
+        "ace4-fresh.com"
+      ],
+      "normalized": "login.ace4-fresh.com",
+      "registrable_domain": "ace4-fresh.com",
+      "value": "  login.ace4-fresh.com  "
+    },
+    {
+      "candidates": [
+        "a.b.c.ace4-fresh.com",
+        "b.c.ace4-fresh.com",
+        "c.ace4-fresh.com",
+        "ace4-fresh.com"
+      ],
+      "normalized": "a.b.c.ace4-fresh.com",
+      "registrable_domain": "ace4-fresh.com",
+      "value": "a.b.c.ace4-fresh.com"
+    },
+    {
+      "candidates": [
+        "ace4-fresh.com"
+      ],
+      "normalized": "ace4-fresh.com",
+      "registrable_domain": "ace4-fresh.com",
+      "value": "https://user:pw@ACE4-fresh.com:8443/path?q=1"
+    },
+    {
+      "candidates": [
+        "login.ace4-fresh.com",
+        "ace4-fresh.com"
+      ],
+      "normalized": "login.ace4-fresh.com",
+      "registrable_domain": "ace4-fresh.com",
+      "value": "http://login.ace4-fresh.com"
+    },
+    {
+      "candidates": [
+        "ace4-fresh.com"
+      ],
+      "normalized": "ace4-fresh.com",
+      "registrable_domain": "ace4-fresh.com",
+      "value": "HTTP://ace4-fresh.com/"
+    },
+    {
+      "candidates": [],
+      "normalized": "",
+      "registrable_domain": "",
+      "value": "ftp://ace4-fresh.com/file"
+    },
+    {
+      "candidates": [],
+      "normalized": "",
+      "registrable_domain": "",
+      "value": "ace4-fresh.com/path"
+    },
+    {
+      "candidates": [],
+      "normalized": "",
+      "registrable_domain": "",
+      "value": "https://[2001:db8::1]/x"
+    },
+    {
+      "candidates": [
+        "192.0.2.1"
+      ],
+      "normalized": "192.0.2.1",
+      "registrable_domain": "192.0.2.1",
+      "value": "https://192.0.2.1/x"
+    },
+    {
+      "candidates": [],
+      "normalized": "",
+      "registrable_domain": "",
+      "value": "http://"
+    },
+    {
+      "candidates": [
+        "xn--caf-dma.com"
+      ],
+      "normalized": "xn--caf-dma.com",
+      "registrable_domain": "xn--caf-dma.com",
+      "value": "café.com"
+    },
+    {
+      "candidates": [
+        "login.xn--caf-dma.com",
+        "xn--caf-dma.com"
+      ],
+      "normalized": "login.xn--caf-dma.com",
+      "registrable_domain": "xn--caf-dma.com",
+      "value": "login.café.com"
+    },
+    {
+      "candidates": [
+        "xn--caf-dma.com"
+      ],
+      "normalized": "xn--caf-dma.com",
+      "registrable_domain": "xn--caf-dma.com",
+      "value": "https://café.com/welcome"
+    },
+    {
+      "candidates": [
+        "xn--caf-dma.com"
+      ],
+      "normalized": "xn--caf-dma.com",
+      "registrable_domain": "xn--caf-dma.com",
+      "value": "xn--caf-dma.com"
+    },
+    {
+      "candidates": [
+        "xn--ber-goa.example"
+      ],
+      "normalized": "xn--ber-goa.example",
+      "registrable_domain": "xn--ber-goa.example",
+      "value": "über.example"
+    },
+    {
+      "candidates": [
+        "login.foo.co.uk",
+        "foo.co.uk"
+      ],
+      "normalized": "login.foo.co.uk",
+      "registrable_domain": "foo.co.uk",
+      "value": "login.foo.co.uk"
+    },
+    {
+      "candidates": [
+        "co.uk"
+      ],
+      "normalized": "co.uk",
+      "registrable_domain": "co.uk",
+      "value": "co.uk"
+    },
+    {
+      "candidates": [
+        "com"
+      ],
+      "normalized": "com",
+      "registrable_domain": "com",
+      "value": "com"
+    },
+    {
+      "candidates": [
+        "localhost"
+      ],
+      "normalized": "localhost",
+      "registrable_domain": "localhost",
+      "value": "localhost"
+    },
+    {
+      "candidates": [],
+      "normalized": "",
+      "registrable_domain": "",
+      "value": "not_a_domain.example"
+    },
+    {
+      "candidates": [],
+      "normalized": "",
+      "registrable_domain": "",
+      "value": "under_score.ace4-fresh.com"
+    },
+    {
+      "candidates": [],
+      "normalized": "",
+      "registrable_domain": "",
+      "value": "a..b.com"
+    },
+    {
+      "candidates": [],
+      "normalized": "",
+      "registrable_domain": "",
+      "value": "."
+    },
+    {
+      "candidates": [],
+      "normalized": "",
+      "registrable_domain": "",
+      "value": ""
+    },
+    {
+      "candidates": [],
+      "normalized": "",
+      "registrable_domain": "",
+      "value": "   "
+    },
+    {
+      "candidates": [
+        "someone.github.io",
+        "github.io"
+      ],
+      "normalized": "someone.github.io",
+      "registrable_domain": "github.io",
+      "value": "someone.github.io"
+    },
+    {
+      "candidates": [],
+      "normalized": "",
+      "registrable_domain": "",
+      "value": "ab--cd.com"
+    },
+    {
+      "candidates": [],
+      "normalized": "",
+      "registrable_domain": "",
+      "value": "xn--qj8hl9g.st"
+    },
+    {
+      "candidates": [],
+      "normalized": "",
+      "registrable_domain": "",
+      "value": "😀.com"
+    },
+    {
+      "candidates": [],
+      "normalized": "",
+      "registrable_domain": "",
+      "value": "ＡＣＥ４.com"
+    },
+    {
+      "candidates": [
+        "example.com"
+      ],
+      "normalized": "example.com",
+      "registrable_domain": "example.com",
+      "value": "example.com\t"
+    },
+    {
+      "candidates": [
+        "ace4-fresh.com"
+      ],
+      "normalized": "ace4-fresh.com",
+      "registrable_domain": "ace4-fresh.com",
+      "value": "https://ace4-fresh.com\n"
+    }
+  ],
+  "refresh": [
+    {
+      "database": {
+        "domains": [
+          "-leading-hyphen.com",
+          "ace4-fresh.com",
+          "ace4-missing.com",
+          "ace4-norecord.com",
+          "ace4-second.org",
+          "ace4-upper.com",
+          "example.co.uk",
+          "example.com",
+          "spaced.net",
+          "trailing-dot.com",
+          "xn--bcher-kva.com",
+          "xn--ber-goa.example",
+          "xn--caf-dma.com",
+          "xn--qj8hl9g.st"
+        ],
+        "meta": {
+          "config_hash": "d4d3affa386e109701cefa7fb48b36f7953cbb4ccfdcb042dda0198bd58d60b1",
+          "row_count": 14,
+          "sources": [
+            {
+              "content_length": 378,
+              "etag": "\"first-1\"",
+              "fetched_from": "http://127.0.0.1:8091/first.txt",
+              "last_modified": "Sat, 07 Nov 2026 10:00:00 GMT",
+              "row_count": 11,
+              "url": "http://127.0.0.1:8091/first.txt"
+            },
+            {
+              "content_length": 68,
+              "etag": null,
+              "fetched_from": "http://127.0.0.1:8091/second.txt",
+              "last_modified": "Sat, 07 Nov 2026 11:00:00 GMT",
+              "row_count": 4,
+              "url": "http://127.0.0.1:8091/second.txt"
+            }
+          ]
+        }
+      },
+      "exit_code": 0,
+      "requests": [
+        [
+          "GET",
+          "/first.txt"
+        ],
+        [
+          "GET",
+          "/second.txt"
+        ]
+      ],
+      "step": "no database",
+      "url_lists": [
+        {
+          "backups": [],
+          "url": "/first.txt"
+        },
+        {
+          "backups": [],
+          "url": "/second.txt"
+        }
+      ]
+    },
+    {
+      "database": {
+        "domains": [
+          "-leading-hyphen.com",
+          "ace4-fresh.com",
+          "ace4-missing.com",
+          "ace4-norecord.com",
+          "ace4-second.org",
+          "ace4-upper.com",
+          "example.co.uk",
+          "example.com",
+          "spaced.net",
+          "trailing-dot.com",
+          "xn--bcher-kva.com",
+          "xn--ber-goa.example",
+          "xn--caf-dma.com",
+          "xn--qj8hl9g.st"
+        ],
+        "meta": {
+          "config_hash": "d4d3affa386e109701cefa7fb48b36f7953cbb4ccfdcb042dda0198bd58d60b1",
+          "row_count": 14,
+          "sources": [
+            {
+              "content_length": 378,
+              "etag": "\"first-1\"",
+              "fetched_from": "http://127.0.0.1:8091/first.txt",
+              "last_modified": "Sat, 07 Nov 2026 10:00:00 GMT",
+              "row_count": 11,
+              "url": "http://127.0.0.1:8091/first.txt"
+            },
+            {
+              "content_length": 68,
+              "etag": null,
+              "fetched_from": "http://127.0.0.1:8091/second.txt",
+              "last_modified": "Sat, 07 Nov 2026 11:00:00 GMT",
+              "row_count": 4,
+              "url": "http://127.0.0.1:8091/second.txt"
+            }
+          ]
+        }
+      },
+      "exit_code": 0,
+      "requests": [],
+      "step": "inside the interval",
+      "url_lists": [
+        {
+          "backups": [],
+          "url": "/first.txt"
+        },
+        {
+          "backups": [],
+          "url": "/second.txt"
+        }
+      ]
+    },
+    {
+      "database": {
+        "domains": [
+          "-leading-hyphen.com",
+          "ace4-fresh.com",
+          "ace4-missing.com",
+          "ace4-norecord.com",
+          "ace4-second.org",
+          "ace4-upper.com",
+          "example.co.uk",
+          "example.com",
+          "spaced.net",
+          "trailing-dot.com",
+          "xn--bcher-kva.com",
+          "xn--ber-goa.example",
+          "xn--caf-dma.com",
+          "xn--qj8hl9g.st"
+        ],
+        "meta": {
+          "config_hash": "d4d3affa386e109701cefa7fb48b36f7953cbb4ccfdcb042dda0198bd58d60b1",
+          "row_count": 14,
+          "sources": [
+            {
+              "content_length": 378,
+              "etag": "\"first-1\"",
+              "fetched_from": "http://127.0.0.1:8091/first.txt",
+              "last_modified": "Sat, 07 Nov 2026 10:00:00 GMT",
+              "row_count": 11,
+              "url": "http://127.0.0.1:8091/first.txt"
+            },
+            {
+              "content_length": 68,
+              "etag": null,
+              "fetched_from": "http://127.0.0.1:8091/second.txt",
+              "last_modified": "Sat, 07 Nov 2026 11:00:00 GMT",
+              "row_count": 4,
+              "url": "http://127.0.0.1:8091/second.txt"
+            }
+          ]
+        }
+      },
+      "exit_code": 0,
+      "requests": [
+        [
+          "HEAD",
+          "/first.txt"
+        ],
+        [
+          "HEAD",
+          "/second.txt"
+        ]
+      ],
+      "step": "after the interval, unchanged upstream",
+      "url_lists": [
+        {
+          "backups": [],
+          "url": "/first.txt"
+        },
+        {
+          "backups": [],
+          "url": "/second.txt"
+        }
+      ]
+    },
+    {
+      "database": {
+        "domains": [
+          "ace4-changed.com",
+          "ace4-fresh.com",
+          "ace4-missing.com",
+          "ace4-second.org",
+          "xn--ber-goa.example"
+        ],
+        "meta": {
+          "config_hash": "d4d3affa386e109701cefa7fb48b36f7953cbb4ccfdcb042dda0198bd58d60b1",
+          "row_count": 5,
+          "sources": [
+            {
+              "content_length": 32,
+              "etag": "\"first-2\"",
+              "fetched_from": "http://127.0.0.1:8091/first.txt",
+              "last_modified": "Sun, 08 Nov 2026 10:00:00 GMT",
+              "row_count": 2,
+              "url": "http://127.0.0.1:8091/first.txt"
+            },
+            {
+              "content_length": 68,
+              "etag": null,
+              "fetched_from": "http://127.0.0.1:8091/second.txt",
+              "last_modified": "Sat, 07 Nov 2026 11:00:00 GMT",
+              "row_count": 4,
+              "url": "http://127.0.0.1:8091/second.txt"
+            }
+          ]
+        }
+      },
+      "exit_code": 0,
+      "requests": [
+        [
+          "HEAD",
+          "/first.txt"
+        ],
+        [
+          "GET",
+          "/first.txt"
+        ],
+        [
+          "GET",
+          "/second.txt"
+        ]
+      ],
+      "step": "after the interval, changed upstream",
+      "url_lists": [
+        {
+          "backups": [],
+          "url": "/first.txt"
+        },
+        {
+          "backups": [],
+          "url": "/second.txt"
+        }
+      ]
+    },
+    {
+      "database": {
+        "domains": [
+          "ace4-backup.net",
+          "ace4-fresh.com",
+          "ace4-missing.com",
+          "ace4-second.org",
+          "xn--ber-goa.example"
+        ],
+        "meta": {
+          "config_hash": "f07889b1422217b69bdf5239aa45dd16138ff8057a42336209f0fa0fd127ae0b",
+          "row_count": 5,
+          "sources": [
+            {
+              "content_length": 16,
+              "etag": "\"backup-1\"",
+              "fetched_from": "http://127.0.0.1:8091/backup.txt",
+              "last_modified": null,
+              "row_count": 1,
+              "url": "http://127.0.0.1:8091/missing.txt"
+            },
+            {
+              "content_length": 68,
+              "etag": null,
+              "fetched_from": "http://127.0.0.1:8091/second.txt",
+              "last_modified": "Sat, 07 Nov 2026 11:00:00 GMT",
+              "row_count": 4,
+              "url": "http://127.0.0.1:8091/second.txt"
+            }
+          ]
+        }
+      },
+      "exit_code": 0,
+      "requests": [
+        [
+          "GET",
+          "/missing.txt"
+        ],
+        [
+          "GET",
+          "/backup.txt"
+        ],
+        [
+          "GET",
+          "/second.txt"
+        ]
+      ],
+      "step": "a primary that fails, from its backup",
+      "url_lists": [
+        {
+          "backups": [
+            "/backup.txt"
+          ],
+          "url": "/missing.txt"
+        },
+        {
+          "backups": [],
+          "url": "/second.txt"
+        }
+      ]
+    },
+    {
+      "database": {
+        "domains": [
+          "ace4-backup.net",
+          "ace4-fresh.com",
+          "ace4-missing.com",
+          "ace4-second.org",
+          "xn--ber-goa.example"
+        ],
+        "meta": {
+          "config_hash": "f07889b1422217b69bdf5239aa45dd16138ff8057a42336209f0fa0fd127ae0b",
+          "row_count": 5,
+          "sources": [
+            {
+              "content_length": 16,
+              "etag": "\"backup-1\"",
+              "fetched_from": "http://127.0.0.1:8091/backup.txt",
+              "last_modified": null,
+              "row_count": 1,
+              "url": "http://127.0.0.1:8091/missing.txt"
+            },
+            {
+              "content_length": 68,
+              "etag": null,
+              "fetched_from": "http://127.0.0.1:8091/second.txt",
+              "last_modified": "Sat, 07 Nov 2026 11:00:00 GMT",
+              "row_count": 4,
+              "url": "http://127.0.0.1:8091/second.txt"
+            }
+          ]
+        }
+      },
+      "exit_code": 1,
+      "requests": [
+        [
+          "GET",
+          "/missing.txt"
+        ]
+      ],
+      "step": "every URL of a list fails",
+      "url_lists": [
+        {
+          "backups": [],
+          "url": "/missing.txt"
+        }
+      ]
+    }
+  ]
+}

@@ -7,8 +7,8 @@ responder under a project of its own (ace4-e2e), with:
 - a signatures repository it makes under target/e2e/ from tools/ace3/trees/signatures, holding
   one rule that matches a marker string only in a file tagged type=email.attachment (its meta_tags
   directive);
-- tests/e2e/site/overlay.yaml, which points the RDAP module and the clicker_detection_splunk
-  instance of the Splunk module at the responder's recordings, so nothing reaches the internet;
+- tests/e2e/site/overlay.yaml, which points the RDAP module and the proxy_domain_splunk instance
+  of the Splunk module at the responder's recordings, so nothing reaches the internet;
 - a 15-second lease, so a task a killed pool held comes back quickly.
 
 It makes an API key holding alert:create with `ace user create-key` in the ace container, since the
@@ -121,7 +121,7 @@ MODULES = [
     "archive",
     "yara_scanner_v3_4",
     "rdap_analyzer",
-    "clicker_detection_splunk",
+    "proxy_domain_splunk",
 ]
 PARSER_MODULES = ["email_analyzer", "archive", "yara_scanner_v3_4"]
 
@@ -370,13 +370,13 @@ def check_root(root, failures):
             FROM analysis.results r JOIN analysis.observables o ON o.id = r.observable_id
             JOIN queue.tasks t ON t.root_id = r.root_id AND t.observable_id = r.observable_id
               AND t.module = r.module
-            WHERE r.root_id = '{root}' AND r.module = 'clicker_detection_splunk'"""
+            WHERE r.root_id = '{root}' AND r.module = 'proxy_domain_splunk'"""
     )
     expect(any(row[0] == "example.com" and row[1] == "" for row in splunk),
            f"the Splunk instance answered for example.com: {splunk}")
     delays = sql(
         f"""SELECT count(*) FROM queue.tasks
-            WHERE root_id = '{root}' AND module = 'clicker_detection_splunk'
+            WHERE root_id = '{root}' AND module = 'proxy_domain_splunk'
             AND first_delayed_at IS NOT NULL"""
     )[0][0]
     expect(delays != "0", "the Splunk task was delayed before its result")
@@ -1033,6 +1033,11 @@ def compare_with_ace3(threshold=False):
     # ace3's trees were made against an empty brocess (tools/ace3/trees/brocess.json), and the
     # email logger has recorded this test's email by now
     sql("TRUNCATE brocess.smtplog, brocess.email_thread_message, brocess.email_thread_domain")
+    # and with tools/ace3/trees/nrd.json's newly registered domains, as the core's list
+    domains = json.loads((TREES / "nrd.json").read_text())["domains"]
+    sql("TRUNCATE nrd.domains; INSERT INTO nrd.domains (domain) VALUES "
+        + ", ".join("('" + d.replace("'", "''") + "')" for d in domains)
+        + " ON CONFLICT DO NOTHING")
     # the recorded Splunk job counts requests from when the responder started
     compose("restart", "responder")
     compose("up", "-d", "--wait", "responder")

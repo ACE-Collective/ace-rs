@@ -1,0 +1,29 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [],
+  "input": {
+    "directives": [
+      "skip_user_analysis"
+    ],
+    "label": "user jdoe with directives ['skip_user_analysis'], against fake_ldap.py over fixtures/ldap/directory.json",
+    "meta_tags": [],
+    "observable": {
+      "type": "user",
+      "value": "jdoe"
+    }
+  },
+  "module": "user_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "skip_user_analysis"
+    ],
+    "excluded_analysis": [],
+    "relationships": [],
+    "tags": [],
+    "type": "user",
+    "value": "jdoe"
+  }
+}

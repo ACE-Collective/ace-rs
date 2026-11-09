@@ -12,6 +12,7 @@
 //! go to a store in a temporary directory, where `read_output` finds them.
 
 pub mod dns;
+pub mod ldap;
 pub mod library_diff;
 pub mod reads;
 pub mod reference;

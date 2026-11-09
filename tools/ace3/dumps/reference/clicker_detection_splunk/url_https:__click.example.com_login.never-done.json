@@ -1,0 +1,61 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "SplunkClickerDetectionAnalysis",
+      "details": {
+        "clicker_events": [],
+        "clicker_index": 2,
+        "clicker_plan": [
+          "url_clicks",
+          "proxy"
+        ],
+        "clicker_source": "splunk",
+        "dispatch_state": null,
+        "end_time": null,
+        "gui_link": "https://127.0.0.1/en-US/app/search/search?q=search+index%3Dace4_proxy+%28%22https%3A%2F%2Fclick.example.com%2Flogin%22+OR+%22https%253A%252F%252Fclick.example.com%252Flogin%22%29+_index_earliest+%3D+11%2F07%2F2026%3A23%3A48%3A04+_index_latest+%3D+11%2F09%2F2026%3A00%3A48%3A04%0A%7C+table+_time+user+url",
+        "gui_link_label": "Open in Splunk",
+        "matched_url_count": 1,
+        "query": null,
+        "query_error": "url_clicks: timed out; proxy: timed out",
+        "query_results": null,
+        "query_start": 1794181685.5031624,
+        "query_summary": "URL Clicks",
+        "question": "Did anyone click this URL or visit this domain?",
+        "running_start_time": null,
+        "search_id": null,
+        "start_time": null
+      },
+      "detections": [],
+      "module_path": "saq.modules.clicker_detection:SplunkClickerDetectionAnalysis:clicker_detection_splunk",
+      "observables": [],
+      "summary": "URL Clicks (Splunk): ERROR: url_clicks: timed out; proxy: timed out",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [
+      "clicker_detection"
+    ],
+    "label": "url https://click.example.com/login with directives ['clicker_detection'], against fake_splunk.py with --never-done",
+    "meta_tags": [],
+    "observable": {
+      "type": "url",
+      "value": "https://click.example.com/login"
+    }
+  },
+  "module": "clicker_detection_splunk",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "clicker_detection"
+    ],
+    "excluded_analysis": [],
+    "relationships": [],
+    "tags": [],
+    "type": "url",
+    "value": "https://click.example.com/login"
+  }
+}

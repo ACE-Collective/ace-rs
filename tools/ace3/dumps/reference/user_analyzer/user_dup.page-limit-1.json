@@ -1,0 +1,50 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "UserAnalysis",
+      "details": {
+        "ldap": {
+          "cn": "dup",
+          "displayName": "Dup, First",
+          "entitlements": [],
+          "objectClass": [
+            "top",
+            "person",
+            "organizationalPerson",
+            "user"
+          ],
+          "on_prem": null,
+          "primary_email": null,
+          "title": "First of two"
+        }
+      },
+      "detections": [],
+      "module_path": "saq.modules.user:UserAnalysis",
+      "observables": [],
+      "summary": "Dup, First - None - None - First of two",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "user dup, against fake_ldap.py over fixtures/ldap/directory.json with 1 entry a page",
+    "meta_tags": [],
+    "observable": {
+      "type": "user",
+      "value": "dup"
+    }
+  },
+  "module": "user_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "relationships": [],
+    "tags": [],
+    "type": "user",
+    "value": "dup"
+  }
+}

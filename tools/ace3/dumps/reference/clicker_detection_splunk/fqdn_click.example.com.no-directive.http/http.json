@@ -1,0 +1,30 @@
+{
+  "about": "Every request ace3's Splunk client made to tools/ace3/dumps/fake_splunk.py, in order, with the fake's response. Each body_file holds the response body. request_body is the form the client sent, with a login's password redacted.",
+  "exchanges": [
+    {
+      "body_file": "000-d82625da61bc.body",
+      "body_sha256": "d82625da61bc51f540d4d13a702d9a87cb8600b5e24a92e1cc58aa11b20d0fbf",
+      "body_size": 136,
+      "method": "POST",
+      "request_body": "username=ace4&password=%3Credacted%3E&cookie=1",
+      "request_headers": {
+        "Accept": "*/*",
+        "Accept-Encoding": "identity",
+        "Connection": "Close",
+        "Content-Length": "50",
+        "Host": "127.0.0.1:8089",
+        "User-Agent": "splunk-sdk-python/3.0.1"
+      },
+      "response_headers": {
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+        "Connection": "Close",
+        "Content-Length": "136",
+        "Content-Type": "text/xml; charset=UTF-8",
+        "Set-Cookie": "splunkd_8089=ace4-fake-session-0000000000000000; Path=/; Secure; HttpOnly; Max-Age=3600",
+        "X-Content-Type-Options": "nosniff"
+      },
+      "status": 200,
+      "url": "https://127.0.0.1:8089/services/auth/login"
+    }
+  ]
+}

@@ -1,0 +1,53 @@
+{
+  "about": "Hand-written RDAP answers for the made-up domains of tools/ace3/dumps/fixtures/nrd/lists, replayed to ace3 by run_module.py --replay-http beside the bootstrap files in reference/rdap_analyzer/fqdn_example.com.http, and to ace4 by ace_testkit::replay.",
+  "exchanges": [
+    {
+      "body_file": "000-a95669a6ac2d.body",
+      "body_sha256": "a95669a6ac2d44263da7a8e05ee17d517977af9ce7be845af9f60c73bc338dd1",
+      "body_size": 474,
+      "method": "GET",
+      "request_headers": {},
+      "response_headers": {
+        "Content-Type": "application/rdap+json"
+      },
+      "status": 200,
+      "url": "https://rdap.verisign.com/com/v1/domain/ace4-fresh.com"
+    },
+    {
+      "body_file": "001-91ed1924398b.body",
+      "body_sha256": "91ed1924398b8d4284b8c115b01f90cbbc2e97a540e8ecfca4aaf94e0136a395",
+      "body_size": 414,
+      "method": "GET",
+      "request_headers": {},
+      "response_headers": {
+        "Content-Type": "application/rdap+json"
+      },
+      "status": 200,
+      "url": "https://rdap.verisign.com/com/v1/domain/xn--caf-dma.com"
+    },
+    {
+      "body_file": "002-3412c3c82e94.body",
+      "body_sha256": "3412c3c82e9454874d30a9c46872d170399a415a1f752196cbcd850b2d51904d",
+      "body_size": 422,
+      "method": "GET",
+      "request_headers": {},
+      "response_headers": {
+        "Content-Type": "application/rdap+json"
+      },
+      "status": 200,
+      "url": "https://rdap.verisign.com/com/v1/domain/ace4-norecord.com"
+    },
+    {
+      "body_file": "003-d58ae17d8db6.body",
+      "body_sha256": "d58ae17d8db6271378130863d096e09cd950382065819d7a6bad0f54dfd0ce63",
+      "body_size": 72,
+      "method": "GET",
+      "request_headers": {},
+      "response_headers": {
+        "Content-Type": "application/rdap+json"
+      },
+      "status": 404,
+      "url": "https://rdap.verisign.com/com/v1/domain/ace4-missing.com"
+    }
+  ]
+}

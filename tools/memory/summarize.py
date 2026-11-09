@@ -124,7 +124,7 @@ def one_run(run_dir):
         t["attempts"] for t in load["tasks"] if t["module"] in ("email_analyzer", "archive", "yara_scanner_v3_4")
     )
     lookup_attempts = sum(
-        t["attempts"] for t in load["tasks"] if t["module"] in ("rdap_analyzer", "clicker_detection_splunk")
+        t["attempts"] for t in load["tasks"] if t["module"] in ("rdap_analyzer", "proxy_domain_splunk")
     )
     other_attempts = sum(t["attempts"] for t in load["tasks"]) - parser_attempts - lookup_attempts
     figures[("compare", "load", "parser task attempts")] = parser_attempts

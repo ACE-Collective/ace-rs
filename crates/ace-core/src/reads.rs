@@ -3,7 +3,7 @@
 //!
 //! `api.rs` checks the caller, the lease and that the task's module declares the read. Each read
 //! here then finds its subject in the task's root and answers. Built so far: `snort-signature`,
-//! `smtp-counts`, `email-thread-domains` and `email-thread` (PLAN.md 7.4).
+//! `smtp-counts`, `email-thread-domains`, `email-thread` and `newly-registered` (PLAN.md 7.4).
 
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::path::{Path, PathBuf};
@@ -17,7 +17,8 @@ use ace_sdk::email_threads;
 use ace_sdk::reads::{
     Conversation, ConversationMessage, EmailThreadAnswer, EmailThreadDomainsAnswer,
     EmailThreadDomainsRequest, EmailThreadRequest, EstablishedDomain, MessageParticipant,
-    SmtpCountsAnswer, SmtpCountsRequest, SnortSignatureAnswer, SnortSignatureRequest,
+    NewlyRegisteredAnswer, NewlyRegisteredRequest, SmtpCountsAnswer, SmtpCountsRequest,
+    SnortSignatureAnswer, SnortSignatureRequest,
 };
 use regex::Regex;
 use serde_json::Value;
@@ -91,6 +92,10 @@ pub async fn answer(
             let mut answer = email_thread(db, task, request).await?;
             answer.recording = recording(db, catalog, task).await?;
             serde_json::to_value(answer)
+        }
+        "newly-registered" => {
+            let request: NewlyRegisteredRequest = parse(request)?;
+            serde_json::to_value(newly_registered(db, task, request).await?)
         }
         other => {
             return Err(ReadFailure::Forbidden(format!(
@@ -188,6 +193,49 @@ pub fn parse_email_conversation(value: &str) -> (&str, &str) {
         [sender, recipient] => (sender, recipient),
         _ => (value, ""),
     }
+}
+
+// ---- newly-registered ----
+
+/// `newly-registered`: ace3's `is_newly_registered` for the task's own fqdn or url, over migration
+/// 0039's list. It answers for nothing but the task's own observable, so a module can't probe the
+/// list with names of its own.
+async fn newly_registered(
+    db: &Db,
+    task: &Task,
+    request: NewlyRegisteredRequest,
+) -> Result<NewlyRegisteredAnswer, ReadFailure> {
+    let own = ObservableRef::new(task.observable.kind, task.observable.value.clone());
+    if let Some(subject) = request.subject
+        && subject != own
+    {
+        return Err(ReadFailure::Forbidden(format!(
+            "{}:{} isn't the task's own observable, the only one this read answers for",
+            subject.kind, subject.value
+        )));
+    }
+    if !own.kind.is_subtype_of(ObservableKind::Fqdn) && !own.kind.is_subtype_of(ObservableKind::Url)
+    {
+        return Err(ReadFailure::Forbidden(format!(
+            "{}:{} isn't an fqdn or url observable",
+            own.kind, own.value
+        )));
+    }
+    let normalized = ace_sdk::nrd::normalize_lookup(&own.value);
+    let listed = if normalized.is_empty() {
+        false
+    } else {
+        crate::nrd::listed(db, &ace_sdk::nrd::candidates(&normalized)).await?
+    };
+    tracing::info!(
+        task = task.id.0,
+        root = %task.root,
+        read = "newly-registered",
+        subject = %own.value,
+        listed,
+        "read"
+    );
+    Ok(NewlyRegisteredAnswer { listed })
 }
 
 // ---- email-thread-domains ----

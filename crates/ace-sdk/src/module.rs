@@ -51,6 +51,10 @@ pub trait Module: Sized + Send + Sync + 'static {
     /// module, which needs its query: it runs only as the site overlay's named instances
     /// (PLAN.md 2.23), never as itself on its defaults.
     const INSTANCES_ONLY: bool = false;
+    /// False for a module ace3 ships disabled, such as the LDAP lookup, which a site turns on by
+    /// giving it a section in the overlay, empty or not, as ace3's site config sets `enabled: true`.
+    /// Without one it doesn't run.
+    const ENABLED_BY_DEFAULT: bool = true;
     /// True for a module that reads the body of the email that carried its observable, as ace3's
     /// modules for encrypted attachments do. The core adds it to the module's tasks, which read it
     /// with `TaskContext::carrying_email`, or says an email in the root isn't parsed yet, and a

@@ -254,6 +254,10 @@ PROCESS = {
 # what 7.3 decides for a program a module starts
 DECISIONS = {"crate", "runner", "children", "scanner", "none"}
 # what serves a module besides a read of reads.md
+# Reads ace4 adds for a module whose data ace3 keeps outside ACE's own databases, so the scan
+# doesn't find the module: nrd_analyzer's list is a SQLite file on each node in ace3, and in ace4
+# the core's list, which a worker reads through the core (PLAN.md 7.4).
+ADDED_READS = {"newly-registered": "nrd_analyzer"}
 SERVED = {"lease", "ruleset", "end", "core"}
 FUNCTION = (ast.FunctionDef, ast.AsyncFunctionDef)
 
@@ -510,6 +514,11 @@ def check_reads(doc, reads_doc, rows, found, failures):
             if token == "core" and name in rows and rows[name]["pool"].strip() != "core":
                 failures.append(f"7.2: {name} is served in the core and its pool is "
                                 f"{rows[name]['pool'].strip()}")
+    for read, module in ADDED_READS.items():
+        if reads.get(read) == module:
+            named.add(read)
+        else:
+            failures.append(f"7.2: ADDED_READS gives {read} to {module}, which reads.md doesn't")
     for read in sorted(set(reads) - named):
         failures.append(f"7.2: reads.md has {read}, which no module's row names")
     return len(served), len(reads)

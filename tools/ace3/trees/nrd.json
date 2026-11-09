@@ -1,0 +1,4 @@
+{
+  "about": "The newly registered domains list both systems' trees are made with: tools/ace3/trees/make-trees builds ace3's SQLite list of it, and tests/e2e/run puts it in ace4's nrd.domains before the comparison. Each is a domain of a URL in the samples. Both run nrd_analyzer with max_registration_age_days 0, since RDAP knows nothing of them.",
+  "domains": ["component.pw"]
+}

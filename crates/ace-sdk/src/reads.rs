@@ -284,10 +284,41 @@ pub struct MessageParticipant {
     pub first_seen: Option<String>,
 }
 
+/// `newly-registered`: whether the task's own fqdn or url, or a parent of it down to its registrable
+/// domain, is in the newly registered domains list (`nrd_analyzer`).
+pub struct NewlyRegistered;
+
+impl ReadKind for NewlyRegistered {
+    const READ: Read = Read {
+        name: "newly-registered",
+    };
+    type Request = NewlyRegisteredRequest;
+    type Answer = NewlyRegisteredAnswer;
+}
+
+/// The subject of a `newly-registered` read: only the task's own observable, which None names. A
+/// subject is accepted only when it is that observable.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct NewlyRegisteredRequest {
+    #[serde(default)]
+    pub subject: Option<ObservableRef>,
+}
+
+/// The answer to a `newly-registered` read.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct NewlyRegisteredAnswer {
+    /// True when the value, normalized as ace3's `saq.nrd.util` does, or one of its parents down to
+    /// its registrable domain is in the list.
+    pub listed: bool,
+}
+
 /// Every read a module can declare, by name.
 pub const ALL: &[Read] = &[
     SnortSignature::READ,
     SmtpCounts::READ,
     EmailThreadDomains::READ,
     EmailThread::READ,
+    NewlyRegistered::READ,
 ];

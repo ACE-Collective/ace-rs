@@ -36,6 +36,7 @@
 mod cli;
 mod compare;
 pub mod hunter;
+pub mod nrd;
 mod pools;
 mod root;
 pub mod scheduler;
@@ -278,6 +279,15 @@ impl App {
             .fold(Modes::ace3(), |modes, (group, module)| {
                 modes.with_module_in_group(group, module)
             })
+    }
+
+    /// The modes with the overlay's instances in the groups they join (`InstanceSection::groups`).
+    fn modes_with(&self, components: &[ace_sdk::Component]) -> Modes {
+        components.iter().fold(self.modes(), |modes, component| {
+            component.groups.iter().fold(modes, |modes, group| {
+                modes.with_module_in_group(group, &component.key)
+            })
+        })
     }
 
     /// The pools and their modules, as `ACE4_POOLS` lists them: the core's default.

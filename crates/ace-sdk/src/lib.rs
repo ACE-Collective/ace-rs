@@ -21,6 +21,7 @@ pub mod ip;
 pub mod lists;
 pub mod manifest;
 pub mod module;
+pub mod nrd;
 pub mod overlay;
 pub mod reads;
 pub mod wire;
@@ -34,4 +35,6 @@ pub use module::{
     BoxError, Delay, EXCLUDE_ALL, Lookup, Module, ModuleError, Outcome, Parser, Settings,
     WHITELISTED, run_lookup, run_parser,
 };
-pub use overlay::{Component, Overlay, OverlayError, ScheduledTaskSection, SecretSource};
+pub use overlay::{
+    Component, NrdList, NrdSection, Overlay, OverlayError, ScheduledTaskSection, SecretSource,
+};

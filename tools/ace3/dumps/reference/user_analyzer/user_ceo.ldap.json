@@ -1,0 +1,59 @@
+{
+  "about": "The searches ace3 made of tools/ace3/dumps/fake_ldap.py, in order.",
+  "searches": [
+    {
+      "base": "",
+      "scope": "base",
+      "filter": "(objectClass=*)",
+      "attributes": [
+        "altServer",
+        "namingContexts",
+        "supportedControl",
+        "supportedExtension",
+        "supportedFeatures",
+        "supportedCapabilities",
+        "supportedLdapVersion",
+        "supportedSASLMechanisms",
+        "vendorName",
+        "vendorVersion",
+        "subschemaSubentry",
+        "*",
+        "+",
+        "+"
+      ],
+      "paged": null
+    },
+    {
+      "base": "CN=Aggregate,CN=Schema,CN=Configuration,DC=company,DC=example",
+      "scope": "base",
+      "filter": "(objectClass=subschema)",
+      "attributes": [
+        "objectClasses",
+        "attributeTypes",
+        "ldapSyntaxes",
+        "matchingRules",
+        "matchingRuleUse",
+        "dITContentRules",
+        "dITStructureRules",
+        "nameForms",
+        "createTimestamp",
+        "modifyTimestamp",
+        "*",
+        "+"
+      ],
+      "paged": null
+    },
+    {
+      "base": "DC=company,DC=example",
+      "scope": "subtree",
+      "filter": "(cn=ceo)",
+      "attributes": [
+        "*"
+      ],
+      "paged": {
+        "size": 100,
+        "cookie": ""
+      }
+    }
+  ]
+}

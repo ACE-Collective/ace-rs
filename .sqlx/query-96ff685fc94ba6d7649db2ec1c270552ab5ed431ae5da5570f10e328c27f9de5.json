@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO nrd.domains (domain) SELECT unnest($1::text[]) ON CONFLICT DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "TextArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "96ff685fc94ba6d7649db2ec1c270552ab5ed431ae5da5570f10e328c27f9de5"
+}

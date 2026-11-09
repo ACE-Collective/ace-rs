@@ -3,7 +3,8 @@
 //! schedules in `etc/cron.yaml`, here as tasks of `ace serve`.
 //!
 //! **What runs.** Of ace3's 25 core tasks (3 hourly, 20 daily, 2 weekly), four have a counterpart in
-//! ace4 now, and run here on ace3's cadence (`Task::builtin`):
+//! ace4 now, and run here on ace3's cadence (`Task::builtin`), with one of the cron jobs ace3 runs
+//! outside them, `nrd-refresh` (PLAN.md 7.4, `crate::nrd`):
 //!
 //! | task | ace3 | schedule | timeout | component and grant |
 //! |---|---|---|---|---|
@@ -11,6 +12,7 @@
 //! | `yara_qa_prune` | `daily/yara-qa-prune`, `ace yara-qa prune` | `0 5 * * *` | 1 h | `scheduler:yara_qa_prune`, `signature:qa_purge` |
 //! | `bucket_orphans` | `weekly/cas-orphans`, `ace cas orphans` | `0 5 * * 1` | 4 h | `scheduler:bucket_orphans`, `bucket:gc` |
 //! | `bucket_verify` | `weekly/cas-verify`, `ace cas verify` | `0 5 * * 1` | 4 h | `scheduler:bucket_verify`, `bucket:verify` |
+//! | `nrd_refresh` | `etc/cron.yaml`'s `nrd-refresh`, `ace nrd refresh` | `*/30 * * * *` | 25 min | `scheduler:nrd_refresh`, `nrd:refresh` |
 //!
 //! The rest, and a site's one, wait for the step that brings what they maintain, or mean nothing in
 //! ace4; PLAN.md 6.7 lists each with why. ace3's other cron jobs, outside `cron_tasks.py` in `etc/cron.yaml`, are listed
@@ -91,12 +93,14 @@ impl Done {
     }
 }
 
-/// What a task gets to run with: the service, the bucket and the component it acts as.
+/// What a task gets to run with: the service, the bucket, the component it acts as and the site
+/// overlay, such as `nrd_refresh`'s feeds.
 #[derive(Clone)]
 pub struct TaskContext {
     pub service: Service,
     pub bucket: Bucket,
     pub actor: Actor,
+    pub overlay: Arc<ace_sdk::Overlay>,
 }
 
 /// A run's future.
@@ -214,6 +218,20 @@ impl Task {
                     })
                 },
             ),
+            Task::new(
+                "nrd_refresh",
+                "*/30 * * * *",
+                Duration::from_secs(25 * 60),
+                |ctx| {
+                    Box::pin(async move {
+                        let refresher = crate::nrd::Refresher::new(&ctx.overlay.nrd)?;
+                        let done = refresher
+                            .refresh(&ctx.service, &ctx.actor, &ctx.overlay.nrd)
+                            .await?;
+                        Ok(Done::ok(done.summary()))
+                    })
+                },
+            ),
         ]
     }
 }
@@ -307,6 +325,8 @@ pub struct Scheduler {
     pub node: String,
     pub poll: Duration,
     pub stop_wait: Duration,
+    /// The site overlay the tasks read, such as `nrd_refresh`'s feeds.
+    pub overlay: Arc<ace_sdk::Overlay>,
 }
 
 impl Scheduler {
@@ -320,7 +340,14 @@ impl Scheduler {
             node: format!("{host}/{}", std::process::id()),
             poll: POLL,
             stop_wait: STOP_WAIT,
+            overlay: Arc::default(),
         }
+    }
+
+    /// The scheduler with the site overlay its tasks read.
+    pub fn with_overlay(mut self, overlay: ace_sdk::Overlay) -> Scheduler {
+        self.overlay = Arc::new(overlay);
+        self
     }
 
     /// Runs the due tasks until `stop` fires, then stops the running ones and waits at most
@@ -371,6 +398,7 @@ impl Scheduler {
                             service: self.service.clone(),
                             bucket: self.bucket.clone(),
                             actor: task.actor.clone(),
+                            overlay: self.overlay.clone(),
                         };
                         runs.spawn(run_one(
                             self.db.clone(),

@@ -386,6 +386,239 @@ def thread_runs():
     return runs
 
 
+# The newly registered domains runs (PLAN.md 7.4). nrd_reference.py runs first, in the first run's
+# service: it records what ace3's saq.nrd code makes of fixtures/nrd's lookups and lists, runs
+# `refresh()` through its steps against a list server it starts (reference/nrd/reference.json), and
+# keeps the first step's database, which every run then reads. A hit is verified with RDAP, answered
+# from fixtures/nrd/rdap's hand-written registrations beside the bootstrap files of the RDAP module's
+# example.com recording, whose example.com was registered in 1995; WHOIS fails (--replay-http).
+# Each run shows an outcome: a domain registered a week before, a subdomain and a URL of it, an old
+# domain, the same with verification off, a registration with no date, one RDAP doesn't have, a
+# name not listed, an IDN, and a URL whose scheme isn't http.
+NRD_DB = f"{REMOTE}/nrd/nrd_index.db"
+NRD_RUNS = [
+    ("fqdn", "ace4-fresh.com", 90),
+    ("fqdn", "login.ace4-fresh.com", 90),
+    ("url", "https://user:pw@ACE4-fresh.com:8443/path?q=1", 90),
+    ("fqdn", "example.com", 90),
+    ("fqdn", "example.com", 0),
+    ("fqdn", "ace4-norecord.com", 90),
+    ("fqdn", "ace4-missing.com", 90),
+    ("fqdn", "not-listed.example.com", 90),
+    ("fqdn", "café.com", 90),
+    ("url", "ftp://ace4-fresh.com/file", 90),
+]
+NRD_CONFIG = "nrd:\n  database_path: {db}\nanalysis_module_nrd_analyzer:\n  max_registration_age_days: {age}\n"
+
+
+@contextlib.contextmanager
+def nrd_reference(config, age, first):
+    """Runs nrd_reference.py once, before the first run, and writes the run's settings."""
+    if first:
+        put(f"{REMOTE}/nrd_reference.py", (HERE / "nrd_reference.py").read_bytes())
+        out = f"{REMOTE}/runs/nrd/reference.json"
+        result = subprocess.run(
+            ["docker", "exec", "-e", "PYTHONDONTWRITEBYTECODE=1", "-e", "SAQ_SKIP_LOCAL_SAQ_YAML=1",
+             "-e", "NO_PROXY=127.0.0.1,localhost", "-e", "no_proxy=127.0.0.1,localhost", CONTAINER,
+             "/venv/bin/python3", f"{REMOTE}/nrd_reference.py", "--work", f"{REMOTE}/runs/nrd/work",
+             "--fixtures", f"{REMOTE}/fixtures/nrd", "--out", out, "--db", NRD_DB],
+            capture_output=True,
+        )
+        if result.returncode != 0:
+            sys.stderr.write(result.stderr.decode(errors="replace"))
+            raise SystemExit("nrd_reference.py failed")
+        target = OUT / "nrd" / "reference.json"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(docker("exec", CONTAINER, "cat", out).stdout)
+    put(config, NRD_CONFIG.format(db=NRD_DB, age=age).encode())
+    yield
+
+
+def nrd_runs():
+    runs = []
+    for kind, value, age in NRD_RUNS:
+        name = f"{kind}_{value}" + ("" if age else ".unverified")
+        config = f"{REMOTE}/runs/nrd-{len(runs)}.yaml"
+        runs.append({
+            "module": "nrd_analyzer",
+            "enable": [],
+            "name": name.replace("/", "_"),
+            "args": ["--observable", kind, value, "--config", config,
+                     "--replay-http", f"{REMOTE}/fixtures/nrd/rdap", "--replay-http", f"{REMOTE}/rdap"],
+            "label": f"{kind} {value}, against fixtures/nrd's lists, with max_registration_age_days {age}",
+            "service": lambda config=config, age=age, first=not runs: nrd_reference(config, age, first),
+        })
+    return runs
+
+
+# The user analyzer's runs (PLAN.md 7.4) ask fake_ldap.py, which serves fixtures/ldap/directory.json
+# on 127.0.0.1 in plaintext, as ace3 binds, and records each search in <name>.ldap.json beside the
+# dump. Each shows an outcome: a user whose manager's manager is the top user, the top user, the
+# manager, a local address (found by proxyAddresses, adding the user) with a directive to copy, the
+# same address in another case, an external address, a local address and a user nobody has, a
+# public folder's address, a name two entries share (one page, and one entry a page), a name with a
+# filter character, a user whose attributes show the formatting of each syntax and none, an entry
+# with no attributes but its own, and a user carrying skip_user_analysis.
+LDAP_PORT = 3890
+LDAP_CONFIG = """\
+ldap:
+  ldap_server: 127.0.0.1
+  ldap_port: {port}
+  ldap_bind_user: CN=ace4,OU=Service,DC=company,DC=example
+  ldap_bind_password: ace4-fake-password
+  ldap_base_dn: DC=company,DC=example
+  top_user: ceo
+global:
+  local_email_domains: [company.example]
+"""
+LDAP_RUNS = [
+    ("user", "jdoe", [], None),
+    ("user", "ceo", [], None),
+    ("user", "asmith", [], None),
+    ("email_address", "John.Doe@company.example", ["crawl"], None),
+    ("email_address", "JDOE@Company.Example", [], None),
+    ("email_address", "someone@other.example", [], None),
+    ("email_address", "nobody@company.example", [], None),
+    ("user", "nobody", [], None),
+    ("email_address", "shared@company.example", [], None),
+    ("user", "dup", [], None),
+    ("user", "dup", [], 1),
+    ("user", "a*b", [], None),
+    ("user", "a*", [], None),
+    ("user", "odd", [], None),
+    ("user", "noattrs", [], None),
+    ("user", "jdoe", ["skip_user_analysis"], None),
+]
+
+
+@contextlib.contextmanager
+def fake_ldap(fake_dir, page_limit):
+    """Runs fake_ldap.py in the container over the directory fixture, recording to fake_dir/ldap.json."""
+    docker("exec", CONTAINER, "mkdir", "-p", fake_dir)
+    put(f"{fake_dir}/saq.ldap.yaml", LDAP_CONFIG.format(port=LDAP_PORT).encode())
+    limit = f"--page-limit {page_limit} " if page_limit else ""
+    docker(
+        "exec", "-d", CONTAINER, "sh", "-c",
+        f"exec /venv/bin/python3 -I {REMOTE}/fake_ldap.py --directory {REMOTE}/fixtures/ldap/directory.json "
+        f"--port {LDAP_PORT} --record {fake_dir}/ldap.json --pid-file {fake_dir}/ldap.pid {limit}2> {fake_dir}/ldap.log",
+    )
+    try:
+        for _ in range(100):
+            if docker("exec", CONTAINER, "test", "-e", f"{fake_dir}/ldap.pid", check=False).returncode == 0:
+                break
+            time.sleep(0.1)
+        else:
+            log = docker("exec", CONTAINER, "cat", f"{fake_dir}/ldap.log", check=False).stdout.decode(errors="replace")
+            raise SystemExit(f"fake_ldap.py did not start:\n{log}")
+        yield
+    finally:
+        docker("exec", CONTAINER, "sh", "-c", f'kill "$(cat {fake_dir}/ldap.pid)" 2>/dev/null || true', check=False)
+
+
+def ldap_runs():
+    runs = []
+    for kind, value, directives, page_limit in LDAP_RUNS:
+        name = f"{kind}_{value}" + "".join(f".{d}" for d in directives) + (f".page-limit-{page_limit}" if page_limit else "")
+        fake_dir = f"{REMOTE}/fake/ldap/{len(runs)}"
+        runs.append({
+            "module": "user_analyzer",
+            "enable": [],
+            "name": name,
+            "args": ["--observable", kind, value, "--config", f"{fake_dir}/saq.ldap.yaml"]
+            + [arg for d in directives for arg in ("--directive", d)],
+            "label": f"{kind} {value}"
+            + (f" with directives {directives}" if directives else "")
+            + ", against fake_ldap.py over fixtures/ldap/directory.json"
+            + (f" with {page_limit} entry a page" if page_limit else ""),
+            "ldap_record": f"{fake_dir}/ldap.json",
+            "service": lambda fake_dir=fake_dir, page_limit=page_limit: fake_ldap(fake_dir, page_limit),
+        })
+    return runs
+
+
+# The clicker detection runs (PLAN.md 7.4) are ace3's SplunkClickerDetectionAnalyzer, with the
+# searches of fixtures/clicker/clicker_detection.yaml, against fake_splunk.py answering from
+# fixtures/splunk/clicker_rows.json. Each needs the clicker_detection directive. Each shows an
+# outcome: a URL a user clicked, which two searches find; the domain, which three find; a URL nobody
+# clicked; searches that never finish; the domain without the directive; a URL with a child URL in
+# its query, which ace3 searches for too; and a URL whose hit has two users in one field.
+CLICKER_SECTION = """\
+analysis_module_clicker_detection_splunk:
+  name: clicker_detection_splunk
+  instance: clicker_detection_splunk
+  python_module: saq.modules.clicker_detection
+  python_class: SplunkClickerDetectionAnalyzer
+  enabled: true
+  api_name: ace4_fake
+  valid_observable_types: [url, fqdn]
+  required_directives: [clicker_detection]
+  question: "Did anyone click this URL or visit this domain?"
+  summary: "URL Clicks"
+  source: splunk
+  config_path: {config_path}
+{query_timeout}"""
+CLICKER_RUNS = [
+    ("url", "https://click.example.com/login", ["clicker_detection"], ["--running-polls", "4"], None),
+    ("fqdn", "click.example.com", ["clicker_detection"], ["--running-polls", "4"], None),
+    ("url", "https://quiet.example.com/x", ["clicker_detection"], ["--running-polls", "4"], None),
+    ("url", "https://click.example.com/login", ["clicker_detection"], ["--never-done"], 3),
+    ("fqdn", "click.example.com", [], ["--running-polls", "4"], None),
+    ("url", "https://click.example.com/r?u=https://click.example.com/login", ["clicker_detection"], ["--running-polls", "4"], None),
+    ("url", "https://multi.example.com/x", ["clicker_detection"], ["--running-polls", "4"], None),
+]
+
+
+@contextlib.contextmanager
+def fake_clicker_splunk(fake_dir, job_args, query_timeout):
+    """fake_splunk.py over the clicker rows, with the config that points ace3's clicker module at it."""
+    docker("exec", CONTAINER, "mkdir", "-p", f"{fake_dir}/http")
+    base = SPLUNK_CONFIG.format(port=SPLUNK_PORT, query_timeout="")
+    base = base[: base.index("analysis_module_proxy_domain_lookup:")]
+    timeout_line = f"  query_timeout: {query_timeout}\n" if query_timeout is not None else ""
+    section = CLICKER_SECTION.format(config_path=f"{REMOTE}/fixtures/clicker/clicker_detection.yaml",
+                                     query_timeout=timeout_line)
+    put(f"{fake_dir}/saq.ace4_fake.yaml", (base + section).encode())
+    docker(
+        "exec", "-d", CONTAINER, "sh", "-c",
+        f'exec /venv/bin/python3 -I {REMOTE}/fake_splunk.py --rows {REMOTE}/fixtures/splunk/clicker_rows.json '
+        f'--cert {REMOTE}/fake/cert.pem --key {REMOTE}/fake/key.pem --port {SPLUNK_PORT} '
+        f'--record {fake_dir}/http --pid-file {fake_dir}/pid {" ".join(job_args)} 2> {fake_dir}/fake.log',
+    )
+    try:
+        for _ in range(100):
+            if docker("exec", CONTAINER, "test", "-e", f"{fake_dir}/pid", check=False).returncode == 0:
+                break
+            time.sleep(0.1)
+        else:
+            log = docker("exec", CONTAINER, "cat", f"{fake_dir}/fake.log", check=False).stdout.decode(errors="replace")
+            raise SystemExit(f"fake_splunk.py did not start:\n{log}")
+        yield
+    finally:
+        docker("exec", CONTAINER, "sh", "-c", f'kill "$(cat {fake_dir}/pid)" 2>/dev/null || true', check=False)
+
+
+def clicker_runs():
+    runs = []
+    for kind, value, directives, job_args, query_timeout in CLICKER_RUNS:
+        name = (f"{kind}_{value}" + ("" if directives else ".no-directive")
+                + (".never-done" if "--never-done" in job_args else "")).replace("/", "_")
+        fake_dir = f"{REMOTE}/fake/clicker/{len(runs)}"
+        runs.append({
+            "module": "clicker_detection_splunk",
+            "enable": [],
+            "name": name,
+            "args": ["--observable", kind, value, "--config", f"{fake_dir}/saq.ace4_fake.yaml"]
+            + [arg for d in directives for arg in ("--directive", d)],
+            "label": f"{kind} {value}" + (f" with directives {directives}" if directives else " without the directive")
+            + f", against fake_splunk.py with {' '.join(job_args)}",
+            "env": ["NO_PROXY=127.0.0.1,localhost", "no_proxy=127.0.0.1,localhost"],
+            "http_dir": f"{fake_dir}/http",
+            "service": lambda fake_dir=fake_dir, job_args=job_args, query_timeout=query_timeout:
+                fake_clicker_splunk(fake_dir, job_args, query_timeout),
+        })
+    return runs
+
+
 RUNS = {
     "email": lambda: file_runs("email_analyzer", ["file_type"], "email"),
     "archive": lambda: file_runs("archive", ["file_type"], "archive/"),
@@ -397,6 +630,9 @@ RUNS = {
     "conversations": conversation_runs,
     "logger": logger_runs,
     "thread": thread_runs,
+    "nrd": nrd_runs,
+    "ldap": ldap_runs,
+    "clicker": clicker_runs,
 }
 
 
@@ -469,7 +705,16 @@ def copy_in(keys):
         ).stdout
         docker("exec", "-i", CONTAINER, "tar", "-C", f"{REMOTE}/{target}", "-xf", "-", stdin=archive)
     put(f"{REMOTE}/fake_dns.py", (HERE / "fake_dns.py").read_bytes())
-    if "splunk" in keys:
+    put(f"{REMOTE}/fake_ldap.py", (HERE / "fake_ldap.py").read_bytes())
+    if "nrd" in keys:
+        # the RDAP module's recording, for its bootstrap files and example.com
+        archive = subprocess.run(
+            ["tar", "--no-xattrs", "-C", str(OUT / "rdap_analyzer" / "fqdn_example.com.http"), "-cf", "-", "."],
+            capture_output=True, check=True, env={**os.environ, "COPYFILE_DISABLE": "1"},
+        ).stdout
+        docker("exec", CONTAINER, "mkdir", "-p", f"{REMOTE}/rdap")
+        docker("exec", "-i", CONTAINER, "tar", "-C", f"{REMOTE}/rdap", "-xf", "-", stdin=archive)
+    if "splunk" in keys or "clicker" in keys:
         # the fake and its self-signed certificate: splunk-sdk speaks HTTPS to splunkd, without
         # verifying it (saq/splunk.py builds its handler with verify=False)
         docker("exec", CONTAINER, "mkdir", "-p", f"{REMOTE}/fake")
@@ -512,6 +757,10 @@ def run(spec):
         archive = docker("exec", CONTAINER, "tar", "-C", remote_http, "-cf", "-", ".").stdout
         subprocess.run(["tar", "-C", str(http_dir), "-xf", "-"], input=archive, check=True)
 
+    if "ldap_record" in spec:
+        recording = docker("exec", CONTAINER, "cat", spec["ldap_record"]).stdout
+        (OUT / spec["module"] / f"{spec['name']}.ldap.json").write_bytes(recording)
+
     if "dns_record" in spec:
         recording = docker("exec", CONTAINER, "cat", spec["dns_record"]).stdout
         (OUT / spec["module"] / f"{spec['name']}.dns.json").write_bytes(recording)
@@ -529,6 +778,9 @@ def run(spec):
         # it creates none, and works after the rest of the root
         "email_logger": "EmailLoggingAnalysis",
         "email_thread_analyzer": "EmailThreadAnalysis",
+        "nrd_analyzer": "NRDAnalysis",
+        "user_analyzer": "UserAnalysis",
+        "clicker_detection_splunk": "SplunkClickerDetectionAnalysis",
     }[spec["module"]]
     analysis = next((a for a in parsed["analyses"] if a["class"] == target_class), None)
     return {

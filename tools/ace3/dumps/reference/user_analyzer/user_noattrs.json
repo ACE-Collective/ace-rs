@@ -1,0 +1,48 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "UserAnalysis",
+      "details": {
+        "ldap": {
+          "cn": "noattrs",
+          "entitlements": [],
+          "objectClass": [
+            "top",
+            "person",
+            "organizationalPerson",
+            "user"
+          ],
+          "on_prem": null,
+          "primary_email": null
+        }
+      },
+      "detections": [],
+      "module_path": "saq.modules.user:UserAnalysis",
+      "observables": [],
+      "summary": "None, None - None - None - None",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "user noattrs, against fake_ldap.py over fixtures/ldap/directory.json",
+    "meta_tags": [],
+    "observable": {
+      "type": "user",
+      "value": "noattrs"
+    }
+  },
+  "module": "user_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "relationships": [],
+    "tags": [],
+    "type": "user",
+    "value": "noattrs"
+  }
+}

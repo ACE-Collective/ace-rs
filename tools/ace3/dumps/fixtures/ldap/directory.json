@@ -1,0 +1,393 @@
+{
+  "about": "A made-up Active Directory for ace4's user_analyzer fixtures: tools/ace3/dumps/fake_ldap.py serves it to ace3 and ace_testkit::ldap to ace4. Its schema gives each attribute the syntax AD gives it, and a few test attributes of their own, so ldap3's schema-driven formatting shows on each syntax it has.",
+  "bind_dn": "CN=ace4,OU=Service,DC=company,DC=example",
+  "bind_password": "ace4-fake-password",
+  "schema_dn": "CN=Aggregate,CN=Schema,CN=Configuration,DC=company,DC=example",
+  "root_dse": {
+    "namingContexts": [
+      "DC=company,DC=example"
+    ],
+    "defaultNamingContext": [
+      "DC=company,DC=example"
+    ],
+    "subschemaSubentry": [
+      "CN=Aggregate,CN=Schema,CN=Configuration,DC=company,DC=example"
+    ],
+    "supportedLDAPVersion": [
+      "3"
+    ],
+    "supportedControl": [
+      "1.2.840.113556.1.4.319"
+    ],
+    "vendorName": [
+      "ace4 fake_ldap"
+    ]
+  },
+  "schema": {
+    "objectClass": [
+      "top",
+      "subschema"
+    ],
+    "cn": [
+      "Aggregate"
+    ],
+    "attributeTypes": [
+      "( 2.5.4.3 NAME 'cn' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' SINGLE-VALUE )",
+      "( 2.5.4.0 NAME 'objectClass' SYNTAX '1.3.6.1.4.1.1466.115.121.1.38' )",
+      "( 1.2.840.113556.1.2.13 NAME 'displayName' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' SINGLE-VALUE )",
+      "( 0.9.2342.19200300.100.1.3 NAME 'mail' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' SINGLE-VALUE )",
+      "( 2.5.4.7 NAME 'l' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' SINGLE-VALUE )",
+      "( 1.2.840.113556.1.4.261 NAME 'division' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' SINGLE-VALUE )",
+      "( 2.5.4.12 NAME 'title' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' SINGLE-VALUE )",
+      "( 1.2.840.113556.1.2.141 NAME 'department' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' SINGLE-VALUE )",
+      "( 0.9.2342.19200300.100.1.10 NAME 'manager' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' SINGLE-VALUE )",
+      "( 1.2.840.113556.1.2.102 NAME 'memberOf' SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )",
+      "( 1.2.840.113556.1.2.210 NAME 'proxyAddresses' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )",
+      "( 1.2.840.113556.1.4.7000.102.50832 NAME 'msExchRecipientTypeDetails' SYNTAX '1.2.840.113556.1.4.906' SINGLE-VALUE )",
+      "( 1.2.840.113556.1.2.2 NAME 'whenCreated' SYNTAX '1.3.6.1.4.1.1466.115.121.1.24' SINGLE-VALUE )",
+      "( 1.2.840.113556.1.4.2 NAME 'objectGUID' SYNTAX '1.3.6.1.4.1.1466.115.121.1.40' SINGLE-VALUE )",
+      "( 1.2.840.113556.1.4.146 NAME 'objectSid' SYNTAX '1.3.6.1.4.1.1466.115.121.1.40' SINGLE-VALUE )",
+      "( 1.2.840.113556.1.4.96 NAME 'pwdLastSet' SYNTAX '1.2.840.113556.1.4.906' SINGLE-VALUE )",
+      "( 1.2.840.113556.1.4.1696 NAME 'lastLogonTimestamp' SYNTAX '1.2.840.113556.1.4.906' SINGLE-VALUE )",
+      "( 1.2.840.113556.1.4.159 NAME 'accountExpires' SYNTAX '1.2.840.113556.1.4.906' SINGLE-VALUE )",
+      "( 1.2.840.113556.1.4.74 NAME 'maxPwdAge' SYNTAX '1.2.840.113556.1.4.906' SINGLE-VALUE )",
+      "( 1.2.840.113556.1.4.8 NAME 'userAccountControl' SYNTAX '1.3.6.1.4.1.1466.115.121.1.27' SINGLE-VALUE )",
+      "( 1.2.840.113556.1.4.7000.102.1 NAME 'ace4TestCounts' SYNTAX '1.3.6.1.4.1.1466.115.121.1.27' )",
+      "( 2.16.840.1.113730.3.1.35 NAME 'thumbnailPhoto' SYNTAX '1.3.6.1.4.1.1466.115.121.1.40' SINGLE-VALUE )",
+      "( 1.2.840.113556.1.4.7000.102.2 NAME 'ace4TestFlag' SYNTAX '1.3.6.1.4.1.1466.115.121.1.7' SINGLE-VALUE )",
+      "( 1.2.840.113556.1.4.7000.102.3 NAME 'ace4TestFlags' SYNTAX '1.3.6.1.4.1.1466.115.121.1.7' )",
+      "( 2.5.4.20 NAME 'telephoneNumber' SYNTAX '1.3.6.1.4.1.1466.115.121.1.50' SINGLE-VALUE )",
+      "( 2.5.4.9 NAME 'streetAddress' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' SINGLE-VALUE )",
+      "( 1.2.840.113556.1.4.7000.102.4 NAME 'ace4TestTimes' SYNTAX '1.3.6.1.4.1.1466.115.121.1.24' )",
+      "( 1.3.6.1.1.16.4 NAME 'entryUUID' SYNTAX '1.3.6.1.1.16.1' SINGLE-VALUE )"
+    ]
+  },
+  "entries": [
+    {
+      "dn": "CN=jdoe,OU=Users,DC=company,DC=example",
+      "attributes": {
+        "objectClass": [
+          "top",
+          "person",
+          "organizationalPerson",
+          "user"
+        ],
+        "cn": [
+          "jdoe"
+        ],
+        "displayName": [
+          "Doe, John"
+        ],
+        "mail": [
+          "John.Doe@company.example"
+        ],
+        "l": [
+          "Springfield"
+        ],
+        "division": [
+          "Finance"
+        ],
+        "title": [
+          "Analyst"
+        ],
+        "department": [
+          "Accounts Payable"
+        ],
+        "manager": [
+          "CN=asmith,OU=Users,DC=company,DC=example"
+        ],
+        "memberOf": [
+          "CN=Finance,OU=Groups,DC=company,DC=example",
+          "CN=VPN Users,OU=Groups,DC=company,DC=example"
+        ],
+        "proxyAddresses": [
+          "SMTP:John.Doe@company.example",
+          "smtp:jdoe@company.example",
+          "X500:/o=Company/ou=Exchange/cn=Recipients/cn=jdoe"
+        ],
+        "msExchRecipientTypeDetails": [
+          "1"
+        ],
+        "whenCreated": [
+          "20200115093000.0Z"
+        ],
+        "objectGUID": [
+          {
+            "hex": "01234567890abcdef0123456789abcde"
+          }
+        ],
+        "objectSid": [
+          {
+            "hex": "0105000000000005150000000102030405060708090a0b0c51040000"
+          }
+        ],
+        "pwdLastSet": [
+          "133000000000000000"
+        ],
+        "lastLogonTimestamp": [
+          "134065000001234567"
+        ],
+        "accountExpires": [
+          "9223372036854775807"
+        ],
+        "userAccountControl": [
+          "512"
+        ],
+        "thumbnailPhoto": [
+          {
+            "hex": "89504e470d0a275c007fff22"
+          }
+        ],
+        "telephoneNumber": [
+          "+1 555 0100"
+        ],
+        "streetAddress": [
+          "1 Main St"
+        ],
+        "extensionAttribute1": [
+          "not in the schema"
+        ]
+      }
+    },
+    {
+      "dn": "CN=asmith,OU=Users,DC=company,DC=example",
+      "attributes": {
+        "objectClass": [
+          "top",
+          "person",
+          "organizationalPerson",
+          "user"
+        ],
+        "cn": [
+          "asmith"
+        ],
+        "displayName": [
+          "Smith, Alice"
+        ],
+        "mail": [
+          "Alice.Smith@company.example"
+        ],
+        "l": [
+          "Springfield"
+        ],
+        "division": [
+          "Finance"
+        ],
+        "title": [
+          "Director"
+        ],
+        "manager": [
+          "CN=ceo,OU=Users,DC=company,DC=example"
+        ],
+        "proxyAddresses": [
+          "SMTP:Alice.Smith@company.example"
+        ],
+        "msExchRecipientTypeDetails": [
+          "2147483648"
+        ],
+        "memberOf": [
+          "CN=Finance,OU=Groups,DC=company,DC=example"
+        ]
+      }
+    },
+    {
+      "dn": "CN=ceo,OU=Users,DC=company,DC=example",
+      "attributes": {
+        "objectClass": [
+          "top",
+          "person",
+          "organizationalPerson",
+          "user"
+        ],
+        "cn": [
+          "ceo"
+        ],
+        "displayName": [
+          "Officer, Chief"
+        ],
+        "mail": [
+          "ceo@company.example"
+        ],
+        "title": [
+          "Chief Executive"
+        ],
+        "proxyAddresses": [
+          "SMTP:ceo@company.example"
+        ],
+        "msExchRecipientTypeDetails": [
+          "4096"
+        ]
+      }
+    },
+    {
+      "dn": "CN=shared,OU=Folders,DC=company,DC=example",
+      "attributes": {
+        "objectClass": [
+          "top",
+          "publicFolder"
+        ],
+        "cn": [
+          "shared"
+        ],
+        "displayName": [
+          "Shared folder"
+        ],
+        "proxyAddresses": [
+          "SMTP:shared@company.example"
+        ]
+      }
+    },
+    {
+      "dn": "CN=dup,OU=Users,DC=company,DC=example",
+      "attributes": {
+        "objectClass": [
+          "top",
+          "person",
+          "organizationalPerson",
+          "user"
+        ],
+        "cn": [
+          "dup"
+        ],
+        "displayName": [
+          "Dup, First"
+        ],
+        "title": [
+          "First of two"
+        ]
+      }
+    },
+    {
+      "dn": "CN=dup,OU=Users,DC=company,DC=example",
+      "attributes": {
+        "objectClass": [
+          "top",
+          "person",
+          "organizationalPerson",
+          "user"
+        ],
+        "cn": [
+          "dup"
+        ],
+        "displayName": [
+          "Dup, Second"
+        ],
+        "title": [
+          "Second of two"
+        ]
+      }
+    },
+    {
+      "dn": "CN=a*b,OU=Users,DC=company,DC=example",
+      "attributes": {
+        "objectClass": [
+          "top",
+          "person",
+          "organizationalPerson",
+          "user"
+        ],
+        "cn": [
+          "a*b"
+        ],
+        "displayName": [
+          "Star, In Name"
+        ]
+      }
+    },
+    {
+      "dn": "CN=odd,OU=Users,DC=company,DC=example",
+      "attributes": {
+        "objectClass": [
+          "top",
+          "person",
+          "organizationalPerson",
+          "user"
+        ],
+        "cn": [
+          "odd"
+        ],
+        "displayName": [
+          {
+            "hex": "436166e920ff"
+          }
+        ],
+        "whenCreated": [
+          "20260101120000-0500"
+        ],
+        "ace4TestTimes": [
+          "2026010112Z",
+          "202601011230,5+0130",
+          "notatime",
+          "20261301000000Z"
+        ],
+        "ace4TestCounts": [
+          "1",
+          " 7 ",
+          "1_000",
+          "-3",
+          "abc"
+        ],
+        "ace4TestFlag": [
+          "TRUE"
+        ],
+        "ace4TestFlags": [
+          "false",
+          "yes"
+        ],
+        "userAccountControl": [
+          "not a number"
+        ],
+        "maxPwdAge": [
+          "-36288000000000"
+        ],
+        "pwdLastSet": [
+          "0"
+        ],
+        "lastLogonTimestamp": [
+          "-134065000000000000"
+        ],
+        "accountExpires": [
+          "0"
+        ],
+        "objectGUID": [
+          {
+            "hex": "73686f7274"
+          }
+        ],
+        "objectSid": [
+          {
+            "hex": "532d312d352d32312d31"
+          }
+        ],
+        "entryUUID": [
+          {
+            "hex": "01234567890abcdef0123456789abcde"
+          }
+        ],
+        "manager": [
+          "CN=nobody,OU=Users,DC=company,DC=example"
+        ],
+        "proxyAddresses": [
+          "SMTP:odd@company.example"
+        ],
+        "memberOf": [
+          "CN=Only,OU=Groups,DC=company,DC=example"
+        ]
+      }
+    },
+    {
+      "dn": "CN=noattrs,OU=Users,DC=company,DC=example",
+      "attributes": {
+        "objectClass": [
+          "top",
+          "person",
+          "organizationalPerson",
+          "user"
+        ],
+        "cn": [
+          "noattrs"
+        ]
+      }
+    }
+  ]
+}

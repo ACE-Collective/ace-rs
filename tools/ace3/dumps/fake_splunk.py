@@ -20,7 +20,7 @@ call but the login needs the session, by cookie or by an Authorization: Splunk h
 
 A job reports RUNNING for the first --running-polls status reads and DONE after them; with
 --never-done it never finishes. Its results are the fixture's rows for the hostname quoted in the
-search. The rows are made up (see the fixture's "about").
+search, or for an entry whose `match` strings the search all has. The rows are made up (see the fixture's "about").
 
 It leaves out most of splunkd: there's no search language (a search matches rows by the quoted
 hostname alone), time ranges, max_count, count and offset are ignored, a job is never QUEUED,
@@ -111,9 +111,14 @@ class FakeSplunk:
         self.lock = threading.Lock()
 
     def rows_for(self, search):
-        """The fixture rows for the hostname the search quotes."""
+        """The fixture rows for the hostname the search quotes, or of the first entry whose `match`
+        strings are all in the search."""
         for entry in self.rows["searches"]:
-            if self.any_hostname or f'hostname="{entry["hostname"]}"' in search:
+            if self.any_hostname:
+                return entry["rows"]
+            if "hostname" in entry and f'hostname="{entry["hostname"]}"' in search:
+                return entry["rows"]
+            if "match" in entry and all(m in search for m in entry["match"]):
                 return entry["rows"]
         return []
 

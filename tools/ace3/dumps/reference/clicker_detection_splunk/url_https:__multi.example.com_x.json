@@ -1,0 +1,96 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "SplunkClickerDetectionAnalysis",
+      "details": {
+        "clicker_events": [
+          {
+            "action_type": null,
+            "network_message_id": null,
+            "portal_url": "https://127.0.0.1/en-US/app/search/search?q=search+index%3Dace4_proxy+%28%22https%3A%2F%2Fmulti.example.com%2Fx%22+OR+%22https%253A%252F%252Fmulti.example.com%252Fx%22%29+_index_earliest+%3D+11%2F07%2F2026%3A23%3A48%3A18+_index_latest+%3D+11%2F09%2F2026%3A00%3A48%3A18%0A%7C+table+_time+user+url",
+            "searched_value": "https://multi.example.com/x",
+            "source": "splunk:proxy",
+            "timestamp": "2026-11-08T10:07:00.000+00:00",
+            "url": "https://multi.example.com/x",
+            "user": [
+              "frank@example.com",
+              "grace@example.com"
+            ]
+          }
+        ],
+        "clicker_index": 1,
+        "clicker_plan": [
+          "url_clicks",
+          "proxy"
+        ],
+        "clicker_source": "splunk",
+        "dispatch_state": "DONE",
+        "end_time": "2026-11-08T23:48:23.467-00:00",
+        "gui_link": "https://127.0.0.1/en-US/app/search/search?q=search+index%3Dace4_proxy+%28%22https%3A%2F%2Fmulti.example.com%2Fx%22+OR+%22https%253A%252F%252Fmulti.example.com%252Fx%22%29+_index_earliest+%3D+11%2F07%2F2026%3A23%3A48%3A18+_index_latest+%3D+11%2F09%2F2026%3A00%3A48%3A18%0A%7C+table+_time+user+url",
+        "gui_link_label": "Open in Splunk",
+        "matched_url_count": 1,
+        "query": null,
+        "query_error": null,
+        "query_results": null,
+        "query_start": 1794181699.3818212,
+        "query_summary": "URL Clicks",
+        "question": "Did anyone click this URL or visit this domain?",
+        "running_start_time": "2026-11-08T23:48:22.444-00:00",
+        "search_id": "1767225600.2",
+        "start_time": "2026-11-08T23:48:21.429-00:00"
+      },
+      "detections": [],
+      "module_path": "saq.modules.clicker_detection:SplunkClickerDetectionAnalysis:clicker_detection_splunk",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [],
+          "display_type": "Clicker",
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_address",
+          "value": "frank@example.com"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "display_type": "Clicker",
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_address",
+          "value": "grace@example.com"
+        }
+      ],
+      "summary": "URL Clicks (Splunk): 1 click found",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [
+      "clicker_detection"
+    ],
+    "label": "url https://multi.example.com/x with directives ['clicker_detection'], against fake_splunk.py with --running-polls 4",
+    "meta_tags": [],
+    "observable": {
+      "type": "url",
+      "value": "https://multi.example.com/x"
+    }
+  },
+  "module": "clicker_detection_splunk",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "clicker_detection"
+    ],
+    "excluded_analysis": [],
+    "relationships": [],
+    "tags": [],
+    "type": "url",
+    "value": "https://multi.example.com/x"
+  }
+}

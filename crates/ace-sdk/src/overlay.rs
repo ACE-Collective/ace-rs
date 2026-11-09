@@ -26,15 +26,21 @@
 //! by task name, each key refused when unknown. A task this build doesn't have logs a warning and is
 //! skipped, as a removed module is.
 //!
+//! `nrd:` lists the feeds of the newly registered domains list (PLAN.md 7.4), as ace3's `nrd:`
+//! section does, for the scheduler's `nrd_refresh` task.
+//!
 //! `secrets:` says where each secret comes from, by the name modules declare in
 //! `Module::SECRETS`: `env:<VARIABLE>` or `file:<path>`, as ace3's `env:` references. Nothing
 //! is read when the overlay loads; a pool reads only the ones its modules declare (PLAN.md 2.24,
 //! ace3 #1009).
 //!
+//! A module that ace3 ships disabled (`Module::ENABLED_BY_DEFAULT` false) runs only when the overlay
+//! has a section for it, empty or not.
+//!
 //! A module with `instances` runs once per instance and not as itself, as each of ace3's
 //! `analysis_module_*` sections is one run of its class. An instance's name is its key: the
 //! name its tasks and results carry in the queue and the tree, and the name modes and groups
-//! list. It may narrow the module's inputs.
+//! list. It may narrow the module's inputs, and join module groups with `groups`.
 
 use std::collections::BTreeMap;
 
@@ -54,6 +60,44 @@ pub struct Overlay {
     pub secrets: BTreeMap<String, SecretSource>,
     /// The core's scheduled tasks (PLAN.md 6.7), by task name. `ace serve` reads it; a pool doesn't.
     pub scheduler: BTreeMap<String, ScheduledTaskSection>,
+    /// The feeds of the newly registered domains list (PLAN.md 7.4), ace3's `nrd:` section, which
+    /// `ace serve`'s `nrd_refresh` task reads.
+    pub nrd: NrdSection,
+}
+
+/// ace3's `nrd:` section: the feeds the `nrd_refresh` task builds the newly registered domains list
+/// from. ace3's `enabled` kill switch is the task's own `scheduler.nrd_refresh.enabled`, and its
+/// `database_path` is Postgres.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields, default)]
+pub struct NrdSection {
+    /// The fewest hours between two rebuilds. Once they've passed, each run asks each feed with
+    /// HEAD whether it changed, and rebuilds only when one did.
+    pub check_interval_hours: u64,
+    /// The feeds, in order. None is no list.
+    pub url_lists: Vec<NrdList>,
+    /// A PEM file of CA certificates to trust besides the platform's. Certificates are always
+    /// verified.
+    pub ca_certificates: Option<std::path::PathBuf>,
+}
+
+impl Default for NrdSection {
+    fn default() -> Self {
+        NrdSection {
+            check_interval_hours: 24,
+            url_lists: Vec::new(),
+            ca_certificates: None,
+        }
+    }
+}
+
+/// One feed: a text file of domains, one a line, and the URLs to try when its own fails.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct NrdList {
+    pub url: String,
+    #[serde(default)]
+    pub backups: Vec<String>,
 }
 
 /// What the overlay says about one of the core's scheduled tasks. Each field left out keeps the
@@ -121,6 +165,10 @@ pub struct InstanceSection {
     /// module's own.
     pub inputs: Option<Vec<ObservableKind>>,
     pub settings: Option<Value>,
+    /// The module groups the instance joins, as a site's config adds a section to ace3's
+    /// `module_group_*` lists, so the analysis modes that run a group run it. An instance named as
+    /// one of ace3's modules is in that module's groups already.
+    pub groups: Vec<String>,
 }
 
 /// An overlay that doesn't load.
@@ -160,6 +208,8 @@ pub struct Component {
     pub inputs: Vec<ObservableKind>,
     /// Its settings block. None runs on the settings type's defaults.
     pub settings: Option<Value>,
+    /// The module groups an instance joins (`InstanceSection::groups`).
+    pub groups: Vec<String>,
 }
 
 impl Component {
@@ -170,6 +220,7 @@ impl Component {
             manifest,
             inputs: manifest.inputs.to_vec(),
             settings: None,
+            groups: Vec::new(),
         }
     }
 
@@ -222,6 +273,7 @@ impl Overlay {
                 .collect(),
             secrets: self.secrets.clone(),
             scheduler: BTreeMap::new(),
+            nrd: NrdSection::default(),
         }
     }
 
@@ -256,7 +308,14 @@ impl Overlay {
                 continue;
             }
             let Some(section) = section else {
-                components.push(Component::of(manifest));
+                if manifest.enabled_by_default {
+                    components.push(Component::of(manifest));
+                } else {
+                    tracing::info!(
+                        module = manifest.name,
+                        "this module is off unless the overlay has a section for it, and it has none"
+                    );
+                }
                 continue;
             };
             let check = |path: String, block: Option<&Value>| {
@@ -311,6 +370,7 @@ impl Overlay {
                     manifest,
                     inputs,
                     settings: instance.settings.clone(),
+                    groups: instance.groups.clone(),
                 });
             }
         }
@@ -478,6 +538,44 @@ mod tests {
         );
         let err = of("modules: {example_resolver: {settings: {delays: 1}}}").unwrap_err();
         assert!(err.to_string().contains("only as named instances"), "{err}");
+    }
+
+    /// A module ace3 ships disabled runs only when the overlay has a section for it, empty or not,
+    /// as an ace3 site turns one on with `enabled: true`.
+    #[test]
+    fn a_module_off_by_default_runs_only_with_a_section() {
+        let mut resolver = RESOLVER;
+        resolver.enabled_by_default = false;
+        let manifests = [LINE_COUNTER, resolver];
+        let of = |yaml: &str| Overlay::from_yaml(yaml).and_then(|o| o.components(&manifests));
+        assert_eq!(keys(&of("").expect("loads")), ["example_line_counter"]);
+        assert_eq!(
+            keys(&of("modules: {example_resolver: {}}").expect("loads")),
+            ["example_line_counter", "example_resolver"]
+        );
+        let set = of("modules: {example_resolver: {settings: {delays: 1}}}").expect("loads");
+        assert_eq!(set[1].settings, Some(serde_json::json!({"delays": 1})));
+    }
+
+    /// An instance can join module groups, as a site's config lists a section in ace3's groups.
+    #[test]
+    fn an_instance_carries_the_groups_it_joins() {
+        let components = components(
+            "modules:\n  example_resolver:\n    instances:\n      proxy:\n        groups: [correlation]\n      plain: {}\n",
+        )
+        .expect("loads");
+        let groups: Vec<(&str, Vec<String>)> = components
+            .iter()
+            .map(|c| (c.key.as_str(), c.groups.clone()))
+            .collect();
+        assert_eq!(
+            groups,
+            [
+                ("example_line_counter", vec![]),
+                ("plain", vec![]),
+                ("proxy", vec!["correlation".to_owned()])
+            ]
+        );
     }
 
     #[test]

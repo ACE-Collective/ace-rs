@@ -21,16 +21,15 @@ Versions are those of ace3's image: Python packages from `installer/requirements
 | Pool | Modules | Ported |
 |---|---|---|
 | parser | 54 | 9 |
-| lookup | 17 | 6 |
+| lookup | 17 | 9 |
 | core | 3 | 0 |
 | sandbox | 14 | 0 |
 | scanner | 2 | 0 |
-| all | 90 | 15 |
+| all | 90 | 18 |
 
 | Step | Modules |
 |---|---|
-| done | 15 |
-| 7.4 | 3 |
+| done | 18 |
 | 7.5 | 62 |
 | 7.6 | 5 |
 | 7.7 | 2 |
@@ -57,17 +56,17 @@ In order. Batches 10 to 13 run programs in the sandbox runner, which batch 10 bu
 12. **macOS images**: `dmg_analyzer`, `cve_2021_30657_analyzer`. dmg2img and 7z on the runner.
 13. **Packet captures**: `pcap_analyzer`, `pcap_dns`, `pcap_tls`, `pcap_http`, `pcap_files`, `pcap_tls_decryption`, `tls_keylog`. tshark on the sandbox runner.
 
-7.4 ports, in this workspace: `fqdn_analyzer` (done), `nrd_analyzer`, `snort_signature_analysis_v1` (done), `user_analyzer`, `email_conversation_frequency_analyzer` (done), `email_thread_analyzer` (done), `email_logger` (done), `clicker_detection_splunk`. The brocess modules (`email_logger` writes what `email_conversation_frequency_analyzer` and `email_thread_analyzer` read) go together, after 7.2's endpoints.
+7.4 ports, in this workspace, all done: `fqdn_analyzer`, `nrd_analyzer`, `snort_signature_analysis_v1`, `user_analyzer`, `email_conversation_frequency_analyzer`, `email_thread_analyzer`, `email_logger`, `clicker_detection_splunk`. The brocess modules (`email_logger` writes what `email_conversation_frequency_analyzer` and `email_thread_analyzer` read) go together, after 7.2's endpoints.
 
 ## What 7.2 serves
 
-Modules that read or write ACE's own data in ace3, or hold its encryption key, and what serves each in ace4, where workers hold neither. The reads, their scope, their bounds and how they refuse are a contract in `crates/ace-core/src/reads.md`, beside the lease API; each module's port step builds what its module calls. None is built in 7.2: the one ported module here then, `yara_scanner_v3_4`, gets its data on the ruleset, and that waits for 7.6, which brings the list it reads. 7.4 built the first, `snort-signature`, then `smtp-counts`, `email-thread-domains` with the first writes, `email_logger`'s, and `email-thread`.
+Modules that read or write ACE's own data in ace3, or hold its encryption key, and what serves each in ace4, where workers hold neither. The reads, their scope, their bounds and how they refuse are a contract in `crates/ace-core/src/reads.md`, beside the lease API; each module's port step builds what its module calls. None is built in 7.2: the one ported module here then, `yara_scanner_v3_4`, gets its data on the ruleset, and that waits for 7.6, which brings the list it reads. 7.4 built the first, `snort-signature`, then `smtp-counts`, `email-thread-domains` with the first writes, `email_logger`'s, `email-thread`, and `newly-registered`, which serves `nrd_analyzer` though ace3's module reads no database of ACE's (below).
 
 `tools/ace3/modules/check` finds these in ace3's code at the commit it checks. From each section's class it follows the class's methods, its bases, the functions they name in ace3's own packages and, through an interface, the methods of the package's classes, until it finds `get_db(`, `get_db_connection(`, `private_transaction(`, `run_private_transaction(` or a Redis connection, or a use of `saq.crypto`. It doesn't follow ace3's framework (`saq.analysis`, `saq.configuration`, `saq.engine` and the module base classes), whose own reads are the engine's. Some reads aren't in the module's own file: they're in helpers such as `saq/brocess.py`, `saq/modules/email/conversation.py`, `saq/email_archive/` and `saq/svs/`. At ace3 `f72f8946` it finds the 14 below. The check fails when this table misses one or lists one it doesn't find, or when a row names nothing to serve it or a read `reads.md` doesn't have.
 
 Served by is one or more of: a read of `reads.md`; `lease`, on the leased task (`Module::LISTS` here); `ruleset`, on the YARA ruleset; `end`, a write that lands with the task's end; and `core`, only for a module on the core's pool, which runs in the core.
 
-Not here: `rdap_analyzer` and `nrd_analyzer` use ace3's analysis result cache, which is the engine's, not the module's, and which ace4 doesn't have (6.7); `nrd_analyzer`'s domain list is a SQLite file on the node, which 6.7's `nrd-refresh` keeps; the Redis of `javascript_deobfuscation` and `phishkit_analyzer` is Celery's, which 7.7 replaces. A module's secrets, which ace3 can keep encrypted in its database, are the pool's environment in ace4 (2.24). `saq/modules/remediation.py` queries the database through `saq.remediation`, but no section names its module.
+Not here: `rdap_analyzer` and `nrd_analyzer` use ace3's analysis result cache, which is the engine's, not the module's, and which ace4 doesn't have (6.7); `nrd_analyzer`'s domain list is a SQLite file on the node in ace3, which its `nrd-refresh` keeps, and in ace4 migration 0039's `nrd.domains`, which `ace serve`'s `nrd_refresh` task keeps and the `newly-registered` read serves (7.4); the Redis of `javascript_deobfuscation` and `phishkit_analyzer` is Celery's, which 7.7 replaces. A module's secrets, which ace3 can keep encrypted in its database, are the pool's environment in ace4 (2.24). `saq/modules/remediation.py` queries the database through `saq.remediation`, but no section names its module.
 
 | Module | Reads and writes in ace3 | Why | Served by |
 |---|---|---|---|
@@ -216,9 +215,9 @@ In the config's order. ace4 is the crate a ported module is in.
 | `fqdn_analyzer` | `FQDNAnalyzer` | `ace-mod-dns` | lookup | done | correlation | analysis, cli, correlation |
 | `idna_analyzer` | `IDNAAnalyzer` | not yet | parser | 7.5 batch 3 | correlation | analysis, cli, correlation |
 | `rdap_analyzer` | `RdapAnalyzer` | `ace-mod-rdap` | lookup | done | correlation | analysis, cli, correlation |
-| `nrd_analyzer` | `NRDAnalyzer` | not yet | lookup | 7.4 | common | analysis, binary, cli, correlation, email, file |
+| `nrd_analyzer` | `NRDAnalyzer` | `ace-mod-nrd` | lookup | done | common | analysis, binary, cli, correlation, email, file |
 | `snort_signature_analysis_v1` | `SnortSignatureAnalyzer_v1` | `ace-mod-snort` | lookup | done | correlation | analysis, cli, correlation, suricata_ids |
-| `user_analyzer` | `UserAnalyzer` | not yet | lookup | 7.4 | correlation | analysis, cli, correlation |
+| `user_analyzer` | `UserAnalyzer` | `ace-mod-user` | lookup | done | correlation | analysis, cli, correlation |
 | `email_address_fqdn_analyzer` | `EmailAddressFQDNAnalyzer` | not yet | parser | 7.5 batch 3 | common | analysis, binary, cli, correlation, email, file |
 | `email_conversation_frequency_analyzer` | `EmailConversationFrequencyAnalyzer` | `ace-mod-brocess` | lookup | done | email | analysis, cli, correlation, email |
 | `email_conversation_attachment_analyzer` | `EmailConversationAttachmentAnalyzer` | not yet | parser | 7.5 batch 8 | email | analysis, cli, correlation, email |
@@ -280,7 +279,7 @@ In the config's order. ace4 is the crate a ported module is in.
 | `dhash` | `DHashImageAnalyzer` | not yet | parser | 7.5 batch 2 | file | analysis, binary, cli, correlation, email, file |
 | `observable_detection` | `ObservableDetectionAnalyzer` | not yet | lookup | 7.6 | common | analysis, binary, cli, correlation, email, file |
 | `phishkit_analyzer` | `PhishkitAnalyzer` | not yet | scanner | 7.7 | correlation, file | analysis, binary, cli, correlation, email, file |
-| `clicker_detection_splunk` | `SplunkClickerDetectionAnalyzer` | not yet | lookup | 7.4 | correlation | analysis, cli, correlation |
+| `clicker_detection_splunk` | `SplunkClickerDetectionAnalyzer` | `ace-mod-splunk` | lookup | done | correlation | analysis, cli, correlation |
 
 ## Entries
 
@@ -816,9 +815,9 @@ In the config's order. ace4 is the crate a ported module is in.
 ### nrd_analyzer
 
 - **Section**: `analysis_module_nrd_analyzer`, class `NRDAnalyzer` in `saq/modules/nrd.py`, enabled by default.
-- **ace4**: not yet.
-- **Pool**: lookup. RDAP and WHOIS on a hit, and a local database file the nrd-refresh task keeps (6.7).
-- **Step**: 7.4.
+- **ace4**: ported in `ace-mod-nrd`. The list is migration 0039's `nrd.domains`, one for every node, which `ace serve`'s `nrd_refresh` scheduled task rebuilds in one transaction from the overlay's `nrd.url_lists` as ace3's `nrd-refresh` does (`ace_app::nrd`, acting as `scheduler:nrd_refresh` with `nrd:refresh` alone), and the module reads through the core's `newly-registered` read, which answers only for the task's own observable. A hit is verified by RDAP through `ace_mod_rdap::CreationDates`; ace3's WHOIS fallback isn't ported. `crates/ace-mod-nrd/tests/differences.md` has the rest.
+- **Pool**: lookup. RDAP on a hit, and the core's `newly-registered` read of the list.
+- **Step**: done.
 - **Does**: Checks whether an fqdn or url's host (or a parent down to its eTLD+1) is in the local newly-registered-domains SQLite database and, on a hit, verifies the registration age via RDAP/WHOIS before tagging it suspect:nrd.
 - **Input**: fqdn; url.
 - **Groups and modes**: groups common; modes analysis, binary, cli, correlation, email, file.
@@ -858,9 +857,9 @@ In the config's order. ace4 is the crate a ported module is in.
 ### user_analyzer
 
 - **Section**: `analysis_module_user_analyzer`, class `UserAnalyzer` in `saq/modules/user.py`, disabled by default.
-- **ace4**: not yet.
+- **ace4**: ported in `ace-mod-user`. On the ldap3 crate, with each value formatted by the server's schema as ace3's ldap3 formats it (`format.rs`). ace3 binds in plaintext on 389; ace4 uses LDAPS or StartTLS with verified certificates, and plain LDAP only with `allow_plaintext`, which logs a warning when the module starts. The bind password is the `ldap_bind_password` secret (2.24). Off unless the overlay has a section for it (`Module::ENABLED_BY_DEFAULT`). `crates/ace-mod-user/tests/differences.md` has the rest.
 - **Pool**: lookup. LDAP searches with a bind password. Disabled by default.
-- **Step**: 7.4.
+- **Step**: done.
 - **Does**: Looks up a user (by cn) or a local-domain email_address (by proxyAddresses) in LDAP/AD, stores the attributes, adds the counterpart user/email observable, fetches the manager, and tags executives.
 - **Input**: email_address (local email domains only); user.
 - **Groups and modes**: groups correlation; modes analysis, cli, correlation.
@@ -2184,9 +2183,9 @@ In the config's order. ace4 is the crate a ported module is in.
 ### clicker_detection_splunk
 
 - **Section**: `analysis_module_clicker_detection_splunk` (instance `clicker_detection_splunk`), class `SplunkClickerDetectionAnalyzer` in `saq/modules/clicker_detection.py`, disabled by default.
-- **ace4**: not yet.
-- **Pool**: lookup. Splunk searches with delayed analysis. ace4's Splunk module (`ace-mod-splunk`, 1.28) is ace3's `SplunkAPIAnalyzer`, which tests/e2e/site/overlay.yaml runs as an instance under this name; this class, with its clicker_detection.yaml searches, isn't ported. Splunk's client stays in this workspace (7.8).
-- **Step**: 7.4.
+- **ace4**: ported in `ace-mod-splunk`. It's `clicker.rs` there, a module of its own, on the Splunk module's client and delay loop (1.28), reading ace3's `clicker_detection.yaml` from `config_path`. A URL matches itself alone: urlfinderlib's child URLs come with 7.5's `url_extraction`. Off unless the overlay has a section for it. tests/e2e/site/overlay.yaml's Splunk instance, which had this name, is `proxy_domain_splunk`, joining the correlation group with `groups`. `crates/ace-mod-splunk/tests/clicker_differences.md` has the rest.
+- **Pool**: lookup. Splunk searches with delayed analysis. Splunk's client stays in this workspace (7.8).
+- **Step**: done.
 - **Does**: For url/fqdn observables carrying the clicker_detection directive, runs each analyst-configured Splunk search (with every urlfinderlib child-URL permutation of the value) to find users who clicked/visited it, records ClickerEvents, and on a configured hit adds a detection point and/or schedules a crawl.
 - **Input**: url; fqdn (config valid_observable_types; required_directives clicker_detection).
 - **Groups and modes**: groups correlation; modes analysis, cli, correlation.

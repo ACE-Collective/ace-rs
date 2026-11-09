@@ -42,45 +42,7 @@
         "pdf": true
       }
     },
-    "file:ae7dec46f1c87e4933cfe679984bd9b0ebc6d690df8dad2d41fe78a955a037c9": {
-      "detections": {},
-      "directives": {
-        "extract_urls": true
-      },
-      "excluded_analysis": {},
-      "paths": {
-        "sample_pdf_with_qr_code.pdf.pdfparser": {
-          "type=document.pdf.object": true
-        }
-      },
-      "redirection": "file:4efb0032a6de86d9c0dabc0d2814533aac30811ee40e433d26092eaf988ca110",
-      "relationships": {
-        "extracted_from file:4efb0032a6de86d9c0dabc0d2814533aac30811ee40e433d26092eaf988ca110": true
-      },
-      "results": {
-        "file_type": {
-          "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": false,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "application/octet-stream",
-            "type": "data"
-          },
-          "summary": "File Type Analysis: data (application/octet-stream)",
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:f3ecd949a4a5f7778fff4d398abdda0de8072fc8a03c3eaefde4685d6a1b6578": {
+    "file:963b1ded61065152d21eabdfac95ea068cbea4d62e1fe549d0eab69e72a861cc": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -122,6 +84,44 @@
       "tags": {
         "pdf": true
       }
+    },
+    "file:ae7dec46f1c87e4933cfe679984bd9b0ebc6d690df8dad2d41fe78a955a037c9": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "sample_pdf_with_qr_code.pdf.pdfparser": {
+          "type=document.pdf.object": true
+        }
+      },
+      "redirection": "file:4efb0032a6de86d9c0dabc0d2814533aac30811ee40e433d26092eaf988ca110",
+      "relationships": {
+        "extracted_from file:4efb0032a6de86d9c0dabc0d2814533aac30811ee40e433d26092eaf988ca110": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        }
+      },
+      "tags": {}
     }
   }
 }

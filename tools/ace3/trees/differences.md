@@ -13,7 +13,7 @@ A module ace4 doesn't have, such as `file_type` (7.5), isn't listed: the command
 | Samples | Path | Why | When |
 |---|---|---|---|
 | `*` | `/observables/*/results/archive/details/extraction_error` | *Drift.* ace3 added it with its sandboxed extractors (`c817977f`). It is null here, and the port has no such key. |  |
-| `*` | `/observables/*/results/clicker_detection_splunk/details/gui_link` | ace3 sets a Splunk web link only for a query with `<O_TIMESPEC>`, so it's null. The port doesn't fill `<O_TIMESPEC>` and has no such key. |  |
+| `*` | `/observables/*/results/proxy_domain_splunk/details/gui_link` | ace3 sets a Splunk web link only for a query with `<O_TIMESPEC>`, so it's null. The port doesn't fill `<O_TIMESPEC>` and has no such key. |  |
 | `*` | `/observables/*/results/rdap_analyzer/details/rdap_data` | whoisit's parse of the response, stored beside the response itself. Nothing in ace3 reads it but its tests. |  |
 | `*` | `/observables/*/results/rdap_analyzer/details/whois_data` | The WHOIS fallback isn't ported. ace3 sets this only when RDAP fails and WHOIS answers, so it's null. |  |
 | `*` | `/observables/*/results/rdap_analyzer/details/whois_raw_text` | The same. |  |

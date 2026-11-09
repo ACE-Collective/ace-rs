@@ -1,0 +1,72 @@
+{
+  "about": "Made-up rows. No Splunk produced these: fake_splunk.py serves them as the results of the clicker searches of fixtures/clicker/clicker_detection.yaml, by the index and the value each search names. Users are under example.com. The last search's row has two users in one field, as a multivalue field comes back.",
+  "searches": [
+    {
+      "match": [
+        "index=ace4_clicks",
+        "click.example.com"
+      ],
+      "rows": [
+        {
+          "Timestamp": "2026-11-08T10:00:00.1234567Z",
+          "AccountUpn": "alice@example.com",
+          "ActionType": "ClickAllowed",
+          "Url": "https://click.example.com/login",
+          "NetworkMessageId": "6f1d5c2a-0000-4000-8000-000000000001"
+        },
+        {
+          "Timestamp": "2026-11-08T10:02:00Z",
+          "AccountUpn": "bob@example.com",
+          "ActionType": "ClickBlocked",
+          "Url": "https://click.example.com/login"
+        }
+      ]
+    },
+    {
+      "match": [
+        "index=ace4_proxy",
+        "click.example.com"
+      ],
+      "rows": [
+        {
+          "_time": "2026-11-08T10:05:00.000+00:00",
+          "user": "carol@example.com",
+          "url": "https://click.example.com/login?x=1"
+        },
+        {
+          "_time": "2026-11-08T10:06:00.000+00:00",
+          "user": "dave@example.com",
+          "url": "https://click.example.com/login?x=1"
+        }
+      ]
+    },
+    {
+      "match": [
+        "index=ace4_dns",
+        "click.example.com"
+      ],
+      "rows": [
+        {
+          "_time": "2026-11-08T09:00:00.000+00:00",
+          "query": "click.example.com"
+        }
+      ]
+    },
+    {
+      "match": [
+        "index=ace4_proxy",
+        "multi.example.com"
+      ],
+      "rows": [
+        {
+          "_time": "2026-11-08T10:07:00.000+00:00",
+          "user": [
+            "frank@example.com",
+            "grace@example.com"
+          ],
+          "url": "https://multi.example.com/x"
+        }
+      ]
+    }
+  ]
+}

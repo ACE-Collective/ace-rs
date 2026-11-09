@@ -11,16 +11,21 @@ modules:
   fqdn_analyzer:
     settings:
       nameservers: ["responder:53"]
+  # tools/ace3/trees/nrd.json's domains are verified by no RDAP, as make-trees runs ace3
+  nrd_analyzer:
+    settings:
+      max_registration_age_days: 0
   # the stack has no fluent-bit; the logger's brocess writes are what the test checks
   email_logger:
     settings:
       fluent_bit_logging_enabled: false
   splunk_api:
     instances:
-      # ace3's correlation group runs an instance by this name, so a root that becomes an
-      # alert runs it
-      clicker_detection_splunk:
+      # in ace3's correlation group, so a root that becomes an alert runs it, as make-trees
+      # runs ace3's instance of the same name
+      proxy_domain_splunk:
         inputs: [fqdn]
+        groups: [correlation]
         settings:
           base_url: http://responder:443/https/127.0.0.1:8089
           username: ace4

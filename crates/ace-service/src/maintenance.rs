@@ -21,7 +21,7 @@ use std::collections::BTreeMap;
 
 use ace_core::bucket::{Bucket, GcStats, OrphanStats, Retention, VerifyStats};
 
-use crate::permission::{BUCKET_GC, BUCKET_VERIFY, PermissionName};
+use crate::permission::{BUCKET_GC, BUCKET_VERIFY, NRD_REFRESH, PermissionName};
 use crate::{Actor, Service, ServiceError};
 
 /// What GC did, by pool.
@@ -87,6 +87,24 @@ impl Service {
             done.insert(pool, stats);
         }
         Ok(done)
+    }
+
+    /// The newly registered domains list's state, for deciding whether to rebuild it (PLAN.md 7.4).
+    /// Needs `nrd:refresh`.
+    pub async fn nrd_state(
+        &self,
+        actor: &Actor,
+    ) -> Result<Option<ace_core::nrd::ListState>, ServiceError> {
+        self.require(actor, "nrd_state", &NRD_REFRESH).await?;
+        Ok(ace_core::nrd::state(self.gate.db()).await?)
+    }
+
+    /// Starts a rebuild of the newly registered domains list, which lands when it commits. Needs
+    /// `nrd:refresh`. No audit row: the list is a feed's copy, ace3 audits its refresh nowhere, and
+    /// what each rebuild took is in its state and its run's row.
+    pub async fn nrd_rebuild(&self, actor: &Actor) -> Result<ace_core::nrd::Rebuild, ServiceError> {
+        self.require(actor, "nrd_rebuild", &NRD_REFRESH).await?;
+        Ok(ace_core::nrd::Rebuild::begin(self.gate.db()).await?)
     }
 
     /// Refuses an actor without `permission`, as `Gate::write` does, for work that runs in the core's

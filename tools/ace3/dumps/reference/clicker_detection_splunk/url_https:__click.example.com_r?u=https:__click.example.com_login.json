@@ -1,0 +1,153 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "SplunkClickerDetectionAnalysis",
+      "details": {
+        "clicker_events": [
+          {
+            "action_type": "ClickAllowed",
+            "network_message_id": "6f1d5c2a-0000-4000-8000-000000000001",
+            "portal_url": "https://127.0.0.1/en-US/app/search/search?q=search+index%3Dace4_clicks+sourcetype%3D%22ace4%3Aclick%22+Url%3D%28%22https%3A%2F%2Fclick.example.com%2Flogin%22+OR+%22https%3A%2F%2Fclick.example.com%2Fr%3Fu%3Dhttps%3A%2F%2Fclick.example.com%2Flogin%22%29+earliest+%3D+11%2F01%2F2026%3A23%3A48%3A12+latest+%3D+11%2F09%2F2026%3A00%3A48%3A12%0A%7C+table+Timestamp+AccountUpn+ActionType+Url+NetworkMessageId",
+            "searched_value": "https://click.example.com/r?u=https://click.example.com/login",
+            "source": "splunk:url_clicks",
+            "timestamp": "2026-11-08T10:00:00.1234567Z",
+            "url": "https://click.example.com/login",
+            "user": "alice@example.com"
+          },
+          {
+            "action_type": "ClickBlocked",
+            "network_message_id": null,
+            "portal_url": "https://127.0.0.1/en-US/app/search/search?q=search+index%3Dace4_clicks+sourcetype%3D%22ace4%3Aclick%22+Url%3D%28%22https%3A%2F%2Fclick.example.com%2Flogin%22+OR+%22https%3A%2F%2Fclick.example.com%2Fr%3Fu%3Dhttps%3A%2F%2Fclick.example.com%2Flogin%22%29+earliest+%3D+11%2F01%2F2026%3A23%3A48%3A12+latest+%3D+11%2F09%2F2026%3A00%3A48%3A12%0A%7C+table+Timestamp+AccountUpn+ActionType+Url+NetworkMessageId",
+            "searched_value": "https://click.example.com/r?u=https://click.example.com/login",
+            "source": "splunk:url_clicks",
+            "timestamp": "2026-11-08T10:02:00Z",
+            "url": "https://click.example.com/login",
+            "user": "bob@example.com"
+          },
+          {
+            "action_type": null,
+            "network_message_id": null,
+            "portal_url": "https://127.0.0.1/en-US/app/search/search?q=search+index%3Dace4_proxy+%28%22https%3A%2F%2Fclick.example.com%2Flogin%22+OR+%22https%3A%2F%2Fclick.example.com%2Fr%3Fu%3Dhttps%3A%2F%2Fclick.example.com%2Flogin%22+OR+%22https%253A%252F%252Fclick.example.com%252Flogin%22+OR+%22https%253A%252F%252Fclick.example.com%252Fr%253Fu%253Dhttps%253A%252F%252Fclick.example.com%252Flogin%22%29+_index_earliest+%3D+11%2F07%2F2026%3A23%3A48%3A12+_index_latest+%3D+11%2F09%2F2026%3A00%3A48%3A12%0A%7C+table+_time+user+url",
+            "searched_value": "https://click.example.com/r?u=https://click.example.com/login",
+            "source": "splunk:proxy",
+            "timestamp": "2026-11-08T10:05:00.000+00:00",
+            "url": "https://click.example.com/login?x=1",
+            "user": "carol@example.com"
+          },
+          {
+            "action_type": null,
+            "network_message_id": null,
+            "portal_url": "https://127.0.0.1/en-US/app/search/search?q=search+index%3Dace4_proxy+%28%22https%3A%2F%2Fclick.example.com%2Flogin%22+OR+%22https%3A%2F%2Fclick.example.com%2Fr%3Fu%3Dhttps%3A%2F%2Fclick.example.com%2Flogin%22+OR+%22https%253A%252F%252Fclick.example.com%252Flogin%22+OR+%22https%253A%252F%252Fclick.example.com%252Fr%253Fu%253Dhttps%253A%252F%252Fclick.example.com%252Flogin%22%29+_index_earliest+%3D+11%2F07%2F2026%3A23%3A48%3A12+_index_latest+%3D+11%2F09%2F2026%3A00%3A48%3A12%0A%7C+table+_time+user+url",
+            "searched_value": "https://click.example.com/r?u=https://click.example.com/login",
+            "source": "splunk:proxy",
+            "timestamp": "2026-11-08T10:06:00.000+00:00",
+            "url": "https://click.example.com/login?x=1",
+            "user": "dave@example.com"
+          }
+        ],
+        "clicker_index": 2,
+        "clicker_plan": [
+          "url_clicks",
+          "proxy"
+        ],
+        "clicker_source": "splunk",
+        "dispatch_state": null,
+        "end_time": null,
+        "gui_link": "https://127.0.0.1/en-US/app/search/search?q=search+index%3Dace4_proxy+%28%22https%3A%2F%2Fclick.example.com%2Flogin%22+OR+%22https%3A%2F%2Fclick.example.com%2Fr%3Fu%3Dhttps%3A%2F%2Fclick.example.com%2Flogin%22+OR+%22https%253A%252F%252Fclick.example.com%252Flogin%22+OR+%22https%253A%252F%252Fclick.example.com%252Fr%253Fu%253Dhttps%253A%252F%252Fclick.example.com%252Flogin%22%29+_index_earliest+%3D+11%2F07%2F2026%3A23%3A48%3A12+_index_latest+%3D+11%2F09%2F2026%3A00%3A48%3A12%0A%7C+table+_time+user+url",
+        "gui_link_label": "Open in Splunk",
+        "matched_url_count": 2,
+        "query": null,
+        "query_error": null,
+        "query_results": null,
+        "query_start": 1794181693.0509558,
+        "query_summary": "URL Clicks",
+        "question": "Did anyone click this URL or visit this domain?",
+        "running_start_time": null,
+        "search_id": null,
+        "start_time": null
+      },
+      "detections": [
+        {
+          "description": "URL clicker identified via url_clicks (alice@example.com)",
+          "details": null
+        },
+        {
+          "description": "URL clicker identified via proxy (carol@example.com, dave@example.com)",
+          "details": null
+        }
+      ],
+      "module_path": "saq.modules.clicker_detection:SplunkClickerDetectionAnalysis:clicker_detection_splunk",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [],
+          "display_type": "Clicker",
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_address",
+          "value": "alice@example.com"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "display_type": "Clicker",
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_address",
+          "value": "bob@example.com"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "display_type": "Clicker",
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_address",
+          "value": "carol@example.com"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "display_type": "Clicker",
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_address",
+          "value": "dave@example.com"
+        }
+      ],
+      "summary": "URL Clicks (Splunk): 4 clicks found",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [
+      "clicker_detection"
+    ],
+    "label": "url https://click.example.com/r?u=https://click.example.com/login with directives ['clicker_detection'], against fake_splunk.py with --running-polls 4",
+    "meta_tags": [],
+    "observable": {
+      "type": "url",
+      "value": "https://click.example.com/r?u=https://click.example.com/login"
+    }
+  },
+  "module": "clicker_detection_splunk",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "clicker_detection",
+      "crawl"
+    ],
+    "excluded_analysis": [],
+    "relationships": [],
+    "tags": [],
+    "type": "url",
+    "value": "https://click.example.com/r?u=https://click.example.com/login"
+  }
+}

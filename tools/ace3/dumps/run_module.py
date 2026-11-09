@@ -539,7 +539,8 @@ TREE_MODULES = {
     "RTFOLEObjectAnalysis": "rtfole",
     "XLMMacroDeobfuscatorAnalysis": "xlmdeobfuscator",
     "YaraScanResults_v3_4": "yara_scanner_v3_4",
-    "SplunkAPIAnalysis": "clicker_detection_splunk",
+    "SplunkAPIAnalysis": "proxy_domain_splunk",
+    "NRDAnalysis": "nrd_analyzer",
 }
 TREE_RUN_FIELDS = {
     "EmailAnalysis": ["details/email/log_entry/date"],
@@ -557,6 +558,7 @@ TREE_RUN_FIELDS = {
         "details/start_time",
     ],
     "YaraScanResults_v3_4": ["details/scan_results/*/commit", "details/scan_results/*/ruleset"],
+    "NRDAnalysis": ["details/matched_at"],
 }
 # ace3's excluded_analysis holds `module:<class ...>` strings
 TREE_EXCLUDED = {

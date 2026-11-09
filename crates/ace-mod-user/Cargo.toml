@@ -1,0 +1,32 @@
+[package]
+name = "ace-mod-user"
+version = "0.1.0"
+description = "The user module: a user's or a local email address's directory entry, by LDAP"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+ace-mod-email = { path = "../ace-mod-email" }
+ace-results = { path = "../ace-results" }
+ace-sdk = { path = "../ace-sdk" }
+chrono = { version = "0.4.45", default-features = false, features = ["std"] }
+# LDAP, over rustls with aws-lc-rs as the rest of the workspace, and none of its native-tls default.
+ldap3 = { version = "0.12.1", default-features = false, features = ["tls-rustls-aws-lc-rs"] }
+regex = "1.13.1"
+# The platform's CA roots, which the TLS connection trusts beside the overlay's.
+rustls-native-certs = "0.8.5"
+rustls = { version = "0.23", default-features = false, features = ["aws_lc_rs", "std"] }
+schemars = "1.2.3"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+tokio = { version = "1.54.1", features = ["sync", "time"] }
+tracing = "0.1.44"
+
+[dev-dependencies]
+ace-testkit = { path = "../ace-testkit" }
+tokio = { version = "1.54.1", features = ["macros", "rt"] }
+
+[lints]
+workspace = true

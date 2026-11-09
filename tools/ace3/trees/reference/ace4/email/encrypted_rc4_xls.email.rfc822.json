@@ -617,8 +617,22 @@
       },
       "excluded_analysis": {},
       "relationships": {},
-      "results": {},
-      "tags": {}
+      "results": {
+        "nrd_analyzer": {
+          "details": {
+            "age_created_in_days": null,
+            "datetime_created": null,
+            "is_nrd": true,
+            "lookup_error": null,
+            "lookup_protocol": null
+          },
+          "summary": "Newly Registered Domain: present in local NRD list",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "suspect:nrd": true
+      }
     },
     "url:https://component.pw/wp-index.php,$BB$54": {
       "detections": {},
@@ -627,8 +641,22 @@
       },
       "excluded_analysis": {},
       "relationships": {},
-      "results": {},
-      "tags": {}
+      "results": {
+        "nrd_analyzer": {
+          "details": {
+            "age_created_in_days": null,
+            "datetime_created": null,
+            "is_nrd": true,
+            "lookup_error": null,
+            "lookup_protocol": null
+          },
+          "summary": "Newly Registered Domain: present in local NRD list",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "suspect:nrd": true
+      }
     }
   }
 }

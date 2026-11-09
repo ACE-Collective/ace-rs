@@ -20,6 +20,7 @@
 //!
 //! [`search`] is the client the hunter searches with (PLAN.md 6.4): one search waited for to its end.
 
+pub mod clicker;
 mod mapping;
 mod rest;
 pub mod search;
@@ -39,6 +40,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
+pub use crate::clicker::ClickerDetection;
 pub use crate::mapping::ObservableMapping;
 use crate::mapping::{
     Mapping, add_observables, fill_query, parse_timespec, search_text, table_columns,
@@ -126,13 +128,7 @@ impl Default for SplunkSettings {
 
 /// The Splunk module.
 pub struct SplunkAnalyzer {
-    client: HttpClient,
-    /// `base_url` without a trailing slash.
-    base_url: String,
-    /// The path prefix of `user_context` and `app_context`, such as `/services`.
-    namespace: String,
-    /// The `Authorization` header of the last login, reused until splunkd answers 401.
-    session: Mutex<Option<String>>,
+    splunkd: Splunkd,
     mappings: Vec<Mapping>,
     ignored: Vec<Regex>,
     correlation_delay: Option<Duration>,
@@ -162,15 +158,15 @@ impl Module for SplunkAnalyzer {
                 "the query uses {token}, which the Splunk module doesn't fill"
             )));
         }
-        let mut builder =
-            HttpClient::builder().timeout(Duration::from_secs(settings.request_timeout_seconds));
-        if let Some(path) = &settings.ca_certificates {
-            let pem = std::fs::read(path)
-                .map_err(|e| ModuleError::other(format!("{}: {e}", path.display())))?;
-            builder = builder
-                .add_root_certificates_pem(&pem)
-                .map_err(ModuleError::other)?;
-        }
+        let splunkd = Splunkd::new(&Connection {
+            base_url: &settings.base_url,
+            username: settings.username.as_deref(),
+            user_context: settings.user_context.as_deref(),
+            app_context: settings.app_context.as_deref(),
+            ca_certificates: settings.ca_certificates.as_deref(),
+            request_timeout_seconds: settings.request_timeout_seconds,
+            max_result_count: settings.max_result_count,
+        })?;
         let mappings = settings
             .observable_mapping
             .iter()
@@ -185,13 +181,7 @@ impl Module for SplunkAnalyzer {
             .transpose()
             .map_err(ModuleError::other)?;
         Ok(SplunkAnalyzer {
-            client: builder.build().map_err(ModuleError::other)?,
-            base_url: settings.base_url.trim_end_matches('/').to_owned(),
-            namespace: rest::namespace(
-                settings.user_context.as_deref(),
-                settings.app_context.as_deref(),
-            ),
-            session: Mutex::new(None),
+            splunkd,
             mappings,
             ignored,
             correlation_delay,
@@ -202,20 +192,20 @@ impl Module for SplunkAnalyzer {
 /// What a delayed run needs from the runs before it. ace3 keeps the same in the analysis's
 /// details between delays.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
-struct Search {
+pub(crate) struct Search {
     /// The query with the observable in it.
-    query: String,
+    pub(crate) query: String,
     /// `search/v2/jobs` or `search/jobs`, from the server's version.
-    jobs_path: Option<String>,
-    search_id: Option<String>,
-    dispatch_state: Option<String>,
-    start_time: Option<String>,
-    running_start_time: Option<String>,
-    end_time: Option<String>,
+    pub(crate) jobs_path: Option<String>,
+    pub(crate) search_id: Option<String>,
+    pub(crate) dispatch_state: Option<String>,
+    pub(crate) start_time: Option<String>,
+    pub(crate) running_start_time: Option<String>,
+    pub(crate) end_time: Option<String>,
 }
 
 /// Where a run left the search.
-enum Step {
+pub(crate) enum Step {
     /// The job is queued or running.
     Waiting,
     /// The job is done and these are its rows.
@@ -229,7 +219,7 @@ enum Ending {
 }
 
 /// Why a run couldn't go on.
-enum Failure {
+pub(crate) enum Failure {
     /// The task fails, such as when splunkd can't be reached, so it runs again later.
     Task(ModuleError),
     /// The search failed. As in ace3, the analysis ends with this as its `query_error`.
@@ -336,7 +326,7 @@ impl Lookup for SplunkAnalyzer {
             }
         };
 
-        let ending = match self.step(ctx, &mut search).await {
+        let ending = match self.splunkd.step(ctx, &mut search).await {
             Ok(Step::Waiting) if elapsed < Duration::from_secs(settings.query_timeout) => {
                 return self.delay(settings, Duration::from_secs(settings.async_delay), &search);
             }
@@ -349,15 +339,7 @@ impl Lookup for SplunkAnalyzer {
             Err(Failure::Task(error)) => return Err(error),
             Err(Failure::Search(error)) => {
                 tracing::error!("splunk query {} failed: {error}", search.query);
-                if let (Some(jobs), Some(sid)) = (&search.jobs_path, &search.search_id) {
-                    let url = format!(
-                        "{}{}/{jobs}/{}/",
-                        self.base_url,
-                        self.namespace,
-                        rest::segment(sid)
-                    );
-                    self.delete_job(ctx, &url).await;
-                }
+                self.splunkd.delete_search(ctx, &search).await;
                 // ace3's RemoteApiError(500, "Splunk search failed: ...") as text
                 Ending::Error(format!("HTTP 500: Splunk search failed: {error}"))
             }
@@ -387,10 +369,127 @@ impl SplunkAnalyzer {
         ))
     }
 
-    /// Submits the search, or reads the job's status once and, when it's done, its rows.
-    async fn step(
+    /// The result: the rows and the observables their mapped fields give, or the error.
+    fn result(
         &self,
         ctx: &TaskContext<SplunkSettings>,
+        search: &Search,
+        started: DateTime<Utc>,
+        ending: Ending,
+    ) -> ResultEnvelope<SplunkApiAnalysis> {
+        let settings = ctx.settings();
+        let mut details = SplunkApiAnalysis {
+            query: Some(search.query.clone()),
+            question: Some(settings.question.clone()),
+            query_summary: Some(settings.summary.clone()),
+            query_start: Some(epoch_seconds(started)),
+            search_id: search.search_id.clone(),
+            dispatch_state: search.dispatch_state.clone(),
+            start_time: search.start_time.clone(),
+            running_start_time: search.running_start_time.clone(),
+            end_time: search.end_time.clone(),
+            ..SplunkApiAnalysis::default()
+        };
+        let mut observables = Vec::new();
+        // BaseAPIAnalysis.generate_summary: no summary for no rows
+        let summary = match ending {
+            Ending::Error(error) => {
+                let summary = format!("{}: ERROR: {error}", settings.summary);
+                details.query_error = Some(error);
+                Some(summary)
+            }
+            Ending::Rows(rows) => {
+                details.table_columns = table_columns(&search.query);
+                for row in &rows {
+                    add_observables(
+                        row,
+                        &self.mappings,
+                        &self.ignored,
+                        ctx.now(),
+                        &mut observables,
+                    );
+                }
+                let summary = (!rows.is_empty())
+                    .then(|| format!("{}: ({} results)", settings.summary, rows.len()));
+                details.query_results = Some(rows);
+                summary
+            }
+        };
+        let mut result = ResultEnvelope::new(details);
+        result.summary = summary;
+        result.observables = observables;
+        result
+    }
+}
+
+/// What a Splunk connection is made of: the settings both Splunk modules share.
+pub(crate) struct Connection<'a> {
+    pub(crate) base_url: &'a str,
+    pub(crate) username: Option<&'a str>,
+    pub(crate) user_context: Option<&'a str>,
+    pub(crate) app_context: Option<&'a str>,
+    pub(crate) ca_certificates: Option<&'a std::path::Path>,
+    pub(crate) request_timeout_seconds: u64,
+    pub(crate) max_result_count: u64,
+}
+
+/// splunkd's REST API as splunk-sdk calls it for ace3: a login reused until a 401, a job submitted
+/// on the search API the server's version allows, its status read, its rows fetched and the job
+/// deleted.
+pub(crate) struct Splunkd {
+    client: HttpClient,
+    /// `base_url` without a trailing slash.
+    pub(crate) base_url: String,
+    /// The path prefix of `user_context` and `app_context`, such as `/services`.
+    pub(crate) namespace: String,
+    /// The `Authorization` header of the last login, reused until splunkd answers 401.
+    session: Mutex<Option<String>>,
+    username: Option<String>,
+    max_result_count: u64,
+}
+
+impl Splunkd {
+    pub(crate) fn new(connection: &Connection<'_>) -> Result<Splunkd, ModuleError> {
+        let mut builder =
+            HttpClient::builder().timeout(Duration::from_secs(connection.request_timeout_seconds));
+        if let Some(path) = connection.ca_certificates {
+            let pem = std::fs::read(path)
+                .map_err(|e| ModuleError::other(format!("{}: {e}", path.display())))?;
+            builder = builder
+                .add_root_certificates_pem(&pem)
+                .map_err(ModuleError::other)?;
+        }
+        Ok(Splunkd {
+            client: builder.build().map_err(ModuleError::other)?,
+            base_url: connection.base_url.trim_end_matches('/').to_owned(),
+            namespace: rest::namespace(connection.user_context, connection.app_context),
+            session: Mutex::new(None),
+            username: connection.username.map(str::to_owned),
+            max_result_count: connection.max_result_count,
+        })
+    }
+
+    /// Deletes the search's job, if it has one, as ace3 does when a search fails.
+    pub(crate) async fn delete_search<S: ace_sdk::Settings>(
+        &self,
+        ctx: &TaskContext<S>,
+        search: &Search,
+    ) {
+        if let (Some(jobs), Some(sid)) = (&search.jobs_path, &search.search_id) {
+            let url = format!(
+                "{}{}/{jobs}/{}/",
+                self.base_url,
+                self.namespace,
+                rest::segment(sid)
+            );
+            self.delete_job(ctx, &url).await;
+        }
+    }
+
+    /// Submits the search, or reads the job's status once and, when it's done, its rows.
+    pub(crate) async fn step<S: ace_sdk::Settings>(
+        &self,
+        ctx: &TaskContext<S>,
         search: &mut Search,
     ) -> Result<Step, Failure> {
         let now = ctx.now();
@@ -465,9 +564,9 @@ impl SplunkAnalyzer {
     }
 
     /// Submits the search as a new job, on the search API the server's version allows.
-    async fn submit(
+    async fn submit<S: ace_sdk::Settings>(
         &self,
-        ctx: &TaskContext<SplunkSettings>,
+        ctx: &TaskContext<S>,
         search: &mut Search,
     ) -> Result<(), Failure> {
         let url = format!("{}/services/server/info", self.base_url);
@@ -476,7 +575,7 @@ impl SplunkAnalyzer {
         let jobs = rest::jobs_path(&info);
 
         let text = search_text(&search.query);
-        let max_count = ctx.settings().max_result_count.to_string();
+        let max_count = self.max_result_count.to_string();
         let form = rest::form(&[
             ("search", &text),
             ("max_count", &max_count),
@@ -502,7 +601,7 @@ impl SplunkAnalyzer {
     }
 
     /// Deletes a job, logging a failure, as ace3's `delete_search_job`.
-    async fn delete_job(&self, ctx: &TaskContext<SplunkSettings>, url: &str) {
+    async fn delete_job<S: ace_sdk::Settings>(&self, ctx: &TaskContext<S>, url: &str) {
         let failure = match self.call(ctx, Method::DELETE, url, None).await {
             Ok(reply) if reply.status.is_success() => return,
             Ok(reply) => status_text(reply.status, &reply.body),
@@ -514,9 +613,9 @@ impl SplunkAnalyzer {
 
     /// Sends a request with the session's or the token's `Authorization`. A 401 logs in again
     /// once, as splunklib's autologin does. A 429, 502, 503 or 504 fails the task.
-    async fn call(
+    async fn call<S: ace_sdk::Settings>(
         &self,
-        ctx: &TaskContext<SplunkSettings>,
+        ctx: &TaskContext<S>,
         method: Method,
         url: &str,
         form: Option<String>,
@@ -533,7 +632,7 @@ impl SplunkAnalyzer {
             }
             let response = self.client.send(request).await?;
             let status = response.status();
-            if status == StatusCode::UNAUTHORIZED && !fresh && ctx.settings().username.is_some() {
+            if status == StatusCode::UNAUTHORIZED && !fresh && self.username.is_some() {
                 fresh = true;
                 continue;
             }
@@ -554,13 +653,12 @@ impl SplunkAnalyzer {
 
     /// The `Authorization` header: the token, or the session of a login as `username`, which
     /// is reused until `fresh` asks for a new one.
-    async fn authorization(
+    async fn authorization<S: ace_sdk::Settings>(
         &self,
-        ctx: &TaskContext<SplunkSettings>,
+        ctx: &TaskContext<S>,
         fresh: bool,
     ) -> Result<String, Failure> {
-        let settings = ctx.settings();
-        let Some(username) = settings.username.as_deref() else {
+        let Some(username) = self.username.as_deref() else {
             let token = ctx.secret(TOKEN)?.expose();
             // splunklib sends a token as `Splunk <token>` unless it says its scheme
             return Ok(
@@ -607,57 +705,5 @@ impl SplunkAnalyzer {
             *cached = Some(session.clone());
         }
         Ok(session)
-    }
-
-    /// The result: the rows and the observables their mapped fields give, or the error.
-    fn result(
-        &self,
-        ctx: &TaskContext<SplunkSettings>,
-        search: &Search,
-        started: DateTime<Utc>,
-        ending: Ending,
-    ) -> ResultEnvelope<SplunkApiAnalysis> {
-        let settings = ctx.settings();
-        let mut details = SplunkApiAnalysis {
-            query: Some(search.query.clone()),
-            question: Some(settings.question.clone()),
-            query_summary: Some(settings.summary.clone()),
-            query_start: Some(epoch_seconds(started)),
-            search_id: search.search_id.clone(),
-            dispatch_state: search.dispatch_state.clone(),
-            start_time: search.start_time.clone(),
-            running_start_time: search.running_start_time.clone(),
-            end_time: search.end_time.clone(),
-            ..SplunkApiAnalysis::default()
-        };
-        let mut observables = Vec::new();
-        // BaseAPIAnalysis.generate_summary: no summary for no rows
-        let summary = match ending {
-            Ending::Error(error) => {
-                let summary = format!("{}: ERROR: {error}", settings.summary);
-                details.query_error = Some(error);
-                Some(summary)
-            }
-            Ending::Rows(rows) => {
-                details.table_columns = table_columns(&search.query);
-                for row in &rows {
-                    add_observables(
-                        row,
-                        &self.mappings,
-                        &self.ignored,
-                        ctx.now(),
-                        &mut observables,
-                    );
-                }
-                let summary = (!rows.is_empty())
-                    .then(|| format!("{}: ({} results)", settings.summary, rows.len()));
-                details.query_results = Some(rows);
-                summary
-            }
-        };
-        let mut result = ResultEnvelope::new(details);
-        result.summary = summary;
-        result.observables = observables;
-        result
     }
 }

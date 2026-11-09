@@ -72,6 +72,12 @@ impl Gate {
         Gate { db }
     }
 
+    /// The database, for work that runs in the core's own transactions once a permission is
+    /// checked, such as the scheduler's.
+    pub(crate) fn db(&self) -> &Db {
+        &self.db
+    }
+
     /// Runs `body` in a transaction once `actor` holds `permission`, and records what it changed in
     /// that transaction. A refusal is `ServiceError::PermissionDenied`, before `body` has looked at
     /// anything, and leaves no audit row. `action` is the name of the service function calling this,

@@ -82,6 +82,8 @@ pub struct Manifest {
     pub secrets: &'static [&'static str],
     /// The module runs only as named instances (`Module::INSTANCES_ONLY`).
     pub instances_only: bool,
+    /// The module runs without an overlay section (`Module::ENABLED_BY_DEFAULT`).
+    pub enabled_by_default: bool,
     /// The module reads its carrying email (`Module::READS_CARRYING_EMAIL`).
     pub reads_carrying_email: bool,
     /// The module runs when the rest of its root is done (`Module::RUNS_LAST`).
@@ -139,6 +141,7 @@ impl Manifest {
             sandbox,
             secrets: M::SECRETS,
             instances_only: M::INSTANCES_ONLY,
+            enabled_by_default: M::ENABLED_BY_DEFAULT,
             reads_carrying_email: M::READS_CARRYING_EMAIL,
             runs_last: M::RUNS_LAST,
             reads_below: M::READS_BELOW,

@@ -1,0 +1,510 @@
+{
+  "about": "Every request ace3's Splunk client made to tools/ace3/dumps/fake_splunk.py, in order, with the fake's response. Each body_file holds the response body. request_body is the form the client sent, with a login's password redacted.",
+  "exchanges": [
+    {
+      "body_file": "000-d82625da61bc.body",
+      "body_sha256": "d82625da61bc51f540d4d13a702d9a87cb8600b5e24a92e1cc58aa11b20d0fbf",
+      "body_size": 136,
+      "method": "POST",
+      "request_body": "username=ace4&password=%3Credacted%3E&cookie=1",
+      "request_headers": {
+        "Accept": "*/*",
+        "Accept-Encoding": "identity",
+        "Connection": "Close",
+        "Content-Length": "50",
+        "Host": "127.0.0.1:8089",
+        "User-Agent": "splunk-sdk-python/3.0.1"
+      },
+      "response_headers": {
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+        "Connection": "Close",
+        "Content-Length": "136",
+        "Content-Type": "text/xml; charset=UTF-8",
+        "Set-Cookie": "splunkd_8089=ace4-fake-session-0000000000000000; Path=/; Secure; HttpOnly; Max-Age=3600",
+        "X-Content-Type-Options": "nosniff"
+      },
+      "status": 200,
+      "url": "https://127.0.0.1:8089/services/auth/login"
+    },
+    {
+      "body_file": "001-d54fc1678a2f.body",
+      "body_sha256": "d54fc1678a2f54f46979cd66cb34847b9acaff7189f4e9e7e9250a77c509a457",
+      "body_size": 1162,
+      "method": "GET",
+      "request_body": "",
+      "request_headers": {
+        "Accept": "*/*",
+        "Accept-Encoding": "identity",
+        "Connection": "Close",
+        "Content-Length": "0",
+        "Host": "127.0.0.1:8089",
+        "User-Agent": "splunk-sdk-python/3.0.1"
+      },
+      "response_headers": {
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+        "Connection": "Close",
+        "Content-Length": "1162",
+        "Content-Type": "text/xml; charset=UTF-8",
+        "X-Content-Type-Options": "nosniff"
+      },
+      "status": 200,
+      "url": "https://127.0.0.1:8089/services/server/info"
+    },
+    {
+      "body_file": "002-d54fc1678a2f.body",
+      "body_sha256": "d54fc1678a2f54f46979cd66cb34847b9acaff7189f4e9e7e9250a77c509a457",
+      "body_size": 1162,
+      "method": "GET",
+      "request_body": "",
+      "request_headers": {
+        "Accept": "*/*",
+        "Accept-Encoding": "identity",
+        "Connection": "Close",
+        "Content-Length": "0",
+        "Host": "127.0.0.1:8089",
+        "User-Agent": "splunk-sdk-python/3.0.1"
+      },
+      "response_headers": {
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+        "Connection": "Close",
+        "Content-Length": "1162",
+        "Content-Type": "text/xml; charset=UTF-8",
+        "X-Content-Type-Options": "nosniff"
+      },
+      "status": 200,
+      "url": "https://127.0.0.1:8089/services/server/info"
+    },
+    {
+      "body_file": "003-dd64f6a27b04.body",
+      "body_sha256": "dd64f6a27b045d96c4042cd94d42cbf916f1db4c379e3e8f37348e20c14ad3f7",
+      "body_size": 88,
+      "method": "POST",
+      "request_body": "search=search+index%3Dace4_clicks+sourcetype%3D%22ace4%3Aclick%22+Url%3D%28%22https%3A%2F%2Fclick.example.com%2Flogin%22+OR+%22https%3A%2F%2Fclick.example.com%2Fr%3Fu%3Dhttps%3A%2F%2Fclick.example.com%2Flogin%22%29+earliest+%3D+11%2F01%2F2026%3A23%3A48%3A12+latest+%3D+11%2F09%2F2026%3A00%3A48%3A12%0A%7C+table+Timestamp+AccountUpn+ActionType+Url+NetworkMessageId%0A&max_count=1000&exec_mode=normal",
+      "request_headers": {
+        "Accept": "*/*",
+        "Accept-Encoding": "identity",
+        "Connection": "Close",
+        "Content-Length": "398",
+        "Host": "127.0.0.1:8089",
+        "User-Agent": "splunk-sdk-python/3.0.1"
+      },
+      "response_headers": {
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+        "Connection": "Close",
+        "Content-Length": "88",
+        "Content-Type": "text/xml; charset=UTF-8",
+        "X-Content-Type-Options": "nosniff"
+      },
+      "status": 201,
+      "url": "https://127.0.0.1:8089/services/search/v2/jobs/"
+    },
+    {
+      "body_file": "004-0817934ff9b9.body",
+      "body_sha256": "0817934ff9b90f25eb6b43c548dd816228474e6083fca8d4d9b1b14c8d4d18e6",
+      "body_size": 2576,
+      "method": "GET",
+      "request_body": "",
+      "request_headers": {
+        "Accept": "*/*",
+        "Accept-Encoding": "identity",
+        "Connection": "Close",
+        "Content-Length": "0",
+        "Host": "127.0.0.1:8089",
+        "User-Agent": "splunk-sdk-python/3.0.1"
+      },
+      "response_headers": {
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+        "Connection": "Close",
+        "Content-Length": "2576",
+        "Content-Type": "text/xml; charset=UTF-8",
+        "X-Content-Type-Options": "nosniff"
+      },
+      "status": 200,
+      "url": "https://127.0.0.1:8089/services/search/v2/jobs/1767225600.1"
+    },
+    {
+      "body_file": "005-122d177f12af.body",
+      "body_sha256": "122d177f12af6c8481b2ee9ffe1fbcc36b5299aafe1abb2b145b16b63407bcdc",
+      "body_size": 2576,
+      "method": "GET",
+      "request_body": "",
+      "request_headers": {
+        "Accept": "*/*",
+        "Accept-Encoding": "identity",
+        "Connection": "Close",
+        "Content-Length": "0",
+        "Host": "127.0.0.1:8089",
+        "User-Agent": "splunk-sdk-python/3.0.1"
+      },
+      "response_headers": {
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+        "Connection": "Close",
+        "Content-Length": "2576",
+        "Content-Type": "text/xml; charset=UTF-8",
+        "X-Content-Type-Options": "nosniff"
+      },
+      "status": 200,
+      "url": "https://127.0.0.1:8089/services/search/v2/jobs/1767225600.1"
+    },
+    {
+      "body_file": "006-8d8cd15d3e3e.body",
+      "body_sha256": "8d8cd15d3e3e51ee5acd2e8df793947b0cc260e358cfda5a4236509e1ce0ec69",
+      "body_size": 2575,
+      "method": "GET",
+      "request_body": "",
+      "request_headers": {
+        "Accept": "*/*",
+        "Accept-Encoding": "identity",
+        "Connection": "Close",
+        "Content-Length": "0",
+        "Host": "127.0.0.1:8089",
+        "User-Agent": "splunk-sdk-python/3.0.1"
+      },
+      "response_headers": {
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+        "Connection": "Close",
+        "Content-Length": "2575",
+        "Content-Type": "text/xml; charset=UTF-8",
+        "X-Content-Type-Options": "nosniff"
+      },
+      "status": 200,
+      "url": "https://127.0.0.1:8089/servicesNS/nobody/search/search/v2/jobs/1767225600.1"
+    },
+    {
+      "body_file": "007-8b45c2f6e740.body",
+      "body_sha256": "8b45c2f6e740df914c3866ebb3e0f73b289a7fad81dda321c0bf0aff3b6ffaf8",
+      "body_size": 2576,
+      "method": "GET",
+      "request_body": "",
+      "request_headers": {
+        "Accept": "*/*",
+        "Accept-Encoding": "identity",
+        "Connection": "Close",
+        "Content-Length": "0",
+        "Host": "127.0.0.1:8089",
+        "User-Agent": "splunk-sdk-python/3.0.1"
+      },
+      "response_headers": {
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+        "Connection": "Close",
+        "Content-Length": "2576",
+        "Content-Type": "text/xml; charset=UTF-8",
+        "X-Content-Type-Options": "nosniff"
+      },
+      "status": 200,
+      "url": "https://127.0.0.1:8089/services/search/v2/jobs/1767225600.1"
+    },
+    {
+      "body_file": "008-ba1c4b29e4af.body",
+      "body_sha256": "ba1c4b29e4affbaced9ed47341d63c7a15c29199b35249c3cf55a6c6504a2af7",
+      "body_size": 2572,
+      "method": "GET",
+      "request_body": "",
+      "request_headers": {
+        "Accept": "*/*",
+        "Accept-Encoding": "identity",
+        "Connection": "Close",
+        "Content-Length": "0",
+        "Host": "127.0.0.1:8089",
+        "User-Agent": "splunk-sdk-python/3.0.1"
+      },
+      "response_headers": {
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+        "Connection": "Close",
+        "Content-Length": "2572",
+        "Content-Type": "text/xml; charset=UTF-8",
+        "X-Content-Type-Options": "nosniff"
+      },
+      "status": 200,
+      "url": "https://127.0.0.1:8089/services/search/v2/jobs/1767225600.1"
+    },
+    {
+      "body_file": "009-8b23ceda3768.body",
+      "body_sha256": "8b23ceda3768cf3fc886f94ec703d84b898638fe4e9c54ff3d9ba2a89fae0bfb",
+      "body_size": 2572,
+      "method": "GET",
+      "request_body": "",
+      "request_headers": {
+        "Accept": "*/*",
+        "Accept-Encoding": "identity",
+        "Connection": "Close",
+        "Content-Length": "0",
+        "Host": "127.0.0.1:8089",
+        "User-Agent": "splunk-sdk-python/3.0.1"
+      },
+      "response_headers": {
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+        "Connection": "Close",
+        "Content-Length": "2572",
+        "Content-Type": "text/xml; charset=UTF-8",
+        "X-Content-Type-Options": "nosniff"
+      },
+      "status": 200,
+      "url": "https://127.0.0.1:8089/servicesNS/nobody/search/search/v2/jobs/1767225600.1"
+    },
+    {
+      "body_file": "010-5edf789a7dab.body",
+      "body_sha256": "5edf789a7dab57b33792db5c252826c0d1ef4b20dee607aea674a84d309647d4",
+      "body_size": 536,
+      "method": "POST",
+      "request_body": "count=0&output_mode=json&segmentation=none",
+      "request_headers": {
+        "Accept": "*/*",
+        "Accept-Encoding": "identity",
+        "Connection": "Close",
+        "Content-Length": "42",
+        "Host": "127.0.0.1:8089",
+        "User-Agent": "splunk-sdk-python/3.0.1"
+      },
+      "response_headers": {
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+        "Connection": "Close",
+        "Content-Length": "536",
+        "Content-Type": "application/json; charset=UTF-8",
+        "X-Content-Type-Options": "nosniff"
+      },
+      "status": 200,
+      "url": "https://127.0.0.1:8089/servicesNS/nobody/search/search/v2/jobs/1767225600.1/results"
+    },
+    {
+      "body_file": "011-27bbc6fbfcb6.body",
+      "body_sha256": "27bbc6fbfcb684c413b07b5ee4bdb0a6f38909f900016c838574537b0399e4fe",
+      "body_size": 138,
+      "method": "DELETE",
+      "request_body": "",
+      "request_headers": {
+        "Accept": "*/*",
+        "Accept-Encoding": "identity",
+        "Connection": "Close",
+        "Content-Length": "0",
+        "Host": "127.0.0.1:8089",
+        "User-Agent": "splunk-sdk-python/3.0.1"
+      },
+      "response_headers": {
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+        "Connection": "Close",
+        "Content-Length": "138",
+        "Content-Type": "text/xml; charset=UTF-8",
+        "X-Content-Type-Options": "nosniff"
+      },
+      "status": 200,
+      "url": "https://127.0.0.1:8089/servicesNS/nobody/search/search/v2/jobs/1767225600.1/"
+    },
+    {
+      "body_file": "012-815ce16dd6c7.body",
+      "body_sha256": "815ce16dd6c79d9d97e9a291a1bc3a00d7228f1c54bfbe17b702d36adf7730d7",
+      "body_size": 88,
+      "method": "POST",
+      "request_body": "search=search+index%3Dace4_proxy+%28%22https%3A%2F%2Fclick.example.com%2Flogin%22+OR+%22https%3A%2F%2Fclick.example.com%2Fr%3Fu%3Dhttps%3A%2F%2Fclick.example.com%2Flogin%22+OR+%22https%253A%252F%252Fclick.example.com%252Flogin%22+OR+%22https%253A%252F%252Fclick.example.com%252Fr%253Fu%253Dhttps%253A%252F%252Fclick.example.com%252Flogin%22%29+_index_earliest+%3D+11%2F07%2F2026%3A23%3A48%3A12+_index_latest+%3D+11%2F09%2F2026%3A00%3A48%3A12%0A%60%60%60one+comment+the+web+link+leaves+out%60%60%60%0A%7C+table+_time+user+url%0A&max_count=1000&exec_mode=normal",
+      "request_headers": {
+        "Accept": "*/*",
+        "Accept-Encoding": "identity",
+        "Connection": "Close",
+        "Content-Length": "559",
+        "Host": "127.0.0.1:8089",
+        "User-Agent": "splunk-sdk-python/3.0.1"
+      },
+      "response_headers": {
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+        "Connection": "Close",
+        "Content-Length": "88",
+        "Content-Type": "text/xml; charset=UTF-8",
+        "X-Content-Type-Options": "nosniff"
+      },
+      "status": 201,
+      "url": "https://127.0.0.1:8089/services/search/v2/jobs/"
+    },
+    {
+      "body_file": "013-675d1547bf27.body",
+      "body_sha256": "675d1547bf2730358158fb1538501e7f33f5924311174e7f4a66ca3d557a7ac4",
+      "body_size": 2707,
+      "method": "GET",
+      "request_body": "",
+      "request_headers": {
+        "Accept": "*/*",
+        "Accept-Encoding": "identity",
+        "Connection": "Close",
+        "Content-Length": "0",
+        "Host": "127.0.0.1:8089",
+        "User-Agent": "splunk-sdk-python/3.0.1"
+      },
+      "response_headers": {
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+        "Connection": "Close",
+        "Content-Length": "2707",
+        "Content-Type": "text/xml; charset=UTF-8",
+        "X-Content-Type-Options": "nosniff"
+      },
+      "status": 200,
+      "url": "https://127.0.0.1:8089/services/search/v2/jobs/1767225600.2"
+    },
+    {
+      "body_file": "014-8221fb235c57.body",
+      "body_sha256": "8221fb235c5791bc9e8ded671601fcd9fef6754b3bf874ab1eec6c2be8e48f6a",
+      "body_size": 2707,
+      "method": "GET",
+      "request_body": "",
+      "request_headers": {
+        "Accept": "*/*",
+        "Accept-Encoding": "identity",
+        "Connection": "Close",
+        "Content-Length": "0",
+        "Host": "127.0.0.1:8089",
+        "User-Agent": "splunk-sdk-python/3.0.1"
+      },
+      "response_headers": {
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+        "Connection": "Close",
+        "Content-Length": "2707",
+        "Content-Type": "text/xml; charset=UTF-8",
+        "X-Content-Type-Options": "nosniff"
+      },
+      "status": 200,
+      "url": "https://127.0.0.1:8089/services/search/v2/jobs/1767225600.2"
+    },
+    {
+      "body_file": "015-7484d0dc460c.body",
+      "body_sha256": "7484d0dc460c7ae2318fa2b40110282a35359df07388e1bcc063683498de57bc",
+      "body_size": 2706,
+      "method": "GET",
+      "request_body": "",
+      "request_headers": {
+        "Accept": "*/*",
+        "Accept-Encoding": "identity",
+        "Connection": "Close",
+        "Content-Length": "0",
+        "Host": "127.0.0.1:8089",
+        "User-Agent": "splunk-sdk-python/3.0.1"
+      },
+      "response_headers": {
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+        "Connection": "Close",
+        "Content-Length": "2706",
+        "Content-Type": "text/xml; charset=UTF-8",
+        "X-Content-Type-Options": "nosniff"
+      },
+      "status": 200,
+      "url": "https://127.0.0.1:8089/servicesNS/nobody/search/search/v2/jobs/1767225600.2"
+    },
+    {
+      "body_file": "016-3fcc141d6dd6.body",
+      "body_sha256": "3fcc141d6dd63e0bbbeaef97b4b2715afe26497978e7f399a7fb00f18ef9c2bc",
+      "body_size": 2707,
+      "method": "GET",
+      "request_body": "",
+      "request_headers": {
+        "Accept": "*/*",
+        "Accept-Encoding": "identity",
+        "Connection": "Close",
+        "Content-Length": "0",
+        "Host": "127.0.0.1:8089",
+        "User-Agent": "splunk-sdk-python/3.0.1"
+      },
+      "response_headers": {
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+        "Connection": "Close",
+        "Content-Length": "2707",
+        "Content-Type": "text/xml; charset=UTF-8",
+        "X-Content-Type-Options": "nosniff"
+      },
+      "status": 200,
+      "url": "https://127.0.0.1:8089/services/search/v2/jobs/1767225600.2"
+    },
+    {
+      "body_file": "017-a0da89e1ee9d.body",
+      "body_sha256": "a0da89e1ee9d8fbe50fa52832c69ada7ba94b3591db6d4a7147068394a21aa4c",
+      "body_size": 2703,
+      "method": "GET",
+      "request_body": "",
+      "request_headers": {
+        "Accept": "*/*",
+        "Accept-Encoding": "identity",
+        "Connection": "Close",
+        "Content-Length": "0",
+        "Host": "127.0.0.1:8089",
+        "User-Agent": "splunk-sdk-python/3.0.1"
+      },
+      "response_headers": {
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+        "Connection": "Close",
+        "Content-Length": "2703",
+        "Content-Type": "text/xml; charset=UTF-8",
+        "X-Content-Type-Options": "nosniff"
+      },
+      "status": 200,
+      "url": "https://127.0.0.1:8089/services/search/v2/jobs/1767225600.2"
+    },
+    {
+      "body_file": "018-905c8c2b6c3c.body",
+      "body_sha256": "905c8c2b6c3cf91cb364d89118e2c81dda6b0f1052052b93e2bd524825da33e0",
+      "body_size": 2703,
+      "method": "GET",
+      "request_body": "",
+      "request_headers": {
+        "Accept": "*/*",
+        "Accept-Encoding": "identity",
+        "Connection": "Close",
+        "Content-Length": "0",
+        "Host": "127.0.0.1:8089",
+        "User-Agent": "splunk-sdk-python/3.0.1"
+      },
+      "response_headers": {
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+        "Connection": "Close",
+        "Content-Length": "2703",
+        "Content-Type": "text/xml; charset=UTF-8",
+        "X-Content-Type-Options": "nosniff"
+      },
+      "status": 200,
+      "url": "https://127.0.0.1:8089/servicesNS/nobody/search/search/v2/jobs/1767225600.2"
+    },
+    {
+      "body_file": "019-1bff4482cb96.body",
+      "body_sha256": "1bff4482cb96d8f77607c5d37f7d9c91d9c61c048cecb8d24799e7388141cd6c",
+      "body_size": 361,
+      "method": "POST",
+      "request_body": "count=0&output_mode=json&segmentation=none",
+      "request_headers": {
+        "Accept": "*/*",
+        "Accept-Encoding": "identity",
+        "Connection": "Close",
+        "Content-Length": "42",
+        "Host": "127.0.0.1:8089",
+        "User-Agent": "splunk-sdk-python/3.0.1"
+      },
+      "response_headers": {
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+        "Connection": "Close",
+        "Content-Length": "361",
+        "Content-Type": "application/json; charset=UTF-8",
+        "X-Content-Type-Options": "nosniff"
+      },
+      "status": 200,
+      "url": "https://127.0.0.1:8089/servicesNS/nobody/search/search/v2/jobs/1767225600.2/results"
+    },
+    {
+      "body_file": "020-27bbc6fbfcb6.body",
+      "body_sha256": "27bbc6fbfcb684c413b07b5ee4bdb0a6f38909f900016c838574537b0399e4fe",
+      "body_size": 138,
+      "method": "DELETE",
+      "request_body": "",
+      "request_headers": {
+        "Accept": "*/*",
+        "Accept-Encoding": "identity",
+        "Connection": "Close",
+        "Content-Length": "0",
+        "Host": "127.0.0.1:8089",
+        "User-Agent": "splunk-sdk-python/3.0.1"
+      },
+      "response_headers": {
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+        "Connection": "Close",
+        "Content-Length": "138",
+        "Content-Type": "text/xml; charset=UTF-8",
+        "X-Content-Type-Options": "nosniff"
+      },
+      "status": 200,
+      "url": "https://127.0.0.1:8089/servicesNS/nobody/search/search/v2/jobs/1767225600.2/"
+    }
+  ]
+}

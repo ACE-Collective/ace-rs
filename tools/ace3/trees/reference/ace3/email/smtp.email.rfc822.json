@@ -42,7 +42,20 @@
       "excluded_analysis": {},
       "relationships": {},
       "results": {
-        "clicker_detection_splunk": {
+        "fqdn_analyzer": {
+          "details": {
+            "aliaslist": [],
+            "all_resolutions": [],
+            "ip_address": null,
+            "mx": null,
+            "resolution_count": null,
+            "status": "nxdomain",
+            "wildcard_dns": null
+          },
+          "summary": "DNS Analysis: does not exist (nxdomain)",
+          "tags": {}
+        },
+        "proxy_domain_splunk": {
           "details": {
             "dispatch_state": "DONE",
             "gui_link": null,
@@ -76,19 +89,6 @@
             "question": "Was this domain seen in proxy logs?"
           },
           "summary": "Proxy correlation: (3 results)",
-          "tags": {}
-        },
-        "fqdn_analyzer": {
-          "details": {
-            "aliaslist": [],
-            "all_resolutions": [],
-            "ip_address": null,
-            "mx": null,
-            "resolution_count": null,
-            "status": "nxdomain",
-            "wildcard_dns": null
-          },
-          "summary": "DNS Analysis: does not exist (nxdomain)",
           "tags": {}
         },
         "rdap_analyzer": {
