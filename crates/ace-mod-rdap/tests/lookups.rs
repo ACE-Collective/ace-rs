@@ -78,7 +78,12 @@ async fn a_tld_without_rdap_records_the_rdap_error() {
         .rdap_attempt_error
         .as_deref()
         .expect("an RDAP error");
-    assert!(attempt.starts_with("no RDAP service for TLD"), "{attempt}");
+    // whoisit's UnsupportedError, naming the last label, as ace3 records it
+    assert_eq!(
+        attempt,
+        "no RDAP service for TLD: TLD \"not-a-tld\" has no known RDAP endpoint and is unsupported. \
+         It may be supported by overrides, try using whoisit.bootstrap(overrides=True)"
+    );
     assert_eq!(
         result.details.error.as_deref(),
         Some(format!("rdap: {attempt}").as_str())

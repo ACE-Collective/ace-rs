@@ -1,0 +1,47 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "EmailAddressFQDNAnalysis",
+      "details": {
+        "domain": "münchen.de"
+      },
+      "detections": [],
+      "module_path": "saq.modules.email.address:EmailAddressFQDNAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "fqdn",
+          "value": "münchen.de"
+        }
+      ],
+      "summary": "Email Address FQDN: münchen.de",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "email_address x@münchen.de",
+    "meta_tags": [],
+    "observable": {
+      "type": "email_address",
+      "value": "x@münchen.de"
+    }
+  },
+  "module": "email_address_fqdn_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "relationships": [],
+    "tags": [],
+    "type": "email_address",
+    "value": "x@münchen.de"
+  }
+}

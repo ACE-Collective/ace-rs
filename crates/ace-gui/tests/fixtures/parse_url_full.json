@@ -1,0 +1,26 @@
+{
+  "analysis_type": "parse_url_analysis",
+  "schema_version": 1,
+  "details": {
+    "fragment": "frag",
+    "netloc": "www.example.com",
+    "params": null,
+    "path": "/path/to",
+    "query": "a=1&b=%20x+y",
+    "scheme": "https"
+  },
+  "summary": "URL Parser: scheme=https, netloc=www.example.com, path=/path/to, query=a=1&b=%20x+y, params=(a=1, b= x y), fragment=frag",
+  "observables": [
+    {
+      "type": "fqdn",
+      "value": "www.example.com",
+      "tags": [
+        "domain_in_url"
+      ]
+    },
+    {
+      "type": "uri_path",
+      "value": "/path/to?a=1&b=%20x+y#frag"
+    }
+  ]
+}

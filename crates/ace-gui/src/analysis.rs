@@ -61,6 +61,11 @@ use ace_results::types::snort::SnortSignatureAnalysis;
 use ace_results::types::splunk::{SplunkApiAnalysis, SplunkClickerDetectionAnalysis};
 use ace_results::types::url_extraction::UrlExtractionAnalysis;
 use ace_results::types::user::UserAnalysis;
+use ace_results::types::values::{
+    CommandLineAnalysis, EmailAddressFqdnAnalysis, FileLocationAnalysis, FilePathAnalysis,
+    IdnaAnalysis, NetworkIdentifierAnalysis, OneDriveUrlAnalysis, ParseUrlAnalysis,
+    ProtectedUrlAnalysis,
+};
 use ace_results::types::x509::{SerialNumber, X509Analysis};
 use ace_results::types::xlm::XlmDeobfuscatorAnalysis;
 use ace_results::types::yara::{ScanResult, YaraScanResults};
@@ -190,6 +195,15 @@ impl Views {
             .with(ViewEntry::of::<LnkParseAnalysis>())
             .with(ViewEntry::of::<X509Analysis>())
             .with(ViewEntry::of::<DHashImageAnalysis>())
+            .with(ViewEntry::of::<CommandLineAnalysis>())
+            .with(ViewEntry::of::<FilePathAnalysis>())
+            .with(ViewEntry::of::<FileLocationAnalysis>())
+            .with(ViewEntry::of::<NetworkIdentifierAnalysis>())
+            .with(ViewEntry::of::<ParseUrlAnalysis>())
+            .with(ViewEntry::of::<IdnaAnalysis>())
+            .with(ViewEntry::of::<EmailAddressFqdnAnalysis>())
+            .with(ViewEntry::of::<ProtectedUrlAnalysis>())
+            .with(ViewEntry::of::<OneDriveUrlAnalysis>())
     }
 
     /// These views with `entry`, which takes the place of any view of the same type and version, so a
@@ -1671,5 +1685,129 @@ impl AnalysisView for DHashImageAnalysis {
             })
             .collect();
         FieldsView { fields }
+    }
+}
+
+// ---- observable values: ace3's default_template.html ----
+
+fn fields_view(fields: impl IntoIterator<Item = Option<Field>>) -> FieldsView {
+    FieldsView {
+        fields: fields.into_iter().flatten().collect(),
+    }
+}
+
+/// `command_line_analysis`: the paths and the payloads' files.
+impl AnalysisView for CommandLineAnalysis {
+    type View<'a> = FieldsView;
+    fn view(&self) -> FieldsView {
+        let payloads: Vec<String> = self
+            .base64_payloads
+            .iter()
+            .map(|p| p.file_path.clone())
+            .collect();
+        fields_view([
+            field(
+                "file_paths",
+                (!self.file_paths.is_empty()).then(|| list_text(&self.file_paths)),
+            ),
+            field(
+                "base64_payloads",
+                (!payloads.is_empty()).then(|| list_text(&payloads)),
+            ),
+        ])
+    }
+}
+
+/// `file_path_analysis`: the file name and the user.
+impl AnalysisView for FilePathAnalysis {
+    type View<'a> = FieldsView;
+    fn view(&self) -> FieldsView {
+        fields_view([
+            field("file_name", self.file_name.as_ref()),
+            field("user_name", self.user_name.as_ref()),
+        ])
+    }
+}
+
+/// `file_location_analysis`: the host and the path.
+impl AnalysisView for FileLocationAnalysis {
+    type View<'a> = FieldsView;
+    fn view(&self) -> FieldsView {
+        fields_view([
+            field("hostname", self.hostname.as_ref()),
+            field("file_path", self.file_path.as_ref()),
+        ])
+    }
+}
+
+/// `network_identifier_analysis`: the networks the address is in, as ace3's
+/// `network_identifier.html` lists them.
+impl AnalysisView for NetworkIdentifierAnalysis {
+    type View<'a> = FieldsView;
+    fn view(&self) -> FieldsView {
+        fields_view(
+            self.identified_networks
+                .iter()
+                .take(MAX_ITEMS)
+                .map(|n| field("network", Some(n))),
+        )
+    }
+}
+
+/// `parse_url_analysis`: the URL's parts.
+impl AnalysisView for ParseUrlAnalysis {
+    type View<'a> = FieldsView;
+    fn view(&self) -> FieldsView {
+        let part =
+            |name, value: &Option<String>| field(name, value.as_ref().filter(|v| !v.is_empty()));
+        fields_view([
+            part("scheme", &self.scheme),
+            part("netloc", &self.netloc),
+            part("path", &self.path),
+            part("query", &self.query),
+            part("fragment", &self.fragment),
+        ])
+    }
+}
+
+/// `idna_analysis`: the domain's two spellings.
+impl AnalysisView for IdnaAnalysis {
+    type View<'a> = FieldsView;
+    fn view(&self) -> FieldsView {
+        fields_view([
+            field("original", self.original.as_ref()),
+            field("idna", self.idna.as_ref()),
+            field("unicode", self.unicode.as_ref()),
+        ])
+    }
+}
+
+/// `email_address_fqdn_analysis`: the address's domain.
+impl AnalysisView for EmailAddressFqdnAnalysis {
+    type View<'a> = FieldsView;
+    fn view(&self) -> FieldsView {
+        fields_view([field("domain", self.domain.as_ref())])
+    }
+}
+
+/// `protected_url_analysis`: who wrapped the URL, and the URL inside.
+impl AnalysisView for ProtectedUrlAnalysis {
+    type View<'a> = FieldsView;
+    fn view(&self) -> FieldsView {
+        fields_view([
+            field("protection_type", self.protection_type.as_ref()),
+            field("extracted_url", self.extracted_url.as_ref()),
+        ])
+    }
+}
+
+/// `protected_url_one_drive_analysis`: the same fields, for a 1drv.ms link.
+impl AnalysisView for OneDriveUrlAnalysis {
+    type View<'a> = FieldsView;
+    fn view(&self) -> FieldsView {
+        fields_view([
+            field("protection_type", self.protection_type.as_ref()),
+            field("extracted_url", self.extracted_url.as_ref()),
+        ])
     }
 }

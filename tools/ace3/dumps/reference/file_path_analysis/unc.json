@@ -1,0 +1,48 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "FilePathAnalysis",
+      "details": {
+        "file_name": "payload.dll",
+        "user_name": null
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_path:FilePathAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "file_name",
+          "value": "payload.dll"
+        }
+      ],
+      "summary": "File Path Analysis: file name payload.dll",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "file_path \\\\server\\share\\dir\\payload.dll",
+    "meta_tags": [],
+    "observable": {
+      "type": "file_path",
+      "value": "\\\\server\\share\\dir\\payload.dll"
+    }
+  },
+  "module": "file_path_analysis",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "relationships": [],
+    "tags": [],
+    "type": "file_path",
+    "value": "\\\\server\\share\\dir\\payload.dll"
+  }
+}

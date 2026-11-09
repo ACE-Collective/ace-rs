@@ -1,0 +1,29 @@
+{
+  "analysis_type": "protected_url_one_drive_analysis",
+  "schema_version": 1,
+  "details": {
+    "extracted_url": "https://onedrive.live.com/download?authkey=!AEIWW7c6GG3YkdU&resid=95384755423B88FA!107&parId=root&o=OneUp",
+    "protection_type": "one_drive"
+  },
+  "summary": "Protected URL Analysis: detected type one_drive extracted url https://onedrive.live.com/download?authkey=!AEIWW7c6GG3YkdU&resid=95384755423B88FA!107&parId=root&o=OneUp",
+  "analyzed": {
+    "tags": [
+      "protected_url"
+    ]
+  },
+  "observables": [
+    {
+      "type": "url",
+      "value": "https://onedrive.live.com/download?authkey=!AEIWW7c6GG3YkdU&resid=95384755423B88FA!107&parId=root&o=OneUp",
+      "relationships": [
+        {
+          "type": "extracted_from",
+          "target": {
+            "type": "url",
+            "value": "https://1drv.ms/b/s!AvqIO0JVRziVa0IWW7c6GG3YkdU"
+          }
+        }
+      ]
+    }
+  ]
+}

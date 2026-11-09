@@ -1,0 +1,52 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "IDNAAnalysis",
+      "details": {
+        "idna": "xn--bcher-kva.example",
+        "original": "bücher.example",
+        "unicode": "bücher.example"
+      },
+      "detections": [],
+      "module_path": "saq.modules.url.idna:IDNAAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [],
+          "display_type": "IDNA Domain",
+          "excluded_analysis": [
+            "saq.modules.url.idna:<class 'saq.modules.url.idna.IDNAAnalyzer'>"
+          ],
+          "relationships": [],
+          "tags": [],
+          "type": "fqdn",
+          "value": "xn--bcher-kva.example"
+        }
+      ],
+      "summary": "IDNA: idna=xn--bcher-kva.example, unicode=bücher.example",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fqdn Bücher.Example",
+    "meta_tags": [],
+    "observable": {
+      "type": "fqdn",
+      "value": "Bücher.Example"
+    }
+  },
+  "module": "idna_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "relationships": [],
+    "tags": [],
+    "type": "fqdn",
+    "value": "Bücher.Example"
+  }
+}

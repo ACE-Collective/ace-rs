@@ -30,6 +30,7 @@ pub struct HttpClientBuilder {
     extra_roots: Vec<Certificate>,
     proxy: Option<reqwest::Proxy>,
     user_agent: String,
+    follow_redirects: bool,
 }
 
 impl Default for HttpClientBuilder {
@@ -41,6 +42,7 @@ impl Default for HttpClientBuilder {
             extra_roots: Vec::new(),
             proxy: None,
             user_agent: concat!("ace4/", env!("CARGO_PKG_VERSION")).to_owned(),
+            follow_redirects: true,
         }
     }
 }
@@ -87,6 +89,13 @@ impl HttpClientBuilder {
         self
     }
 
+    /// Hands a redirect back as its response rather than following it (reqwest follows up to 10),
+    /// for a module that decides where it may go next.
+    pub fn no_redirects(mut self) -> Self {
+        self.follow_redirects = false;
+        self
+    }
+
     pub fn build(self) -> Result<HttpClient, HttpError> {
         let mut builder = reqwest::Client::builder()
             .tls_backend_rustls()
@@ -96,6 +105,9 @@ impl HttpClientBuilder {
             .tls_certs_merge(self.extra_roots);
         if let Some(timeout) = self.read_timeout {
             builder = builder.read_timeout(timeout);
+        }
+        if !self.follow_redirects {
+            builder = builder.redirect(reqwest::redirect::Policy::none());
         }
         builder = match self.proxy {
             Some(proxy) => builder.proxy(proxy),

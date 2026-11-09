@@ -4,6 +4,8 @@ samples/** -text
 # So are the reference dumps' fixtures, such as emails with CRLF line endings: their bytes are hashed
 # into the dumps, and a client set to core.autocrlf would otherwise store them with LF.
 tools/ace3/dumps/fixtures/** -text
+# dhash's test images are hashed by their exact bytes, and a few truncated PNGs look like text.
+crates/ace-dhash/tests/data/** -text
 # Vendored crates are kept byte for byte as upstream ships them, CRLF line endings included.
 vendor/** -text
 # sqlx's offline query data, written by `cargo sqlx prepare --workspace` and checked in CI. GitHub

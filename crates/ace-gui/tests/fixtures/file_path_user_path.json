@@ -1,0 +1,19 @@
+{
+  "analysis_type": "file_path_analysis",
+  "schema_version": 1,
+  "details": {
+    "file_name": "evil.exe",
+    "user_name": "alice"
+  },
+  "summary": "File Path Analysis: file name evil.exe user name alice",
+  "observables": [
+    {
+      "type": "file_name",
+      "value": "evil.exe"
+    },
+    {
+      "type": "user",
+      "value": "alice"
+    }
+  ]
+}

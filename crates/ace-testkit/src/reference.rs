@@ -226,6 +226,7 @@ fn ace3_module_name(excluded: &str) -> String {
         "MessageIDAnalyzerV2" => "message_id_analyzer_v2",
         "ArchiveAnalyzer" => "archive",
         "YaraScanner_v3_4" => "yara_scanner_v3_4",
+        "IDNAAnalyzer" => "idna_analyzer",
         other => other,
     }
     .to_owned()

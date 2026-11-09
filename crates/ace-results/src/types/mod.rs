@@ -22,6 +22,7 @@ pub mod snort;
 pub mod splunk;
 pub mod url_extraction;
 pub mod user;
+pub mod values;
 pub mod x509;
 pub mod xlm;
 pub mod yara;

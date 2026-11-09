@@ -9,7 +9,9 @@ mod common;
 use std::os::unix::fs::PermissionsExt;
 use std::time::{Duration, Instant};
 
+use ace_core::tree::{self, NewRoot};
 use ace_pool::testing;
+use ace_results::{NewObservable, ObservableKind};
 use serde_json::json;
 
 use common::{
@@ -1045,6 +1047,174 @@ async fn measure_file_identity() {
             println!(
                 "{name}\t{}\t{run}\t{state}\t{seconds:.2}\t{error}",
                 bytes.len()
+            );
+            assert!(pool.running(), "the supervisor kept running after {name}");
+        }
+    }
+    let _ = pool.stop();
+}
+
+/// PLAN.md 7.5 batch 3: what crafted observable values cost the modules that read them
+/// (docs/measurements/observable-values.md). Each value of the module `ACE4_VALUES_MODULE` names
+/// runs in a new root as a contained task of that module with its limits, 3 runs
+/// (`ACE4_VALUES_RUNS`), and the time is from the task's queueing to its end, its result landed.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[ignore = "a measurement"]
+async fn measure_observable_values() {
+    let runs: usize = std::env::var("ACE4_VALUES_RUNS")
+        .ok()
+        .and_then(|r| r.parse().ok())
+        .unwrap_or(3);
+    let mb = 1024 * 1024;
+    let b64 = "QUJD".repeat(mb / 4);
+    let cases: Vec<(&str, &str, ObservableKind, String)> = vec![
+        (
+            "paths_1mb",
+            "command_line_analyzer",
+            ObservableKind::CommandLine,
+            r"C:\a\b ".repeat(mb / 7),
+        ),
+        (
+            "prefixes_1mb",
+            "command_line_analyzer",
+            ObservableKind::CommandLine,
+            (0..mb / 16)
+                .map(|i| format!(r"C:\{i:x} "))
+                .collect::<String>(),
+        ),
+        (
+            "quoted_paths_1mb",
+            "command_line_analyzer",
+            ObservableKind::CommandLine,
+            r#""C:\a" \"C:\b\" "\\s\t" "#.repeat(mb / 22),
+        ),
+        (
+            "unc_open_1mb",
+            "command_line_analyzer",
+            ObservableKind::CommandLine,
+            format!(r#""\\{}"#, "a\"".repeat(mb / 2)),
+        ),
+        (
+            "base64_1mb",
+            "command_line_analyzer",
+            ObservableKind::CommandLine,
+            format!("powershell -enc {b64}"),
+        ),
+        (
+            "base64_words_1mb",
+            "command_line_analyzer",
+            ObservableKind::CommandLine,
+            "pwsh -e QUJD ".repeat(mb / 13),
+        ),
+        (
+            "separators_1mb",
+            "file_path_analysis",
+            ObservableKind::FilePath,
+            format!(r"C:\Users\{}", "\\".repeat(mb)),
+        ),
+        (
+            "url_1mb",
+            "parse_url",
+            ObservableKind::Url,
+            format!("https://example.com/?{}", "a=1&".repeat(mb / 4)),
+        ),
+        (
+            "host_first_1mb",
+            "parse_url",
+            ObservableKind::Url,
+            format!("{}.com/x", "a".repeat(mb)),
+        ),
+        (
+            "label_100k",
+            "idna_analyzer",
+            ObservableKind::Fqdn,
+            format!("{}.com", "\u{e9}".repeat(100_000)),
+        ),
+        (
+            "labels_1mb",
+            "idna_analyzer",
+            ObservableKind::Fqdn,
+            "\u{e9}a.".repeat(mb / 4) + "com",
+        ),
+        (
+            "proofpoint_1mb",
+            "protected_url_analyzer",
+            ObservableKind::Url,
+            format!(
+                "https://urldefense.proofpoint.com/v2/url?u={}",
+                "https-3A__evil.example.com_".repeat(mb / 28)
+            ),
+        ),
+        (
+            "dropbox_1mb",
+            "protected_url_analyzer",
+            ObservableKind::Url,
+            format!("https://www.dropbox.com/s/a?{}", "x=1&".repeat(mb / 4)),
+        ),
+        (
+            "urldefense_1mb",
+            "protected_url_analyzer",
+            ObservableKind::Url,
+            format!("https://urldefense.com/v3/__{}", "_a".repeat(mb / 2)),
+        ),
+        (
+            "networks_2000",
+            "network_identifier",
+            ObservableKind::Ip,
+            "10.200.3.4".to_owned(),
+        ),
+    ];
+    let networks: Vec<serde_json::Value> = (0..2_000)
+        .map(|i| serde_json::json!({"cidr": format!("10.{}.{}.0/24", i / 256, i % 256), "name": format!("n{i}")}))
+        .collect();
+    let settings = serde_json::json!({"network_identifier": {"networks": networks}}).to_string();
+    // one module a run, alone in the catalog, so what it adds queues nothing else
+    let module = std::env::var("ACE4_VALUES_MODULE").expect("ACE4_VALUES_MODULE");
+    let manifest = [
+        ace_mod_values::command_line::MANIFEST,
+        ace_mod_values::file_path::FILE_PATH_MANIFEST,
+        ace_mod_values::urls::PARSE_URL_MANIFEST,
+        ace_mod_values::urls::IDNA_MANIFEST,
+        ace_mod_values::protected::MANIFEST,
+        ace_mod_values::network::MANIFEST,
+    ]
+    .into_iter()
+    .find(|m| m.name == module)
+    .expect("a module of the batch");
+    let core = Core::start(vec![manifest], &[manifest.name], Duration::from_secs(600)).await;
+    let mut pool = supervisor(&core, &["--settings", &settings]);
+    for (name, _, kind, value) in cases.iter().filter(|c| c.1 == module) {
+        let module = module.as_str();
+        for run in 0..runs {
+            // a value of its own each run, so no run finds another's result
+            let value = if *kind == ObservableKind::Ip {
+                value.clone()
+            } else {
+                format!("{value}{}", " ".repeat(run))
+            };
+            let db = core.test_db.db();
+            let root = NewRoot::new("analysis");
+            let mut tx = db.begin().await.expect("begins");
+            tree::create_root(&mut tx, &root).await.expect("creates");
+            let id = tree::upsert_observable(
+                &mut tx,
+                root.id,
+                &NewObservable::new(*kind, value.clone()),
+            )
+            .await
+            .expect("adds")
+            .id;
+            ace_core::queue::enqueue(&mut tx, root.id, id, module)
+                .await
+                .expect("queues");
+            tx.commit().await.expect("commits");
+            // past the module's 300 s deadline, so a task that hits it is seen to end
+            let (state, error, seconds) =
+                task_state(&core, root.id, module, Duration::from_secs(420)).await;
+            let error: String = error.unwrap_or_default().chars().take(120).collect();
+            println!(
+                "{name}\t{module}\t{}\t{run}\t{state}\t{seconds:.2}\t{error}",
+                value.len()
             );
             assert!(pool.running(), "the supervisor kept running after {name}");
         }

@@ -8,7 +8,9 @@
 use std::collections::BTreeMap;
 use std::path::Path;
 
-use ace_results::{AlertPath, ObservableKind, ObservableRef, ResultEnvelope, Sha256, YaraMeta};
+use ace_results::{
+    AlertPath, ObservableKind, ObservableRef, Relationship, ResultEnvelope, Sha256, YaraMeta,
+};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -113,6 +115,9 @@ pub struct TaskObservable {
     /// The observable this one stands in for, such as the document a part came out of.
     #[serde(default)]
     pub redirection: Option<ObservableRef>,
+    /// Its relationships to other observables, such as the host a command line ran on.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub relationships: Vec<Relationship>,
 }
 
 impl TaskObservable {
@@ -136,6 +141,7 @@ impl TaskObservable {
             file,
             directives: self.directives.clone(),
             redirection: self.redirection.clone(),
+            relationships: self.relationships.clone(),
         }
     }
 }

@@ -1,0 +1,38 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "ProtectedURLAnalysis",
+      "details": {
+        "extracted_url": "https:..",
+        "protection_type": "safelinks_outlook"
+      },
+      "detections": [],
+      "module_path": "saq.modules.url.protected:ProtectedURLAnalysis",
+      "observables": [],
+      "summary": "Protected URL Analysis: detected type safelinks_outlook extracted url https:..",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "url https://nam02.safelinks.protection.outlook.com/?url=https%3A..&data=xyz",
+    "meta_tags": [],
+    "observable": {
+      "type": "url",
+      "value": "https://nam02.safelinks.protection.outlook.com/?url=https%3A..&data=xyz"
+    }
+  },
+  "module": "protected_url_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "relationships": [],
+    "tags": [],
+    "type": "url",
+    "value": "https://nam02.safelinks.protection.outlook.com/?url=https%3A..&data=xyz"
+  }
+}

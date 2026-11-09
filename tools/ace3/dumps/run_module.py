@@ -83,6 +83,10 @@ def parse_args():
     parser.add_argument("--meta-tag", action="append", default=[], help="a yara_meta tag for the file, name=value")
     parser.add_argument("--directive", action="append", default=[], help="a directive for the observable")
     parser.add_argument("--observable", nargs=2, metavar=("TYPE", "VALUE"), help="a non-file observable to analyze")
+    parser.add_argument(
+        "--relationship", nargs=3, action="append", default=[], metavar=("KIND", "TYPE", "VALUE"),
+        help="a relationship of the observable to another the root also holds, such as executed_on hostname H",
+    )
     parser.add_argument("--yara-rules", help="scan with the local YARA scanner over this signature directory")
     parser.add_argument("--record-http", action="store_true", help="record HTTP requests made through requests")
     parser.add_argument("--config", action="append", default=[], help="a YAML file ace3 loads over its configuration")
@@ -161,20 +165,31 @@ def replay_http(directories):
             for exchange in json.load(fp)["exchanges"]:
                 if "body_file" in exchange:
                     with open(os.path.join(directory, exchange["body_file"]), "rb") as body:
+                        # only a redirect's Location comes back: the body is stored decoded, so a
+                        # Content-Encoding would be wrong
+                        location = {
+                            k: v for k, v in exchange.get("response_headers", {}).items() if k.lower() == "location"
+                        }
                         recorded.setdefault((exchange["method"], exchange["url"]), []).append(
-                            (exchange["status"], body.read())
+                            (exchange["status"], body.read(), location)
                         )
 
     def send(session, request, **kwargs):
         answers = recorded.get((request.method, request.url))
         if not answers:
             raise requests.ConnectionError(f"nothing recorded for {request.method} {request.url}")
-        status, body = answers.pop(0) if len(answers) > 1 else answers[0]
+        status, body, location = answers.pop(0) if len(answers) > 1 else answers[0]
         response = requests.Response()
         response.status_code = status
+        response.headers.update(location)
         response.raw = io.BytesIO(body)
         response.url = request.url
         response.request = request
+        # requests follows redirects inside the send this replaces, as it does here
+        if kwargs.pop("allow_redirects", True) and response.is_redirect:
+            history = [response, *session.resolve_redirects(response, request, **kwargs)]
+            response = history.pop()
+            response.history = history
         return response
 
     requests.Session.send = send
@@ -548,6 +563,14 @@ TREE_MODULES = {
     "LnkParseAnalysis": "lnk_parser",
     "X509Analysis": "x509_analyzer",
     "DHashImageAnalysis": "dhash",
+    "CommandLineAnalysis": "command_line_analyzer",
+    "FileLocationAnalysis": "file_location_analysis",
+    "FilePathAnalysis": "file_path_analysis",
+    "NetworkIdentifierAnalysis": "network_identifier",
+    "ParseURLAnalysis": "parse_url",
+    "IDNAAnalysis": "idna_analyzer",
+    "EmailAddressFQDNAnalysis": "email_address_fqdn_analyzer",
+    "ProtectedURLAnalysis": "protected_url_analyzer",
 }
 TREE_RUN_FIELDS = {
     "EmailAnalysis": ["details/email/log_entry/date"],
@@ -587,6 +610,7 @@ TREE_EXCLUDED = {
     "YaraScanner_v3_4": "yara_scanner_v3_4",
     "URLExtractionAnalyzer": "url_extraction",
     "IOCExtractionAnalyzer": "ioc_extraction",
+    "IDNAAnalyzer": "idna_analyzer",
 }
 
 
@@ -920,6 +944,11 @@ def main():
         sys.exit("ace3 refused the observable")
     for directive in args.directive:
         observable.add_directive(directive)
+    for kind, other_type, other_value in args.relationship:
+        other = root.add_observable_by_spec(other_type, other_value)
+        if other is None:
+            sys.exit("ace3 refused the related observable")
+        observable.add_relationship(kind, other)
     target_uuid = observable.uuid
     root.save()
 
@@ -956,7 +985,12 @@ def main():
             | ({"file_path": target.file_path, "size": target.size} if target.type == "file" else {}),
             "meta_tags": args.meta_tag,
             "directives": args.directive,
-        },
+        }
+        | (
+            {"relationships": [{"type": k, "target": {"type": t, "value": v}} for k, t, v in args.relationship]}
+            if args.relationship
+            else {}
+        ),
         "observable_after": dump_observable(target),
         "analyses": [dump_analysis(a) for a in target.all_analysis],
     }

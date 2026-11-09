@@ -2241,6 +2241,15 @@ fn each_module_s_view_draws_its_fixture() {
         "lnk_shortcut",
         "x509_cert_pem",
         "dhash_brand_jpg",
+        "command_line_encoded_short",
+        "file_path_user_path",
+        "file_location_windows",
+        "network_two_networks",
+        "parse_url_full",
+        "idna_unicode",
+        "email_address_fqdn_plain",
+        "protected_url_safelinks",
+        "protected_url_one_drive",
     ];
     let mut types = BTreeSet::new();
     for name in fixtures {
@@ -2459,6 +2468,51 @@ fn each_module_s_view_draws_its_fixture() {
             "dhash_brand_jpg" => contains_all(
                 &html,
                 &["<tr><th>score</th><td>brand.png: 98.24% of 90.00%</td></tr>"],
+            ),
+            "command_line_encoded_short" => contains_all(
+                &html,
+                &["<tr><th>base64_payloads</th><td>command_line_base64_payload.bin</td></tr>"],
+            ),
+            "file_path_user_path" => contains_all(
+                &html,
+                &[
+                    "<tr><th>file_name</th><td>evil.exe</td></tr>",
+                    "<tr><th>user_name</th><td>alice</td></tr>",
+                ],
+            ),
+            "file_location_windows" => {
+                contains_all(&html, &["<tr><th>hostname</th><td>WS-0042</td></tr>"])
+            }
+            "network_two_networks" => contains_all(
+                &html,
+                &[
+                    "<tr><th>network</th><td>corporate</td></tr>",
+                    "<tr><th>network</th><td>lab</td></tr>",
+                ],
+            ),
+            "parse_url_full" => contains_all(
+                &html,
+                &[
+                    "<tr><th>netloc</th><td>www.example.com</td></tr>",
+                    "<tr><th>query</th><td>a=1&#38;b=%20x+y</td></tr>",
+                ],
+            ),
+            "idna_unicode" => {
+                contains_all(&html, &["<tr><th>idna</th><td>xn--mnchen-3ya.de</td></tr>"])
+            }
+            "email_address_fqdn_plain" => {
+                contains_all(&html, &["<tr><th>domain</th><td>example.com</td></tr>"])
+            }
+            "protected_url_safelinks" => contains_all(
+                &html,
+                &[
+                    "<tr><th>protection_type</th><td>safelinks_outlook</td></tr>",
+                    "<tr><th>extracted_url</th><td>https://evil.example.com/page</td></tr>",
+                ],
+            ),
+            "protected_url_one_drive" => contains_all(
+                &html,
+                &["<tr><th>protection_type</th><td>one_drive</td></tr>"],
             ),
             other => panic!("no checks for {other}"),
         }

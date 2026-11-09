@@ -1,0 +1,32 @@
+{
+  "analysis_type": "protected_url_analysis",
+  "schema_version": 1,
+  "details": {
+    "extracted_url": "https://evil.example.com/page",
+    "protection_type": "safelinks_outlook"
+  },
+  "summary": "Protected URL Analysis: detected type safelinks_outlook extracted url https://evil.example.com/page",
+  "analyzed": {
+    "tags": [
+      "protected_url"
+    ]
+  },
+  "observables": [
+    {
+      "type": "url",
+      "value": "https://evil.example.com/page",
+      "directives": [
+        "crawl"
+      ],
+      "relationships": [
+        {
+          "type": "extracted_from",
+          "target": {
+            "type": "url",
+            "value": "https://nam02.safelinks.protection.outlook.com/?url=https%3A%2F%2Fevil.example.com%2Fpage&data=xyz"
+          }
+        }
+      ]
+    }
+  ]
+}

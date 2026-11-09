@@ -8,7 +8,7 @@ use ace_results::types::email::EmailAnalysis;
 use ace_results::types::yara::YaraScanResults;
 use ace_results::{
     AnalysisType, Detection, NewObservable, ObservableAdditions, ObservableKind, ObservableRef,
-    ResultEnvelope,
+    Relationship, ResultEnvelope,
 };
 use chrono::{DateTime, Utc};
 use serde_json::Value;
@@ -358,6 +358,39 @@ pub async fn redirection<'e>(
         .parse()
         .map_err(|e| DbError::Decode(format!("observable {}: {e}", observable.0)))?;
     Ok(Some(ObservableRef::new(kind, value)))
+}
+
+/// The observable's relationships, as results gave them, such as a command line `executed_on` a
+/// host. A task carries them, as ace3's observable does.
+pub async fn relationships<'e>(
+    executor: impl PgExecutor<'e>,
+    root: Uuid,
+    observable: ObservableId,
+) -> Result<Vec<Relationship>, DbError> {
+    let rows = sqlx::query!(
+        "SELECT kind, target_type, target_value FROM analysis.relationships
+         WHERE root_id = $1 AND observable_id = $2
+         ORDER BY kind, target_type, target_value",
+        root,
+        observable as ObservableId,
+    )
+    .fetch_all(executor)
+    .await?;
+    rows.into_iter()
+        .map(|row| {
+            let kind = serde_json::from_value(Value::String(row.kind.clone())).map_err(|e| {
+                DbError::Decode(format!("observable {}: {}: {e}", observable.0, row.kind))
+            })?;
+            let target = row
+                .target_type
+                .parse()
+                .map_err(|e| DbError::Decode(format!("observable {}: {e}", observable.0)))?;
+            Ok(Relationship::new(
+                kind,
+                ObservableRef::new(target, row.target_value),
+            ))
+        })
+        .collect()
 }
 
 /// The row of the observable with this type and value, if it is in the root.

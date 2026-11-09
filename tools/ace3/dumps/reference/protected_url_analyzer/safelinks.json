@@ -1,0 +1,64 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "ProtectedURLAnalysis",
+      "details": {
+        "extracted_url": "https://evil.example.com/page",
+        "protection_type": "safelinks_outlook"
+      },
+      "detections": [],
+      "module_path": "saq.modules.url.protected:ProtectedURLAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "crawl"
+          ],
+          "excluded_analysis": [],
+          "relationships": [
+            {
+              "target": {
+                "type": "url",
+                "value": "https://nam02.safelinks.protection.outlook.com/?url=https%3A%2F%2Fevil.example.com%2Fpage&data=xyz"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "tags": [],
+          "type": "url",
+          "value": "https://evil.example.com/page"
+        }
+      ],
+      "summary": "Protected URL Analysis: detected type safelinks_outlook extracted url https://evil.example.com/page",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [
+      "crawl"
+    ],
+    "label": "url https://nam02.safelinks.protection.outlook.com/?url=https%3A%2F%2Fevil.example.com%2Fpage&data=xyz with ['crawl']",
+    "meta_tags": [],
+    "observable": {
+      "type": "url",
+      "value": "https://nam02.safelinks.protection.outlook.com/?url=https%3A%2F%2Fevil.example.com%2Fpage&data=xyz"
+    }
+  },
+  "module": "protected_url_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "crawl"
+    ],
+    "excluded_analysis": [],
+    "relationships": [],
+    "tags": [
+      "protected_url"
+    ],
+    "type": "url",
+    "value": "https://nam02.safelinks.protection.outlook.com/?url=https%3A%2F%2Fevil.example.com%2Fpage&data=xyz"
+  }
+}

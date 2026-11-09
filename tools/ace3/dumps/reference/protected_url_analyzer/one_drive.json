@@ -1,0 +1,58 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "ProtectedURLAnalysis",
+      "details": {
+        "extracted_url": "https://onedrive.live.com/download?authkey=!AEIWW7c6GG3YkdU&resid=95384755423B88FA!107&parId=root&o=OneUp",
+        "protection_type": "one_drive"
+      },
+      "detections": [],
+      "module_path": "saq.modules.url.protected:ProtectedURLAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [
+            {
+              "target": {
+                "type": "url",
+                "value": "https://1drv.ms/b/s!AvqIO0JVRziVa0IWW7c6GG3YkdU"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "tags": [],
+          "type": "url",
+          "value": "https://onedrive.live.com/download?authkey=!AEIWW7c6GG3YkdU&resid=95384755423B88FA!107&parId=root&o=OneUp"
+        }
+      ],
+      "summary": "Protected URL Analysis: detected type one_drive extracted url https://onedrive.live.com/download?authkey=!AEIWW7c6GG3YkdU&resid=95384755423B88FA!107&parId=root&o=OneUp",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "url https://1drv.ms/b/s!AvqIO0JVRziVa0IWW7c6GG3YkdU",
+    "meta_tags": [],
+    "observable": {
+      "type": "url",
+      "value": "https://1drv.ms/b/s!AvqIO0JVRziVa0IWW7c6GG3YkdU"
+    }
+  },
+  "module": "protected_url_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "relationships": [],
+    "tags": [
+      "protected_url"
+    ],
+    "type": "url",
+    "value": "https://1drv.ms/b/s!AvqIO0JVRziVa0IWW7c6GG3YkdU"
+  }
+}

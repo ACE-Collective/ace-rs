@@ -1,0 +1,58 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "ProtectedURLAnalysis",
+      "details": {
+        "extracted_url": "https://drive.google.com/uc?authuser=0&id=1ls_eBCsmf3VG_e4dgQiSh_5VUM10b9s2&export=download",
+        "protection_type": "google_drive"
+      },
+      "detections": [],
+      "module_path": "saq.modules.url.protected:ProtectedURLAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [
+            {
+              "target": {
+                "type": "url",
+                "value": "https://drive.google.com/file/d/1ls_eBCsmf3VG_e4dgQiSh_5VUM10b9s2/view?usp=sharing"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "tags": [],
+          "type": "url",
+          "value": "https://drive.google.com/uc?authuser=0&id=1ls_eBCsmf3VG_e4dgQiSh_5VUM10b9s2&export=download"
+        }
+      ],
+      "summary": "Protected URL Analysis: detected type google_drive extracted url https://drive.google.com/uc?authuser=0&id=1ls_eBCsmf3VG_e4dgQiSh_5VUM10b9s2&export=download",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "url https://drive.google.com/file/d/1ls_eBCsmf3VG_e4dgQiSh_5VUM10b9s2/view?usp=sharing",
+    "meta_tags": [],
+    "observable": {
+      "type": "url",
+      "value": "https://drive.google.com/file/d/1ls_eBCsmf3VG_e4dgQiSh_5VUM10b9s2/view?usp=sharing"
+    }
+  },
+  "module": "protected_url_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "relationships": [],
+    "tags": [
+      "protected_url"
+    ],
+    "type": "url",
+    "value": "https://drive.google.com/file/d/1ls_eBCsmf3VG_e4dgQiSh_5VUM10b9s2/view?usp=sharing"
+  }
+}

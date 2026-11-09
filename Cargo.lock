@@ -22,6 +22,7 @@ dependencies = [
  "ace-mod-splunk",
  "ace-mod-urls",
  "ace-mod-user",
+ "ace-mod-values",
  "ace-mod-xlm",
  "ace-mod-yara",
 ]
@@ -494,6 +495,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "ace-mod-values"
+version = "0.1.0"
+dependencies = [
+ "ace-mod-urls",
+ "ace-pycompat",
+ "ace-results",
+ "ace-sdk",
+ "ace-testkit",
+ "ace-urlfinder",
+ "reqwest",
+ "schemars 1.2.3",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "ace-mod-xlm"
 version = "0.1.0"
 dependencies = [
@@ -541,6 +560,7 @@ dependencies = [
  "ace-mod-snort",
  "ace-mod-splunk",
  "ace-mod-urls",
+ "ace-mod-values",
  "ace-mod-xlm",
  "ace-mod-yara",
  "ace-pool",

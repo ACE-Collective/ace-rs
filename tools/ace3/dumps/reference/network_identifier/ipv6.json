@@ -1,0 +1,49 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "NetworkIdentifierAnalysis",
+      "details": {
+        "identified_networks": [
+          "ipv6 lab"
+        ]
+      },
+      "detections": [],
+      "module_path": "saq.modules.asset.network_identifier:NetworkIdentifierAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "asset",
+          "value": "2001:db8::5"
+        }
+      ],
+      "summary": "Network Identification Analysis: ipv6 lab",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ip 2001:db8::5",
+    "meta_tags": [],
+    "observable": {
+      "type": "ip",
+      "value": "2001:db8::5"
+    }
+  },
+  "module": "network_identifier",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "relationships": [],
+    "tags": [],
+    "type": "ip",
+    "value": "2001:db8::5"
+  }
+}

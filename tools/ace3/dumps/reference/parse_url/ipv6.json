@@ -1,0 +1,63 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "ParseURLAnalysis",
+      "details": {
+        "fragment": "",
+        "netloc": "[2001:db8::1]",
+        "params": null,
+        "path": "/x",
+        "query": "",
+        "scheme": "https"
+      },
+      "detections": [],
+      "module_path": "saq.modules.url.parser:ParseURLAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [
+            "ip_in_url"
+          ],
+          "type": "ip",
+          "value": "2001:db8::1"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "uri_path",
+          "value": "/x"
+        }
+      ],
+      "summary": "URL Parser: scheme=https, netloc=[2001:db8::1], path=/x",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "url https://[2001:db8::1]/x",
+    "meta_tags": [],
+    "observable": {
+      "type": "url",
+      "value": "https://[2001:db8::1]/x"
+    }
+  },
+  "module": "parse_url",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "relationships": [],
+    "tags": [],
+    "type": "url",
+    "value": "https://[2001:db8::1]/x"
+  }
+}

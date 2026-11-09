@@ -394,6 +394,7 @@ mod tests {
                 directives: Vec::new(),
                 file: None,
                 redirection: None,
+                relationships: Vec::new(),
             },
             delayed: None,
             input_hashes: Vec::new(),

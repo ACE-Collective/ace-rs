@@ -1,0 +1,58 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "ProtectedURLAnalysis",
+      "details": {
+        "extracted_url": "https://evil.example.com/x",
+        "protection_type": "cudasvc"
+      },
+      "detections": [],
+      "module_path": "saq.modules.url.protected:ProtectedURLAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [
+            {
+              "target": {
+                "type": "url",
+                "value": "https://linkprotect.cudasvc.com/url?a=https%3a%2f%2fevil.example.com%2fx&c=E,1"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "tags": [],
+          "type": "url",
+          "value": "https://evil.example.com/x"
+        }
+      ],
+      "summary": "Protected URL Analysis: detected type cudasvc extracted url https://evil.example.com/x",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "url https://linkprotect.cudasvc.com/url?a=https%3a%2f%2fevil.example.com%2fx&c=E,1",
+    "meta_tags": [],
+    "observable": {
+      "type": "url",
+      "value": "https://linkprotect.cudasvc.com/url?a=https%3a%2f%2fevil.example.com%2fx&c=E,1"
+    }
+  },
+  "module": "protected_url_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "relationships": [],
+    "tags": [
+      "protected_url"
+    ],
+    "type": "url",
+    "value": "https://linkprotect.cudasvc.com/url?a=https%3a%2f%2fevil.example.com%2fx&c=E,1"
+  }
+}

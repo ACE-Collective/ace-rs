@@ -1,0 +1,58 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "ProtectedURLAnalysis",
+      "details": {
+        "extracted_url": "https://acme.egnyte.com/dd/AbCdEf/file.pdf",
+        "protection_type": "egnyte"
+      },
+      "detections": [],
+      "module_path": "saq.modules.url.protected:ProtectedURLAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [
+            {
+              "target": {
+                "type": "url",
+                "value": "https://acme.egnyte.com/dl/AbCdEf/file.pdf"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "tags": [],
+          "type": "url",
+          "value": "https://acme.egnyte.com/dd/AbCdEf/file.pdf"
+        }
+      ],
+      "summary": "Protected URL Analysis: detected type egnyte extracted url https://acme.egnyte.com/dd/AbCdEf/file.pdf",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "url https://acme.egnyte.com/dl/AbCdEf/file.pdf",
+    "meta_tags": [],
+    "observable": {
+      "type": "url",
+      "value": "https://acme.egnyte.com/dl/AbCdEf/file.pdf"
+    }
+  },
+  "module": "protected_url_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "relationships": [],
+    "tags": [
+      "protected_url"
+    ],
+    "type": "url",
+    "value": "https://acme.egnyte.com/dl/AbCdEf/file.pdf"
+  }
+}

@@ -82,6 +82,30 @@ pub fn modules(settings: &Value) -> Result<Modules, SetupError> {
             block("ioc_extraction"),
             &secrets,
         )?)
+        .with_parser(Entry::<ace_mod_values::CommandLineAnalyzer>::parser(
+            block("command_line_analyzer"),
+            &secrets,
+        )?)
+        .with_parser(Entry::<ace_mod_values::FilePathAnalyzer>::parser(
+            block("file_path_analysis"),
+            &secrets,
+        )?)
+        .with_parser(Entry::<ace_mod_values::ParseUrlAnalyzer>::parser(
+            block("parse_url"),
+            &secrets,
+        )?)
+        .with_parser(Entry::<ace_mod_values::IdnaAnalyzer>::parser(
+            block("idna_analyzer"),
+            &secrets,
+        )?)
+        .with_parser(Entry::<ace_mod_values::ProtectedUrlAnalyzer>::parser(
+            block("protected_url_analyzer"),
+            &secrets,
+        )?)
+        .with_parser(Entry::<ace_mod_values::NetworkIdentifier>::parser(
+            block("network_identifier"),
+            &secrets,
+        )?)
         .with_lookup(Entry::<Counted>::lookup(block(Counted::NAME), &secrets)?)
         .with_lookup(Entry::<Panicky>::lookup(block(Panicky::NAME), &secrets)?)
         .with_lookup(Entry::<Connect>::lookup(block(Connect::NAME), &secrets)?)

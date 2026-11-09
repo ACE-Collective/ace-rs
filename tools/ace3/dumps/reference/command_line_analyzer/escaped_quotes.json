@@ -1,0 +1,60 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "CommandLineAnalysis",
+      "details": {
+        "base64_payloads": [],
+        "file_paths": [
+          "C:\\Program Files\\Evil Corp\\e.exe",
+          "\\\\srv\\s\\p q.txt"
+        ]
+      },
+      "detections": [],
+      "module_path": "saq.modules.command_line:CommandLineAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "file_path",
+          "value": "C:\\Program Files\\Evil Corp\\e.exe"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "file_path",
+          "value": "\\\\srv\\s\\p q.txt"
+        }
+      ],
+      "summary": "Command Line Analysis: extracted  2 file paths",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "command_line powershell.exe -Command \"Start-Process \\\"C:\\Program Files\\Evil Corp\\e.exe\\\" -ArgumentList \\\"\\\\srv\\s\\p q.txt\\\"\"",
+    "meta_tags": [],
+    "observable": {
+      "type": "command_line",
+      "value": "powershell.exe -Command \"Start-Process \\\"C:\\Program Files\\Evil Corp\\e.exe\\\" -ArgumentList \\\"\\\\srv\\s\\p q.txt\\\"\""
+    }
+  },
+  "module": "command_line_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "relationships": [],
+    "tags": [],
+    "type": "command_line",
+    "value": "powershell.exe -Command \"Start-Process \\\"C:\\Program Files\\Evil Corp\\e.exe\\\" -ArgumentList \\\"\\\\srv\\s\\p q.txt\\\"\""
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "ParseURLAnalysis",
+      "details": {
+        "fragment": "",
+        "netloc": "yahoo.com:8080",
+        "params": null,
+        "path": "/login",
+        "query": "",
+        "scheme": ""
+      },
+      "detections": [],
+      "module_path": "saq.modules.url.parser:ParseURLAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [
+            "domain_in_url"
+          ],
+          "type": "fqdn",
+          "value": "yahoo.com"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "uri_path",
+          "value": "/login"
+        }
+      ],
+      "summary": "URL Parser: netloc=yahoo.com:8080, path=/login",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "url yahoo.com:8080/login",
+    "meta_tags": [],
+    "observable": {
+      "type": "url",
+      "value": "yahoo.com:8080/login"
+    }
+  },
+  "module": "parse_url",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "relationships": [],
+    "tags": [],
+    "type": "url",
+    "value": "yahoo.com:8080/login"
+  }
+}

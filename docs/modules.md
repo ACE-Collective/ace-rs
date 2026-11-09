@@ -20,17 +20,17 @@ Versions are those of ace3's image: Python packages from `installer/requirements
 
 | Pool | Modules | Ported |
 |---|---|---|
-| parser | 53 | 17 |
+| parser | 53 | 25 |
 | lookup | 17 | 9 |
 | core | 3 | 0 |
 | sandbox | 15 | 0 |
 | scanner | 2 | 0 |
-| all | 90 | 26 |
+| all | 90 | 34 |
 
 | Step | Modules |
 |---|---|
-| done | 26 |
-| 7.5 | 54 |
+| done | 34 |
+| 7.5 | 46 |
 | 7.6 | 5 |
 | 7.7 | 2 |
 | 7.10 | 2 |
@@ -44,7 +44,7 @@ In order. Batches 10 to 13 run programs in the sandbox runner, which batch 10 bu
 
 1. **URLs and indicators in text**: done. `url_extraction` and `ioc_extraction`, in `ace-mod-urls`, on `ace-urlfinder`, a port of urlfinderlib 0.27.1 whose `Url` and child URLs other modules can use too, with `ace-pycompat` (Python's urllib.parse, html, base64, json, csv and unicodedata, and the idna, validators and tld packages) and `ace-lxml` (libxml2 2.14.6 as lxml 6.1.3 bundles it, with lxml's tree and BeautifulSoup's `get_text()` over it). `url_extraction` waits for `file_type`, ported in batch 2.
 2. **File identity**: done. `file_type`, `file_hash_analyzer`, `lnk_parser`, `binary_file_analyzer`, `x509_analyzer` and `dhash`, in `ace-mod-files`. file_type first: many later modules read its result, its tags and its `yara_meta` types. `ssdeep` moved to batch 10: fuzzyhash doesn't give ssdeep's scores (`docs/measurements/ssdeep.md`).
-3. **Observable values**: `command_line_analyzer`, `file_location_analysis`, `file_path_analysis`, `network_identifier`, `parse_url`, `idna_analyzer`, `email_address_fqdn_analyzer`, `protected_url_analyzer`. Strings in, observables out; no files.
+3. **Observable values**: done. `command_line_analyzer`, `file_location_analysis`, `file_path_analysis`, `network_identifier`, `parse_url`, `idna_analyzer`, `email_address_fqdn_analyzer`, `protected_url_analyzer`, in `ace-mod-values`, on `ace-urlfinder` and `ace-pycompat`. Strings in, observables out; no files but command lines' payloads. `protected_url_analyzer`'s 1drv.ms links go to `protected_url_one_drive` on the lookup pool (its entry has the decision).
 4. **HTML**: `html_data_url_extraction`, `har_extraction`, `html_js_extraction`, `mhtml`. HTML, MHTML and HAR files, with the DOM snapshots 7.7's js-deobfuscator reads.
 5. **Office containers**: `onenote_extraction`, `officeparser3`, `office_xml_rel`, `xml_binary_analyzer`, `xml_plain_text_analyzer`, `extracted_ole_analyzer`, `hidden_mime`, `active_mime`. OLE streams, Office XML, OneNote and MIME blobs, on `ace-mod-oletools`' olefile port.
 6. **RTF and scripts**: `microsoft_script_encoding_analysis`, `extracted_rtf_analyzer`, `vbscript_analyzer`, `nowhitespace_analyzer`. Checks and transforms of RTF and script files.
@@ -202,23 +202,23 @@ In the config's order. ace4 is the crate a ported module is in.
 | `html_js_extraction` | `HTMLJavaScriptExtractor` | not yet | parser | 7.5 batch 4 | file | analysis, binary, cli, correlation, email, file |
 | `onenote_extraction` | `OneNoteFileAnalyzer` | not yet | parser | 7.5 batch 5 | file | analysis, binary, cli, correlation, email, file |
 | `javascript_deobfuscation` | `JavaScriptDeobfuscationAnalyzer` | not yet | scanner | 7.7 | file | analysis, binary, cli, correlation, email, file |
-| `command_line_analyzer` | `CommandLineAnalyzer` | not yet | parser | 7.5 batch 3 | common | analysis, binary, cli, correlation, email, file |
+| `command_line_analyzer` | `CommandLineAnalyzer` | `ace-mod-values` | parser | done | common | analysis, binary, cli, correlation, email, file |
 | `mailbox_email_analyzer` | `MailboxEmailAnalyzer` | not yet | parser | 7.5 batch 8 | email | analysis, cli, correlation, email |
 | `email_analyzer` | `EmailAnalyzer` | `ace-mod-email` | parser | done | email | analysis, cli, correlation, email |
 | `lure_url_analyzer` | `LureURLAnalyzer` | not yet | parser | 7.5 batch 8 | correlation | analysis, cli, correlation |
 | `email_archiver` | `EmailArchiveAction` | not yet | lookup | 7.5 batch 9 | - | email |
 | `encrypted_archive_analyzer` | `EncryptedArchiveAnalyzer` | not yet | lookup | 7.5 batch 9 | email | analysis, cli, correlation, email |
-| `file_location_analysis` | `FileLocationAnalyzer` | not yet | parser | 7.5 batch 3 | file | analysis, binary, cli, correlation, email, file |
-| `file_path_analysis` | `FilePathAnalyzer` | not yet | parser | 7.5 batch 3 | file | analysis, binary, cli, correlation, email, file |
-| `network_identifier` | `NetworkIdentifier` | not yet | parser | 7.5 batch 3 | correlation | analysis, cli, correlation |
-| `parse_url` | `ParseURLAnalyzer` | not yet | parser | 7.5 batch 3 | correlation | analysis, cli, correlation |
+| `file_location_analysis` | `FileLocationAnalyzer` | `ace-mod-values` | parser | done | file | analysis, binary, cli, correlation, email, file |
+| `file_path_analysis` | `FilePathAnalyzer` | `ace-mod-values` | parser | done | file | analysis, binary, cli, correlation, email, file |
+| `network_identifier` | `NetworkIdentifier` | `ace-mod-values` | parser | done | correlation | analysis, cli, correlation |
+| `parse_url` | `ParseURLAnalyzer` | `ace-mod-values` | parser | done | correlation | analysis, cli, correlation |
 | `fqdn_analyzer` | `FQDNAnalyzer` | `ace-mod-dns` | lookup | done | correlation | analysis, cli, correlation |
-| `idna_analyzer` | `IDNAAnalyzer` | not yet | parser | 7.5 batch 3 | correlation | analysis, cli, correlation |
+| `idna_analyzer` | `IDNAAnalyzer` | `ace-mod-values` | parser | done | correlation | analysis, cli, correlation |
 | `rdap_analyzer` | `RdapAnalyzer` | `ace-mod-rdap` | lookup | done | correlation | analysis, cli, correlation |
 | `nrd_analyzer` | `NRDAnalyzer` | `ace-mod-nrd` | lookup | done | common | analysis, binary, cli, correlation, email, file |
 | `snort_signature_analysis_v1` | `SnortSignatureAnalyzer_v1` | `ace-mod-snort` | lookup | done | correlation | analysis, cli, correlation, suricata_ids |
 | `user_analyzer` | `UserAnalyzer` | `ace-mod-user` | lookup | done | correlation | analysis, cli, correlation |
-| `email_address_fqdn_analyzer` | `EmailAddressFQDNAnalyzer` | not yet | parser | 7.5 batch 3 | common | analysis, binary, cli, correlation, email, file |
+| `email_address_fqdn_analyzer` | `EmailAddressFQDNAnalyzer` | `ace-mod-values` | parser | done | common | analysis, binary, cli, correlation, email, file |
 | `email_conversation_frequency_analyzer` | `EmailConversationFrequencyAnalyzer` | `ace-mod-brocess` | lookup | done | email | analysis, cli, correlation, email |
 | `email_conversation_attachment_analyzer` | `EmailConversationAttachmentAnalyzer` | not yet | parser | 7.5 batch 8 | email | analysis, cli, correlation, email |
 | `email_conversation_link_analyzer` | `EmailConversationLinkAnalyzer` | not yet | parser | 7.5 batch 8 | email | analysis, cli, correlation, email |
@@ -261,7 +261,7 @@ In the config's order. ace4 is the crate a ported module is in.
 | `ioc_extraction` | `IOCExtractionAnalyzer` | `ace-mod-urls` | parser | done | file | analysis, binary, cli, correlation, email, file |
 | `observable_modifier` | `ObservableModifierAnalyzer` | not yet | core | 7.6 | common | analysis, binary, cli, correlation, email, file |
 | `x509_analyzer` | `X509Analyzer` | `ace-mod-files` | parser | done | file | analysis, binary, cli, correlation, email, file |
-| `protected_url_analyzer` | `ProtectedURLAnalyzer` | not yet | parser | 7.5 batch 3 | common | analysis, binary, cli, correlation, email, file |
+| `protected_url_analyzer` | `ProtectedURLAnalyzer` | `ace-mod-values` | parser | done | common | analysis, binary, cli, correlation, email, file |
 | `rtfole` | `RTFOLEObjectAnalyzer` | `ace-mod-oletools` | parser | done | file | analysis, binary, cli, correlation, email, file |
 | `extracted_rtf_analyzer` | `ExtractedRTFAnalyzer` | not yet | parser | 7.5 batch 6 | file | analysis, binary, cli, correlation, email, file |
 | `message_id_analyzer_v2` | `MessageIDAnalyzerV2` | not yet | lookup | 7.5 batch 9 | correlation | analysis, cli, correlation |
@@ -542,9 +542,9 @@ In the config's order. ace4 is the crate a ported module is in.
 ### command_line_analyzer
 
 - **Section**: `analysis_module_command_line_analyzer`, class `CommandLineAnalyzer` in `saq/modules/command_line.py`, enabled by default.
-- **ace4**: not yet.
+- **ace4**: ported in `ace-mod-values`. shlex's non-POSIX split, ntpath's basename and ace3's path and base64 helpers are ported in `py.rs`; the paths a shorter one starts with are dropped by sorting rather than comparing every pair, the same result in `n log n`. A command line `executed_on` a host gives `file_location` observables, so a leased task now carries its observable's relationships (`TaskObservable::relationships`). A payload's file is named by its path in the alert, and numbered `_000` and on only against this result's own files. Only the first 500 payloads get files, as ace3's root takes at most 500 file observables (`maximum_observable_count`), which ace4's core doesn't have (`docs/measurements/observable-values.md`).
 - **Pool**: parser. Tokenizes an attacker's string and writes decoded payloads.
-- **Step**: 7.5 batch 3 (Observable values).
+- **Step**: done.
 - **Does**: Tokenises a command_line observable to extract Windows file paths (as file_path, plus file_location when the command has an executed_on host) and base64 payloads (decoded to files), with PowerShell -EncodedCommand awareness.
 - **Input**: command_line.
 - **Groups and modes**: groups common; modes analysis, binary, cli, correlation, email, file.
@@ -668,9 +668,9 @@ In the config's order. ace4 is the crate a ported module is in.
 ### file_location_analysis
 
 - **Section**: `analysis_module_file_location_analysis`, class `FileLocationAnalyzer` in `saq/modules/file_path.py`, enabled by default.
-- **ace4**: not yet.
+- **ace4**: ported in `ace-mod-values`.
 - **Pool**: parser. Splits a string.
-- **Step**: 7.5 batch 3 (Observable values).
+- **Step**: done.
 - **Does**: Splits a file_location observable ('host@path') into a hostname observable and a file_path observable.
 - **Input**: file_location.
 - **Groups and modes**: groups file; modes analysis, binary, cli, correlation, email, file.
@@ -689,9 +689,9 @@ In the config's order. ace4 is the crate a ported module is in.
 ### file_path_analysis
 
 - **Section**: `analysis_module_file_path_analysis`, class `FilePathAnalyzer` in `saq/modules/file_path.py`, enabled by default.
-- **ace4**: not yet.
+- **ace4**: ported in `ace-mod-values`.
 - **Pool**: parser. Regex over a string.
-- **Step**: 7.5 batch 3 (Observable values).
+- **Step**: done.
 - **Does**: From a file_path observable containing a path separator, adds the file name as a file_name observable and, for C:\Users\<name>\ paths, the user name as a user observable.
 - **Input**: file_path.
 - **Groups and modes**: groups file; modes analysis, binary, cli, correlation, email, file.
@@ -710,9 +710,9 @@ In the config's order. ace4 is the crate a ported module is in.
 ### network_identifier
 
 - **Section**: `analysis_module_network_identifier`, class `NetworkIdentifier` in `saq/modules/asset/network_identifier.py`, enabled by default.
-- **ace4**: not yet.
-- **Pool**: parser. CIDR matching of a value against a site file; no network or database. The CSV becomes a 5.14 list or overlay settings.
-- **Step**: 7.5 batch 3 (Observable values).
+- **ace4**: ported in `ace-mod-values`. iptools 0.7.0's `IpRange` is ported in `iptools.rs`. The CSV's rows are the overlay's `networks` setting, `cidr` and `name`, read once when the pool starts as ace3 reads its file; ace3's shipped file has only its header, so the default is none. A range iptools can't read stops the module from starting, as it stops ace3's.
+- **Pool**: parser. CIDR matching of a value against a site file; no network or database. The CSV became overlay settings, not a 5.14 list, whose entries match values rather than ranges.
+- **Step**: done.
 - **Does**: Matches an ip/ipv4 observable against the CIDR ranges in a local CSV and, when it falls in any, records the network names and adds an asset observable for the same IP.
 - **Input**: ip; ipv4.
 - **Groups and modes**: groups correlation; modes analysis, cli, correlation.
@@ -731,9 +731,9 @@ In the config's order. ace4 is the crate a ported module is in.
 ### parse_url
 
 - **Section**: `analysis_module_parse_url`, class `ParseURLAnalyzer` in `saq/modules/url/parser.py`, enabled by default.
-- **ace4**: not yet.
+- **ace4**: ported in `ace-mod-values`. It reads the URL with `ace-urlfinder`'s `Url`. Its decoded query parameters are only in the summary, as in ace3, whose module sets them on the analysis object rather than its details.
 - **Pool**: parser. Parses an attacker's string in memory.
-- **Step**: 7.5 batch 3 (Observable values).
+- **Step**: done.
 - **Does**: Splits a url observable into scheme/netloc/path/query/params/fragment and adds the host as an fqdn (or ip) observable and the path as a uri_path observable.
 - **Input**: url.
 - **Groups and modes**: groups correlation; modes analysis, cli, correlation.
@@ -773,9 +773,9 @@ In the config's order. ace4 is the crate a ported module is in.
 ### idna_analyzer
 
 - **Section**: `analysis_module_idna_analyzer`, class `IDNAAnalyzer` in `saq/modules/url/idna.py`, enabled by default.
-- **ace4**: not yet.
+- **ace4**: ported in `ace-mod-values`. It reads the name with `ace-urlfinder`'s `Url`, whose IDNA spellings are urlfinderlib's: the idna package's IDNA 2008, then Python's IDNA 2003 codec where that refuses (`ace-pycompat`).
 - **Pool**: parser. Converts a name in memory.
-- **Step**: 7.5 batch 3 (Observable values).
+- **Step**: done.
 - **Does**: Converts an fqdn observable between its IDNA (punycode) and Unicode forms and adds whichever differs from the original as a new fqdn observable.
 - **Input**: fqdn.
 - **Groups and modes**: groups correlation; modes analysis, cli, correlation.
@@ -878,9 +878,9 @@ In the config's order. ace4 is the crate a ported module is in.
 ### email_address_fqdn_analyzer
 
 - **Section**: `analysis_module_email_address_fqdn_analyzer`, class `EmailAddressFQDNAnalyzer` in `saq/modules/email/address.py`, enabled by default.
-- **ace4**: not yet.
+- **ace4**: ported in `ace-mod-values`. ace4 has no volatile flag for the fqdn.
 - **Pool**: parser. Splits a string; no I/O.
-- **Step**: 7.5 batch 3 (Observable values).
+- **Step**: done.
 - **Does**: Splits the domain off an email_address observable (any subtype) and adds it as a volatile fqdn observable.
 - **Input**: email_address (and subtypes via the type hierarchy).
 - **Groups and modes**: groups common; modes analysis, binary, cli, correlation, email, file.
@@ -1800,9 +1800,9 @@ In the config's order. ace4 is the crate a ported module is in.
 ### protected_url_analyzer
 
 - **Section**: `analysis_module_protected_url_analyzer`, class `ProtectedURLAnalyzer` in `saq/modules/url/protected.py`, enabled by default.
-- **ace4**: not yet.
-- **Pool**: parser. Unwraps URLs in memory. Its one network case, following a 1drv.ms redirect to the attacker's host, is left out of the parser: it becomes a crawl directive or a lookup instance, which 7.5 decides with 7.7's phishkit.
-- **Step**: 7.5 batch 3 (Observable values).
+- **ace4**: ported in `ace-mod-values`. Proofpoint's URLs come from `ace-urlfinder`, the first in sorted order where ace3 pops one from a set. A 1drv.ms link goes to `protected_url_one_drive` (below).
+- **Pool**: parser. Unwraps URLs in memory. Its one network case, following a 1drv.ms link's redirects, is left out of the parser. **Decided in 7.5 batch 3: a lookup instance**, `protected_url_one_drive` in `ace-mod-values` on the lookup pool, in ace3's `common` group (`App::module_in_group`), writing ProtectedURLAnalysis's fields as `protected_url_one_drive_analysis`. A crawl directive was the other choice, and it would change what ace4 does: 7.7's phishkit would load every OneDrive link in a browser, where ace3 asks for the link and turns the address it ends at into a download link, and until 7.7 nothing would follow it at all. The lookup does what ace3 does, with bounds ace3 doesn't have: it asks only 1drv.ms and its subdomains, where ace3's `endswith('1drv.ms')` also takes a host such as `evil1drv.ms`; it follows a redirect only to `redirect_hosts`, Microsoft's by default (1drv.ms, live.com, onedrive.com, sharepoint.com), at most 30 as requests does, each request within 8 s; it reads no body. A link it can't follow there is recorded as ace3 records one whose fetch failed: unprotected, the link itself. So the worker never contacts a host outside Microsoft's on an attacker's word. The parser module skips a 1drv.ms link, so its result is under the lookup's name, not ace3's.
+- **Step**: done.
 - **Does**: Unwraps a url observable protected or rewritten by a known service (Egnyte, FireEye, Outlook SafeLinks, Dropbox, SharePoint, Google Drive, URLDefense, Proofpoint, Cisco, Sophos, Barracuda cudasvc, OneDrive 1drv.ms) and adds the extracted url observable.
 - **Input**: url.
 - **Groups and modes**: groups common; modes analysis, binary, cli, correlation, email, file.

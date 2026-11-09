@@ -1,0 +1,52 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "IDNAAnalysis",
+      "details": {
+        "idna": "xn--mnchen-3ya.de",
+        "original": "xn--mnchen-3ya.de",
+        "unicode": "münchen.de"
+      },
+      "detections": [],
+      "module_path": "saq.modules.url.idna:IDNAAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [],
+          "display_type": "Unicode Domain",
+          "excluded_analysis": [
+            "saq.modules.url.idna:<class 'saq.modules.url.idna.IDNAAnalyzer'>"
+          ],
+          "relationships": [],
+          "tags": [],
+          "type": "fqdn",
+          "value": "münchen.de"
+        }
+      ],
+      "summary": "IDNA: idna=xn--mnchen-3ya.de, unicode=münchen.de",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fqdn xn--mnchen-3ya.de",
+    "meta_tags": [],
+    "observable": {
+      "type": "fqdn",
+      "value": "xn--mnchen-3ya.de"
+    }
+  },
+  "module": "idna_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "relationships": [],
+    "tags": [],
+    "type": "fqdn",
+    "value": "xn--mnchen-3ya.de"
+  }
+}

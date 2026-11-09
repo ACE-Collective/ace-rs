@@ -1,0 +1,20 @@
+{
+  "analysis_type": "idna_analysis",
+  "schema_version": 1,
+  "details": {
+    "idna": "xn--mnchen-3ya.de",
+    "original": "münchen.de",
+    "unicode": "münchen.de"
+  },
+  "summary": "IDNA: idna=xn--mnchen-3ya.de, unicode=münchen.de",
+  "observables": [
+    {
+      "type": "fqdn",
+      "value": "xn--mnchen-3ya.de",
+      "exclude_modules": [
+        "idna_analyzer"
+      ],
+      "display_type": "IDNA Domain"
+    }
+  ]
+}

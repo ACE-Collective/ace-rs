@@ -1,0 +1,49 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "NetworkIdentifierAnalysis",
+      "details": {
+        "identified_networks": [
+          "printer"
+        ]
+      },
+      "detections": [],
+      "module_path": "saq.modules.asset.network_identifier:NetworkIdentifierAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "asset",
+          "value": "172.16.5.4"
+        }
+      ],
+      "summary": "Network Identification Analysis: printer",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ipv4 172.16.5.4",
+    "meta_tags": [],
+    "observable": {
+      "type": "ipv4",
+      "value": "172.16.5.4"
+    }
+  },
+  "module": "network_identifier",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "relationships": [],
+    "tags": [],
+    "type": "ipv4",
+    "value": "172.16.5.4"
+  }
+}

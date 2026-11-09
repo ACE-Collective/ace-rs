@@ -549,6 +549,8 @@ impl Api {
         };
         let redirection =
             tree::redirection(self.inner.db.pool(), task.root, task.observable.id).await?;
+        let relationships =
+            tree::relationships(self.inner.db.pool(), task.root, task.observable.id).await?;
         let yara_rules_below = if runs_last {
             tree::yara_rules_below(self.inner.db.pool(), task.root, task.observable.id).await?
         } else {
@@ -558,6 +560,7 @@ impl Api {
         // read after the claim, so an edit committed before it is in the task (`lists`' docs)
         let lists = self.lists_for(&task.module).await?;
         let mut leased = self.wire_task(task, file, redirection);
+        leased.observable.relationships = relationships;
         leased.carrying_email = carrying_email;
         leased.emails_pending = emails_pending;
         leased.yara_rules_below = yara_rules_below;
@@ -669,6 +672,7 @@ impl Api {
                 directives: task.observable.directives,
                 file,
                 redirection,
+                relationships: Vec::new(),
             },
             delayed: task.delayed,
             input_hashes: task.input_hashes,

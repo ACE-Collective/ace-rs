@@ -1,0 +1,73 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "CommandLineAnalysis",
+      "details": {
+        "base64_payloads": [
+          {
+            "base64": "VwByAGkAdABlAC0ASABvAHMAdAAgAGgAZQBsAGwAbwA=",
+            "file_path": "<root>/files/command_line_base64_payload.bin"
+          }
+        ],
+        "file_paths": [
+          "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"
+        ]
+      },
+      "detections": [],
+      "module_path": "saq.modules.command_line:CommandLineAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=payload.base64"
+          ],
+          "excluded_analysis": [],
+          "file_path": "command_line_base64_payload.bin",
+          "relationships": [],
+          "size": 32,
+          "tags": [
+            "base64"
+          ],
+          "type": "file",
+          "value": "23c5d6d217b425bb69b84330da06ec16546333cd6dac63a6643fcbe94e9b6449",
+          "yara_meta": [
+            "type=payload.base64"
+          ]
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "file_path",
+          "value": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"
+        }
+      ],
+      "summary": "Command Line Analysis: extracted  1 file paths, 1 base64 payloads",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "command_line C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe –ExecutionPolicy Bypass –EncodedCommand VwByAGkAdABlAC0ASABvAHMAdAAgAGgAZQBsAGwAbwA=",
+    "meta_tags": [],
+    "observable": {
+      "type": "command_line",
+      "value": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe –ExecutionPolicy Bypass –EncodedCommand VwByAGkAdABlAC0ASABvAHMAdAAgAGgAZQBsAGwAbwA="
+    }
+  },
+  "module": "command_line_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "relationships": [],
+    "tags": [],
+    "type": "command_line",
+    "value": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe –ExecutionPolicy Bypass –EncodedCommand VwByAGkAdABlAC0ASABvAHMAdAAgAGgAZQBsAGwAbwA="
+  }
+}

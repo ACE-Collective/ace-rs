@@ -1,0 +1,70 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "CommandLineAnalysis",
+      "details": {
+        "base64_payloads": [],
+        "file_paths": [
+          "C:\\Program Files\\Acme Tool\\run.exe",
+          "C:\\Users\\alice\\AppData\\Local\\Temp\\out.log",
+          "\\\\fileserver\\share\\drop\\x.dll"
+        ]
+      },
+      "detections": [],
+      "module_path": "saq.modules.command_line:CommandLineAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "file_path",
+          "value": "C:\\Program Files\\Acme Tool\\run.exe"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "file_path",
+          "value": "C:\\Users\\alice\\AppData\\Local\\Temp\\out.log"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "file_path",
+          "value": "\\\\fileserver\\share\\drop\\x.dll"
+        }
+      ],
+      "summary": "Command Line Analysis: extracted  3 file paths",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "command_line cmd.exe /c \"C:\\Program Files\\Acme Tool\\run.exe\" -o C:\\Users\\alice\\AppData\\Local\\Temp\\out.log \\\\fileserver\\share\\drop\\x.dll",
+    "meta_tags": [],
+    "observable": {
+      "type": "command_line",
+      "value": "cmd.exe /c \"C:\\Program Files\\Acme Tool\\run.exe\" -o C:\\Users\\alice\\AppData\\Local\\Temp\\out.log \\\\fileserver\\share\\drop\\x.dll"
+    }
+  },
+  "module": "command_line_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "relationships": [],
+    "tags": [],
+    "type": "command_line",
+    "value": "cmd.exe /c \"C:\\Program Files\\Acme Tool\\run.exe\" -o C:\\Users\\alice\\AppData\\Local\\Temp\\out.log \\\\fileserver\\share\\drop\\x.dll"
+  }
+}

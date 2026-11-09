@@ -1,0 +1,63 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "ParseURLAnalysis",
+      "details": {
+        "fragment": "",
+        "netloc": "münchen.de",
+        "params": null,
+        "path": "/ü",
+        "query": "q=ä",
+        "scheme": "https"
+      },
+      "detections": [],
+      "module_path": "saq.modules.url.parser:ParseURLAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [
+            "domain_in_url"
+          ],
+          "type": "fqdn",
+          "value": "münchen.de"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "uri_path",
+          "value": "/ü?q=ä"
+        }
+      ],
+      "summary": "URL Parser: scheme=https, netloc=münchen.de, path=/ü, query=q=ä, params=(q=ä)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "url https://münchen.de/ü?q=ä",
+    "meta_tags": [],
+    "observable": {
+      "type": "url",
+      "value": "https://münchen.de/ü?q=ä"
+    }
+  },
+  "module": "parse_url",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "relationships": [],
+    "tags": [],
+    "type": "url",
+    "value": "https://münchen.de/ü?q=ä"
+  }
+}

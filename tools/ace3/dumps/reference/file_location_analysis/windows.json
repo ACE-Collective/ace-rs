@@ -1,0 +1,57 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "FileLocationAnalysis",
+      "details": {
+        "file_path": "C:\\Windows\\Temp\\a.exe",
+        "hostname": "WS-0042"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_path:FileLocationAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "hostname",
+          "value": "WS-0042"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "file_path",
+          "value": "C:\\Windows\\Temp\\a.exe"
+        }
+      ],
+      "summary": "File Location Analysis: hostname WS-0042 file path C:\\Windows\\Temp\\a.exe",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "file_location WS-0042@C:\\Windows\\Temp\\a.exe",
+    "meta_tags": [],
+    "observable": {
+      "type": "file_location",
+      "value": "WS-0042@C:\\Windows\\Temp\\a.exe"
+    }
+  },
+  "module": "file_location_analysis",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "relationships": [],
+    "tags": [],
+    "type": "file_location",
+    "value": "WS-0042@C:\\Windows\\Temp\\a.exe"
+  }
+}

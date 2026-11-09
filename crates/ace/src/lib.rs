@@ -4,8 +4,10 @@
 use ace_app::{App, LookupPool, ParserPool};
 
 /// The parser pool: the email, archive, PDF, olevba, rtfole, YARA, URL and IOC extraction, file type,
-/// file hash, binary file, shortcut, certificate and dhash modules, with the YARA module on the core's
-/// current ruleset (2.26), and the commands analysts start from the GUI (5.12).
+/// file hash, binary file, shortcut, certificate and dhash modules, the modules that read an
+/// observable's value (command lines, file paths and locations, networks, URLs, IDNA, email
+/// addresses' domains and protected URLs), with the YARA module on the core's current ruleset (2.26),
+/// and the commands analysts start from the GUI (5.12).
 pub fn parser_pool() -> ParserPool {
     ParserPool::new("parsers")
         .module::<ace_mod_email::EmailAnalyzer>()
@@ -25,12 +27,21 @@ pub fn parser_pool() -> ParserPool {
         .module::<ace_mod_files::LnkParseAnalyzer>()
         .module::<ace_mod_files::X509Analyzer>()
         .module::<ace_mod_files::DHashImageAnalyzer>()
+        .module::<ace_mod_values::CommandLineAnalyzer>()
+        .module::<ace_mod_values::FilePathAnalyzer>()
+        .module::<ace_mod_values::FileLocationAnalyzer>()
+        .module::<ace_mod_values::NetworkIdentifier>()
+        .module::<ace_mod_values::ParseUrlAnalyzer>()
+        .module::<ace_mod_values::IdnaAnalyzer>()
+        .module::<ace_mod_values::EmailAddressFqdnAnalyzer>()
+        .module::<ace_mod_values::ProtectedUrlAnalyzer>()
         .yara_rulesets::<ace_mod_yara::YaraScanner>(ace_mod_yara::check_ruleset)
         .commands()
 }
 
 /// The network pool: the RDAP, DNS, snort signature, conversation frequency, email logger, email
-/// thread, newly registered domains, user (LDAP), Splunk and Splunk clicker detection modules.
+/// thread, newly registered domains, user (LDAP), Splunk and Splunk clicker detection modules, and
+/// the one that follows 1drv.ms links for the protected URL module.
 pub fn lookup_pool() -> LookupPool {
     LookupPool::new("lookups")
         .module::<ace_mod_rdap::RdapAnalyzer>()
@@ -43,6 +54,7 @@ pub fn lookup_pool() -> LookupPool {
         .module::<ace_mod_user::UserAnalyzer>()
         .module::<ace_mod_splunk::SplunkAnalyzer>()
         .module::<ace_mod_splunk::ClickerDetection>()
+        .module::<ace_mod_values::OneDriveUrlAnalyzer>()
 }
 
 /// The open-source binaries' list: the two pools, no observable types beyond ace3's, and ace3's
@@ -52,6 +64,8 @@ pub fn app() -> App {
     App::new()
         .parser_pool(parser_pool())
         .lookup_pool(lookup_pool())
+        // ace3's protected_url_analyzer is in its common group, and this does its network half
+        .module_in_group("common", "protected_url_one_drive")
         .hunt_type(ace_hunt::types::Splunk::default())
 }
 

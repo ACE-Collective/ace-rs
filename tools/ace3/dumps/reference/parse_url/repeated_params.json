@@ -1,0 +1,63 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "ParseURLAnalysis",
+      "details": {
+        "fragment": "",
+        "netloc": "example.com",
+        "params": null,
+        "path": "/",
+        "query": "a=1&a=2&b&c=%2B+",
+        "scheme": "https"
+      },
+      "detections": [],
+      "module_path": "saq.modules.url.parser:ParseURLAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [
+            "domain_in_url"
+          ],
+          "type": "fqdn",
+          "value": "example.com"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "uri_path",
+          "value": "/?a=1&a=2&b&c=%2B+"
+        }
+      ],
+      "summary": "URL Parser: scheme=https, netloc=example.com, path=/, query=a=1&a=2&b&c=%2B+, params=(a=2, b=, c=  )",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "url https://example.com/?a=1&a=2&b&c=%2B+",
+    "meta_tags": [],
+    "observable": {
+      "type": "url",
+      "value": "https://example.com/?a=1&a=2&b&c=%2B+"
+    }
+  },
+  "module": "parse_url",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "relationships": [],
+    "tags": [],
+    "type": "url",
+    "value": "https://example.com/?a=1&a=2&b&c=%2B+"
+  }
+}

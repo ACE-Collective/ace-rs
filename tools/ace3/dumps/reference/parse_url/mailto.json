@@ -1,0 +1,52 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "ParseURLAnalysis",
+      "details": {
+        "fragment": "",
+        "netloc": "",
+        "params": null,
+        "path": "bob@example.com",
+        "query": "",
+        "scheme": "mailto"
+      },
+      "detections": [],
+      "module_path": "saq.modules.url.parser:ParseURLAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "uri_path",
+          "value": "/bob@example.com"
+        }
+      ],
+      "summary": "URL Parser: scheme=mailto, path=bob@example.com",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "url mailto:bob@example.com",
+    "meta_tags": [],
+    "observable": {
+      "type": "url",
+      "value": "mailto:bob@example.com"
+    }
+  },
+  "module": "parse_url",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "relationships": [],
+    "tags": [],
+    "type": "url",
+    "value": "mailto:bob@example.com"
+  }
+}

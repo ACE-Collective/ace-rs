@@ -1,0 +1,54 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "ParseURLAnalysis",
+      "details": {
+        "fragment": "",
+        "netloc": "user:pass@host.example.co.uk",
+        "params": null,
+        "path": "",
+        "query": "",
+        "scheme": "https"
+      },
+      "detections": [],
+      "module_path": "saq.modules.url.parser:ParseURLAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [
+            "domain_in_url"
+          ],
+          "type": "fqdn",
+          "value": "host.example.co.uk"
+        }
+      ],
+      "summary": "URL Parser: scheme=https, netloc=user:pass@host.example.co.uk",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "url https://user:pass@host.example.co.uk/",
+    "meta_tags": [],
+    "observable": {
+      "type": "url",
+      "value": "https://user:pass@host.example.co.uk/"
+    }
+  },
+  "module": "parse_url",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "relationships": [],
+    "tags": [],
+    "type": "url",
+    "value": "https://user:pass@host.example.co.uk/"
+  }
+}

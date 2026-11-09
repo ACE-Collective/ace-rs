@@ -1,0 +1,58 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "ProtectedURLAnalysis",
+      "details": {
+        "extracted_url": "https://evil.example.com/path",
+        "protection_type": "proofpoint"
+      },
+      "detections": [],
+      "module_path": "saq.modules.url.protected:ProtectedURLAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [
+            {
+              "target": {
+                "type": "url",
+                "value": "https://urldefense.proofpoint.com/v2/url?u=https-3A__evil.example.com_path&d=DwMF&c=x"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "tags": [],
+          "type": "url",
+          "value": "https://evil.example.com/path"
+        }
+      ],
+      "summary": "Protected URL Analysis: detected type proofpoint extracted url https://evil.example.com/path",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "url https://urldefense.proofpoint.com/v2/url?u=https-3A__evil.example.com_path&d=DwMF&c=x",
+    "meta_tags": [],
+    "observable": {
+      "type": "url",
+      "value": "https://urldefense.proofpoint.com/v2/url?u=https-3A__evil.example.com_path&d=DwMF&c=x"
+    }
+  },
+  "module": "protected_url_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "relationships": [],
+    "tags": [
+      "protected_url"
+    ],
+    "type": "url",
+    "value": "https://urldefense.proofpoint.com/v2/url?u=https-3A__evil.example.com_path&d=DwMF&c=x"
+  }
+}

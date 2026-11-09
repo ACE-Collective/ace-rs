@@ -1,0 +1,33 @@
+{
+  "about": "Hand-written: a 1drv.ms short link that redirects to OneDrive's redir page, as ace3's protected_url_analyzer comment describes, and that page's answer.",
+  "exchanges": [
+    {
+      "method": "GET",
+      "url": "https://1drv.ms/b/s!AvqIO0JVRziVa0IWW7c6GG3YkdU",
+      "status": 301,
+      "response_headers": {"Location": "https://onedrive.live.com/redir?resid=95384755423B88FA!107&authkey=!AEIWW7c6GG3YkdU&ithint=file%2cpdf"},
+      "body_file": "000.body"
+    },
+    {
+      "method": "GET",
+      "url": "https://onedrive.live.com/redir?resid=95384755423B88FA!107&authkey=!AEIWW7c6GG3YkdU&ithint=file%2cpdf",
+      "status": 200,
+      "response_headers": {},
+      "body_file": "001.body"
+    },
+    {
+      "method": "GET",
+      "url": "https://1drv.ms/u/s!NoParams",
+      "status": 302,
+      "response_headers": {"Location": "https://onedrive.live.com/?id=root"},
+      "body_file": "000.body"
+    },
+    {
+      "method": "GET",
+      "url": "https://onedrive.live.com/?id=root",
+      "status": 200,
+      "response_headers": {},
+      "body_file": "001.body"
+    }
+  ]
+}

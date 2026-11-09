@@ -1,0 +1,53 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT kind, target_type, target_value FROM analysis.relationships\n         WHERE root_id = $1 AND observable_id = $2\n         ORDER BY kind, target_type, target_value",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "kind",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.relationships",
+            "name": "kind"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "target_type",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.relationships",
+            "name": "target_type"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "target_value",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.relationships",
+            "name": "target_value"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "4f17cb3b58c713dc0a9f5bee8bcffeffbe2af91b7bf9e56c1dd1a32764c5fd44"
+}

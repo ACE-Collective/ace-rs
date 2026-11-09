@@ -1,0 +1,82 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "CommandLineAnalysis",
+      "details": {
+        "base64_payloads": [],
+        "file_paths": [
+          "C:\\Users\\bob\\Downloads\\invoice.exe"
+        ]
+      },
+      "detections": [],
+      "module_path": "saq.modules.command_line:CommandLineAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "file_path",
+          "value": "C:\\Users\\bob\\Downloads\\invoice.exe"
+        },
+        {
+          "detections": [],
+          "directives": [
+            "collect_file"
+          ],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "file_location",
+          "value": "WS-0042@C:\\Users\\bob\\Downloads\\invoice.exe"
+        }
+      ],
+      "summary": "Command Line Analysis: extracted  1 file paths",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [
+      "collect_file"
+    ],
+    "label": "command_line \"C:\\Users\\bob\\Downloads\\invoice.exe\" /silent with ['collect_file'], executed_on hostname WS-0042",
+    "meta_tags": [],
+    "observable": {
+      "type": "command_line",
+      "value": "\"C:\\Users\\bob\\Downloads\\invoice.exe\" /silent"
+    },
+    "relationships": [
+      {
+        "target": {
+          "type": "hostname",
+          "value": "WS-0042"
+        },
+        "type": "executed_on"
+      }
+    ]
+  },
+  "module": "command_line_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "collect_file"
+    ],
+    "excluded_analysis": [],
+    "relationships": [
+      {
+        "target": {
+          "type": "hostname",
+          "value": "WS-0042"
+        },
+        "type": "executed_on"
+      }
+    ],
+    "tags": [],
+    "type": "command_line",
+    "value": "\"C:\\Users\\bob\\Downloads\\invoice.exe\" /silent"
+  }
+}

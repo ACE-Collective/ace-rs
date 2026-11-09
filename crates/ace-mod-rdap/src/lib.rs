@@ -192,8 +192,8 @@ async fn query(
         }
     };
 
-    let (urls, what) = match ip {
-        Some(ip) => (registry.for_ip(ip), "ip"),
+    let (urls, what, tld) = match ip {
+        Some(ip) => (registry.for_ip(ip), "ip", ""),
         None => {
             let labels: Vec<&str> = target.split('.').collect();
             if labels.len() < 2 {
@@ -207,14 +207,23 @@ async fn query(
             (
                 registry.for_tld(&sld).or_else(|| registry.for_tld(tld)),
                 "domain",
+                tld,
             )
         }
     };
     let Some(base) = urls.and_then(bootstrap::preferred) else {
-        let thing = if ip.is_some() { "address" } else { "TLD" };
-        return Ok(Query::Failed(format!(
-            "no RDAP service for {thing}: {target} has no known RDAP endpoint"
-        )));
+        // whoisit's UnsupportedError, which names the last label it tried; it never refuses an
+        // address, having fallback endpoints for those
+        let message = if ip.is_some() {
+            format!("no RDAP service for address: {target} has no known RDAP endpoint")
+        } else {
+            format!(
+                "no RDAP service for TLD: TLD \"{tld}\" has no known RDAP endpoint and is \
+                 unsupported. It may be supported by overrides, try using \
+                 whoisit.bootstrap(overrides=True)"
+            )
+        };
+        return Ok(Query::Failed(message));
     };
     let base = if base.ends_with('/') {
         base

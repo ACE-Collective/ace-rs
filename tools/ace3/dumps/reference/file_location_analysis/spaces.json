@@ -1,0 +1,57 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "FileLocationAnalysis",
+      "details": {
+        "file_path": " C:\\x",
+        "hostname": " HOST "
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_path:FileLocationAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "hostname",
+          "value": "HOST"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "file_path",
+          "value": " C:\\x"
+        }
+      ],
+      "summary": "File Location Analysis: hostname  HOST  file path  C:\\x",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "file_location  HOST @ C:\\x",
+    "meta_tags": [],
+    "observable": {
+      "type": "file_location",
+      "value": " HOST @ C:\\x"
+    }
+  },
+  "module": "file_location_analysis",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "relationships": [],
+    "tags": [],
+    "type": "file_location",
+    "value": " HOST @ C:\\x"
+  }
+}

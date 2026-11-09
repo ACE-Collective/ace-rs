@@ -1,0 +1,63 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "ParseURLAnalysis",
+      "details": {
+        "fragment": "",
+        "netloc": "10.1.2.3",
+        "params": null,
+        "path": "/admin",
+        "query": "",
+        "scheme": ""
+      },
+      "detections": [],
+      "module_path": "saq.modules.url.parser:ParseURLAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [
+            "ip_in_url"
+          ],
+          "type": "ip",
+          "value": "10.1.2.3"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "uri_path",
+          "value": "/admin"
+        }
+      ],
+      "summary": "URL Parser: netloc=10.1.2.3, path=/admin",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "url 10.1.2.3/admin",
+    "meta_tags": [],
+    "observable": {
+      "type": "url",
+      "value": "10.1.2.3/admin"
+    }
+  },
+  "module": "parse_url",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "relationships": [],
+    "tags": [],
+    "type": "url",
+    "value": "10.1.2.3/admin"
+  }
+}

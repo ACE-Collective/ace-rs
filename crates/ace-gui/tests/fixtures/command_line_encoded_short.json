@@ -1,0 +1,27 @@
+{
+  "analysis_type": "command_line_analysis",
+  "schema_version": 1,
+  "details": {
+    "base64_payloads": [
+      {
+        "base64": "VwByAGkAdABlAC0ASABvAHMAdAAgAGgAZQBsAGwAbwA=",
+        "file_path": "command_line_base64_payload.bin"
+      }
+    ],
+    "file_paths": []
+  },
+  "summary": "Command Line Analysis: extracted  1 base64 payloads",
+  "files": [
+    {
+      "path": "command_line_base64_payload.bin",
+      "sha256": "23c5d6d217b425bb69b84330da06ec16546333cd6dac63a6643fcbe94e9b6449",
+      "size": 32,
+      "yara_meta": [
+        "type=payload.base64"
+      ],
+      "tags": [
+        "base64"
+      ]
+    }
+  ]
+}

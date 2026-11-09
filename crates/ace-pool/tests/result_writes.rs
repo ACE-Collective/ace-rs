@@ -8,7 +8,7 @@ use std::time::Duration;
 
 use ace_core::tree::{self, NewRoot};
 use ace_pool::client::{ClientError, LeaseClient};
-use ace_results::{NewObservable, ObservableKind, ObservableRef};
+use ace_results::{NewObservable, ObservableKind, ObservableRef, Relationship, RelationshipKind};
 use ace_sdk::wire::TaskEnd;
 use serde_json::json;
 use uuid::Uuid;
@@ -284,9 +284,10 @@ async fn a_large_result_lands_and_one_past_the_limit_fails_its_task_at_once() {
 }
 
 /// A module sees what its input redirects to: the YARA module needs it to sandbox the document a
-/// part came out of (PLAN.md 3.1).
+/// part came out of (PLAN.md 3.1). It sees its input's relationships too, as the command line
+/// module needs the host a command ran on (7.5 batch 3).
 #[tokio::test]
-async fn a_leased_task_says_what_its_observable_redirects_to() {
+async fn a_leased_task_says_what_its_observable_redirects_to_and_is_related_to() {
     let core = Core::start(
         vec![ace_mod_archive::MANIFEST],
         &["archive"],
@@ -298,6 +299,11 @@ async fn a_leased_task_says_what_its_observable_redirects_to() {
     let target = ObservableRef::new(ObservableKind::File, "aa".repeat(32));
     let mut part = NewObservable::new(ObservableKind::Fqdn, "part.example.com");
     part.redirection = Some(target.clone());
+    let host = Relationship::new(
+        RelationshipKind::ExecutedOn,
+        ObservableRef::new(ObservableKind::Hostname, "WS-0042"),
+    );
+    part.relationships.push(host.clone());
     let mut tx = db.begin().await.expect("begins");
     tree::create_root(&mut tx, &root).await.expect("creates");
     let id = tree::upsert_observable(&mut tx, root.id, &part)
@@ -319,6 +325,12 @@ async fn a_leased_task_says_what_its_observable_redirects_to() {
     assert_eq!(
         task.observable.to_observable(None).redirection,
         Some(target)
+    );
+    assert_eq!(task.observable.relationships, std::slice::from_ref(&host));
+    let observable = task.observable.to_observable(None);
+    assert_eq!(
+        observable.relationship(RelationshipKind::ExecutedOn),
+        Some(&host)
     );
 }
 

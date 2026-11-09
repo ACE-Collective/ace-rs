@@ -179,7 +179,8 @@ impl Url {
         }
     }
 
-    fn is_netloc_ipv4(&self) -> bool {
+    /// `is_netloc_ipv4`: the host is an IP address, IPv4 or IPv6.
+    pub fn is_netloc_ipv4(&self) -> bool {
         match self.hostname() {
             Some(host) if !host.is_empty() => py::is_ip_address(&host),
             _ => false,
@@ -196,7 +197,8 @@ impl Url {
         }
     }
 
-    fn is_netloc_valid_tld(&self) -> bool {
+    /// `is_netloc_valid_tld`: the host has a dot and a suffix the tld package knows.
+    pub fn is_netloc_valid_tld(&self) -> bool {
         match self.hostname() {
             // tld.get_tld(self.value) splits the value again, as split_value did
             Some(host) if !host.is_empty() && host.contains('.') => {

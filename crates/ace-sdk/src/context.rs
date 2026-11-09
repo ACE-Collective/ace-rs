@@ -8,7 +8,8 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use ace_results::{
-    AlertPath, AnalysisType, NewFile, ObservableKind, ObservableRef, Sha256, YaraMeta,
+    AlertPath, AnalysisType, NewFile, ObservableKind, ObservableRef, Relationship,
+    RelationshipKind, Sha256, YaraMeta,
 };
 use chrono::{DateTime, Utc};
 use serde::de::DeserializeOwned;
@@ -35,6 +36,8 @@ pub struct Observable {
     /// The observable that stands for this one when something acts on it, as ace3's
     /// `redirection`, such as the Office document a part came out of.
     pub redirection: Option<ObservableRef>,
+    /// Its relationships to other observables, such as a command line `executed_on` a host.
+    pub relationships: Vec<Relationship>,
 }
 
 impl Observable {
@@ -46,6 +49,7 @@ impl Observable {
             file: None,
             directives: Vec::new(),
             redirection: None,
+            relationships: Vec::new(),
         }
     }
 
@@ -57,6 +61,7 @@ impl Observable {
             file: Some(file),
             directives: Vec::new(),
             redirection: None,
+            relationships: Vec::new(),
         }
     }
 
@@ -67,6 +72,16 @@ impl Observable {
 
     pub fn has_directive(&self, directive: &str) -> bool {
         self.directives.iter().any(|d| d == directive)
+    }
+
+    pub fn with_relationship(mut self, relationship: Relationship) -> Self {
+        self.relationships.push(relationship);
+        self
+    }
+
+    /// The first relationship of this kind, as ace3's `get_relationship_by_type`.
+    pub fn relationship(&self, kind: RelationshipKind) -> Option<&Relationship> {
+        self.relationships.iter().find(|r| r.kind == kind)
     }
 }
 
