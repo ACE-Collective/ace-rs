@@ -152,7 +152,7 @@ pub struct ObservableNode {
     pub analyzed: bool,
     /// Its type as ace3's `display_type` reads.
     pub label: String,
-    /// Its value, or for a file its first path.
+    /// Its value, or for a file the path it was analyzed under.
     pub value: String,
     pub time: Option<String>,
     pub tags: Vec<String>,

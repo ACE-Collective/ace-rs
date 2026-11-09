@@ -91,6 +91,23 @@ pub const WORKER_HEADER: &str = "x-ace4-worker";
 /// has one, so it starts low: most roots are done in a moment.
 const OTHERS_PENDING_DELAY: Duration = Duration::from_millis(250);
 
+/// How long a file's first task is held, at most, while something nearer the root that could add
+/// the file under another path is pending (`Api::held_for_path`). Past it the file is analyzed under
+/// the best path it has, so a slow module can't stall the root. Most holds end in under a second.
+const PATH_HOLD_LIMIT: Duration = Duration::from_secs(60);
+
+/// A held task waits half as long again as its file has, within these bounds, so a quick root
+/// goes on at once and a slow one isn't polled for nothing.
+const PATH_HOLD_MIN: Duration = Duration::from_millis(100);
+const PATH_HOLD_MAX: Duration = Duration::from_secs(2);
+
+/// Whether reading a file task's record settles the file's path (`Api::task_file`).
+#[derive(Debug, Clone, Copy)]
+enum Choose {
+    Settle,
+    Read,
+}
+
 /// A pool's access to the API: its name, the hash of its token and the modules it may lease.
 #[derive(Clone)]
 pub struct PoolAccess {
@@ -494,7 +511,10 @@ impl Api {
     /// and None says to claim another.
     async fn leased(&self, worker: &Worker, task: Task) -> Result<Option<LeasedTask>, Failure> {
         let file = if task.observable.kind == ObservableKind::File {
-            match self.task_file(&task).await? {
+            if self.held_for_path(worker, &task).await? {
+                return Ok(None);
+            }
+            match self.task_file(&task, Choose::Settle).await? {
                 Ok(file) => Some(file),
                 Err(why) => {
                     tracing::error!(task = %task.id, "{why}");
@@ -724,15 +744,76 @@ impl Api {
         }
     }
 
-    /// A file task's record and its download URL, or why the task can't run.
-    async fn task_file(&self, task: &Task) -> Result<Result<TaskFile, String>, Failure> {
+    /// Whether a file task is held for its file's path (PLAN.md decision 15). A file is analyzed
+    /// once, under one of its paths, and its tasks name what they write after it, so the path is
+    /// settled by a rule (`tree::choose_analysis_file`) rather than by which result landed first.
+    /// Paths come from results, so the rule can only see them all once nothing that could add one
+    /// is pending: the file's first task waits while a task nearer the root than the file is
+    /// queued, delayed or running, for `PATH_HOLD_LIMIT` at most.
+    ///
+    /// Only nearer the root: a task as deep as the file or deeper, such as one on another file
+    /// that's waiting the same way, never waits on this one, so two held files can't wait on each
+    /// other. A path written from that deep isn't one the rule takes. Modules that run last are left
+    /// out, since they wait for every other task, this one too, and what they write lands after the
+    /// file's tasks have run.
+    async fn held_for_path(&self, worker: &Worker, task: &Task) -> Result<bool, Failure> {
+        let pool = self.inner.db.pool();
+        let (chosen, waited) =
+            tree::analysis_file_state(pool, task.root, task.observable.id).await?;
+        if chosen {
+            return Ok(false);
+        }
+        if waited >= PATH_HOLD_LIMIT {
+            tracing::warn!(
+                task = %task.id,
+                "a file's path is settled while something nearer the root is still pending; a path it adds later won't be the one analyzed"
+            );
+            return Ok(false);
+        }
+        let depth = tree::depth(pool, task.root, task.observable.id).await?;
+        let last: Vec<String> = self
+            .inner
+            .orchestrator
+            .catalog()
+            .iter()
+            .filter(|c| c.manifest.runs_last)
+            .map(|c| c.key.clone())
+            .collect();
+        if !tree::pending_above(pool, task.root, depth, &last).await? {
+            return Ok(false);
+        }
+        let after = (waited / 2).clamp(PATH_HOLD_MIN, PATH_HOLD_MAX);
+        worker.hold(task.id, after).await?;
+        Ok(true)
+    }
+
+    /// A file task's record and its download URL, or why the task can't run. A lease settles the
+    /// file's path (`tree::choose_analysis_file`); a replay only reads it.
+    async fn task_file(
+        &self,
+        task: &Task,
+        choose: Choose,
+    ) -> Result<Result<TaskFile, String>, Failure> {
         let Ok(sha256) = task.observable.value.parse::<Sha256>() else {
             return Ok(Err(format!(
                 "the file observable's value {:?} isn't a sha256",
                 task.observable.value
             )));
         };
-        let record = tree::first_file(self.inner.db.pool(), task.root, task.observable.id).await?;
+        let (root, observable) = (task.root, task.observable.id);
+        let record = match choose {
+            Choose::Settle => {
+                self.inner
+                    .db
+                    .transaction(Isolation::ReadCommitted, |tx| {
+                        Box::pin(
+                            async move { tree::choose_analysis_file(tx, root, observable).await },
+                        )
+                    })
+                    .await?
+            }
+            Choose::Read => tree::analysis_file(self.inner.db.pool(), root, observable).await?,
+        };
         let object = self.inner.bucket.object(ALERT_FILES, &sha256).await?;
         let (Some(record), Some(object)) = (record, object) else {
             return Ok(Err(format!(
@@ -1266,7 +1347,11 @@ async fn replay(
         .await?
         .ok_or_else(|| Failure::NotFound(format!("no task {id}")))?;
     let file = if task.observable.kind == ObservableKind::File {
-        Some(api.task_file(&task).await?.map_err(Failure::BadRequest)?)
+        Some(
+            api.task_file(&task, Choose::Read)
+                .await?
+                .map_err(Failure::BadRequest)?,
+        )
     } else {
         None
     };

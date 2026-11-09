@@ -435,6 +435,40 @@ impl Worker {
         }
     }
 
+    /// Sends a task the worker owns back to the queue until `after` from now, before its module
+    /// has seen it: the core holds it, as it holds a file's first task until its path is settled
+    /// (`tree::choose_analysis_file`). Unlike a module's `delay`, the module never learns of it: its
+    /// delay state, count and first delay stay as they were, and the claim isn't an attempt.
+    pub async fn hold(&self, task: TaskId, after: Duration) -> Result<(), QueueError> {
+        self.db
+            .transaction(Isolation::ReadCommitted, |tx| {
+                Box::pin(async move {
+                    let root = self.lock_task_root(tx, task).await?;
+                    let state = sqlx::query_scalar!(
+                        r#"UPDATE queue.tasks
+               SET state = CASE WHEN cancel_requested THEN 'cancelled'::queue.task_state
+                                ELSE 'delayed'::queue.task_state END,
+                   run_after = now() + make_interval(secs => $3),
+                   attempts = GREATEST(attempts - 1, 0), lease_owner = NULL,
+                   lease_expires_at = NULL, updated_at = now()
+               WHERE id = $1 AND lease_owner = $2 AND state = 'running'
+               RETURNING state AS "state: TaskState""#,
+                        task as TaskId,
+                        self.name,
+                        after.as_secs_f64(),
+                    )
+                    .fetch_optional(tx.conn())
+                    .await?
+                    .ok_or(QueueError::LeaseLost(task))?;
+                    if state == TaskState::Cancelled {
+                        check_completion(tx, root).await?;
+                    }
+                    Ok::<_, QueueError>(())
+                })
+            })
+            .await
+    }
+
     /// Sends a task the worker owns back to the queue until `after` from now, keeping `state`
     /// for the module's next run, as ace3's `delay_analysis`. A delay isn't a failed attempt,
     /// so the attempt count starts again.

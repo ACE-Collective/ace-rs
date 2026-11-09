@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT path FROM analysis.files WHERE root_id = $1 AND observable_id = $2\n         ORDER BY created_at, path",
+  "query": "SELECT path FROM analysis.files WHERE root_id = $1 AND observable_id = $2\n           ORDER BY analyzed DESC, depth, path COLLATE \"C\"",
   "describe": {
     "columns": [
       {
@@ -25,5 +25,5 @@
       false
     ]
   },
-  "hash": "4641da4e697fce1be7dc19df1e0b65e3a5a99ec503329d95bf0f36243d68a744"
+  "hash": "e43ad1b6fb376f2c5348842ef1d9da649fcbc3a8b2a8f71482dcc159055f65fe"
 }

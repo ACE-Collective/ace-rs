@@ -33,9 +33,28 @@
       },
       "tags": {}
     },
-    "file:320b078ab9005f977ac6cda43c474b5ad613c6389668b7ebc7f38e3328f042ce": {
+    "email_from:saved by blink": {
       "detections": {},
       "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
+    },
+    "email_subject:Example": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
+    },
+    "file:320b078ab9005f977ac6cda43c474b5ad613c6389668b7ebc7f38e3328f042ce": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true,
+        "render": true
+      },
       "excluded_analysis": {
         "html_js_extraction": true
       },
@@ -46,14 +65,20 @@
           "type=email.attachment": true,
           "type=script.javascript": true
         },
+        "page.mht.unknown_application_xhtml+xml_000_js_inline_0_320b078a.js": {
+          "type=document.html": true,
+          "type=email.attachment": true,
+          "type=script.javascript": true
+        },
         "page_js_inline_1_320b078a.js": {
+          "type=email": true,
           "type=email.attachment": true,
           "type=script.javascript": true
         }
       },
       "relationships": {
-        "extracted_from file:a2eadc484439ef450f29b79678bf6434bcc36e1d3c647bda46b3e12371fcc76d": true,
-        "extracted_from file:ada40a782656b1a955d51f67e51c47eae5059779e765a73114079979ec7c2703": true
+        "extracted_from file:75e61725d48f1b337ffd63f51a15e2e9e1d54a11f64e2fc7fd10e687f394d567": true,
+        "extracted_from file:a2eadc484439ef450f29b79678bf6434bcc36e1d3c647bda46b3e12371fcc76d": true
       },
       "results": {
         "file_hash_analyzer": {
@@ -83,18 +108,33 @@
           },
           "summary": "File Type Analysis: ASCII text, with no line terminators (text/plain)",
           "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
     },
     "file:50e0640b44315641c34a09463dd53e2dc0f4e808446ffb4e2422646faa82ad30": {
       "detections": {},
-      "directives": {},
+      "directives": {
+        "extract_urls": true,
+        "render": true
+      },
       "excluded_analysis": {},
       "paths": {
         "page.mht.extracted/file_0": {
           "type=document.html": true,
           "type=document.mhtml.part": true,
+          "type=email.attachment": true
+        },
+        "page.mht.unknown_text_html_000.html": {
+          "type=document.html": true,
           "type=email.attachment": true
         }
       },
@@ -150,17 +190,39 @@
           },
           "summary": "HTML JavaScript Extraction: 1 inline script(s), 1 external URL(s), 1 event handler(s)",
           "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [
+              "https://evil.example.com/landing",
+              "https://cdn.example.com/kit.js"
+            ],
+            "urls_grouped_by_domain": {
+              "example.com": [
+                "https://evil.example.com/landing",
+                "https://cdn.example.com/kit.js"
+              ]
+            }
+          },
+          "summary": "URL Extraction Analysis (cdn.example.com, evil.example.com)",
+          "tags": {}
         }
       },
       "tags": {}
     },
     "file:5de625c36355cce7c1d5408826a0b21abfb49fb6c0e1f16c945a6f2aef38200c": {
       "detections": {},
-      "directives": {},
+      "directives": {
+        "extract_urls": true,
+        "render": true
+      },
       "excluded_analysis": {},
       "paths": {
         "page.mht.extracted/file_2": {
           "type=document.mhtml.part": true,
+          "type=email.attachment": true
+        },
+        "page.mht.unknown_text_css_000.css": {
           "type=email.attachment": true
         }
       },
@@ -193,13 +255,24 @@
           },
           "summary": "File Type Analysis: ASCII text, with no line terminators (text/plain)",
           "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
     },
     "file:6b30fcf2d7532721ed5491af64222d9bfa5c3a47ef132fad98635aed2732b363": {
       "detections": {},
-      "directives": {},
+      "directives": {
+        "extract_urls": true,
+        "render": true
+      },
       "excluded_analysis": {
         "html_js_extraction": true
       },
@@ -210,14 +283,20 @@
           "type=email.attachment": true,
           "type=script.javascript": true
         },
+        "page.mht.unknown_text_html_000_js_event_onload_0_6b30fcf2.js": {
+          "type=document.html": true,
+          "type=email.attachment": true,
+          "type=script.javascript": true
+        },
         "page_js_event_onload_0_6b30fcf2.js": {
+          "type=email": true,
           "type=email.attachment": true,
           "type=script.javascript": true
         }
       },
       "relationships": {
         "extracted_from file:50e0640b44315641c34a09463dd53e2dc0f4e808446ffb4e2422646faa82ad30": true,
-        "extracted_from file:ada40a782656b1a955d51f67e51c47eae5059779e765a73114079979ec7c2703": true
+        "extracted_from file:75e61725d48f1b337ffd63f51a15e2e9e1d54a11f64e2fc7fd10e687f394d567": true
       },
       "results": {
         "file_hash_analyzer": {
@@ -247,17 +326,32 @@
           },
           "summary": "File Type Analysis: ASCII text, with no line terminators (text/plain)",
           "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
     },
     "file:71fde3856a298a052c6edb5155638d8422114e55bf0e28374d90dea8be99ef6c": {
       "detections": {},
-      "directives": {},
+      "directives": {
+        "extract_urls": true,
+        "render": true
+      },
       "excluded_analysis": {},
       "paths": {
         "page.mht.extracted/file_1": {
           "type=document.mhtml.part": true,
+          "type=email.attachment": true,
+          "type=image": true
+        },
+        "page.mht.unknown_image_png_000.png": {
           "type=email.attachment": true,
           "type=image": true
         }
@@ -282,18 +376,274 @@
           },
           "summary": "File Type Analysis: PNG image data, 1 x 1, 8-bit/color RGBA, non-interlaced (image/png)",
           "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:75e61725d48f1b337ffd63f51a15e2e9e1d54a11f64e2fc7fd10e687f394d567": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "page.mht": {
+          "type=email": true,
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "email_analyzer": {
+          "details": {
+            "email": {
+              "authentication_failed": false,
+              "compauth_reason": null,
+              "compauth_result": null,
+              "decoded_subject": "Example",
+              "dkim_result": null,
+              "dmarc_result": null,
+              "env_mail_from": null,
+              "env_rcpt_to": [],
+              "from": "<Saved by Blink>",
+              "from_address": "Saved by Blink",
+              "headers": [
+                [
+                  "From",
+                  "<Saved by Blink>"
+                ],
+                [
+                  "Snapshot-Content-Location",
+                  "https://www.example.com/"
+                ],
+                [
+                  "Subject",
+                  "Example"
+                ],
+                [
+                  "MIME-Version",
+                  "1.0"
+                ],
+                [
+                  "Content-Type",
+                  "multipart/related;\n\ttype=\"text/html\";\n\tboundary=\"----MultipartBoundary--abc----\""
+                ]
+              ],
+              "internal_org_sender": false,
+              "is_anonymous_direct_send": false,
+              "log_entry": {
+                "attachment_count": 5,
+                "attachment_hashes": [
+                  "50e0640b44315641c34a09463dd53e2dc0f4e808446ffb4e2422646faa82ad30",
+                  "71fde3856a298a052c6edb5155638d8422114e55bf0e28374d90dea8be99ef6c",
+                  "5de625c36355cce7c1d5408826a0b21abfb49fb6c0e1f16c945a6f2aef38200c",
+                  "a2eadc484439ef450f29b79678bf6434bcc36e1d3c647bda46b3e12371fcc76d",
+                  "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+                ],
+                "attachment_names": [
+                  "page.mht.unknown_text_html_000.html",
+                  "page.mht.unknown_image_png_000.png",
+                  "page.mht.unknown_text_css_000.css",
+                  "page.mht.unknown_application_xhtml+xml_000.xhtml",
+                  "page.mht.unknown_text_plain_000.txt"
+                ],
+                "attachment_sizes": [
+                  212,
+                  29,
+                  20,
+                  142,
+                  0
+                ],
+                "attachment_types": [
+                  "text/html",
+                  "image/png",
+                  "text/css",
+                  "application/xhtml+xml",
+                  "text/plain"
+                ],
+                "authentication_failed": false,
+                "bcc": [],
+                "cc": [],
+                "compauth_reason": null,
+                "compauth_result": null,
+                "dkim_result": null,
+                "dmarc_result": null,
+                "env_mail_from": null,
+                "env_rcpt_to": [],
+                "first_received": null,
+                "headers": [
+                  "From: <Saved by Blink>",
+                  "Snapshot-Content-Location: https://www.example.com/",
+                  "Subject: Example",
+                  "MIME-Version: 1.0",
+                  "Content-Type: multipart/related;type=\"text/html\";boundary=\"----MultipartBoundary--abc----\""
+                ],
+                "in_reply_to": null,
+                "internal_org_sender": false,
+                "is_anonymous_direct_send": false,
+                "last_received": null,
+                "mail_from": "<Saved by Blink>",
+                "mail_from_is_local": false,
+                "mail_to": [],
+                "message_directionality": null,
+                "message_id": null,
+                "originating_ip": null,
+                "path": [],
+                "refereneces": null,
+                "reply_to": null,
+                "size": 1325,
+                "spf_result": null,
+                "spoofed_internal": false,
+                "subject": "Example",
+                "subject_raw": "Example",
+                "thread_index": null,
+                "thread_topic": null,
+                "user_agent": null,
+                "x_mailer": null,
+                "x_sender": null
+              },
+              "mail_from_is_local": false,
+              "message_directionality": null,
+              "spf_result": null,
+              "spoofed_internal": false,
+              "subject": "Example",
+              "to": [],
+              "to_addresses": []
+            },
+            "extraction_errors": [],
+            "parsing_error": null
+          },
+          "summary": "Email Analysis: From <Saved by Blink> Subject Example",
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": true,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "message/rfc822",
+            "type": "news or mail, ASCII text"
+          },
+          "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
+          "tags": {}
+        },
+        "html_js_extraction": {
+          "details": {
+            "dom_snapshot_files": [
+              "page_js_inline_0_ebeac15c.js.dom.json",
+              "page.mht.dom.json",
+              "page_js_event_onload_0_6b30fcf2.js.dom.json",
+              "page_js_inline_1_320b078a.js.dom.json"
+            ],
+            "duplicate_count": 0,
+            "extracted_files": [
+              "page_js_inline_0_ebeac15c.js",
+              "page_js_inline_1_320b078a.js"
+            ],
+            "extracted_uri_paths": [
+              "/local.js"
+            ],
+            "extracted_urls": [
+              "https://cdn.example.com/kit.js"
+            ],
+            "inline_handlers": [
+              "page_js_event_onload_0_6b30fcf2.js"
+            ],
+            "script_count": 5
+          },
+          "summary": "HTML JavaScript Extraction: 2 inline script(s), 1 external URL(s), 1 URI path(s), 1 event handler(s)",
+          "tags": {}
+        },
+        "mhtml": {
+          "details": {
+            "extracted_files": [
+              "50e0640b44315641c34a09463dd53e2dc0f4e808446ffb4e2422646faa82ad30",
+              "71fde3856a298a052c6edb5155638d8422114e55bf0e28374d90dea8be99ef6c",
+              "5de625c36355cce7c1d5408826a0b21abfb49fb6c0e1f16c945a6f2aef38200c",
+              "a2eadc484439ef450f29b79678bf6434bcc36e1d3c647bda46b3e12371fcc76d"
+            ]
+          },
+          "summary": "MHTML Analysis: 50e0640b44315641c34a09463dd53e2dc0f4e808446ffb4e2422646faa82ad30, 71fde3856a298a052c6edb5155638d8422114e55bf0e28374d90dea8be99ef6c, 5de625c36355cce7c1d5408826a0b21abfb49fb6c0e1f16c945a6f2aef38200c, a2eadc484439ef450f29b79678bf6434bcc36e1d3c647bda46b3e12371fcc76d",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "email": true
+      }
+    },
+    "file:82b0c08bc5e7c0ce7d4a4ffe0541aa14475f6e6ba233f77ced63705e54da8c3e": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "email_analyzer": true
+      },
+      "paths": {
+        "page.mht.combined": {
+          "type=email.combined": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "3c2369c2d52e120dd15df643e2ee5605",
+            "sha1": "77769c585759264909771c6e227776f5050758bf",
+            "sha256": "82b0c08bc5e7c0ce7d4a4ffe0541aa14475f6e6ba233f77ced63705e54da8c3e"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
         }
       },
       "tags": {}
     },
     "file:a2eadc484439ef450f29b79678bf6434bcc36e1d3c647bda46b3e12371fcc76d": {
       "detections": {},
-      "directives": {},
+      "directives": {
+        "extract_urls": true,
+        "render": true
+      },
       "excluded_analysis": {},
       "paths": {
         "page.mht.extracted/file_3": {
           "type=document.html": true,
           "type=document.mhtml.part": true,
+          "type=email.attachment": true
+        },
+        "page.mht.unknown_application_xhtml+xml_000.xhtml": {
+          "type=document.html": true,
           "type=email.attachment": true
         }
       },
@@ -345,30 +695,83 @@
           },
           "summary": "HTML JavaScript Extraction: 1 inline script(s), 1 URI path(s)",
           "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
     },
-    "file:ada40a782656b1a955d51f67e51c47eae5059779e765a73114079979ec7c2703": {
+    "file:d778005aa948c010ad05622d4c799b3213abde3b17a38377e7a9950eada6953f": {
       "detections": {},
       "directives": {},
+      "excluded_analysis": {
+        "email_analyzer": true
+      },
+      "paths": {
+        "page.mht.headers": {
+          "type=email": true,
+          "type=email.headers": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": true,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "message/rfc822",
+            "type": "news or mail, ASCII text"
+          },
+          "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
+          "tags": {}
+        },
+        "html_js_extraction": {
+          "details": {
+            "dom_snapshot_files": [],
+            "duplicate_count": 0,
+            "extracted_files": [],
+            "extracted_uri_paths": [],
+            "extracted_urls": [],
+            "inline_handlers": [],
+            "script_count": 0
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "email": true
+      }
+    },
+    "file:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true,
+        "preview": true
+      },
       "excluded_analysis": {},
       "paths": {
-        "page.mht": {
+        "page.mht.unknown_text_plain_000.txt": {
           "type=email.attachment": true
         }
       },
       "relationships": {},
       "results": {
-        "file_hash_analyzer": {
-          "details": {
-            "md5": "953b1b4c0c12b52fc6a0b0ae3ed5d4ad",
-            "sha1": "11f975fa2dc4e3cfdd032529b2602cf6aa074c9d",
-            "sha256": "ada40a782656b1a955d51f67e51c47eae5059779e765a73114079979ec7c2703"
-          },
-          "summary": null,
-          "tags": {}
-        },
         "file_type": {
           "details": {
             "is_email_file": false,
@@ -382,49 +785,10 @@
             "is_rtf_file": false,
             "is_x509": false,
             "is_zip_file": false,
-            "mime": "text/plain",
-            "type": "MIME entity, ASCII text"
+            "mime": "inode/x-empty",
+            "type": "empty"
           },
-          "summary": "File Type Analysis: MIME entity, ASCII text (text/plain)",
-          "tags": {}
-        },
-        "html_js_extraction": {
-          "details": {
-            "dom_snapshot_files": [
-              "page_js_inline_0_ebeac15c.js.dom.json",
-              "page.mht.dom.json",
-              "page_js_event_onload_0_6b30fcf2.js.dom.json",
-              "page_js_inline_1_320b078a.js.dom.json"
-            ],
-            "duplicate_count": 0,
-            "extracted_files": [
-              "page_js_inline_0_ebeac15c.js",
-              "page_js_inline_1_320b078a.js"
-            ],
-            "extracted_uri_paths": [
-              "/local.js"
-            ],
-            "extracted_urls": [
-              "https://cdn.example.com/kit.js"
-            ],
-            "inline_handlers": [
-              "page_js_event_onload_0_6b30fcf2.js"
-            ],
-            "script_count": 5
-          },
-          "summary": "HTML JavaScript Extraction: 2 inline script(s), 1 external URL(s), 1 URI path(s), 1 event handler(s)",
-          "tags": {}
-        },
-        "mhtml": {
-          "details": {
-            "extracted_files": [
-              "50e0640b44315641c34a09463dd53e2dc0f4e808446ffb4e2422646faa82ad30",
-              "71fde3856a298a052c6edb5155638d8422114e55bf0e28374d90dea8be99ef6c",
-              "5de625c36355cce7c1d5408826a0b21abfb49fb6c0e1f16c945a6f2aef38200c",
-              "a2eadc484439ef450f29b79678bf6434bcc36e1d3c647bda46b3e12371fcc76d"
-            ]
-          },
-          "summary": "MHTML Analysis: 50e0640b44315641c34a09463dd53e2dc0f4e808446ffb4e2422646faa82ad30, 71fde3856a298a052c6edb5155638d8422114e55bf0e28374d90dea8be99ef6c, 5de625c36355cce7c1d5408826a0b21abfb49fb6c0e1f16c945a6f2aef38200c, a2eadc484439ef450f29b79678bf6434bcc36e1d3c647bda46b3e12371fcc76d",
+          "summary": "File Type Analysis: empty (inode/x-empty)",
           "tags": {}
         }
       },
@@ -432,7 +796,10 @@
     },
     "file:ebeac15c3ada2b453a1f7c15e43a4470956038235d7d3c24025582c969c474a5": {
       "detections": {},
-      "directives": {},
+      "directives": {
+        "extract_urls": true,
+        "render": true
+      },
       "excluded_analysis": {
         "html_js_extraction": true
       },
@@ -443,14 +810,20 @@
           "type=email.attachment": true,
           "type=script.javascript": true
         },
+        "page.mht.unknown_text_html_000_js_inline_0_ebeac15c.js": {
+          "type=document.html": true,
+          "type=email.attachment": true,
+          "type=script.javascript": true
+        },
         "page_js_inline_0_ebeac15c.js": {
+          "type=email": true,
           "type=email.attachment": true,
           "type=script.javascript": true
         }
       },
       "relationships": {
         "extracted_from file:50e0640b44315641c34a09463dd53e2dc0f4e808446ffb4e2422646faa82ad30": true,
-        "extracted_from file:ada40a782656b1a955d51f67e51c47eae5059779e765a73114079979ec7c2703": true
+        "extracted_from file:75e61725d48f1b337ffd63f51a15e2e9e1d54a11f64e2fc7fd10e687f394d567": true
       },
       "results": {
         "file_hash_analyzer": {
@@ -480,6 +853,20 @@
           },
           "summary": "File Type Analysis: ASCII text, with no line terminators (text/plain)",
           "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [
+              "https://evil.example.com/landing"
+            ],
+            "urls_grouped_by_domain": {
+              "example.com": [
+                "https://evil.example.com/landing"
+              ]
+            }
+          },
+          "summary": "URL Extraction Analysis (evil.example.com)",
+          "tags": {}
         }
       },
       "tags": {}
@@ -508,6 +895,220 @@
             "dispatch_state": "DONE",
             "gui_link": null,
             "query": "index=proxy hostname=\"cdn.example.com\"",
+            "query_error": null,
+            "query_results": [
+              {
+                "_time": "2026-10-30T14:02:11.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "https://www.example.com/login",
+                "src_ip": "192.0.2.10",
+                "src_translated_ip": "198.51.100.7",
+                "user": "alice@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:05:42.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "http://www.example.com/",
+                "src_ip": "192.0.2.11",
+                "src_translated_ip": "198.51.100.7",
+                "user": "bob@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:09:03.000+00:00",
+                "dest_ip": "198.51.100.21",
+                "full_url": "https://www.example.com/static/app.js",
+                "src_ip": "192.0.2.12"
+              }
+            ],
+            "query_summary": "Proxy correlation",
+            "question": "Was this domain seen in proxy logs?"
+          },
+          "summary": "Proxy correlation: (3 results)",
+          "tags": {}
+        },
+        "rdap_analyzer": {
+          "details": {
+            "assignment_type": null,
+            "country": null,
+            "datetime_created": "1995-08-14 04:00:00+00:00",
+            "datetime_expiration": "2027-08-13 04:00:00+00:00",
+            "datetime_of_last_update": "2026-08-14 08:01:43+00:00",
+            "domain_name": "EXAMPLE.COM",
+            "emails": [],
+            "error": null,
+            "ip_version": null,
+            "lookup_protocol": "rdap",
+            "name_servers": [
+              "ELLIOTT.NS.CLOUDFLARE.COM",
+              "HERA.NS.CLOUDFLARE.COM"
+            ],
+            "network_cidr": null,
+            "network_name": null,
+            "rdap_attempt_error": null,
+            "rdap_data": {
+              "copyright_notice": "",
+              "description": [],
+              "dnssec": true,
+              "dnssec_ds_data": [
+                {
+                  "algorithm": 13,
+                  "digest": "C988EC423E3880EB8DD8A46FE06CA230EE23F35B578D64E78B29C3E1C83D245A",
+                  "digest_type": 2,
+                  "key_tag": 2371
+                }
+              ],
+              "dnssec_key_data": [],
+              "entities": {
+                "abuse": [
+                  {
+                    "name": "",
+                    "parent_handle": "376",
+                    "parent_name": "RESERVED-Internet Assigned Numbers Authority",
+                    "type": "entity"
+                  }
+                ],
+                "registrar": [
+                  {
+                    "handle": "376",
+                    "name": "RESERVED-Internet Assigned Numbers Authority",
+                    "public_ids": [
+                      {
+                        "identifier": "376",
+                        "type": "IANA Registrar ID"
+                      }
+                    ],
+                    "type": "entity"
+                  }
+                ]
+              },
+              "events": [
+                {
+                  "action": "registration",
+                  "actor": "",
+                  "date": "1995-08-14T04:00:00.000000+0000"
+                },
+                {
+                  "action": "expiration",
+                  "actor": "",
+                  "date": "2027-08-13T04:00:00.000000+0000"
+                },
+                {
+                  "action": "last changed",
+                  "actor": "",
+                  "date": "2026-08-14T08:01:43.000000+0000"
+                },
+                {
+                  "action": "last update of rdap database",
+                  "actor": "",
+                  "date": "2026-11-02T15:28:17.000000+0000"
+                }
+              ],
+              "expiration_date": "2027-08-13T04:00:00.000000+0000",
+              "handle": "2336799_DOMAIN_COM-VRSN",
+              "last_changed_date": "2026-08-14T08:01:43.000000+0000",
+              "links": [
+                {
+                  "href": "https://rdap.verisign.com/com/v1/domain/example.com",
+                  "rel": "self",
+                  "type": "application/rdap+json"
+                }
+              ],
+              "name": "EXAMPLE.COM",
+              "nameserver_ips": {
+                "ELLIOTT.NS.CLOUDFLARE.COM": [],
+                "HERA.NS.CLOUDFLARE.COM": []
+              },
+              "nameservers": [
+                "ELLIOTT.NS.CLOUDFLARE.COM",
+                "HERA.NS.CLOUDFLARE.COM"
+              ],
+              "notices": [
+                {
+                  "description": [
+                    "Service subject to Terms of Use."
+                  ],
+                  "links": [
+                    "https://www.verisign.com/domain-names/registration-data-access-protocol/terms-service/index.xhtml"
+                  ],
+                  "title": "Terms of Service",
+                  "type": ""
+                },
+                {
+                  "description": [
+                    "For more information on domain status codes, please visit https://icann.org/epp"
+                  ],
+                  "links": [
+                    "https://icann.org/epp"
+                  ],
+                  "title": "Status Codes",
+                  "type": ""
+                },
+                {
+                  "description": [
+                    "URL of the ICANN RDDS Inaccuracy Complaint Form: https://icann.org/wicf"
+                  ],
+                  "links": [
+                    "https://icann.org/wicf"
+                  ],
+                  "title": "RDDS Inaccuracy Complaint Form",
+                  "type": ""
+                }
+              ],
+              "parent_handle": "",
+              "public_ids": [],
+              "redacted": [],
+              "registrar_url": "",
+              "registration_date": "1995-08-14T04:00:00.000000+0000",
+              "remarks": [],
+              "rir": "",
+              "status": [
+                "client delete prohibited",
+                "client transfer prohibited",
+                "client update prohibited"
+              ],
+              "terms_of_service_url": "https://www.verisign.com/domain-names/registration-data-access-protocol/terms-service/index.xhtml",
+              "type": "domain",
+              "unicode_name": "",
+              "url": "https://rdap.verisign.com/com/v1/domain/example.com",
+              "whois_server": ""
+            },
+            "rdap_raw_json": "{\"objectClassName\":\"domain\",\"handle\":\"2336799_DOMAIN_COM-VRSN\",\"ldhName\":\"EXAMPLE.COM\",\"links\":[{\"value\":\"https://rdap.verisign.com/com/v1/domain/example.com\",\"rel\":\"self\",\"href\":\"https://rdap.verisign.com/com/v1/domain/example.com\",\"type\":\"application/rdap+json\"}],\"status\":[\"client delete prohibited\",\"client transfer prohibited\",\"client update prohibited\"],\"entities\":[{\"objectClassName\":\"entity\",\"handle\":\"376\",\"roles\":[\"registrar\"],\"publicIds\":[{\"type\":\"IANA Registrar ID\",\"identifier\":\"376\"}],\"vcardArray\":[\"vcard\",[[\"version\",{},\"text\",\"4.0\"],[\"fn\",{},\"text\",\"RESERVED-Internet Assigned Numbers Authority\"]]],\"entities\":[{\"objectClassName\":\"entity\",\"roles\":[\"abuse\"],\"vcardArray\":[\"vcard\",[[\"version\",{},\"text\",\"4.0\"],[\"fn\",{},\"text\",\"\"],[\"tel\",{\"type\":\"voice\"},\"uri\",\"\"],[\"email\",{},\"text\",\"\"]]]}]}],\"events\":[{\"eventAction\":\"registration\",\"eventDate\":\"1995-08-14T04:00:00Z\"},{\"eventAction\":\"expiration\",\"eventDate\":\"2027-08-13T04:00:00Z\"},{\"eventAction\":\"last changed\",\"eventDate\":\"2026-08-14T08:01:43Z\"},{\"eventAction\":\"last update of RDAP database\",\"eventDate\":\"2026-11-02T15:28:17Z\"}],\"secureDNS\":{\"delegationSigned\":true,\"dsData\":[{\"keyTag\":2371,\"algorithm\":13,\"digestType\":2,\"digest\":\"C988EC423E3880EB8DD8A46FE06CA230EE23F35B578D64E78B29C3E1C83D245A\"}]},\"nameservers\":[{\"objectClassName\":\"nameserver\",\"ldhName\":\"ELLIOTT.NS.CLOUDFLARE.COM\"},{\"objectClassName\":\"nameserver\",\"ldhName\":\"HERA.NS.CLOUDFLARE.COM\"}],\"rdapConformance\":[\"rdap_level_0\",\"icann_rdap_technical_implementation_guide_1\",\"icann_rdap_response_profile_1\"],\"notices\":[{\"title\":\"Terms of Service\",\"description\":[\"Service subject to Terms of Use.\"],\"links\":[{\"href\":\"https://www.verisign.com/domain-names/registration-data-access-protocol/terms-service/index.xhtml\",\"type\":\"text/html\",\"value\":\"https://rdap.verisign.com/com/v1/domain/example.com\",\"rel\":\"terms-of-service\"}]},{\"title\":\"Status Codes\",\"description\":[\"For more information on domain status codes, please visit https://icann.org/epp\"],\"links\":[{\"href\":\"https://icann.org/epp\",\"type\":\"text/html\",\"value\":\"https://rdap.verisign.com/com/v1/domain/example.com\",\"rel\":\"glossary\"}]},{\"title\":\"RDDS Inaccuracy Complaint Form\",\"description\":[\"URL of the ICANN RDDS Inaccuracy Complaint Form: https://icann.org/wicf\"],\"links\":[{\"href\":\"https://icann.org/wicf\",\"type\":\"text/html\",\"value\":\"https://rdap.verisign.com/com/v1/domain/example.com\",\"rel\":\"help\"}]}]}",
+            "rdap_service_url": "https://rdap.verisign.com/com/v1/domain/example.com",
+            "registrar": "RESERVED-Internet Assigned Numbers Authority",
+            "whois_data": null,
+            "whois_raw_text": null
+          },
+          "tags": {}
+        }
+      },
+      "tags": {
+        "domain_in_url": true
+      }
+    },
+    "fqdn:evil.example.com": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "fqdn_analyzer": {
+          "details": {
+            "aliaslist": [],
+            "all_resolutions": [],
+            "ip_address": null,
+            "mx": null,
+            "resolution_count": null,
+            "status": "nxdomain",
+            "wildcard_dns": null
+          },
+          "summary": "DNS Analysis: does not exist (nxdomain)",
+          "tags": {}
+        },
+        "proxy_domain_splunk": {
+          "details": {
+            "dispatch_state": "DONE",
+            "gui_link": null,
+            "query": "index=proxy hostname=\"evil.example.com\"",
             "query_error": null,
             "query_results": [
               {
@@ -932,6 +1533,16 @@
       },
       "tags": {}
     },
+    "md5:3c2369c2d52e120dd15df643e2ee5605": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:82b0c08bc5e7c0ce7d4a4ffe0541aa14475f6e6ba233f77ced63705e54da8c3e": true
+      },
+      "results": {},
+      "tags": {}
+    },
     "md5:48703d0a8bdc0f78076f94b35fc14675": {
       "detections": {},
       "directives": {},
@@ -968,16 +1579,6 @@
       "excluded_analysis": {},
       "relationships": {
         "is_hash_of file:50e0640b44315641c34a09463dd53e2dc0f4e808446ffb4e2422646faa82ad30": true
-      },
-      "results": {},
-      "tags": {}
-    },
-    "md5:953b1b4c0c12b52fc6a0b0ae3ed5d4ad": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {},
-      "relationships": {
-        "is_hash_of file:ada40a782656b1a955d51f67e51c47eae5059779e765a73114079979ec7c2703": true
       },
       "results": {},
       "tags": {}
@@ -1042,22 +1643,22 @@
       "results": {},
       "tags": {}
     },
+    "sha256:82b0c08bc5e7c0ce7d4a4ffe0541aa14475f6e6ba233f77ced63705e54da8c3e": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:82b0c08bc5e7c0ce7d4a4ffe0541aa14475f6e6ba233f77ced63705e54da8c3e": true
+      },
+      "results": {},
+      "tags": {}
+    },
     "sha256:a2eadc484439ef450f29b79678bf6434bcc36e1d3c647bda46b3e12371fcc76d": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {},
       "relationships": {
         "is_hash_of file:a2eadc484439ef450f29b79678bf6434bcc36e1d3c647bda46b3e12371fcc76d": true
-      },
-      "results": {},
-      "tags": {}
-    },
-    "sha256:ada40a782656b1a955d51f67e51c47eae5059779e765a73114079979ec7c2703": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {},
-      "relationships": {
-        "is_hash_of file:ada40a782656b1a955d51f67e51c47eae5059779e765a73114079979ec7c2703": true
       },
       "results": {},
       "tags": {}
@@ -1080,13 +1681,21 @@
       "results": {},
       "tags": {}
     },
+    "uri_path:/landing": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
+    },
     "uri_path:/local.js": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {},
       "relationships": {
-        "extracted_from file:a2eadc484439ef450f29b79678bf6434bcc36e1d3c647bda46b3e12371fcc76d": true,
-        "extracted_from file:ada40a782656b1a955d51f67e51c47eae5059779e765a73114079979ec7c2703": true
+        "extracted_from file:75e61725d48f1b337ffd63f51a15e2e9e1d54a11f64e2fc7fd10e687f394d567": true,
+        "extracted_from file:a2eadc484439ef450f29b79678bf6434bcc36e1d3c647bda46b3e12371fcc76d": true
       },
       "results": {},
       "tags": {}
@@ -1097,7 +1706,7 @@
       "excluded_analysis": {},
       "relationships": {
         "extracted_from file:50e0640b44315641c34a09463dd53e2dc0f4e808446ffb4e2422646faa82ad30": true,
-        "extracted_from file:ada40a782656b1a955d51f67e51c47eae5059779e765a73114079979ec7c2703": true
+        "extracted_from file:75e61725d48f1b337ffd63f51a15e2e9e1d54a11f64e2fc7fd10e687f394d567": true
       },
       "results": {
         "parse_url": {
@@ -1115,6 +1724,35 @@
         "protected_url_analyzer": {
           "details": {
             "extracted_url": "https://cdn.example.com/kit.js",
+            "protection_type": "unprotected"
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "url:https://evil.example.com/landing": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "parse_url": {
+          "details": {
+            "fragment": "",
+            "netloc": "evil.example.com",
+            "params": null,
+            "path": "/landing",
+            "query": "",
+            "scheme": "https"
+          },
+          "summary": "URL Parser: scheme=https, netloc=evil.example.com, path=/landing",
+          "tags": {}
+        },
+        "protected_url_analyzer": {
+          "details": {
+            "extracted_url": "https://evil.example.com/landing",
             "protection_type": "unprotected"
           },
           "summary": null,

@@ -87,7 +87,7 @@ pub struct CrashDetail {
     /// The root's description, up to 1024 characters.
     pub root_title: String,
     pub analysis_mode: String,
-    /// The paths a file observable has in its root.
+    /// The paths a file observable has in its root, the one it was analyzed under first.
     pub paths: Vec<String>,
     pub inputs: Vec<CrashInput>,
 }
@@ -124,8 +124,8 @@ async fn detail_in(tx: &mut Tx<'_>, id: i64) -> Result<CrashDetail, ServiceError
     .await?
     .ok_or_else(|| no_crash(id))?;
     let paths = sqlx::query_scalar!(
-        "SELECT path FROM analysis.files WHERE root_id = $1 AND observable_id = $2
-         ORDER BY created_at, path",
+        r#"SELECT path FROM analysis.files WHERE root_id = $1 AND observable_id = $2
+           ORDER BY analyzed DESC, depth, path COLLATE "C""#,
         row.root_id,
         row.observable_id,
     )

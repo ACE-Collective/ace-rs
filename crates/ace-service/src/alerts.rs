@@ -294,6 +294,7 @@ pub struct AlertObservable {
     pub redirection: Option<(String, String)>,
     /// The label a module gave it in place of its type's name, such as `Source IP`, or None.
     pub display_type: Option<String>,
+    /// A file's paths, the one it's analyzed under first (PLAN.md decision 15).
     pub files: Vec<AlertFile>,
     pub relationships: Vec<Relationship>,
     pub results: Vec<ModuleResult>,
@@ -787,7 +788,8 @@ impl Service {
                         r#"SELECT o.type, o.value, r.alerted_at IS NOT NULL AS "alert!",
                                   (SELECT f.path FROM analysis.files f
                                    WHERE f.root_id = o.root_id AND f.observable_id = o.id
-                                   ORDER BY f.created_at, f.path LIMIT 1) AS path
+                                   ORDER BY f.analyzed DESC, f.depth, f.path COLLATE "C"
+                                   LIMIT 1) AS path
                            FROM analysis.observables o
                            JOIN analysis.roots r ON r.id = o.root_id
                            WHERE o.root_id = $1 AND o.id = $2"#,
@@ -909,9 +911,9 @@ pub(crate) async fn observables_in(
     let at = |observable: i64| ids.binary_search(&observable).ok();
 
     for row in sqlx::query!(
-        "SELECT observable_id, path, yara_meta FROM analysis.files
-         WHERE root_id = $1 AND observable_id = ANY($2)
-         ORDER BY observable_id, path",
+        r#"SELECT observable_id, path, yara_meta FROM analysis.files
+           WHERE root_id = $1 AND observable_id = ANY($2)
+           ORDER BY observable_id, analyzed DESC, depth, path COLLATE "C""#,
         id,
         &ids,
     )

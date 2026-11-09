@@ -350,6 +350,10 @@ impl Orchestrator {
         let result_id = tree::insert_result(tx, root, analyzed, &task.module, result).await?;
         tree::add_to_observable(tx, root, analyzed, &result.analyzed).await?;
 
+        // what the result adds is one deeper than what it analyzed (`tree::upsert_observable_at`)
+        let depth = tree::depth(tx.conn(), root, analyzed)
+            .await?
+            .saturating_add(1);
         let mut touched = vec![analyzed];
         let mut detections: Vec<(ObservableId, &Detection)> = result
             .detections
@@ -358,7 +362,9 @@ impl Orchestrator {
             .map(|d| (analyzed, d))
             .collect();
         for observable in &result.observables {
-            let id = tree::upsert_observable(tx, root, observable).await?.id;
+            let id = tree::upsert_observable_at(tx, root, observable, depth)
+                .await?
+                .id;
             tree::add_result_addition(tx, root, result_id, id, None).await?;
             touched.push(id);
             detections.extend(observable.detections.iter().map(|d| (id, d)));
@@ -370,13 +376,15 @@ impl Orchestrator {
             observable.exclude_modules = file.exclude_modules.clone();
             observable.relationships = file.relationships.clone();
             observable.redirection = file.redirection.clone();
-            let id = tree::upsert_observable(tx, root, &observable).await?.id;
+            let id = tree::upsert_observable_at(tx, root, &observable, depth)
+                .await?
+                .id;
             let yara_meta: Vec<String> = file
                 .yara_meta
                 .iter()
                 .map(|tag| tag.as_str().to_owned())
                 .collect();
-            tree::add_file(tx, root, id, file.path.as_str(), &yara_meta).await?;
+            tree::add_file_at(tx, root, id, file.path.as_str(), &yara_meta, depth).await?;
             tree::add_result_addition(tx, root, result_id, id, Some(file.path.as_str())).await?;
             touched.push(id);
             detections.extend(file.detections.iter().map(|d| (id, d)));

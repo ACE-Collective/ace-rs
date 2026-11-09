@@ -391,3 +391,481 @@ async fn the_normal_form_holds_the_tree_in_a_fixed_order() {
         None
     );
 }
+
+/// Modules that do nothing themselves, for the tests of a file's path: two that write the same part
+/// of a file under their own paths, as `mhtml` and `hidden_mime` do, and one that names what it
+/// writes after the path it read its file under, as most parsers do. The tests play each one's part.
+mod path_stubs {
+    use ace_results::{AnalysisType, ObservableKind};
+    use ace_sdk::{Lookup, Manifest, Module, ModuleError, Outcome, TaskContext};
+    use schemars::JsonSchema;
+    use serde::{Deserialize, Serialize};
+
+    #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
+    #[serde(deny_unknown_fields)]
+    pub struct StubOutput {
+        pub note: String,
+    }
+
+    impl AnalysisType for StubOutput {
+        const NAME: &'static str = "test_stub";
+        const VERSION: u32 = 1;
+        const MODULE: &'static str = "test_stub";
+    }
+
+    macro_rules! stub {
+        ($ty:ident, $name:literal, $required:expr) => {
+            pub struct $ty;
+
+            impl Module for $ty {
+                const NAME: &'static str = $name;
+                const INPUTS: &'static [ObservableKind] = &[ObservableKind::File];
+                const REQUIRED_DIRECTIVES: &'static [&'static str] = $required;
+                type Output = StubOutput;
+                type Settings = ();
+
+                fn init(_: &()) -> Result<Self, ModuleError> {
+                    Ok($ty)
+                }
+            }
+
+            impl Lookup for $ty {
+                const TCP_PORTS: &'static [u16] = &[];
+
+                async fn analyze(
+                    &self,
+                    _: &TaskContext<()>,
+                ) -> Result<Outcome<StubOutput>, ModuleError> {
+                    Ok(Outcome::Skipped("a stub".to_owned()))
+                }
+            }
+        };
+    }
+
+    // the writers run only on the file the test gives them
+    stub!(WriterA, "test_writer_a", &["test_write"]);
+    stub!(WriterB, "test_writer_b", &["test_write"]);
+    stub!(Namer, "test_namer", &[]);
+
+    pub const WRITER_A: Manifest = Manifest::lookup::<WriterA>();
+    pub const WRITER_B: Manifest = Manifest::lookup::<WriterB>();
+    pub const NAMER: Manifest = Manifest::lookup::<Namer>();
+}
+
+const PATHS_TOKEN: &str = "a-pool-token";
+
+/// The core with the stubs' catalog, its lease API serving the namer's pool, and the stack's
+/// bucket, which a file task's lease needs its bytes in.
+struct PathStack {
+    test_db: TestDb,
+    bucket: ace_core::bucket::Bucket,
+    orchestrator: ace_core::orchestrator::Orchestrator,
+    url: String,
+    server: tokio::task::JoinHandle<Result<(), std::io::Error>>,
+    _cache: tempfile::TempDir,
+}
+
+impl Drop for PathStack {
+    fn drop(&mut self) {
+        self.server.abort();
+    }
+}
+
+async fn path_stack() -> PathStack {
+    use ace_core::api::{Api, ApiConfig, PoolAccess};
+    use ace_core::bucket::{Bucket, BucketSettings};
+    use ace_core::eligibility::Catalog;
+    use ace_core::modes::{AnalysisMode, Modes};
+    use ace_store::{BucketConfig, NodeCache, Store};
+
+    let test_db = TestDb::new().await;
+    let cache = tempfile::tempdir().expect("a cache directory");
+    let store = Store::new(
+        &BucketConfig::from_env().expect("the ACE4_BUCKET_* variables"),
+        NodeCache::new(cache.path(), 1 << 30).expect("a cache"),
+    );
+    let bucket = Bucket::new(test_db.db().clone(), store, BucketSettings::default());
+    let modes = Modes::ace3().with_mode(AnalysisMode {
+        name: "paths".to_owned(),
+        module_groups: Vec::new(),
+        enabled_modules: vec![
+            "test_writer_a".to_owned(),
+            "test_writer_b".to_owned(),
+            "test_namer".to_owned(),
+        ],
+        disabled_modules: Vec::new(),
+    });
+    let orchestrator = ace_core::orchestrator::Orchestrator::new(
+        Catalog::new([
+            path_stubs::WRITER_A,
+            path_stubs::WRITER_B,
+            path_stubs::NAMER,
+        ]),
+        modes,
+    );
+    let api = Api::new(
+        test_db.db().clone(),
+        bucket.clone(),
+        orchestrator.clone(),
+        ApiConfig::new(vec![PoolAccess::new(
+            "test",
+            PATHS_TOKEN,
+            vec!["test_namer".to_owned()],
+        )]),
+    )
+    .await
+    .expect("the API starts");
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
+        .await
+        .expect("binds");
+    let url = format!("http://{}", listener.local_addr().expect("an address"));
+    let server = tokio::spawn(ace_core::api::serve(listener, api, std::future::pending()));
+    PathStack {
+        test_db,
+        bucket,
+        orchestrator,
+        url,
+        server,
+        _cache: cache,
+    }
+}
+
+fn sha256_of(bytes: &[u8]) -> ace_results::Sha256 {
+    use sha2::Digest as _;
+    ace_results::Sha256(sha2::Sha256::digest(bytes).into())
+}
+
+/// What the namer writes from a file: the same bytes whatever path it read the file under.
+fn named_bytes(sha256: &str) -> Vec<u8> {
+    format!("named {sha256}").into_bytes()
+}
+
+impl PathStack {
+    /// Lands `result` for a task `worker` owns.
+    async fn land(
+        &self,
+        worker: &ace_core::queue::Worker,
+        task: &ace_core::queue::Task,
+        result: Value,
+    ) {
+        let mut tx = self.test_db.db().begin().await.expect("begins");
+        self.orchestrator
+            .land_result(
+                &mut tx,
+                worker,
+                task,
+                &serde_json::from_value(result).expect("a result envelope"),
+            )
+            .await
+            .expect("lands");
+        tx.commit().await.expect("commits");
+    }
+
+    /// Runs the namer through the lease API until it's given nothing, waiting up to `wait` seconds
+    /// each time, and until the root is done when `until_done`. Returns the paths it read files
+    /// under. It writes `<path>.named` from each file it didn't write itself.
+    async fn run_namer(&self, root: uuid::Uuid, wait: u64, until_done: bool) -> Vec<String> {
+        let worker = ace_core::queue::Worker::new(
+            self.test_db.db().clone(),
+            "test/namer",
+            vec!["test_namer".to_owned()],
+            std::time::Duration::from_secs(60),
+        );
+        let client = reqwest::Client::new();
+        let mut paths = Vec::new();
+        loop {
+            let active: bool = sqlx::query_scalar(
+                "SELECT EXISTS (SELECT FROM queue.tasks WHERE root_id = $1
+                                 AND state IN ('queued', 'delayed', 'running'))",
+            )
+            .bind(root)
+            .fetch_one(self.test_db.db().pool())
+            .await
+            .expect("reads");
+            if until_done && !active {
+                return paths;
+            }
+            let response = client
+                .post(format!("{}{}", self.url, ace_sdk::wire::paths::LEASE))
+                .bearer_auth(PATHS_TOKEN)
+                .json(&json!({"worker": "namer", "wait_seconds": wait}))
+                .send()
+                .await
+                .expect("answers");
+            if response.status() == 204 {
+                if until_done {
+                    continue;
+                }
+                return paths;
+            }
+            assert_eq!(response.status(), 200);
+            let leased: ace_sdk::wire::LeasedTask = response.json().await.expect("a task");
+            let file = leased.observable.file.expect("a file task");
+            let path = file.path.as_str().to_owned();
+            let task = worker
+                .owned(ace_core::queue::TaskId(leased.id))
+                .await
+                .expect("reads")
+                .expect("the namer owns it");
+            let files = if path.ends_with(".named") {
+                json!([])
+            } else {
+                let bytes = named_bytes(&file.sha256.to_hex());
+                json!([{
+                    "path": format!("{path}.named"),
+                    "sha256": sha256_of(&bytes).to_hex(),
+                    "size": bytes.len(),
+                }])
+            };
+            self.land(
+                &worker,
+                &task,
+                json!({
+                    "analysis_type": "test_stub",
+                    "schema_version": 1,
+                    "details": {"note": path},
+                    "files": files,
+                }),
+            )
+            .await;
+            paths.push(path);
+        }
+    }
+
+    /// One root: `outer.bin`, from which both writers write the same part, each under its own path,
+    /// `first` landing first. The namer runs between the two and after them. Returns the root's
+    /// normal form and the paths the namer read files under, sorted.
+    async fn analyze(&self, first: &str) -> (Value, Vec<String>) {
+        use ace_core::bucket::{ALERT_FILES, Hold};
+        let db = self.test_db.db();
+        let (outer, part) = (b"outer".as_slice(), b"part".as_slice());
+        let root = NewRoot::new("paths");
+        let mut tx = db.begin().await.expect("begins");
+        tree::create_root(&mut tx, &root).await.expect("creates");
+        tx.commit().await.expect("commits");
+        let hold = Hold::root(root.id);
+        for bytes in [
+            outer.to_vec(),
+            part.to_vec(),
+            named_bytes(&sha256_of(outer).to_hex()),
+            named_bytes(&sha256_of(part).to_hex()),
+        ] {
+            self.bucket
+                .put_bytes(ALERT_FILES, &bytes, Some(&hold))
+                .await
+                .expect("puts");
+        }
+        let mut tx = db.begin().await.expect("begins");
+        let mut file = NewObservable::new(ObservableKind::File, sha256_of(outer).to_hex());
+        file.directives = vec!["test_write".to_owned()];
+        let id = upsert_observable(&mut tx, root.id, &file)
+            .await
+            .expect("adds")
+            .id;
+        tree::add_file(&mut tx, root.id, id, "outer.bin", &[])
+            .await
+            .expect("adds");
+        self.orchestrator
+            .start(&mut tx, root.id)
+            .await
+            .expect("starts");
+        tx.commit().await.expect("commits");
+
+        let writers = ace_core::queue::Worker::new(
+            db.clone(),
+            "writers",
+            vec!["test_writer_a".to_owned(), "test_writer_b".to_owned()],
+            std::time::Duration::from_secs(60),
+        );
+        let one = writers.claim().await.expect("claims").expect("a task");
+        let two = writers.claim().await.expect("claims").expect("a task");
+        let (first, second) = if one.module == first {
+            (one, two)
+        } else {
+            (two, one)
+        };
+        let write = |task: &ace_core::queue::Task| {
+            let path = if task.module == "test_writer_a" {
+                "outer.bin.a/part"
+            } else {
+                "outer.bin.b/part"
+            };
+            json!({
+                "analysis_type": "test_stub",
+                "schema_version": 1,
+                "details": {"note": ""},
+                "files": [{"path": path, "sha256": sha256_of(part).to_hex(), "size": part.len()}],
+            })
+        };
+        self.land(&writers, &first, write(&first)).await;
+
+        // the outer file is analyzed; the part waits for the writer still running, and so does
+        // what the namer wrote from the outer file, which is as deep
+        let mut paths = self.run_namer(root.id, 0, false).await;
+        assert_eq!(paths, ["outer.bin"]);
+        let part_state: Vec<(String, String)> = sqlx::query_as(
+            "SELECT o.value, t.state::text FROM queue.tasks t
+             JOIN analysis.observables o ON o.id = t.observable_id
+             WHERE t.root_id = $1 AND t.module = 'test_namer' AND o.depth = 1
+             ORDER BY o.value",
+        )
+        .bind(root.id)
+        .fetch_all(db.pool())
+        .await
+        .expect("reads");
+        assert_eq!(part_state.len(), 2, "{part_state:?}");
+        assert!(
+            part_state.iter().all(|(_, state)| state == "delayed"),
+            "{part_state:?}"
+        );
+
+        self.land(&writers, &second, write(&second)).await;
+        paths.extend(self.run_namer(root.id, 5, true).await);
+        paths.sort();
+        let form = normal_form(db.pool(), root.id)
+            .await
+            .expect("reads")
+            .expect("exists");
+        (form, paths)
+    }
+}
+
+/// PLAN.md decision 15: a file two results write under two paths is analyzed once, under the same
+/// path whichever lands first, so what's written from it is named the same on every run. The
+/// writer whose path sorts last lands first half the time, and the namer is leased between the two.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn a_file_written_under_two_paths_is_analyzed_under_the_same_one_whichever_lands_first() {
+    let stack = path_stack().await;
+    let mut seen = std::collections::BTreeMap::new();
+    for run in 0..20 {
+        let first = if run % 2 == 0 {
+            "test_writer_a"
+        } else {
+            "test_writer_b"
+        };
+        let (form, paths) = stack.analyze(first).await;
+        assert_eq!(
+            paths,
+            [
+                "outer.bin",
+                "outer.bin.a/part",
+                "outer.bin.a/part.named",
+                "outer.bin.named",
+            ],
+            "run {run}, {first} first"
+        );
+        let text = to_text(&form).expect("writes");
+        seen.entry(text).or_insert_with(Vec::new).push(first);
+    }
+    assert_eq!(seen.len(), 1, "{seen:#?}");
+    let form: Value = serde_json::from_str(seen.keys().next().expect("a form")).expect("reads");
+    let part = &form["observables"][format!("file:{}", sha256_of(b"part"))];
+    // both paths are the file's; only one was analyzed, so only one has what's written from it
+    assert_eq!(
+        part["paths"],
+        json!({"outer.bin.a/part": {}, "outer.bin.b/part": {}})
+    );
+    let named = &form["observables"][format!(
+        "file:{}",
+        sha256_of(&named_bytes(&sha256_of(b"part").to_hex()))
+    )];
+    assert_eq!(named["paths"], json!({"outer.bin.a/part.named": {}}));
+}
+
+/// The rule itself: the shallowest of a file's paths, by the results that wrote them, then the
+/// first in byte order, settled once. A path written from deeper in the tree isn't taken even when
+/// it sorts first, and a task as deep as the file doesn't hold it.
+#[tokio::test]
+async fn a_file_is_analyzed_under_its_shallowest_path_then_the_first_in_byte_order() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let file = NewObservable::new(ObservableKind::File, "ab".repeat(32));
+    let mut tx = db.begin().await.expect("begins");
+    let root = NewRoot::new("analysis");
+    tree::create_root(&mut tx, &root).await.expect("creates");
+    let id = tree::upsert_observable_at(&mut tx, root.id, &file, 2)
+        .await
+        .expect("adds")
+        .id;
+    tree::add_file_at(&mut tx, root.id, id, "b/z", &[], 2)
+        .await
+        .expect("adds");
+    // the same file written from itself, a level down, where it sorts first
+    tree::add_file_at(&mut tx, root.id, id, "a/a", &[], 3)
+        .await
+        .expect("adds");
+    // and at its own depth by another writer: upper case sorts before lower in bytes, not in
+    // every collation
+    tree::add_file_at(&mut tx, root.id, id, "b/Z", &[], 2)
+        .await
+        .expect("adds");
+    // an observable added again from deeper keeps its depth
+    tree::upsert_observable_at(&mut tx, root.id, &file, 5)
+        .await
+        .expect("merges");
+    tx.commit().await.expect("commits");
+    assert_eq!(tree::depth(db.pool(), root.id, id).await.expect("reads"), 2);
+    let path = |record: Option<tree::FileRecord>| record.expect("a path").path;
+    assert_eq!(
+        path(
+            tree::analysis_file(db.pool(), root.id, id)
+                .await
+                .expect("reads")
+        ),
+        "b/Z"
+    );
+    let (chosen, _) = tree::analysis_file_state(db.pool(), root.id, id)
+        .await
+        .expect("reads");
+    assert!(!chosen);
+
+    let mut tx = db.begin().await.expect("begins");
+    let chosen = tree::choose_analysis_file(&mut tx, root.id, id)
+        .await
+        .expect("chooses");
+    assert_eq!(path(chosen), "b/Z");
+    // a path that would sort first, arriving after the choice, changes nothing
+    tree::add_file_at(&mut tx, root.id, id, "b/A", &[], 2)
+        .await
+        .expect("adds");
+    assert_eq!(
+        path(
+            tree::choose_analysis_file(&mut tx, root.id, id)
+                .await
+                .expect("chooses")
+        ),
+        "b/Z"
+    );
+    tx.commit().await.expect("commits");
+    let (chosen, _) = tree::analysis_file_state(db.pool(), root.id, id)
+        .await
+        .expect("reads");
+    assert!(chosen);
+    assert_eq!(
+        path(
+            tree::analysis_file(db.pool(), root.id, id)
+                .await
+                .expect("reads")
+        ),
+        "b/Z"
+    );
+
+    // what holds a file: a task nearer the root, not one as deep, nor one of a module left out
+    let mut tx = db.begin().await.expect("begins");
+    ace_core::queue::enqueue(&mut tx, root.id, id, "archive")
+        .await
+        .expect("queues");
+    tx.commit().await.expect("commits");
+    let held = |depth| async move {
+        tree::pending_above(db.pool(), root.id, depth, &[])
+            .await
+            .expect("reads")
+    };
+    assert!(!held(2).await);
+    assert!(held(3).await);
+    assert!(
+        !tree::pending_above(db.pool(), root.id, 3, &["archive".to_owned()])
+            .await
+            .expect("reads")
+    );
+}

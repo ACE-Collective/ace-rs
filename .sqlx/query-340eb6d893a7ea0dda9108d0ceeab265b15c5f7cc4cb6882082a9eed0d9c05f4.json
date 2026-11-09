@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT EXISTS (\n               SELECT 1 FROM queue.tasks t\n               JOIN analysis.observables o ON o.root_id = t.root_id AND o.id = t.observable_id\n               WHERE t.root_id = $1\n                 AND t.state IN ('queued', 'delayed', 'running')\n                 AND o.depth < $2\n                 AND t.module <> ALL($3)\n           ) AS \"pending!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "pending!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int4",
+        "TextArray"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "340eb6d893a7ea0dda9108d0ceeab265b15c5f7cc4cb6882082a9eed0d9c05f4"
+}

@@ -20,7 +20,7 @@
 //! what those added, and so on. Relationships come after the tree's own edges. A graph that was cut, or
 //! drawn from a tree that was (`MAX_TREE_OBSERVABLES`), says so in its `note`.
 //!
-//! A label is the alert's title, an observable's type and value (a file's first path), a result's
+//! A label is the alert's title, an observable's type and value (a file's analyzed path), a result's
 //! module, or a tag's name, at most `MAX_LABEL_CHARS` characters. Every one is the alert's or a
 //! module's text, so whatever draws it draws it as text.
 

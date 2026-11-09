@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT o.type, o.value, r.alerted_at IS NOT NULL AS \"alert!\",\n                                  (SELECT f.path FROM analysis.files f\n                                   WHERE f.root_id = o.root_id AND f.observable_id = o.id\n                                   ORDER BY f.created_at, f.path LIMIT 1) AS path\n                           FROM analysis.observables o\n                           JOIN analysis.roots r ON r.id = o.root_id\n                           WHERE o.root_id = $1 AND o.id = $2",
+  "query": "SELECT o.type, o.value, r.alerted_at IS NOT NULL AS \"alert!\",\n                                  (SELECT f.path FROM analysis.files f\n                                   WHERE f.root_id = o.root_id AND f.observable_id = o.id\n                                   ORDER BY f.analyzed DESC, f.depth, f.path COLLATE \"C\"\n                                   LIMIT 1) AS path\n                           FROM analysis.observables o\n                           JOIN analysis.roots r ON r.id = o.root_id\n                           WHERE o.root_id = $1 AND o.id = $2",
   "describe": {
     "columns": [
       {
@@ -51,5 +51,5 @@
       null
     ]
   },
-  "hash": "b22bd9f9b432b07b42b9f8a072da2c36b5e0cba26d6b9a6c8b61f3c00c7137d5"
+  "hash": "7437692f835d850a31dfc1d2056883bfc32cc2c71d73d8413d815fdce619e23d"
 }

@@ -179,13 +179,25 @@ pub async fn upsert_observable(
     root: Uuid,
     observable: &NewObservable,
 ) -> Result<Upserted, DbError> {
+    upsert_observable_at(tx, root, observable, 0).await
+}
+
+/// `upsert_observable` for an observable at `depth`, one more than the observable whose result
+/// added it, or 0 for one a submission or an analyst added. Of two depths the least is kept.
+pub async fn upsert_observable_at(
+    tx: &mut Tx<'_>,
+    root: Uuid,
+    observable: &NewObservable,
+    depth: i32,
+) -> Result<Upserted, DbError> {
     let row = sqlx::query!(
         r#"INSERT INTO analysis.observables AS o
                (root_id, type, value, time, tags, directives, exclude_modules, redirection_type,
-                redirection_value, display_type)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+                redirection_value, display_type, depth)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
            ON CONFLICT (root_id, type, value_hash) DO UPDATE SET
                time = COALESCE(o.time, EXCLUDED.time),
+               depth = LEAST(o.depth, EXCLUDED.depth),
                display_type = COALESCE(EXCLUDED.display_type, o.display_type),
                redirection_type = CASE
                    WHEN o.redirection_value IS NULL
@@ -211,6 +223,7 @@ pub async fn upsert_observable(
         observable.redirection.as_ref().map(|r| r.kind.as_str()),
         observable.redirection.as_ref().map(|r| r.value.as_str()),
         observable.display_type,
+        depth,
     )
     .fetch_one(tx.conn())
     .await?;
@@ -455,36 +468,153 @@ pub async fn add_file(
     path: &str,
     yara_meta: &[String],
 ) -> Result<(), DbError> {
+    add_file_at(tx, root, observable, path, yara_meta, 0).await
+}
+
+/// `add_file` for a path a result wrote, at `depth`, the depth of the file it adds
+/// (`upsert_observable_at`). The same path at two depths keeps the least.
+pub async fn add_file_at(
+    tx: &mut Tx<'_>,
+    root: Uuid,
+    observable: ObservableId,
+    path: &str,
+    yara_meta: &[String],
+    depth: i32,
+) -> Result<(), DbError> {
     sqlx::query!(
-        "INSERT INTO analysis.files AS f (root_id, observable_id, path, yara_meta)
-         VALUES ($1, $2, $3, $4)
+        "INSERT INTO analysis.files AS f (root_id, observable_id, path, yara_meta, depth)
+         VALUES ($1, $2, $3, $4, $5)
          ON CONFLICT (root_id, observable_id, path)
-         DO UPDATE SET yara_meta = analysis.merged(f.yara_meta, EXCLUDED.yara_meta)",
+         DO UPDATE SET yara_meta = analysis.merged(f.yara_meta, EXCLUDED.yara_meta),
+                       depth = LEAST(f.depth, EXCLUDED.depth)",
         root,
         observable as ObservableId,
         path,
         yara_meta,
+        depth,
     )
     .execute(tx.conn())
     .await?;
     Ok(())
 }
 
-/// The first path a file observable was recorded under, which its tasks read it as.
-pub async fn first_file<'e>(
+/// The observable's depth: 0 for one a submission added, else one more than the shallowest
+/// observable whose result added it (`upsert_observable_at`).
+pub async fn depth<'e>(
+    executor: impl PgExecutor<'e>,
+    root: Uuid,
+    observable: ObservableId,
+) -> Result<i32, DbError> {
+    sqlx::query_scalar!(
+        "SELECT depth FROM analysis.observables WHERE root_id = $1 AND id = $2",
+        root,
+        observable as ObservableId,
+    )
+    .fetch_optional(executor)
+    .await?
+    .ok_or_else(|| DbError::Decode(format!("no observable {} in root {root}", observable.0)))
+}
+
+/// The path a file observable is analyzed under (PLAN.md decision 15): the one its first task
+/// chose (`choose_analysis_file`), or, before that, the one it would choose now. None when the
+/// file has no path in the root.
+pub async fn analysis_file<'e>(
     executor: impl PgExecutor<'e>,
     root: Uuid,
     observable: ObservableId,
 ) -> Result<Option<FileRecord>, DbError> {
     Ok(sqlx::query_as!(
         FileRecord,
-        "SELECT path, yara_meta FROM analysis.files
-         WHERE root_id = $1 AND observable_id = $2
-         ORDER BY created_at, path LIMIT 1",
+        r#"SELECT path, yara_meta FROM analysis.files
+           WHERE root_id = $1 AND observable_id = $2
+           ORDER BY analyzed DESC, depth, path COLLATE "C" LIMIT 1"#,
         root,
         observable as ObservableId,
     )
     .fetch_optional(executor)
+    .await?)
+}
+
+/// Settles the path a file observable is analyzed under, if no task of it has yet, and returns
+/// it. Of its paths it takes the shallowest, by the depth of the results that wrote them, and of
+/// those the first in byte order. A path written from deeper in the tree, such as a file that
+/// holds itself, is never chosen over one nearer the root. Every task of the file reads it under
+/// this path, whenever it runs, so a path that arrives later changes nothing.
+///
+/// The caller holds the file's first task until nothing nearer the root that could still add a
+/// path is pending (`pending_above`), which is what makes the choice not depend on which result
+/// landed first.
+pub async fn choose_analysis_file(
+    tx: &mut Tx<'_>,
+    root: Uuid,
+    observable: ObservableId,
+) -> Result<Option<FileRecord>, DbError> {
+    // two first tasks of one file leased at once take turns here
+    sqlx::query!(
+        "SELECT id FROM analysis.observables WHERE root_id = $1 AND id = $2 FOR UPDATE",
+        root,
+        observable as ObservableId,
+    )
+    .fetch_optional(tx.conn())
+    .await?;
+    sqlx::query!(
+        r#"UPDATE analysis.files SET analyzed = true
+           WHERE root_id = $1 AND observable_id = $2
+             AND NOT EXISTS (SELECT FROM analysis.files
+                             WHERE root_id = $1 AND observable_id = $2 AND analyzed)
+             AND path = (SELECT path FROM analysis.files
+                         WHERE root_id = $1 AND observable_id = $2
+                         ORDER BY depth, path COLLATE "C" LIMIT 1)"#,
+        root,
+        observable as ObservableId,
+    )
+    .execute(tx.conn())
+    .await?;
+    analysis_file(tx.conn(), root, observable).await
+}
+
+/// Whether a file observable's analysis path is settled (`choose_analysis_file`), and how long ago,
+/// by the database's clock, its first path was recorded.
+pub async fn analysis_file_state<'e>(
+    executor: impl PgExecutor<'e>,
+    root: Uuid,
+    observable: ObservableId,
+) -> Result<(bool, std::time::Duration), DbError> {
+    let row = sqlx::query!(
+        r#"SELECT COALESCE(bool_or(analyzed), false) AS "chosen!",
+                  COALESCE(EXTRACT(EPOCH FROM now() - min(created_at)), 0)::float8 AS "waited!"
+           FROM analysis.files WHERE root_id = $1 AND observable_id = $2"#,
+        root,
+        observable as ObservableId,
+    )
+    .fetch_one(executor)
+    .await?;
+    let waited = std::time::Duration::try_from_secs_f64(row.waited.max(0.0)).unwrap_or_default();
+    Ok((row.chosen, waited))
+}
+
+/// Whether the root has a task that hasn't finished on an observable shallower than `depth`, of a
+/// module not in `except`: one whose result could still add a path to a file at `depth`.
+pub async fn pending_above(
+    pool: &PgPool,
+    root: Uuid,
+    depth: i32,
+    except: &[String],
+) -> Result<bool, DbError> {
+    Ok(sqlx::query_scalar!(
+        r#"SELECT EXISTS (
+               SELECT 1 FROM queue.tasks t
+               JOIN analysis.observables o ON o.root_id = t.root_id AND o.id = t.observable_id
+               WHERE t.root_id = $1
+                 AND t.state IN ('queued', 'delayed', 'running')
+                 AND o.depth < $2
+                 AND t.module <> ALL($3)
+           ) AS "pending!""#,
+        root,
+        depth,
+        except,
+    )
+    .fetch_one(pool)
     .await?)
 }
 
