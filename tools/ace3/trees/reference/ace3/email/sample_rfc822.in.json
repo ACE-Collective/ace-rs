@@ -859,6 +859,24 @@
           },
           "summary": "File Type Analysis: ASCII text (text/plain)",
           "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [
+              "https://www.alienvault.com",
+              "http://tldp.org/LDP/abs/html"
+            ],
+            "urls_grouped_by_domain": {
+              "alienvault.com": [
+                "https://www.alienvault.com"
+              ],
+              "tldp.org": [
+                "http://tldp.org/LDP/abs/html"
+              ]
+            }
+          },
+          "summary": "URL Extraction Analysis (tldp.org, www.alienvault.com)",
+          "tags": {}
         }
       },
       "tags": {}
@@ -934,6 +952,24 @@
           },
           "summary": "File Type Analysis: HTML document, ASCII text, with very long lines (446) (text/html)",
           "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [
+              "https://www.alienvault.com",
+              "http://tldp.org/LDP/abs/html"
+            ],
+            "urls_grouped_by_domain": {
+              "alienvault.com": [
+                "https://www.alienvault.com"
+              ],
+              "tldp.org": [
+                "http://tldp.org/LDP/abs/html"
+              ]
+            }
+          },
+          "summary": "URL Extraction Analysis (tldp.org, www.alienvault.com)",
+          "tags": {}
         }
       },
       "tags": {}
@@ -986,6 +1022,22 @@
       "results": {},
       "tags": {},
       "time": "2018-02-23T18:22:20Z"
+    },
+    "url:http://tldp.org/LDP/abs/html": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
+    },
+    "url:https://www.alienvault.com": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
     }
   }
 }

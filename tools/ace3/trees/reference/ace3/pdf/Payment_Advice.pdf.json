@@ -1,7 +1,59 @@
 {
   "form": 1,
   "observables": {
-    "file:0538a291d74e81a807195e6325d46c2d71258fa999c6d26a0b19100282e5b3b2": {
+    "file:34b87382f46ecef6f616dae7a57b7d09175a59d500a4fc61638ddb6993fbe0cb": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "Payment_Advice.pdf.pdfparser": {
+          "type=document.pdf.object": true
+        }
+      },
+      "redirection": "file:fa13c652534f9207beec811a50948860f5b3194aeae686fcdecac645fae65d15",
+      "relationships": {
+        "extracted_from file:fa13c652534f9207beec811a50948860f5b3194aeae686fcdecac645fae65d15": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [
+              "http://www.williamtoms.com/wp-includes/354387473a/autodomain/autodomain/autodomain/autofil"
+            ],
+            "urls_grouped_by_domain": {
+              "williamtoms.com": [
+                "http://www.williamtoms.com/wp-includes/354387473a/autodomain/autodomain/autodomain/autofil"
+              ]
+            }
+          },
+          "summary": "URL Extraction Analysis (www.williamtoms.com)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:cdf0f5d3011615671469dc1ef044bca66cb81459ffaf231a625e20406f73a211": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -38,49 +90,19 @@
           },
           "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
           "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {
         "pdf": true
       }
-    },
-    "file:34b87382f46ecef6f616dae7a57b7d09175a59d500a4fc61638ddb6993fbe0cb": {
-      "detections": {},
-      "directives": {
-        "extract_urls": true
-      },
-      "excluded_analysis": {},
-      "paths": {
-        "Payment_Advice.pdf.pdfparser": {
-          "type=document.pdf.object": true
-        }
-      },
-      "redirection": "file:fa13c652534f9207beec811a50948860f5b3194aeae686fcdecac645fae65d15",
-      "relationships": {
-        "extracted_from file:fa13c652534f9207beec811a50948860f5b3194aeae686fcdecac645fae65d15": true
-      },
-      "results": {
-        "file_type": {
-          "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": false,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "application/octet-stream",
-            "type": "data"
-          },
-          "summary": "File Type Analysis: data (application/octet-stream)",
-          "tags": {}
-        }
-      },
-      "tags": {}
     },
     "file:f5514d9b2c68d82c0e76e4967c0a2173ef0c24cafaab5699b96904b9b245b7b0": {
       "detections": {},
@@ -117,6 +139,20 @@
             "type": "ASCII text, with no line terminators"
           },
           "summary": "File Type Analysis: ASCII text, with no line terminators (text/plain)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [
+              "http://www.williamtoms.com/wp-includes/354387473a/autodomain/autodomain/autodomain/autofil"
+            ],
+            "urls_grouped_by_domain": {
+              "williamtoms.com": [
+                "http://www.williamtoms.com/wp-includes/354387473a/autodomain/autodomain/autodomain/autofil"
+              ]
+            }
+          },
+          "summary": "URL Extraction Analysis (www.williamtoms.com)",
           "tags": {}
         }
       },
@@ -162,6 +198,14 @@
       "tags": {
         "pdf": true
       }
+    },
+    "url:http://www.williamtoms.com/wp-includes/354387473a/autodomain/autodomain/autodomain/autofil": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
     }
   }
 }

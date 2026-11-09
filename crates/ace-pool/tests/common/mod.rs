@@ -309,6 +309,17 @@ pub async fn root_with_bytes(
     bytes: &[u8],
     alert_path: &str,
 ) -> (Uuid, Sha256) {
+    root_with_file(core, mode, bytes, alert_path, &[]).await
+}
+
+/// `root_with_bytes`, the file with these directives, such as `extract_urls`.
+pub async fn root_with_file(
+    core: &Core,
+    mode: &str,
+    bytes: &[u8],
+    alert_path: &str,
+    directives: &[&str],
+) -> (Uuid, Sha256) {
     let db = core.test_db.db();
     let root = NewRoot::new(mode);
     let mut tx = db.begin().await.expect("begins");
@@ -325,7 +336,10 @@ pub async fn root_with_bytes(
     let observable = tree::upsert_observable(
         &mut tx,
         root.id,
-        &NewObservable::new(ObservableKind::File, sha256.to_hex()),
+        &NewObservable {
+            directives: directives.iter().map(|d| (*d).to_owned()).collect(),
+            ..NewObservable::new(ObservableKind::File, sha256.to_hex())
+        },
     )
     .await
     .expect("adds")

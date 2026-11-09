@@ -1,0 +1,233 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "text/plain",
+        "type": "ASCII text"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: ASCII text (text/plain)",
+      "tags": []
+    },
+    {
+      "class": "URLExtractionAnalysis",
+      "details": {
+        "urls": [
+          "https://one.example.com/a",
+          "https://two.example.net/1",
+          "https://two.example.net/0",
+          "https://three.example.org/1",
+          "https://three.example.org/0",
+          "https://three.example.org/2",
+          "https://six.example.co.uk/p0",
+          "https://six.example.co.uk/p1",
+          "https://six.example.co.uk/p3",
+          "https://six.example.co.uk/p2",
+          "https://six.example.co.uk/p4",
+          "https://six.example.co.uk/p5",
+          "https://seven.example.info/x1",
+          "https://seven.example.info/x2",
+          "https://seven.example.info/x5",
+          "https://seven.example.info/x4",
+          "https://seven.example.info/x3",
+          "https://seven.example.info/x0",
+          "https://seven.example.info/x6",
+          "https://img.example.com/logo.png"
+        ],
+        "urls_grouped_by_domain": {
+          "example.co.uk": [
+            "https://six.example.co.uk/p0",
+            "https://six.example.co.uk/p1",
+            "https://six.example.co.uk/p3",
+            "https://six.example.co.uk/p2",
+            "https://six.example.co.uk/p4",
+            "https://six.example.co.uk/p5"
+          ],
+          "example.com": [
+            "https://img.example.com/logo.png",
+            "https://one.example.com/a"
+          ],
+          "example.info": [
+            "https://seven.example.info/x1",
+            "https://seven.example.info/x2",
+            "https://seven.example.info/x5",
+            "https://seven.example.info/x4",
+            "https://seven.example.info/x3",
+            "https://seven.example.info/x0",
+            "https://seven.example.info/x6"
+          ],
+          "example.net": [
+            "https://two.example.net/1",
+            "https://two.example.net/0"
+          ],
+          "example.org": [
+            "https://three.example.org/1",
+            "https://three.example.org/0",
+            "https://three.example.org/2"
+          ]
+        }
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.url_extraction:URLExtractionAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "url",
+          "value": "https://one.example.com/a"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "url",
+          "value": "https://two.example.net/1"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "url",
+          "value": "https://two.example.net/0"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "url",
+          "value": "https://three.example.org/1"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "url",
+          "value": "https://three.example.org/0"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "url",
+          "value": "https://three.example.org/2"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "url",
+          "value": "https://six.example.co.uk/p0"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "url",
+          "value": "https://six.example.co.uk/p1"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "url",
+          "value": "https://six.example.co.uk/p3"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "url",
+          "value": "https://six.example.co.uk/p2"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "url",
+          "value": "https://six.example.co.uk/p4"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "url",
+          "value": "https://six.example.co.uk/p5"
+        }
+      ],
+      "summary": "URL Extraction Analysis (img.example.com, one.example.com, seven.example.info, six.example.co.uk, three.example.org, two.example.net)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [
+      "extract_urls"
+    ],
+    "label": "fixtures/urls/cap.txt with ['extract_urls'] and meta tags []",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "cap.txt",
+      "size": 579,
+      "type": "file",
+      "value": "22d8fc4e1559cf5c2c014d6a3cdd2f3120f37985ac2851a45430f0a8ed029253"
+    }
+  },
+  "module": "url_extraction",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "extract_urls"
+    ],
+    "excluded_analysis": [],
+    "file_path": "cap.txt",
+    "relationships": [],
+    "size": 579,
+    "tags": [],
+    "type": "file",
+    "value": "22d8fc4e1559cf5c2c014d6a3cdd2f3120f37985ac2851a45430f0a8ed029253",
+    "yara_meta": []
+  }
+}

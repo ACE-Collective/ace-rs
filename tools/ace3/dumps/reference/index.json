@@ -1021,6 +1021,42 @@
     },
     {
       "ace3_commit": "f72f8946",
+      "analysis": "IOCExtractionAnalysis",
+      "dump": "ioc_extraction/empty_iocs.txt.json",
+      "input": "fixtures/iocs/empty_iocs.txt with extract_iocs",
+      "module": "ioc_extraction",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "IOCExtractionAnalysis",
+      "dump": "ioc_extraction/page.html.json",
+      "input": "fixtures/iocs/page.html with extract_iocs",
+      "module": "ioc_extraction",
+      "observables_added": 4,
+      "summary": "Extracted 3 IOCs (url: 1, ip: 1, email_address: 1)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "IOCExtractionAnalysis",
+      "dump": "ioc_extraction/plain.txt.json",
+      "input": "fixtures/iocs/plain.txt with extract_iocs",
+      "module": "ioc_extraction",
+      "observables_added": 3,
+      "summary": "Extracted 3 IOCs (url: 1, ip: 1, email_address: 1)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "IOCExtractionAnalysis",
+      "dump": "ioc_extraction/report.txt.json",
+      "input": "fixtures/iocs/report.txt with extract_iocs",
+      "module": "ioc_extraction",
+      "observables_added": 15,
+      "summary": "Extracted 15 IOCs (url: 2, ip: 5, md5: 2, sha1: 1, sha256: 1, email_address: 2, cve: 2)"
+    },
+    {
+      "ace3_commit": "f72f8946",
       "analysis": "NRDAnalysis",
       "dump": "nrd_analyzer/fqdn_ace4-fresh.com.json",
       "input": "fqdn ace4-fresh.com, against fixtures/nrd's lists, with max_registration_age_days 90",
@@ -1189,6 +1225,222 @@
       "module": "snort_signature_analysis_v1",
       "observables_added": 0,
       "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "URLExtractionAnalysis",
+      "dump": "url_extraction/ace4/html/html2text_long.txt.json",
+      "input": "ace4/html/html2text_long.txt with extract_urls",
+      "module": "url_extraction",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "URLExtractionAnalysis",
+      "dump": "url_extraction/ace4/html/html2text_malformed.html.json",
+      "input": "ace4/html/html2text_malformed.html with extract_urls",
+      "module": "url_extraction",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "URLExtractionAnalysis",
+      "dump": "url_extraction/ace4/html/html2text_markup.html.json",
+      "input": "ace4/html/html2text_markup.html with extract_urls",
+      "module": "url_extraction",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "URLExtractionAnalysis",
+      "dump": "url_extraction/ace4/html/html2text_raises_reference.html.json",
+      "input": "ace4/html/html2text_raises_reference.html with extract_urls",
+      "module": "url_extraction",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "URLExtractionAnalysis",
+      "dump": "url_extraction/ace4/html/html2text_raises_start.html.json",
+      "input": "ace4/html/html2text_raises_start.html with extract_urls",
+      "module": "url_extraction",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "URLExtractionAnalysis",
+      "dump": "url_extraction/ace4/html/html2text_unicode.html.json",
+      "input": "ace4/html/html2text_unicode.html with extract_urls",
+      "module": "url_extraction",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "URLExtractionAnalysis",
+      "dump": "url_extraction/binary.bin.json",
+      "input": "fixtures/urls/binary.bin with ['extract_urls'] and meta tags []",
+      "module": "url_extraction",
+      "observables_added": 2,
+      "summary": "URL Extraction Analysis (bin.example.com, bin2.example.com)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "URLExtractionAnalysis",
+      "dump": "url_extraction/cap.txt.json",
+      "input": "fixtures/urls/cap.txt with ['extract_urls'] and meta tags []",
+      "module": "url_extraction",
+      "observables_added": 12,
+      "summary": "URL Extraction Analysis (img.example.com, one.example.com, seven.example.info, six.example.co.uk, three.example.org, two.example.net)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "URLExtractionAnalysis",
+      "dump": "url_extraction/chat_log.txt.uncapped.json",
+      "input": "fixtures/urls/chat_log.txt with ['extract_urls'], its cap raised to 600 s",
+      "module": "url_extraction",
+      "observables_added": 6,
+      "summary": "URL Extraction Analysis (status.example.com)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "URLExtractionAnalysis",
+      "dump": "url_extraction/data.json.json",
+      "input": "fixtures/urls/data.json with ['extract_urls'] and meta tags []",
+      "module": "url_extraction",
+      "observables_added": 4,
+      "summary": "URL Extraction Analysis (b64.example.com, json.example.com, json2.example.com, json3.example.com)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "URLExtractionAnalysis",
+      "dump": "url_extraction/doc.xml.json",
+      "input": "fixtures/urls/doc.xml with ['extract_urls'] and meta tags []",
+      "module": "url_extraction",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "URLExtractionAnalysis",
+      "dump": "url_extraction/email.eml.json",
+      "input": "fixtures/urls/email.eml with ['extract_urls'] and meta tags []",
+      "module": "url_extraction",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "URLExtractionAnalysis",
+      "dump": "url_extraction/invite.ics.json",
+      "input": "fixtures/urls/invite.ics with ['extract_urls'] and meta tags []",
+      "module": "url_extraction",
+      "observables_added": 3,
+      "summary": "URL Extraction Analysis (ical-html.example.com, ical.example.com, meet.example.com)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "URLExtractionAnalysis",
+      "dump": "url_extraction/lines.txt.crawl_extracted_urls.json",
+      "input": "fixtures/urls/lines.txt with ['extract_urls', 'crawl_extracted_urls'] and meta tags []",
+      "module": "url_extraction",
+      "observables_added": 4,
+      "summary": "URL Extraction Analysis (203.0.113.7, help.example.org, track.shop.example.com, www.bare.example.net)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "URLExtractionAnalysis",
+      "dump": "url_extraction/lines.txt.json",
+      "input": "fixtures/urls/lines.txt with ['extract_urls'] and meta tags []",
+      "module": "url_extraction",
+      "observables_added": 4,
+      "summary": "URL Extraction Analysis (203.0.113.7, help.example.org, track.shop.example.com, www.bare.example.net)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "url_extraction/mandrill.txt.json",
+      "input": "fixtures/urls/mandrill.txt with ['extract_urls'] and meta tags []",
+      "module": "url_extraction",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "URLExtractionAnalysis",
+      "dump": "url_extraction/nothing.txt.json",
+      "input": "fixtures/urls/nothing.txt with ['extract_urls'] and meta tags []",
+      "module": "url_extraction",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "URLExtractionAnalysis",
+      "dump": "url_extraction/ocr.txt.extract_urls_domain_as_url.json",
+      "input": "fixtures/urls/ocr.txt with ['extract_urls', 'extract_urls_domain_as_url'] and meta tags []",
+      "module": "url_extraction",
+      "observables_added": 3,
+      "summary": "URL Extraction Analysis (evil-site.example.org, ocr2.example.com, www.ocr.example.com)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "URLExtractionAnalysis",
+      "dump": "url_extraction/ocr.txt.extract_urls_domain_as_url.type=document.text.ocr.json",
+      "input": "fixtures/urls/ocr.txt with ['extract_urls', 'extract_urls_domain_as_url'] and meta tags ['type=document.text.ocr']",
+      "module": "url_extraction",
+      "observables_added": 3,
+      "summary": "URL Extraction Analysis (evil-site.example.org, ocr2.example.com, www.ocr.example.com)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "URLExtractionAnalysis",
+      "dump": "url_extraction/page.html.json",
+      "input": "fixtures/urls/page.html with ['extract_urls'] and meta tags []",
+      "module": "url_extraction",
+      "observables_added": 10,
+      "summary": "URL Extraction Analysis (base.example.com, cdn.example.net, css.example.com, js.example.com, post.example.com, redirect.example.com, refresh.example.com, visible.example.org)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "URLExtractionAnalysis",
+      "dump": "url_extraction/redirects.txt.json",
+      "input": "fixtures/urls/redirects.txt with ['extract_urls'] and meta tags []",
+      "module": "url_extraction",
+      "observables_added": 6,
+      "summary": "URL Extraction Analysis (land.example.org, phish.example.com, redir.example.com, urldefense.proofpoint.com, www.target.example.com)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "URLExtractionAnalysis",
+      "dump": "url_extraction/script.js.json",
+      "input": "fixtures/urls/script.js with ['extract_urls'] and meta tags []",
+      "module": "url_extraction",
+      "observables_added": 4,
+      "summary": "URL Extraction Analysis (api.example.net, js-dw.example.com, js-file.example.com)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "URLExtractionAnalysis",
+      "dump": "url_extraction/script.js.type=script.javascript.json",
+      "input": "fixtures/urls/script.js with ['extract_urls'] and meta tags ['type=script.javascript']",
+      "module": "url_extraction",
+      "observables_added": 4,
+      "summary": "URL Extraction Analysis (api.example.net, js-dw.example.com, js-file.example.com)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "URLExtractionAnalysis",
+      "dump": "url_extraction/table.csv.json",
+      "input": "fixtures/urls/table.csv with ['extract_urls'] and meta tags []",
+      "module": "url_extraction",
+      "observables_added": 1,
+      "summary": "URL Extraction Analysis (csv2.example.com)"
     },
     {
       "ace3_commit": "f72f8946",

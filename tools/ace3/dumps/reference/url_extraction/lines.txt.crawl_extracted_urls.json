@@ -1,0 +1,137 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "text/plain",
+        "type": "ASCII text"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: ASCII text (text/plain)",
+      "tags": []
+    },
+    {
+      "class": "URLExtractionAnalysis",
+      "details": {
+        "urls": [
+          "https://track.shop.example.com/o/123?ref=mail",
+          "http://203.0.113.7/u",
+          "https://help.example.org/faq",
+          "https://www.bare.example.net/page"
+        ],
+        "urls_grouped_by_domain": {
+          "example.com": [
+            "https://track.shop.example.com/o/123?ref=mail"
+          ],
+          "example.net": [
+            "https://www.bare.example.net/page"
+          ],
+          "example.org": [
+            "https://help.example.org/faq"
+          ],
+          "no_tld": [
+            "http://203.0.113.7/u"
+          ]
+        }
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.url_extraction:URLExtractionAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "crawl"
+          ],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "url",
+          "value": "https://track.shop.example.com/o/123?ref=mail"
+        },
+        {
+          "detections": [],
+          "directives": [
+            "crawl"
+          ],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "url",
+          "value": "http://203.0.113.7/u"
+        },
+        {
+          "detections": [],
+          "directives": [
+            "crawl"
+          ],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "url",
+          "value": "https://help.example.org/faq"
+        },
+        {
+          "detections": [],
+          "directives": [
+            "crawl"
+          ],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "url",
+          "value": "https://www.bare.example.net/page"
+        }
+      ],
+      "summary": "URL Extraction Analysis (203.0.113.7, help.example.org, track.shop.example.com, www.bare.example.net)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [
+      "extract_urls",
+      "crawl_extracted_urls"
+    ],
+    "label": "fixtures/urls/lines.txt with ['extract_urls', 'crawl_extracted_urls'] and meta tags []",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "lines.txt",
+      "size": 192,
+      "type": "file",
+      "value": "2b4e6b0e2e70427ab65584e8ceb0fdadc3ce588824afc2b71c39b69567ade512"
+    }
+  },
+  "module": "url_extraction",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "crawl_extracted_urls",
+      "extract_urls"
+    ],
+    "excluded_analysis": [],
+    "file_path": "lines.txt",
+    "relationships": [],
+    "size": 192,
+    "tags": [],
+    "type": "file",
+    "value": "2b4e6b0e2e70427ab65584e8ceb0fdadc3ce588824afc2b71c39b69567ade512",
+    "yara_meta": []
+  }
+}

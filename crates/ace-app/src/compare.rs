@@ -54,8 +54,9 @@
 //!   difference says nothing about the port.
 //! - *unexplained*: no row. A port isn't accepted with any of these (`docs/acceptance.md`).
 //!
-//! A row's fourth cell narrows it: `ace4 only` matches only what ace3 doesn't have, and
-//! `ace3 holds <text>` only a value of ace3's with that text in it.
+//! A row's fourth cell narrows it: `ace4 only` matches only what ace3 doesn't have,
+//! `ace3 holds <text>` only a value of ace3's with that text in it, and `same members` only an
+//! element of a list that holds the same values on both sides, in another order.
 //!
 //! # What makes it fail
 //!
@@ -267,6 +268,8 @@ enum When {
     Ace4Only,
     /// ace3's value holds this text.
     Ace3Holds(String),
+    /// The list the difference is an element of holds the same values on each side.
+    SameMembers,
 }
 
 impl When {
@@ -274,6 +277,7 @@ impl When {
         match row.when.as_deref() {
             None => Ok(When::Always),
             Some("ace4 only") => Ok(When::Ace4Only),
+            Some("same members") => Ok(When::SameMembers),
             Some(when) => when
                 .strip_prefix("ace3 holds ")
                 .map(|text| When::Ace3Holds(text.to_owned()))
@@ -281,9 +285,12 @@ impl When {
         }
     }
 
-    fn holds(&self, difference: &Difference) -> bool {
+    fn holds(&self, difference: &Difference, forms: Option<(&Value, &Value)>) -> bool {
         match self {
             When::Always => true,
+            When::SameMembers => {
+                forms.is_some_and(|(ace3, ace4)| same_members(ace3, ace4, &difference.path))
+            }
             When::Ace4Only => difference.ace3.is_none(),
             When::Ace3Holds(text) => difference
                 .ace3
@@ -319,7 +326,18 @@ impl Rows {
 
     /// The class of a difference: the first row's that matches. Every row that matches counts as
     /// used, so a row isn't called stale because an earlier one also covers it.
+    #[cfg(test)]
     fn classify(&mut self, sample: &str, difference: &Difference) -> Class {
+        self.classify_in(sample, difference, None)
+    }
+
+    /// `classify`, with the two forms, which `same members` reads.
+    fn classify_in(
+        &mut self,
+        sample: &str,
+        difference: &Difference,
+        forms: Option<(&Value, &Value)>,
+    ) -> Class {
         let mut class = None;
         for (i, row) in self.listed.iter().enumerate() {
             let row_class = Rows::class_of(row);
@@ -327,7 +345,7 @@ impl Rows {
             if row_class == Class::Unported && difference.ace4.is_some() {
                 continue;
             }
-            if self.when[i].holds(difference)
+            if self.when[i].holds(difference, forms)
                 && glob(&row.dumps, sample)
                 && path_matches(&row.path, &difference.path)
             {
@@ -349,6 +367,27 @@ impl Rows {
             .map(|(row, _)| row)
             .collect()
     }
+}
+
+/// Whether the difference at `path` is an element of a list that holds the same values, counted,
+/// in both forms.
+fn same_members(ace3: &Value, ace4: &Value, path: &str) -> bool {
+    let Some((parent, index)) = path.rsplit_once('/') else {
+        return false;
+    };
+    if index.is_empty() || !index.bytes().all(|b| b.is_ascii_digit()) {
+        return false;
+    }
+    let (Some(Value::Array(a)), Some(Value::Array(b))) =
+        (ace3.pointer(parent), ace4.pointer(parent))
+    else {
+        return false;
+    };
+    let mut a: Vec<String> = a.iter().map(Value::to_string).collect();
+    let mut b: Vec<String> = b.iter().map(Value::to_string).collect();
+    a.sort();
+    b.sort();
+    a == b
 }
 
 /// Takes the results of modules not in `ported` out of a form, returning how many by module.
@@ -459,7 +498,7 @@ fn compare_forms(
         .into_iter()
         .map(|difference| Found {
             module: module_of(&difference.path).to_owned(),
-            class: rows.classify(sample, &difference),
+            class: rows.classify_in(sample, &difference, Some((&ace3, &ace4))),
             difference,
         })
         .collect();
@@ -1351,6 +1390,47 @@ mod tests {
         let result = compare_forms("s", ace3, ace4, &ported(&[]), &mut rows).expect("compares");
         assert_eq!(result.found[0].class, Class::Unexplained);
         assert_eq!(rows.matched, [0]);
+    }
+
+    #[test]
+    fn same_members_matches_a_list_in_another_order_only() {
+        let mut rows = Rows::new(ListedDifferences {
+            rows: vec![Listed {
+                dumps: "*".to_owned(),
+                path: "/l/*".to_owned(),
+                why: String::new(),
+                section: None,
+                when: Some("same members".to_owned()),
+            }],
+        })
+        .expect("the condition reads");
+        let difference = |ace3: Value, ace4: Value| Difference {
+            path: "/l/0".to_owned(),
+            ace3: Some(ace3),
+            ace4: Some(ace4),
+        };
+        let (ace3, ace4) = (json!({"l": ["a", "b"]}), json!({"l": ["b", "a"]}));
+        assert_eq!(
+            rows.classify_in(
+                "s",
+                &difference(json!("a"), json!("b")),
+                Some((&ace3, &ace4))
+            ),
+            Class::Explained
+        );
+        let other = json!({"l": ["b", "c"]});
+        assert_eq!(
+            rows.classify_in(
+                "s",
+                &difference(json!("a"), json!("b")),
+                Some((&ace3, &other))
+            ),
+            Class::Unexplained
+        );
+        assert_eq!(
+            rows.classify("s", &difference(json!("a"), json!("b"))),
+            Class::Unexplained
+        );
     }
 
     #[test]

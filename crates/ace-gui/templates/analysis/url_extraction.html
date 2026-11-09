@@ -1,0 +1,31 @@
+{#- url_extraction_analysis (src/analysis.rs): ace3 prints its details with analysis/default_template.html. The
+    first URLs here are the ones that became observables. -#}
+{%- let urls = self.urls() %}
+<table class="fields">
+<tr><th>urls</th><td>{{ analysis.urls.len() }}</td></tr>
+</table>
+{%- if !urls.items.is_empty() %}
+<h3>urls</h3>
+<ol class="files">
+{%- for url in urls.items %}
+<li>{{ url }}</li>
+{%- endfor %}
+</ol>
+{%- if urls.more > 0 %}
+<p class="clipped">{{ urls.more }} more URLs not shown.</p>
+{%- endif %}
+<h3>urls_grouped_by_domain</h3>
+{%- for (domain, count, shown) in self.domains() %}
+<details>
+<summary>{{ domain }} ({{ count }})</summary>
+<ul class="files">
+{%- for url in shown.items %}
+<li>{{ url }}</li>
+{%- endfor %}
+</ul>
+{%- if shown.more > 0 %}
+<p class="clipped">{{ shown.more }} more URLs not shown.</p>
+{%- endif %}
+</details>
+{%- endfor %}
+{%- endif %}

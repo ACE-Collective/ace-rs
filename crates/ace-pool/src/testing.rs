@@ -58,6 +58,14 @@ pub fn modules(settings: &Value) -> Result<Modules, SetupError> {
             block("email_analyzer"),
             &secrets,
         )?)
+        .with_parser(Entry::<ace_mod_urls::UrlExtraction>::parser(
+            block("url_extraction"),
+            &secrets,
+        )?)
+        .with_parser(Entry::<ace_mod_urls::IocExtraction>::parser(
+            block("ioc_extraction"),
+            &secrets,
+        )?)
         .with_lookup(Entry::<Counted>::lookup(block(Counted::NAME), &secrets)?)
         .with_lookup(Entry::<Panicky>::lookup(block(Panicky::NAME), &secrets)?)
         .with_lookup(Entry::<Connect>::lookup(block(Connect::NAME), &secrets)?)

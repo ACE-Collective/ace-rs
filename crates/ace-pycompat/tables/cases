@@ -1,0 +1,22 @@
+#!/bin/sh
+# Regenerates the differential test cases in tests/data from the Python in ace3's dev container
+# (ace-dev-1). Each generator only reads and writes JSON to stdout. With arguments, only those.
+#
+# tests/data holds samples, which is what is committed. ACE_PYCOMPAT_FULL=1 tables/cases writes
+# every generated case into tests/full instead (git-ignored, about 33 MB); then
+#   docker compose exec -T -e ACE_PYCOMPAT_CASES=tests/full dev cargo test -p ace-pycompat
+# runs the tests on them.
+set -eu
+cd "$(dirname "$0")/.."
+names="${*:-pystr parse html base64 ipaddress codecs_idna idna validators tld json csv}"
+full="${ACE_PYCOMPAT_FULL:-0}"
+dir=tests/data
+if [ "$full" = 1 ]; then
+    dir=tests/full
+    mkdir -p "$dir"
+fi
+for name in $names; do
+    cat tables/cases_common.py "tables/cases_$name.py" |
+        docker exec -i -e ACE_PYCOMPAT_FULL="$full" ace-dev-1 /venv/bin/python3 - > "$dir/$name.json.new"
+    mv "$dir/$name.json.new" "$dir/$name.json"
+done

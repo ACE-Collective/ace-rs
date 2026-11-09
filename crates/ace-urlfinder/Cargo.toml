@@ -1,0 +1,28 @@
+[package]
+name = "ace-urlfinder"
+version = "0.1.0"
+description = "A port of urlfinderlib 0.27.1: the URLs in a blob, and a URL's child URLs"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "urlfinderlib"
+path = "src/bin/urlfinderlib.rs"
+
+[dependencies]
+ace-lxml = { path = "../ace-lxml" }
+ace-mod-oletools = { path = "../ace-mod-oletools" }
+ace-pycompat = { path = "../ace-pycompat" }
+magic-sys = "0.4.3"
+memchr = "2.8.3"
+regex = "1.13.1"
+rustc-hash = "2.1.3"
+serde_json = "1.0.154"
+
+[dev-dependencies]
+base64 = "0.22.1"
+
+[lints]
+workspace = true

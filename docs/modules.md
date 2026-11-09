@@ -20,29 +20,29 @@ Versions are those of ace3's image: Python packages from `installer/requirements
 
 | Pool | Modules | Ported |
 |---|---|---|
-| parser | 54 | 9 |
+| parser | 54 | 11 |
 | lookup | 17 | 9 |
 | core | 3 | 0 |
 | sandbox | 14 | 0 |
 | scanner | 2 | 0 |
-| all | 90 | 18 |
+| all | 90 | 20 |
 
 | Step | Modules |
 |---|---|
-| done | 18 |
-| 7.5 | 62 |
+| done | 20 |
+| 7.5 | 60 |
 | 7.6 | 5 |
 | 7.7 | 2 |
 | 7.10 | 2 |
 | owner | 1 |
 
-No ace3 module goes to 7.8 or 7.9: 7.8's integrations are a site's (below), and remediation and file collection are services, not modules. "done" is the ten modules phases 1 to 4 ported and those 7.4 has ported since. "owner" is a module no step names.
+No ace3 module goes to 7.8 or 7.9: 7.8's integrations are a site's (below), and remediation and file collection are services, not modules. "done" is the ten modules phases 1 to 4 ported and those 7.4 and 7.5 have ported since. "owner" is a module no step names.
 
 ## 7.5's batches
 
 In order. Batches 10 to 13 run programs in the sandbox runner, which batch 10 builds (*External tools*).
 
-1. **URLs and indicators in text**: `url_extraction`, `ioc_extraction`. Starts with `url_extraction`, as 7.5 says, which hits its 15-second cap on multi-line blobs. Until file_type is ported it reads the mime type the core gives every input file.
+1. **URLs and indicators in text**: done. `url_extraction` and `ioc_extraction`, in `ace-mod-urls`, on `ace-urlfinder`, a port of urlfinderlib 0.27.1 whose `Url` and child URLs other modules can use too, with `ace-pycompat` (Python's urllib.parse, html, base64, json, csv and unicodedata, and the idna, validators and tld packages) and `ace-lxml` (libxml2 2.14.6 as lxml 6.1.3 bundles it, with lxml's tree and BeautifulSoup's `get_text()` over it). Until file_type is ported `url_extraction` reads the mime type the core gives every input file.
 2. **File identity**: `file_type`, `file_hash_analyzer`, `ssdeep`, `lnk_parser`, `binary_file_analyzer`, `x509_analyzer`, `dhash`. file_type first: many later modules read its result, its tags and its `yara_meta` types.
 3. **Observable values**: `command_line_analyzer`, `file_location_analysis`, `file_path_analysis`, `network_identifier`, `parse_url`, `idna_analyzer`, `email_address_fqdn_analyzer`, `protected_url_analyzer`. Strings in, observables out; no files.
 4. **HTML**: `html_data_url_extraction`, `har_extraction`, `html_js_extraction`, `mhtml`. HTML, MHTML and HAR files, with the DOM snapshots 7.7's js-deobfuscator reads.
@@ -257,8 +257,8 @@ In the config's order. ace4 is the crate a ported module is in.
 | `yara_scanner_v3_4` | `YaraScanner_v3_4` | `ace-mod-yara` | parser | done | file, yara | analysis, binary, cli, correlation, email, file, yara |
 | `binary_file_analyzer` | `BinaryFileAnalyzer` | not yet | parser | 7.5 batch 2 | file | analysis, binary, cli, correlation, email, file |
 | `microsoft_script_encoding_analysis` | `MicrosoftScriptEncodingAnalyzer` | not yet | parser | 7.5 batch 6 | file | analysis, binary, cli, correlation, email, file |
-| `url_extraction` | `URLExtractionAnalyzer` | not yet | parser | 7.5 batch 1 | file | analysis, binary, cli, correlation, email, file |
-| `ioc_extraction` | `IOCExtractionAnalyzer` | not yet | parser | 7.5 batch 1 | file | analysis, binary, cli, correlation, email, file |
+| `url_extraction` | `URLExtractionAnalyzer` | `ace-mod-urls` | parser | done | file | analysis, binary, cli, correlation, email, file |
+| `ioc_extraction` | `IOCExtractionAnalyzer` | `ace-mod-urls` | parser | done | file | analysis, binary, cli, correlation, email, file |
 | `observable_modifier` | `ObservableModifierAnalyzer` | not yet | core | 7.6 | common | analysis, binary, cli, correlation, email, file |
 | `x509_analyzer` | `X509Analyzer` | not yet | parser | 7.5 batch 2 | file | analysis, binary, cli, correlation, email, file |
 | `protected_url_analyzer` | `ProtectedURLAnalyzer` | not yet | parser | 7.5 batch 3 | common | analysis, binary, cli, correlation, email, file |
@@ -1716,9 +1716,9 @@ In the config's order. ace4 is the crate a ported module is in.
 ### url_extraction
 
 - **Section**: `analysis_module_url_extraction`, class `URLExtractionAnalyzer` in `saq/modules/file_analysis/url_extraction.py`, enabled by default.
-- **ace4**: not yet.
+- **ace4**: ported in `ace-mod-urls`. urlfinderlib is `ace-urlfinder`'s port, which matches urlfinderlib on every sample and on hand-made and generated HTML, text, JSON, CSV, XML, iCalendar and PDF-like blobs in each of its modes. Its sets are sorted, so where ace3's order of URLs follows its hash seed, ace4's is the same each run. The mime type is the core's, `file_type` not being ported; there's no dependency on the YARA module, whose skipped tasks store no result; a `downloaded_from` file has no base URL, since a task carries no relationships and no ported module adds that one; observables aren't volatile, which ace4 doesn't have. `crates/ace-mod-urls/tests/differences.md` and `docs/measurements/url-extraction.md` have the rest.
 - **Pool**: parser. Parses an attacker's file for URLs in the task's process.
-- **Step**: 7.5 batch 1 (URLs and indicators in text).
+- **Step**: done.
 - **Does**: For files with the extract_urls directive, extracts URLs with urlfinderlib, filters excluded domains, orders them by interest and adds up to max_extracted_urls as URL observables.
 - **Input**: file.
 - **Groups and modes**: groups file; modes analysis, binary, cli, correlation, email, file.
@@ -1737,9 +1737,9 @@ In the config's order. ace4 is the crate a ported module is in.
 ### ioc_extraction
 
 - **Section**: `analysis_module_ioc_extraction`, class `IOCExtractionAnalyzer` in `saq/modules/file_analysis/ioc_extraction.py`, enabled by default.
-- **ace4**: not yet.
+- **ace4**: ported in `ace-mod-urls`. Its YAML is the module's overlay settings, defaulting to ace3's `etc/ioc_extraction.yaml`, with `refang_patterns` a list of `{replacement, patterns}`; ace3 reloads the file when it changes. Patterns are Python `re` on fancy-regex with Python's `\w`, `\b`, `\s` and `$` (`crate::pyre`). The visible text is BeautifulSoup's `get_text()` on libxml2 (`ace_lxml::soup`). A type ace4 doesn't know, such as the default `cve`, stays in the details and makes no observable.
 - **Pool**: parser. Text and regexes in the task's process; its settings file becomes a 5.14 list or overlay settings (5.14 says so).
-- **Step**: 7.5 batch 1 (URLs and indicators in text).
+- **Step**: done.
 - **Does**: For files with the extract_iocs directive, takes the visible text (via BeautifulSoup), re-fangs it with configured regexes, and extracts URLs and configured regex IOC patterns as observables with configured directives, tags and display types.
 - **Input**: file.
 - **Groups and modes**: groups file; modes analysis, binary, cli, correlation, email, file.

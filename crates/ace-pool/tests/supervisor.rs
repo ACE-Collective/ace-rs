@@ -13,7 +13,8 @@ use ace_pool::testing;
 use serde_json::json;
 
 use common::{
-    Core, PoolProcess, root_with_bytes, root_with_tasks, task_of, test_pool, wait_until_idle,
+    Core, PoolProcess, root_with_bytes, root_with_file, root_with_tasks, task_of, test_pool,
+    wait_until_idle,
 };
 
 /// The supervisor, running task processes as ace4-task.
@@ -857,4 +858,103 @@ async fn a_result_whose_uploads_outlast_the_lease_lands_on_its_first_attempt() {
         .await
         .expect("the files");
     assert_eq!(files, 1500);
+}
+
+/// The URLs a root's url_extraction result holds, sorted.
+async fn extracted_urls(core: &Core, root: uuid::Uuid) -> Vec<String> {
+    let details: Option<serde_json::Value> = sqlx::query_scalar(
+        "SELECT details FROM analysis.results WHERE root_id = $1 AND module = 'url_extraction'",
+    )
+    .bind(root)
+    .fetch_optional(core.test_db.db().pool())
+    .await
+    .expect("a result");
+    let mut urls: Vec<String> = details
+        .and_then(|d| d["urls"].as_array().cloned())
+        .unwrap_or_default()
+        .into_iter()
+        .filter_map(|u| u.as_str().map(str::to_owned))
+        .collect();
+    urls.sort();
+    urls
+}
+
+/// url_extraction in a contained task: libxml2 on an HTML page, and the chat log of PLAN.md 7.5's
+/// Done check, whose URLs are those ace3 finds when its cap is raised (the reference dump
+/// `url_extraction/chat_log.txt.uncapped`), well inside the module's 15-second deadline.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn url_extraction_runs_contained() {
+    let core = Core::start(
+        vec![ace_mod_urls::url_extraction::MANIFEST],
+        &["url_extraction"],
+        Duration::from_secs(120),
+    )
+    .await;
+    let fixtures = format!(
+        "{}/../../tools/ace3/dumps/fixtures/urls",
+        env!("CARGO_MANIFEST_DIR")
+    );
+    let mut pool = supervisor(&core, &[]);
+    for (name, urls) in [("page.html", 10), ("chat_log.txt", 6)] {
+        let bytes = std::fs::read(format!("{fixtures}/{name}")).expect("a fixture");
+        let (root, _) = root_with_file(&core, "file", &bytes, name, &["extract_urls"]).await;
+        let (state, error, seconds) = last_task_state(&core, root, "url_extraction").await;
+        assert_eq!(state, "done", "{name}: {error:?}");
+        assert_eq!(extracted_urls(&core, root).await.len(), urls, "{name}");
+        assert!(seconds < 15.0, "{name} took {seconds:.1} s");
+        println!("{name}: {seconds:.2} s");
+    }
+    assert!(pool.running());
+    let _ = pool.stop();
+}
+
+/// What `docs/measurements/url-extraction.md` records: each file of the directory
+/// `ACE4_URL_HOSTILE` names (`tools/samples/make-url-hostile`), `ACE4_URL_RUNS` times (3 by
+/// default), as a contained task of `ACE4_URL_MODULE` (url_extraction, or ioc_extraction) with the
+/// module's limits.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[ignore = "a measurement, with files tools/samples/make-url-hostile makes"]
+async fn measure_url_extraction() {
+    let dir = std::env::var("ACE4_URL_HOSTILE").expect("ACE4_URL_HOSTILE");
+    let runs: usize = std::env::var("ACE4_URL_RUNS")
+        .ok()
+        .and_then(|r| r.parse().ok())
+        .unwrap_or(3);
+    let module = std::env::var("ACE4_URL_MODULE").unwrap_or_else(|_| "url_extraction".to_owned());
+    let (manifest, directive) = match module.as_str() {
+        "ioc_extraction" => (ace_mod_urls::ioc_extraction::MANIFEST, "extract_iocs"),
+        _ => (ace_mod_urls::url_extraction::MANIFEST, "extract_urls"),
+    };
+    let core = Core::start(vec![manifest], &[module.as_str()], Duration::from_secs(300)).await;
+    let mut names: Vec<_> = std::fs::read_dir(&dir)
+        .expect("the directory")
+        .map(|entry| {
+            entry
+                .expect("an entry")
+                .file_name()
+                .into_string()
+                .expect("a name")
+        })
+        .collect();
+    names.sort();
+    let mut pool = supervisor(&core, &[]);
+    for name in names {
+        let bytes = std::fs::read(format!("{dir}/{name}")).expect("the file");
+        for run in 0..runs {
+            // a byte that differs makes each run a new file, so nothing is reused
+            let mut bytes = bytes.clone();
+            bytes.extend_from_slice(format!("\n{run}\n").as_bytes());
+            let (root, _) = root_with_file(&core, "file", &bytes, &name, &[directive]).await;
+            let (state, error, seconds) = last_task_state(&core, root, &module).await;
+            let error: String = error.unwrap_or_default().chars().take(120).collect();
+            let urls = extracted_urls(&core, root).await;
+            println!(
+                "{name}\t{}\t{run}\t{state}\t{seconds:.2}\t{}\t{error}",
+                bytes.len(),
+                urls.len()
+            );
+            assert!(pool.running(), "the supervisor kept running after {name}");
+        }
+    }
+    let _ = pool.stop();
 }

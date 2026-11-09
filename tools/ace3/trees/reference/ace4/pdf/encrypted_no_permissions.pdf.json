@@ -35,6 +35,24 @@
           },
           "summary": "File Type Analysis: data (application/octet-stream)",
           "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [
+              "https://example.com/encrypted-annotation",
+              "https://example.com/in-a-string",
+              "https://example.com/in-a-stream"
+            ],
+            "urls_grouped_by_domain": {
+              "example.com": [
+                "https://example.com/encrypted-annotation",
+                "https://example.com/in-a-string",
+                "https://example.com/in-a-stream"
+              ]
+            }
+          },
+          "summary": "URL Extraction Analysis (example.com)",
+          "tags": {}
         }
       },
       "tags": {}
@@ -75,6 +93,20 @@
           },
           "summary": "File Type Analysis: ASCII text (text/plain)",
           "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [
+              "https://example.com/in-a-stream"
+            ],
+            "urls_grouped_by_domain": {
+              "example.com": [
+                "https://example.com/in-a-stream"
+              ]
+            }
+          },
+          "summary": "URL Extraction Analysis (example.com)",
+          "tags": {}
         }
       },
       "tags": {}
@@ -114,6 +146,20 @@
             "type": "ASCII text, with no line terminators"
           },
           "summary": "File Type Analysis: ASCII text, with no line terminators (text/plain)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [
+              "https://example.com/form-field-payload/https://example.com/form-field-payload/https://example.com/form-field-payload"
+            ],
+            "urls_grouped_by_domain": {
+              "example.com": [
+                "https://example.com/form-field-payload/https://example.com/form-field-payload/https://example.com/form-field-payload"
+              ]
+            }
+          },
+          "summary": "URL Extraction Analysis (example.com)",
           "tags": {}
         }
       },
@@ -261,6 +307,20 @@
           },
           "summary": "File Type Analysis: ASCII text, with no line terminators (text/plain)",
           "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [
+              "https://example.com/encrypted-annotation"
+            ],
+            "urls_grouped_by_domain": {
+              "example.com": [
+                "https://example.com/encrypted-annotation"
+              ]
+            }
+          },
+          "summary": "URL Extraction Analysis (example.com)",
+          "tags": {}
         }
       },
       "tags": {}
@@ -301,49 +361,25 @@
           },
           "summary": "File Type Analysis: ASCII text, with no line terminators (text/plain)",
           "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:e35d38275d3e64c14db0e5be69cd1c20f30f95dbcfd5249f3b46ed622cd74c7f": {
-      "detections": {},
-      "directives": {
-        "extract_urls": true
-      },
-      "excluded_analysis": {},
-      "paths": {
-        "encrypted_no_permissions.pdf.pdfparser": {
-          "type=document.pdf.object": true
-        }
-      },
-      "redirection": "file:5ac9650520c906337d8d01ccd8f66b377ce67c7db1163fd2050839c855a06c69",
-      "relationships": {
-        "extracted_from file:5ac9650520c906337d8d01ccd8f66b377ce67c7db1163fd2050839c855a06c69": true
-      },
-      "results": {
-        "file_type": {
+        },
+        "url_extraction": {
           "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": false,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "application/pdf",
-            "type": "PDF document, version 1.7, Unicode text, UTF-8 text, with very long lines (843)"
+            "urls": [
+              "https://example.com/in-a-string"
+            ],
+            "urls_grouped_by_domain": {
+              "example.com": [
+                "https://example.com/in-a-string"
+              ]
+            }
           },
-          "summary": "File Type Analysis: PDF document, version 1.7, Unicode text, UTF-8 text, with very long lines (843) (application/pdf)",
+          "summary": "URL Extraction Analysis (example.com)",
           "tags": {}
         }
       },
       "tags": {}
     },
-    "file:e680eda7298da3d53bd7a2c2450c8559d38de67a95d6a05b794c09341efe9c6e": {
+    "file:96ff52c71b907deba9ab745022b0cf984efbaff79995ff7eb272e42698811363": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -380,11 +416,97 @@
           },
           "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
           "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {
         "pdf": true
       }
+    },
+    "file:e35d38275d3e64c14db0e5be69cd1c20f30f95dbcfd5249f3b46ed622cd74c7f": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "encrypted_no_permissions.pdf.pdfparser": {
+          "type=document.pdf.object": true
+        }
+      },
+      "redirection": "file:5ac9650520c906337d8d01ccd8f66b377ce67c7db1163fd2050839c855a06c69",
+      "relationships": {
+        "extracted_from file:5ac9650520c906337d8d01ccd8f66b377ce67c7db1163fd2050839c855a06c69": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/pdf",
+            "type": "PDF document, version 1.7, Unicode text, UTF-8 text, with very long lines (843)"
+          },
+          "summary": "File Type Analysis: PDF document, version 1.7, Unicode text, UTF-8 text, with very long lines (843) (application/pdf)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "url:https://example.com/encrypted-annotation": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
+    },
+    "url:https://example.com/form-field-payload/https://example.com/form-field-payload/https://example.com/form-field-payload": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
+    },
+    "url:https://example.com/in-a-stream": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
+    },
+    "url:https://example.com/in-a-string": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
     }
   }
 }

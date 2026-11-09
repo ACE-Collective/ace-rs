@@ -35,6 +35,24 @@
           },
           "summary": "File Type Analysis: data (application/octet-stream)",
           "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [
+              "https://example.com/encrypted-annotation",
+              "https://example.com/in-a-string",
+              "https://example.com/in-a-stream"
+            ],
+            "urls_grouped_by_domain": {
+              "example.com": [
+                "https://example.com/encrypted-annotation",
+                "https://example.com/in-a-string",
+                "https://example.com/in-a-stream"
+              ]
+            }
+          },
+          "summary": "URL Extraction Analysis (example.com)",
+          "tags": {}
         }
       },
       "tags": {}
@@ -75,9 +93,74 @@
           },
           "summary": "File Type Analysis: ASCII text (text/plain)",
           "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [
+              "https://example.com/in-a-stream"
+            ],
+            "urls_grouped_by_domain": {
+              "example.com": [
+                "https://example.com/in-a-stream"
+              ]
+            }
+          },
+          "summary": "URL Extraction Analysis (example.com)",
+          "tags": {}
         }
       },
       "tags": {}
+    },
+    "file:1f53ce6f72d6e5d3d965b075599f2ab481565a6a713ffd2f1017080bc9181ad0": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {
+        "pdf_analyzer": true
+      },
+      "paths": {
+        "encrypted_aes_256_r6.pdf.gs.pdf": {
+          "type=document.pdf": true,
+          "type=document.pdf.rendered": true
+        }
+      },
+      "redirection": "file:50034e2333be065ab5004f7506ad055eb4d1e6dca0d0d32349369ab29d6146a5",
+      "relationships": {
+        "extracted_from file:50034e2333be065ab5004f7506ad055eb4d1e6dca0d0d32349369ab29d6146a5": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": true,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/pdf",
+            "type": "PDF document, version 1.7, 1 page(s)"
+          },
+          "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "pdf": true
+      }
     },
     "file:2b827014b27d850fa53f2250136dbb00258e9ce0ddbddab8bf6fad2126ed88f4": {
       "detections": {},
@@ -114,6 +197,20 @@
             "type": "ASCII text, with no line terminators"
           },
           "summary": "File Type Analysis: ASCII text, with no line terminators (text/plain)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [
+              "https://example.com/form-field-payload/https://example.com/form-field-payload/https://example.com/form-field-payload"
+            ],
+            "urls_grouped_by_domain": {
+              "example.com": [
+                "https://example.com/form-field-payload/https://example.com/form-field-payload/https://example.com/form-field-payload"
+              ]
+            }
+          },
+          "summary": "URL Extraction Analysis (example.com)",
           "tags": {}
         }
       },
@@ -261,6 +358,20 @@
           },
           "summary": "File Type Analysis: ASCII text, with no line terminators (text/plain)",
           "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [
+              "https://example.com/encrypted-annotation"
+            ],
+            "urls_grouped_by_domain": {
+              "example.com": [
+                "https://example.com/encrypted-annotation"
+              ]
+            }
+          },
+          "summary": "URL Extraction Analysis (example.com)",
+          "tags": {}
         }
       },
       "tags": {}
@@ -301,6 +412,20 @@
           },
           "summary": "File Type Analysis: ASCII text, with no line terminators (text/plain)",
           "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [
+              "https://example.com/in-a-string"
+            ],
+            "urls_grouped_by_domain": {
+              "example.com": [
+                "https://example.com/in-a-string"
+              ]
+            }
+          },
+          "summary": "URL Extraction Analysis (example.com)",
+          "tags": {}
         }
       },
       "tags": {}
@@ -339,52 +464,49 @@
           },
           "summary": "File Type Analysis: PDF document, version 1.7, Unicode text, UTF-8 text, with very long lines (843) (application/pdf)",
           "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
     },
-    "file:f2effd16b9dd852e2335cf916ec7be2dcd5c7443b19d2eb7f80ec1bca7015caa": {
+    "url:https://example.com/encrypted-annotation": {
       "detections": {},
-      "directives": {
-        "extract_urls": true
-      },
-      "excluded_analysis": {
-        "pdf_analyzer": true
-      },
-      "paths": {
-        "encrypted_aes_256_r6.pdf.gs.pdf": {
-          "type=document.pdf": true,
-          "type=document.pdf.rendered": true
-        }
-      },
-      "redirection": "file:50034e2333be065ab5004f7506ad055eb4d1e6dca0d0d32349369ab29d6146a5",
-      "relationships": {
-        "extracted_from file:50034e2333be065ab5004f7506ad055eb4d1e6dca0d0d32349369ab29d6146a5": true
-      },
-      "results": {
-        "file_type": {
-          "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": true,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "application/pdf",
-            "type": "PDF document, version 1.7, 1 page(s)"
-          },
-          "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
-          "tags": {}
-        }
-      },
-      "tags": {
-        "pdf": true
-      }
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
+    },
+    "url:https://example.com/form-field-payload/https://example.com/form-field-payload/https://example.com/form-field-payload": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
+    },
+    "url:https://example.com/in-a-stream": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
+    },
+    "url:https://example.com/in-a-string": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
     }
   }
 }

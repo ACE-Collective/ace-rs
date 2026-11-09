@@ -1,0 +1,4 @@
+# The url_extraction dump of chat_log.txt: ace3 passes its 15-second cap on it, so this raises the
+# cap for that one run, to record the URLs ace3 finds when it does finish.
+analysis_module_url_extraction:
+  maximum_analysis_time: 600

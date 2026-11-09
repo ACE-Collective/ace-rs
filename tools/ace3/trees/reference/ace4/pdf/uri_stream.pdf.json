@@ -42,7 +42,7 @@
         "pdf": true
       }
     },
-    "file:7f4f019186c239a66da2772698835212b2f4f312b27eda0a6d7039be134157c8": {
+    "file:8de3d1c64f63bd416508afabde21194ca78b1fc9a8dc3db06dc83d86ca26df87": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -78,6 +78,14 @@
             "type": "PDF document, version 1.7, 1 page(s)"
           },
           "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
           "tags": {}
         }
       },
@@ -119,6 +127,20 @@
           },
           "summary": "File Type Analysis: data (application/octet-stream)",
           "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [
+              "https://example.com/in-a-uri-stream"
+            ],
+            "urls_grouped_by_domain": {
+              "example.com": [
+                "https://example.com/in-a-uri-stream"
+              ]
+            }
+          },
+          "summary": "URL Extraction Analysis (example.com)",
+          "tags": {}
         }
       },
       "tags": {}
@@ -159,8 +181,38 @@
           },
           "summary": "File Type Analysis: ASCII text (text/plain)",
           "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [
+              "https://example.com"
+            ],
+            "urls_grouped_by_domain": {
+              "example.com": [
+                "https://example.com"
+              ]
+            }
+          },
+          "summary": "URL Extraction Analysis (example.com)",
+          "tags": {}
         }
       },
+      "tags": {}
+    },
+    "url:https://example.com": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
+    },
+    "url:https://example.com/in-a-uri-stream": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
       "tags": {}
     }
   }

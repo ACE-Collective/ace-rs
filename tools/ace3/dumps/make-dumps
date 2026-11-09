@@ -619,6 +619,83 @@ def clicker_runs():
     return runs
 
 
+# url_extraction's runs on fixtures/urls: (file, directives besides extract_urls, yara_meta tags).
+# Python's set order decides ace3's order of URLs, so the runs fix the hash seed; ace4 sorts.
+URL_RUNS = [
+    ("lines.txt", [], []),
+    ("lines.txt", ["crawl_extracted_urls"], []),
+    ("cap.txt", [], []),
+    ("page.html", [], []),
+    ("data.json", [], []),
+    ("table.csv", [], []),
+    ("invite.ics", [], []),
+    ("doc.xml", [], []),
+    ("script.js", [], ["type=script.javascript"]),
+    ("script.js", [], []),
+    ("ocr.txt", ["extract_urls_domain_as_url"], ["type=document.text.ocr"]),
+    ("ocr.txt", ["extract_urls_domain_as_url"], []),
+    ("redirects.txt", [], []),
+    ("binary.bin", [], []),
+    ("nothing.txt", [], []),
+    ("mandrill.txt", [], []),
+    ("email.eml", [], []),
+]
+
+
+def url_runs():
+    runs = []
+    for name, directives, tags in URL_RUNS:
+        label = name + "".join(f".{d}" for d in directives) + "".join(f".{t}" for t in tags)
+        runs.append({
+            "module": "url_extraction",
+            "enable": ["file_type"],
+            "env": ["PYTHONHASHSEED=0"],
+            "name": label,
+            "args": ["--file", f"{REMOTE}/fixtures/urls/{name}", "--alert-path", name,
+                     "--directive", "extract_urls"]
+            + [arg for d in directives for arg in ("--directive", d)]
+            + [arg for t in tags for arg in ("--meta-tag", t)],
+            "label": f"fixtures/urls/{name} with {['extract_urls', *directives]} and meta tags {tags}",
+        })
+    # the blob of PLAN.md 7.5's Done check, past ace3's cap, with the cap raised for this run
+    runs.append({
+        "module": "url_extraction",
+        "enable": ["file_type"],
+        "env": ["PYTHONHASHSEED=0"],
+        "name": "chat_log.txt.uncapped",
+        "args": ["--file", f"{REMOTE}/fixtures/urls/chat_log.txt", "--alert-path", "chat_log.txt",
+                 "--directive", "extract_urls", "--config", f"{REMOTE}/fixtures/urls/uncapped.yaml"],
+        "label": "fixtures/urls/chat_log.txt with ['extract_urls'], its cap raised to 600 s",
+    })
+    for sample in manifest_samples("html/"):
+        runs.append({
+            "module": "url_extraction",
+            "enable": ["file_type"],
+            "env": ["PYTHONHASHSEED=0"],
+            "name": sample["path"],
+            "args": ["--file", f"{REMOTE}/samples/{sample['path']}", "--alert-path", sample["alert_path"],
+                     "--directive", "extract_urls"]
+            + [arg for tag in sample["meta_tags"] for arg in ("--meta-tag", tag)],
+            "label": f"{sample['path']} with extract_urls",
+        })
+    return runs
+
+
+def ioc_runs():
+    return [
+        {
+            "module": "ioc_extraction",
+            "enable": [],
+            "env": ["PYTHONHASHSEED=0"],
+            "name": name,
+            "args": ["--file", f"{REMOTE}/fixtures/iocs/{name}", "--alert-path", name,
+                     "--directive", "extract_iocs"],
+            "label": f"fixtures/iocs/{name} with extract_iocs",
+        }
+        for name in ("report.txt", "page.html", "plain.txt", "empty_iocs.txt")
+    ]
+
+
 RUNS = {
     "email": lambda: file_runs("email_analyzer", ["file_type"], "email"),
     "archive": lambda: file_runs("archive", ["file_type"], "archive/"),
@@ -633,6 +710,8 @@ RUNS = {
     "nrd": nrd_runs,
     "ldap": ldap_runs,
     "clicker": clicker_runs,
+    "urls": url_runs,
+    "iocs": ioc_runs,
 }
 
 
@@ -781,6 +860,8 @@ def run(spec):
         "nrd_analyzer": "NRDAnalysis",
         "user_analyzer": "UserAnalysis",
         "clicker_detection_splunk": "SplunkClickerDetectionAnalysis",
+        "url_extraction": "URLExtractionAnalysis",
+        "ioc_extraction": "IOCExtractionAnalysis",
     }[spec["module"]]
     analysis = next((a for a in parsed["analyses"] if a["class"] == target_class), None)
     return {

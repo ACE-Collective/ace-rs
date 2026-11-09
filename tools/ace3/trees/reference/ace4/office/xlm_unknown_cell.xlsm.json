@@ -33,6 +33,14 @@
           },
           "summary": "File Type Analysis: XML 1.0 document, ASCII text (text/xml)",
           "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -68,6 +76,14 @@
             "type": "XML 1.0 document, ASCII text"
           },
           "summary": "File Type Analysis: XML 1.0 document, ASCII text (text/xml)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
           "tags": {}
         }
       },
@@ -105,6 +121,20 @@
           },
           "summary": "File Type Analysis: ASCII text (text/plain)",
           "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [
+              "http://xlm-shell.example.com/after"
+            ],
+            "urls_grouped_by_domain": {
+              "example.com": [
+                "http://xlm-shell.example.com/after"
+              ]
+            }
+          },
+          "summary": "URL Extraction Analysis (xlm-shell.example.com)",
+          "tags": {}
         }
       },
       "tags": {}
@@ -140,6 +170,14 @@
             "type": "XML 1.0 document, ASCII text"
           },
           "summary": "File Type Analysis: XML 1.0 document, ASCII text (text/xml)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
           "tags": {}
         }
       },
@@ -177,6 +215,20 @@
           },
           "summary": "File Type Analysis: XML 1.0 document, ASCII text (text/xml)",
           "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [
+              "http://xlm-shell.example.com/after"
+            ],
+            "urls_grouped_by_domain": {
+              "example.com": [
+                "http://xlm-shell.example.com/after"
+              ]
+            }
+          },
+          "summary": "URL Extraction Analysis (xlm-shell.example.com)",
+          "tags": {}
         }
       },
       "tags": {}
@@ -212,6 +264,14 @@
             "type": "ASCII text, with CRLF, LF line terminators"
           },
           "summary": "File Type Analysis: ASCII text, with CRLF, LF line terminators (text/plain)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
           "tags": {}
         }
       },
@@ -317,8 +377,26 @@
           },
           "summary": "File Type Analysis: XML 1.0 document, ASCII text (text/xml)",
           "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
         }
       },
+      "tags": {}
+    },
+    "url:http://xlm-shell.example.com/after": {
+      "detections": {},
+      "directives": {
+        "crawl": true
+      },
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
       "tags": {}
     }
   }

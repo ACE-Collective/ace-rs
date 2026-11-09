@@ -170,6 +170,22 @@
           },
           "summary": "File Type Analysis: HTML document, ASCII text (text/html)",
           "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [
+              "http://www.universalgreentech.co.uk/pdf/En_us/ACCOUNT/Invoice-07-17-18",
+              "http://www.universalgreentech.co.uk/pdf/En_us/ACCOUNT/Invoice-07-17-18/?rcpt=&email=lulu.zingzing@company.com"
+            ],
+            "urls_grouped_by_domain": {
+              "universalgreentech.co.uk": [
+                "http://www.universalgreentech.co.uk/pdf/En_us/ACCOUNT/Invoice-07-17-18",
+                "http://www.universalgreentech.co.uk/pdf/En_us/ACCOUNT/Invoice-07-17-18/?rcpt=&email=lulu.zingzing@company.com"
+              ]
+            }
+          },
+          "summary": "URL Extraction Analysis (www.universalgreentech.co.uk)",
+          "tags": {}
         }
       },
       "tags": {}
@@ -916,6 +932,22 @@
       "excluded_analysis": {
         "message_id_analyzer_v2": true
       },
+      "relationships": {},
+      "results": {},
+      "tags": {}
+    },
+    "url:http://www.universalgreentech.co.uk/pdf/En_us/ACCOUNT/Invoice-07-17-18": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
+    },
+    "url:http://www.universalgreentech.co.uk/pdf/En_us/ACCOUNT/Invoice-07-17-18/?rcpt=&email=lulu.zingzing@company.com": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
       "relationships": {},
       "results": {},
       "tags": {}

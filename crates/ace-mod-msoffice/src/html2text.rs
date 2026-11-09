@@ -9,8 +9,8 @@ use std::sync::OnceLock;
 use ace_mod_oletools::py::{PyErr, is_space, strip};
 use ace_mod_oletools::textwrap::wrap_with;
 
-use crate::entities;
 use crate::htmlparser::{self, Handler};
+use ace_pycompat::html::entities;
 
 const BODY_WIDTH: usize = 78;
 const PUNCTUATION: &str = "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~";

@@ -42,7 +42,7 @@
         "pdf": true
       }
     },
-    "file:dfc27045d0b95bad1c844190a7511be99c0f423d37f5c1cbe1a66917664b0a53": {
+    "file:9ec817ad58722d3172432a91d218f27b9e2a08ad0e29fc713ee2343824dfb17c": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -78,6 +78,14 @@
             "type": "PDF document, version 1.7, 1 page(s)"
           },
           "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
           "tags": {}
         }
       },
@@ -119,8 +127,30 @@
           },
           "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s), Unicode text, UTF-8 text, with very long lines (363), with CRLF, LF line terminators (application/pdf)",
           "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [
+              "https://microsoft.com"
+            ],
+            "urls_grouped_by_domain": {
+              "microsoft.com": [
+                "https://microsoft.com"
+              ]
+            }
+          },
+          "summary": "URL Extraction Analysis (microsoft.com)",
+          "tags": {}
         }
       },
+      "tags": {}
+    },
+    "url:https://microsoft.com": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
       "tags": {}
     }
   }

@@ -19,6 +19,7 @@ dependencies = [
  "ace-mod-rdap",
  "ace-mod-snort",
  "ace-mod-splunk",
+ "ace-mod-urls",
  "ace-mod-user",
  "ace-mod-xlm",
  "ace-mod-yara",
@@ -181,6 +182,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "ace-lxml"
+version = "0.1.0"
+dependencies = [
+ "cc",
+]
+
+[[package]]
 name = "ace-mod-archive"
 version = "0.1.0"
 dependencies = [
@@ -259,6 +267,7 @@ name = "ace-mod-msoffice"
 version = "0.1.0"
 dependencies = [
  "ace-mod-oletools",
+ "ace-pycompat",
  "ace-results",
  "ace-sdk",
  "ace-testkit",
@@ -392,6 +401,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "ace-mod-urls"
+version = "0.1.0"
+dependencies = [
+ "ace-lxml",
+ "ace-mod-email",
+ "ace-pycompat",
+ "ace-results",
+ "ace-sdk",
+ "ace-testkit",
+ "ace-urlfinder",
+ "fancy-regex",
+ "regex",
+ "schemars 1.2.3",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tracing",
+]
+
+[[package]]
 name = "ace-mod-user"
 version = "0.1.0"
 dependencies = [
@@ -458,6 +487,7 @@ dependencies = [
  "ace-mod-pdf",
  "ace-mod-snort",
  "ace-mod-splunk",
+ "ace-mod-urls",
  "ace-mod-xlm",
  "ace-mod-yara",
  "ace-pool",
@@ -490,6 +520,16 @@ dependencies = [
  "tracing-opentelemetry",
  "tracing-subscriber",
  "uuid",
+]
+
+[[package]]
+name = "ace-pycompat"
+version = "0.1.0"
+dependencies = [
+ "memchr",
+ "serde",
+ "serde_json",
+ "sha2 0.11.1",
 ]
 
 [[package]]
@@ -626,6 +666,21 @@ dependencies = [
  "tokio",
  "tokio-rustls",
  "uuid",
+]
+
+[[package]]
+name = "ace-urlfinder"
+version = "0.1.0"
+dependencies = [
+ "ace-lxml",
+ "ace-mod-oletools",
+ "ace-pycompat",
+ "base64 0.22.1",
+ "magic-sys",
+ "memchr",
+ "regex",
+ "rustc-hash 2.1.3",
+ "serde_json",
 ]
 
 [[package]]

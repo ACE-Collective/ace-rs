@@ -1,0 +1,34 @@
+From: Support <support@example.com>
+To: bob@example.net
+Subject: News
+Date: Sun, 01 Nov 2026 12:00:00 +0000
+Message-ID: <url_newsletter@example.com>
+MIME-Version: 1.0
+Content-Type: multipart/alternative; boundary="url_newsletter-boundary"
+
+--url_newsletter-boundary
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+Read online: https://news.example.com/online
+
+--url_newsletter-boundary
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+<html><body><p>This week</p><ul><li><a href=3D"https://news.example.com/a">ne=
+ws.example.com</a></li><li><a href=3D"https://news.example.com/b">news.exampl=
+e.com</a></li><li><a href=3D"https://news.example.com/c">news.example.com</a>=
+</li><li><a href=3D"https://shop.example.net/sale">shop.example.net</a></li><=
+li><a href=3D"https://shop.example.net/cart">shop.example.net</a></li><li><a =
+href=3D"https://blog.example.org/post/1">blog.example.org</a></li><li><a href=
+=3D"https://cdn.example.org/logo.png">cdn.example.org</a></li><li><a href=3D"=
+https://track.example.info/o?u=3Dhttps%3A%2F%2Fland.example.co.uk%2Fx">track.=
+example.info</a></li><li><a href=3D"https://198.51.100.4/x">198.51.100.4</a><=
+/li><li><a href=3D"https://www.w3.org/TR/html4">www.w3.org</a></li><li><a hre=
+f=3D"https://mail.example.com/unsub">mail.example.com</a></li><li><a href=3D"=
+https://news.example.com/d">news.example.com</a></li><li><a href=3D"https://n=
+ews.example.com/e">news.example.com</a></li></ul></body></html>
+
+--url_newsletter-boundary--

@@ -1,0 +1,130 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "text/html",
+        "type": "HTML document, ASCII text"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: HTML document, ASCII text (text/html)",
+      "tags": []
+    },
+    {
+      "class": "URLExtractionAnalysis",
+      "details": {
+        "urls": [
+          "http://api.example.net/v1?x=",
+          "https://js-file.example.com/a/b",
+          "https://js-dw.example.com/x",
+          "https://js-file.example.com/a\\u002Fb"
+        ],
+        "urls_grouped_by_domain": {
+          "example.com": [
+            "https://js-file.example.com/a/b",
+            "https://js-dw.example.com/x",
+            "https://js-file.example.com/a\\u002Fb"
+          ],
+          "example.net": [
+            "http://api.example.net/v1?x="
+          ]
+        }
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.url_extraction:URLExtractionAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "url",
+          "value": "http://api.example.net/v1?x="
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "url",
+          "value": "https://js-file.example.com/a/b"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "url",
+          "value": "https://js-dw.example.com/x"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "url",
+          "value": "https://js-file.example.com/a\\u002Fb"
+        }
+      ],
+      "summary": "URL Extraction Analysis (api.example.net, js-dw.example.com, js-file.example.com)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [
+      "extract_urls"
+    ],
+    "label": "fixtures/urls/script.js with ['extract_urls'] and meta tags ['type=script.javascript']",
+    "meta_tags": [
+      "type=script.javascript"
+    ],
+    "observable": {
+      "file_path": "script.js",
+      "size": 159,
+      "type": "file",
+      "value": "94405c77c43ceddbbd726cdddbd0ca46e74e8e48bdaffca8648d4e67a3849e1a"
+    }
+  },
+  "module": "url_extraction",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "extract_urls",
+      "yara_meta:type=document.html",
+      "yara_meta:type=script.javascript"
+    ],
+    "excluded_analysis": [],
+    "file_path": "script.js",
+    "relationships": [],
+    "size": 159,
+    "tags": [],
+    "type": "file",
+    "value": "94405c77c43ceddbbd726cdddbd0ca46e74e8e48bdaffca8648d4e67a3849e1a",
+    "yara_meta": [
+      "type=document.html",
+      "type=script.javascript"
+    ]
+  }
+}

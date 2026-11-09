@@ -1,0 +1,535 @@
+{
+  "form": 1,
+  "observables": {
+    "email_conversation:support@example.com|bob@example.net": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "email_conversation_frequency_analyzer": {
+          "details": {
+            "dest_count": null,
+            "source_count": 0
+          },
+          "summary": "Email Conversation Frequency Analysis - first time received",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "new_sender": true
+      }
+    },
+    "email_from:support@example.com": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
+    },
+    "email_subject:News": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
+    },
+    "email_to:bob@example.net": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
+    },
+    "file:372f9639c2510d2c31cff9261e611aa57f139546a7e9c7f1cd923d9edf07cf87": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "email_analyzer": true
+      },
+      "paths": {
+        "email.rfc822.combined": {
+          "type=email": true,
+          "type=email.combined": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": true,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "message/rfc822",
+            "type": "news or mail, ASCII text, with very long lines (959)"
+          },
+          "summary": "File Type Analysis: news or mail, ASCII text, with very long lines (959) (message/rfc822) (email)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "email": true
+      }
+    },
+    "file:71c2b71030bea5a106315fb1a75f56241b967e7b4ab330f8a9e8e6f3d8dab17d": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "email.rfc822": {
+          "type=email": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "email_analyzer": {
+          "details": {
+            "email": {
+              "authentication_failed": false,
+              "compauth_reason": null,
+              "compauth_result": null,
+              "decoded_subject": "News",
+              "dkim_result": null,
+              "dmarc_result": null,
+              "env_mail_from": null,
+              "env_rcpt_to": [],
+              "from": "Support <support@example.com>",
+              "from_address": "support@example.com",
+              "headers": [
+                [
+                  "From",
+                  "Support <support@example.com>"
+                ],
+                [
+                  "To",
+                  "bob@example.net"
+                ],
+                [
+                  "Subject",
+                  "News"
+                ],
+                [
+                  "Date",
+                  "Sun, 01 Nov 2026 12:00:00 +0000"
+                ],
+                [
+                  "Message-ID",
+                  "<url_newsletter@example.com>"
+                ],
+                [
+                  "MIME-Version",
+                  "1.0"
+                ],
+                [
+                  "Content-Type",
+                  "multipart/alternative; boundary=\"url_newsletter-boundary\""
+                ]
+              ],
+              "internal_org_sender": false,
+              "is_anonymous_direct_send": false,
+              "log_entry": {
+                "attachment_count": 2,
+                "attachment_hashes": [
+                  "bcbef8a2c3f995dcb0a73200f012fc873099ce83f66bb45419a51e19f1ef37cb",
+                  "fef02c6e4daa6da7271c777c51157f847a8ec45ed726a0eb4ff38789f77317c5"
+                ],
+                "attachment_names": [
+                  "email.rfc822.unknown_text_plain_000.txt",
+                  "email.rfc822.unknown_text_html_000.html"
+                ],
+                "attachment_sizes": [
+                  45,
+                  960
+                ],
+                "attachment_types": [
+                  "text/plain",
+                  "text/html"
+                ],
+                "authentication_failed": false,
+                "bcc": [],
+                "cc": [],
+                "compauth_reason": null,
+                "compauth_result": null,
+                "dkim_result": null,
+                "dmarc_result": null,
+                "env_mail_from": null,
+                "env_rcpt_to": [],
+                "first_received": null,
+                "headers": [
+                  "From: Support <support@example.com>",
+                  "To: bob@example.net",
+                  "Subject: News",
+                  "Date: Sun, 01 Nov 2026 12:00:00 +0000",
+                  "Message-ID: <url_newsletter@example.com>",
+                  "MIME-Version: 1.0",
+                  "Content-Type: multipart/alternative; boundary=\"url_newsletter-boundary\""
+                ],
+                "in_reply_to": null,
+                "internal_org_sender": false,
+                "is_anonymous_direct_send": false,
+                "last_received": null,
+                "mail_from": "Support <support@example.com>",
+                "mail_from_is_local": false,
+                "mail_to": [
+                  "bob@example.net"
+                ],
+                "message_directionality": null,
+                "message_id": "<url_newsletter@example.com>",
+                "originating_ip": null,
+                "path": [],
+                "refereneces": null,
+                "reply_to": null,
+                "size": 1558,
+                "spf_result": null,
+                "spoofed_internal": false,
+                "subject": "News",
+                "subject_raw": "News",
+                "thread_index": null,
+                "thread_topic": null,
+                "user_agent": null,
+                "x_mailer": null,
+                "x_sender": null
+              },
+              "mail_from_is_local": false,
+              "message-id": "<url_newsletter@example.com>",
+              "message_directionality": null,
+              "spf_result": null,
+              "spoofed_internal": false,
+              "subject": "News",
+              "to": [
+                "bob@example.net"
+              ],
+              "to_addresses": [
+                "bob@example.net"
+              ]
+            },
+            "extraction_errors": [],
+            "parsing_error": null
+          },
+          "summary": "Email Analysis: From Support <support@example.com> To bob@example.net Subject News",
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": true,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "message/rfc822",
+            "type": "news or mail, ASCII text"
+          },
+          "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "email": true
+      }
+    },
+    "file:7a420e387e922bf0dbc9557980bc942f06f85de1576ab535789d12a80649daa3": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "email_analyzer": true
+      },
+      "paths": {
+        "email.rfc822.headers": {
+          "type=email": true,
+          "type=email.headers": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": true,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "message/rfc822",
+            "type": "news or mail, ASCII text"
+          },
+          "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "email": true
+      }
+    },
+    "file:bcbef8a2c3f995dcb0a73200f012fc873099ce83f66bb45419a51e19f1ef37cb": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true,
+        "preview": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "email.rfc822.unknown_text_plain_000.txt": {
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [
+              "https://news.example.com/online"
+            ],
+            "urls_grouped_by_domain": {
+              "example.com": [
+                "https://news.example.com/online"
+              ]
+            }
+          },
+          "summary": "URL Extraction Analysis (news.example.com)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:fef02c6e4daa6da7271c777c51157f847a8ec45ed726a0eb4ff38789f77317c5": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true,
+        "render": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "email.rfc822.unknown_text_html_000.html": {
+          "type=document.html": true,
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/html",
+            "type": "HTML document, ASCII text, with very long lines (959)"
+          },
+          "summary": "File Type Analysis: HTML document, ASCII text, with very long lines (959) (text/html)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [
+              "https://198.51.100.4/x",
+              "https://land.example.co.uk/x",
+              "https://track.example.info/o?u=https%3A%2F%2Fland.example.co.uk%2Fx",
+              "https://blog.example.org/post/1",
+              "https://shop.example.net/sale",
+              "https://shop.example.net/cart",
+              "https://news.example.com/a",
+              "https://news.example.com/b",
+              "https://news.example.com/d",
+              "https://news.example.com/c",
+              "https://mail.example.com/unsub",
+              "https://news.example.com/e",
+              "https://cdn.example.org/logo.png"
+            ],
+            "urls_grouped_by_domain": {
+              "example.co.uk": [
+                "https://land.example.co.uk/x"
+              ],
+              "example.com": [
+                "https://news.example.com/a",
+                "https://news.example.com/b",
+                "https://news.example.com/d",
+                "https://news.example.com/c",
+                "https://mail.example.com/unsub",
+                "https://news.example.com/e"
+              ],
+              "example.info": [
+                "https://track.example.info/o?u=https%3A%2F%2Fland.example.co.uk%2Fx"
+              ],
+              "example.net": [
+                "https://shop.example.net/sale",
+                "https://shop.example.net/cart"
+              ],
+              "example.org": [
+                "https://cdn.example.org/logo.png",
+                "https://blog.example.org/post/1"
+              ],
+              "no_tld": [
+                "https://198.51.100.4/x"
+              ]
+            }
+          },
+          "summary": "URL Extraction Analysis (198.51.100.4, blog.example.org, cdn.example.org, land.example.co.uk, mail.example.com, news.example.com, shop.example.net, track.example.info)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "message_id:<url_newsletter@example.com>": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "message_id_analyzer_v2": true
+      },
+      "relationships": {},
+      "results": {},
+      "tags": {}
+    },
+    "url:https://198.51.100.4/x": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
+    },
+    "url:https://blog.example.org/post/1": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
+    },
+    "url:https://land.example.co.uk/x": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
+    },
+    "url:https://mail.example.com/unsub": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
+    },
+    "url:https://news.example.com/a": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
+    },
+    "url:https://news.example.com/b": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
+    },
+    "url:https://news.example.com/c": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
+    },
+    "url:https://news.example.com/d": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
+    },
+    "url:https://news.example.com/e": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
+    },
+    "url:https://news.example.com/online": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
+    },
+    "url:https://shop.example.net/cart": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
+    },
+    "url:https://shop.example.net/sale": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
+    },
+    "url:https://track.example.info/o?u=https%3A%2F%2Fland.example.co.uk%2Fx": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
+    }
+  }
+}

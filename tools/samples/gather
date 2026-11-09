@@ -387,6 +387,44 @@ def make_e2e_email(path):
     path.write_bytes(message.as_bytes())
 
 
+def make_url_emails(directory):
+    """An email for url_extraction (PLAN.md 7.5), whose bodies the email module marks extract_urls: a
+    newsletter with more links than the module makes observables of. Every byte is fixed."""
+    made = []
+    def write(name, subject, text, html=None):
+        message = email.message.EmailMessage()
+        message["From"] = "Support <support@example.com>"
+        message["To"] = "bob@example.net"
+        message["Subject"] = subject
+        message["Date"] = "Sun, 01 Nov 2026 12:00:00 +0000"
+        message["Message-ID"] = f"<{name}@example.com>"
+        message.set_content(text, cte="quoted-printable" if html is None else None)
+        if html is not None:
+            message.add_alternative(html, subtype="html")
+            message.set_boundary(f"{name}-boundary")
+        path = directory / f"{name}.email.rfc822"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(message.as_bytes())
+        made.append(path)
+    links = "".join(
+        f'<li><a href="https://{host}/{path}">{host}</a></li>'
+        for host, path in [
+            ("news.example.com", "a"), ("news.example.com", "b"), ("news.example.com", "c"),
+            ("shop.example.net", "sale"), ("shop.example.net", "cart"),
+            ("blog.example.org", "post/1"), ("cdn.example.org", "logo.png"),
+            ("track.example.info", "o?u=https%3A%2F%2Fland.example.co.uk%2Fx"),
+            ("198.51.100.4", "x"), ("www.w3.org", "TR/html4"), ("mail.example.com", "unsub"),
+            ("news.example.com", "d"), ("news.example.com", "e"),
+        ]
+    )
+    write(
+        "url_newsletter", "News",
+        "Read online: https://news.example.com/online\n",
+        f"<html><body><p>This week</p><ul>{links}</ul></body></html>",
+    )
+    return made
+
+
 def make_office_edges(directory, macro_docm):
     """Files for what ace3's olevba decides before it opens a file and when it can't, which ace3's
     fixtures don't reach. Every byte is fixed. `macro_docm` gives the last one a real VBA project."""
@@ -739,6 +777,9 @@ def main():
     samples.append(
         entry(e2e_email, ["email", "archive/zip"], "made by tools/samples/gather: Python email")
     )
+
+    for path in make_url_emails(SAMPLES / "ace4" / "email"):
+        samples.append(entry(path, ["email"], "made by tools/samples/gather: Python email"))
 
     docm = SAMPLES / "ace3" / "office" / "mortgage_payment-0873821-0565.docm"
     for path in make_office_edges(SAMPLES / "ace4" / "office", docm):

@@ -1,0 +1,79 @@
+{
+  "analysis_type": "url_extraction_analysis",
+  "schema_version": 1,
+  "details": {
+    "urls": [
+      "https://visible.example.org/page",
+      "https://base.example.com/dir",
+      "https://base.example.com/dir/login.php?u=1",
+      "https://js.example.com/s",
+      "https://post.example.com/submit",
+      "https://redirect.example.com/go",
+      "https://refresh.example.com/next",
+      "https://base.example.com/img/a.png",
+      "https://cdn.example.net/c.png",
+      "https://css.example.com/bg.gif"
+    ],
+    "urls_grouped_by_domain": {
+      "example.com": [
+        "https://base.example.com/dir",
+        "https://base.example.com/dir/login.php?u=1",
+        "https://base.example.com/img/a.png",
+        "https://css.example.com/bg.gif",
+        "https://js.example.com/s",
+        "https://post.example.com/submit",
+        "https://redirect.example.com/go",
+        "https://refresh.example.com/next"
+      ],
+      "example.net": [
+        "https://cdn.example.net/c.png"
+      ],
+      "example.org": [
+        "https://visible.example.org/page"
+      ]
+    }
+  },
+  "summary": "URL Extraction Analysis (base.example.com, cdn.example.net, css.example.com, js.example.com, post.example.com, redirect.example.com, refresh.example.com, visible.example.org)",
+  "observables": [
+    {
+      "type": "url",
+      "value": "https://visible.example.org/page"
+    },
+    {
+      "type": "url",
+      "value": "https://base.example.com/dir"
+    },
+    {
+      "type": "url",
+      "value": "https://base.example.com/dir/login.php?u=1"
+    },
+    {
+      "type": "url",
+      "value": "https://js.example.com/s"
+    },
+    {
+      "type": "url",
+      "value": "https://post.example.com/submit"
+    },
+    {
+      "type": "url",
+      "value": "https://redirect.example.com/go"
+    },
+    {
+      "type": "url",
+      "value": "https://refresh.example.com/next"
+    },
+    {
+      "type": "url",
+      "value": "https://base.example.com/img/a.png"
+    },
+    {
+      "type": "url",
+      "value": "https://cdn.example.net/c.png"
+    },
+    {
+      "type": "url",
+      "value": "https://css.example.com/bg.gif"
+    }
+  ]
+}

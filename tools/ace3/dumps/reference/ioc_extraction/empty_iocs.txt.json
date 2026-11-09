@@ -1,0 +1,48 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "IOCExtractionAnalysis",
+      "details": {
+        "ignored": [],
+        "iocs": {},
+        "total_count": 0
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.ioc_extraction:IOCExtractionAnalysis",
+      "observables": [],
+      "summary": null,
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [
+      "extract_iocs"
+    ],
+    "label": "fixtures/iocs/empty_iocs.txt with extract_iocs",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "empty_iocs.txt",
+      "size": 17,
+      "type": "file",
+      "value": "88b6b4126e83812de80250d83c61b7ab791acebef851cfdc376f647b27aaf12c"
+    }
+  },
+  "module": "ioc_extraction",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "extract_iocs"
+    ],
+    "excluded_analysis": [],
+    "file_path": "empty_iocs.txt",
+    "relationships": [],
+    "size": 17,
+    "tags": [],
+    "type": "file",
+    "value": "88b6b4126e83812de80250d83c61b7ab791acebef851cfdc376f647b27aaf12c",
+    "yara_meta": []
+  }
+}

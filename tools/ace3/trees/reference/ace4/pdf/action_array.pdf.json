@@ -1,7 +1,7 @@
 {
   "form": 1,
   "observables": {
-    "file:6a642b62f305bf97bc2e3a524d0929b4efbcdb623bbd82717bc536881b9893e5": {
+    "file:102bc953ec979572574d00a31480ac02e3b752ae12cee05a72062e88e43ae22a": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -37,6 +37,14 @@
             "type": "PDF document, version 1.7, 1 page(s)"
           },
           "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
           "tags": {}
         }
       },
@@ -80,6 +88,20 @@
           },
           "summary": "File Type Analysis: ASCII text, with no line terminators (text/plain)",
           "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [
+              "https://example.com/kept"
+            ],
+            "urls_grouped_by_domain": {
+              "example.com": [
+                "https://example.com/kept"
+              ]
+            }
+          },
+          "summary": "URL Extraction Analysis (example.com)",
+          "tags": {}
         }
       },
       "tags": {}
@@ -117,6 +139,20 @@
             "type": "PDF document, version 1.7, 1 page(s), Unicode text, UTF-8 text"
           },
           "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s), Unicode text, UTF-8 text (application/pdf)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [
+              "https://example.com/kept"
+            ],
+            "urls_grouped_by_domain": {
+              "example.com": [
+                "https://example.com/kept"
+              ]
+            }
+          },
+          "summary": "URL Extraction Analysis (example.com)",
           "tags": {}
         }
       },
@@ -162,6 +198,14 @@
       "tags": {
         "pdf": true
       }
+    },
+    "url:https://example.com/kept": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
     }
   }
 }

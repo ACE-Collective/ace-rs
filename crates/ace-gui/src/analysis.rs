@@ -44,6 +44,7 @@ use ace_results::types::brocess::{
 };
 use ace_results::types::dns::FqdnAnalysis;
 use ace_results::types::email::EmailAnalysis;
+use ace_results::types::ioc_extraction::IocExtractionAnalysis;
 use ace_results::types::msoffice::MsofficeEncryptionAnalysis;
 use ace_results::types::nrd::NrdAnalysis;
 use ace_results::types::olevba::{OlevbaAnalysis, OlevbaMacro};
@@ -53,6 +54,7 @@ use ace_results::types::rdap::RdapAnalysis;
 use ace_results::types::rtf::RtfOleObjectAnalysis;
 use ace_results::types::snort::SnortSignatureAnalysis;
 use ace_results::types::splunk::{SplunkApiAnalysis, SplunkClickerDetectionAnalysis};
+use ace_results::types::url_extraction::UrlExtractionAnalysis;
 use ace_results::types::user::UserAnalysis;
 use ace_results::types::xlm::XlmDeobfuscatorAnalysis;
 use ace_results::types::yara::{ScanResult, YaraScanResults};
@@ -174,6 +176,8 @@ impl Views {
             .with(ViewEntry::of::<XlmDeobfuscatorAnalysis>())
             .with(ViewEntry::of::<PCodeAnalysis>())
             .with(ViewEntry::of::<PdfAnalysis>())
+            .with(ViewEntry::of::<UrlExtractionAnalysis>())
+            .with(ViewEntry::of::<IocExtractionAnalysis>())
     }
 
     /// These views with `entry`, which takes the place of any view of the same type and version, so a
@@ -1320,6 +1324,68 @@ impl AnalysisView for OlevbaAnalysis {
     type View<'a> = OlevbaView<'a>;
     fn view(&self) -> OlevbaView<'_> {
         OlevbaView { analysis: self }
+    }
+}
+
+/// `url_extraction_analysis`: the URLs in the order the module ranked them, then by domain.
+#[derive(Debug, Template)]
+#[template(path = "analysis/url_extraction.html")]
+pub struct UrlExtractionView<'a> {
+    pub analysis: &'a UrlExtractionAnalysis,
+}
+
+impl UrlExtractionView<'_> {
+    pub fn urls(&self) -> Shown<'_, String> {
+        first(&self.analysis.urls, MAX_ITEMS)
+    }
+
+    /// Each domain with its count and its URLs, at most `MAX_ITEMS` URLs in all.
+    pub fn domains(&self) -> Vec<(&str, usize, Shown<'_, String>)> {
+        let mut left = MAX_ITEMS;
+        self.analysis
+            .urls_grouped_by_domain
+            .iter()
+            .map(|(domain, urls)| {
+                let shown = first(urls, left);
+                left -= shown.items.len();
+                (domain.as_str(), urls.len(), shown)
+            })
+            .collect()
+    }
+}
+
+impl AnalysisView for UrlExtractionAnalysis {
+    type View<'a> = UrlExtractionView<'a>;
+    fn view(&self) -> UrlExtractionView<'_> {
+        UrlExtractionView { analysis: self }
+    }
+}
+
+/// `ioc_extraction_analysis`: the indicators by type, and the ones an ignore pattern left out.
+#[derive(Debug, Template)]
+#[template(path = "analysis/ioc_extraction.html")]
+pub struct IocExtractionView<'a> {
+    pub analysis: &'a IocExtractionAnalysis,
+}
+
+impl IocExtractionView<'_> {
+    pub fn kinds(&self) -> Vec<(&str, Shown<'_, String>)> {
+        self.analysis
+            .iocs
+            .iter()
+            .map(|(kind, values)| (kind.as_str(), first(values, MAX_ITEMS)))
+            .collect()
+    }
+
+    pub fn ignored(&self) -> Shown<'_, [String; 3]> {
+        first(&self.analysis.ignored, MAX_ITEMS)
+    }
+}
+
+impl AnalysisView for IocExtractionAnalysis {
+    type View<'a> = IocExtractionView<'a>;
+    fn view(&self) -> IocExtractionView<'_> {
+        IocExtractionView { analysis: self }
     }
 }
 

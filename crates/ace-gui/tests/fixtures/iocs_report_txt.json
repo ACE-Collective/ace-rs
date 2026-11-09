@@ -1,0 +1,235 @@
+{
+  "analysis_type": "ioc_extraction_analysis",
+  "schema_version": 1,
+  "details": {
+    "ignored": [
+      [
+        "md5",
+        "aAbBcCdDeEfF00112233445566778899",
+        "(?=.*[a-f])(?=.*[A-F])"
+      ]
+    ],
+    "iocs": {
+      "cve": [
+        "CVE-2024-12345",
+        "cve-2021-44228"
+      ],
+      "email_address": [
+        "attacker@mail.example.org",
+        "ops@corp.example.com"
+      ],
+      "ip": [
+        "198.51.100.23",
+        "192.0.2.1",
+        "2001:db8::1",
+        "fe80::1",
+        "::ffff:192"
+      ],
+      "md5": [
+        "d41d8cd98f00b204e9800998ecf8427f",
+        "44D88612FEA8A8F36DE82E1278ABB02F"
+      ],
+      "sha1": [
+        "da39a3ee5e6b4b0d3255bfef95601890afd80709"
+      ],
+      "sha256": [
+        "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B856"
+      ],
+      "url": [
+        "https://bad.example.net/x",
+        "https://evil.example.com/gate.php"
+      ]
+    },
+    "total_count": 15
+  },
+  "summary": "Extracted 15 IOCs (url: 2, ip: 5, md5: 2, sha1: 1, sha256: 1, email_address: 2, cve: 2)",
+  "observables": [
+    {
+      "type": "url",
+      "value": "https://bad.example.net/x",
+      "relationships": [
+        {
+          "type": "extracted_from",
+          "target": {
+            "type": "file",
+            "value": "92d8a628de2af73f2fb8271dd9c6075083afd9a2f23c114d475fb55c19f23a07"
+          }
+        }
+      ],
+      "display_type": "IOC"
+    },
+    {
+      "type": "url",
+      "value": "https://evil.example.com/gate.php",
+      "relationships": [
+        {
+          "type": "extracted_from",
+          "target": {
+            "type": "file",
+            "value": "92d8a628de2af73f2fb8271dd9c6075083afd9a2f23c114d475fb55c19f23a07"
+          }
+        }
+      ],
+      "display_type": "IOC"
+    },
+    {
+      "type": "ip",
+      "value": "198.51.100.23",
+      "relationships": [
+        {
+          "type": "extracted_from",
+          "target": {
+            "type": "file",
+            "value": "92d8a628de2af73f2fb8271dd9c6075083afd9a2f23c114d475fb55c19f23a07"
+          }
+        }
+      ],
+      "display_type": "IOC"
+    },
+    {
+      "type": "ip",
+      "value": "192.0.2.1",
+      "relationships": [
+        {
+          "type": "extracted_from",
+          "target": {
+            "type": "file",
+            "value": "92d8a628de2af73f2fb8271dd9c6075083afd9a2f23c114d475fb55c19f23a07"
+          }
+        }
+      ],
+      "display_type": "IOC"
+    },
+    {
+      "type": "ip",
+      "value": "2001:db8::1",
+      "relationships": [
+        {
+          "type": "extracted_from",
+          "target": {
+            "type": "file",
+            "value": "92d8a628de2af73f2fb8271dd9c6075083afd9a2f23c114d475fb55c19f23a07"
+          }
+        }
+      ],
+      "display_type": "IOC"
+    },
+    {
+      "type": "ip",
+      "value": "fe80::1",
+      "relationships": [
+        {
+          "type": "extracted_from",
+          "target": {
+            "type": "file",
+            "value": "92d8a628de2af73f2fb8271dd9c6075083afd9a2f23c114d475fb55c19f23a07"
+          }
+        }
+      ],
+      "display_type": "IOC"
+    },
+    {
+      "type": "ip",
+      "value": "::ffff:192",
+      "relationships": [
+        {
+          "type": "extracted_from",
+          "target": {
+            "type": "file",
+            "value": "92d8a628de2af73f2fb8271dd9c6075083afd9a2f23c114d475fb55c19f23a07"
+          }
+        }
+      ],
+      "display_type": "IOC"
+    },
+    {
+      "type": "md5",
+      "value": "d41d8cd98f00b204e9800998ecf8427f",
+      "relationships": [
+        {
+          "type": "extracted_from",
+          "target": {
+            "type": "file",
+            "value": "92d8a628de2af73f2fb8271dd9c6075083afd9a2f23c114d475fb55c19f23a07"
+          }
+        }
+      ],
+      "display_type": "IOC"
+    },
+    {
+      "type": "md5",
+      "value": "44D88612FEA8A8F36DE82E1278ABB02F",
+      "relationships": [
+        {
+          "type": "extracted_from",
+          "target": {
+            "type": "file",
+            "value": "92d8a628de2af73f2fb8271dd9c6075083afd9a2f23c114d475fb55c19f23a07"
+          }
+        }
+      ],
+      "display_type": "IOC"
+    },
+    {
+      "type": "sha256",
+      "value": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B856",
+      "relationships": [
+        {
+          "type": "extracted_from",
+          "target": {
+            "type": "file",
+            "value": "92d8a628de2af73f2fb8271dd9c6075083afd9a2f23c114d475fb55c19f23a07"
+          }
+        }
+      ],
+      "display_type": "IOC"
+    },
+    {
+      "type": "email_address",
+      "value": "attacker@mail.example.org",
+      "relationships": [
+        {
+          "type": "extracted_from",
+          "target": {
+            "type": "file",
+            "value": "92d8a628de2af73f2fb8271dd9c6075083afd9a2f23c114d475fb55c19f23a07"
+          }
+        }
+      ],
+      "display_type": "IOC"
+    },
+    {
+      "type": "email_address",
+      "value": "ops@corp.example.com",
+      "relationships": [
+        {
+          "type": "extracted_from",
+          "target": {
+            "type": "file",
+            "value": "92d8a628de2af73f2fb8271dd9c6075083afd9a2f23c114d475fb55c19f23a07"
+          }
+        }
+      ],
+      "display_type": "IOC"
+    }
+  ],
+  "files": [
+    {
+      "path": "report.txt.refanged.txt",
+      "sha256": "584c4e5d9c98fbfb4a82e9b1729f1d72c0b2fbfc53c5311c198a3a49e912b1a4",
+      "size": 514,
+      "yara_meta": [
+        "type=document.text.refanged"
+      ],
+      "relationships": [
+        {
+          "type": "extracted_from",
+          "target": {
+            "type": "file",
+            "value": "92d8a628de2af73f2fb8271dd9c6075083afd9a2f23c114d475fb55c19f23a07"
+          }
+        }
+      ]
+    }
+  ]
+}

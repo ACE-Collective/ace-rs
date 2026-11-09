@@ -1,0 +1,9 @@
+#!/bin/sh
+# Regenerates src/tables/*.rs from the Python in ace3's dev container (ace-dev-1), which runs
+# Python 3.14.10 with the packages ace3 uses. The generators only read; each writes to stdout.
+set -eu
+cd "$(dirname "$0")/.."
+for name in unicode stringprep idnadata regex_classes entities; do
+    cat tables/common.py "tables/$name.py" | docker exec -i ace-dev-1 /venv/bin/python3 - > "src/tables/$name.rs.new"
+    mv "src/tables/$name.rs.new" "src/tables/$name.rs"
+done

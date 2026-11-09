@@ -33,6 +33,26 @@
           },
           "summary": "File Type Analysis: Unicode text, UTF-8 text (text/plain)",
           "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [
+              "HTTP://Upper.example.com/a b",
+              "https://xlm-plain.example.com/a?b=1",
+              "HTTP://Upper.example.com/a",
+              "http://xlm-built.example.com/stage2.exe"
+            ],
+            "urls_grouped_by_domain": {
+              "example.com": [
+                "HTTP://Upper.example.com/a b",
+                "https://xlm-plain.example.com/a?b=1",
+                "HTTP://Upper.example.com/a",
+                "http://xlm-built.example.com/stage2.exe"
+              ]
+            }
+          },
+          "summary": "URL Extraction Analysis (upper.example.com, xlm-built.example.com, xlm-plain.example.com)",
+          "tags": {}
         }
       },
       "tags": {}
@@ -141,6 +161,14 @@
           },
           "summary": "File Type Analysis: XML 1.0 document, ASCII text (text/xml)",
           "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -176,6 +204,14 @@
             "type": "XML 1.0 document, ASCII text"
           },
           "summary": "File Type Analysis: XML 1.0 document, ASCII text (text/xml)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
           "tags": {}
         }
       },
@@ -213,6 +249,14 @@
           },
           "summary": "File Type Analysis: XML 1.0 document, ASCII text (text/xml)",
           "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -248,6 +292,24 @@
             "type": "XML 1.0 document, Unicode text, UTF-8 text, with very long lines (579)"
           },
           "summary": "File Type Analysis: XML 1.0 document, Unicode text, UTF-8 text, with very long lines (579) (text/xml)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [
+              "HTTP://Upper.example.com/a b",
+              "HTTP://Upper.example.com/a",
+              "https://xlm-plain.example.com/a?b=1"
+            ],
+            "urls_grouped_by_domain": {
+              "example.com": [
+                "HTTP://Upper.example.com/a b",
+                "HTTP://Upper.example.com/a",
+                "https://xlm-plain.example.com/a?b=1"
+              ]
+            }
+          },
+          "summary": "URL Extraction Analysis (upper.example.com, xlm-plain.example.com)",
           "tags": {}
         }
       },
@@ -285,6 +347,24 @@
           },
           "summary": "File Type Analysis: Unicode text, UTF-8 text, with very long lines (405) (text/plain)",
           "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [
+              "HTTP://Upper.example.com/a b",
+              "https://xlm-plain.example.com/a?b=1",
+              "HTTP://Upper.example.com/a"
+            ],
+            "urls_grouped_by_domain": {
+              "example.com": [
+                "HTTP://Upper.example.com/a b",
+                "https://xlm-plain.example.com/a?b=1",
+                "HTTP://Upper.example.com/a"
+              ]
+            }
+          },
+          "summary": "URL Extraction Analysis (upper.example.com, xlm-plain.example.com)",
+          "tags": {}
         }
       },
       "tags": {}
@@ -321,8 +401,26 @@
           },
           "summary": "File Type Analysis: XML 1.0 document, ASCII text (text/xml)",
           "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
         }
       },
+      "tags": {}
+    },
+    "url:HTTP://Upper.example.com/a": {
+      "detections": {},
+      "directives": {
+        "crawl": true
+      },
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
       "tags": {}
     },
     "url:HTTP://Upper.example.com/a b": {

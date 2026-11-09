@@ -133,6 +133,17 @@ pub fn fromstring(data: &[u8]) -> PyResult<Element> {
     Parser::new(data).parse()
 }
 
+/// `xml.etree.ElementTree.fromstring(text)` for a str: pyexpat is given the text's UTF-8 and told
+/// it's UTF-8, so the document's own declared encoding is ignored.
+pub fn fromstring_str(text: &str) -> PyResult<Element> {
+    if text.len() > i32::MAX as usize {
+        return Err(PyErr::new("OverflowError", "size does not fit in an int"));
+    }
+    let mut parser = Parser::new(text.as_bytes());
+    parser.str_input = true;
+    parser.parse()
+}
+
 /// `untangle.parse(StringIO(text))`'s parse: `xml.sax` on defusedxml, so no namespaces, each name as
 /// written, an element's `text` all the text directly in it, the document's own encoding ignored because
 /// pyexpat is given a str, and an entity declaration refused.
@@ -3614,12 +3625,16 @@ struct Parser<'a> {
     text_open: bool,
     root: Option<Element>,
     sax: bool,
+    /// The document came as a str, so pyexpat set the encoding to UTF-8 and its declaration is
+    /// ignored, as `sax_parse`'s is.
+    str_input: bool,
     elements: usize,
 }
 
 impl<'a> Parser<'a> {
     fn new(data: &'a [u8]) -> Parser<'a> {
         let sax = false;
+        let str_input = false;
         let mut prefix_names = HashMap::new();
         prefix_names.insert(Box::from(&b"xml"[..]), 1);
         let mut xml_uri = XML_NAMESPACE.to_vec();
@@ -3684,6 +3699,7 @@ impl<'a> Parser<'a> {
             text_open: false,
             root: None,
             sax,
+            str_input,
             elements: 0,
         }
     }
@@ -4024,7 +4040,7 @@ impl<'a> Parser<'a> {
         if decl.standalone {
             self.standalone = true;
         }
-        if self.sax {
+        if self.sax || self.str_input {
             return Ok(());
         }
         if let Some(named) = decl.new_encoding {

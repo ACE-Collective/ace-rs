@@ -1,0 +1,113 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "IOCExtractionAnalysis",
+      "details": {
+        "ignored": [],
+        "iocs": {
+          "email_address": [
+            "user@example.com"
+          ],
+          "ip": [
+            "192.0.2.10"
+          ],
+          "url": [
+            "https://plain.example.com/a"
+          ]
+        },
+        "total_count": 3
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.ioc_extraction:IOCExtractionAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [],
+          "display_type": "IOC",
+          "excluded_analysis": [],
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "bb92ba94bd8d1a027379ecb2a28f2e96da2f15275bf9f6022357c4a219561d38"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "tags": [],
+          "type": "url",
+          "value": "https://plain.example.com/a"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "display_type": "IOC",
+          "excluded_analysis": [],
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "bb92ba94bd8d1a027379ecb2a28f2e96da2f15275bf9f6022357c4a219561d38"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "tags": [],
+          "type": "ip",
+          "value": "192.0.2.10"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "display_type": "IOC",
+          "excluded_analysis": [],
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "bb92ba94bd8d1a027379ecb2a28f2e96da2f15275bf9f6022357c4a219561d38"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "tags": [],
+          "type": "email_address",
+          "value": "user@example.com"
+        }
+      ],
+      "summary": "Extracted 3 IOCs (url: 1, ip: 1, email_address: 1)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [
+      "extract_iocs"
+    ],
+    "label": "fixtures/iocs/plain.txt with extract_iocs",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "plain.txt",
+      "size": 90,
+      "type": "file",
+      "value": "bb92ba94bd8d1a027379ecb2a28f2e96da2f15275bf9f6022357c4a219561d38"
+    }
+  },
+  "module": "ioc_extraction",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "extract_iocs"
+    ],
+    "excluded_analysis": [],
+    "file_path": "plain.txt",
+    "relationships": [],
+    "size": 90,
+    "tags": [],
+    "type": "file",
+    "value": "bb92ba94bd8d1a027379ecb2a28f2e96da2f15275bf9f6022357c4a219561d38",
+    "yara_meta": []
+  }
+}

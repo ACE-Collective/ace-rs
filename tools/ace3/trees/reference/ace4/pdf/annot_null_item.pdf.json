@@ -1,49 +1,6 @@
 {
   "form": 1,
   "observables": {
-    "file:14f35372cd03aaeecc83b8c9f712d6cb1d67fa7b2861f893fb3c152f9c8f8c85": {
-      "detections": {},
-      "directives": {
-        "extract_urls": true
-      },
-      "excluded_analysis": {
-        "pdf_analyzer": true
-      },
-      "paths": {
-        "annot_null_item.pdf.gs.pdf": {
-          "type=document.pdf": true,
-          "type=document.pdf.rendered": true
-        }
-      },
-      "redirection": "file:e589b16ecbf55f5ca05e8cfc6752a8e6da8ab8ee293f3abb017eb32bcbdf11d3",
-      "relationships": {
-        "extracted_from file:e589b16ecbf55f5ca05e8cfc6752a8e6da8ab8ee293f3abb017eb32bcbdf11d3": true
-      },
-      "results": {
-        "file_type": {
-          "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": true,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "application/pdf",
-            "type": "PDF document, version 1.7, 1 page(s)"
-          },
-          "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
-          "tags": {}
-        }
-      },
-      "tags": {
-        "pdf": true
-      }
-    },
     "file:81cbf02b4f42817d0043d4552235bf68b885f1aa1cf2ec35c206156fbec42c81": {
       "detections": {},
       "directives": {
@@ -77,6 +34,20 @@
             "type": "PDF document, version 1.7, 1 page(s), Unicode text, UTF-8 text"
           },
           "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s), Unicode text, UTF-8 text (application/pdf)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [
+              "https://example.com/lost"
+            ],
+            "urls_grouped_by_domain": {
+              "example.com": [
+                "https://example.com/lost"
+              ]
+            }
+          },
+          "summary": "URL Extraction Analysis (example.com)",
           "tags": {}
         }
       },
@@ -122,6 +93,65 @@
       "tags": {
         "pdf": true
       }
+    },
+    "file:f49dd082300aea96a5a349167bb2ce7e0ec38e6aea885194a416e55b5e86639c": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {
+        "pdf_analyzer": true
+      },
+      "paths": {
+        "annot_null_item.pdf.gs.pdf": {
+          "type=document.pdf": true,
+          "type=document.pdf.rendered": true
+        }
+      },
+      "redirection": "file:e589b16ecbf55f5ca05e8cfc6752a8e6da8ab8ee293f3abb017eb32bcbdf11d3",
+      "relationships": {
+        "extracted_from file:e589b16ecbf55f5ca05e8cfc6752a8e6da8ab8ee293f3abb017eb32bcbdf11d3": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": true,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/pdf",
+            "type": "PDF document, version 1.7, 1 page(s)"
+          },
+          "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "pdf": true
+      }
+    },
+    "url:https://example.com/lost": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
     }
   }
 }

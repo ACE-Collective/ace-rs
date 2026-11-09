@@ -42,7 +42,53 @@
         "pdf": true
       }
     },
-    "file:0c1b45553f83053fc1642daacd52597f997d4b4d3eebc61df89aee40937cf79a": {
+    "file:31242aeac10b8393cd83b7b64c37b6ba16099c51d1ec2e9b15af1946b5e965ce": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "quirks.pdf.pdfparser": {
+          "type=document.pdf.object": true
+        }
+      },
+      "redirection": "file:01940d8e00316615efbbc86cc54902f0afb11fee57536db4f908c1c0fbda3aa4",
+      "relationships": {
+        "extracted_from file:01940d8e00316615efbbc86cc54902f0afb11fee57536db4f908c1c0fbda3aa4": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:65df33883f153ee530f1ad1f0f825a3aefa96dab4b236a7259d297644f6d5e91": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -79,49 +125,19 @@
           },
           "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
           "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {
         "pdf": true
       }
-    },
-    "file:31242aeac10b8393cd83b7b64c37b6ba16099c51d1ec2e9b15af1946b5e965ce": {
-      "detections": {},
-      "directives": {
-        "extract_urls": true
-      },
-      "excluded_analysis": {},
-      "paths": {
-        "quirks.pdf.pdfparser": {
-          "type=document.pdf.object": true
-        }
-      },
-      "redirection": "file:01940d8e00316615efbbc86cc54902f0afb11fee57536db4f908c1c0fbda3aa4",
-      "relationships": {
-        "extracted_from file:01940d8e00316615efbbc86cc54902f0afb11fee57536db4f908c1c0fbda3aa4": true
-      },
-      "results": {
-        "file_type": {
-          "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": false,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "application/octet-stream",
-            "type": "data"
-          },
-          "summary": "File Type Analysis: data (application/octet-stream)",
-          "tags": {}
-        }
-      },
-      "tags": {}
     }
   }
 }

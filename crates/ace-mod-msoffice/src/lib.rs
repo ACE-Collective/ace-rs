@@ -13,7 +13,6 @@
 //! - ace3 reads John's answer up to a ':', so a password with one is cut short and the file isn't
 //!   decrypted there. Here it is. No sample has one.
 
-pub mod entities;
 pub mod html2text;
 pub mod htmlparser;
 pub use ace_mod_oletools::msoffcrypto::{method, office};

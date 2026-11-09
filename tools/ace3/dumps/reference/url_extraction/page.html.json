@@ -1,0 +1,194 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "text/html",
+        "type": "HTML document, ASCII text, with very long lines (615), with no line terminators"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: HTML document, ASCII text, with very long lines (615), with no line terminators (text/html)",
+      "tags": []
+    },
+    {
+      "class": "URLExtractionAnalysis",
+      "details": {
+        "urls": [
+          "https://visible.example.org/page",
+          "https://refresh.example.com/next",
+          "https://redirect.example.com/go",
+          "https://base.example.com/dir",
+          "https://js.example.com/s",
+          "https://post.example.com/submit",
+          "https://base.example.com/dir/login.php?u=1",
+          "https://css.example.com/bg.gif",
+          "https://cdn.example.net/c.png",
+          "https://base.example.com/img/a.png"
+        ],
+        "urls_grouped_by_domain": {
+          "example.com": [
+            "https://refresh.example.com/next",
+            "https://css.example.com/bg.gif",
+            "https://redirect.example.com/go",
+            "https://base.example.com/dir",
+            "https://js.example.com/s",
+            "https://post.example.com/submit",
+            "https://base.example.com/img/a.png",
+            "https://base.example.com/dir/login.php?u=1"
+          ],
+          "example.net": [
+            "https://cdn.example.net/c.png"
+          ],
+          "example.org": [
+            "https://visible.example.org/page"
+          ]
+        }
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.url_extraction:URLExtractionAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "url",
+          "value": "https://visible.example.org/page"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "url",
+          "value": "https://refresh.example.com/next"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "url",
+          "value": "https://redirect.example.com/go"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "url",
+          "value": "https://base.example.com/dir"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "url",
+          "value": "https://js.example.com/s"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "url",
+          "value": "https://post.example.com/submit"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "url",
+          "value": "https://base.example.com/dir/login.php?u=1"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "url",
+          "value": "https://css.example.com/bg.gif"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "url",
+          "value": "https://cdn.example.net/c.png"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "url",
+          "value": "https://base.example.com/img/a.png"
+        }
+      ],
+      "summary": "URL Extraction Analysis (base.example.com, cdn.example.net, css.example.com, js.example.com, post.example.com, redirect.example.com, refresh.example.com, visible.example.org)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [
+      "extract_urls"
+    ],
+    "label": "fixtures/urls/page.html with ['extract_urls'] and meta tags []",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "page.html",
+      "size": 615,
+      "type": "file",
+      "value": "e6b0e172d7585bd7b490d69cdc878f54c9f9db1de3b75e35ba42fb94bb13bfc3"
+    }
+  },
+  "module": "url_extraction",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "extract_urls",
+      "yara_meta:type=document.html"
+    ],
+    "excluded_analysis": [],
+    "file_path": "page.html",
+    "relationships": [],
+    "size": 615,
+    "tags": [],
+    "type": "file",
+    "value": "e6b0e172d7585bd7b490d69cdc878f54c9f9db1de3b75e35ba42fb94bb13bfc3",
+    "yara_meta": [
+      "type=document.html"
+    ]
+  }
+}

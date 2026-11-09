@@ -1,0 +1,28 @@
+{#- ioc_extraction_analysis (src/analysis.rs): ace3 prints its details with analysis/default_template.html. -#}
+<table class="fields">
+<tr><th>total_count</th><td>{{ analysis.total_count }}</td></tr>
+</table>
+{%- for (kind, values) in self.kinds() %}
+<h3>{{ kind }}</h3>
+<ul class="files">
+{%- for value in values.items %}
+<li>{{ value }}</li>
+{%- endfor %}
+</ul>
+{%- if values.more > 0 %}
+<p class="clipped">{{ values.more }} more not shown.</p>
+{%- endif %}
+{%- endfor %}
+{%- let ignored = self.ignored() %}
+{%- if !ignored.items.is_empty() %}
+<h3>ignored</h3>
+<table class="rows">
+<tr><th>type</th><th>value</th><th>ignore pattern</th></tr>
+{%- for row in ignored.items %}
+<tr><td>{{ row[0] }}</td><td>{{ row[1] }}</td><td>{{ row[2] }}</td></tr>
+{%- endfor %}
+</table>
+{%- if ignored.more > 0 %}
+<p class="clipped">{{ ignored.more }} more not shown.</p>
+{%- endif %}
+{%- endif %}

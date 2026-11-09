@@ -1,0 +1,72 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "text/plain",
+        "type": "ASCII text"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: ASCII text (text/plain)",
+      "tags": []
+    },
+    {
+      "class": "URLExtractionAnalysis",
+      "details": {
+        "urls": [],
+        "urls_grouped_by_domain": {}
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.url_extraction:URLExtractionAnalysis",
+      "observables": [],
+      "summary": null,
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [
+      "extract_urls"
+    ],
+    "label": "fixtures/urls/nothing.txt with ['extract_urls'] and meta tags []",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "nothing.txt",
+      "size": 26,
+      "type": "file",
+      "value": "7d48aa6415d1ec8ef45a56b95f2b86dbed837dfa1236decc447c1273f9b19509"
+    }
+  },
+  "module": "url_extraction",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "extract_urls"
+    ],
+    "excluded_analysis": [],
+    "file_path": "nothing.txt",
+    "relationships": [],
+    "size": 26,
+    "tags": [],
+    "type": "file",
+    "value": "7d48aa6415d1ec8ef45a56b95f2b86dbed837dfa1236decc447c1273f9b19509",
+    "yara_meta": []
+  }
+}

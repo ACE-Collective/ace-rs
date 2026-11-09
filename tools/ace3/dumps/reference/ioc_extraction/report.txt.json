@@ -1,0 +1,362 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "IOCExtractionAnalysis",
+      "details": {
+        "ignored": [
+          [
+            "md5",
+            "aAbBcCdDeEfF00112233445566778899",
+            "(?=.*[a-f])(?=.*[A-F])"
+          ]
+        ],
+        "iocs": {
+          "cve": [
+            "CVE-2024-12345",
+            "cve-2021-44228"
+          ],
+          "email_address": [
+            "attacker@mail.example.org",
+            "ops@corp.example.com"
+          ],
+          "ip": [
+            "198.51.100.23",
+            "192.0.2.1",
+            "2001:db8::1",
+            "fe80::1",
+            "::ffff:192"
+          ],
+          "md5": [
+            "d41d8cd98f00b204e9800998ecf8427f",
+            "44D88612FEA8A8F36DE82E1278ABB02F"
+          ],
+          "sha1": [
+            "da39a3ee5e6b4b0d3255bfef95601890afd80709"
+          ],
+          "sha256": [
+            "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B856"
+          ],
+          "url": [
+            "https://bad.example.net/x",
+            "https://evil.example.com/gate.php"
+          ]
+        },
+        "total_count": 15
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.ioc_extraction:IOCExtractionAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=document.text.refanged"
+          ],
+          "display_type": "Re-fanged Text",
+          "excluded_analysis": [],
+          "file_path": "report.txt.refanged.txt",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "92d8a628de2af73f2fb8271dd9c6075083afd9a2f23c114d475fb55c19f23a07"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 514,
+          "tags": [],
+          "type": "file",
+          "value": "584c4e5d9c98fbfb4a82e9b1729f1d72c0b2fbfc53c5311c198a3a49e912b1a4",
+          "yara_meta": [
+            "type=document.text.refanged"
+          ]
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "display_type": "IOC",
+          "excluded_analysis": [],
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "92d8a628de2af73f2fb8271dd9c6075083afd9a2f23c114d475fb55c19f23a07"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "tags": [],
+          "type": "url",
+          "value": "https://bad.example.net/x"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "display_type": "IOC",
+          "excluded_analysis": [],
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "92d8a628de2af73f2fb8271dd9c6075083afd9a2f23c114d475fb55c19f23a07"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "tags": [],
+          "type": "url",
+          "value": "https://evil.example.com/gate.php"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "display_type": "IOC",
+          "excluded_analysis": [],
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "92d8a628de2af73f2fb8271dd9c6075083afd9a2f23c114d475fb55c19f23a07"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "tags": [],
+          "type": "ip",
+          "value": "198.51.100.23"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "display_type": "IOC",
+          "excluded_analysis": [],
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "92d8a628de2af73f2fb8271dd9c6075083afd9a2f23c114d475fb55c19f23a07"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "tags": [],
+          "type": "ip",
+          "value": "192.0.2.1"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "display_type": "IOC",
+          "excluded_analysis": [],
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "92d8a628de2af73f2fb8271dd9c6075083afd9a2f23c114d475fb55c19f23a07"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "tags": [],
+          "type": "ip",
+          "value": "2001:db8::1"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "display_type": "IOC",
+          "excluded_analysis": [],
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "92d8a628de2af73f2fb8271dd9c6075083afd9a2f23c114d475fb55c19f23a07"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "tags": [],
+          "type": "ip",
+          "value": "fe80::1"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "display_type": "IOC",
+          "excluded_analysis": [],
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "92d8a628de2af73f2fb8271dd9c6075083afd9a2f23c114d475fb55c19f23a07"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "tags": [],
+          "type": "ip",
+          "value": "::ffff:192"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "display_type": "IOC",
+          "excluded_analysis": [],
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "92d8a628de2af73f2fb8271dd9c6075083afd9a2f23c114d475fb55c19f23a07"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "tags": [],
+          "type": "md5",
+          "value": "d41d8cd98f00b204e9800998ecf8427f"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "display_type": "IOC",
+          "excluded_analysis": [],
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "92d8a628de2af73f2fb8271dd9c6075083afd9a2f23c114d475fb55c19f23a07"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "tags": [],
+          "type": "md5",
+          "value": "44D88612FEA8A8F36DE82E1278ABB02F"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "display_type": "IOC",
+          "excluded_analysis": [],
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "92d8a628de2af73f2fb8271dd9c6075083afd9a2f23c114d475fb55c19f23a07"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "tags": [],
+          "type": "sha256",
+          "value": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B856"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "display_type": "IOC",
+          "excluded_analysis": [],
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "92d8a628de2af73f2fb8271dd9c6075083afd9a2f23c114d475fb55c19f23a07"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "tags": [],
+          "type": "email_address",
+          "value": "attacker@mail.example.org"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "display_type": "IOC",
+          "excluded_analysis": [],
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "92d8a628de2af73f2fb8271dd9c6075083afd9a2f23c114d475fb55c19f23a07"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "tags": [],
+          "type": "email_address",
+          "value": "ops@corp.example.com"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "display_type": "IOC",
+          "excluded_analysis": [],
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "92d8a628de2af73f2fb8271dd9c6075083afd9a2f23c114d475fb55c19f23a07"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "tags": [],
+          "type": "cve",
+          "value": "CVE-2024-12345"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "display_type": "IOC",
+          "excluded_analysis": [],
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "92d8a628de2af73f2fb8271dd9c6075083afd9a2f23c114d475fb55c19f23a07"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "tags": [],
+          "type": "cve",
+          "value": "cve-2021-44228"
+        }
+      ],
+      "summary": "Extracted 15 IOCs (url: 2, ip: 5, md5: 2, sha1: 1, sha256: 1, email_address: 2, cve: 2)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [
+      "extract_iocs"
+    ],
+    "label": "fixtures/iocs/report.txt with extract_iocs",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "report.txt",
+      "size": 561,
+      "type": "file",
+      "value": "92d8a628de2af73f2fb8271dd9c6075083afd9a2f23c114d475fb55c19f23a07"
+    }
+  },
+  "module": "ioc_extraction",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "extract_iocs"
+    ],
+    "excluded_analysis": [],
+    "file_path": "report.txt",
+    "relationships": [],
+    "size": 561,
+    "tags": [],
+    "type": "file",
+    "value": "92d8a628de2af73f2fb8271dd9c6075083afd9a2f23c114d475fb55c19f23a07",
+    "yara_meta": []
+  }
+}

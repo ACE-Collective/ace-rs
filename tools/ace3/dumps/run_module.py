@@ -541,6 +541,8 @@ TREE_MODULES = {
     "YaraScanResults_v3_4": "yara_scanner_v3_4",
     "SplunkAPIAnalysis": "proxy_domain_splunk",
     "NRDAnalysis": "nrd_analyzer",
+    "URLExtractionAnalysis": "url_extraction",
+    "IOCExtractionAnalysis": "ioc_extraction",
 }
 TREE_RUN_FIELDS = {
     "EmailAnalysis": ["details/email/log_entry/date"],
@@ -578,6 +580,8 @@ TREE_EXCLUDED = {
     "QRCodeAnalyzer": "qrcode",
     "XLMMacroDeobfuscatorAnalyzer": "xlmdeobfuscator",
     "YaraScanner_v3_4": "yara_scanner_v3_4",
+    "URLExtractionAnalyzer": "url_extraction",
+    "IOCExtractionAnalyzer": "ioc_extraction",
 }
 
 

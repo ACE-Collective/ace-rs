@@ -3,8 +3,8 @@
 //! goes on from there with `end` true, reaching the same events as one pass with `end` true, so it
 //! makes one. Comments, declarations and processing instructions make no event: html2text ignores them.
 
-use crate::entities;
 use ace_mod_oletools::py::{PyErr, strip};
+use ace_pycompat::html::entities;
 
 /// What html2text does with the parser's events.
 pub trait Handler {

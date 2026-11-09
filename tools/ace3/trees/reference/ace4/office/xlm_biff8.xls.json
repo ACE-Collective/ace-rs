@@ -33,6 +33,20 @@
           },
           "summary": "File Type Analysis: ASCII text (text/plain)",
           "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [
+              "http://xlm-biff8.example.com/stage2.exe"
+            ],
+            "urls_grouped_by_domain": {
+              "example.com": [
+                "http://xlm-biff8.example.com/stage2.exe"
+              ]
+            }
+          },
+          "summary": "URL Extraction Analysis (xlm-biff8.example.com)",
+          "tags": {}
         }
       },
       "tags": {}
@@ -125,6 +139,14 @@
             "type": "ASCII text, with very long lines (557)"
           },
           "summary": "File Type Analysis: ASCII text, with very long lines (557) (text/plain)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
           "tags": {}
         }
       },

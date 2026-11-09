@@ -1,0 +1,110 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "text/calendar",
+        "type": "iCalendar calendar file"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: iCalendar calendar file (text/calendar)",
+      "tags": []
+    },
+    {
+      "class": "URLExtractionAnalysis",
+      "details": {
+        "urls": [
+          "https://meet.example.com/j/123",
+          "https://ical-html.example.com/x",
+          "https://ical.example.com/u"
+        ],
+        "urls_grouped_by_domain": {
+          "example.com": [
+            "https://meet.example.com/j/123",
+            "https://ical-html.example.com/x",
+            "https://ical.example.com/u"
+          ]
+        }
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.url_extraction:URLExtractionAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "url",
+          "value": "https://meet.example.com/j/123"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "url",
+          "value": "https://ical-html.example.com/x"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "url",
+          "value": "https://ical.example.com/u"
+        }
+      ],
+      "summary": "URL Extraction Analysis (ical-html.example.com, ical.example.com, meet.example.com)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [
+      "extract_urls"
+    ],
+    "label": "fixtures/urls/invite.ics with ['extract_urls'] and meta tags []",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "invite.ics",
+      "size": 252,
+      "type": "file",
+      "value": "4a90edacf9c9b8a6695b304cef7e427f19409a72c19423c293840220d05b75bc"
+    }
+  },
+  "module": "url_extraction",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "extract_urls"
+    ],
+    "excluded_analysis": [],
+    "file_path": "invite.ics",
+    "relationships": [],
+    "size": 252,
+    "tags": [],
+    "type": "file",
+    "value": "4a90edacf9c9b8a6695b304cef7e427f19409a72c19423c293840220d05b75bc",
+    "yara_meta": []
+  }
+}

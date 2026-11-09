@@ -1,0 +1,81 @@
+#!/usr/bin/env python3
+"""Makes the crafted texts of docs/measurements/url-extraction.md, which measure what text can make
+urlfinderlib's port do against url_extraction's 15-second deadline (PLAN.md 7.5).
+
+    make-url-hostile <out dir>            the set
+    make-url-hostile --iocs <out dir>     the set for ioc_extraction
+    make-url-hostile --chat-log <file>    only the chat log tools/ace3/dumps/fixtures/urls holds
+
+The chat log is the blob of 7.5's Done check: a support chat whose every line has ten ":(" and whose
+last line alone has a ")". Each "(" pairs with that ")", so urlfinderlib's text finder makes a token
+from each "(" to the end, and their lengths add up as the square of the text's. ace3's url_extraction
+passes its cap on it.
+"""
+
+import sys
+from pathlib import Path
+
+
+def chat_log(lines):
+    out = []
+    for i in range(lines):
+        out.append(
+            f"[{9 + i // 3600 % 12:02d}:{i // 60 % 60:02d}:{i % 60:02d}] user{i % 37}: still broken "
+            + ":( " * 10 + f"see status.example.com/incident/{i % 5}\n"
+        )
+    out.append("[18:00:00] admin: fixed now :) details at https://status.example.com/postmortem\n")
+    return "".join(out).encode()
+
+
+def hostile():
+    """name -> bytes. Each at most the module's 10 MB."""
+    yield "chat_log.txt", chat_log(3500)
+    yield "chat_log_x2.txt", chat_log(7000)
+    yield "chat_log_10mb.txt", chat_log(100_000)
+    # many short distinct tokens that look like URLs and aren't
+    yield "invalid_tlds_10mb.txt", "".join(f"x{i}.y/z\n" for i in range(700_000)).encode()
+    # many real URLs, each with a query URL and a base64 email: child URLs to expand
+    yield "redirects_10mb.txt", "".join(
+        f"Item {i}: https://track{i % 7}.example.com/r?u=https%3A%2F%2Fdest{i}.example.org%2Fp%3Fid%3D{i}"
+        f"&e=dXNlckBleGFtcGxlLmNvbQ==&n={i}\n" for i in range(70_000)
+    ).encode()
+    # an HTML page of 100,000 links
+    yield "links_10mb.html", ("<html><body>" + "".join(
+        f'<a href="https://h{i % 1000}.example.com/p{i}">l</a>\n' for i in range(100_000)
+    ) + "</body></html>").encode()
+    # one line of 10 MB of opening brackets, and of quotes
+    yield "brackets_10mb.txt", b"(" * 10_000_000
+    yield "quotes_10mb.txt", b'"a.b/c ' * 1_400_000
+
+
+def ioc_hostile():
+    """ioc_extraction's: what its default patterns and re-fanging work hardest on."""
+    yield "colons_10mb.txt", b"1:" * 5_000_000
+    yield "hex_10mb.txt", (b"a" * 63 + b" ") * 160_000
+    yield "refang_10mb.txt", b"hxxp://a[.]b[.]c dot d (.) e [@] f " * 290_000
+    yield "dots_10mb.txt", b"a dot " * 1_700_000
+    yield "html_10mb.html", b"<p>" + b"<b>198.51.100.7 hxxp://x[.]example[.]com/p</b>\n" * 200_000 + b"</p>"
+
+
+def main():
+    if sys.argv[1:2] == ["--iocs"]:
+        out = Path(sys.argv[2])
+        out.mkdir(parents=True, exist_ok=True)
+        for name, data in ioc_hostile():
+            assert len(data) <= 10 * 1024 * 1024, name
+            (out / name).write_bytes(data)
+            print(name, len(data))
+        return
+    if sys.argv[1:2] == ["--chat-log"]:
+        Path(sys.argv[2]).write_bytes(chat_log(3500))
+        return
+    out = Path(sys.argv[1])
+    out.mkdir(parents=True, exist_ok=True)
+    for name, data in hostile():
+        assert len(data) <= 10 * 1024 * 1024, name
+        (out / name).write_bytes(data)
+        print(name, len(data))
+
+
+if __name__ == "__main__":
+    main()

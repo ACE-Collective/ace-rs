@@ -163,7 +163,8 @@ fn collect(dir: &Path, base: &Path, names: &mut Vec<String>) -> Result<(), Harne
         {
             let relative = path.strip_prefix(base).unwrap_or(&path);
             let name = relative.to_string_lossy();
-            names.push(name.trim_end_matches(".json").to_owned());
+            // one suffix: a dump of `data.json` is `data.json.json`
+            names.push(name.strip_suffix(".json").unwrap_or(&name).to_owned());
         }
     }
     Ok(())

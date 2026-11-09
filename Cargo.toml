@@ -62,3 +62,21 @@ opt-level = 3
 opt-level = 3
 [profile.dev.package.blake2]
 opt-level = 3
+
+# urlfinderlib's port runs a crafted text against a 15-second deadline, and its tests run that text
+# (crates/ace-mod-urls/tests/reference.rs), which unoptimized takes minutes. The IOC module's
+# patterns run on the regex crates, which docs/measurements/url-extraction.md times in a dev build.
+[profile.dev.package.ace-mod-urls]
+opt-level = 3
+[profile.dev.package.fancy-regex]
+opt-level = 3
+[profile.dev.package.regex-automata]
+opt-level = 3
+[profile.dev.package.ace-urlfinder]
+opt-level = 3
+[profile.dev.package.ace-pycompat]
+opt-level = 3
+[profile.dev.package.memchr]
+opt-level = 3
+[profile.dev.package.rustc-hash]
+opt-level = 3

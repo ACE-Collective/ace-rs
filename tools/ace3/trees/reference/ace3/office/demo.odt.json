@@ -33,6 +33,14 @@
           },
           "summary": "File Type Analysis: XML 1.0 document, ASCII text, with very long lines (1011) (text/xml)",
           "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -68,6 +76,14 @@
             "type": "XML 1.0 document, ASCII text, with very long lines (10804)"
           },
           "summary": "File Type Analysis: XML 1.0 document, ASCII text, with very long lines (10804) (text/xml)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
           "tags": {}
         }
       },
@@ -138,6 +154,14 @@
             "type": "XML 1.0 document, ASCII text"
           },
           "summary": "File Type Analysis: XML 1.0 document, ASCII text (text/xml)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
           "tags": {}
         }
       },
@@ -242,6 +266,14 @@
           },
           "summary": "File Type Analysis: XML 1.0 document, ASCII text, with very long lines (3257) (text/xml)",
           "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -278,6 +310,24 @@
           },
           "summary": "File Type Analysis: XML 1.0 document, ASCII text (text/xml)",
           "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [
+              "http://192.168.0.138:8080/tnczG37zU",
+              "http://openoffice.org/2000/script"
+            ],
+            "urls_grouped_by_domain": {
+              "no_tld": [
+                "http://192.168.0.138:8080/tnczG37zU"
+              ],
+              "openoffice.org": [
+                "http://openoffice.org/2000/script"
+              ]
+            }
+          },
+          "summary": "URL Extraction Analysis (192.168.0.138, openoffice.org)",
+          "tags": {}
         }
       },
       "tags": {}
@@ -313,6 +363,20 @@
             "type": "XML 1.0 document, ASCII text"
           },
           "summary": "File Type Analysis: XML 1.0 document, ASCII text (text/xml)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [
+              "http://openoffice.org/2000/library"
+            ],
+            "urls_grouped_by_domain": {
+              "openoffice.org": [
+                "http://openoffice.org/2000/library"
+              ]
+            }
+          },
+          "summary": "URL Extraction Analysis (openoffice.org)",
           "tags": {}
         }
       },
@@ -420,6 +484,14 @@
           },
           "summary": "File Type Analysis: XML 1.0 document, ASCII text, with very long lines (8500) (text/xml)",
           "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -492,8 +564,46 @@
           },
           "summary": "File Type Analysis: XML 1.0 document, ASCII text (text/xml)",
           "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [
+              "http://openoffice.org/2000/library"
+            ],
+            "urls_grouped_by_domain": {
+              "openoffice.org": [
+                "http://openoffice.org/2000/library"
+              ]
+            }
+          },
+          "summary": "URL Extraction Analysis (openoffice.org)",
+          "tags": {}
         }
       },
+      "tags": {}
+    },
+    "url:http://192.168.0.138:8080/tnczG37zU": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
+    },
+    "url:http://openoffice.org/2000/library": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
+    },
+    "url:http://openoffice.org/2000/script": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
       "tags": {}
     }
   }

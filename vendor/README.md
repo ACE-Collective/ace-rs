@@ -89,3 +89,13 @@ registry's integrity and the file against the tag's, save it as `vis/vis-<versio
 and change the version, commit and hash here and the file name in `crates/ace-gui/src/assets.rs`. Then run
 `tests/e2e/run`, whose browser draws 2.30's alert with it under the policy. A later vis.js, or vis-network,
 may set `title` or labels differently, so read `graph.js` against its documentation first.
+
+## libxml2
+
+`libxml2/` is libxml2 2.14.6, the release lxml 6.1.3's wheels bundle (`lxml.etree.LIBXML_VERSION` in ace3's image is `(2, 14, 6)`), from `https://download.gnome.org/sources/libxml2/2.14/libxml2-2.14.6.tar.xz`, whose SHA-256, `7ce458a0affeb83f0b55f1f4f9e0e55735dbfc1a9de124ee86fb4a66b597203a`, is the one GNOME publishes beside it. `crates/ace-lxml/build.rs` compiles it with `cc`, statically, at `-O2` as lxml's build does. lxml applies no patch to libxml2.
+
+It holds only what that build compiles: the 22 `.c` files of the library's core, HTML parser and serializer and their `.inc` tables, `libxml.h`, every public header under `include/libxml/` and the private ones under `include/private/`, and the licence, `Copyright`. Two files are generated: `config.h` and `include/libxml/xmlversion.h` are what `./configure` wrote in the dev container with `--without-python --without-iconv --without-zlib --without-lzma --with-threads --without-thread-alloc --without-http --without-catalog --without-xinclude --without-xpath --without-xptr --without-schemas --without-schematron --without-relaxng --without-regexps --without-reader --without-writer --without-pattern --without-c14n --without-modules --without-debug --without-icu --with-html --with-output --with-sax1`. lxml's build configures libxml2 with its defaults and iconv; the parser and serializer this crate uses don't depend on the features left out. A document is always parsed as UTF-8, which libxml2 decodes itself, so iconv isn't needed; a `<meta charset>` doesn't switch the encoding once one is declared, in lxml or here. Threads are on because a test process parses on several threads; libxml2 starts no thread of its own, so a contained task can run it.
+
+Its licence is MIT, `libxml2/Copyright`.
+
+To update: take the libxml2 release the new lxml bundles, check its SHA-256 against GNOME's, run its `configure` in the dev container with the options above, copy over the same files and the two generated ones, and run `cargo test -p ace-lxml -p ace-urlfinder`, whose cases came from ace3's lxml.

@@ -48,7 +48,8 @@ CONTAINER, REMOTE, docker, put = dumps.CONTAINER, dumps.REMOTE, dumps.docker, du
 ENABLE = [
     "file_type", "archive", "yara_scanner_v3_4", "rdap_analyzer", "proxy_domain_splunk", "olevba_v1_2",
     "rtfole", "msoffice_encryption_analyzer", "xlmdeobfuscator", "pcodedmp", "pdf_analyzer", "fqdn_analyzer",
-    "email_conversation_frequency_analyzer", "email_thread_analyzer", "nrd_analyzer",
+    "email_conversation_frequency_analyzer", "email_thread_analyzer", "nrd_analyzer", "url_extraction",
+    "ioc_extraction",
 ]
 BROCESS = HERE / "brocess.json"
 NRD = HERE / "nrd.json"
@@ -124,6 +125,8 @@ def run(sample):
     work = f"{REMOTE}/runs/trees/{sample['path']}"
     command = [
         "docker", "exec", "-i", "-e", "PYTHONDONTWRITEBYTECODE=1", "-e", "SAQ_SKIP_LOCAL_SAQ_YAML=1",
+        # sets' order, such as urlfinderlib's URLs, then comes out the same each time the trees are made
+        "-e", "PYTHONHASHSEED=0",
         "-e", "NO_PROXY=127.0.0.1,localhost", "-e", "no_proxy=127.0.0.1,localhost",
         # ace3's rtfole runs `python`, which has to be the virtualenv's, as in ace3's services
         "-e", "PATH=/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",

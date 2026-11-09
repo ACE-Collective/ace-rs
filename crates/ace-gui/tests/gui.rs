@@ -2233,6 +2233,8 @@ fn each_module_s_view_draws_its_fixture() {
         "xlm_obfuscated_xlsm",
         "pcode_receipt_doc",
         "pdf_encrypted_aes_128",
+        "urls_page_html",
+        "iocs_report_txt",
     ];
     let mut types = BTreeSet::new();
     for name in fixtures {
@@ -2411,6 +2413,24 @@ fn each_module_s_view_draws_its_fixture() {
                     "<tr><th>method</th><td>aes</td></tr>",
                     "<tr><th>bits</th><td>128</td></tr>",
                     "<tr><th>modify_assembly</th><td>false</td></tr>",
+                ],
+            ),
+            "urls_page_html" => contains_all(
+                &html,
+                &[
+                    "<tr><th>urls</th><td>10</td></tr>",
+                    "<li>https://visible.example.org/page</li>",
+                    "<summary>example.com (8)</summary>",
+                    "<li>https://base.example.com/dir/login.php?u=1</li>",
+                ],
+            ),
+            "iocs_report_txt" => contains_all(
+                &html,
+                &[
+                    "<tr><th>total_count</th><td>15</td></tr>",
+                    "<h3>cve</h3>",
+                    "<li>198.51.100.23</li>",
+                    "<h3>ignored</h3>",
                 ],
             ),
             other => panic!("no checks for {other}"),

@@ -1,0 +1,17 @@
+[package]
+name = "ace-lxml"
+version = "0.1.0"
+description = "libxml2 2.14.6 as lxml 6.1.3 bundles it, and the parts of lxml and BeautifulSoup's lxml builder ported modules use"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+links = "xml2"
+
+[dependencies]
+
+[build-dependencies]
+cc = "1.11.0"
+
+[lints]
+workspace = true

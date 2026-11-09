@@ -392,6 +392,48 @@
           },
           "summary": "File Type Analysis: HTML document, Unicode text, UTF-8 text, with very long lines (794), with CRLF line terminators (text/html)",
           "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [
+              "https://www.avast.com/antivirus",
+              "http://www.igpetro.com",
+              "https://dl-mail.ymail.com/ws/download/mailboxes/@.id==VjN-m83ISXEldnP3T3Z9zOAG2O_rV4kAJGuvyQczuPNe3y6uH_kFJNwFEzAczlKfcSRK6F676llwJijNHGM9Rx73ng/messages/@.id==AA4rCakccZBlW0Rb_QmZCEdw8Rg/content/parts/@.id==2/raw?appid=YMailNorrin&ymreqid=3109e8dd-cabe-e03f-1c02-ec000001ce00&token=zitEzqOML3j84e6ealFTT5U7-km5qEQF52lp7AcCuBZg26zr02uU5z6B1uolKzq34BgNQEb_9RqrqBvlkd0nLFP77A-_HO2u05oMfSLv6k0GYHG5zZROOYeWZBW-NzAx",
+              "https://dl-mail.ymail.com/ws/download/mailboxes/@.id==VjN-m83ISXEldnP3T3Z9zOAG2O_rV4kAJGuvyQczuPNe3y6uH_kFJNwFEzAczlKfcSRK6F676llwJijNHGM9Rx73ng/messages/@.id==AA4rCakccZBlW0Rb_QmZCEdw8Rg/content/parts/@.id==3/raw?appid=YMailNorrin&ymreqid=3109e8dd-cabe-e03f-1c02-ec000001ce00&token=zitEzqOML3j84e6ealFTT5U7-km5qEQF52lp7AcCuBZg26zr02uU5z6B1uolKzq34BgNQEb_9RqrqBvlkd0nLFP77A-_HO2u05oMfSLv6k0GYHG5zZROOYeWZBW-NzAx",
+              "https://proxy.imgsmail.ru/?email=ahmed.abdullahi@bk.ru",
+              "https://proxy.imgsmail.ru/?email=ahmed.abdullahi%40bk.ru&e=1519804183&h=DDFtSALAy7tdKfe9AP8idA&url171=c3RhdGljLmF2YXN0LmNvbS9lbWFpbHMvYXZhc3QtbWFpbC1zdGFtcC5wbmc~&is_https=0",
+              "https://ecp.yusercontent.com/mail?url=https://proxy.imgsmail.ru/?email=ahmed.abdullahi%40bk.ru&e=1519804183&h=DDFtSALAy7tdKfe9AP8idA&url171=c3RhdGljLmF2YXN0LmNvbS9lbWFpbHMvYXZhc3QtbWFpbC1zdGFtcC5wbmc~&is_https=0&t=1531352401&ymreqid=3109e8dd-cabe-e03f-1cf5-0f001201f400&sig=ExHusom4LyGNK.DkXZhm7A--~C",
+              "https://ecp.yusercontent.com/mail?url=https%3A%2F%2Fproxy.imgsmail.ru%2F%3Femail%3Dahmed.abdullahi%2540bk.ru%26e%3D1519804183%26h%3DDDFtSALAy7tdKfe9AP8idA%26url171%3Dc3RhdGljLmF2YXN0LmNvbS9lbWFpbHMvYXZhc3QtbWFpbC1zdGFtcC5wbmc%7E%26is_https%3D0&t=1531352401&ymreqid=3109e8dd-cabe-e03f-1cf5-0f001201f400&sig=ExHusom4LyGNK.DkXZhm7A--~C",
+              "https://s.yimg.com/lo/api/res/1.2/n9.tpnN8N8gspzxhMO4xnA--~A/Zmk9ZmlsbDt3PTQwMDtoPTIwMDthcHBpZD1pZXh0cmFjdA--/http://www.igpetro.com/sites/default/files/999111NewHomePage.jpg.cf.jpg",
+              "https://s.yimg.com/cv/ae/nq/storm/assets/enhancrV21/1/enhancr_gradient-400x175.png"
+            ],
+            "urls_grouped_by_domain": {
+              "avast.com": [
+                "https://www.avast.com/antivirus"
+              ],
+              "igpetro.com": [
+                "http://www.igpetro.com"
+              ],
+              "imgsmail.ru": [
+                "https://proxy.imgsmail.ru/?email=ahmed.abdullahi@bk.ru",
+                "https://proxy.imgsmail.ru/?email=ahmed.abdullahi%40bk.ru&e=1519804183&h=DDFtSALAy7tdKfe9AP8idA&url171=c3RhdGljLmF2YXN0LmNvbS9lbWFpbHMvYXZhc3QtbWFpbC1zdGFtcC5wbmc~&is_https=0"
+              ],
+              "yimg.com": [
+                "https://s.yimg.com/lo/api/res/1.2/n9.tpnN8N8gspzxhMO4xnA--~A/Zmk9ZmlsbDt3PTQwMDtoPTIwMDthcHBpZD1pZXh0cmFjdA--/http://www.igpetro.com/sites/default/files/999111NewHomePage.jpg.cf.jpg",
+                "https://s.yimg.com/cv/ae/nq/storm/assets/enhancrV21/1/enhancr_gradient-400x175.png"
+              ],
+              "ymail.com": [
+                "https://dl-mail.ymail.com/ws/download/mailboxes/@.id==VjN-m83ISXEldnP3T3Z9zOAG2O_rV4kAJGuvyQczuPNe3y6uH_kFJNwFEzAczlKfcSRK6F676llwJijNHGM9Rx73ng/messages/@.id==AA4rCakccZBlW0Rb_QmZCEdw8Rg/content/parts/@.id==2/raw?appid=YMailNorrin&ymreqid=3109e8dd-cabe-e03f-1c02-ec000001ce00&token=zitEzqOML3j84e6ealFTT5U7-km5qEQF52lp7AcCuBZg26zr02uU5z6B1uolKzq34BgNQEb_9RqrqBvlkd0nLFP77A-_HO2u05oMfSLv6k0GYHG5zZROOYeWZBW-NzAx",
+                "https://dl-mail.ymail.com/ws/download/mailboxes/@.id==VjN-m83ISXEldnP3T3Z9zOAG2O_rV4kAJGuvyQczuPNe3y6uH_kFJNwFEzAczlKfcSRK6F676llwJijNHGM9Rx73ng/messages/@.id==AA4rCakccZBlW0Rb_QmZCEdw8Rg/content/parts/@.id==3/raw?appid=YMailNorrin&ymreqid=3109e8dd-cabe-e03f-1c02-ec000001ce00&token=zitEzqOML3j84e6ealFTT5U7-km5qEQF52lp7AcCuBZg26zr02uU5z6B1uolKzq34BgNQEb_9RqrqBvlkd0nLFP77A-_HO2u05oMfSLv6k0GYHG5zZROOYeWZBW-NzAx"
+              ],
+              "yusercontent.com": [
+                "https://ecp.yusercontent.com/mail?url=https://proxy.imgsmail.ru/?email=ahmed.abdullahi%40bk.ru&e=1519804183&h=DDFtSALAy7tdKfe9AP8idA&url171=c3RhdGljLmF2YXN0LmNvbS9lbWFpbHMvYXZhc3QtbWFpbC1zdGFtcC5wbmc~&is_https=0&t=1531352401&ymreqid=3109e8dd-cabe-e03f-1cf5-0f001201f400&sig=ExHusom4LyGNK.DkXZhm7A--~C",
+                "https://ecp.yusercontent.com/mail?url=https%3A%2F%2Fproxy.imgsmail.ru%2F%3Femail%3Dahmed.abdullahi%2540bk.ru%26e%3D1519804183%26h%3DDDFtSALAy7tdKfe9AP8idA%26url171%3Dc3RhdGljLmF2YXN0LmNvbS9lbWFpbHMvYXZhc3QtbWFpbC1zdGFtcC5wbmc%7E%26is_https%3D0&t=1531352401&ymreqid=3109e8dd-cabe-e03f-1cf5-0f001201f400&sig=ExHusom4LyGNK.DkXZhm7A--~C"
+              ]
+            }
+          },
+          "summary": "URL Extraction Analysis (dl-mail.ymail.com, ecp.yusercontent.com, proxy.imgsmail.ru, s.yimg.com, www.avast.com, www.igpetro.com)",
+          "tags": {}
         }
       },
       "tags": {}
@@ -675,6 +717,14 @@
             "type": "RFC 822 mail, ASCII text, with very long lines (897)"
           },
           "summary": "File Type Analysis: RFC 822 mail, ASCII text, with very long lines (897) (message/rfc822) (email)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
           "tags": {}
         }
       },
@@ -1608,6 +1658,14 @@
           },
           "summary": "File Type Analysis: ASCII text, with very long lines (904) (text/plain)",
           "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -1644,6 +1702,14 @@
             "type": "HTML document, ASCII text, with very long lines (1035)"
           },
           "summary": "File Type Analysis: HTML document, ASCII text, with very long lines (1035) (text/html)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
           "tags": {}
         }
       },
@@ -1683,6 +1749,24 @@
             "type": "Unicode text, UTF-8 text, with very long lines (496), with CRLF line terminators"
           },
           "summary": "File Type Analysis: Unicode text, UTF-8 text, with very long lines (496), with CRLF line terminators (text/plain)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [
+              "http://www.igpetro.com",
+              "https://www.avast.com/antivirus"
+            ],
+            "urls_grouped_by_domain": {
+              "avast.com": [
+                "https://www.avast.com/antivirus"
+              ],
+              "igpetro.com": [
+                "http://www.igpetro.com"
+              ]
+            }
+          },
+          "summary": "URL Extraction Analysis (www.avast.com, www.igpetro.com)",
           "tags": {}
         }
       },
@@ -1776,6 +1860,14 @@
             "type": "HTML document, ASCII text"
           },
           "summary": "File Type Analysis: HTML document, ASCII text (text/html)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
           "tags": {}
         }
       },
@@ -1948,6 +2040,14 @@
           },
           "summary": "File Type Analysis: HTML document, ASCII text (text/html) (email)",
           "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {
@@ -2015,6 +2115,86 @@
       "excluded_analysis": {
         "message_id_analyzer_v2": true
       },
+      "relationships": {},
+      "results": {},
+      "tags": {}
+    },
+    "url:http://www.igpetro.com": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
+    },
+    "url:https://dl-mail.ymail.com/ws/download/mailboxes/@.id==VjN-m83ISXEldnP3T3Z9zOAG2O_rV4kAJGuvyQczuPNe3y6uH_kFJNwFEzAczlKfcSRK6F676llwJijNHGM9Rx73ng/messages/@.id==AA4rCakccZBlW0Rb_QmZCEdw8Rg/content/parts/@.id==2/raw?appid=YMailNorrin&ymreqid=3109e8dd-cabe-e03f-1c02-ec000001ce00&token=zitEzqOML3j84e6ealFTT5U7-km5qEQF52lp7AcCuBZg26zr02uU5z6B1uolKzq34BgNQEb_9RqrqBvlkd0nLFP77A-_HO2u05oMfSLv6k0GYHG5zZROOYeWZBW-NzAx": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
+    },
+    "url:https://dl-mail.ymail.com/ws/download/mailboxes/@.id==VjN-m83ISXEldnP3T3Z9zOAG2O_rV4kAJGuvyQczuPNe3y6uH_kFJNwFEzAczlKfcSRK6F676llwJijNHGM9Rx73ng/messages/@.id==AA4rCakccZBlW0Rb_QmZCEdw8Rg/content/parts/@.id==3/raw?appid=YMailNorrin&ymreqid=3109e8dd-cabe-e03f-1c02-ec000001ce00&token=zitEzqOML3j84e6ealFTT5U7-km5qEQF52lp7AcCuBZg26zr02uU5z6B1uolKzq34BgNQEb_9RqrqBvlkd0nLFP77A-_HO2u05oMfSLv6k0GYHG5zZROOYeWZBW-NzAx": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
+    },
+    "url:https://ecp.yusercontent.com/mail?url=https%3A%2F%2Fproxy.imgsmail.ru%2F%3Femail%3Dahmed.abdullahi%2540bk.ru%26e%3D1519804183%26h%3DDDFtSALAy7tdKfe9AP8idA%26url171%3Dc3RhdGljLmF2YXN0LmNvbS9lbWFpbHMvYXZhc3QtbWFpbC1zdGFtcC5wbmc%7E%26is_https%3D0&t=1531352401&ymreqid=3109e8dd-cabe-e03f-1cf5-0f001201f400&sig=ExHusom4LyGNK.DkXZhm7A--~C": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
+    },
+    "url:https://ecp.yusercontent.com/mail?url=https://proxy.imgsmail.ru/?email=ahmed.abdullahi%40bk.ru&e=1519804183&h=DDFtSALAy7tdKfe9AP8idA&url171=c3RhdGljLmF2YXN0LmNvbS9lbWFpbHMvYXZhc3QtbWFpbC1zdGFtcC5wbmc~&is_https=0&t=1531352401&ymreqid=3109e8dd-cabe-e03f-1cf5-0f001201f400&sig=ExHusom4LyGNK.DkXZhm7A--~C": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
+    },
+    "url:https://proxy.imgsmail.ru/?email=ahmed.abdullahi%40bk.ru&e=1519804183&h=DDFtSALAy7tdKfe9AP8idA&url171=c3RhdGljLmF2YXN0LmNvbS9lbWFpbHMvYXZhc3QtbWFpbC1zdGFtcC5wbmc~&is_https=0": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
+    },
+    "url:https://proxy.imgsmail.ru/?email=ahmed.abdullahi@bk.ru": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
+    },
+    "url:https://s.yimg.com/cv/ae/nq/storm/assets/enhancrV21/1/enhancr_gradient-400x175.png": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
+    },
+    "url:https://s.yimg.com/lo/api/res/1.2/n9.tpnN8N8gspzxhMO4xnA--~A/Zmk9ZmlsbDt3PTQwMDtoPTIwMDthcHBpZD1pZXh0cmFjdA--/http://www.igpetro.com/sites/default/files/999111NewHomePage.jpg.cf.jpg": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
+    },
+    "url:https://www.avast.com/antivirus": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
       "relationships": {},
       "results": {},
       "tags": {}
