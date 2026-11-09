@@ -51,7 +51,53 @@
         "pdf": true
       }
     },
-    "file:14ab0f2273ea0879b926e31c68e06d190fe01206d27c694cce4873986fe253fb": {
+    "file:31242aeac10b8393cd83b7b64c37b6ba16099c51d1ec2e9b15af1946b5e965ce": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "quirks.pdf.pdfparser": {
+          "type=document.pdf.object": true
+        }
+      },
+      "redirection": "file:01940d8e00316615efbbc86cc54902f0afb11fee57536db4f908c1c0fbda3aa4",
+      "relationships": {
+        "extracted_from file:01940d8e00316615efbbc86cc54902f0afb11fee57536db4f908c1c0fbda3aa4": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:d6867fe23b37bcfeafe1f3ebe55c35ad748f4c65f91a32910d6e42b877a85968": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -101,52 +147,6 @@
       "tags": {
         "pdf": true
       }
-    },
-    "file:31242aeac10b8393cd83b7b64c37b6ba16099c51d1ec2e9b15af1946b5e965ce": {
-      "detections": {},
-      "directives": {
-        "extract_urls": true
-      },
-      "excluded_analysis": {},
-      "paths": {
-        "quirks.pdf.pdfparser": {
-          "type=document.pdf.object": true
-        }
-      },
-      "redirection": "file:01940d8e00316615efbbc86cc54902f0afb11fee57536db4f908c1c0fbda3aa4",
-      "relationships": {
-        "extracted_from file:01940d8e00316615efbbc86cc54902f0afb11fee57536db4f908c1c0fbda3aa4": true
-      },
-      "results": {
-        "file_type": {
-          "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": false,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "application/octet-stream",
-            "type": "data"
-          },
-          "summary": "File Type Analysis: data (application/octet-stream)",
-          "tags": {}
-        },
-        "url_extraction": {
-          "details": {
-            "urls": [],
-            "urls_grouped_by_domain": {}
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
     },
     "md5:831c5c6f99841b085700b894db0788a9": {
       "detections": {},

@@ -1,0 +1,38 @@
+From: <Saved by Blink>
+Snapshot-Content-Location: https://www.example.com/
+Subject: Example
+MIME-Version: 1.0
+Content-Type: multipart/related;
+	type="text/html";
+	boundary="----MultipartBoundary--abc----"
+
+------MultipartBoundary--abc----
+Content-Type: text/html
+Content-ID: <frame-1@mhtml.blink>
+Content-Transfer-Encoding: quoted-printable
+Content-Location: https://www.example.com/
+
+<html><head><script>var target =3D "https://evil.example.com/landing";</script>=
+<script src=3D"https://cdn.example.com/kit.js"></script></head>=
+<body onload=3D"window.location=3Dtarget"><p class=3D"a  b">Hi</p></body></html>
+------MultipartBoundary--abc----
+Content-Type: image/png
+Content-Transfer-Encoding: base64
+Content-Location: https://www.example.com/logo.png
+
+iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAA=
+------MultipartBoundary--abc----
+Content-Type: text/css
+Content-Transfer-Encoding: quoted-printable
+Content-Location: https://www.example.com/style.css
+
+body { color: red; }
+------MultipartBoundary--abc----
+Content-Type: application/xhtml+xml
+Content-Location: https://www.example.com/frame
+
+<html xmlns=3D"http://www.w3.org/1999/xhtml"><body><script src="/local.js"></script><script>document.write("frame two")</script></body></html>
+------MultipartBoundary--abc----
+Content-Type: text/plain
+
+------MultipartBoundary--abc------

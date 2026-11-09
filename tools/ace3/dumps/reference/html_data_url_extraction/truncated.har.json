@@ -1,0 +1,30 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [],
+  "input": {
+    "directives": [],
+    "label": "fixtures/html/truncated.har",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "truncated.har",
+      "size": 21,
+      "type": "file",
+      "value": "7ccf6b8ad9ab93a0b67520ea3aad6ba1a0b9887886764b38f7871607f773f46a"
+    }
+  },
+  "module": "html_data_url_extraction",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "truncated.har",
+    "relationships": [],
+    "size": 21,
+    "tags": [],
+    "type": "file",
+    "value": "7ccf6b8ad9ab93a0b67520ea3aad6ba1a0b9887886764b38f7871607f773f46a",
+    "yara_meta": []
+  }
+}

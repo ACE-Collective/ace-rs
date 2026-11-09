@@ -106,6 +106,22 @@ pub fn modules(settings: &Value) -> Result<Modules, SetupError> {
             block("network_identifier"),
             &secrets,
         )?)
+        .with_parser(Entry::<ace_mod_html::HtmlDataUrlAnalyzer>::parser(
+            block("html_data_url_extraction"),
+            &secrets,
+        )?)
+        .with_parser(Entry::<ace_mod_html::MhtmlAnalyzer>::parser(
+            block("mhtml"),
+            &secrets,
+        )?)
+        .with_parser(Entry::<ace_mod_html::HtmlJavaScriptExtractor>::parser(
+            block("html_js_extraction"),
+            &secrets,
+        )?)
+        .with_parser(Entry::<ace_mod_html::HarExtractor>::parser(
+            block("har_extraction"),
+            &secrets,
+        )?)
         .with_lookup(Entry::<Counted>::lookup(block(Counted::NAME), &secrets)?)
         .with_lookup(Entry::<Panicky>::lookup(block(Panicky::NAME), &secrets)?)
         .with_lookup(Entry::<Connect>::lookup(block(Connect::NAME), &secrets)?)

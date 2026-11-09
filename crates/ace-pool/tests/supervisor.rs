@@ -1054,6 +1054,154 @@ async fn measure_file_identity() {
     let _ = pool.stop();
 }
 
+/// PLAN.md 7.5 batch 4: libxml2, the MIME parser and the JSON parser run in contained task
+/// processes, and each HTML module ends its task with a result.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn html_modules_finish_in_contained_task_processes() {
+    let manifests = vec![
+        ace_mod_files::file_type::MANIFEST,
+        ace_mod_html::data_url::MANIFEST,
+        ace_mod_html::mhtml::MANIFEST,
+        ace_mod_html::js::MANIFEST,
+        ace_mod_html::har::MANIFEST,
+    ];
+    let names: Vec<&str> = manifests.iter().map(|m| m.name).collect();
+    let core = Core::start(manifests.clone(), &names, Duration::from_secs(300)).await;
+    let mut pool = supervisor(&core, &[]);
+    for (sample, module) in [
+        ("ace4/web/data_urls.html", "html_data_url_extraction"),
+        ("ace4/web/page.mht", "mhtml"),
+        ("ace4/web/scripts.html", "html_js_extraction"),
+        ("ace4/web/session.har", "har_extraction"),
+    ] {
+        let path = format!("{}/../../samples/{sample}", env!("CARGO_MANIFEST_DIR"));
+        let bytes = std::fs::read(path).expect("a sample");
+        let name = sample.rsplit('/').next().expect("a name");
+        let (root, _) = root_with_bytes(&core, "file", &bytes, name).await;
+        let (state, error, _) = last_task_state(&core, root, module).await;
+        assert_eq!(state, "done", "{sample}: {error:?}");
+    }
+    let _ = pool.stop();
+}
+
+/// PLAN.md 7.5 batch 4: what crafted files cost the HTML modules (docs/measurements/html.md). Each
+/// file `tools/samples/make-html-hostile` wrote to `ACE4_HTML_HOSTILE` whose name starts with the
+/// module `ACE4_HTML_MODULE` names runs `ACE4_HTML_RUNS` times (3 by default) as a contained task
+/// of that module with its limits, file_type first for `html_js_extraction` and `mhtml`, which wait
+/// for it.
+/// A run's root holds the file under a name with the run's number, so no run reuses another's
+/// result, and the time runs from the root's queueing to the module's task ending. The tasks the
+/// files a run writes queue, such as file_type's for each script, finish before the next run.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[ignore = "a measurement, with files tools/samples/make-html-hostile makes"]
+async fn measure_html() {
+    let dir = std::env::var("ACE4_HTML_HOSTILE").expect("ACE4_HTML_HOSTILE");
+    let module = std::env::var("ACE4_HTML_MODULE").expect("ACE4_HTML_MODULE");
+    let runs: usize = std::env::var("ACE4_HTML_RUNS")
+        .ok()
+        .and_then(|r| r.parse().ok())
+        .unwrap_or(3);
+    let mut manifests = match module.as_str() {
+        "html_data_url_extraction" => vec![ace_mod_html::data_url::MANIFEST],
+        "mhtml" => vec![
+            ace_mod_files::file_type::MANIFEST,
+            ace_mod_html::mhtml::MANIFEST,
+        ],
+        "html_js_extraction" => vec![
+            ace_mod_files::file_type::MANIFEST,
+            ace_mod_html::js::MANIFEST,
+        ],
+        "har_extraction" => vec![ace_mod_html::har::MANIFEST],
+        other => panic!("{other} isn't a module of the batch"),
+    };
+    manifests.dedup_by_key(|m| m.name);
+    let names: Vec<&str> = manifests.iter().map(|m| m.name).collect();
+    let core = Core::start(manifests.clone(), &names, Duration::from_secs(600)).await;
+    let mut files: Vec<_> = std::fs::read_dir(&dir)
+        .expect("the directory")
+        .map(|entry| {
+            entry
+                .expect("an entry")
+                .file_name()
+                .into_string()
+                .expect("a name")
+        })
+        .filter(|name| name.starts_with(module.as_str()))
+        .collect();
+    files.sort();
+    let mut pool = supervisor(&core, &[]);
+    for name in files {
+        let bytes = std::fs::read(format!("{dir}/{name}")).expect("the file");
+        for run in 0..runs {
+            let (root, _) =
+                root_with_file(&core, "file", &bytes, &format!("{run}_{name}"), &[]).await;
+            // the module's task on the file itself, the first of the root's: the files it writes
+            // may queue more of the same module, such as mhtml on each part
+            let started = Instant::now();
+            let (state, error) = loop {
+                let found: Option<(String, Option<String>)> = sqlx::query_as(
+                    "SELECT state::text, error FROM queue.tasks WHERE root_id = $1 AND module = $2
+                     ORDER BY id LIMIT 1",
+                )
+                .bind(root)
+                .bind(&module)
+                .fetch_optional(core.test_db.db().pool())
+                .await
+                .expect("the task");
+                if let Some((state, error)) = found
+                    && !matches!(state.as_str(), "queued" | "running" | "delayed")
+                {
+                    break (state, error);
+                }
+                assert!(
+                    started.elapsed() < Duration::from_secs(600),
+                    "{name} didn't end"
+                );
+                tokio::time::sleep(Duration::from_millis(50)).await;
+            };
+            let seconds = started.elapsed().as_secs_f64();
+            let error: String = error.unwrap_or_default().chars().take(120).collect();
+            let summary: Option<String> = sqlx::query_scalar(
+                "SELECT summary FROM analysis.results WHERE root_id = $1 AND module = $2",
+            )
+            .bind(root)
+            .bind(&module)
+            .fetch_optional(core.test_db.db().pool())
+            .await
+            .expect("reads")
+            .flatten();
+            let files: i64 =
+                sqlx::query_scalar("SELECT count(*) FROM analysis.files WHERE root_id = $1")
+                    .bind(root)
+                    .fetch_one(core.test_db.db().pool())
+                    .await
+                    .expect("counts");
+            let summary: String = summary.unwrap_or_default().chars().take(100).collect();
+            println!(
+                "{name}\t{}\t{run}\t{state}\t{seconds:.2}\t{}\t{summary}\t{error}",
+                bytes.len(),
+                files - 1
+            );
+            assert!(pool.running(), "the supervisor kept running after {name}");
+            // the tasks the run's files queued go before the next run's
+            let drained = Instant::now();
+            loop {
+                let pending: i64 = sqlx::query_scalar(
+                    "SELECT count(*) FROM queue.tasks WHERE state IN ('queued', 'running', 'delayed')",
+                )
+                .fetch_one(core.test_db.db().pool())
+                .await
+                .expect("counts");
+                if pending == 0 || drained.elapsed() > Duration::from_secs(600) {
+                    break;
+                }
+                tokio::time::sleep(Duration::from_millis(200)).await;
+            }
+        }
+    }
+    let _ = pool.stop();
+}
+
 /// PLAN.md 7.5 batch 3: what crafted observable values cost the modules that read them
 /// (docs/measurements/observable-values.md). Each value of the module `ACE4_VALUES_MODULE` names
 /// runs in a new root as a contained task of that module with its limits, 3 runs

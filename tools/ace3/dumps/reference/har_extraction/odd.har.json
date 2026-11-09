@@ -1,0 +1,184 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "HARAnalysis",
+      "details": {
+        "creator": "{'n': True} 1.5",
+        "entry_count": 4,
+        "error": null,
+        "responses": [
+          {
+            "file_path": "odd.har.extracted/001_y.html",
+            "mime_type": "text/html",
+            "status": 12345678901234567890123,
+            "truncated": false,
+            "url": "https://odd.example.com/y"
+          },
+          {
+            "file_path": "odd.har.extracted/002_Upper.HTML",
+            "mime_type": "text/html",
+            "status": 1.5,
+            "truncated": false,
+            "url": "HTTPS://ODD.example.com/Upper.HTML"
+          },
+          {
+            "file_path": "odd.har.extracted/003_response.html",
+            "mime_type": "text/html",
+            "status": 200,
+            "truncated": false,
+            "url": "https://odd.example.com/café/☃"
+          }
+        ],
+        "skipped_count": 0
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.har:HARAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.har:<class 'saq.modules.file_analysis.har.HARExtractor'>"
+          ],
+          "file_path": "odd.har.extracted/001_y.html",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "f49ae5d384d5192122ff98b3077d663c4ccdacfa049b7a9037d7c3f8c4a5e8f0"
+              },
+              "type": "extracted_from"
+            },
+            {
+              "target": {
+                "type": "url",
+                "value": "https://odd.example.com/y"
+              },
+              "type": "downloaded_from"
+            }
+          ],
+          "size": 17,
+          "tags": [],
+          "type": "file",
+          "value": "df6bc668cb25d434df8129a1d078dd1f8e64dd42897a1d93df2dce2cfdf435ca",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "url",
+          "value": "https://odd.example.com/y"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.har:<class 'saq.modules.file_analysis.har.HARExtractor'>"
+          ],
+          "file_path": "odd.har.extracted/002_Upper.HTML",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "f49ae5d384d5192122ff98b3077d663c4ccdacfa049b7a9037d7c3f8c4a5e8f0"
+              },
+              "type": "extracted_from"
+            },
+            {
+              "target": {
+                "type": "url",
+                "value": "HTTPS://ODD.example.com/Upper.HTML"
+              },
+              "type": "downloaded_from"
+            }
+          ],
+          "size": 12,
+          "tags": [],
+          "type": "file",
+          "value": "4cc15516124c09619773ac7aa79d1dbd4a9e68b77777d4e45f4d44fca3252290",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "url",
+          "value": "HTTPS://ODD.example.com/Upper.HTML"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.har:<class 'saq.modules.file_analysis.har.HARExtractor'>"
+          ],
+          "file_path": "odd.har.extracted/003_response.html",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "f49ae5d384d5192122ff98b3077d663c4ccdacfa049b7a9037d7c3f8c4a5e8f0"
+              },
+              "type": "extracted_from"
+            },
+            {
+              "target": {
+                "type": "url",
+                "value": "https://odd.example.com/café/☃"
+              },
+              "type": "downloaded_from"
+            }
+          ],
+          "size": 20,
+          "tags": [],
+          "type": "file",
+          "value": "7f1ab93c15ee47f6adf896e83216a85e86dba9658f886473445ee1a4ec6f1142",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "url",
+          "value": "https://odd.example.com/café/☃"
+        }
+      ],
+      "summary": "HTTP Archive: extracted 3 pages and 0 scripts from 4 requests ({'n': True} 1.5)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/html/odd.har",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "odd.har",
+      "size": 791,
+      "type": "file",
+      "value": "f49ae5d384d5192122ff98b3077d663c4ccdacfa049b7a9037d7c3f8c4a5e8f0"
+    }
+  },
+  "module": "har_extraction",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "odd.har",
+    "relationships": [],
+    "size": 791,
+    "tags": [],
+    "type": "file",
+    "value": "f49ae5d384d5192122ff98b3077d663c4ccdacfa049b7a9037d7c3f8c4a5e8f0",
+    "yara_meta": []
+  },
+  "sidecars": {}
+}

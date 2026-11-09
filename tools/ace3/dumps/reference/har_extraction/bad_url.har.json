@@ -1,0 +1,94 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "HARAnalysis",
+      "details": {
+        "creator": "7 [1, 'b']",
+        "entry_count": 3,
+        "error": null,
+        "responses": [
+          {
+            "file_path": "bad_url.har.extracted/000_first.html",
+            "mime_type": "text/html",
+            "status": 200,
+            "truncated": false,
+            "url": "https://ok.example.com/first.html"
+          }
+        ],
+        "skipped_count": 0
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.har:HARAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.har:<class 'saq.modules.file_analysis.har.HARExtractor'>"
+          ],
+          "file_path": "bad_url.har.extracted/000_first.html",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "8a63d4cdd226ff91b0ce5ae2288818e8a66f177c00cbdd29f4398777d4874b5d"
+              },
+              "type": "extracted_from"
+            },
+            {
+              "target": {
+                "type": "url",
+                "value": "https://ok.example.com/first.html"
+              },
+              "type": "downloaded_from"
+            }
+          ],
+          "size": 12,
+          "tags": [],
+          "type": "file",
+          "value": "9a17ecbcc87151aaf729b10d1256d47513b026fb23e0a3edb8ab97221a88232f",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "url",
+          "value": "https://ok.example.com/first.html"
+        }
+      ],
+      "summary": "HTTP Archive: extracted 1 pages and 0 scripts from 3 requests (7 [1, 'b'])",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/html/bad_url.har",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "bad_url.har",
+      "size": 558,
+      "type": "file",
+      "value": "8a63d4cdd226ff91b0ce5ae2288818e8a66f177c00cbdd29f4398777d4874b5d"
+    }
+  },
+  "module": "har_extraction",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "bad_url.har",
+    "relationships": [],
+    "size": 558,
+    "tags": [],
+    "type": "file",
+    "value": "8a63d4cdd226ff91b0ce5ae2288818e8a66f177c00cbdd29f4398777d4874b5d",
+    "yara_meta": []
+  },
+  "sidecars": {}
+}

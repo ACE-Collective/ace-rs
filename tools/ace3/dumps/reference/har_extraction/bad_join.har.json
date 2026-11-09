@@ -1,0 +1,86 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "HARAnalysis",
+      "details": {
+        "creator": "x",
+        "entry_count": 2,
+        "error": null,
+        "responses": [],
+        "skipped_count": 0
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.har:HARAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.har:<class 'saq.modules.file_analysis.har.HARExtractor'>"
+          ],
+          "file_path": "bad_join.har.extracted/000_page.html",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "0e57cbe41a9422a842ceb22e2f11a6b4b9c1dae701a3cd765a5390473ea0bef1"
+              },
+              "type": "extracted_from"
+            },
+            {
+              "target": {
+                "type": "url",
+                "value": "https://ok.example.com/page.html"
+              },
+              "type": "downloaded_from"
+            }
+          ],
+          "size": 51,
+          "tags": [],
+          "type": "file",
+          "value": "98738991b97e68f1209d260783f3a5154b70f4a2409de08aed2ba293da492a32",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "url",
+          "value": "https://ok.example.com/page.html"
+        }
+      ],
+      "summary": "HTTP Archive: extracted 0 pages and 0 scripts from 2 requests (x)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/html/bad_join.har",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "bad_join.har",
+      "size": 441,
+      "type": "file",
+      "value": "0e57cbe41a9422a842ceb22e2f11a6b4b9c1dae701a3cd765a5390473ea0bef1"
+    }
+  },
+  "module": "har_extraction",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "bad_join.har",
+    "relationships": [],
+    "size": 441,
+    "tags": [],
+    "type": "file",
+    "value": "0e57cbe41a9422a842ceb22e2f11a6b4b9c1dae701a3cd765a5390473ea0bef1",
+    "yara_meta": []
+  },
+  "sidecars": {}
+}

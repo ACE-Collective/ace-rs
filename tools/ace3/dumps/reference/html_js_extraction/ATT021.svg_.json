@@ -1,0 +1,113 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "image/svg+xml",
+        "type": "SVG Scalable Vector Graphics image, ASCII text"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: SVG Scalable Vector Graphics image, ASCII text (image/svg+xml)",
+      "tags": []
+    },
+    {
+      "class": "HTMLJavaScriptExtractionAnalysis",
+      "details": {
+        "dom_snapshot_files": [
+          "ATT021_js_inline_0_1a676136.js.dom.json"
+        ],
+        "duplicate_count": 0,
+        "extracted_files": [
+          "ATT021_js_inline_0_1a676136.js"
+        ],
+        "extracted_uri_paths": [],
+        "extracted_urls": [],
+        "inline_handlers": [],
+        "script_count": 1
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.html_js_extraction:HTMLJavaScriptExtractionAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=image",
+            "yara_meta:type=script.javascript"
+          ],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.html_js_extraction:<class 'saq.modules.file_analysis.html_js_extraction.HTMLJavaScriptExtractor'>"
+          ],
+          "file_path": "ATT021_js_inline_0_1a676136.js",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "acc7a94ef825abaa36b9aa18cf46d71e16b91c466e4ed8d4ad0e83335ee160d2"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 58,
+          "tags": [],
+          "type": "file",
+          "value": "1a676136f1c7f865eb2798e31c0669b41e2a24a5d73754908a644cb38ddf5baa",
+          "yara_meta": [
+            "type=image",
+            "type=script.javascript"
+          ]
+        }
+      ],
+      "summary": "HTML JavaScript Extraction: 1 inline script(s)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/html/ATT021.svg_",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "ATT021.svg_",
+      "size": 157,
+      "type": "file",
+      "value": "acc7a94ef825abaa36b9aa18cf46d71e16b91c466e4ed8d4ad0e83335ee160d2"
+    }
+  },
+  "module": "html_js_extraction",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=image"
+    ],
+    "excluded_analysis": [],
+    "file_path": "ATT021.svg_",
+    "relationships": [],
+    "size": 157,
+    "tags": [],
+    "type": "file",
+    "value": "acc7a94ef825abaa36b9aa18cf46d71e16b91c466e4ed8d4ad0e83335ee160d2",
+    "yara_meta": [
+      "type=image"
+    ]
+  },
+  "sidecars": {
+    "ATT021_js_inline_0_1a676136.js.dom.json": "{\"version\":1,\"truncated\":false,\"elements\":[{\"tag\":\"html\",\"attrs\":{}},{\"tag\":\"body\",\"attrs\":{}},{\"tag\":\"svg\",\"attrs\":{\"xmlns\":\"http://www.w3.org/2000/svg\"}}]}"
+  }
+}

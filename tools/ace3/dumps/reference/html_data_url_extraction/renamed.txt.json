@@ -1,0 +1,30 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [],
+  "input": {
+    "directives": [],
+    "label": "fixtures/html/renamed.txt",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "renamed.txt",
+      "size": 4022,
+      "type": "file",
+      "value": "3242b58c5e34e03a4a1e49e1da59c7f779cf7fd5e7396fec55636f76554f6900"
+    }
+  },
+  "module": "html_data_url_extraction",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "renamed.txt",
+    "relationships": [],
+    "size": 4022,
+    "tags": [],
+    "type": "file",
+    "value": "3242b58c5e34e03a4a1e49e1da59c7f779cf7fd5e7396fec55636f76554f6900",
+    "yara_meta": []
+  }
+}

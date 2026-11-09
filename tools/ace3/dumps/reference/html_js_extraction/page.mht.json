@@ -1,0 +1,218 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": true,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "message/rfc822",
+        "type": "news or mail, ASCII text"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
+      "tags": []
+    },
+    {
+      "class": "HTMLJavaScriptExtractionAnalysis",
+      "details": {
+        "dom_snapshot_files": [
+          "page_js_inline_0_ebeac15c.js.dom.json",
+          "page.mht.dom.json",
+          "page_js_event_onload_0_6b30fcf2.js.dom.json",
+          "page_js_inline_1_320b078a.js.dom.json"
+        ],
+        "duplicate_count": 0,
+        "extracted_files": [
+          "page_js_inline_0_ebeac15c.js",
+          "page_js_inline_1_320b078a.js"
+        ],
+        "extracted_uri_paths": [
+          "/local.js"
+        ],
+        "extracted_urls": [
+          "https://cdn.example.com/kit.js"
+        ],
+        "inline_handlers": [
+          "page_js_event_onload_0_6b30fcf2.js"
+        ],
+        "script_count": 5
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.html_js_extraction:HTMLJavaScriptExtractionAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=email",
+            "yara_meta:type=script.javascript"
+          ],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.html_js_extraction:<class 'saq.modules.file_analysis.html_js_extraction.HTMLJavaScriptExtractor'>"
+          ],
+          "file_path": "page_js_inline_0_ebeac15c.js",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "75e61725d48f1b337ffd63f51a15e2e9e1d54a11f64e2fc7fd10e687f394d567"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 48,
+          "tags": [],
+          "type": "file",
+          "value": "ebeac15c3ada2b453a1f7c15e43a4470956038235d7d3c24025582c969c474a5",
+          "yara_meta": [
+            "type=email",
+            "type=script.javascript"
+          ]
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "75e61725d48f1b337ffd63f51a15e2e9e1d54a11f64e2fc7fd10e687f394d567"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "tags": [],
+          "type": "url",
+          "value": "https://cdn.example.com/kit.js"
+        },
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=email",
+            "yara_meta:type=script.javascript"
+          ],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.html_js_extraction:<class 'saq.modules.file_analysis.html_js_extraction.HTMLJavaScriptExtractor'>"
+          ],
+          "file_path": "page_js_event_onload_0_6b30fcf2.js",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "75e61725d48f1b337ffd63f51a15e2e9e1d54a11f64e2fc7fd10e687f394d567"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 22,
+          "tags": [],
+          "type": "file",
+          "value": "6b30fcf2d7532721ed5491af64222d9bfa5c3a47ef132fad98635aed2732b363",
+          "yara_meta": [
+            "type=email",
+            "type=script.javascript"
+          ]
+        },
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=email",
+            "yara_meta:type=script.javascript"
+          ],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.html_js_extraction:<class 'saq.modules.file_analysis.html_js_extraction.HTMLJavaScriptExtractor'>"
+          ],
+          "file_path": "page_js_inline_1_320b078a.js",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "75e61725d48f1b337ffd63f51a15e2e9e1d54a11f64e2fc7fd10e687f394d567"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 27,
+          "tags": [],
+          "type": "file",
+          "value": "320b078ab9005f977ac6cda43c474b5ad613c6389668b7ebc7f38e3328f042ce",
+          "yara_meta": [
+            "type=email",
+            "type=script.javascript"
+          ]
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "75e61725d48f1b337ffd63f51a15e2e9e1d54a11f64e2fc7fd10e687f394d567"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "tags": [],
+          "type": "uri_path",
+          "value": "/local.js"
+        }
+      ],
+      "summary": "HTML JavaScript Extraction: 2 inline script(s), 1 external URL(s), 1 URI path(s), 1 event handler(s)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/html/page.mht",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "page.mht",
+      "size": 1325,
+      "type": "file",
+      "value": "75e61725d48f1b337ffd63f51a15e2e9e1d54a11f64e2fc7fd10e687f394d567"
+    }
+  },
+  "module": "html_js_extraction",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email"
+    ],
+    "excluded_analysis": [],
+    "file_path": "page.mht",
+    "relationships": [],
+    "size": 1325,
+    "tags": [
+      "email"
+    ],
+    "type": "file",
+    "value": "75e61725d48f1b337ffd63f51a15e2e9e1d54a11f64e2fc7fd10e687f394d567",
+    "yara_meta": [
+      "type=email"
+    ]
+  },
+  "sidecars": {
+    "page.mht.dom.json": "{\"version\":1,\"truncated\":false,\"elements\":[{\"tag\":\"html\",\"attrs\":{}},{\"tag\":\"head\",\"attrs\":{}},{\"tag\":\"body\",\"attrs\":{\"onload\":\"window.location=target\"}},{\"tag\":\"p\",\"attrs\":{\"class\":\"a b\"},\"text\":\"Hi\"}]}",
+    "page_js_event_onload_0_6b30fcf2.js.dom.json": "{\"version\":1,\"truncated\":false,\"elements\":[{\"tag\":\"html\",\"attrs\":{}},{\"tag\":\"head\",\"attrs\":{}},{\"tag\":\"body\",\"attrs\":{\"onload\":\"window.location=target\"}},{\"tag\":\"p\",\"attrs\":{\"class\":\"a b\"},\"text\":\"Hi\"}]}",
+    "page_js_inline_0_ebeac15c.js.dom.json": "{\"version\":1,\"truncated\":false,\"elements\":[{\"tag\":\"html\",\"attrs\":{}},{\"tag\":\"head\",\"attrs\":{}},{\"tag\":\"body\",\"attrs\":{\"onload\":\"window.location=target\"}},{\"tag\":\"p\",\"attrs\":{\"class\":\"a b\"},\"text\":\"Hi\"}]}",
+    "page_js_inline_1_320b078a.js.dom.json": "{\"version\":1,\"truncated\":false,\"elements\":[{\"tag\":\"html\",\"attrs\":{\"xmlns\":\"3D\\\"http://www.w3.org/1999/xhtml\\\"\"}},{\"tag\":\"body\",\"attrs\":{}}]}"
+  }
+}

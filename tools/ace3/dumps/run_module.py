@@ -34,6 +34,9 @@ does (saq/cli/commands/correlate.py) with all modules disabled except the ones n
   in memory (FakeBrocess below), which starts with the rows in that JSON file, and the dump keeps
   the rows before and after the run and what each read answered;
 - with --fluent-bit, what ace3 sends to fluent-bit is kept in the dump instead of sent;
+- with --sidecars SUFFIX, the dump keeps the text of each file the run left in the root's file
+  directory whose name ends in SUFFIX, by its path there, such as the DOM snapshots ace3's HTML
+  modules write beside the scripts they extract, which aren't observables;
 - with --tree, it also writes tree.json, the whole root in the normal form of PLAN.md 3.1
   (crates/ace-core/src/normal.rs), which tools/ace3/trees/make-trees collects.
 
@@ -97,6 +100,10 @@ def parse_args():
     parser.add_argument("--brocess-store", help="a JSON file of brocess rows the email modules read and write")
     parser.add_argument("--fluent-bit", action="store_true", help="keep what ace3 sends to fluent-bit in the dump")
     parser.add_argument("--tree", action="store_true", help="also write the root in the normal form to tree.json")
+    parser.add_argument(
+        "--sidecars", metavar="SUFFIX",
+        help="keep the text of each file the run wrote under the root whose name ends in SUFFIX, such as .dom.json",
+    )
     parser.add_argument("--label", default="", help="a name for the input, written into the dump")
     args = parser.parse_args(sys.argv[1:])
     if bool(args.file) == bool(args.observable):
@@ -571,6 +578,10 @@ TREE_MODULES = {
     "IDNAAnalysis": "idna_analyzer",
     "EmailAddressFQDNAnalysis": "email_address_fqdn_analyzer",
     "ProtectedURLAnalysis": "protected_url_analyzer",
+    "HTMLDataURLAnalysis": "html_data_url_extraction",
+    "HARAnalysis": "har_extraction",
+    "HTMLJavaScriptExtractionAnalysis": "html_js_extraction",
+    "MHTMLAnalysis": "mhtml",
 }
 TREE_RUN_FIELDS = {
     "EmailAnalysis": ["details/email/log_entry/date"],
@@ -611,6 +622,11 @@ TREE_EXCLUDED = {
     "URLExtractionAnalyzer": "url_extraction",
     "IOCExtractionAnalyzer": "ioc_extraction",
     "IDNAAnalyzer": "idna_analyzer",
+    "HTMLDataURLAnalyzer": "html_data_url_extraction",
+    "HARExtractor": "har_extraction",
+    "HTMLJavaScriptExtractor": "html_js_extraction",
+    "MHTMLAnalysisModule": "mhtml",
+    "OCRAnalyzer": "ocr",
 }
 
 
@@ -994,6 +1010,16 @@ def main():
         "observable_after": dump_observable(target),
         "analyses": [dump_analysis(a) for a in target.all_analysis],
     }
+    if args.sidecars and target.type == "file":
+        files_root = target.full_path[: -len(target.file_path)].rstrip("/")
+        sidecars = {}
+        for directory, _, names in os.walk(files_root):
+            for name in names:
+                if name.endswith(args.sidecars):
+                    path = os.path.join(directory, name)
+                    with open(path, encoding="utf-8") as fp:
+                        sidecars[os.path.relpath(path, files_root)] = fp.read()
+        dump["sidecars"] = sidecars
     if store is not None:
         dump["brocess_before"] = before
         dump["brocess_after"] = store.rows()

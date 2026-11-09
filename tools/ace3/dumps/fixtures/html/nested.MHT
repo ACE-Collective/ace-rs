@@ -1,0 +1,37 @@
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="outer"
+
+--outer
+Content-Type: multipart/alternative; boundary="inner"
+
+--inner
+Content-Type: text/plain
+
+inner text
+--inner
+Content-Type: text/html; charset=utf-8
+Content-Transfer-Encoding: base64
+
+PHA+Y2Fmw6k8L3A+PHNjcmlwdD5jb25zb2xlLmxvZygnbmVzdGVkIGh0bWwnKTwvc2NyaXB0Pg==
+--inner--
+--outer
+Content-Type: message/rfc822
+
+Subject: attached
+Content-Type: text/html
+
+<p>inside an attached message</p><script>alert('attached')</script>
+--outer
+Content-Type: application/octet-stream
+Content-Transfer-Encoding: x-uuencode
+
+begin 644 a.bin
+#86)C
+`
+end
+--outer
+:not-a-header
+Content-Type: text/html
+
+<p>after a colon line</p>
+--outer--

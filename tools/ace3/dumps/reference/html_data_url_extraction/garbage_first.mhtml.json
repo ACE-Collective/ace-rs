@@ -1,0 +1,30 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [],
+  "input": {
+    "directives": [],
+    "label": "fixtures/html/garbage_first.mhtml",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "garbage_first.mhtml",
+      "size": 215,
+      "type": "file",
+      "value": "cef4d5f65cd495087b73ffce1fa0d9b756b2ec2570de36a3c34b9c1025651d92"
+    }
+  },
+  "module": "html_data_url_extraction",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "garbage_first.mhtml",
+    "relationships": [],
+    "size": 215,
+    "tags": [],
+    "type": "file",
+    "value": "cef4d5f65cd495087b73ffce1fa0d9b756b2ec2570de36a3c34b9c1025651d92",
+    "yara_meta": []
+  }
+}

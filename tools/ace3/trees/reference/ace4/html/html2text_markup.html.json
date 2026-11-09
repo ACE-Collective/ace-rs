@@ -1,6 +1,54 @@
 {
   "form": 1,
   "observables": {
+    "file:00bb044386c82072e789f147fb94649dec3c94d38a88ecbdf39acacd91909310": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "html_js_extraction": true
+      },
+      "paths": {
+        "html2text_markup_js_inline_0_00bb0443.js": {
+          "type=document.html": true,
+          "type=email.attachment": true,
+          "type=script.javascript": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:9f67a3577a9a1af1962ce7b3eea179dec361d2e51b78c1fb2a0577de1b3006b2": true
+      },
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "e646ac34583ca6e03e46403b2f081b94",
+            "sha1": "96158aed6a5504c2b3ee001f75117da630de5b78",
+            "sha256": "00bb044386c82072e789f147fb94649dec3c94d38a88ecbdf39acacd91909310"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text, with no line terminators"
+          },
+          "summary": "File Type Analysis: ASCII text, with no line terminators (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:9f67a3577a9a1af1962ce7b3eea179dec361d2e51b78c1fb2a0577de1b3006b2": {
       "detections": {},
       "directives": {},
@@ -40,6 +88,23 @@
           },
           "summary": "File Type Analysis: HTML document, ASCII text (text/html)",
           "tags": {}
+        },
+        "html_js_extraction": {
+          "details": {
+            "dom_snapshot_files": [
+              "html2text_markup_js_inline_0_00bb0443.js.dom.json"
+            ],
+            "duplicate_count": 0,
+            "extracted_files": [
+              "html2text_markup_js_inline_0_00bb0443.js"
+            ],
+            "extracted_uri_paths": [],
+            "extracted_urls": [],
+            "inline_handlers": [],
+            "script_count": 1
+          },
+          "summary": "HTML JavaScript Extraction: 1 inline script(s)",
+          "tags": {}
         }
       },
       "tags": {}
@@ -50,6 +115,26 @@
       "excluded_analysis": {},
       "relationships": {
         "is_hash_of file:9f67a3577a9a1af1962ce7b3eea179dec361d2e51b78c1fb2a0577de1b3006b2": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:e646ac34583ca6e03e46403b2f081b94": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:00bb044386c82072e789f147fb94649dec3c94d38a88ecbdf39acacd91909310": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:00bb044386c82072e789f147fb94649dec3c94d38a88ecbdf39acacd91909310": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:00bb044386c82072e789f147fb94649dec3c94d38a88ecbdf39acacd91909310": true
       },
       "results": {},
       "tags": {}

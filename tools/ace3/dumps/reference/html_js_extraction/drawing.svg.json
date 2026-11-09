@@ -1,0 +1,134 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "image/svg+xml",
+        "type": "SVG Scalable Vector Graphics image, ASCII text"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: SVG Scalable Vector Graphics image, ASCII text (image/svg+xml)",
+      "tags": []
+    },
+    {
+      "class": "HTMLJavaScriptExtractionAnalysis",
+      "details": {
+        "dom_snapshot_files": [
+          "drawing_js_inline_0_0ae9e5b7.js.dom.json",
+          "drawing.svg.dom.json"
+        ],
+        "duplicate_count": 0,
+        "extracted_files": [
+          "drawing_js_inline_0_0ae9e5b7.js"
+        ],
+        "extracted_uri_paths": [],
+        "extracted_urls": [
+          "https://cdn.example.org/decode.js"
+        ],
+        "inline_handlers": [],
+        "script_count": 2
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.html_js_extraction:HTMLJavaScriptExtractionAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=image",
+            "yara_meta:type=script.javascript"
+          ],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.html_js_extraction:<class 'saq.modules.file_analysis.html_js_extraction.HTMLJavaScriptExtractor'>"
+          ],
+          "file_path": "drawing_js_inline_0_0ae9e5b7.js",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "9c9e609f574140b24f1667a6c30dca7b96a7b595ac2493da44b0c9276d7611cd"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 85,
+          "tags": [],
+          "type": "file",
+          "value": "0ae9e5b7530c31f1edffd692b67f3b9a6191d5a4abce619485f37c94ec2f86b6",
+          "yara_meta": [
+            "type=image",
+            "type=script.javascript"
+          ]
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "9c9e609f574140b24f1667a6c30dca7b96a7b595ac2493da44b0c9276d7611cd"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "tags": [],
+          "type": "url",
+          "value": "https://cdn.example.org/decode.js"
+        }
+      ],
+      "summary": "HTML JavaScript Extraction: 1 inline script(s), 1 external URL(s)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/html/drawing.svg",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "drawing.svg",
+      "size": 453,
+      "type": "file",
+      "value": "9c9e609f574140b24f1667a6c30dca7b96a7b595ac2493da44b0c9276d7611cd"
+    }
+  },
+  "module": "html_js_extraction",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=image"
+    ],
+    "excluded_analysis": [],
+    "file_path": "drawing.svg",
+    "relationships": [],
+    "size": 453,
+    "tags": [],
+    "type": "file",
+    "value": "9c9e609f574140b24f1667a6c30dca7b96a7b595ac2493da44b0c9276d7611cd",
+    "yara_meta": [
+      "type=image"
+    ]
+  },
+  "sidecars": {
+    "drawing.svg.dom.json": "{\"version\":1,\"truncated\":false,\"elements\":[{\"tag\":\"html\",\"attrs\":{}},{\"tag\":\"body\",\"attrs\":{}},{\"tag\":\"svg\",\"attrs\":{\"xmlns\":\"http://www.w3.org/2000/svg\",\"xmlns:xlink\":\"http://www.w3.org/1999/xlink\",\"width\":\"10\",\"height\":\"10\"}},{\"tag\":\"a\",\"attrs\":{\"href\":\"aHR0cHM6Ly9ldmlsLmV4YW1wbGUuY29tL3N2Zw==\",\"id\":\"t\"}},{\"tag\":\"rect\",\"attrs\":{\"width\":\"10\",\"height\":\"10\"}}]}",
+    "drawing_js_inline_0_0ae9e5b7.js.dom.json": "{\"version\":1,\"truncated\":false,\"elements\":[{\"tag\":\"html\",\"attrs\":{}},{\"tag\":\"body\",\"attrs\":{}},{\"tag\":\"svg\",\"attrs\":{\"xmlns\":\"http://www.w3.org/2000/svg\",\"xmlns:xlink\":\"http://www.w3.org/1999/xlink\",\"width\":\"10\",\"height\":\"10\"}},{\"tag\":\"a\",\"attrs\":{\"href\":\"aHR0cHM6Ly9ldmlsLmV4YW1wbGUuY29tL3N2Zw==\",\"id\":\"t\"}},{\"tag\":\"rect\",\"attrs\":{\"width\":\"10\",\"height\":\"10\"}}]}"
+  }
+}

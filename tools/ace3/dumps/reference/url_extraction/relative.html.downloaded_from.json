@@ -1,0 +1,154 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "text/html",
+        "type": "HTML document, ASCII text"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: HTML document, ASCII text (text/html)",
+      "tags": []
+    },
+    {
+      "class": "URLExtractionAnalysis",
+      "details": {
+        "urls": [
+          "https://absolute.example.org/x",
+          "https://site.example.com/root/page.html",
+          "https://site.example.com/js/kit.js",
+          "https://site.example.com/dir/login.php?u=1",
+          "https://site.example.com/dir/img/logo.png"
+        ],
+        "urls_grouped_by_domain": {
+          "example.com": [
+            "https://site.example.com/dir/img/logo.png",
+            "https://site.example.com/root/page.html",
+            "https://site.example.com/js/kit.js",
+            "https://site.example.com/dir/login.php?u=1"
+          ],
+          "example.org": [
+            "https://absolute.example.org/x"
+          ]
+        }
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.url_extraction:URLExtractionAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "url",
+          "value": "https://absolute.example.org/x"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "url",
+          "value": "https://site.example.com/root/page.html"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "url",
+          "value": "https://site.example.com/js/kit.js"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "url",
+          "value": "https://site.example.com/dir/login.php?u=1"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "url",
+          "value": "https://site.example.com/dir/img/logo.png"
+        }
+      ],
+      "summary": "URL Extraction Analysis (absolute.example.org, site.example.com)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [
+      "extract_urls"
+    ],
+    "label": "fixtures/urls/relative.html with ['extract_urls'] and [('downloaded_from', 'url', 'https://site.example.com/dir/page.html')]",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "relative.html",
+      "size": 208,
+      "type": "file",
+      "value": "1697d2962783d0399ad4753af4c281ea339851574ee80ee625fa19827422f1b7"
+    },
+    "relationships": [
+      {
+        "target": {
+          "type": "url",
+          "value": "https://site.example.com/dir/page.html"
+        },
+        "type": "downloaded_from"
+      }
+    ]
+  },
+  "module": "url_extraction",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "extract_urls",
+      "yara_meta:type=document.html"
+    ],
+    "excluded_analysis": [],
+    "file_path": "relative.html",
+    "relationships": [
+      {
+        "target": {
+          "type": "url",
+          "value": "https://site.example.com/dir/page.html"
+        },
+        "type": "downloaded_from"
+      }
+    ],
+    "size": 208,
+    "tags": [],
+    "type": "file",
+    "value": "1697d2962783d0399ad4753af4c281ea339851574ee80ee625fa19827422f1b7",
+    "yara_meta": [
+      "type=document.html"
+    ]
+  }
+}

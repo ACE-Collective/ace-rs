@@ -1,0 +1,112 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "MHTMLAnalysis",
+      "details": {
+        "extracted_files": [
+          "50e0640b44315641c34a09463dd53e2dc0f4e808446ffb4e2422646faa82ad30",
+          "71fde3856a298a052c6edb5155638d8422114e55bf0e28374d90dea8be99ef6c",
+          "5de625c36355cce7c1d5408826a0b21abfb49fb6c0e1f16c945a6f2aef38200c",
+          "a2eadc484439ef450f29b79678bf6434bcc36e1d3c647bda46b3e12371fcc76d"
+        ]
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.html:MHTMLAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=document.mhtml.part"
+          ],
+          "excluded_analysis": [],
+          "file_path": "page.mht.extracted/file_0",
+          "relationships": [],
+          "size": 212,
+          "tags": [],
+          "type": "file",
+          "value": "50e0640b44315641c34a09463dd53e2dc0f4e808446ffb4e2422646faa82ad30",
+          "yara_meta": [
+            "type=document.mhtml.part"
+          ]
+        },
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=document.mhtml.part"
+          ],
+          "excluded_analysis": [],
+          "file_path": "page.mht.extracted/file_1",
+          "relationships": [],
+          "size": 29,
+          "tags": [],
+          "type": "file",
+          "value": "71fde3856a298a052c6edb5155638d8422114e55bf0e28374d90dea8be99ef6c",
+          "yara_meta": [
+            "type=document.mhtml.part"
+          ]
+        },
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=document.mhtml.part"
+          ],
+          "excluded_analysis": [],
+          "file_path": "page.mht.extracted/file_2",
+          "relationships": [],
+          "size": 20,
+          "tags": [],
+          "type": "file",
+          "value": "5de625c36355cce7c1d5408826a0b21abfb49fb6c0e1f16c945a6f2aef38200c",
+          "yara_meta": [
+            "type=document.mhtml.part"
+          ]
+        },
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=document.mhtml.part"
+          ],
+          "excluded_analysis": [],
+          "file_path": "page.mht.extracted/file_3",
+          "relationships": [],
+          "size": 142,
+          "tags": [],
+          "type": "file",
+          "value": "a2eadc484439ef450f29b79678bf6434bcc36e1d3c647bda46b3e12371fcc76d",
+          "yara_meta": [
+            "type=document.mhtml.part"
+          ]
+        }
+      ],
+      "summary": "MHTML Analysis: 50e0640b44315641c34a09463dd53e2dc0f4e808446ffb4e2422646faa82ad30, 71fde3856a298a052c6edb5155638d8422114e55bf0e28374d90dea8be99ef6c, 5de625c36355cce7c1d5408826a0b21abfb49fb6c0e1f16c945a6f2aef38200c, a2eadc484439ef450f29b79678bf6434bcc36e1d3c647bda46b3e12371fcc76d",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/html/page.mht",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "page.mht",
+      "size": 1325,
+      "type": "file",
+      "value": "75e61725d48f1b337ffd63f51a15e2e9e1d54a11f64e2fc7fd10e687f394d567"
+    }
+  },
+  "module": "mhtml",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "page.mht",
+    "relationships": [],
+    "size": 1325,
+    "tags": [],
+    "type": "file",
+    "value": "75e61725d48f1b337ffd63f51a15e2e9e1d54a11f64e2fc7fd10e687f394d567",
+    "yara_meta": []
+  }
+}

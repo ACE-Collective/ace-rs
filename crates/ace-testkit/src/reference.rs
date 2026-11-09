@@ -227,6 +227,11 @@ fn ace3_module_name(excluded: &str) -> String {
         "ArchiveAnalyzer" => "archive",
         "YaraScanner_v3_4" => "yara_scanner_v3_4",
         "IDNAAnalyzer" => "idna_analyzer",
+        "HTMLDataURLAnalyzer" => "html_data_url_extraction",
+        "HARExtractor" => "har_extraction",
+        "HTMLJavaScriptExtractor" => "html_js_extraction",
+        "MHTMLAnalysisModule" => "mhtml",
+        "OCRAnalyzer" => "ocr",
         other => other,
     }
     .to_owned()

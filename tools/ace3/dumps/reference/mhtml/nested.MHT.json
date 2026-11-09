@@ -1,0 +1,129 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "MHTMLAnalysis",
+      "details": {
+        "extracted_files": [
+          "9fdc8bc44d1c9edd975e8e80fd451d16e3882a7678638b83f3198510f965c412",
+          "d98fefa72b82a018d3e67a5e92f913be60360d177acac0d7169fa863d9dc8190",
+          "f1b88a652a512ead3fc4b38739936c602da090b9bd1292f37ceb4ccdcad2dd22",
+          "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+          "152f20da61b8b46965482474431548ff2f099e103380c1ac7629c0bdf432e0d0"
+        ]
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.html:MHTMLAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=document.mhtml.part"
+          ],
+          "excluded_analysis": [],
+          "file_path": "nested.MHT.extracted/file_0",
+          "relationships": [],
+          "size": 10,
+          "tags": [],
+          "type": "file",
+          "value": "9fdc8bc44d1c9edd975e8e80fd451d16e3882a7678638b83f3198510f965c412",
+          "yara_meta": [
+            "type=document.mhtml.part"
+          ]
+        },
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=document.mhtml.part"
+          ],
+          "excluded_analysis": [],
+          "file_path": "nested.MHT.extracted/file_1",
+          "relationships": [],
+          "size": 55,
+          "tags": [],
+          "type": "file",
+          "value": "d98fefa72b82a018d3e67a5e92f913be60360d177acac0d7169fa863d9dc8190",
+          "yara_meta": [
+            "type=document.mhtml.part"
+          ]
+        },
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=document.mhtml.part"
+          ],
+          "excluded_analysis": [],
+          "file_path": "nested.MHT.extracted/file_3",
+          "relationships": [],
+          "size": 67,
+          "tags": [],
+          "type": "file",
+          "value": "f1b88a652a512ead3fc4b38739936c602da090b9bd1292f37ceb4ccdcad2dd22",
+          "yara_meta": [
+            "type=document.mhtml.part"
+          ]
+        },
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=document.mhtml.part"
+          ],
+          "excluded_analysis": [],
+          "file_path": "nested.MHT.extracted/file_4",
+          "relationships": [],
+          "size": 3,
+          "tags": [],
+          "type": "file",
+          "value": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+          "yara_meta": [
+            "type=document.mhtml.part"
+          ]
+        },
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=document.mhtml.part"
+          ],
+          "excluded_analysis": [],
+          "file_path": "nested.MHT.extracted/file_5",
+          "relationships": [],
+          "size": 25,
+          "tags": [],
+          "type": "file",
+          "value": "152f20da61b8b46965482474431548ff2f099e103380c1ac7629c0bdf432e0d0",
+          "yara_meta": [
+            "type=document.mhtml.part"
+          ]
+        }
+      ],
+      "summary": "MHTML Analysis: 9fdc8bc44d1c9edd975e8e80fd451d16e3882a7678638b83f3198510f965c412, d98fefa72b82a018d3e67a5e92f913be60360d177acac0d7169fa863d9dc8190, f1b88a652a512ead3fc4b38739936c602da090b9bd1292f37ceb4ccdcad2dd22, ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad, 152f20da61b8b46965482474431548ff2f099e103380c1ac7629c0bdf432e0d0",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/html/nested.MHT",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "nested.MHT",
+      "size": 690,
+      "type": "file",
+      "value": "272085e5f7df6d2c693611e4e4b6e048dfd2782a244472ea8ec4a1fc74e6b589"
+    }
+  },
+  "module": "mhtml",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "nested.MHT",
+    "relationships": [],
+    "size": 690,
+    "tags": [],
+    "type": "file",
+    "value": "272085e5f7df6d2c693611e4e4b6e048dfd2782a244472ea8ec4a1fc74e6b589",
+    "yara_meta": []
+  }
+}

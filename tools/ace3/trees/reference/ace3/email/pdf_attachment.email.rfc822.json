@@ -288,6 +288,19 @@
           },
           "summary": "File Type Analysis: RFC 822 mail, ASCII text, with very long lines (981) (message/rfc822) (email)",
           "tags": {}
+        },
+        "html_js_extraction": {
+          "details": {
+            "dom_snapshot_files": [],
+            "duplicate_count": 0,
+            "extracted_files": [],
+            "extracted_uri_paths": [],
+            "extracted_urls": [],
+            "inline_handlers": [],
+            "script_count": 0
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {
@@ -325,6 +338,19 @@
             "type": "RFC 822 mail, ASCII text, with very long lines (981)"
           },
           "summary": "File Type Analysis: RFC 822 mail, ASCII text, with very long lines (981) (message/rfc822) (email)",
+          "tags": {}
+        },
+        "html_js_extraction": {
+          "details": {
+            "dom_snapshot_files": [],
+            "duplicate_count": 0,
+            "extracted_files": [],
+            "extracted_uri_paths": [],
+            "extracted_urls": [],
+            "inline_handlers": [],
+            "script_count": 0
+          },
+          "summary": null,
           "tags": {}
         }
       },
@@ -975,6 +1001,19 @@
           },
           "summary": "File Type Analysis: SMTP mail, ASCII text, with very long lines (948) (message/rfc822) (email)",
           "tags": {}
+        },
+        "html_js_extraction": {
+          "details": {
+            "dom_snapshot_files": [],
+            "duplicate_count": 0,
+            "extracted_files": [],
+            "extracted_uri_paths": [],
+            "extracted_urls": [],
+            "inline_handlers": [],
+            "script_count": 0
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {
@@ -1131,57 +1170,6 @@
       },
       "tags": {}
     },
-    "file:b19efb4fc2e8dadcaf56ac8efe3cb00062ffb7fde29d20bec4ff3e3c17a8b600": {
-      "detections": {},
-      "directives": {
-        "extract_urls": true
-      },
-      "excluded_analysis": {
-        "pdf_analyzer": true
-      },
-      "paths": {
-        "spectre.pdf.gs.pdf": {
-          "type=document.pdf": true,
-          "type=document.pdf.rendered": true
-        }
-      },
-      "redirection": "file:d1a3c8c49faea6321bd01e706e0957012c18a94e1a187f1a5477c0e82270dc51",
-      "relationships": {
-        "extracted_from file:d1a3c8c49faea6321bd01e706e0957012c18a94e1a187f1a5477c0e82270dc51": true
-      },
-      "results": {
-        "file_type": {
-          "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": true,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "application/pdf",
-            "type": "PDF document, version 1.7, 16 page(s)"
-          },
-          "summary": "File Type Analysis: PDF document, version 1.7, 16 page(s) (application/pdf) (pdf document)",
-          "tags": {}
-        },
-        "url_extraction": {
-          "details": {
-            "urls": [],
-            "urls_grouped_by_domain": {}
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {
-        "pdf": true
-      }
-    },
     "file:b1e1cb135a54b1fdf13f1a49176cacad276b8916eb11541a41a5a85cb2655c3f": {
       "detections": {},
       "directives": {
@@ -1214,6 +1202,19 @@
             "type": "HTML document, ASCII text, with very long lines (461)"
           },
           "summary": "File Type Analysis: HTML document, ASCII text, with very long lines (461) (text/html)",
+          "tags": {}
+        },
+        "html_js_extraction": {
+          "details": {
+            "dom_snapshot_files": [],
+            "duplicate_count": 0,
+            "extracted_files": [],
+            "extracted_uri_paths": [],
+            "extracted_urls": [],
+            "inline_handlers": [],
+            "script_count": 0
+          },
+          "summary": null,
           "tags": {}
         },
         "url_extraction": {
@@ -1270,6 +1271,57 @@
         }
       },
       "tags": {}
+    },
+    "file:cf3c93962038b5308e370d88fa13b9ea74189818e0098fcec7320762a738a1ca": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {
+        "pdf_analyzer": true
+      },
+      "paths": {
+        "spectre.pdf.gs.pdf": {
+          "type=document.pdf": true,
+          "type=document.pdf.rendered": true
+        }
+      },
+      "redirection": "file:d1a3c8c49faea6321bd01e706e0957012c18a94e1a187f1a5477c0e82270dc51",
+      "relationships": {
+        "extracted_from file:d1a3c8c49faea6321bd01e706e0957012c18a94e1a187f1a5477c0e82270dc51": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": true,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/pdf",
+            "type": "PDF document, version 1.7, 16 page(s)"
+          },
+          "summary": "File Type Analysis: PDF document, version 1.7, 16 page(s) (application/pdf) (pdf document)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "pdf": true
+      }
     },
     "file:d1a3c8c49faea6321bd01e706e0957012c18a94e1a187f1a5477c0e82270dc51": {
       "detections": {},

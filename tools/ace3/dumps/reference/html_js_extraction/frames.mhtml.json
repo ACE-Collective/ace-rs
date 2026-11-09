@@ -1,0 +1,175 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "text/plain",
+        "type": "MIME entity, ASCII text"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: MIME entity, ASCII text (text/plain)",
+      "tags": []
+    },
+    {
+      "class": "HTMLJavaScriptExtractionAnalysis",
+      "details": {
+        "dom_snapshot_files": [
+          "frames_js_inline_0_dc5cb263.js.dom.json",
+          "frames.mhtml.dom.json",
+          "frames_js_inline_1_ae7cb0eb.js.dom.json"
+        ],
+        "duplicate_count": 1,
+        "extracted_files": [
+          "frames_js_inline_0_dc5cb263.js",
+          "frames_js_inline_1_ae7cb0eb.js"
+        ],
+        "extracted_uri_paths": [],
+        "extracted_urls": [
+          "https://cdn.example.com/one.js",
+          "https://cdn.example.com/two.js"
+        ],
+        "inline_handlers": [],
+        "script_count": 5
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.html_js_extraction:HTMLJavaScriptExtractionAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=script.javascript"
+          ],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.html_js_extraction:<class 'saq.modules.file_analysis.html_js_extraction.HTMLJavaScriptExtractor'>"
+          ],
+          "file_path": "frames_js_inline_0_dc5cb263.js",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "4880667e988518410c24822a4fe85e35cece707221453eb0cf5530bc1428af5b"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 26,
+          "tags": [],
+          "type": "file",
+          "value": "dc5cb263277fc03ab4a13f415396924c69adc86a8638e3bebdf7d4eac4f79b79",
+          "yara_meta": [
+            "type=script.javascript"
+          ]
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "4880667e988518410c24822a4fe85e35cece707221453eb0cf5530bc1428af5b"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "tags": [],
+          "type": "url",
+          "value": "https://cdn.example.com/one.js"
+        },
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=script.javascript"
+          ],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.html_js_extraction:<class 'saq.modules.file_analysis.html_js_extraction.HTMLJavaScriptExtractor'>"
+          ],
+          "file_path": "frames_js_inline_1_ae7cb0eb.js",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "4880667e988518410c24822a4fe85e35cece707221453eb0cf5530bc1428af5b"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 27,
+          "tags": [],
+          "type": "file",
+          "value": "ae7cb0eb3bf6a78b5522729b54198d13025d0e2cff909bcc52271fa1128f996f",
+          "yara_meta": [
+            "type=script.javascript"
+          ]
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "4880667e988518410c24822a4fe85e35cece707221453eb0cf5530bc1428af5b"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "tags": [],
+          "type": "url",
+          "value": "https://cdn.example.com/two.js"
+        }
+      ],
+      "summary": "HTML JavaScript Extraction: 2 inline script(s), 2 external URL(s) (1 duplicate(s) skipped)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/html/frames.mhtml",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "frames.mhtml",
+      "size": 472,
+      "type": "file",
+      "value": "4880667e988518410c24822a4fe85e35cece707221453eb0cf5530bc1428af5b"
+    }
+  },
+  "module": "html_js_extraction",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "frames.mhtml",
+    "relationships": [],
+    "size": 472,
+    "tags": [],
+    "type": "file",
+    "value": "4880667e988518410c24822a4fe85e35cece707221453eb0cf5530bc1428af5b",
+    "yara_meta": []
+  },
+  "sidecars": {
+    "frames.mhtml.dom.json": "{\"version\":1,\"truncated\":false,\"elements\":[{\"tag\":\"html\",\"attrs\":{}},{\"tag\":\"body\",\"attrs\":{}},{\"tag\":\"div\",\"attrs\":{\"id\":\"two\"},\"text\":\"second\"}]}",
+    "frames_js_inline_0_dc5cb263.js.dom.json": "{\"version\":1,\"truncated\":false,\"elements\":[{\"tag\":\"html\",\"attrs\":{}},{\"tag\":\"body\",\"attrs\":{}},{\"tag\":\"div\",\"attrs\":{\"id\":\"one\"},\"text\":\"first\"}]}",
+    "frames_js_inline_1_ae7cb0eb.js.dom.json": "{\"version\":1,\"truncated\":false,\"elements\":[{\"tag\":\"html\",\"attrs\":{}},{\"tag\":\"body\",\"attrs\":{}},{\"tag\":\"div\",\"attrs\":{\"id\":\"two\"},\"text\":\"second\"}]}"
+  }
+}

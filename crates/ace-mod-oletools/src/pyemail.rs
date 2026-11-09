@@ -51,6 +51,46 @@ pub fn parts_until_error(data: &[u8]) -> (Vec<Part>, Option<PyErr>) {
     (parts, None)
 }
 
+/// What a message of `walk()` gives a caller that wants only its type and its body:
+/// `get_content_type()` and `get_payload(decode=True)`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WalkedPart {
+    pub content_type: String,
+    pub payload: Option<Vec<u8>>,
+}
+
+/// How the feed parser is set up.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Setup {
+    /// The stock `headerRE`, `^(From |[\041-\071\073-\176]*:|[\t ])`, rather than open_mht's
+    /// loosened one, which takes any printable first character but `:`.
+    pub strict_headers: bool,
+    /// Python frames under the root `_parsegen`, for where `RecursionError` comes.
+    pub root_depth: usize,
+}
+
+/// open_mht's: `message_from_bytes` with its loosened `headerRE`.
+pub const OPEN_MHT: Setup = Setup {
+    strict_headers: false,
+    root_depth: ROOT_DEPTH,
+};
+
+/// `email.parser.BytesFeedParser()` under compat32, fed `data` and closed, then `walk()`: each
+/// message's content type and decoded payload, None for a multipart or a `message/*` one, whose
+/// payload is a list. Python builds every message before the walk, so an exception while parsing
+/// leaves nothing.
+pub fn walk_payloads(data: &[u8], setup: Setup) -> PyResult<Vec<WalkedPart>> {
+    let parser = parse_with(data, setup)?;
+    Ok(parser
+        .msgs
+        .iter()
+        .map(|msg| WalkedPart {
+            content_type: content_type(data, msg),
+            payload: get_payload(data, msg),
+        })
+        .collect())
+}
+
 fn recursion_error() -> PyErr {
     PyErr::new("RecursionError", "maximum recursion depth exceeded")
 }
@@ -198,9 +238,30 @@ struct Parser<'a> {
     last: usize,
     frames: Vec<Frame>,
     headers: Vec<Span>,
+    setup: Setup,
 }
 
 fn parse(data: &[u8]) -> PyResult<Parser<'_>> {
+    parse_with(data, OPEN_MHT)
+}
+
+/// `headerRE.match(line)` for the stock `headerRE`.
+fn is_strict_header(line: &[u8]) -> bool {
+    if line.starts_with(b"From ") || matches!(line[0], b'\t' | b' ') {
+        return true;
+    }
+    for &byte in line {
+        if byte == b':' {
+            return true;
+        }
+        if !(0x21..=0x7e).contains(&byte) {
+            return false;
+        }
+    }
+    false
+}
+
+fn parse_with(data: &[u8], setup: Setup) -> PyResult<Parser<'_>> {
     if u32::try_from(data.len()).is_err() {
         return Err(memory_error());
     }
@@ -216,6 +277,7 @@ fn parse(data: &[u8]) -> PyResult<Parser<'_>> {
         last: 0,
         frames: Vec::new(),
         headers: Vec::new(),
+        setup,
     };
     let mut next = Next::Call;
     loop {
@@ -255,7 +317,7 @@ fn boundary_match(data: &[u8], separator: Option<&[u8]>, line: Span) -> Option<b
 impl Parser<'_> {
     /// That a chain of `frames` Python calls from the `_parsegen` of this level fits.
     fn enter(&self, frames: usize) -> PyResult<()> {
-        if ROOT_DEPTH + self.frames.len() + frames > RECURSION_LIMIT {
+        if self.setup.root_depth + self.frames.len() + frames > RECURSION_LIMIT {
             return Err(recursion_error());
         }
         Ok(())
@@ -347,8 +409,11 @@ impl Parser<'_> {
                 break;
             }
             let first = self.data[line.0 as usize];
-            let is_header =
-                matches!(first, b'\t' | b' ') || (matches!(first, 0x21..=0x7e) && first != b':');
+            let is_header = if self.setup.strict_headers {
+                is_strict_header(slice(self.data, line))
+            } else {
+                matches!(first, b'\t' | b' ') || (matches!(first, 0x21..=0x7e) && first != b':')
+            };
             if !is_header {
                 if !matches!(first, b'\r' | b'\n') {
                     self.enter(2)?;
@@ -434,13 +499,21 @@ impl Parser<'_> {
                 self.enter(2)?;
                 continue;
             }
-            if memchr(b':', text).is_none() {
-                return Err(PyErr::new(
-                    "AssertionError",
-                    "_parse_headers fed line with no : and no leading WS",
-                ));
+            match memchr(b':', text) {
+                None => {
+                    return Err(PyErr::new(
+                        "AssertionError",
+                        "_parse_headers fed line with no : and no leading WS",
+                    ));
+                }
+                // InvalidHeaderDefect("Missing header name."), which only the stock headerRE
+                // lets through
+                Some(0) => {
+                    self.enter(2)?;
+                    continue;
+                }
+                Some(_) => open = Some(line),
             }
-            open = Some(line);
         }
         if let Some(span) = open {
             self.enter(2)?;

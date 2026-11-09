@@ -1,0 +1,57 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "application/json",
+        "type": "JSON text data"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: JSON text data (application/json)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/html/session.txt",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "session.txt",
+      "size": 136,
+      "type": "file",
+      "value": "f5bddaa1a052d1b26e5416e383a9b29960f19139a10e12b9d888ce6ac1348fea"
+    }
+  },
+  "module": "html_js_extraction",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "session.txt",
+    "relationships": [],
+    "size": 136,
+    "tags": [],
+    "type": "file",
+    "value": "f5bddaa1a052d1b26e5416e383a9b29960f19139a10e12b9d888ce6ac1348fea",
+    "yara_meta": []
+  },
+  "sidecars": {}
+}

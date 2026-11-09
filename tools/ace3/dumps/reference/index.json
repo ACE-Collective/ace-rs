@@ -2344,6 +2344,708 @@
     },
     {
       "ace3_commit": "f72f8946",
+      "analysis": "HARAnalysis",
+      "dump": "har_extraction/bad_join.har.json",
+      "input": "fixtures/html/bad_join.har",
+      "module": "har_extraction",
+      "observables_added": 2,
+      "summary": "HTTP Archive: extracted 0 pages and 0 scripts from 2 requests (x)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "HARAnalysis",
+      "dump": "har_extraction/bad_url.har.json",
+      "input": "fixtures/html/bad_url.har",
+      "module": "har_extraction",
+      "observables_added": 2,
+      "summary": "HTTP Archive: extracted 1 pages and 0 scripts from 3 requests (7 [1, 'b'])"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "HARAnalysis",
+      "dump": "har_extraction/big.har.json",
+      "input": "fixtures/html/big.har",
+      "module": "har_extraction",
+      "observables_added": 0,
+      "summary": "HTTP Archive: extracted 0 pages and 0 scripts from 0 requests"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "HARAnalysis",
+      "dump": "har_extraction/big.har.small.json",
+      "input": "fixtures/html/big.har with max_file_size 1000",
+      "module": "har_extraction",
+      "observables_added": 0,
+      "summary": "HTTP Archive: failed: 2024 bytes exceeds max_file_size 1000"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "HARAnalysis",
+      "dump": "har_extraction/entries_not_list.har.json",
+      "input": "fixtures/html/entries_not_list.har",
+      "module": "har_extraction",
+      "observables_added": 0,
+      "summary": "HTTP Archive: failed: no log.entries list"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "HARAnalysis",
+      "dump": "har_extraction/many.har.json",
+      "input": "fixtures/html/many.har",
+      "module": "har_extraction",
+      "observables_added": 100,
+      "summary": "HTTP Archive: extracted 1 pages and 49 scripts from 56 requests (Firefox), 6 more over the extraction limit"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "HARAnalysis",
+      "dump": "har_extraction/no_entries.har.json",
+      "input": "fixtures/html/no_entries.har",
+      "module": "har_extraction",
+      "observables_added": 0,
+      "summary": "HTTP Archive: failed: no log.entries list"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "har_extraction/not_a.har.json",
+      "input": "fixtures/html/not_a.har",
+      "module": "har_extraction",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "HARAnalysis",
+      "dump": "har_extraction/odd.har.json",
+      "input": "fixtures/html/odd.har",
+      "module": "har_extraction",
+      "observables_added": 6,
+      "summary": "HTTP Archive: extracted 3 pages and 0 scripts from 4 requests ({'n': True} 1.5)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "HARAnalysis",
+      "dump": "har_extraction/renamed.txt.json",
+      "input": "fixtures/html/renamed.txt",
+      "module": "har_extraction",
+      "observables_added": 21,
+      "summary": "HTTP Archive: extracted 5 pages and 6 scripts from 19 requests (WebInspector 537.36)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "HARAnalysis",
+      "dump": "har_extraction/session.har.json",
+      "input": "fixtures/html/session.har",
+      "module": "har_extraction",
+      "observables_added": 21,
+      "summary": "HTTP Archive: extracted 5 pages and 6 scripts from 19 requests (WebInspector 537.36)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "HARAnalysis",
+      "dump": "har_extraction/truncated.har.json",
+      "input": "fixtures/html/truncated.har",
+      "module": "har_extraction",
+      "observables_added": 0,
+      "summary": "HTTP Archive: failed: not valid JSON: Expecting value: line 1 column 22 (char 21)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "html_data_url_extraction/ATT021.svg_.json",
+      "input": "fixtures/html/ATT021.svg_",
+      "module": "html_data_url_extraction",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "html_data_url_extraction/ace4/html/html2text_long.txt.json",
+      "input": "ace4/html/html2text_long.txt",
+      "module": "html_data_url_extraction",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "html_data_url_extraction/ace4/html/html2text_malformed.html.json",
+      "input": "ace4/html/html2text_malformed.html",
+      "module": "html_data_url_extraction",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "html_data_url_extraction/ace4/html/html2text_markup.html.json",
+      "input": "ace4/html/html2text_markup.html",
+      "module": "html_data_url_extraction",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "html_data_url_extraction/ace4/html/html2text_raises_reference.html.json",
+      "input": "ace4/html/html2text_raises_reference.html",
+      "module": "html_data_url_extraction",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "html_data_url_extraction/ace4/html/html2text_raises_start.html.json",
+      "input": "ace4/html/html2text_raises_start.html",
+      "module": "html_data_url_extraction",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "html_data_url_extraction/ace4/html/html2text_unicode.html.json",
+      "input": "ace4/html/html2text_unicode.html",
+      "module": "html_data_url_extraction",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "html_data_url_extraction/ace4/office/vba_mht.mht.json",
+      "input": "ace4/office/vba_mht.mht",
+      "module": "html_data_url_extraction",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "html_data_url_extraction/ace4/office/vba_mht_bad_mso.mht.json",
+      "input": "ace4/office/vba_mht_bad_mso.mht",
+      "module": "html_data_url_extraction",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "html_data_url_extraction/bad_base64.html.json",
+      "input": "fixtures/html/bad_base64.html",
+      "module": "html_data_url_extraction",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "html_data_url_extraction/bad_join.har.json",
+      "input": "fixtures/html/bad_join.har",
+      "module": "html_data_url_extraction",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "html_data_url_extraction/bad_url.har.json",
+      "input": "fixtures/html/bad_url.har",
+      "module": "html_data_url_extraction",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "html_data_url_extraction/big.har.json",
+      "input": "fixtures/html/big.har",
+      "module": "html_data_url_extraction",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "HTMLDataURLAnalysis",
+      "dump": "html_data_url_extraction/data_url_newline.txt.json",
+      "input": "fixtures/html/data_url_newline.txt",
+      "module": "html_data_url_extraction",
+      "observables_added": 1,
+      "summary": "HTML Data URL Analysis: Extracted 1 Data URLs"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "HTMLDataURLAnalysis",
+      "dump": "html_data_url_extraction/data_urls.html.in_dir.json",
+      "input": "fixtures/html/data_urls.html as dir/data_urls.html",
+      "module": "html_data_url_extraction",
+      "observables_added": 6,
+      "summary": "HTML Data URL Analysis: Extracted 6 Data URLs"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "HTMLDataURLAnalysis",
+      "dump": "html_data_url_extraction/data_urls.html.json",
+      "input": "fixtures/html/data_urls.html",
+      "module": "html_data_url_extraction",
+      "observables_added": 6,
+      "summary": "HTML Data URL Analysis: Extracted 6 Data URLs"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "html_data_url_extraction/deep.html.json",
+      "input": "fixtures/html/deep.html",
+      "module": "html_data_url_extraction",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "html_data_url_extraction/downloaded.html.json",
+      "input": "fixtures/html/downloaded.html",
+      "module": "html_data_url_extraction",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "html_data_url_extraction/drawing.svg.json",
+      "input": "fixtures/html/drawing.svg",
+      "module": "html_data_url_extraction",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "HTMLDataURLAnalysis",
+      "dump": "html_data_url_extraction/embedded.bin.json",
+      "input": "fixtures/html/embedded.bin",
+      "module": "html_data_url_extraction",
+      "observables_added": 1,
+      "summary": "HTML Data URL Analysis: Extracted 1 Data URLs"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "html_data_url_extraction/entries_not_list.har.json",
+      "input": "fixtures/html/entries_not_list.har",
+      "module": "html_data_url_extraction",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "html_data_url_extraction/frames.mhtml.json",
+      "input": "fixtures/html/frames.mhtml",
+      "module": "html_data_url_extraction",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "html_data_url_extraction/garbage_first.mhtml.json",
+      "input": "fixtures/html/garbage_first.mhtml",
+      "module": "html_data_url_extraction",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "HTMLDataURLAnalysis",
+      "dump": "html_data_url_extraction/invite.ics.json",
+      "input": "fixtures/html/invite.ics",
+      "module": "html_data_url_extraction",
+      "observables_added": 1,
+      "summary": "HTML Data URL Analysis: Extracted 1 Data URLs"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "html_data_url_extraction/many.har.json",
+      "input": "fixtures/html/many.har",
+      "module": "html_data_url_extraction",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "html_data_url_extraction/message.eml.json",
+      "input": "fixtures/html/message.eml",
+      "module": "html_data_url_extraction",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "html_data_url_extraction/named.html.mhtml.txt.json",
+      "input": "fixtures/html/named.html.mhtml.txt",
+      "module": "html_data_url_extraction",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "html_data_url_extraction/nested.MHT.json",
+      "input": "fixtures/html/nested.MHT",
+      "module": "html_data_url_extraction",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "html_data_url_extraction/no_data_urls.txt.json",
+      "input": "fixtures/html/no_data_urls.txt",
+      "module": "html_data_url_extraction",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "html_data_url_extraction/no_entries.har.json",
+      "input": "fixtures/html/no_entries.har",
+      "module": "html_data_url_extraction",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "html_data_url_extraction/no_headers.mht.json",
+      "input": "fixtures/html/no_headers.mht",
+      "module": "html_data_url_extraction",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "html_data_url_extraction/no_scripts.html.json",
+      "input": "fixtures/html/no_scripts.html",
+      "module": "html_data_url_extraction",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "html_data_url_extraction/not_a.har.json",
+      "input": "fixtures/html/not_a.har",
+      "module": "html_data_url_extraction",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "html_data_url_extraction/odd.har.json",
+      "input": "fixtures/html/odd.har",
+      "module": "html_data_url_extraction",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "html_data_url_extraction/odd_headers.mhtml.json",
+      "input": "fixtures/html/odd_headers.mhtml",
+      "module": "html_data_url_extraction",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "html_data_url_extraction/page.mht.json",
+      "input": "fixtures/html/page.mht",
+      "module": "html_data_url_extraction",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "html_data_url_extraction/renamed.txt.json",
+      "input": "fixtures/html/renamed.txt",
+      "module": "html_data_url_extraction",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "html_data_url_extraction/scripts.html.json",
+      "input": "fixtures/html/scripts.html",
+      "module": "html_data_url_extraction",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "html_data_url_extraction/session.har.json",
+      "input": "fixtures/html/session.har",
+      "module": "html_data_url_extraction",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "html_data_url_extraction/session.txt.json",
+      "input": "fixtures/html/session.txt",
+      "module": "html_data_url_extraction",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "html_data_url_extraction/truncated.har.json",
+      "input": "fixtures/html/truncated.har",
+      "module": "html_data_url_extraction",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "html_data_url_extraction/unicode.htm.json",
+      "input": "fixtures/html/unicode.htm",
+      "module": "html_data_url_extraction",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "html_data_url_extraction/written.dat.json",
+      "input": "fixtures/html/written.dat",
+      "module": "html_data_url_extraction",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "HTMLJavaScriptExtractionAnalysis",
+      "dump": "html_js_extraction/ATT021.svg_.json",
+      "input": "fixtures/html/ATT021.svg_",
+      "module": "html_js_extraction",
+      "observables_added": 1,
+      "summary": "HTML JavaScript Extraction: 1 inline script(s)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "html_js_extraction/ace4/html/html2text_long.txt.json",
+      "input": "ace4/html/html2text_long.txt",
+      "module": "html_js_extraction",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "HTMLJavaScriptExtractionAnalysis",
+      "dump": "html_js_extraction/ace4/html/html2text_malformed.html.json",
+      "input": "ace4/html/html2text_malformed.html",
+      "module": "html_js_extraction",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "HTMLJavaScriptExtractionAnalysis",
+      "dump": "html_js_extraction/ace4/html/html2text_markup.html.json",
+      "input": "ace4/html/html2text_markup.html",
+      "module": "html_js_extraction",
+      "observables_added": 1,
+      "summary": "HTML JavaScript Extraction: 1 inline script(s)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "HTMLJavaScriptExtractionAnalysis",
+      "dump": "html_js_extraction/ace4/html/html2text_raises_reference.html.json",
+      "input": "ace4/html/html2text_raises_reference.html",
+      "module": "html_js_extraction",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "HTMLJavaScriptExtractionAnalysis",
+      "dump": "html_js_extraction/ace4/html/html2text_raises_start.html.json",
+      "input": "ace4/html/html2text_raises_start.html",
+      "module": "html_js_extraction",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "HTMLJavaScriptExtractionAnalysis",
+      "dump": "html_js_extraction/ace4/html/html2text_unicode.html.json",
+      "input": "ace4/html/html2text_unicode.html",
+      "module": "html_js_extraction",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "HTMLJavaScriptExtractionAnalysis",
+      "dump": "html_js_extraction/ace4/office/vba_mht.mht.json",
+      "input": "ace4/office/vba_mht.mht",
+      "module": "html_js_extraction",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "HTMLJavaScriptExtractionAnalysis",
+      "dump": "html_js_extraction/ace4/office/vba_mht_bad_mso.mht.json",
+      "input": "ace4/office/vba_mht_bad_mso.mht",
+      "module": "html_js_extraction",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "HTMLJavaScriptExtractionAnalysis",
+      "dump": "html_js_extraction/deep.html.json",
+      "input": "fixtures/html/deep.html",
+      "module": "html_js_extraction",
+      "observables_added": 1,
+      "summary": "HTML JavaScript Extraction: 1 inline script(s)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "HTMLJavaScriptExtractionAnalysis",
+      "dump": "html_js_extraction/downloaded.html.downloaded_from.json",
+      "input": "fixtures/html/downloaded.html with [], meta tags [] and [('downloaded_from', 'url', 'https://login.example.com/page#dmljdGltQGV4YW1wbGUuY29t')]",
+      "module": "html_js_extraction",
+      "observables_added": 1,
+      "summary": "HTML JavaScript Extraction: 1 inline script(s)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "HTMLJavaScriptExtractionAnalysis",
+      "dump": "html_js_extraction/drawing.svg.json",
+      "input": "fixtures/html/drawing.svg",
+      "module": "html_js_extraction",
+      "observables_added": 2,
+      "summary": "HTML JavaScript Extraction: 1 inline script(s), 1 external URL(s)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "HTMLJavaScriptExtractionAnalysis",
+      "dump": "html_js_extraction/frames.mhtml.json",
+      "input": "fixtures/html/frames.mhtml",
+      "module": "html_js_extraction",
+      "observables_added": 4,
+      "summary": "HTML JavaScript Extraction: 2 inline script(s), 2 external URL(s) (1 duplicate(s) skipped)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "HTMLJavaScriptExtractionAnalysis",
+      "dump": "html_js_extraction/message.eml.json",
+      "input": "fixtures/html/message.eml",
+      "module": "html_js_extraction",
+      "observables_added": 2,
+      "summary": "HTML JavaScript Extraction: 1 inline script(s), 1 event handler(s)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "HTMLJavaScriptExtractionAnalysis",
+      "dump": "html_js_extraction/no_scripts.html.json",
+      "input": "fixtures/html/no_scripts.html",
+      "module": "html_js_extraction",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "HTMLJavaScriptExtractionAnalysis",
+      "dump": "html_js_extraction/page.mht.json",
+      "input": "fixtures/html/page.mht",
+      "module": "html_js_extraction",
+      "observables_added": 5,
+      "summary": "HTML JavaScript Extraction: 2 inline script(s), 1 external URL(s), 1 URI path(s), 1 event handler(s)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "HTMLJavaScriptExtractionAnalysis",
+      "dump": "html_js_extraction/scripts.html.crawl.json",
+      "input": "fixtures/html/scripts.html with ['crawl_extracted_urls', 'preview'], meta tags ['type=email.attachment'] and []",
+      "module": "html_js_extraction",
+      "observables_added": 10,
+      "summary": "HTML JavaScript Extraction: 4 inline script(s), 2 external URL(s), 2 URI path(s), 3 event handler(s) (2 duplicate(s) skipped)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "HTMLJavaScriptExtractionAnalysis",
+      "dump": "html_js_extraction/scripts.html.json",
+      "input": "fixtures/html/scripts.html",
+      "module": "html_js_extraction",
+      "observables_added": 10,
+      "summary": "HTML JavaScript Extraction: 4 inline script(s), 2 external URL(s), 2 URI path(s), 3 event handler(s) (2 duplicate(s) skipped)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "html_js_extraction/session.har.json",
+      "input": "fixtures/html/session.har",
+      "module": "html_js_extraction",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "html_js_extraction/session.txt.json",
+      "input": "fixtures/html/session.txt",
+      "module": "html_js_extraction",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "HTMLJavaScriptExtractionAnalysis",
+      "dump": "html_js_extraction/unicode.htm.json",
+      "input": "fixtures/html/unicode.htm",
+      "module": "html_js_extraction",
+      "observables_added": 2,
+      "summary": "HTML JavaScript Extraction: 2 inline script(s)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "html_js_extraction/written.dat.javascript.json",
+      "input": "fixtures/html/written.dat with [], meta tags ['type=script.javascript'] and []",
+      "module": "html_js_extraction",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "HTMLJavaScriptExtractionAnalysis",
+      "dump": "html_js_extraction/written.dat.json",
+      "input": "fixtures/html/written.dat",
+      "module": "html_js_extraction",
+      "observables_added": 1,
+      "summary": "HTML JavaScript Extraction: 1 URI path(s)"
+    },
+    {
+      "ace3_commit": "f72f8946",
       "analysis": null,
       "dump": "idna_analyzer/ascii.json",
       "input": "fqdn example.com",
@@ -2494,6 +3196,150 @@
       "module": "lnk_parser",
       "observables_added": 1,
       "summary": "LnkParse Analysis: target path: (C:\\Windows\\notepad.exe), command line arguments: (/c echo hi), icon location: (%SystemRoot%\\system32\\shell32.dll), working directory: (C:\\Windows)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "mhtml/ace4/html/html2text_long.txt.json",
+      "input": "ace4/html/html2text_long.txt",
+      "module": "mhtml",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "mhtml/ace4/html/html2text_malformed.html.json",
+      "input": "ace4/html/html2text_malformed.html",
+      "module": "mhtml",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "mhtml/ace4/html/html2text_markup.html.json",
+      "input": "ace4/html/html2text_markup.html",
+      "module": "mhtml",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "mhtml/ace4/html/html2text_raises_reference.html.json",
+      "input": "ace4/html/html2text_raises_reference.html",
+      "module": "mhtml",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "mhtml/ace4/html/html2text_raises_start.html.json",
+      "input": "ace4/html/html2text_raises_start.html",
+      "module": "mhtml",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "mhtml/ace4/html/html2text_unicode.html.json",
+      "input": "ace4/html/html2text_unicode.html",
+      "module": "mhtml",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "MHTMLAnalysis",
+      "dump": "mhtml/ace4/office/vba_mht.mht.json",
+      "input": "ace4/office/vba_mht.mht",
+      "module": "mhtml",
+      "observables_added": 2,
+      "summary": "MHTML Analysis: 8397912ada2760dca34d1adb644cf54fc5c8d05d0ad56b4a6f99096b03ac8431, 94dc88bc2405d813c2e72b56640247021b91c58311047947ecded37d92ae91f4"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "MHTMLAnalysis",
+      "dump": "mhtml/ace4/office/vba_mht_bad_mso.mht.json",
+      "input": "ace4/office/vba_mht_bad_mso.mht",
+      "module": "mhtml",
+      "observables_added": 1,
+      "summary": "MHTML Analysis: 87119f2c0c261084148d31a252194ed36a869c486ce94588994042f86d85ae3e"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "MHTMLAnalysis",
+      "dump": "mhtml/frames.mhtml.json",
+      "input": "fixtures/html/frames.mhtml",
+      "module": "mhtml",
+      "observables_added": 2,
+      "summary": "MHTML Analysis: 73068804aac80e1bba4bcb4676417f91362aa0ef505b0dd010e55e31f7b5d392, eb4441960803b2345d22e87f6dc7e9628863b8bfa0508f1519c70460cd80fc8a"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "MHTMLAnalysis",
+      "dump": "mhtml/garbage_first.mhtml.json",
+      "input": "fixtures/html/garbage_first.mhtml",
+      "module": "mhtml",
+      "observables_added": 2,
+      "summary": "MHTML Analysis: 6d0337d88e9c25d18d35cef74d11ad73dfc5f8a9d0906f4a36f58ef4f0ffec6d, 76b02683dae924186604dfa395f642a464ff6e80d3c6d875980fa6f8f6f9ddb7"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "mhtml/named.html.mhtml.txt.json",
+      "input": "fixtures/html/named.html.mhtml.txt",
+      "module": "mhtml",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "MHTMLAnalysis",
+      "dump": "mhtml/nested.MHT.json",
+      "input": "fixtures/html/nested.MHT",
+      "module": "mhtml",
+      "observables_added": 5,
+      "summary": "MHTML Analysis: 9fdc8bc44d1c9edd975e8e80fd451d16e3882a7678638b83f3198510f965c412, d98fefa72b82a018d3e67a5e92f913be60360d177acac0d7169fa863d9dc8190, f1b88a652a512ead3fc4b38739936c602da090b9bd1292f37ceb4ccdcad2dd22, ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad, 152f20da61b8b46965482474431548ff2f099e103380c1ac7629c0bdf432e0d0"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "MHTMLAnalysis",
+      "dump": "mhtml/no_headers.mht.json",
+      "input": "fixtures/html/no_headers.mht",
+      "module": "mhtml",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "MHTMLAnalysis",
+      "dump": "mhtml/odd_headers.mhtml.json",
+      "input": "fixtures/html/odd_headers.mhtml",
+      "module": "mhtml",
+      "observables_added": 1,
+      "summary": "MHTML Analysis: 5794550e320334d2d02c2ad1e04bf76c39b1a30973b0912bde3d67476b106bc0"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "MHTMLAnalysis",
+      "dump": "mhtml/page.mht.json",
+      "input": "fixtures/html/page.mht",
+      "module": "mhtml",
+      "observables_added": 4,
+      "summary": "MHTML Analysis: 50e0640b44315641c34a09463dd53e2dc0f4e808446ffb4e2422646faa82ad30, 71fde3856a298a052c6edb5155638d8422114e55bf0e28374d90dea8be99ef6c, 5de625c36355cce7c1d5408826a0b21abfb49fb6c0e1f16c945a6f2aef38200c, a2eadc484439ef450f29b79678bf6434bcc36e1d3c647bda46b3e12371fcc76d"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "MHTMLAnalysis",
+      "dump": "mhtml/page.mht.preview.json",
+      "input": "fixtures/html/page.mht with ['preview', 'archive'] and meta tags ['type=email.attachment']",
+      "module": "mhtml",
+      "observables_added": 4,
+      "summary": "MHTML Analysis: 50e0640b44315641c34a09463dd53e2dc0f4e808446ffb4e2422646faa82ad30, 71fde3856a298a052c6edb5155638d8422114e55bf0e28374d90dea8be99ef6c, 5de625c36355cce7c1d5408826a0b21abfb49fb6c0e1f16c945a6f2aef38200c, a2eadc484439ef450f29b79678bf6434bcc36e1d3c647bda46b3e12371fcc76d"
     },
     {
       "ace3_commit": "f72f8946",
@@ -3241,6 +4087,24 @@
       "module": "url_extraction",
       "observables_added": 6,
       "summary": "URL Extraction Analysis (land.example.org, phish.example.com, redir.example.com, urldefense.proofpoint.com, www.target.example.com)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "URLExtractionAnalysis",
+      "dump": "url_extraction/relative.html.downloaded_from.json",
+      "input": "fixtures/urls/relative.html with ['extract_urls'] and [('downloaded_from', 'url', 'https://site.example.com/dir/page.html')]",
+      "module": "url_extraction",
+      "observables_added": 5,
+      "summary": "URL Extraction Analysis (absolute.example.org, site.example.com)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "URLExtractionAnalysis",
+      "dump": "url_extraction/relative.html.json",
+      "input": "fixtures/urls/relative.html with ['extract_urls']",
+      "module": "url_extraction",
+      "observables_added": 1,
+      "summary": "URL Extraction Analysis (absolute.example.org)"
     },
     {
       "ace3_commit": "f72f8946",

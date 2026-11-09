@@ -1,0 +1,537 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "HARAnalysis",
+      "details": {
+        "creator": "WebInspector 537.36",
+        "entry_count": 19,
+        "error": null,
+        "responses": [
+          {
+            "file_path": "renamed.txt.extracted/000_start.html",
+            "mime_type": "text/html",
+            "status": 200,
+            "truncated": false,
+            "url": "https://login.example.com/start?x=1"
+          },
+          {
+            "file_path": "renamed.txt.extracted/007_icon.svg",
+            "mime_type": "image/svg+xml",
+            "status": 404,
+            "truncated": false,
+            "url": "https://login.example.com/icon"
+          },
+          {
+            "file_path": "renamed.txt.extracted/010_second.html",
+            "mime_type": "application/xhtml+xml",
+            "status": 200,
+            "truncated": false,
+            "url": "https://login.example.com/second/"
+          },
+          {
+            "file_path": "renamed.txt.extracted/014_page.html",
+            "mime_type": "text/html",
+            "status": null,
+            "truncated": false,
+            "url": "ftp://files.example.com/page.html"
+          },
+          {
+            "file_path": "renamed.txt.extracted/015_a_b_c.html",
+            "mime_type": "text/html",
+            "status": 200,
+            "truncated": false,
+            "url": "https://login.example.com/a%2Fb%20c"
+          },
+          {
+            "file_path": "renamed.txt.extracted/001_kit.js",
+            "loaded_by": "renamed.txt.extracted/000_start.html",
+            "mime_type": "application/javascript",
+            "status": 200,
+            "truncated": false,
+            "url": "https://login.example.com/static/kit.js"
+          },
+          {
+            "file_path": "renamed.txt.extracted/002_chunk.js",
+            "loaded_by": "renamed.txt.extracted/000_start.html",
+            "mime_type": "text/javascript",
+            "status": 200,
+            "truncated": false,
+            "url": "https://login.example.com/chunk.js?v=2"
+          },
+          {
+            "file_path": "renamed.txt.extracted/004_shared.js",
+            "loaded_by": "renamed.txt.extracted/000_start.html",
+            "mime_type": "application/x-javascript",
+            "status": 200,
+            "truncated": true,
+            "url": "https://cdn.example.com/shared.js"
+          },
+          {
+            "file_path": "renamed.txt.extracted/011_other.js",
+            "loaded_by": "renamed.txt.extracted/010_second.html",
+            "mime_type": "text/ecmascript",
+            "status": 200,
+            "truncated": false,
+            "url": "https://login.example.com/other.js"
+          },
+          {
+            "file_path": "renamed.txt.extracted/013_unused.js",
+            "mime_type": "text/javascript",
+            "status": "200",
+            "truncated": false,
+            "url": "https://login.example.com/unused.js"
+          },
+          {
+            "file_path": "renamed.txt.extracted/018_sizes.js",
+            "mime_type": "text/javascript",
+            "status": 200,
+            "truncated": false,
+            "url": "https://login.example.com/sizes.js"
+          }
+        ],
+        "skipped_count": 0
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.har:HARAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.har:<class 'saq.modules.file_analysis.har.HARExtractor'>"
+          ],
+          "file_path": "renamed.txt.extracted/000_start.html",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "3242b58c5e34e03a4a1e49e1da59c7f779cf7fd5e7396fec55636f76554f6900"
+              },
+              "type": "extracted_from"
+            },
+            {
+              "target": {
+                "type": "url",
+                "value": "https://login.example.com/start?x=1"
+              },
+              "type": "downloaded_from"
+            }
+          ],
+          "size": 401,
+          "tags": [],
+          "type": "file",
+          "value": "04091e6494a4196df959f0a031e85c4208f1e02427a2703c591eb81dd9fcd090",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "url",
+          "value": "https://login.example.com/start?x=1"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.har:<class 'saq.modules.file_analysis.har.HARExtractor'>"
+          ],
+          "file_path": "renamed.txt.extracted/007_icon.svg",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "3242b58c5e34e03a4a1e49e1da59c7f779cf7fd5e7396fec55636f76554f6900"
+              },
+              "type": "extracted_from"
+            },
+            {
+              "target": {
+                "type": "url",
+                "value": "https://login.example.com/icon"
+              },
+              "type": "downloaded_from"
+            }
+          ],
+          "size": 75,
+          "tags": [],
+          "type": "file",
+          "value": "932167188cb8eace68f85fdb8d124d63c703da160b83dc52b9c6474cb16f5fd4",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "url",
+          "value": "https://login.example.com/icon"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.har:<class 'saq.modules.file_analysis.har.HARExtractor'>"
+          ],
+          "file_path": "renamed.txt.extracted/010_second.html",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "3242b58c5e34e03a4a1e49e1da59c7f779cf7fd5e7396fec55636f76554f6900"
+              },
+              "type": "extracted_from"
+            },
+            {
+              "target": {
+                "type": "url",
+                "value": "https://login.example.com/second/"
+              },
+              "type": "downloaded_from"
+            }
+          ],
+          "size": 156,
+          "tags": [],
+          "type": "file",
+          "value": "1a4bdd56becfe5ae18751c794625741b0bab8a1a1c032821292bdb03025f4ed3",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "url",
+          "value": "https://login.example.com/second/"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.har:<class 'saq.modules.file_analysis.har.HARExtractor'>"
+          ],
+          "file_path": "renamed.txt.extracted/014_page.html",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "3242b58c5e34e03a4a1e49e1da59c7f779cf7fd5e7396fec55636f76554f6900"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 15,
+          "tags": [],
+          "type": "file",
+          "value": "cdb682e648fb8be4d66c3288ccef312f8ea10520f2a9be0ea2dce984d21eb590",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.har:<class 'saq.modules.file_analysis.har.HARExtractor'>"
+          ],
+          "file_path": "renamed.txt.extracted/015_a_b_c.html",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "3242b58c5e34e03a4a1e49e1da59c7f779cf7fd5e7396fec55636f76554f6900"
+              },
+              "type": "extracted_from"
+            },
+            {
+              "target": {
+                "type": "url",
+                "value": "https://login.example.com/a%2Fb%20c"
+              },
+              "type": "downloaded_from"
+            }
+          ],
+          "size": 14,
+          "tags": [],
+          "type": "file",
+          "value": "bb2f6f8817ae1125ba0fe7d23b9939158667cc859f547e721365351205bf1fc7",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "url",
+          "value": "https://login.example.com/a%2Fb%20c"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.har:<class 'saq.modules.file_analysis.har.HARExtractor'>"
+          ],
+          "file_path": "renamed.txt.extracted/001_kit.js",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "3242b58c5e34e03a4a1e49e1da59c7f779cf7fd5e7396fec55636f76554f6900"
+              },
+              "type": "extracted_from"
+            },
+            {
+              "target": {
+                "type": "url",
+                "value": "https://login.example.com/static/kit.js"
+              },
+              "type": "downloaded_from"
+            }
+          ],
+          "size": 63,
+          "tags": [],
+          "type": "file",
+          "value": "e0f54d224eb46e2f9cffe074547786ea8c8b55926a52b6d5656666dc34ee3d2d",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "url",
+          "value": "https://login.example.com/static/kit.js"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.har:<class 'saq.modules.file_analysis.har.HARExtractor'>"
+          ],
+          "file_path": "renamed.txt.extracted/002_chunk.js",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "3242b58c5e34e03a4a1e49e1da59c7f779cf7fd5e7396fec55636f76554f6900"
+              },
+              "type": "extracted_from"
+            },
+            {
+              "target": {
+                "type": "url",
+                "value": "https://login.example.com/chunk.js?v=2"
+              },
+              "type": "downloaded_from"
+            }
+          ],
+          "size": 29,
+          "tags": [],
+          "type": "file",
+          "value": "44825633b444d2799931b135196b0e107fb64be283c171d583305b26a0a3ef03",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "url",
+          "value": "https://login.example.com/chunk.js?v=2"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.har:<class 'saq.modules.file_analysis.har.HARExtractor'>"
+          ],
+          "file_path": "renamed.txt.extracted/004_shared.js",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "3242b58c5e34e03a4a1e49e1da59c7f779cf7fd5e7396fec55636f76554f6900"
+              },
+              "type": "extracted_from"
+            },
+            {
+              "target": {
+                "type": "url",
+                "value": "https://cdn.example.com/shared.js"
+              },
+              "type": "downloaded_from"
+            }
+          ],
+          "size": 18,
+          "tags": [],
+          "type": "file",
+          "value": "15008e2eb20dea6b1cd4aa95d6719e7375e8351a98ff2672e05e19d0ac3b85f2",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "url",
+          "value": "https://cdn.example.com/shared.js"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.har:<class 'saq.modules.file_analysis.har.HARExtractor'>"
+          ],
+          "file_path": "renamed.txt.extracted/011_other.js",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "3242b58c5e34e03a4a1e49e1da59c7f779cf7fd5e7396fec55636f76554f6900"
+              },
+              "type": "extracted_from"
+            },
+            {
+              "target": {
+                "type": "url",
+                "value": "https://login.example.com/other.js"
+              },
+              "type": "downloaded_from"
+            }
+          ],
+          "size": 14,
+          "tags": [],
+          "type": "file",
+          "value": "983023d3de590dad95bcb51f7f03e431b6f4aea31d64cb2ce7d3ea69b123e596",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "url",
+          "value": "https://login.example.com/other.js"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.har:<class 'saq.modules.file_analysis.har.HARExtractor'>"
+          ],
+          "file_path": "renamed.txt.extracted/013_unused.js",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "3242b58c5e34e03a4a1e49e1da59c7f779cf7fd5e7396fec55636f76554f6900"
+              },
+              "type": "extracted_from"
+            },
+            {
+              "target": {
+                "type": "url",
+                "value": "https://login.example.com/unused.js"
+              },
+              "type": "downloaded_from"
+            }
+          ],
+          "size": 15,
+          "tags": [],
+          "type": "file",
+          "value": "6495936c1e92b587cca564072ebd4df399adeb778308132f9e188745260d3cb3",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "url",
+          "value": "https://login.example.com/unused.js"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.har:<class 'saq.modules.file_analysis.har.HARExtractor'>"
+          ],
+          "file_path": "renamed.txt.extracted/018_sizes.js",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "3242b58c5e34e03a4a1e49e1da59c7f779cf7fd5e7396fec55636f76554f6900"
+              },
+              "type": "extracted_from"
+            },
+            {
+              "target": {
+                "type": "url",
+                "value": "https://login.example.com/sizes.js"
+              },
+              "type": "downloaded_from"
+            }
+          ],
+          "size": 14,
+          "tags": [],
+          "type": "file",
+          "value": "da127794157344461bab5c4e890508e10909c2c7edd9a83846f1a7c7a2b5bcec",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "url",
+          "value": "https://login.example.com/sizes.js"
+        }
+      ],
+      "summary": "HTTP Archive: extracted 5 pages and 6 scripts from 19 requests (WebInspector 537.36)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/html/renamed.txt",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "renamed.txt",
+      "size": 4022,
+      "type": "file",
+      "value": "3242b58c5e34e03a4a1e49e1da59c7f779cf7fd5e7396fec55636f76554f6900"
+    }
+  },
+  "module": "har_extraction",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "renamed.txt",
+    "relationships": [],
+    "size": 4022,
+    "tags": [],
+    "type": "file",
+    "value": "3242b58c5e34e03a4a1e49e1da59c7f779cf7fd5e7396fec55636f76554f6900",
+    "yara_meta": []
+  },
+  "sidecars": {
+    "renamed.txt.extracted/001_kit.js.dom.json": "{\"version\":1,\"truncated\":false,\"elements\":[{\"tag\":\"html\",\"attrs\":{}},{\"tag\":\"head\",\"attrs\":{}},{\"tag\":\"body\",\"attrs\":{}},{\"tag\":\"form\",\"attrs\":{\"id\":\"f\",\"action\":\"https://evil.example.com/post\"}},{\"tag\":\"input\",\"attrs\":{\"name\":\"email\",\"value\":\"\"}},{\"tag\":\"a\",\"attrs\":{\"id\":\"next\",\"href\":\"aHR0cHM6Ly9ldmlsLmV4YW1wbGUuY29tL25leHQ=\"},\"text\":\"next\"}],\"url\":\"https://login.example.com/start?x=1\"}",
+    "renamed.txt.extracted/002_chunk.js.dom.json": "{\"version\":1,\"truncated\":false,\"elements\":[{\"tag\":\"html\",\"attrs\":{}},{\"tag\":\"head\",\"attrs\":{}},{\"tag\":\"body\",\"attrs\":{}},{\"tag\":\"form\",\"attrs\":{\"id\":\"f\",\"action\":\"https://evil.example.com/post\"}},{\"tag\":\"input\",\"attrs\":{\"name\":\"email\",\"value\":\"\"}},{\"tag\":\"a\",\"attrs\":{\"id\":\"next\",\"href\":\"aHR0cHM6Ly9ldmlsLmV4YW1wbGUuY29tL25leHQ=\"},\"text\":\"next\"}],\"url\":\"https://login.example.com/start?x=1\"}",
+    "renamed.txt.extracted/004_shared.js.dom.json": "{\"version\":1,\"truncated\":false,\"elements\":[{\"tag\":\"html\",\"attrs\":{}},{\"tag\":\"head\",\"attrs\":{}},{\"tag\":\"body\",\"attrs\":{}},{\"tag\":\"form\",\"attrs\":{\"id\":\"f\",\"action\":\"https://evil.example.com/post\"}},{\"tag\":\"input\",\"attrs\":{\"name\":\"email\",\"value\":\"\"}},{\"tag\":\"a\",\"attrs\":{\"id\":\"next\",\"href\":\"aHR0cHM6Ly9ldmlsLmV4YW1wbGUuY29tL25leHQ=\"},\"text\":\"next\"}],\"url\":\"https://login.example.com/start?x=1\"}",
+    "renamed.txt.extracted/011_other.js.dom.json": "{\"version\":1,\"truncated\":false,\"elements\":[{\"tag\":\"html\",\"attrs\":{}},{\"tag\":\"head\",\"attrs\":{}},{\"tag\":\"body\",\"attrs\":{}},{\"tag\":\"p\",\"attrs\":{\"id\":\"two\"},\"text\":\"second page\"}],\"url\":\"https://login.example.com/second/\"}"
+  }
+}

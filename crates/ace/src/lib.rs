@@ -6,8 +6,9 @@ use ace_app::{App, LookupPool, ParserPool};
 /// The parser pool: the email, archive, PDF, olevba, rtfole, YARA, URL and IOC extraction, file type,
 /// file hash, binary file, shortcut, certificate and dhash modules, the modules that read an
 /// observable's value (command lines, file paths and locations, networks, URLs, IDNA, email
-/// addresses' domains and protected URLs), with the YARA module on the core's current ruleset (2.26),
-/// and the commands analysts start from the GUI (5.12).
+/// addresses' domains and protected URLs), the HTML modules (data URLs, HTTP archives, scripts in HTML
+/// and MHTML), with the YARA module on the core's current ruleset (2.26), and the commands analysts
+/// start from the GUI (5.12).
 pub fn parser_pool() -> ParserPool {
     ParserPool::new("parsers")
         .module::<ace_mod_email::EmailAnalyzer>()
@@ -35,6 +36,10 @@ pub fn parser_pool() -> ParserPool {
         .module::<ace_mod_values::IdnaAnalyzer>()
         .module::<ace_mod_values::EmailAddressFqdnAnalyzer>()
         .module::<ace_mod_values::ProtectedUrlAnalyzer>()
+        .module::<ace_mod_html::HtmlDataUrlAnalyzer>()
+        .module::<ace_mod_html::HarExtractor>()
+        .module::<ace_mod_html::HtmlJavaScriptExtractor>()
+        .module::<ace_mod_html::MhtmlAnalyzer>()
         .yara_rulesets::<ace_mod_yara::YaraScanner>(ace_mod_yara::check_ruleset)
         .commands()
 }

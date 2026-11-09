@@ -1,0 +1,70 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "HTMLDataURLAnalysis",
+      "details": {
+        "count": 1
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.html:HTMLDataURLAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=document.html.embedded"
+          ],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.html:<class 'saq.modules.file_analysis.html.HTMLDataURLAnalyzer'>",
+            "saq.modules.file_analysis.ocr:<class 'saq.modules.file_analysis.ocr.OCRAnalyzer'>"
+          ],
+          "file_path": "embedded.bin_embed_0.png",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "29604e073559659b3d8b5374ffcc6019a0197142037ac6992b743922d9e877af"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 29,
+          "tags": [],
+          "type": "file",
+          "value": "71fde3856a298a052c6edb5155638d8422114e55bf0e28374d90dea8be99ef6c",
+          "yara_meta": [
+            "type=document.html.embedded"
+          ]
+        }
+      ],
+      "summary": "HTML Data URL Analysis: Extracted 1 Data URLs",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/html/embedded.bin",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "embedded.bin",
+      "size": 75,
+      "type": "file",
+      "value": "29604e073559659b3d8b5374ffcc6019a0197142037ac6992b743922d9e877af"
+    }
+  },
+  "module": "html_data_url_extraction",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "embedded.bin",
+    "relationships": [],
+    "size": 75,
+    "tags": [],
+    "type": "file",
+    "value": "29604e073559659b3d8b5374ffcc6019a0197142037ac6992b743922d9e877af",
+    "yara_meta": []
+  }
+}

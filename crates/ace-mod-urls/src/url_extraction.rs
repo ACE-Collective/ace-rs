@@ -14,9 +14,6 @@
 //!   `yara_meta` types it reads, and has no dependency on the YARA module, because a
 //!   dependency there waits for a result and the YARA module stores none when no rule matches. A
 //!   directive a rule adds still brings this module in, when the YARA result lands.
-//! - A file downloaded from a URL (`downloaded_from`) resolves relative URLs against it in ace3.
-//!   No ported module records that relationship yet (the crawlers are 7.7's), and a task doesn't
-//!   carry its observable's relationships, so there's no base URL.
 //! - ace3 adds the URLs as volatile observables. ace4 has no volatile flag; in ace3 only the GUI's
 //!   pruning and the analysis cache read it.
 
@@ -27,7 +24,7 @@ use std::time::Duration;
 use ace_pycompat::pystr;
 use ace_results::types::file_type::FileTypeAnalysis;
 use ace_results::types::url_extraction::UrlExtractionAnalysis;
-use ace_results::{AnalysisType, NewObservable, ObservableKind, ResultEnvelope};
+use ace_results::{AnalysisType, NewObservable, ObservableKind, RelationshipKind, ResultEnvelope};
 use ace_sdk::{Manifest, Module, ModuleError, Outcome, Parser, Resources, TaskContext};
 use ace_urlfinder::{Finder, Magic};
 use schemars::JsonSchema;
@@ -243,9 +240,9 @@ impl Parser for UrlExtraction {
         let file = ctx.input_file()?;
         let settings = ctx.settings();
         // ace3 returns without an analysis when file_type has none
-        if ctx.dependency_result::<FileTypeAnalysis>()?.is_none() {
+        let Some(file_type) = ctx.dependency_result::<FileTypeAnalysis>()? else {
             return Ok(Outcome::Skipped("no file type analysis".to_owned()));
-        }
+        };
         if file.size == 0 {
             return Ok(Outcome::Skipped("an empty file".to_owned()));
         }
@@ -278,7 +275,15 @@ impl Parser for UrlExtraction {
                 ModuleError::other(format!("{}: {e}", ace_urlfinder::magic::DATABASE))
             })?;
             let magic = Magic::load(database.clone()).map_err(ModuleError::other)?;
-            Finder::new(&magic).find_urls(&blob, "", url_mimetype, domain_as_url)
+            // an HTML file downloaded from a URL has its relative URLs made absolute against it
+            let base_url = if pystr::lower(&file_type.mime).contains("html") {
+                ctx.observable()
+                    .relationship(RelationshipKind::DownloadedFrom)
+                    .map_or("", |r| r.target.value.as_str())
+            } else {
+                ""
+            };
+            Finder::new(&magic).find_urls(&blob, base_url, url_mimetype, domain_as_url)
         };
         let mut extracted: Vec<String> = match found {
             Ok(urls) => urls.into_iter().collect(),

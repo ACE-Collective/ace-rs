@@ -1,0 +1,37 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [],
+  "input": {
+    "directives": [],
+    "label": "ace4/html/html2text_malformed.html",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "html2text_malformed.html",
+      "size": 1087,
+      "type": "file",
+      "value": "5e93ca75a0b116676441e3ba3c6cb281f6ea6b0d3161f394c06b34179d3bb89b"
+    }
+  },
+  "module": "html_data_url_extraction",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "html2text_malformed.html",
+    "relationships": [],
+    "size": 1087,
+    "tags": [],
+    "type": "file",
+    "value": "5e93ca75a0b116676441e3ba3c6cb281f6ea6b0d3161f394c06b34179d3bb89b",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  },
+  "sidecars": {}
+}

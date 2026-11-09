@@ -1,0 +1,78 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "MHTMLAnalysis",
+      "details": {
+        "extracted_files": [
+          "73068804aac80e1bba4bcb4676417f91362aa0ef505b0dd010e55e31f7b5d392",
+          "eb4441960803b2345d22e87f6dc7e9628863b8bfa0508f1519c70460cd80fc8a"
+        ]
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.html:MHTMLAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=document.mhtml.part"
+          ],
+          "excluded_analysis": [],
+          "file_path": "frames.mhtml.extracted/file_0",
+          "relationships": [],
+          "size": 148,
+          "tags": [],
+          "type": "file",
+          "value": "73068804aac80e1bba4bcb4676417f91362aa0ef505b0dd010e55e31f7b5d392",
+          "yara_meta": [
+            "type=document.mhtml.part"
+          ]
+        },
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=document.mhtml.part"
+          ],
+          "excluded_analysis": [],
+          "file_path": "frames.mhtml.extracted/file_1",
+          "relationships": [],
+          "size": 193,
+          "tags": [],
+          "type": "file",
+          "value": "eb4441960803b2345d22e87f6dc7e9628863b8bfa0508f1519c70460cd80fc8a",
+          "yara_meta": [
+            "type=document.mhtml.part"
+          ]
+        }
+      ],
+      "summary": "MHTML Analysis: 73068804aac80e1bba4bcb4676417f91362aa0ef505b0dd010e55e31f7b5d392, eb4441960803b2345d22e87f6dc7e9628863b8bfa0508f1519c70460cd80fc8a",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/html/frames.mhtml",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "frames.mhtml",
+      "size": 472,
+      "type": "file",
+      "value": "4880667e988518410c24822a4fe85e35cece707221453eb0cf5530bc1428af5b"
+    }
+  },
+  "module": "mhtml",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "frames.mhtml",
+    "relationships": [],
+    "size": 472,
+    "tags": [],
+    "type": "file",
+    "value": "4880667e988518410c24822a4fe85e35cece707221453eb0cf5530bc1428af5b",
+    "yara_meta": []
+  }
+}

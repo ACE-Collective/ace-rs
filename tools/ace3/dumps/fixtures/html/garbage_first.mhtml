@@ -1,0 +1,15 @@
+this line is not a header
+<html>
+
+MIME-Version: 1.0
+Content-Type: multipart/related; boundary="b"
+
+--b
+Content-Type: text/html
+
+<script>alert('garbage first')</script>
+--b
+Content-Type: text/plain
+
+plain part
+--b--

@@ -1,0 +1,70 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "HTMLDataURLAnalysis",
+      "details": {
+        "count": 1
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.html:HTMLDataURLAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=document.html.embedded"
+          ],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.html:<class 'saq.modules.file_analysis.html.HTMLDataURLAnalyzer'>",
+            "saq.modules.file_analysis.ocr:<class 'saq.modules.file_analysis.ocr.OCRAnalyzer'>"
+          ],
+          "file_path": "invite.ics_embed_0.png",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "fece55c4ff45297d5e8a84d25374bb250bfc64e39cf8d928891f1340170019b0"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 29,
+          "tags": [],
+          "type": "file",
+          "value": "71fde3856a298a052c6edb5155638d8422114e55bf0e28374d90dea8be99ef6c",
+          "yara_meta": [
+            "type=document.html.embedded"
+          ]
+        }
+      ],
+      "summary": "HTML Data URL Analysis: Extracted 1 Data URLs",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/html/invite.ics",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "invite.ics",
+      "size": 157,
+      "type": "file",
+      "value": "fece55c4ff45297d5e8a84d25374bb250bfc64e39cf8d928891f1340170019b0"
+    }
+  },
+  "module": "html_data_url_extraction",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "invite.ics",
+    "relationships": [],
+    "size": 157,
+    "tags": [],
+    "type": "file",
+    "value": "fece55c4ff45297d5e8a84d25374bb250bfc64e39cf8d928891f1340170019b0",
+    "yara_meta": []
+  }
+}

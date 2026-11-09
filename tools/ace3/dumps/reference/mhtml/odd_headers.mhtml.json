@@ -1,0 +1,61 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "MHTMLAnalysis",
+      "details": {
+        "extracted_files": [
+          "5794550e320334d2d02c2ad1e04bf76c39b1a30973b0912bde3d67476b106bc0"
+        ]
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.html:MHTMLAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=document.mhtml.part"
+          ],
+          "excluded_analysis": [],
+          "file_path": "odd_headers.mhtml.extracted/file_0",
+          "relationships": [],
+          "size": 79,
+          "tags": [],
+          "type": "file",
+          "value": "5794550e320334d2d02c2ad1e04bf76c39b1a30973b0912bde3d67476b106bc0",
+          "yara_meta": [
+            "type=document.mhtml.part"
+          ]
+        }
+      ],
+      "summary": "MHTML Analysis: 5794550e320334d2d02c2ad1e04bf76c39b1a30973b0912bde3d67476b106bc0",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/html/odd_headers.mhtml",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "odd_headers.mhtml",
+      "size": 97,
+      "type": "file",
+      "value": "4c3e4e10a284dcf197ab0aa7afbf6d027450520cd55a03cef15cad0d3588bf43"
+    }
+  },
+  "module": "mhtml",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "odd_headers.mhtml",
+    "relationships": [],
+    "size": 97,
+    "tags": [],
+    "type": "file",
+    "value": "4c3e4e10a284dcf197ab0aa7afbf6d027450520cd55a03cef15cad0d3588bf43",
+    "yara_meta": []
+  }
+}

@@ -1,0 +1,8 @@
+From: a@example.com
+To: b@example.com
+Subject: html mail
+Message-ID: <x@example.com>
+MIME-Version: 1.0
+Content-Type: text/html
+
+<html><body><script>alert("in an email");</script><a onclick="alert('clicked in email')">x</a></body></html>

@@ -681,6 +681,23 @@ def url_runs():
     return runs
 
 
+def url_base_runs():
+    """A page downloaded_from a URL, whose relative links ace3 makes absolute against it, and the
+    same page alone."""
+    runs = []
+    for suffix, relationships in (("", []), (".downloaded_from", [("downloaded_from", "url", "https://site.example.com/dir/page.html")])):
+        runs.append({
+            "module": "url_extraction",
+            "enable": ["file_type"],
+            "env": ["PYTHONHASHSEED=0"],
+            "name": f"relative.html{suffix}",
+            "args": ["--file", f"{REMOTE}/fixtures/urls/relative.html", "--alert-path", "relative.html",
+                     "--directive", "extract_urls"] + [arg for r in relationships for arg in ("--relationship", *r)],
+            "label": f"fixtures/urls/relative.html with ['extract_urls']" + (f" and {relationships}" if relationships else ""),
+        })
+    return runs
+
+
 def ioc_runs():
     return [
         {
@@ -889,6 +906,90 @@ def value_runs():
     return runs
 
 
+# 7.5 batch 4's HTML modules on fixtures/html, hand-made. Each dump is named after its fixture, with
+# a suffix for a run with directives, meta tags or settings of its own. html_data_url_extraction runs on
+# every fixture, since it reads any file; the others on the ones their names or contents pick, and on
+# the samples they'd take. The JavaScript and HTTP archive runs keep the DOM snapshots ace3 writes
+# beside the scripts (run_module.py --sidecars).
+HTML_JS_RUNS = [
+    ("scripts.html", "", [], [], []),
+    ("scripts.html", ".crawl", ["crawl_extracted_urls", "preview"], ["type=email.attachment"], []),
+    ("drawing.svg", "", [], [], []),
+    ("ATT021.svg_", "", [], [], []),
+    ("session.txt", "", [], [], []),
+    ("session.har", "", [], [], []),
+    ("written.dat", "", [], [], []),
+    ("written.dat", ".javascript", [], ["type=script.javascript"], []),
+    ("no_scripts.html", "", [], [], []),
+    ("unicode.htm", "", [], [], []),
+    ("frames.mhtml", "", [], [], []),
+    ("page.mht", "", [], [], []),
+    ("message.eml", "", [], [], []),
+    ("downloaded.html", ".downloaded_from", [], [],
+     [("downloaded_from", "url", "https://login.example.com/page#dmljdGltQGV4YW1wbGUuY29t")]),
+    ("deep.html", "", [], [], []),
+]
+MHTML_RUNS = [
+    ("page.mht", "", [], []),
+    ("page.mht", ".preview", ["preview", "archive"], ["type=email.attachment"]),
+    ("garbage_first.mhtml", "", [], []),
+    ("no_headers.mht", "", [], []),
+    ("nested.MHT", "", [], []),
+    ("odd_headers.mhtml", "", [], []),
+    ("named.html.mhtml.txt", "", [], []),
+    ("frames.mhtml", "", [], []),
+]
+HAR_RUNS = [
+    (name, "", []) for name in (
+        "session.har", "renamed.txt", "not_a.har", "truncated.har", "no_entries.har", "entries_not_list.har",
+        "many.har", "bad_url.har", "bad_join.har", "big.har", "odd.har",
+    )
+] + [("big.har", ".small", ["--config", f"{REMOTE}/fixtures/html/small_har.yaml"])]
+
+
+def html_runs():
+    fixtures = HERE / "fixtures" / "html"
+    runs = []
+
+    def add(module, enable, name, suffix, args, label):
+        runs.append({
+            "module": module,
+            "enable": enable,
+            "name": name + suffix,
+            "args": ["--file", f"{REMOTE}/fixtures/html/{name}", "--alert-path", name, *args],
+            "label": f"fixtures/html/{name}{label}",
+        })
+
+    for name in sorted(p.name for p in fixtures.iterdir() if p.name != ".DS_Store" and not p.name.endswith(".yaml")):
+        add("html_data_url_extraction", [], name, "", [], "")
+    add("html_data_url_extraction", [], "data_urls.html", ".in_dir", ["--alert-path", "dir/data_urls.html"],
+        " as dir/data_urls.html")
+    for name, suffix, directives, tags in MHTML_RUNS:
+        args = [arg for d in directives for arg in ("--directive", d)] + [arg for t in tags for arg in ("--meta-tag", t)]
+        add("mhtml", [], name, suffix, args, f" with {directives} and meta tags {tags}" if suffix else "")
+    for name, suffix, directives, tags, relationships in HTML_JS_RUNS:
+        args = (["--sidecars", ".dom.json"] + [arg for d in directives for arg in ("--directive", d)]
+                + [arg for t in tags for arg in ("--meta-tag", t)]
+                + [arg for r in relationships for arg in ("--relationship", *r)])
+        add("html_js_extraction", ["file_type"], name, suffix, args,
+            f" with {directives}, meta tags {tags} and {relationships}" if suffix else "")
+    for name, suffix, extra in HAR_RUNS:
+        add("har_extraction", [], name, suffix, ["--sidecars", ".dom.json", *extra],
+            " with max_file_size 1000" if suffix else "")
+    for sample in manifest_samples("html/") + [s for s in manifest_samples("office/hand-made") if s["path"].endswith(".mht")]:
+        for module, enable in (("html_data_url_extraction", []), ("mhtml", []), ("html_js_extraction", ["file_type"])):
+            runs.append({
+                "module": module,
+                "enable": enable,
+                "name": sample["path"],
+                "args": ["--file", f"{REMOTE}/samples/{sample['path']}", "--alert-path", sample["alert_path"],
+                         "--sidecars", ".dom.json"]
+                + [arg for tag in sample["meta_tags"] for arg in ("--meta-tag", tag)],
+                "label": sample["path"],
+            })
+    return runs
+
+
 RUNS = {
     "email": lambda: file_runs("email_analyzer", ["file_type"], "email"),
     "archive": lambda: file_runs("archive", ["file_type"], "archive/"),
@@ -904,6 +1005,7 @@ RUNS = {
     "ldap": ldap_runs,
     "clicker": clicker_runs,
     "urls": url_runs,
+    "url_base": url_base_runs,
     "iocs": ioc_runs,
     "files": files_runs,
     # lnk_parser's verify_environment wants the lnkparse program, which is the virtualenv's
@@ -912,6 +1014,7 @@ RUNS = {
     "js": lambda: file_runs("file_type", [], "js"),
     "dhash": dhash_runs,
     "values": value_runs,
+    "html": html_runs,
 }
 
 
@@ -1076,6 +1179,10 @@ def run(spec):
         "idna_analyzer": "IDNAAnalysis",
         "email_address_fqdn_analyzer": "EmailAddressFQDNAnalysis",
         "protected_url_analyzer": "ProtectedURLAnalysis",
+        "html_data_url_extraction": "HTMLDataURLAnalysis",
+        "har_extraction": "HARAnalysis",
+        "html_js_extraction": "HTMLJavaScriptExtractionAnalysis",
+        "mhtml": "MHTMLAnalysis",
     }[spec["module"]]
     analysis = next((a for a in parsed["analyses"] if a["class"] == target_class), None)
     return {

@@ -215,57 +215,6 @@
       },
       "tags": {}
     },
-    "file:35b0994a848b20edf0c1eb96acf2c07e0ef518c46b9c58ff1d1701e74a5f15cc": {
-      "detections": {},
-      "directives": {
-        "extract_urls": true
-      },
-      "excluded_analysis": {
-        "pdf_analyzer": true
-      },
-      "paths": {
-        "encrypted_rc4_40.pdf.gs.pdf": {
-          "type=document.pdf": true,
-          "type=document.pdf.rendered": true
-        }
-      },
-      "redirection": "file:40b7f5fd1afee612f6f3b43ee80bbcfb24eb7e2d3af12ffa7f9d62ba5023641c",
-      "relationships": {
-        "extracted_from file:40b7f5fd1afee612f6f3b43ee80bbcfb24eb7e2d3af12ffa7f9d62ba5023641c": true
-      },
-      "results": {
-        "file_type": {
-          "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": true,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "application/pdf",
-            "type": "PDF document, version 1.7, 1 page(s)"
-          },
-          "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
-          "tags": {}
-        },
-        "url_extraction": {
-          "details": {
-            "urls": [],
-            "urls_grouped_by_domain": {}
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {
-        "pdf": true
-      }
-    },
     "file:40b7f5fd1afee612f6f3b43ee80bbcfb24eb7e2d3af12ffa7f9d62ba5023641c": {
       "detections": {},
       "directives": {},
@@ -334,6 +283,57 @@
       },
       "tags": {
         "encrypted_pdf_empty_password": true,
+        "pdf": true
+      }
+    },
+    "file:4e587cde0dc8abfff6b54c504fb45d3bba76f06f5b7525fc62612b5b178468a6": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {
+        "pdf_analyzer": true
+      },
+      "paths": {
+        "encrypted_rc4_40.pdf.gs.pdf": {
+          "type=document.pdf": true,
+          "type=document.pdf.rendered": true
+        }
+      },
+      "redirection": "file:40b7f5fd1afee612f6f3b43ee80bbcfb24eb7e2d3af12ffa7f9d62ba5023641c",
+      "relationships": {
+        "extracted_from file:40b7f5fd1afee612f6f3b43ee80bbcfb24eb7e2d3af12ffa7f9d62ba5023641c": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": true,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/pdf",
+            "type": "PDF document, version 1.7, 1 page(s)"
+          },
+          "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
         "pdf": true
       }
     },

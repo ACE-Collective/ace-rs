@@ -1,0 +1,47 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "HARAnalysis",
+      "details": {
+        "creator": null,
+        "entry_count": 0,
+        "error": "2024 bytes exceeds max_file_size 1000",
+        "responses": [],
+        "skipped_count": 0
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.har:HARAnalysis",
+      "observables": [],
+      "summary": "HTTP Archive: failed: 2024 bytes exceeds max_file_size 1000",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/html/big.har with max_file_size 1000",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "big.har",
+      "size": 2024,
+      "type": "file",
+      "value": "d3e49c8d52720af63fb6f3d6ab3f42634cf095f38f84d8e8c8288dbf01eb82d6"
+    }
+  },
+  "module": "har_extraction",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "big.har",
+    "relationships": [],
+    "size": 2024,
+    "tags": [],
+    "type": "file",
+    "value": "d3e49c8d52720af63fb6f3d6ab3f42634cf095f38f84d8e8c8288dbf01eb82d6",
+    "yara_meta": []
+  },
+  "sidecars": {}
+}

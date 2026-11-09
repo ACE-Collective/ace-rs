@@ -2250,6 +2250,10 @@ fn each_module_s_view_draws_its_fixture() {
         "email_address_fqdn_plain",
         "protected_url_safelinks",
         "protected_url_one_drive",
+        "html_data_url_page",
+        "mhtml_page",
+        "html_js_scripts",
+        "har_session",
     ];
     let mut types = BTreeSet::new();
     for name in fixtures {
@@ -2513,6 +2517,27 @@ fn each_module_s_view_draws_its_fixture() {
             "protected_url_one_drive" => contains_all(
                 &html,
                 &["<tr><th>protection_type</th><td>one_drive</td></tr>"],
+            ),
+            "html_data_url_page" => contains_all(&html, &["<tr><th>count</th><td>6</td></tr>"]),
+            "mhtml_page" => contains_all(
+                &html,
+                &[
+                    "<tr><th>extracted_file</th><td>50e0640b44315641c34a09463dd53e2dc0f4e808446ffb4e2422646faa82ad30</td></tr>",
+                ],
+            ),
+            "html_js_scripts" => contains_all(
+                &html,
+                &[
+                    "<tr><th>script_count</th><td>13</td></tr>",
+                    "<tr><th>extracted_url</th><td>https://cdn.example.com/lib/jquery.min.js</td></tr>",
+                ],
+            ),
+            "har_session" => contains_all(
+                &html,
+                &[
+                    "<tr><th>creator</th><td>WebInspector 537.36</td></tr>",
+                    "<tr><th>entry_count</th><td>19</td></tr>",
+                ],
             ),
             other => panic!("no checks for {other}"),
         }

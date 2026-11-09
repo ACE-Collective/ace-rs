@@ -1,0 +1,30 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [],
+  "input": {
+    "directives": [],
+    "label": "fixtures/html/message.eml",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "message.eml",
+      "size": 237,
+      "type": "file",
+      "value": "937def58632578627fada7d3c4f514260c5b71aaa5efd09d47510ea3722bf040"
+    }
+  },
+  "module": "html_data_url_extraction",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "message.eml",
+    "relationships": [],
+    "size": 237,
+    "tags": [],
+    "type": "file",
+    "value": "937def58632578627fada7d3c4f514260c5b71aaa5efd09d47510ea3722bf040",
+    "yara_meta": []
+  }
+}

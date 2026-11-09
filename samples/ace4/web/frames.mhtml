@@ -1,0 +1,12 @@
+MIME-Version: 1.0
+Content-Type: multipart/related; boundary="b"
+
+--b
+Content-Type: text/html
+
+<html><body><div id="one">first</div><script src="https://cdn.example.com/one.js"></script><script>console.log("first part");</script></body></html>
+--b
+Content-Type: text/html
+
+<html><body><div id="two">second</div><script src="https://cdn.example.com/two.js"></script><script>console.log("first part");</script><script>console.log("second part");</script></body></html>
+--b--

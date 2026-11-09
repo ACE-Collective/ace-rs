@@ -1,0 +1,30 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [],
+  "input": {
+    "directives": [],
+    "label": "fixtures/html/bad_join.har",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "bad_join.har",
+      "size": 441,
+      "type": "file",
+      "value": "0e57cbe41a9422a842ceb22e2f11a6b4b9c1dae701a3cd765a5390473ea0bef1"
+    }
+  },
+  "module": "html_data_url_extraction",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "bad_join.har",
+    "relationships": [],
+    "size": 441,
+    "tags": [],
+    "type": "file",
+    "value": "0e57cbe41a9422a842ceb22e2f11a6b4b9c1dae701a3cd765a5390473ea0bef1",
+    "yara_meta": []
+  }
+}

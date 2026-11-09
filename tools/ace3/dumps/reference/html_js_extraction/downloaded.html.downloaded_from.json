@@ -1,0 +1,130 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "text/html",
+        "type": "HTML document, ASCII text"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: HTML document, ASCII text (text/html)",
+      "tags": []
+    },
+    {
+      "class": "HTMLJavaScriptExtractionAnalysis",
+      "details": {
+        "dom_snapshot_files": [
+          "downloaded_js_inline_0_258726e4.js.dom.json"
+        ],
+        "duplicate_count": 0,
+        "extracted_files": [
+          "downloaded_js_inline_0_258726e4.js"
+        ],
+        "extracted_uri_paths": [],
+        "extracted_urls": [],
+        "inline_handlers": [],
+        "script_count": 1
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.html_js_extraction:HTMLJavaScriptExtractionAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=document.html",
+            "yara_meta:type=script.javascript"
+          ],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.html_js_extraction:<class 'saq.modules.file_analysis.html_js_extraction.HTMLJavaScriptExtractor'>"
+          ],
+          "file_path": "downloaded_js_inline_0_258726e4.js",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "71cb2f8251ba9e9a18368932fae0d2a4c17ac5ac96d162e0a949b1ee9bd74100"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 53,
+          "tags": [],
+          "type": "file",
+          "value": "258726e466d0aacb19adc0aeca17d4fce3ae5aec154000763ff1e7f86f6590df",
+          "yara_meta": [
+            "type=document.html",
+            "type=script.javascript"
+          ]
+        }
+      ],
+      "summary": "HTML JavaScript Extraction: 1 inline script(s)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/html/downloaded.html with [], meta tags [] and [('downloaded_from', 'url', 'https://login.example.com/page#dmljdGltQGV4YW1wbGUuY29t')]",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "downloaded.html",
+      "size": 127,
+      "type": "file",
+      "value": "71cb2f8251ba9e9a18368932fae0d2a4c17ac5ac96d162e0a949b1ee9bd74100"
+    },
+    "relationships": [
+      {
+        "target": {
+          "type": "url",
+          "value": "https://login.example.com/page#dmljdGltQGV4YW1wbGUuY29t"
+        },
+        "type": "downloaded_from"
+      }
+    ]
+  },
+  "module": "html_js_extraction",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=document.html"
+    ],
+    "excluded_analysis": [],
+    "file_path": "downloaded.html",
+    "relationships": [
+      {
+        "target": {
+          "type": "url",
+          "value": "https://login.example.com/page#dmljdGltQGV4YW1wbGUuY29t"
+        },
+        "type": "downloaded_from"
+      }
+    ],
+    "size": 127,
+    "tags": [],
+    "type": "file",
+    "value": "71cb2f8251ba9e9a18368932fae0d2a4c17ac5ac96d162e0a949b1ee9bd74100",
+    "yara_meta": [
+      "type=document.html"
+    ]
+  },
+  "sidecars": {
+    "downloaded_js_inline_0_258726e4.js.dom.json": "{\"version\":1,\"truncated\":false,\"elements\":[{\"tag\":\"html\",\"attrs\":{}},{\"tag\":\"body\",\"attrs\":{}},{\"tag\":\"div\",\"attrs\":{\"id\":\"v\",\"data-x\":\"1\"},\"text\":\"v\"}],\"url\":\"https://login.example.com/page#dmljdGltQGV4YW1wbGUuY29t\"}"
+  }
+}

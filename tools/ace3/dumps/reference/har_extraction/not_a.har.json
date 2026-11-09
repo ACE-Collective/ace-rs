@@ -1,0 +1,31 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [],
+  "input": {
+    "directives": [],
+    "label": "fixtures/html/not_a.har",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "not_a.har",
+      "size": 19,
+      "type": "file",
+      "value": "e100591cc128d015f0e347eeb8ac69602d0764ee73a884c99b99126a37cc0898"
+    }
+  },
+  "module": "har_extraction",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "not_a.har",
+    "relationships": [],
+    "size": 19,
+    "tags": [],
+    "type": "file",
+    "value": "e100591cc128d015f0e347eeb8ac69602d0764ee73a884c99b99126a37cc0898",
+    "yara_meta": []
+  },
+  "sidecars": {}
+}

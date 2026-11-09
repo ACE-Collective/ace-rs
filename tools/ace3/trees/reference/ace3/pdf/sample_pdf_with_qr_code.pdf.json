@@ -1,57 +1,7 @@
 {
   "form": 1,
   "observables": {
-    "file:4efb0032a6de86d9c0dabc0d2814533aac30811ee40e433d26092eaf988ca110": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {},
-      "paths": {
-        "sample_pdf_with_qr_code.pdf": {
-          "type=document.pdf": true,
-          "type=email.attachment": true
-        }
-      },
-      "relationships": {},
-      "results": {
-        "file_hash_analyzer": {
-          "details": {
-            "md5": "3af9fb80c14191c4324e33bea5fff0bd",
-            "sha1": "cc9e4c3f9dfe7b59c1b8c907a42126baccdce1a7",
-            "sha256": "4efb0032a6de86d9c0dabc0d2814533aac30811ee40e433d26092eaf988ca110"
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "file_type": {
-          "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": true,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "application/pdf",
-            "type": "PDF document, version 1.4, 3 page(s)"
-          },
-          "summary": "File Type Analysis: PDF document, version 1.4, 3 page(s) (application/pdf) (pdf document)",
-          "tags": {}
-        },
-        "pdf_analyzer": {
-          "details": {},
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {
-        "pdf": true
-      }
-    },
-    "file:680c0fa7b9ddb43076b7eaa1b9711858d35357290269252d97eec99623a5b9cb": {
+    "file:2b1a06bb1bcd028a42cb04668f7ef09e3c4e917358ccb761bf6a79ef843e68ff": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -94,6 +44,56 @@
             "urls": [],
             "urls_grouped_by_domain": {}
           },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "pdf": true
+      }
+    },
+    "file:4efb0032a6de86d9c0dabc0d2814533aac30811ee40e433d26092eaf988ca110": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "sample_pdf_with_qr_code.pdf": {
+          "type=document.pdf": true,
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "3af9fb80c14191c4324e33bea5fff0bd",
+            "sha1": "cc9e4c3f9dfe7b59c1b8c907a42126baccdce1a7",
+            "sha256": "4efb0032a6de86d9c0dabc0d2814533aac30811ee40e433d26092eaf988ca110"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": true,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/pdf",
+            "type": "PDF document, version 1.4, 3 page(s)"
+          },
+          "summary": "File Type Analysis: PDF document, version 1.4, 3 page(s) (application/pdf) (pdf document)",
+          "tags": {}
+        },
+        "pdf_analyzer": {
+          "details": {},
           "summary": null,
           "tags": {}
         }

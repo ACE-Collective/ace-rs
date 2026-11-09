@@ -15,3 +15,65 @@ fn soup_text_leaves_out_scripts_and_collapses_blank_strings() {
         soup::get_text("<p>a <b>b</b></p>\n\n<script>x</script><pre>  </pre><!-- c -->d").unwrap();
     assert_eq!(text, "a b\n  d");
 }
+
+/// One node as `tests/data/soup_cases.py` writes bs4's.
+fn node_json(tree: &soup::Tree, index: usize) -> serde_json::Value {
+    use serde_json::json;
+    match tree.node(index) {
+        soup::Node::Element { name, attrs } => {
+            let attrs: Vec<_> = attrs
+                .iter()
+                .map(|(k, v)| match v {
+                    soup::AttrValue::Text(text) => json!([k, text]),
+                    soup::AttrValue::List(parts) => json!([k, parts]),
+                })
+                .collect();
+            json!({
+                "tag": name,
+                "attrs": attrs,
+                "string": tree.string(index),
+                "own": tree.own_string(index),
+            })
+        }
+        soup::Node::Text { text, kind } => {
+            let kind = match kind {
+                soup::StringKind::Plain => "plain",
+                soup::StringKind::Container => "container",
+                soup::StringKind::Comment => "comment",
+                soup::StringKind::ProcessingInstruction => "pi",
+                soup::StringKind::Doctype => "doctype",
+            };
+            json!({"kind": kind, "text": text})
+        }
+        soup::Node::Document => json!("document"),
+    }
+}
+
+#[test]
+fn soup_trees_match_beautifulsoup() {
+    use base64::Engine;
+    let cases: serde_json::Map<String, serde_json::Value> =
+        serde_json::from_str(include_str!("../tests/data/soup_cases.json"))
+            .expect("the cases read");
+    assert!(cases.len() >= 700);
+    let mut failed = Vec::new();
+    for (name, case) in &cases {
+        let bytes = base64::engine::general_purpose::STANDARD
+            .decode(case["input"].as_str().expect("input"))
+            .expect("base64");
+        let text = ace_pycompat::pystr::decode_utf8_ignore(&bytes);
+        let got = soup::parse(&text).map(|tree| {
+            serde_json::Value::Array((1..tree.len()).map(|i| node_json(&tree, i)).collect())
+        });
+        let got = got.unwrap_or(serde_json::Value::Null);
+        if got != case["nodes"] {
+            failed.push(format!("{name}: expected {}\n got {}", case["nodes"], got));
+        }
+    }
+    assert!(
+        failed.is_empty(),
+        "{} differ:\n{}",
+        failed.len(),
+        failed.join("\n")
+    );
+}

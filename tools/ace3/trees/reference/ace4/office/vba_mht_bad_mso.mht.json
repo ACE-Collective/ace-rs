@@ -39,6 +39,71 @@
           },
           "summary": "File Type Analysis: MIME entity, ASCII text, with CRLF line terminators (text/plain)",
           "tags": {}
+        },
+        "html_js_extraction": {
+          "details": {
+            "dom_snapshot_files": [],
+            "duplicate_count": 0,
+            "extracted_files": [],
+            "extracted_uri_paths": [],
+            "extracted_urls": [],
+            "inline_handlers": [],
+            "script_count": 0
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "mhtml": {
+          "details": {
+            "extracted_files": [
+              "87119f2c0c261084148d31a252194ed36a869c486ce94588994042f86d85ae3e"
+            ]
+          },
+          "summary": "MHTML Analysis: 87119f2c0c261084148d31a252194ed36a869c486ce94588994042f86d85ae3e",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:87119f2c0c261084148d31a252194ed36a869c486ce94588994042f86d85ae3e": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "vba_mht_bad_mso.mht.extracted/file_0": {
+          "type=document.mhtml.part": true,
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "e006c2ed348333a2bb3c085390344cde",
+            "sha1": "4b6350ab86ae5525324a2f2da727c264933d0310",
+            "sha256": "87119f2c0c261084148d31a252194ed36a869c486ce94588994042f86d85ae3e"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
         }
       },
       "tags": {}
@@ -53,12 +118,32 @@
       "results": {},
       "tags": {}
     },
+    "md5:e006c2ed348333a2bb3c085390344cde": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:87119f2c0c261084148d31a252194ed36a869c486ce94588994042f86d85ae3e": true
+      },
+      "results": {},
+      "tags": {}
+    },
     "sha256:53d025637a192bc60bb1d121917fe14b5e62e15f39517dfc961de2bdd32fbfad": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {},
       "relationships": {
         "is_hash_of file:53d025637a192bc60bb1d121917fe14b5e62e15f39517dfc961de2bdd32fbfad": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:87119f2c0c261084148d31a252194ed36a869c486ce94588994042f86d85ae3e": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:87119f2c0c261084148d31a252194ed36a869c486ce94588994042f86d85ae3e": true
       },
       "results": {},
       "tags": {}

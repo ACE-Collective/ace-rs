@@ -465,53 +465,7 @@
       },
       "tags": {}
     },
-    "file:e35d38275d3e64c14db0e5be69cd1c20f30f95dbcfd5249f3b46ed622cd74c7f": {
-      "detections": {},
-      "directives": {
-        "extract_urls": true
-      },
-      "excluded_analysis": {},
-      "paths": {
-        "encrypted_no_permissions.pdf.pdfparser": {
-          "type=document.pdf.object": true
-        }
-      },
-      "redirection": "file:5ac9650520c906337d8d01ccd8f66b377ce67c7db1163fd2050839c855a06c69",
-      "relationships": {
-        "extracted_from file:5ac9650520c906337d8d01ccd8f66b377ce67c7db1163fd2050839c855a06c69": true
-      },
-      "results": {
-        "file_type": {
-          "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": false,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "application/pdf",
-            "type": "PDF document, version 1.7, Unicode text, UTF-8 text, with very long lines (843)"
-          },
-          "summary": "File Type Analysis: PDF document, version 1.7, Unicode text, UTF-8 text, with very long lines (843) (application/pdf)",
-          "tags": {}
-        },
-        "url_extraction": {
-          "details": {
-            "urls": [],
-            "urls_grouped_by_domain": {}
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:e7c6e70b7fdf7592a06e2476e9853cba4c7a63469de44d8c9d70fd2f0e41112b": {
+    "file:c5d7745e4cdc08ec2a22c3efab5960e138f54e64e124229c7a3145444778df55": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -561,6 +515,52 @@
       "tags": {
         "pdf": true
       }
+    },
+    "file:e35d38275d3e64c14db0e5be69cd1c20f30f95dbcfd5249f3b46ed622cd74c7f": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "encrypted_no_permissions.pdf.pdfparser": {
+          "type=document.pdf.object": true
+        }
+      },
+      "redirection": "file:5ac9650520c906337d8d01ccd8f66b377ce67c7db1163fd2050839c855a06c69",
+      "relationships": {
+        "extracted_from file:5ac9650520c906337d8d01ccd8f66b377ce67c7db1163fd2050839c855a06c69": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/pdf",
+            "type": "PDF document, version 1.7, Unicode text, UTF-8 text, with very long lines (843)"
+          },
+          "summary": "File Type Analysis: PDF document, version 1.7, Unicode text, UTF-8 text, with very long lines (843) (application/pdf)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
     },
     "fqdn:example.com": {
       "detections": {},

@@ -1,0 +1,70 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "HTMLDataURLAnalysis",
+      "details": {
+        "count": 1
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.html:HTMLDataURLAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=document.html.embedded"
+          ],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.html:<class 'saq.modules.file_analysis.html.HTMLDataURLAnalyzer'>",
+            "saq.modules.file_analysis.ocr:<class 'saq.modules.file_analysis.ocr.OCRAnalyzer'>"
+          ],
+          "file_path": "data_url_newline.txt_embed_0.bin",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "7d2b6817739b01c969db61c1d8d08839be692175d573226dfe52ea5c12f2a0e9"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 5,
+          "tags": [],
+          "type": "file",
+          "value": "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824",
+          "yara_meta": [
+            "type=document.html.embedded"
+          ]
+        }
+      ],
+      "summary": "HTML Data URL Analysis: Extracted 1 Data URLs",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/html/data_url_newline.txt",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "data_url_newline.txt",
+      "size": 106,
+      "type": "file",
+      "value": "7d2b6817739b01c969db61c1d8d08839be692175d573226dfe52ea5c12f2a0e9"
+    }
+  },
+  "module": "html_data_url_extraction",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "data_url_newline.txt",
+    "relationships": [],
+    "size": 106,
+    "tags": [],
+    "type": "file",
+    "value": "7d2b6817739b01c969db61c1d8d08839be692175d573226dfe52ea5c12f2a0e9",
+    "yara_meta": []
+  }
+}

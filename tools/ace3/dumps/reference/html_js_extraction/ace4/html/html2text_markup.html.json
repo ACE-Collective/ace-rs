@@ -1,0 +1,119 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "text/html",
+        "type": "HTML document, ASCII text"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: HTML document, ASCII text (text/html)",
+      "tags": []
+    },
+    {
+      "class": "HTMLJavaScriptExtractionAnalysis",
+      "details": {
+        "dom_snapshot_files": [
+          "html2text_markup_js_inline_0_00bb0443.js.dom.json"
+        ],
+        "duplicate_count": 0,
+        "extracted_files": [
+          "html2text_markup_js_inline_0_00bb0443.js"
+        ],
+        "extracted_uri_paths": [],
+        "extracted_urls": [],
+        "inline_handlers": [],
+        "script_count": 1
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.html_js_extraction:HTMLJavaScriptExtractionAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=document.html",
+            "yara_meta:type=email.attachment",
+            "yara_meta:type=script.javascript"
+          ],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.html_js_extraction:<class 'saq.modules.file_analysis.html_js_extraction.HTMLJavaScriptExtractor'>"
+          ],
+          "file_path": "html2text_markup_js_inline_0_00bb0443.js",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "9f67a3577a9a1af1962ce7b3eea179dec361d2e51b78c1fb2a0577de1b3006b2"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 25,
+          "tags": [],
+          "type": "file",
+          "value": "00bb044386c82072e789f147fb94649dec3c94d38a88ecbdf39acacd91909310",
+          "yara_meta": [
+            "type=document.html",
+            "type=email.attachment",
+            "type=script.javascript"
+          ]
+        }
+      ],
+      "summary": "HTML JavaScript Extraction: 1 inline script(s)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace4/html/html2text_markup.html",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "html2text_markup.html",
+      "size": 1960,
+      "type": "file",
+      "value": "9f67a3577a9a1af1962ce7b3eea179dec361d2e51b78c1fb2a0577de1b3006b2"
+    }
+  },
+  "module": "html_js_extraction",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=document.html",
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "html2text_markup.html",
+    "relationships": [],
+    "size": 1960,
+    "tags": [],
+    "type": "file",
+    "value": "9f67a3577a9a1af1962ce7b3eea179dec361d2e51b78c1fb2a0577de1b3006b2",
+    "yara_meta": [
+      "type=document.html",
+      "type=email.attachment"
+    ]
+  },
+  "sidecars": {
+    "html2text_markup_js_inline_0_00bb0443.js.dom.json": "{\"version\":1,\"truncated\":false,\"elements\":[{\"tag\":\"html\",\"attrs\":{}},{\"tag\":\"head\",\"attrs\":{}},{\"tag\":\"title\",\"attrs\":{},\"text\":\"not shown\"},{\"tag\":\"body\",\"attrs\":{}},{\"tag\":\"h1\",\"attrs\":{},\"text\":\"Heading one\"},{\"tag\":\"h2\",\"attrs\":{},\"text\":\"Two\"},{\"tag\":\"a\",\"attrs\":{\"href\":\"http://x.test/h\"},\"text\":\"linked\"},{\"tag\":\"p\",\"attrs\":{},\"text\":\"A paragraph with\"},{\"tag\":\"b\",\"attrs\":{},\"text\":\"bold\"},{\"tag\":\"strong\",\"attrs\":{},\"text\":\"strong\"},{\"tag\":\"i\",\"attrs\":{},\"text\":\"italic\"},{\"tag\":\"em\",\"attrs\":{},\"text\":\"glued\"},{\"tag\":\"u\",\"attrs\":{},\"text\":\"under\"},{\"tag\":\"del\",\"attrs\":{},\"text\":\"gone\"},{\"tag\":\"s\",\"attrs\":{},\"text\":\"struck\"},{\"tag\":\"code\",\"attrs\":{},\"text\":\"some_code\"},{\"tag\":\"kbd\",\"attrs\":{},\"text\":\"k\"},{\"tag\":\"tt\",\"attrs\":{},\"text\":\"t\"},{\"tag\":\"q\",\"attrs\":{},\"text\":\"quoted\"},{\"tag\":\"b\",\"attrs\":{},\"text\":\"after stars\"},{\"tag\":\"del\",\"attrs\":{},\"text\":\"after tildes\"},{\"tag\":\"b\",\"attrs\":{},\"text\":\"spaced\"},{\"tag\":\"i\",\"attrs\":{}},{\"tag\":\"p\",\"attrs\":{},\"text\":\"Line one\"},{\"tag\":\"br\",\"attrs\":{}},{\"tag\":\"br\",\"attrs\":{}},{\"tag\":\"hr\",\"attrs\":{}},{\"tag\":\"ul\",\"attrs\":{}},{\"tag\":\"li\",\"attrs\":{},\"text\":\"one\"},{\"tag\":\"ul\",\"attrs\":{}},{\"tag\":\"li\",\"attrs\":{},\"text\":\"nested\"},{\"tag\":\"b\",\"attrs\":{},\"text\":\"bold\"},{\"tag\":\"li\",\"attrs\":{},\"text\":\"nested two\"},{\"tag\":\"li\",\"attrs\":{},\"text\":\"two\"},{\"tag\":\"ol\",\"attrs\":{\"start\":\"3\"}},{\"tag\":\"li\",\"attrs\":{},\"text\":\"three\"},{\"tag\":\"ol\",\"attrs\":{}},{\"tag\":\"li\",\"attrs\":{},\"text\":\"inner\"},{\"tag\":\"li\",\"attrs\":{},\"text\":\"four\"},{\"tag\":\"ol\",\"attrs\":{\"start\":\"x\"}},{\"tag\":\"li\",\"attrs\":{},\"text\":\"bad start\"},{\"tag\":\"li\",\"attrs\":{},\"text\":\"loose item\"},{\"tag\":\"blockquote\",\"attrs\":{},\"text\":\"Quoted text\"},{\"tag\":\"br\",\"attrs\":{}},{\"tag\":\"blockquote\",\"attrs\":{},\"text\":\"deeper\"},{\"tag\":\"pre\",\"attrs\":{},\"text\":\"keep\\n    this   spacing & so\"},{\"tag\":\"ul\",\"attrs\":{}},{\"tag\":\"li\",\"attrs\":{}},{\"tag\":\"pre\",\"attrs\":{},\"text\":\"in a list\\nsecond\"},{\"tag\":\"table\",\"attrs\":{}},{\"tag\":\"tr\",\"attrs\":{}},{\"tag\":\"th\",\"attrs\":{},\"text\":\"A\"},{\"tag\":\"th\",\"attrs\":{},\"text\":\"B\"},{\"tag\":\"tr\",\"attrs\":{}},{\"tag\":\"td\",\"attrs\":{},\"text\":\"1\"},{\"tag\":\"td\",\"attrs\":{}},{\"tag\":\"p\",\"attrs\":{},\"text\":\"2\"},{\"tag\":\"dl\",\"attrs\":{}},{\"tag\":\"dt\",\"attrs\":{},\"text\":\"term\"},{\"tag\":\"dd\",\"attrs\":{},\"text\":\"definition\"},{\"tag\":\"a\",\"attrs\":{\"href\":\"http://x.test/\"},\"text\":\"http://x.test/\"},{\"tag\":\"a\",\"attrs\":{\"href\":\"http://x.test/t\",\"title\":\"A (title)\"},\"text\":\"titled\"},{\"tag\":\"a\",\"attrs\":{\"href\":\"#local\"},\"text\":\"internal\"},{\"tag\":\"a\",\"attrs\":{\"href\":\"mailto:a@x.test\"},\"text\":\"mail\"},{\"tag\":\"a\",\"attrs\":{\"href\":\"http://x.test/e\"}},{\"tag\":\"a\",\"attrs\":{\"href\":\"http://x.test/[b]\"},\"text\":\"br(ack)ets\"},{\"tag\":\"a\",\"attrs\":{},\"text\":\"no href\"},{\"tag\":\"a\",\"attrs\":{\"href\":\"http://x.test/d\"}},{\"tag\":\"div\",\"attrs\":{},\"text\":\"in a div\"},{\"tag\":\"a\",\"attrs\":{\"href\":\"http://x.test/h\"}},{\"tag\":\"h3\",\"attrs\":{},\"text\":\"in a heading\"},{\"tag\":\"a\",\"attrs\":{\"href\":\"\"}},{\"tag\":\"b\",\"attrs\":{},\"text\":\"empty href\"},{\"tag\":\"img\",\"attrs\":{\"src\":\"http://x.test/i.png\",\"alt\":\"An (image)\"}},{\"tag\":\"img\",\"attrs\":{\"alt\":\"no src\"}},{\"tag\":\"img\",\"attrs\":{\"src\":\"http://x.test/n.png\"}},{\"tag\":\"a\",\"attrs\":{\"href\":\"http://x.test/l\"}},{\"tag\":\"img\",\"attrs\":{\"src\":\"http://x.test/li.png\",\"alt\":\"in link\"}},{\"tag\":\"abbr\",\"attrs\":{\"title\":\"HyperText\"},\"text\":\"HT\"},{\"tag\":\"abbr\",\"attrs\":{},\"text\":\"none\"},{\"tag\":\"abbr\",\"attrs\":{\"title\":\"Again\"},\"text\":\"HT\"},{\"tag\":\"sup\",\"attrs\":{},\"text\":\"up\"},{\"tag\":\"sub\",\"attrs\":{},\"text\":\"down\"},{\"tag\":\"span\",\"attrs\":{},\"text\":\"after script\"}]}"
+  }
+}

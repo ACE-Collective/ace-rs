@@ -13,6 +13,7 @@ dependencies = [
  "ace-mod-dns",
  "ace-mod-email",
  "ace-mod-files",
+ "ace-mod-html",
  "ace-mod-msoffice",
  "ace-mod-nrd",
  "ace-mod-oletools",
@@ -207,7 +208,10 @@ dependencies = [
 name = "ace-lxml"
 version = "0.1.0"
 dependencies = [
+ "ace-pycompat",
+ "base64 0.22.1",
  "cc",
+ "serde_json",
 ]
 
 [[package]]
@@ -313,6 +317,26 @@ dependencies = [
  "sha2 0.11.1",
  "stacker",
  "tempfile",
+ "tracing",
+]
+
+[[package]]
+name = "ace-mod-html"
+version = "0.1.0"
+dependencies = [
+ "ace-lxml",
+ "ace-mod-oletools",
+ "ace-pycompat",
+ "ace-results",
+ "ace-sdk",
+ "ace-testkit",
+ "ace-urlfinder",
+ "memchr",
+ "regex",
+ "schemars 1.2.3",
+ "serde",
+ "serde_json",
+ "sha2 0.11.1",
  "tracing",
 ]
 
@@ -553,6 +577,7 @@ dependencies = [
  "ace-mod-brocess",
  "ace-mod-email",
  "ace-mod-files",
+ "ace-mod-html",
  "ace-mod-msoffice",
  "ace-mod-nrd",
  "ace-mod-oletools",

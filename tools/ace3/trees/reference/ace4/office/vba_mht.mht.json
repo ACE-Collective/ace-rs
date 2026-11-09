@@ -1,6 +1,92 @@
 {
   "form": 1,
   "observables": {
+    "file:8397912ada2760dca34d1adb644cf54fc5c8d05d0ad56b4a6f99096b03ac8431": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "vba_mht.mht.extracted/file_0": {
+          "type=document.mhtml.part": true,
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "7682d345add5f360f96f3c8f359ca5c7",
+            "sha1": "88a383fa691f59a0769abf154b8015a6274c0055",
+            "sha256": "8397912ada2760dca34d1adb644cf54fc5c8d05d0ad56b4a6f99096b03ac8431"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text, with no line terminators"
+          },
+          "summary": "File Type Analysis: ASCII text, with no line terminators (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:94dc88bc2405d813c2e72b56640247021b91c58311047947ecded37d92ae91f4": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "vba_mht.mht.extracted/file_1": {
+          "type=document.mhtml.part": true,
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "d39bf06b8e3763a5b2b77b5f0081a4dc",
+            "sha1": "4d7f349eb3489400f9f1c27fd1b98232a1b82413",
+            "sha256": "94dc88bc2405d813c2e72b56640247021b91c58311047947ecded37d92ae91f4"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:a39385604f7dc5756d199a0a7d611dd8d65f5c14f7aef305abbe4896f37d24a5": {
       "detections": {},
       "directives": {},
@@ -39,6 +125,29 @@
           },
           "summary": "File Type Analysis: MIME entity, ASCII text, with very long lines (1192), with CRLF line terminators (text/plain)",
           "tags": {}
+        },
+        "html_js_extraction": {
+          "details": {
+            "dom_snapshot_files": [],
+            "duplicate_count": 0,
+            "extracted_files": [],
+            "extracted_uri_paths": [],
+            "extracted_urls": [],
+            "inline_handlers": [],
+            "script_count": 0
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "mhtml": {
+          "details": {
+            "extracted_files": [
+              "8397912ada2760dca34d1adb644cf54fc5c8d05d0ad56b4a6f99096b03ac8431",
+              "94dc88bc2405d813c2e72b56640247021b91c58311047947ecded37d92ae91f4"
+            ]
+          },
+          "summary": "MHTML Analysis: 8397912ada2760dca34d1adb644cf54fc5c8d05d0ad56b4a6f99096b03ac8431, 94dc88bc2405d813c2e72b56640247021b91c58311047947ecded37d92ae91f4",
+          "tags": {}
         }
       },
       "tags": {}
@@ -49,6 +158,46 @@
       "excluded_analysis": {},
       "relationships": {
         "is_hash_of file:a39385604f7dc5756d199a0a7d611dd8d65f5c14f7aef305abbe4896f37d24a5": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:7682d345add5f360f96f3c8f359ca5c7": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:8397912ada2760dca34d1adb644cf54fc5c8d05d0ad56b4a6f99096b03ac8431": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:d39bf06b8e3763a5b2b77b5f0081a4dc": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:94dc88bc2405d813c2e72b56640247021b91c58311047947ecded37d92ae91f4": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:8397912ada2760dca34d1adb644cf54fc5c8d05d0ad56b4a6f99096b03ac8431": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:8397912ada2760dca34d1adb644cf54fc5c8d05d0ad56b4a6f99096b03ac8431": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:94dc88bc2405d813c2e72b56640247021b91c58311047947ecded37d92ae91f4": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:94dc88bc2405d813c2e72b56640247021b91c58311047947ecded37d92ae91f4": true
       },
       "results": {},
       "tags": {}

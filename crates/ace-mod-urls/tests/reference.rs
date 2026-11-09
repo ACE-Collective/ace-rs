@@ -51,6 +51,21 @@ fn input<M: ace_sdk::Parser>(
     for directive in strings(&input["directives"]) {
         observable = observable.with_directive(directive);
     }
+    // a file downloaded from a URL: html_js_extraction's and har_extraction's pages
+    for r in input["relationships"].as_array().into_iter().flatten() {
+        let kind: ace_results::RelationshipKind =
+            serde_json::from_value(r["type"].clone()).expect("a relationship kind");
+        let target_kind: ace_results::ObservableKind = r["target"]["type"]
+            .as_str()
+            .expect("a type")
+            .parse()
+            .expect("a kind");
+        let target = ace_results::ObservableRef::new(
+            target_kind,
+            r["target"]["value"].as_str().expect("a value"),
+        );
+        observable = observable.with_relationship(ace_results::Relationship::new(kind, target));
+    }
     if let Some(file) = observable.file.as_mut() {
         file.mime_type = dump.mime_type().map(str::to_owned);
     }

@@ -1,0 +1,47 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "HARAnalysis",
+      "details": {
+        "creator": null,
+        "entry_count": 0,
+        "error": "no log.entries list",
+        "responses": [],
+        "skipped_count": 0
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.har:HARAnalysis",
+      "observables": [],
+      "summary": "HTTP Archive: failed: no log.entries list",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/html/entries_not_list.har",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "entries_not_list.har",
+      "size": 30,
+      "type": "file",
+      "value": "f017f63792f61c0070ed593e4465ae3f95804dd9ecb21abd9ac85d865751b1e7"
+    }
+  },
+  "module": "har_extraction",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "entries_not_list.har",
+    "relationships": [],
+    "size": 30,
+    "tags": [],
+    "type": "file",
+    "value": "f017f63792f61c0070ed593e4465ae3f95804dd9ecb21abd9ac85d865751b1e7",
+    "yara_meta": []
+  },
+  "sidecars": {}
+}

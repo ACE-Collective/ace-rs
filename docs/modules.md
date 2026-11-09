@@ -20,17 +20,17 @@ Versions are those of ace3's image: Python packages from `installer/requirements
 
 | Pool | Modules | Ported |
 |---|---|---|
-| parser | 53 | 25 |
+| parser | 53 | 29 |
 | lookup | 17 | 9 |
 | core | 3 | 0 |
 | sandbox | 15 | 0 |
 | scanner | 2 | 0 |
-| all | 90 | 34 |
+| all | 90 | 38 |
 
 | Step | Modules |
 |---|---|
-| done | 34 |
-| 7.5 | 46 |
+| done | 38 |
+| 7.5 | 42 |
 | 7.6 | 5 |
 | 7.7 | 2 |
 | 7.10 | 2 |
@@ -45,7 +45,7 @@ In order. Batches 10 to 13 run programs in the sandbox runner, which batch 10 bu
 1. **URLs and indicators in text**: done. `url_extraction` and `ioc_extraction`, in `ace-mod-urls`, on `ace-urlfinder`, a port of urlfinderlib 0.27.1 whose `Url` and child URLs other modules can use too, with `ace-pycompat` (Python's urllib.parse, html, base64, json, csv and unicodedata, and the idna, validators and tld packages) and `ace-lxml` (libxml2 2.14.6 as lxml 6.1.3 bundles it, with lxml's tree and BeautifulSoup's `get_text()` over it). `url_extraction` waits for `file_type`, ported in batch 2.
 2. **File identity**: done. `file_type`, `file_hash_analyzer`, `lnk_parser`, `binary_file_analyzer`, `x509_analyzer` and `dhash`, in `ace-mod-files`. file_type first: many later modules read its result, its tags and its `yara_meta` types. `ssdeep` moved to batch 10: fuzzyhash doesn't give ssdeep's scores (`docs/measurements/ssdeep.md`).
 3. **Observable values**: done. `command_line_analyzer`, `file_location_analysis`, `file_path_analysis`, `network_identifier`, `parse_url`, `idna_analyzer`, `email_address_fqdn_analyzer`, `protected_url_analyzer`, in `ace-mod-values`, on `ace-urlfinder` and `ace-pycompat`. Strings in, observables out; no files but command lines' payloads. `protected_url_analyzer`'s 1drv.ms links go to `protected_url_one_drive` on the lookup pool (its entry has the decision).
-4. **HTML**: `html_data_url_extraction`, `har_extraction`, `html_js_extraction`, `mhtml`. HTML, MHTML and HAR files, with the DOM snapshots 7.7's js-deobfuscator reads.
+4. **HTML**: done. `html_data_url_extraction`, `har_extraction`, `html_js_extraction`, `mhtml`, in `ace-mod-html`, on `ace-lxml`'s BeautifulSoup tree, `ace-mod-oletools`' port of Python's feed parser and `ace-pycompat`. HTML, MHTML and HAR files, with the DOM snapshots 7.7's js-deobfuscator reads, which ride in the results' `dom_snapshots` rather than in files beside the scripts.
 5. **Office containers**: `onenote_extraction`, `officeparser3`, `office_xml_rel`, `xml_binary_analyzer`, `xml_plain_text_analyzer`, `extracted_ole_analyzer`, `hidden_mime`, `active_mime`. OLE streams, Office XML, OneNote and MIME blobs, on `ace-mod-oletools`' olefile port.
 6. **RTF and scripts**: `microsoft_script_encoding_analysis`, `extracted_rtf_analyzer`, `vbscript_analyzer`, `nowhitespace_analyzer`. Checks and transforms of RTF and script files.
 7. **Encrypted files**: `zip_encryption_analyzer`, `rar_encryption_analyzer`, `pdf_encryption_analyzer`. No John (7.3): the email's wordlist tried in the task, as 4.11 did for Office.
@@ -190,8 +190,8 @@ In the config's order. ace4 is the crate a ported module is in.
 
 | Module | Class | ace4 | Pool | Step | Groups | Modes |
 |---|---|---|---|---|---|---|
-| `html_data_url_extraction` | `HTMLDataURLAnalyzer` | not yet | parser | 7.5 batch 4 | file | analysis, binary, cli, correlation, email, file |
-| `har_extraction` | `HARExtractor` | not yet | parser | 7.5 batch 4 | file | analysis, binary, cli, correlation, email, file |
+| `html_data_url_extraction` | `HTMLDataURLAnalyzer` | `ace-mod-html` | parser | done | file | analysis, binary, cli, correlation, email, file |
+| `har_extraction` | `HARExtractor` | `ace-mod-html` | parser | done | file | analysis, binary, cli, correlation, email, file |
 | `pcap_analyzer` | `PcapAnalyzer` | not yet | sandbox | 7.5 batch 13 | file | analysis, binary, cli, correlation, email, file |
 | `pcap_dns` | `PcapCategoryAnalyzer` | not yet | parser | 7.5 batch 13 | file | analysis, binary, cli, correlation, email, file |
 | `pcap_tls` | `PcapCategoryAnalyzer` | not yet | parser | 7.5 batch 13 | file | analysis, binary, cli, correlation, email, file |
@@ -199,7 +199,7 @@ In the config's order. ace4 is the crate a ported module is in.
 | `pcap_files` | `PcapCategoryAnalyzer` | not yet | parser | 7.5 batch 13 | file | analysis, binary, cli, correlation, email, file |
 | `pcap_tls_decryption` | `PcapTlsDecryptor` | not yet | sandbox | 7.5 batch 13 | file | analysis, binary, cli, correlation, email, file |
 | `tls_keylog` | `TlsKeylogAnalyzer` | not yet | sandbox | 7.5 batch 13 | file | analysis, binary, cli, correlation, email, file |
-| `html_js_extraction` | `HTMLJavaScriptExtractor` | not yet | parser | 7.5 batch 4 | file | analysis, binary, cli, correlation, email, file |
+| `html_js_extraction` | `HTMLJavaScriptExtractor` | `ace-mod-html` | parser | done | file | analysis, binary, cli, correlation, email, file |
 | `onenote_extraction` | `OneNoteFileAnalyzer` | not yet | parser | 7.5 batch 5 | file | analysis, binary, cli, correlation, email, file |
 | `javascript_deobfuscation` | `JavaScriptDeobfuscationAnalyzer` | not yet | scanner | 7.7 | file | analysis, binary, cli, correlation, email, file |
 | `command_line_analyzer` | `CommandLineAnalyzer` | `ace-mod-values` | parser | done | common | analysis, binary, cli, correlation, email, file |
@@ -232,7 +232,7 @@ In the config's order. ace4 is the crate a ported module is in.
 | `olevba_v1_2` | `OLEVBA_Analyzer_v1_2` | `ace-mod-oletools` | parser | done | file | analysis, binary, cli, correlation, email, file |
 | `officeparser3` | `OfficeParserAnalyzer3` | not yet | parser | 7.5 batch 5 | file | analysis, binary, cli, correlation, email, file |
 | `xlmdeobfuscator` | `XLMMacroDeobfuscatorAnalyzer` | `ace-mod-xlm` | parser | done | file | analysis, binary, cli, correlation, email, file |
-| `mhtml` | `MHTMLAnalysisModule` | not yet | parser | 7.5 batch 4 | file | analysis, binary, cli, correlation, email, file |
+| `mhtml` | `MHTMLAnalysisModule` | `ace-mod-html` | parser | done | file | analysis, binary, cli, correlation, email, file |
 | `pcodedmp` | `PCodeAnalyzer` | `ace-mod-xlm` | parser | done | file | analysis, binary, cli, correlation, email, file |
 | `office_xml_rel` | `OfficeXMLRelationshipExternalURLAnalyzer` | not yet | parser | 7.5 batch 5 | file | analysis, binary, cli, correlation, email, file |
 | `msoffice_encryption_analyzer` | `MSOfficeEncryptionAnalyzer` | `ace-mod-msoffice` | parser | done | file | analysis, binary, cli, correlation, email, file |
@@ -286,9 +286,9 @@ In the config's order. ace4 is the crate a ported module is in.
 ### html_data_url_extraction
 
 - **Section**: `analysis_module_html_data_url_extraction`, class `HTMLDataURLAnalyzer` in `saq/modules/file_analysis/html.py`, enabled by default.
-- **ace4**: not yet.
+- **ace4**: ported in `ace-mod-html`. ace3's `etc/mime.types` (public domain) is `mime_types.tsv`. It writes at most 500 files and stops there, as ace3's root takes at most 500 file observables (`maximum_observable_count`), which ace4's core doesn't have (`docs/measurements/html.md`).
 - **Pool**: parser. Regex and base64 over an attacker's file.
-- **Step**: 7.5 batch 4 (HTML).
+- **Step**: done.
 - **Does**: Scans any non-empty file (no file-type gate) with a regex for base64 data: URLs (data:<mime>;base64,...), decodes each and adds it as a file observable.
 - **Input**: file.
 - **Groups and modes**: groups file; modes analysis, binary, cli, correlation, email, file.
@@ -307,9 +307,9 @@ In the config's order. ace4 is the crate a ported module is in.
 ### har_extraction
 
 - **Section**: `analysis_module_har_extraction`, class `HARExtractor` in `saq/modules/file_analysis/har.py`, enabled by default.
-- **ace4**: not yet.
+- **ace4**: ported in `ace-mod-html`. It parses with `ace-pycompat`'s `json.loads` and `urllib.parse`. The DOM snapshots are in the result's `dom_snapshots`, each with the scripts whose `.dom.json` it is, since ace4 keeps no file outside the tree. Where Python raises out of ace3's module, such as `urlsplit` on a broken IPv6 host, the result is what ace3's analysis held at that point.
 - **Pool**: parser. JSON and HTML parsing of an attacker's file.
-- **Step**: 7.5 batch 4 (HTML).
+- **Step**: done.
 - **Does**: Detects an HTTP archive (.har JSON with a leading "log" key) by content, extracts the HTML/SVG page and JavaScript response bodies as file observables linked to the URL they were downloaded from, and writes a DOM-snapshot sidecar beside each script a page loads.
 - **Input**: file.
 - **Groups and modes**: groups file; modes analysis, binary, cli, correlation, email, file.
@@ -478,9 +478,9 @@ In the config's order. ace4 is the crate a ported module is in.
 ### html_js_extraction
 
 - **Section**: `analysis_module_html_js_extraction`, class `HTMLJavaScriptExtractor` in `saq/modules/file_analysis/html_js_extraction.py`, enabled by default.
-- **ace4**: not yet.
+- **ace4**: ported in `ace-mod-html`. It parses with `ace_lxml::soup`, BeautifulSoup 4.15's tree over lxml's target parser, checked against bs4 on 750 inputs. The DOM snapshots are in the result's `dom_snapshots` with the files whose `.dom.json` each is, up to 16 MiB of them a result, since ace4 keeps no file outside the tree; 7.7's deobfuscator reads them from there. It writes at most 500 scripts and adds at most 500 URLs and 500 URI paths, as ace3's root takes at most 500 files and URLs (`maximum_observable_count`); ace3 has no limit on URI paths (`docs/measurements/html.md`).
 - **Pool**: parser. HTML parsing of an attacker's file.
-- **Step**: 7.5 batch 4 (HTML).
+- **Step**: done.
 - **Does**: Extracts inline <script> bodies and inline event-handler code from HTML, SVG and MHTML files into .js file observables (with a DOM-snapshot sidecar for the JS deobfuscator) and adds url/uri_path observables for external script sources.
 - **Input**: file.
 - **Groups and modes**: groups file; modes analysis, binary, cli, correlation, email, file.
@@ -526,7 +526,7 @@ In the config's order. ace4 is the crate a ported module is in.
 - **Does**: Sends a JavaScript file (.js extension or yara meta type=script.javascript) to the js-deobfuscator Celery service, which runs it in a throwaway no-network Node container (webcrack static pass plus a node:vm sandbox that traces writes to stubbed browser/Acrobat globals), and adds the reconstructed trace and any Blob payloads as file observables marked for URL extraction.
 - **Input**: file.
 - **Groups and modes**: groups file; modes analysis, binary, cli, correlation, email, file.
-- **Depends on**: html_js_extraction / har_extraction (sidecar .dom.json and type=script.javascript yara meta; not a wait_for).
+- **Depends on**: html_js_extraction / har_extraction (sidecar .dom.json and type=script.javascript yara meta; not a wait_for). In ace4 the sidecars are those results' `dom_snapshots`, each listing the files whose `.dom.json` it is (7.5 batch 4).
 - **Libraries**: celery[redis] 5.6.3 (client side: imports js_deobfuscator.js_deobfuscator and calls deobfuscate.delay(...).get(timeout=celery_timeout)); redis 6.4.0 (Celery result backend); pydantic 2.14.1.
 - **Tools**: none started by ACE itself; the js-deobfuscator manager container (docker:dind image, Alpine python3 venv with celery[redis] + pyyaml, unpinned) runs `docker run --rm --network none -v <stack>_js-deobfuscator:/js-deobfuscator ${ACE3_JS_DEOBFUSCATOR_IMAGE_URL:-js-deobfuscator} node /opt/app/harness.js <input> <output>/deobfuscated.js` via subprocess.Popen on the host docker socket, killed after scanner_timeout (30 s); scanner image: node:26-alpine with webcrack 2.15.1 (npm, --ignore-scripts, isolated-vm not built); harness.js uses node:vm (webcrack sandbox 10 s timeout, dynamic run 5 s per script).
 - **Threads and children**: Not in ACE's process: the remote manager starts a docker CLI process that starts a sibling Node container per scan (Node has its own worker threads).
@@ -1176,13 +1176,13 @@ In the config's order. ace4 is the crate a ported module is in.
 ### mhtml
 
 - **Section**: `analysis_module_mhtml`, class `MHTMLAnalysisModule` in `saq/modules/file_analysis/html.py`, enabled by default.
-- **ace4**: not yet.
-- **Pool**: parser. MIME parsing of an attacker's file; mail-parser covers it.
-- **Step**: 7.5 batch 4 (HTML).
+- **ace4**: ported in `ace-mod-html`. It parses with `ace-mod-oletools`' port of Python's feed parser with the stock `headerRE`, rather than mail-parser, which this entry named: the port already gives Python's parts, its quirks and the depth where it raises `RecursionError` (past 974 nested multiparts, as in ace3). It writes at most 500 parts, as ace3's root takes at most 500 file observables (`docs/measurements/html.md`). It waits for `file_type`, which ace3's doesn't: ace3's order of a pass's modules comes from a set of names and Python's hash seed, so whether the parts copy file_type's `yara_meta` types differs between ace3 processes, and ace4's would differ with the pool's order of tasks. A page Blink saves starts `From: <Saved by Blink>`, so file_type calls it an email and the email module writes its parts too, with the same bytes as `mhtml`'s; ace4 analyzes those bytes once, under the path whose result lands first, which is a race between the two modules, where ace3 analyzes each path. The sample `ace4/web/page.mht` starts `MIME-Version:` to keep the trees steady; the dumps' `page.mht` is Blink's.
+- **Pool**: parser. MIME parsing of an attacker's file.
+- **Step**: done.
 - **Does**: Parses a .mhtml/.mht file (by extension only) as MIME with the stdlib email parser and writes every non-multipart part out as a file observable.
 - **Input**: file.
 - **Groups and modes**: groups file; modes analysis, binary, cli, correlation, email, file.
-- **Depends on**: none.
+- **Depends on**: none in ace3; ace4's waits for file_type (see ace4).
 - **Libraries**: none.
 - **Tools**: none.
 - **Writes**: {file}.extracted/file_{n} (n counts every non-multipart part).
@@ -1716,7 +1716,7 @@ In the config's order. ace4 is the crate a ported module is in.
 ### url_extraction
 
 - **Section**: `analysis_module_url_extraction`, class `URLExtractionAnalyzer` in `saq/modules/file_analysis/url_extraction.py`, enabled by default.
-- **ace4**: ported in `ace-mod-urls`. urlfinderlib is `ace-urlfinder`'s port, which matches urlfinderlib on every sample and on hand-made and generated HTML, text, JSON, CSV, XML, iCalendar and PDF-like blobs in each of its modes. Its sets are sorted, so where ace3's order of URLs follows its hash seed, ace4's is the same each run. It depends on `file_type`, whose `yara_meta` types it reads; there's no dependency on the YARA module, whose skipped tasks store no result; a `downloaded_from` file has no base URL, since a task carries no relationships and no ported module adds that one; observables aren't volatile, which ace4 doesn't have. `crates/ace-mod-urls/tests/differences.md` and `docs/measurements/url-extraction.md` have the rest.
+- **ace4**: ported in `ace-mod-urls`. urlfinderlib is `ace-urlfinder`'s port, which matches urlfinderlib on every sample and on hand-made and generated HTML, text, JSON, CSV, XML, iCalendar and PDF-like blobs in each of its modes. Its sets are sorted, so where ace3's order of URLs follows its hash seed, ace4's is the same each run. It depends on `file_type`, whose `yara_meta` types it reads; there's no dependency on the YARA module, whose skipped tasks store no result; an HTML file `downloaded_from` a URL has its relative URLs made absolute against it, as in ace3, since batch 4's `har_extraction` adds that relationship; observables aren't volatile, which ace4 doesn't have. `crates/ace-mod-urls/tests/differences.md` and `docs/measurements/url-extraction.md` have the rest.
 - **Pool**: parser. Parses an attacker's file for URLs in the task's process.
 - **Step**: done.
 - **Does**: For files with the extract_urls directive, extracts URLs with urlfinderlib, filters excluded domains, orders them by interest and adds up to max_extracted_urls as URL observables.

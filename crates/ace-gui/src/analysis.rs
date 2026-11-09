@@ -48,6 +48,9 @@ use ace_results::types::dns::FqdnAnalysis;
 use ace_results::types::email::EmailAnalysis;
 use ace_results::types::file_hash::FileHashAnalysis;
 use ace_results::types::file_type::FileTypeAnalysis;
+use ace_results::types::html::{
+    HarAnalysis, HtmlDataUrlAnalysis, HtmlJavaScriptExtractionAnalysis, MhtmlAnalysis,
+};
 use ace_results::types::ioc_extraction::IocExtractionAnalysis;
 use ace_results::types::lnk::LnkParseAnalysis;
 use ace_results::types::msoffice::MsofficeEncryptionAnalysis;
@@ -204,6 +207,10 @@ impl Views {
             .with(ViewEntry::of::<EmailAddressFqdnAnalysis>())
             .with(ViewEntry::of::<ProtectedUrlAnalysis>())
             .with(ViewEntry::of::<OneDriveUrlAnalysis>())
+            .with(ViewEntry::of::<HtmlDataUrlAnalysis>())
+            .with(ViewEntry::of::<MhtmlAnalysis>())
+            .with(ViewEntry::of::<HtmlJavaScriptExtractionAnalysis>())
+            .with(ViewEntry::of::<HarAnalysis>())
     }
 
     /// These views with `entry`, which takes the place of any view of the same type and version, so a
@@ -1809,5 +1816,97 @@ impl AnalysisView for OneDriveUrlAnalysis {
             field("protection_type", self.protection_type.as_ref()),
             field("extracted_url", self.extracted_url.as_ref()),
         ])
+    }
+}
+
+// ---- HTML: ace3's default_template.html ----
+
+/// One row per item, up to `MAX_ITEMS`, and a row saying how many more.
+fn item_rows<'a>(
+    name: &'static str,
+    items: &'a [String],
+) -> impl Iterator<Item = Option<Field>> + 'a {
+    let shown = first(items, MAX_ITEMS);
+    let more = shown.more;
+    shown
+        .items
+        .iter()
+        .map(move |item| field(name, Some(item)))
+        .chain((more > 0).then(|| field(name, Some(format!("and {more} more")))))
+}
+
+/// `html_data_url_analysis`: how many data URLs became files.
+impl AnalysisView for HtmlDataUrlAnalysis {
+    type View<'a> = FieldsView;
+    fn view(&self) -> FieldsView {
+        fields_view([field("count", Some(self.count))])
+    }
+}
+
+/// `mhtml_analysis`: the sha256 of each part written out.
+impl AnalysisView for MhtmlAnalysis {
+    type View<'a> = FieldsView;
+    fn view(&self) -> FieldsView {
+        fields_view(item_rows("extracted_file", &self.extracted_files))
+    }
+}
+
+/// `html_javascript_extraction_analysis`: the counts, the scripts and handlers written out, the
+/// external scripts' sources and the snapshots' sidecar names. The snapshots themselves are for
+/// the JavaScript deobfuscator, not the page.
+impl AnalysisView for HtmlJavaScriptExtractionAnalysis {
+    type View<'a> = FieldsView;
+    fn view(&self) -> FieldsView {
+        fields_view(
+            [
+                field("script_count", Some(self.script_count)),
+                field("duplicate_count", Some(self.duplicate_count)),
+            ]
+            .into_iter()
+            .chain(item_rows("extracted_file", &self.extracted_files))
+            .chain(item_rows("extracted_url", &self.extracted_urls))
+            .chain(item_rows("extracted_uri_path", &self.extracted_uri_paths))
+            .chain(item_rows("inline_handler", &self.inline_handlers))
+            .chain(item_rows("dom_snapshot_file", &self.dom_snapshot_files)),
+        )
+    }
+}
+
+/// `har_analysis`: the archive's creator and counts, or why it failed, and each response written
+/// out: its status, type and URL, the file, and the page a script runs in.
+impl AnalysisView for HarAnalysis {
+    type View<'a> = FieldsView;
+    fn view(&self) -> FieldsView {
+        let responses: Vec<String> = self
+            .responses
+            .iter()
+            .map(|r| {
+                let status = match &r.status {
+                    Value::String(s) => s.clone(),
+                    other => other.to_string(),
+                };
+                let mut row = format!(
+                    "{status} {} {} \u{2192} {}",
+                    r.mime_type, r.url, r.file_path
+                );
+                if r.truncated {
+                    row.push_str(" (truncated)");
+                }
+                if let Some(page) = &r.loaded_by {
+                    row.push_str(&format!(", loaded by {page}"));
+                }
+                row
+            })
+            .collect();
+        fields_view(
+            [
+                field("error", self.error.as_ref()),
+                field("creator", self.creator.as_ref()),
+                field("entry_count", Some(self.entry_count)),
+                field("skipped_count", Some(self.skipped_count)),
+            ]
+            .into_iter()
+            .chain(item_rows("response", &responses)),
+        )
     }
 }

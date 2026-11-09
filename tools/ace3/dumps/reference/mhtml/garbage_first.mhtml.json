@@ -1,0 +1,78 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "MHTMLAnalysis",
+      "details": {
+        "extracted_files": [
+          "6d0337d88e9c25d18d35cef74d11ad73dfc5f8a9d0906f4a36f58ef4f0ffec6d",
+          "76b02683dae924186604dfa395f642a464ff6e80d3c6d875980fa6f8f6f9ddb7"
+        ]
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.html:MHTMLAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=document.mhtml.part"
+          ],
+          "excluded_analysis": [],
+          "file_path": "garbage_first.mhtml.extracted/file_0",
+          "relationships": [],
+          "size": 39,
+          "tags": [],
+          "type": "file",
+          "value": "6d0337d88e9c25d18d35cef74d11ad73dfc5f8a9d0906f4a36f58ef4f0ffec6d",
+          "yara_meta": [
+            "type=document.mhtml.part"
+          ]
+        },
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=document.mhtml.part"
+          ],
+          "excluded_analysis": [],
+          "file_path": "garbage_first.mhtml.extracted/file_1",
+          "relationships": [],
+          "size": 10,
+          "tags": [],
+          "type": "file",
+          "value": "76b02683dae924186604dfa395f642a464ff6e80d3c6d875980fa6f8f6f9ddb7",
+          "yara_meta": [
+            "type=document.mhtml.part"
+          ]
+        }
+      ],
+      "summary": "MHTML Analysis: 6d0337d88e9c25d18d35cef74d11ad73dfc5f8a9d0906f4a36f58ef4f0ffec6d, 76b02683dae924186604dfa395f642a464ff6e80d3c6d875980fa6f8f6f9ddb7",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/html/garbage_first.mhtml",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "garbage_first.mhtml",
+      "size": 215,
+      "type": "file",
+      "value": "cef4d5f65cd495087b73ffce1fa0d9b756b2ec2570de36a3c34b9c1025651d92"
+    }
+  },
+  "module": "mhtml",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "garbage_first.mhtml",
+    "relationships": [],
+    "size": 215,
+    "tags": [],
+    "type": "file",
+    "value": "cef4d5f65cd495087b73ffce1fa0d9b756b2ec2570de36a3c34b9c1025651d92",
+    "yara_meta": []
+  }
+}

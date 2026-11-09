@@ -9,6 +9,7 @@ pub mod dns;
 pub mod email;
 pub mod file_hash;
 pub mod file_type;
+pub mod html;
 pub mod ioc_extraction;
 pub mod lnk;
 pub mod msoffice;
