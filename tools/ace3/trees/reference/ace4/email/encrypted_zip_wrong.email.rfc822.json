@@ -1,0 +1,835 @@
+{
+  "form": 1,
+  "observables": {
+    "email_address:alice@example.com": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "email_address_fqdn_analyzer": {
+          "details": {
+            "domain": "example.com"
+          },
+          "summary": "Email Address FQDN: example.com",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "email_address:bob@example.com": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "email_address_fqdn_analyzer": {
+          "details": {
+            "domain": "example.com"
+          },
+          "summary": "Email Address FQDN: example.com",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "email_conversation:sender@example.com|recipient@example.com": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "email_conversation_frequency_analyzer": {
+          "details": {
+            "dest_count": null,
+            "source_count": 0
+          },
+          "summary": "Email Conversation Frequency Analysis - first time received",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "new_sender": true
+      }
+    },
+    "email_from:sender@example.com": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "email_address_fqdn_analyzer": {
+          "details": {
+            "domain": "example.com"
+          },
+          "summary": "Email Address FQDN: example.com",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "email_subject:the attached file": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
+    },
+    "email_to:recipient@example.com": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "email_address_fqdn_analyzer": {
+          "details": {
+            "domain": "example.com"
+          },
+          "summary": "Email Address FQDN: example.com",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:0392a8d9b0ed95d92b063dbd80682c244aa4d98806e81c31f1c0fd4f24650ad0": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "email_analyzer": true
+      },
+      "paths": {
+        "email.rfc822.headers": {
+          "type=email": true,
+          "type=email.headers": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": true,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "message/rfc822",
+            "type": "news or mail, ASCII text"
+          },
+          "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
+          "tags": {}
+        },
+        "html_js_extraction": {
+          "details": {
+            "dom_snapshot_files": [],
+            "duplicate_count": 0,
+            "extracted_files": [],
+            "extracted_uri_paths": [],
+            "extracted_urls": [],
+            "inline_handlers": [],
+            "script_count": 0
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "email": true
+      }
+    },
+    "file:640b0ef74cccb322abcf96664e7182363eb21bdbf5be76b455c3e6c974210445": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true,
+        "render": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "invoice.zip": {
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "archive": {
+          "details": {
+            "extracted_files": [
+              "invoice.txt",
+              "docs/notes.txt"
+            ],
+            "extraction_error": null,
+            "file_count": 2
+          },
+          "summary": "Archive Analysis: extracted 2 of 2 files: (invoice.txt, docs/notes.txt)",
+          "tags": {}
+        },
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "9c5d1d8c19ca86efe1b3444dd60b8b9d",
+            "sha1": "38a46652db2174d83cd73a3b645c16e71d668633",
+            "sha256": "640b0ef74cccb322abcf96664e7182363eb21bdbf5be76b455c3e6c974210445"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": true,
+            "mime": "application/zip",
+            "type": "Zip archive data, made by v6.3 UNIX, extract using at least v2.0, last modified Jan 01 2020 12:00:00, uncompressed size 70, method=deflate"
+          },
+          "summary": "File Type Analysis: Zip archive data, made by v6.3 UNIX, extract using at least v2.0, last modified Jan 01 2020 12:00:00, uncompressed size 70, method=deflate (application/zip) (zip archive)",
+          "tags": {}
+        },
+        "olevba_v1_2": {
+          "details": {
+            "keyword_summary": {},
+            "macros": [],
+            "type": null
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "zip_encryption_analyzer": {
+          "details": {
+            "email": true,
+            "email_body": "The password is Wr0ngOne\n\n",
+            "encryption_info": null,
+            "error": "ZipEncryptionAnalyzer was unable to crack the password",
+            "password": null,
+            "word_list": [
+              "0ngO",
+              "0ngOn",
+              "0ngOne",
+              "Wr0n",
+              "Wr0ng",
+              "Wr0ngO",
+              "Wr0ngOn",
+              "Wr0ngOne",
+              "assw",
+              "asswo",
+              "asswor",
+              "assword",
+              "gOne",
+              "ngOn",
+              "ngOne",
+              "pass",
+              "passw",
+              "passwo",
+              "passwor",
+              "password",
+              "r0ng",
+              "r0ngO",
+              "r0ngOn",
+              "r0ngOne",
+              "sswo",
+              "sswor",
+              "ssword",
+              "swor",
+              "sword",
+              "word"
+            ]
+          },
+          "summary": "Zip Encryption Analysis: ZipEncryptionAnalyzer was unable to crack the password",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "encrypted_zip": true,
+        "zip": true
+      }
+    },
+    "file:d99f406fcd0a7e565933ab09fb3d603130256e48b03e591f81f8b5a8cab81739": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "email.rfc822": {
+          "type=email": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "email_analyzer": {
+          "details": {
+            "email": {
+              "authentication_failed": false,
+              "compauth_reason": null,
+              "compauth_result": null,
+              "decoded_subject": "the attached file",
+              "dkim_result": null,
+              "dmarc_result": null,
+              "env_mail_from": null,
+              "env_rcpt_to": [],
+              "from": "sender@example.com",
+              "from_address": "sender@example.com",
+              "headers": [
+                [
+                  "From",
+                  "sender@example.com"
+                ],
+                [
+                  "To",
+                  "recipient@example.com"
+                ],
+                [
+                  "Subject",
+                  "the attached file"
+                ],
+                [
+                  "Date",
+                  "Mon, 09 Nov 2026 12:00:00 +0000"
+                ],
+                [
+                  "Message-ID",
+                  "<encrypted_zip_wrong@example.com>"
+                ],
+                [
+                  "MIME-Version",
+                  "1.0"
+                ],
+                [
+                  "Content-Type",
+                  "multipart/mixed; boundary=\"ace4-encrypted_zip_wrong\""
+                ]
+              ],
+              "internal_org_sender": false,
+              "is_anonymous_direct_send": false,
+              "log_entry": {
+                "attachment_count": 2,
+                "attachment_hashes": [
+                  "fa91ec23df742219008373502c4990082536e23154bbd51e9f35e07148973e33",
+                  "640b0ef74cccb322abcf96664e7182363eb21bdbf5be76b455c3e6c974210445"
+                ],
+                "attachment_names": [
+                  "email.rfc822.unknown_text_plain_000.txt",
+                  "invoice.zip"
+                ],
+                "attachment_sizes": [
+                  25,
+                  445
+                ],
+                "attachment_types": [
+                  "text/plain",
+                  "application/octet-stream"
+                ],
+                "authentication_failed": false,
+                "bcc": [],
+                "cc": [],
+                "compauth_reason": null,
+                "compauth_result": null,
+                "dkim_result": null,
+                "dmarc_result": null,
+                "env_mail_from": null,
+                "env_rcpt_to": [],
+                "first_received": null,
+                "headers": [
+                  "From: sender@example.com",
+                  "To: recipient@example.com",
+                  "Subject: the attached file",
+                  "Date: Mon, 09 Nov 2026 12:00:00 +0000",
+                  "Message-ID: <encrypted_zip_wrong@example.com>",
+                  "MIME-Version: 1.0",
+                  "Content-Type: multipart/mixed; boundary=\"ace4-encrypted_zip_wrong\""
+                ],
+                "in_reply_to": null,
+                "internal_org_sender": false,
+                "is_anonymous_direct_send": false,
+                "last_received": null,
+                "mail_from": "sender@example.com",
+                "mail_from_is_local": false,
+                "mail_to": [
+                  "recipient@example.com"
+                ],
+                "message_directionality": null,
+                "message_id": "<encrypted_zip_wrong@example.com>",
+                "originating_ip": null,
+                "path": [],
+                "refereneces": null,
+                "reply_to": null,
+                "size": 1185,
+                "spf_result": null,
+                "spoofed_internal": false,
+                "subject": "the attached file",
+                "subject_raw": "the attached file",
+                "thread_index": null,
+                "thread_topic": null,
+                "user_agent": null,
+                "x_mailer": null,
+                "x_sender": null
+              },
+              "mail_from_is_local": false,
+              "message-id": "<encrypted_zip_wrong@example.com>",
+              "message_directionality": null,
+              "spf_result": null,
+              "spoofed_internal": false,
+              "subject": "the attached file",
+              "to": [
+                "recipient@example.com"
+              ],
+              "to_addresses": [
+                "recipient@example.com"
+              ]
+            },
+            "extraction_errors": [],
+            "parsing_error": null
+          },
+          "summary": "Email Analysis: From sender@example.com To recipient@example.com Subject the attached file",
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": true,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "message/rfc822",
+            "type": "news or mail, ASCII text"
+          },
+          "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
+          "tags": {}
+        },
+        "html_js_extraction": {
+          "details": {
+            "dom_snapshot_files": [],
+            "duplicate_count": 0,
+            "extracted_files": [],
+            "extracted_uri_paths": [],
+            "extracted_urls": [],
+            "inline_handlers": [],
+            "script_count": 0
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "email": true
+      }
+    },
+    "file:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "invoice.zip.extracted/docs/notes.txt": {},
+        "invoice.zip.extracted/invoice.txt": {}
+      },
+      "relationships": {
+        "extracted_from file:640b0ef74cccb322abcf96664e7182363eb21bdbf5be76b455c3e6c974210445": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "inode/x-empty",
+            "type": "empty"
+          },
+          "summary": "File Type Analysis: empty (inode/x-empty)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:ea549289fcdb161c1225df2a1a05f013c99f1807ced2d7572b330d09113299b8": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "email_analyzer": true
+      },
+      "paths": {
+        "email.rfc822.combined": {
+          "type=email": true,
+          "type=email.combined": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": true,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "message/rfc822",
+            "type": "news or mail, ASCII text"
+          },
+          "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
+          "tags": {}
+        },
+        "html_js_extraction": {
+          "details": {
+            "dom_snapshot_files": [],
+            "duplicate_count": 0,
+            "extracted_files": [],
+            "extracted_uri_paths": [],
+            "extracted_urls": [],
+            "inline_handlers": [],
+            "script_count": 0
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "email": true
+      }
+    },
+    "file:fa91ec23df742219008373502c4990082536e23154bbd51e9f35e07148973e33": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true,
+        "preview": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "email.rfc822.unknown_text_plain_000.txt": {
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "fqdn:example.com": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "fqdn_analyzer": {
+          "details": {
+            "aliaslist": [],
+            "all_resolutions": [
+              "192.0.2.10",
+              "192.0.2.2"
+            ],
+            "ip_address": "192.0.2.10",
+            "mx": [
+              "backup.example.com",
+              "mail.example.com"
+            ],
+            "resolution_count": 2,
+            "status": "ok",
+            "wildcard_dns": false
+          },
+          "summary": "DNS Analysis: ip addresses (192.0.2.10, 192.0.2.2) mx (backup.example.com, mail.example.com)",
+          "tags": {}
+        },
+        "proxy_domain_splunk": {
+          "details": {
+            "dispatch_state": "DONE",
+            "gui_link": null,
+            "query": "index=proxy hostname=\"example.com\"",
+            "query_error": null,
+            "query_results": [
+              {
+                "_time": "2026-10-30T14:02:11.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "https://www.example.com/login",
+                "src_ip": "192.0.2.10",
+                "src_translated_ip": "198.51.100.7",
+                "user": "alice@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:05:42.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "http://www.example.com/",
+                "src_ip": "192.0.2.11",
+                "src_translated_ip": "198.51.100.7",
+                "user": "bob@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:09:03.000+00:00",
+                "dest_ip": "198.51.100.21",
+                "full_url": "https://www.example.com/static/app.js",
+                "src_ip": "192.0.2.12"
+              }
+            ],
+            "query_summary": "Proxy correlation",
+            "question": "Was this domain seen in proxy logs?"
+          },
+          "summary": "Proxy correlation: (3 results)",
+          "tags": {}
+        },
+        "rdap_analyzer": {
+          "details": {
+            "assignment_type": null,
+            "country": null,
+            "datetime_created": "1995-08-14 04:00:00+00:00",
+            "datetime_expiration": "2027-08-13 04:00:00+00:00",
+            "datetime_of_last_update": "2026-08-14 08:01:43+00:00",
+            "domain_name": "EXAMPLE.COM",
+            "emails": [],
+            "error": null,
+            "ip_version": null,
+            "lookup_protocol": "rdap",
+            "name_servers": [
+              "ELLIOTT.NS.CLOUDFLARE.COM",
+              "HERA.NS.CLOUDFLARE.COM"
+            ],
+            "network_cidr": null,
+            "network_name": null,
+            "rdap_attempt_error": null,
+            "rdap_data": {
+              "copyright_notice": "",
+              "description": [],
+              "dnssec": true,
+              "dnssec_ds_data": [
+                {
+                  "algorithm": 13,
+                  "digest": "C988EC423E3880EB8DD8A46FE06CA230EE23F35B578D64E78B29C3E1C83D245A",
+                  "digest_type": 2,
+                  "key_tag": 2371
+                }
+              ],
+              "dnssec_key_data": [],
+              "entities": {
+                "abuse": [
+                  {
+                    "name": "",
+                    "parent_handle": "376",
+                    "parent_name": "RESERVED-Internet Assigned Numbers Authority",
+                    "type": "entity"
+                  }
+                ],
+                "registrar": [
+                  {
+                    "handle": "376",
+                    "name": "RESERVED-Internet Assigned Numbers Authority",
+                    "public_ids": [
+                      {
+                        "identifier": "376",
+                        "type": "IANA Registrar ID"
+                      }
+                    ],
+                    "type": "entity"
+                  }
+                ]
+              },
+              "events": [
+                {
+                  "action": "registration",
+                  "actor": "",
+                  "date": "1995-08-14T04:00:00.000000+0000"
+                },
+                {
+                  "action": "expiration",
+                  "actor": "",
+                  "date": "2027-08-13T04:00:00.000000+0000"
+                },
+                {
+                  "action": "last changed",
+                  "actor": "",
+                  "date": "2026-08-14T08:01:43.000000+0000"
+                },
+                {
+                  "action": "last update of rdap database",
+                  "actor": "",
+                  "date": "2026-11-02T15:28:17.000000+0000"
+                }
+              ],
+              "expiration_date": "2027-08-13T04:00:00.000000+0000",
+              "handle": "2336799_DOMAIN_COM-VRSN",
+              "last_changed_date": "2026-08-14T08:01:43.000000+0000",
+              "links": [
+                {
+                  "href": "https://rdap.verisign.com/com/v1/domain/example.com",
+                  "rel": "self",
+                  "type": "application/rdap+json"
+                }
+              ],
+              "name": "EXAMPLE.COM",
+              "nameserver_ips": {
+                "ELLIOTT.NS.CLOUDFLARE.COM": [],
+                "HERA.NS.CLOUDFLARE.COM": []
+              },
+              "nameservers": [
+                "ELLIOTT.NS.CLOUDFLARE.COM",
+                "HERA.NS.CLOUDFLARE.COM"
+              ],
+              "notices": [
+                {
+                  "description": [
+                    "Service subject to Terms of Use."
+                  ],
+                  "links": [
+                    "https://www.verisign.com/domain-names/registration-data-access-protocol/terms-service/index.xhtml"
+                  ],
+                  "title": "Terms of Service",
+                  "type": ""
+                },
+                {
+                  "description": [
+                    "For more information on domain status codes, please visit https://icann.org/epp"
+                  ],
+                  "links": [
+                    "https://icann.org/epp"
+                  ],
+                  "title": "Status Codes",
+                  "type": ""
+                },
+                {
+                  "description": [
+                    "URL of the ICANN RDDS Inaccuracy Complaint Form: https://icann.org/wicf"
+                  ],
+                  "links": [
+                    "https://icann.org/wicf"
+                  ],
+                  "title": "RDDS Inaccuracy Complaint Form",
+                  "type": ""
+                }
+              ],
+              "parent_handle": "",
+              "public_ids": [],
+              "redacted": [],
+              "registrar_url": "",
+              "registration_date": "1995-08-14T04:00:00.000000+0000",
+              "remarks": [],
+              "rir": "",
+              "status": [
+                "client delete prohibited",
+                "client transfer prohibited",
+                "client update prohibited"
+              ],
+              "terms_of_service_url": "https://www.verisign.com/domain-names/registration-data-access-protocol/terms-service/index.xhtml",
+              "type": "domain",
+              "unicode_name": "",
+              "url": "https://rdap.verisign.com/com/v1/domain/example.com",
+              "whois_server": ""
+            },
+            "rdap_raw_json": "{\"objectClassName\":\"domain\",\"handle\":\"2336799_DOMAIN_COM-VRSN\",\"ldhName\":\"EXAMPLE.COM\",\"links\":[{\"value\":\"https://rdap.verisign.com/com/v1/domain/example.com\",\"rel\":\"self\",\"href\":\"https://rdap.verisign.com/com/v1/domain/example.com\",\"type\":\"application/rdap+json\"}],\"status\":[\"client delete prohibited\",\"client transfer prohibited\",\"client update prohibited\"],\"entities\":[{\"objectClassName\":\"entity\",\"handle\":\"376\",\"roles\":[\"registrar\"],\"publicIds\":[{\"type\":\"IANA Registrar ID\",\"identifier\":\"376\"}],\"vcardArray\":[\"vcard\",[[\"version\",{},\"text\",\"4.0\"],[\"fn\",{},\"text\",\"RESERVED-Internet Assigned Numbers Authority\"]]],\"entities\":[{\"objectClassName\":\"entity\",\"roles\":[\"abuse\"],\"vcardArray\":[\"vcard\",[[\"version\",{},\"text\",\"4.0\"],[\"fn\",{},\"text\",\"\"],[\"tel\",{\"type\":\"voice\"},\"uri\",\"\"],[\"email\",{},\"text\",\"\"]]]}]}],\"events\":[{\"eventAction\":\"registration\",\"eventDate\":\"1995-08-14T04:00:00Z\"},{\"eventAction\":\"expiration\",\"eventDate\":\"2027-08-13T04:00:00Z\"},{\"eventAction\":\"last changed\",\"eventDate\":\"2026-08-14T08:01:43Z\"},{\"eventAction\":\"last update of RDAP database\",\"eventDate\":\"2026-11-02T15:28:17Z\"}],\"secureDNS\":{\"delegationSigned\":true,\"dsData\":[{\"keyTag\":2371,\"algorithm\":13,\"digestType\":2,\"digest\":\"C988EC423E3880EB8DD8A46FE06CA230EE23F35B578D64E78B29C3E1C83D245A\"}]},\"nameservers\":[{\"objectClassName\":\"nameserver\",\"ldhName\":\"ELLIOTT.NS.CLOUDFLARE.COM\"},{\"objectClassName\":\"nameserver\",\"ldhName\":\"HERA.NS.CLOUDFLARE.COM\"}],\"rdapConformance\":[\"rdap_level_0\",\"icann_rdap_technical_implementation_guide_1\",\"icann_rdap_response_profile_1\"],\"notices\":[{\"title\":\"Terms of Service\",\"description\":[\"Service subject to Terms of Use.\"],\"links\":[{\"href\":\"https://www.verisign.com/domain-names/registration-data-access-protocol/terms-service/index.xhtml\",\"type\":\"text/html\",\"value\":\"https://rdap.verisign.com/com/v1/domain/example.com\",\"rel\":\"terms-of-service\"}]},{\"title\":\"Status Codes\",\"description\":[\"For more information on domain status codes, please visit https://icann.org/epp\"],\"links\":[{\"href\":\"https://icann.org/epp\",\"type\":\"text/html\",\"value\":\"https://rdap.verisign.com/com/v1/domain/example.com\",\"rel\":\"glossary\"}]},{\"title\":\"RDDS Inaccuracy Complaint Form\",\"description\":[\"URL of the ICANN RDDS Inaccuracy Complaint Form: https://icann.org/wicf\"],\"links\":[{\"href\":\"https://icann.org/wicf\",\"type\":\"text/html\",\"value\":\"https://rdap.verisign.com/com/v1/domain/example.com\",\"rel\":\"help\"}]}]}",
+            "rdap_service_url": "https://rdap.verisign.com/com/v1/domain/example.com",
+            "registrar": "RESERVED-Internet Assigned Numbers Authority",
+            "whois_data": null,
+            "whois_raw_text": null
+          },
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "ip:192.0.2.10": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "network_identifier": {
+          "details": {
+            "identified_networks": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "md5:9c5d1d8c19ca86efe1b3444dd60b8b9d": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:640b0ef74cccb322abcf96664e7182363eb21bdbf5be76b455c3e6c974210445": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "message_id:<encrypted_zip_wrong@example.com>": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "message_id_analyzer_v2": true
+      },
+      "relationships": {},
+      "results": {},
+      "tags": {}
+    },
+    "sha256:640b0ef74cccb322abcf96664e7182363eb21bdbf5be76b455c3e6c974210445": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:640b0ef74cccb322abcf96664e7182363eb21bdbf5be76b455c3e6c974210445": true
+      },
+      "results": {},
+      "tags": {}
+    }
+  }
+}

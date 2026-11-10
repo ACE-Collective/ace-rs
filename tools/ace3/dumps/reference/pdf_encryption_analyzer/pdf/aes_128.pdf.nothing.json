@@ -1,0 +1,88 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "email_analyzer",
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "PDFEncryptionAnalysis",
+      "details": {
+        "email": true,
+        "email_body": "a b c d\n\n",
+        "error": null,
+        "password": null,
+        "word_list": []
+      },
+      "detections": [],
+      "deterministic_id_sha256": {},
+      "module_path": "saq.modules.email.encryption.pdf:PDFEncryptionAnalysis",
+      "observables": [],
+      "summary": "PDF Encryption Analysis: word list could not be created from email",
+      "tags": []
+    },
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": true,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "application/pdf",
+        "type": "PDF document, version 1.7, 1 page(s)"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "carrying_email": {
+      "body": "YSBiIGMgZAo=",
+      "body_path": "email.rfc822.unknown_text_plain_000.txt"
+    },
+    "directives": [],
+    "label": "fixtures/encrypted/pdf/aes_128.pdf attached to an email, body nothing",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "aes_128.pdf",
+      "size": 2802,
+      "type": "file",
+      "value": "61e8d3da94f1ae83398da27ebbb4241e78bf97aabb4da9ac7526a85777a19b0f"
+    }
+  },
+  "module": "pdf_encryption_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "extract_urls",
+      "render",
+      "yara_meta:type=document.pdf",
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "aes_128.pdf",
+    "relationships": [],
+    "size": 2802,
+    "tags": [
+      "encrypted_pdf",
+      "pdf"
+    ],
+    "type": "file",
+    "value": "61e8d3da94f1ae83398da27ebbb4241e78bf97aabb4da9ac7526a85777a19b0f",
+    "yara_meta": [
+      "type=document.pdf",
+      "type=email.attachment"
+    ]
+  }
+}

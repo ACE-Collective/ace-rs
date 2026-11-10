@@ -1,0 +1,168 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "email_analyzer",
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "PDFEncryptionAnalysis",
+      "details": {
+        "email": true,
+        "email_body": "The password for the attached file is Aes256Us thanks\n\n",
+        "error": null,
+        "password": "Aes256Us",
+        "word_list": [
+          "hanks",
+          "ached",
+          "ttach",
+          "word",
+          "sword",
+          "attac",
+          "attached",
+          "than",
+          "es256",
+          "passwor",
+          "anks",
+          "thank",
+          "passw",
+          "swor",
+          "es256U",
+          "tach",
+          "es256Us",
+          "tache",
+          "sswor",
+          "password",
+          "thanks",
+          "Aes2",
+          "s256",
+          "sswo",
+          "256U",
+          "asswor",
+          "s256U",
+          "Aes256Us",
+          "passwo",
+          "ttache",
+          "Aes256U",
+          "ched",
+          "Aes25",
+          "assword",
+          "hank",
+          "assw",
+          "56Us",
+          "Aes256",
+          "ache",
+          "256Us",
+          "atta",
+          "s256Us",
+          "tached",
+          "attach",
+          "file",
+          "ttached",
+          "ttac",
+          "asswo",
+          "ssword",
+          "attache",
+          "es25",
+          "pass"
+        ]
+      },
+      "detections": [],
+      "deterministic_id_sha256": {
+        "aes_256.pdf.decrypted": "4abe0905129ef32480d640f8c55b6f8ea7d932d8bfa097a07aa547c2cbee7320"
+      },
+      "module_path": "saq.modules.email.encryption.pdf:PDFEncryptionAnalysis",
+      "observables": [
+        {
+          "detections": [
+            {
+              "description": "Was able to decrypt based on contents of email.",
+              "details": null
+            }
+          ],
+          "directives": [
+            "yara_meta:type=document.pdf"
+          ],
+          "excluded_analysis": [],
+          "file_path": "aes_256.pdf.decrypted",
+          "relationships": [],
+          "size": 1498,
+          "tags": [
+            "decrypted_pdf",
+            "pdf"
+          ],
+          "type": "file",
+          "value": "c2382118b0f8dde7c5d6e1bbb7625412248f9e8bf21c95e119d33e46b8c46c1d",
+          "yara_meta": [
+            "type=document.pdf"
+          ]
+        }
+      ],
+      "summary": "PDF Encryption Analysis: password Aes256Us",
+      "tags": []
+    },
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": true,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "application/pdf",
+        "type": "PDF document, version 1.7, 1 page(s)"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "carrying_email": {
+      "body": "VGhlIHBhc3N3b3JkIGZvciB0aGUgYXR0YWNoZWQgZmlsZSBpcyBBZXMyNTZVcyB0aGFua3MK",
+      "body_path": "email.rfc822.unknown_text_plain_000.txt"
+    },
+    "directives": [],
+    "label": "fixtures/encrypted/pdf/aes_256.pdf attached to an email, body right",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "aes_256.pdf",
+      "size": 3116,
+      "type": "file",
+      "value": "6a807efcb676a20333cd577fbd4a3905bed7c75a93e95b2394975b107e7dd2a7"
+    }
+  },
+  "module": "pdf_encryption_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "extract_urls",
+      "render",
+      "yara_meta:type=document.pdf",
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "aes_256.pdf",
+    "relationships": [],
+    "size": 3116,
+    "tags": [
+      "encrypted_pdf",
+      "pdf"
+    ],
+    "type": "file",
+    "value": "6a807efcb676a20333cd577fbd4a3905bed7c75a93e95b2394975b107e7dd2a7",
+    "yara_meta": [
+      "type=document.pdf",
+      "type=email.attachment"
+    ]
+  }
+}

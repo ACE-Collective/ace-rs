@@ -12,7 +12,6 @@
     "rtf"
   ],
   "gaps": [
-    "an encrypted RAR: making one needs RARLAB's non-free rar tool",
     "binary RC4 without CryptoAPI as Office 97 wrote it: tools/samples/make-encrypted-binary writes it from MS-OFFCRYPTO",
     "PowerPoint and Excel files with VBA written by Office itself: tools/samples/make-oletools hand-makes the containers around a Word project",
     "PowerPoint and Excel files with VBA written by Office itself: tools/samples/make-oletools hand-makes the containers around a Word project",
@@ -614,6 +613,21 @@
       ]
     },
     {
+      "path": "ace4/archive/encrypted_rar4_headers.rar",
+      "sha256": "2371efa0001bc82d64be39324705c799c24ba83087b9b13e481c180d2582de9b",
+      "size": 332,
+      "kinds": [
+        "archive/rar",
+        "archive/password"
+      ],
+      "source": "made by tools/samples/make-encrypted-files: rar 6.24, RAR4 with its headers encrypted (-hp), no email",
+      "in_git": true,
+      "alert_path": "encrypted_rar4_headers.rar",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
       "path": "ace4/email/e2e.email.rfc822",
       "sha256": "f13735a9f8b86dc021881a678855d7d2535a57971adefb413ae86da33903448d",
       "size": 855,
@@ -796,6 +810,32 @@
       "meta_tags": []
     },
     {
+      "path": "ace4/email/encrypted_pdf_aes_owner.email.rfc822",
+      "sha256": "ede3d7253fae79ba1ec33acacf809f41af6282439c53be41e9bd819ce42e71aa",
+      "size": 4809,
+      "kinds": [
+        "email",
+        "pdf"
+      ],
+      "source": "made by tools/samples/make-encrypted-files: Python email, aes_256.pdf of tools/ace3/dumps/fixtures/encrypted as statement.pdf, the body: Your code: OwnerPw4",
+      "in_git": true,
+      "alert_path": "email.rfc822",
+      "meta_tags": []
+    },
+    {
+      "path": "ace4/email/encrypted_pdf_rc4.email.rfc822",
+      "sha256": "dd8a79ffb3c5e80e8459bfc6845aeb3cf38a368755a11eaff6e0adf12e6c8f91",
+      "size": 3093,
+      "kinds": [
+        "email",
+        "pdf"
+      ],
+      "source": "made by tools/samples/make-encrypted-files: Python email, rc4_128.pdf of tools/ace3/dumps/fixtures/encrypted as statement.pdf, the body: Your code: Rc4User1",
+      "in_git": true,
+      "alert_path": "email.rfc822",
+      "meta_tags": []
+    },
+    {
       "path": "ace4/email/encrypted_ppt_wrong.email.rfc822",
       "sha256": "43cd67834ed3a745948301637e2854cbf927ed86fcffc6e53db70066516d10a5",
       "size": 4103,
@@ -804,6 +844,45 @@
         "office/encrypted"
       ],
       "source": "made by tools/samples/gather: tools/samples/make-encrypted-binary",
+      "in_git": true,
+      "alert_path": "email.rfc822",
+      "meta_tags": []
+    },
+    {
+      "path": "ace4/email/encrypted_rar4.email.rfc822",
+      "sha256": "eb06565da21dbba9c50ea51ab5913d4b40bd2fe8863fb5dc3108b0be028fcb2e",
+      "size": 928,
+      "kinds": [
+        "email",
+        "archive/password"
+      ],
+      "source": "made by tools/samples/make-encrypted-files: Python email, rar4.rar of tools/ace3/dumps/fixtures/encrypted as invoice.rar, the body: Use Rar4Pass to open it",
+      "in_git": true,
+      "alert_path": "email.rfc822",
+      "meta_tags": []
+    },
+    {
+      "path": "ace4/email/encrypted_rar5_headers.email.rfc822",
+      "sha256": "56b1a7cd2efee629f516391f886ec4b8aa169c1572b06711c97bb6813b63e535",
+      "size": 1264,
+      "kinds": [
+        "email",
+        "archive/password"
+      ],
+      "source": "made by tools/samples/make-encrypted-files: Python email, rar5_headers.rar of tools/ace3/dumps/fixtures/encrypted as invoice.rar, the body: Use Rar5Head to open it",
+      "in_git": true,
+      "alert_path": "email.rfc822",
+      "meta_tags": []
+    },
+    {
+      "path": "ace4/email/encrypted_rar_no_body.email.rfc822",
+      "sha256": "3c4d65352208cb8deca0b392945e314265da947acd72749352bc05eada79ae89",
+      "size": 946,
+      "kinds": [
+        "email",
+        "archive/password"
+      ],
+      "source": "made by tools/samples/make-encrypted-files: Python email, rar5.rar of tools/ace3/dumps/fixtures/encrypted as invoice.rar, no body",
       "in_git": true,
       "alert_path": "email.rfc822",
       "meta_tags": []
@@ -869,6 +948,32 @@
         "office/encrypted"
       ],
       "source": "made by tools/samples/gather: tools/samples/make-encrypted-office",
+      "in_git": true,
+      "alert_path": "email.rfc822",
+      "meta_tags": []
+    },
+    {
+      "path": "ace4/email/encrypted_zip_aes.email.rfc822",
+      "sha256": "a63cb88bac3b4666bd67ded36aa3fcd9b85f8acbe1d858c70b42f2a69cdd7fbf",
+      "size": 1284,
+      "kinds": [
+        "email",
+        "archive/password"
+      ],
+      "source": "made by tools/samples/make-encrypted-files: Python email, aes256.zip of tools/ace3/dumps/fixtures/encrypted as invoice.zip, the body: The password is Aes256Pw thanks",
+      "in_git": true,
+      "alert_path": "email.rfc822",
+      "meta_tags": []
+    },
+    {
+      "path": "ace4/email/encrypted_zip_wrong.email.rfc822",
+      "sha256": "d99f406fcd0a7e565933ab09fb3d603130256e48b03e591f81f8b5a8cab81739",
+      "size": 1185,
+      "kinds": [
+        "email",
+        "archive/password"
+      ],
+      "source": "made by tools/samples/make-encrypted-files: Python email, zipcrypto.zip of tools/ace3/dumps/fixtures/encrypted as invoice.zip, the body: The password is Wr0ngOne",
       "in_git": true,
       "alert_path": "email.rfc822",
       "meta_tags": []

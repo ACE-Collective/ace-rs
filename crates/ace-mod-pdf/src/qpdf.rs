@@ -84,6 +84,24 @@ impl Document {
     /// `pikepdf.open(path)`: the empty password, recovery on, and the page tree's inherited
     /// attributes pushed down to the pages.
     pub fn open(path: &Path) -> Result<Document, Raised> {
+        Document::open_with_password(path, c"")
+    }
+
+    /// `pikepdf.open(path, password=password)`, as `open`.
+    pub fn open_with_password(path: &Path, password: &CStr) -> Result<Document, Raised> {
+        let document = Document::read(path, password)?;
+        document.check()?;
+        // SAFETY: the document has been read.
+        unsafe {
+            sys::qpdf_push_inherited_attributes_to_page(document.data);
+        }
+        document.check()?;
+        Ok(document)
+    }
+
+    /// A handle that has read the file with `password`, or tried to: the error, if any, is left for
+    /// `check`.
+    fn read(path: &Path, password: &CStr) -> Result<Document, Raised> {
         let name = c_path(path)?;
         // SAFETY: the handle is new, and the strings outlive the call, which copies them.
         let document = unsafe {
@@ -97,15 +115,67 @@ impl Document {
         };
         // SAFETY: as above.
         unsafe {
-            sys::qpdf_read(document.data, name.as_ptr(), c"".as_ptr());
+            sys::qpdf_read(document.data, name.as_ptr(), password.as_ptr());
         }
-        document.check()?;
-        // SAFETY: the document has been read.
-        unsafe {
-            sys::qpdf_push_inherited_attributes_to_page(document.data);
-        }
-        document.check()?;
         Ok(document)
+    }
+
+    /// The standard security handler's parameters of a file the empty password doesn't open, as
+    /// pdf2john.pl reads them for John: None when the file opens without one. libqpdf has read the
+    /// trailer and the `/Encrypt` dictionary by the time it finds the password wrong, and keeps them:
+    /// it reads `/Encrypt` while the file isn't yet known to be encrypted, so its strings are as the
+    /// file has them.
+    pub fn locked(path: &Path) -> Result<Option<Locked>, Raised> {
+        let document = Document::read(path, c"")?;
+        match document.check() {
+            Ok(()) => return Ok(None),
+            Err(raised) if raised.kind == "PasswordError" => {}
+            Err(raised) => return Err(raised),
+        }
+        let trailer = document.trailer()?;
+        let mut id = Vec::new();
+        if let Some(ids) = document.key(trailer, "/ID")?
+            && document.kind(ids)? == Kind::Array
+            && document.array_len(ids)? >= 1
+        {
+            let first = document.array_item(ids, 0)?;
+            if document.kind(first)? == Kind::String {
+                id = document.string_bytes(first)?;
+            }
+        }
+        let Some(encrypt) = document.key(trailer, "/Encrypt")? else {
+            return Err(Raised::new("PdfError", "no /Encrypt in the trailer"));
+        };
+        let integer = |key: &str| -> Result<Option<i64>, Raised> {
+            match document.key(encrypt, key)? {
+                Some(value) if document.kind(value)? == Kind::Integer => {
+                    document.int_value(value).map(Some)
+                }
+                _ => Ok(None),
+            }
+        };
+        let string = |key: &str| -> Result<Option<Vec<u8>>, Raised> {
+            match document.key(encrypt, key)? {
+                Some(value) if document.kind(value)? == Kind::String => {
+                    document.string_bytes(value).map(Some)
+                }
+                _ => Ok(None),
+            }
+        };
+        let encrypt_metadata = match document.key(encrypt, "/EncryptMetadata")? {
+            Some(value) if document.kind(value)? == Kind::Bool => Some(document.bool_value(value)?),
+            _ => None,
+        };
+        Ok(Some(Locked {
+            v: integer("/V")?,
+            r: integer("/R")?,
+            length: integer("/Length")?,
+            p: integer("/P")?,
+            o: string("/O")?,
+            u: string("/U")?,
+            encrypt_metadata,
+            id,
+        }))
     }
 
     /// The exception libqpdf last caught, as pikepdf's translator would raise it.
@@ -434,6 +504,53 @@ impl Document {
             Ok(std::slice::from_raw_parts(buffer, length).to_vec())
         }
     }
+}
+
+impl Document {
+    /// `pdf.save(fp)` with pikepdf's defaults: no encryption, streams compressed, those with
+    /// generalized filters decoded first, newlines before `endstream`, object streams as they are. But
+    /// for one thing: pikepdf makes the second `/ID` from the clock, and this makes it from the
+    /// content, as `deterministic_id=True` does, so the same file gives the same bytes. pikepdf's
+    /// `fix_metadata_version` rewrites the XMP of a file that has some, which this doesn't.
+    pub fn save_as_pikepdf_saves(&self) -> Result<Vec<u8>, Raised> {
+        // SAFETY: the buffer stays valid until the next write or the cleanup, and is copied.
+        unsafe {
+            sys::qpdf_init_write_memory(self.data);
+            self.check()?;
+            sys::qpdf_set_deterministic_ID(self.data, 1);
+            sys::qpdf_set_newline_before_endstream(self.data, 1);
+            sys::qpdf_set_compress_streams(self.data, 1);
+            sys::qpdf_set_object_stream_mode(self.data, sys::qpdf_object_stream_e_qpdf_o_preserve);
+            sys::qpdf_set_preserve_encryption(self.data, 0);
+            sys::qpdf_set_content_normalization(self.data, 0);
+            sys::qpdf_set_linearization(self.data, 0);
+            sys::qpdf_set_qdf_mode(self.data, 0);
+            self.check()?;
+            sys::qpdf_write(self.data);
+            self.check()?;
+            let length = sys::qpdf_get_buffer_length(self.data);
+            let buffer = sys::qpdf_get_buffer(self.data);
+            if buffer.is_null() {
+                return Ok(Vec::new());
+            }
+            Ok(std::slice::from_raw_parts(buffer, length).to_vec())
+        }
+    }
+}
+
+/// What pdf2john.pl reads from a locked file's `/Encrypt` dictionary and trailer, each as the file
+/// has it, None when it's missing or of another type.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Locked {
+    pub v: Option<i64>,
+    pub r: Option<i64>,
+    pub length: Option<i64>,
+    pub p: Option<i64>,
+    pub o: Option<Vec<u8>>,
+    pub u: Option<Vec<u8>>,
+    pub encrypt_metadata: Option<bool>,
+    /// The first string of the trailer's `/ID`, or nothing.
+    pub id: Vec<u8>,
 }
 
 // qpdfjob-c.h, which the crate's bindings leave out and its build compiles.

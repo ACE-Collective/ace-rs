@@ -1,0 +1,32 @@
+From: sender@example.com
+To: recipient@example.com
+Subject: the attached file
+Date: Mon, 09 Nov 2026 12:00:00 +0000
+Message-ID: <encrypted_zip_aes@example.com>
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="ace4-encrypted_zip_aes"
+
+--ace4-encrypted_zip_aes
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+The password is Aes256Pw thanks
+
+--ace4-encrypted_zip_aes
+Content-Type: application/octet-stream
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename="invoice.zip"
+MIME-Version: 1.0
+
+UEsDBDMAAQBjAABgIVAAAAAAWQAAAEYAAAAOAAsAZG9jcy9ub3Rlcy50eHQBmQcAAgBBRQMIADyZ
+IDs8BjIzFdbWisawp90mJ9BITtvd2vcbe/C916X36KqRR7h9qJrg/0O+IyKO7v+RbfNwbJomjGRn
+NxPOXP9G+lskloi1caTkXifQt5n7bggj7T5M6OdZUEsDBDMAAQBjAABgIVAAAAAAXAAAAEoAAAAL
+AAsAaW52b2ljZS50eHQBmQcAAgBBRQMIAEDEtBxlEUAGoglpwjkjoOZNfrfCI7AFIm2f/i+oEQ0W
+osv0CY9+C3UA5F4lFYwz16WyvRezu7Kzvy5RsQAm9yAdIQN9/REhhKiKbrPovaInAqURXkiztbqq
+uKBbUEsBAj8DMwABAGMAAGAhUAAAAABZAAAARgAAAA4ALwAAAAAAAAAggKSBAAAAAGRvY3Mvbm90
+ZXMudHh0CgAgAAAAAAABABgAAOA5/prA1QEAAAAAAAAAAAAAAAAAAAAAAZkHAAIAQUUDCABQSwEC
+PwMzAAEAYwAAYCFQAAAAAFwAAABKAAAACwAvAAAAAAAAACCApIGQAAAAaW52b2ljZS50eHQKACAA
+AAAAAAEAGAAA4Dn+msDVAQAAAAAAAAAAAAAAAAAAAAABmQcAAgBBRQMIAFBLBQYAAAAAAgACANMA
+AAAgAQAAAAA=
+
+--ace4-encrypted_zip_aes--

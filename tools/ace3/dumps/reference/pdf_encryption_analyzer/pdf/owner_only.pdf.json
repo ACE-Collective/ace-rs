@@ -1,0 +1,30 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [],
+  "input": {
+    "directives": [],
+    "label": "fixtures/encrypted/pdf/owner_only.pdf",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "owner_only.pdf",
+      "size": 3116,
+      "type": "file",
+      "value": "36979054192204cfeb3826654813f2ebe6cd06cb8050f7a1a1335f1678fc0c5a"
+    }
+  },
+  "module": "pdf_encryption_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "owner_only.pdf",
+    "relationships": [],
+    "size": 3116,
+    "tags": [],
+    "type": "file",
+    "value": "36979054192204cfeb3826654813f2ebe6cd06cb8050f7a1a1335f1678fc0c5a",
+    "yara_meta": []
+  }
+}

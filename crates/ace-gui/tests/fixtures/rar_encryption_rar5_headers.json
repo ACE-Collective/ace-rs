@@ -1,0 +1,101 @@
+{
+  "analysis_type": "rar_encryption_analysis",
+  "schema_version": 1,
+  "details": {
+    "email": true,
+    "email_body": "The password for the attached file is Rar5Head thanks\n\n",
+    "encryption_info": null,
+    "error": null,
+    "password": "Rar5Head",
+    "word_list": [
+      "5Hea",
+      "5Head",
+      "Head",
+      "Rar5",
+      "Rar5H",
+      "Rar5He",
+      "Rar5Hea",
+      "Rar5Head",
+      "ache",
+      "ached",
+      "anks",
+      "ar5H",
+      "ar5He",
+      "ar5Hea",
+      "ar5Head",
+      "assw",
+      "asswo",
+      "asswor",
+      "assword",
+      "atta",
+      "attac",
+      "attach",
+      "attache",
+      "attached",
+      "ched",
+      "file",
+      "hank",
+      "hanks",
+      "pass",
+      "passw",
+      "passwo",
+      "passwor",
+      "password",
+      "r5He",
+      "r5Hea",
+      "r5Head",
+      "sswo",
+      "sswor",
+      "ssword",
+      "swor",
+      "sword",
+      "tach",
+      "tache",
+      "tached",
+      "than",
+      "thank",
+      "thanks",
+      "ttac",
+      "ttach",
+      "ttache",
+      "ttached",
+      "word"
+    ]
+  },
+  "summary": "Rar Encryption Analysis: password Rar5Head",
+  "analyzed": {
+    "tags": [
+      "encrypted_rar"
+    ]
+  },
+  "files": [
+    {
+      "path": "rar5_headers.rar.decrypted/docs/notes.txt",
+      "sha256": "3300560ced3d600b14aebe26906c95e2a192fa2d2351579601dc99bc522bc214",
+      "size": 70,
+      "directives": [
+        "extract_urls"
+      ],
+      "detections": [
+        {
+          "description": "Was able to decrypt based on contents of email.",
+          "signature_uuid": "ef715326-081e-4ece-97ba-02817b5a28cd"
+        }
+      ]
+    },
+    {
+      "path": "rar5_headers.rar.decrypted/invoice.txt",
+      "sha256": "8134eac7b93d58b0e99176e2c8e315c7c82bcdefd64a5d68bfb26dca896d7512",
+      "size": 74,
+      "directives": [
+        "extract_urls"
+      ],
+      "detections": [
+        {
+          "description": "Was able to decrypt based on contents of email.",
+          "signature_uuid": "ef715326-081e-4ece-97ba-02817b5a28cd"
+        }
+      ]
+    }
+  ]
+}

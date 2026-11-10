@@ -1,0 +1,49 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "PDFEncryptionAnalysis",
+      "details": {
+        "email": false,
+        "email_body": null,
+        "error": null,
+        "password": null,
+        "word_list": []
+      },
+      "detections": [],
+      "deterministic_id_sha256": {},
+      "module_path": "saq.modules.email.encryption.pdf:PDFEncryptionAnalysis",
+      "observables": [],
+      "summary": "PDF Encryption Analysis: no associated email detected",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/encrypted/pdf/aes_128.pdf",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "aes_128.pdf",
+      "size": 2802,
+      "type": "file",
+      "value": "61e8d3da94f1ae83398da27ebbb4241e78bf97aabb4da9ac7526a85777a19b0f"
+    }
+  },
+  "module": "pdf_encryption_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "aes_128.pdf",
+    "relationships": [],
+    "size": 2802,
+    "tags": [
+      "encrypted_pdf"
+    ],
+    "type": "file",
+    "value": "61e8d3da94f1ae83398da27ebbb4241e78bf97aabb4da9ac7526a85777a19b0f",
+    "yara_meta": []
+  }
+}

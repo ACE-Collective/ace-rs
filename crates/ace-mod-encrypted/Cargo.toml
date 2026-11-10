@@ -1,0 +1,37 @@
+[package]
+name = "ace-mod-encrypted"
+version = "0.1.0"
+description = "The encrypted attachment modules of PLAN.md 7.5 batch 7: zip_encryption_analyzer, rar_encryption_analyzer and pdf_encryption_analyzer"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+ace-mod-archive = { path = "../ace-mod-archive" }
+ace-mod-msoffice = { path = "../ace-mod-msoffice" }
+ace-mod-pdf = { path = "../ace-mod-pdf" }
+ace-results = { path = "../ace-results" }
+ace-sdk = { path = "../ace-sdk" }
+aes = "0.9.4"
+cbc = "0.2.1"
+cipher = "0.5.2"
+md5 = { package = "md-5", version = "0.11.0" }
+rc4 = "0.2.0"
+schemars = "1.2.3"
+serde = { version = "1.0.229", features = ["derive"] }
+sha2 = "0.11.1"
+tracing = "0.1.44"
+# The archive module's binding of RARLAB's unrar library.
+unrar = "0.5.8"
+# The archive module's zip, with AES.
+zip = { version = "9.2.2", default-features = false, features = ["aes-crypto", "bzip2", "deflate-flate2", "deflate64", "lzma", "ppmd", "xz"] }
+
+[dev-dependencies]
+ace-testkit = { path = "../ace-testkit" }
+base64 = "0.22.1"
+serde_json = "1.0.154"
+tempfile = "3.27.0"
+
+[lints]
+workspace = true

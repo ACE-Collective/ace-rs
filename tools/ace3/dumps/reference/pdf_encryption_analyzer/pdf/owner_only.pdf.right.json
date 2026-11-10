@@ -1,0 +1,71 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "email_analyzer",
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": true,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "application/pdf",
+        "type": "PDF document, version 1.7, 1 page(s)"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "carrying_email": {
+      "body": "VGhlIHBhc3N3b3JkIGZvciB0aGUgYXR0YWNoZWQgZmlsZSBpcyBPd25lck9ubHkgdGhhbmtzCg==",
+      "body_path": "email.rfc822.unknown_text_plain_000.txt"
+    },
+    "directives": [],
+    "label": "fixtures/encrypted/pdf/owner_only.pdf attached to an email, body right",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "owner_only.pdf",
+      "size": 3116,
+      "type": "file",
+      "value": "36979054192204cfeb3826654813f2ebe6cd06cb8050f7a1a1335f1678fc0c5a"
+    }
+  },
+  "module": "pdf_encryption_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "extract_urls",
+      "render",
+      "yara_meta:type=document.pdf",
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "owner_only.pdf",
+    "relationships": [],
+    "size": 3116,
+    "tags": [
+      "pdf"
+    ],
+    "type": "file",
+    "value": "36979054192204cfeb3826654813f2ebe6cd06cb8050f7a1a1335f1678fc0c5a",
+    "yara_meta": [
+      "type=document.pdf",
+      "type=email.attachment"
+    ]
+  }
+}

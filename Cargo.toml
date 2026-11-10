@@ -57,6 +57,18 @@ opt-level = 3
 [profile.dev.package.hybrid-array]
 opt-level = 3
 
+# The encrypted attachment modules try up to 5,000 passwords against a deadline: a zip's AES key is
+# PBKDF2, a RAR's key derivation runs in libunrar's C++, which the cc crate builds at this level,
+# and a PDF's revision 6 hash is ace-mod-encrypted's own loop (docs/measurements/encrypted.md).
+[profile.dev.package.pbkdf2]
+opt-level = 3
+[profile.dev.package.hmac]
+opt-level = 3
+[profile.dev.package.unrar_sys]
+opt-level = 3
+[profile.dev.package.ace-mod-encrypted]
+opt-level = 3
+
 # A login hashes a password, and every test of one would otherwise take seconds.
 [profile.dev.package.argon2]
 opt-level = 3

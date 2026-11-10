@@ -1,0 +1,36 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [],
+  "input": {
+    "directives": [],
+    "label": "local/archive/nested.zip",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "nested.zip",
+      "size": 222,
+      "type": "file",
+      "value": "49f5d35b7bdd85850e771564dabdd2dd45bfcf88c70feb72472a07cba8f2a5bd"
+    }
+  },
+  "module": "zip_encryption_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "nested.zip",
+    "relationships": [],
+    "size": 222,
+    "tags": [],
+    "type": "file",
+    "value": "49f5d35b7bdd85850e771564dabdd2dd45bfcf88c70feb72472a07cba8f2a5bd",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

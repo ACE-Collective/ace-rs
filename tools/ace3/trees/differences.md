@@ -150,6 +150,8 @@ A module ace3's trees ran and ace4 doesn't have isn't listed: the command takes 
 | `ace3/archive/*.jar` | `/observables/sha256:*` | The same. |  |
 | `ace3/pdf/718148a5712c1fec7b50acc89eee2aa0` | `/observables/md5:*` | The hash of ace3's Ghostscript rewrite, `718148a5712c1fec7b50acc89eee2aa0.gs.pdf`, which ace4 doesn't make (below). ace3's `ignore_pattern_gs` is `*.pdf.gs.pdf`, which this name, with no `.pdf`, doesn't match. |  |
 | `ace3/pdf/718148a5712c1fec7b50acc89eee2aa0` | `/observables/sha256:*` | The same file's SHA-256. |  |
+| `ace4/email/encrypted_pdf_rc4.email.rfc822` | `/observables/md5:*` | The hash of ace3's Ghostscript rewrite of the copy pdf_encryption_analyzer decrypted, `statement.pdf.decrypted.gs.pdf`, which ace4 doesn't make (below). ace3's `ignore_pattern_gs` is `*.pdf.gs.pdf`, which a name ending `.decrypted.gs.pdf` doesn't match, so file_hash_analyzer hashes it. Checked: both observables are `is_hash_of` that file, the only one under the copy's name that ace4 lacks. | `ace3 holds is_hash_of` |
+| `ace4/email/encrypted_pdf_rc4.email.rfc822` | `/observables/sha256:*` | The same file's SHA-256. | `ace3 holds is_hash_of` |
 | `ace3/pdf/ComplaintApril_424256637.pdf` | `/observables/md5:*` | The hashes of the decrypted copy, whose bytes differ (above). |  |
 | `ace3/pdf/ComplaintApril_424256637.pdf` | `/observables/sha256:*` | The same. |  |
 | `ace4/pdf/encrypted_with_xmp.pdf` | `/observables/md5:*` | The hashes of the decrypted copy, whose bytes differ (above). |  |

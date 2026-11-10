@@ -1,0 +1,49 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "ZipEncryptionAnalysis",
+      "details": {
+        "email": false,
+        "email_body": null,
+        "encryption_info": null,
+        "error": "ZipEncryptionAnalyzer was unable to crack the password",
+        "password": null,
+        "word_list": []
+      },
+      "detections": [],
+      "module_path": "saq.modules.email.encryption.zip:ZipEncryptionAnalysis",
+      "observables": [],
+      "summary": "Zip Encryption Analysis: ZipEncryptionAnalyzer was unable to crack the password",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/encrypted/zip/zipcrypto.zip",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "zipcrypto.zip",
+      "size": 445,
+      "type": "file",
+      "value": "640b0ef74cccb322abcf96664e7182363eb21bdbf5be76b455c3e6c974210445"
+    }
+  },
+  "module": "zip_encryption_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "zipcrypto.zip",
+    "relationships": [],
+    "size": 445,
+    "tags": [
+      "encrypted_zip"
+    ],
+    "type": "file",
+    "value": "640b0ef74cccb322abcf96664e7182363eb21bdbf5be76b455c3e6c974210445",
+    "yara_meta": []
+  }
+}

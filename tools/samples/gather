@@ -839,7 +839,6 @@ def main():
         "ace3_commit": commit,
         "required_kinds": REQUIRED_KINDS,
         "gaps": [
-            "an encrypted RAR: making one needs RARLAB's non-free rar tool",
             "PowerPoint and Excel files with VBA macros: ace3's tests hold Word ones only",
             "binary RC4 without CryptoAPI as Office 97 wrote it: tools/samples/make-encrypted-binary writes it from MS-OFFCRYPTO",
         ],

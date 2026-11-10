@@ -12,6 +12,7 @@ dependencies = [
  "ace-mod-brocess",
  "ace-mod-dns",
  "ace-mod-email",
+ "ace-mod-encrypted",
  "ace-mod-files",
  "ace-mod-html",
  "ace-mod-msoffice",
@@ -294,6 +295,32 @@ dependencies = [
  "sha2 0.11.1",
  "thiserror 2.0.21",
  "tracing",
+]
+
+[[package]]
+name = "ace-mod-encrypted"
+version = "0.1.0"
+dependencies = [
+ "ace-mod-archive",
+ "ace-mod-msoffice",
+ "ace-mod-pdf",
+ "ace-results",
+ "ace-sdk",
+ "ace-testkit",
+ "aes",
+ "base64 0.22.1",
+ "cbc",
+ "cipher",
+ "md-5",
+ "rc4",
+ "schemars 1.2.3",
+ "serde",
+ "serde_json",
+ "sha2 0.11.1",
+ "tempfile",
+ "tracing",
+ "unrar",
+ "zip",
 ]
 
 [[package]]
@@ -623,6 +650,7 @@ dependencies = [
  "ace-mod-archive",
  "ace-mod-brocess",
  "ace-mod-email",
+ "ace-mod-encrypted",
  "ace-mod-files",
  "ace-mod-html",
  "ace-mod-msoffice",

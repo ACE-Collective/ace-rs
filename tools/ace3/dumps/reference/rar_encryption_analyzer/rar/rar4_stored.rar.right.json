@@ -1,0 +1,177 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "email_analyzer",
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "RarEncryptionAnalysis",
+      "details": {
+        "email": true,
+        "email_body": "The password for the attached file is Rar4Stor thanks\n\n",
+        "encryption_info": null,
+        "error": null,
+        "password": "Rar4Stor",
+        "word_list": [
+          "thank",
+          "sswor",
+          "assword",
+          "attac",
+          "attach",
+          "Rar4S",
+          "asswo",
+          "sswo",
+          "ache",
+          "passwor",
+          "ar4St",
+          "4Stor",
+          "ttac",
+          "assw",
+          "passw",
+          "hanks",
+          "swor",
+          "sword",
+          "ttache",
+          "ched",
+          "Rar4Stor",
+          "than",
+          "ar4S",
+          "r4St",
+          "ssword",
+          "Rar4St",
+          "4Sto",
+          "password",
+          "attached",
+          "ached",
+          "tache",
+          "ar4Sto",
+          "anks",
+          "word",
+          "Stor",
+          "asswor",
+          "pass",
+          "ar4Stor",
+          "tach",
+          "Rar4Sto",
+          "ttach",
+          "r4Sto",
+          "thanks",
+          "attache",
+          "Rar4",
+          "hank",
+          "file",
+          "r4Stor",
+          "ttached",
+          "passwo",
+          "atta",
+          "tached"
+        ]
+      },
+      "detections": [],
+      "module_path": "saq.modules.email.encryption.rar:RarEncryptionAnalysis",
+      "observables": [
+        {
+          "detections": [
+            {
+              "description": "Was able to decrypt based on contents of email.",
+              "details": null
+            }
+          ],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "rar4_stored.rar.decrypted/invoice.txt",
+          "relationships": [],
+          "size": 74,
+          "tags": [],
+          "type": "file",
+          "value": "8134eac7b93d58b0e99176e2c8e315c7c82bcdefd64a5d68bfb26dca896d7512",
+          "yara_meta": []
+        },
+        {
+          "detections": [
+            {
+              "description": "Was able to decrypt based on contents of email.",
+              "details": null
+            }
+          ],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "rar4_stored.rar.decrypted/docs/notes.txt",
+          "relationships": [],
+          "size": 70,
+          "tags": [],
+          "type": "file",
+          "value": "3300560ced3d600b14aebe26906c95e2a192fa2d2351579601dc99bc522bc214",
+          "yara_meta": []
+        }
+      ],
+      "summary": "Rar Encryption Analysis: password Rar4Stor",
+      "tags": []
+    },
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "application/vnd.rar",
+        "type": "RAR archive data, v4, os: Unix"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: RAR archive data, v4, os: Unix (application/vnd.rar)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "carrying_email": {
+      "body": "VGhlIHBhc3N3b3JkIGZvciB0aGUgYXR0YWNoZWQgZmlsZSBpcyBSYXI0U3RvciB0aGFua3MK",
+      "body_path": "email.rfc822.unknown_text_plain_000.txt"
+    },
+    "directives": [],
+    "label": "fixtures/encrypted/rar/rar4_stored.rar attached to an email, body right",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "rar4_stored.rar",
+      "size": 292,
+      "type": "file",
+      "value": "3432526d36e236065367c43fdf96974be894f8003bae847ca439a2dca84e817d"
+    }
+  },
+  "module": "rar_encryption_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "extract_urls",
+      "render",
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "rar4_stored.rar",
+    "relationships": [],
+    "size": 292,
+    "tags": [
+      "encrypted_rar"
+    ],
+    "type": "file",
+    "value": "3432526d36e236065367c43fdf96974be894f8003bae847ca439a2dca84e817d",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

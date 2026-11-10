@@ -120,12 +120,20 @@ def parse_args():
         "--sidecars", metavar="SUFFIX",
         help="keep the text of each file the run wrote under the root whose name ends in SUFFIX, such as .dom.json",
     )
+    parser.add_argument(
+        "--carrying-email", metavar="BODY",
+        help="the file comes as the attachment of an email, made here, whose text body is the file BODY, "
+        "or whose body is the HTML file BODY when it ends in .html, or which has no body when BODY is -. "
+        "The email is the root's file, email_analyzer has to be enabled, and the dump is the attachment's",
+    )
     parser.add_argument("--label", default="", help="a name for the input, written into the dump")
     args = parser.parse_args(sys.argv[1:])
     if bool(args.file) == bool(args.observable):
         parser.error("give exactly one of --file and --observable")
     if args.added_by and not args.extracted_from:
         parser.error("--added-by needs --extracted-from")
+    if args.carrying_email and (not args.file or args.extracted_from or "email_analyzer" not in args.enable):
+        parser.error("--carrying-email needs --file and --enable email_analyzer, and no --extracted-from")
     if not args.work.startswith("/tmp/"):
         parser.error("--work must be under /tmp")
     return args
@@ -612,6 +620,9 @@ TREE_MODULES = {
     "ExtractedRTFAnalysis": "extracted_rtf_analyzer",
     "VBScriptAnalysis": "vbscript_analyzer",
     "NoWhiteSpaceAnalysis": "nowhitespace_analyzer",
+    "ZipEncryptionAnalysis": "zip_encryption_analyzer",
+    "RarEncryptionAnalysis": "rar_encryption_analyzer",
+    "PDFEncryptionAnalysis": "pdf_encryption_analyzer",
 }
 TREE_RUN_FIELDS = {
     "EmailAnalysis": ["details/email/log_entry/date"],
@@ -669,6 +680,9 @@ TREE_EXCLUDED = {
     "ExtractedRTFAnalyzer": "extracted_rtf_analyzer",
     "VBScriptAnalyzer": "vbscript_analyzer",
     "NoWhiteSpaceAnalyzer": "nowhitespace_analyzer",
+    "ZipEncryptionAnalyzer": "zip_encryption_analyzer",
+    "RarEncryptionAnalyzer": "rar_encryption_analyzer",
+    "PDFEncryptionAnalyzer": "pdf_encryption_analyzer",
 }
 
 
@@ -681,6 +695,52 @@ def remove_at(value, segments):
     elif isinstance(value, list) and segments[0] == "*":
         for item in value:
             remove_at(item, segments[1:])
+
+
+def carrying_email(work, body, attachment, name):
+    """An email with fixed headers carrying the file at attachment as name, its body the file body."""
+    import email.message
+
+    message = email.message.EmailMessage()
+    message["From"] = "sender@example.com"
+    message["To"] = "recipient@example.com"
+    message["Subject"] = "the attached file"
+    message["Date"] = "Mon, 09 Nov 2026 12:00:00 +0000"
+    message["Message-ID"] = "<carrying-email@example.com>"
+    if body == "-":
+        message.make_mixed()
+    else:
+        with open(body, encoding="utf-8") as fp:
+            text = fp.read()
+        if body.endswith(".html"):
+            message.set_content(text, subtype="html")
+        else:
+            message.set_content(text)
+    with open(attachment, "rb") as fp:
+        message.add_attachment(fp.read(), maintype="application", subtype="octet-stream", filename=name)
+    message.set_boundary("carrying-email")
+    path = os.path.join(work, "email.rfc822")
+    with open(path, "wb") as fp:
+        fp.write(message.as_bytes())
+    return path
+
+
+def carrying_email_body(root, target):
+    """The body of the email search_down() finds from target, as the encryption modules read it."""
+    import base64
+
+    from saq.analysis.search import search_down
+    from saq.modules.email.rfc822 import EmailAnalysis
+
+    for analysis in root.all_analysis:
+        analysis.load_details()
+    found = search_down(target, lambda obj: isinstance(obj, EmailAnalysis) and obj.email is not None)
+    if not found:
+        return None
+    if not found.body:
+        return {"body": None}
+    with open(found.body.full_path, "rb") as fp:
+        return {"body_path": found.body.file_path, "body": base64.b64encode(fp.read()).decode()}
 
 
 def tree_time(time):
@@ -744,6 +804,11 @@ def tree_form(root):
         return {item: True for item in items}
 
     observables = {}
+    renames = deterministic_id_renames(root)
+
+    def renamed(kind, value):
+        return renames.get(value, value) if kind in ("file", "md5", "sha1", "sha256") else value
+
     # ace3's own order changes from run to run, and two observables can merge below
     for observable in sorted(root.all_observables, key=lambda o: o.file_path if o.type == "file" else ""):
         entry = {
@@ -756,7 +821,8 @@ def tree_form(root):
                 )
             ),
             "relationships": members(
-                f"{r.r_type} {r.target.type}:{r.target.value}" for r in observable.relationships
+                f"{r.r_type} {r.target.type}:{renamed(r.target.type, r.target.value)}"
+                for r in observable.relationships
             ),
             "detections": {},
             "results": {},
@@ -782,7 +848,11 @@ def tree_form(root):
                 rtfole_in_alert_paths(result, observable.full_path.removesuffix("/" + observable.file_path))
             if class_name == "MSOfficeEncryptionAnalysis":
                 msoffice_in_alert_paths(result, observable.full_path.removesuffix("/" + observable.file_path))
-            entry["results"][TREE_MODULES.get(class_name, class_name)] = result
+            if class_name in ("ZipEncryptionAnalysis", "RarEncryptionAnalysis", "PDFEncryptionAnalysis"):
+                # the candidates come out of a set, whose order changes from run to run; the port sorts them
+                if isinstance(result["details"].get("word_list"), list):
+                    result["details"]["word_list"] = sorted(result["details"]["word_list"])
+            entry["results"][TREE_MODULES.get(class_name, class_name)] = renamed_strings(result, renames)
         for detection in detections:
             entry["detections"].setdefault(detection.description, []).append(json_safe(detection.details))
         for details in entry["detections"].values():
@@ -790,10 +860,12 @@ def tree_form(root):
         if observable.time is not None:
             entry["time"] = tree_time(observable.time)
         if observable.redirection is not None:
-            entry["redirection"] = f"{observable.redirection.type}:{observable.redirection.value}"
+            entry["redirection"] = (
+                f"{observable.redirection.type}:{renamed(observable.redirection.type, observable.redirection.value)}"
+            )
         if observable.type == "file":
             entry["paths"] = {observable.file_path: members(sorted(observable.yara_meta_tags))}
-        value = observable.value
+        value = renamed(observable.type, observable.value)
         if observable.type == "file" and os.path.dirname(observable.file_path).endswith(".xlmdeobfuscator"):
             if observable.file_name in ("xlmdeobfuscator.stdout", "xlmdeobfuscatorextractcells.stdout"):
                 value = xlm_output_value(observable, observable.full_path.removesuffix("/" + observable.file_path))
@@ -884,6 +956,89 @@ def dump_observable(observable):
     return entry
 
 
+def deterministic_id_copy(copy_path, source_path, password):
+    """The sha256 of pdf_encryption_analyzer's decrypted copy as the port writes it, or None. pikepdf's
+    save() makes the copy's second /ID from the clock, so its sha256 is new each run; the port makes
+    it from the content, as save(deterministic_id=True) does. That save is made here from the same
+    file and password, and its sha256 is kept only if ace3's copy is the same bytes once its second
+    /ID is that save's: so any other byte that differs shows as a different sha256."""
+    import io
+    import re
+
+    import pikepdf
+
+    with open(copy_path, "rb") as fp:
+        written = fp.read()
+    with pikepdf.open(source_path, password=password) as pdf:
+        out = io.BytesIO()
+        pdf.save(out, deterministic_id=True)
+    deterministic = out.getvalue()
+    pattern = rb"/ID\s*\[\s*<([0-9a-fA-F]+)>\s*<([0-9a-fA-F]+)>\s*\]"
+    ours, theirs = re.findall(pattern, written), re.findall(pattern, deterministic)
+    if not ours or not theirs:
+        return None
+    if written.replace(ours[-1][1], theirs[-1][1]) != deterministic:
+        return None
+    return hashlib.sha256(deterministic).hexdigest()
+
+
+def deterministic_id_renames(root):
+    """Value to the value it has when pdf_encryption_analyzer's copies have the port's /ID
+    (deterministic_id_copy): each copy's sha256, md5 and sha1, and those of the files made from a
+    copy that hold its second /ID, such as pdf_analyzer's dump of it, with that /ID swapped too."""
+    import io
+    import re
+
+    import pikepdf
+
+    renames = {}
+
+    def rename_bytes(old, new):
+        for kind in ("md5", "sha1", "sha256"):
+            renames[hashlib.new(kind, old).hexdigest()] = hashlib.new(kind, new).hexdigest()
+
+    pattern = rb"/ID\s*\[\s*<([0-9a-fA-F]+)>\s*<([0-9a-fA-F]+)>\s*\]"
+    for analysis in root.all_analysis:
+        if type(analysis).__name__ != "PDFEncryptionAnalysis":
+            continue
+        analysis.load_details()
+        for copy in analysis.observables:
+            if copy.type != "file":
+                continue
+            if deterministic_id_copy(copy.full_path, analysis.observable.full_path, analysis.details["password"]) is None:
+                continue
+            with open(copy.full_path, "rb") as fp:
+                written = fp.read()
+            with pikepdf.open(analysis.observable.full_path, password=analysis.details["password"]) as pdf:
+                out = io.BytesIO()
+                pdf.save(out, deterministic_id=True)
+            rename_bytes(written, out.getvalue())
+            old_id = re.findall(pattern, written)[-1][1]
+            new_id = re.findall(pattern, out.getvalue())[-1][1]
+            for other in root.all_observables:
+                if other.type != "file" or not other.file_path.startswith(copy.file_path + "."):
+                    continue
+                with open(other.full_path, "rb") as fp:
+                    data = fp.read()
+                swapped = data
+                for old, new in ((old_id, new_id), (old_id.lower(), new_id.lower()), (old_id.upper(), new_id.upper())):
+                    swapped = swapped.replace(old, new)
+                if swapped != data:
+                    rename_bytes(data, swapped)
+    return renames
+
+
+def renamed_strings(value, renames):
+    """value with every string that is a renamed hash replaced, as results hold them."""
+    if isinstance(value, str):
+        return renames.get(value, value)
+    if isinstance(value, list):
+        return [renamed_strings(v, renames) for v in value]
+    if isinstance(value, dict):
+        return {k: renamed_strings(v, renames) for k, v in value.items()}
+    return value
+
+
 def dump_analysis(analysis):
     analysis.load_details()
     # a module's summary details, kept only when it has some, so dumps made before stay as they were
@@ -901,7 +1056,17 @@ def dump_analysis(analysis):
             {"description": d.description, "details": json_safe(d.details)} for d in analysis.detections
         ],
         "observables": [dump_observable(o) for o in analysis.observables],
-    }
+    } | (
+        {
+            "deterministic_id_sha256": {
+                o.file_path: deterministic_id_copy(o.full_path, analysis.observable.full_path, analysis.details["password"])
+                for o in analysis.observables
+                if o.type == "file"
+            }
+        }
+        if type(analysis).__name__ == "PDFEncryptionAnalysis"
+        else {}
+    )
 
 
 def relative_paths(value, prefixes):
@@ -1003,10 +1168,13 @@ def main():
         adder = getattr(importlib.import_module(module_name), class_name)()
         source.add_analysis(adder)
         observable = adder.add_file_observable(args.file, target_path=args.alert_path)
+    elif args.carrying_email:
+        email_path = carrying_email(work, args.carrying_email, args.file, os.path.basename(args.alert_path))
+        observable = root.add_file_observable(email_path, target_path="email.rfc822")
     elif args.file:
         observable = root.add_file_observable(args.file, target_path=args.alert_path)
     if args.file:
-        for tag in args.meta_tag:
+        for tag in [] if args.carrying_email else args.meta_tag:
             name, value = tag.split("=", 1)
             observable.add_yara_meta(name, value)
     else:
@@ -1045,6 +1213,10 @@ def main():
     root = RootAnalysis(storage_dir=root_dir)
     root.load()
     target = root.get_observable(target_uuid)
+    carried = None
+    if args.carrying_email:
+        target = next(o for o in root.all_observables if o.type == "file" and o.file_path == args.alert_path)
+        carried = carrying_email_body(root, target)
 
     commit = subprocess.run(
         ["git", "-C", ACE3, "rev-parse", "--short=8", "HEAD"], capture_output=True, text=True, check=False
@@ -1064,6 +1236,7 @@ def main():
             "directives": args.directive,
         }
         | ({"tags": args.tag} if args.tag else {})
+        | ({"carrying_email": carried} if args.carrying_email else {})
         | (
             {"relationships": [{"type": k, "target": {"type": t, "value": v}} for k, t, v in args.relationship]}
             if args.relationship

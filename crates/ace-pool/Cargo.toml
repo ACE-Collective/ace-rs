@@ -9,7 +9,7 @@ publish.workspace = true
 
 [features]
 # The test pool binary and its modules, for this crate's tests.
-test-pools = ["dep:ace-mod-archive", "dep:ace-mod-email", "dep:ace-mod-files", "dep:ace-mod-html", "dep:ace-mod-msoffice", "dep:ace-mod-office", "dep:ace-mod-oletools", "dep:ace-mod-pdf", "dep:ace-mod-scripts", "dep:ace-mod-urls", "dep:ace-mod-values", "dep:ace-mod-xlm", "dep:ace-mod-yara", "dep:schemars"]
+test-pools = ["dep:ace-mod-archive", "dep:ace-mod-email", "dep:ace-mod-encrypted", "dep:ace-mod-files", "dep:ace-mod-html", "dep:ace-mod-msoffice", "dep:ace-mod-office", "dep:ace-mod-oletools", "dep:ace-mod-pdf", "dep:ace-mod-scripts", "dep:ace-mod-urls", "dep:ace-mod-values", "dep:ace-mod-xlm", "dep:ace-mod-yara", "dep:schemars"]
 
 [[bin]]
 name = "test-pool"
@@ -18,6 +18,7 @@ required-features = ["test-pools"]
 [dependencies]
 ace-mod-archive = { path = "../ace-mod-archive", optional = true }
 ace-mod-email = { path = "../ace-mod-email", optional = true }
+ace-mod-encrypted = { path = "../ace-mod-encrypted", optional = true }
 ace-mod-files = { path = "../ace-mod-files", optional = true }
 ace-mod-html = { path = "../ace-mod-html", optional = true }
 ace-mod-office = { path = "../ace-mod-office", optional = true }

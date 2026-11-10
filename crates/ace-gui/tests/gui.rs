@@ -2266,6 +2266,9 @@ fn each_module_s_view_draws_its_fixture() {
         "extracted_rtf_payload",
         "vbscript_many_same",
         "nowhitespace_spaced",
+        "zip_encryption_aes256",
+        "rar_encryption_rar5_headers",
+        "pdf_encryption_aes_256",
     ];
     let mut types = BTreeSet::new();
     for name in fixtures {
@@ -2606,6 +2609,28 @@ fn each_module_s_view_draws_its_fixture() {
                 ],
             ),
             "nowhitespace_spaced" => contains_all(&html, &["<tr><th>count</th><td>16</td></tr>"]),
+            "zip_encryption_aes256" => contains_all(
+                &html,
+                &[
+                    "<tr><th>password</th><td><code>Aes256Pw</code></td></tr>",
+                    "<tr><th>email</th><td>true</td></tr>",
+                    "The password for the attached file is Aes256Pw",
+                ],
+            ),
+            "rar_encryption_rar5_headers" => contains_all(
+                &html,
+                &[
+                    "<tr><th>password</th><td><code>Rar5Head</code></td></tr>",
+                    "Rar5Head\n",
+                ],
+            ),
+            "pdf_encryption_aes_256" => contains_all(
+                &html,
+                &[
+                    "<tr><th>password</th><td><code>Aes256Us</code></td></tr>",
+                    "<summary>word_list (52)</summary>",
+                ],
+            ),
             other => panic!("no checks for {other}"),
         }
     }

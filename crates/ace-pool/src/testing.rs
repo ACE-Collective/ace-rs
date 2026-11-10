@@ -54,6 +54,18 @@ pub fn modules(settings: &Value) -> Result<Modules, SetupError> {
             block("archive"),
             &secrets,
         )?)
+        .with_parser(Entry::<ace_mod_encrypted::ZipEncryptionAnalyzer>::parser(
+            block("zip_encryption_analyzer"),
+            &secrets,
+        )?)
+        .with_parser(Entry::<ace_mod_encrypted::RarEncryptionAnalyzer>::parser(
+            block("rar_encryption_analyzer"),
+            &secrets,
+        )?)
+        .with_parser(Entry::<ace_mod_encrypted::PdfEncryptionAnalyzer>::parser(
+            block("pdf_encryption_analyzer"),
+            &secrets,
+        )?)
         .with_parser(Entry::<ace_mod_email::EmailAnalyzer>::parser(
             block("email_analyzer"),
             &secrets,

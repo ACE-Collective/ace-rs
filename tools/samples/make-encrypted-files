@@ -1,0 +1,206 @@
+#!/usr/bin/env python3
+"""Makes the files PLAN.md 7.5 batch 7's modules are compared on: zips, RARs and PDFs encrypted in each
+way ace3's zip_encryption_analyzer, rar_encryption_analyzer and pdf_encryption_analyzer meet them, and
+emails that carry some of them with their password in the body.
+
+    tools/samples/make-encrypted-files    writes tools/ace3/dumps/fixtures/encrypted/{zip,rar,pdf},
+                                          the dumps' files, and samples under samples/ace4, in the
+                                          manifest
+
+The zips are 7-Zip's and Info-ZIP's and the PDFs qpdf's, in a debian:trixie-slim container. The RARs
+are RARLAB's rar 6.24 for Linux, the last release that writes RAR4 as well as RAR5, run in an amd64
+container (it has no arm64 build), from the tarball whose sha256 is RAR_SHA256. Encryption picks random salts, so the bytes
+differ each run; the files are in git, and the manifest holds the samples' hashes.
+"""
+
+import email.message
+import hashlib
+import io
+import json
+import os
+import shutil
+import subprocess
+import tarfile
+import tempfile
+import urllib.request
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent.parent
+SAMPLES = ROOT / "samples"
+FIXTURES = ROOT / "tools" / "ace3" / "dumps" / "fixtures" / "encrypted"
+SOURCE = "tools/samples/make-encrypted-files"
+DEBIAN = "debian:trixie-slim"
+RAR_URL = "https://www.rarlab.com/rar/rarlinux-x64-624.tar.gz"
+RAR_SHA256 = "88e22a8e84125c947637bbf28c746e338a0a63279d80f9f9d7373603875db1eb"
+FIXED_EPOCH = 1577880000  # 2020-01-01 12:00 UTC
+PLAIN_PDF = SAMPLES / "ace4" / "pdf" / "javascript.pdf"
+
+
+def payload(name):
+    return f"the decrypted payload {name} https://payload.example.com/{name}\n".encode()
+
+
+# name: (members, commands to run in /w/out with the members in /w/in). A member in a directory keeps
+# it, so the extraction's paths show.
+ZIPS = {
+    "zipcrypto.zip": "7z a -tzip -mem=ZipCrypto -pSecr3tPw ../out/zipcrypto.zip invoice.txt docs/notes.txt",
+    "aes256.zip": "7z a -tzip -mem=AES256 -pAes256Pw ../out/aes256.zip invoice.txt docs/notes.txt",
+    "aes128.zip": "7z a -tzip -mem=AES128 -pAes128Pw ../out/aes128.zip invoice.txt",
+    "stored.zip": "zip -q -0 -P St0red99 ../out/stored.zip invoice.txt",
+    # one member encrypted, one not: 7z extracts both
+    "mixed.zip": "zip -q -P M1xedPw9 ../out/mixed.zip invoice.txt && zip -q ../out/mixed.zip readme.txt",
+    # John's answer is cut at the ':' ace3 splits its line at, and 7z is given what's before it
+    "colon.zip": "7z a -tzip -mem=ZipCrypto '-pab:cd1234' ../out/colon.zip invoice.txt",
+    # two members with their own passwords, both in the body: John cracks both
+    "two_passwords.zip": "7z a -tzip -mem=AES256 -pFirstPw1 ../out/two_passwords.zip invoice.txt"
+    " && 7z a -tzip -mem=AES256 -pSecondPw2 ../out/two_passwords.zip readme.txt",
+}
+RARS = {
+    "rar4.rar": "-ma4 -pRar4Pass",
+    "rar4_headers.rar": "-ma4 -hpRar4Head",
+    "rar4_stored.rar": "-ma4 -m0 -pRar4Stor",
+    "rar5.rar": "-ma5 -pRar5Pass",
+    "rar5_headers.rar": "-ma5 -hpRar5Head",
+    "rar5_solid.rar": "-ma5 -s -pRar5Sold",
+}
+# name: qpdf's --encrypt arguments. The user and owner passwords differ, so a body with only the owner
+# password shows that John checks the user password alone.
+PDFS = {
+    "rc4_40.pdf": "--user-password=Rc4Forty --owner-password=OwnerPw1 --bits=40",
+    "rc4_128.pdf": "--user-password=Rc4User1 --owner-password=OwnerPw2 --bits=128 --use-aes=n"
+    "",
+    "aes_128.pdf": "--user-password=AesUser1 --owner-password=OwnerPw3 --bits=128 --use-aes=y",
+    "aes_256.pdf": "--user-password=Aes256Us --owner-password=OwnerPw4 --bits=256",
+    # nothing to crack: it opens without a password
+    "owner_only.pdf": "--user-password= --owner-password=OwnerOnly --bits=256",
+}
+MEMBERS = ["invoice.txt", "docs/notes.txt", "readme.txt"]
+
+
+def docker(*args, platform=None):
+    command = ["docker", "run", "--rm"]
+    if platform:
+        command += ["--platform", platform]
+    subprocess.run([*command, *args], check=True)
+
+
+def write_members(work):
+    for name in MEMBERS:
+        path = work / "in" / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(payload(Path(name).name))
+        os.utime(path, (FIXED_EPOCH, FIXED_EPOCH))
+    shutil.copy(PLAIN_PDF, work / "in" / "plain.pdf")
+
+
+def rar_program(work):
+    """rar from RARLAB's tarball, checked against RAR_SHA256 and unpacked in a directory of its own."""
+    data = urllib.request.urlopen(RAR_URL, timeout=60).read()
+    if hashlib.sha256(data).hexdigest() != RAR_SHA256:
+        raise SystemExit(f"{RAR_URL} isn't the tarball this script was written for")
+    tool = work / "rartool"
+    tool.mkdir()
+    with tarfile.open(fileobj=io.BytesIO(data)) as archive:
+        archive.extractall(tool, filter="data")
+    return "/w/rartool/rar/rar"
+
+
+def make_archives(work):
+    (work / "out").mkdir()
+    commands = " && ".join(ZIPS.values())
+    pdfs = " && ".join(f"qpdf --allow-weak-crypto --encrypt {args} -- plain.pdf ../out/{name}" for name, args in PDFS.items())
+    docker(
+        "-v", f"{work}:/w", "-w", "/w/in", DEBIAN, "sh", "-c",
+        "export DEBIAN_FRONTEND=noninteractive && apt-get update -qq >/dev/null && apt-get install -y -qq 7zip zip qpdf >/dev/null "
+        f"&& {commands} && {pdfs} && chown -R {os.getuid()}:{os.getgid()} /w/out",
+    )
+    rar = rar_program(work)
+    rars = " && ".join(f"{rar} a -idq {args} ../out/{name} invoice.txt docs/notes.txt" for name, args in RARS.items())
+    docker(
+        "-v", f"{work}:/w", "-w", "/w/in", DEBIAN, "sh", "-c",
+        f"{rars} && chown -R {os.getuid()}:{os.getgid()} /w/out", platform="linux/amd64",
+    )
+    return {path.name: path.read_bytes() for path in (work / "out").iterdir()}
+
+
+def carrying_email(name, body, attachment, data, html=None):
+    message = email.message.EmailMessage()
+    message["From"] = "sender@example.com"
+    message["To"] = "recipient@example.com"
+    message["Subject"] = "the attached file"
+    message["Date"] = "Mon, 09 Nov 2026 12:00:00 +0000"
+    message["Message-ID"] = f"<{name}@example.com>"
+    if body is not None:
+        message.set_content(body)
+    if html is not None:
+        message.add_alternative(html, subtype="html")
+    if body is None and html is None:
+        message.make_mixed()
+    message.add_attachment(data, maintype="application", subtype="octet-stream", filename=attachment)
+    message.set_boundary(f"ace4-{name}")
+    return message.as_bytes()
+
+
+# samples/ace4/email/<name>: (attachment, the fixture it is, body)
+EMAILS = {
+    "encrypted_zip_aes.email.rfc822": ("invoice.zip", "aes256.zip", "The password is Aes256Pw thanks\n"),
+    "encrypted_zip_wrong.email.rfc822": ("invoice.zip", "zipcrypto.zip", "The password is Wr0ngOne\n"),
+    "encrypted_rar4.email.rfc822": ("invoice.rar", "rar4.rar", "Use Rar4Pass to open it\n"),
+    "encrypted_rar5_headers.email.rfc822": ("invoice.rar", "rar5_headers.rar", "Use Rar5Head to open it\n"),
+    "encrypted_rar_no_body.email.rfc822": ("invoice.rar", "rar5.rar", None),
+    "encrypted_pdf_rc4.email.rfc822": ("statement.pdf", "rc4_128.pdf", "Your code: Rc4User1\n"),
+    "encrypted_pdf_aes_owner.email.rfc822": ("statement.pdf", "aes_256.pdf", "Your code: OwnerPw4\n"),
+}
+
+
+def main():
+    target = ROOT / "target"
+    target.mkdir(exist_ok=True)
+    with tempfile.TemporaryDirectory(dir=target) as work:
+        work = Path(work)
+        write_members(work)
+        made = make_archives(work)
+    for folder, names in (("zip", ZIPS), ("rar", RARS), ("pdf", PDFS)):
+        directory = FIXTURES / folder
+        if directory.exists():
+            shutil.rmtree(directory)
+        directory.mkdir(parents=True)
+        for name in names:
+            (directory / name).write_bytes(made[name])
+
+    manifest_path = SAMPLES / "manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    entries = []
+    email_dir = SAMPLES / "ace4" / "email"
+    for name, (attachment, fixture, body) in EMAILS.items():
+        data = carrying_email(name.split(".")[0], body, attachment, made[fixture])
+        (email_dir / name).write_bytes(data)
+        entries.append((f"ace4/email/{name}", data, ["email", "archive/password" if "pdf" not in fixture else "pdf"],
+                        f"Python email, {fixture} of tools/ace3/dumps/fixtures/encrypted as {attachment}, "
+                        + (f"the body: {body.strip()}" if body else "no body"), "email.rfc822", []))
+    rar_dir = SAMPLES / "ace4" / "archive"
+    rar_dir.mkdir(parents=True, exist_ok=True)
+    (rar_dir / "encrypted_rar4_headers.rar").write_bytes(made["rar4_headers.rar"])
+    entries.append(("ace4/archive/encrypted_rar4_headers.rar", made["rar4_headers.rar"], ["archive/rar", "archive/password"],
+                    "rar 6.24, RAR4 with its headers encrypted (-hp), no email", "encrypted_rar4_headers.rar",
+                    ["type=email.attachment"]))
+    manifest["samples"] = [s for s in manifest["samples"] if not s["source"].startswith(f"made by {SOURCE}")]
+    # this script makes one now
+    manifest["gaps"] = [gap for gap in manifest["gaps"] if not gap.startswith("an encrypted RAR")]
+    for path, data, kinds, note, alert_path, meta_tags in entries:
+        manifest["samples"].append({
+            "path": path,
+            "sha256": hashlib.sha256(data).hexdigest(),
+            "size": len(data),
+            "kinds": kinds,
+            "source": f"made by {SOURCE}: {note}",
+            "in_git": True,
+            "alert_path": alert_path,
+            "meta_tags": meta_tags,
+        })
+    manifest["samples"].sort(key=lambda s: s["path"])
+    manifest_path.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n")
+
+
+if __name__ == "__main__":
+    main()

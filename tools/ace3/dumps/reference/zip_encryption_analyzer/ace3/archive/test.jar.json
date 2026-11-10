@@ -1,0 +1,36 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [],
+  "input": {
+    "directives": [],
+    "label": "ace3/archive/test.jar",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "test.jar",
+      "size": 703439,
+      "type": "file",
+      "value": "dab3c61a52ee59a1876e8651f1ec84f3f1523c56c0c8b0404a51d2aaa23ffc9d"
+    }
+  },
+  "module": "zip_encryption_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "test.jar",
+    "relationships": [],
+    "size": 703439,
+    "tags": [],
+    "type": "file",
+    "value": "dab3c61a52ee59a1876e8651f1ec84f3f1523c56c0c8b0404a51d2aaa23ffc9d",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

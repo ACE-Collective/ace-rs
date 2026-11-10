@@ -1,0 +1,36 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [],
+  "input": {
+    "directives": [],
+    "label": "ace3/archive/evil.zip",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "evil.zip",
+      "size": 166,
+      "type": "file",
+      "value": "2d507223962cab653edbbfb4b4efec226b0e07b81ba3f3f26f26e3a78146bf0a"
+    }
+  },
+  "module": "zip_encryption_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "evil.zip",
+    "relationships": [],
+    "size": 166,
+    "tags": [],
+    "type": "file",
+    "value": "2d507223962cab653edbbfb4b4efec226b0e07b81ba3f3f26f26e3a78146bf0a",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

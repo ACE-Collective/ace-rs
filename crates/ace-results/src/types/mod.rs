@@ -7,6 +7,7 @@ pub mod brocess;
 pub mod dhash;
 pub mod dns;
 pub mod email;
+pub mod encrypted;
 pub mod file_hash;
 pub mod file_type;
 pub mod html;

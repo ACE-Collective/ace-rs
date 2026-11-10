@@ -1,0 +1,85 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "email_analyzer",
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "ZipEncryptionAnalysis",
+      "details": {
+        "email": false,
+        "email_body": null,
+        "encryption_info": null,
+        "error": "ZipEncryptionAnalyzer was unable to crack the password",
+        "password": null,
+        "word_list": []
+      },
+      "detections": [],
+      "module_path": "saq.modules.email.encryption.zip:ZipEncryptionAnalysis",
+      "observables": [],
+      "summary": "Zip Encryption Analysis: ZipEncryptionAnalyzer was unable to crack the password",
+      "tags": []
+    },
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": true,
+        "mime": "application/zip",
+        "type": "Zip archive data, made by v6.3 UNIX, extract using at least v2.0, last modified Jan 01 2020 12:00:00, uncompressed size 70, method=deflate"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: Zip archive data, made by v6.3 UNIX, extract using at least v2.0, last modified Jan 01 2020 12:00:00, uncompressed size 70, method=deflate (application/zip) (zip archive)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "carrying_email": {
+      "body": null
+    },
+    "directives": [],
+    "label": "fixtures/encrypted/zip/zipcrypto.zip attached to an email, body no_body",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "zipcrypto.zip",
+      "size": 445,
+      "type": "file",
+      "value": "640b0ef74cccb322abcf96664e7182363eb21bdbf5be76b455c3e6c974210445"
+    }
+  },
+  "module": "zip_encryption_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "extract_urls",
+      "render",
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "zipcrypto.zip",
+    "relationships": [],
+    "size": 445,
+    "tags": [
+      "encrypted_zip",
+      "zip"
+    ],
+    "type": "file",
+    "value": "640b0ef74cccb322abcf96664e7182363eb21bdbf5be76b455c3e6c974210445",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

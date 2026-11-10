@@ -1,0 +1,101 @@
+{
+  "analysis_type": "zip_encryption_analysis",
+  "schema_version": 1,
+  "details": {
+    "email": true,
+    "email_body": "The password for the attached file is Aes256Pw thanks\n\n",
+    "encryption_info": null,
+    "error": null,
+    "password": "Aes256Pw",
+    "word_list": [
+      "256P",
+      "256Pw",
+      "56Pw",
+      "Aes2",
+      "Aes25",
+      "Aes256",
+      "Aes256P",
+      "Aes256Pw",
+      "ache",
+      "ached",
+      "anks",
+      "assw",
+      "asswo",
+      "asswor",
+      "assword",
+      "atta",
+      "attac",
+      "attach",
+      "attache",
+      "attached",
+      "ched",
+      "es25",
+      "es256",
+      "es256P",
+      "es256Pw",
+      "file",
+      "hank",
+      "hanks",
+      "pass",
+      "passw",
+      "passwo",
+      "passwor",
+      "password",
+      "s256",
+      "s256P",
+      "s256Pw",
+      "sswo",
+      "sswor",
+      "ssword",
+      "swor",
+      "sword",
+      "tach",
+      "tache",
+      "tached",
+      "than",
+      "thank",
+      "thanks",
+      "ttac",
+      "ttach",
+      "ttache",
+      "ttached",
+      "word"
+    ]
+  },
+  "summary": "Zip Encryption Analysis: password Aes256Pw",
+  "analyzed": {
+    "tags": [
+      "encrypted_zip"
+    ]
+  },
+  "files": [
+    {
+      "path": "aes256.zip.decrypted/docs/notes.txt",
+      "sha256": "3300560ced3d600b14aebe26906c95e2a192fa2d2351579601dc99bc522bc214",
+      "size": 70,
+      "directives": [
+        "extract_urls"
+      ],
+      "detections": [
+        {
+          "description": "Was able to decrypt based on contents of email.",
+          "signature_uuid": "ef715326-081e-4ece-97ba-02817b5a28cd"
+        }
+      ]
+    },
+    {
+      "path": "aes256.zip.decrypted/invoice.txt",
+      "sha256": "8134eac7b93d58b0e99176e2c8e315c7c82bcdefd64a5d68bfb26dca896d7512",
+      "size": 74,
+      "directives": [
+        "extract_urls"
+      ],
+      "detections": [
+        {
+          "description": "Was able to decrypt based on contents of email.",
+          "signature_uuid": "ef715326-081e-4ece-97ba-02817b5a28cd"
+        }
+      ]
+    }
+  ]
+}

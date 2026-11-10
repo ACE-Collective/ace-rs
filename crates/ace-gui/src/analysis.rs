@@ -46,6 +46,9 @@ use ace_results::types::brocess::{
 use ace_results::types::dhash::DHashImageAnalysis;
 use ace_results::types::dns::FqdnAnalysis;
 use ace_results::types::email::EmailAnalysis;
+use ace_results::types::encrypted::{
+    PdfEncryptionAnalysis, RarEncryptionAnalysis, ZipEncryptionAnalysis,
+};
 use ace_results::types::file_hash::FileHashAnalysis;
 use ace_results::types::file_type::FileTypeAnalysis;
 use ace_results::types::html::{
@@ -231,6 +234,9 @@ impl Views {
             .with(ViewEntry::of::<ExtractedRtfAnalysis>())
             .with(ViewEntry::of::<VbScriptAnalysis>())
             .with(ViewEntry::of::<NoWhiteSpaceAnalysis>())
+            .with(ViewEntry::of::<ZipEncryptionAnalysis>())
+            .with(ViewEntry::of::<RarEncryptionAnalysis>())
+            .with(ViewEntry::of::<PdfEncryptionAnalysis>())
     }
 
     /// These views with `entry`, which takes the place of any view of the same type and version, so a
@@ -1470,17 +1476,29 @@ impl AnalysisView for RtfOleObjectAnalysis {
     }
 }
 
-/// `msoffice_encryption_analysis`: the password that opened it or why not, the passwords tried, and
-/// the email body they came from.
+/// `msoffice_encryption_analysis`, and batch 7's `zip_encryption_analysis`,
+/// `rar_encryption_analysis` and `pdf_encryption_analysis`, which ace3 draws the same way: the password
+/// that opened it or why not, the passwords tried, and the email body they came from.
 #[derive(Debug, Template)]
 #[template(path = "analysis/msoffice.html")]
 pub struct MsofficeView<'a> {
-    pub analysis: &'a MsofficeEncryptionAnalysis,
+    pub analysis: PasswordFields<'a>,
+}
+
+/// The fields the four have in common, as the template reads them.
+#[derive(Debug)]
+pub struct PasswordFields<'a> {
+    pub password: &'a Option<String>,
+    pub error: &'a Option<String>,
+    pub email: &'a bool,
+    pub encryption_info: &'a Option<String>,
+    pub word_list: &'a [String],
+    pub email_body: &'a Option<String>,
 }
 
 impl MsofficeView<'_> {
     pub fn words(&self) -> Shown<'_, String> {
-        first(&self.analysis.word_list, MAX_ITEMS)
+        first(self.analysis.word_list, MAX_ITEMS)
     }
 
     pub fn body(&self) -> Option<Clipped> {
@@ -1491,12 +1509,36 @@ impl MsofficeView<'_> {
     }
 }
 
-impl AnalysisView for MsofficeEncryptionAnalysis {
-    type View<'a> = MsofficeView<'a>;
-    fn view(&self) -> MsofficeView<'_> {
-        MsofficeView { analysis: self }
-    }
+macro_rules! password_view {
+    ($type:ty $(, $info:ident)?) => {
+        impl AnalysisView for $type {
+            type View<'a> = MsofficeView<'a>;
+            fn view(&self) -> MsofficeView<'_> {
+                #[allow(unused_mut, unused_assignments)]
+                let mut encryption_info = &NO_INFO;
+                $(encryption_info = &self.$info;)?
+                MsofficeView {
+                    analysis: PasswordFields {
+                        password: &self.password,
+                        error: &self.error,
+                        email: &self.email,
+                        encryption_info,
+                        word_list: &self.word_list,
+                        email_body: &self.email_body,
+                    },
+                }
+            }
+        }
+    };
 }
+
+password_view!(MsofficeEncryptionAnalysis, encryption_info);
+password_view!(ZipEncryptionAnalysis, encryption_info);
+password_view!(RarEncryptionAnalysis, encryption_info);
+password_view!(PdfEncryptionAnalysis);
+
+/// A PDF's result has no `encryption_info`.
+static NO_INFO: Option<String> = None;
 
 /// `xlm_deobfuscator_analysis`: the cells the deobfuscator listed.
 #[derive(Debug, Template)]

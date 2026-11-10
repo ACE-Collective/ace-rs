@@ -621,6 +621,177 @@ async fn measure_msoffice() {
     let _ = pool.stop();
 }
 
+async fn encrypted_core() -> Core {
+    Core::start(
+        vec![
+            ace_mod_files::file_type::MANIFEST,
+            ace_mod_email::MANIFEST,
+            ace_mod_encrypted::zip::MANIFEST,
+            ace_mod_encrypted::rar::MANIFEST,
+            ace_mod_encrypted::pdf::MANIFEST,
+        ],
+        &[
+            "file_type",
+            "email_analyzer",
+            "zip_encryption_analyzer",
+            "rar_encryption_analyzer",
+            "pdf_encryption_analyzer",
+        ],
+        Duration::from_secs(400),
+    )
+    .await
+}
+
+async fn encrypted_details(core: &Core, root: uuid::Uuid) -> Vec<(String, serde_json::Value)> {
+    sqlx::query_as(
+        "SELECT analysis_type, details FROM analysis.results
+         WHERE root_id = $1 AND analysis_type LIKE '%_encryption_analysis' ORDER BY analysis_type",
+    )
+    .bind(root)
+    .fetch_all(core.test_db.db().pool())
+    .await
+    .expect("the results")
+}
+
+/// PLAN.md 7.5 batch 7: zip, libunrar and libqpdf try the body's candidates in a contained task
+/// process, which may start no thread, and the files they open are added.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn encrypted_archives_and_pdfs_open_with_their_emails_body_in_a_contained_task_process() {
+    let core = encrypted_core().await;
+    let mut pool = supervisor(&core, &[]);
+    for (sample, analysis_type, password, files) in [
+        (
+            "ace4/email/encrypted_zip_aes.email.rfc822",
+            "zip_encryption_analysis",
+            Some("Aes256Pw"),
+            2,
+        ),
+        (
+            "ace4/email/encrypted_rar4.email.rfc822",
+            "rar_encryption_analysis",
+            Some("Rar4Pass"),
+            2,
+        ),
+        (
+            "ace4/email/encrypted_rar5_headers.email.rfc822",
+            "rar_encryption_analysis",
+            Some("Rar5Head"),
+            2,
+        ),
+        (
+            "ace4/email/encrypted_pdf_rc4.email.rfc822",
+            "pdf_encryption_analysis",
+            Some("Rc4User1"),
+            1,
+        ),
+        // the owner's password opens it, and isn't the user's, which is what John checks
+        (
+            "ace4/email/encrypted_pdf_aes_owner.email.rfc822",
+            "pdf_encryption_analysis",
+            None,
+            0,
+        ),
+    ] {
+        let bytes = std::fs::read(ace_testkit::samples_dir().join(sample)).expect("the sample");
+        let (root, _) = root_with_bytes(&core, "email", &bytes, "email.rfc822").await;
+        wait_until_idle(&core, root, Duration::from_secs(120)).await;
+        let results = encrypted_details(&core, root).await;
+        let [(kind, details)] = &results[..] else {
+            panic!("{sample}: {results:?}");
+        };
+        assert_eq!(kind, analysis_type, "{sample}");
+        assert_eq!(
+            details["password"].as_str(),
+            password,
+            "{sample}: {details}"
+        );
+        let decrypted: i64 = sqlx::query_scalar(
+            "SELECT count(*) FROM analysis.files WHERE root_id = $1 AND path LIKE '%.decrypted%'",
+        )
+        .bind(root)
+        .fetch_one(core.test_db.db().pool())
+        .await
+        .expect("counts");
+        assert_eq!(decrypted, files, "{sample}");
+    }
+    assert!(pool.running());
+    let _ = pool.stop();
+}
+
+/// What docs/measurements/encrypted.md records: each file `tools/samples/make-encrypted-hostile`
+/// wrote to `ACE4_ENCRYPTED_HOSTILE`, attached to an email whose body gives 5,000 candidates and none
+/// of them its password, `ACE4_ENCRYPTED_RUNS` times (3 by default), in a real task process with the
+/// module's real limits. A file's name starts with its module's.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[ignore = "a measurement, with files tools/samples/make-encrypted-hostile makes"]
+async fn measure_encrypted() {
+    use base64::Engine;
+    let dir = std::env::var("ACE4_ENCRYPTED_HOSTILE").expect("ACE4_ENCRYPTED_HOSTILE");
+    let runs: usize = std::env::var("ACE4_ENCRYPTED_RUNS")
+        .ok()
+        .and_then(|r| r.parse().ok())
+        .unwrap_or(3);
+    let core = encrypted_core().await;
+    let mut pool = supervisor(&core, &[]);
+    // no whitespace, so every window is a candidate, up to the list's limit of 5,000
+    let mut seed = 0x2545_F491_u32;
+    let body: String = (0..1200)
+        .map(|_| {
+            seed ^= seed << 13;
+            seed ^= seed >> 17;
+            seed ^= seed << 5;
+            char::from(b'a' + (seed % 26) as u8)
+        })
+        .collect();
+    let mut names: Vec<String> = std::fs::read_dir(&dir)
+        .expect("the directory")
+        .map(|e| {
+            e.expect("an entry")
+                .file_name()
+                .into_string()
+                .expect("a name")
+        })
+        .collect();
+    names.sort();
+    for name in names {
+        let file = std::fs::read(format!("{dir}/{name}")).expect("the file");
+        let module = ["zip", "rar", "pdf"]
+            .into_iter()
+            .find(|m| name.starts_with(m))
+            .expect("a module's name");
+        for run in 0..runs {
+            let email = format!(
+                "From: a@example.com\r\nTo: b@example.com\r\nSubject: s\r\nMIME-Version: 1.0\r\n\
+                 Content-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\nContent-Type: text/plain\r\n\r\n\
+                 {body}\r\n--b\r\nContent-Type: application/octet-stream\r\n\
+                 Content-Disposition: attachment; filename={name}\r\n\
+                 Content-Transfer-Encoding: base64\r\n\r\n{}\r\n--b--\r\n",
+                base64::engine::general_purpose::STANDARD.encode(&file)
+            );
+            let (root, _) = root_with_bytes(&core, "email", email.as_bytes(), "email.rfc822").await;
+            let started = std::time::Instant::now();
+            wait_until_idle(&core, root, Duration::from_secs(400)).await;
+            let seconds = started.elapsed().as_secs_f64();
+            let (state, error) =
+                task_of(&core, root, &format!("{module}_encryption_analyzer")).await;
+            let results = encrypted_details(&core, root).await;
+            let (words, failure) = results.first().map_or((0, String::new()), |(_, d)| {
+                (
+                    d["word_list"].as_array().map_or(0, Vec::len),
+                    d["error"].as_str().unwrap_or_default().to_owned(),
+                )
+            });
+            let error: String = error.unwrap_or_default().chars().take(120).collect();
+            println!(
+                "{name}\t{}\t{run}\t{state}\t{seconds:.1}\t{words}\t{failure}\t{error}",
+                file.len()
+            );
+            assert!(pool.running(), "the supervisor kept running after {name}");
+        }
+    }
+    let _ = pool.stop();
+}
+
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn the_yara_module_scans_in_a_contained_task_process() {
     let rules = tempfile::tempdir().expect("a rules directory");

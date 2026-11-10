@@ -1,0 +1,36 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [],
+  "input": {
+    "directives": [],
+    "label": "ace3/archive/malicious.jar",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "malicious.jar",
+      "size": 104338,
+      "type": "file",
+      "value": "e142fa9d8e6ec9e4b276ede91b8454182951d788d94823b8504ea2ad0ef7546f"
+    }
+  },
+  "module": "zip_encryption_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "malicious.jar",
+    "relationships": [],
+    "size": 104338,
+    "tags": [],
+    "type": "file",
+    "value": "e142fa9d8e6ec9e4b276ede91b8454182951d788d94823b8504ea2ad0ef7546f",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

@@ -143,21 +143,48 @@ pub fn generate_wordlist(
     words
 }
 
-/// ace3's `wordlist_from_email`, past its finding the email.
+/// How ace3 cuts candidate passwords from an email's body: `generate_wordlist`'s range of lengths and
+/// its limits, which each module that cracks with them has as settings.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct WordlistLimits {
+    pub range_low: usize,
+    pub range_high: usize,
+    pub byte_limit: usize,
+    pub list_limit: usize,
+}
+
+/// ace3's `wordlist_from_email` past its finding the email, which `zip.py` and `rar.py` also write out
+/// inline: the body's bytes read as text, through html2text, cut at `byte_limit` characters, and the
+/// words in it. html2text's exception is what ace3's caller catches.
+pub fn words_from_body(
+    body: &[u8],
+    limits: WordlistLimits,
+) -> Result<(String, Vec<String>), ace_mod_oletools::py::PyErr> {
+    let text = html2text::html2text(&read_text(body))?;
+    let body: String = text.chars().take(limits.byte_limit).collect();
+    let words = generate_wordlist(
+        &body,
+        limits.range_low,
+        limits.range_high,
+        limits.byte_limit,
+        limits.list_limit,
+    );
+    Ok((body, words))
+}
+
 fn read_body(
     body: &[u8],
     settings: &MsofficeEncryptionSettings,
 ) -> Result<(String, Vec<String>), ace_mod_oletools::py::PyErr> {
-    let text = html2text::html2text(&read_text(body))?;
-    let body: String = text.chars().take(settings.byte_limit).collect();
-    let words = generate_wordlist(
-        &body,
-        settings.range_low,
-        settings.range_high,
-        settings.byte_limit,
-        settings.list_limit,
-    );
-    Ok((body, words))
+    words_from_body(
+        body,
+        WordlistLimits {
+            range_low: settings.range_low,
+            range_high: settings.range_high,
+            byte_limit: settings.byte_limit,
+            list_limit: settings.list_limit,
+        },
+    )
 }
 
 /// The password that opens the file, or None when none does. One that breaks the reading of the file
@@ -180,6 +207,21 @@ pub fn crack<'a>(
         }
     }
     None
+}
+
+/// The delay of a task whose file may have come in an email that isn't parsed yet, longer each time:
+/// None when the task knows its carrying email, or that none carried it. An outer email adds a nested
+/// email's attachments too, before the nested one has been parsed, and that's the email whose body has
+/// the password. ace3 analyzes the attachment once per path, and ace4 once, so a module that reads the
+/// body waits for the root's emails, once it knows its file is one it cracks.
+pub fn wait_for_emails<S>(ctx: &TaskContext<S>) -> Option<Delay> {
+    if !matches!(ctx.carrying_email(), CarryingEmail::Pending) {
+        return None;
+    }
+    let delays = ctx.delayed().map_or(0, |delayed| delayed.delays);
+    let after = EMAILS_PENDING_DELAY.saturating_mul(2u32.saturating_pow(delays.min(5)));
+    // the emails' own tasks end, whatever happens to them, so this needs no limit
+    Some(Delay::new(after, Duration::MAX))
 }
 
 fn summarize(details: &MsofficeEncryptionAnalysis) -> String {
@@ -302,11 +344,8 @@ impl Parser for MsofficeEncryption {
             // parsed, and that's the email whose body has the password. ace3 analyzes the attachment
             // once per path, and ace4 once, so it waits for the root's emails. This is only for a file
             // that's encrypted: every file gets here, and the rest are done above.
-            if matches!(ctx.carrying_email(), CarryingEmail::Pending) {
-                let delays = ctx.delayed().map_or(0, |delayed| delayed.delays);
-                let after = EMAILS_PENDING_DELAY.saturating_mul(2u32.saturating_pow(delays.min(5)));
-                // the emails' own tasks end, whatever happens to them, so this needs no limit
-                return Ok(Outcome::Delay(Delay::new(after, Duration::MAX)));
+            if let Some(delay) = wait_for_emails(ctx) {
+                return Ok(Outcome::Delay(delay));
             }
             decrypted = Self::decrypt(ctx, &mut office, &mut details)?;
         }

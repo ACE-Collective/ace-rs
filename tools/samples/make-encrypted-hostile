@@ -1,0 +1,104 @@
+#!/usr/bin/env python3
+"""Makes the crafted files docs/measurements/encrypted.md measures PLAN.md 7.5 batch 7's modules on:
+what costs each one most per candidate password, and the most candidates.
+
+    tools/samples/make-encrypted-hostile <out dir>
+
+As tools/samples/make-encrypted-files makes its files: 7-Zip, Info-ZIP and qpdf in a debian:trixie-slim
+container, and RARLAB's rar 6.24 in an amd64 one. The files are large and are made each time, not kept.
+crates/ace-pool's measure_encrypted attaches each to an email whose body gives 5,000 candidates, none
+of them the password.
+"""
+
+import binascii
+import importlib.machinery
+import importlib.util
+import os
+import sys
+import tempfile
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+_loader = importlib.machinery.SourceFileLoader("make_encrypted_files", str(HERE / "make-encrypted-files"))
+_spec = importlib.util.spec_from_loader("make_encrypted_files", _loader)
+files = importlib.util.module_from_spec(_spec)
+_loader.exec_module(files)
+
+MB = 1024 * 1024
+
+
+def vint(data, at):
+    value, shift = 0, 0
+    while True:
+        byte = data[at]
+        at += 1
+        value |= (byte & 0x7F) << shift
+        shift += 7
+        if not byte & 0x80:
+            return value, at
+
+
+def raise_rar5_kdf(data, lg2_count):
+    """A RAR5 archive whose headers are encrypted, with the encryption header's KDF count raised to
+    2^lg2_count and its CRC made right again. The check value no longer matches any password."""
+    at = 8  # the signature
+    start = at + 4
+    size, body = vint(data, start)
+    kind, at = vint(data, body)
+    if kind != 4:
+        raise SystemExit("the first header isn't the encryption header")
+    _flags, at = vint(data, at)
+    _version, at = vint(data, at)
+    _crypt_flags, at = vint(data, at)
+    out = bytearray(data)
+    out[at] = lg2_count
+    end = body + size
+    out[8:12] = binascii.crc32(out[start:end]).to_bytes(4, "little")
+    return bytes(out)
+
+
+def main(out):
+    out = Path(out)
+    out.mkdir(parents=True, exist_ok=True)
+    target = files.ROOT / "target"
+    target.mkdir(exist_ok=True)
+    with tempfile.TemporaryDirectory(dir=target) as work:
+        work = Path(work)
+        (work / "in" / "many").mkdir(parents=True)
+        (work / "out").mkdir()
+        for i in range(200):
+            (work / "in" / "many" / f"{i:03d}.txt").write_bytes(files.payload(f"{i:03d}.txt"))
+        # 64 MB that doesn't compress, so it's stored and every byte is decrypted
+        (work / "in" / "large.bin").write_bytes(os.urandom(64 * MB))
+        (work / "in" / "small.txt").write_bytes(files.payload("small.txt"))
+        plain_pdf = (files.SAMPLES / "ace4" / "pdf" / "javascript.pdf").read_bytes()
+        (work / "in" / "plain.pdf").write_bytes(plain_pdf)
+        files.docker(
+            "-v", f"{work}:/w", "-w", "/w/in", files.DEBIAN, "sh", "-c",
+            "export DEBIAN_FRONTEND=noninteractive && apt-get update -qq >/dev/null "
+            "&& apt-get install -y -qq 7zip zip qpdf >/dev/null "
+            "&& 7z a -tzip -mem=AES256 -pNotInBody ../out/zip_aes_200_entries.zip many >/dev/null "
+            "&& 7z a -tzip -mem=ZipCrypto -mx=0 -pNotInBody ../out/zip_zipcrypto_64mb.zip large.bin >/dev/null "
+            "&& qpdf --encrypt --user-password=NotInBody --owner-password=Owner --bits=256 -- "
+            "plain.pdf ../out/pdf_aes_256.pdf "
+            f"&& chown -R {os.getuid()}:{os.getgid()} /w/out",
+        )
+        rar = files.rar_program(work)
+        files.docker(
+            "-v", f"{work}:/w", "-w", "/w/in", files.DEBIAN, "sh", "-c",
+            f"{rar} a -idq -ma4 -pNotInBody ../out/rar4.rar small.txt "
+            f"&& {rar} a -idq -ma5 -pNotInBody ../out/rar5.rar small.txt "
+            f"&& {rar} a -idq -ma5 -hpNotInBody ../out/rar5_headers.rar small.txt "
+            f"&& {rar} a -idq -ma4 -m0 -pNotInBody ../out/rar4_64mb.rar large.bin "
+            f"&& chown -R {os.getuid()}:{os.getgid()} /w/out",
+            platform="linux/amd64",
+        )
+        made = {path.name: path.read_bytes() for path in (work / "out").iterdir()}
+    made["rar5_headers_kdf_2^23.rar"] = raise_rar5_kdf(made["rar5_headers.rar"], 23)
+    for name, data in made.items():
+        (out / name).write_bytes(data)
+        print(name, len(data))
+
+
+if __name__ == "__main__":
+    main(*sys.argv[1:])

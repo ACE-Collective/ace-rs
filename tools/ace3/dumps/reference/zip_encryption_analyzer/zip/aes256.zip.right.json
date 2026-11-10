@@ -1,0 +1,178 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "email_analyzer",
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "ZipEncryptionAnalysis",
+      "details": {
+        "email": true,
+        "email_body": "The password for the attached file is Aes256Pw thanks\n\n",
+        "encryption_info": null,
+        "error": null,
+        "password": "Aes256Pw",
+        "word_list": [
+          "ttac",
+          "ssword",
+          "sswor",
+          "tached",
+          "ttach",
+          "file",
+          "ched",
+          "passw",
+          "thanks",
+          "s256P",
+          "anks",
+          "passwo",
+          "Aes25",
+          "hanks",
+          "es256Pw",
+          "sword",
+          "ttache",
+          "thank",
+          "attache",
+          "password",
+          "swor",
+          "pass",
+          "sswo",
+          "tach",
+          "Aes2",
+          "ttached",
+          "word",
+          "s256",
+          "es256P",
+          "256P",
+          "asswor",
+          "Aes256P",
+          "assword",
+          "ache",
+          "56Pw",
+          "attac",
+          "passwor",
+          "attached",
+          "Aes256",
+          "assw",
+          "es256",
+          "Aes256Pw",
+          "ached",
+          "hank",
+          "attach",
+          "tache",
+          "atta",
+          "es25",
+          "s256Pw",
+          "256Pw",
+          "asswo",
+          "than"
+        ]
+      },
+      "detections": [],
+      "module_path": "saq.modules.email.encryption.zip:ZipEncryptionAnalysis",
+      "observables": [
+        {
+          "detections": [
+            {
+              "description": "Was able to decrypt based on contents of email.",
+              "details": null
+            }
+          ],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "aes256.zip.decrypted/invoice.txt",
+          "relationships": [],
+          "size": 74,
+          "tags": [],
+          "type": "file",
+          "value": "8134eac7b93d58b0e99176e2c8e315c7c82bcdefd64a5d68bfb26dca896d7512",
+          "yara_meta": []
+        },
+        {
+          "detections": [
+            {
+              "description": "Was able to decrypt based on contents of email.",
+              "details": null
+            }
+          ],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "aes256.zip.decrypted/docs/notes.txt",
+          "relationships": [],
+          "size": 70,
+          "tags": [],
+          "type": "file",
+          "value": "3300560ced3d600b14aebe26906c95e2a192fa2d2351579601dc99bc522bc214",
+          "yara_meta": []
+        }
+      ],
+      "summary": "Zip Encryption Analysis: password Aes256Pw",
+      "tags": []
+    },
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": true,
+        "mime": "application/zip",
+        "type": "Zip archive data, made by v6.3 UNIX, extract using at least v5.1, last modified Jan 01 2020 12:00:00, uncompressed size 70, method=AES Encrypted"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: Zip archive data, made by v6.3 UNIX, extract using at least v5.1, last modified Jan 01 2020 12:00:00, uncompressed size 70, method=AES Encrypted (application/zip) (zip archive)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "carrying_email": {
+      "body": "VGhlIHBhc3N3b3JkIGZvciB0aGUgYXR0YWNoZWQgZmlsZSBpcyBBZXMyNTZQdyB0aGFua3MK",
+      "body_path": "email.rfc822.unknown_text_plain_000.txt"
+    },
+    "directives": [],
+    "label": "fixtures/encrypted/zip/aes256.zip attached to an email, body right",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "aes256.zip",
+      "size": 521,
+      "type": "file",
+      "value": "8dcb4874ebe8fa12f38b5980be914b5a8ef18ca6083fd5d01a2f5725a07fbb32"
+    }
+  },
+  "module": "zip_encryption_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "extract_urls",
+      "render",
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "aes256.zip",
+    "relationships": [],
+    "size": 521,
+    "tags": [
+      "encrypted_zip",
+      "zip"
+    ],
+    "type": "file",
+    "value": "8dcb4874ebe8fa12f38b5980be914b5a8ef18ca6083fd5d01a2f5725a07fbb32",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

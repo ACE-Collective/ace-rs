@@ -1,0 +1,178 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "email_analyzer",
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "ZipEncryptionAnalysis",
+      "details": {
+        "email": true,
+        "email_body": "The password for the attached file is M1xedPw9 thanks\n\n",
+        "encryption_info": null,
+        "error": null,
+        "password": "M1xedPw9",
+        "word_list": [
+          "ssword",
+          "hank",
+          "attac",
+          "1xedPw9",
+          "M1xedPw9",
+          "pass",
+          "than",
+          "tache",
+          "sswo",
+          "file",
+          "sswor",
+          "xedP",
+          "assword",
+          "passw",
+          "password",
+          "M1xed",
+          "edPw",
+          "ttache",
+          "attache",
+          "M1xedPw",
+          "tach",
+          "1xed",
+          "ttached",
+          "ache",
+          "hanks",
+          "edPw9",
+          "xedPw",
+          "sword",
+          "asswo",
+          "1xedP",
+          "word",
+          "ttac",
+          "passwo",
+          "tached",
+          "ached",
+          "assw",
+          "atta",
+          "1xedPw",
+          "M1xe",
+          "M1xedP",
+          "asswor",
+          "ched",
+          "attached",
+          "thank",
+          "swor",
+          "ttach",
+          "attach",
+          "dPw9",
+          "xedPw9",
+          "passwor",
+          "anks",
+          "thanks"
+        ]
+      },
+      "detections": [],
+      "module_path": "saq.modules.email.encryption.zip:ZipEncryptionAnalysis",
+      "observables": [
+        {
+          "detections": [
+            {
+              "description": "Was able to decrypt based on contents of email.",
+              "details": null
+            }
+          ],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "mixed.zip.decrypted/readme.txt",
+          "relationships": [],
+          "size": 72,
+          "tags": [],
+          "type": "file",
+          "value": "52efb8bfc4af81ce02e40ea3bedb5895f903fb57c3e5810b17626caa0352f8dc",
+          "yara_meta": []
+        },
+        {
+          "detections": [
+            {
+              "description": "Was able to decrypt based on contents of email.",
+              "details": null
+            }
+          ],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "mixed.zip.decrypted/invoice.txt",
+          "relationships": [],
+          "size": 74,
+          "tags": [],
+          "type": "file",
+          "value": "8134eac7b93d58b0e99176e2c8e315c7c82bcdefd64a5d68bfb26dca896d7512",
+          "yara_meta": []
+        }
+      ],
+      "summary": "Zip Encryption Analysis: password M1xedPw9",
+      "tags": []
+    },
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": true,
+        "mime": "application/zip",
+        "type": "Zip archive data, made by v3.0 UNIX, extract using at least v2.0, last modified Jan 01 2020 12:00:00, uncompressed size 74, method=deflate"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: Zip archive data, made by v3.0 UNIX, extract using at least v2.0, last modified Jan 01 2020 12:00:00, uncompressed size 74, method=deflate (application/zip) (zip archive)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "carrying_email": {
+      "body": "VGhlIHBhc3N3b3JkIGZvciB0aGUgYXR0YWNoZWQgZmlsZSBpcyBNMXhlZFB3OSB0aGFua3MK",
+      "body_path": "email.rfc822.unknown_text_plain_000.txt"
+    },
+    "directives": [],
+    "label": "fixtures/encrypted/zip/mixed.zip attached to an email, body right",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "mixed.zip",
+      "size": 471,
+      "type": "file",
+      "value": "cb158ec790419f4b4f9a696e3979617f83688ad1b05b248fe25c6aaec3a5a61b"
+    }
+  },
+  "module": "zip_encryption_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "extract_urls",
+      "render",
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "mixed.zip",
+    "relationships": [],
+    "size": 471,
+    "tags": [
+      "encrypted_zip",
+      "zip"
+    ],
+    "type": "file",
+    "value": "cb158ec790419f4b4f9a696e3979617f83688ad1b05b248fe25c6aaec3a5a61b",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

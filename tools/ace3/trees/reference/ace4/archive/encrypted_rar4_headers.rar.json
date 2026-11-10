@@ -1,0 +1,81 @@
+{
+  "form": 1,
+  "observables": {
+    "file:2371efa0001bc82d64be39324705c799c24ba83087b9b13e481c180d2582de9b": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "encrypted_rar4_headers.rar": {
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "78459c316c7d0c8b70ce8b4d3528ea66",
+            "sha1": "f14c078f47473ec1dca0c8c8a44a8d399d240b48",
+            "sha256": "2371efa0001bc82d64be39324705c799c24ba83087b9b13e481c180d2582de9b"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/vnd.rar",
+            "type": "RAR archive data, flags: EncryptedBlockHeader"
+          },
+          "summary": "File Type Analysis: RAR archive data, flags: EncryptedBlockHeader (application/vnd.rar)",
+          "tags": {}
+        },
+        "rar_encryption_analyzer": {
+          "details": {
+            "email": false,
+            "email_body": null,
+            "encryption_info": null,
+            "error": "RarEncryptionAnalyzer could not crack password!",
+            "password": null,
+            "word_list": []
+          },
+          "summary": "Rar Encryption Analysis: RarEncryptionAnalyzer could not crack password!",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "encrypted_rar": true
+      }
+    },
+    "md5:78459c316c7d0c8b70ce8b4d3528ea66": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:2371efa0001bc82d64be39324705c799c24ba83087b9b13e481c180d2582de9b": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:2371efa0001bc82d64be39324705c799c24ba83087b9b13e481c180d2582de9b": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:2371efa0001bc82d64be39324705c799c24ba83087b9b13e481c180d2582de9b": true
+      },
+      "results": {},
+      "tags": {}
+    }
+  }
+}

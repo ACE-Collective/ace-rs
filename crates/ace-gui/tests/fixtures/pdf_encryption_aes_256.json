@@ -1,0 +1,89 @@
+{
+  "analysis_type": "pdf_encryption_analysis",
+  "schema_version": 1,
+  "details": {
+    "email": true,
+    "email_body": "The password for the attached file is Aes256Us thanks\n\n",
+    "error": null,
+    "password": "Aes256Us",
+    "word_list": [
+      "256U",
+      "256Us",
+      "56Us",
+      "Aes2",
+      "Aes25",
+      "Aes256",
+      "Aes256U",
+      "Aes256Us",
+      "ache",
+      "ached",
+      "anks",
+      "assw",
+      "asswo",
+      "asswor",
+      "assword",
+      "atta",
+      "attac",
+      "attach",
+      "attache",
+      "attached",
+      "ched",
+      "es25",
+      "es256",
+      "es256U",
+      "es256Us",
+      "file",
+      "hank",
+      "hanks",
+      "pass",
+      "passw",
+      "passwo",
+      "passwor",
+      "password",
+      "s256",
+      "s256U",
+      "s256Us",
+      "sswo",
+      "sswor",
+      "ssword",
+      "swor",
+      "sword",
+      "tach",
+      "tache",
+      "tached",
+      "than",
+      "thank",
+      "thanks",
+      "ttac",
+      "ttach",
+      "ttache",
+      "ttached",
+      "word"
+    ]
+  },
+  "summary": "PDF Encryption Analysis: password Aes256Us",
+  "analyzed": {
+    "tags": [
+      "encrypted_pdf"
+    ]
+  },
+  "files": [
+    {
+      "path": "aes_256.pdf.decrypted",
+      "sha256": "4abe0905129ef32480d640f8c55b6f8ea7d932d8bfa097a07aa547c2cbee7320",
+      "size": 1498,
+      "yara_meta": [
+        "type=document.pdf"
+      ],
+      "tags": [
+        "decrypted_pdf"
+      ],
+      "detections": [
+        {
+          "description": "Was able to decrypt based on contents of email.",
+          "signature_uuid": "ef715326-081e-4ece-97ba-02817b5a28cd"
+        }
+      ]
+    }
+  ]
+}

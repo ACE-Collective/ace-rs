@@ -1,4 +1,5 @@
-{#- msoffice_encryption_analysis (src/analysis.rs): ace3 prints its details with
+{#- msoffice_encryption_analysis, zip_encryption_analysis, rar_encryption_analysis and
+    pdf_encryption_analysis (src/analysis.rs): ace3 prints their details with
     analysis/default_template.html, the password among them. -#}
 <table class="fields">
 <tr><th>password</th><td>{% if let Some(password) = analysis.password %}<code>{{ password }}</code>{% else %}<span class="muted">none</span>{% endif %}</td></tr>

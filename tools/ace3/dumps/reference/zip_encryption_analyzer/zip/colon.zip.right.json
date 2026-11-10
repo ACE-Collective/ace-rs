@@ -1,0 +1,165 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "email_analyzer",
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "ZipEncryptionAnalysis",
+      "details": {
+        "email": true,
+        "email_body": "The password for the attached file is ab:cd1234 thanks\n\n",
+        "encryption_info": null,
+        "error": null,
+        "password": "ab",
+        "word_list": [
+          "ssword",
+          "ache",
+          "atta",
+          "than",
+          "word",
+          "b:cd1",
+          "d1234",
+          "ab:cd123",
+          "b:cd123",
+          "ab:cd12",
+          "assword",
+          "cd1234",
+          "attach",
+          ":cd123",
+          "tached",
+          "tach",
+          "thank",
+          "attache",
+          ":cd12",
+          "ab:c",
+          "passw",
+          "sswor",
+          "ab:cd1",
+          "thanks",
+          "sword",
+          "ttached",
+          "ab:cd1234",
+          "b:cd",
+          "cd12",
+          "attac",
+          "1234",
+          "ttache",
+          ":cd1234",
+          "password",
+          "passwo",
+          "ched",
+          "swor",
+          "assw",
+          ":cd1",
+          "cd123",
+          "hank",
+          "ab:cd",
+          "passwor",
+          "b:cd12",
+          "pass",
+          "anks",
+          "ached",
+          "attached",
+          "asswor",
+          "asswo",
+          "b:cd1234",
+          "tache",
+          "sswo",
+          "hanks",
+          "file",
+          "ttac",
+          "ttach",
+          "d123"
+        ]
+      },
+      "detections": [],
+      "module_path": "saq.modules.email.encryption.zip:ZipEncryptionAnalysis",
+      "observables": [
+        {
+          "detections": [
+            {
+              "description": "Was able to decrypt based on contents of email.",
+              "details": null
+            }
+          ],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "colon.zip.decrypted/invoice.txt",
+          "relationships": [],
+          "size": 0,
+          "tags": [],
+          "type": "file",
+          "value": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "yara_meta": []
+        }
+      ],
+      "summary": "Zip Encryption Analysis: password ab",
+      "tags": []
+    },
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": true,
+        "mime": "application/zip",
+        "type": "Zip archive data, made by v6.3 UNIX, extract using at least v2.0, last modified Jan 01 2020 12:00:00, uncompressed size 74, method=deflate"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: Zip archive data, made by v6.3 UNIX, extract using at least v2.0, last modified Jan 01 2020 12:00:00, uncompressed size 74, method=deflate (application/zip) (zip archive)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "carrying_email": {
+      "body": "VGhlIHBhc3N3b3JkIGZvciB0aGUgYXR0YWNoZWQgZmlsZSBpcyBhYjpjZDEyMzQgdGhhbmtzCg==",
+      "body_path": "email.rfc822.unknown_text_plain_000.txt"
+    },
+    "directives": [],
+    "label": "fixtures/encrypted/zip/colon.zip attached to an email, body right",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "colon.zip",
+      "size": 232,
+      "type": "file",
+      "value": "ff2fc43c6af74f699b2ff4c70c657300251db1ebf1f6ae49d1902a6612dc8420"
+    }
+  },
+  "module": "zip_encryption_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "extract_urls",
+      "render",
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "colon.zip",
+    "relationships": [],
+    "size": 232,
+    "tags": [
+      "encrypted_zip",
+      "zip"
+    ],
+    "type": "file",
+    "value": "ff2fc43c6af74f699b2ff4c70c657300251db1ebf1f6ae49d1902a6612dc8420",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

@@ -26,6 +26,7 @@ The local samples under samples/local/ are git-ignored; copy them in before runn
 """
 
 import contextlib
+import hashlib
 import json
 import os
 import subprocess
@@ -1118,6 +1119,115 @@ def script_runs():
     return runs
 
 
+ENCRYPTED_FIXTURES = HERE / "fixtures" / "encrypted"
+# tools/samples/make-encrypted-files' files, by the passwords their bodies give: the right ones, and for
+# a PDF the owner's too
+ENCRYPTED_PASSWORDS = {
+    "zip/zipcrypto.zip": ["Secr3tPw"],
+    "zip/aes256.zip": ["Aes256Pw"],
+    "zip/aes128.zip": ["Aes128Pw"],
+    "zip/stored.zip": ["St0red99"],
+    "zip/mixed.zip": ["M1xedPw9"],
+    "zip/colon.zip": ["ab:cd1234"],
+    "zip/two_passwords.zip": ["FirstPw1", "SecondPw2"],
+    "rar/rar4.rar": ["Rar4Pass"],
+    "rar/rar4_headers.rar": ["Rar4Head"],
+    "rar/rar4_stored.rar": ["Rar4Stor"],
+    "rar/rar5.rar": ["Rar5Pass"],
+    "rar/rar5_headers.rar": ["Rar5Head"],
+    "rar/rar5_solid.rar": ["Rar5Sold"],
+    "pdf/rc4_40.pdf": ["Rc4Forty"],
+    "pdf/rc4_128.pdf": ["Rc4User1"],
+    "pdf/aes_128.pdf": ["AesUser1"],
+    "pdf/aes_256.pdf": ["Aes256Us"],
+    "pdf/owner_only.pdf": ["OwnerOnly"],
+}
+OWNER_PASSWORDS = {"pdf/rc4_128.pdf": "OwnerPw2", "pdf/aes_256.pdf": "OwnerPw4"}
+ENCRYPTED_MODULES = {"zip": "zip_encryption_analyzer", "rar": "rar_encryption_analyzer", "pdf": "pdf_encryption_analyzer"}
+# a body with a thousand words before the password, so the list is full before it's reached, and the
+# byte limit cuts it
+LONG_BODY = "".join(f"word{i:04d} " for i in range(150)) + "and the password is Secr3tPw\n"
+# 1,100 characters with no whitespace, so the windows fill the list's 5,000 before those of 8 have all
+# been taken: the password at the start is in it, and at the end it isn't
+FILLER = "".join(hashlib.sha256(str(i).encode()).hexdigest() for i in range(35))[:1100]
+
+
+def encrypted_runs():
+    """Each file attached to an email made by run_module.py, whose body gives its password, another,
+    none, or nothing a password could be, or no body; and some alone, with no email. A dump is named
+    <fixture>.<body>, or <fixture> for a file alone."""
+    runs = []
+    bodies = {}
+
+    def add(fixture, kind=None, body=None, suffix=".txt"):
+        folder, name = fixture.split("/")
+        args = ["--file", f"{REMOTE}/fixtures/encrypted/{fixture}", "--alert-path", name]
+        label = f"fixtures/encrypted/{fixture}"
+        if kind is not None:
+            if body is None:
+                args += ["--carrying-email", "-"]
+            else:
+                body_file = f"{fixture.replace('/', '_')}.{kind}{suffix}"
+                bodies[body_file] = body
+                args += ["--carrying-email", f"{REMOTE}/fixtures/encrypted/bodies/{body_file}"]
+            label += f" attached to an email, body {kind}"
+        runs.append({
+            "module": ENCRYPTED_MODULES[folder],
+            "enable": ["email_analyzer", "file_type"] if kind is not None else [],
+            "name": fixture + (f".{kind}" if kind else ""),
+            "args": args,
+            "label": label,
+            "service": lambda: write_bodies(bodies),
+        })
+
+    for fixture, passwords in ENCRYPTED_PASSWORDS.items():
+        add(fixture, "right", "The password for the attached file is " + " and ".join(passwords) + " thanks\n")
+    for fixture, owner in OWNER_PASSWORDS.items():
+        add(fixture, "owner", f"The password for the attached file is {owner} thanks\n")
+    add("pdf/aes_256.pdf", "owner_and_user", "The passwords are OwnerPw4 and Aes256Us\n")
+    for fixture in ("zip/zipcrypto.zip", "rar/rar5.rar", "pdf/aes_128.pdf"):
+        add(fixture, "wrong", "The password for the attached file is Wr0ngOne thanks\n")
+        add(fixture, "nothing", "a b c d\n")
+        add(fixture, "no_body")
+        add(fixture)
+    add("zip/zipcrypto.zip", "html", "<html><body><p>Use <b>Secr3tPw</b></p></body></html>\n", ".html")
+    add("zip/zipcrypto.zip", "long", LONG_BODY)
+    add("zip/zipcrypto.zip", "full_early", "Secr3tPw" + FILLER + "\n")
+    add("zip/zipcrypto.zip", "full_late", FILLER[:1000] + "Secr3tPw" + FILLER[1000:] + "\n")
+    add("rar/rar4_headers.rar")
+    add("pdf/owner_only.pdf")
+    # the samples each module takes, alone
+    for sample in manifest_samples(""):
+        kinds = sample["kinds"]
+        if "email" in kinds:
+            continue
+        if "archive/zip" in kinds:
+            module = "zip_encryption_analyzer"
+        elif "archive/rar" in kinds:
+            module = "rar_encryption_analyzer"
+        elif "pdf" in kinds and "/encrypted" in sample["path"]:
+            module = "pdf_encryption_analyzer"
+        else:
+            continue
+        runs.append({
+            "module": module,
+            "enable": [],
+            "name": sample["path"],
+            "args": ["--file", f"{REMOTE}/samples/{sample['path']}", "--alert-path", sample["alert_path"]]
+            + [arg for tag in sample["meta_tags"] for arg in ("--meta-tag", tag)],
+            "label": sample["path"],
+        })
+    return runs
+
+
+@contextlib.contextmanager
+def write_bodies(bodies):
+    docker("exec", CONTAINER, "mkdir", "-p", f"{REMOTE}/fixtures/encrypted/bodies")
+    for name, body in bodies.items():
+        put(f"{REMOTE}/fixtures/encrypted/bodies/{name}", body.encode())
+    yield
+
+
 RUNS = {
     "email": lambda: file_runs("email_analyzer", ["file_type"], "email"),
     "archive": lambda: file_runs("archive", ["file_type"], "archive/"),
@@ -1145,6 +1255,7 @@ RUNS = {
     "html": html_runs,
     "office": office_runs,
     "scripts": script_runs,
+    "encrypted": encrypted_runs,
 }
 
 
@@ -1325,6 +1436,9 @@ def run(spec):
         "extracted_rtf_analyzer": "ExtractedRTFAnalysis",
         "vbscript_analyzer": "VBScriptAnalysis",
         "nowhitespace_analyzer": "NoWhiteSpaceAnalysis",
+        "zip_encryption_analyzer": "ZipEncryptionAnalysis",
+        "rar_encryption_analyzer": "RarEncryptionAnalysis",
+        "pdf_encryption_analyzer": "PDFEncryptionAnalysis",
     }[spec["module"]]
     analysis = next((a for a in parsed["analyses"] if a["class"] == target_class), None)
     return {

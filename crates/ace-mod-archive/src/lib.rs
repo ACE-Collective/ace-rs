@@ -12,7 +12,7 @@
 //!
 //! Encrypted members are tried with the password `infected`, as ace3 does.
 
-mod formats;
+pub mod formats;
 
 use std::collections::BTreeMap;
 use std::fs::File;
@@ -162,7 +162,7 @@ const LONE_FILE_KINDS: &[(&[&str], &str, &str)] = &[
 /// The member's path inside the extraction directory, the way the tool ace3 runs writes it:
 /// directories kept, except by `unrar e`, and `..`, `.` and empty parts dropped, as 7z, unzip
 /// and `zipfile` drop them. None for a name with nothing left.
-fn extracted_name(format: Format, name: &str) -> Option<String> {
+pub fn extracted_name(format: Format, name: &str) -> Option<String> {
     let parts: Vec<&str> = name
         .split(['/', '\\'])
         .filter(|p| !p.is_empty() && *p != "." && *p != "..")

@@ -20,17 +20,17 @@ Versions are those of ace3's image: Python packages from `installer/requirements
 
 | Pool | Modules | Ported |
 |---|---|---|
-| parser | 53 | 41 |
+| parser | 53 | 44 |
 | lookup | 17 | 9 |
 | core | 3 | 0 |
 | sandbox | 15 | 0 |
 | scanner | 2 | 0 |
-| all | 90 | 50 |
+| all | 90 | 53 |
 
 | Step | Modules |
 |---|---|
-| done | 50 |
-| 7.5 | 30 |
+| done | 53 |
+| 7.5 | 27 |
 | 7.6 | 5 |
 | 7.7 | 2 |
 | 7.10 | 2 |
@@ -48,7 +48,7 @@ In order. Batches 10 to 13 run programs in the sandbox runner, which batch 10 bu
 4. **HTML**: done. `html_data_url_extraction`, `har_extraction`, `html_js_extraction`, `mhtml`, in `ace-mod-html`, on `ace-lxml`'s BeautifulSoup tree, `ace-mod-oletools`' port of Python's feed parser and `ace-pycompat`. HTML, MHTML and HAR files, with the DOM snapshots 7.7's js-deobfuscator reads, which ride in the results' `dom_snapshots` rather than in files beside the scripts.
 5. **Office containers**: done. `onenote_extraction`, `officeparser3`, `office_xml_rel`, `xml_binary_analyzer`, `xml_plain_text_analyzer`, `extracted_ole_analyzer`, `hidden_mime`, `active_mime`, in `ace-mod-office`. OneNote, compound files, Office XML, hidden MIME and ActiveMime. XML is parsed by `ace_lxml::target`, lxml's target parser over the vendored libxml2, which matches lxml on 472 inputs; MIME by `ace-mod-oletools`' feed parser; compound files by a port of officeparser3's own reader, not olefile's, since what officeparser3 writes for a damaged file follows from how it reads one. `extracted_ole_analyzer` reads on the lease which modules added its file, and runs last; `xml_plain_text_analyzer` reads the tags of the file its file came from, and the archive module now waits for file_type, as ace3's does, so those tags are there.
 6. **RTF and scripts**: done. `microsoft_script_encoding_analysis`, `extracted_rtf_analyzer`, `vbscript_analyzer`, `nowhitespace_analyzer`, in `ace-mod-scripts`. Checks and transforms of RTF and script files. The Perl decoder ace3 runs for encoded scripts is ported and matches it byte for byte on 50,000 inputs (`docs/measurements/scripts.md`); `extracted_rtf_analyzer` reads on the lease which modules added its file, and looks for rtfole, whose `extracted_rtf` tag is what ace3 reads.
-7. **Encrypted files**: `zip_encryption_analyzer`, `rar_encryption_analyzer`, `pdf_encryption_analyzer`. No John (7.3): the email's wordlist tried in the task, as 4.11 did for Office.
+7. **Encrypted files**: done. `zip_encryption_analyzer`, `rar_encryption_analyzer`, `pdf_encryption_analyzer`, in `ace-mod-encrypted`. No John (7.3): the email's candidates, cut by 4.11's `ace_mod_msoffice::words_from_body`, are tried in the task with the zip crate, libunrar and libqpdf, keeping what John's check accepts, which for a PDF is the user password only. The dumps cover each encryption method, a wrong, missing and full list, and no email or no body, with 0 differences but other modules' tags; a decrypted PDF matches pikepdf's copy byte for byte but for the `/ID` pikepdf takes from the clock (`docs/measurements/encrypted.md`).
 8. **Email tree**: `mailbox_email_analyzer`, `lure_url_analyzer`, `email_conversation_attachment_analyzer`, `email_conversation_link_analyzer`. Modules that read the email's analysis; the two conversation modules after 7.4's frequency analyzer.
 9. **Email archive**: `email_archiver`, `encrypted_archive_analyzer`, `url_email_pivot_analyzer`, `message_id_analyzer_v2`. Brings ace3's `email` router (5.6) and the `daily/partitions` task's archive half (6.7). Lookup modules, on 7.2's reads (`crates/ace-core/src/reads.md`).
 10. **PDF and image text**: `ocr`, `qrcode`, `exif`, `pdftotext`, `ssdeep`. The tools that turn PDFs and images into text YARA scans. Builds the sandbox runner and the sandbox pool's image, and adds Ghostscript's rewrite to `pdf_analyzer` and ACE archives to `archive`, which move to the sandbox pool.
@@ -136,7 +136,7 @@ The sandbox image's packages, by Debian's installed size: the JRE 199 MB, Wiresh
 | 7z 25.01, on a DMG's image | `dmg_analyzer`, `cve_2021_30657_analyzer` | none, listing and extracting a member of an HFS+ image, and extracting a 64 MB LZMA2 archive under the parser's filter | hfsplus 0.4.0 (MIT, young) reads HFS+; the module keeps 7z's listing lines as they are and parses its columns | **runner** | 7zip 7 MB; LGPL-2.1 |
 | unace 2.5 | `archive` | none, listing and extracting | no crate reads ACE archives | **runner**, added to `archive` in batch 10 | unace-nonfree 0.2 MB; the Public UnAce Licence, which forbids using it to make an ACE compressor, nothing ACE does |
 | 7z, unrar, unzip, `bin/unjar` | `archive`, `zip_encryption_analyzer`, `rar_encryption_analyzer` | not run | zip, sevenz-rust2 and unrar (1.29) | **crate** | none |
-| John the Ripper 1.9.0-jumbo-1, zip2john, rar2john, pdf2john.pl, office2john.py | `msoffice_encryption_analyzer`, `zip_encryption_analyzer`, `rar_encryption_analyzer`, `pdf_encryption_analyzer` | john: 10 threads (OpenMP; it links libgomp), no process; zip2john and pdf2john.pl: none | ace3 runs John only with `--wordlist`, the email body's candidates (up to `list_limit`, 5,000), and no rules, so trying each word with the format's own library gives the same password | **crate**: the wordlist tried in the task, as 4.11 does for Office, with zip, unrar and libqpdf | none; saves John's 310 MB build |
+| John the Ripper 1.9.0-jumbo-1, zip2john, rar2john, pdf2john.pl, office2john.py | `msoffice_encryption_analyzer`, `zip_encryption_analyzer`, `rar_encryption_analyzer`, `pdf_encryption_analyzer` | john: 10 threads (OpenMP; it links libgomp), no process; zip2john and pdf2john.pl: none | ace3 runs John only with `--wordlist`, the email body's candidates (up to `list_limit`, 5,000), and no rules, so trying each word with the format's own library gives the same password | **crate**: the wordlist tried in the task, as 4.11 does for Office, with zip, unrar and libqpdf (batch 7, `ace-mod-encrypted`), each candidate checked as John's format checks it | none; saves John's 310 MB build |
 | file (libmagic 5.46) | `archive`, `file_type`, `de4dot`, `ilspy`, `cve_2021_30657_analyzer` | none | libmagic in the task: `ace_yara::mime` for the core's mime type, and `ace-mod-files`' own cookies, from the database's bytes, for file_type's description and mime type | **crate** | none |
 | node `--check`, grep | `file_type`, `extracted_ole_analyzer` | node: 7 threads, no process | oxc_parser 0.157.0 (MIT, kept up) checks syntax; batch 2 measured it against node 24 on 850 cases, with no disagreement once the proposals V8 13.6 lacks are refused (`docs/measurements/javascript-check.md`) | **crate** | none; saves Node.js, 237 MB |
 | ssdeep 2.14.1 | `ssdeep` | none | fuzzyhash 0.2.2 (MIT, pure Rust, last release 2023) gives ssdeep's hashes but not its `-m` scores, batch 2 found (`docs/measurements/ssdeep.md`); ssdeep 0.7.0 binds libfuzzy and is GPL-3 | **runner**, in batch 10 | ssdeep 0.3 MB; GPL-2+ |
@@ -270,9 +270,9 @@ In the config's order. ace4 is the crate a ported module is in.
 | `user_defined_tagging` | `UserDefinedTaggingAnalyzer` | not yet | lookup | 7.6 | common | analysis, binary, cli, correlation, email, file |
 | `configuration_defined_tagging` | `ConfigurationDefinedTaggingAnalyzer` | not yet | core | 7.6 | common | analysis, binary, cli, correlation, email, file |
 | `site_tagger` | `SiteTagAnalyzer` | not yet | parser | 7.6 | common, file | analysis, binary, cli, correlation, email, file |
-| `zip_encryption_analyzer` | `ZipEncryptionAnalyzer` | not yet | parser | 7.5 batch 7 | file | analysis, binary, cli, correlation, email, file |
-| `rar_encryption_analyzer` | `RarEncryptionAnalyzer` | not yet | parser | 7.5 batch 7 | file | analysis, binary, cli, correlation, email, file |
-| `pdf_encryption_analyzer` | `PDFEncryptionAnalyzer` | not yet | parser | 7.5 batch 7 | file | analysis, binary, cli, correlation, email, file |
+| `zip_encryption_analyzer` | `ZipEncryptionAnalyzer` | `ace-mod-encrypted` | parser | done | file | analysis, binary, cli, correlation, email, file |
+| `rar_encryption_analyzer` | `RarEncryptionAnalyzer` | `ace-mod-encrypted` | parser | done | file | analysis, binary, cli, correlation, email, file |
+| `pdf_encryption_analyzer` | `PDFEncryptionAnalyzer` | `ace-mod-encrypted` | parser | done | file | analysis, binary, cli, correlation, email, file |
 | `alert_added_to_event` | `AlertAddedToEventAnalyzer` | not yet | core | owner | - | dispositioned |
 | `svs_yara_sample_capture` | `YaraSampleCapture` | not yet | lookup | 7.10 | - | dispositioned |
 | `svs_alert_tagger` | `SVSAlertTagger` | not yet | lookup | 7.10 | - | correlation |
@@ -1990,9 +1990,9 @@ In the config's order. ace4 is the crate a ported module is in.
 ### zip_encryption_analyzer
 
 - **Section**: `analysis_module_zip_encryption_analyzer`, class `ZipEncryptionAnalyzer` in `saq/modules/email/encryption/zip.py`, enabled by default.
-- **ace4**: not yet.
+- **ace4**: ported in `ace-mod-encrypted`. No zip2john, John or 7z: the body's candidates, from 4.11's `words_from_body`, are tried with the zip crate as John checks them, an AES entry by its verifier and HMAC, each one a hash of its own whose last cracked password ace3 keeps, and ZipCrypto by the check bytes of up to eight of the smallest entries and the smallest one's CRC. The password is what ace3 reads from John's `--show` line, up to its first `:`. The extraction is `ace-mod-archive`'s 7z, which writes an empty file for an entry the password doesn't open. `john_bin_path` and `extract_timeout` aren't settings. `crates/ace-mod-encrypted/tests/differences.md` has the rest.
 - **Pool**: parser. ace3 runs zip2john, John and 7z. As 4.11 did for Office, the task tries the email's wordlist itself, with the zip crate's ZipCrypto and AES, as `ace-mod-archive` already reads zips. 7.3 drops John: ace3 runs it only with this wordlist.
-- **Step**: 7.5 batch 7 (Encrypted files).
+- **Step**: done.
 - **Does**: For a zip with any encrypted entry, extracts its hash with zip2john, cracks it with John the Ripper using words from the carrying email, and extracts the archive with 7z using the cracked password.
 - **Input**: file.
 - **Groups and modes**: groups file; modes analysis, binary, cli, correlation, email, file.
@@ -2012,9 +2012,9 @@ In the config's order. ace4 is the crate a ported module is in.
 ### rar_encryption_analyzer
 
 - **Section**: `analysis_module_rar_encryption_analyzer`, class `RarEncryptionAnalyzer` in `saq/modules/email/encryption/rar.py`, enabled by default.
-- **ace4**: not yet.
+- **ace4**: ported in `ace-mod-encrypted`. No rar2john, John or unrar: the body's candidates are tried with libunrar (the unrar crate, single-threaded), on what rar2john hashes: the headers when they're encrypted, RAR5's first encrypted file by its check value, or the RAR4 file rar2john's rule picks, decrypted, unpacked and its CRC checked. A RAR4 file or zip entry too large for the hash ace3 reads from rar2john or zip2john, 64 MiB, is ace3's `did not finish`. `unrar x` is libunrar's extraction, adding nothing unless every file extracts. A split archive's other volumes aren't there, as a task has one file. `john_bin_path` isn't a setting.
 - **Pool**: parser. ace3 runs rar2john, John and unrar. The unrar crate `ace-mod-archive` uses takes a password, so the task tries the wordlist itself, as 4.11 did. 7.3 drops John: ace3 runs it only with this wordlist.
-- **Step**: 7.5 batch 7 (Encrypted files).
+- **Step**: done.
 - **Does**: For a RAR that rarfile says needs a password, extracts its hash with rar2john, cracks it with John the Ripper using words from the carrying email, and extracts it with unrar using the cracked password.
 - **Input**: file.
 - **Groups and modes**: groups file; modes analysis, binary, cli, correlation, email, file.
@@ -2034,9 +2034,9 @@ In the config's order. ace4 is the crate a ported module is in.
 ### pdf_encryption_analyzer
 
 - **Section**: `analysis_module_pdf_encryption_analyzer`, class `PDFEncryptionAnalyzer` in `saq/modules/email/encryption/pdf.py`, enabled by default.
-- **ace4**: not yet.
+- **ace4**: ported in `ace-mod-encrypted`. No pdf2john.pl or John: libqpdf reads the trailer and `/Encrypt` when the empty password fails, and each candidate is checked as John's PDF format checks it, as the user password only, for revisions 2 to 6. A body with only the owner password, which pikepdf would open the file with, cracks nothing, as in ace3. The copy is libqpdf's write with pikepdf's `save()` defaults, byte for byte pikepdf's but for the second `/ID`, which ace3 takes from the clock and the port from the content. `john_bin_path` isn't a setting.
 - **Pool**: parser. ace3 runs pdf2john.pl and John. libqpdf, which `ace-mod-pdf` links, opens a PDF with a password, so the task tries the wordlist itself, as 4.11 did. 7.3 drops John: ace3 runs it only with this wordlist.
-- **Step**: 7.5 batch 7 (Encrypted files).
+- **Step**: done.
 - **Does**: For a PDF that pikepdf cannot open without a user password, builds a wordlist from the carrying email, extracts the hash with pdf2john.pl, cracks it with John the Ripper and saves a decrypted copy.
 - **Input**: file.
 - **Groups and modes**: groups file; modes analysis, binary, cli, correlation, email, file.
