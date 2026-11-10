@@ -75,6 +75,14 @@ impl Target {
         }
     }
 
+    /// An email in the archive, by its archive row's id.
+    pub(crate) fn archived_email(id: i64) -> Self {
+        Target {
+            kind: "archived_email",
+            id: id.to_string(),
+        }
+    }
+
     /// A task in the queue, by its id.
     pub(crate) fn task(id: i64) -> Self {
         Target {

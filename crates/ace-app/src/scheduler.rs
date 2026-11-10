@@ -2,9 +2,12 @@
 //! (`ace3/saq/cron_tasks.py`, `ace3/docs/CRON.md`) runs from `etc/cron/<cadence>/` on yacron's
 //! schedules in `etc/cron.yaml`, here as tasks of `ace serve`.
 //!
-//! **What runs.** Of ace3's 25 core tasks (3 hourly, 20 daily, 2 weekly), four have a counterpart in
+//! **What runs.** Of ace3's 25 core tasks (3 hourly, 20 daily, 2 weekly), five have a counterpart in
 //! ace4 now, and run here on ace3's cadence (`Task::builtin`), with one of the cron jobs ace3 runs
-//! outside them, `nrd-refresh` (PLAN.md 7.4, `crate::nrd`):
+//! outside them, `nrd-refresh` (PLAN.md 7.4, `crate::nrd`). `daily/partitions` keeps the email
+//! archive's weekly partitions and ace3's analysis result cache's daily ones; ace4 has no result
+//! cache, so only the archive's half runs, a run that drops and makes nothing for the cache. A table
+//! that needs attention fails the run, with why, as ace3's exits 1:
 //!
 //! | task | ace3 | schedule | timeout | component and grant |
 //! |---|---|---|---|---|
@@ -12,6 +15,7 @@
 //! | `yara_qa_prune` | `daily/yara-qa-prune`, `ace yara-qa prune` | `0 5 * * *` | 1 h | `scheduler:yara_qa_prune`, `signature:qa_purge` |
 //! | `bucket_orphans` | `weekly/cas-orphans`, `ace cas orphans` | `0 5 * * 1` | 4 h | `scheduler:bucket_orphans`, `bucket:gc` |
 //! | `bucket_verify` | `weekly/cas-verify`, `ace cas verify` | `0 5 * * 1` | 4 h | `scheduler:bucket_verify`, `bucket:verify` |
+//! | `email_archive_partitions` | `daily/partitions`, `ace partitions maintain`, its email archive half (PLAN.md 7.5 batch 9) | `0 5 * * *` | 1 h | `scheduler:email_archive_partitions`, `email_archive:maintain` |
 //! | `nrd_refresh` | `etc/cron.yaml`'s `nrd-refresh`, `ace nrd refresh` | `*/30 * * * *` | 25 min | `scheduler:nrd_refresh`, `nrd:refresh` |
 //!
 //! The rest, and a site's one, wait for the step that brings what they maintain, or mean nothing in
@@ -101,6 +105,8 @@ pub struct TaskContext {
     pub bucket: Bucket,
     pub actor: Actor,
     pub overlay: Arc<ace_sdk::Overlay>,
+    /// The email archive's retention, which `email_archive_partitions` keeps.
+    pub archive: ace_core::email_archive::ArchiveConfig,
 }
 
 /// A run's future.
@@ -219,6 +225,33 @@ impl Task {
                 },
             ),
             Task::new(
+                "email_archive_partitions",
+                "0 5 * * *",
+                Duration::from_secs(3600),
+                |ctx| {
+                    Box::pin(async move {
+                        let done = ctx
+                            .service
+                            .maintain_email_archive(&ctx.actor, &ctx.archive, Utc::now())
+                            .await
+                            .map_err(|e| e.to_string())?;
+                        let problems: Vec<String> = done
+                            .iter()
+                            .flat_map(|table| {
+                                table
+                                    .problems
+                                    .iter()
+                                    .map(move |p| format!("{}: {p}", table.table))
+                            })
+                            .collect();
+                        Ok(Done {
+                            summary: summary(&done),
+                            error: (!problems.is_empty()).then(|| problems.join("; ")),
+                        })
+                    })
+                },
+            ),
+            Task::new(
                 "nrd_refresh",
                 "*/30 * * * *",
                 Duration::from_secs(25 * 60),
@@ -327,6 +360,8 @@ pub struct Scheduler {
     pub stop_wait: Duration,
     /// The site overlay the tasks read, such as `nrd_refresh`'s feeds.
     pub overlay: Arc<ace_sdk::Overlay>,
+    /// The email archive's retention, for `email_archive_partitions`.
+    pub archive: ace_core::email_archive::ArchiveConfig,
 }
 
 impl Scheduler {
@@ -341,7 +376,14 @@ impl Scheduler {
             poll: POLL,
             stop_wait: STOP_WAIT,
             overlay: Arc::default(),
+            archive: ace_core::email_archive::ArchiveConfig::default(),
         }
+    }
+
+    /// The scheduler with the email archive's retention (`email_archive_partitions`).
+    pub fn with_archive(mut self, archive: ace_core::email_archive::ArchiveConfig) -> Scheduler {
+        self.archive = archive;
+        self
     }
 
     /// The scheduler with the site overlay its tasks read.
@@ -399,6 +441,7 @@ impl Scheduler {
                             bucket: self.bucket.clone(),
                             actor: task.actor.clone(),
                             overlay: self.overlay.clone(),
+                            archive: self.archive.clone(),
                         };
                         runs.spawn(run_one(
                             self.db.clone(),

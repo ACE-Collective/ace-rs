@@ -68,8 +68,9 @@ pub fn parser_pool() -> ParserPool {
 }
 
 /// The network pool: the RDAP, DNS, snort signature, conversation frequency, email logger, email
-/// thread, newly registered domains, user (LDAP), Splunk and Splunk clicker detection modules, and
-/// the one that follows 1drv.ms links for the protected URL module.
+/// thread, newly registered domains, user (LDAP), Splunk and Splunk clicker detection modules, the
+/// one that follows 1drv.ms links for the protected URL module, and the four on the email archive
+/// (its archiver, the archived email opener, the URL pivot and the Message-ID analyzer).
 pub fn lookup_pool() -> LookupPool {
     LookupPool::new("lookups")
         .module::<ace_mod_rdap::RdapAnalyzer>()
@@ -83,6 +84,10 @@ pub fn lookup_pool() -> LookupPool {
         .module::<ace_mod_splunk::SplunkAnalyzer>()
         .module::<ace_mod_splunk::ClickerDetection>()
         .module::<ace_mod_values::OneDriveUrlAnalyzer>()
+        .module::<ace_mod_emailarchive::EmailArchiver>()
+        .module::<ace_mod_emailarchive::EncryptedArchiveAnalyzer>()
+        .module::<ace_mod_emailarchive::UrlEmailPivotAnalyzer>()
+        .module::<ace_mod_emailarchive::MessageIdAnalyzer>()
 }
 
 /// The open-source binaries' list: the two pools, no observable types beyond ace3's, ace3's

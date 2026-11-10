@@ -1,0 +1,259 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [],
+  "email_archive_after": {
+    "archive": [
+      {
+        "archive_id": 1,
+        "hash": "7D73E1F088A78632A2EB8A0F7CC84DEEEB5CC04839255E7F131FE01817096C20",
+        "insert_date": "2026-11-01 10:00:00"
+      },
+      {
+        "archive_id": 2,
+        "hash": "11D2EDF5B42F62CE5BBE715803624F83009C52CA9DFD6B072065CDEFA6739168",
+        "insert_date": "2026-11-02 10:00:00"
+      },
+      {
+        "archive_id": 3,
+        "hash": "B26683A1A8A9DF6CFAA4F935776C6FDDC580DEF7E04B9567A4524479431A7B03",
+        "insert_date": "2026-11-03 10:00:00"
+      },
+      {
+        "archive_id": 4,
+        "hash": "36B8FCCEC429989DF3897E1E3D57937620F391A3DB52A1F872788A0A07F184C3",
+        "insert_date": "2026-11-04 10:00:00"
+      },
+      {
+        "archive_id": 5,
+        "hash": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+        "insert_date": "2026-11-05 10:00:00"
+      }
+    ],
+    "archive_index": [
+      {
+        "archive_id": 1,
+        "field": "message_id",
+        "hash": "75CCE9DE84EB3DB11DFCCD49943019B2E46463D3F900FAA72A50523B49C3B8C6"
+      },
+      {
+        "archive_id": 1,
+        "field": "url",
+        "hash": "2EB9B5EBE9487BDC5D3BE40EAC6D740D4C3CD92A2B7583361CBB2A10D5547714"
+      },
+      {
+        "archive_id": 1,
+        "field": "url",
+        "hash": "5BD48FA66118084CC32779267A31116DC05C70BCBCA0F28E990CD58CE10AFEAE"
+      },
+      {
+        "archive_id": 2,
+        "field": "message_id",
+        "hash": "55EB9A861F4981FC6CBA622691F7E5D74A2327C47148AA757585FE7603D34636"
+      },
+      {
+        "archive_id": 2,
+        "field": "url",
+        "hash": "2EB9B5EBE9487BDC5D3BE40EAC6D740D4C3CD92A2B7583361CBB2A10D5547714"
+      },
+      {
+        "archive_id": 3,
+        "field": "message_id",
+        "hash": "55EB9A861F4981FC6CBA622691F7E5D74A2327C47148AA757585FE7603D34636"
+      },
+      {
+        "archive_id": 3,
+        "field": "url",
+        "hash": "2EB9B5EBE9487BDC5D3BE40EAC6D740D4C3CD92A2B7583361CBB2A10D5547714"
+      },
+      {
+        "archive_id": 4,
+        "field": "message_id",
+        "hash": "F4CF0B959F64ECD2B0B6D64EDAEC6D9E1878A0291C644254F10C60D4FFF62F0D"
+      },
+      {
+        "archive_id": 5,
+        "field": "message_id",
+        "hash": "DB8C62D0CFA5B33CEA6FADBF663F44F8ABCE3F6686417FFB86D3666842CC924C"
+      }
+    ],
+    "email_history": [
+      {
+        "message_id": "<archived-1@example.com>",
+        "message_id_hash": "75CCE9DE84EB3DB11DFCCD49943019B2E46463D3F900FAA72A50523B49C3B8C6",
+        "recipient": "alice@example.com",
+        "recipient_hash": "FF8D9819FC0E12BF0D24892E45987E249A28DCE836A85CAD60E28EAAA8C6D976"
+      },
+      {
+        "message_id": "<archived-1@example.com>",
+        "message_id_hash": "75CCE9DE84EB3DB11DFCCD49943019B2E46463D3F900FAA72A50523B49C3B8C6",
+        "recipient": "alice2@example.com",
+        "recipient_hash": "4AD316D0E77F739854A6D72A6646032133C43C48D72EBDCE0468DD26A1A65B52"
+      },
+      {
+        "message_id": "<archived-2@example.com>",
+        "message_id_hash": "55EB9A861F4981FC6CBA622691F7E5D74A2327C47148AA757585FE7603D34636",
+        "recipient": "bob@example.com",
+        "recipient_hash": "5FF860BF1190596C7188AB851DB691F0F3169C453936E9E1EBA2F9A47F7A0018"
+      },
+      {
+        "message_id": "<archived-2@example.com>",
+        "message_id_hash": "55EB9A861F4981FC6CBA622691F7E5D74A2327C47148AA757585FE7603D34636",
+        "recipient": "bob@example.com",
+        "recipient_hash": "5FF860BF1190596C7188AB851DB691F0F3169C453936E9E1EBA2F9A47F7A0018"
+      },
+      {
+        "message_id": "<missing-object@example.com>",
+        "message_id_hash": "F4CF0B959F64ECD2B0B6D64EDAEC6D9E1878A0291C644254F10C60D4FFF62F0D",
+        "recipient": "carol@example.com",
+        "recipient_hash": "E0D47CA1BC1EB62E650FC1FD660A9BFBF7CBA8DC6337D81DF7EA9AA9071A24A5"
+      },
+      {
+        "message_id": "<empty@example.com>",
+        "message_id_hash": "DB8C62D0CFA5B33CEA6FADBF663F44F8ABCE3F6686417FFB86D3666842CC924C",
+        "recipient": "dave@example.com",
+        "recipient_hash": "7B34211350FF567970974E1E2B98D319A601969E74FD1A957BC889B8332D00EB"
+      }
+    ]
+  },
+  "email_archive_before": {
+    "archive": [
+      {
+        "archive_id": 1,
+        "hash": "7D73E1F088A78632A2EB8A0F7CC84DEEEB5CC04839255E7F131FE01817096C20",
+        "insert_date": "2026-11-01 10:00:00"
+      },
+      {
+        "archive_id": 2,
+        "hash": "11D2EDF5B42F62CE5BBE715803624F83009C52CA9DFD6B072065CDEFA6739168",
+        "insert_date": "2026-11-02 10:00:00"
+      },
+      {
+        "archive_id": 3,
+        "hash": "B26683A1A8A9DF6CFAA4F935776C6FDDC580DEF7E04B9567A4524479431A7B03",
+        "insert_date": "2026-11-03 10:00:00"
+      },
+      {
+        "archive_id": 4,
+        "hash": "36B8FCCEC429989DF3897E1E3D57937620F391A3DB52A1F872788A0A07F184C3",
+        "insert_date": "2026-11-04 10:00:00"
+      },
+      {
+        "archive_id": 5,
+        "hash": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+        "insert_date": "2026-11-05 10:00:00"
+      }
+    ],
+    "archive_index": [
+      {
+        "archive_id": 1,
+        "field": "message_id",
+        "hash": "75CCE9DE84EB3DB11DFCCD49943019B2E46463D3F900FAA72A50523B49C3B8C6"
+      },
+      {
+        "archive_id": 1,
+        "field": "url",
+        "hash": "2EB9B5EBE9487BDC5D3BE40EAC6D740D4C3CD92A2B7583361CBB2A10D5547714"
+      },
+      {
+        "archive_id": 1,
+        "field": "url",
+        "hash": "5BD48FA66118084CC32779267A31116DC05C70BCBCA0F28E990CD58CE10AFEAE"
+      },
+      {
+        "archive_id": 2,
+        "field": "message_id",
+        "hash": "55EB9A861F4981FC6CBA622691F7E5D74A2327C47148AA757585FE7603D34636"
+      },
+      {
+        "archive_id": 2,
+        "field": "url",
+        "hash": "2EB9B5EBE9487BDC5D3BE40EAC6D740D4C3CD92A2B7583361CBB2A10D5547714"
+      },
+      {
+        "archive_id": 3,
+        "field": "message_id",
+        "hash": "55EB9A861F4981FC6CBA622691F7E5D74A2327C47148AA757585FE7603D34636"
+      },
+      {
+        "archive_id": 3,
+        "field": "url",
+        "hash": "2EB9B5EBE9487BDC5D3BE40EAC6D740D4C3CD92A2B7583361CBB2A10D5547714"
+      },
+      {
+        "archive_id": 4,
+        "field": "message_id",
+        "hash": "F4CF0B959F64ECD2B0B6D64EDAEC6D9E1878A0291C644254F10C60D4FFF62F0D"
+      },
+      {
+        "archive_id": 5,
+        "field": "message_id",
+        "hash": "DB8C62D0CFA5B33CEA6FADBF663F44F8ABCE3F6686417FFB86D3666842CC924C"
+      }
+    ],
+    "email_history": [
+      {
+        "message_id": "<archived-1@example.com>",
+        "message_id_hash": "75CCE9DE84EB3DB11DFCCD49943019B2E46463D3F900FAA72A50523B49C3B8C6",
+        "recipient": "alice@example.com",
+        "recipient_hash": "FF8D9819FC0E12BF0D24892E45987E249A28DCE836A85CAD60E28EAAA8C6D976"
+      },
+      {
+        "message_id": "<archived-1@example.com>",
+        "message_id_hash": "75CCE9DE84EB3DB11DFCCD49943019B2E46463D3F900FAA72A50523B49C3B8C6",
+        "recipient": "alice2@example.com",
+        "recipient_hash": "4AD316D0E77F739854A6D72A6646032133C43C48D72EBDCE0468DD26A1A65B52"
+      },
+      {
+        "message_id": "<archived-2@example.com>",
+        "message_id_hash": "55EB9A861F4981FC6CBA622691F7E5D74A2327C47148AA757585FE7603D34636",
+        "recipient": "bob@example.com",
+        "recipient_hash": "5FF860BF1190596C7188AB851DB691F0F3169C453936E9E1EBA2F9A47F7A0018"
+      },
+      {
+        "message_id": "<archived-2@example.com>",
+        "message_id_hash": "55EB9A861F4981FC6CBA622691F7E5D74A2327C47148AA757585FE7603D34636",
+        "recipient": "bob@example.com",
+        "recipient_hash": "5FF860BF1190596C7188AB851DB691F0F3169C453936E9E1EBA2F9A47F7A0018"
+      },
+      {
+        "message_id": "<missing-object@example.com>",
+        "message_id_hash": "F4CF0B959F64ECD2B0B6D64EDAEC6D9E1878A0291C644254F10C60D4FFF62F0D",
+        "recipient": "carol@example.com",
+        "recipient_hash": "E0D47CA1BC1EB62E650FC1FD660A9BFBF7CBA8DC6337D81DF7EA9AA9071A24A5"
+      },
+      {
+        "message_id": "<empty@example.com>",
+        "message_id_hash": "DB8C62D0CFA5B33CEA6FADBF663F44F8ABCE3F6686417FFB86D3666842CC924C",
+        "recipient": "dave@example.com",
+        "recipient_hash": "7B34211350FF567970974E1E2B98D319A601969E74FD1A957BC889B8332D00EB"
+      }
+    ]
+  },
+  "email_archive_reads": [
+    {
+      "count": 0,
+      "url_count": "http://example.com/none"
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "url http://example.com/none, against fixtures/email_archive/store.json",
+    "meta_tags": [],
+    "observable": {
+      "type": "url",
+      "value": "http://example.com/none"
+    }
+  },
+  "module": "url_email_pivot_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "relationships": [],
+    "tags": [],
+    "type": "url",
+    "value": "http://example.com/none"
+  }
+}

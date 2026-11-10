@@ -2040,3 +2040,986 @@ async fn email_thread_says_while_the_root_s_email_is_still_to_be_recorded() {
         .expect("answers");
     assert_eq!(answer["recording"], false);
 }
+
+// ---- the email archive: archived-email, decrypted-archive, archived-url-count and email-archive
+// (PLAN.md 7.5 batch 9) ----
+
+fn archive_fixture(name: &str) -> std::path::PathBuf {
+    std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../tools/ace3/dumps/fixtures/email_archive")
+        .join(name)
+}
+
+/// The test-only key ace3's archive dumps were sealed with.
+fn archive_key() -> ace_core::email_archive::ArchiveKey {
+    let hex = std::fs::read_to_string(archive_fixture("key")).expect("the key reads");
+    ace_core::email_archive::ArchiveKey::from_hex(&hex).expect("a key")
+}
+
+const ARCHIVE_MODULES: [&str; 5] = [
+    "encrypted_archive_analyzer",
+    "url_email_pivot_analyzer",
+    "message_id_analyzer_v2",
+    "email_archiver",
+    "archive",
+];
+
+/// A core whose pools run the archive's modules and archive, with the archive's key, or none.
+async fn archive_core(key: bool) -> Core {
+    let mut archive = ace_core::email_archive::ArchiveConfig::default();
+    if key {
+        archive = archive.with_key(archive_key());
+    }
+    Core::start_configured(
+        ace_core::eligibility::Catalog::new([
+            ace_mod_emailarchive::encrypted::MANIFEST,
+            ace_mod_emailarchive::pivot::MANIFEST,
+            ace_mod_emailarchive::message_id::MANIFEST,
+            ace_mod_emailarchive::archiver::MANIFEST,
+            ace_mod_archive::MANIFEST,
+        ]),
+        ace_core::modes::Modes::ace3(),
+        &ARCHIVE_MODULES,
+        Duration::from_secs(30),
+        |mut config| {
+            config.pools.push(ace_core::api::PoolAccess::new(
+                "other",
+                OTHER_TOKEN,
+                ARCHIVE_MODULES.iter().map(|m| (*m).to_owned()).collect(),
+            ));
+            config.archive(archive)
+        },
+    )
+    .await
+}
+
+fn email_archive(core: &Core) -> ace_core::email_archive::EmailArchive {
+    ace_core::email_archive::EmailArchive::new(
+        core.test_db.db().clone(),
+        core.bucket.clone(),
+        ace_core::email_archive::ArchiveConfig::default().with_key(archive_key()),
+    )
+}
+
+/// The archive ace3's Message-ID and URL dumps read: fixtures/email_archive/store.json, each email
+/// archived at its insert_date, and missing-object's object gone from the bucket's index.
+async fn seed_archive_store(core: &Core) {
+    let store: serde_json::Value = serde_json::from_str(
+        &std::fs::read_to_string(archive_fixture("store.json")).expect("reads"),
+    )
+    .expect("JSON");
+    let archive = email_archive(core);
+    for email in store["emails"].as_array().expect("emails") {
+        let bytes =
+            std::fs::read(archive_fixture(email["file"].as_str().expect("a file"))).expect("reads");
+        let recipients: Vec<&str> = email["recipients"]
+            .as_array()
+            .expect("recipients")
+            .iter()
+            .map(|r| r.as_str().expect("a recipient"))
+            .collect();
+        let urls: Vec<&str> = email["urls"]
+            .as_array()
+            .expect("urls")
+            .iter()
+            .map(|u| u.as_str().expect("a url"))
+            .collect();
+        let insert_date = chrono::NaiveDateTime::parse_from_str(
+            email["insert_date"].as_str().expect("a date"),
+            "%Y-%m-%d %H:%M:%S",
+        )
+        .expect("a date");
+        let (_, object) = archive
+            .seed(&ace_core::email_archive::Seed {
+                email: &bytes,
+                message_id: email["message_id"].as_str().expect("an id"),
+                recipients: &recipients,
+                insert_date,
+                urls: &urls,
+            })
+            .await
+            .expect("archives");
+        if email["delete_file"] == true {
+            sqlx::query("DELETE FROM store.objects WHERE pool = 'email_archive' AND sha256 = $1")
+                .bind(object.to_hex())
+                .execute(core.test_db.db().pool())
+                .await
+                .expect("loses the object");
+        }
+    }
+}
+
+/// Leases the next task of `module`, which is on the root just made.
+async fn lease_one(
+    client: &ace_pool::client::LeaseClient,
+    module: &str,
+) -> ace_sdk::wire::LeasedTask {
+    client
+        .lease(&[module.to_owned()], Duration::ZERO)
+        .await
+        .expect("leases")
+        .expect("a task")
+}
+
+/// `archived-email` answers each Message-ID ace3's dumps asked about as ace3's archive did: the newer
+/// of two archives, the plaintext in the root's files held by the root, an error for an object gone, and
+/// nothing for one never archived; and it answers only the task's own Message-ID.
+#[tokio::test]
+async fn archived_email_answers_as_ace3_s_archive_did_and_refuses_the_rest() {
+    let core = archive_core(true).await;
+    seed_archive_store(&core).await;
+    let client =
+        ace_pool::client::LeaseClient::new(&core.url, common::TOKEN, "w1").expect("a client");
+    let kind = ace_results::ObservableKind::MessageId;
+    let dumps =
+        ace_testkit::reference::Dump::all("message_id_analyzer_v2").expect("the dumps read");
+    assert_eq!(dumps.len(), 6);
+    for dump in dumps {
+        let value = dump.value["input"]["observable"]["value"]
+            .as_str()
+            .expect("a value");
+        let root = root_of(&core, kind, &[value], "message_id_analyzer_v2").await;
+        let task = lease_one(&client, "message_id_analyzer_v2").await;
+        let answer = client
+            .read(task.id, "archived-email", &serde_json::json!({}), false)
+            .await
+            .expect("answers");
+        match dump.analysis("MessageIDAnalysisV2") {
+            Some(ace3) => {
+                let file = &ace3["observables"][0];
+                assert_eq!(answer["email"]["sha256"], file["value"], "{value}");
+                assert_eq!(answer["email"]["size"], file["size"], "{value}");
+                let held: bool = sqlx::query_scalar(
+                    "SELECT EXISTS (SELECT 1 FROM store.holds WHERE pool = 'alert_files'
+                                    AND sha256 = $1 AND holder_kind = 'root' AND holder_id = $2)",
+                )
+                .bind(answer["email"]["sha256"].as_str())
+                .bind(root.to_string())
+                .fetch_one(core.test_db.db().pool())
+                .await
+                .expect("reads");
+                assert!(held, "{value}: the root holds the email");
+            }
+            None if value.contains("missing-object") => {
+                assert_eq!(answer["email"], serde_json::Value::Null);
+                assert!(
+                    answer["error"]
+                        .as_str()
+                        .expect("an error")
+                        .contains("isn't in the bucket")
+                );
+            }
+            None if value.contains("empty") => assert_eq!(answer["email"]["size"], 0, "{value}"),
+            None => assert_eq!(
+                answer,
+                serde_json::json!({"email": null, "error": null}),
+                "{value}"
+            ),
+        }
+    }
+    root_of(
+        &core,
+        kind,
+        &["<archived-1@example.com>", "<archived-2@example.com>"],
+        "message_id_analyzer_v2",
+    )
+    .await;
+    let task = lease_one(&client, "message_id_analyzer_v2").await;
+    let sibling =
+        serde_json::json!({"subject": {"type": "message_id", "value": "<archived-2@example.com>"}});
+    assert_eq!(
+        status(
+            &client
+                .read(task.id, "archived-email", &sibling, false)
+                .await
+        ),
+        Some(403)
+    );
+    root_of(
+        &core,
+        ace_results::ObservableKind::Fqdn,
+        &["x.example.com"],
+        "archive",
+    )
+    .await;
+    let archive_task = lease_one(&client, "archive").await;
+    assert_refusals(
+        &core,
+        task.id,
+        "archived-email",
+        serde_json::json!({}),
+        serde_json::json!({"subject": {"type": "message_id", "value": "<elsewhere@example.com>"}}),
+        archive_task.id,
+    )
+    .await;
+}
+
+/// `archived-url-count` counts what ace3's archive counted for each URL its dumps asked about, only
+/// for the task's own URL.
+#[tokio::test]
+async fn archived_url_count_counts_as_ace3_did_and_refuses_the_rest() {
+    let core = archive_core(true).await;
+    seed_archive_store(&core).await;
+    let client =
+        ace_pool::client::LeaseClient::new(&core.url, common::TOKEN, "w1").expect("a client");
+    let kind = ace_results::ObservableKind::Url;
+    let dumps =
+        ace_testkit::reference::Dump::all("url_email_pivot_analyzer").expect("the dumps read");
+    assert_eq!(dumps.len(), 4);
+    for dump in dumps {
+        let value = dump.value["input"]["observable"]["value"]
+            .as_str()
+            .expect("a value");
+        root_of(&core, kind, &[value], "url_email_pivot_analyzer").await;
+        let task = lease_one(&client, "url_email_pivot_analyzer").await;
+        let answer = client
+            .read(task.id, "archived-url-count", &serde_json::json!({}), false)
+            .await
+            .expect("answers");
+        let ace3 = dump.value["email_archive_reads"][0]["count"].clone();
+        assert_eq!(answer, serde_json::json!({"count": ace3}), "{value}");
+    }
+    root_of(
+        &core,
+        kind,
+        &["http://example.com/a", "http://example.com/shared"],
+        "url_email_pivot_analyzer",
+    )
+    .await;
+    let task = lease_one(&client, "url_email_pivot_analyzer").await;
+    let sibling =
+        serde_json::json!({"subject": {"type": "url", "value": "http://example.com/shared"}});
+    assert_eq!(
+        status(
+            &client
+                .read(task.id, "archived-url-count", &sibling, false)
+                .await
+        ),
+        Some(403)
+    );
+    root_of(
+        &core,
+        ace_results::ObservableKind::Fqdn,
+        &["x.example.com"],
+        "archive",
+    )
+    .await;
+    let archive_task = lease_one(&client, "archive").await;
+    assert_refusals(
+        &core,
+        task.id,
+        "archived-url-count",
+        serde_json::json!({}),
+        serde_json::json!({"subject": {"type": "url", "value": "http://elsewhere.example/"}}),
+        archive_task.id,
+    )
+    .await;
+}
+
+/// A root holding the fixture `name` at the path `name`, with a task of `module` on it.
+async fn file_root(core: &Core, path: &std::path::Path, name: &str, module: &str) -> uuid::Uuid {
+    use ace_core::tree;
+    let db = core.test_db.db();
+    let root = tree::NewRoot::new("analysis");
+    let mut tx = db.begin().await.expect("begins");
+    tree::create_root(&mut tx, &root).await.expect("creates");
+    tx.commit().await.expect("commits");
+    let sha256 = core
+        .bucket
+        .put_file(
+            ALERT_FILES,
+            path,
+            Some(&ace_core::bucket::Hold::root(root.id)),
+        )
+        .await
+        .expect("puts the file")
+        .object
+        .sha256;
+    let mut tx = db.begin().await.expect("begins");
+    let observable =
+        ace_results::NewObservable::new(ace_results::ObservableKind::File, sha256.to_hex());
+    let id = tree::upsert_observable(&mut tx, root.id, &observable)
+        .await
+        .expect("adds")
+        .id;
+    tree::add_file(&mut tx, root.id, id, name, &[])
+        .await
+        .expect("records the file");
+    ace_core::queue::enqueue(&mut tx, root.id, id, module)
+        .await
+        .expect("queues");
+    tx.commit().await.expect("commits");
+    root.id
+}
+
+/// `decrypted-archive` opens each sealed fixture ace3 opened to the same email, v0 and v1, and answers
+/// an error for the others, as ace3 logged them; a file not named .gz.e, another root's file and a core
+/// with no key are refused or answered so.
+#[tokio::test]
+async fn decrypted_archive_opens_what_ace3_opened_and_refuses_the_rest() {
+    let core = archive_core(true).await;
+    let client =
+        ace_pool::client::LeaseClient::new(&core.url, common::TOKEN, "w1").expect("a client");
+    let dumps =
+        ace_testkit::reference::Dump::all("encrypted_archive_analyzer").expect("the dumps read");
+    assert_eq!(dumps.len(), 7);
+    for dump in dumps {
+        let name = dump.short_name().to_owned();
+        file_root(
+            &core,
+            &archive_fixture(&name),
+            &name,
+            "encrypted_archive_analyzer",
+        )
+        .await;
+        let task = lease_one(&client, "encrypted_archive_analyzer").await;
+        let answer = client
+            .read(task.id, "decrypted-archive", &serde_json::json!({}), false)
+            .await;
+        if !name.ends_with(".gz.e") {
+            assert_eq!(status(&answer), Some(403), "{name}");
+            continue;
+        }
+        let answer = answer.expect("answers");
+        match dump.analysis("EncryptedArchiveAnalysis") {
+            Some(ace3) => {
+                let file = &ace3["observables"][0];
+                assert_eq!(answer["email"]["sha256"], file["value"], "{name}");
+                assert_eq!(answer["email"]["size"], file["size"], "{name}");
+            }
+            None => {
+                assert_eq!(answer["email"], serde_json::Value::Null, "{name}");
+                assert!(answer["error"].is_string(), "{name}: {answer}");
+            }
+        }
+    }
+    let root = file_root(
+        &core,
+        &archive_fixture("sealed_v1.gz.e"),
+        "sealed_v1.gz.e",
+        "encrypted_archive_analyzer",
+    )
+    .await;
+    let task = lease_one(&client, "encrypted_archive_analyzer").await;
+    assert_eq!(task.root, root);
+    root_of(
+        &core,
+        ace_results::ObservableKind::Fqdn,
+        &["x.example.com"],
+        "archive",
+    )
+    .await;
+    let archive_task = lease_one(&client, "archive").await;
+    let foreign = Sha256(sha2::Sha256::digest(b"another root's file").into()).to_hex();
+    assert_refusals(
+        &core,
+        task.id,
+        "decrypted-archive",
+        serde_json::json!({}),
+        serde_json::json!({"subject": {"type": "file", "value": foreign}}),
+        archive_task.id,
+    )
+    .await;
+
+    // a core with no key opens nothing, and says why
+    let keyless = archive_core(false).await;
+    let client =
+        ace_pool::client::LeaseClient::new(&keyless.url, common::TOKEN, "w1").expect("a client");
+    file_root(
+        &keyless,
+        &archive_fixture("sealed_v0.gz.e"),
+        "sealed_v0.gz.e",
+        "encrypted_archive_analyzer",
+    )
+    .await;
+    let task = lease_one(&client, "encrypted_archive_analyzer").await;
+    let answer = client
+        .read(task.id, "decrypted-archive", &serde_json::json!({}), false)
+        .await
+        .expect("answers");
+    assert_eq!(answer["email"], serde_json::Value::Null);
+    assert!(
+        answer["error"]
+            .as_str()
+            .expect("why")
+            .contains("no encryption key"),
+        "{answer}"
+    );
+}
+
+/// The opener and the Message-ID module run as the lookups pool runs them: each adds the email the
+/// core put in the root, with no upload, and its result lands; a result that adds a file no read put
+/// there, or from a module that declares no such read, is refused as a missing upload is (400).
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn the_archive_readers_add_the_email_the_core_opened() {
+    let core = archive_core(true).await;
+    seed_archive_store(&core).await;
+    let client =
+        ace_pool::client::LeaseClient::new(&core.url, common::TOKEN, "pool").expect("a client");
+    let modules = std::sync::Arc::new(
+        ace_pool::modules::Modules::new()
+            .with_lookup(
+                ace_pool::modules::Entry::<ace_mod_emailarchive::EncryptedArchiveAnalyzer>::lookup(
+                    None,
+                    &ace_sdk::Secrets::new(),
+                )
+                .expect("the module"),
+            )
+            .with_lookup(
+                ace_pool::modules::Entry::<ace_mod_emailarchive::MessageIdAnalyzer>::lookup(
+                    None,
+                    &ace_sdk::Secrets::new(),
+                )
+                .expect("the module"),
+            ),
+    );
+    let opened = file_root(
+        &core,
+        &archive_fixture("sealed_v0.gz.e"),
+        "sealed_v0.gz.e",
+        "encrypted_archive_analyzer",
+    )
+    .await;
+    let pulled = root_of(
+        &core,
+        ace_results::ObservableKind::MessageId,
+        &["<archived-2@example.com>"],
+        "message_id_analyzer_v2",
+    )
+    .await;
+    for _ in 0..2 {
+        let task = client
+            .lease(&[], Duration::ZERO)
+            .await
+            .expect("leases")
+            .expect("a task");
+        let end = ace_pool::run::run_in_process(
+            &client,
+            &modules,
+            task,
+            &tokio_util::sync::CancellationToken::new(),
+        )
+        .await
+        .expect("runs");
+        assert!(
+            matches!(end, ace_sdk::wire::TaskEnd::Done { .. }),
+            "{end:?}"
+        );
+    }
+    let plain = |name: &str| {
+        Sha256(sha2::Sha256::digest(std::fs::read(archive_fixture(name)).expect("reads")).into())
+            .to_hex()
+    };
+    for (root, module, sha256, path) in [
+        (
+            opened,
+            "encrypted_archive_analyzer",
+            plain("archived_1.email.rfc822"),
+            "sealed_v0.rfc822".to_owned(),
+        ),
+        (
+            pulled,
+            "message_id_analyzer_v2",
+            plain("archived_2_resent.email.rfc822"),
+            ace_mod_emailarchive::message_id::file_name("<archived-2@example.com>"),
+        ),
+    ] {
+        // the email it added gets a task of its own
+        let first: String = sqlx::query_scalar(
+            "SELECT state::text FROM queue.tasks WHERE root_id = $1 AND module = $2 ORDER BY id LIMIT 1",
+        )
+        .bind(root)
+        .bind(module)
+        .fetch_one(core.test_db.db().pool())
+        .await
+        .expect("the task");
+        assert_eq!(first, "done", "{module}");
+        let (value, file_path, tags): (String, String, Vec<String>) = sqlx::query_as(
+            "SELECT o.value, f.path, o.tags FROM analysis.observables o
+             JOIN analysis.files f ON f.root_id = o.root_id AND f.observable_id = o.id
+             WHERE o.root_id = $1 AND o.type = 'file' AND f.path = $2",
+        )
+        .bind(root)
+        .bind(&path)
+        .fetch_one(core.test_db.db().pool())
+        .await
+        .expect("the added email");
+        assert_eq!((value, file_path), (sha256, path), "{module}");
+        assert_eq!(tags, ["decrypted_email"], "{module}");
+    }
+
+    // a result naming a file nobody uploaded and the root doesn't hold is refused, and its task fails
+    let root = root_of(
+        &core,
+        ace_results::ObservableKind::MessageId,
+        &["<forged@example.com>"],
+        "message_id_analyzer_v2",
+    )
+    .await;
+    let task = lease_one(&client, "message_id_analyzer_v2").await;
+    assert_eq!(task.root, root);
+    let forged = Sha256(sha2::Sha256::digest(b"never put anywhere").into());
+    let mut result = ace_results::ResultEnvelope::new(
+        ace_results::types::email_archive::MessageIdAnalysis::default(),
+    );
+    result.files.push(ace_results::NewFile::new(
+        ace_results::AlertPath::new("forged.rfc822").expect("a path"),
+        forged,
+        18,
+    ));
+    let raw = result.to_raw().expect("JSON");
+    let refused = client
+        .end(
+            task.id,
+            &ace_sdk::wire::TaskEnd::Done {
+                result: raw,
+                writes: Vec::new(),
+            },
+        )
+        .await;
+    assert!(
+        matches!(
+            &refused,
+            Err(ace_pool::client::ClientError::Api { status: 400, .. })
+        ),
+        "{refused:?}"
+    );
+    // as for any upload that's missing: it could still be put right, so nothing lands and the task
+    // stays the worker's
+    let (state, _) = common::task_of(&core, root, "message_id_analyzer_v2").await;
+    assert_eq!(state, "running");
+    let files: i64 = sqlx::query_scalar("SELECT count(*) FROM analysis.files WHERE root_id = $1")
+        .bind(root)
+        .fetch_one(core.test_db.db().pool())
+        .await
+        .expect("counts");
+    assert_eq!(files, 0);
+
+    // nor may a module that declares no read putting a file there name one, even one its root holds
+    let root = root_of(
+        &core,
+        ace_results::ObservableKind::Url,
+        &["http://example.com/a"],
+        "url_email_pivot_analyzer",
+    )
+    .await;
+    let held = core
+        .bucket
+        .put_bytes(
+            ALERT_FILES,
+            b"a file the root holds",
+            Some(&ace_core::bucket::Hold::root(root)),
+        )
+        .await
+        .expect("puts")
+        .object;
+    let task = lease_one(&client, "url_email_pivot_analyzer").await;
+    assert_eq!(task.root, root);
+    let mut result = ace_results::ResultEnvelope::new(
+        ace_results::types::email_archive::UrlEmailPivotAnalysis::default(),
+    );
+    result.files.push(ace_results::NewFile::new(
+        ace_results::AlertPath::new("held.txt").expect("a path"),
+        held.sha256,
+        held.size,
+    ));
+    let refused = client
+        .end(
+            task.id,
+            &ace_sdk::wire::TaskEnd::Done {
+                result: result.to_raw().expect("JSON"),
+                writes: Vec::new(),
+            },
+        )
+        .await;
+    assert!(
+        matches!(
+            &refused,
+            Err(ace_pool::client::ClientError::Api { status: 400, .. })
+        ),
+        "{refused:?}"
+    );
+    let (state, _) = common::task_of(&core, root, "url_email_pivot_analyzer").await;
+    assert_eq!(state, "running");
+    let results: i64 =
+        sqlx::query_scalar("SELECT count(*) FROM analysis.results WHERE root_id = $1")
+            .bind(root)
+            .fetch_one(core.test_db.db().pool())
+            .await
+            .expect("counts");
+    assert_eq!(results, 0);
+}
+
+/// Adds the URLs ace3's root held to the root as a URL extraction result on the email would, below it.
+async fn urls_below(core: &Core, root: uuid::Uuid, email: &str, urls: &[String]) {
+    use ace_core::tree;
+    let db = core.test_db.db();
+    let mut tx = db.begin().await.expect("begins");
+    let email_id: i64 = sqlx::query_scalar(
+        "SELECT id FROM analysis.observables WHERE root_id = $1 AND type = 'file' AND value = $2",
+    )
+    .bind(root)
+    .bind(email)
+    .fetch_one(tx.conn())
+    .await
+    .expect("the email");
+    let email_id = ace_core::tree::ObservableId(email_id);
+    let result = ace_results::ResultEnvelope::new(
+        ace_results::types::url_extraction::UrlExtractionAnalysis::default(),
+    )
+    .to_raw()
+    .expect("JSON");
+    let added = tree::insert_result(&mut tx, root, email_id, "url_extraction", &result)
+        .await
+        .expect("a result");
+    for url in urls {
+        let id = tree::upsert_observable(
+            &mut tx,
+            root,
+            &ace_results::NewObservable::new(ace_results::ObservableKind::Url, url.clone()),
+        )
+        .await
+        .expect("adds")
+        .id;
+        tree::add_result_addition(&mut tx, root, added, id, None)
+            .await
+            .expect("below the email");
+    }
+    tx.commit().await.expect("commits");
+}
+
+/// The archive's rows for one email as ace3's dumps write them: its hash, each index row and each
+/// recipient, upper-case hex.
+async fn archive_rows(core: &Core, archive_id: i64) -> serde_json::Value {
+    let pool = core.test_db.db().pool();
+    let hash: Vec<u8> =
+        sqlx::query_scalar("SELECT hash FROM email_archive.archive WHERE archive_id = $1")
+            .bind(archive_id)
+            .fetch_one(pool)
+            .await
+            .expect("the row");
+    let index: Vec<(String, Vec<u8>)> =
+        sqlx::query_as("SELECT field, hash FROM email_archive.archive_index WHERE archive_id = $1")
+            .bind(archive_id)
+            .fetch_all(pool)
+            .await
+            .expect("its index");
+    let history: Vec<(String, String)> = sqlx::query_as(
+        "SELECT message_id, recipient FROM email_archive.email_history h
+         JOIN email_archive.archive a ON a.insert_date = h.insert_date
+         WHERE a.archive_id = $1 AND h.message_id_hash IN (
+             SELECT hash FROM email_archive.archive_index WHERE archive_id = $1 AND field = 'message_id')
+         ORDER BY h.id",
+    )
+    .bind(archive_id)
+    .fetch_all(pool)
+    .await
+    .expect("its recipients");
+    let upper = |bytes: &[u8]| bytes.iter().map(|b| format!("{b:02X}")).collect::<String>();
+    let mut index: Vec<serde_json::Value> = index
+        .into_iter()
+        .map(|(field, hash)| serde_json::json!({"field": field, "hash": upper(&hash)}))
+        .collect();
+    index.sort_by_key(|i| i.to_string());
+    serde_json::json!({
+        "hash": upper(&hash),
+        "index": index,
+        "history": history.into_iter().map(|(m, r)| serde_json::json!([m, r])).collect::<Vec<_>>(),
+    })
+}
+
+/// The same rows from ace3's dump.
+fn ace3_archive_rows(dump: &ace_testkit::reference::Dump) -> serde_json::Value {
+    let after = &dump.value["email_archive_after"];
+    let mut index: Vec<serde_json::Value> = after["archive_index"]
+        .as_array()
+        .expect("rows")
+        .iter()
+        .map(|i| serde_json::json!({"field": i["field"], "hash": i["hash"]}))
+        .collect();
+    index.sort_by_key(|i| i.to_string());
+    serde_json::json!({
+        "hash": after["archive"][0]["hash"],
+        "index": index,
+        "history": after["email_history"].as_array().expect("rows").iter()
+            .map(|h| serde_json::json!([h["message_id"], h["recipient"]])).collect::<Vec<_>>(),
+    })
+}
+
+/// The archiver run as the lookups pool runs it, on each email ace3 archived: its write lands with its
+/// result, the result has the archive's id, the email is sealed in the archive's pool held by its row,
+/// and once the root's analysis is done the URLs below it are indexed: the same rows as ace3's.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn the_archiver_s_write_lands_ace3_s_rows() {
+    let core = archive_core(true).await;
+    let client =
+        ace_pool::client::LeaseClient::new(&core.url, common::TOKEN, "pool").expect("a client");
+    let modules = std::sync::Arc::new(
+        ace_pool::modules::Modules::new().with_lookup(
+            ace_pool::modules::Entry::<ace_mod_emailarchive::EmailArchiver>::lookup(
+                None,
+                &ace_sdk::Secrets::new(),
+            )
+            .expect("the module"),
+        ),
+    );
+    let samples = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../samples");
+    let mut archived = 0;
+    for dump in ace_testkit::reference::Dump::all("email_archiver").expect("the dumps read") {
+        if dump.analysis("EmailArchiveResults").is_none() || dump.short_name().starts_with("local/")
+        {
+            continue;
+        }
+        archived += 1;
+        let path = samples.join(dump.short_name());
+        let (root, _) = email_root(&core, &path, "email_archiver").await;
+        let email =
+            Sha256(sha2::Sha256::digest(std::fs::read(&path).expect("reads")).into()).to_hex();
+        let urls: Vec<String> = dump.value["tree_view"]["observables"]
+            .as_array()
+            .expect("observables")
+            .iter()
+            .filter(|o| o["type"] == "url")
+            .map(|o| o["value"].as_str().expect("a url").to_owned())
+            .collect();
+        urls_below(&core, root, &email, &urls).await;
+        let task = lease_one(&client, "email_archiver").await;
+        let end = ace_pool::run::run_in_process(
+            &client,
+            &modules,
+            task,
+            &tokio_util::sync::CancellationToken::new(),
+        )
+        .await
+        .expect("runs");
+        assert!(
+            matches!(&end, ace_sdk::wire::TaskEnd::Done { writes, .. } if writes.len() == 1),
+            "{end:?}"
+        );
+        // the root's analysis is done once the tasks the result made eligible end, which this pool
+        // doesn't run
+        while let Some(task) = client.lease(&[], Duration::ZERO).await.expect("leases") {
+            assert_ne!(task.module, "email_archiver");
+            client
+                .end(
+                    task.id,
+                    &ace_sdk::wire::TaskEnd::Skipped {
+                        reason: "not here".into(),
+                        writes: Vec::new(),
+                    },
+                )
+                .await
+                .expect("ends");
+        }
+        let details: serde_json::Value = sqlx::query_scalar(
+            "SELECT details FROM analysis.results WHERE root_id = $1 AND module = 'email_archiver'",
+        )
+        .bind(root)
+        .fetch_one(core.test_db.db().pool())
+        .await
+        .expect("the result");
+        let archive_id = details["archive_id"].as_i64().expect("the archive's id");
+        assert_eq!(details["hash"], email.as_str());
+        assert_eq!(
+            archive_rows(&core, archive_id).await,
+            ace3_archive_rows(&dump),
+            "{}",
+            dump.name
+        );
+        let (object, holds): (String, i64) = sqlx::query_as(
+            "SELECT a.object_sha256, (SELECT count(*) FROM store.holds h WHERE h.pool = 'email_archive'
+                 AND h.sha256 = a.object_sha256 AND h.holder_kind = 'email_archive'
+                 AND h.holder_id = a.archive_id::text AND h.expires_at > now() + interval '30 days')
+             FROM email_archive.archive a WHERE a.archive_id = $1",
+        )
+        .bind(archive_id)
+        .fetch_one(core.test_db.db().pool())
+        .await
+        .expect("the row");
+        assert_eq!(holds, 1, "the row holds its object past retention");
+        let sealed = core
+            .bucket
+            .get("email_archive", &object.parse().expect("a sha256"))
+            .await
+            .expect("in the bucket");
+        let sealed = std::fs::read(&sealed.path).expect("reads");
+        assert!(
+            sealed.starts_with(b"ACE-GCM\x01"),
+            "sealed in ace3's v1 layout"
+        );
+        assert_eq!(
+            ace_core::email_archive::open(&archive_key(), &sealed).expect("opens"),
+            std::fs::read(&path).expect("reads")
+        );
+    }
+    assert!(archived >= 10, "{archived}");
+}
+
+/// The archive write is refused, failing its task and writing nothing, from a module that doesn't
+/// declare it, with a body that doesn't read, about another Message-ID, past its bound of recipients,
+/// twice in one end, or to a core with no key; and a lease lost before the end writes nothing.
+#[tokio::test]
+async fn the_archive_write_is_refused_unless_it_s_the_task_s_own_email() {
+    let journaled = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../samples/ace3/email/o365_journaled_multi_rcpt.email.rfc822");
+    let write = |body: serde_json::Value| ace_sdk::writes::WireWrite {
+        write: "email-archive".to_owned(),
+        body,
+    };
+    let own = |message_id: &str, recipients: usize| {
+        write(serde_json::json!({
+            "message_id": message_id,
+            "recipients": (0..recipients).map(|n| format!("r{n}@example.com")).collect::<Vec<_>>(),
+        }))
+    };
+    let result = || {
+        ace_results::ResultEnvelope::new(
+            ace_results::types::email_archive::EmailArchiveResults::default(),
+        )
+        .to_raw()
+        .expect("JSON")
+    };
+    let rows = |core: &Core| {
+        let pool = core.test_db.db().pool().clone();
+        async move {
+            sqlx::query_scalar::<_, i64>("SELECT count(*) FROM email_archive.archive")
+                .fetch_one(&pool)
+                .await
+                .expect("counts")
+        }
+    };
+    let core = archive_core(true).await;
+    let (_, email) = email_root(&core, &journaled, "archive").await;
+    let mine = email.message_id.clone().expect("a Message-ID");
+    let client =
+        ace_pool::client::LeaseClient::new(&core.url, common::TOKEN, "w1").expect("a client");
+    let refusals = [
+        ("archive", vec![own(&mine, 1)], 403),
+        (
+            "email_archiver",
+            vec![write(serde_json::json!({"message_id": 5}))],
+            400,
+        ),
+        (
+            "email_archiver",
+            vec![own("<someone-else@example.com>", 1)],
+            403,
+        ),
+        ("email_archiver", vec![own(&mine, 1001)], 403),
+        ("email_archiver", vec![own(&mine, 1), own(&mine, 1)], 403),
+    ];
+    let mut first = true;
+    for (module, writes, expected) in refusals {
+        let root = if first {
+            first = false;
+            let task = client
+                .lease(&[module.to_owned()], Duration::ZERO)
+                .await
+                .expect("leases")
+                .expect("a task");
+            let refused = client
+                .end(
+                    task.id,
+                    &ace_sdk::wire::TaskEnd::Done {
+                        result: result(),
+                        writes,
+                    },
+                )
+                .await;
+            assert!(
+                matches!(&refused, Err(ace_pool::client::ClientError::Api { status, .. }) if *status == expected),
+                "{module}: {refused:?}"
+            );
+            task.root
+        } else {
+            let (root, _) = email_root(&core, &journaled, module).await;
+            let task = client
+                .lease(&[module.to_owned()], Duration::ZERO)
+                .await
+                .expect("leases")
+                .expect("a task");
+            let refused = client
+                .end(
+                    task.id,
+                    &ace_sdk::wire::TaskEnd::Done {
+                        result: result(),
+                        writes,
+                    },
+                )
+                .await;
+            assert!(
+                matches!(&refused, Err(ace_pool::client::ClientError::Api { status, .. }) if *status == expected),
+                "{module}: {refused:?}"
+            );
+            root
+        };
+        let (state, error) = common::task_of(&core, root, module).await;
+        assert_eq!(state, "failed", "{module}");
+        assert!(error.is_some(), "{module}");
+        assert_eq!(rows(&core).await, 0, "{module}: nothing written");
+    }
+    // a lease lost before the end writes nothing; its own worker's end lands it
+    email_root(&core, &journaled, "email_archiver").await;
+    let task = client
+        .lease(&["email_archiver".to_owned()], Duration::ZERO)
+        .await
+        .expect("leases")
+        .expect("a task");
+    let lost = client
+        .as_worker("w2")
+        .end(
+            task.id,
+            &ace_sdk::wire::TaskEnd::Done {
+                result: result(),
+                writes: vec![own(&mine, 1)],
+            },
+        )
+        .await;
+    assert!(
+        matches!(lost, Err(ace_pool::client::ClientError::LeaseLost(_))),
+        "{lost:?}"
+    );
+    assert_eq!(rows(&core).await, 0);
+    client
+        .end(
+            task.id,
+            &ace_sdk::wire::TaskEnd::Done {
+                result: result(),
+                writes: vec![own(&mine, 1)],
+            },
+        )
+        .await
+        .expect("lands");
+    assert_eq!(rows(&core).await, 1);
+
+    // a core with no key can't archive, and the task fails saying so
+    let keyless = archive_core(false).await;
+    let (root, _) = email_root(&keyless, &journaled, "email_archiver").await;
+    let client =
+        ace_pool::client::LeaseClient::new(&keyless.url, common::TOKEN, "w1").expect("a client");
+    let task = client
+        .lease(&["email_archiver".to_owned()], Duration::ZERO)
+        .await
+        .expect("leases")
+        .expect("a task");
+    let refused = client
+        .end(
+            task.id,
+            &ace_sdk::wire::TaskEnd::Done {
+                result: result(),
+                writes: vec![own(&mine, 1)],
+            },
+        )
+        .await;
+    assert!(
+        matches!(
+            &refused,
+            Err(ace_pool::client::ClientError::Api { status: 403, .. })
+        ),
+        "{refused:?}"
+    );
+    let (state, error) = common::task_of(&keyless, root, "email_archiver").await;
+    assert_eq!(state, "failed");
+    assert!(error.expect("why").contains("no encryption key"));
+    assert_eq!(rows(&keyless).await, 0);
+}

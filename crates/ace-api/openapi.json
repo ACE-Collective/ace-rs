@@ -1713,6 +1713,88 @@
         }
       }
     },
+    "/api/email/v1/archive": {
+      "get": {
+        "tags": [
+          "email"
+        ],
+        "summary": "The newest archived email with this Message-ID, decrypted, as ace3's `GET /email/archive`. The\nread is in the audit record.",
+        "operationId": "archive",
+        "parameters": [
+          {
+            "name": "message_id",
+            "in": "query",
+            "description": "The Message-ID, with or without its `<` and `>`. A query parameter, as in ace3, since a\nMessage-ID can hold a `/`.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The email",
+            "content": {
+              "message/rfc822": {
+                "schema": {
+                  "$ref": "#/components/schemas/Rfc822Body"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "No message_id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold email:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No archived email has that Message-ID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "This node has no encryption key, so archived emails can't be decrypted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/events/v1/events/export/csv": {
       "get": {
         "tags": [
@@ -10374,6 +10456,11 @@
           }
         }
       },
+      "Rfc822Body": {
+        "type": "string",
+        "format": "binary",
+        "description": "An email as it arrived, RFC 822."
+      },
       "SavedFilterBody": {
         "type": "object",
         "description": "One of the caller's saved filters.",
@@ -11088,6 +11175,10 @@
     {
       "name": "crashes",
       "description": "Failed tasks, their errors and their inputs"
+    },
+    {
+      "name": "email",
+      "description": "The email archive's emails, decrypted, by Message-ID"
     },
     {
       "name": "cli",

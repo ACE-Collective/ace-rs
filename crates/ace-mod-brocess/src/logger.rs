@@ -12,6 +12,9 @@
 //!   fluent-bit (reading them with `email-thread-domains`);
 //! - records the email in brocess's thread store (the `email-thread` write).
 //!
+//! The log entry names where the email archiver archived the email, which the root's tree shows
+//! (`Module::READS_TREE`): the archive's name for its hash (`archive_path`).
+//!
 //! The writes land with the task's end, which stores no result: ace3's module creates no analysis.
 //! As in ace3, each of the four is on its own, and one that fails is logged and the rest go on.
 
@@ -19,6 +22,7 @@ use std::time::Duration;
 
 use ace_results::types::brocess::EmailLoggingAnalysis;
 use ace_results::types::email::{EmailAnalysis, EmailDetails, LogEntry};
+use ace_results::types::email_archive::{EmailArchiveResults, archive_path};
 use ace_results::{AnalysisType, ObservableKind};
 use ace_sdk::reads::{EmailThreadDomains, EmailThreadDomainsRequest, Read, ReadKind};
 use ace_sdk::writes::{EmailThread, SmtpLog, SmtpLogRow, SmtpLogRows, Write, WriteKind};
@@ -108,6 +112,9 @@ impl Module for EmailLogger {
     const REQUIRED_DIRECTIVES: &'static [&'static str] = &[ORIGINAL_EMAIL];
     const RUNS_LAST: bool = true;
     const READS_BELOW: &'static [ObservableKind] = &[ObservableKind::Url];
+    /// Whether the archiver archived the email, whose archive path goes in the log entry, as ace3
+    /// reads its `EmailArchiveResults`.
+    const READS_TREE: bool = true;
     const READS: &'static [Read] = &[EmailThreadDomains::READ];
     const WRITES: &'static [Write] = &[SmtpLog::WRITE, EmailThread::WRITE];
     const STORES_RESULTS: bool = false;
@@ -163,7 +170,15 @@ impl Lookup for EmailLogger {
         }
 
         let mut records = Vec::new();
-        let entry = entry(&email.log_entry, &urls)?;
+        // ace3 logs where the archiver archived the email, named from its base directory
+        let archive_path = ctx
+            .tree()
+            .filter(|tree| {
+                tree.result_of(tree.this, EmailArchiveResults::NAME)
+                    .is_some()
+            })
+            .map(|_| archive_path(&ctx.observable().value));
+        let entry = entry(&email.log_entry, &urls, archive_path)?;
         if settings.fluent_bit_logging_enabled {
             match fluent_records(&settings.fluent_bit_tags, entry.clone()) {
                 Ok(main) => records.extend(main),
@@ -212,16 +227,19 @@ pub fn smtplog_rows(entry: &LogEntry) -> Option<SmtpLogRows> {
     (!rows.is_empty()).then_some(SmtpLogRows { rows })
 }
 
-/// The log entry with the URLs found in the email and where it was archived, which no ported
-/// module records yet.
-fn entry(log_entry: &LogEntry, urls: &[String]) -> Result<Map<String, Value>, ModuleError> {
+/// The log entry with the URLs found in the email and where it was archived.
+fn entry(
+    log_entry: &LogEntry,
+    urls: &[String],
+    archive_path: Option<String>,
+) -> Result<Map<String, Value>, ModuleError> {
     let Value::Object(mut entry) = serde_json::to_value(log_entry)
         .map_err(|e| ModuleError::other(format!("the log entry doesn't serialize: {e}")))?
     else {
         return Err(ModuleError::other("the log entry isn't an object"));
     };
     entry.insert("extracted_urls".to_owned(), json!(urls));
-    entry.insert("archive_path".to_owned(), Value::Null);
+    entry.insert("archive_path".to_owned(), archive_path.into());
     Ok(entry)
 }
 

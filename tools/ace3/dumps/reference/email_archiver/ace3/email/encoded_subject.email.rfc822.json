@@ -1,0 +1,796 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "email_analyzer",
+    "file_type",
+    "url_extraction"
+  ],
+  "analyses": [
+    {
+      "class": "EmailAnalysis",
+      "details": {
+        "email": {
+          "authentication_failed": false,
+          "compauth_reason": null,
+          "compauth_result": null,
+          "decoded_subject": "Test Encoded Subject",
+          "dkim_result": null,
+          "dmarc_result": null,
+          "env_mail_from": null,
+          "env_rcpt_to": [],
+          "from": "Sender <sender@example.com>",
+          "from_address": "sender@example.com",
+          "headers": [
+            [
+              "Return-Path",
+              "<sender@example.com>"
+            ],
+            [
+              "Delivered-To",
+              "recipient@example.com"
+            ],
+            [
+              "Received",
+              "from mail.example.com (mail.example.com [192.0.2.1])\n\tby mx.example.com (Postfix) with ESMTPS id ABC123\n\tfor <recipient@example.com>; Mon, 01 Jan 2024 12:00:00 +0000 (UTC)"
+            ],
+            [
+              "From",
+              "Sender <sender@example.com>"
+            ],
+            [
+              "To",
+              "recipient@example.com"
+            ],
+            [
+              "Subject",
+              "Test Encoded Subject"
+            ],
+            [
+              "Message-ID",
+              "<test-encoded-subject@example.com>"
+            ],
+            [
+              "Date",
+              "Mon, 01 Jan 2024 12:00:00 +0000"
+            ],
+            [
+              "MIME-Version",
+              "1.0"
+            ],
+            [
+              "Content-Type",
+              "text/plain; charset=\"utf-8\""
+            ],
+            [
+              "Content-Transfer-Encoding",
+              "7bit"
+            ]
+          ],
+          "internal_org_sender": false,
+          "is_anonymous_direct_send": false,
+          "log_entry": {
+            "attachment_count": 1,
+            "attachment_hashes": [
+              "44178468d6e35e7038d5d2664500c94151f8c1faecea6087a6270b8979b2d85b"
+            ],
+            "attachment_names": [
+              "email.rfc822.unknown_text_plain_000.txt"
+            ],
+            "attachment_sizes": [
+              55
+            ],
+            "attachment_types": [
+              "text/plain"
+            ],
+            "authentication_failed": false,
+            "bcc": [],
+            "cc": [],
+            "compauth_reason": null,
+            "compauth_result": null,
+            "date": "2026-11-10 08:30:08.672664 +0000",
+            "dkim_result": null,
+            "dmarc_result": null,
+            "env_mail_from": null,
+            "env_rcpt_to": [],
+            "first_received": "from mail.example.com (mail.example.com [192.0.2.1])\n\tby mx.example.com (Postfix) with ESMTPS id ABC123\n\tfor <recipient@example.com>; Mon, 01 Jan 2024 12:00:00 +0000 (UTC)",
+            "headers": [
+              "Return-Path: <sender@example.com>",
+              "Delivered-To: recipient@example.com",
+              "Received: from mail.example.com (mail.example.com [192.0.2.1])by mx.example.com (Postfix) with ESMTPS id ABC123for <recipient@example.com>; Mon, 01 Jan 2024 12:00:00 +0000 (UTC)",
+              "From: Sender <sender@example.com>",
+              "To: recipient@example.com",
+              "Subject: Test Encoded Subject",
+              "Message-ID: <test-encoded-subject@example.com>",
+              "Date: Mon, 01 Jan 2024 12:00:00 +0000",
+              "MIME-Version: 1.0",
+              "Content-Type: text/plain; charset=\"utf-8\"",
+              "Content-Transfer-Encoding: 7bit"
+            ],
+            "in_reply_to": null,
+            "internal_org_sender": false,
+            "is_anonymous_direct_send": false,
+            "last_received": "from mail.example.com (mail.example.com [192.0.2.1])\n\tby mx.example.com (Postfix) with ESMTPS id ABC123\n\tfor <recipient@example.com>; Mon, 01 Jan 2024 12:00:00 +0000 (UTC)",
+            "mail_from": "Sender <sender@example.com>",
+            "mail_from_is_local": false,
+            "mail_to": [
+              "recipient@example.com"
+            ],
+            "message_directionality": null,
+            "message_id": "<test-encoded-subject@example.com>",
+            "originating_ip": null,
+            "path": [
+              "mail.example.com [192.0.2.1]"
+            ],
+            "refereneces": null,
+            "reply_to": null,
+            "size": 595,
+            "spf_result": null,
+            "spoofed_internal": false,
+            "subject": "Test Encoded Subject",
+            "subject_raw": "=?UTF-8?B?VGVzdCBFbmNvZGVkIFN1YmplY3Q=?=",
+            "thread_index": null,
+            "thread_topic": null,
+            "user_agent": null,
+            "x_mailer": null,
+            "x_sender": null
+          },
+          "mail_from_is_local": false,
+          "message-id": "<test-encoded-subject@example.com>",
+          "message_directionality": null,
+          "return_path": "sender@example.com",
+          "spf_result": null,
+          "spoofed_internal": false,
+          "subject": "=?UTF-8?B?VGVzdCBFbmNvZGVkIFN1YmplY3Q=?=",
+          "to": [
+            "recipient@example.com"
+          ],
+          "to_addresses": [
+            "recipient@example.com"
+          ]
+        },
+        "extraction_errors": [],
+        "parsing_error": null
+      },
+      "detections": [],
+      "module_path": "saq.modules.email.rfc822:EmailAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_from",
+          "value": "sender@example.com"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_to",
+          "value": "recipient@example.com"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_conversation",
+          "value": "sender@example.com|recipient@example.com"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_subject",
+          "value": "=?UTF-8?B?VGVzdCBFbmNvZGVkIFN1YmplY3Q=?="
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [
+            "saq.modules.email.message_id:<class 'saq.modules.email.message_id.MessageIDAnalyzerV2'>"
+          ],
+          "relationships": [],
+          "tags": [],
+          "time": "2024-01-01 12:00:00+00:00",
+          "type": "message_id",
+          "value": "<test-encoded-subject@example.com>"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_return_path",
+          "value": "sender@example.com"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "display_type": "Decoded Subject",
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_subject",
+          "value": "Test Encoded Subject"
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls",
+            "preview",
+            "yara_meta:type=email.attachment"
+          ],
+          "excluded_analysis": [],
+          "file_path": "email.rfc822.unknown_text_plain_000.txt",
+          "relationships": [],
+          "size": 55,
+          "tags": [],
+          "type": "file",
+          "value": "44178468d6e35e7038d5d2664500c94151f8c1faecea6087a6270b8979b2d85b",
+          "yara_meta": [
+            "type=email.attachment"
+          ]
+        },
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=email",
+            "yara_meta:type=email.headers"
+          ],
+          "excluded_analysis": [
+            "saq.modules.email.rfc822:<class 'saq.modules.email.rfc822.EmailAnalyzer'>"
+          ],
+          "file_path": "email.rfc822.headers",
+          "relationships": [],
+          "size": 518,
+          "tags": [
+            "email"
+          ],
+          "type": "file",
+          "value": "a5f2f472e5321eab3e189418aba5185b15f38c06bb7f3a61a0a08605861f50e4",
+          "yara_meta": [
+            "type=email",
+            "type=email.headers"
+          ]
+        },
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=email",
+            "yara_meta:type=email.combined"
+          ],
+          "excluded_analysis": [
+            "saq.modules.email.rfc822:<class 'saq.modules.email.rfc822.EmailAnalyzer'>"
+          ],
+          "file_path": "email.rfc822.combined",
+          "relationships": [],
+          "size": 577,
+          "tags": [
+            "email"
+          ],
+          "type": "file",
+          "value": "121bc942650b4c4b89c9d41a5d2f72f55e83e23aed9bed1bef128af98859fa02",
+          "yara_meta": [
+            "type=email",
+            "type=email.combined"
+          ]
+        }
+      ],
+      "summary": "Email Analysis: From Sender <sender@example.com> To recipient@example.com Subject Test Encoded Subject",
+      "tags": []
+    },
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": true,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "message/rfc822",
+        "type": "SMTP mail, ASCII text"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: SMTP mail, ASCII text (message/rfc822) (email)",
+      "tags": []
+    }
+  ],
+  "email_archive_after": {
+    "archive": [],
+    "archive_index": [],
+    "email_history": []
+  },
+  "email_archive_before": {
+    "archive": [],
+    "archive_index": [],
+    "email_history": []
+  },
+  "email_archive_reads": [],
+  "input": {
+    "directives": [
+      "archive"
+    ],
+    "label": "ace3/email/encoded_subject.email.rfc822 with the archive directive, against an empty archive",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "email.rfc822",
+      "size": 595,
+      "type": "file",
+      "value": "fd6a8dabab9eac75144c14fcb540537e43a9a1e4524739362393be5bafeebe8f"
+    }
+  },
+  "module": "email_archiver",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "archive",
+      "yara_meta:type=email"
+    ],
+    "excluded_analysis": [],
+    "file_path": "email.rfc822",
+    "relationships": [],
+    "size": 595,
+    "tags": [
+      "email"
+    ],
+    "type": "file",
+    "value": "fd6a8dabab9eac75144c14fcb540537e43a9a1e4524739362393be5bafeebe8f",
+    "yara_meta": [
+      "type=email"
+    ]
+  },
+  "root_after": {
+    "description": "ace4 reference dump",
+    "details": {
+      "comment": "ace4 reference dump"
+    }
+  },
+  "tree_view": {
+    "alert_type": "cli_analysis",
+    "bodies": {},
+    "observables": [
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_subject",
+        "value": "Test Encoded Subject"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "message_id",
+        "value": "<test-encoded-subject@example.com>"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "archive"
+        ],
+        "paths": [
+          {
+            "path": "email.rfc822",
+            "yara_meta": [
+              "type=email"
+            ]
+          }
+        ],
+        "size": 595,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "fd6a8dabab9eac75144c14fcb540537e43a9a1e4524739362393be5bafeebe8f"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_to",
+        "value": "recipient@example.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [
+          {
+            "path": "email.rfc822.combined",
+            "yara_meta": [
+              "type=email",
+              "type=email.combined"
+            ]
+          }
+        ],
+        "size": 577,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "121bc942650b4c4b89c9d41a5d2f72f55e83e23aed9bed1bef128af98859fa02"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_conversation",
+        "value": "sender@example.com|recipient@example.com"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "extract_urls",
+          "preview"
+        ],
+        "paths": [
+          {
+            "path": "email.rfc822.unknown_text_plain_000.txt",
+            "yara_meta": [
+              "type=email.attachment"
+            ]
+          }
+        ],
+        "size": 55,
+        "tags": [],
+        "type": "file",
+        "value": "44178468d6e35e7038d5d2664500c94151f8c1faecea6087a6270b8979b2d85b"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_return_path",
+        "value": "sender@example.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_subject",
+        "value": "=?UTF-8?B?VGVzdCBFbmNvZGVkIFN1YmplY3Q=?="
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [
+          {
+            "path": "email.rfc822.headers",
+            "yara_meta": [
+              "type=email",
+              "type=email.headers"
+            ]
+          }
+        ],
+        "size": 518,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "a5f2f472e5321eab3e189418aba5185b15f38c06bb7f3a61a0a08605861f50e4"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_from",
+        "value": "sender@example.com"
+      }
+    ],
+    "results": [
+      {
+        "added": [
+          {
+            "observable": 10
+          },
+          {
+            "observable": 3
+          },
+          {
+            "observable": 5
+          },
+          {
+            "observable": 8
+          },
+          {
+            "observable": 1
+          },
+          {
+            "observable": 7
+          },
+          {
+            "observable": 0
+          },
+          {
+            "observable": 6,
+            "path": "email.rfc822.unknown_text_plain_000.txt"
+          },
+          {
+            "observable": 9,
+            "path": "email.rfc822.headers"
+          },
+          {
+            "observable": 4,
+            "path": "email.rfc822.combined"
+          }
+        ],
+        "class": "EmailAnalysis",
+        "details": {
+          "email": {
+            "authentication_failed": false,
+            "compauth_reason": null,
+            "compauth_result": null,
+            "decoded_subject": "Test Encoded Subject",
+            "dkim_result": null,
+            "dmarc_result": null,
+            "env_mail_from": null,
+            "env_rcpt_to": [],
+            "from": "Sender <sender@example.com>",
+            "from_address": "sender@example.com",
+            "headers": [
+              [
+                "Return-Path",
+                "<sender@example.com>"
+              ],
+              [
+                "Delivered-To",
+                "recipient@example.com"
+              ],
+              [
+                "Received",
+                "from mail.example.com (mail.example.com [192.0.2.1])\n\tby mx.example.com (Postfix) with ESMTPS id ABC123\n\tfor <recipient@example.com>; Mon, 01 Jan 2024 12:00:00 +0000 (UTC)"
+              ],
+              [
+                "From",
+                "Sender <sender@example.com>"
+              ],
+              [
+                "To",
+                "recipient@example.com"
+              ],
+              [
+                "Subject",
+                "Test Encoded Subject"
+              ],
+              [
+                "Message-ID",
+                "<test-encoded-subject@example.com>"
+              ],
+              [
+                "Date",
+                "Mon, 01 Jan 2024 12:00:00 +0000"
+              ],
+              [
+                "MIME-Version",
+                "1.0"
+              ],
+              [
+                "Content-Type",
+                "text/plain; charset=\"utf-8\""
+              ],
+              [
+                "Content-Transfer-Encoding",
+                "7bit"
+              ]
+            ],
+            "internal_org_sender": false,
+            "is_anonymous_direct_send": false,
+            "log_entry": {
+              "attachment_count": 1,
+              "attachment_hashes": [
+                "44178468d6e35e7038d5d2664500c94151f8c1faecea6087a6270b8979b2d85b"
+              ],
+              "attachment_names": [
+                "email.rfc822.unknown_text_plain_000.txt"
+              ],
+              "attachment_sizes": [
+                55
+              ],
+              "attachment_types": [
+                "text/plain"
+              ],
+              "authentication_failed": false,
+              "bcc": [],
+              "cc": [],
+              "compauth_reason": null,
+              "compauth_result": null,
+              "date": "2026-11-10 08:30:08.672664 +0000",
+              "dkim_result": null,
+              "dmarc_result": null,
+              "env_mail_from": null,
+              "env_rcpt_to": [],
+              "first_received": "from mail.example.com (mail.example.com [192.0.2.1])\n\tby mx.example.com (Postfix) with ESMTPS id ABC123\n\tfor <recipient@example.com>; Mon, 01 Jan 2024 12:00:00 +0000 (UTC)",
+              "headers": [
+                "Return-Path: <sender@example.com>",
+                "Delivered-To: recipient@example.com",
+                "Received: from mail.example.com (mail.example.com [192.0.2.1])by mx.example.com (Postfix) with ESMTPS id ABC123for <recipient@example.com>; Mon, 01 Jan 2024 12:00:00 +0000 (UTC)",
+                "From: Sender <sender@example.com>",
+                "To: recipient@example.com",
+                "Subject: Test Encoded Subject",
+                "Message-ID: <test-encoded-subject@example.com>",
+                "Date: Mon, 01 Jan 2024 12:00:00 +0000",
+                "MIME-Version: 1.0",
+                "Content-Type: text/plain; charset=\"utf-8\"",
+                "Content-Transfer-Encoding: 7bit"
+              ],
+              "in_reply_to": null,
+              "internal_org_sender": false,
+              "is_anonymous_direct_send": false,
+              "last_received": "from mail.example.com (mail.example.com [192.0.2.1])\n\tby mx.example.com (Postfix) with ESMTPS id ABC123\n\tfor <recipient@example.com>; Mon, 01 Jan 2024 12:00:00 +0000 (UTC)",
+              "mail_from": "Sender <sender@example.com>",
+              "mail_from_is_local": false,
+              "mail_to": [
+                "recipient@example.com"
+              ],
+              "message_directionality": null,
+              "message_id": "<test-encoded-subject@example.com>",
+              "originating_ip": null,
+              "path": [
+                "mail.example.com [192.0.2.1]"
+              ],
+              "refereneces": null,
+              "reply_to": null,
+              "size": 595,
+              "spf_result": null,
+              "spoofed_internal": false,
+              "subject": "Test Encoded Subject",
+              "subject_raw": "=?UTF-8?B?VGVzdCBFbmNvZGVkIFN1YmplY3Q=?=",
+              "thread_index": null,
+              "thread_topic": null,
+              "user_agent": null,
+              "x_mailer": null,
+              "x_sender": null
+            },
+            "mail_from_is_local": false,
+            "message-id": "<test-encoded-subject@example.com>",
+            "message_directionality": null,
+            "return_path": "sender@example.com",
+            "spf_result": null,
+            "spoofed_internal": false,
+            "subject": "=?UTF-8?B?VGVzdCBFbmNvZGVkIFN1YmplY3Q=?=",
+            "to": [
+              "recipient@example.com"
+            ],
+            "to_addresses": [
+              "recipient@example.com"
+            ]
+          },
+          "extraction_errors": [],
+          "parsing_error": null
+        },
+        "module": "email_analyzer",
+        "observable": 2,
+        "summary": "Email Analysis: From Sender <sender@example.com> To recipient@example.com Subject Test Encoded Subject",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": true,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "message/rfc822",
+          "type": "SMTP mail, ASCII text"
+        },
+        "module": "file_type",
+        "observable": 2,
+        "summary": "File Type Analysis: SMTP mail, ASCII text (message/rfc822) (email)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": true,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "message/rfc822",
+          "type": "SMTP mail, ASCII text"
+        },
+        "module": "file_type",
+        "observable": 4,
+        "summary": "File Type Analysis: SMTP mail, ASCII text (message/rfc822) (email)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "text/plain",
+          "type": "ASCII text"
+        },
+        "module": "file_type",
+        "observable": 6,
+        "summary": "File Type Analysis: ASCII text (text/plain)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "URLExtractionAnalysis",
+        "details": {
+          "urls": [],
+          "urls_grouped_by_domain": {}
+        },
+        "module": "url_extraction",
+        "observable": 6,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": true,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "message/rfc822",
+          "type": "SMTP mail, ASCII text"
+        },
+        "module": "file_type",
+        "observable": 9,
+        "summary": "File Type Analysis: SMTP mail, ASCII text (message/rfc822) (email)",
+        "tags": []
+      }
+    ],
+    "whitelisted": false
+  }
+}

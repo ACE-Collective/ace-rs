@@ -189,6 +189,8 @@ pub async fn check_completion(tx: &mut Tx<'_>, root: Uuid) -> Result<Option<i32>
         .execute(tx.conn())
         .await?;
         tracing::info!(%root, pass, "the root's analysis pass completed");
+        // ace3's email archiver indexes the URLs below an email it archived in its post-analysis
+        crate::email_archive::index_urls(tx, root).await?;
     }
     Ok(pass)
 }

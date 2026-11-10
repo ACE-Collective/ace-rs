@@ -314,6 +314,104 @@ pub struct NewlyRegisteredAnswer {
     pub listed: bool,
 }
 
+/// A file a read put in the task's root (`archived-email`, `decrypted-archive`): its bytes are in
+/// the bucket's `alert_files` pool, held by the root, so a result adds it by its sha256 and size
+/// as a `NewFile` with no upload (`reads.md`).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ReadFile {
+    pub sha256: String,
+    pub size: u64,
+}
+
+/// `archived-email`: the newest archived email with the task's Message-ID, decrypted in the core
+/// and put in the task's root (`message_id_analyzer_v2`).
+pub struct ArchivedEmail;
+
+impl ReadKind for ArchivedEmail {
+    const READ: Read = Read {
+        name: "archived-email",
+    };
+    type Request = ArchivedEmailRequest;
+    type Answer = ArchivedEmailAnswer;
+}
+
+/// The subject of an `archived-email` read: only the task's own `message_id` observable, which None
+/// names.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ArchivedEmailRequest {
+    #[serde(default)]
+    pub subject: Option<ObservableRef>,
+}
+
+/// The answer to an `archived-email` read. Neither is set when no email with the Message-ID is
+/// archived.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ArchivedEmailAnswer {
+    /// The archived email, decrypted and gunzipped.
+    pub email: Option<ReadFile>,
+    /// Why an email that is archived couldn't be opened, such as an object the bucket no longer
+    /// has, a core with no encryption key, or one past the core's bound.
+    pub error: Option<String>,
+}
+
+/// `decrypted-archive`: the task's own file, an archived email (`.gz.e`), decrypted and gunzipped
+/// in the core and put in the task's root (`encrypted_archive_analyzer`).
+pub struct DecryptedArchive;
+
+impl ReadKind for DecryptedArchive {
+    const READ: Read = Read {
+        name: "decrypted-archive",
+    };
+    type Request = DecryptedArchiveRequest;
+    type Answer = DecryptedArchiveAnswer;
+}
+
+/// The subject of a `decrypted-archive` read: only the task's own file, which None names.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DecryptedArchiveRequest {
+    #[serde(default)]
+    pub subject: Option<ObservableRef>,
+}
+
+/// The answer to a `decrypted-archive` read: the email, or why the file couldn't be opened.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DecryptedArchiveAnswer {
+    pub email: Option<ReadFile>,
+    pub error: Option<String>,
+}
+
+/// `archived-url-count`: how many archived emails are indexed with the task's URL
+/// (`url_email_pivot_analyzer`).
+pub struct ArchivedUrlCount;
+
+impl ReadKind for ArchivedUrlCount {
+    const READ: Read = Read {
+        name: "archived-url-count",
+    };
+    type Request = ArchivedUrlCountRequest;
+    type Answer = ArchivedUrlCountAnswer;
+}
+
+/// An `archived-url-count` read's subject is only the task's own `url` observable, which None names.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ArchivedUrlCountRequest {
+    #[serde(default)]
+    pub subject: Option<ObservableRef>,
+}
+
+/// The answer to an `archived-url-count` read: ace3's `COUNT(DISTINCT archive_id)`, 0 for none.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ArchivedUrlCountAnswer {
+    pub count: i64,
+}
+
 /// Every read a module can declare, by name.
 pub const ALL: &[Read] = &[
     SnortSignature::READ,
@@ -321,4 +419,10 @@ pub const ALL: &[Read] = &[
     EmailThreadDomains::READ,
     EmailThread::READ,
     NewlyRegistered::READ,
+    ArchivedEmail::READ,
+    DecryptedArchive::READ,
+    ArchivedUrlCount::READ,
 ];
+
+/// The reads that put a file in the task's root, which a result may add without uploading it.
+pub const FILE_READS: &[Read] = &[ArchivedEmail::READ, DecryptedArchive::READ];

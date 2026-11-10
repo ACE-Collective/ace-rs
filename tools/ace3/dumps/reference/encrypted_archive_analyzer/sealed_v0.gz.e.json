@@ -1,0 +1,61 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "EncryptedArchiveAnalysis",
+      "details": {
+        "decrypted_file": "files/sealed_v0.rfc822"
+      },
+      "detections": [],
+      "module_path": "saq.modules.email.archive:EncryptedArchiveAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=email"
+          ],
+          "excluded_analysis": [],
+          "file_path": "sealed_v0.rfc822",
+          "relationships": [],
+          "size": 317,
+          "tags": [
+            "decrypted_email"
+          ],
+          "type": "file",
+          "value": "7d73e1f088a78632a2eb8a0f7cc84deeeb5cc04839255e7f131fe01817096c20",
+          "yara_meta": [
+            "type=email"
+          ]
+        }
+      ],
+      "summary": "Encrypted Archive Analysis - retrieved files/sealed_v0.rfc822",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/email_archive/sealed_v0.gz.e",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "sealed_v0.gz.e",
+      "size": 275,
+      "type": "file",
+      "value": "6a6cdf50d57f41658ebe3d1c00d5186c50b2060887abd6715799bec7589ba593"
+    }
+  },
+  "module": "encrypted_archive_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "sealed_v0.gz.e",
+    "relationships": [],
+    "size": 275,
+    "tags": [],
+    "type": "file",
+    "value": "6a6cdf50d57f41658ebe3d1c00d5186c50b2060887abd6715799bec7589ba593",
+    "yara_meta": []
+  }
+}

@@ -12,7 +12,10 @@
 //! (`ACE4_POOLS`, by default the binary's own; `ACE4_POOL_TOKEN_<POOL>`, see `ApiConfig::from_env`),
 //! `ACE4_API_LISTEN` for the lease API (default `0.0.0.0:8080`), `ACE4_WEB_LISTEN` for the JSON API and
 //! the GUI (default `0.0.0.0:8000`), `ACE4_WEB_TLS` (`false`), `ACE4_MAX_SUBMISSION_BYTES` (1 GiB), `ACE4_CACHE_DIR` for the node's bucket
-//! cache, and the site overlay at `ACE4_OVERLAY` (`site`).
+//! cache, the site overlay at `ACE4_OVERLAY` (`site`), and the email archive's key in
+//! `ACE4_ENCRYPTION_KEY`, 64 hex digits, with its retention (`ace_core::email_archive::ArchiveConfig`).
+//! Only this process holds the key: the core seals and opens archived emails for the workers, which
+//! never see it.
 //!
 //! The two APIs listen apart. A pool holds a token for the lease API and nothing else, and the lease
 //! API's dev tokens are defaults in this repository, while the JSON API takes 5.4's keys and sessions.
@@ -70,6 +73,20 @@ async fn serve(app: &App) -> Result<ExitCode> {
             .with_context(|| format!("the cache in {}", cache_dir.display()))?,
     );
     let bucket = Bucket::new(db.clone(), store, BucketSettings::default());
+    // the email archive's key stays in this process: workers ask the core to seal and open
+    let archive_config = ace_core::email_archive::ArchiveConfig::from_env()
+        .map_err(anyhow::Error::msg)
+        .context("the email archive's settings")?;
+    if archive_config.key.is_none() {
+        tracing::warn!(
+            "ACE4_ENCRYPTION_KEY isn't set: the email archive can't archive or open an email"
+        );
+    }
+    let archive = ace_core::email_archive::EmailArchive::new(
+        db.clone(),
+        bucket.clone(),
+        archive_config.clone(),
+    );
     let signatures = SignatureRepo::from_env();
     let overlay = crate::cli::overlay()?;
     let components = crate::cli::components(&app.registry(), &overlay)?;
@@ -79,14 +96,17 @@ async fn serve(app: &App) -> Result<ExitCode> {
     let modes = app.modes_with(&components);
     let orchestrator = Orchestrator::new(Catalog::of(components), modes);
     // a pool that lists a module leases its overlay instances too
-    let config = ApiConfig::from_env(&app.pool_list()).with_instances(orchestrator.catalog());
+    let config = ApiConfig::from_env(&app.pool_list())
+        .with_instances(orchestrator.catalog())
+        .archive(archive_config.clone());
     for pool in &config.pools {
         tracing::info!(pool = %pool.name, modules = ?pool.modules, "serving a pool");
     }
     let service = ace_service::Service::new(db.clone(), orchestrator.clone());
     let scheduler =
         crate::scheduler::Scheduler::new(db.clone(), service.clone(), bucket.clone(), scheduled)
-            .with_overlay(overlay.clone());
+            .with_overlay(overlay.clone())
+            .with_archive(archive_config);
     let web_config = ace_api::WebConfig::from_env().map_err(anyhow::Error::msg)?;
     for (module, name, version) in app.modules_without_a_view() {
         tracing::warn!(
@@ -99,8 +119,9 @@ async fn serve(app: &App) -> Result<ExitCode> {
     let gui = ace_gui::Gui::new(service.clone(), web_config.transport)
         .with_views(app.views().clone())
         .with_actions(app.actions().clone());
-    let web =
-        ace_api::Web::new(service, bucket.clone(), web_config).with_hunts(ace_api::HuntSupport {
+    let web = ace_api::Web::new(service, bucket.clone(), web_config)
+        .with_email_archive(archive)
+        .with_hunts(ace_api::HuntSupport {
             types: app.hunt_types().to_vec(),
             email: ace_mod_email::py::normalize_email_address,
             valid_type: |t| t.parse::<ace_results::ObservableKind>().is_ok(),

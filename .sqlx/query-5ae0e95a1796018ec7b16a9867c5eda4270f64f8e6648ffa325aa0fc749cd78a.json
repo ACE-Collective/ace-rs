@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT a.object_sha256 FROM email_archive.archive a\n               JOIN store.objects o ON o.pool = $2 AND o.sha256 = a.object_sha256\n               WHERE a.hash = $1 AND o.state = 'present'\n               ORDER BY a.insert_date DESC LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "object_sha256",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "email_archive.archive",
+            "name": "object_sha256"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Bytea",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "5ae0e95a1796018ec7b16a9867c5eda4270f64f8e6648ffa325aa0fc749cd78a"
+}

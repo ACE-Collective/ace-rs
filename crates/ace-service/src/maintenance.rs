@@ -1,5 +1,6 @@
 //! The bucket's scheduled maintenance (PLAN.md 6.7): ace3's hourly `ace cas gc`, weekly `ace cas
-//! orphans` and weekly `ace cas verify`, which the scheduler in `ace serve` calls, each as a component
+//! orphans` and weekly `ace cas verify`, and the email archive's daily `ace partitions maintain`
+//! (`maintain_email_archive`, 7.5 batch 9), which the scheduler in `ace serve` calls, each as a component
 //! of its own (`scheduler:bucket_gc`, `scheduler:bucket_orphans`, `scheduler:bucket_verify`), which
 //! migration 0036 grants `bucket:gc` or `bucket:verify` and nothing else.
 //!
@@ -21,7 +22,9 @@ use std::collections::BTreeMap;
 
 use ace_core::bucket::{Bucket, GcStats, OrphanStats, Retention, VerifyStats};
 
-use crate::permission::{BUCKET_GC, BUCKET_VERIFY, NRD_REFRESH, PermissionName};
+use crate::permission::{
+    BUCKET_GC, BUCKET_VERIFY, EMAIL_ARCHIVE_MAINTAIN, NRD_REFRESH, PermissionName,
+};
 use crate::{Actor, Service, ServiceError};
 
 /// What GC did, by pool.
@@ -87,6 +90,24 @@ impl Service {
             done.insert(pool, stats);
         }
         Ok(done)
+    }
+
+    /// The email archive's partitions (PLAN.md 7.5 batch 9): the weeks past retention dropped and the
+    /// weeks ahead made, as ace3's `ace partitions maintain` keeps its email archive's. Needs
+    /// `email_archive:maintain`. No audit row: dropping a week is the retention its configuration says,
+    /// applied, as GC is, and ace3 audits it nowhere; what each run dropped and made is in its row.
+    pub async fn maintain_email_archive(
+        &self,
+        actor: &Actor,
+        config: &ace_core::email_archive::ArchiveConfig,
+        now: chrono::DateTime<chrono::Utc>,
+    ) -> Result<Vec<ace_core::email_archive::partitions::TableMaintenance>, ServiceError> {
+        self.require(actor, "maintain_email_archive", &EMAIL_ARCHIVE_MAINTAIN)
+            .await?;
+        Ok(
+            ace_core::email_archive::partitions::maintain(self.gate.db(), config, now, false)
+                .await?,
+        )
     }
 
     /// The newly registered domains list's state, for deciding whether to rebuild it (PLAN.md 7.4).

@@ -1058,6 +1058,474 @@
     {
       "ace3_commit": "f72f8946",
       "analysis": null,
+      "dump": "email_archiver/ace3/email/direct_send_spoof.email.rfc822.json",
+      "input": "ace3/email/direct_send_spoof.email.rfc822 with the archive directive, against an empty archive",
+      "module": "email_archiver",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "email_archiver/ace3/email/encoded_subject.email.rfc822.json",
+      "input": "ace3/email/encoded_subject.email.rfc822 with the archive directive, against an empty archive",
+      "module": "email_archiver",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "email_archiver/ace3/email/encrypted_msoffice.email.rfc822.json",
+      "input": "ace3/email/encrypted_msoffice.email.rfc822 with the archive directive, against an empty archive",
+      "module": "email_archiver",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "EmailArchiveResults",
+      "dump": "email_archiver/ace3/email/extra_message_id.email.rfc822.json",
+      "input": "ace3/email/extra_message_id.email.rfc822 with the archive directive, against an empty archive",
+      "module": "email_archiver",
+      "observables_added": 0,
+      "summary": "Archive Path: <work>/data/archive/email/ace3-node/77/776c86f29ff3d002f0b5d4fe4bd52e0498836b5b433c9109a687f1f4f231d62e.gz.e"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "email_archiver/ace3/email/multi_recipient_to_cc.email.rfc822.json",
+      "input": "ace3/email/multi_recipient_to_cc.email.rfc822 with the archive directive, against an empty archive",
+      "module": "email_archiver",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "email_archiver/ace3/email/multi_rfc2047_filename.email.rfc822.json",
+      "input": "ace3/email/multi_rfc2047_filename.email.rfc822 with the archive directive, against an empty archive",
+      "module": "email_archiver",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "EmailArchiveResults",
+      "dump": "email_archiver/ace3/email/nested_rfc822_bom.email.rfc822.json",
+      "input": "ace3/email/nested_rfc822_bom.email.rfc822 with the archive directive, against an empty archive",
+      "module": "email_archiver",
+      "observables_added": 0,
+      "summary": "Archive Path: <work>/data/archive/email/ace3-node/c5/c5892b0b9c873f1f16d630785f3f0c38a70bf9c17ab9160640caca767e9702d2.gz.e"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "EmailArchiveResults",
+      "dump": "email_archiver/ace3/email/nested_rfc822_pdf.email.rfc822.json",
+      "input": "ace3/email/nested_rfc822_pdf.email.rfc822 with the archive directive, against an empty archive",
+      "module": "email_archiver",
+      "observables_added": 0,
+      "summary": "Archive Path: <work>/data/archive/email/ace3-node/05/058d47db0c96560355d331739f267395cb73fb4377aa22bb92cdfe77ff62592b.gz.e"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "EmailArchiveResults",
+      "dump": "email_archiver/ace3/email/o365_journaled.email.rfc822.json",
+      "input": "ace3/email/o365_journaled.email.rfc822 with the archive directive, against an empty archive",
+      "module": "email_archiver",
+      "observables_added": 0,
+      "summary": "Archive Path: <work>/data/archive/email/ace3-node/c0/c09769d5f85a2ad6ec1e1cc8196b0c413fa45708faa54fdbc2644f31ed16a99d.gz.e"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "EmailArchiveResults",
+      "dump": "email_archiver/ace3/email/o365_journaled_7bit_bom_meta.email.rfc822.json",
+      "input": "ace3/email/o365_journaled_7bit_bom_meta.email.rfc822 with the archive directive, against an empty archive",
+      "module": "email_archiver",
+      "observables_added": 0,
+      "summary": "Archive Path: <work>/data/archive/email/ace3-node/00/00892c0df0360d7b5bedd806470854672fc6030d63e0d2cd4ebf8f9a80352478.gz.e"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "EmailArchiveResults",
+      "dump": "email_archiver/ace3/email/o365_journaled_expanded_rcpt.email.rfc822.json",
+      "input": "ace3/email/o365_journaled_expanded_rcpt.email.rfc822 with the archive directive, against an empty archive",
+      "module": "email_archiver",
+      "observables_added": 0,
+      "summary": "Archive Path: <work>/data/archive/email/ace3-node/71/71040db1d86e00082b630459a94cb2913fb4ed06880fffdf58c275f98034cbb6.gz.e"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "EmailArchiveResults",
+      "dump": "email_archiver/ace3/email/o365_journaled_multi_rcpt.email.rfc822.json",
+      "input": "ace3/email/o365_journaled_multi_rcpt.email.rfc822 with the archive directive, against an empty archive",
+      "module": "email_archiver",
+      "observables_added": 0,
+      "summary": "Archive Path: <work>/data/archive/email/ace3-node/5c/5c3eb4e952cf18ba0d854bfd9c8de548dbcbe56e6bc2d6cb945df173d43a4e26.gz.e"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "EmailArchiveResults",
+      "dump": "email_archiver/ace3/email/o365_journaled_qp_meta.email.rfc822.json",
+      "input": "ace3/email/o365_journaled_qp_meta.email.rfc822 with the archive directive, against an empty archive",
+      "module": "email_archiver",
+      "observables_added": 0,
+      "summary": "Archive Path: <work>/data/archive/email/ace3-node/e2/e2b8f8ac2e981223e21989167fad128f86e9eca90953b1db417c6c07a6fdf6b1.gz.e"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "EmailArchiveResults",
+      "dump": "email_archiver/ace3/email/pdf_attachment.email.rfc822.json",
+      "input": "ace3/email/pdf_attachment.email.rfc822 with the archive directive, against an empty archive",
+      "module": "email_archiver",
+      "observables_added": 0,
+      "summary": "Archive Path: <work>/data/archive/email/ace3-node/69/694b8f9f32e3c7fb62f5efa622b0f8b88c37893699599c1b4d28e6b39a931782.gz.e"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "EmailArchiveResults",
+      "dump": "email_archiver/ace3/email/sample_rfc822.in.json",
+      "input": "ace3/email/sample_rfc822.in with the archive directive, against an empty archive",
+      "module": "email_archiver",
+      "observables_added": 0,
+      "summary": "Archive Path: <work>/data/archive/email/ace3-node/75/759f4eb6a31031c0af03b00d206725fce2e5d0fc13c8e7d3426d714477948bdf.gz.e"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "email_archiver/ace3/email/smtp.email.rfc822.json",
+      "input": "ace3/email/smtp.email.rfc822 with the archive directive, against an empty archive",
+      "module": "email_archiver",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "EmailArchiveResults",
+      "dump": "email_archiver/ace3/email/splunk_logging.email.rfc822.json",
+      "input": "ace3/email/splunk_logging.email.rfc822 with the archive directive, against an empty archive",
+      "module": "email_archiver",
+      "observables_added": 0,
+      "summary": "Archive Path: <work>/data/archive/email/ace3-node/75/759f4eb6a31031c0af03b00d206725fce2e5d0fc13c8e7d3426d714477948bdf.gz.e"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "email_archiver/ace4/email/e2e.email.rfc822.json",
+      "input": "ace4/email/e2e.email.rfc822 with the archive directive, against an empty archive",
+      "module": "email_archiver",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "email_archiver/ace4/email/encrypted_agile_sha1.email.rfc822.json",
+      "input": "ace4/email/encrypted_agile_sha1.email.rfc822 with the archive directive, against an empty archive",
+      "module": "email_archiver",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "email_archiver/ace4/email/encrypted_agile_sha256.email.rfc822.json",
+      "input": "ace4/email/encrypted_agile_sha256.email.rfc822 with the archive directive, against an empty archive",
+      "module": "email_archiver",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "email_archiver/ace4/email/encrypted_body_raises.email.rfc822.json",
+      "input": "ace4/email/encrypted_body_raises.email.rfc822 with the archive directive, against an empty archive",
+      "module": "email_archiver",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "email_archiver/ace4/email/encrypted_cryptoapi_doc.email.rfc822.json",
+      "input": "ace4/email/encrypted_cryptoapi_doc.email.rfc822 with the archive directive, against an empty archive",
+      "module": "email_archiver",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "email_archiver/ace4/email/encrypted_cryptoapi_ppt.email.rfc822.json",
+      "input": "ace4/email/encrypted_cryptoapi_ppt.email.rfc822 with the archive directive, against an empty archive",
+      "module": "email_archiver",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "email_archiver/ace4/email/encrypted_html_body.email.rfc822.json",
+      "input": "ace4/email/encrypted_html_body.email.rfc822 with the archive directive, against an empty archive",
+      "module": "email_archiver",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "email_archiver/ace4/email/encrypted_html_markup.email.rfc822.json",
+      "input": "ace4/email/encrypted_html_markup.email.rfc822 with the archive directive, against an empty archive",
+      "module": "email_archiver",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "email_archiver/ace4/email/encrypted_in_body.email.rfc822.json",
+      "input": "ace4/email/encrypted_in_body.email.rfc822 with the archive directive, against an empty archive",
+      "module": "email_archiver",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "email_archiver/ace4/email/encrypted_in_zip.email.rfc822.json",
+      "input": "ace4/email/encrypted_in_zip.email.rfc822 with the archive directive, against an empty archive",
+      "module": "email_archiver",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "email_archiver/ace4/email/encrypted_nested.email.rfc822.json",
+      "input": "ace4/email/encrypted_nested.email.rfc822 with the archive directive, against an empty archive",
+      "module": "email_archiver",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "email_archiver/ace4/email/encrypted_nested_html.email.rfc822.json",
+      "input": "ace4/email/encrypted_nested_html.email.rfc822 with the archive directive, against an empty archive",
+      "module": "email_archiver",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "email_archiver/ace4/email/encrypted_no_body.email.rfc822.json",
+      "input": "ace4/email/encrypted_no_body.email.rfc822 with the archive directive, against an empty archive",
+      "module": "email_archiver",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "email_archiver/ace4/email/encrypted_not_zip.email.rfc822.json",
+      "input": "ace4/email/encrypted_not_zip.email.rfc822 with the archive directive, against an empty archive",
+      "module": "email_archiver",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "email_archiver/ace4/email/encrypted_pdf_aes_owner.email.rfc822.json",
+      "input": "ace4/email/encrypted_pdf_aes_owner.email.rfc822 with the archive directive, against an empty archive",
+      "module": "email_archiver",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "email_archiver/ace4/email/encrypted_pdf_rc4.email.rfc822.json",
+      "input": "ace4/email/encrypted_pdf_rc4.email.rfc822 with the archive directive, against an empty archive",
+      "module": "email_archiver",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "email_archiver/ace4/email/encrypted_ppt_wrong.email.rfc822.json",
+      "input": "ace4/email/encrypted_ppt_wrong.email.rfc822 with the archive directive, against an empty archive",
+      "module": "email_archiver",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "email_archiver/ace4/email/encrypted_rar4.email.rfc822.json",
+      "input": "ace4/email/encrypted_rar4.email.rfc822 with the archive directive, against an empty archive",
+      "module": "email_archiver",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "email_archiver/ace4/email/encrypted_rar5_headers.email.rfc822.json",
+      "input": "ace4/email/encrypted_rar5_headers.email.rfc822 with the archive directive, against an empty archive",
+      "module": "email_archiver",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "email_archiver/ace4/email/encrypted_rar_no_body.email.rfc822.json",
+      "input": "ace4/email/encrypted_rar_no_body.email.rfc822 with the archive directive, against an empty archive",
+      "module": "email_archiver",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "email_archiver/ace4/email/encrypted_rc4_doc.email.rfc822.json",
+      "input": "ace4/email/encrypted_rc4_doc.email.rfc822 with the archive directive, against an empty archive",
+      "module": "email_archiver",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "email_archiver/ace4/email/encrypted_rc4_wrong.email.rfc822.json",
+      "input": "ace4/email/encrypted_rc4_wrong.email.rfc822 with the archive directive, against an empty archive",
+      "module": "email_archiver",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "email_archiver/ace4/email/encrypted_rc4_xls.email.rfc822.json",
+      "input": "ace4/email/encrypted_rc4_xls.email.rfc822 with the archive directive, against an empty archive",
+      "module": "email_archiver",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "email_archiver/ace4/email/encrypted_standard.email.rfc822.json",
+      "input": "ace4/email/encrypted_standard.email.rfc822 with the archive directive, against an empty archive",
+      "module": "email_archiver",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "email_archiver/ace4/email/encrypted_wrong_password.email.rfc822.json",
+      "input": "ace4/email/encrypted_wrong_password.email.rfc822 with the archive directive, against an empty archive",
+      "module": "email_archiver",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "email_archiver/ace4/email/encrypted_zip_aes.email.rfc822.json",
+      "input": "ace4/email/encrypted_zip_aes.email.rfc822 with the archive directive, against an empty archive",
+      "module": "email_archiver",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "email_archiver/ace4/email/encrypted_zip_wrong.email.rfc822.json",
+      "input": "ace4/email/encrypted_zip_wrong.email.rfc822 with the archive directive, against an empty archive",
+      "module": "email_archiver",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "email_archiver/ace4/email/lure_attachment.email.rfc822.json",
+      "input": "ace4/email/lure_attachment.email.rfc822 with the archive directive, against an empty archive",
+      "module": "email_archiver",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "email_archiver/ace4/email/lure_button.email.rfc822.json",
+      "input": "ace4/email/lure_button.email.rfc822 with the archive directive, against an empty archive",
+      "module": "email_archiver",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "email_archiver/ace4/email/lure_footer_only.email.rfc822.json",
+      "input": "ace4/email/lure_footer_only.email.rfc822 with the archive directive, against an empty archive",
+      "module": "email_archiver",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "email_archiver/ace4/email/lure_forward.email.rfc822.json",
+      "input": "ace4/email/lure_forward.email.rfc822 with the archive directive, against an empty archive",
+      "module": "email_archiver",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "email_archiver/ace4/email/lure_protected.email.rfc822.json",
+      "input": "ace4/email/lure_protected.email.rfc822 with the archive directive, against an empty archive",
+      "module": "email_archiver",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "email_archiver/ace4/email/macro_attachment.email.rfc822.json",
+      "input": "ace4/email/macro_attachment.email.rfc822 with the archive directive, against an empty archive",
+      "module": "email_archiver",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "email_archiver/ace4/email/url_newsletter.email.rfc822.json",
+      "input": "ace4/email/url_newsletter.email.rfc822 with the archive directive, against an empty archive",
+      "module": "email_archiver",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "email_archiver/ace4/web/html_body.email.rfc822.json",
+      "input": "ace4/web/html_body.email.rfc822 with the archive directive, against an empty archive",
+      "module": "email_archiver",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
       "dump": "email_conversation_attachment_analyzer/ace4/email/encrypted_agile_sha1.email.rfc822.json",
       "input": "ace4/email/encrypted_agile_sha1.email.rfc822, no sender seen before",
       "module": "email_conversation_attachment_analyzer",
@@ -1846,6 +2314,69 @@
       "module": "email_thread_analyzer",
       "observables_added": 0,
       "summary": "Email Thread Analysis: 3 messages, 2026-11-02 04:00:00 to 2026-11-03 08:00:00 UTC - ex\u0430mple.com never sent mail, but replies were directed to it"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "encrypted_archive_analyzer/not_gzip.gz.e.json",
+      "input": "fixtures/email_archive/not_gzip.gz.e",
+      "module": "encrypted_archive_analyzer",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "encrypted_archive_analyzer/other_key.gz.e.json",
+      "input": "fixtures/email_archive/other_key.gz.e",
+      "module": "encrypted_archive_analyzer",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "encrypted_archive_analyzer/sealed_v0.bin.json",
+      "input": "fixtures/email_archive/sealed_v0.bin",
+      "module": "encrypted_archive_analyzer",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "EncryptedArchiveAnalysis",
+      "dump": "encrypted_archive_analyzer/sealed_v0.gz.e.json",
+      "input": "fixtures/email_archive/sealed_v0.gz.e",
+      "module": "encrypted_archive_analyzer",
+      "observables_added": 1,
+      "summary": "Encrypted Archive Analysis - retrieved files/sealed_v0.rfc822"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "EncryptedArchiveAnalysis",
+      "dump": "encrypted_archive_analyzer/sealed_v1.gz.e.json",
+      "input": "fixtures/email_archive/sealed_v1.gz.e",
+      "module": "encrypted_archive_analyzer",
+      "observables_added": 1,
+      "summary": "Encrypted Archive Analysis - retrieved files/sealed_v1.rfc822"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "encrypted_archive_analyzer/tampered.gz.e.json",
+      "input": "fixtures/email_archive/tampered.gz.e",
+      "module": "encrypted_archive_analyzer",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "encrypted_archive_analyzer/truncated.gz.e.json",
+      "input": "fixtures/email_archive/truncated.gz.e",
+      "module": "encrypted_archive_analyzer",
+      "observables_added": 0,
+      "summary": null
     },
     {
       "ace3_commit": "f72f8946",
@@ -4783,6 +5314,60 @@
     },
     {
       "ace3_commit": "f72f8946",
+      "analysis": "MessageIDAnalysisV2",
+      "dump": "message_id_analyzer_v2/message_id_<archived-1@example.com>.json",
+      "input": "message_id <archived-1@example.com>, against fixtures/email_archive/store.json",
+      "module": "message_id_analyzer_v2",
+      "observables_added": 1,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "MessageIDAnalysisV2",
+      "dump": "message_id_analyzer_v2/message_id_<archived-2@example.com>.json",
+      "input": "message_id <archived-2@example.com>, against fixtures/email_archive/store.json",
+      "module": "message_id_analyzer_v2",
+      "observables_added": 1,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "message_id_analyzer_v2/message_id_<empty@example.com>.json",
+      "input": "message_id <empty@example.com>, against fixtures/email_archive/store.json",
+      "module": "message_id_analyzer_v2",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "message_id_analyzer_v2/message_id_<missing-object@example.com>.json",
+      "input": "message_id <missing-object@example.com>, against fixtures/email_archive/store.json",
+      "module": "message_id_analyzer_v2",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "message_id_analyzer_v2/message_id_<not-archived@example.com>.json",
+      "input": "message_id <not-archived@example.com>, against fixtures/email_archive/store.json",
+      "module": "message_id_analyzer_v2",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "MessageIDAnalysisV2",
+      "dump": "message_id_analyzer_v2/message_id_archived-1@example.com.json",
+      "input": "message_id archived-1@example.com, against fixtures/email_archive/store.json",
+      "module": "message_id_analyzer_v2",
+      "observables_added": 1,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
       "analysis": null,
       "dump": "mhtml/ace4/html/html2text_long.txt.json",
       "input": "ace4/html/html2text_long.txt",
@@ -7444,6 +8029,42 @@
       "module": "snort_signature_analysis_v1",
       "observables_added": 0,
       "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "URLEmailPivotAnalysis_v2",
+      "dump": "url_email_pivot_analyzer/url_example.com_a.json",
+      "input": "url http://example.com/a, against fixtures/email_archive/store.json",
+      "module": "url_email_pivot_analyzer",
+      "observables_added": 0,
+      "summary": "URL Email Pivot Analyzer (1 emails matched)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "url_email_pivot_analyzer/url_example.com_none.json",
+      "input": "url http://example.com/none, against fixtures/email_archive/store.json",
+      "module": "url_email_pivot_analyzer",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "URLEmailPivotAnalysis_v2",
+      "dump": "url_email_pivot_analyzer/url_example.com_shared.json",
+      "input": "url http://example.com/shared, against fixtures/email_archive/store.json",
+      "module": "url_email_pivot_analyzer",
+      "observables_added": 0,
+      "summary": "URL Email Pivot Analyzer (3 emails matched)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "URLEmailPivotAnalysis_v2",
+      "dump": "url_email_pivot_analyzer/url_example.com_shared.limit.json",
+      "input": "url http://example.com/shared, against fixtures/email_archive/store.json, result_limit 2",
+      "module": "url_email_pivot_analyzer",
+      "observables_added": 0,
+      "summary": "URL Email Pivot Analyzer (3 emails matched)"
     },
     {
       "ace3_commit": "f72f8946",

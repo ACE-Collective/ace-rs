@@ -1499,6 +1499,7 @@ async fn every_write_function_has_an_audit_test() {
         submit_records_its_row(db).await,
         download_file_records_its_row(db).await,
         download_crash_records_its_row(db).await,
+        archived_email_records_its_row(db).await,
         download_qa_match_records_its_row(db).await,
         download_qa_matches_records_its_row(db).await,
         purge_qa_matches_records_its_row(db).await,
@@ -1716,6 +1717,103 @@ async fn download_crash_records_its_row(db: &Db) -> String {
     assert!(matches!(
         service(db).download_crash(&actor, id + 1000).await,
         Err(ServiceError::NotFound(why)) if why == format!("no failed task {}", id + 1000)
+    ));
+    assert_eq!(audit_rows(db).await.len(), rows);
+    row.action
+}
+
+/// The test-only key the reference dumps' archive was sealed with.
+fn archive_key() -> ace_core::email_archive::ArchiveKey {
+    ace_core::email_archive::ArchiveKey::new(*b"ace4 test-only email archive key")
+}
+
+fn email_archive(bucket: &Bucket, db: &Db) -> ace_core::email_archive::EmailArchive {
+    ace_core::email_archive::EmailArchive::new(
+        db.clone(),
+        bucket.clone(),
+        ace_core::email_archive::ArchiveConfig::default().with_key(archive_key()),
+    )
+}
+
+/// Archives an email with `message_id`, as the archiver would have.
+async fn archived(
+    archive: &ace_core::email_archive::EmailArchive,
+    email: &[u8],
+    message_id: &str,
+) -> i64 {
+    archive
+        .seed(&ace_core::email_archive::Seed {
+            email,
+            message_id,
+            recipients: &["bob@example.com"],
+            insert_date: chrono::Utc::now().naive_utc(),
+            urls: &[],
+        })
+        .await
+        .expect("archives")
+        .0
+}
+
+async fn archived_email_records_its_row(db: &Db) -> String {
+    let (bucket, _cache) = bucket(db);
+    let archive = email_archive(&bucket, db);
+    let email = b"From: a@example.com\r\nMessage-ID: <archived@example.com>\r\n\r\nhi\r\n";
+    let id = archived(&archive, email, "<archived@example.com>").await;
+    let actor = admin(db).await;
+    let source = "192.0.2.12".parse().expect("an address");
+    // the Message-ID is normalized, as ace3's lookup normalizes it
+    let read = with_source_ip(
+        Some(source),
+        service(db).archived_email(&actor, &archive, "archived@example.com"),
+    )
+    .await
+    .expect("may read");
+    assert_eq!(read.bytes, email);
+    assert_eq!(read.archive_id, id);
+    let sha256 = hex::encode(Sha256::digest(email));
+    let row = last_audit(db).await;
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: boss_json(),
+            action: "archived_email".to_owned(),
+            target: ("archived_email".to_owned(), id.to_string()),
+            before: None,
+            after: None,
+            details: json!({
+                "message_id": "archived@example.com",
+                "archive_id": id,
+                "hash": sha256,
+            }),
+        }
+    );
+    assert_eq!(src_ip_of_last(db).await.as_deref(), Some("192.0.2.12"));
+
+    // it needs email:read, which alert:read isn't; a refusal, a Message-ID the archive doesn't have
+    // and a node with no key have no row
+    let reader = UserId(Uuid::from_u128(0x5E));
+    grant(db, &Holder::User(reader), "alert", "read", Effect::Allow).await;
+    let rows = audit_rows(db).await.len();
+    let refused = service(db)
+        .archived_email(&user(reader), &archive, "<archived@example.com>")
+        .await;
+    assert!(
+        matches!(refused, Err(ServiceError::PermissionDenied { ref permission, .. })
+            if permission.to_string() == "email:read"),
+        "{refused:?}"
+    );
+    assert!(matches!(
+        service(db).archived_email(&actor, &archive, "<nothing@example.com>").await,
+        Err(ServiceError::NotFound(why)) if why == "no archived email has message id <nothing@example.com>"
+    ));
+    let keyless = ace_core::email_archive::EmailArchive::new(
+        db.clone(),
+        bucket.clone(),
+        ace_core::email_archive::ArchiveConfig::default(),
+    );
+    assert!(matches!(
+        service(db).archived_email(&actor, &keyless, "<archived@example.com>").await,
+        Err(ServiceError::Unconfigured(why)) if why.contains("no encryption key")
     ));
     assert_eq!(audit_rows(db).await.len(), rows);
     row.action
@@ -3154,6 +3252,8 @@ async fn every_write_fails_when_its_audit_fails() {
         )
         .await
         .expect("adds an entry");
+    let archive = email_archive(&bucket, db);
+    archived(&archive, b"an archived email", "<audit-fails@example.com>").await;
     let lists_before = list_rows(db).await;
     let commands_before = command_rows(db).await;
     let before = (
@@ -3686,6 +3786,14 @@ async fn every_write_fails_when_its_audit_fails() {
             service
                 .validate_hunt(&actor, &|| (validation(), ()))
                 .await
+                .expect_err("refused"),
+        ),
+        (
+            "archived_email",
+            service
+                .archived_email(&actor, &archive, "<audit-fails@example.com>")
+                .await
+                .map(|_| ())
                 .expect_err("refused"),
         ),
         (

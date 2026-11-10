@@ -1,0 +1,30 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [],
+  "input": {
+    "directives": [],
+    "label": "fixtures/email_archive/other_key.gz.e",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "other_key.gz.e",
+      "size": 275,
+      "type": "file",
+      "value": "90e621e1e0404ea09d644dea2ce53cbe711af985095a40f7edb93da6a2dd2290"
+    }
+  },
+  "module": "encrypted_archive_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "other_key.gz.e",
+    "relationships": [],
+    "size": 275,
+    "tags": [],
+    "type": "file",
+    "value": "90e621e1e0404ea09d644dea2ce53cbe711af985095a40f7edb93da6a2dd2290",
+    "yara_meta": []
+  }
+}

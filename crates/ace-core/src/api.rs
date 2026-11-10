@@ -165,6 +165,9 @@ pub struct ApiConfig {
     /// The snort and suricata rules the `snort-signature` read answers from (PLAN.md 7.4), ace3's
     /// `data/snort/snort.rules`. None answers every one with no rule.
     pub snort_rules: Option<std::path::PathBuf>,
+    /// The email archive's key and retention (PLAN.md 7.5 batch 9), which its reads and its write
+    /// use. The default has no key: the core archives and opens nothing.
+    pub archive: crate::email_archive::ArchiveConfig,
 }
 
 impl ApiConfig {
@@ -177,7 +180,13 @@ impl ApiConfig {
             max_wait: Duration::from_secs(20),
             url_expiry: Duration::from_secs(900),
             snort_rules: None,
+            archive: crate::email_archive::ArchiveConfig::default(),
         }
+    }
+
+    pub fn archive(mut self, archive: crate::email_archive::ArchiveConfig) -> Self {
+        self.archive = archive;
+        self
     }
 
     pub fn snort_rules(mut self, path: impl Into<std::path::PathBuf>) -> Self {
@@ -286,6 +295,11 @@ impl Api {
         config: ApiConfig,
     ) -> Result<Api, QueueError> {
         let config_snort_rules = config.snort_rules.clone();
+        let archive = crate::email_archive::EmailArchive::new(
+            db.clone(),
+            bucket.clone(),
+            config.archive.clone(),
+        );
         let mut listener = PgListener::connect_with(db.pool()).await?;
         listener.listen(TASKS_CHANNEL).await?;
         let (wakeups, _) = broadcast::channel(1024);
@@ -317,7 +331,7 @@ impl Api {
                 listener,
                 stopping: tokio_util::sync::CancellationToken::new(),
                 lists: ListCache::default(),
-                stores: crate::reads::ReadStores::new(config_snort_rules),
+                stores: crate::reads::ReadStores::new(config_snort_rules).with_archive(archive),
             }),
         })
     }
@@ -903,10 +917,23 @@ impl Api {
         let bucket = &self.inner.bucket;
         let mut files = Vec::new();
         for file in &result.files {
-            files.push(bucket.fetch_upload(task.id.0, &file.sha256).await?);
+            match bucket.fetch_upload(task.id.0, &file.sha256).await {
+                Ok(spooled) => files.push(spooled),
+                Err(missing @ BucketError::Store(ace_store::StoreError::NotFound { .. })) => {
+                    // a file a read put in the root comes with no upload (reads.md); any other
+                    // missing upload could still be put right, so the task stays the worker's
+                    if let Err(why) = self.read_file_in_root(&task, &file.sha256).await? {
+                        tracing::warn!(task = %task.id, "{why}");
+                        return Err(missing.into());
+                    }
+                }
+                Err(e) => return Err(e.into()),
+            }
         }
         let hold = Hold::root(task.root);
-        let (task, result, files, hold) = (&task, &result, &files, &hold);
+        let archive = self.inner.stores.archive();
+        let (task, files, hold) = (&task, &files, &hold);
+        let result = &result;
         self.inner
             .db
             .transaction(Isolation::ReadCommitted, |tx| {
@@ -914,8 +941,15 @@ impl Api {
                     for file in files {
                         bucket.put_in(tx, ALERT_FILES, file, Some(hold)).await?;
                     }
-                    orchestrator.land_result(tx, worker, task, result).await?;
-                    crate::writes::apply(tx, task, writes).await?;
+                    let applied = crate::writes::apply(tx, archive, task, writes).await?;
+                    // the archive's id, which only the core knows, goes in the archiver's result
+                    let mut result = std::borrow::Cow::Borrowed(result);
+                    if let Some(archive_id) = applied.archive_id
+                        && let Some(details) = result.to_mut().details.as_object_mut()
+                    {
+                        details.insert("archive_id".to_owned(), archive_id.into());
+                    }
+                    orchestrator.land_result(tx, worker, task, &result).await?;
                     Ok::<_, LandError>(())
                 })
             })
@@ -924,6 +958,49 @@ impl Api {
             bucket.remove_upload(task.id.0, &file.sha256).await?;
         }
         Ok(())
+    }
+
+    /// Whether a file a result adds with no upload is one a read put in the task's root: the
+    /// module declares a read that does (`ace_sdk::reads::FILE_READS`), and the bucket holds the file
+    /// for the root. The error says why not, which rejects the result.
+    async fn read_file_in_root(
+        &self,
+        task: &Task,
+        sha256: &Sha256,
+    ) -> Result<Result<(), String>, Failure> {
+        let catalog = self.inner.orchestrator.catalog();
+        let reads_files = catalog.get(&task.module).is_some_and(|manifest| {
+            manifest
+                .reads
+                .iter()
+                .any(|r| ace_sdk::reads::FILE_READS.contains(r))
+        });
+        if !reads_files {
+            return Ok(Err(format!(
+                "the result adds file {sha256}, which wasn't uploaded, and {} declares no read that \
+                 puts a file in the root",
+                task.module
+            )));
+        }
+        let held = sqlx::query_scalar!(
+            r#"SELECT EXISTS (SELECT 1 FROM store.holds h
+                              JOIN store.objects o ON o.pool = h.pool AND o.sha256 = h.sha256
+                              WHERE h.pool = $1 AND h.sha256 = $2 AND h.holder_kind = 'root'
+                                AND h.holder_id = $3 AND o.state = 'present') AS "held!""#,
+            ALERT_FILES,
+            sha256.to_hex(),
+            task.root.to_string(),
+        )
+        .fetch_one(self.inner.db.pool())
+        .await
+        .map_err(|e| Failure::Internal(format!("the bucket's index: {e}")))?;
+        if held {
+            Ok(Ok(()))
+        } else {
+            Ok(Err(format!(
+                "the result adds file {sha256}, which wasn't uploaded and the root doesn't hold"
+            )))
+        }
     }
 
     /// Checks the writes a task's end carries (PLAN.md 7.2, `writes.rs`). A refused write fails the
@@ -948,7 +1025,15 @@ impl Api {
                 body: without_nul(w.body),
             })
             .collect();
-        match crate::writes::check(&self.inner.db, manifest, &owned, writes).await {
+        match crate::writes::check(
+            &self.inner.db,
+            self.inner.stores.archive(),
+            manifest,
+            &owned,
+            writes,
+        )
+        .await
+        {
             Ok(checked) => Ok(checked),
             Err(crate::writes::WriteFailure::Db(e)) => Err(e.into()),
             Err(refused) => {
@@ -977,6 +1062,7 @@ impl Api {
     ) -> Result<(), Failure> {
         let owned = worker.owned(task).await?.ok_or(Failure::LeaseLost(task))?;
         let owned = &owned;
+        let archive = self.inner.stores.archive();
         self.inner
             .db
             .transaction(Isolation::ReadCommitted, |tx| {
@@ -984,7 +1070,7 @@ impl Api {
                     let root = worker
                         .finish_in(tx, task, crate::queue::TaskState::Done, None)
                         .await?;
-                    crate::writes::apply(tx, owned, writes).await?;
+                    crate::writes::apply(tx, archive, owned, writes).await?;
                     crate::queue::check_completion(tx, root).await?;
                     Ok::<_, QueueError>(())
                 })

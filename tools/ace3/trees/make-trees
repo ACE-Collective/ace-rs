@@ -15,7 +15,10 @@ systems see the same world, as tests/e2e/run gives ace4:
 - the newly registered domains list is tools/ace3/trees/nrd.json, unverified by RDAP, as
   tests/e2e/run gives ace4 the same list;
 - DNS is answered by fake_dns.py from tools/ace3/dumps/fixtures/dns/zone.json, and what it answered
-  is kept in tools/ace3/trees/dns.json, which tests/e2e/run's responder replays to ace4.
+  is kept in tools/ace3/trees/dns.json, which tests/e2e/run's responder replays to ace4;
+- the email archive is empty (run_module.py --email-archive-store), under the dumps' test-only key, as
+  tests/e2e/run's stack starts with an empty archive. No sample has the archive directive, so the
+  archiver archives nothing, and none is a .gz.e.
 
     tools/ace3/trees/make-trees                     every sample
     tools/ace3/trees/make-trees ace4/email/e2e...   the samples named, by path under samples/
@@ -57,6 +60,7 @@ ENABLE = [
     "microsoft_script_encoding_analysis", "extracted_rtf_analyzer", "vbscript_analyzer", "nowhitespace_analyzer",
     "zip_encryption_analyzer", "rar_encryption_analyzer", "pdf_encryption_analyzer", "lure_url_analyzer",
     "mailbox_email_analyzer", "email_conversation_attachment_analyzer", "email_conversation_link_analyzer",
+    "email_archiver", "encrypted_archive_analyzer", "url_email_pivot_analyzer", "message_id_analyzer_v2",
 ]
 BROCESS = HERE / "brocess.json"
 NRD = HERE / "nrd.json"
@@ -143,6 +147,8 @@ def run(sample):
         "--config", f"{FAKE}/saq.yaml", "--replay-http", f"{REMOTE}/rdap", "--tree",
         "--dns", f"127.0.0.1:{dumps.DNS_PORT}", "--brocess", f"{REMOTE}/trees-brocess.json",
         "--brocess-store", f"{REMOTE}/trees-brocess.json",
+        "--email-archive-store", f"{REMOTE}/fixtures/email_archive/empty.json",
+        "--encryption-key", dumps.EMAIL_ARCHIVE_KEY,
     ]
     for tag in sample["meta_tags"]:
         command += ["--meta-tag", tag]

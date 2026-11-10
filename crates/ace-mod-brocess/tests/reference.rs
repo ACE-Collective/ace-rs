@@ -582,6 +582,51 @@ async fn without_a_message_id_the_urls_stay_in_the_entry_and_nothing_is_threaded
 }
 
 #[tokio::test(flavor = "multi_thread")]
+async fn the_entry_names_where_the_archiver_archived_the_email() {
+    use ace_sdk::tree::{TreeObservable, TreeResult, TreeView};
+    let fluent_bit = FakeFluentBit::start().await;
+    let harness = logger(
+        json!({"fluent_bit_hostname": "127.0.0.1", "fluent_bit_port": fluent_bit.port}),
+        email_details("alice@example.com", &[], None),
+        Arc::new(FakeReads::new()),
+    );
+    let file = email_file(&harness);
+    let tree = TreeView {
+        this: 0,
+        observables: vec![TreeObservable {
+            kind: ObservableKind::File,
+            value: file.value.clone(),
+            tags: Vec::new(),
+            directives: vec!["original_email".to_owned()],
+            detections: 0,
+            paths: Vec::new(),
+            size: None,
+            pending: Vec::new(),
+            download: None,
+        }],
+        results: vec![TreeResult {
+            observable: 0,
+            module: "email_archiver".to_owned(),
+            analysis_type: "email_archive_results".to_owned(),
+            tags: Vec::new(),
+            added: Vec::new(),
+        }],
+        ..Default::default()
+    };
+    harness
+        .tree(tree)
+        .run_lookup_writing(file.clone())
+        .await
+        .expect("runs");
+    let records = fluent_bit.records(1).await;
+    let sha256 = &file.value;
+    assert_eq!(
+        records[0]["record"]["archive_path"],
+        json!(format!("archive/email/{}/{sha256}.gz.e", &sha256[..2]))
+    );
+}
+
+#[tokio::test(flavor = "multi_thread")]
 async fn a_core_or_a_fluent_bit_that_cant_be_reached_loses_only_its_own_part() {
     // nothing listens on the port
     let port = {

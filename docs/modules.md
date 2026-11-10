@@ -21,16 +21,16 @@ Versions are those of ace3's image: Python packages from `installer/requirements
 | Pool | Modules | Ported |
 |---|---|---|
 | parser | 53 | 48 |
-| lookup | 17 | 9 |
+| lookup | 17 | 13 |
 | core | 3 | 0 |
 | sandbox | 15 | 0 |
 | scanner | 2 | 0 |
-| all | 90 | 57 |
+| all | 90 | 61 |
 
 | Step | Modules |
 |---|---|
-| done | 57 |
-| 7.5 | 23 |
+| done | 61 |
+| 7.5 | 19 |
 | 7.6 | 5 |
 | 7.7 | 2 |
 | 7.10 | 2 |
@@ -50,7 +50,7 @@ In order. Batches 10 to 13 run programs in the sandbox runner, which batch 10 bu
 6. **RTF and scripts**: done. `microsoft_script_encoding_analysis`, `extracted_rtf_analyzer`, `vbscript_analyzer`, `nowhitespace_analyzer`, in `ace-mod-scripts`. Checks and transforms of RTF and script files. The Perl decoder ace3 runs for encoded scripts is ported and matches it byte for byte on 50,000 inputs (`docs/measurements/scripts.md`); `extracted_rtf_analyzer` reads on the lease which modules added its file, and looks for rtfole, whose `extracted_rtf` tag is what ace3 reads.
 7. **Encrypted files**: done. `zip_encryption_analyzer`, `rar_encryption_analyzer`, `pdf_encryption_analyzer`, in `ace-mod-encrypted`. No John (7.3): the email's candidates, cut by 4.11's `ace_mod_msoffice::words_from_body`, are tried in the task with the zip crate, libunrar and libqpdf, keeping what John's check accepts, which for a PDF is the user password only. The dumps cover each encryption method, a wrong, missing and full list, and no email or no body, with 0 differences but other modules' tags; a decrypted PDF matches pikepdf's copy byte for byte but for the `/ID` pikepdf takes from the clock (`docs/measurements/encrypted.md`).
 8. **Email tree**: done. `lure_url_analyzer` and `mailbox_email_analyzer` in `ace-mod-emailtree`, `email_conversation_attachment_analyzer` and `email_conversation_link_analyzer` in `ace-mod-brocess`, beside the frequency module whose `new_sender` tag they read. Each walks the root's tree, which the core sends on the lease (`Module::READS_TREE`, `ace_sdk::tree`), with the files it reads (`Module::READS_TREE_FILES`), the lure module's HTML bodies; a result adds to other observables in the root (`ResultEnvelope::others`) only what its module declares (`Module::ADDS_TO_OTHERS`), the lure's `crawl` and the mailbox's `tracked`, and the mailbox module's changes its root's description and details (`ResultEnvelope::root`, `Module::SETS_ROOT`). The lure module runs last, as ace3's final analysis; the attachment module looks for a macro only as far as ace3 does when it runs, so its answer doesn't depend on which task lands first; the link module, which does nothing without a pattern in ace3, is off until a site gives it a section.
-9. **Email archive**: `email_archiver`, `encrypted_archive_analyzer`, `url_email_pivot_analyzer`, `message_id_analyzer_v2`. Brings ace3's `email` router (5.6) and the `daily/partitions` task's archive half (6.7). Lookup modules, on 7.2's reads (`crates/ace-core/src/reads.md`).
+9. **Email archive**: done. `email_archiver`, `encrypted_archive_analyzer`, `url_email_pivot_analyzer`, `message_id_analyzer_v2`, in `ace-mod-emailarchive`, lookup modules on 7.2's reads (`crates/ace-core/src/reads.md`): `archived-email`, `decrypted-archive` and `archived-url-count`, and the `email-archive` write. The archive is `ace_core::email_archive`: each email gzipped and encrypted in the core with ACE's key (`ACE4_ENCRYPTION_KEY`, AES-256-GCM in ace3's layout, which only `ace serve` holds), an object of the bucket's `email_archive` pool held by its rows, and migration 0041's weekly-partitioned tables, which the scheduler's `email_archive_partitions` keeps (6.7's `daily/partitions`, its archive half). A read that opens an email puts it in the task's root, and the result adds it with no upload, which the core allows only for a module that declares such a read (`ace_sdk::reads::FILE_READS`). Brings ace3's `email` router (5.6), `GET /api/email/v1/archive`, under `email:read`, each read audited. The email logger's log entry now names the archive path.
 10. **PDF and image text**: `ocr`, `qrcode`, `exif`, `pdftotext`, `ssdeep`. The tools that turn PDFs and images into text YARA scans. Builds the sandbox runner and the sandbox pool's image, and adds Ghostscript's rewrite to `pdf_analyzer` and ACE archives to `archive`, which move to the sandbox pool.
 11. **Executables**: `java_class_decompiler`, `upx`, `autoit`, `de4dot`, `ilspy`. Unpackers and decompilers, on the runner; the JVM and .NET in the image wait for the owner (*External tools*).
 12. **macOS images**: `dmg_analyzer`, `cve_2021_30657_analyzer`. dmg2img and 7z on the runner.
@@ -206,8 +206,8 @@ In the config's order. ace4 is the crate a ported module is in.
 | `mailbox_email_analyzer` | `MailboxEmailAnalyzer` | `ace-mod-emailtree` | parser | done | email | analysis, cli, correlation, email |
 | `email_analyzer` | `EmailAnalyzer` | `ace-mod-email` | parser | done | email | analysis, cli, correlation, email |
 | `lure_url_analyzer` | `LureURLAnalyzer` | `ace-mod-emailtree` | parser | done | correlation | analysis, cli, correlation |
-| `email_archiver` | `EmailArchiveAction` | not yet | lookup | 7.5 batch 9 | - | email |
-| `encrypted_archive_analyzer` | `EncryptedArchiveAnalyzer` | not yet | lookup | 7.5 batch 9 | email | analysis, cli, correlation, email |
+| `email_archiver` | `EmailArchiveAction` | `ace-mod-emailarchive` | lookup | done | - | email |
+| `encrypted_archive_analyzer` | `EncryptedArchiveAnalyzer` | `ace-mod-emailarchive` | lookup | done | email | analysis, cli, correlation, email |
 | `file_location_analysis` | `FileLocationAnalyzer` | `ace-mod-values` | parser | done | file | analysis, binary, cli, correlation, email, file |
 | `file_path_analysis` | `FilePathAnalyzer` | `ace-mod-values` | parser | done | file | analysis, binary, cli, correlation, email, file |
 | `network_identifier` | `NetworkIdentifier` | `ace-mod-values` | parser | done | correlation | analysis, cli, correlation |
@@ -223,7 +223,7 @@ In the config's order. ace4 is the crate a ported module is in.
 | `email_conversation_attachment_analyzer` | `EmailConversationAttachmentAnalyzer` | `ace-mod-brocess` | parser | done | email | analysis, cli, correlation, email |
 | `email_conversation_link_analyzer` | `EmailConversationLinkAnalyzer` | `ace-mod-brocess` | parser | done | email | analysis, cli, correlation, email |
 | `email_thread_analyzer` | `EmailThreadAnalyzer` | `ace-mod-brocess` | lookup | done | correlation | analysis, cli, correlation |
-| `url_email_pivot_analyzer` | `URLEmailPivotAnalyzer` | not yet | lookup | 7.5 batch 9 | correlation | analysis, cli, correlation |
+| `url_email_pivot_analyzer` | `URLEmailPivotAnalyzer` | `ace-mod-emailarchive` | lookup | done | correlation | analysis, cli, correlation |
 | `email_logger` | `EmailLoggingAnalyzer` | `ace-mod-brocess` | lookup | done | - | email |
 | `file_hash_analyzer` | `FileHashAnalyzer` | `ace-mod-files` | parser | done | file | analysis, binary, cli, correlation, email, file |
 | `ssdeep` | `SsdeepAnalyzer` | not yet | sandbox | 7.5 batch 10 | file | analysis, binary, cli, correlation, email, file |
@@ -264,7 +264,7 @@ In the config's order. ace4 is the crate a ported module is in.
 | `protected_url_analyzer` | `ProtectedURLAnalyzer` | `ace-mod-values` | parser | done | common | analysis, binary, cli, correlation, email, file |
 | `rtfole` | `RTFOLEObjectAnalyzer` | `ace-mod-oletools` | parser | done | file | analysis, binary, cli, correlation, email, file |
 | `extracted_rtf_analyzer` | `ExtractedRTFAnalyzer` | `ace-mod-scripts` | parser | done | file | analysis, binary, cli, correlation, email, file |
-| `message_id_analyzer_v2` | `MessageIDAnalyzerV2` | not yet | lookup | 7.5 batch 9 | correlation | analysis, cli, correlation |
+| `message_id_analyzer_v2` | `MessageIDAnalyzerV2` | `ace-mod-emailarchive` | lookup | done | correlation | analysis, cli, correlation |
 | `vbscript_analyzer` | `VBScriptAnalyzer` | `ace-mod-scripts` | parser | done | file | analysis, binary, cli, correlation, email, file |
 | `nowhitespace_analyzer` | `NoWhiteSpaceAnalyzer` | `ace-mod-scripts` | parser | done | file | analysis, binary, cli, correlation, email, file |
 | `user_defined_tagging` | `UserDefinedTaggingAnalyzer` | not yet | lookup | 7.6 | common | analysis, binary, cli, correlation, email, file |
@@ -626,9 +626,9 @@ In the config's order. ace4 is the crate a ported module is in.
 ### email_archiver
 
 - **Section**: `analysis_module_email_archiver`, class `EmailArchiveAction` in `saq/modules/email/archive.py`, disabled by default.
-- **ace4**: not yet.
+- **ace4**: ported in `ace-mod-emailarchive`. It depends on the email module, whose result comes with the task, reads its file's tags in the tree on the lease (`Module::READS_TREE`), and hands the email's Message-ID and normalized envelope recipients to the core as the `email-archive` write (`reads.md`). The core reads the file from the bucket, gzips it and encrypts it with ACE's key, puts it in the `email_archive` pool held by its row until its week is dropped, and writes migration 0041's rows in the end's transaction, setting the result's `archive_id`; when the root's analysis completes it indexes the URLs below the email, as ace3's post-analysis does (`ace_core::email_archive::index_urls`). The archive path names the email by its hash, without ace3's data directory or hostname. Off by default and in the `email` mode, as in ace3. `crates/ace-mod-emailarchive/tests/differences.md` has the rest.
 - **Pool**: lookup. Writes ACE's email archive, which in ace4 is the bucket and Postgres; the write lands with the task's end (7.2, `reads.md`). It parses nothing.
-- **Step**: 7.5 batch 9 (Email archive).
+- **Step**: done.
 - **Does**: For a non-whitelisted email file with the archive directive and an EmailAnalysis carrying a message-id and envelope recipients, gzips and AES-GCM encrypts the email into the email archive, records it in the email_archive database, and in post-analysis indexes every URL under the email.
 - **Input**: file (required directive archive).
 - **Groups and modes**: groups none; modes email.
@@ -647,9 +647,9 @@ In the config's order. ace4 is the crate a ported module is in.
 ### encrypted_archive_analyzer
 
 - **Section**: `analysis_module_encrypted_archive_analyzer`, class `EncryptedArchiveAnalyzer` in `saq/modules/email/archive.py`, enabled by default.
-- **ace4**: not yet.
+- **ace4**: ported in `ace-mod-emailarchive`. For a file whose path ends `.gz.e` (a lookup gets the file's path, `Observable::path`, not its bytes) it asks the core for the `decrypted-archive` read, which decrypts ace3's v0 or v1 layout with ACE's key and gunzips up to 64 MiB, and puts the email in the root; the result adds it with no upload. A file that doesn't open gets no result, as in ace3. ace3's leftover `.rfc822.gz` isn't written.
 - **Pool**: lookup. Opens an archived email with ACE's encryption key. In ace4 that's the `decrypted-archive` read (7.2): the core decrypts, and no worker holds the key.
-- **Step**: 7.5 batch 9 (Email archive).
+- **Step**: done.
 - **Does**: For a file named *.gz.e (an ACE email archive file), decrypts it with the ACE encryption key, gunzips it, and adds the resulting .rfc822 email as a file observable.
 - **Input**: file (name ending .gz.e).
 - **Groups and modes**: groups email; modes analysis, cli, correlation, email.
@@ -983,9 +983,9 @@ In the config's order. ace4 is the crate a ported module is in.
 ### url_email_pivot_analyzer
 
 - **Section**: `analysis_module_url_email_pivot_analyzer`, class `URLEmailPivotAnalyzer` in `saq/modules/email/correlation.py`, enabled by default.
-- **ace4**: not yet.
+- **ace4**: ported in `ace-mod-emailarchive`. It counts on the `archived-url-count` read, over ace4's one archive.
 - **Pool**: lookup. Reads the email archive's URL index through the `archived-url-count` read (7.2).
-- **Step**: 7.5 batch 9 (Email archive).
+- **Step**: done.
 - **Does**: For a URL, counts how many archived emails contain it by looking up its SHA-256 in archive_index across every configured email archive database.
 - **Input**: url.
 - **Groups and modes**: groups correlation; modes analysis, cli, correlation.
@@ -1864,9 +1864,9 @@ In the config's order. ace4 is the crate a ported module is in.
 ### message_id_analyzer_v2
 
 - **Section**: `analysis_module_message_id_analyzer_v2`, class `MessageIDAnalyzerV2` in `saq/modules/email/message_id.py`, enabled by default.
-- **ace4**: not yet.
+- **ace4**: ported in `ace-mod-emailarchive`. It pulls the email through the `archived-email` read, which finds the newest archive with the normalized Message-ID, opens it in the core and puts it in the root; the result adds it with no upload. ace3's `search_down` for the email that added the Message-ID is whether the email module's result added it (`Module::READS_ADDED_BY`).
 - **Pool**: lookup. Fetches an archived email through the `archived-email` read (7.2), which decrypts it in the core; the email it adds is parsed by email_analyzer.
-- **Step**: 7.5 batch 9 (Email archive).
+- **Step**: done.
 - **Does**: For a message_id not already backed by an EmailAnalysis in the tree, looks it up in the email archive, decrypts and gunzips the archived email, and adds it as a file observable.
 - **Input**: message_id.
 - **Groups and modes**: groups correlation; modes analysis, cli, correlation.

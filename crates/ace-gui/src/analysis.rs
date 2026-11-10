@@ -47,6 +47,9 @@ use ace_results::types::brocess::{
 use ace_results::types::dhash::DHashImageAnalysis;
 use ace_results::types::dns::FqdnAnalysis;
 use ace_results::types::email::EmailAnalysis;
+use ace_results::types::email_archive::{
+    EmailArchiveResults, EncryptedArchiveAnalysis, MessageIdAnalysis, UrlEmailPivotAnalysis,
+};
 use ace_results::types::emailtree::{LureCandidate, LureUrlAnalysis, MailboxEmailAnalysis};
 use ace_results::types::encrypted::{
     PdfEncryptionAnalysis, RarEncryptionAnalysis, ZipEncryptionAnalysis,
@@ -243,6 +246,10 @@ impl Views {
             .with(ViewEntry::of::<MailboxEmailAnalysis>())
             .with(ViewEntry::of::<EmailConversationAttachmentAnalysis>())
             .with(ViewEntry::of::<EmailConversationLinkAnalysis>())
+            .with(ViewEntry::of::<EmailArchiveResults>())
+            .with(ViewEntry::of::<EncryptedArchiveAnalysis>())
+            .with(ViewEntry::of::<UrlEmailPivotAnalysis>())
+            .with(ViewEntry::of::<MessageIdAnalysis>())
     }
 
     /// These views with `entry`, which takes the place of any view of the same type and version, so a
@@ -1760,6 +1767,48 @@ impl AnalysisView for DHashImageAnalysis {
             })
             .collect();
         FieldsView { fields }
+    }
+}
+
+// ---- the email archive: ace3's default_template.html ----
+
+/// `email_archive_results`: where the archive keeps the email, and its row.
+impl AnalysisView for EmailArchiveResults {
+    type View<'a> = FieldsView;
+    fn view(&self) -> FieldsView {
+        fields_view([
+            field("message_id", self.message_id.as_ref()),
+            field("archive_id", self.archive_id),
+            field("archive_path", self.archive_path.as_ref()),
+            field("hash", self.hash.as_ref()),
+        ])
+    }
+}
+
+/// `encrypted_archive_analysis`: the decrypted email's path.
+impl AnalysisView for EncryptedArchiveAnalysis {
+    type View<'a> = FieldsView;
+    fn view(&self) -> FieldsView {
+        fields_view([field("decrypted_file", self.decrypted_file.as_ref())])
+    }
+}
+
+/// `url_email_pivot_analysis_v2`: how many archived emails held the URL.
+impl AnalysisView for UrlEmailPivotAnalysis {
+    type View<'a> = FieldsView;
+    fn view(&self) -> FieldsView {
+        fields_view([field("count", self.count)])
+    }
+}
+
+/// `message_id_analysis_v2`, whose details ace3 leaves empty: what it found is the email it added.
+impl AnalysisView for MessageIdAnalysis {
+    type View<'a> = FieldsView;
+    fn view(&self) -> FieldsView {
+        fields_view([
+            field("error", self.error.as_ref()),
+            field("extracted_email", self.extracted_email.as_ref()),
+        ])
     }
 }
 

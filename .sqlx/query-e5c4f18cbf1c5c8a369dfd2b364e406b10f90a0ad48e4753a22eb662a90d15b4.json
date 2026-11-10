@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO email_archive.archive_index (field, hash, archive_id, insert_date)\n                 VALUES ('url', $1, $2, $3) ON CONFLICT DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Bytea",
+        "Int8",
+        "Timestamp"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e5c4f18cbf1c5c8a369dfd2b364e406b10f90a0ad48e4753a22eb662a90d15b4"
+}

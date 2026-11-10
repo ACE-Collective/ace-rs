@@ -65,6 +65,8 @@ impl Default for BucketSettings {
     /// for alert files, holds each file for the roots it is in and the QA matches it is in
     /// (PLAN.md 2.27), and `yara_rulesets` keeps every ruleset the core built (2.25). ace3's
     /// `yara_qa` pool isn't carried over: a QA match holds the file where it already is.
+    /// `email_archive` holds each archived email, sealed, while its archive rows last (7.5 batch 9),
+    /// where ace3 keeps it on its node's disk.
     fn default() -> Self {
         let held = PoolConfig {
             retention: Retention::Held {
@@ -86,6 +88,7 @@ impl Default for BucketSettings {
                     },
                 ),
                 ("svs_samples".to_owned(), held),
+                (crate::email_archive::EMAIL_ARCHIVE.to_owned(), held),
             ]
             .into(),
         }

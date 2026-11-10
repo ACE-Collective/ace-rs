@@ -2,7 +2,8 @@
 //! acts as, and does what ace3's does: `bucket_gc` deletes the unheld objects and expired holds and keeps
 //! a held one, `yara_qa_prune` removes the expired QA matches with their holds and an audit row and keeps
 //! a live one, `bucket_orphans` deletes bytes no index row names, and `bucket_verify` records an intact
-//! object and fails on a corrupt one, which it keeps, and `nrd_refresh` rebuilds the newly registered
+//! object and fails on a corrupt one, which it keeps, `email_archive_partitions` drops the email archive's
+//! old weeks and makes those ahead, and `nrd_refresh` rebuilds the newly registered
 //! domains list as ace3's refresh did. Then the scheduler's own rules: one run across
 //! replicas, missed due times run once, a lease no run starts under, an abandoned run, a hung task
 //! stopped at its timeout without holding up another, a bounded shutdown, and the overlay's section.
@@ -315,6 +316,120 @@ async fn yara_qa_prune_removes_the_expired_matches_with_their_holds_and_an_audit
     );
 }
 
+/// The partitions of an email archive table, by name, the catchall's left out.
+async fn archive_weeks(db: &Db, table: &str) -> Vec<String> {
+    sqlx::query_scalar(
+        "SELECT c.relname::text FROM pg_inherits i JOIN pg_class c ON c.oid = i.inhrelid
+         WHERE i.inhparent = to_regclass($1) AND c.relname NOT LIKE '%catchall'
+         ORDER BY c.relname",
+    )
+    .bind(format!("email_archive.{table}"))
+    .fetch_all(db.pool())
+    .await
+    .expect("reads the partitions")
+}
+
+/// ace3's `daily/partitions`, its email archive half (PLAN.md 7.5 batch 9): the weeks past retention go,
+/// with their rows, and the weeks from the oldest kept to four ahead are made in each table; a week the
+/// catchall holds rows of isn't made, and the run fails naming it, as ace3's exits 1.
+#[tokio::test]
+async fn email_archive_partitions_drops_the_old_weeks_and_makes_the_ones_ahead() {
+    use ace_core::email_archive::partitions::{WEEKS_AHEAD, partition_name};
+    use ace_core::email_archive::week_of;
+    let fixture = Fixture::new().await;
+    let db = fixture.db();
+    let now = Utc::now().naive_utc();
+    // a week ten weeks back, made by hand, holding a row
+    let (old, old_end) = week_of(now - chrono::Duration::weeks(10));
+    let old_name = partition_name("archive", old);
+    sqlx::raw_sql(sqlx::AssertSqlSafe(format!(
+        "CREATE TABLE email_archive.{old_name} PARTITION OF email_archive.archive
+         FOR VALUES FROM ('{old}') TO ('{old_end}')"
+    )))
+    .execute(db.pool())
+    .await
+    .expect("makes an old week");
+    sqlx::query(
+        "INSERT INTO email_archive.archive (hash, object_sha256, insert_date, root_id, observable_id)
+         VALUES (sha256('old'::bytea), 'x', $1, gen_random_uuid(), 1)",
+    )
+    .bind(old + chrono::Duration::days(1))
+    .execute(db.pool())
+    .await
+    .expect("an old row");
+    let task = builtin("email_archive_partitions");
+    make_due(db, &task).await;
+
+    let run = run_once(&fixture, vec![task], "email_archive_partitions").await;
+
+    assert_eq!(run.outcome.as_deref(), Some("succeeded"), "{run:?}");
+    let (this_week, _) = week_of(now);
+    let (oldest_kept, _) = week_of(now - chrono::Duration::days(30));
+    for table in ["archive", "archive_index", "email_history"] {
+        let mut expected = Vec::new();
+        let mut week = oldest_kept;
+        while week <= this_week + chrono::Duration::weeks(WEEKS_AHEAD) {
+            // the oldest week is made only while a row of it can still be kept
+            if week + chrono::Duration::days(7) > now - chrono::Duration::days(30) {
+                expected.push(partition_name(table, week));
+            }
+            week += chrono::Duration::weeks(1);
+        }
+        assert_eq!(archive_weeks(db, table).await, expected, "{table}");
+    }
+    let rows: i64 = sqlx::query_scalar("SELECT count(*) FROM email_archive.archive")
+        .fetch_one(db.pool())
+        .await
+        .expect("counts");
+    assert_eq!(rows, 0, "the old week went with its row");
+    let summary = run.summary.expect("a summary");
+    assert_eq!(summary[0]["table"], "email_archive.archive");
+    assert_eq!(summary[0]["dropped"], json!([old_name]));
+
+    // a row in the catchall for a week not yet made keeps that week from being made
+    let (ahead, _) = week_of(now + chrono::Duration::weeks(WEEKS_AHEAD + 1));
+    sqlx::query(
+        "INSERT INTO email_archive.email_history
+             (insert_date, message_id, message_id_hash, recipient, recipient_hash)
+         VALUES ($1, '<m>', sha256('m'::bytea), 'r', sha256('r'::bytea))",
+    )
+    .bind(ahead + chrono::Duration::days(1))
+    .execute(db.pool())
+    .await
+    .expect("a row past the weeks made");
+    let later = (Utc::now() + chrono::Duration::weeks(1))
+        .naive_utc()
+        .and_utc();
+    let done = fixture
+        .service
+        .maintain_email_archive(
+            &builtin("email_archive_partitions").actor,
+            &ace_core::email_archive::ArchiveConfig::default(),
+            later,
+        )
+        .await
+        .expect("runs");
+    let history = done
+        .iter()
+        .find(|t| t.table == "email_archive.email_history")
+        .expect("a table");
+    assert_eq!(history.problems.len(), 1, "{history:?}");
+    assert!(
+        history.problems[0].contains(&partition_name("email_history", ahead)),
+        "{history:?}"
+    );
+    assert!(
+        !archive_weeks(db, "email_history")
+            .await
+            .contains(&partition_name("email_history", ahead))
+    );
+    assert!(
+        done.iter()
+            .filter(|t| t.table != "email_archive.email_history")
+            .all(|t| t.ok())
+    );
+}
+
 #[tokio::test]
 async fn bucket_orphans_deletes_bytes_no_index_row_names() {
     let fixture = Fixture::new().await;
@@ -432,6 +547,7 @@ async fn each_task_acts_as_its_own_component_with_only_its_grant() {
         ace_service::BUCKET_VERIFY,
         ace_service::SIGNATURE_QA_PURGE,
         ace_service::NRD_REFRESH,
+        ace_service::EMAIL_ARCHIVE_MAINTAIN,
         ace_service::ALERT_READ,
     ];
     for (task, holds) in [
@@ -440,6 +556,10 @@ async fn each_task_acts_as_its_own_component_with_only_its_grant() {
         ("bucket_verify", ace_service::BUCKET_VERIFY),
         ("yara_qa_prune", ace_service::SIGNATURE_QA_PURGE),
         ("nrd_refresh", ace_service::NRD_REFRESH),
+        (
+            "email_archive_partitions",
+            ace_service::EMAIL_ARCHIVE_MAINTAIN,
+        ),
     ] {
         let actor = builtin(task).actor;
         for name in &names {
@@ -748,6 +868,7 @@ fn the_overlay_s_scheduler_section_sets_each_task_over_its_defaults() {
             ("yara_qa_prune", "0 5 * * *", 3600, true),
             ("bucket_orphans", "0 5 * * 1", 14400, true),
             ("bucket_verify", "0 5 * * 1", 14400, true),
+            ("email_archive_partitions", "0 5 * * *", 3600, true),
             ("nrd_refresh", "*/30 * * * *", 1500, true),
         ]
     );
@@ -759,6 +880,7 @@ fn the_overlay_s_scheduler_section_sets_each_task_over_its_defaults() {
             "internal:scheduler:yara_qa_prune",
             "internal:scheduler:bucket_orphans",
             "internal:scheduler:bucket_verify",
+            "internal:scheduler:email_archive_partitions",
             "internal:scheduler:nrd_refresh",
         ]
     );
@@ -780,7 +902,7 @@ fn the_overlay_s_scheduler_section_sets_each_task_over_its_defaults() {
         "scheduler:\n  bucket_gc:\n    schedule: '*/15 * * * *'\n    timeout_seconds: 600\n  \
          bucket_verify:\n    enabled: false\n  cas_node_stats:\n    enabled: true\n",
     );
-    assert_eq!(set.len(), 5, "the removed task is skipped");
+    assert_eq!(set.len(), 6, "the removed task is skipped");
     assert_eq!(
         (
             set[0].schedule.as_str(),

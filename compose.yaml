@@ -214,6 +214,9 @@ services:
       ACE4_POOL_TOKEN_PARSERS: ${ACE4_POOL_TOKEN_PARSERS:-ace4-dev-parsers-token}
       ACE4_POOL_TOKEN_LOOKUPS: ${ACE4_POOL_TOKEN_LOOKUPS:-ace4-dev-lookups-token}
       ACE4_ADMIN_TOKEN: ${ACE4_ADMIN_TOKEN:-ace4-dev-admin-token}
+      # the email archive's key (64 hex digits), which only this service holds; with none, nothing is
+      # archived or opened
+      ACE4_ENCRYPTION_KEY: ${ACE4_ENCRYPTION_KEY:-}
       ACE4_LOG: ${ACE4_LOG:-info}
       NO_PROXY: localhost,127.0.0.1,postgres,bucket,collector
       no_proxy: localhost,127.0.0.1,postgres,bucket,collector

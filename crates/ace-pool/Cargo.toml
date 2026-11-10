@@ -71,6 +71,8 @@ ace-mod-xlm = { path = "../ace-mod-xlm" }
 ace-mod-splunk = { path = "../ace-mod-splunk" }
 # The modules of the reads of ACE's data built so far (PLAN.md 7.4), for the reads' tests.
 ace-mod-brocess = { path = "../ace-mod-brocess" }
+# The email archive's modules (PLAN.md 7.5 batch 9), for its reads' and write's tests.
+ace-mod-emailarchive = { path = "../ace-mod-emailarchive" }
 ace-mod-snort = { path = "../ace-mod-snort" }
 ace-mod-nrd = { path = "../ace-mod-nrd" }
 ace-pool = { path = ".", features = ["test-pools"] }

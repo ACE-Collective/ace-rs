@@ -104,5 +104,28 @@ pub struct ThreadParticipant {
     pub role: String,
 }
 
+/// `email-archive`: the task's own file, an email, kept in the email archive with its Message-ID and
+/// envelope recipients (`email_archiver`). The core reads the file from the bucket, gzips and
+/// encrypts it with ACE's key, and writes the archive's rows, as ace3's `archive_email` does; once
+/// the root's analysis is done, it indexes the URLs below the email, as ace3's post-analysis does.
+pub struct EmailArchive;
+
+impl WriteKind for EmailArchive {
+    const WRITE: Write = Write {
+        name: "email-archive",
+    };
+    type Body = ArchivedEmailRecord;
+}
+
+/// What an archived email is found by: its Message-ID, as its email result has it, and its envelope
+/// recipients, each normalized as ace3's `normalize_email_address` does; one it can't parse is left
+/// out, as ace3's insert of a NULL fails and is passed over.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ArchivedEmailRecord {
+    pub message_id: String,
+    pub recipients: Vec<String>,
+}
+
 /// Every write a module can declare, by name.
-pub const ALL: &[Write] = &[SmtpLog::WRITE, EmailThread::WRITE];
+pub const ALL: &[Write] = &[SmtpLog::WRITE, EmailThread::WRITE, EmailArchive::WRITE];

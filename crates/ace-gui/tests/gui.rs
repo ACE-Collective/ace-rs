@@ -2273,6 +2273,10 @@ fn each_module_s_view_draws_its_fixture() {
         "mailbox_lure_button",
         "attachment_macro_attachment",
         "link_lure_button",
+        "email_archive_o365_journaled",
+        "encrypted_archive_sealed_v0",
+        "url_pivot_shared",
+        "message_id_archived_2",
     ];
     let mut types = BTreeSet::new();
     for name in fixtures {
@@ -2645,9 +2649,22 @@ fn each_module_s_view_draws_its_fixture() {
                     "carries 1 URL: <b>docs.lure-example.net/open?d=1</b>",
                 ],
             ),
-            "mailbox_lure_button" | "attachment_macro_attachment" | "link_lure_button" => {
-                contains_all(&html, &["No details"])
-            }
+            "mailbox_lure_button"
+            | "attachment_macro_attachment"
+            | "link_lure_button"
+            | "message_id_archived_2" => contains_all(&html, &["No details"]),
+            "email_archive_o365_journaled" => contains_all(
+                &html,
+                &[
+                    "<tr><th>archive_path</th><td>archive/email/c0/c09769d5f85a2ad6ec1e1cc8196b0c413fa45",
+                    "<tr><th>hash</th><td>c09769d5f85a2ad6ec1e1cc8196b0c413fa45",
+                ],
+            ),
+            "encrypted_archive_sealed_v0" => contains_all(
+                &html,
+                &["<tr><th>decrypted_file</th><td>files/sealed_v0.rfc822</td></tr>"],
+            ),
+            "url_pivot_shared" => contains_all(&html, &["<tr><th>count</th><td>3</td></tr>"]),
             other => panic!("no checks for {other}"),
         }
     }

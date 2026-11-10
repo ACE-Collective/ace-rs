@@ -5,17 +5,19 @@
 //! module doesn't declare, a body that doesn't read, one past its bound, or one about an email that
 //! isn't the task's own; `apply` then writes them in the transaction that ends the task. ace3 audits
 //! none of these writes, so they are logged, with the task and the root, and write no audit row.
-//! Built: `smtp-log` and `email-thread` (PLAN.md 7.4, `email_logger`).
+//! Built: `smtp-log` and `email-thread` (PLAN.md 7.4, `email_logger`), and `email-archive` (7.5 batch
+//! 9, `email_archiver`), which `email_archive` seals in `check` and lands in `apply`.
 
 use ace_results::AnalysisType;
 use ace_results::types::email::{EmailAnalysis, EmailDetails};
 use ace_sdk::Manifest;
 use ace_sdk::email_threads;
-use ace_sdk::writes::{SmtpLogRows, ThreadRecord, WireWrite};
+use ace_sdk::writes::{ArchivedEmailRecord, SmtpLogRows, ThreadRecord, WireWrite};
 use chrono::NaiveDateTime;
 use sha2::{Digest, Sha256};
 
 use crate::db::{Db, DbError, Tx};
+use crate::email_archive::{EmailArchive, PrepareFailure};
 use crate::queue::Task;
 
 /// The most rows one `smtp-log` write adds: ace3 writes one per recipient, with no bound.
@@ -52,11 +54,22 @@ impl From<sqlx::Error> for WriteFailure {
 pub enum Checked {
     SmtpLog(SmtpLogRows),
     EmailThread(ThreadRecord),
+    /// The email, sealed, and what it's found by (PLAN.md 7.5 batch 9).
+    EmailArchive(Box<crate::email_archive::Prepared>),
 }
 
-/// Checks `writes` for `task`, whose module is `manifest`, before its end's transaction.
+/// What the writes gave the task's result: the archive's id for an `email-archive`, which its result
+/// carries as `archive_id`.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Applied {
+    pub archive_id: Option<i64>,
+}
+
+/// Checks `writes` for `task`, whose module is `manifest`, before its end's transaction. An
+/// `email-archive` is sealed here, with `archive`'s key.
 pub async fn check(
     db: &Db,
+    archive: Option<&EmailArchive>,
     manifest: Option<&Manifest>,
     task: &Task,
     writes: Vec<WireWrite>,
@@ -107,6 +120,35 @@ pub async fn check(
                     )));
                 }
                 checked.push(Checked::EmailThread(record));
+            }
+            "email-archive" => {
+                if checked
+                    .iter()
+                    .any(|c| matches!(c, Checked::EmailArchive(_)))
+                {
+                    return Err(WriteFailure::Forbidden(
+                        "a task archives its email once".to_owned(),
+                    ));
+                }
+                let record: ArchivedEmailRecord = parse(write.body)?;
+                let email = own_email(db, task).await?;
+                let Some(archive) = archive else {
+                    return Err(WriteFailure::Forbidden(
+                        "this core has no email archive".to_owned(),
+                    ));
+                };
+                match archive
+                    .prepare(task, email.message_id.as_deref(), record)
+                    .await
+                {
+                    Ok(prepared) => checked.push(Checked::EmailArchive(Box::new(prepared))),
+                    Err(PrepareFailure::Refused(why)) => return Err(WriteFailure::Forbidden(why)),
+                    Err(PrepareFailure::Failed(e)) => {
+                        return Err(WriteFailure::Db(DbError::Decode(format!(
+                            "archiving the email: {e}"
+                        ))));
+                    }
+                }
             }
             other => {
                 return Err(WriteFailure::Forbidden(format!(
@@ -163,7 +205,13 @@ fn smtp_address(address: &str) -> &[u8] {
 }
 
 /// Writes the checked writes in the transaction that ends `task`.
-pub async fn apply(tx: &mut Tx<'_>, task: &Task, writes: &[Checked]) -> Result<(), DbError> {
+pub async fn apply(
+    tx: &mut Tx<'_>,
+    archive: Option<&EmailArchive>,
+    task: &Task,
+    writes: &[Checked],
+) -> Result<Applied, DbError> {
+    let mut applied = Applied::default();
     for write in writes {
         match write {
             Checked::SmtpLog(rows) => {
@@ -190,9 +238,24 @@ pub async fn apply(tx: &mut Tx<'_>, task: &Task, writes: &[Checked]) -> Result<(
                 );
             }
             Checked::EmailThread(record) => record_thread(tx, record).await?,
+            Checked::EmailArchive(prepared) => {
+                let archive = archive.ok_or_else(|| {
+                    DbError::Decode("an email-archive write with no archive".to_owned())
+                })?;
+                let id = archive.land(tx, prepared).await.map_err(|e| match e {
+                    crate::email_archive::ArchiveError::Db(e) => e,
+                    crate::email_archive::ArchiveError::Bucket(crate::bucket::BucketError::Db(
+                        e,
+                    )) => e,
+                    other => {
+                        DbError::Decode(format!("archiving task {}'s email: {other}", task.id))
+                    }
+                })?;
+                applied.archive_id = Some(id);
+            }
         }
     }
-    Ok(())
+    Ok(applied)
 }
 
 /// ace3's `record_thread`: the message, then each participant, each left as it was when it's

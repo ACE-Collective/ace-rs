@@ -102,6 +102,7 @@ struct Stack {
     test_db: TestDb,
     service: Service,
     bucket: Bucket,
+    archive: ace_core::email_archive::EmailArchive,
     orchestrator: Orchestrator,
     url: String,
     http: reqwest::Client,
@@ -115,7 +116,17 @@ impl Drop for Stack {
     }
 }
 
+/// The test-only key the reference dumps' archive was sealed with.
+fn archive_key() -> ace_core::email_archive::ArchiveKey {
+    ace_core::email_archive::ArchiveKey::new(*b"ace4 test-only email archive key")
+}
+
 async fn stack() -> Stack {
+    stack_with(ace_core::email_archive::ArchiveConfig::default().with_key(archive_key())).await
+}
+
+/// A stack whose email archive has `archive`'s key and retention.
+async fn stack_with(archive: ace_core::email_archive::ArchiveConfig) -> Stack {
     let test_db = TestDb::new().await;
     let cache = tempfile::tempdir().expect("a cache directory");
     let store = Store::new(
@@ -139,7 +150,11 @@ async fn stack() -> Stack {
         max_export_rows: 2,
         ..ace_api::WebConfig::default()
     };
-    let router = ace_api::Web::new(service.clone(), bucket.clone(), config).router();
+    let archive =
+        ace_core::email_archive::EmailArchive::new(test_db.db().clone(), bucket.clone(), archive);
+    let router = ace_api::Web::new(service.clone(), bucket.clone(), config)
+        .with_email_archive(archive.clone())
+        .router();
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
         .await
         .expect("binds");
@@ -153,6 +168,7 @@ async fn stack() -> Stack {
         test_db,
         service,
         bucket,
+        archive,
         orchestrator,
         url,
         http: reqwest::Client::new(),
@@ -388,6 +404,7 @@ const COMMANDS: &str = "/api/cli/v1/commands";
 const COMMAND: &str = "/api/cli/v1/commands/{id}";
 const CANCEL_COMMAND: &str = "/api/cli/v1/commands/{id}/cancel";
 const CRASHES: &str = "/api/crashes/v1/crashes";
+const EMAIL_ARCHIVE: &str = "/api/email/v1/archive";
 const CRASH: &str = "/api/crashes/v1/crashes/{id}";
 const CRASH_DOWNLOAD: &str = "/api/crashes/v1/crashes/{id}/download";
 const QA_RULES: &str = "/api/yara-qa/v1/rules";
@@ -434,6 +451,9 @@ const OTHER_PASSWORD: &str = "a different long passphrase";
 /// A route with its `{...}` filled: a crash's `{id}` is a task's, which `observable` stands in for, since a
 /// refusal comes before the id is looked up.
 fn fill(route: &str, id: Uuid, observable: i64) -> String {
+    if route == EMAIL_ARCHIVE {
+        return format!("{EMAIL_ARCHIVE}?message_id=%3Ca%40example.com%3E");
+    }
     if route == COMMENTS {
         return format!("{COMMENTS}?type=fqdn&value=a.example");
     }
@@ -550,7 +570,7 @@ async fn refuses_without_a_credential_or_a_permission(
         .map(|(method, route, _)| (method, route))
         .filter(|route| !public.contains(route))
         .collect();
-    assert_eq!(routes.len(), 92, "{routes:?}");
+    assert_eq!(routes.len(), 93, "{routes:?}");
     for (method, route) in routes {
         let method: Method = method.to_uppercase().parse().expect("a method");
         let path = fill(&route, id, file);
@@ -2563,6 +2583,111 @@ async fn lists_types(client: &mut Client<'_>, token: &str) {
 
 /// ace3's `crashes` router: failed tasks, one with its inputs, and its download as ace3's zip. The error
 /// quotes a hostile file name, and comes back as the string it is.
+/// ace3's `email` router: an archived email by its Message-ID, decrypted, its read audited, and the 500
+/// of a node with no key, from `keyless`, whose statuses it returns.
+async fn email_archive(
+    client: &mut Client<'_>,
+    keyless: &Stack,
+    token: &str,
+) -> BTreeSet<(String, String, u16)> {
+    let email = b"From: a@example.com\r\nMessage-ID: <a/b@example.com>\r\n\r\nthe body\r\n";
+    let (archive_id, _) = client
+        .stack
+        .archive
+        .seed(&ace_core::email_archive::Seed {
+            email,
+            message_id: "<a/b@example.com>",
+            recipients: &["bob@example.com"],
+            insert_date: chrono::Utc::now().naive_utc(),
+            urls: &[],
+        })
+        .await
+        .expect("archives");
+    let audits = audit_count(client.stack).await;
+    // a Message-ID can hold a "/", which is why it's a query parameter
+    let response = client
+        .call(
+            Method::GET,
+            EMAIL_ARCHIVE,
+            &format!("{EMAIL_ARCHIVE}?message_id=%3Ca%2Fb%40example.com%3E"),
+            Some(token),
+            Send::Nothing,
+        )
+        .await;
+    assert_eq!(response.status(), 200);
+    assert_eq!(response.headers()["content-type"], "message/rfc822");
+    assert_eq!(response.headers()["x-content-type-options"], "nosniff");
+    assert_eq!(response.bytes().await.expect("a body").as_ref(), email);
+    assert_eq!(audit_count(client.stack).await, audits + 1);
+    let row: (String, String, Value) = sqlx::query_as(
+        "SELECT target_kind, target_id, details FROM service.audit ORDER BY id DESC LIMIT 1",
+    )
+    .fetch_one(client.stack.test_db.db().pool())
+    .await
+    .expect("the audit row");
+    assert_eq!(row.0, "archived_email");
+    assert_eq!(row.1, archive_id.to_string());
+    assert_eq!(row.2["message_id"], "<a/b@example.com>");
+    assert_eq!(row.2["hash"], sha256_hex(email));
+    // without its brackets, as ace3 normalizes it
+    let response = client
+        .call(
+            Method::GET,
+            EMAIL_ARCHIVE,
+            &format!("{EMAIL_ARCHIVE}?message_id=a%2Fb%40example.com"),
+            Some(token),
+            Send::Nothing,
+        )
+        .await;
+    assert_eq!(response.status(), 200);
+    let body = client
+        .json(
+            Method::GET,
+            EMAIL_ARCHIVE,
+            &format!("{EMAIL_ARCHIVE}?message_id=%3Cnothing%40example.com%3E"),
+            Some(token),
+            Send::Nothing,
+            StatusCode::NOT_FOUND,
+        )
+        .await;
+    assert_eq!(
+        body["error"],
+        "no archived email has message id <nothing@example.com>"
+    );
+    client
+        .json(
+            Method::GET,
+            EMAIL_ARCHIVE,
+            EMAIL_ARCHIVE,
+            Some(token),
+            Send::Nothing,
+            StatusCode::BAD_REQUEST,
+        )
+        .await;
+    assert_eq!(audit_count(client.stack).await, audits + 2);
+
+    // a node with no key can't decrypt one, and says so
+    let mut other = Client::new(keyless);
+    let reader = key(keyless, &["email:read"]).await;
+    let keyless_audits = audit_count(keyless).await;
+    let body = other
+        .json(
+            Method::GET,
+            EMAIL_ARCHIVE,
+            &format!("{EMAIL_ARCHIVE}?message_id=%3Ca%40example.com%3E"),
+            Some(&reader),
+            Send::Nothing,
+            StatusCode::INTERNAL_SERVER_ERROR,
+        )
+        .await;
+    assert_eq!(
+        body["error"],
+        "archived emails cannot be decrypted: no encryption key is configured"
+    );
+    assert_eq!(audit_count(keyless).await, keyless_audits);
+    other.seen
+}
+
 async fn crashes(client: &mut Client<'_>, token: &str, root: Uuid, file: i64, bytes: &[u8]) {
     let hostile =
         "the module panicked: \"<img src=x onerror=alert(1)>/../../etc/passwd\"\n\u{fffd}";
@@ -3738,6 +3863,7 @@ async fn every_documented_status_is_tested() {
             "alert:create",
             "observable:read",
             "crash:read",
+            "email:read",
             "signature:read",
             "signature:download",
             "signature:qa_purge",
@@ -3762,6 +3888,9 @@ async fn every_documented_status_is_tested() {
     manages_users(&mut client, &admin).await;
     serves_me(&mut client).await;
     crashes(&mut client, &token, id, file, &bytes).await;
+    let keyless = stack_with(ace_core::email_archive::ArchiveConfig::default()).await;
+    let seen = email_archive(&mut client, &keyless, &token).await;
+    client.seen.extend(seen);
     commands(&mut client).await;
     yara_qa(&mut client, &token, id, file, &bytes).await;
     comments(&mut client, id, &bytes).await;

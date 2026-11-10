@@ -172,8 +172,14 @@ pub async fn send_end(
 ) -> Result<(), ClientError> {
     if let TaskEnd::Done { result, .. } = end {
         for file in &result.files {
+            let path = outputs.path_of(&file.sha256);
+            // a file a read put in the root is already in the bucket, and the core checks that it
+            // is, and that the module may add one (`reads.md`)
+            if !path.exists() {
+                continue;
+            }
             let url = client.upload_url(task.id, &file.sha256, file.size).await?;
-            client.upload(&url, &outputs.path_of(&file.sha256)).await?;
+            client.upload(&url, &path).await?;
         }
     }
     match client.end(task.id, end).await {

@@ -138,6 +138,7 @@ impl TaskObservable {
             kind: self.kind,
             value: self.value.clone(),
             time: self.time,
+            path: self.file.as_ref().map(|f| f.path.clone()),
             file,
             directives: self.directives.clone(),
             redirection: self.redirection.clone(),

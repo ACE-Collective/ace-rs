@@ -140,6 +140,22 @@
 //!   a retry would need the queue to allow one; `ace task replay` runs one again on a laptop and changes
 //!   nothing. ace3's `ace crash prune` and `sync` are the bucket's GC and its single store.
 //!
+//! ace3's `email` router (PLAN.md 5.6, 7.5 batch 9), under ace3's `email:read`, which serves the email
+//! archive (`ace_core::email_archive`, `ace_service`'s `email_archive` docs):
+//!
+//! | ace3 | here |
+//! |---|---|
+//! | `GET /email/archive?message_id=`, the email as `message/rfc822` | `GET /api/email/v1/archive?message_id=`, the same, audited |
+//!
+//! What differs, or is left out, and why:
+//! - The read is audited: the archive holds any alert's emails, and a read of an alert's file is audited
+//!   here too. ace3 writes no row.
+//! - The email is decrypted before the answer starts, so a failure to open it is a 500, where ace3 has
+//!   started streaming and truncates. The core opens up to 64 MiB, as it archives.
+//! - A missing `message_id` is 400, as the API's other bad queries; ace3's is FastAPI's 422.
+//! - ace3 opens the file under its own node's hostname, so it can't serve an email another node archived;
+//!   one bucket is every node's here.
+//!
 //! ace3's `yara_qa` router (PLAN.md 5.6), under ace3's `signature:read`, `signature:download` and
 //! `signature:qa_purge` (`ace_service`'s `yara_qa` docs). A rule is named by its `uuid` meta, as there:
 //!
@@ -314,6 +330,7 @@ mod auth;
 mod cli;
 mod crashes;
 mod detection_points;
+mod email;
 mod error;
 mod events;
 mod export;
@@ -393,6 +410,8 @@ pub struct Web {
     bucket: Bucket,
     config: WebConfig,
     hunts: hunts::HuntSupport,
+    /// The email archive the `email` router serves, with the core's key.
+    archive: Option<ace_core::email_archive::EmailArchive>,
 }
 
 pub use hunts::HuntSupport;
@@ -404,7 +423,14 @@ impl Web {
             bucket,
             config,
             hunts: HuntSupport::default(),
+            archive: None,
         }
+    }
+
+    /// The email archive the `email` router serves (PLAN.md 7.5 batch 9).
+    pub fn with_email_archive(mut self, archive: ace_core::email_archive::EmailArchive) -> Self {
+        self.archive = Some(archive);
+        self
     }
 
     /// The binary's hunt types and email normalizer, which the `hunt` router validates hunts with.
@@ -554,6 +580,7 @@ impl Web {
             )
             .route("/api/cli/v1/commands/{id}", get(cli::one))
             .route("/api/cli/v1/commands/{id}/cancel", post(cli::cancel))
+            .route("/api/email/v1/archive", get(email::archive))
             .route("/api/crashes/v1/crashes", get(crashes::list))
             .route("/api/crashes/v1/crashes/{id}", get(crashes::one))
             .route(
@@ -735,6 +762,7 @@ impl Web {
         crashes::list,
         crashes::one,
         crashes::download,
+        email::archive,
         cli::start,
         cli::list,
         cli::one,
@@ -757,6 +785,7 @@ impl Web {
         (name = "users", description = "Users, groups, grants and API keys, and the caller's own account"),
         (name = "health", description = "Whether the API answers"),
         (name = "crashes", description = "Failed tasks, their errors and their inputs"),
+        (name = "email", description = "The email archive's emails, decrypted, by Message-ID"),
         (name = "cli", description = "ace commands run from the GUI, contained on a pool until their deadline"),
         (name = "yara_qa", description = "YARA rules in QA mode, the files they matched, and purges"),
         (name = "events", description = "Events, the alerts in them, threat types and malware's threats"),

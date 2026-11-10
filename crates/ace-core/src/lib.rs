@@ -13,6 +13,7 @@ pub mod bucket;
 pub mod commands;
 pub mod db;
 pub mod eligibility;
+pub mod email_archive;
 pub mod lists;
 pub mod modes;
 pub mod normal;

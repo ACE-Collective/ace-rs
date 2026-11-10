@@ -252,6 +252,13 @@ pub const ALERT_READ: PermissionName = PermissionName::known("alert", "read");
 pub const ALERT_WRITE: PermissionName = PermissionName::known("alert", "write");
 /// Submit analysis: ace3's `alert:create`, which its submit route requires.
 pub const ALERT_CREATE: PermissionName = PermissionName::known("alert", "create");
+/// Read an archived email, decrypted, by its Message-ID: ace3's `email:read`.
+pub const EMAIL_READ: PermissionName = PermissionName::known("email", "read");
+/// Make the email archive's weeks ahead and drop those past retention, as ace3's `ace partitions
+/// maintain` does. ace3 has no such permission. Only the scheduler's
+/// `scheduler:email_archive_partitions` holds it.
+pub const EMAIL_ARCHIVE_MAINTAIN: PermissionName =
+    PermissionName::known("email_archive", "maintain");
 /// Read events, their alerts, malware and threat types, and export them: ace3's `event:read`.
 pub const EVENT_READ: PermissionName = PermissionName::known("event", "read");
 /// Change events, and the threat types and malware's threats they record: ace3's `event:write`.
@@ -338,6 +345,16 @@ pub static CATALOG: &[CatalogEntry] = &[
     CatalogEntry {
         name: CRASH_READ,
         description: "List failed tasks and download them; the archive holds the file the module failed on.",
+    },
+    CatalogEntry {
+        name: EMAIL_ARCHIVE_MAINTAIN,
+        description: "Make the email archive's weeks ahead and drop those past retention. The scheduler \
+                      holds it.",
+    },
+    CatalogEntry {
+        name: EMAIL_READ,
+        description: "Read an archived email, decrypted, by its Message-ID: any email the archive kept, \
+                      from any alert (audited).",
     },
     CatalogEntry {
         name: EVENT_READ,

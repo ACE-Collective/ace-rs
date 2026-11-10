@@ -1228,6 +1228,87 @@ def write_bodies(bodies):
     yield
 
 
+# 7.5 batch 9's email archive. ace3's archive is a MySQL database and files on the node; here it's
+# run_module.py's FakeEmailArchive and the work directory, under the test-only key in
+# fixtures/email_archive/key. The sealed fixtures there were made with seal.py, ace3's own encrypt.
+EMAIL_ARCHIVE = f"{REMOTE}/fixtures/email_archive"
+EMAIL_ARCHIVE_KEY = (HERE / "fixtures" / "email_archive" / "key").read_text().strip()
+EMAIL_ARCHIVE_FILES = [
+    "sealed_v0.gz.e", "sealed_v1.gz.e", "other_key.gz.e", "not_gzip.gz.e", "truncated.gz.e",
+    "tampered.gz.e", "sealed_v0.bin",
+]
+EMAIL_ARCHIVE_MESSAGE_IDS = [
+    "<archived-1@example.com>", "archived-1@example.com", "<archived-2@example.com>",
+    "<not-archived@example.com>", "<missing-object@example.com>", "<empty@example.com>",
+]
+EMAIL_ARCHIVE_URLS = ["http://example.com/a", "http://example.com/shared", "http://example.com/none"]
+EMAIL_ARCHIVE_PIVOT_CONFIG = "analysis_module_url_email_pivot_analyzer:\n  result_limit: 2\n"
+
+
+def email_archive_runs():
+    """The archive modules: the opener on each sealed fixture; the Message-ID and URL modules against
+    fixtures/email_archive/store.json, the URL module also with a result_limit the count passes; and the
+    archiver on each email sample with the archive directive, against an empty archive, with the
+    email, file type and URL modules whose URLs its post-analysis indexes, keeping the whole root,
+    whose URLs those are."""
+    runs = []
+    key = ["--encryption-key", EMAIL_ARCHIVE_KEY]
+    store = ["--email-archive-store", f"{EMAIL_ARCHIVE}/store.json"]
+    for name in EMAIL_ARCHIVE_FILES:
+        runs.append({
+            "module": "encrypted_archive_analyzer",
+            "enable": [],
+            "name": name,
+            "args": ["--file", f"{EMAIL_ARCHIVE}/{name}", "--alert-path", name, *key],
+            "label": f"fixtures/email_archive/{name}",
+        })
+    for value in EMAIL_ARCHIVE_MESSAGE_IDS:
+        runs.append({
+            "module": "message_id_analyzer_v2",
+            "enable": [],
+            "name": f"message_id_{value}",
+            "args": ["--observable", "message_id", value, *key, *store],
+            "label": f"message_id {value}, against fixtures/email_archive/store.json",
+        })
+    for value in EMAIL_ARCHIVE_URLS:
+        runs.append({
+            "module": "url_email_pivot_analyzer",
+            "enable": [],
+            "name": f"url_{value.split('//', 1)[1].replace('/', '_')}",
+            "args": ["--observable", "url", value, *key, *store],
+            "label": f"url {value}, against fixtures/email_archive/store.json",
+        })
+    runs.append({
+        "module": "url_email_pivot_analyzer",
+        "enable": [],
+        "name": "url_example.com_shared.limit",
+        "args": ["--observable", "url", "http://example.com/shared", *key, *store,
+                 "--config", f"{EMAIL_ARCHIVE}/pivot_limit.yaml"],
+        "label": "url http://example.com/shared, against fixtures/email_archive/store.json, result_limit 2",
+        "service": write_pivot_config,
+    })
+    for sample in manifest_samples("email"):
+        if sample["path"].startswith("local/"):
+            continue
+        runs.append({
+            "module": "email_archiver",
+            "enable": ["email_analyzer", "file_type", "url_extraction"],
+            "name": sample["path"],
+            "args": ["--file", f"{REMOTE}/samples/{sample['path']}", "--alert-path", sample["alert_path"],
+                     "--directive", "archive", *key, "--email-archive-store", f"{EMAIL_ARCHIVE}/empty.json",
+                     "--tree-view"]
+            + [arg for tag in sample["meta_tags"] for arg in ("--meta-tag", tag)],
+            "label": f"{sample['path']} with the archive directive, against an empty archive",
+        })
+    return runs
+
+
+@contextlib.contextmanager
+def write_pivot_config():
+    put(f"{EMAIL_ARCHIVE}/pivot_limit.yaml", EMAIL_ARCHIVE_PIVOT_CONFIG.encode())
+    yield
+
+
 RUNS = {
     "email": lambda: file_runs("email_analyzer", ["file_type"], "email"),
     "archive": lambda: file_runs("archive", ["file_type"], "archive/"),
@@ -1257,6 +1338,7 @@ RUNS = {
     "scripts": script_runs,
     "encrypted": encrypted_runs,
     "emailtree": lambda: email_tree_runs(),
+    "email_archive": email_archive_runs,
 }
 
 
@@ -1533,6 +1615,10 @@ def run(spec):
         # these analyze what the email carries, so the email has none of theirs
         "email_conversation_attachment_analyzer": "EmailConversationAttachmentAnalysis",
         "email_conversation_link_analyzer": "EmailConversationLinkAnalysis",
+        "email_archiver": "EmailArchiveResults",
+        "encrypted_archive_analyzer": "EncryptedArchiveAnalysis",
+        "url_email_pivot_analyzer": "URLEmailPivotAnalysis_v2",
+        "message_id_analyzer_v2": "MessageIDAnalysisV2",
     }[spec["module"]]
     analysis = next((a for a in parsed["analyses"] if a["class"] == target_class), None)
     return {

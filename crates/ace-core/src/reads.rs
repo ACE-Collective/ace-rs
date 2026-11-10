@@ -15,16 +15,18 @@ use ace_results::types::email::EmailAnalysis;
 use ace_results::{ObservableKind, ObservableRef};
 use ace_sdk::email_threads;
 use ace_sdk::reads::{
-    Conversation, ConversationMessage, EmailThreadAnswer, EmailThreadDomainsAnswer,
-    EmailThreadDomainsRequest, EmailThreadRequest, EstablishedDomain, MessageParticipant,
-    NewlyRegisteredAnswer, NewlyRegisteredRequest, SmtpCountsAnswer, SmtpCountsRequest,
-    SnortSignatureAnswer, SnortSignatureRequest,
+    ArchivedEmailAnswer, ArchivedEmailRequest, ArchivedUrlCountAnswer, ArchivedUrlCountRequest,
+    Conversation, ConversationMessage, DecryptedArchiveAnswer, DecryptedArchiveRequest,
+    EmailThreadAnswer, EmailThreadDomainsAnswer, EmailThreadDomainsRequest, EmailThreadRequest,
+    EstablishedDomain, MessageParticipant, NewlyRegisteredAnswer, NewlyRegisteredRequest,
+    SmtpCountsAnswer, SmtpCountsRequest, SnortSignatureAnswer, SnortSignatureRequest,
 };
 use regex::Regex;
 use serde_json::Value;
 use uuid::Uuid;
 
 use crate::db::{Db, DbError};
+use crate::email_archive::{ArchiveError, EmailArchive};
 use crate::queue::Task;
 
 /// Why a read wasn't answered, as the lease API answers it.
@@ -54,6 +56,9 @@ impl From<sqlx::Error> for ReadFailure {
 #[derive(Clone, Default)]
 pub struct ReadStores {
     snort: Arc<SnortRules>,
+    /// The email archive, with the bucket and the key (PLAN.md 7.5 batch 9). None answers its
+    /// reads as a core with no key.
+    archive: Option<EmailArchive>,
 }
 
 impl ReadStores {
@@ -61,7 +66,17 @@ impl ReadStores {
     pub fn new(snort_rules: Option<PathBuf>) -> Self {
         ReadStores {
             snort: Arc::new(SnortRules::new(snort_rules)),
+            archive: None,
         }
+    }
+
+    pub fn with_archive(mut self, archive: EmailArchive) -> Self {
+        self.archive = Some(archive);
+        self
+    }
+
+    pub fn archive(&self) -> Option<&EmailArchive> {
+        self.archive.as_ref()
     }
 }
 
@@ -96,6 +111,18 @@ pub async fn answer(
         "newly-registered" => {
             let request: NewlyRegisteredRequest = parse(request)?;
             serde_json::to_value(newly_registered(db, task, request).await?)
+        }
+        "archived-email" => {
+            let request: ArchivedEmailRequest = parse(request)?;
+            serde_json::to_value(archived_email(stores, task, request).await?)
+        }
+        "decrypted-archive" => {
+            let request: DecryptedArchiveRequest = parse(request)?;
+            serde_json::to_value(decrypted_archive(db, stores, task, request).await?)
+        }
+        "archived-url-count" => {
+            let request: ArchivedUrlCountRequest = parse(request)?;
+            serde_json::to_value(archived_url_count(stores, task, request).await?)
         }
         other => {
             return Err(ReadFailure::Forbidden(format!(
@@ -143,6 +170,192 @@ async fn in_root(db: &Db, root: Uuid, subject: &ObservableRef) -> Result<bool, R
     .fetch_one(db.pool())
     .await?;
     Ok(found.unwrap_or(false))
+}
+
+// ---- the email archive (PLAN.md 7.5 batch 9) ----
+
+/// The task's own observable, which must be of `kind`: the archive's reads answer about nothing else.
+fn own_subject(
+    task: &Task,
+    subject: Option<ObservableRef>,
+    kind: ObservableKind,
+    read: &str,
+) -> Result<String, ReadFailure> {
+    if task.observable.kind != kind {
+        return Err(ReadFailure::Forbidden(format!(
+            "{read} answers for a {kind} observable, and task {}'s is a {}",
+            task.id, task.observable.kind
+        )));
+    }
+    if let Some(subject) = subject
+        && (subject.kind != task.observable.kind || subject.value != task.observable.value)
+    {
+        return Err(ReadFailure::Forbidden(format!(
+            "{read} answers only for the task's own observable, not {}:{}",
+            subject.kind, subject.value
+        )));
+    }
+    Ok(task.observable.value.clone())
+}
+
+fn archive(stores: &ReadStores) -> Result<&EmailArchive, ReadFailure> {
+    stores
+        .archive()
+        .ok_or_else(|| ReadFailure::Unavailable("this core has no email archive".to_owned()))
+}
+
+/// An archive failure as a read answers it: the database or the bucket down is a 503, and what
+/// keeps this email from opening (no key, too large, a bad tag, an object gone) is the answer's
+/// `error`, as ace3's module logs it and adds nothing.
+fn archive_failure(error: ArchiveError) -> Result<String, ReadFailure> {
+    match error {
+        ArchiveError::Db(e) => Err(e.into()),
+        ArchiveError::Bucket(crate::bucket::BucketError::Store(e)) => {
+            Err(ReadFailure::Unavailable(format!("the bucket: {e}")))
+        }
+        ArchiveError::Bucket(crate::bucket::BucketError::Db(e)) => Err(e.into()),
+        other => Ok(other.to_string()),
+    }
+}
+
+/// An archive failure where nothing but the store can fail: always a failure of the read.
+fn read_failure(error: ArchiveError) -> ReadFailure {
+    match archive_failure(error) {
+        Ok(why) => ReadFailure::Unavailable(why),
+        Err(failure) => failure,
+    }
+}
+
+/// `archived-email`: the newest archived email with the task's Message-ID, opened in the core and
+/// put in the task's root, as ace3's `iter_archived_email`.
+async fn archived_email(
+    stores: &ReadStores,
+    task: &Task,
+    request: ArchivedEmailRequest,
+) -> Result<ArchivedEmailAnswer, ReadFailure> {
+    let message_id = own_subject(
+        task,
+        request.subject,
+        ObservableKind::MessageId,
+        "archived-email",
+    )?;
+    let archive = archive(stores)?;
+    let Some(archived) = archive
+        .find_by_message_id(&message_id)
+        .await
+        .map_err(read_failure)?
+    else {
+        tracing::info!(task = task.id.0, root = %task.root, read = "archived-email", "not archived");
+        return Ok(ArchivedEmailAnswer::default());
+    };
+    let opened = match archive.open_archived(&archived).await {
+        Ok(email) => archive
+            .put_in_root(task.root, &email)
+            .await
+            .map_err(read_failure),
+        Err(e) => match archive_failure(e) {
+            Ok(why) => {
+                tracing::warn!(
+                    task = task.id.0,
+                    archive_id = archived.archive_id,
+                    "unable to open an archived email: {why}"
+                );
+                return Ok(ArchivedEmailAnswer {
+                    email: None,
+                    error: Some(why),
+                });
+            }
+            Err(e) => Err(e),
+        },
+    }?;
+    tracing::info!(
+        task = task.id.0,
+        root = %task.root,
+        read = "archived-email",
+        archive_id = archived.archive_id,
+        sha256 = %opened.sha256,
+        "read"
+    );
+    Ok(ArchivedEmailAnswer {
+        email: Some(opened),
+        error: None,
+    })
+}
+
+/// `decrypted-archive`: the task's own file, a `.gz.e` in the root, opened in the core and put in the
+/// root, as ace3's `EncryptedArchiveAnalyzer`.
+async fn decrypted_archive(
+    db: &Db,
+    stores: &ReadStores,
+    task: &Task,
+    request: DecryptedArchiveRequest,
+) -> Result<DecryptedArchiveAnswer, ReadFailure> {
+    own_subject(
+        task,
+        request.subject,
+        ObservableKind::File,
+        "decrypted-archive",
+    )?;
+    let path = crate::tree::analysis_file(db.pool(), task.root, task.observable.id)
+        .await?
+        .map(|record| record.path);
+    if !path.as_deref().is_some_and(|p| p.ends_with(".gz.e")) {
+        return Err(ReadFailure::Forbidden(format!(
+            "decrypted-archive opens a file whose name ends .gz.e, and task {}'s is {path:?}",
+            task.id
+        )));
+    }
+    let archive = archive(stores)?;
+    let sha256: ace_results::Sha256 = task.observable.value.parse().map_err(|_| {
+        ReadFailure::Forbidden(format!("{:?} isn't a sha256", task.observable.value))
+    })?;
+    let opened = match archive.open_alert_file(&sha256).await {
+        Ok(email) => archive.put_in_root(task.root, &email).await,
+        Err(e) => Err(e),
+    };
+    match opened {
+        Ok(file) => {
+            tracing::info!(
+                task = task.id.0,
+                root = %task.root,
+                read = "decrypted-archive",
+                sha256 = %file.sha256,
+                "read"
+            );
+            Ok(DecryptedArchiveAnswer {
+                email: Some(file),
+                error: None,
+            })
+        }
+        Err(e) => {
+            let why = archive_failure(e)?;
+            tracing::warn!(task = task.id.0, root = %task.root, "unable to decrypt {sha256}: {why}");
+            Ok(DecryptedArchiveAnswer {
+                email: None,
+                error: Some(why),
+            })
+        }
+    }
+}
+
+/// `archived-url-count`: how many archived emails are indexed with the task's URL.
+async fn archived_url_count(
+    stores: &ReadStores,
+    task: &Task,
+    request: ArchivedUrlCountRequest,
+) -> Result<ArchivedUrlCountAnswer, ReadFailure> {
+    let url = own_subject(
+        task,
+        request.subject,
+        ObservableKind::Url,
+        "archived-url-count",
+    )?;
+    let count = archive(stores)?
+        .url_count(&url)
+        .await
+        .map_err(read_failure)?;
+    tracing::info!(task = task.id.0, root = %task.root, read = "archived-url-count", count, "read");
+    Ok(ArchivedUrlCountAnswer { count })
 }
 
 // ---- smtp-counts ----

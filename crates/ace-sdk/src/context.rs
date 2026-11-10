@@ -31,8 +31,11 @@ pub struct Observable {
     /// The value, as ace3 stores it. For a file it is the sha256 in hex.
     pub value: String,
     pub time: Option<DateTime<Utc>>,
-    /// Set when `kind` is `file`.
+    /// Set when `kind` is `file` and the task has its bytes: a parser's.
     pub file: Option<InputFile>,
+    /// A file's path inside the alert, which a lookup gets too, without the bytes: its pool can't
+    /// reach the bucket.
+    pub path: Option<AlertPath>,
     /// The observable's directives, such as `original_email` or `no_scan`.
     pub directives: Vec<String>,
     /// The observable that stands for this one when something acts on it, as ace3's
@@ -49,6 +52,7 @@ impl Observable {
             value: value.into(),
             time: None,
             file: None,
+            path: None,
             directives: Vec::new(),
             redirection: None,
             relationships: Vec::new(),
@@ -60,6 +64,7 @@ impl Observable {
             kind: ObservableKind::File,
             value: file.sha256.to_hex(),
             time: None,
+            path: Some(file.path.clone()),
             file: Some(file),
             directives: Vec::new(),
             redirection: None,

@@ -83,6 +83,7 @@ mod auth;
 mod commands;
 mod crashes;
 mod detection_points;
+mod email_archive;
 mod events;
 pub mod filters;
 mod gate;
@@ -135,6 +136,7 @@ pub use crashes::{Crash, CrashDetail, CrashFilter, CrashInput, CrashPage, MAX_CR
 pub use detection_points::{
     DetectionPoint, DetectionPointFilter, DetectionPointPage, MAX_DETECTIONS_PAGE,
 };
+pub use email_archive::ArchivedEmail;
 pub use events::{
     AddedToEvent, CLOSED_EVENTS_PAGE, CLOSED_STATUS, CampaignChoice, DISPOSITION_RANKS, Event,
     EventAlert, EventChoice, EventChoices, EventEdit, EventEditChoices, EventListPage,
@@ -163,10 +165,10 @@ pub use observables::{
 };
 pub use permission::{
     ADMIN_READ, ALERT_CREATE, ALERT_READ, ALERT_WRITE, BUCKET_GC, BUCKET_VERIFY, CATALOG,
-    CLI_EXECUTE, CRASH_READ, CatalogEntry, EVENT_READ, EVENT_WRITE, Effect, HUNT_READ, HUNT_WRITE,
-    InvalidPermission, LIST_READ, LIST_WRITE, NRD_REFRESH, OBSERVABLE_READ, OBSERVABLE_WRITE,
-    PermissionName, PermissionPattern, SIGNATURE_DOWNLOAD, SIGNATURE_QA_PURGE, SIGNATURE_READ,
-    USER_READ, USER_SELF, USER_WRITE,
+    CLI_EXECUTE, CRASH_READ, CatalogEntry, EMAIL_ARCHIVE_MAINTAIN, EMAIL_READ, EVENT_READ,
+    EVENT_WRITE, Effect, HUNT_READ, HUNT_WRITE, InvalidPermission, LIST_READ, LIST_WRITE,
+    NRD_REFRESH, OBSERVABLE_READ, OBSERVABLE_WRITE, PermissionName, PermissionPattern,
+    SIGNATURE_DOWNLOAD, SIGNATURE_QA_PURGE, SIGNATURE_READ, USER_READ, USER_SELF, USER_WRITE,
 };
 pub use preferences::{
     AlertSectionsPreference, MANAGE_COLUMNS, MAX_ALERT_SECTIONS, ManageColumn,
@@ -261,6 +263,10 @@ pub enum ServiceError {
     Conflict(String),
     #[error(transparent)]
     Bucket(#[from] BucketError),
+    /// What the request needs isn't set up on this node, such as the email archive's key, or failed
+    /// in a way only an operator can fix. Its message says which.
+    #[error("{0}")]
+    Unconfigured(String),
 }
 
 impl From<DbError> for ServiceError {
@@ -281,6 +287,7 @@ impl Retryable for ServiceError {
             ServiceError::Orchestrator(e) => e.is_retryable(),
             ServiceError::Bucket(BucketError::Db(e)) => e.is_retryable(),
             ServiceError::Bucket(_)
+            | ServiceError::Unconfigured(_)
             | ServiceError::InvalidRequest(_)
             | ServiceError::NotFound(_)
             | ServiceError::TooLarge(_)

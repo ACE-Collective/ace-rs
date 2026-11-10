@@ -67,6 +67,8 @@ impl From<ServiceError> for ApiError {
             | ServiceError::Conflict(_)
             | ServiceError::UsersExist => StatusCode::CONFLICT,
             ServiceError::Bucket(BucketError::Deleting { .. }) => StatusCode::SERVICE_UNAVAILABLE,
+            // its message is an operator's, such as a missing key, and holds nothing secret
+            ServiceError::Unconfigured(_) => StatusCode::INTERNAL_SERVER_ERROR,
             error if error.is_retryable() => StatusCode::SERVICE_UNAVAILABLE,
             ServiceError::Orchestrator(_)
             | ServiceError::Bucket(_)
