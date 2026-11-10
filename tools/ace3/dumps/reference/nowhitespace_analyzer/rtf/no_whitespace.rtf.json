@@ -1,0 +1,63 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "NoWhiteSpaceAnalysis",
+      "details": {
+        "count": 0
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.rtf:NoWhiteSpaceAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=document.rtf.stripped"
+          ],
+          "excluded_analysis": [],
+          "file_path": "no_whitespace.rtf.nowhitespace",
+          "redirection": {
+            "type": "file",
+            "value": "59f7d4ff85344d91c45e5bc31061b648cc72c8e66751d1a59e814d53c2ad726d"
+          },
+          "relationships": [],
+          "size": 18,
+          "tags": [],
+          "type": "file",
+          "value": "59f7d4ff85344d91c45e5bc31061b648cc72c8e66751d1a59e814d53c2ad726d",
+          "yara_meta": [
+            "type=document.rtf.stripped"
+          ]
+        }
+      ],
+      "summary": null,
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/scripts/rtf/no_whitespace.rtf",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "no_whitespace.rtf",
+      "size": 18,
+      "type": "file",
+      "value": "59f7d4ff85344d91c45e5bc31061b648cc72c8e66751d1a59e814d53c2ad726d"
+    }
+  },
+  "module": "nowhitespace_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "no_whitespace.rtf",
+    "relationships": [],
+    "size": 18,
+    "tags": [],
+    "type": "file",
+    "value": "59f7d4ff85344d91c45e5bc31061b648cc72c8e66751d1a59e814d53c2ad726d",
+    "yara_meta": []
+  }
+}

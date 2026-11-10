@@ -1,0 +1,30 @@
+{
+  "analysis_type": "microsoft_script_encoding_analysis",
+  "schema_version": 1,
+  "details": {
+    "analysis_output": "invoice.vbe.decrypted.vbs"
+  },
+  "summary": "Microsoft Script Encoding Analysis: invoice.vbe.decrypted.vbs",
+  "analyzed": {
+    "tags": [
+      "microsoft_script_encoding"
+    ],
+    "directives": [
+      "sandbox"
+    ]
+  },
+  "files": [
+    {
+      "path": "invoice.vbe.decrypted.vbs",
+      "sha256": "f34ce606302b72f317d06c1f894ec98087e4af3c8147cb897e8789a15f6dbf07",
+      "size": 171,
+      "yara_meta": [
+        "type=script.encoded"
+      ],
+      "redirection": {
+        "type": "file",
+        "value": "22e27e18197406345cbf1372ecb37a709854350f04f0fc187038342b1785e04d"
+      }
+    }
+  ]
+}

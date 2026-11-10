@@ -1,0 +1,72 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "MicrosoftScriptEncodingAnalysis",
+      "details": {
+        "analysis_output": "loader.jse.decrypted.js"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.mse:MicrosoftScriptEncodingAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=script.encoded"
+          ],
+          "excluded_analysis": [],
+          "file_path": "loader.jse.decrypted.js",
+          "redirection": {
+            "type": "file",
+            "value": "66ccdba967f40399699b6cb35209fd8bcfff1aaa100151a4491d58f20eeb520d"
+          },
+          "relationships": [],
+          "size": 135,
+          "tags": [],
+          "type": "file",
+          "value": "84767c86e9200707b01ff0d0b362082d2ac8acd1978a4c2400161f18407eb2eb",
+          "yara_meta": [
+            "type=script.encoded"
+          ]
+        }
+      ],
+      "summary": "Microsoft Script Encoding Analysis: loader.jse.decrypted.js",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace4/scripts/loader.jse",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "loader.jse",
+      "size": 168,
+      "type": "file",
+      "value": "66ccdba967f40399699b6cb35209fd8bcfff1aaa100151a4491d58f20eeb520d"
+    }
+  },
+  "module": "microsoft_script_encoding_analysis",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "sandbox",
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "loader.jse",
+    "relationships": [],
+    "size": 168,
+    "tags": [
+      "microsoft_script_encoding"
+    ],
+    "type": "file",
+    "value": "66ccdba967f40399699b6cb35209fd8bcfff1aaa100151a4491d58f20eeb520d",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

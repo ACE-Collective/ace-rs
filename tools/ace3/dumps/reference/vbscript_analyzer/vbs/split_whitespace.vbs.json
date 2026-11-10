@@ -1,0 +1,51 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "VBScriptAnalysis",
+      "details": {
+        "largest_hex_string": 35,
+        "percentage_of_hex_strings": 66.0377358490566,
+        "total_hex_strings": 1
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.vbs:VBScriptAnalysis",
+      "observables": [],
+      "summary": "VBScript Analysis: 1 total hex strings, 35 largest hex string, 66.0377358490566% percentage of file is hex strings",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/scripts/vbs/split_whitespace.vbs",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "split_whitespace.vbs",
+      "size": 53,
+      "type": "file",
+      "value": "ec3c159641d85cf4b10f232f5ada67a38ad715dc5566d529fc88011a5482bc51"
+    }
+  },
+  "module": "vbscript_analyzer",
+  "observable_after": {
+    "detections": [
+      {
+        "description": "a large percentage of the file is ascii hex (66.04%)",
+        "details": null
+      }
+    ],
+    "directives": [
+      "sandbox"
+    ],
+    "excluded_analysis": [],
+    "file_path": "split_whitespace.vbs",
+    "relationships": [],
+    "size": 53,
+    "tags": [],
+    "type": "file",
+    "value": "ec3c159641d85cf4b10f232f5ada67a38ad715dc5566d529fc88011a5482bc51",
+    "yara_meta": []
+  }
+}

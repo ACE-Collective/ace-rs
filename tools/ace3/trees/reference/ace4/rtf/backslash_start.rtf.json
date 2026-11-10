@@ -41,6 +41,13 @@
           "summary": "File Type Analysis: ASCII text, with CRLF line terminators (text/plain) (ms office document) (rtf document)",
           "tags": {}
         },
+        "nowhitespace_analyzer": {
+          "details": {
+            "count": 4
+          },
+          "summary": "NoWhiteSpaceAnalysis: Ignore Whitespace Characters (4 removed)",
+          "tags": {}
+        },
         "rtfole": {
           "details": {
             "extracted_files": [
@@ -73,6 +80,11 @@
         "extracted_from file:22aa7d6f015f886b817cae96fb99fcee9d93e6132825c7a3bc27a572d7562c3b": true
       },
       "results": {
+        "extracted_rtf_analyzer": {
+          "details": {},
+          "summary": null,
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "33892bc1acb6b7e23128ea5fbb9afbbe",
@@ -106,12 +118,143 @@
         "extracted_rtf": true
       }
     },
+    "file:d411ae0e9131398e0d93dff00b260fe0d81bc9c534ee510abe34c874ef23a4a5": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "backslash_start.rtf.nowhitespace": {
+          "type=document.rtf": true,
+          "type=document.rtf.stripped": true
+        }
+      },
+      "redirection": "file:22aa7d6f015f886b817cae96fb99fcee9d93e6132825c7a3bc27a572d7562c3b",
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "222c5b8acf6afeab94f4035f6143ef71",
+            "sha1": "dc47e945cc7f1f6fa89dfb9f440da8bf74b41b05",
+            "sha256": "d411ae0e9131398e0d93dff00b260fe0d81bc9c534ee510abe34c874ef23a4a5"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": true,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": true,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text, with no line terminators"
+          },
+          "summary": "File Type Analysis: ASCII text, with no line terminators (text/plain) (ms office document) (rtf document)",
+          "tags": {}
+        },
+        "rtfole": {
+          "details": {
+            "extracted_files": [
+              "backslash_start.rtf.nowhitespace.rtfobj/backslash_start.rtf.nowhitespace_object_0000003D.raw"
+            ],
+            "return_code": 0,
+            "stderr": "",
+            "stdout": "rtfobj 0.60.1 on Python 3.14.10 - http://decalage.info/python/oletools\nTHIS IS WORK IN PROGRESS - Check updates regularly!\nPlease report any issue at https://github.com/decalage2/oletools/issues\n\n===============================================================================\nFile: 'backslash_start.rtf.nowhitespace' - size: 260 bytes\n---+----------+---------------------------------------------------------------\nid |index     |OLE Object                                                     \n---+----------+---------------------------------------------------------------\n0  |0000003Dh |Not a well-formed OLE object                                   \n---+----------+---------------------------------------------------------------\nSaving raw data in object #0:\n  saving object to file backslash_start.rtf.nowhitespace.rtfobj/backslash_start.rtf.nowhitespace_object_0000003D.raw\n  md5 5667ffb142b50f258c6881b09536d4ab\n"
+          },
+          "summary": "RTF OLE Object Analysis: extracted backslash_start.rtf.nowhitespace.rtfobj/backslash_start.rtf.nowhitespace_object_0000003D.raw",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "microsoft_office": true,
+        "rtf": true
+      }
+    },
+    "file:e1a6d9aa4240e7adce6148a8554a98765bba5a82bd7245bf7c2146b182db4336": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "backslash_start.rtf.nowhitespace.rtfobj/backslash_start.rtf.nowhitespace_object_0000003D.raw": {
+          "type=document.rtf.object": true
+        }
+      },
+      "redirection": "file:d411ae0e9131398e0d93dff00b260fe0d81bc9c534ee510abe34c874ef23a4a5",
+      "relationships": {
+        "extracted_from file:d411ae0e9131398e0d93dff00b260fe0d81bc9c534ee510abe34c874ef23a4a5": true
+      },
+      "results": {
+        "extracted_rtf_analyzer": {
+          "details": {},
+          "summary": null,
+          "tags": {}
+        },
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "5667ffb142b50f258c6881b09536d4ab",
+            "sha1": "7b81c632e3d1975bce9f5e93f6b79111a2916611",
+            "sha256": "e1a6d9aa4240e7adce6148a8554a98765bba5a82bd7245bf7c2146b182db4336"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "extracted_rtf": true
+      }
+    },
+    "md5:222c5b8acf6afeab94f4035f6143ef71": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:d411ae0e9131398e0d93dff00b260fe0d81bc9c534ee510abe34c874ef23a4a5": true
+      },
+      "results": {},
+      "tags": {}
+    },
     "md5:33892bc1acb6b7e23128ea5fbb9afbbe": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {},
       "relationships": {
         "is_hash_of file:5437560581667e84a2bf2ba852a4bcc1ee8235779233b6a3b6993e11bcbce228": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:5667ffb142b50f258c6881b09536d4ab": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:e1a6d9aa4240e7adce6148a8554a98765bba5a82bd7245bf7c2146b182db4336": true
       },
       "results": {},
       "tags": {}
@@ -142,6 +285,26 @@
       "excluded_analysis": {},
       "relationships": {
         "is_hash_of file:5437560581667e84a2bf2ba852a4bcc1ee8235779233b6a3b6993e11bcbce228": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:d411ae0e9131398e0d93dff00b260fe0d81bc9c534ee510abe34c874ef23a4a5": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:d411ae0e9131398e0d93dff00b260fe0d81bc9c534ee510abe34c874ef23a4a5": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:e1a6d9aa4240e7adce6148a8554a98765bba5a82bd7245bf7c2146b182db4336": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:e1a6d9aa4240e7adce6148a8554a98765bba5a82bd7245bf7c2146b182db4336": true
       },
       "results": {},
       "tags": {}

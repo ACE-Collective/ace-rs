@@ -46,12 +46,81 @@
           "summary": "File Type Analysis: Rich Text Format data, version 1 (text/rtf) (ms office document) (rtf document)",
           "tags": {}
         },
+        "nowhitespace_analyzer": {
+          "details": {
+            "count": 2
+          },
+          "summary": "NoWhiteSpaceAnalysis: Ignore Whitespace Characters (2 removed)",
+          "tags": {}
+        },
         "rtfole": {
           "details": {
             "extracted_files": [],
             "return_code": 1,
             "stderr": "Traceback (most recent call last):\n  File \"/venv/bin/rtfobj\", line 6, in <module>\n    sys.exit(main())\n             ~~~~^^\n  File \"/venv/lib/python3.14/site-packages/oletools/rtfobj.py\", line 1079, in main\n    process_file(container, filename, data, output_dir=options.output_dir,\n    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n                 save_object=options.save_object)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/venv/lib/python3.14/site-packages/oletools/rtfobj.py\", line 877, in process_file\n    rtfp.parse()\n    ~~~~~~~~~~^^\n  File \"/venv/lib/python3.14/site-packages/oletools/rtfobj.py\", line 488, in parse\n    raise RuntimeError('Should not have reached this point - index=%Xh' % self.index)\nRuntimeError: Should not have reached this point - index=14h\n",
             "stdout": "rtfobj 0.60.1 on Python 3.14.10 - http://decalage.info/python/oletools\nTHIS IS WORK IN PROGRESS - Check updates regularly!\nPlease report any issue at https://github.com/decalage2/oletools/issues\n\n===============================================================================\nFile: 'edge_trailing_backslash.rtf' - size: 21 bytes\n---+----------+---------------------------------------------------------------\nid |index     |OLE Object                                                     \n---+----------+---------------------------------------------------------------\n"
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "microsoft_office": true,
+        "rtf": true
+      }
+    },
+    "file:92d865425620ba8159d8688c1c3a32111c602ad9a815365314867fb99db530f4": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "edge_trailing_backslash.rtf.nowhitespace": {
+          "type=document.rtf": true,
+          "type=document.rtf.stripped": true
+        }
+      },
+      "redirection": "file:693a9ec384dea3d26f390adeaa1649c0d2e1ead842c064f48670267c79abb8c4",
+      "relationships": {},
+      "results": {
+        "binary_file_analyzer": {
+          "details": {},
+          "summary": null,
+          "tags": {}
+        },
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "9d79381896d754cb5b418e29eb5c2973",
+            "sha1": "092dc28e0e965aec7e2aa2a74d6b25007b9f85b1",
+            "sha256": "92d865425620ba8159d8688c1c3a32111c602ad9a815365314867fb99db530f4"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": true,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": true,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/rtf",
+            "type": "Rich Text Format data, version 1"
+          },
+          "summary": "File Type Analysis: Rich Text Format data, version 1 (text/rtf) (ms office document) (rtf document)",
+          "tags": {}
+        },
+        "rtfole": {
+          "details": {
+            "extracted_files": [],
+            "return_code": 1,
+            "stderr": "Traceback (most recent call last):\n  File \"/venv/bin/rtfobj\", line 6, in <module>\n    sys.exit(main())\n             ~~~~^^\n  File \"/venv/lib/python3.14/site-packages/oletools/rtfobj.py\", line 1079, in main\n    process_file(container, filename, data, output_dir=options.output_dir,\n    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n                 save_object=options.save_object)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/venv/lib/python3.14/site-packages/oletools/rtfobj.py\", line 877, in process_file\n    rtfp.parse()\n    ~~~~~~~~~~^^\n  File \"/venv/lib/python3.14/site-packages/oletools/rtfobj.py\", line 488, in parse\n    raise RuntimeError('Should not have reached this point - index=%Xh' % self.index)\nRuntimeError: Should not have reached this point - index=12h\n",
+            "stdout": "rtfobj 0.60.1 on Python 3.14.10 - http://decalage.info/python/oletools\nTHIS IS WORK IN PROGRESS - Check updates regularly!\nPlease report any issue at https://github.com/decalage2/oletools/issues\n\n===============================================================================\nFile: 'edge_trailing_backslash.rtf.nowhitespace' - size: 19 bytes\n---+----------+---------------------------------------------------------------\nid |index     |OLE Object                                                     \n---+----------+---------------------------------------------------------------\n"
           },
           "summary": null,
           "tags": {}
@@ -72,12 +141,32 @@
       "results": {},
       "tags": {}
     },
+    "md5:9d79381896d754cb5b418e29eb5c2973": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:92d865425620ba8159d8688c1c3a32111c602ad9a815365314867fb99db530f4": true
+      },
+      "results": {},
+      "tags": {}
+    },
     "sha256:693a9ec384dea3d26f390adeaa1649c0d2e1ead842c064f48670267c79abb8c4": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {},
       "relationships": {
         "is_hash_of file:693a9ec384dea3d26f390adeaa1649c0d2e1ead842c064f48670267c79abb8c4": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:92d865425620ba8159d8688c1c3a32111c602ad9a815365314867fb99db530f4": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:92d865425620ba8159d8688c1c3a32111c602ad9a815365314867fb99db530f4": true
       },
       "results": {},
       "tags": {}

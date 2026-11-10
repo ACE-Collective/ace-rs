@@ -1,0 +1,53 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "VBScriptAnalysis",
+      "details": {
+        "largest_hex_string": 400,
+        "percentage_of_hex_strings": 92.69911504424779,
+        "total_hex_strings": 1
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.vbs:VBScriptAnalysis",
+      "observables": [],
+      "summary": "VBScript Analysis: 1 total hex strings, 400 largest hex string, 92.69911504424779% percentage of file is hex strings",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/scripts/vbs/UPPER.VBS",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "UPPER.VBS",
+      "size": 452,
+      "type": "file",
+      "value": "6f4f1935601695cc45e3688d1e8c244463bbf0107bb9091c55227c8ba5e4d4b8"
+    }
+  },
+  "module": "vbscript_analyzer",
+  "observable_after": {
+    "detections": [
+      {
+        "description": "a large percentage of the file is ascii hex (92.70%)",
+        "details": null
+      }
+    ],
+    "directives": [
+      "sandbox"
+    ],
+    "excluded_analysis": [],
+    "file_path": "UPPER.VBS",
+    "relationships": [],
+    "size": 452,
+    "tags": [
+      "large_hex_string"
+    ],
+    "type": "file",
+    "value": "6f4f1935601695cc45e3688d1e8c244463bbf0107bb9091c55227c8ba5e4d4b8",
+    "yara_meta": []
+  }
+}

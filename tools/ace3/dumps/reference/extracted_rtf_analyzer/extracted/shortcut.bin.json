@@ -1,0 +1,78 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": true,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "application/x-ms-shortcut",
+        "type": "MS Windows shortcut, length=0, window=normal"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: MS Windows shortcut, length=0, window=normal (application/x-ms-shortcut) (windows shortcut)",
+      "tags": []
+    },
+    {
+      "class": "ExtractedRTFAnalysis",
+      "details": {},
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.rtf:ExtractedRTFAnalysis",
+      "observables": [],
+      "summary": null,
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/scripts/extracted/shortcut.bin tagged extracted_rtf",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "objects.rtf.rtfobj/objects.rtf_shortcut.bin",
+      "size": 76,
+      "type": "file",
+      "value": "bb3d7bc266d062e070e5678fbf32b4bc017bdb6c33f0b8218939f55d07db0334"
+    },
+    "tags": [
+      "extracted_rtf"
+    ]
+  },
+  "module": "extracted_rtf_analyzer",
+  "observable_after": {
+    "detections": [
+      {
+        "description": "file extracted from RTF has suspect file type",
+        "details": null
+      }
+    ],
+    "directives": [
+      "sandbox"
+    ],
+    "excluded_analysis": [],
+    "file_path": "objects.rtf.rtfobj/objects.rtf_shortcut.bin",
+    "relationships": [],
+    "size": 76,
+    "tags": [
+      "extracted_rtf",
+      "lnk"
+    ],
+    "type": "file",
+    "value": "bb3d7bc266d062e070e5678fbf32b4bc017bdb6c33f0b8218939f55d07db0334",
+    "yara_meta": []
+  }
+}

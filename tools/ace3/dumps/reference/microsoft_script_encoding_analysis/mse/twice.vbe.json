@@ -1,0 +1,70 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "MicrosoftScriptEncodingAnalysis",
+      "details": {
+        "analysis_output": "twice.vbe.decrypted.vbs"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.mse:MicrosoftScriptEncodingAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "sandbox",
+            "yara_meta:type=script.encoded"
+          ],
+          "excluded_analysis": [],
+          "file_path": "twice.vbe.decrypted.vbs",
+          "redirection": {
+            "type": "file",
+            "value": "3afb8d24614fb901ae6dee059455303c37264e318edf130f1de32b66c2631eb6"
+          },
+          "relationships": [],
+          "size": 42,
+          "tags": [
+            "microsoft_script_encoding"
+          ],
+          "type": "file",
+          "value": "54e0c6a20e3e3fc9574256fc7681ea2597b977fc9fbba3670e5dd4704ea23039",
+          "yara_meta": [
+            "type=script.encoded"
+          ]
+        }
+      ],
+      "summary": "Microsoft Script Encoding Analysis: twice.vbe.decrypted.vbs",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/scripts/mse/twice.vbe",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "twice.vbe",
+      "size": 70,
+      "type": "file",
+      "value": "3afb8d24614fb901ae6dee059455303c37264e318edf130f1de32b66c2631eb6"
+    }
+  },
+  "module": "microsoft_script_encoding_analysis",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "sandbox"
+    ],
+    "excluded_analysis": [],
+    "file_path": "twice.vbe",
+    "relationships": [],
+    "size": 70,
+    "tags": [
+      "microsoft_script_encoding"
+    ],
+    "type": "file",
+    "value": "3afb8d24614fb901ae6dee059455303c37264e318edf130f1de32b66c2631eb6",
+    "yara_meta": []
+  }
+}

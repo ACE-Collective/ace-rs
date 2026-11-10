@@ -61,6 +61,9 @@
       "detections": {
         "An archive contained a single file that was a script": [
           null
+        ],
+        "a large percentage of the file is ascii hex (30.93%)": [
+          null
         ]
       },
       "directives": {
@@ -100,6 +103,15 @@
             "type": "ASCII text, with very long lines (65446)"
           },
           "summary": "File Type Analysis: ASCII text, with very long lines (65446) (text/plain)",
+          "tags": {}
+        },
+        "vbscript_analyzer": {
+          "details": {
+            "largest_hex_string": 11,
+            "percentage_of_hex_strings": 30.92552768882172,
+            "total_hex_strings": 1507
+          },
+          "summary": "VBScript Analysis: 1507 total hex strings, 11 largest hex string, 30.92552768882172% percentage of file is hex strings",
           "tags": {}
         }
       },

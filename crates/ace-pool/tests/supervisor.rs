@@ -1256,6 +1256,31 @@ async fn measure_office() {
     .await;
 }
 
+/// PLAN.md 7.5 batch 6: what crafted files cost the RTF and script modules
+/// (docs/measurements/scripts.md), as `measure_office` measures the Office ones: each file
+/// `tools/samples/make-scripts-hostile` wrote to `ACE4_SCRIPTS_HOSTILE` whose name starts with the
+/// module `ACE4_SCRIPTS_MODULE` names, `ACE4_SCRIPTS_RUNS` times (3 by default).
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[ignore = "a measurement, with files tools/samples/make-scripts-hostile makes"]
+async fn measure_scripts() {
+    let dir = std::env::var("ACE4_SCRIPTS_HOSTILE").expect("ACE4_SCRIPTS_HOSTILE");
+    let module = std::env::var("ACE4_SCRIPTS_MODULE").expect("ACE4_SCRIPTS_MODULE");
+    let runs: usize = std::env::var("ACE4_SCRIPTS_RUNS")
+        .ok()
+        .and_then(|r| r.parse().ok())
+        .unwrap_or(3);
+    let manifests = match module.as_str() {
+        "microsoft_script_encoding_analysis" => vec![ace_mod_scripts::mse::MANIFEST],
+        "vbscript_analyzer" => vec![ace_mod_scripts::vbs::MANIFEST],
+        "nowhitespace_analyzer" => vec![ace_mod_scripts::rtf::NOWHITESPACE_MANIFEST],
+        other => panic!("{other} isn't a module of the batch that reads a file"),
+    };
+    measure_files(&dir, &module, runs, manifests, |run, name| {
+        format!("{run}_{name}")
+    })
+    .await;
+}
+
 /// PLAN.md 7.5 batch 3: what crafted observable values cost the modules that read them
 /// (docs/measurements/observable-values.md). Each value of the module `ACE4_VALUES_MODULE` names
 /// runs in a new root as a contained task of that module with its limits, 3 runs

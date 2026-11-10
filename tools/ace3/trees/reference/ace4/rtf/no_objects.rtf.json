@@ -1,6 +1,68 @@
 {
   "form": 1,
   "observables": {
+    "file:06ea7a4bfe597e57fb63f14df28ec1885ab3a8fa4400bae5b0a874e8f9b887a3": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "no_objects.rtf.nowhitespace": {
+          "type=document.rtf": true,
+          "type=document.rtf.stripped": true
+        }
+      },
+      "redirection": "file:218e7ee56a19fed11630470eaa856f712be650db132985a090c499e4ca3f5195",
+      "relationships": {},
+      "results": {
+        "binary_file_analyzer": {
+          "details": {},
+          "summary": null,
+          "tags": {}
+        },
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "777e1369c3334b7a493a0bc9f2c3bc95",
+            "sha1": "8ba05f79fdd24483413d7988c52a80e3bc0e240f",
+            "sha256": "06ea7a4bfe597e57fb63f14df28ec1885ab3a8fa4400bae5b0a874e8f9b887a3"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": true,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": true,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/rtf",
+            "type": "Rich Text Format data, version 1, ANSI"
+          },
+          "summary": "File Type Analysis: Rich Text Format data, version 1, ANSI (text/rtf) (ms office document) (rtf document)",
+          "tags": {}
+        },
+        "rtfole": {
+          "details": {
+            "extracted_files": [],
+            "return_code": 0,
+            "stderr": "",
+            "stdout": "rtfobj 0.60.1 on Python 3.14.10 - http://decalage.info/python/oletools\nTHIS IS WORK IN PROGRESS - Check updates regularly!\nPlease report any issue at https://github.com/decalage2/oletools/issues\n\n===============================================================================\nFile: 'no_objects.rtf.nowhitespace' - size: 30 bytes\n---+----------+---------------------------------------------------------------\nid |index     |OLE Object                                                     \n---+----------+---------------------------------------------------------------\n"
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "microsoft_office": true,
+        "rtf": true
+      }
+    },
     "file:218e7ee56a19fed11630470eaa856f712be650db132985a090c499e4ca3f5195": {
       "detections": {},
       "directives": {},
@@ -46,6 +108,13 @@
           "summary": "File Type Analysis: Rich Text Format data, version 1, ANSI (text/rtf) (ms office document) (rtf document)",
           "tags": {}
         },
+        "nowhitespace_analyzer": {
+          "details": {
+            "count": 3
+          },
+          "summary": "NoWhiteSpaceAnalysis: Ignore Whitespace Characters (3 removed)",
+          "tags": {}
+        },
         "rtfole": {
           "details": {
             "extracted_files": [],
@@ -62,12 +131,32 @@
         "rtf": true
       }
     },
+    "md5:777e1369c3334b7a493a0bc9f2c3bc95": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:06ea7a4bfe597e57fb63f14df28ec1885ab3a8fa4400bae5b0a874e8f9b887a3": true
+      },
+      "results": {},
+      "tags": {}
+    },
     "md5:80dbd201cf5587fc86a0edbaa698ead4": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {},
       "relationships": {
         "is_hash_of file:218e7ee56a19fed11630470eaa856f712be650db132985a090c499e4ca3f5195": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:06ea7a4bfe597e57fb63f14df28ec1885ab3a8fa4400bae5b0a874e8f9b887a3": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:06ea7a4bfe597e57fb63f14df28ec1885ab3a8fa4400bae5b0a874e8f9b887a3": true
       },
       "results": {},
       "tags": {}

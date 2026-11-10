@@ -1,0 +1,63 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "NoWhiteSpaceAnalysis",
+      "details": {
+        "count": 16
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.rtf:NoWhiteSpaceAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=document.rtf.stripped"
+          ],
+          "excluded_analysis": [],
+          "file_path": "spaced.rtf.nowhitespace",
+          "redirection": {
+            "type": "file",
+            "value": "02c9a02a7198024bc11133ce6024993c9d523d1d2f3eb8dc226de4c7c4d01961"
+          },
+          "relationships": [],
+          "size": 55,
+          "tags": [],
+          "type": "file",
+          "value": "abd0a49af4f0501c18946520a23b259c4537968bbe6774230eeef6211adcb00e",
+          "yara_meta": [
+            "type=document.rtf.stripped"
+          ]
+        }
+      ],
+      "summary": "NoWhiteSpaceAnalysis: Ignore Whitespace Characters (16 removed)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/scripts/rtf/spaced.rtf",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "spaced.rtf",
+      "size": 71,
+      "type": "file",
+      "value": "02c9a02a7198024bc11133ce6024993c9d523d1d2f3eb8dc226de4c7c4d01961"
+    }
+  },
+  "module": "nowhitespace_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "spaced.rtf",
+    "relationships": [],
+    "size": 71,
+    "tags": [],
+    "type": "file",
+    "value": "02c9a02a7198024bc11133ce6024993c9d523d1d2f3eb8dc226de4c7c4d01961",
+    "yara_meta": []
+  }
+}

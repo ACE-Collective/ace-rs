@@ -1,0 +1,30 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [],
+  "input": {
+    "directives": [],
+    "label": "fixtures/scripts/rtf/plain.txt",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "plain.txt",
+      "size": 27,
+      "type": "file",
+      "value": "450a409124bbe496545d2b5db0d34b275d8dade80ff5b811f4ded3f422e4108f"
+    }
+  },
+  "module": "nowhitespace_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "plain.txt",
+    "relationships": [],
+    "size": 27,
+    "tags": [],
+    "type": "file",
+    "value": "450a409124bbe496545d2b5db0d34b275d8dade80ff5b811f4ded3f422e4108f",
+    "yara_meta": []
+  }
+}

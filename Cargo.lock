@@ -20,6 +20,7 @@ dependencies = [
  "ace-mod-oletools",
  "ace-mod-pdf",
  "ace-mod-rdap",
+ "ace-mod-scripts",
  "ace-mod-snort",
  "ace-mod-splunk",
  "ace-mod-urls",
@@ -472,6 +473,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "ace-mod-scripts"
+version = "0.1.0"
+dependencies = [
+ "ace-mod-files",
+ "ace-pycompat",
+ "ace-results",
+ "ace-sdk",
+ "ace-testkit",
+ "memchr",
+ "schemars 1.2.3",
+ "serde",
+ "serde_json",
+ "sha2 0.11.1",
+]
+
+[[package]]
 name = "ace-mod-snort"
 version = "0.1.0"
 dependencies = [
@@ -613,6 +630,7 @@ dependencies = [
  "ace-mod-office",
  "ace-mod-oletools",
  "ace-mod-pdf",
+ "ace-mod-scripts",
  "ace-mod-snort",
  "ace-mod-splunk",
  "ace-mod-urls",

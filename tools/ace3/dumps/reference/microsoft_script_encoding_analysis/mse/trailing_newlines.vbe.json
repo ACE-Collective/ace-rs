@@ -1,0 +1,67 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "MicrosoftScriptEncodingAnalysis",
+      "details": {
+        "analysis_output": "trailing_newlines.vbe.decrypted.vbs"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.mse:MicrosoftScriptEncodingAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=script.encoded"
+          ],
+          "excluded_analysis": [],
+          "file_path": "trailing_newlines.vbe.decrypted.vbs",
+          "redirection": {
+            "type": "file",
+            "value": "fa0a02145a8dc77f8280ec3d8c66bdeefc34f4c15558810e7dbd03a0b3f9c876"
+          },
+          "relationships": [],
+          "size": 181,
+          "tags": [],
+          "type": "file",
+          "value": "14d8b30a188962b0dfbba42e0628ace45a6256660863ae7919463d19772f644a",
+          "yara_meta": [
+            "type=script.encoded"
+          ]
+        }
+      ],
+      "summary": "Microsoft Script Encoding Analysis: trailing_newlines.vbe.decrypted.vbs",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/scripts/mse/trailing_newlines.vbe",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "trailing_newlines.vbe",
+      "size": 205,
+      "type": "file",
+      "value": "fa0a02145a8dc77f8280ec3d8c66bdeefc34f4c15558810e7dbd03a0b3f9c876"
+    }
+  },
+  "module": "microsoft_script_encoding_analysis",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "sandbox"
+    ],
+    "excluded_analysis": [],
+    "file_path": "trailing_newlines.vbe",
+    "relationships": [],
+    "size": 205,
+    "tags": [
+      "microsoft_script_encoding"
+    ],
+    "type": "file",
+    "value": "fa0a02145a8dc77f8280ec3d8c66bdeefc34f4c15558810e7dbd03a0b3f9c876",
+    "yara_meta": []
+  }
+}

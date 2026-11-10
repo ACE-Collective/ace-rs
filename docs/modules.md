@@ -20,17 +20,17 @@ Versions are those of ace3's image: Python packages from `installer/requirements
 
 | Pool | Modules | Ported |
 |---|---|---|
-| parser | 53 | 37 |
+| parser | 53 | 41 |
 | lookup | 17 | 9 |
 | core | 3 | 0 |
 | sandbox | 15 | 0 |
 | scanner | 2 | 0 |
-| all | 90 | 46 |
+| all | 90 | 50 |
 
 | Step | Modules |
 |---|---|
-| done | 46 |
-| 7.5 | 34 |
+| done | 50 |
+| 7.5 | 30 |
 | 7.6 | 5 |
 | 7.7 | 2 |
 | 7.10 | 2 |
@@ -47,7 +47,7 @@ In order. Batches 10 to 13 run programs in the sandbox runner, which batch 10 bu
 3. **Observable values**: done. `command_line_analyzer`, `file_location_analysis`, `file_path_analysis`, `network_identifier`, `parse_url`, `idna_analyzer`, `email_address_fqdn_analyzer`, `protected_url_analyzer`, in `ace-mod-values`, on `ace-urlfinder` and `ace-pycompat`. Strings in, observables out; no files but command lines' payloads. `protected_url_analyzer`'s 1drv.ms links go to `protected_url_one_drive` on the lookup pool (its entry has the decision).
 4. **HTML**: done. `html_data_url_extraction`, `har_extraction`, `html_js_extraction`, `mhtml`, in `ace-mod-html`, on `ace-lxml`'s BeautifulSoup tree, `ace-mod-oletools`' port of Python's feed parser and `ace-pycompat`. HTML, MHTML and HAR files, with the DOM snapshots 7.7's js-deobfuscator reads, which ride in the results' `dom_snapshots` rather than in files beside the scripts.
 5. **Office containers**: done. `onenote_extraction`, `officeparser3`, `office_xml_rel`, `xml_binary_analyzer`, `xml_plain_text_analyzer`, `extracted_ole_analyzer`, `hidden_mime`, `active_mime`, in `ace-mod-office`. OneNote, compound files, Office XML, hidden MIME and ActiveMime. XML is parsed by `ace_lxml::target`, lxml's target parser over the vendored libxml2, which matches lxml on 472 inputs; MIME by `ace-mod-oletools`' feed parser; compound files by a port of officeparser3's own reader, not olefile's, since what officeparser3 writes for a damaged file follows from how it reads one. `extracted_ole_analyzer` reads on the lease which modules added its file, and runs last; `xml_plain_text_analyzer` reads the tags of the file its file came from, and the archive module now waits for file_type, as ace3's does, so those tags are there.
-6. **RTF and scripts**: `microsoft_script_encoding_analysis`, `extracted_rtf_analyzer`, `vbscript_analyzer`, `nowhitespace_analyzer`. Checks and transforms of RTF and script files.
+6. **RTF and scripts**: done. `microsoft_script_encoding_analysis`, `extracted_rtf_analyzer`, `vbscript_analyzer`, `nowhitespace_analyzer`, in `ace-mod-scripts`. Checks and transforms of RTF and script files. The Perl decoder ace3 runs for encoded scripts is ported and matches it byte for byte on 50,000 inputs (`docs/measurements/scripts.md`); `extracted_rtf_analyzer` reads on the lease which modules added its file, and looks for rtfole, whose `extracted_rtf` tag is what ace3 reads.
 7. **Encrypted files**: `zip_encryption_analyzer`, `rar_encryption_analyzer`, `pdf_encryption_analyzer`. No John (7.3): the email's wordlist tried in the task, as 4.11 did for Office.
 8. **Email tree**: `mailbox_email_analyzer`, `lure_url_analyzer`, `email_conversation_attachment_analyzer`, `email_conversation_link_analyzer`. Modules that read the email's analysis; the two conversation modules after 7.4's frequency analyzer.
 9. **Email archive**: `email_archiver`, `encrypted_archive_analyzer`, `url_email_pivot_analyzer`, `message_id_analyzer_v2`. Brings ace3's `email` router (5.6) and the `daily/partitions` task's archive half (6.7). Lookup modules, on 7.2's reads (`crates/ace-core/src/reads.md`).
@@ -141,7 +141,7 @@ The sandbox image's packages, by Debian's installed size: the JRE 199 MB, Wiresh
 | node `--check`, grep | `file_type`, `extracted_ole_analyzer` | node: 7 threads, no process | oxc_parser 0.157.0 (MIT, kept up) checks syntax; batch 2 measured it against node 24 on 850 cases, with no disagreement once the proposals V8 13.6 lacks are refused (`docs/measurements/javascript-check.md`) | **crate** | none; saves Node.js, 237 MB |
 | ssdeep 2.14.1 | `ssdeep` | none | fuzzyhash 0.2.2 (MIT, pure Rust, last release 2023) gives ssdeep's hashes but not its `-m` scores, batch 2 found (`docs/measurements/ssdeep.md`); ssdeep 0.7.0 binds libfuzzy and is GPL-3 | **runner**, in batch 10 | ssdeep 0.3 MB; GPL-2+ |
 | pdf-parser.py, xlmdeobfuscator, pcodedmp, rtfobj, officeparser3 | `pdf_analyzer`, `xlmdeobfuscator`, `pcodedmp`, `rtfole`, `officeparser3` | Python, gone | ported in 4.9, 4.10 and 4.12; officeparser3 in batch 5, as a port of its own compound file reader in `ace-mod-office` | **crate** | none |
-| jscript.decode.pl | `microsoft_script_encoding_analysis` | none | about 80 lines of Perl, ported | **crate** | none |
+| jscript.decode.pl | `microsoft_script_encoding_analysis` | none | about 80 lines of Perl, ported in batch 6 (`ace_mod_scripts::mse::decode`), matching the Perl byte for byte (`docs/measurements/scripts.md`) | **crate** | none |
 | git | `yara_scanner_v3_4`, `observable_modifier`, `svs_yara_sample_capture` | not run | the ruleset records its commit (2.26) | **none** | none |
 | version probes (`probe_binary_version`) | `ocr`, `qrcode` | not run | they key ace3's analysis result cache, which ace4 doesn't have (6.7) | **none** | none |
 | docker, through the scanner managers | `javascript_deobfuscation`, `phishkit_analyzer` | not ACE's | 7.7 | **scanner** | 7.7's images |
@@ -256,17 +256,17 @@ In the config's order. ace4 is the crate a ported module is in.
 | `pdftotext` | `PDFTextAnalyzer` | not yet | sandbox | 7.5 batch 10 | file | analysis, binary, cli, correlation, email, file |
 | `yara_scanner_v3_4` | `YaraScanner_v3_4` | `ace-mod-yara` | parser | done | file, yara | analysis, binary, cli, correlation, email, file, yara |
 | `binary_file_analyzer` | `BinaryFileAnalyzer` | `ace-mod-files` | parser | done | file | analysis, binary, cli, correlation, email, file |
-| `microsoft_script_encoding_analysis` | `MicrosoftScriptEncodingAnalyzer` | not yet | parser | 7.5 batch 6 | file | analysis, binary, cli, correlation, email, file |
+| `microsoft_script_encoding_analysis` | `MicrosoftScriptEncodingAnalyzer` | `ace-mod-scripts` | parser | done | file | analysis, binary, cli, correlation, email, file |
 | `url_extraction` | `URLExtractionAnalyzer` | `ace-mod-urls` | parser | done | file | analysis, binary, cli, correlation, email, file |
 | `ioc_extraction` | `IOCExtractionAnalyzer` | `ace-mod-urls` | parser | done | file | analysis, binary, cli, correlation, email, file |
 | `observable_modifier` | `ObservableModifierAnalyzer` | not yet | core | 7.6 | common | analysis, binary, cli, correlation, email, file |
 | `x509_analyzer` | `X509Analyzer` | `ace-mod-files` | parser | done | file | analysis, binary, cli, correlation, email, file |
 | `protected_url_analyzer` | `ProtectedURLAnalyzer` | `ace-mod-values` | parser | done | common | analysis, binary, cli, correlation, email, file |
 | `rtfole` | `RTFOLEObjectAnalyzer` | `ace-mod-oletools` | parser | done | file | analysis, binary, cli, correlation, email, file |
-| `extracted_rtf_analyzer` | `ExtractedRTFAnalyzer` | not yet | parser | 7.5 batch 6 | file | analysis, binary, cli, correlation, email, file |
+| `extracted_rtf_analyzer` | `ExtractedRTFAnalyzer` | `ace-mod-scripts` | parser | done | file | analysis, binary, cli, correlation, email, file |
 | `message_id_analyzer_v2` | `MessageIDAnalyzerV2` | not yet | lookup | 7.5 batch 9 | correlation | analysis, cli, correlation |
-| `vbscript_analyzer` | `VBScriptAnalyzer` | not yet | parser | 7.5 batch 6 | file | analysis, binary, cli, correlation, email, file |
-| `nowhitespace_analyzer` | `NoWhiteSpaceAnalyzer` | not yet | parser | 7.5 batch 6 | file | analysis, binary, cli, correlation, email, file |
+| `vbscript_analyzer` | `VBScriptAnalyzer` | `ace-mod-scripts` | parser | done | file | analysis, binary, cli, correlation, email, file |
+| `nowhitespace_analyzer` | `NoWhiteSpaceAnalyzer` | `ace-mod-scripts` | parser | done | file | analysis, binary, cli, correlation, email, file |
 | `user_defined_tagging` | `UserDefinedTaggingAnalyzer` | not yet | lookup | 7.6 | common | analysis, binary, cli, correlation, email, file |
 | `configuration_defined_tagging` | `ConfigurationDefinedTaggingAnalyzer` | not yet | core | 7.6 | common | analysis, binary, cli, correlation, email, file |
 | `site_tagger` | `SiteTagAnalyzer` | not yet | parser | 7.6 | common, file | analysis, binary, cli, correlation, email, file |
@@ -1695,9 +1695,9 @@ In the config's order. ace4 is the crate a ported module is in.
 ### microsoft_script_encoding_analysis
 
 - **Section**: `analysis_module_microsoft_script_encoding_analysis`, class `MicrosoftScriptEncodingAnalyzer` in `saq/modules/file_analysis/mse.py`, enabled by default.
-- **ace4**: not yet.
+- **ace4**: ported in `ace-mod-scripts`. The Perl decoder is `mse::decode`, which matches `bin/jscript.decode.pl` byte for byte, dying where it dies with its message, on every fixture and sample and on 50,000 generated inputs, run in ace3's container against the Perl (`tools/samples/compare-mse-decoder`, `docs/measurements/scripts.md`). It runs in the task, linear in the file, where the Perl holds about 90 bytes per byte of the file and was killed for memory on 90 MB files, leaving part of its output for ace3 to add. The `.decrypted.stderr` file ace3 writes and never adds isn't written. `crates/ace-mod-scripts/tests/differences.md` has the rest.
 - **Pool**: parser. Runs a vendored 80-line Perl decoder, unsandboxed today; the table-driven decoding ports to Rust.
-- **Step**: 7.5 batch 6 (RTF and scripts).
+- **Step**: done.
 - **Does**: For a file starting #@~^ (VBScript/JScript.Encode), tags it and decodes it with bin/jscript.decode.pl.
 - **Input**: file.
 - **Groups and modes**: groups file; modes analysis, binary, cli, correlation, email, file.
@@ -1843,9 +1843,9 @@ In the config's order. ace4 is the crate a ported module is in.
 ### extracted_rtf_analyzer
 
 - **Section**: `analysis_module_extracted_rtf_analyzer`, class `ExtractedRTFAnalyzer` in `saq/modules/file_analysis/rtf.py`, enabled by default.
-- **ace4**: not yet.
+- **ace4**: ported in `ace-mod-scripts`. ace3 reads the `extracted_rtf` tag rtfole gives the files it writes; ace4 reads on the lease which modules' results added the file (`Module::READS_ADDED_BY`) and looks for rtfole. Its file is first leased once nothing nearer the root is pending (decision 15), so rtfole's result has landed. It depends on `file_type`, whose description and mime type it reads.
 - **Pool**: parser. String checks on earlier results.
-- **Step**: 7.5 batch 6 (RTF and scripts).
+- **Step**: done.
 - **Does**: For a file tagged extracted_rtf, flags it when its extension, mime type or file type matches the configured suspect lists.
 - **Input**: file.
 - **Groups and modes**: groups file; modes analysis, binary, cli, correlation, email, file.
@@ -1885,9 +1885,9 @@ In the config's order. ace4 is the crate a ported module is in.
 ### vbscript_analyzer
 
 - **Section**: `analysis_module_vbscript_analyzer`, class `VBScriptAnalyzer` in `saq/modules/file_analysis/vbs.py`, enabled by default.
-- **ace4**: not yet.
+- **ace4**: ported in `ace-mod-scripts`. A byte scan with ace3's rules: Python's `str.isspace` of each byte, comment lines skipped without ending a run, and the same-length check against `large_hex_string_quantity`, as ace3 has it. Its percentage is formatted as Python formats a float.
 - **Pool**: parser. A byte scan of an attacker's file.
-- **Step**: 7.5 batch 6 (RTF and scripts).
+- **Step**: done.
 - **Does**: Scans a .vbs file for runs of ASCII hex characters (ignoring comment lines and whitespace) and flags large, repeated or file-dominating hex strings.
 - **Input**: file.
 - **Groups and modes**: groups file; modes analysis, binary, cli, correlation, email, file.
@@ -1906,9 +1906,9 @@ In the config's order. ace4 is the crate a ported module is in.
 ### nowhitespace_analyzer
 
 - **Section**: `analysis_module_nowhitespace_analyzer`, class `NoWhiteSpaceAnalyzer` in `saq/modules/file_analysis/rtf.py`, enabled by default.
-- **ace4**: not yet.
+- **ace4**: ported in `ace-mod-scripts`. The copy streams into the bucket, as ace3 reads 1 MiB chunks; a name too long for `<file>.nowhitespace` leaves a result with no file and a count of 0, as ace3's failed `open` does.
 - **Pool**: parser. A byte transform.
-- **Step**: 7.5 batch 6 (RTF and scripts).
+- **Step**: done.
 - **Does**: For an RTF file, writes a copy with all ASCII whitespace removed and adds it for further scanning.
 - **Input**: file.
 - **Groups and modes**: groups file; modes analysis, binary, cli, correlation, email, file.

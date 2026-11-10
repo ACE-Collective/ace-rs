@@ -1,0 +1,30 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [],
+  "input": {
+    "directives": [],
+    "label": "fixtures/scripts/mse/not_at_start.vbe",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "not_at_start.vbe",
+      "size": 204,
+      "type": "file",
+      "value": "025d4d0f442acb6eb39137bb914812e9af5d4a59ddf6645316ee0115ff2f6374"
+    }
+  },
+  "module": "microsoft_script_encoding_analysis",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "not_at_start.vbe",
+    "relationships": [],
+    "size": 204,
+    "tags": [],
+    "type": "file",
+    "value": "025d4d0f442acb6eb39137bb914812e9af5d4a59ddf6645316ee0115ff2f6374",
+    "yara_meta": []
+  }
+}

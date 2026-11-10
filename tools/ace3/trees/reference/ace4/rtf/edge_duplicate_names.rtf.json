@@ -1,6 +1,58 @@
 {
   "form": 1,
   "observables": {
+    "file:1a095ca27c8bb4aeceeda75961ed69db5c67ae1caafebc241551dd8d8c77c3f8": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "edge_duplicate_names.rtf.nowhitespace.rtfobj/edge_duplicate_names.rtf.nowhitespace_object_0000003F.raw": {
+          "type=document.rtf.object": true
+        }
+      },
+      "redirection": "file:aca5296ebe131b28772ee6d31c9070313f977576e3993f0e1734ac0ae224a5cc",
+      "relationships": {
+        "extracted_from file:aca5296ebe131b28772ee6d31c9070313f977576e3993f0e1734ac0ae224a5cc": true
+      },
+      "results": {
+        "extracted_rtf_analyzer": {
+          "details": {},
+          "summary": null,
+          "tags": {}
+        },
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "2a568ae55f595608d7ba4cc425c6c503",
+            "sha1": "a88bb2a5cac9090d74185a57d0a1feeafdba6122",
+            "sha256": "1a095ca27c8bb4aeceeda75961ed69db5c67ae1caafebc241551dd8d8c77c3f8"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "extracted_rtf": true
+      }
+    },
     "file:1b01733f3052bf6cb22e87433888f36196a0e7f46441277126ee38a360b12a20": {
       "detections": {},
       "directives": {},
@@ -46,6 +98,13 @@
           "summary": "File Type Analysis: Rich Text Format data, version 1 (text/rtf) (ms office document) (rtf document)",
           "tags": {}
         },
+        "nowhitespace_analyzer": {
+          "details": {
+            "count": 2
+          },
+          "summary": "NoWhiteSpaceAnalysis: Ignore Whitespace Characters (2 removed)",
+          "tags": {}
+        },
         "rtfole": {
           "details": {
             "extracted_files": [
@@ -78,6 +137,11 @@
         "extracted_from file:1b01733f3052bf6cb22e87433888f36196a0e7f46441277126ee38a360b12a20": true
       },
       "results": {
+        "extracted_rtf_analyzer": {
+          "details": {},
+          "summary": null,
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "b8a9f715dbb64fd5c56e7783c6820a61",
@@ -111,6 +175,133 @@
         "extracted_rtf": true
       }
     },
+    "file:5ec9015274b7e22e521d97543e0329f91abd7b1b1eb8aa177729e1da14b72093": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "edge_duplicate_names.rtf.nowhitespace.rtfobj/edge_duplicate_names.rtf.nowhitespace_object_000000DB.raw": {
+          "type=document.rtf.object": true
+        }
+      },
+      "redirection": "file:aca5296ebe131b28772ee6d31c9070313f977576e3993f0e1734ac0ae224a5cc",
+      "relationships": {
+        "extracted_from file:aca5296ebe131b28772ee6d31c9070313f977576e3993f0e1734ac0ae224a5cc": true
+      },
+      "results": {
+        "extracted_rtf_analyzer": {
+          "details": {},
+          "summary": null,
+          "tags": {}
+        },
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "f468b866e0b4532b46510657e83e5571",
+            "sha1": "a709862599c80a7737251b66b22afbcdf8959e9a",
+            "sha256": "5ec9015274b7e22e521d97543e0329f91abd7b1b1eb8aa177729e1da14b72093"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "extracted_rtf": true
+      }
+    },
+    "file:aca5296ebe131b28772ee6d31c9070313f977576e3993f0e1734ac0ae224a5cc": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "edge_duplicate_names.rtf.nowhitespace": {
+          "type=document.rtf": true,
+          "type=document.rtf.stripped": true
+        }
+      },
+      "redirection": "file:1b01733f3052bf6cb22e87433888f36196a0e7f46441277126ee38a360b12a20",
+      "relationships": {},
+      "results": {
+        "binary_file_analyzer": {
+          "details": {},
+          "summary": null,
+          "tags": {}
+        },
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "b5b7d1fb0aef65da4c810b6a40d27031",
+            "sha1": "7068bba6e6ca4036d1ea10ef23869ffaf682df08",
+            "sha256": "aca5296ebe131b28772ee6d31c9070313f977576e3993f0e1734ac0ae224a5cc"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": true,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": true,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/rtf",
+            "type": "Rich Text Format data, version 1"
+          },
+          "summary": "File Type Analysis: Rich Text Format data, version 1 (text/rtf) (ms office document) (rtf document)",
+          "tags": {}
+        },
+        "rtfole": {
+          "details": {
+            "extracted_files": [
+              "edge_duplicate_names.rtf.nowhitespace.rtfobj/edge_duplicate_names.rtf.nowhitespace_object_0000003F.raw",
+              "edge_duplicate_names.rtf.nowhitespace.rtfobj/edge_duplicate_names.rtf.nowhitespace_object_000000DB.raw"
+            ],
+            "return_code": 0,
+            "stderr": "",
+            "stdout": "rtfobj 0.60.1 on Python 3.14.10 - http://decalage.info/python/oletools\nTHIS IS WORK IN PROGRESS - Check updates regularly!\nPlease report any issue at https://github.com/decalage2/oletools/issues\n\n===============================================================================\nFile: 'edge_duplicate_names.rtf.nowhitespace' - size: 319 bytes\n---+----------+---------------------------------------------------------------\nid |index     |OLE Object                                                     \n---+----------+---------------------------------------------------------------\n0  |0000003Fh |Not a well-formed OLE object                                   \n---+----------+---------------------------------------------------------------\n1  |000000DBh |Not a well-formed OLE object                                   \n---+----------+---------------------------------------------------------------\nSaving raw data in object #0:\n  saving object to file edge_duplicate_names.rtf.nowhitespace.rtfobj/edge_duplicate_names.rtf.nowhitespace_object_0000003F.raw\n  md5 2a568ae55f595608d7ba4cc425c6c503\nSaving raw data in object #1:\n  saving object to file edge_duplicate_names.rtf.nowhitespace.rtfobj/edge_duplicate_names.rtf.nowhitespace_object_000000DB.raw\n  md5 f468b866e0b4532b46510657e83e5571\n"
+          },
+          "summary": "RTF OLE Object Analysis: extracted edge_duplicate_names.rtf.nowhitespace.rtfobj/edge_duplicate_names.rtf.nowhitespace_object_0000003F.raw, edge_duplicate_names.rtf.nowhitespace.rtfobj/edge_duplicate_names.rtf.nowhitespace_object_000000DB.raw",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "microsoft_office": true,
+        "rtf": true
+      }
+    },
+    "md5:2a568ae55f595608d7ba4cc425c6c503": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:1a095ca27c8bb4aeceeda75961ed69db5c67ae1caafebc241551dd8d8c77c3f8": true
+      },
+      "results": {},
+      "tags": {}
+    },
     "md5:b1d81695758f5d00c147cb210a994892": {
       "detections": {},
       "directives": {},
@@ -121,12 +312,42 @@
       "results": {},
       "tags": {}
     },
+    "md5:b5b7d1fb0aef65da4c810b6a40d27031": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:aca5296ebe131b28772ee6d31c9070313f977576e3993f0e1734ac0ae224a5cc": true
+      },
+      "results": {},
+      "tags": {}
+    },
     "md5:b8a9f715dbb64fd5c56e7783c6820a61": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {},
       "relationships": {
         "is_hash_of file:3fc4ccfe745870e2c0d99f71f30ff0656c8dedd41cc1d7d3d376b0dbe685e2f3": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:f468b866e0b4532b46510657e83e5571": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:5ec9015274b7e22e521d97543e0329f91abd7b1b1eb8aa177729e1da14b72093": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:1a095ca27c8bb4aeceeda75961ed69db5c67ae1caafebc241551dd8d8c77c3f8": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:1a095ca27c8bb4aeceeda75961ed69db5c67ae1caafebc241551dd8d8c77c3f8": true
       },
       "results": {},
       "tags": {}
@@ -147,6 +368,26 @@
       "excluded_analysis": {},
       "relationships": {
         "is_hash_of file:3fc4ccfe745870e2c0d99f71f30ff0656c8dedd41cc1d7d3d376b0dbe685e2f3": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:5ec9015274b7e22e521d97543e0329f91abd7b1b1eb8aa177729e1da14b72093": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:5ec9015274b7e22e521d97543e0329f91abd7b1b1eb8aa177729e1da14b72093": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:aca5296ebe131b28772ee6d31c9070313f977576e3993f0e1734ac0ae224a5cc": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:aca5296ebe131b28772ee6d31c9070313f977576e3993f0e1734ac0ae224a5cc": true
       },
       "results": {},
       "tags": {}

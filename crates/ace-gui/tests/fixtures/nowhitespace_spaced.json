@@ -1,0 +1,22 @@
+{
+  "analysis_type": "no_white_space_analysis",
+  "schema_version": 1,
+  "details": {
+    "count": 16
+  },
+  "summary": "NoWhiteSpaceAnalysis: Ignore Whitespace Characters (16 removed)",
+  "files": [
+    {
+      "path": "spaced.rtf.nowhitespace",
+      "sha256": "abd0a49af4f0501c18946520a23b259c4537968bbe6774230eeef6211adcb00e",
+      "size": 55,
+      "yara_meta": [
+        "type=document.rtf.stripped"
+      ],
+      "redirection": {
+        "type": "file",
+        "value": "02c9a02a7198024bc11133ce6024993c9d523d1d2f3eb8dc226de4c7c4d01961"
+      }
+    }
+  ]
+}

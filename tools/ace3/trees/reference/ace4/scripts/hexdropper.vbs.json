@@ -1,0 +1,84 @@
+{
+  "form": 1,
+  "observables": {
+    "file:4f252104a2b247613586cf3613c4e6c25f1a74bdd956d8757e76d987c50dba93": {
+      "detections": {
+        "a large percentage of the file is ascii hex (84.65%)": [
+          null
+        ]
+      },
+      "directives": {
+        "sandbox": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "hexdropper.vbs": {
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "9572a61aa883886c7ee69dfc5e95a212",
+            "sha1": "7545ee44f030f29d6d2fa3e048e10878ec7a8334",
+            "sha256": "4f252104a2b247613586cf3613c4e6c25f1a74bdd956d8757e76d987c50dba93"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text, with CRLF line terminators"
+          },
+          "summary": "File Type Analysis: ASCII text, with CRLF line terminators (text/plain)",
+          "tags": {}
+        },
+        "vbscript_analyzer": {
+          "details": {
+            "largest_hex_string": 64,
+            "percentage_of_hex_strings": 84.65259454705365,
+            "total_hex_strings": 30
+          },
+          "summary": "VBScript Analysis: 30 total hex strings, 64 largest hex string, 84.65259454705365% percentage of file is hex strings",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "large_hex_string": true
+      }
+    },
+    "md5:9572a61aa883886c7ee69dfc5e95a212": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:4f252104a2b247613586cf3613c4e6c25f1a74bdd956d8757e76d987c50dba93": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:4f252104a2b247613586cf3613c4e6c25f1a74bdd956d8757e76d987c50dba93": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:4f252104a2b247613586cf3613c4e6c25f1a74bdd956d8757e76d987c50dba93": true
+      },
+      "results": {},
+      "tags": {}
+    }
+  }
+}

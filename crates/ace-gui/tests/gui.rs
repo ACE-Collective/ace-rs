@@ -2262,6 +2262,10 @@ fn each_module_s_view_draws_its_fixture() {
         "office_xml_rel_external",
         "officeparser_native",
         "extracted_ole_payload",
+        "mse_invoice_vbe",
+        "extracted_rtf_payload",
+        "vbscript_many_same",
+        "nowhitespace_spaced",
     ];
     let mut types = BTreeSet::new();
     for name in fixtures {
@@ -2588,6 +2592,20 @@ fn each_module_s_view_draws_its_fixture() {
                 &html,
                 &["<tr><th>suspect_file</th><td>native.doc.officeparser/payload.vbs</td></tr>"],
             ),
+            "mse_invoice_vbe" => contains_all(
+                &html,
+                &["<tr><th>analysis_output</th><td>invoice.vbe.decrypted.vbs</td></tr>"],
+            ),
+            "extracted_rtf_payload" => contains_all(&html, &["No details"]),
+            "vbscript_many_same" => contains_all(
+                &html,
+                &[
+                    "<tr><th>total_hex_strings</th><td>101</td></tr>",
+                    "<tr><th>largest_hex_string</th><td>60</td></tr>",
+                    "<tr><th>percentage_of_hex_strings</th><td>87.48451053283766</td></tr>",
+                ],
+            ),
+            "nowhitespace_spaced" => contains_all(&html, &["<tr><th>count</th><td>16</td></tr>"]),
             other => panic!("no checks for {other}"),
         }
     }

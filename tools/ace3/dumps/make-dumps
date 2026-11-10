@@ -1068,6 +1068,56 @@ def office_runs():
     return runs
 
 
+# 7.5 batch 6's modules on fixtures/scripts, written by tools/samples/make-scripts, and the samples they
+# take. Each dump is named <folder>/<fixture>, with a suffix for a run of its own.
+SCRIPT_FIXTURES = HERE / "fixtures" / "scripts"
+
+
+def script_runs():
+    runs = []
+
+    def fixtures(folder):
+        root = SCRIPT_FIXTURES / folder
+        return sorted(p.name for p in root.iterdir() if p.is_file() and p.name != ".DS_Store")
+
+    def add(module, enable, folder, name, suffix="", args=(), label="", alert_path=None):
+        runs.append({
+            "module": module,
+            "enable": enable,
+            "name": f"{folder}/{name}{suffix}",
+            "args": ["--file", f"{REMOTE}/fixtures/scripts/{folder}/{name}", "--alert-path", alert_path or name, *args],
+            "label": f"fixtures/scripts/{folder}/{name}{label}",
+        })
+
+    def samples(module, enable, wanted):
+        for sample in manifest_samples(""):
+            if wanted(sample["path"]):
+                runs.append({
+                    "module": module,
+                    "enable": enable,
+                    "name": sample["path"],
+                    "args": ["--file", f"{REMOTE}/samples/{sample['path']}", "--alert-path", sample["alert_path"]]
+                    + [arg for tag in sample["meta_tags"] for arg in ("--meta-tag", tag)],
+                    "label": sample["path"],
+                })
+
+    for name in fixtures("mse"):
+        add("microsoft_script_encoding_analysis", [], "mse", name)
+    samples("microsoft_script_encoding_analysis", [], lambda p: p.startswith("ace4/scripts/"))
+    for name in fixtures("vbs"):
+        add("vbscript_analyzer", [], "vbs", name)
+    samples("vbscript_analyzer", [], lambda p: p.startswith("ace4/scripts/"))
+    for name in fixtures("rtf"):
+        add("nowhitespace_analyzer", [], "rtf", name)
+    samples("nowhitespace_analyzer", [], lambda p: "/rtf/" in p)
+    # extracted_rtf_analyzer reads the tag rtfole gives what it writes
+    for name in fixtures("extracted"):
+        add("extracted_rtf_analyzer", ["file_type"], "extracted", name, "", ["--tag", "extracted_rtf"],
+            " tagged extracted_rtf", alert_path=f"objects.rtf.rtfobj/objects.rtf_{name}")
+    add("extracted_rtf_analyzer", ["file_type"], "extracted", "payload.exe", ".untagged")
+    return runs
+
+
 RUNS = {
     "email": lambda: file_runs("email_analyzer", ["file_type"], "email"),
     "archive": lambda: file_runs("archive", ["file_type"], "archive/"),
@@ -1094,6 +1144,7 @@ RUNS = {
     "values": value_runs,
     "html": html_runs,
     "office": office_runs,
+    "scripts": script_runs,
 }
 
 
@@ -1270,6 +1321,10 @@ def run(spec):
         "extracted_ole_analyzer": "ExtractedOLEAnalysis",
         "hidden_mime": "HiddenMIMEAnalysis",
         "active_mime": "ActiveMimeAnalysis",
+        "microsoft_script_encoding_analysis": "MicrosoftScriptEncodingAnalysis",
+        "extracted_rtf_analyzer": "ExtractedRTFAnalysis",
+        "vbscript_analyzer": "VBScriptAnalysis",
+        "nowhitespace_analyzer": "NoWhiteSpaceAnalysis",
     }[spec["module"]]
     analysis = next((a for a in parsed["analyses"] if a["class"] == target_class), None)
     return {

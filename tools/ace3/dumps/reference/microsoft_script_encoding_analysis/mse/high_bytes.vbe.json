@@ -1,0 +1,67 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "MicrosoftScriptEncodingAnalysis",
+      "details": {
+        "analysis_output": "high_bytes.vbe.decrypted.vbs"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.mse:MicrosoftScriptEncodingAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=script.encoded"
+          ],
+          "excluded_analysis": [],
+          "file_path": "high_bytes.vbe.decrypted.vbs",
+          "redirection": {
+            "type": "file",
+            "value": "1dd2a12502b161405246643c60ab78c1c1d06ff75822f4deba4568ccb7c71c75"
+          },
+          "relationships": [],
+          "size": 10,
+          "tags": [],
+          "type": "file",
+          "value": "6bfd1d5bd9222556d60af20576fe5a2484d79d8831fbdff32dec4c988c40304f",
+          "yara_meta": [
+            "type=script.encoded"
+          ]
+        }
+      ],
+      "summary": "Microsoft Script Encoding Analysis: high_bytes.vbe.decrypted.vbs",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/scripts/mse/high_bytes.vbe",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "high_bytes.vbe",
+      "size": 26,
+      "type": "file",
+      "value": "1dd2a12502b161405246643c60ab78c1c1d06ff75822f4deba4568ccb7c71c75"
+    }
+  },
+  "module": "microsoft_script_encoding_analysis",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "sandbox"
+    ],
+    "excluded_analysis": [],
+    "file_path": "high_bytes.vbe",
+    "relationships": [],
+    "size": 26,
+    "tags": [
+      "microsoft_script_encoding"
+    ],
+    "type": "file",
+    "value": "1dd2a12502b161405246643c60ab78c1c1d06ff75822f4deba4568ccb7c71c75",
+    "yara_meta": []
+  }
+}

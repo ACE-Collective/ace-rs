@@ -124,6 +124,11 @@
         "extracted_from file:2d2b2127b3e3b8cfc06d46ece6d346d15560246da69711231a5d719094f271c0": true
       },
       "results": {
+        "extracted_rtf_analyzer": {
+          "details": {},
+          "summary": null,
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "b78e53325f45a16ab719c392444f2983",
@@ -298,6 +303,13 @@
           "summary": "File Type Analysis: Rich Text Format data, version 1 (text/rtf) (ms office document) (rtf document)",
           "tags": {}
         },
+        "nowhitespace_analyzer": {
+          "details": {
+            "count": 1
+          },
+          "summary": "NoWhiteSpaceAnalysis: Ignore Whitespace Characters (1 removed)",
+          "tags": {}
+        },
         "rtfole": {
           "details": {
             "extracted_files": [
@@ -458,6 +470,58 @@
       },
       "tags": {}
     },
+    "file:b1889d851399857246f127e715dba99fbdd07893320af705130112a2de27c5ed": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "edge_vba_inside.rtf.nowhitespace.rtfobj/edge_vba_inside.rtf.nowhitespace_object_0000003B.raw": {
+          "type=document.rtf.object": true
+        }
+      },
+      "redirection": "file:f445c093ac1d8ba1425d320dd0d81c5d3e22b54cd6f347073a61cc94fa4776bd",
+      "relationships": {
+        "extracted_from file:f445c093ac1d8ba1425d320dd0d81c5d3e22b54cd6f347073a61cc94fa4776bd": true
+      },
+      "results": {
+        "extracted_rtf_analyzer": {
+          "details": {},
+          "summary": null,
+          "tags": {}
+        },
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "a91c30aa1f93cd804331649a4c8f10d5",
+            "sha1": "84c42d6052a94ab881e245dd35abfcd7ddb830c1",
+            "sha256": "b1889d851399857246f127e715dba99fbdd07893320af705130112a2de27c5ed"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "extracted_rtf": true
+      }
+    },
     "file:ce49436dec0282ca0c2acb2966441b42d2620cd614f363ac0b43420dfdd687ed": {
       "detections": {},
       "directives": {
@@ -509,6 +573,70 @@
       },
       "tags": {}
     },
+    "file:f445c093ac1d8ba1425d320dd0d81c5d3e22b54cd6f347073a61cc94fa4776bd": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "edge_vba_inside.rtf.nowhitespace": {
+          "type=document.rtf": true,
+          "type=document.rtf.stripped": true
+        }
+      },
+      "redirection": "file:2d2b2127b3e3b8cfc06d46ece6d346d15560246da69711231a5d719094f271c0",
+      "relationships": {},
+      "results": {
+        "binary_file_analyzer": {
+          "details": {},
+          "summary": null,
+          "tags": {}
+        },
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "4f41daad76eb391b752ea4f9f51e4080",
+            "sha1": "257eaa72d14666e59b14268e232515bac0fc8cc6",
+            "sha256": "f445c093ac1d8ba1425d320dd0d81c5d3e22b54cd6f347073a61cc94fa4776bd"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": true,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": true,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/rtf",
+            "type": "Rich Text Format data, version 1"
+          },
+          "summary": "File Type Analysis: Rich Text Format data, version 1 (text/rtf) (ms office document) (rtf document)",
+          "tags": {}
+        },
+        "rtfole": {
+          "details": {
+            "extracted_files": [
+              "edge_vba_inside.rtf.nowhitespace.rtfobj/edge_vba_inside.rtf.nowhitespace_object_0000003B.raw"
+            ],
+            "return_code": 0,
+            "stderr": "",
+            "stdout": "rtfobj 0.60.1 on Python 3.14.10 - http://decalage.info/python/oletools\nTHIS IS WORK IN PROGRESS - Check updates regularly!\nPlease report any issue at https://github.com/decalage2/oletools/issues\n\n===============================================================================\nFile: 'edge_vba_inside.rtf.nowhitespace' - size: 47223 bytes\n---+----------+---------------------------------------------------------------\nid |index     |OLE Object                                                     \n---+----------+---------------------------------------------------------------\n0  |0000003Bh |Not a well-formed OLE object                                   \n---+----------+---------------------------------------------------------------\nSaving raw data in object #0:\n  saving object to file edge_vba_inside.rtf.nowhitespace.rtfobj/edge_vba_inside.rtf.nowhitespace_object_0000003B.raw\n  md5 a91c30aa1f93cd804331649a4c8f10d5\n"
+          },
+          "summary": "RTF OLE Object Analysis: extracted edge_vba_inside.rtf.nowhitespace.rtfobj/edge_vba_inside.rtf.nowhitespace_object_0000003B.raw",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "microsoft_office": true,
+        "rtf": true
+      }
+    },
     "file:fe0957024595307c9b083effc3231498bc7b7945d28bc1d5aa6d97d9e0729c25": {
       "detections": {},
       "directives": {},
@@ -553,6 +681,26 @@
       "results": {},
       "tags": {}
     },
+    "md5:4f41daad76eb391b752ea4f9f51e4080": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:f445c093ac1d8ba1425d320dd0d81c5d3e22b54cd6f347073a61cc94fa4776bd": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:a91c30aa1f93cd804331649a4c8f10d5": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:b1889d851399857246f127e715dba99fbdd07893320af705130112a2de27c5ed": true
+      },
+      "results": {},
+      "tags": {}
+    },
     "md5:b78e53325f45a16ab719c392444f2983": {
       "detections": {},
       "directives": {},
@@ -579,6 +727,26 @@
       "excluded_analysis": {},
       "relationships": {
         "is_hash_of file:2d2b2127b3e3b8cfc06d46ece6d346d15560246da69711231a5d719094f271c0": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:b1889d851399857246f127e715dba99fbdd07893320af705130112a2de27c5ed": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:b1889d851399857246f127e715dba99fbdd07893320af705130112a2de27c5ed": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:f445c093ac1d8ba1425d320dd0d81c5d3e22b54cd6f347073a61cc94fa4776bd": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:f445c093ac1d8ba1425d320dd0d81c5d3e22b54cd6f347073a61cc94fa4776bd": true
       },
       "results": {},
       "tags": {}

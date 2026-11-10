@@ -1,0 +1,135 @@
+#!/usr/bin/env python3
+"""Compares ace-mod-scripts' port of bin/jscript.decode.pl with the Perl itself, byte for byte
+(PLAN.md 7.5 batch 6, docs/measurements/scripts.md).
+
+It writes the inputs: each fixture of tools/ace3/dumps/fixtures/scripts/mse, each sample under
+samples/ace4/scripts, the edge cases in CRAFTED, and COUNT more made from them by a seeded generator (cut short, bytes changed,
+inserted or deleted, markers and base64 numbers moved, escapes and high bytes added, random bytes).
+The Perl runs on them in ace3's dev container (ace-dev-1), under /tmp/ace4-mse, and the port in
+ace4's (`cargo test -p ace-mod-scripts --test reference decoder_outputs -- --ignored`). For each
+input it compares the sha256 of what each printed and what each died with, and exits non-zero on
+any difference.
+
+    tools/samples/compare-mse-decoder [COUNT [SEED]]     2000 and 1 by default
+"""
+
+import hashlib
+import io
+import json
+import random
+import subprocess
+import sys
+import tarfile
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent.parent
+FIXTURES = ROOT / "tools" / "ace3" / "dumps" / "fixtures" / "scripts" / "mse"
+SAMPLES = ROOT / "samples" / "ace4" / "scripts"
+ACE3 = "ace-dev-1"
+REMOTE = "/tmp/ace4-mse"
+PIECES = [b"#@~^", b"^#~@", b"AAAAAA==", b"QwAAAA==", b"@", b"@&", b"@#", b"@!", b"@*", b"@$", b"\n", b"\r\n", b"=="]
+
+
+# Edges of the Perl's steps, each of which dies when what it leaves is empty or "0", and of its decoding.
+CRAFTED = [
+    b"", b"#@~^", b"#@~^0", b"#@~^00", b"x#@~^^#~@", b"#@~^0^#~@", b"#@~^00^#~@", b"#@~^AAAAAA==^#~@",
+    b"#@~^AAAAAA==0^#~@", b"#@~^AAAAAA==00^#~@", b"#@~^AAAAAA==BBBBBB==^#~@", b"#@~^AAAAAA==BBBBBB==\n^#~@",
+    b"#@~^AAAAAA==BBBBBB==\n\n^#~@", b"#@~^AAAAAA==0BBBBBB==^#~@", b"#@~^AAAAAA==@^#~@", b"#@~^AAAAAA==@@@@^#~@",
+    b"#@~^AAAAAA==@&@#@!@*@$@@@x^#~@", b"#@~^AAAA+/==x^#~@", b"#@~^AAAA-_==x^#~@", b"#@~^AAAAAA=x^#~@",
+    b"#@~^AAAAAA==\x80\xff\x00\x7f^#~@", b"#@~^#@~^AAAAAA==x^#~@", b"#@~^AAAAAA==x^#~@^#~@",
+    b"^#~@#@~^AAAAAA==x^#~@", b"#@~^AAAAAA==\r\n^#~@", b"#@~^AAAAAA==" + bytes(range(256)) + b"^#~@",
+    b"#@~^AAAAAA==" + bytes(range(128)) * 3 + b"BBBBBB==^#~@",
+]
+
+
+def mutate(rng, data):
+    data = bytearray(data)
+    for _ in range(rng.randint(1, 4)):
+        choice = rng.randrange(7)
+        at = rng.randint(0, len(data))
+        if choice == 0 and data:
+            del data[rng.randrange(len(data)):]
+        elif choice == 1 and data:
+            data[rng.randrange(len(data))] = rng.randrange(256)
+        elif choice == 2:
+            data[at:at] = rng.choice(PIECES)
+        elif choice == 3 and data:
+            start = rng.randrange(len(data))
+            del data[start:start + rng.randint(1, 16)]
+        elif choice == 4:
+            data[at:at] = bytes(rng.randrange(128, 256) for _ in range(rng.randint(1, 8)))
+        elif choice == 5:
+            data[at:at] = bytes(rng.randrange(128) for _ in range(rng.randint(1, 64)))
+        else:
+            data += b"\n" if rng.random() < 0.5 else rng.choice(PIECES)
+    return bytes(data)
+
+
+def inputs(count, seed):
+    bases = {p.name: p.read_bytes() for p in sorted(FIXTURES.iterdir()) if p.is_file()}
+    bases.update({f"sample_{p.name}": p.read_bytes() for p in sorted(SAMPLES.iterdir()) if p.is_file()})
+    made = {f"base_{i:03d}": data for i, data in enumerate(bases.values())}
+    made.update({f"crafted_{i:03d}": data for i, data in enumerate(CRAFTED)})
+    rng = random.Random(seed)
+    originals = list(bases.values())
+    for i in range(count):
+        if i % 10 == 0:
+            body = bytes(rng.randrange(256) for _ in range(rng.randint(0, 300)))
+            data = b"#@~^" + body
+        else:
+            data = mutate(rng, rng.choice(originals))
+        made[f"case_{i:05d}"] = data
+    return made
+
+
+def tar(files):
+    buffer = io.BytesIO()
+    with tarfile.open(fileobj=buffer, mode="w") as archive:
+        for name, data in files.items():
+            info = tarfile.TarInfo(name)
+            info.size = len(data)
+            archive.addfile(info, io.BytesIO(data))
+    return buffer.getvalue()
+
+
+def run(args, stdin=None):
+    return subprocess.run(args, input=stdin, capture_output=True, check=True).stdout
+
+
+PERL_SIDE = r"""
+import hashlib, json, os, subprocess, sys
+d = sys.argv[1]
+for name in sorted(os.listdir(d)):
+    p = subprocess.run(["perl", "/opt/ace/bin/jscript.decode.pl", os.path.join(d, name)], capture_output=True)
+    print(json.dumps({"name": name, "stdout": hashlib.sha256(p.stdout).hexdigest(), "stderr": p.stderr.decode("latin-1")}))
+"""
+
+
+def main():
+    count = int(sys.argv[1]) if len(sys.argv) > 1 else 2000
+    seed = int(sys.argv[2]) if len(sys.argv) > 2 else 1
+    files = inputs(count, seed)
+    archive = tar(files)
+    for container in (["docker", "exec", "-i", ACE3], ["docker", "compose", "exec", "-T", "dev"]):
+        run([*container, "sh", "-c", f"rm -rf {REMOTE} && mkdir -p {REMOTE} && tar -C {REMOTE} -xf -"], archive)
+    perl = run(["docker", "exec", "-i", ACE3, "/venv/bin/python3", "-I", "-", REMOTE], PERL_SIDE.encode())
+    rust = run([
+        "docker", "compose", "exec", "-T", "-e", f"ACE4_MSE_DIR={REMOTE}", "dev", "cargo", "test", "--quiet",
+        "-p", "ace-mod-scripts", "--test", "reference", "decoder_outputs", "--", "--ignored", "--nocapture",
+    ])
+    perl_lines = {r["name"]: r for r in map(json.loads, perl.decode().splitlines())}
+    rust_lines = {r["name"]: r for r in map(json.loads, (l for l in rust.decode().splitlines() if l.startswith("{")))}
+    for container in (["docker", "exec", ACE3], ["docker", "compose", "exec", "-T", "dev"]):
+        run([*container, "rm", "-rf", REMOTE])
+    differ = [n for n in files if perl_lines.get(n) != rust_lines.get(n)]
+    died = sum(1 for r in perl_lines.values() if r["stderr"])
+    empty = sum(1 for r in perl_lines.values() if not r["stderr"] and r["stdout"] == hashlib.sha256(b"").hexdigest())
+    print(f"{len(files)} inputs: {died} died, {empty} printed nothing, {len(files) - died - empty} decoded; "
+          f"{len(differ)} differ")
+    for name in differ[:20]:
+        print(name, perl_lines.get(name), rust_lines.get(name))
+    sys.exit(1 if differ else 0)
+
+
+if __name__ == "__main__":
+    main()

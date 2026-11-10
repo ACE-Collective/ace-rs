@@ -1,0 +1,48 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "VBScriptAnalysis",
+      "details": {
+        "largest_hex_string": 60,
+        "percentage_of_hex_strings": 8.972503617945007,
+        "total_hex_strings": 1
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.vbs:VBScriptAnalysis",
+      "observables": [],
+      "summary": "VBScript Analysis: 1 total hex strings, 60 largest hex string, 8.972503617945007% percentage of file is hex strings",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/scripts/vbs/comments.vbs",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "comments.vbs",
+      "size": 691,
+      "type": "file",
+      "value": "50aa601f2860a10d9de84425f37d6817e3905303bc5b71a0bf17d360b5514067"
+    }
+  },
+  "module": "vbscript_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "sandbox"
+    ],
+    "excluded_analysis": [],
+    "file_path": "comments.vbs",
+    "relationships": [],
+    "size": 691,
+    "tags": [
+      "large_hex_string"
+    ],
+    "type": "file",
+    "value": "50aa601f2860a10d9de84425f37d6817e3905303bc5b71a0bf17d360b5514067",
+    "yara_meta": []
+  }
+}

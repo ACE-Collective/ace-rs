@@ -123,8 +123,14 @@ impl Dump {
             .into_iter()
             .chain(strings(&input["directives"]))
             .collect();
+        // tags the run gave the input, as the module that added it would have
+        let input_tags: BTreeSet<String> = strings(&input["tags"]).into_iter().collect();
         let analyzed = json!({
-            "tags": set(strings(&after["tags"])),
+            "tags": set(
+                strings(&after["tags"])
+                    .into_iter()
+                    .filter(|t| !input_tags.contains(t))
+            ),
             "directives": set(
                 ace3_directives(&after["directives"])
                     .into_iter()

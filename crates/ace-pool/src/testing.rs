@@ -154,6 +154,24 @@ pub fn modules(settings: &Value) -> Result<Modules, SetupError> {
             block("active_mime"),
             &secrets,
         )?)
+        .with_parser(
+            Entry::<ace_mod_scripts::MicrosoftScriptEncodingAnalyzer>::parser(
+                block("microsoft_script_encoding_analysis"),
+                &secrets,
+            )?,
+        )
+        .with_parser(Entry::<ace_mod_scripts::ExtractedRtfAnalyzer>::parser(
+            block("extracted_rtf_analyzer"),
+            &secrets,
+        )?)
+        .with_parser(Entry::<ace_mod_scripts::VbScriptAnalyzer>::parser(
+            block("vbscript_analyzer"),
+            &secrets,
+        )?)
+        .with_parser(Entry::<ace_mod_scripts::NoWhiteSpaceAnalyzer>::parser(
+            block("nowhitespace_analyzer"),
+            &secrets,
+        )?)
         .with_lookup(Entry::<Counted>::lookup(block(Counted::NAME), &secrets)?)
         .with_lookup(Entry::<Panicky>::lookup(block(Panicky::NAME), &secrets)?)
         .with_lookup(Entry::<Connect>::lookup(block(Connect::NAME), &secrets)?)

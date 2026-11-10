@@ -1,0 +1,63 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "NoWhiteSpaceAnalysis",
+      "details": {
+        "count": 5
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.rtf:NoWhiteSpaceAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=document.rtf.stripped"
+          ],
+          "excluded_analysis": [],
+          "file_path": "backslash.rtf.nowhitespace",
+          "redirection": {
+            "type": "file",
+            "value": "d32afcbeeeae1c1ff0a5bde1be5c9c24cf5d87e33b966e6e7fa616c80e635a45"
+          },
+          "relationships": [],
+          "size": 11,
+          "tags": [],
+          "type": "file",
+          "value": "9e7cb2320abcf0a0e1a073059dbadb8cfc7ccdf44c069ea2aad4f776ac1f62b6",
+          "yara_meta": [
+            "type=document.rtf.stripped"
+          ]
+        }
+      ],
+      "summary": "NoWhiteSpaceAnalysis: Ignore Whitespace Characters (5 removed)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/scripts/rtf/backslash.rtf",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "backslash.rtf",
+      "size": 16,
+      "type": "file",
+      "value": "d32afcbeeeae1c1ff0a5bde1be5c9c24cf5d87e33b966e6e7fa616c80e635a45"
+    }
+  },
+  "module": "nowhitespace_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "backslash.rtf",
+    "relationships": [],
+    "size": 16,
+    "tags": [],
+    "type": "file",
+    "value": "d32afcbeeeae1c1ff0a5bde1be5c9c24cf5d87e33b966e6e7fa616c80e635a45",
+    "yara_meta": []
+  }
+}

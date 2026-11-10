@@ -1687,6 +1687,78 @@
     },
     {
       "ace3_commit": "f72f8946",
+      "analysis": "ExtractedRTFAnalysis",
+      "dump": "extracted_rtf_analyzer/extracted/archive.ZIP.json",
+      "input": "fixtures/scripts/extracted/archive.ZIP tagged extracted_rtf",
+      "module": "extracted_rtf_analyzer",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "ExtractedRTFAnalysis",
+      "dump": "extracted_rtf_analyzer/extracted/dropper.vbs.json",
+      "input": "fixtures/scripts/extracted/dropper.vbs tagged extracted_rtf",
+      "module": "extracted_rtf_analyzer",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "ExtractedRTFAnalysis",
+      "dump": "extracted_rtf_analyzer/extracted/notes.txt.json",
+      "input": "fixtures/scripts/extracted/notes.txt tagged extracted_rtf",
+      "module": "extracted_rtf_analyzer",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "ExtractedRTFAnalysis",
+      "dump": "extracted_rtf_analyzer/extracted/payload.bin.json",
+      "input": "fixtures/scripts/extracted/payload.bin tagged extracted_rtf",
+      "module": "extracted_rtf_analyzer",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "ExtractedRTFAnalysis",
+      "dump": "extracted_rtf_analyzer/extracted/payload.exe.json",
+      "input": "fixtures/scripts/extracted/payload.exe tagged extracted_rtf",
+      "module": "extracted_rtf_analyzer",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "extracted_rtf_analyzer/extracted/payload.exe.untagged.json",
+      "input": "fixtures/scripts/extracted/payload.exe",
+      "module": "extracted_rtf_analyzer",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "ExtractedRTFAnalysis",
+      "dump": "extracted_rtf_analyzer/extracted/shortcut.bin.json",
+      "input": "fixtures/scripts/extracted/shortcut.bin tagged extracted_rtf",
+      "module": "extracted_rtf_analyzer",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "ExtractedRTFAnalysis",
+      "dump": "extracted_rtf_analyzer/extracted/stub.dat.json",
+      "input": "fixtures/scripts/extracted/stub.dat tagged extracted_rtf",
+      "module": "extracted_rtf_analyzer",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
       "analysis": "FileHashAnalysis",
       "dump": "file_hash_analyzer/app.jar.bin.json",
       "input": "fixtures/files/app.jar.bin as app.jar.bin",
@@ -3676,6 +3748,222 @@
     },
     {
       "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "microsoft_script_encoding_analysis/ace4/scripts/hexdropper.vbs.json",
+      "input": "ace4/scripts/hexdropper.vbs",
+      "module": "microsoft_script_encoding_analysis",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "MicrosoftScriptEncodingAnalysis",
+      "dump": "microsoft_script_encoding_analysis/ace4/scripts/invoice.vbe.json",
+      "input": "ace4/scripts/invoice.vbe",
+      "module": "microsoft_script_encoding_analysis",
+      "observables_added": 1,
+      "summary": "Microsoft Script Encoding Analysis: invoice.vbe.decrypted.vbs"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "MicrosoftScriptEncodingAnalysis",
+      "dump": "microsoft_script_encoding_analysis/ace4/scripts/loader.jse.json",
+      "input": "ace4/scripts/loader.jse",
+      "module": "microsoft_script_encoding_analysis",
+      "observables_added": 1,
+      "summary": "Microsoft Script Encoding Analysis: loader.jse.decrypted.js"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "MicrosoftScriptEncodingAnalysis",
+      "dump": "microsoft_script_encoding_analysis/mse/LOUD.VBE.json",
+      "input": "fixtures/scripts/mse/LOUD.VBE",
+      "module": "microsoft_script_encoding_analysis",
+      "observables_added": 1,
+      "summary": "Microsoft Script Encoding Analysis: LOUD.VBE.decrypted.vbs"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "MicrosoftScriptEncodingAnalysis",
+      "dump": "microsoft_script_encoding_analysis/mse/bad_checksum.vbe.json",
+      "input": "fixtures/scripts/mse/bad_checksum.vbe",
+      "module": "microsoft_script_encoding_analysis",
+      "observables_added": 0,
+      "summary": "Microsoft Script Encoding Analysis: None"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "MicrosoftScriptEncodingAnalysis",
+      "dump": "microsoft_script_encoding_analysis/mse/empty_body.vbe.json",
+      "input": "fixtures/scripts/mse/empty_body.vbe",
+      "module": "microsoft_script_encoding_analysis",
+      "observables_added": 0,
+      "summary": "Microsoft Script Encoding Analysis: None"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "MicrosoftScriptEncodingAnalysis",
+      "dump": "microsoft_script_encoding_analysis/mse/encoded.txt.json",
+      "input": "fixtures/scripts/mse/encoded.txt",
+      "module": "microsoft_script_encoding_analysis",
+      "observables_added": 1,
+      "summary": "Microsoft Script Encoding Analysis: encoded.txt.decrypted"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "MicrosoftScriptEncodingAnalysis",
+      "dump": "microsoft_script_encoding_analysis/mse/escapes.vbe.json",
+      "input": "fixtures/scripts/mse/escapes.vbe",
+      "module": "microsoft_script_encoding_analysis",
+      "observables_added": 1,
+      "summary": "Microsoft Script Encoding Analysis: escapes.vbe.decrypted.vbs"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "MicrosoftScriptEncodingAnalysis",
+      "dump": "microsoft_script_encoding_analysis/mse/header_only.vbe.json",
+      "input": "fixtures/scripts/mse/header_only.vbe",
+      "module": "microsoft_script_encoding_analysis",
+      "observables_added": 0,
+      "summary": "Microsoft Script Encoding Analysis: None"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "MicrosoftScriptEncodingAnalysis",
+      "dump": "microsoft_script_encoding_analysis/mse/high_bytes.vbe.json",
+      "input": "fixtures/scripts/mse/high_bytes.vbe",
+      "module": "microsoft_script_encoding_analysis",
+      "observables_added": 1,
+      "summary": "Microsoft Script Encoding Analysis: high_bytes.vbe.decrypted.vbs"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "MicrosoftScriptEncodingAnalysis",
+      "dump": "microsoft_script_encoding_analysis/mse/invoice.vbe.json",
+      "input": "fixtures/scripts/mse/invoice.vbe",
+      "module": "microsoft_script_encoding_analysis",
+      "observables_added": 1,
+      "summary": "Microsoft Script Encoding Analysis: invoice.vbe.decrypted.vbs"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "MicrosoftScriptEncodingAnalysis",
+      "dump": "microsoft_script_encoding_analysis/mse/loader.jse.json",
+      "input": "fixtures/scripts/mse/loader.jse",
+      "module": "microsoft_script_encoding_analysis",
+      "observables_added": 1,
+      "summary": "Microsoft Script Encoding Analysis: loader.jse.decrypted.js"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "MicrosoftScriptEncodingAnalysis",
+      "dump": "microsoft_script_encoding_analysis/mse/lowercase_marker.vbe.json",
+      "input": "fixtures/scripts/mse/lowercase_marker.vbe",
+      "module": "microsoft_script_encoding_analysis",
+      "observables_added": 0,
+      "summary": "Microsoft Script Encoding Analysis: None"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "MicrosoftScriptEncodingAnalysis",
+      "dump": "microsoft_script_encoding_analysis/mse/no_end.vbe.json",
+      "input": "fixtures/scripts/mse/no_end.vbe",
+      "module": "microsoft_script_encoding_analysis",
+      "observables_added": 0,
+      "summary": "Microsoft Script Encoding Analysis: None"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "MicrosoftScriptEncodingAnalysis",
+      "dump": "microsoft_script_encoding_analysis/mse/no_trailing.vbe.json",
+      "input": "fixtures/scripts/mse/no_trailing.vbe",
+      "module": "microsoft_script_encoding_analysis",
+      "observables_added": 1,
+      "summary": "Microsoft Script Encoding Analysis: no_trailing.vbe.decrypted.vbs"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "microsoft_script_encoding_analysis/mse/not_at_start.vbe.json",
+      "input": "fixtures/scripts/mse/not_at_start.vbe",
+      "module": "microsoft_script_encoding_analysis",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "MicrosoftScriptEncodingAnalysis",
+      "dump": "microsoft_script_encoding_analysis/mse/short_checksum.vbe.json",
+      "input": "fixtures/scripts/mse/short_checksum.vbe",
+      "module": "microsoft_script_encoding_analysis",
+      "observables_added": 0,
+      "summary": "Microsoft Script Encoding Analysis: None"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "MicrosoftScriptEncodingAnalysis",
+      "dump": "microsoft_script_encoding_analysis/mse/tabs.vbe.json",
+      "input": "fixtures/scripts/mse/tabs.vbe",
+      "module": "microsoft_script_encoding_analysis",
+      "observables_added": 1,
+      "summary": "Microsoft Script Encoding Analysis: tabs.vbe.decrypted.vbs"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "MicrosoftScriptEncodingAnalysis",
+      "dump": "microsoft_script_encoding_analysis/mse/trailing_newline.vbe.json",
+      "input": "fixtures/scripts/mse/trailing_newline.vbe",
+      "module": "microsoft_script_encoding_analysis",
+      "observables_added": 1,
+      "summary": "Microsoft Script Encoding Analysis: trailing_newline.vbe.decrypted.vbs"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "MicrosoftScriptEncodingAnalysis",
+      "dump": "microsoft_script_encoding_analysis/mse/trailing_newlines.vbe.json",
+      "input": "fixtures/scripts/mse/trailing_newlines.vbe",
+      "module": "microsoft_script_encoding_analysis",
+      "observables_added": 1,
+      "summary": "Microsoft Script Encoding Analysis: trailing_newlines.vbe.decrypted.vbs"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "MicrosoftScriptEncodingAnalysis",
+      "dump": "microsoft_script_encoding_analysis/mse/truncated.vbe.json",
+      "input": "fixtures/scripts/mse/truncated.vbe",
+      "module": "microsoft_script_encoding_analysis",
+      "observables_added": 0,
+      "summary": "Microsoft Script Encoding Analysis: None"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "MicrosoftScriptEncodingAnalysis",
+      "dump": "microsoft_script_encoding_analysis/mse/twice.vbe.json",
+      "input": "fixtures/scripts/mse/twice.vbe",
+      "module": "microsoft_script_encoding_analysis",
+      "observables_added": 1,
+      "summary": "Microsoft Script Encoding Analysis: twice.vbe.decrypted.vbs"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "MicrosoftScriptEncodingAnalysis",
+      "dump": "microsoft_script_encoding_analysis/mse/two_blocks.vbe.json",
+      "input": "fixtures/scripts/mse/two_blocks.vbe",
+      "module": "microsoft_script_encoding_analysis",
+      "observables_added": 1,
+      "summary": "Microsoft Script Encoding Analysis: two_blocks.vbe.decrypted.vbs"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "MicrosoftScriptEncodingAnalysis",
+      "dump": "microsoft_script_encoding_analysis/mse/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.vbe.json",
+      "input": "fixtures/scripts/mse/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.vbe",
+      "module": "microsoft_script_encoding_analysis",
+      "observables_added": 0,
+      "summary": "Microsoft Script Encoding Analysis: None"
+    },
+    {
+      "ace3_commit": "f72f8946",
       "analysis": "NetworkIdentifierAnalysis",
       "dump": "network_identifier/default_file.json",
       "input": "ip 10.0.0.1",
@@ -3745,6 +4033,249 @@
       "module": "network_identifier",
       "observables_added": 1,
       "summary": "Network Identification Analysis: corporate, lab"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "NoWhiteSpaceAnalysis",
+      "dump": "nowhitespace_analyzer/ace4/rtf/backslash_start.rtf.json",
+      "input": "ace4/rtf/backslash_start.rtf",
+      "module": "nowhitespace_analyzer",
+      "observables_added": 1,
+      "summary": "NoWhiteSpaceAnalysis: Ignore Whitespace Characters (4 removed)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "NoWhiteSpaceAnalysis",
+      "dump": "nowhitespace_analyzer/ace4/rtf/bin_at_end.rtf.json",
+      "input": "ace4/rtf/bin_at_end.rtf",
+      "module": "nowhitespace_analyzer",
+      "observables_added": 1,
+      "summary": "NoWhiteSpaceAnalysis: Ignore Whitespace Characters (7 removed)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "NoWhiteSpaceAnalysis",
+      "dump": "nowhitespace_analyzer/ace4/rtf/bracket[1].rtf.json",
+      "input": "ace4/rtf/bracket[1].rtf",
+      "module": "nowhitespace_analyzer",
+      "observables_added": 1,
+      "summary": "NoWhiteSpaceAnalysis: Ignore Whitespace Characters (7 removed)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "NoWhiteSpaceAnalysis",
+      "dump": "nowhitespace_analyzer/ace4/rtf/edge_duplicate_names.rtf.json",
+      "input": "ace4/rtf/edge_duplicate_names.rtf",
+      "module": "nowhitespace_analyzer",
+      "observables_added": 1,
+      "summary": "NoWhiteSpaceAnalysis: Ignore Whitespace Characters (2 removed)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "NoWhiteSpaceAnalysis",
+      "dump": "nowhitespace_analyzer/ace4/rtf/edge_empty_class.rtf.json",
+      "input": "ace4/rtf/edge_empty_class.rtf",
+      "module": "nowhitespace_analyzer",
+      "observables_added": 1,
+      "summary": "NoWhiteSpaceAnalysis: Ignore Whitespace Characters (1 removed)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "NoWhiteSpaceAnalysis",
+      "dump": "nowhitespace_analyzer/ace4/rtf/edge_long_digits.rtf.json",
+      "input": "ace4/rtf/edge_long_digits.rtf",
+      "module": "nowhitespace_analyzer",
+      "observables_added": 1,
+      "summary": "NoWhiteSpaceAnalysis: Ignore Whitespace Characters (3 removed)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "NoWhiteSpaceAnalysis",
+      "dump": "nowhitespace_analyzer/ace4/rtf/edge_long_word.rtf.json",
+      "input": "ace4/rtf/edge_long_word.rtf",
+      "module": "nowhitespace_analyzer",
+      "observables_added": 1,
+      "summary": "NoWhiteSpaceAnalysis: Ignore Whitespace Characters (2 removed)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "NoWhiteSpaceAnalysis",
+      "dump": "nowhitespace_analyzer/ace4/rtf/edge_objects.rtf.json",
+      "input": "ace4/rtf/edge_objects.rtf",
+      "module": "nowhitespace_analyzer",
+      "observables_added": 1,
+      "summary": "NoWhiteSpaceAnalysis: Ignore Whitespace Characters (18 removed)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "NoWhiteSpaceAnalysis",
+      "dump": "nowhitespace_analyzer/ace4/rtf/edge_parser.rtf.json",
+      "input": "ace4/rtf/edge_parser.rtf",
+      "module": "nowhitespace_analyzer",
+      "observables_added": 1,
+      "summary": "NoWhiteSpaceAnalysis: Ignore Whitespace Characters (29 removed)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "NoWhiteSpaceAnalysis",
+      "dump": "nowhitespace_analyzer/ace4/rtf/edge_trailing_backslash.rtf.json",
+      "input": "ace4/rtf/edge_trailing_backslash.rtf",
+      "module": "nowhitespace_analyzer",
+      "observables_added": 1,
+      "summary": "NoWhiteSpaceAnalysis: Ignore Whitespace Characters (2 removed)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "NoWhiteSpaceAnalysis",
+      "dump": "nowhitespace_analyzer/ace4/rtf/edge_unclosed.rtf.json",
+      "input": "ace4/rtf/edge_unclosed.rtf",
+      "module": "nowhitespace_analyzer",
+      "observables_added": 1,
+      "summary": "NoWhiteSpaceAnalysis: Ignore Whitespace Characters (1 removed)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "NoWhiteSpaceAnalysis",
+      "dump": "nowhitespace_analyzer/ace4/rtf/edge_vba_inside.rtf.json",
+      "input": "ace4/rtf/edge_vba_inside.rtf",
+      "module": "nowhitespace_analyzer",
+      "observables_added": 1,
+      "summary": "NoWhiteSpaceAnalysis: Ignore Whitespace Characters (1 removed)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "NoWhiteSpaceAnalysis",
+      "dump": "nowhitespace_analyzer/ace4/rtf/long_name.rtf.json",
+      "input": "ace4/rtf/long_name.rtf",
+      "module": "nowhitespace_analyzer",
+      "observables_added": 1,
+      "summary": "NoWhiteSpaceAnalysis: Ignore Whitespace Characters (13 removed)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "NoWhiteSpaceAnalysis",
+      "dump": "nowhitespace_analyzer/ace4/rtf/no_objects.rtf.json",
+      "input": "ace4/rtf/no_objects.rtf",
+      "module": "nowhitespace_analyzer",
+      "observables_added": 1,
+      "summary": "NoWhiteSpaceAnalysis: Ignore Whitespace Characters (3 removed)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "NoWhiteSpaceAnalysis",
+      "dump": "nowhitespace_analyzer/ace4/rtf/nul_byte.rtf.json",
+      "input": "ace4/rtf/nul_byte.rtf",
+      "module": "nowhitespace_analyzer",
+      "observables_added": 1,
+      "summary": "NoWhiteSpaceAnalysis: Ignore Whitespace Characters (4 removed)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "NoWhiteSpaceAnalysis",
+      "dump": "nowhitespace_analyzer/ace4/rtf/objects.rtf.json",
+      "input": "ace4/rtf/objects.rtf",
+      "module": "nowhitespace_analyzer",
+      "observables_added": 1,
+      "summary": "NoWhiteSpaceAnalysis: Ignore Whitespace Characters (69 removed)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "nowhitespace_analyzer/ace4/rtf/text_named.rtf.json",
+      "input": "ace4/rtf/text_named.rtf",
+      "module": "nowhitespace_analyzer",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "NoWhiteSpaceAnalysis",
+      "dump": "nowhitespace_analyzer/local/rtf/document.rtf.json",
+      "input": "local/rtf/document.rtf",
+      "module": "nowhitespace_analyzer",
+      "observables_added": 1,
+      "summary": "NoWhiteSpaceAnalysis: Ignore Whitespace Characters (6 removed)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "NoWhiteSpaceAnalysis",
+      "dump": "nowhitespace_analyzer/local/rtf/plain.rtf.json",
+      "input": "local/rtf/plain.rtf",
+      "module": "nowhitespace_analyzer",
+      "observables_added": 1,
+      "summary": "NoWhiteSpaceAnalysis: Ignore Whitespace Characters (6 removed)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "NoWhiteSpaceAnalysis",
+      "dump": "nowhitespace_analyzer/rtf/backslash.rtf.json",
+      "input": "fixtures/scripts/rtf/backslash.rtf",
+      "module": "nowhitespace_analyzer",
+      "observables_added": 1,
+      "summary": "NoWhiteSpaceAnalysis: Ignore Whitespace Characters (5 removed)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "nowhitespace_analyzer/rtf/done.rtf.nowhitespace.json",
+      "input": "fixtures/scripts/rtf/done.rtf.nowhitespace",
+      "module": "nowhitespace_analyzer",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "NoWhiteSpaceAnalysis",
+      "dump": "nowhitespace_analyzer/rtf/no_whitespace.rtf.json",
+      "input": "fixtures/scripts/rtf/no_whitespace.rtf",
+      "module": "nowhitespace_analyzer",
+      "observables_added": 1,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "NoWhiteSpaceAnalysis",
+      "dump": "nowhitespace_analyzer/rtf/nul.rtf.json",
+      "input": "fixtures/scripts/rtf/nul.rtf",
+      "module": "nowhitespace_analyzer",
+      "observables_added": 1,
+      "summary": "NoWhiteSpaceAnalysis: Ignore Whitespace Characters (4 removed)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "nowhitespace_analyzer/rtf/plain.txt.json",
+      "input": "fixtures/scripts/rtf/plain.txt",
+      "module": "nowhitespace_analyzer",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "NoWhiteSpaceAnalysis",
+      "dump": "nowhitespace_analyzer/rtf/rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr.rtf.json",
+      "input": "fixtures/scripts/rtf/rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr.rtf",
+      "module": "nowhitespace_analyzer",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "nowhitespace_analyzer/rtf/short.rtf.json",
+      "input": "fixtures/scripts/rtf/short.rtf",
+      "module": "nowhitespace_analyzer",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "NoWhiteSpaceAnalysis",
+      "dump": "nowhitespace_analyzer/rtf/spaced.rtf.json",
+      "input": "fixtures/scripts/rtf/spaced.rtf",
+      "module": "nowhitespace_analyzer",
+      "observables_added": 1,
+      "summary": "NoWhiteSpaceAnalysis: Ignore Whitespace Characters (16 removed)"
     },
     {
       "ace3_commit": "f72f8946",
@@ -5716,6 +6247,159 @@
       "module": "user_analyzer",
       "observables_added": 0,
       "summary": "Caf\\xe9 \\xff - None - None - None"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "VBScriptAnalysis",
+      "dump": "vbscript_analyzer/ace4/scripts/hexdropper.vbs.json",
+      "input": "ace4/scripts/hexdropper.vbs",
+      "module": "vbscript_analyzer",
+      "observables_added": 0,
+      "summary": "VBScript Analysis: 30 total hex strings, 64 largest hex string, 84.65259454705365% percentage of file is hex strings"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "vbscript_analyzer/ace4/scripts/invoice.vbe.json",
+      "input": "ace4/scripts/invoice.vbe",
+      "module": "vbscript_analyzer",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "vbscript_analyzer/ace4/scripts/loader.jse.json",
+      "input": "ace4/scripts/loader.jse",
+      "module": "vbscript_analyzer",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "VBScriptAnalysis",
+      "dump": "vbscript_analyzer/vbs/UPPER.VBS.json",
+      "input": "fixtures/scripts/vbs/UPPER.VBS",
+      "module": "vbscript_analyzer",
+      "observables_added": 0,
+      "summary": "VBScript Analysis: 1 total hex strings, 400 largest hex string, 92.69911504424779% percentage of file is hex strings"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "VBScriptAnalysis",
+      "dump": "vbscript_analyzer/vbs/clean.vbs.json",
+      "input": "fixtures/scripts/vbs/clean.vbs",
+      "module": "vbscript_analyzer",
+      "observables_added": 0,
+      "summary": "VBScript Analysis: 2 total hex strings, 6 largest hex string, 35.80246913580247% percentage of file is hex strings"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "VBScriptAnalysis",
+      "dump": "vbscript_analyzer/vbs/comments.vbs.json",
+      "input": "fixtures/scripts/vbs/comments.vbs",
+      "module": "vbscript_analyzer",
+      "observables_added": 0,
+      "summary": "VBScript Analysis: 1 total hex strings, 60 largest hex string, 8.972503617945007% percentage of file is hex strings"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "VBScriptAnalysis",
+      "dump": "vbscript_analyzer/vbs/exactly_100.vbs.json",
+      "input": "fixtures/scripts/vbs/exactly_100.vbs",
+      "module": "vbscript_analyzer",
+      "observables_added": 0,
+      "summary": "VBScript Analysis: 100 total hex strings, 60 largest hex string, 87.48261474269819% percentage of file is hex strings"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "vbscript_analyzer/vbs/hex.txt.json",
+      "input": "fixtures/scripts/vbs/hex.txt",
+      "module": "vbscript_analyzer",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "VBScriptAnalysis",
+      "dump": "vbscript_analyzer/vbs/hex_blob.vbs.json",
+      "input": "fixtures/scripts/vbs/hex_blob.vbs",
+      "module": "vbscript_analyzer",
+      "observables_added": 0,
+      "summary": "VBScript Analysis: 1 total hex strings, 1601 largest hex string, 96.22302158273382% percentage of file is hex strings"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "VBScriptAnalysis",
+      "dump": "vbscript_analyzer/vbs/length_50.vbs.json",
+      "input": "fixtures/scripts/vbs/length_50.vbs",
+      "module": "vbscript_analyzer",
+      "observables_added": 0,
+      "summary": "VBScript Analysis: 150 total hex strings, 50 largest hex string, 85.54603854389723% percentage of file is hex strings"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "VBScriptAnalysis",
+      "dump": "vbscript_analyzer/vbs/lf.vbs.json",
+      "input": "fixtures/scripts/vbs/lf.vbs",
+      "module": "vbscript_analyzer",
+      "observables_added": 0,
+      "summary": "VBScript Analysis: 1 total hex strings, 400 largest hex string, 93.31848552338529% percentage of file is hex strings"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "VBScriptAnalysis",
+      "dump": "vbscript_analyzer/vbs/many_same.vbs.json",
+      "input": "fixtures/scripts/vbs/many_same.vbs",
+      "module": "vbscript_analyzer",
+      "observables_added": 0,
+      "summary": "VBScript Analysis: 101 total hex strings, 60 largest hex string, 87.48451053283766% percentage of file is hex strings"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "VBScriptAnalysis",
+      "dump": "vbscript_analyzer/vbs/only_hex.vbs.json",
+      "input": "fixtures/scripts/vbs/only_hex.vbs",
+      "module": "vbscript_analyzer",
+      "observables_added": 0,
+      "summary": "VBScript Analysis: 1 total hex strings, 64 largest hex string, 100.0% percentage of file is hex strings"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "vbscript_analyzer/vbs/short_runs.vbs.json",
+      "input": "fixtures/scripts/vbs/short_runs.vbs",
+      "module": "vbscript_analyzer",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "VBScriptAnalysis",
+      "dump": "vbscript_analyzer/vbs/split_whitespace.vbs.json",
+      "input": "fixtures/scripts/vbs/split_whitespace.vbs",
+      "module": "vbscript_analyzer",
+      "observables_added": 0,
+      "summary": "VBScript Analysis: 1 total hex strings, 35 largest hex string, 66.0377358490566% percentage of file is hex strings"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "VBScriptAnalysis",
+      "dump": "vbscript_analyzer/vbs/tie.vbs.json",
+      "input": "fixtures/scripts/vbs/tie.vbs",
+      "module": "vbscript_analyzer",
+      "observables_added": 0,
+      "summary": "VBScript Analysis: 1 total hex strings, 50 largest hex string, 15.625% percentage of file is hex strings"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "VBScriptAnalysis",
+      "dump": "vbscript_analyzer/vbs/to_eof.vbs.json",
+      "input": "fixtures/scripts/vbs/to_eof.vbs",
+      "module": "vbscript_analyzer",
+      "observables_added": 0,
+      "summary": "VBScript Analysis: 1 total hex strings, 70 largest hex string, 87.65432098765432% percentage of file is hex strings"
     },
     {
       "ace3_commit": "f72f8946",

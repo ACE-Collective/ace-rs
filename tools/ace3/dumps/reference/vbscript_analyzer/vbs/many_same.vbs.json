@@ -1,0 +1,57 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "VBScriptAnalysis",
+      "details": {
+        "largest_hex_string": 60,
+        "percentage_of_hex_strings": 87.48451053283766,
+        "total_hex_strings": 101
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.vbs:VBScriptAnalysis",
+      "observables": [],
+      "summary": "VBScript Analysis: 101 total hex strings, 60 largest hex string, 87.48451053283766% percentage of file is hex strings",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/scripts/vbs/many_same.vbs",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "many_same.vbs",
+      "size": 7263,
+      "type": "file",
+      "value": "f82e673224413f8722938df4b6f588cc7f445337f2bab92bde3681b53a2760c4"
+    }
+  },
+  "module": "vbscript_analyzer",
+  "observable_after": {
+    "detections": [
+      {
+        "description": "large number of large hex strings of same length",
+        "details": null
+      },
+      {
+        "description": "a large percentage of the file is ascii hex (87.48%)",
+        "details": null
+      }
+    ],
+    "directives": [
+      "sandbox"
+    ],
+    "excluded_analysis": [],
+    "file_path": "many_same.vbs",
+    "relationships": [],
+    "size": 7263,
+    "tags": [
+      "large_hex_string"
+    ],
+    "type": "file",
+    "value": "f82e673224413f8722938df4b6f588cc7f445337f2bab92bde3681b53a2760c4",
+    "yara_meta": []
+  }
+}

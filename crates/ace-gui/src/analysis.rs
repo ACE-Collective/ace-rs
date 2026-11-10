@@ -65,6 +65,9 @@ use ace_results::types::pcode::PCodeAnalysis;
 use ace_results::types::pdf::PdfAnalysis;
 use ace_results::types::rdap::RdapAnalysis;
 use ace_results::types::rtf::RtfOleObjectAnalysis;
+use ace_results::types::scripts::{
+    ExtractedRtfAnalysis, MicrosoftScriptEncodingAnalysis, NoWhiteSpaceAnalysis, VbScriptAnalysis,
+};
 use ace_results::types::snort::SnortSignatureAnalysis;
 use ace_results::types::splunk::{SplunkApiAnalysis, SplunkClickerDetectionAnalysis};
 use ace_results::types::url_extraction::UrlExtractionAnalysis;
@@ -224,6 +227,10 @@ impl Views {
             .with(ViewEntry::of::<ExtractedOleAnalysis>())
             .with(ViewEntry::of::<HiddenMimeAnalysis>())
             .with(ViewEntry::of::<ActiveMimeAnalysis>())
+            .with(ViewEntry::of::<MicrosoftScriptEncodingAnalysis>())
+            .with(ViewEntry::of::<ExtractedRtfAnalysis>())
+            .with(ViewEntry::of::<VbScriptAnalysis>())
+            .with(ViewEntry::of::<NoWhiteSpaceAnalysis>())
     }
 
     /// These views with `entry`, which takes the place of any view of the same type and version, so a
@@ -1987,5 +1994,46 @@ impl AnalysisView for ActiveMimeAnalysis {
     type View<'a> = FieldsView;
     fn view(&self) -> FieldsView {
         fields_view([field("extracted_file", Some(&self.extracted_file))])
+    }
+}
+
+// ---- RTF and scripts: ace3's default_template.html ----
+
+/// `microsoft_script_encoding_analysis`: the decoded script, when the decoder wrote one.
+impl AnalysisView for MicrosoftScriptEncodingAnalysis {
+    type View<'a> = FieldsView;
+    fn view(&self) -> FieldsView {
+        fields_view([field("analysis_output", self.analysis_output.as_ref())])
+    }
+}
+
+/// `extracted_rtf_analysis`, whose details are empty: what it found is on the file, as detections.
+impl AnalysisView for ExtractedRtfAnalysis {
+    type View<'a> = FieldsView;
+    fn view(&self) -> FieldsView {
+        FieldsView { fields: Vec::new() }
+    }
+}
+
+/// `vbscript_analysis`: the runs of hex digits, and their share of the file as Python prints a float.
+impl AnalysisView for VbScriptAnalysis {
+    type View<'a> = FieldsView;
+    fn view(&self) -> FieldsView {
+        fields_view([
+            field("total_hex_strings", Some(self.total_hex_strings)),
+            field("largest_hex_string", Some(self.largest_hex_string)),
+            field(
+                "percentage_of_hex_strings",
+                Some(format!("{:?}", self.percentage_of_hex_strings)),
+            ),
+        ])
+    }
+}
+
+/// `no_white_space_analysis`: how many whitespace bytes the copy left out.
+impl AnalysisView for NoWhiteSpaceAnalysis {
+    type View<'a> = FieldsView;
+    fn view(&self) -> FieldsView {
+        fields_view([field("count", Some(self.count))])
     }
 }

@@ -20,6 +20,7 @@ pub mod pcode;
 pub mod pdf;
 pub mod rdap;
 pub mod rtf;
+pub mod scripts;
 pub mod snort;
 pub mod splunk;
 pub mod url_extraction;

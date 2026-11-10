@@ -8,7 +8,8 @@ use ace_app::{App, LookupPool, ParserPool};
 /// observable's value (command lines, file paths and locations, networks, URLs, IDNA, email
 /// addresses' domains and protected URLs), the HTML modules (data URLs, HTTP archives, scripts in HTML
 /// and MHTML), the Office container modules (OneNote, compound files, Office XML, hidden MIME and
-/// ActiveMime), with the YARA module on the core's current ruleset (2.26), and the commands analysts
+/// ActiveMime), the RTF and script modules (encoded scripts, hex in VBScript, an RTF's objects and
+/// its copy without whitespace), with the YARA module on the core's current ruleset (2.26), and the commands analysts
 /// start from the GUI (5.12).
 pub fn parser_pool() -> ParserPool {
     ParserPool::new("parsers")
@@ -49,6 +50,10 @@ pub fn parser_pool() -> ParserPool {
         .module::<ace_mod_office::ExtractedOleAnalyzer>()
         .module::<ace_mod_office::HiddenMimeAnalyzer>()
         .module::<ace_mod_office::ActiveMimeAnalyzer>()
+        .module::<ace_mod_scripts::MicrosoftScriptEncodingAnalyzer>()
+        .module::<ace_mod_scripts::ExtractedRtfAnalyzer>()
+        .module::<ace_mod_scripts::VbScriptAnalyzer>()
+        .module::<ace_mod_scripts::NoWhiteSpaceAnalyzer>()
         .yara_rulesets::<ace_mod_yara::YaraScanner>(ace_mod_yara::check_ruleset)
         .commands()
 }

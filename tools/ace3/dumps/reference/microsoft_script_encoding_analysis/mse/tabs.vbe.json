@@ -1,0 +1,67 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "MicrosoftScriptEncodingAnalysis",
+      "details": {
+        "analysis_output": "tabs.vbe.decrypted.vbs"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.mse:MicrosoftScriptEncodingAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=script.encoded"
+          ],
+          "excluded_analysis": [],
+          "file_path": "tabs.vbe.decrypted.vbs",
+          "redirection": {
+            "type": "file",
+            "value": "bdceeb2769e23127e73484acecd8abf799db109a63b690535ba858ec17644295"
+          },
+          "relationships": [],
+          "size": 34,
+          "tags": [],
+          "type": "file",
+          "value": "f9826b02801213d6b5c7404d48c91a45618ba82ab610703b5bc7449a0542d590",
+          "yara_meta": [
+            "type=script.encoded"
+          ]
+        }
+      ],
+      "summary": "Microsoft Script Encoding Analysis: tabs.vbe.decrypted.vbs",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/scripts/mse/tabs.vbe",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "tabs.vbe",
+      "size": 64,
+      "type": "file",
+      "value": "bdceeb2769e23127e73484acecd8abf799db109a63b690535ba858ec17644295"
+    }
+  },
+  "module": "microsoft_script_encoding_analysis",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "sandbox"
+    ],
+    "excluded_analysis": [],
+    "file_path": "tabs.vbe",
+    "relationships": [],
+    "size": 64,
+    "tags": [
+      "microsoft_script_encoding"
+    ],
+    "type": "file",
+    "value": "bdceeb2769e23127e73484acecd8abf799db109a63b690535ba858ec17644295",
+    "yara_meta": []
+  }
+}

@@ -1,6 +1,70 @@
 {
   "form": 1,
   "observables": {
+    "file:0c577f54395aca1207ea411e143d6cfc98451f2955a40f60e90d85d3d6ffa9e9": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "edge_long_digits.rtf.nowhitespace": {
+          "type=document.rtf": true,
+          "type=document.rtf.stripped": true
+        }
+      },
+      "redirection": "file:145c307de52de795fce4439b06dfe58db8e2fbe7859a8a9bcd28de60c7f1410c",
+      "relationships": {},
+      "results": {
+        "binary_file_analyzer": {
+          "details": {},
+          "summary": null,
+          "tags": {}
+        },
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "4d222eaa814b795841a9e31360ad793f",
+            "sha1": "16df6369dc4691c8408640e35ee95ecbe3a2bf3b",
+            "sha256": "0c577f54395aca1207ea411e143d6cfc98451f2955a40f60e90d85d3d6ffa9e9"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": true,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": true,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/rtf",
+            "type": "Rich Text Format data, version 1"
+          },
+          "summary": "File Type Analysis: Rich Text Format data, version 1 (text/rtf) (ms office document) (rtf document)",
+          "tags": {}
+        },
+        "rtfole": {
+          "details": {
+            "extracted_files": [
+              "edge_long_digits.rtf.nowhitespace.rtfobj/edge_long_digits.rtf.nowhitespace_object_00000104.raw"
+            ],
+            "return_code": 0,
+            "stderr": "",
+            "stdout": "rtfobj 0.60.1 on Python 3.14.10 - http://decalage.info/python/oletools\nTHIS IS WORK IN PROGRESS - Check updates regularly!\nPlease report any issue at https://github.com/decalage2/oletools/issues\n\n===============================================================================\nFile: 'edge_long_digits.rtf.nowhitespace' - size: 319 bytes\n---+----------+---------------------------------------------------------------\nid |index     |OLE Object                                                     \n---+----------+---------------------------------------------------------------\n0  |00000104h |Not a well-formed OLE object                                   \n---+----------+---------------------------------------------------------------\nSaving raw data in object #0:\n  saving object to file edge_long_digits.rtf.nowhitespace.rtfobj/edge_long_digits.rtf.nowhitespace_object_00000104.raw\n  md5 e7705e54427db0eea595c511fb879f38\n"
+          },
+          "summary": "RTF OLE Object Analysis: extracted edge_long_digits.rtf.nowhitespace.rtfobj/edge_long_digits.rtf.nowhitespace_object_00000104.raw",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "microsoft_office": true,
+        "rtf": true
+      }
+    },
     "file:145c307de52de795fce4439b06dfe58db8e2fbe7859a8a9bcd28de60c7f1410c": {
       "detections": {},
       "directives": {},
@@ -46,6 +110,13 @@
           "summary": "File Type Analysis: Rich Text Format data, version 1 (text/rtf) (ms office document) (rtf document)",
           "tags": {}
         },
+        "nowhitespace_analyzer": {
+          "details": {
+            "count": 3
+          },
+          "summary": "NoWhiteSpaceAnalysis: Ignore Whitespace Characters (3 removed)",
+          "tags": {}
+        },
         "rtfole": {
           "details": {
             "extracted_files": [
@@ -69,15 +140,24 @@
       "directives": {},
       "excluded_analysis": {},
       "paths": {
+        "edge_long_digits.rtf.nowhitespace.rtfobj/edge_long_digits.rtf.nowhitespace_object_00000104.raw": {
+          "type=document.rtf.object": true
+        },
         "edge_long_digits.rtf.rtfobj/edge_long_digits.rtf_object_00000105.raw": {
           "type=document.rtf.object": true
         }
       },
-      "redirection": "file:145c307de52de795fce4439b06dfe58db8e2fbe7859a8a9bcd28de60c7f1410c",
+      "redirection": "file:0c577f54395aca1207ea411e143d6cfc98451f2955a40f60e90d85d3d6ffa9e9",
       "relationships": {
+        "extracted_from file:0c577f54395aca1207ea411e143d6cfc98451f2955a40f60e90d85d3d6ffa9e9": true,
         "extracted_from file:145c307de52de795fce4439b06dfe58db8e2fbe7859a8a9bcd28de60c7f1410c": true
       },
       "results": {
+        "extracted_rtf_analyzer": {
+          "details": {},
+          "summary": null,
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "e7705e54427db0eea595c511fb879f38",
@@ -111,6 +191,16 @@
         "extracted_rtf": true
       }
     },
+    "md5:4d222eaa814b795841a9e31360ad793f": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:0c577f54395aca1207ea411e143d6cfc98451f2955a40f60e90d85d3d6ffa9e9": true
+      },
+      "results": {},
+      "tags": {}
+    },
     "md5:e7705e54427db0eea595c511fb879f38": {
       "detections": {},
       "directives": {},
@@ -127,6 +217,16 @@
       "excluded_analysis": {},
       "relationships": {
         "is_hash_of file:145c307de52de795fce4439b06dfe58db8e2fbe7859a8a9bcd28de60c7f1410c": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:0c577f54395aca1207ea411e143d6cfc98451f2955a40f60e90d85d3d6ffa9e9": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:0c577f54395aca1207ea411e143d6cfc98451f2955a40f60e90d85d3d6ffa9e9": true
       },
       "results": {},
       "tags": {}

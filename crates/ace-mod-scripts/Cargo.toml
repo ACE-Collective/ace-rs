@@ -1,0 +1,25 @@
+[package]
+name = "ace-mod-scripts"
+version = "0.1.0"
+description = "The RTF and script modules of PLAN.md 7.5 batch 6: microsoft_script_encoding_analysis, extracted_rtf_analyzer, vbscript_analyzer and nowhitespace_analyzer"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+ace-mod-files = { path = "../ace-mod-files" }
+ace-pycompat = { path = "../ace-pycompat" }
+ace-results = { path = "../ace-results" }
+ace-sdk = { path = "../ace-sdk" }
+memchr = "2.8.3"
+schemars = "1.2.3"
+serde = { version = "1.0.229", features = ["derive"] }
+
+[dev-dependencies]
+ace-testkit = { path = "../ace-testkit" }
+serde_json = "1.0.154"
+sha2 = "0.11.1"
+
+[lints]
+workspace = true

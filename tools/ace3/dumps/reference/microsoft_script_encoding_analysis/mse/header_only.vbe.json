@@ -1,0 +1,46 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "MicrosoftScriptEncodingAnalysis",
+      "details": {
+        "analysis_output": null
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.mse:MicrosoftScriptEncodingAnalysis",
+      "observables": [],
+      "summary": "Microsoft Script Encoding Analysis: None",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/scripts/mse/header_only.vbe",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "header_only.vbe",
+      "size": 4,
+      "type": "file",
+      "value": "cade0ddbbc36e25367fe53a63f4e936e6854f417760e6529553f634ea6a3d2b9"
+    }
+  },
+  "module": "microsoft_script_encoding_analysis",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "sandbox"
+    ],
+    "excluded_analysis": [],
+    "file_path": "header_only.vbe",
+    "relationships": [],
+    "size": 4,
+    "tags": [
+      "microsoft_script_encoding"
+    ],
+    "type": "file",
+    "value": "cade0ddbbc36e25367fe53a63f4e936e6854f417760e6529553f634ea6a3d2b9",
+    "yara_meta": []
+  }
+}

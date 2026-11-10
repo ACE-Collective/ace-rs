@@ -46,6 +46,13 @@
           "summary": "File Type Analysis: Rich Text Format data, version 1, ANSI (text/rtf) (ms office document) (rtf document)",
           "tags": {}
         },
+        "nowhitespace_analyzer": {
+          "details": {
+            "count": 7
+          },
+          "summary": "NoWhiteSpaceAnalysis: Ignore Whitespace Characters (7 removed)",
+          "tags": {}
+        },
         "rtfole": {
           "details": {
             "extracted_files": [],
@@ -61,6 +68,78 @@
         "microsoft_office": true,
         "rtf": true
       }
+    },
+    "file:c2279474f6c5612c91b0f8af9c1749f2a666bd72bc1b1cd8c5a93b91aad4114f": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "bracket[1].rtf.nowhitespace": {
+          "type=document.rtf": true,
+          "type=document.rtf.stripped": true
+        }
+      },
+      "redirection": "file:4532a9df01925fcd7da833b5d7c56f491d3a5b9d64c7204a2dac5623a335e730",
+      "relationships": {},
+      "results": {
+        "binary_file_analyzer": {
+          "details": {},
+          "summary": null,
+          "tags": {}
+        },
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "bfe24803cee728da902d877b5f6b83e9",
+            "sha1": "58c9e976466ebdc21acfaef1e86599e9b89d81ab",
+            "sha256": "c2279474f6c5612c91b0f8af9c1749f2a666bd72bc1b1cd8c5a93b91aad4114f"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": true,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": true,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/rtf",
+            "type": "Rich Text Format data, version 1, ANSI"
+          },
+          "summary": "File Type Analysis: Rich Text Format data, version 1, ANSI (text/rtf) (ms office document) (rtf document)",
+          "tags": {}
+        },
+        "rtfole": {
+          "details": {
+            "extracted_files": [],
+            "return_code": 0,
+            "stderr": "",
+            "stdout": "rtfobj 0.60.1 on Python 3.14.10 - http://decalage.info/python/oletools\nTHIS IS WORK IN PROGRESS - Check updates regularly!\nPlease report any issue at https://github.com/decalage2/oletools/issues\n\n"
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "microsoft_office": true,
+        "rtf": true
+      }
+    },
+    "md5:bfe24803cee728da902d877b5f6b83e9": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:c2279474f6c5612c91b0f8af9c1749f2a666bd72bc1b1cd8c5a93b91aad4114f": true
+      },
+      "results": {},
+      "tags": {}
     },
     "md5:f20258a5b3eeb5292c9c68108c9845e7": {
       "detections": {},
@@ -78,6 +157,16 @@
       "excluded_analysis": {},
       "relationships": {
         "is_hash_of file:4532a9df01925fcd7da833b5d7c56f491d3a5b9d64c7204a2dac5623a335e730": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:c2279474f6c5612c91b0f8af9c1749f2a666bd72bc1b1cd8c5a93b91aad4114f": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:c2279474f6c5612c91b0f8af9c1749f2a666bd72bc1b1cd8c5a93b91aad4114f": true
       },
       "results": {},
       "tags": {}

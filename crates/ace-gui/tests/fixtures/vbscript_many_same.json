@@ -1,0 +1,28 @@
+{
+  "analysis_type": "vbscript_analysis",
+  "schema_version": 1,
+  "details": {
+    "largest_hex_string": 60,
+    "percentage_of_hex_strings": 87.48451053283766,
+    "total_hex_strings": 101
+  },
+  "summary": "VBScript Analysis: 101 total hex strings, 60 largest hex string, 87.48451053283766% percentage of file is hex strings",
+  "analyzed": {
+    "tags": [
+      "large_hex_string"
+    ],
+    "directives": [
+      "sandbox"
+    ],
+    "detections": [
+      {
+        "description": "large number of large hex strings of same length",
+        "signature_uuid": "e46a6485-7ccd-4cba-8196-7540c5e7a1b9"
+      },
+      {
+        "description": "a large percentage of the file is ascii hex (87.48%)",
+        "signature_uuid": "e46a6485-7ccd-4cba-8196-7540c5e7a1b9"
+      }
+    ]
+  }
+}

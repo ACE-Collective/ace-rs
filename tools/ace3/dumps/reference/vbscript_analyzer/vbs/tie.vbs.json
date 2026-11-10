@@ -1,0 +1,51 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "VBScriptAnalysis",
+      "details": {
+        "largest_hex_string": 50,
+        "percentage_of_hex_strings": 15.625,
+        "total_hex_strings": 1
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.vbs:VBScriptAnalysis",
+      "observables": [],
+      "summary": "VBScript Analysis: 1 total hex strings, 50 largest hex string, 15.625% percentage of file is hex strings",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/scripts/vbs/tie.vbs",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "tie.vbs",
+      "size": 320,
+      "type": "file",
+      "value": "8a7995bba6b10cf66d3416282c09120741f5810f83489ad4ac98d883d37256eb"
+    }
+  },
+  "module": "vbscript_analyzer",
+  "observable_after": {
+    "detections": [
+      {
+        "description": "a large percentage of the file is ascii hex (15.62%)",
+        "details": null
+      }
+    ],
+    "directives": [
+      "sandbox"
+    ],
+    "excluded_analysis": [],
+    "file_path": "tie.vbs",
+    "relationships": [],
+    "size": 320,
+    "tags": [],
+    "type": "file",
+    "value": "8a7995bba6b10cf66d3416282c09120741f5810f83489ad4ac98d883d37256eb",
+    "yara_meta": []
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "MicrosoftScriptEncodingAnalysis",
+      "details": {
+        "analysis_output": "escapes.vbe.decrypted.vbs"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.mse:MicrosoftScriptEncodingAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=script.encoded"
+          ],
+          "excluded_analysis": [],
+          "file_path": "escapes.vbe.decrypted.vbs",
+          "redirection": {
+            "type": "file",
+            "value": "9e40e5a45e18168374a4cfa49f90aa8746ce9c19fcf7f338bfa21506705e10cb"
+          },
+          "relationships": [],
+          "size": 15,
+          "tags": [],
+          "type": "file",
+          "value": "94dd4183f612e037ecec1c82c84afdfcf731a454569ce2ee021a8c33bee6c2c6",
+          "yara_meta": [
+            "type=script.encoded"
+          ]
+        }
+      ],
+      "summary": "Microsoft Script Encoding Analysis: escapes.vbe.decrypted.vbs",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/scripts/mse/escapes.vbe",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "escapes.vbe",
+      "size": 43,
+      "type": "file",
+      "value": "9e40e5a45e18168374a4cfa49f90aa8746ce9c19fcf7f338bfa21506705e10cb"
+    }
+  },
+  "module": "microsoft_script_encoding_analysis",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "sandbox"
+    ],
+    "excluded_analysis": [],
+    "file_path": "escapes.vbe",
+    "relationships": [],
+    "size": 43,
+    "tags": [
+      "microsoft_script_encoding"
+    ],
+    "type": "file",
+    "value": "9e40e5a45e18168374a4cfa49f90aa8746ce9c19fcf7f338bfa21506705e10cb",
+    "yara_meta": []
+  }
+}

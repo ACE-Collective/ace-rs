@@ -1,0 +1,67 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "MicrosoftScriptEncodingAnalysis",
+      "details": {
+        "analysis_output": "LOUD.VBE.decrypted.vbs"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.mse:MicrosoftScriptEncodingAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=script.encoded"
+          ],
+          "excluded_analysis": [],
+          "file_path": "LOUD.VBE.decrypted.vbs",
+          "redirection": {
+            "type": "file",
+            "value": "22e27e18197406345cbf1372ecb37a709854350f04f0fc187038342b1785e04d"
+          },
+          "relationships": [],
+          "size": 171,
+          "tags": [],
+          "type": "file",
+          "value": "f34ce606302b72f317d06c1f894ec98087e4af3c8147cb897e8789a15f6dbf07",
+          "yara_meta": [
+            "type=script.encoded"
+          ]
+        }
+      ],
+      "summary": "Microsoft Script Encoding Analysis: LOUD.VBE.decrypted.vbs",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/scripts/mse/LOUD.VBE",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "LOUD.VBE",
+      "size": 203,
+      "type": "file",
+      "value": "22e27e18197406345cbf1372ecb37a709854350f04f0fc187038342b1785e04d"
+    }
+  },
+  "module": "microsoft_script_encoding_analysis",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "sandbox"
+    ],
+    "excluded_analysis": [],
+    "file_path": "LOUD.VBE",
+    "relationships": [],
+    "size": 203,
+    "tags": [
+      "microsoft_script_encoding"
+    ],
+    "type": "file",
+    "value": "22e27e18197406345cbf1372ecb37a709854350f04f0fc187038342b1785e04d",
+    "yara_meta": []
+  }
+}

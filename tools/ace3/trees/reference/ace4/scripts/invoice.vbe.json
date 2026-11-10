@@ -1,0 +1,141 @@
+{
+  "form": 1,
+  "observables": {
+    "file:22e27e18197406345cbf1372ecb37a709854350f04f0fc187038342b1785e04d": {
+      "detections": {},
+      "directives": {
+        "sandbox": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "invoice.vbe": {
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "2d6f33668bba5e4d0264c15a566cc75d",
+            "sha1": "ecd5db789cdace2d36b04980a01bcba08be114d4",
+            "sha256": "22e27e18197406345cbf1372ecb37a709854350f04f0fc187038342b1785e04d"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        },
+        "microsoft_script_encoding_analysis": {
+          "details": {
+            "analysis_output": "invoice.vbe.decrypted.vbs"
+          },
+          "summary": "Microsoft Script Encoding Analysis: invoice.vbe.decrypted.vbs",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "microsoft_script_encoding": true
+      }
+    },
+    "file:f34ce606302b72f317d06c1f894ec98087e4af3c8147cb897e8789a15f6dbf07": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "invoice.vbe.decrypted.vbs": {
+          "type=script.encoded": true
+        }
+      },
+      "redirection": "file:22e27e18197406345cbf1372ecb37a709854350f04f0fc187038342b1785e04d",
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "46346bf42db2ddf79ca99204a110ec9e",
+            "sha1": "39109d2a7e6bc4ce17e8e3e4093a6d150565ad4d",
+            "sha256": "f34ce606302b72f317d06c1f894ec98087e4af3c8147cb897e8789a15f6dbf07"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text, with CRLF line terminators"
+          },
+          "summary": "File Type Analysis: ASCII text, with CRLF line terminators (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "md5:2d6f33668bba5e4d0264c15a566cc75d": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:22e27e18197406345cbf1372ecb37a709854350f04f0fc187038342b1785e04d": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:46346bf42db2ddf79ca99204a110ec9e": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:f34ce606302b72f317d06c1f894ec98087e4af3c8147cb897e8789a15f6dbf07": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:22e27e18197406345cbf1372ecb37a709854350f04f0fc187038342b1785e04d": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:22e27e18197406345cbf1372ecb37a709854350f04f0fc187038342b1785e04d": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:f34ce606302b72f317d06c1f894ec98087e4af3c8147cb897e8789a15f6dbf07": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:f34ce606302b72f317d06c1f894ec98087e4af3c8147cb897e8789a15f6dbf07": true
+      },
+      "results": {},
+      "tags": {}
+    }
+  }
+}

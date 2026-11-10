@@ -41,6 +41,8 @@ does (saq/cli/commands/correlate.py) with all modules disabled except the ones n
   extracted_from it, and --source-tag tags it, as a document file_type called microsoft_office;
 - with --added-by MODULE:CLASS, the observable is added by an analysis of that class on the
   --extracted-from file rather than by the root, such as an output of OfficeParserAnalysis3;
+- with --tag TAG, the observable carries that tag, as the module that added it would give it, such as
+  rtfole's extracted_rtf; the dump's input lists it;
 - with --tree, it also writes tree.json, the whole root in the normal form of PLAN.md 3.1
   (crates/ace-core/src/normal.rs), which tools/ace3/trees/make-trees collects.
 
@@ -89,6 +91,7 @@ def parse_args():
     parser.add_argument("--alert-path", help="the file's path inside the alert")
     parser.add_argument("--meta-tag", action="append", default=[], help="a yara_meta tag for the file, name=value")
     parser.add_argument("--directive", action="append", default=[], help="a directive for the observable")
+    parser.add_argument("--tag", action="append", default=[], help="a tag for the observable, as a module that added it gives")
     parser.add_argument("--observable", nargs=2, metavar=("TYPE", "VALUE"), help="a non-file observable to analyze")
     parser.add_argument(
         "--relationship", nargs=3, action="append", default=[], metavar=("KIND", "TYPE", "VALUE"),
@@ -605,6 +608,10 @@ TREE_MODULES = {
     "ExtractedOLEAnalysis": "extracted_ole_analyzer",
     "HiddenMIMEAnalysis": "hidden_mime",
     "ActiveMimeAnalysis": "active_mime",
+    "MicrosoftScriptEncodingAnalysis": "microsoft_script_encoding_analysis",
+    "ExtractedRTFAnalysis": "extracted_rtf_analyzer",
+    "VBScriptAnalysis": "vbscript_analyzer",
+    "NoWhiteSpaceAnalysis": "nowhitespace_analyzer",
 }
 TREE_RUN_FIELDS = {
     "EmailAnalysis": ["details/email/log_entry/date"],
@@ -658,6 +665,10 @@ TREE_EXCLUDED = {
     "ExtractedOLEAnalyzer": "extracted_ole_analyzer",
     "HiddenMIMEAnalyzer": "hidden_mime",
     "ActiveMimeAnalyzer": "active_mime",
+    "MicrosoftScriptEncodingAnalyzer": "microsoft_script_encoding_analysis",
+    "ExtractedRTFAnalyzer": "extracted_rtf_analyzer",
+    "VBScriptAnalyzer": "vbscript_analyzer",
+    "NoWhiteSpaceAnalyzer": "nowhitespace_analyzer",
 }
 
 
@@ -1004,6 +1015,8 @@ def main():
         sys.exit("ace3 refused the observable")
     for directive in args.directive:
         observable.add_directive(directive)
+    for tag in args.tag:
+        observable.add_tag(tag)
     if source is not None:
         from saq.constants import R_EXTRACTED_FROM
 
@@ -1050,6 +1063,7 @@ def main():
             "meta_tags": args.meta_tag,
             "directives": args.directive,
         }
+        | ({"tags": args.tag} if args.tag else {})
         | (
             {"relationships": [{"type": k, "target": {"type": t, "value": v}} for k, t, v in args.relationship]}
             if args.relationship

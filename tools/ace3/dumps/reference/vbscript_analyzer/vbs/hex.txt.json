@@ -1,0 +1,30 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [],
+  "input": {
+    "directives": [],
+    "label": "fixtures/scripts/vbs/hex.txt",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "hex.txt",
+      "size": 452,
+      "type": "file",
+      "value": "6f4f1935601695cc45e3688d1e8c244463bbf0107bb9091c55227c8ba5e4d4b8"
+    }
+  },
+  "module": "vbscript_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "hex.txt",
+    "relationships": [],
+    "size": 452,
+    "tags": [],
+    "type": "file",
+    "value": "6f4f1935601695cc45e3688d1e8c244463bbf0107bb9091c55227c8ba5e4d4b8",
+    "yara_meta": []
+  }
+}

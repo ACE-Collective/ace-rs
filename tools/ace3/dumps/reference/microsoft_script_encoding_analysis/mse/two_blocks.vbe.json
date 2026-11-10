@@ -1,0 +1,67 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "MicrosoftScriptEncodingAnalysis",
+      "details": {
+        "analysis_output": "two_blocks.vbe.decrypted.vbs"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.mse:MicrosoftScriptEncodingAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=script.encoded"
+          ],
+          "excluded_analysis": [],
+          "file_path": "two_blocks.vbe.decrypted.vbs",
+          "redirection": {
+            "type": "file",
+            "value": "e0957dbd6aa6b4f71dec6618036346852c28313199ae838b0375f0fc0118019f"
+          },
+          "relationships": [],
+          "size": 16,
+          "tags": [],
+          "type": "file",
+          "value": "da5e68fb9d6f584f17a5ccb467f13378093c859ef880c84b02be71b5cfbdc41f",
+          "yara_meta": [
+            "type=script.encoded"
+          ]
+        }
+      ],
+      "summary": "Microsoft Script Encoding Analysis: two_blocks.vbe.decrypted.vbs",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/scripts/mse/two_blocks.vbe",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "two_blocks.vbe",
+      "size": 87,
+      "type": "file",
+      "value": "e0957dbd6aa6b4f71dec6618036346852c28313199ae838b0375f0fc0118019f"
+    }
+  },
+  "module": "microsoft_script_encoding_analysis",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "sandbox"
+    ],
+    "excluded_analysis": [],
+    "file_path": "two_blocks.vbe",
+    "relationships": [],
+    "size": 87,
+    "tags": [
+      "microsoft_script_encoding"
+    ],
+    "type": "file",
+    "value": "e0957dbd6aa6b4f71dec6618036346852c28313199ae838b0375f0fc0118019f",
+    "yara_meta": []
+  }
+}

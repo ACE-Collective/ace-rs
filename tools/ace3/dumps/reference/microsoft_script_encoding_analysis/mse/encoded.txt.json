@@ -1,0 +1,67 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "MicrosoftScriptEncodingAnalysis",
+      "details": {
+        "analysis_output": "encoded.txt.decrypted"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.mse:MicrosoftScriptEncodingAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=script.encoded"
+          ],
+          "excluded_analysis": [],
+          "file_path": "encoded.txt.decrypted",
+          "redirection": {
+            "type": "file",
+            "value": "ddd8de91fa8b42e2962ce0087a209942d15bd07ed1ab4c1e8571ffbe06abb42b"
+          },
+          "relationships": [],
+          "size": 21,
+          "tags": [],
+          "type": "file",
+          "value": "dd9847126c1e848ccb572982a01c64f2b193d8b85c0b8981cd1aef6f861ee5de",
+          "yara_meta": [
+            "type=script.encoded"
+          ]
+        }
+      ],
+      "summary": "Microsoft Script Encoding Analysis: encoded.txt.decrypted",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/scripts/mse/encoded.txt",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "encoded.txt",
+      "size": 47,
+      "type": "file",
+      "value": "ddd8de91fa8b42e2962ce0087a209942d15bd07ed1ab4c1e8571ffbe06abb42b"
+    }
+  },
+  "module": "microsoft_script_encoding_analysis",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "sandbox"
+    ],
+    "excluded_analysis": [],
+    "file_path": "encoded.txt",
+    "relationships": [],
+    "size": 47,
+    "tags": [
+      "microsoft_script_encoding"
+    ],
+    "type": "file",
+    "value": "ddd8de91fa8b42e2962ce0087a209942d15bd07ed1ab4c1e8571ffbe06abb42b",
+    "yara_meta": []
+  }
+}

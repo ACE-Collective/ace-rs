@@ -1,0 +1,54 @@
+#!/usr/bin/env python3
+"""Writes the crafted files PLAN.md 7.5 batch 6's modules are measured on (docs/measurements/scripts.md),
+each named after the module it's for. They're large, so they go to a directory given here, not into
+the repository.
+
+    tools/samples/make-scripts-hostile DIR
+"""
+
+import importlib.machinery
+import importlib.util
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent.parent
+_loader = importlib.machinery.SourceFileLoader("make_scripts", str(ROOT / "tools" / "samples" / "make-scripts"))
+_spec = importlib.util.spec_from_loader("make_scripts", _loader)
+scripts = importlib.util.module_from_spec(_spec)
+_loader.exec_module(scripts)
+
+MB = 1024 * 1024
+
+
+def files():
+    script = (scripts.VBS * (90 * MB // len(scripts.VBS)))
+    yield "microsoft_script_encoding_analysis_big_90mb.vbe", scripts.encode(script)
+    # every byte an escape: the decoder writes one byte for two
+    yield "microsoft_script_encoding_analysis_escapes_90mb.vbe", b"#@~^AAAAAA==" + b"@&" * (45 * MB) + b"^#~@"
+    # every byte past 0x7f, written as it is
+    yield "microsoft_script_encoding_analysis_high_90mb.vbe", b"#@~^AAAAAA==" + b"\xff" * (90 * MB) + b"^#~@"
+    # no end marker: the Perl reads it all, then dies
+    yield "microsoft_script_encoding_analysis_no_end_90mb.vbe", b"#@~^AAAAAA==" + b"x" * (90 * MB)
+    # start markers and nothing else
+    yield "microsoft_script_encoding_analysis_markers_90mb.vbe", b"#@~^" * (90 * MB // 4)
+    yield "vbscript_analyzer_hex_90mb.vbs", b"0123456789abcdef" * (90 * MB // 16)
+    # a run of five and a comma, 15 million times
+    yield "vbscript_analyzer_runs_90mb.vbs", b"abcde," * (90 * MB // 6)
+    # runs of every length up to 13,000, each once, for the distribution
+    yield "vbscript_analyzer_lengths.vbs", b",".join(b"a" * n for n in range(5, 13000))
+    # 90 million lines, half of them comments
+    yield "vbscript_analyzer_lines_90mb.vbs", b"'\nab\n" * (90 * MB // 6)
+    yield "nowhitespace_analyzer_spaces_90mb.rtf", b"{\\rtf1" + b" " * (90 * MB) + b"}"
+    yield "nowhitespace_analyzer_mixed_90mb.rtf", b"{\\rtf1" + b"a \t\r\nb" * (90 * MB // 7) + b"}"
+
+
+def main():
+    out = Path(sys.argv[1])
+    out.mkdir(parents=True, exist_ok=True)
+    for name, data in files():
+        (out / name).write_bytes(data)
+        print(f"{name}: {len(data)} bytes")
+
+
+if __name__ == "__main__":
+    main()
