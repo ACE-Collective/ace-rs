@@ -1,0 +1,36 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [],
+  "input": {
+    "directives": [],
+    "label": "ace3/executables/hello_autoit.exe",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "hello_autoit.exe",
+      "size": 865792,
+      "type": "file",
+      "value": "a8538ebcd97559030f7d001ca13e6bbcb73f0d77e992f0d6a12a3448c312c995"
+    }
+  },
+  "module": "de4dot",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "hello_autoit.exe",
+    "relationships": [],
+    "size": 865792,
+    "tags": [],
+    "type": "file",
+    "value": "a8538ebcd97559030f7d001ca13e6bbcb73f0d77e992f0d6a12a3448c312c995",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

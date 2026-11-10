@@ -12,6 +12,7 @@
 //! - [`base64`] is `b64decode` and `urlsafe_b64decode`.
 //! - [`ipaddress`] is `ip_address`, `IPv4Address` and `IPv6Address`.
 //! - [`json`] is `json.loads`.
+//! - [`escape`] is `bytes.decode('unicode_escape', 'replace')`.
 //! - [`csv`] is `csv.reader` over `io.StringIO`.
 //! - [`codecs_idna`] is the `idna` codec (IDNA 2003, nameprep, punycode).
 //! - [`idna`] is the idna package's `encode` and `decode` (IDNA 2008).
@@ -34,6 +35,7 @@
 pub mod base64;
 pub mod codecs_idna;
 pub mod csv;
+pub mod escape;
 pub mod fnmatch;
 pub mod html;
 pub mod idna;

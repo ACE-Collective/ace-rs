@@ -1,0 +1,74 @@
+{
+  "form": 1,
+  "observables": {
+    "file:7f2be07dbebf6aff1f30808d51baec7bec07e947d0269ddaa2d93bb7d6258b34": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "universal.macho": {
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "58282880aa5d1184648216b5237bb469",
+            "sha1": "911bad0f7440f455dae9a8af0d8929d5d5c6f24c",
+            "sha256": "7f2be07dbebf6aff1f30808d51baec7bec07e947d0269ddaa2d93bb7d6258b34"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/x-mach-binary",
+            "type": "Mach-O universal binary with 2 architectures: [x86_64] [\\012- ]"
+          },
+          "summary": "File Type Analysis: Mach-O universal binary with 2 architectures: [x86_64] [\\012- ] (application/x-mach-binary)",
+          "tags": {}
+        },
+        "java_class_decompiler": {
+          "details": {
+            "decompiled_files": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "md5:58282880aa5d1184648216b5237bb469": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:7f2be07dbebf6aff1f30808d51baec7bec07e947d0269ddaa2d93bb7d6258b34": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:7f2be07dbebf6aff1f30808d51baec7bec07e947d0269ddaa2d93bb7d6258b34": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:7f2be07dbebf6aff1f30808d51baec7bec07e947d0269ddaa2d93bb7d6258b34": true
+      },
+      "results": {},
+      "tags": {}
+    }
+  }
+}

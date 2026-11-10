@@ -384,6 +384,66 @@
       "meta_tags": []
     },
     {
+      "path": "ace3/executables/UGtZgHHT.au3",
+      "sha256": "1af981d9c5128b3657cdb5506d61563e0d1908b957e5dd6842059d6d3cfdc622",
+      "size": 775656,
+      "kinds": [
+        "executable/autoit"
+      ],
+      "source": "ace3 f72f8946: tests/saq/modules/file_analysis/test_autoit/UGtZgHHT.au3",
+      "in_git": true,
+      "alert_path": "UGtZgHHT.au3",
+      "meta_tags": [
+        "type=email.attachment"
+      ],
+      "note": "a compiled AutoIt script named .au3"
+    },
+    {
+      "path": "ace3/executables/VxUGJsAplRNavewkjKujp.class",
+      "sha256": "9277f9edf7e3406a3ccf23eacdd636e77083caa00a4c1317159533e7bccc320c",
+      "size": 5038,
+      "kinds": [
+        "executable/java"
+      ],
+      "source": "ace3 f72f8946: tests/saq/modules/file_analysis/test_java/VxUGJsAplRNavewkjKujp.class",
+      "in_git": true,
+      "alert_path": "VxUGJsAplRNavewkjKujp.class",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace3/executables/cmd-upx.exe",
+      "sha256": "867acd05102650edb0e74652a59b340257df21484906dcf821df7117730975ad",
+      "size": 161280,
+      "kinds": [
+        "executable/pe",
+        "executable/upx"
+      ],
+      "source": "ace3 f72f8946: tests/saq/modules/test_file_analysis_full/exe/cmd-upx.exe",
+      "in_git": true,
+      "alert_path": "cmd-upx.exe",
+      "meta_tags": [
+        "type=email.attachment"
+      ],
+      "note": "cmd.exe, UPX packed"
+    },
+    {
+      "path": "ace3/executables/hello_autoit.exe",
+      "sha256": "a8538ebcd97559030f7d001ca13e6bbcb73f0d77e992f0d6a12a3448c312c995",
+      "size": 865792,
+      "kinds": [
+        "executable/pe",
+        "executable/autoit"
+      ],
+      "source": "ace3 f72f8946: tests/saq/modules/test_file_analysis/hello_autoit.exe",
+      "in_git": true,
+      "alert_path": "hello_autoit.exe",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
       "path": "ace3/office/DOC_PO_10142020EX.doc",
       "sha256": "3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a",
       "size": 132953,
@@ -1062,6 +1122,115 @@
       "in_git": true,
       "alert_path": "email.rfc822",
       "meta_tags": []
+    },
+    {
+      "path": "ace4/executables/cmd-upx-damaged.exe",
+      "sha256": "1feaee848ab2113d7a90f68b0eab79534c7d7eef4e473b7ac879953a56c35b9b",
+      "size": 161280,
+      "kinds": [
+        "executable/pe",
+        "executable/upx"
+      ],
+      "source": "made by tools/samples/make-executables: ace3's cmd-upx.exe with 64 bytes of its compressed data flipped",
+      "in_git": true,
+      "alert_path": "cmd-upx-damaged.exe",
+      "meta_tags": [
+        "type=email.attachment"
+      ],
+      "note": "upx -t fails"
+    },
+    {
+      "path": "ace4/executables/emitted_methods.exe",
+      "sha256": "a215ccff406af7f2d5f8834fda61424054bd0671b76d6c5930ea0a1c0028b29c",
+      "size": 2560,
+      "kinds": [
+        "executable/pe",
+        "executable/dotnet"
+      ],
+      "source": "made by tools/samples/make-executables: System.Reflection.Emit's PersistedAssemblyBuilder, 10 methods",
+      "in_git": true,
+      "alert_path": "emitted_methods.exe",
+      "meta_tags": [
+        "type=email.attachment"
+      ],
+      "note": "its references carry public keys, which de4dot hashes with OpenSSL"
+    },
+    {
+      "path": "ace4/executables/hello_dotnet.dll",
+      "sha256": "8d793450a76e17798a0e9abfd78bcb559d093a33c2d9b8483a0177fd4e256039",
+      "size": 4608,
+      "kinds": [
+        "executable/pe",
+        "executable/dotnet"
+      ],
+      "source": "made by tools/samples/make-executables: C# built with the .NET SDK 10.0.403",
+      "in_git": true,
+      "alert_path": "hello_dotnet.dll",
+      "meta_tags": [
+        "type=email.attachment"
+      ],
+      "note": "no obfuscator"
+    },
+    {
+      "path": "ace4/executables/marker_only.exe",
+      "sha256": "f2e58e0356a65d9d8d1518570fa3632164b609a7ce9828faf4f42ef72889e488",
+      "size": 4096,
+      "kinds": [
+        "executable/pe",
+        "executable/autoit"
+      ],
+      "source": "made by tools/samples/make-executables: MZ and AutoIt's marker",
+      "in_git": true,
+      "alert_path": "marker_only.exe",
+      "meta_tags": [
+        "type=email.attachment"
+      ],
+      "note": "unautoit finds no script"
+    },
+    {
+      "path": "ace4/executables/marker_text.au3",
+      "sha256": "4324df7e2509dc2aadac81c2dfaaf622e527abee6a87390ec2aa589db9b7b257",
+      "size": 26,
+      "kinds": [
+        "executable/autoit"
+      ],
+      "source": "made by tools/samples/make-executables: an .au3 text file holding AutoIt's marker",
+      "in_git": true,
+      "alert_path": "marker_text.au3",
+      "meta_tags": [
+        "type=email.attachment"
+      ],
+      "note": "unautoit finds no script"
+    },
+    {
+      "path": "ace4/executables/truncated.class",
+      "sha256": "2a728b1a7b28cb27c216c08167210170dcfbe5032d07dfdfe959b7c425765623",
+      "size": 300,
+      "kinds": [
+        "executable/java"
+      ],
+      "source": "made by tools/samples/make-executables: ace3's class cut to 300 bytes",
+      "in_git": true,
+      "alert_path": "truncated.class",
+      "meta_tags": [
+        "type=email.attachment"
+      ],
+      "note": "CFR can't load it"
+    },
+    {
+      "path": "ace4/executables/universal.macho",
+      "sha256": "7f2be07dbebf6aff1f30808d51baec7bec07e947d0269ddaa2d93bb7d6258b34",
+      "size": 4096,
+      "kinds": [
+        "executable/java"
+      ],
+      "source": "made by tools/samples/make-executables: a Mach-O universal header",
+      "in_git": true,
+      "alert_path": "universal.macho",
+      "meta_tags": [
+        "type=email.attachment"
+      ],
+      "note": "Java's magic, and not a class"
     },
     {
       "path": "ace4/html/html2text_long.txt",
@@ -5802,6 +5971,53 @@
       "in_git": false,
       "alert_path": "email.rfc822",
       "meta_tags": []
+    },
+    {
+      "path": "local/executables/6346eea9dff4eac53113fc2ba3b8a497.exe",
+      "sha256": "a4bf63595857a90917809a72bd400cdfd6b3a1546659f6d3da26eecc05198d9c",
+      "size": 222208,
+      "kinds": [
+        "executable/pe",
+        "executable/dotnet"
+      ],
+      "source": "ace3 f72f8946: tests/saq/modules/test_file_analysis/6346eea9dff4eac53113fc2ba3b8a497.hex, decoded",
+      "in_git": false,
+      "alert_path": "6346eea9dff4eac53113fc2ba3b8a497.exe",
+      "meta_tags": [
+        "type=email.attachment"
+      ],
+      "note": "Obfuscar-protected .NET assembly"
+    },
+    {
+      "path": "local/executables/dotnet_truncated.exe",
+      "sha256": "d44f3bcdc7e3e317758486a55155b3ad4c70c322ea978742af65e682919bacc4",
+      "size": 4096,
+      "kinds": [
+        "executable/pe",
+        "executable/dotnet"
+      ],
+      "source": "made by tools/samples/make-executables: the .NET sample's first 4,096 bytes",
+      "in_git": false,
+      "alert_path": "dotnet_truncated.exe",
+      "meta_tags": [
+        "type=email.attachment"
+      ],
+      "note": "neither de4dot nor ilspycmd loads it"
+    },
+    {
+      "path": "local/executables/hello_world.exe",
+      "sha256": "4109a09e2a9a8504f222e02e9103a4edd7eddfb7824e92df88a4656af9a91937",
+      "size": 287407,
+      "kinds": [
+        "executable/pe"
+      ],
+      "source": "ace3 f72f8946: tests/saq/modules/test_file_analysis/hello_world.exe.hex, decoded",
+      "in_git": false,
+      "alert_path": "hello_world.exe",
+      "meta_tags": [
+        "type=email.attachment"
+      ],
+      "note": "a PE file that isn't .NET"
     },
     {
       "path": "local/office/invoice.xlsm",

@@ -99,3 +99,11 @@ It holds only what that build compiles: the 22 `.c` files of the library's core,
 Its licence is MIT, `libxml2/Copyright`.
 
 To update: take the libxml2 release the new lxml bundles, check its SHA-256 against GNOME's, run its `configure` in the dev container with the options above, copy over the same files and the two generated ones, and run `cargo test -p ace-lxml -p ace-urlfinder`, whose cases came from ace3's lxml.
+
+## unautoit
+
+`unautoit/` is ace3's `third_party/unautoit` at ace3 `f72f8946`, byte for byte as git stores it: UnAutoIt v1.1.1 (digitalsleuth/UnAutoIt at `6c55d05`) with libautoit v1.2.8 vendored in `unautoit/third_party/libautoit`, both by x0r19x91, with the changes ace3 made in October 2026 (an output directory with mode 0755, a map for word lookups, string literals without Go's escapes). `unautoit/third_party/README.md` and ace3's `third_party/README.md` record where each came from and what changed. Both upstream repositories are gone, which is why ace3 keeps the source.
+
+It's GPL-3 (`unautoit/LICENSE`). Nothing in ace4 links it: `docker/ace4/Dockerfile`'s and `docker/dev/Dockerfile`'s `unautoit` stage builds it as ace3's Dockerfile does, libautoit's tests and then a static binary with Go 1.27.3, ace3's, `CGO_ENABLED=0` and `-trimpath`, and copies the licences of it, of Go and of each Go module it compiles in beside the binary in `/usr/local/share/doc/unautoit`. The autoit module runs it as a program of its own in the sandbox runner. The binary is ace3's: on arm64 its sha256 is `571da970839793b7fdddb2d7ab22ddb8457f2745a5b8ff273a22af4492650c77`, as in ace3's image. `go build` fetches the Go modules `go.sum` pins.
+
+To update: copy ace3's `third_party/unautoit` over `unautoit/` again (from git, `git show`, so line endings are as stored), change the commit above, and rebuild both images; `crates/ace-pool/tests/containment.rs`'s `unautoit_lists_and_extracts_under_the_runner` and `crates/ace-mod-sandbox/tests/reference.rs` check it still runs as ace3's.

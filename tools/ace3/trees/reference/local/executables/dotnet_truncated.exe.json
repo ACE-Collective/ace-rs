@@ -1,0 +1,195 @@
+{
+  "form": 1,
+  "observables": {
+    "file:b061144df5366c6c9db2eae934bb87f70875df47d03b805d88b2c2bd3ae75cae": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "dotnet_truncated.exe.extracted/.text": {}
+      },
+      "relationships": {
+        "extracted_from file:d44f3bcdc7e3e317758486a55155b3ad4c70c322ea978742af65e682919bacc4": true
+      },
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "f52b1deae1a5f02b749f8622b804e366",
+            "sha1": "2231504946b8799fcffa5836a2ace0ce8b37fe6b",
+            "sha256": "b061144df5366c6c9db2eae934bb87f70875df47d03b805d88b2c2bd3ae75cae"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:d44f3bcdc7e3e317758486a55155b3ad4c70c322ea978742af65e682919bacc4": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "dotnet_truncated.exe": {
+          "type=email.attachment": true,
+          "type=executable": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "archive": {
+          "details": {
+            "extracted_files": [
+              ".reloc",
+              ".rsrc",
+              ".text"
+            ],
+            "extraction_error": null,
+            "file_count": 3
+          },
+          "summary": "Archive Analysis: extracted 3 of 3 files: (.reloc, .rsrc, .text)",
+          "tags": {}
+        },
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "2acd515e606923f894f80942550f418f",
+            "sha1": "ec5db30a9718dad981de1e345f305e0a3fa53edf",
+            "sha256": "d44f3bcdc7e3e317758486a55155b3ad4c70c322ea978742af65e682919bacc4"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": true,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/vnd.microsoft.portable-executable",
+            "type": "PE32 executable for MS Windows 4.00 (GUI), Intel i386 Mono/.Net assembly, 3 sections"
+          },
+          "summary": "File Type Analysis: PE32 executable for MS Windows 4.00 (GUI), Intel i386 Mono/.Net assembly, 3 sections (application/vnd.microsoft.portable-executable) (portable executable)",
+          "tags": {}
+        },
+        "ilspy": {
+          "details": {
+            "exit_code": 70,
+            "stderr": "System.BadImageFormatException: Invalid metadata section span.\n   at System.Reflection.PortableExecutable.PEHeaders.CalculateMetadataLocation(Int64 peImageSize, Int32& start, Int32& size)\n   at System.Reflection.PortableExecutable.PEHeaders..ctor(Stream peStream, Int32 size, Boolean isLoadedImage)\n   at System.Reflection.PortableExecutable.PEReader.InitializePEHeaders()\n   at System.Reflection.PortableExecutable.PEReader.get_HasMetadata()\n   at ICSharpCode.Decompiler.Metadata.MetadataFile..ctor(MetadataFileKind kind, String fileName, PEReader reader, MetadataReaderOptions metadataOptions, MetadataStringDecoder utf8Decoder) in /_/ICSharpCode.Decompiler/Metadata/MetadataFile.cs:line 269\n   at ICSharpCode.Decompiler.Metadata.PEFile..ctor(String fileName, PEReader reader, MetadataReaderOptions metadataOptions, MetadataStringDecoder utf8Decoder) in /_/ICSharpCode.Decompiler/Metadata/PEFile.cs:line 49\n   at ICSharpCode.Decompiler.Metadata.PEFile..ctor(String fileName, PEStreamOptions streamOptions, MetadataReaderOptions metadataOptions, MetadataStringDecoder utf8Decoder) in /_/ICSharpCode.Decompiler/Metadata/PEFile.cs:line 39\n   at ICSharpCode.ILSpyCmd.ILSpyCmdProgram.ShowIL(String assemblyFileName, TextWriter output) in D:\\a\\ILSpy\\ILSpy\\ICSharpCode.ILSpyCmd\\IlspyCmdProgram.cs:line 620\n   at ICSharpCode.ILSpyCmd.ILSpyCmdProgram.<OnExecuteAsync>g__PerformPerFileAction|111_0(String fileName, <>c__DisplayClass111_0&, <>c__DisplayClass111_1&) in D:\\a\\ILSpy\\ILSpy\\ICSharpCode.ILSpyCmd\\IlspyCmdProgram.cs:line 348\n   at ICSharpCode.ILSpyCmd.ILSpyCmdProgram.OnExecuteAsync(CommandLineApplication app) in D:\\a\\ILSpy\\ILSpy\\ICSharpCode.ILSpyCmd\\IlspyCmdProgram.cs:line 299\n"
+          },
+          "summary": "Ilspy Analysis: exit code 70: stderr: System.BadImageFormatException: Invalid metadata section span.\n   at System.Reflection.PortableExecutable.PEHeaders.CalculateMetadataLocation(Int64 peImageSize, Int32& start, Int32& size)\n   at System.Reflection.PortableExecutable.PEHeaders..ctor(Stream peStream, Int32 size, Boolean isLoadedImage)\n   at System.Reflection.PortableExecutable.PEReader.InitializePEHeaders()\n   at System.Reflection.PortableExecutable.PEReader.get_HasMetadata()\n   at ICSharpCode.Decompiler.Metadata.MetadataFile..ctor(MetadataFileKind kind, String fileName, PEReader reader, MetadataReaderOptions metadataOptions, MetadataStringDecoder utf8Decoder) in /_/ICSharpCode.Decompiler/Metadata/MetadataFile.cs:line 269\n   at ICSharpCode.Decompiler.Metadata.PEFile..ctor(String fileName, PEReader reader, MetadataReaderOptions metadataOptions, MetadataStringDecoder utf8Decoder) in /_/ICSharpCode.Decompiler/Metadata/PEFile.cs:line 49\n   at ICSharpCode.Decompiler.Metadata.PEFile..ctor(String fileName, PEStreamOptions streamOptions, MetadataReaderOptions metadataOptions, MetadataStringDecoder utf8Decoder) in /_/ICSharpCode.Decompiler/Metadata/PEFile.cs:line 39\n   at ICSharpCode.ILSpyCmd.ILSpyCmdProgram.ShowIL(String assemblyFileName, TextWriter output) in D:\\a\\ILSpy\\ILSpy\\ICSharpCode.ILSpyCmd\\IlspyCmdProgram.cs:line 620\n   at ICSharpCode.ILSpyCmd.ILSpyCmdProgram.<OnExecuteAsync>g__PerformPerFileAction|111_0(String fileName, <>c__DisplayClass111_0&, <>c__DisplayClass111_1&) in D:\\a\\ILSpy\\ILSpy\\ICSharpCode.ILSpyCmd\\IlspyCmdProgram.cs:line 348\n   at ICSharpCode.ILSpyCmd.ILSpyCmdProgram.OnExecuteAsync(CommandLineApplication app) in D:\\a\\ILSpy\\ILSpy\\ICSharpCode.ILSpyCmd\\IlspyCmdProgram.cs:line 299\n",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "executable": true
+      }
+    },
+    "file:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true,
+        "ilspy": true
+      },
+      "paths": {
+        "dotnet_truncated.exe.extracted/.reloc": {},
+        "dotnet_truncated.exe.extracted/.rsrc": {},
+        "dotnet_truncated.exe_ilspy.il": {
+          "type=script.dotnet.decompiled": true
+        }
+      },
+      "redirection": "file:d44f3bcdc7e3e317758486a55155b3ad4c70c322ea978742af65e682919bacc4",
+      "relationships": {
+        "extracted_from file:d44f3bcdc7e3e317758486a55155b3ad4c70c322ea978742af65e682919bacc4": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "inode/x-empty",
+            "type": "empty"
+          },
+          "summary": "File Type Analysis: empty (inode/x-empty)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "md5:2acd515e606923f894f80942550f418f": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:d44f3bcdc7e3e317758486a55155b3ad4c70c322ea978742af65e682919bacc4": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:f52b1deae1a5f02b749f8622b804e366": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:b061144df5366c6c9db2eae934bb87f70875df47d03b805d88b2c2bd3ae75cae": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:b061144df5366c6c9db2eae934bb87f70875df47d03b805d88b2c2bd3ae75cae": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:b061144df5366c6c9db2eae934bb87f70875df47d03b805d88b2c2bd3ae75cae": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:d44f3bcdc7e3e317758486a55155b3ad4c70c322ea978742af65e682919bacc4": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:d44f3bcdc7e3e317758486a55155b3ad4c70c322ea978742af65e682919bacc4": true
+      },
+      "results": {},
+      "tags": {}
+    }
+  }
+}

@@ -238,6 +238,26 @@ pub fn modules(settings: &Value) -> Result<Modules, SetupError> {
         .with_parser(Entry::<ace_mod_sandbox::ExifAnalyzer>::parser(
             block("exif"),
             &secrets,
+        )?)
+        .with_parser(Entry::<ace_mod_sandbox::JavaClassDecompiler>::parser(
+            block("java_class_decompiler"),
+            &secrets,
+        )?)
+        .with_parser(Entry::<ace_mod_sandbox::UpxAnalyzer>::parser(
+            block("upx"),
+            &secrets,
+        )?)
+        .with_parser(Entry::<ace_mod_sandbox::AutoItAnalyzer>::parser(
+            block("autoit"),
+            &secrets,
+        )?)
+        .with_parser(Entry::<ace_mod_sandbox::De4dotAnalyzer>::parser(
+            block("de4dot"),
+            &secrets,
+        )?)
+        .with_parser(Entry::<ace_mod_sandbox::IlspyAnalyzer>::parser(
+            block("ilspy"),
+            &secrets,
         )?))
 }
 
@@ -247,6 +267,7 @@ pub fn test_tool(name: String, program: String) -> ace_sdk::tools::ToolSpec {
         name: Box::leak(name.into_boxed_str()),
         program: Box::leak(program.into_boxed_str()),
         interpreter: None,
+        args: &[],
         reads: &[],
         env: &[],
         request_env: &[],

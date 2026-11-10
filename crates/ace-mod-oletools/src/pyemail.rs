@@ -1377,7 +1377,7 @@ fn decode_codec(name: &str, raw: &[u8]) -> PyResult<Option<Vec<u32>>> {
         Codec::Utf16(order) => decode_utf16(raw, order),
         Codec::Utf32(order) => decode_utf32(raw, order),
         Codec::RawUnicodeEscape => decode_raw_unicode_escape(raw),
-        Codec::UnicodeEscape => decode_unicode_escape(raw),
+        Codec::UnicodeEscape => ace_pycompat::escape::decode_unicode_escape(raw),
         Codec::Idna => {
             return Err(PyErr::new(
                 "UnicodeError",
@@ -1549,17 +1549,6 @@ fn decode_utf7(raw: &[u8]) -> Vec<u32> {
     out
 }
 
-/// The hex digits of an escape: the value, and None with the place the error ends when it's short.
-fn hex_escape(raw: &[u8], at: &mut usize, count: usize) -> Option<u32> {
-    let mut code = 0u32;
-    for _ in 0..count {
-        let digit = raw.get(*at).and_then(|&b| char::from(b).to_digit(16))?;
-        code = (code << 4) + digit;
-        *at += 1;
-    }
-    (code <= 0x10ffff).then_some(code)
-}
-
 fn decode_raw_unicode_escape(raw: &[u8]) -> Vec<u32> {
     let mut out = Vec::with_capacity(raw.len());
     let mut at = 0;
@@ -1581,70 +1570,7 @@ fn decode_raw_unicode_escape(raw: &[u8]) -> Vec<u32> {
                 continue;
             }
         };
-        out.push(hex_escape(raw, &mut at, count).unwrap_or(0xfffd));
-    }
-    out
-}
-
-/// `_PyUnicode_DecodeUnicodeEscapeInternal` with 'replace'. There is no name database here, so every
-/// `\N{...}` is an unknown name.
-fn decode_unicode_escape(raw: &[u8]) -> Vec<u32> {
-    let mut out = Vec::with_capacity(raw.len());
-    let mut at = 0;
-    while at < raw.len() {
-        let byte = raw[at];
-        at += 1;
-        if byte != b'\\' {
-            out.push(u32::from(byte));
-            continue;
-        }
-        let Some(&next) = raw.get(at) else {
-            out.push(0xfffd);
-            break;
-        };
-        at += 1;
-        match next {
-            b'\n' => {}
-            b'\\' | b'\'' | b'"' => out.push(u32::from(next)),
-            b'b' => out.push(8),
-            b'f' => out.push(12),
-            b't' => out.push(9),
-            b'n' => out.push(10),
-            b'r' => out.push(13),
-            b'v' => out.push(11),
-            b'a' => out.push(7),
-            b'0'..=b'7' => {
-                let mut code = u32::from(next - b'0');
-                for _ in 0..2 {
-                    match raw.get(at) {
-                        Some(&digit @ b'0'..=b'7') => {
-                            code = (code << 3) + u32::from(digit - b'0');
-                            at += 1;
-                        }
-                        _ => break,
-                    }
-                }
-                out.push(code);
-            }
-            b'x' => out.push(hex_escape(raw, &mut at, 2).unwrap_or(0xfffd)),
-            b'u' => out.push(hex_escape(raw, &mut at, 4).unwrap_or(0xfffd)),
-            b'U' => out.push(hex_escape(raw, &mut at, 8).unwrap_or(0xfffd)),
-            b'N' => {
-                if raw.get(at) == Some(&b'{') {
-                    at += 1;
-                    match memchr(b'}', &raw[at..]) {
-                        None => at = raw.len(),
-                        Some(0) => {}
-                        Some(length) => at += length + 1,
-                    }
-                }
-                out.push(0xfffd);
-            }
-            _ => {
-                out.push(u32::from(b'\\'));
-                out.push(u32::from(next));
-            }
-        }
+        out.push(ace_pycompat::escape::hex_escape(raw, &mut at, count).unwrap_or(0xfffd));
     }
     out
 }

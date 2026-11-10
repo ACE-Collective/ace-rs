@@ -1,0 +1,458 @@
+{
+  "form": 1,
+  "observables": {
+    "file:3c58eab280eb7e9a43fde45edac09207096ccf4eebedad9ea3f42f0cea3e9cb8": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "hello_world.exe.extracted/_92": {}
+      },
+      "relationships": {
+        "extracted_from file:4109a09e2a9a8504f222e02e9103a4edd7eddfb7824e92df88a4656af9a91937": true
+      },
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "2f5e9808f19c2b46fff691015d7c163f",
+            "sha1": "e6902d9e1408dc00304b8f848df33da5e8ccad2d",
+            "sha256": "3c58eab280eb7e9a43fde45edac09207096ccf4eebedad9ea3f42f0cea3e9cb8"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "GLS_BINARY_LSB_FIRST"
+          },
+          "summary": "File Type Analysis: GLS_BINARY_LSB_FIRST (application/octet-stream)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:4109a09e2a9a8504f222e02e9103a4edd7eddfb7824e92df88a4656af9a91937": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "hello_world.exe": {
+          "type=email.attachment": true,
+          "type=executable": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "archive": {
+          "details": {
+            "extracted_files": [
+              "COFF_SYMBOLS",
+              "_92",
+              "_81",
+              "_70",
+              "_57",
+              "_45"
+            ],
+            "extraction_error": null,
+            "file_count": 16
+          },
+          "summary": "Archive Analysis: extracted 6 of 16 files: (COFF_SYMBOLS, _92, _81, _70, _57, _45)",
+          "tags": {}
+        },
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "68c7294a98397f7a48e24a0e83b8a9f0",
+            "sha1": "1c2b80c2e07571e8b09708da788ba54419ba158d",
+            "sha256": "4109a09e2a9a8504f222e02e9103a4edd7eddfb7824e92df88a4656af9a91937"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": true,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/vnd.microsoft.portable-executable",
+            "type": "PE32 executable for MS Windows 4.00 (console), Intel i386, 15 sections"
+          },
+          "summary": "File Type Analysis: PE32 executable for MS Windows 4.00 (console), Intel i386, 15 sections (application/vnd.microsoft.portable-executable) (portable executable)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "executable": true
+      }
+    },
+    "file:419bf38fd41f9ad6a3a4aa684f86fe29fb9fcd12389b2689eebec4eb5dad3040": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "hello_world.exe.extracted/COFF_SYMBOLS": {}
+      },
+      "relationships": {
+        "extracted_from file:4109a09e2a9a8504f222e02e9103a4edd7eddfb7824e92df88a4656af9a91937": true
+      },
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "39c8334583d539feef5cb4c2b77e8a3e",
+            "sha1": "13655961b0e91b0acb2437064ef7e18acb1e3779",
+            "sha256": "419bf38fd41f9ad6a3a4aa684f86fe29fb9fcd12389b2689eebec4eb5dad3040"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:4e476e25fbab54a378ef61f4d299b19ae132735a3a51dc08b92f50d0231f51cb": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "hello_world.exe.extracted/_45": {}
+      },
+      "relationships": {
+        "extracted_from file:4109a09e2a9a8504f222e02e9103a4edd7eddfb7824e92df88a4656af9a91937": true
+      },
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "b7359ce6f315ba5961751516793a93b0",
+            "sha1": "490a6dd4cf4d63c07ab010c8567e12ca13ef35b2",
+            "sha256": "4e476e25fbab54a378ef61f4d299b19ae132735a3a51dc08b92f50d0231f51cb"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:6377147024bd3ce2e82db8f5034b6fcacb5e86bc3dcefee8e2985150a73a1ef1": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "hello_world.exe.extracted/_81": {}
+      },
+      "relationships": {
+        "extracted_from file:4109a09e2a9a8504f222e02e9103a4edd7eddfb7824e92df88a4656af9a91937": true
+      },
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "4d4219cc25298f45aaad7b618e4bd9a0",
+            "sha1": "815982566c2c14966485abf194389cb22bae0349",
+            "sha256": "6377147024bd3ce2e82db8f5034b6fcacb5e86bc3dcefee8e2985150a73a1ef1"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:6925a9bdbd038a58ef142417b5102536037cf5a0acfa47e9fd7bc71d1214333d": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "hello_world.exe.extracted/_57": {}
+      },
+      "relationships": {
+        "extracted_from file:4109a09e2a9a8504f222e02e9103a4edd7eddfb7824e92df88a4656af9a91937": true
+      },
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "a0e55b844b8eb32b9c6cda3dd575c09d",
+            "sha1": "be5e1709f2f31f1fdf0bb6961a78fcb56f33b939",
+            "sha256": "6925a9bdbd038a58ef142417b5102536037cf5a0acfa47e9fd7bc71d1214333d"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:bb456636faad2a802da0e0154edd78de1a4d0a4eac278291e77e8ed3652c18df": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "hello_world.exe.extracted/_70": {}
+      },
+      "relationships": {
+        "extracted_from file:4109a09e2a9a8504f222e02e9103a4edd7eddfb7824e92df88a4656af9a91937": true
+      },
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "8f6f4506ede19ebbd123f4e0bf2b8c10",
+            "sha1": "e0d2add3f9e57df3222ca7659b8d849283a58305",
+            "sha256": "bb456636faad2a802da0e0154edd78de1a4d0a4eac278291e77e8ed3652c18df"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "md5:2f5e9808f19c2b46fff691015d7c163f": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:3c58eab280eb7e9a43fde45edac09207096ccf4eebedad9ea3f42f0cea3e9cb8": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:39c8334583d539feef5cb4c2b77e8a3e": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:419bf38fd41f9ad6a3a4aa684f86fe29fb9fcd12389b2689eebec4eb5dad3040": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:4d4219cc25298f45aaad7b618e4bd9a0": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:6377147024bd3ce2e82db8f5034b6fcacb5e86bc3dcefee8e2985150a73a1ef1": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:68c7294a98397f7a48e24a0e83b8a9f0": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:4109a09e2a9a8504f222e02e9103a4edd7eddfb7824e92df88a4656af9a91937": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:8f6f4506ede19ebbd123f4e0bf2b8c10": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:bb456636faad2a802da0e0154edd78de1a4d0a4eac278291e77e8ed3652c18df": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:a0e55b844b8eb32b9c6cda3dd575c09d": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:6925a9bdbd038a58ef142417b5102536037cf5a0acfa47e9fd7bc71d1214333d": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:b7359ce6f315ba5961751516793a93b0": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:4e476e25fbab54a378ef61f4d299b19ae132735a3a51dc08b92f50d0231f51cb": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:3c58eab280eb7e9a43fde45edac09207096ccf4eebedad9ea3f42f0cea3e9cb8": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:3c58eab280eb7e9a43fde45edac09207096ccf4eebedad9ea3f42f0cea3e9cb8": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:4109a09e2a9a8504f222e02e9103a4edd7eddfb7824e92df88a4656af9a91937": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:4109a09e2a9a8504f222e02e9103a4edd7eddfb7824e92df88a4656af9a91937": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:419bf38fd41f9ad6a3a4aa684f86fe29fb9fcd12389b2689eebec4eb5dad3040": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:419bf38fd41f9ad6a3a4aa684f86fe29fb9fcd12389b2689eebec4eb5dad3040": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:4e476e25fbab54a378ef61f4d299b19ae132735a3a51dc08b92f50d0231f51cb": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:4e476e25fbab54a378ef61f4d299b19ae132735a3a51dc08b92f50d0231f51cb": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:6377147024bd3ce2e82db8f5034b6fcacb5e86bc3dcefee8e2985150a73a1ef1": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:6377147024bd3ce2e82db8f5034b6fcacb5e86bc3dcefee8e2985150a73a1ef1": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:6925a9bdbd038a58ef142417b5102536037cf5a0acfa47e9fd7bc71d1214333d": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:6925a9bdbd038a58ef142417b5102536037cf5a0acfa47e9fd7bc71d1214333d": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:bb456636faad2a802da0e0154edd78de1a4d0a4eac278291e77e8ed3652c18df": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:bb456636faad2a802da0e0154edd78de1a4d0a4eac278291e77e8ed3652c18df": true
+      },
+      "results": {},
+      "tags": {}
+    }
+  }
+}

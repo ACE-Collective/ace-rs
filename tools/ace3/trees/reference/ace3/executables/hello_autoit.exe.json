@@ -1,0 +1,540 @@
+{
+  "form": 1,
+  "observables": {
+    "file:5c1b312348395646c61ea36c2a5f7effd63859b0f3acb0ad93ffa5daa05c43b4": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "hello_autoit.exe.extracted/.rdata": {}
+      },
+      "relationships": {
+        "extracted_from file:a8538ebcd97559030f7d001ca13e6bbcb73f0d77e992f0d6a12a3448c312c995": true
+      },
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "a33900dfdbd697024c68da52b5e66d78",
+            "sha1": "8ea8336133d68f49201154976664fd0f9b23213a",
+            "sha256": "5c1b312348395646c61ea36c2a5f7effd63859b0f3acb0ad93ffa5daa05c43b4"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:905f5100fff55d7bc415d0c25c20c531b9ac9ff81d42768131fa05bdc9c43d9b": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "hello_autoit.exe.extracted/.data": {}
+      },
+      "relationships": {
+        "extracted_from file:a8538ebcd97559030f7d001ca13e6bbcb73f0d77e992f0d6a12a3448c312c995": true
+      },
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "aae9601d920f07080bdfadf43dfeff12",
+            "sha1": "3f68d00ffdc01d075cc78b7b0456ef541378b876",
+            "sha256": "905f5100fff55d7bc415d0c25c20c531b9ac9ff81d42768131fa05bdc9c43d9b"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:96c01d318145b7e2852c54c2f3519e097051a0e70f53a0606afa3c137996c2f2": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "hello_autoit.exe.extracted/.rsrc_1": {}
+      },
+      "relationships": {
+        "extracted_from file:a8538ebcd97559030f7d001ca13e6bbcb73f0d77e992f0d6a12a3448c312c995": true
+      },
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "8386015484d00e0fd3397dc0c40df760",
+            "sha1": "9e675bae7f09a018507094828fb50ca83229df5e",
+            "sha256": "96c01d318145b7e2852c54c2f3519e097051a0e70f53a0606afa3c137996c2f2"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text, with no line terminators"
+          },
+          "summary": "File Type Analysis: ASCII text, with no line terminators (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:a8538ebcd97559030f7d001ca13e6bbcb73f0d77e992f0d6a12a3448c312c995": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "hello_autoit.exe": {
+          "type=email.attachment": true,
+          "type=executable": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "archive": {
+          "details": {
+            "extracted_files": [
+              ".rsrc_1",
+              ".reloc",
+              ".data",
+              ".rdata",
+              ".text",
+              ".rsrc/0/RCDATA/SCRIPT"
+            ],
+            "extraction_error": null,
+            "file_count": 25
+          },
+          "summary": "Archive Analysis: extracted 6 of 25 files: (.rsrc_1, .reloc, .data, .rdata, .text, .rsrc/0/RCDATA/SCRIPT)",
+          "tags": {}
+        },
+        "autoit": {
+          "details": {
+            "error": null,
+            "output_dir": "<root>/files/hello_autoit.exe.autoit",
+            "scripts": [
+              "script_1.au3"
+            ],
+            "stderr": "",
+            "stdout": "+----+----------------------------+---------------------------------------+------+---------------+\n| ID |            NAME            |                 PATH                  | SIZE |     TYPE      |\n+----+----------------------------+---------------------------------------+------+---------------+\n|  0 | >>>AUTOIT NO CMDEXECUTE<<< | C:�sers\\Matthew\\AppData\\Local\\AutoIt | 0 B  | Empty File    |\n|    |                            | v3\\Aut2Exe\u0007ut6D74.tmp                |      |               |\n|  1 | >>>AUTOIT SCRIPT<<<        | C:�sers\\Matthew\\AppData\\Local\\AutoIt | 77 B | AutoIt Script |\n|    |                            | v3\\Aut2Exe\u0007ut6D73.tmp.tok            |      |               |\n+----+----------------------------+---------------------------------------+------+---------------+\n"
+          },
+          "summary": "AutoIt Analysis: decompiled script_1.au3",
+          "tags": {}
+        },
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "75f7bb11ce2916a8ed34bb39b8116eff",
+            "sha1": "4a040f20d1a4352faddf2fe5aa293a9d2c6885e8",
+            "sha256": "a8538ebcd97559030f7d001ca13e6bbcb73f0d77e992f0d6a12a3448c312c995"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": true,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/vnd.microsoft.portable-executable",
+            "type": "PE32 executable for MS Windows 5.01 (GUI), Intel i386, 5 sections"
+          },
+          "summary": "File Type Analysis: PE32 executable for MS Windows 5.01 (GUI), Intel i386, 5 sections (application/vnd.microsoft.portable-executable) (portable executable)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "autoit": true,
+        "executable": true
+      }
+    },
+    "file:cb9a4f73974682fa56ed77f747c72f7bc5c6af89a76ec8f4b2efc7f832d60833": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "autoit": true
+      },
+      "paths": {
+        "hello_autoit.exe.autoit/script_1.au3": {
+          "type=script.autoit": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:a8538ebcd97559030f7d001ca13e6bbcb73f0d77e992f0d6a12a3448c312c995": true
+      },
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "43c99fb161c1dc8604f46c1c307404af",
+            "sha1": "bcd7cce19053b220c4b788605ec402ae6d56a5b5",
+            "sha256": "cb9a4f73974682fa56ed77f747c72f7bc5c6af89a76ec8f4b2efc7f832d60833"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "autoit": true
+      }
+    },
+    "file:d5514dff8a52908299cc0e391fe124dd20ffe3741c6dc0dcadafb5ff176f9969": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "hello_autoit.exe.extracted/.text": {}
+      },
+      "relationships": {
+        "extracted_from file:a8538ebcd97559030f7d001ca13e6bbcb73f0d77e992f0d6a12a3448c312c995": true
+      },
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "d623fbb3f171a670abde63a23413ceb3",
+            "sha1": "ca7b55659496ba54a0ff608e5015151973f3ad0d",
+            "sha256": "d5514dff8a52908299cc0e391fe124dd20ffe3741c6dc0dcadafb5ff176f9969"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:d6a7b9248bb939b6d1bd1ed7f2d20d5089192d4ed71796548bbae549e988e88f": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "hello_autoit.exe.extracted/.rsrc/0/RCDATA/SCRIPT": {}
+      },
+      "relationships": {
+        "extracted_from file:a8538ebcd97559030f7d001ca13e6bbcb73f0d77e992f0d6a12a3448c312c995": true
+      },
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "727d0416446f6ce28c1426082107dbdc",
+            "sha1": "c90e82bbb4710e8e3f5b603c5b29192e488b4a29",
+            "sha256": "d6a7b9248bb939b6d1bd1ed7f2d20d5089192d4ed71796548bbae549e988e88f"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:e16ac1f112c19aeee9d188610b0855a9c2d41d724dc552cd91db43c8b5ef327b": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "hello_autoit.exe.extracted/.reloc": {}
+      },
+      "relationships": {
+        "extracted_from file:a8538ebcd97559030f7d001ca13e6bbcb73f0d77e992f0d6a12a3448c312c995": true
+      },
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "c0b1b9b72b41c5fb6285987dec75e6e1",
+            "sha1": "4f0364f2a83ccae85172717cae8c6a2167958b03",
+            "sha256": "e16ac1f112c19aeee9d188610b0855a9c2d41d724dc552cd91db43c8b5ef327b"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "md5:43c99fb161c1dc8604f46c1c307404af": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:cb9a4f73974682fa56ed77f747c72f7bc5c6af89a76ec8f4b2efc7f832d60833": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:727d0416446f6ce28c1426082107dbdc": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:d6a7b9248bb939b6d1bd1ed7f2d20d5089192d4ed71796548bbae549e988e88f": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:75f7bb11ce2916a8ed34bb39b8116eff": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:a8538ebcd97559030f7d001ca13e6bbcb73f0d77e992f0d6a12a3448c312c995": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:8386015484d00e0fd3397dc0c40df760": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:96c01d318145b7e2852c54c2f3519e097051a0e70f53a0606afa3c137996c2f2": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:a33900dfdbd697024c68da52b5e66d78": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:5c1b312348395646c61ea36c2a5f7effd63859b0f3acb0ad93ffa5daa05c43b4": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:aae9601d920f07080bdfadf43dfeff12": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:905f5100fff55d7bc415d0c25c20c531b9ac9ff81d42768131fa05bdc9c43d9b": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:c0b1b9b72b41c5fb6285987dec75e6e1": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:e16ac1f112c19aeee9d188610b0855a9c2d41d724dc552cd91db43c8b5ef327b": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:d623fbb3f171a670abde63a23413ceb3": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:d5514dff8a52908299cc0e391fe124dd20ffe3741c6dc0dcadafb5ff176f9969": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:5c1b312348395646c61ea36c2a5f7effd63859b0f3acb0ad93ffa5daa05c43b4": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:5c1b312348395646c61ea36c2a5f7effd63859b0f3acb0ad93ffa5daa05c43b4": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:905f5100fff55d7bc415d0c25c20c531b9ac9ff81d42768131fa05bdc9c43d9b": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:905f5100fff55d7bc415d0c25c20c531b9ac9ff81d42768131fa05bdc9c43d9b": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:96c01d318145b7e2852c54c2f3519e097051a0e70f53a0606afa3c137996c2f2": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:96c01d318145b7e2852c54c2f3519e097051a0e70f53a0606afa3c137996c2f2": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:a8538ebcd97559030f7d001ca13e6bbcb73f0d77e992f0d6a12a3448c312c995": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:a8538ebcd97559030f7d001ca13e6bbcb73f0d77e992f0d6a12a3448c312c995": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:cb9a4f73974682fa56ed77f747c72f7bc5c6af89a76ec8f4b2efc7f832d60833": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:cb9a4f73974682fa56ed77f747c72f7bc5c6af89a76ec8f4b2efc7f832d60833": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:d5514dff8a52908299cc0e391fe124dd20ffe3741c6dc0dcadafb5ff176f9969": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:d5514dff8a52908299cc0e391fe124dd20ffe3741c6dc0dcadafb5ff176f9969": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:d6a7b9248bb939b6d1bd1ed7f2d20d5089192d4ed71796548bbae549e988e88f": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:d6a7b9248bb939b6d1bd1ed7f2d20d5089192d4ed71796548bbae549e988e88f": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:e16ac1f112c19aeee9d188610b0855a9c2d41d724dc552cd91db43c8b5ef327b": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:e16ac1f112c19aeee9d188610b0855a9c2d41d724dc552cd91db43c8b5ef327b": true
+      },
+      "results": {},
+      "tags": {}
+    }
+  }
+}

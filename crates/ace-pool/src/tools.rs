@@ -305,19 +305,29 @@ fn resolve(spec: &ToolSpec) -> Result<ResolvedTool, String> {
             reads.push(PathBuf::from(path));
         }
     }
-    // the libraries of the program, its interpreter, and the modules in its data it may load
+    // the libraries of the program and its interpreter, which must all be here, and those of the
+    // modules in its data it may load, such as the JVM's own libraries, which it loads by dlopen
+    // when it needs them, and which may need a library the image leaves out (libjsound's ALSA,
+    // libjvm.so, which the JVM has loaded before them): dlopen fails for such a module the same
+    // way in the runner as outside it, so the module is left out of what the runner resolves, not
+    // the tool. Neither makes anything readable that the spec doesn't name.
     let mut modules = Vec::new();
     for path in spec.reads {
         collect_shared_objects(Path::new(path), &mut modules);
     }
     let mut loaders = Vec::new();
-    let libraries = libraries(binaries.iter().chain(&modules), &mut loaders)?;
+    let mut found = libraries(binaries.iter(), &mut loaders, Needed::All)?;
+    for library in libraries(modules.iter(), &mut loaders, Needed::Found)? {
+        if !found.contains(&library) {
+            found.push(library);
+        }
+    }
     for loader in loaders {
         if !executes.contains(&loader) {
             executes.push(loader);
         }
     }
-    reads.extend(libraries);
+    reads.extend(found);
     Ok(ResolvedTool {
         spec: *spec,
         executes,
@@ -327,6 +337,10 @@ fn resolve(spec: &ToolSpec) -> Result<ResolvedTool, String> {
 
 /// The `.so` files beneath `path`, such as ImageMagick's coders, which a tool loads at run time.
 fn collect_shared_objects(path: &Path, into: &mut Vec<PathBuf>) {
+    // a process's own directory, such as .NET's /proc/self, holds no library
+    if path.starts_with("/proc") || path.starts_with("/sys") {
+        return;
+    }
     let Ok(meta) = fs::symlink_metadata(path) else {
         return;
     };
@@ -364,11 +378,21 @@ fn library_dirs() -> Vec<PathBuf> {
     .collect()
 }
 
+/// Whether every library a binary needs must be here.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Needed {
+    /// A missing one is an error: the program and its interpreter.
+    All,
+    /// A missing one is left out: the modules a program loads from its data.
+    Found,
+}
+
 /// Every library `binaries` need by `DT_NEEDED`, transitively, by its real path; and the dynamic
 /// loaders they name, into `loaders`.
 fn libraries<'a>(
     binaries: impl Iterator<Item = &'a PathBuf>,
     loaders: &mut Vec<PathBuf>,
+    needed: Needed,
 ) -> Result<Vec<PathBuf>, String> {
     let dirs = library_dirs();
     let mut found: Vec<PathBuf> = Vec::new();
@@ -394,11 +418,20 @@ fn libraries<'a>(
             .collect();
         search.extend(dirs.iter().cloned());
         for name in elf.needed {
-            let path = search
+            let Some(path) = search
                 .iter()
                 .map(|dir| dir.join(&name))
                 .find(|path| path.exists())
-                .ok_or_else(|| format!("{} needs {name}, which isn't here", binary.display()))?;
+            else {
+                if needed == Needed::Found {
+                    tracing::debug!(module = %binary.display(), %name, "a tool's module needs a library that isn't here");
+                    continue;
+                }
+                return Err(format!(
+                    "{} needs {name}, which isn't here",
+                    binary.display()
+                ));
+            };
             let path = fs::canonicalize(&path).map_err(|e| format!("{}: {e}", path.display()))?;
             if !found.contains(&path) {
                 found.push(path.clone());
@@ -718,6 +751,7 @@ impl ToolHost {
         let cpus = std::thread::available_parallelism().map_or(1, |n| n.get() as u64);
         let env = environment(&tool.spec, run, &workdir).map_err(|e| e.to_string())?;
         let mut argv = vec![tool.spec.program.to_owned()];
+        argv.extend(tool.spec.args.iter().map(|a| (*a).to_owned()));
         argv.extend(run.args.iter().cloned());
         let exec = ToolExec {
             program: PathBuf::from(tool.spec.program),
@@ -1284,7 +1318,7 @@ mod tests {
     fn a_binarys_libraries_are_its_needed_ones_transitively() {
         let mut loaders = Vec::new();
         let ls = fs::canonicalize("/bin/ls").unwrap();
-        let found = libraries(std::iter::once(&ls), &mut loaders).unwrap();
+        let found = libraries(std::iter::once(&ls), &mut loaders, Needed::All).unwrap();
         let names: Vec<String> = found
             .iter()
             .map(|p| p.file_name().unwrap().to_string_lossy().into_owned())
@@ -1295,6 +1329,34 @@ mod tests {
             loaders[0].to_string_lossy().contains("ld-linux"),
             "{loaders:?}"
         );
+    }
+
+    /// A library the JVM loads by dlopen may need one the image leaves out, such as libjsound's
+    /// ALSA, or one no search finds, such as libjava's libjvm.so, which the JVM has loaded before
+    /// it: as a module of a tool's data it's left out of what the runner resolves, and the module's
+    /// other libraries are there; as a program's own need it's an error.
+    #[test]
+    fn a_data_modules_missing_library_is_left_out_and_a_programs_is_an_error() {
+        let cfr = ace_sdk::tools::find(ace_sdk::tools::SANDBOX_TOOLS, "cfr").unwrap();
+        let resolved = resolve(cfr).unwrap();
+        let names: Vec<String> = resolved
+            .reads
+            .iter()
+            .map(|p| p.file_name().unwrap().to_string_lossy().into_owned())
+            .collect();
+        assert!(names.iter().any(|n| n == "libjava.so"), "{names:?}");
+        assert!(
+            !names.iter().any(|n| n.starts_with("libasound")),
+            "{names:?}"
+        );
+        let jsound = fs::canonicalize(Path::new(cfr.reads[0]).join("lib/libjsound.so")).unwrap();
+        let mut loaders = Vec::new();
+        let missing = libraries(std::iter::once(&jsound), &mut loaders, Needed::All).unwrap_err();
+        assert!(
+            missing.contains("libjsound.so needs") && missing.ends_with("which isn't here"),
+            "{missing}"
+        );
+        assert!(libraries(std::iter::once(&jsound), &mut loaders, Needed::Found).is_ok());
     }
 
     #[test]

@@ -1,0 +1,85 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "AutoItAnalysis",
+      "details": {
+        "error": null,
+        "output_dir": "<root>/files/hello_autoit.exe.autoit",
+        "scripts": [
+          "script_1.au3"
+        ],
+        "stderr": "",
+        "stdout": "+----+----------------------------+---------------------------------------+------+---------------+\n| ID |            NAME            |                 PATH                  | SIZE |     TYPE      |\n+----+----------------------------+---------------------------------------+------+---------------+\n|  0 | >>>AUTOIT NO CMDEXECUTE<<< | C:�sers\\Matthew\\AppData\\Local\\AutoIt | 0 B  | Empty File    |\n|    |                            | v3\\Aut2Exe\u0007ut6D74.tmp                |      |               |\n|  1 | >>>AUTOIT SCRIPT<<<        | C:�sers\\Matthew\\AppData\\Local\\AutoIt | 77 B | AutoIt Script |\n|    |                            | v3\\Aut2Exe\u0007ut6D73.tmp.tok            |      |               |\n+----+----------------------------+---------------------------------------+------+---------------+\n"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.autoit:AutoItAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=script.autoit"
+          ],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.autoit:<class 'saq.modules.file_analysis.autoit.AutoItAnalyzer'>"
+          ],
+          "file_path": "hello_autoit.exe.autoit/script_1.au3",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "a8538ebcd97559030f7d001ca13e6bbcb73f0d77e992f0d6a12a3448c312c995"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 38,
+          "tags": [
+            "autoit"
+          ],
+          "type": "file",
+          "value": "cb9a4f73974682fa56ed77f747c72f7bc5c6af89a76ec8f4b2efc7f832d60833",
+          "yara_meta": [
+            "type=script.autoit"
+          ]
+        }
+      ],
+      "summary": "AutoIt Analysis: decompiled script_1.au3",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace3/executables/hello_autoit.exe",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "hello_autoit.exe",
+      "size": 865792,
+      "type": "file",
+      "value": "a8538ebcd97559030f7d001ca13e6bbcb73f0d77e992f0d6a12a3448c312c995"
+    }
+  },
+  "module": "autoit",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "hello_autoit.exe",
+    "relationships": [],
+    "size": 865792,
+    "tags": [
+      "autoit"
+    ],
+    "type": "file",
+    "value": "a8538ebcd97559030f7d001ca13e6bbcb73f0d77e992f0d6a12a3448c312c995",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

@@ -1,0 +1,274 @@
+#!/usr/bin/env python3
+"""Writes the samples of PLAN.md 7.5 batch 11's unpackers and decompilers (java_class_decompiler, upx,
+autoit, de4dot, ilspy) and adds them to samples/manifest.json, replacing any it added before.
+
+- samples/ace3/executables/: ace3's test fixtures as they are, a Java class, a UPX-packed cmd.exe, a
+  compiled AutoIt script and an .au3 one, copied from ace3's checkout (read only).
+- samples/local/executables/: ace3's two hex-encoded fixtures decoded, its Obfuscar-protected .NET
+  sample and a plain hello_world.exe, and the .NET sample cut to 4,096 bytes, which still looks like
+  an assembly to `file` but which neither de4dot nor ilspycmd can load, as ace3's tests cut it. ace3
+  keeps the .NET sample hex-encoded, so its decoded bytes stay out of git, as samples/local/ does;
+  the hex is in tools/ace3/dumps/fixtures/executables.
+- samples/ace4/executables/: files made here for the branches ace3's fixtures don't reach: a .NET
+  assembly with no obfuscator (de4dot detects an "Unknown Obfuscator" and cleans it anyway), built
+  from the C# below with the .NET SDK of docker/ace4/Dockerfile's dotnet-tools stage, which is
+  deterministic; one written by System.Reflection.Emit, whose references carry their public keys
+  rather than tokens, so de4dot hashes them, which loads OpenSSL; a cut class file and a Mach-O universal binary, which share Java's magic; a PE file
+  holding AutoIt's marker and nothing of AutoIt's, and an .au3 text file holding it; the packed
+  cmd.exe with its compressed data damaged, which `upx -t` fails.
+
+    tools/samples/make-executables [--ace3 PATH]
+
+PATH defaults to ../ace3 beside this checkout. Needs Docker for the .NET build.
+"""
+
+import argparse
+import hashlib
+import json
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+REPO = Path(__file__).resolve().parent.parent.parent
+SAMPLES = REPO / "samples"
+HEX = REPO / "tools" / "ace3" / "dumps" / "fixtures" / "executables"
+
+ACE3_FIXTURES = [
+    ("tests/saq/modules/file_analysis/test_java/VxUGJsAplRNavewkjKujp.class", ["executable/java"], None),
+    ("tests/saq/modules/test_file_analysis_full/exe/cmd-upx.exe", ["executable/pe", "executable/upx"], "cmd.exe, UPX packed"),
+    ("tests/saq/modules/test_file_analysis/hello_autoit.exe", ["executable/pe", "executable/autoit"], None),
+    ("tests/saq/modules/file_analysis/test_autoit/UGtZgHHT.au3", ["executable/autoit"], "a compiled AutoIt script named .au3"),
+]
+
+HELLO_PROJECT = """\
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Deterministic>true</Deterministic>
+    <AssemblyName>hello_dotnet</AssemblyName>
+    <UseAppHost>false</UseAppHost>
+    <DebugType>none</DebugType>
+    <PathMap>$(MSBuildProjectDirectory)=/src</PathMap>
+  </PropertyGroup>
+</Project>
+"""
+
+HELLO_SOURCE = """\
+using System;
+namespace Ace4.Samples
+{
+    public static class Hello
+    {
+        public static int Main(string[] args)
+        {
+            Console.WriteLine("hello from a benign ace4 sample");
+            return args.Length;
+        }
+    }
+}
+"""
+
+
+def decode_hex(name):
+    return bytes.fromhex("".join(line.strip() for line in (HEX / name).read_text().splitlines()))
+
+
+def sdk_image():
+    """docker/ace4/Dockerfile's dotnet-tools stage, which needs nothing from the build context."""
+    subprocess.run(
+        ["docker", "build", "-q", "--target", "dotnet-tools", "-t", "ace4-dotnet-sdk:latest", "-"],
+        stdin=(REPO / "docker" / "ace4" / "Dockerfile").open("rb"), check=True, stdout=subprocess.DEVNULL,
+    )
+    return "ace4-dotnet-sdk:latest"
+
+
+def hello_dotnet():
+    with tempfile.TemporaryDirectory() as work:
+        work = Path(work)
+        (work / "hello.csproj").write_text(HELLO_PROJECT)
+        (work / "Program.cs").write_text(HELLO_SOURCE)
+        subprocess.run(
+            ["docker", "run", "--rm", "-v", f"{work}:/src", "-w", "/src", "-e", "HOME=/tmp",
+             "-e", "DOTNET_CLI_HOME=/tmp", sdk_image(), "dotnet", "build", "-c", "Release", "-o", "/src/out"],
+            check=True, stdout=subprocess.DEVNULL,
+        )
+        return (work / "out" / "hello_dotnet.dll").read_bytes()
+
+
+DOTNET_PROJECT = """\
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings>
+  </PropertyGroup>
+</Project>
+"""
+
+DOTNET_GENERATOR = """\
+using System;
+using System.IO;
+using System.Reflection;
+using System.Reflection.Emit;
+using System.Reflection.Metadata;
+using System.Reflection.Metadata.Ecma335;
+using System.Reflection.PortableExecutable;
+
+// "nops N": one method of N nops. "methods N": N methods of a few instructions each.
+string kind = args[0];
+int n = int.Parse(args[1]);
+var assembly = new PersistedAssemblyBuilder(new AssemblyName("hostile_dotnet"), typeof(object).Assembly);
+var module = assembly.DefineDynamicModule("hostile_dotnet");
+var type = module.DefineType("Hostile.Big", TypeAttributes.Public | TypeAttributes.Class);
+var main = type.DefineMethod("Main", MethodAttributes.Public | MethodAttributes.Static, typeof(int),
+    new[] { typeof(string[]) });
+var il = main.GetILGenerator();
+if (kind == "nops") {
+    for (int i = 0; i < n; i++) il.Emit(OpCodes.Nop);
+} else {
+    for (int i = 0; i < n; i++) {
+        var method = type.DefineMethod("M" + i, MethodAttributes.Public | MethodAttributes.Static, typeof(int),
+            new[] { typeof(int) });
+        var body = method.GetILGenerator();
+        var skip = body.DefineLabel();
+        body.Emit(OpCodes.Ldarg_0);
+        body.Emit(OpCodes.Brfalse_S, skip);
+        body.Emit(OpCodes.Ldarg_0);
+        body.Emit(OpCodes.Ldc_I4, i);
+        body.Emit(OpCodes.Add);
+        body.Emit(OpCodes.Ret);
+        body.MarkLabel(skip);
+        body.Emit(OpCodes.Ldc_I4, i);
+        body.Emit(OpCodes.Ret);
+    }
+}
+il.Emit(OpCodes.Ldc_I4_0);
+il.Emit(OpCodes.Ret);
+type.CreateType();
+MetadataBuilder metadata = assembly.GenerateMetadata(out BlobBuilder ilStream, out BlobBuilder fieldData);
+var pe = new ManagedPEBuilder(PEHeaderBuilder.CreateExecutableHeader(), new MetadataRootBuilder(metadata), ilStream,
+    mappedFieldData: fieldData, entryPoint: MetadataTokens.MethodDefinitionHandle(main.MetadataToken),
+    deterministicIdProvider: content => new BlobContentId(Guid.Empty, 0));
+var blob = new BlobBuilder();
+pe.Serialize(blob);
+// the module's version id is a new GUID each run; zeroed, the same arguments give the same bytes
+byte[] bytes = blob.ToArray();
+byte[] mvid = module.ModuleVersionId.ToByteArray();
+int at = bytes.AsSpan().IndexOf(mvid);
+if (at < 0 || bytes.AsSpan(at + 1).IndexOf(mvid) >= 0) throw new Exception("the module version id isn't there once");
+Array.Clear(bytes, at, 16);
+File.WriteAllBytes(args[2], bytes);
+"""
+
+
+def emit(out_dir, runs):
+    """Runs the generator above for each (name, kind, n), writing name into out_dir."""
+    with tempfile.TemporaryDirectory(dir=out_dir) as work:
+        (Path(work) / "generator.csproj").write_text(DOTNET_PROJECT)
+        (Path(work) / "Program.cs").write_text(DOTNET_GENERATOR)
+        script = "dotnet build -c Release -o /src/out >/dev/null && " + " && ".join(
+            f"dotnet /src/out/generator.dll {kind} {n} /out/{name}" for name, kind, n in runs)
+        subprocess.run(["docker", "run", "--rm", "-v", f"{work}:/src", "-w", "/src", "-v", f"{out_dir.resolve()}:/out",
+                        "-e", "HOME=/tmp", "-e", "DOTNET_CLI_HOME=/tmp", sdk_image(), "sh", "-c", script],
+                       check=True, stdout=subprocess.DEVNULL)
+
+
+def damaged_upx(packed):
+    """The packed cmd.exe with 64 bytes in the middle of its compressed data flipped."""
+    data = bytearray(packed)
+    middle = len(data) // 2
+    for i in range(middle, middle + 64):
+        data[i] ^= 0xFF
+    return bytes(data)
+
+
+def entry(path, kinds, source, note=None):
+    data = path.read_bytes()
+    relative = path.relative_to(SAMPLES).as_posix()
+    record = {
+        "path": relative,
+        "sha256": hashlib.sha256(data).hexdigest(),
+        "size": len(data),
+        "kinds": kinds,
+        "source": source,
+        "in_git": not relative.startswith("local/"),
+        "alert_path": path.name,
+        "meta_tags": ["type=email.attachment"],
+    }
+    if note:
+        record["note"] = note
+    return record
+
+
+def write(path, data):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(data)
+    return path
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--ace3", type=Path, default=REPO.parent / "ace3")
+    args = parser.parse_args()
+    ace3 = args.ace3.resolve()
+    commit = subprocess.run(
+        ["git", "-C", str(ace3), "rev-parse", "--short=8", "HEAD"], check=True, capture_output=True, text=True,
+    ).stdout.strip()
+
+    samples = []
+    for relative, kinds, note in ACE3_FIXTURES:
+        source = ace3 / relative
+        target = write(SAMPLES / "ace3" / "executables" / source.name, source.read_bytes())
+        samples.append(entry(target, kinds, f"ace3 {commit}: {relative}", note))
+
+    dotnet = decode_hex("6346eea9dff4eac53113fc2ba3b8a497.hex")
+    local = SAMPLES / "local" / "executables"
+    how = "made by tools/samples/make-executables"
+    hex_source = "ace3 {commit}: tests/saq/modules/test_file_analysis/{name}, decoded"
+    samples.append(entry(write(local / "6346eea9dff4eac53113fc2ba3b8a497.exe", dotnet),
+                         ["executable/pe", "executable/dotnet"],
+                         hex_source.format(commit=commit, name="6346eea9dff4eac53113fc2ba3b8a497.hex"),
+                         "Obfuscar-protected .NET assembly"))
+    samples.append(entry(write(local / "hello_world.exe", decode_hex("hello_world.exe.hex")), ["executable/pe"],
+                         hex_source.format(commit=commit, name="hello_world.exe.hex"), "a PE file that isn't .NET"))
+    samples.append(entry(write(local / "dotnet_truncated.exe", dotnet[:4096]), ["executable/pe", "executable/dotnet"],
+                         f"{how}: the .NET sample's first 4,096 bytes", "neither de4dot nor ilspycmd loads it"))
+
+    made = SAMPLES / "ace4" / "executables"
+    samples.append(entry(write(made / "hello_dotnet.dll", hello_dotnet()), ["executable/pe", "executable/dotnet"],
+                         f"{how}: C# built with the .NET SDK 10.0.403", "no obfuscator"))
+    emit(made, [("emitted_methods.exe", "methods", 10)])
+    samples.append(entry(made / "emitted_methods.exe", ["executable/pe", "executable/dotnet"],
+                         f"{how}: System.Reflection.Emit's PersistedAssemblyBuilder, 10 methods",
+                         "its references carry public keys, which de4dot hashes with OpenSSL"))
+    java = (SAMPLES / "ace3" / "executables" / "VxUGJsAplRNavewkjKujp.class").read_bytes()
+    samples.append(entry(write(made / "truncated.class", java[:300]), ["executable/java"],
+                         f"{how}: ace3's class cut to 300 bytes", "CFR can't load it"))
+    universal = b"\xca\xfe\xba\xbe\x00\x00\x00\x02\x01\x00\x00\x07\x00\x00\x00\x03" + bytes(4080)
+    samples.append(entry(write(made / "universal.macho", universal), ["executable/java"],
+                         f"{how}: a Mach-O universal header", "Java's magic, and not a class"))
+    samples.append(entry(write(made / "marker_only.exe", b"MZ" + bytes(62) + b"AU3!EA06" + bytes(4024)),
+                         ["executable/pe", "executable/autoit"], f"{how}: MZ and AutoIt's marker",
+                         "unautoit finds no script"))
+    samples.append(entry(write(made / "marker_text.au3", b"; not compiled\r\nAU3!EA05\r\n"), ["executable/autoit"],
+                         f"{how}: an .au3 text file holding AutoIt's marker", "unautoit finds no script"))
+    packed = (SAMPLES / "ace3" / "executables" / "cmd-upx.exe").read_bytes()
+    samples.append(entry(write(made / "cmd-upx-damaged.exe", damaged_upx(packed)), ["executable/pe", "executable/upx"],
+                         f"{how}: ace3's cmd-upx.exe with 64 bytes of its compressed data flipped",
+                         "upx -t fails"))
+
+    manifest_path = SAMPLES / "manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    paths = {sample["path"] for sample in samples}
+    kept = [s for s in manifest["samples"] if s["path"] not in paths]
+    manifest["samples"] = sorted(kept + samples, key=lambda sample: sample["path"])
+    manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")
+    for sample in samples:
+        print(f"{sample['path']}: {sample['size']} bytes")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

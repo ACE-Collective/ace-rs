@@ -1,0 +1,150 @@
+{
+  "form": 1,
+  "observables": {
+    "file:1af981d9c5128b3657cdb5506d61563e0d1908b957e5dd6842059d6d3cfdc622": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "UGtZgHHT.au3": {
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "autoit": {
+          "details": {
+            "error": null,
+            "output_dir": "<root>/files/UGtZgHHT.au3.autoit",
+            "scripts": [
+              "script_1.au3"
+            ],
+            "stderr": "",
+            "stdout": "+----+----------------------------+---------------------------------------------+--------+---------------+\n| ID |            NAME            |                    PATH                     |  SIZE  |     TYPE      |\n+----+----------------------------+---------------------------------------------+--------+---------------+\n|  0 | >>>AUTOIT NO CMDEXECUTE<<< | C:�sers\\Administrator\\AppData\\Local\\AutoIt | 0 B    | Empty File    |\n|    |                            | v3\\Aut2Exe\u0007utB6AA.tmp                      |        |               |\n|  1 | >>>AUTOIT SCRIPT<<<        | C:�sers\\Administrator\\AppData\\Local\\AutoIt | 559 kB | AutoIt Script |\n|    |                            | v3\\Aut2Exe\u0007utB68A.tmp.tok                  |        |               |\n+----+----------------------------+---------------------------------------------+--------+---------------+\n"
+          },
+          "summary": "AutoIt Analysis: decompiled script_1.au3",
+          "tags": {}
+        },
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "1b524d03b27b94906c1a87b207e08179",
+            "sha1": "8fbad6275708a69b764992b05126e053134fb9e9",
+            "sha256": "1af981d9c5128b3657cdb5506d61563e0d1908b957e5dd6842059d6d3cfdc622"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text, with very long lines (65536), with no line terminators"
+          },
+          "summary": "File Type Analysis: ASCII text, with very long lines (65536), with no line terminators (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "autoit": true
+      }
+    },
+    "file:51f9a77c25da0708bf63924edcedec005807fd6e071ac2638b5c512d647cdd55": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "autoit": true
+      },
+      "paths": {
+        "UGtZgHHT.au3.autoit/script_1.au3": {
+          "type=script.autoit": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:1af981d9c5128b3657cdb5506d61563e0d1908b957e5dd6842059d6d3cfdc622": true
+      },
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "e089117b57457dc5888ffbd3c1de979a",
+            "sha1": "ab5ddb8f94bc4b8f7ba99ed348d80ad7e5b1923d",
+            "sha256": "51f9a77c25da0708bf63924edcedec005807fd6e071ac2638b5c512d647cdd55"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "autoit": true
+      }
+    },
+    "md5:1b524d03b27b94906c1a87b207e08179": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:1af981d9c5128b3657cdb5506d61563e0d1908b957e5dd6842059d6d3cfdc622": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:e089117b57457dc5888ffbd3c1de979a": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:51f9a77c25da0708bf63924edcedec005807fd6e071ac2638b5c512d647cdd55": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:1af981d9c5128b3657cdb5506d61563e0d1908b957e5dd6842059d6d3cfdc622": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:1af981d9c5128b3657cdb5506d61563e0d1908b957e5dd6842059d6d3cfdc622": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:51f9a77c25da0708bf63924edcedec005807fd6e071ac2638b5c512d647cdd55": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:51f9a77c25da0708bf63924edcedec005807fd6e071ac2638b5c512d647cdd55": true
+      },
+      "results": {},
+      "tags": {}
+    }
+  }
+}

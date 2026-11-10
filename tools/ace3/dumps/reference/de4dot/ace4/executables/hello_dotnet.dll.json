@@ -1,0 +1,84 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "De4dotAnalysis",
+      "details": {
+        "deobfuscated": true,
+        "error": null,
+        "stderr": null,
+        "stdout": "\nde4dotEx v3.10.0.0\n\nDetected Unknown Obfuscator (<root>/files/hello_dotnet.dll)\nCleaning <root>/files/hello_dotnet.dll\nRenaming all obfuscated symbols\nSaving <work>/data/var/tool_sandbox/cmd-af6s3tx4/deobfuscated\n"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.dotnet:De4dotAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=executable.dotnet"
+          ],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.dotnet:<class 'saq.modules.file_analysis.dotnet.De4dotAnalyzer'>",
+            "saq.modules.file_analysis.file_type:<class 'saq.modules.file_analysis.file_type.FileTypeAnalyzer'>",
+            "saq.modules.file_analysis.hash:<class 'saq.modules.file_analysis.hash.FileHashAnalyzer'>"
+          ],
+          "file_path": "hello_dotnet.dll.deobfuscated",
+          "redirection": {
+            "type": "file",
+            "value": "8d793450a76e17798a0e9abfd78bcb559d093a33c2d9b8483a0177fd4e256039"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "8d793450a76e17798a0e9abfd78bcb559d093a33c2d9b8483a0177fd4e256039"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 4608,
+          "tags": [],
+          "type": "file",
+          "value": "8f2b42187d05a0d43b328fabf6fff3b1f07b8c68b882fac764ac8b753da159df",
+          "yara_meta": [
+            "type=executable.dotnet"
+          ]
+        }
+      ],
+      "summary": "De4dot Analysis: deobfuscated",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace4/executables/hello_dotnet.dll",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "hello_dotnet.dll",
+      "size": 4608,
+      "type": "file",
+      "value": "8d793450a76e17798a0e9abfd78bcb559d093a33c2d9b8483a0177fd4e256039"
+    }
+  },
+  "module": "de4dot",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "hello_dotnet.dll",
+    "relationships": [],
+    "size": 4608,
+    "tags": [],
+    "type": "file",
+    "value": "8d793450a76e17798a0e9abfd78bcb559d093a33c2d9b8483a0177fd4e256039",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

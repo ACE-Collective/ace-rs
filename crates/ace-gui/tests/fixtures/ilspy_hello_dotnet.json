@@ -1,0 +1,37 @@
+{
+  "analysis_type": "ilspy_analysis",
+  "schema_version": 1,
+  "details": {
+    "exit_code": 0,
+    "stderr": null
+  },
+  "summary": "Ilspy Analysis: exit code 0",
+  "files": [
+    {
+      "path": "hello_dotnet.dll_ilspy.il",
+      "sha256": "203349794a0b5789e0fa5e259b851cfccd6721de7d0418be34f0a70af6d8c525",
+      "size": 675,
+      "yara_meta": [
+        "type=script.dotnet.decompiled"
+      ],
+      "exclude_modules": [
+        "ilspy",
+        "file_hash_analyzer",
+        "file_type"
+      ],
+      "relationships": [
+        {
+          "type": "extracted_from",
+          "target": {
+            "type": "file",
+            "value": "8d793450a76e17798a0e9abfd78bcb559d093a33c2d9b8483a0177fd4e256039"
+          }
+        }
+      ],
+      "redirection": {
+        "type": "file",
+        "value": "8d793450a76e17798a0e9abfd78bcb559d093a33c2d9b8483a0177fd4e256039"
+      }
+    }
+  ]
+}

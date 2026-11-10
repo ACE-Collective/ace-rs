@@ -1,0 +1,80 @@
+{
+  "form": 1,
+  "observables": {
+    "file:4324df7e2509dc2aadac81c2dfaaf622e527abee6a87390ec2aa589db9b7b257": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "marker_text.au3": {
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "autoit": {
+          "details": {
+            "error": null,
+            "output_dir": "<root>/files/marker_text.au3.autoit",
+            "scripts": [],
+            "stderr": "[ Error ]: Script not Found.\n",
+            "stdout": ""
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "224725c58f5c6f5939e7b46c3a7f9321",
+            "sha1": "387389c8da34cf39c3a081a52e59eae708935300",
+            "sha256": "4324df7e2509dc2aadac81c2dfaaf622e527abee6a87390ec2aa589db9b7b257"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text, with CRLF line terminators"
+          },
+          "summary": "File Type Analysis: ASCII text, with CRLF line terminators (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "autoit": true
+      }
+    },
+    "md5:224725c58f5c6f5939e7b46c3a7f9321": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:4324df7e2509dc2aadac81c2dfaaf622e527abee6a87390ec2aa589db9b7b257": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:4324df7e2509dc2aadac81c2dfaaf622e527abee6a87390ec2aa589db9b7b257": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:4324df7e2509dc2aadac81c2dfaaf622e527abee6a87390ec2aa589db9b7b257": true
+      },
+      "results": {},
+      "tags": {}
+    }
+  }
+}

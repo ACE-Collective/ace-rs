@@ -54,6 +54,9 @@ use ace_results::types::emailtree::{LureCandidate, LureUrlAnalysis, MailboxEmail
 use ace_results::types::encrypted::{
     PdfEncryptionAnalysis, RarEncryptionAnalysis, ZipEncryptionAnalysis,
 };
+use ace_results::types::executables::{
+    AutoItAnalysis, De4dotAnalysis, IlspyAnalysis, JavaClassDecompilerAnalysis, UpxAnalysis,
+};
 use ace_results::types::file_hash::FileHashAnalysis;
 use ace_results::types::file_type::FileTypeAnalysis;
 use ace_results::types::html::{
@@ -257,6 +260,11 @@ impl Views {
             .with(ViewEntry::of::<QrCodeAnalysis>())
             .with(ViewEntry::of::<OcrAnalysis>())
             .with(ViewEntry::of::<SsdeepAnalysis>())
+            .with(ViewEntry::of::<JavaClassDecompilerAnalysis>())
+            .with(ViewEntry::of::<UpxAnalysis>())
+            .with(ViewEntry::of::<AutoItAnalysis>())
+            .with(ViewEntry::of::<De4dotAnalysis>())
+            .with(ViewEntry::of::<IlspyAnalysis>())
     }
 
     /// These views with `entry`, which takes the place of any view of the same type and version, so a
@@ -1884,6 +1892,80 @@ impl AnalysisView for SsdeepAnalysis {
                 value: format!("{} ({}%)", m.file, m.score),
             })
         }))
+    }
+}
+
+// ---- executables (7.5 batch 11): ace3's default_template.html ----
+
+/// `java_class_decompiler_analysis`: the source files CFR wrote, or why it was stopped.
+impl AnalysisView for JavaClassDecompilerAnalysis {
+    type View<'a> = FieldsView;
+    fn view(&self) -> FieldsView {
+        let mut fields: Vec<Option<Field>> = self
+            .decompiled_files
+            .iter()
+            .map(|file| field("decompiled_file", Some(file)))
+            .collect();
+        fields.push(field("stopped", self.stopped.as_ref()));
+        fields_view(fields)
+    }
+}
+
+/// `upx_analysis`: the unpacked file, upx's output, or why it failed.
+impl AnalysisView for UpxAnalysis {
+    type View<'a> = FieldsView;
+    fn view(&self) -> FieldsView {
+        fields_view([
+            field("output_file", self.output_file.as_ref()),
+            field("error", self.error.as_ref()),
+            field("stdout", self.stdout.as_ref().filter(|s| !s.is_empty())),
+            field("stderr", self.stderr.as_ref().filter(|s| !s.is_empty())),
+        ])
+    }
+}
+
+/// `auto_it_analysis`: the scripts extracted, unautoit's listing, or why it failed.
+impl AnalysisView for AutoItAnalysis {
+    type View<'a> = FieldsView;
+    fn view(&self) -> FieldsView {
+        let mut fields = vec![
+            field("error", self.error.as_ref()),
+            field("output_dir", self.output_dir.as_ref()),
+        ];
+        fields.extend(self.scripts.iter().map(|s| field("script", Some(s))));
+        fields.push(field(
+            "stdout",
+            self.stdout.as_ref().filter(|s| !s.is_empty()),
+        ));
+        fields.push(field(
+            "stderr",
+            self.stderr.as_ref().filter(|s| !s.is_empty()),
+        ));
+        fields_view(fields)
+    }
+}
+
+/// `de4dot_analysis`: what de4dot printed cleaning the assembly, or why it didn't finish.
+impl AnalysisView for De4dotAnalysis {
+    type View<'a> = FieldsView;
+    fn view(&self) -> FieldsView {
+        fields_view([
+            field("error", self.error.as_ref()),
+            field("deobfuscated", self.deobfuscated.then_some("yes")),
+            field("stdout", self.stdout.as_ref()),
+            field("stderr", self.stderr.as_ref()),
+        ])
+    }
+}
+
+/// `ilspy_analysis`: ilspycmd's exit status and stderr.
+impl AnalysisView for IlspyAnalysis {
+    type View<'a> = FieldsView;
+    fn view(&self) -> FieldsView {
+        fields_view([
+            field("exit_code", self.exit_code.as_ref()),
+            field("stderr", self.stderr.as_ref()),
+        ])
     }
 }
 

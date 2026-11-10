@@ -1,0 +1,381 @@
+{
+  "form": 1,
+  "observables": {
+    "file:1feaee848ab2113d7a90f68b0eab79534c7d7eef4e473b7ac879953a56c35b9b": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "cmd-upx-damaged.exe": {
+          "type=email.attachment": true,
+          "type=executable": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "archive": {
+          "details": {
+            "extracted_files": [
+              "UPX1",
+              "UPX0",
+              ".rsrc/version.txt",
+              ".rsrc/MANIFEST/1",
+              ".rsrc/GROUP_ICON/IDI_APPICON",
+              ".rsrc/ICON/10.ico"
+            ],
+            "extraction_error": null,
+            "file_count": 16
+          },
+          "summary": "Archive Analysis: extracted 6 of 16 files: (UPX1, UPX0, .rsrc/version.txt, .rsrc/MANIFEST/1, .rsrc/GROUP_ICON/IDI_APPICON, .rsrc/ICON/10.ico)",
+          "tags": {}
+        },
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "a712710d050c9f54a778122527c8635b",
+            "sha1": "b71d5740feee64486b86dea162309db69a651083",
+            "sha256": "1feaee848ab2113d7a90f68b0eab79534c7d7eef4e473b7ac879953a56c35b9b"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": true,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/vnd.microsoft.portable-executable",
+            "type": "PE32+ executable for MS Windows 6.03 (console), x86-64, 3 sections"
+          },
+          "summary": "File Type Analysis: PE32+ executable for MS Windows 6.03 (console), x86-64, 3 sections (application/vnd.microsoft.portable-executable) (portable executable)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "executable": true
+      }
+    },
+    "file:4acc07af53aed1963c70e7ffc615d44ef09bd43fc1da0245539d0f5e349f65aa": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "cmd-upx-damaged.exe.extracted/.rsrc/MANIFEST/1": {}
+      },
+      "relationships": {
+        "extracted_from file:1feaee848ab2113d7a90f68b0eab79534c7d7eef4e473b7ac879953a56c35b9b": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/xml",
+            "type": "XML 1.0 document, ASCII text, with CRLF line terminators"
+          },
+          "summary": "File Type Analysis: XML 1.0 document, ASCII text, with CRLF line terminators (text/xml)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:5771eafa48f2f87ea4679489d88089286c079e1307e42bae26dcc164608230b0": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "cmd-upx-damaged.exe.extracted/.rsrc/ICON/10.ico": {
+          "type=image": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:1feaee848ab2113d7a90f68b0eab79534c7d7eef4e473b7ac879953a56c35b9b": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "image/vnd.microsoft.icon",
+            "type": "MS Windows icon resource - 1 icon, 16x16"
+          },
+          "summary": "File Type Analysis: MS Windows icon resource - 1 icon, 16x16 (image/vnd.microsoft.icon)",
+          "tags": {}
+        },
+        "qrcode": {
+          "details": {
+            "extracted_text": null,
+            "inverted": false
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:6ef14d99a8e3186e88817f971e291fc96e3a44aaea6ff8ce0e889822f0a0be84": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "cmd-upx-damaged.exe.extracted/.rsrc/GROUP_ICON/IDI_APPICON": {}
+      },
+      "relationships": {
+        "extracted_from file:1feaee848ab2113d7a90f68b0eab79534c7d7eef4e473b7ac879953a56c35b9b": true
+      },
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "57adc7da04f6008f211c9e59a7d1354f",
+            "sha1": "56190216838a03412053336593c7fe7098c6a17e",
+            "sha256": "6ef14d99a8e3186e88817f971e291fc96e3a44aaea6ff8ce0e889822f0a0be84"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:80eef9447d42987fef04f6799dc52f6f16eb04a9e775f2f42ae54446ad887d18": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "cmd-upx-damaged.exe.extracted/.rsrc/version.txt": {}
+      },
+      "relationships": {
+        "extracted_from file:1feaee848ab2113d7a90f68b0eab79534c7d7eef4e473b7ac879953a56c35b9b": true
+      },
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "29097ce8535b455f6c86357b76ec5a5b",
+            "sha1": "186c38646c33f554d3cf2ed22d2592bba63e8809",
+            "sha256": "80eef9447d42987fef04f6799dc52f6f16eb04a9e775f2f42ae54446ad887d18"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "cmd-upx-damaged.exe.extracted/UPX0": {}
+      },
+      "relationships": {
+        "extracted_from file:1feaee848ab2113d7a90f68b0eab79534c7d7eef4e473b7ac879953a56c35b9b": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "inode/x-empty",
+            "type": "empty"
+          },
+          "summary": "File Type Analysis: empty (inode/x-empty)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:ed135a8debee2bf0ab5f297cff356c1cd4e9610c7cf49a98a0973cd8b6f8426a": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "cmd-upx-damaged.exe.extracted/UPX1": {}
+      },
+      "relationships": {
+        "extracted_from file:1feaee848ab2113d7a90f68b0eab79534c7d7eef4e473b7ac879953a56c35b9b": true
+      },
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "3eddb95680144e20c65251318f1f3de5",
+            "sha1": "8c8273a425d777afdd90aebc4788dc517da98442",
+            "sha256": "ed135a8debee2bf0ab5f297cff356c1cd4e9610c7cf49a98a0973cd8b6f8426a"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "md5:29097ce8535b455f6c86357b76ec5a5b": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:80eef9447d42987fef04f6799dc52f6f16eb04a9e775f2f42ae54446ad887d18": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:3eddb95680144e20c65251318f1f3de5": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:ed135a8debee2bf0ab5f297cff356c1cd4e9610c7cf49a98a0973cd8b6f8426a": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:57adc7da04f6008f211c9e59a7d1354f": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:6ef14d99a8e3186e88817f971e291fc96e3a44aaea6ff8ce0e889822f0a0be84": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:a712710d050c9f54a778122527c8635b": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:1feaee848ab2113d7a90f68b0eab79534c7d7eef4e473b7ac879953a56c35b9b": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:1feaee848ab2113d7a90f68b0eab79534c7d7eef4e473b7ac879953a56c35b9b": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:1feaee848ab2113d7a90f68b0eab79534c7d7eef4e473b7ac879953a56c35b9b": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:6ef14d99a8e3186e88817f971e291fc96e3a44aaea6ff8ce0e889822f0a0be84": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:6ef14d99a8e3186e88817f971e291fc96e3a44aaea6ff8ce0e889822f0a0be84": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:80eef9447d42987fef04f6799dc52f6f16eb04a9e775f2f42ae54446ad887d18": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:80eef9447d42987fef04f6799dc52f6f16eb04a9e775f2f42ae54446ad887d18": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:ed135a8debee2bf0ab5f297cff356c1cd4e9610c7cf49a98a0973cd8b6f8426a": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:ed135a8debee2bf0ab5f297cff356c1cd4e9610c7cf49a98a0973cd8b6f8426a": true
+      },
+      "results": {},
+      "tags": {}
+    }
+  }
+}

@@ -1,0 +1,140 @@
+{
+  "form": 1,
+  "observables": {
+    "file:78b93ea0c7cef48f243e22d59f2e66de76aa93043425131a67e1f1523f06c879": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "VxUGJsAplRNavewkjKujp.class-0-decompiled.java": {
+          "type=script.java.decompiled": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "05395587e4f7fd32a70f6ae86a829cd9",
+            "sha1": "5db0108e7faf16b1e847037261490fa74148a9b6",
+            "sha256": "78b93ea0c7cef48f243e22d59f2e66de76aa93043425131a67e1f1523f06c879"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "Perl5 module source, ASCII text, with very long lines (396)"
+          },
+          "summary": "File Type Analysis: Perl5 module source, ASCII text, with very long lines (396) (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "decompiled": true
+      }
+    },
+    "file:9277f9edf7e3406a3ccf23eacdd636e77083caa00a4c1317159533e7bccc320c": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "VxUGJsAplRNavewkjKujp.class": {
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "6bbbf3158317367802cca67a684c847e",
+            "sha1": "2624cbe1ab59ec0b809bcea7fb65831a5330802e",
+            "sha256": "9277f9edf7e3406a3ccf23eacdd636e77083caa00a4c1317159533e7bccc320c"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/x-java-applet",
+            "type": "compiled Java class data, version 49.0 (Java 1.5)"
+          },
+          "summary": "File Type Analysis: compiled Java class data, version 49.0 (Java 1.5) (application/x-java-applet)",
+          "tags": {}
+        },
+        "java_class_decompiler": {
+          "details": {
+            "decompiled_files": [
+              "<root>/files/VxUGJsAplRNavewkjKujp.class-0-decompiled.java"
+            ]
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "md5:05395587e4f7fd32a70f6ae86a829cd9": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:78b93ea0c7cef48f243e22d59f2e66de76aa93043425131a67e1f1523f06c879": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:6bbbf3158317367802cca67a684c847e": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:9277f9edf7e3406a3ccf23eacdd636e77083caa00a4c1317159533e7bccc320c": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:78b93ea0c7cef48f243e22d59f2e66de76aa93043425131a67e1f1523f06c879": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:78b93ea0c7cef48f243e22d59f2e66de76aa93043425131a67e1f1523f06c879": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:9277f9edf7e3406a3ccf23eacdd636e77083caa00a4c1317159533e7bccc320c": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:9277f9edf7e3406a3ccf23eacdd636e77083caa00a4c1317159533e7bccc320c": true
+      },
+      "results": {},
+      "tags": {}
+    }
+  }
+}

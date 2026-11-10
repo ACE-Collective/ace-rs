@@ -61,7 +61,7 @@ ENABLE = [
     "zip_encryption_analyzer", "rar_encryption_analyzer", "pdf_encryption_analyzer", "lure_url_analyzer",
     "mailbox_email_analyzer", "email_conversation_attachment_analyzer", "email_conversation_link_analyzer",
     "email_archiver", "encrypted_archive_analyzer", "url_email_pivot_analyzer", "message_id_analyzer_v2",
-    "pdftotext", "exif", "qrcode", "ocr",
+    "pdftotext", "exif", "qrcode", "ocr", "java_class_decompiler", "upx", "autoit", "de4dot", "ilspy",
 ]
 BROCESS = HERE / "brocess.json"
 NRD = HERE / "nrd.json"

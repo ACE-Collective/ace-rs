@@ -40,6 +40,9 @@ services:
   dev:
     build:
       context: docker/dev
+      # unautoit's source, which the image builds as the sandbox image does
+      additional_contexts:
+        vendor: ./vendor
     image: ace4-dev:latest
     depends_on:
       stack-guard:

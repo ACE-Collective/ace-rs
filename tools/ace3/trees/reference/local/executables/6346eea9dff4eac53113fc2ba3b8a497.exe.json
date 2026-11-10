@@ -1,0 +1,390 @@
+{
+  "form": 1,
+  "observables": {
+    "file:1002ef50de6088d029b17a54e0e7ff84446162799a826a605a2e9a1f94d87de0": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "de4dot": true,
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "6346eea9dff4eac53113fc2ba3b8a497.exe.deobfuscated": {
+          "type=executable.dotnet": true
+        }
+      },
+      "redirection": "file:a4bf63595857a90917809a72bd400cdfd6b3a1546659f6d3da26eecc05198d9c",
+      "relationships": {
+        "extracted_from file:a4bf63595857a90917809a72bd400cdfd6b3a1546659f6d3da26eecc05198d9c": true
+      },
+      "results": {
+        "ilspy": {
+          "details": {
+            "exit_code": 0,
+            "stderr": null
+          },
+          "summary": "Ilspy Analysis: exit code 0",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:30ba44bbd13654920511cc6832ae6d1dcae8533ffb6e32997bb208d54df9b69d": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true,
+        "ilspy": true
+      },
+      "paths": {
+        "6346eea9dff4eac53113fc2ba3b8a497.exe_ilspy.il": {
+          "type=script.dotnet.decompiled": true
+        }
+      },
+      "redirection": "file:a4bf63595857a90917809a72bd400cdfd6b3a1546659f6d3da26eecc05198d9c",
+      "relationships": {
+        "extracted_from file:a4bf63595857a90917809a72bd400cdfd6b3a1546659f6d3da26eecc05198d9c": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "file:579dc5a8b270d07b0f361209b6818e8bbdd118c69bf4fd74dc3e276e98ef6cde": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "6346eea9dff4eac53113fc2ba3b8a497.exe.extracted/.reloc": {}
+      },
+      "relationships": {
+        "extracted_from file:a4bf63595857a90917809a72bd400cdfd6b3a1546659f6d3da26eecc05198d9c": true
+      },
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "66e2ba1cae03541a818ed29a656ccb69",
+            "sha1": "d4da547905208f6f29a1cd7537434fdfbc5d3485",
+            "sha256": "579dc5a8b270d07b0f361209b6818e8bbdd118c69bf4fd74dc3e276e98ef6cde"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:6cb60026439107872648d5e20b9f6c1b99f38117d877854830bcc378b88b820b": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "6346eea9dff4eac53113fc2ba3b8a497.exe.extracted/.rsrc/version.txt": {}
+      },
+      "relationships": {
+        "extracted_from file:a4bf63595857a90917809a72bd400cdfd6b3a1546659f6d3da26eecc05198d9c": true
+      },
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "3969a73ba5539230f1198652158c523f",
+            "sha1": "e2c7f2e67477dd599336493604bafdba1d81d5eb",
+            "sha256": "6cb60026439107872648d5e20b9f6c1b99f38117d877854830bcc378b88b820b"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:6f27e0f1ce933bbbe482c0c7e895280b77cda2f958a955161a4bd806ea179913": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true,
+        "ilspy": true
+      },
+      "paths": {
+        "6346eea9dff4eac53113fc2ba3b8a497.exe.deobfuscated_ilspy.il": {
+          "type=script.dotnet.decompiled": true
+        }
+      },
+      "redirection": "file:1002ef50de6088d029b17a54e0e7ff84446162799a826a605a2e9a1f94d87de0",
+      "relationships": {
+        "extracted_from file:1002ef50de6088d029b17a54e0e7ff84446162799a826a605a2e9a1f94d87de0": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "file:7b07610cc538c8d15230c46b05256ebea5aafd3c91e8461a91b6f3d6f4d0f911": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "6346eea9dff4eac53113fc2ba3b8a497.exe.extracted/.text": {}
+      },
+      "relationships": {
+        "extracted_from file:a4bf63595857a90917809a72bd400cdfd6b3a1546659f6d3da26eecc05198d9c": true
+      },
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "eb3eecfc694de17ff33bf234f5253f40",
+            "sha1": "65821450a27a8d68c6f51270694dae4079bd5a95",
+            "sha256": "7b07610cc538c8d15230c46b05256ebea5aafd3c91e8461a91b6f3d6f4d0f911"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:a4bf63595857a90917809a72bd400cdfd6b3a1546659f6d3da26eecc05198d9c": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "6346eea9dff4eac53113fc2ba3b8a497.exe": {
+          "type=email.attachment": true,
+          "type=executable": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "archive": {
+          "details": {
+            "extracted_files": [
+              ".reloc",
+              ".text",
+              ".rsrc/version.txt",
+              ".rsrc/MANIFEST/1"
+            ],
+            "extraction_error": null,
+            "file_count": 4
+          },
+          "summary": "Archive Analysis: extracted 4 of 4 files: (.reloc, .text, .rsrc/version.txt, .rsrc/MANIFEST/1)",
+          "tags": {}
+        },
+        "de4dot": {
+          "details": {
+            "deobfuscated": true,
+            "error": null,
+            "stderr": null,
+            "stdout": "\nde4dotEx v3.10.0.0\n\nDetected Obfuscar (<root>/files/6346eea9dff4eac53113fc2ba3b8a497.exe)\nCleaning <root>/files/6346eea9dff4eac53113fc2ba3b8a497.exe\nRenaming all obfuscated symbols\nSaving <work>/data/var/tool_sandbox/cmd-s359sgki/deobfuscated\n"
+          },
+          "summary": "De4dot Analysis: deobfuscated",
+          "tags": {}
+        },
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "d78206b896b00afb5997f2d81733b357",
+            "sha1": "4207ff83a791e2ad0098a7d6bf32be9e8e220de5",
+            "sha256": "a4bf63595857a90917809a72bd400cdfd6b3a1546659f6d3da26eecc05198d9c"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": true,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/vnd.microsoft.portable-executable",
+            "type": "PE32 executable for MS Windows 4.00 (GUI), Intel i386 Mono/.Net assembly, 3 sections"
+          },
+          "summary": "File Type Analysis: PE32 executable for MS Windows 4.00 (GUI), Intel i386 Mono/.Net assembly, 3 sections (application/vnd.microsoft.portable-executable) (portable executable)",
+          "tags": {}
+        },
+        "ilspy": {
+          "details": {
+            "exit_code": 0,
+            "stderr": null
+          },
+          "summary": "Ilspy Analysis: exit code 0",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "executable": true
+      }
+    },
+    "file:c0085eb467d2fc9c9f395047e057183b3cd1503a4087d0db565161c13527a76f": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "6346eea9dff4eac53113fc2ba3b8a497.exe.extracted/.rsrc/MANIFEST/1": {}
+      },
+      "relationships": {
+        "extracted_from file:a4bf63595857a90917809a72bd400cdfd6b3a1546659f6d3da26eecc05198d9c": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/xml",
+            "type": "XML 1.0 document, Unicode text, UTF-8 (with BOM) text, with CRLF line terminators"
+          },
+          "summary": "File Type Analysis: XML 1.0 document, Unicode text, UTF-8 (with BOM) text, with CRLF line terminators (text/xml)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "md5:3969a73ba5539230f1198652158c523f": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:6cb60026439107872648d5e20b9f6c1b99f38117d877854830bcc378b88b820b": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:66e2ba1cae03541a818ed29a656ccb69": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:579dc5a8b270d07b0f361209b6818e8bbdd118c69bf4fd74dc3e276e98ef6cde": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:d78206b896b00afb5997f2d81733b357": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:a4bf63595857a90917809a72bd400cdfd6b3a1546659f6d3da26eecc05198d9c": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:eb3eecfc694de17ff33bf234f5253f40": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:7b07610cc538c8d15230c46b05256ebea5aafd3c91e8461a91b6f3d6f4d0f911": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:579dc5a8b270d07b0f361209b6818e8bbdd118c69bf4fd74dc3e276e98ef6cde": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:579dc5a8b270d07b0f361209b6818e8bbdd118c69bf4fd74dc3e276e98ef6cde": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:6cb60026439107872648d5e20b9f6c1b99f38117d877854830bcc378b88b820b": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:6cb60026439107872648d5e20b9f6c1b99f38117d877854830bcc378b88b820b": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:7b07610cc538c8d15230c46b05256ebea5aafd3c91e8461a91b6f3d6f4d0f911": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:7b07610cc538c8d15230c46b05256ebea5aafd3c91e8461a91b6f3d6f4d0f911": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:a4bf63595857a90917809a72bd400cdfd6b3a1546659f6d3da26eecc05198d9c": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:a4bf63595857a90917809a72bd400cdfd6b3a1546659f6d3da26eecc05198d9c": true
+      },
+      "results": {},
+      "tags": {}
+    }
+  }
+}

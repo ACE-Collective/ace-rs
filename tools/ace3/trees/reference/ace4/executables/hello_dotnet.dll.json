@@ -1,0 +1,374 @@
+{
+  "form": 1,
+  "observables": {
+    "file:11895b49ad26b76f03b72c0a1bc7dfbc587655e34cb4d6d5137729ff8e177f51": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "hello_dotnet.dll.extracted/.rsrc/MANIFEST/1": {}
+      },
+      "relationships": {
+        "extracted_from file:8d793450a76e17798a0e9abfd78bcb559d093a33c2d9b8483a0177fd4e256039": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/xml",
+            "type": "XML 1.0 document, Unicode text, UTF-8 (with BOM) text"
+          },
+          "summary": "File Type Analysis: XML 1.0 document, Unicode text, UTF-8 (with BOM) text (text/xml)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:1e2f670bbad4de5eab5c08e5b155f2c76b21b144eef303607d7efe35551bb8f9": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "hello_dotnet.dll.extracted/.text": {}
+      },
+      "relationships": {
+        "extracted_from file:8d793450a76e17798a0e9abfd78bcb559d093a33c2d9b8483a0177fd4e256039": true
+      },
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "80b5f291e15413dc4f00f264245ee441",
+            "sha1": "5baf8a1525f0aff6b3aef2a09419b446d59eed0a",
+            "sha256": "1e2f670bbad4de5eab5c08e5b155f2c76b21b144eef303607d7efe35551bb8f9"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:1e483c807d2f367bee67579eceb6a2b134fffce9b36e8e0a9203a3294b456715": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "hello_dotnet.dll.extracted/.rsrc/version.txt": {}
+      },
+      "relationships": {
+        "extracted_from file:8d793450a76e17798a0e9abfd78bcb559d093a33c2d9b8483a0177fd4e256039": true
+      },
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "ba0f0217a441d7495eb965ee76393ae1",
+            "sha1": "b87296c1d0718721fe89ebe71b23124e8ee30fdb",
+            "sha256": "1e483c807d2f367bee67579eceb6a2b134fffce9b36e8e0a9203a3294b456715"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:203349794a0b5789e0fa5e259b851cfccd6721de7d0418be34f0a70af6d8c525": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true,
+        "ilspy": true
+      },
+      "paths": {
+        "hello_dotnet.dll.deobfuscated_ilspy.il": {
+          "type=script.dotnet.decompiled": true
+        },
+        "hello_dotnet.dll_ilspy.il": {
+          "type=script.dotnet.decompiled": true
+        }
+      },
+      "redirection": "file:8f2b42187d05a0d43b328fabf6fff3b1f07b8c68b882fac764ac8b753da159df",
+      "relationships": {
+        "extracted_from file:8d793450a76e17798a0e9abfd78bcb559d093a33c2d9b8483a0177fd4e256039": true,
+        "extracted_from file:8f2b42187d05a0d43b328fabf6fff3b1f07b8c68b882fac764ac8b753da159df": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "file:736ef82ebf69b2d2e15c455150ccf3742824f7c6c6dd026bad6057eb6eab4ff8": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "hello_dotnet.dll.extracted/.reloc": {}
+      },
+      "relationships": {
+        "extracted_from file:8d793450a76e17798a0e9abfd78bcb559d093a33c2d9b8483a0177fd4e256039": true
+      },
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "70ef4b25eb926857d2493a9a6b5182ba",
+            "sha1": "a633dd49dc929c59e1f3381a7b1a97bdb6c4ac2e",
+            "sha256": "736ef82ebf69b2d2e15c455150ccf3742824f7c6c6dd026bad6057eb6eab4ff8"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:8d793450a76e17798a0e9abfd78bcb559d093a33c2d9b8483a0177fd4e256039": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "hello_dotnet.dll": {
+          "type=email.attachment": true,
+          "type=executable": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "archive": {
+          "details": {
+            "extracted_files": [
+              ".reloc",
+              ".text",
+              ".rsrc/version.txt",
+              ".rsrc/MANIFEST/1"
+            ],
+            "extraction_error": null,
+            "file_count": 4
+          },
+          "summary": "Archive Analysis: extracted 4 of 4 files: (.reloc, .text, .rsrc/version.txt, .rsrc/MANIFEST/1)",
+          "tags": {}
+        },
+        "de4dot": {
+          "details": {
+            "deobfuscated": true,
+            "error": null,
+            "stderr": null,
+            "stdout": "\nde4dotEx v3.10.0.0\n\nDetected Unknown Obfuscator (<root>/files/hello_dotnet.dll)\nCleaning <root>/files/hello_dotnet.dll\nRenaming all obfuscated symbols\nSaving <work>/data/var/tool_sandbox/cmd-ou2c5fj6/deobfuscated\n"
+          },
+          "summary": "De4dot Analysis: deobfuscated",
+          "tags": {}
+        },
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "93a7eb5d8e2bc1f932eb1a7fa03689b8",
+            "sha1": "5b71493dd4a2c51cbe45136fe97cd9da6cdec793",
+            "sha256": "8d793450a76e17798a0e9abfd78bcb559d093a33c2d9b8483a0177fd4e256039"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": true,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/vnd.microsoft.portable-executable",
+            "type": "PE32 executable for MS Windows 4.00 (console), Intel i386 Mono/.Net assembly, 3 sections"
+          },
+          "summary": "File Type Analysis: PE32 executable for MS Windows 4.00 (console), Intel i386 Mono/.Net assembly, 3 sections (application/vnd.microsoft.portable-executable) (portable executable)",
+          "tags": {}
+        },
+        "ilspy": {
+          "details": {
+            "exit_code": 0,
+            "stderr": null
+          },
+          "summary": "Ilspy Analysis: exit code 0",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "executable": true
+      }
+    },
+    "file:8f2b42187d05a0d43b328fabf6fff3b1f07b8c68b882fac764ac8b753da159df": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "de4dot": true,
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "hello_dotnet.dll.deobfuscated": {
+          "type=executable.dotnet": true
+        }
+      },
+      "redirection": "file:8d793450a76e17798a0e9abfd78bcb559d093a33c2d9b8483a0177fd4e256039",
+      "relationships": {
+        "extracted_from file:8d793450a76e17798a0e9abfd78bcb559d093a33c2d9b8483a0177fd4e256039": true
+      },
+      "results": {
+        "ilspy": {
+          "details": {
+            "exit_code": 0,
+            "stderr": null
+          },
+          "summary": "Ilspy Analysis: exit code 0",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "md5:70ef4b25eb926857d2493a9a6b5182ba": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:736ef82ebf69b2d2e15c455150ccf3742824f7c6c6dd026bad6057eb6eab4ff8": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:80b5f291e15413dc4f00f264245ee441": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:1e2f670bbad4de5eab5c08e5b155f2c76b21b144eef303607d7efe35551bb8f9": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:93a7eb5d8e2bc1f932eb1a7fa03689b8": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:8d793450a76e17798a0e9abfd78bcb559d093a33c2d9b8483a0177fd4e256039": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:ba0f0217a441d7495eb965ee76393ae1": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:1e483c807d2f367bee67579eceb6a2b134fffce9b36e8e0a9203a3294b456715": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:1e2f670bbad4de5eab5c08e5b155f2c76b21b144eef303607d7efe35551bb8f9": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:1e2f670bbad4de5eab5c08e5b155f2c76b21b144eef303607d7efe35551bb8f9": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:1e483c807d2f367bee67579eceb6a2b134fffce9b36e8e0a9203a3294b456715": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:1e483c807d2f367bee67579eceb6a2b134fffce9b36e8e0a9203a3294b456715": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:736ef82ebf69b2d2e15c455150ccf3742824f7c6c6dd026bad6057eb6eab4ff8": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:736ef82ebf69b2d2e15c455150ccf3742824f7c6c6dd026bad6057eb6eab4ff8": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:8d793450a76e17798a0e9abfd78bcb559d093a33c2d9b8483a0177fd4e256039": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:8d793450a76e17798a0e9abfd78bcb559d093a33c2d9b8483a0177fd4e256039": true
+      },
+      "results": {},
+      "tags": {}
+    }
+  }
+}

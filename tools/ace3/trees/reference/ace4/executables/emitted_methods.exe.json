@@ -1,0 +1,293 @@
+{
+  "form": 1,
+  "observables": {
+    "file:4acaed0973c710ce3efbecdf698c1b5503f287e5839953c9833cfded87531242": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "emitted_methods.exe.extracted/.text": {}
+      },
+      "relationships": {
+        "extracted_from file:a215ccff406af7f2d5f8834fda61424054bd0671b76d6c5930ea0a1c0028b29c": true
+      },
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "78329b7274d8309e663e9e636a73dbdf",
+            "sha1": "31e02fabb2dbe77a54fef267ba03804d2dd622f3",
+            "sha256": "4acaed0973c710ce3efbecdf698c1b5503f287e5839953c9833cfded87531242"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:670a2a07d029933b1195d950983859156cffce46690cd413ff903e80b7434e86": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "emitted_methods.exe.extracted/.reloc": {}
+      },
+      "relationships": {
+        "extracted_from file:a215ccff406af7f2d5f8834fda61424054bd0671b76d6c5930ea0a1c0028b29c": true
+      },
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "95fab12399b5b0ad4e4bdaae0ff9e66c",
+            "sha1": "75a64cca4fa96fa8c64bbbbd548a9652352c592b",
+            "sha256": "670a2a07d029933b1195d950983859156cffce46690cd413ff903e80b7434e86"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:a215ccff406af7f2d5f8834fda61424054bd0671b76d6c5930ea0a1c0028b29c": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "emitted_methods.exe": {
+          "type=email.attachment": true,
+          "type=executable": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "archive": {
+          "details": {
+            "extracted_files": [
+              ".reloc",
+              ".text"
+            ],
+            "extraction_error": null,
+            "file_count": 2
+          },
+          "summary": "Archive Analysis: extracted 2 of 2 files: (.reloc, .text)",
+          "tags": {}
+        },
+        "de4dot": {
+          "details": {
+            "deobfuscated": true,
+            "error": null,
+            "stderr": null,
+            "stdout": "\nde4dotEx v3.10.0.0\n\nDetected Unknown Obfuscator (<root>/files/emitted_methods.exe)\nCleaning <root>/files/emitted_methods.exe\nRenaming all obfuscated symbols\nSaving <work>/data/var/tool_sandbox/cmd-eqnlwgkb/deobfuscated\n"
+          },
+          "summary": "De4dot Analysis: deobfuscated",
+          "tags": {}
+        },
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "97c4e699cd12223aafffe49287f5624f",
+            "sha1": "c56c97e4c9e5d563d8e4e47a35ead993a56c4432",
+            "sha256": "a215ccff406af7f2d5f8834fda61424054bd0671b76d6c5930ea0a1c0028b29c"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": true,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/vnd.microsoft.portable-executable",
+            "type": "PE32 executable for MS Windows 4.00 (console), Intel i386 Mono/.Net assembly, 2 sections"
+          },
+          "summary": "File Type Analysis: PE32 executable for MS Windows 4.00 (console), Intel i386 Mono/.Net assembly, 2 sections (application/vnd.microsoft.portable-executable) (portable executable)",
+          "tags": {}
+        },
+        "ilspy": {
+          "details": {
+            "exit_code": 0,
+            "stderr": null
+          },
+          "summary": "Ilspy Analysis: exit code 0",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "executable": true
+      }
+    },
+    "file:b4dc3ae840130ac5149c2a6f0471f8200f4fe51eb207f10455c36b7058fd59fc": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true,
+        "ilspy": true
+      },
+      "paths": {
+        "emitted_methods.exe.deobfuscated_ilspy.il": {
+          "type=script.dotnet.decompiled": true
+        }
+      },
+      "redirection": "file:f07e830910957b48bbc19224a88cf9d761fc58ee29fad97a7dd7758e145486fb",
+      "relationships": {
+        "extracted_from file:f07e830910957b48bbc19224a88cf9d761fc58ee29fad97a7dd7758e145486fb": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "file:f07e830910957b48bbc19224a88cf9d761fc58ee29fad97a7dd7758e145486fb": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "de4dot": true,
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "emitted_methods.exe.deobfuscated": {
+          "type=executable.dotnet": true
+        }
+      },
+      "redirection": "file:a215ccff406af7f2d5f8834fda61424054bd0671b76d6c5930ea0a1c0028b29c",
+      "relationships": {
+        "extracted_from file:a215ccff406af7f2d5f8834fda61424054bd0671b76d6c5930ea0a1c0028b29c": true
+      },
+      "results": {
+        "ilspy": {
+          "details": {
+            "exit_code": 0,
+            "stderr": null
+          },
+          "summary": "Ilspy Analysis: exit code 0",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:f687a06452bea7986c963ff256d1c7f08d3d5428f2e3414734e2dbb6737aacf8": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true,
+        "ilspy": true
+      },
+      "paths": {
+        "emitted_methods.exe_ilspy.il": {
+          "type=script.dotnet.decompiled": true
+        }
+      },
+      "redirection": "file:a215ccff406af7f2d5f8834fda61424054bd0671b76d6c5930ea0a1c0028b29c",
+      "relationships": {
+        "extracted_from file:a215ccff406af7f2d5f8834fda61424054bd0671b76d6c5930ea0a1c0028b29c": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:78329b7274d8309e663e9e636a73dbdf": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:4acaed0973c710ce3efbecdf698c1b5503f287e5839953c9833cfded87531242": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:95fab12399b5b0ad4e4bdaae0ff9e66c": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:670a2a07d029933b1195d950983859156cffce46690cd413ff903e80b7434e86": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:97c4e699cd12223aafffe49287f5624f": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:a215ccff406af7f2d5f8834fda61424054bd0671b76d6c5930ea0a1c0028b29c": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:4acaed0973c710ce3efbecdf698c1b5503f287e5839953c9833cfded87531242": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:4acaed0973c710ce3efbecdf698c1b5503f287e5839953c9833cfded87531242": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:670a2a07d029933b1195d950983859156cffce46690cd413ff903e80b7434e86": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:670a2a07d029933b1195d950983859156cffce46690cd413ff903e80b7434e86": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:a215ccff406af7f2d5f8834fda61424054bd0671b76d6c5930ea0a1c0028b29c": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:a215ccff406af7f2d5f8834fda61424054bd0671b76d6c5930ea0a1c0028b29c": true
+      },
+      "results": {},
+      "tags": {}
+    }
+  }
+}

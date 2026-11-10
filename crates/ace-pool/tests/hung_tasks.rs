@@ -620,20 +620,86 @@ async fn the_sandbox_modules_run_opencv_contained() {
     assert_eq!(ocr, Some(true), "{stderr}");
 }
 
-/// docs/measurements/sandbox-modules.md: crafted files through the sandbox modules, contained, as the
-/// pool runs them. `ACE4_CRAFTED` names a directory of them; each line printed is a module, a file,
-/// how its task ended and how long it took.
+// PLAN.md 7.5 batch 11: the unpackers and decompilers through a pool, their tools run by the runner as
+// the pool's task user, who must reach each tool's files (the containment tests run them as root).
+// Each module makes a result with a file on its sample: CFR's source, upx's unpacked file, unautoit's
+// script, de4dot's cleaned assembly and ilspycmd's IL.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn the_executable_modules_run_their_tools_as_the_task_user() {
+    let runs = [
+        (
+            "java_class_decompiler",
+            "ace3/executables/VxUGJsAplRNavewkjKujp.class",
+        ),
+        ("upx", "ace3/executables/cmd-upx.exe"),
+        ("autoit", "ace3/executables/hello_autoit.exe"),
+        ("de4dot", "ace4/executables/emitted_methods.exe"),
+        ("ilspy", "ace4/executables/hello_dotnet.dll"),
+    ];
+    let manifests = vec![
+        ace_sdk::Manifest::parser::<ace_mod_sandbox::JavaClassDecompiler>(),
+        ace_sdk::Manifest::parser::<ace_mod_sandbox::UpxAnalyzer>(),
+        ace_sdk::Manifest::parser::<ace_mod_sandbox::AutoItAnalyzer>(),
+        ace_sdk::Manifest::parser::<ace_mod_sandbox::De4dotAnalyzer>(),
+        ace_sdk::Manifest::parser::<ace_mod_sandbox::IlspyAnalyzer>(),
+    ];
+    let modules: Vec<&str> = runs.iter().map(|(module, _)| *module).collect();
+    let core = Core::start(manifests, &modules, Duration::from_secs(30)).await;
+    let samples = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../samples");
+    let mut roots = Vec::new();
+    for (module, sample) in runs {
+        let bytes = std::fs::read(samples.join(sample)).expect("the sample");
+        let name = sample.rsplit('/').next().expect("a name");
+        let (root, sha256) = root_with_bytes(&core, "event", &bytes, name).await;
+        enqueue(&core, root, &sha256.to_hex(), module).await;
+        roots.push((root, module));
+    }
+    let mut pool = PoolProcess::start(test_pool(
+        &core,
+        &["parsers", "--task-user", "ace4-task", "--concurrency", "2"],
+    ));
+    for (root, _) in &roots {
+        wait_until_idle(&core, *root, Duration::from_secs(180)).await;
+    }
+    let stderr = pool.stop();
+    for (root, module) in roots {
+        let (state, error) = common::task_of(&core, root, module).await;
+        assert_eq!(state, "done", "{module}: {error:?}\n{stderr}");
+        // the sample and the file its result added
+        let files: i64 = sqlx::query_scalar(
+            "SELECT count(*) FROM analysis.observables WHERE root_id = $1 AND type = 'file'",
+        )
+        .bind(root)
+        .fetch_one(core.test_db.db().pool())
+        .await
+        .expect("the count");
+        assert_eq!(files, 2, "{module}\n{stderr}");
+    }
+}
+
+/// docs/measurements/sandbox-modules.md and executables.md: crafted files through the sandbox modules,
+/// contained, as the pool runs them. `ACE4_CRAFTED` names a directory of them, and a file goes to the
+/// module its name starts with, or to batch 10's five when none; each line printed is a module, a
+/// file, how its task ended, how long it took and the result's details.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 #[ignore = "a measurement, run by hand"]
 async fn crafted_files_through_the_sandbox_modules() {
     let dir = std::path::PathBuf::from(std::env::var("ACE4_CRAFTED").expect("ACE4_CRAFTED"));
-    let modules = ["qrcode", "ocr", "pdftotext", "exif", "pdf_analyzer"];
+    let batch_10 = ["qrcode", "ocr", "pdftotext", "exif", "pdf_analyzer"];
+    let batch_11 = ["java_class_decompiler", "upx", "autoit", "de4dot", "ilspy"];
+    let mut modules = batch_10.to_vec();
+    modules.extend(batch_11);
     let manifests = vec![
         ace_sdk::Manifest::parser::<ace_mod_sandbox::QrCodeAnalyzer>(),
         ace_sdk::Manifest::parser::<ace_mod_sandbox::OcrAnalyzer>(),
         ace_sdk::Manifest::parser::<ace_mod_sandbox::PdfTextAnalyzer>(),
         ace_sdk::Manifest::parser::<ace_mod_sandbox::ExifAnalyzer>(),
         ace_sdk::Manifest::parser::<ace_mod_pdf::PdfAnalyzer>(),
+        ace_sdk::Manifest::parser::<ace_mod_sandbox::JavaClassDecompiler>(),
+        ace_sdk::Manifest::parser::<ace_mod_sandbox::UpxAnalyzer>(),
+        ace_sdk::Manifest::parser::<ace_mod_sandbox::AutoItAnalyzer>(),
+        ace_sdk::Manifest::parser::<ace_mod_sandbox::De4dotAnalyzer>(),
+        ace_sdk::Manifest::parser::<ace_mod_sandbox::IlspyAnalyzer>(),
     ];
     let core = Core::start(manifests, &modules, Duration::from_secs(30)).await;
     let mut pool = PoolProcess::start(test_pool(
@@ -652,7 +718,11 @@ async fn crafted_files_through_the_sandbox_modules() {
     names.sort();
     for name in &names {
         let bytes = std::fs::read(dir.join(name)).expect("the file");
-        for module in modules {
+        let mine: Vec<&str> = match batch_11.iter().find(|m| name.starts_with(*m)) {
+            Some(module) => vec![*module],
+            None => batch_10.to_vec(),
+        };
+        for module in mine {
             if module == "ocr" && !name.ends_with(".png") {
                 continue;
             }
@@ -662,15 +732,16 @@ async fn crafted_files_through_the_sandbox_modules() {
             let started = Instant::now();
             wait_until_idle(&core, root, Duration::from_secs(600)).await;
             let (state, error) = common::task_of(&core, root, module).await;
-            let summary: Option<String> = sqlx::query_scalar(
-                "SELECT coalesce(summary, '') FROM analysis.results WHERE root_id = $1",
+            let result: Option<(String, String)> = sqlx::query_as(
+                "SELECT coalesce(summary, ''), left(details::text, 600) FROM analysis.results
+                 WHERE root_id = $1",
             )
             .bind(root)
             .fetch_optional(core.test_db.db().pool())
             .await
             .expect("the result");
             println!(
-                "{module} {name}: {state} in {:.1} s; {error:?}; {summary:?}",
+                "{module} {name}: {state} in {:.1} s; {error:?}; {result:?}",
                 started.elapsed().as_secs_f64()
             );
         }

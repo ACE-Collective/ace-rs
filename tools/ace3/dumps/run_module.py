@@ -828,6 +828,11 @@ TREE_MODULES = {
     "QRCodeAnalysis": "qrcode",
     "OCRAnalysis": "ocr",
     "SsdeepAnalysis": "ssdeep",
+    "JavaClassDecompilerAnalysis": "java_class_decompiler",
+    "UPXAnalysis": "upx",
+    "AutoItAnalysis": "autoit",
+    "De4dotAnalysis": "de4dot",
+    "IlspyAnalysis": "ilspy",
 }
 TREE_RUN_FIELDS = {
     "EmailAnalysis": ["details/email/log_entry/date"],
@@ -897,6 +902,9 @@ TREE_EXCLUDED = {
     "MailboxEmailAnalyzer": "mailbox_email_analyzer",
     "EmailConversationAttachmentAnalyzer": "email_conversation_attachment_analyzer",
     "EmailConversationLinkAnalyzer": "email_conversation_link_analyzer",
+    "AutoItAnalyzer": "autoit",
+    "De4dotAnalyzer": "de4dot",
+    "IlspyAnalyzer": "ilspy",
 }
 
 

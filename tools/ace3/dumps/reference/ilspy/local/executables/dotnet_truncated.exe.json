@@ -1,0 +1,82 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "IlspyAnalysis",
+      "details": {
+        "exit_code": 70,
+        "stderr": "System.BadImageFormatException: Invalid metadata section span.\n   at System.Reflection.PortableExecutable.PEHeaders.CalculateMetadataLocation(Int64 peImageSize, Int32& start, Int32& size)\n   at System.Reflection.PortableExecutable.PEHeaders..ctor(Stream peStream, Int32 size, Boolean isLoadedImage)\n   at System.Reflection.PortableExecutable.PEReader.InitializePEHeaders()\n   at System.Reflection.PortableExecutable.PEReader.get_HasMetadata()\n   at ICSharpCode.Decompiler.Metadata.MetadataFile..ctor(MetadataFileKind kind, String fileName, PEReader reader, MetadataReaderOptions metadataOptions, MetadataStringDecoder utf8Decoder) in /_/ICSharpCode.Decompiler/Metadata/MetadataFile.cs:line 269\n   at ICSharpCode.Decompiler.Metadata.PEFile..ctor(String fileName, PEReader reader, MetadataReaderOptions metadataOptions, MetadataStringDecoder utf8Decoder) in /_/ICSharpCode.Decompiler/Metadata/PEFile.cs:line 49\n   at ICSharpCode.Decompiler.Metadata.PEFile..ctor(String fileName, PEStreamOptions streamOptions, MetadataReaderOptions metadataOptions, MetadataStringDecoder utf8Decoder) in /_/ICSharpCode.Decompiler/Metadata/PEFile.cs:line 39\n   at ICSharpCode.ILSpyCmd.ILSpyCmdProgram.ShowIL(String assemblyFileName, TextWriter output) in D:\\a\\ILSpy\\ILSpy\\ICSharpCode.ILSpyCmd\\IlspyCmdProgram.cs:line 620\n   at ICSharpCode.ILSpyCmd.ILSpyCmdProgram.<OnExecuteAsync>g__PerformPerFileAction|111_0(String fileName, <>c__DisplayClass111_0&, <>c__DisplayClass111_1&) in D:\\a\\ILSpy\\ILSpy\\ICSharpCode.ILSpyCmd\\IlspyCmdProgram.cs:line 348\n   at ICSharpCode.ILSpyCmd.ILSpyCmdProgram.OnExecuteAsync(CommandLineApplication app) in D:\\a\\ILSpy\\ILSpy\\ICSharpCode.ILSpyCmd\\IlspyCmdProgram.cs:line 299\n"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.dotnet:IlspyAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=script.dotnet.decompiled"
+          ],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.dotnet:<class 'saq.modules.file_analysis.dotnet.IlspyAnalyzer'>",
+            "saq.modules.file_analysis.file_type:<class 'saq.modules.file_analysis.file_type.FileTypeAnalyzer'>",
+            "saq.modules.file_analysis.hash:<class 'saq.modules.file_analysis.hash.FileHashAnalyzer'>"
+          ],
+          "file_path": "dotnet_truncated.exe_ilspy.il",
+          "redirection": {
+            "type": "file",
+            "value": "d44f3bcdc7e3e317758486a55155b3ad4c70c322ea978742af65e682919bacc4"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "d44f3bcdc7e3e317758486a55155b3ad4c70c322ea978742af65e682919bacc4"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 0,
+          "tags": [],
+          "type": "file",
+          "value": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "yara_meta": [
+            "type=script.dotnet.decompiled"
+          ]
+        }
+      ],
+      "summary": "Ilspy Analysis: exit code 70: stderr: System.BadImageFormatException: Invalid metadata section span.\n   at System.Reflection.PortableExecutable.PEHeaders.CalculateMetadataLocation(Int64 peImageSize, Int32& start, Int32& size)\n   at System.Reflection.PortableExecutable.PEHeaders..ctor(Stream peStream, Int32 size, Boolean isLoadedImage)\n   at System.Reflection.PortableExecutable.PEReader.InitializePEHeaders()\n   at System.Reflection.PortableExecutable.PEReader.get_HasMetadata()\n   at ICSharpCode.Decompiler.Metadata.MetadataFile..ctor(MetadataFileKind kind, String fileName, PEReader reader, MetadataReaderOptions metadataOptions, MetadataStringDecoder utf8Decoder) in /_/ICSharpCode.Decompiler/Metadata/MetadataFile.cs:line 269\n   at ICSharpCode.Decompiler.Metadata.PEFile..ctor(String fileName, PEReader reader, MetadataReaderOptions metadataOptions, MetadataStringDecoder utf8Decoder) in /_/ICSharpCode.Decompiler/Metadata/PEFile.cs:line 49\n   at ICSharpCode.Decompiler.Metadata.PEFile..ctor(String fileName, PEStreamOptions streamOptions, MetadataReaderOptions metadataOptions, MetadataStringDecoder utf8Decoder) in /_/ICSharpCode.Decompiler/Metadata/PEFile.cs:line 39\n   at ICSharpCode.ILSpyCmd.ILSpyCmdProgram.ShowIL(String assemblyFileName, TextWriter output) in D:\\a\\ILSpy\\ILSpy\\ICSharpCode.ILSpyCmd\\IlspyCmdProgram.cs:line 620\n   at ICSharpCode.ILSpyCmd.ILSpyCmdProgram.<OnExecuteAsync>g__PerformPerFileAction|111_0(String fileName, <>c__DisplayClass111_0&, <>c__DisplayClass111_1&) in D:\\a\\ILSpy\\ILSpy\\ICSharpCode.ILSpyCmd\\IlspyCmdProgram.cs:line 348\n   at ICSharpCode.ILSpyCmd.ILSpyCmdProgram.OnExecuteAsync(CommandLineApplication app) in D:\\a\\ILSpy\\ILSpy\\ICSharpCode.ILSpyCmd\\IlspyCmdProgram.cs:line 299\n",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "local/executables/dotnet_truncated.exe",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "dotnet_truncated.exe",
+      "size": 4096,
+      "type": "file",
+      "value": "d44f3bcdc7e3e317758486a55155b3ad4c70c322ea978742af65e682919bacc4"
+    }
+  },
+  "module": "ilspy",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "dotnet_truncated.exe",
+    "relationships": [],
+    "size": 4096,
+    "tags": [],
+    "type": "file",
+    "value": "d44f3bcdc7e3e317758486a55155b3ad4c70c322ea978742af65e682919bacc4",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

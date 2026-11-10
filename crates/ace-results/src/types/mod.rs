@@ -10,6 +10,7 @@ pub mod email;
 pub mod email_archive;
 pub mod emailtree;
 pub mod encrypted;
+pub mod executables;
 pub mod file_hash;
 pub mod file_type;
 pub mod html;

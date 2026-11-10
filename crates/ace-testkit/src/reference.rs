@@ -364,6 +364,9 @@ fn ace3_module_name(excluded: &str) -> String {
         "PDFTextAnalyzer" => "pdftotext",
         "ExifAnalyzer" => "exif",
         "QRCodeAnalyzer" => "qrcode",
+        "AutoItAnalyzer" => "autoit",
+        "De4dotAnalyzer" => "de4dot",
+        "IlspyAnalyzer" => "ilspy",
         other => other,
     }
     .to_owned()

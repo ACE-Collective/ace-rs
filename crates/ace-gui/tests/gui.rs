@@ -2282,6 +2282,11 @@ fn each_module_s_view_draws_its_fixture() {
         "qrcode_qr_code_pdf",
         "ocr_text_plain",
         "ssdeep_edited_little",
+        "java_class_decompiler_class",
+        "upx_cmd_upx",
+        "autoit_hello_autoit",
+        "de4dot_hello_dotnet",
+        "ilspy_hello_dotnet",
     ];
     let mut types = BTreeSet::new();
     for name in fixtures {
@@ -2695,6 +2700,35 @@ fn each_module_s_view_draws_its_fixture() {
             "ssdeep_edited_little" => {
                 contains_all(&html, &["<tr><th>match</th><td>base_text (97%)</td></tr>"])
             }
+            "java_class_decompiler_class" => contains_all(
+                &html,
+                &[
+                    "<tr><th>decompiled_file</th><td>VxUGJsAplRNavewkjKujp.class-0-decompiled.java</td></tr>",
+                ],
+            ),
+            "upx_cmd_upx" => contains_all(
+                &html,
+                &["<tr><th>output_file</th><td>cmd-upx.exe.upx.exe</td></tr>"],
+            ),
+            "autoit_hello_autoit" => contains_all(
+                &html,
+                &[
+                    "<tr><th>output_dir</th><td>hello_autoit.exe.autoit</td></tr>",
+                    "<tr><th>script</th><td>script_1.au3</td></tr>",
+                ],
+            ),
+            // what de4dot prints holds a file's name, which is escaped
+            "de4dot_hello_dotnet" => {
+                contains_all(
+                    &html,
+                    &[
+                        "<tr><th>deobfuscated</th><td>yes</td></tr>",
+                        "Detected Unknown Obfuscator (/tmp/ace4-task/&#60;b&#62;hello_dotnet.dll)",
+                    ],
+                );
+                assert!(!html.contains("<b>hello"), "{html}");
+            }
+            "ilspy_hello_dotnet" => contains_all(&html, &["<tr><th>exit_code</th><td>0</td></tr>"]),
             other => panic!("no checks for {other}"),
         }
     }

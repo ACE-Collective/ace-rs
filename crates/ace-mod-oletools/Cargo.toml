@@ -24,6 +24,8 @@ name = "xlmdeobfuscator"
 path = "src/bin/xlmdeobfuscator.rs"
 
 [dependencies]
+# Python's unicode_escape codec, shared with ace-mod-sandbox
+ace-pycompat = { path = "../ace-pycompat" }
 ace-results = { path = "../ace-results" }
 ace-sdk = { path = "../ace-sdk" }
 ace-xlrd = { path = "../ace-xlrd" }

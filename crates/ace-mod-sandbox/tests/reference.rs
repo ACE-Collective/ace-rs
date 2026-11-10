@@ -1,13 +1,19 @@
-//! PLAN.md 7.5 batch 10: the sandbox modules against ace3's reference dumps, made by
+//! PLAN.md 7.5 batches 10 and 11: the sandbox modules against ace3's reference dumps, made by
 //! `tools/ace3/dumps/make-dumps pdftotext exif qrcode ocr` from the samples and from
-//! `tools/ace3/dumps/fixtures/images`, which `tools/samples/make-image-files` writes. The tools run as
+//! `tools/ace3/dumps/fixtures/images`, which `tools/samples/make-image-files` writes, and by
+//! `make-dumps java_class_decompiler upx autoit de4dot ilspy` from the executable samples, which
+//! `tools/samples/make-executables` writes (those under `samples/local/` are git-ignored, and their
+//! dumps are skipped where the sample isn't there). The tools run as
 //! plain processes (`ace_sdk::tools::LocalRunner`), the dev image's, which are the sandbox image's at
 //! ace3's versions. Every difference is listed and explained in differences.md, next to this file.
 
 use std::path::{Path, PathBuf};
 
 use ace_mod_sandbox::qrcode::QRCODE_FILTER;
-use ace_mod_sandbox::{ExifAnalyzer, OcrAnalyzer, PdfTextAnalyzer, QrCodeAnalyzer};
+use ace_mod_sandbox::{
+    AutoItAnalyzer, De4dotAnalyzer, ExifAnalyzer, IlspyAnalyzer, JavaClassDecompiler, OcrAnalyzer,
+    PdfTextAnalyzer, QrCodeAnalyzer, UpxAnalyzer,
+};
 use ace_sdk::Parser;
 use ace_sdk::lists::{Entry, MatchKind};
 use ace_testkit::Harness;
@@ -42,6 +48,10 @@ fn compare<M: Parser>(
 ) -> Vec<(String, Vec<Difference>)> {
     let mut compared = Vec::new();
     for dump in Dump::all(module).expect("the dumps read") {
+        if !local_file(&dump).exists() {
+            // a git-ignored sample this checkout doesn't have
+            continue;
+        }
         let mut harness = Harness::<M>::new().expect("harness");
         if let Some(file_type) = dump.file_type() {
             harness = harness.dependency_result("file_type", file_type.clone());
@@ -119,11 +129,37 @@ fn matches_the_reference_dumps_or_lists_each_difference() {
         "OCRAnalysis",
         Some(("images/text_plain.png", "ocr_text_plain")),
     ));
+    let qr_dumps = compared.len();
+    // PLAN.md 7.5 batch 11
+    let class = "ace3/executables/VxUGJsAplRNavewkjKujp.class";
+    compared.extend(compare::<JavaClassDecompiler>(
+        "java_class_decompiler",
+        "JavaClassDecompilerAnalysis",
+        Some((class, "java_class_decompiler_class")),
+    ));
+    compared.extend(compare::<UpxAnalyzer>(
+        "upx",
+        "UPXAnalysis",
+        Some(("ace3/executables/cmd-upx.exe", "upx_cmd_upx")),
+    ));
+    compared.extend(compare::<AutoItAnalyzer>(
+        "autoit",
+        "AutoItAnalysis",
+        Some(("ace3/executables/hello_autoit.exe", "autoit_hello_autoit")),
+    ));
+    // its view's fixture is written by hand: de4dot prints the path it was given, the harness's
+    compared.extend(compare::<De4dotAnalyzer>("de4dot", "De4dotAnalysis", None));
+    compared.extend(compare::<IlspyAnalyzer>(
+        "ilspy",
+        "IlspyAnalysis",
+        Some(("ace4/executables/hello_dotnet.dll", "ilspy_hello_dotnet")),
+    ));
     assert!(
-        compared.len() >= 400,
-        "only {} dumps compared",
-        compared.len()
+        compared.len() - qr_dumps >= 5 * 10,
+        "only {} executable dumps compared",
+        compared.len() - qr_dumps
     );
+    assert!(qr_dumps >= 400, "only {} dumps compared", qr_dumps);
     if let Err(report) = listed.check(&compared, &[]) {
         panic!("{report}");
     }

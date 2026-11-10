@@ -1446,6 +1446,13 @@ RUNS = {
     "qrcode": qrcode_runs,
     "ocr": ocr_runs,
     "ssdeep": ssdeep_runs,
+    # PLAN.md 7.5 batch 11: every executable sample (tools/samples/make-executables) through each
+    # unpacker and decompiler, which skips the ones that aren't its kind
+    "java_class_decompiler": lambda: file_runs("java_class_decompiler", [], "executable"),
+    "upx": lambda: file_runs("upx", [], "executable"),
+    "autoit": lambda: file_runs("autoit", [], "executable"),
+    "de4dot": lambda: file_runs("de4dot", [], "executable"),
+    "ilspy": lambda: file_runs("ilspy", [], "executable"),
 }
 
 
@@ -1731,6 +1738,11 @@ def run(spec):
         "qrcode": "QRCodeAnalysis",
         "ocr": "OCRAnalysis",
         "ssdeep": "SsdeepAnalysis",
+        "java_class_decompiler": "JavaClassDecompilerAnalysis",
+        "upx": "UPXAnalysis",
+        "autoit": "AutoItAnalysis",
+        "de4dot": "De4dotAnalysis",
+        "ilspy": "IlspyAnalysis",
     }[spec["module"]]
     analysis = next((a for a in parsed["analyses"] if a["class"] == target_class), None)
     return {

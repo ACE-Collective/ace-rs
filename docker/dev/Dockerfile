@@ -1,5 +1,5 @@
 # The dev container: the pinned toolchain plus mold, sccache and bacon, and the sandbox pool's
-# tools and OpenCV (PLAN.md 7.5 batch 10).
+# tools and OpenCV (PLAN.md 7.5 batches 10 and 11).
 
 # OpenCV 5.0.0, the release ace3's opencv-python 5.0.0.93 is built from, for the ocr and qrcode
 # modules' `opencv` crate (PLAN.md 7.3). It keeps the wheel's defaults, so the same code runs: its
@@ -29,6 +29,54 @@ RUN tar -xzf /tmp/opencv-5.0.0.tar.gz -C /tmp \
     && cmake --install /tmp/opencv-build \
     && cp /tmp/opencv-build/CMakeCache.txt /opt/opencv/CMakeCache.txt \
     && rm -rf /tmp/opencv-5.0.0.tar.gz /tmp/opencv-5.0.0 /tmp/opencv-build
+
+# unautoit, the AutoIt extractor the autoit module runs (PLAN.md 7.5 batch 11), built from
+# vendor/unautoit (compose.yaml gives this build the vendor directory), which is ace3's third_party/unautoit, as ace3's Dockerfile builds it: libautoit's
+# tests, then a static binary with Go 1.27.3, ace3's, so it's the same binary. It's GPL-3 and runs as
+# a program of its own; its licence and those of the Go modules in it go beside it, as ace3's do.
+# docker/dev/Dockerfile and docker/ace4/Dockerfile have this same stage.
+FROM golang:1.27.3-trixie AS unautoit
+ARG TARGETOS
+ARG TARGETARCH
+COPY --from=vendor unautoit /src/unautoit
+RUN cd /src/unautoit/third_party/libautoit && go test ./... \
+    && cd /src/unautoit && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -o /out/unautoit . \
+    && mkdir -p /out/doc/modules \
+    && cp LICENSE /out/doc/LICENSE && cp "$(go env GOROOT)/LICENSE" /out/doc/LICENSE.go \
+    && GOOS=$TARGETOS GOARCH=$TARGETARCH go list -deps \
+        -f '{{with .Module}}{{if and (not .Main) (not .Replace)}}{{.Path}} {{.Dir}}{{end}}{{end}}' . | sort -u | \
+    while read -r path dir; do \
+        mkdir -p "/out/doc/modules/$path" && \
+        find "$dir" -maxdepth 1 -type f \( -iname 'licen[cs]e*' -o -iname 'copying*' -o -iname 'notice*' \) \
+            -exec cp {} "/out/doc/modules/$path/" \; && \
+        [ -n "$(ls "/out/doc/modules/$path")" ] || { echo "no license file in Go module $path" >&2; exit 1; }; \
+    done
+
+# ilspycmd and de4dotEx, the .NET tools the ilspy and de4dot modules run (PLAN.md 7.5 batch 11,
+# decision 18), as ace3's Dockerfile installs them: ilspycmd 11.0.0.9375 as a .NET tool, and de4dotEx
+# 3.10.0 (commit 5ffdf0f0) published self-contained, on the .NET SDK 10.0.403, ace3's, which bundles
+# the 10.0.14 runtime. The SDK stays in this stage: ilspycmd runs on the runtime alone.
+# docker/dev/Dockerfile and docker/ace4/Dockerfile have this same stage.
+FROM debian:13.7-slim AS dotnet-tools
+ENV DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1
+ADD --checksum=sha256:d0c2f69250c6ce0d4c6220b142f999d039a3c560af7f980b943687d106ca8e38 \
+    https://packages.microsoft.com/config/debian/13/packages-microsoft-prod.deb /tmp/packages-microsoft-prod.deb
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates git \
+    && dpkg -i /tmp/packages-microsoft-prod.deb \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends dotnet-sdk-10.0=10.0.403-1 \
+        dotnet-runtime-10.0=10.0.14-1 dotnet-hostfxr-10.0=10.0.14-1 dotnet-host=10.0.14-1 \
+        dotnet-runtime-deps-10.0=10.0.14-1 aspnetcore-runtime-10.0=10.0.14-1 \
+        dotnet-targeting-pack-10.0=10.0.14-1 aspnetcore-targeting-pack-10.0=10.0.14-1 \
+        dotnet-apphost-pack-10.0=10.0.14-1 \
+    && rm -rf /var/lib/apt/lists/* /tmp/packages-microsoft-prod.deb
+RUN dotnet tool install --tool-path /opt/dotnet ilspycmd --version 11.0.0.9375 \
+    && git clone --branch 3.10.0 --depth 1 https://github.com/GDATAAdvancedAnalytics/de4dotEx.git /usr/src/de4dotEx \
+    && test "$(git -C /usr/src/de4dotEx rev-parse HEAD)" = 5ffdf0f0da26034b9eb860f12ae26aab5968b0e2 \
+    && dotnet publish /usr/src/de4dotEx/de4dot/de4dot.csproj -c Release -f net10.0 -o /opt/de4dotEx \
+    && chmod +x /opt/de4dotEx/de4dot \
+    && rm -rf /usr/src/de4dotEx /root/.nuget
 
 # The tag must match the channel in rust-toolchain.toml, so rustup never downloads another toolchain.
 FROM rust:1.99.1-trixie
@@ -86,12 +134,16 @@ CMD ["poll-host-changes"]
 RUN useradd --system --uid 10001 --user-group --no-create-home --home-dir /nonexistent \
         --shell /usr/sbin/nologin ace4-task
 
-# The sandbox pool's tools (PLAN.md 7.5 batch 10, docs/modules.md's *External tools*), at the
+# The sandbox pool's tools (PLAN.md 7.5 batches 10 and 11, docs/modules.md's *External tools*), at the
 # versions docker/ace4/Dockerfile's sandbox image pins, which are ace3's, so the sandbox runner's
 # tests and the modules' tests run the programs ace3 runs. unace is in non-free. strace is for
 # finding what a tool opens. libclang is what the `opencv` crate generates its bindings with, over
 # the OpenCV stage above (OPENCV_* below).
+ADD --checksum=sha256:d0c2f69250c6ce0d4c6220b142f999d039a3c560af7f980b943687d106ca8e38 \
+    https://packages.microsoft.com/config/debian/13/packages-microsoft-prod.deb /tmp/packages-microsoft-prod.deb
 RUN sed -i -e '/^Components: main$/ s/$/ contrib non-free/' /etc/apt/sources.list.d/debian.sources \
+    && dpkg -i /tmp/packages-microsoft-prod.deb && rm /tmp/packages-microsoft-prod.deb \
+    && mkdir -p /usr/share/man/man1 \
     && apt-get update \
     && apt-get install -y --no-install-recommends \
         libclang-dev=1:19.0-63 \
@@ -108,7 +160,20 @@ RUN sed -i -e '/^Components: main$/ s/$/ contrib non-free/' /etc/apt/sources.lis
         libgs10-common=10.05.1~dfsg-1+deb13u3 fonts-urw-base35=20200910-8 \
         unace-nonfree=2.5-10 \
         hunspell-en-us=1:2020.12.07-4 \
+        openjdk-21-jre-headless=21.0.13+9-1~deb13u2 \
+        upx-ucl=4.2.4-1.1 \
+        dotnet-runtime-10.0=10.0.14-1 dotnet-hostfxr-10.0=10.0.14-1 dotnet-host=10.0.14-1 \
+        dotnet-runtime-deps-10.0=10.0.14-1 \
     && rm -rf /var/lib/apt/lists/*
+# installed rather than added in place: ADD's --chmod would give the directory it makes the file's mode
+# too, and the task's user couldn't reach the jar
+ADD --checksum=sha256:316e9015b9af2953fcff4fe86bf3bba705f32e7cd25bd6e535c698de8a25e837 \
+    https://github.com/leibnitz27/cfr/releases/download/0.151/cfr-0.151.jar /tmp/cfr-0.151.jar
+RUN install -D -m 644 /tmp/cfr-0.151.jar /usr/local/share/java/cfr-0.151.jar && rm /tmp/cfr-0.151.jar
+COPY --from=unautoit /out/unautoit /usr/local/bin/unautoit
+COPY --from=unautoit /out/doc /usr/local/share/doc/unautoit
+COPY --from=dotnet-tools /opt/dotnet /opt/dotnet
+COPY --from=dotnet-tools /opt/de4dotEx /opt/de4dotEx
 COPY --from=opencv /opt/opencv /opt/opencv
 # The `opencv` crate links the static libraries above rather than probing pkg-config. It drops a
 # leading `lib` from each name, so the image libraries, `liblibpng.a` and the like, keep one.

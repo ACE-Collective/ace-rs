@@ -1,0 +1,36 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [],
+  "input": {
+    "directives": [],
+    "label": "local/executables/dotnet_truncated.exe",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "dotnet_truncated.exe",
+      "size": 4096,
+      "type": "file",
+      "value": "d44f3bcdc7e3e317758486a55155b3ad4c70c322ea978742af65e682919bacc4"
+    }
+  },
+  "module": "autoit",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "dotnet_truncated.exe",
+    "relationships": [],
+    "size": 4096,
+    "tags": [],
+    "type": "file",
+    "value": "d44f3bcdc7e3e317758486a55155b3ad4c70c322ea978742af65e682919bacc4",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

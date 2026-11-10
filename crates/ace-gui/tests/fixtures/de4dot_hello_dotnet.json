@@ -1,0 +1,39 @@
+{
+  "analysis_type": "de4dot_analysis",
+  "schema_version": 1,
+  "details": {
+    "deobfuscated": true,
+    "error": null,
+    "stderr": null,
+    "stdout": "\nde4dotEx v3.10.0.0\n\nDetected Unknown Obfuscator (/tmp/ace4-task/<b>hello_dotnet.dll)\nCleaning /tmp/ace4-task/<b>hello_dotnet.dll\nRenaming all obfuscated symbols\nSaving /tmp/ace4-task/runs/2/deobfuscated\n"
+  },
+  "summary": "De4dot Analysis: deobfuscated",
+  "files": [
+    {
+      "path": "<b>hello_dotnet.dll.deobfuscated",
+      "sha256": "0b5f6c0e1a0dc95c7dc1a7a3f41f3a9c90d7c6d6e6f5b3a0b7f2c6d1e9a8b7c6",
+      "size": 4608,
+      "yara_meta": [
+        "type=executable.dotnet"
+      ],
+      "exclude_modules": [
+        "de4dot",
+        "file_hash_analyzer",
+        "file_type"
+      ],
+      "relationships": [
+        {
+          "type": "extracted_from",
+          "target": {
+            "type": "file",
+            "value": "8d793450a76e17798a0e9abfd78bcb559d093a33c2d9b8483a0177fd4e256039"
+          }
+        }
+      ],
+      "redirection": {
+        "type": "file",
+        "value": "8d793450a76e17798a0e9abfd78bcb559d093a33c2d9b8483a0177fd4e256039"
+      }
+    }
+  ]
+}

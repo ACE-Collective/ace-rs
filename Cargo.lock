@@ -479,6 +479,7 @@ dependencies = [
 name = "ace-mod-oletools"
 version = "0.1.0"
 dependencies = [
+ "ace-pycompat",
  "ace-results",
  "ace-sdk",
  "ace-testkit",
@@ -559,6 +560,7 @@ dependencies = [
  "serde",
  "serde_json",
  "spellbook",
+ "tempfile",
  "tracing",
 ]
 

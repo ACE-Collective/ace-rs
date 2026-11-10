@@ -54,6 +54,9 @@ pub struct ToolSpec {
     pub program: &'static str,
     /// For a script, the interpreter its first line names, which the kernel runs too.
     pub interpreter: Option<&'static str>,
+    /// Arguments it always gets before the request's, such as the JVM's options and CFR's jar,
+    /// which make `java` the CFR tool.
+    pub args: &'static [&'static str],
     /// The files and directories it reads besides its own libraries, such as its data.
     pub reads: &'static [&'static str],
     /// Variables it always gets, besides `PATH`, `LANG`, `HOME` and `TMPDIR`.
@@ -70,6 +73,7 @@ impl ToolSpec {
             name,
             program,
             interpreter: None,
+            args: &[],
             reads: &[],
             env: &[],
             request_env: &[],
@@ -137,7 +141,60 @@ pub const SANDBOX_TOOLS: &[ToolSpec] = &[
         ..ToolSpec::new("gs", "/usr/bin/gs")
     },
     ToolSpec::new("unace", "/usr/bin/unace"),
+    // CFR 0.151 on OpenJDK 21, with ace3's options (java.py's JVM_OPTIONS): the JVM reserves more
+    // address space than the memory limit unless told how much heap and class space to reserve.
+    // Its configuration is in /etc, where the JDK's conf directory links.
+    ToolSpec {
+        args: &[
+            "-Xmx1g",
+            "-XX:CompressedClassSpaceSize=128m",
+            "-XX:ReservedCodeCacheSize=128m",
+            "-XX:-UsePerfData",
+            "-jar",
+            CFR_JAR,
+        ],
+        reads: &[JVM, "/etc/java-21-openjdk", CFR_JAR],
+        ..ToolSpec::new("cfr", "/usr/bin/java")
+    },
+    ToolSpec::new("upx", "/usr/bin/upx"),
+    ToolSpec::new("unautoit", "/usr/local/bin/unautoit"),
+    // de4dotEx, self-contained, and ilspycmd on the shared runtime, with ace3's DOTNET_ENV and
+    // DOTNET_MEMORY_LIMIT (dotnet.py): the GC reserves 256 GB of address space without a heap limit
+    // and a region range, and the runtime still reserves about 5 GB to use a few hundred MB, so the
+    // heap limit is what bounds its memory. CoreCLR won't start without its own /proc/<pid>, its
+    // maps and cgroup, which ace3 makes readable as /proc/self; that rule is the tool's own
+    // directory, opened by the tool process that execs it. de4dot loads ICU, and OpenSSL by dlopen
+    // to hash a reference's public key to its token (a test in ace-pool's containment.rs); ilspycmd
+    // runs with invariant globalization and was never seen to hash.
+    ToolSpec {
+        reads: &[
+            "/opt/de4dotEx",
+            "/proc/self",
+            ICU_UC,
+            ICU_I18N,
+            ICU_DATA,
+            LIBSSL,
+            LIBCRYPTO,
+        ],
+        env: DOTNET_ENV,
+        memory_bytes: DOTNET_MEMORY_LIMIT,
+        ..ToolSpec::new("de4dot", "/opt/de4dotEx/de4dot")
+    },
+    ToolSpec {
+        reads: &["/opt/dotnet", "/usr/share/dotnet", "/proc/self"],
+        env: DOTNET_ENV,
+        memory_bytes: DOTNET_MEMORY_LIMIT,
+        ..ToolSpec::new("ilspycmd", "/opt/dotnet/ilspycmd")
+    },
 ];
+
+/// Where the sandbox image keeps CFR's jar.
+pub const CFR_JAR: &str = "/usr/local/share/java/cfr-0.151.jar";
+const DOTNET_ENV: &[(&str, &str)] = &[
+    ("DOTNET_GCHeapHardLimit", "0x40000000"),
+    ("DOTNET_GCRegionRange", "0x80000000"),
+];
+const DOTNET_MEMORY_LIMIT: u64 = 12 * 1024 * 1024 * 1024;
 
 const POPPLER: &[&str] = &[
     "/usr/share/poppler",
@@ -147,6 +204,30 @@ const POPPLER: &[&str] = &[
     "/var/cache/fontconfig",
 ];
 
+#[cfg(target_arch = "aarch64")]
+const JVM: &str = "/usr/lib/jvm/java-21-openjdk-arm64";
+#[cfg(not(target_arch = "aarch64"))]
+const JVM: &str = "/usr/lib/jvm/java-21-openjdk-amd64";
+#[cfg(target_arch = "aarch64")]
+const ICU_UC: &str = "/usr/lib/aarch64-linux-gnu/libicuuc.so.76";
+#[cfg(not(target_arch = "aarch64"))]
+const ICU_UC: &str = "/usr/lib/x86_64-linux-gnu/libicuuc.so.76";
+#[cfg(target_arch = "aarch64")]
+const ICU_I18N: &str = "/usr/lib/aarch64-linux-gnu/libicui18n.so.76";
+#[cfg(not(target_arch = "aarch64"))]
+const ICU_I18N: &str = "/usr/lib/x86_64-linux-gnu/libicui18n.so.76";
+#[cfg(target_arch = "aarch64")]
+const ICU_DATA: &str = "/usr/lib/aarch64-linux-gnu/libicudata.so.76";
+#[cfg(not(target_arch = "aarch64"))]
+const ICU_DATA: &str = "/usr/lib/x86_64-linux-gnu/libicudata.so.76";
+#[cfg(target_arch = "aarch64")]
+const LIBSSL: &str = "/usr/lib/aarch64-linux-gnu/libssl.so.3";
+#[cfg(not(target_arch = "aarch64"))]
+const LIBSSL: &str = "/usr/lib/x86_64-linux-gnu/libssl.so.3";
+#[cfg(target_arch = "aarch64")]
+const LIBCRYPTO: &str = "/usr/lib/aarch64-linux-gnu/libcrypto.so.3";
+#[cfg(not(target_arch = "aarch64"))]
+const LIBCRYPTO: &str = "/usr/lib/x86_64-linux-gnu/libcrypto.so.3";
 #[cfg(target_arch = "aarch64")]
 const IMAGEMAGICK_MODULES: &str = "/usr/lib/aarch64-linux-gnu/ImageMagick-7.1.1";
 #[cfg(not(target_arch = "aarch64"))]
@@ -581,6 +662,7 @@ impl ToolRunner for LocalRunner {
         }
         let env = environment(spec, run, &workdir)?;
         let mut child = Command::new(spec.program)
+            .args(spec.args)
             .args(&run.args)
             .env_clear()
             .envs(env)

@@ -1,0 +1,36 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [],
+  "input": {
+    "directives": [],
+    "label": "ace3/executables/VxUGJsAplRNavewkjKujp.class",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "VxUGJsAplRNavewkjKujp.class",
+      "size": 5038,
+      "type": "file",
+      "value": "9277f9edf7e3406a3ccf23eacdd636e77083caa00a4c1317159533e7bccc320c"
+    }
+  },
+  "module": "autoit",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "VxUGJsAplRNavewkjKujp.class",
+    "relationships": [],
+    "size": 5038,
+    "tags": [],
+    "type": "file",
+    "value": "9277f9edf7e3406a3ccf23eacdd636e77083caa00a4c1317159533e7bccc320c",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

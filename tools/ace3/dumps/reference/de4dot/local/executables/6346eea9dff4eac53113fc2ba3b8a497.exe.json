@@ -1,0 +1,84 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "De4dotAnalysis",
+      "details": {
+        "deobfuscated": true,
+        "error": null,
+        "stderr": null,
+        "stdout": "\nde4dotEx v3.10.0.0\n\nDetected Obfuscar (<root>/files/6346eea9dff4eac53113fc2ba3b8a497.exe)\nCleaning <root>/files/6346eea9dff4eac53113fc2ba3b8a497.exe\nRenaming all obfuscated symbols\nSaving <work>/data/var/tool_sandbox/cmd-8w4uq4n3/deobfuscated\n"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.dotnet:De4dotAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=executable.dotnet"
+          ],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.dotnet:<class 'saq.modules.file_analysis.dotnet.De4dotAnalyzer'>",
+            "saq.modules.file_analysis.file_type:<class 'saq.modules.file_analysis.file_type.FileTypeAnalyzer'>",
+            "saq.modules.file_analysis.hash:<class 'saq.modules.file_analysis.hash.FileHashAnalyzer'>"
+          ],
+          "file_path": "6346eea9dff4eac53113fc2ba3b8a497.exe.deobfuscated",
+          "redirection": {
+            "type": "file",
+            "value": "a4bf63595857a90917809a72bd400cdfd6b3a1546659f6d3da26eecc05198d9c"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "a4bf63595857a90917809a72bd400cdfd6b3a1546659f6d3da26eecc05198d9c"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 205312,
+          "tags": [],
+          "type": "file",
+          "value": "1002ef50de6088d029b17a54e0e7ff84446162799a826a605a2e9a1f94d87de0",
+          "yara_meta": [
+            "type=executable.dotnet"
+          ]
+        }
+      ],
+      "summary": "De4dot Analysis: deobfuscated",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "local/executables/6346eea9dff4eac53113fc2ba3b8a497.exe",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "6346eea9dff4eac53113fc2ba3b8a497.exe",
+      "size": 222208,
+      "type": "file",
+      "value": "a4bf63595857a90917809a72bd400cdfd6b3a1546659f6d3da26eecc05198d9c"
+    }
+  },
+  "module": "de4dot",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "6346eea9dff4eac53113fc2ba3b8a497.exe",
+    "relationships": [],
+    "size": 222208,
+    "tags": [],
+    "type": "file",
+    "value": "a4bf63595857a90917809a72bd400cdfd6b3a1546659f6d3da26eecc05198d9c",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

@@ -1,0 +1,143 @@
+#!/usr/bin/env python3
+"""Writes the crafted files PLAN.md 7.5 batch 11's unpackers and decompilers are measured on
+(docs/measurements/executables.md), each named after the module it's for. Some are large, so they go
+to a directory given here, not into the repository.
+
+    tools/samples/make-executables-hostile DIR
+
+- java_class_decompiler_branches_4600.class: one method of 4,600 blocks (as many as 16-bit branch offsets reach), each branching to one picked
+  by a fixed generator, which CFR's structuring takes superlinear time over (3,000 take it 14 s).
+- upx_zeros_400mb.exe: a PE file of 400 MB of zeros, packed by the image's upx to 612 KB. upx won't
+  pack a larger one (`CantPackException: mem_size`), so it can't unpack one past the runner's 1 GiB.
+- autoit_scan_400mb.exe: a PE file of 400 MB holding AutoIt's marker and no AutoIt header, which
+  libautoit looks for under each of 256 XOR keys, each a pass over the whole file.
+- autoit_alloc_4gb.exe: ace3's hello_autoit.exe container with one resource that says it unpacks to
+  4 GiB, which libautoit allocates as it lists the file.
+- de4dot_methods_300k.exe: 300,000 small methods, which de4dot detects as an unknown obfuscator and
+  runs out of its 1 GB heap cleaning; ilspy_nops_70m.exe: one method of 70 million nops, whose IL
+  passes the runner's 1 GiB file size limit. Both made by tools/samples/make-executables' generator
+  (System.Reflection.Emit) on the .NET SDK of docker/ace4/Dockerfile's dotnet-tools stage.
+
+Needs Docker: upx runs in the dev image (ace4-dev), the .NET generator in that stage.
+"""
+
+import importlib.machinery
+import importlib.util
+import random
+import struct
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent.parent
+_loader = importlib.machinery.SourceFileLoader("make_executables",
+                                               str(ROOT / "tools" / "samples" / "make-executables"))
+_spec = importlib.util.spec_from_loader("make_executables", _loader)
+executables = importlib.util.module_from_spec(_spec)
+_loader.exec_module(executables)
+MB = 1024 * 1024
+
+
+def class_file(name, code):
+    """A Java 5 class `name` with one static method m(I)I of `code`, which CFR reads unverified."""
+    def utf8(text):
+        data = text.encode()
+        return b"\x01" + struct.pack(">H", len(data)) + data
+
+    pool = [utf8(name), b"\x07" + struct.pack(">H", 1), utf8("java/lang/Object"), b"\x07" + struct.pack(">H", 3),
+            utf8("m"), utf8("(I)I"), utf8("Code")]
+    out = b"\xca\xfe\xba\xbe" + struct.pack(">HHH", 0, 49, len(pool) + 1) + b"".join(pool)
+    out += struct.pack(">HHHHHH", 0x21, 2, 4, 0, 0, 1)
+    attribute = struct.pack(">HHI", 4, 4, len(code)) + code + struct.pack(">HH", 0, 0)
+    out += struct.pack(">HHHHHI", 0x09, 5, 6, 1, 7, len(attribute)) + attribute
+    return out + struct.pack(">H", 0)
+
+
+def branches(n, seed=1):
+    """n blocks of `iinc 1 1; iload_0; ifeq <a block>`, then `iload_1; ireturn`."""
+    rnd = random.Random(seed)
+    block = 7
+    code = b""
+    for i in range(n):
+        target = rnd.randrange(n) * block
+        code += b"\x84\x01\x01\x1a\x99" + struct.pack(">h", target - (i * block + 4))
+    return code + b"\x1b\xac"
+
+
+def pe32(data_size):
+    """A PE32 console executable: .text holding `ret`, .data holding data_size zero bytes. The
+    headers and .text, and the size of .data's zeros, which the caller writes."""
+    file_align, section_align = 0x200, 0x1000
+    def align(value, to):
+        return (value + to - 1) // to * to
+    text_raw, data_raw = 0x200, align(data_size, file_align)
+    text_rva, data_rva = 0x1000, 0x2000
+    dos = b"MZ" + bytes(58) + struct.pack("<I", 0x40)
+    coff = struct.pack("<HHIIIHH", 0x14C, 2, 0, 0, 0, 0xE0, 0x0103)
+    optional = struct.pack(
+        "<HBBIIIIIIIIIHHHHHHIIIIHHIIIIII",
+        0x10B, 14, 0, text_raw, data_raw, 0, text_rva, text_rva, data_rva, 0x400000, section_align, file_align,
+        6, 0, 0, 0, 6, 0, 0, align(data_rva + data_size, section_align), 0x200, 0, 3, 0x8140, 0x100000, 0x1000,
+        0x100000, 0x1000, 0, 16) + bytes(16 * 8)
+    def section(name, vsize, rva, raw_size, raw_at, flags):
+        return name.ljust(8, b"\0") + struct.pack("<IIIIIIHHI", vsize, rva, raw_size, raw_at, 0, 0, 0, 0, flags)
+    headers = dos + b"PE\0\0" + coff + optional
+    headers += section(b".text", 0x1000, text_rva, text_raw, 0x200, 0x60000020)
+    headers += section(b".data", data_size, data_rva, data_raw, 0x400, 0xC0000040)
+    return headers.ljust(0x200, b"\0") + b"\xc3".ljust(text_raw, b"\0"), data_raw
+
+
+def write_zeros(fp, size):
+    chunk = bytes(MB)
+    while size:
+        n = min(size, MB)
+        fp.write(chunk[:n])
+        size -= n
+
+
+def upx_zeros(out, size):
+    # beside the output, which Docker can mount where it can't mount the host's own temporary directory
+    with tempfile.TemporaryDirectory(dir=out.parent) as work:
+        head, zeros = pe32(size)
+        with (Path(work) / "zeros.exe").open("wb") as fp:
+            fp.write(head)
+            write_zeros(fp, zeros)
+        subprocess.run(["docker", "run", "--rm", "-v", f"{work}:/w", "-w", "/w", "ace4-dev:latest", "upx", "-q",
+                        "-o", "packed.exe", "zeros.exe"], check=True, stdout=subprocess.DEVNULL)
+        out.write_bytes((Path(work) / "packed.exe").read_bytes())
+
+
+AU3_HEADER = bytes([0xa3, 0x48, 0x4b, 0xbe, 0x98, 0x6c, 0x4a, 0xa9, 0x99, 0x4c, 0x53, 0x0a, 0x86, 0xd6, 0x48, 0x7d])
+
+
+def autoit_alloc():
+    """hello_autoit.exe's AutoIt container, kept to its header, hash and first `FILE` marker (the
+    marker's cipher is the same in every EA06 file), then one resource whose fields say: no tag, no
+    path, compressed, 16 bytes compressed, 0xFFFFFFFF bytes decompressed. Each size is stored XORed
+    with EA06's constant for it (libautoit's keys.go). The marker ends the container."""
+    exe = (ROOT / "samples" / "ace3" / "executables" / "hello_autoit.exe").read_bytes()
+    at = exe.find(AU3_HEADER + b"AU3!EA06")
+    container = exe[at:at + 0x2C]
+    fields = struct.pack("<I", 0xADBC) + struct.pack("<I", 0xF820) + b"\x01"
+    fields += struct.pack("<I", 16 ^ 0x87BC) + struct.pack("<I", 0xFFFFFFFF ^ 0x87BC) + struct.pack("<I", 0xA685)
+    fields += bytes(16) + bytes(range(16))
+    return exe[:at] + container + fields + b"AU3!EA06" + bytes(64)
+
+
+def main():
+    out = Path(sys.argv[1])
+    out.mkdir(parents=True, exist_ok=True)
+    (out / "java_class_decompiler_branches_4600.class").write_bytes(class_file("Loop", branches(4600)))
+    upx_zeros(out / "upx_zeros_400mb.exe", 400 * 1000 * 1000)
+    with (out / "autoit_scan_400mb.exe").open("wb") as fp:
+        fp.write(b"MZ" + bytes(62) + b"AU3!EA06")
+        write_zeros(fp, 400 * MB)
+    (out / "autoit_alloc_4gb.exe").write_bytes(autoit_alloc())
+    executables.emit(out, [("de4dot_methods_300k.exe", "methods", 300000), ("ilspy_nops_70m.exe", "nops", 70000000)])
+    for path in sorted(out.iterdir()):
+        print(f"{path.name}: {path.stat().st_size} bytes")
+
+
+if __name__ == "__main__":
+    main()

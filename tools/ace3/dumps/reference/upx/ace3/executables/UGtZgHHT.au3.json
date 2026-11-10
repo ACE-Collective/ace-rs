@@ -1,0 +1,36 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [],
+  "input": {
+    "directives": [],
+    "label": "ace3/executables/UGtZgHHT.au3",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "UGtZgHHT.au3",
+      "size": 775656,
+      "type": "file",
+      "value": "1af981d9c5128b3657cdb5506d61563e0d1908b957e5dd6842059d6d3cfdc622"
+    }
+  },
+  "module": "upx",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "UGtZgHHT.au3",
+    "relationships": [],
+    "size": 775656,
+    "tags": [],
+    "type": "file",
+    "value": "1af981d9c5128b3657cdb5506d61563e0d1908b957e5dd6842059d6d3cfdc622",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

@@ -327,6 +327,7 @@ mod runner {
         .expect("the tools resolve");
         let tool = table.get(tool).expect("the tool");
         let mut argv = vec![tool.spec.program.to_owned()];
+        argv.extend(tool.spec.args.iter().map(|a| a.to_string()));
         argv.extend(args.iter().map(|a| a.to_string()));
         ToolExec {
             program: PathBuf::from(tool.spec.program),
@@ -718,6 +719,245 @@ mod runner {
             };
             assert_eq!(strip(&ran.stdout), strip(&plain.stdout), "{sample}");
         }
+    }
+
+    // ---- PLAN.md 7.5 batch 11: the executable tools ----
+
+    fn samples() -> PathBuf {
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../samples")
+    }
+
+    /// ace3's .NET sample, an Obfuscar-protected assembly, which ace3's tests keep hex-encoded as
+    /// tools/ace3/dumps/fixtures/executables does, written into the task's directory.
+    fn dotnet_sample(dirs: &Dirs) -> PathBuf {
+        let hex = fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join(
+            "../../tools/ace3/dumps/fixtures/executables/6346eea9dff4eac53113fc2ba3b8a497.hex",
+        ))
+        .unwrap();
+        let digits: Vec<u8> = hex.bytes().filter(u8::is_ascii_hexdigit).collect();
+        let bytes: Vec<u8> = digits
+            .chunks(2)
+            .map(|pair| u8::from_str_radix(std::str::from_utf8(pair).unwrap(), 16).unwrap())
+            .collect();
+        let path = dirs.task().join("sample.exe");
+        fs::write(&path, bytes).unwrap();
+        path
+    }
+
+    /// The same program outside the runner, with the environment the runner gives it, in a fresh
+    /// directory as its working directory.
+    fn plain(tool: &str, args: &[&str]) -> (std::process::Output, tempfile::TempDir) {
+        let spec = ace_sdk::tools::find(SANDBOX_TOOLS, tool).unwrap();
+        let dir = tempfile::tempdir().unwrap();
+        let mut command = std::process::Command::new(spec.program);
+        command
+            .args(spec.args)
+            .args(args)
+            .env_clear()
+            .env("PATH", "/usr/bin:/bin")
+            .env("LANG", "C.UTF-8")
+            .env("HOME", dir.path())
+            .env("TMPDIR", dir.path())
+            .envs(spec.env.iter().copied())
+            .current_dir(dir.path());
+        (command.output().unwrap(), dir)
+    }
+
+    /// CFR on the JVM, 7.3's 29 threads, decompiles ace3's class to the same source under the
+    /// runner as outside it.
+    #[tokio::test]
+    async fn cfr_runs_the_jvms_threads_under_the_runner() {
+        let dirs = Dirs::new();
+        let class = dirs.task().join("Sample.class");
+        fs::copy(
+            samples().join("ace3/executables/VxUGJsAplRNavewkjKujp.class"),
+            &class,
+        )
+        .unwrap();
+        let cfr = exec(&dirs, "cfr", &[class.to_str().unwrap()], &["Sample.class"]);
+        let (ran, threads) = most_threads_of("java", run(&cfr, LONG, None)).await;
+        assert_eq!(ran.status, ToolStatus::Exited(0));
+        let (plain, _dir) = plain("cfr", &[class.to_str().unwrap()]);
+        assert_eq!(ran.stdout, plain.stdout);
+        assert!(stdout(&ran).contains("public final class VxUGJsAplRNavewkjKujp"));
+        println!("most threads: java {threads}");
+        assert!(threads > 1, "java {threads}");
+    }
+
+    /// upx tests and unpacks ace3's packed cmd.exe under the runner, and keeps the same file.
+    #[tokio::test]
+    async fn upx_tests_and_unpacks_under_the_runner() {
+        let dirs = Dirs::new();
+        let packed = dirs.task().join("cmd-upx.exe");
+        fs::copy(samples().join("ace3/executables/cmd-upx.exe"), &packed).unwrap();
+        let input = packed.to_str().unwrap();
+        let test = exec(&dirs, "upx", &["-t", input], &["cmd-upx.exe"]);
+        let ran = run(&test, LONG, None).await;
+        assert_eq!(ran.status, ToolStatus::Exited(0));
+        assert!(stdout(&ran).contains("[OK]"), "{}", stdout(&ran));
+        let unpack = exec(
+            &dirs,
+            "upx",
+            &["-d", "-ounpacked.exe", input],
+            &["cmd-upx.exe"],
+        );
+        let keep = Keep::Named(vec!["unpacked.exe".into()]);
+        let ran = run(&unpack, LONG, Some((&keep, &dirs.kept()))).await;
+        assert_eq!(ran.status, ToolStatus::Exited(0));
+        let kept = ran.kept.unwrap();
+        let (plain, dir) = plain("upx", &["-d", "-ounpacked.exe", input]);
+        assert!(plain.status.success());
+        assert_eq!(ran.stdout, plain.stdout);
+        assert_eq!(
+            fs::read(&kept["unpacked.exe"]).unwrap(),
+            fs::read(dir.path().join("unpacked.exe")).unwrap()
+        );
+    }
+
+    /// unautoit, Go's 4 or 5 threads, lists and extracts ace3's AutoIt executable under the runner
+    /// as outside it. Its threads are counted on ace3's larger script, which it takes long enough to
+    /// decompile for the count to see them: the small one's runs end in milliseconds.
+    #[tokio::test]
+    async fn unautoit_lists_and_extracts_under_the_runner() {
+        let dirs = Dirs::new();
+        let exe = dirs.task().join("hello_autoit.exe");
+        fs::copy(samples().join("ace3/executables/hello_autoit.exe"), &exe).unwrap();
+        let input = exe.to_str().unwrap();
+        let list = exec(&dirs, "unautoit", &["list", input], &["hello_autoit.exe"]);
+        let ran = run(&list, LONG, None).await;
+        assert_eq!(ran.status, ToolStatus::Exited(0));
+        let (plain_list, _dir) = plain("unautoit", &["list", input]);
+        assert_eq!(ran.stdout, plain_list.stdout);
+        let extract = exec(
+            &dirs,
+            "unautoit",
+            &["extract-all", "--output-dir", "out", input],
+            &["hello_autoit.exe"],
+        );
+        let ran = run(&extract, LONG, Some((&Keep::Tree, &dirs.kept()))).await;
+        assert_eq!(ran.status, ToolStatus::Exited(0));
+        let kept = ran.kept.unwrap();
+        let (_, dir) = plain("unautoit", &["extract-all", "--output-dir", "out", input]);
+        assert_eq!(
+            fs::read(&kept["out/script_1.au3"]).unwrap(),
+            fs::read(dir.path().join("out/script_1.au3")).unwrap()
+        );
+        let script = dirs.task().join("UGtZgHHT.au3");
+        fs::copy(samples().join("ace3/executables/UGtZgHHT.au3"), &script).unwrap();
+        let extract = exec(
+            &dirs,
+            "unautoit",
+            &[
+                "extract-all",
+                "--output-dir",
+                "big",
+                script.to_str().unwrap(),
+            ],
+            &["UGtZgHHT.au3"],
+        );
+        let (ran, threads) = most_threads_of("unautoit", run(&extract, LONG, None)).await;
+        assert_eq!(ran.status, ToolStatus::Exited(0));
+        println!("most threads: unautoit {threads}");
+        assert!(threads > 1, "unautoit {threads}");
+    }
+
+    /// de4dot, self-contained .NET, detects and cleans ace3's Obfuscar sample under the runner, with
+    /// .NET's threads, and writes the assembly it writes outside it.
+    #[tokio::test]
+    async fn de4dot_detects_and_cleans_under_the_runner() {
+        let dirs = Dirs::new();
+        let sample = dotnet_sample(&dirs);
+        let input = sample.to_str().unwrap();
+        let detect = exec(&dirs, "de4dot", &["-d", input], &["sample.exe"]);
+        let (ran, threads) = most_threads_of("de4dot", run(&detect, LONG, None)).await;
+        assert_eq!(ran.status, ToolStatus::Exited(0));
+        assert!(
+            stdout(&ran).contains("Detected Obfuscar"),
+            "{}",
+            stdout(&ran)
+        );
+        let clean = exec(
+            &dirs,
+            "de4dot",
+            &[input, "-o", "deobfuscated"],
+            &["sample.exe"],
+        );
+        let keep = Keep::Named(vec!["deobfuscated".into()]);
+        let ran = run(&clean, LONG, Some((&keep, &dirs.kept()))).await;
+        assert_eq!(ran.status, ToolStatus::Exited(0));
+        let kept = ran.kept.unwrap();
+        let (plain, dir) = plain("de4dot", &[input, "-o", "deobfuscated"]);
+        assert!(plain.status.success());
+        assert_eq!(
+            fs::read(&kept["deobfuscated"]).unwrap(),
+            fs::read(dir.path().join("deobfuscated")).unwrap()
+        );
+        println!("most threads: de4dot {threads}");
+        assert!(threads > 1, "de4dot {threads}");
+    }
+
+    /// ilspycmd, on the shared .NET runtime, writes the sample's IL under the runner as outside it.
+    #[tokio::test]
+    async fn ilspycmd_writes_il_under_the_runner() {
+        let dirs = Dirs::new();
+        let sample = dotnet_sample(&dirs);
+        let input = sample.to_str().unwrap();
+        let args = ["-il", "--disable-updatecheck", "-o", ".", input];
+        let ilspy = exec(&dirs, "ilspycmd", &args, &["sample.exe"]);
+        let keep = Keep::Named(vec!["sample.il".into()]);
+        let (ran, threads) =
+            most_threads_of("ilspycmd", run(&ilspy, LONG, Some((&keep, &dirs.kept())))).await;
+        assert_eq!(ran.status, ToolStatus::Exited(0));
+        let kept = ran.kept.unwrap();
+        let (plain, dir) = plain("ilspycmd", &args);
+        assert!(plain.status.success());
+        let il = fs::read(&kept["sample.il"]).unwrap();
+        assert_eq!(il, fs::read(dir.path().join("sample.il")).unwrap());
+        assert!(il.len() > 1_000_000, "{} bytes", il.len());
+        println!("most threads: ilspycmd {threads}");
+        assert!(threads > 1, "ilspycmd {threads}");
+    }
+
+    /// The one read the .NET tools needed beyond 7.3's: OpenSSL. An assembly whose references carry
+    /// public keys, as System.Reflection.Emit writes them, has de4dot (dnlib) hash each to its token,
+    /// and .NET hashes with OpenSSL, which it loads by dlopen: `openat` of `libssl.so.3` and
+    /// `libcrypto.so.3`, `O_RDONLY|O_CLOEXEC`. Without those two in de4dot's reads Landlock refuses
+    /// them and the runtime aborts, `No usable version of libssl was found`; with them it detects.
+    /// OpenSSL's `openssl.cnf`, which it also opens, stays unreadable, and it does without.
+    #[tokio::test]
+    async fn de4dot_reads_openssl_to_hash_a_public_key() {
+        let dirs = Dirs::new();
+        let sample = dirs.task().join("emitted.exe");
+        fs::copy(
+            samples().join("ace4/executables/emitted_methods.exe"),
+            &sample,
+        )
+        .unwrap();
+        let mut detect = exec(
+            &dirs,
+            "de4dot",
+            &["-d", sample.to_str().unwrap()],
+            &["emitted.exe"],
+        );
+        let ran = run(&detect, LONG, None).await;
+        assert_eq!(ran.status, ToolStatus::Exited(0));
+        assert!(
+            stdout(&ran).contains("Detected Unknown Obfuscator"),
+            "{}",
+            stdout(&ran)
+        );
+        let openssl = |p: &PathBuf| {
+            let name = p.file_name().unwrap().to_string_lossy();
+            name.starts_with("libssl.so") || name.starts_with("libcrypto.so")
+        };
+        // the spec's two, and libcrypto again as libssl's own need
+        assert!(detect.reads.iter().filter(|p| openssl(p)).count() >= 2);
+        detect.reads.retain(|p| !openssl(p));
+        let ran = run(&detect, LONG, None).await;
+        assert_eq!(ran.status, ToolStatus::Signaled(6));
+        assert!(
+            String::from_utf8_lossy(&ran.stderr).contains("No usable version of libssl was found")
+        );
     }
 
     /// docs/measurements/sandbox-runner.md: what the runner adds to a tool's run, the test task doing

@@ -1,0 +1,44 @@
+{
+  "analysis_type": "auto_it_analysis",
+  "schema_version": 1,
+  "details": {
+    "error": null,
+    "output_dir": "hello_autoit.exe.autoit",
+    "scripts": [
+      "script_1.au3"
+    ],
+    "stderr": "",
+    "stdout": "+----+----------------------------+---------------------------------------+------+---------------+\n| ID |            NAME            |                 PATH                  | SIZE |     TYPE      |\n+----+----------------------------+---------------------------------------+------+---------------+\n|  0 | >>>AUTOIT NO CMDEXECUTE<<< | C:�sers\\Matthew\\AppData\\Local\\AutoIt | 0 B  | Empty File    |\n|    |                            | v3\\Aut2Exe\u0007ut6D74.tmp                |      |               |\n|  1 | >>>AUTOIT SCRIPT<<<        | C:�sers\\Matthew\\AppData\\Local\\AutoIt | 77 B | AutoIt Script |\n|    |                            | v3\\Aut2Exe\u0007ut6D73.tmp.tok            |      |               |\n+----+----------------------------+---------------------------------------+------+---------------+\n"
+  },
+  "summary": "AutoIt Analysis: decompiled script_1.au3",
+  "analyzed": {
+    "tags": [
+      "autoit"
+    ]
+  },
+  "files": [
+    {
+      "path": "hello_autoit.exe.autoit/script_1.au3",
+      "sha256": "cb9a4f73974682fa56ed77f747c72f7bc5c6af89a76ec8f4b2efc7f832d60833",
+      "size": 38,
+      "yara_meta": [
+        "type=script.autoit"
+      ],
+      "tags": [
+        "autoit"
+      ],
+      "exclude_modules": [
+        "autoit"
+      ],
+      "relationships": [
+        {
+          "type": "extracted_from",
+          "target": {
+            "type": "file",
+            "value": "a8538ebcd97559030f7d001ca13e6bbcb73f0d77e992f0d6a12a3448c312c995"
+          }
+        }
+      ]
+    }
+  ]
+}

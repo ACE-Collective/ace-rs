@@ -1,0 +1,82 @@
+{
+  "form": 1,
+  "observables": {
+    "file:f2e58e0356a65d9d8d1518570fa3632164b609a7ce9828faf4f42ef72889e488": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "marker_only.exe": {
+          "type=email.attachment": true,
+          "type=executable": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "autoit": {
+          "details": {
+            "error": null,
+            "output_dir": "<root>/files/marker_only.exe.autoit",
+            "scripts": [],
+            "stderr": "[ Error ]: Script not Found.\n",
+            "stdout": ""
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "29c6456cb354a854042dc482af4f246c",
+            "sha1": "5e2b9d912936ce7ecf7822d6821d4405194db66b",
+            "sha256": "f2e58e0356a65d9d8d1518570fa3632164b609a7ce9828faf4f42ef72889e488"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": true,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/x-dosexec",
+            "type": "MS-DOS executable, MZ for MS-DOS"
+          },
+          "summary": "File Type Analysis: MS-DOS executable, MZ for MS-DOS (application/x-dosexec) (portable executable)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "autoit": true,
+        "executable": true
+      }
+    },
+    "md5:29c6456cb354a854042dc482af4f246c": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:f2e58e0356a65d9d8d1518570fa3632164b609a7ce9828faf4f42ef72889e488": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:f2e58e0356a65d9d8d1518570fa3632164b609a7ce9828faf4f42ef72889e488": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:f2e58e0356a65d9d8d1518570fa3632164b609a7ce9828faf4f42ef72889e488": true
+      },
+      "results": {},
+      "tags": {}
+    }
+  }
+}
