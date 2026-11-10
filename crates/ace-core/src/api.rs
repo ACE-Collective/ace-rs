@@ -578,12 +578,14 @@ impl Api {
         };
         let (dependency_results, observables_below) = self.tree_reads(&task, runs_last).await?;
         let (added_by, related_tags) = self.lineage_reads(&task).await?;
+        let tree = self.tree_read(&task).await?;
         // read after the claim, so an edit committed before it is in the task (`lists`' docs)
         let lists = self.lists_for(&task.module).await?;
         let mut leased = self.wire_task(task, file, redirection);
         leased.observable.relationships = relationships;
         leased.added_by = added_by;
         leased.related_tags = related_tags;
+        leased.tree = tree;
         leased.carrying_email = carrying_email;
         leased.emails_pending = emails_pending;
         leased.yara_rules_below = yara_rules_below;
@@ -643,6 +645,36 @@ impl Api {
             Vec::new()
         };
         Ok((added_by, related_tags))
+    }
+
+    /// The root's tree, for a module that walks it (`Module::READS_TREE`), with a download for each
+    /// of its files the module reads (`Module::READS_TREE_FILES`).
+    async fn tree_read(&self, task: &Task) -> Result<Option<ace_sdk::tree::TreeView>, Failure> {
+        let catalog = self.inner.orchestrator.catalog();
+        let Some(manifest) = catalog.get(&task.module).filter(|m| m.reads_tree) else {
+            return Ok(None);
+        };
+        let (mut tree, wanted) = tree::tree_view(
+            self.inner.db.pool(),
+            task.root,
+            task.observable.id,
+            manifest.reads_tree_files,
+        )
+        .await?;
+        for (index, value) in wanted {
+            let Ok(sha256) = value.parse::<Sha256>() else {
+                continue;
+            };
+            let download = self
+                .inner
+                .bucket
+                .store()
+                .presign_get(ALERT_FILES, &sha256, self.inner.config.url_expiry)
+                .await
+                .map_err(BucketError::from)?;
+            tree.observables[index].download = Some(wire_presigned(download));
+        }
+        Ok(Some(tree))
     }
 
     /// The analyst-edited lists `module` reads, as they are now.
@@ -732,6 +764,7 @@ impl Api {
             observables_below: Vec::new(),
             added_by: Vec::new(),
             related_tags: Vec::new(),
+            tree: None,
         }
     }
 
@@ -1378,7 +1411,9 @@ async fn replay(
         .is_some_and(|manifest| manifest.runs_last);
     let (dependency_results, observables_below) = api.tree_reads(&task, runs_last).await?;
     let (added_by, related_tags) = api.lineage_reads(&task).await?;
+    let tree = api.tree_read(&task).await?;
     let mut leased = api.wire_task(task, file, redirection);
+    leased.tree = tree;
     leased.dependency_results = dependency_results;
     leased.observables_below = observables_below;
     leased.added_by = added_by;

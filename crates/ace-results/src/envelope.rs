@@ -54,12 +54,43 @@ pub struct ResultEnvelope<D> {
     /// the part that matched.
     #[serde(default, skip_serializing_if = "ObservableAdditions::is_empty")]
     pub redirected: ObservableAdditions,
+    /// What the result adds to observables already in the alert besides the one it analyzed, as
+    /// ace3's modules that walk the tree change what they find there, such as the lure module's
+    /// `crawl` on the URL it picks. The core takes only what the module declares (`Module::ADDS_TO_OTHERS`), and
+    /// leaves alone an observable the alert doesn't hold.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub others: Vec<OtherAdditions>,
     /// Observables the result adds to the alert. Files go in `files` instead.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub observables: Vec<NewObservable>,
     /// Files the result adds to the alert.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub files: Vec<NewFile>,
+    /// What the result changes about its root, for a module that declares it may, as ace3's
+    /// mailbox module sets the root's description and details.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub root: Option<RootChanges>,
+}
+
+/// What a result adds to an observable already in the alert that it didn't analyze.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct OtherAdditions {
+    pub observable: ObservableRef,
+    pub additions: ObservableAdditions,
+}
+
+/// What a result changes about its root.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct RootChanges {
+    /// The root's new description, in place of its own.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    /// Keys merged into the root's details, each in place of one of the same name, as Python's
+    /// `dict.update`. The root's details are the `details` its submitter gave, if it gave any.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub details: Option<serde_json::Map<String, serde_json::Value>>,
 }
 
 impl<D: AnalysisType> ResultEnvelope<D> {
@@ -74,8 +105,10 @@ impl<D: AnalysisType> ResultEnvelope<D> {
             detections: Vec::new(),
             analyzed: ObservableAdditions::default(),
             redirected: ObservableAdditions::default(),
+            others: Vec::new(),
             observables: Vec::new(),
             files: Vec::new(),
+            root: None,
         }
     }
 
@@ -102,8 +135,10 @@ impl<D: AnalysisType> ResultEnvelope<D> {
             detections: self.detections.clone(),
             analyzed: self.analyzed.clone(),
             redirected: self.redirected.clone(),
+            others: self.others.clone(),
             observables: self.observables.clone(),
             files: self.files.clone(),
+            root: self.root.clone(),
         })
     }
 

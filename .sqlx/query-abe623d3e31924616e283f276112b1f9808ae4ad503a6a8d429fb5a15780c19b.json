@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE analysis.roots\n           SET description = COALESCE($2, description),\n               origin = CASE WHEN $3::jsonb IS NULL THEN origin\n                        ELSE jsonb_set(\n                            CASE WHEN jsonb_typeof(origin) = 'object' THEN origin ELSE '{}'::jsonb END,\n                            '{details}',\n                            CASE WHEN jsonb_typeof(origin -> 'details') = 'object'\n                                 THEN origin -> 'details' ELSE '{}'::jsonb END || $3::jsonb)\n                        END\n           WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "abe623d3e31924616e283f276112b1f9808ae4ad503a6a8d429fb5a15780c19b"
+}

@@ -19,6 +19,8 @@ test = false
 [dependencies]
 ace-results = { path = "../ace-results" }
 ace-sdk = { path = "../ace-sdk" }
+# The HTML bodies a reference dump keeps with its root.
+base64 = "0.22.1"
 chrono = { version = "0.4.45", default-features = false, features = ["std"] }
 insta = { version = "1.49.0", features = ["json"] }
 # The fake LDAP server's LDAPS and StartTLS, with a certificate made for each run (ldap.rs).

@@ -55,7 +55,8 @@ ENABLE = [
     "har_extraction", "html_js_extraction", "mhtml", "onenote_extraction", "officeparser3", "office_xml_rel",
     "xml_binary_analyzer", "xml_plain_text_analyzer", "extracted_ole_analyzer", "hidden_mime", "active_mime",
     "microsoft_script_encoding_analysis", "extracted_rtf_analyzer", "vbscript_analyzer", "nowhitespace_analyzer",
-    "zip_encryption_analyzer", "rar_encryption_analyzer", "pdf_encryption_analyzer",
+    "zip_encryption_analyzer", "rar_encryption_analyzer", "pdf_encryption_analyzer", "lure_url_analyzer",
+    "mailbox_email_analyzer", "email_conversation_attachment_analyzer", "email_conversation_link_analyzer",
 ]
 BROCESS = HERE / "brocess.json"
 NRD = HERE / "nrd.json"

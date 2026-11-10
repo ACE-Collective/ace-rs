@@ -17,6 +17,7 @@ use crate::context::TaskContext;
 use crate::lists::ListSpec;
 use crate::manifest::Resources;
 use crate::reads::Read;
+use crate::tree::TreeFiles;
 use crate::writes::Write;
 
 /// A module's settings: the block a site's config overlay gives it. Missing settings fall back
@@ -77,6 +78,22 @@ pub trait Module: Sized + Send + Sync + 'static {
     /// ace3's modules read the tags of the file one was `extracted_from`. The core adds them to its
     /// tasks, which read them with `TaskContext::related_tags`, as they are when it's leased.
     const READS_RELATED_TAGS: bool = false;
+    /// True for a module that walks its root's tree, as ace3's modules walk the `RootAnalysis`
+    /// (`recurse_tree`, `search_down`, `wait_for_analysis`): the core adds the tree as it is when the
+    /// task is leased, its observables, the results on each, what each added and the tasks still to
+    /// finish, which the module reads with `TaskContext::tree` (`crate::tree`).
+    const READS_TREE: bool = false;
+    /// For a module that reads its root's tree: the files in it whose bytes it reads too, which the
+    /// pool downloads before the task runs (`TaskContext::tree_file`).
+    const READS_TREE_FILES: Option<TreeFiles> = None;
+    /// What a module that walks the tree may add to observables in its root other than the one it
+    /// analyzed (`ResultEnvelope::others`), as ace3's lure module adds `crawl` to the URL it picks.
+    /// A parser's result comes from hostile input, so the core refuses a result whose `others` add
+    /// anything this doesn't name, and any `others` at all from a module that declares nothing.
+    const ADDS_TO_OTHERS: Option<OtherAdditionsAllowed> = None;
+    /// True for a module that changes its root's description and details, as ace3's mailbox module
+    /// does (`ResultEnvelope::root`). The core refuses a result that changes them from any other.
+    const SETS_ROOT: bool = false;
     /// The analyst-edited lists the module reads (PLAN.md 5.14), such as the email module's
     /// whitelists. The core adds each to the module's tasks as it is when the task is leased, and
     /// the module reads it with `TaskContext::list`. The lists a binary knows are its modules'.
@@ -98,6 +115,42 @@ pub trait Module: Sized + Send + Sync + 'static {
     /// Builds the module once per process, before any task, such as loading a ruleset. A failure
     /// here is a setup failure, not a failed task.
     fn init(settings: &Self::Settings) -> Result<Self, ModuleError>;
+}
+
+/// What a module may add to other observables in its root (`Module::ADDS_TO_OTHERS`): these tags and
+/// directives, and detections only when `detections` is true. Never `yara_meta`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct OtherAdditionsAllowed {
+    pub tags: &'static [&'static str],
+    pub directives: &'static [&'static str],
+    pub detections: bool,
+}
+
+impl OtherAdditionsAllowed {
+    /// Why `additions` aren't allowed, or None when they are.
+    pub fn refusal(&self, additions: &ace_results::ObservableAdditions) -> Option<String> {
+        if let Some(tag) = additions
+            .tags
+            .iter()
+            .find(|t| !self.tags.contains(&t.as_str()))
+        {
+            return Some(format!("the tag {tag:?}"));
+        }
+        if let Some(d) = additions
+            .directives
+            .iter()
+            .find(|d| !self.directives.contains(&d.as_str()))
+        {
+            return Some(format!("the directive {d:?}"));
+        }
+        if !additions.detections.is_empty() && !self.detections {
+            return Some("a detection".to_owned());
+        }
+        if !additions.yara_meta.is_empty() {
+            return Some("a yara_meta tag".to_owned());
+        }
+        None
+    }
 }
 
 /// A module that parses files: sync, one task per contained process.

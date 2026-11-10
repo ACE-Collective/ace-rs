@@ -1008,6 +1008,81 @@
           },
           "summary": null,
           "tags": {}
+        },
+        "lure_url_analyzer": {
+          "details": {
+            "candidates": [
+              {
+                "anchor_text": "http://www.universalgreentech.co.uk/pdf/En_us/ACCOUNT/Invoice-07-17-18/?rcpt=&email=lulu.zingzing@co",
+                "carries": [],
+                "highlights": [
+                  [],
+                  [
+                    "http://www.universalgreentech.co.uk/pdf/En_us/ACCOUNT/Invoice-07-17-18/?rcpt=&email=lulu.zingzing@co"
+                  ],
+                  [],
+                  []
+                ],
+                "reasons": [
+                  "found in the email body",
+                  "clickable link with text 'http://www.universalgreentech.co.uk/pdf/En_us/ACCOUNT/Invoice-07-17-18/?rcpt=&email=lulu.zingzing@co'",
+                  "call-to-action text (invoice)",
+                  "the only linked external domain"
+                ],
+                "score": 75,
+                "sources": [
+                  "body"
+                ],
+                "url": "http://www.universalgreentech.co.uk/pdf/En_us/ACCOUNT/Invoice-07-17-18"
+              },
+              {
+                "anchor_text": null,
+                "carries": [],
+                "highlights": [
+                  [],
+                  [],
+                  []
+                ],
+                "reasons": [
+                  "found in the email body",
+                  "not a clickable link in the body",
+                  "the only linked external domain"
+                ],
+                "score": 15,
+                "sources": [
+                  "body"
+                ],
+                "url": "http://www.universalgreentech.co.uk/pdf/En_us/ACCOUNT/Invoice-07-17-18/?rcpt=&email=lulu.zingzing@company.com"
+              }
+            ],
+            "has_inner_email": false,
+            "primary": {
+              "anchor_text": "http://www.universalgreentech.co.uk/pdf/En_us/ACCOUNT/Invoice-07-17-18/?rcpt=&email=lulu.zingzing@co",
+              "carries": [],
+              "highlights": [
+                [],
+                [
+                  "http://www.universalgreentech.co.uk/pdf/En_us/ACCOUNT/Invoice-07-17-18/?rcpt=&email=lulu.zingzing@co"
+                ],
+                [],
+                []
+              ],
+              "reasons": [
+                "found in the email body",
+                "clickable link with text 'http://www.universalgreentech.co.uk/pdf/En_us/ACCOUNT/Invoice-07-17-18/?rcpt=&email=lulu.zingzing@co'",
+                "call-to-action text (invoice)",
+                "the only linked external domain"
+              ],
+              "score": 75,
+              "sources": [
+                "body"
+              ],
+              "url": "http://www.universalgreentech.co.uk/pdf/En_us/ACCOUNT/Invoice-07-17-18"
+            },
+            "subject": "INVOICE PDL-06-38776"
+          },
+          "summary": "Lure URL Analysis: http://www.universalgreentech.co.uk/pdf/En_us/ACCOUNT/Invoice-07-17-18 (found in the email body; clickable link with text 'http://www.universalgreentech.co.uk/pdf/En_us/ACCOUNT/Invoice-07-17-18/?rcpt=&email=lulu.zingzing@co'; call-to-action text (invoice); the only linked external domain)",
+          "tags": {}
         }
       },
       "tags": {
@@ -1661,7 +1736,9 @@
     },
     "url:http://www.universalgreentech.co.uk/pdf/En_us/ACCOUNT/Invoice-07-17-18": {
       "detections": {},
-      "directives": {},
+      "directives": {
+        "crawl": true
+      },
       "excluded_analysis": {},
       "relationships": {},
       "results": {

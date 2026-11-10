@@ -1070,6 +1070,74 @@
           },
           "summary": null,
           "tags": {}
+        },
+        "lure_url_analyzer": {
+          "details": {
+            "candidates": [
+              {
+                "anchor_text": null,
+                "carries": [],
+                "highlights": [
+                  [
+                    "statement.pdf"
+                  ],
+                  []
+                ],
+                "reasons": [
+                  "found in attachment statement.pdf",
+                  "same domain as the sender (example.com)"
+                ],
+                "score": -5,
+                "sources": [
+                  "attachment"
+                ],
+                "url": "https://example.com/indirect"
+              },
+              {
+                "anchor_text": null,
+                "carries": [],
+                "highlights": [
+                  [
+                    "statement.pdf"
+                  ],
+                  []
+                ],
+                "reasons": [
+                  "found in attachment statement.pdf",
+                  "same domain as the sender (example.com)"
+                ],
+                "score": -5,
+                "sources": [
+                  "attachment"
+                ],
+                "url": "https://example.com/literal"
+              },
+              {
+                "anchor_text": null,
+                "carries": [],
+                "highlights": [
+                  [
+                    "statement.pdf"
+                  ],
+                  []
+                ],
+                "reasons": [
+                  "found in attachment statement.pdf",
+                  "same domain as the sender (example.com)"
+                ],
+                "score": -5,
+                "sources": [
+                  "attachment"
+                ],
+                "url": "https://example.com/stream"
+              }
+            ],
+            "has_inner_email": false,
+            "primary": null,
+            "subject": "the attached file"
+          },
+          "summary": "Lure URL Analysis: no lure URL identified",
+          "tags": {}
         }
       },
       "tags": {

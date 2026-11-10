@@ -18,8 +18,9 @@ use schemars::Schema;
 use serde_json::{Value, json};
 
 use crate::lists::ListSpec;
-use crate::module::{EXCLUDE_ALL, Lookup, Module, Parser, Settings};
+use crate::module::{EXCLUDE_ALL, Lookup, Module, OtherAdditionsAllowed, Parser, Settings};
 use crate::reads::Read;
+use crate::tree::TreeFiles;
 use crate::writes::Write;
 
 /// The limits a module's task runs under.
@@ -95,6 +96,14 @@ pub struct Manifest {
     pub reads_added_by: bool,
     /// The module reads its related observables' tags (`Module::READS_RELATED_TAGS`).
     pub reads_related_tags: bool,
+    /// The module reads its root's tree (`Module::READS_TREE`).
+    pub reads_tree: bool,
+    /// The files of the tree whose bytes it reads (`Module::READS_TREE_FILES`).
+    pub reads_tree_files: Option<TreeFiles>,
+    /// What the module may add to other observables in its root (`Module::ADDS_TO_OTHERS`).
+    pub adds_to_others: Option<OtherAdditionsAllowed>,
+    /// The module changes its root's description and details (`Module::SETS_ROOT`).
+    pub sets_root: bool,
     /// The analyst-edited lists the module reads (`Module::LISTS`).
     pub lists: &'static [ListSpec],
     /// The reads of ACE's own data the module makes (`Module::READS`).
@@ -133,6 +142,10 @@ impl Manifest {
     }
 
     const fn of<M: Module>(kind: ModuleKind, sandbox: Sandbox) -> Self {
+        assert!(
+            M::READS_TREE || M::READS_TREE_FILES.is_none(),
+            "a module reads its tree's files only with its tree (Module::READS_TREE)"
+        );
         Manifest {
             name: M::NAME,
             kind,
@@ -151,6 +164,10 @@ impl Manifest {
             reads_below: M::READS_BELOW,
             reads_added_by: M::READS_ADDED_BY,
             reads_related_tags: M::READS_RELATED_TAGS,
+            reads_tree: M::READS_TREE,
+            reads_tree_files: M::READS_TREE_FILES,
+            adds_to_others: M::ADDS_TO_OTHERS,
+            sets_root: M::SETS_ROOT,
             lists: M::LISTS,
             reads: M::READS,
             writes: M::WRITES,

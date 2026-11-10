@@ -1,0 +1,28 @@
+[package]
+name = "ace-mod-emailtree"
+version = "0.1.0"
+description = "The modules of PLAN.md 7.5 batch 8 that walk an email's tree: lure_url_analyzer and mailbox_email_analyzer"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+ace-lxml = { path = "../ace-lxml" }
+# Python's address parsing, as the email module reads a sender.
+ace-mod-email = { path = "../ace-mod-email" }
+ace-pycompat = { path = "../ace-pycompat" }
+ace-results = { path = "../ace-results" }
+ace-sdk = { path = "../ace-sdk" }
+ace-urlfinder = { path = "../ace-urlfinder" }
+regex = "1.13.1"
+schemars = "1.2.3"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+tracing = "0.1.44"
+
+[dev-dependencies]
+ace-testkit = { path = "../ace-testkit" }
+
+[lints]
+workspace = true

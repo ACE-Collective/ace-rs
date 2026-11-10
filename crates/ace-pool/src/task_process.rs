@@ -52,6 +52,7 @@ pub fn main(modules: &Modules) -> ExitCode {
         task: &request.task,
         input: request.input.as_deref(),
         email_body: request.email_body.as_deref(),
+        tree_files: request.tree_files.as_deref(),
         outputs,
         // the supervisor kills the process instead
         cancel: CancellationToken::new(),

@@ -1,7 +1,7 @@
 [package]
 name = "ace-mod-brocess"
 version = "0.1.0"
-description = "The modules that read and write brocess, what ACE's email modules have seen before, through the core's reads and writes"
+description = "The modules that read and write brocess, what ACE's email modules have seen before, through the core's reads and writes, and the two that read the frequency module's tags"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
@@ -10,6 +10,8 @@ publish.workspace = true
 [dependencies]
 # Python's address parsing and ace3's header helpers, as the email module reads them.
 ace-mod-email = { path = "../ace-mod-email" }
+# Python's `re` patterns, which the link module's settings are.
+ace-mod-urls = { path = "../ace-mod-urls" }
 ace-results = { path = "../ace-results" }
 ace-sdk = { path = "../ace-sdk" }
 chrono = { version = "0.4.45", default-features = false, features = ["std"] }

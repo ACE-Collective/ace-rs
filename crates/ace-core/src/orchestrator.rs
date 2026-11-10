@@ -133,6 +133,31 @@ impl Orchestrator {
                 version.map_or("none".to_owned(), |v| v.to_string()),
             )));
         }
+        if let Some(others) = result.get("others").and_then(Value::as_array)
+            && !others.is_empty()
+        {
+            let Some(allowed) = manifest.adds_to_others else {
+                return Err(rejected(format!(
+                    "{module} doesn't declare what it adds to other observables (Module::ADDS_TO_OTHERS)"
+                )));
+            };
+            for other in others {
+                let additions: ace_results::ObservableAdditions =
+                    serde_json::from_value(other.get("additions").cloned().unwrap_or_default())
+                        .map_err(|e| rejected(format!("an entry of others doesn't read: {e}")))?;
+                if let Some(why) = allowed.refusal(&additions) {
+                    return Err(rejected(format!(
+                        "{module} doesn't declare {why} among what it adds to other observables \
+                         (Module::ADDS_TO_OTHERS)"
+                    )));
+                }
+            }
+        }
+        if result.get("root").is_some_and(|root| !root.is_null()) && !manifest.sets_root {
+            return Err(rejected(format!(
+                "{module} doesn't declare that it changes its root (Module::SETS_ROOT)"
+            )));
+        }
         let registry = self
             .registry
             .get_or_init(|| {
@@ -408,8 +433,26 @@ impl Orchestrator {
                 );
             }
         }
+        for other in &result.others {
+            match tree::find_observable(tx.conn(), root, &other.observable).await? {
+                Some(id) => {
+                    tree::add_to_observable(tx, root, id, &other.additions).await?;
+                    touched.push(id);
+                    detections.extend(other.additions.detections.iter().map(|d| (id, d)));
+                }
+                None => tracing::warn!(
+                    %root,
+                    module = %task.module,
+                    observable = %other.observable.value,
+                    "a result added to an observable that isn't in the root; those additions are dropped"
+                ),
+            }
+        }
         for (observable, detection) in &detections {
             tree::add_detection(tx, root, *observable, Some(result_id), detection).await?;
+        }
+        if let Some(changes) = &result.root {
+            tree::change_root(tx, root, changes).await?;
         }
 
         // a result that lands after its root was cancelled is kept, and queues nothing

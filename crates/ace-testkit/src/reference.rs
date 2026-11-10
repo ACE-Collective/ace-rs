@@ -110,6 +110,109 @@ impl Dump {
         self.analysis("FileTypeAnalysis")?["details"]["mime"].as_str()
     }
 
+    /// The index of the observable of `kind` and `value` in the root the dump kept
+    /// (`run_module.py --tree-view`).
+    pub fn tree_index(&self, kind: &str, value: &str) -> Option<usize> {
+        self.value["tree_view"]["observables"]
+            .as_array()?
+            .iter()
+            .position(|o| o["type"] == kind && o["value"] == value)
+    }
+
+    /// The root the dump kept (`run_module.py --tree-view`) as ace4's core would send it to a module
+    /// that walks it, with `this` its task's observable: ace3's results without those of the classes
+    /// in `leave_out`, such as the module's own, and each result's type its ace4 name where a module
+    /// that walks the tree reads it (`ace3_analysis_type`).
+    pub fn tree_view(&self, this: usize, leave_out: &[&str]) -> ace_sdk::tree::TreeView {
+        use ace_sdk::tree::{TreeAddition, TreeObservable, TreePath, TreeResult, TreeView};
+        let view = &self.value["tree_view"];
+        let observables = view["observables"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .map(|o| TreeObservable {
+                kind: o["type"]
+                    .as_str()
+                    .and_then(|t| t.parse().ok())
+                    .unwrap_or_else(|| {
+                        panic!("an observable type ace4 doesn't have: {}", o["type"])
+                    }),
+                value: o["value"].as_str().unwrap_or_default().to_owned(),
+                tags: strings(&o["tags"]),
+                directives: strings(&o["directives"]),
+                detections: o["detections"].as_array().map_or(0, |d| d.len() as u32),
+                paths: o["paths"]
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .map(|p| TreePath {
+                        path: p["path"].as_str().unwrap_or_default().to_owned(),
+                        yara_meta: strings(&p["yara_meta"]),
+                    })
+                    .collect(),
+                size: o["size"].as_u64(),
+                pending: Vec::new(),
+                download: None,
+            })
+            .collect();
+        let results = view["results"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter(|r| !leave_out.contains(&r["class"].as_str().unwrap_or_default()))
+            .map(|r| TreeResult {
+                observable: r["observable"].as_u64().unwrap_or_default() as usize,
+                module: r["module"].as_str().unwrap_or_default().to_owned(),
+                analysis_type: ace3_analysis_type(r["class"].as_str().unwrap_or_default()),
+                tags: strings(&r["tags"]),
+                added: r["added"]
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .map(|a| TreeAddition {
+                        observable: a["observable"].as_u64().unwrap_or_default() as usize,
+                        path: a["path"].as_str().map(str::to_owned),
+                    })
+                    .collect(),
+            })
+            .collect();
+        TreeView {
+            alert_type: view["alert_type"].as_str().map(str::to_owned),
+            whitelisted: view["whitelisted"].as_bool().unwrap_or_default(),
+            this,
+            observables,
+            results,
+            truncated: false,
+        }
+    }
+
+    /// The HTML bodies the dump kept with its root, by sha256.
+    pub fn tree_bodies(&self) -> Vec<(String, Vec<u8>)> {
+        use base64::Engine;
+        self.value["tree_view"]["bodies"]
+            .as_object()
+            .into_iter()
+            .flatten()
+            .filter_map(|(sha256, body)| {
+                let bytes = base64::engine::general_purpose::STANDARD
+                    .decode(body.as_str()?)
+                    .ok()?;
+                Some((sha256.clone(), bytes))
+            })
+            .collect()
+    }
+
+    /// The results of ace3 class `class` in the root the dump kept, each with its observable's index.
+    pub fn tree_results(&self, class: &str) -> Vec<(usize, &Value)> {
+        self.value["tree_view"]["results"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter(|r| r["class"] == class)
+            .map(|r| (r["observable"].as_u64().unwrap_or_default() as usize, r))
+            .collect()
+    }
+
     /// The dump of ace3 class `class` in the normal form. Null when ace3 made no analysis.
     pub fn normal_form(&self, class: &str) -> Value {
         let Some(analysis) = self.analysis(class) else {
@@ -157,6 +260,23 @@ impl Dump {
             "observables": observables,
         })
     }
+}
+
+/// The ace4 analysis type of an ace3 analysis class, for those the modules that walk the tree look
+/// for; any other is `ace3:<class>`.
+pub fn ace3_analysis_type(class: &str) -> String {
+    match class {
+        "EmailAnalysis" => "email_analysis",
+        "FileTypeAnalysis" => "file_type_analysis",
+        "ProtectedURLAnalysis" => "protected_url_analysis",
+        "EmailConversationFrequencyAnalysis" => "email_conversation_frequency_analysis",
+        "LureURLAnalysis" => "lure_url_analysis",
+        "MailboxEmailAnalysis" => "mailbox_email_analysis",
+        "EmailConversationAttachmentAnalysis" => "email_conversation_attachment_analysis",
+        "EmailConversationLinkAnalysis" => "email_conversation_link_analysis",
+        other => return format!("ace3:{other}"),
+    }
+    .to_owned()
 }
 
 fn collect(dir: &Path, base: &Path, names: &mut Vec<String>) -> Result<(), HarnessError> {

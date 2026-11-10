@@ -28,9 +28,8 @@ fn listed_for(module: &str) -> ListedDifferences {
     listed
 }
 
-/// `smtp-counts` over the fixture's rows, as the core's SQL sums them: addresses compared byte for
-/// byte, NULL counts left out, and no row a 0.
-fn counts_in_fixture(value: &str) -> Value {
+/// The fixture's smtplog rows.
+fn fixture_rows() -> Value {
     let fixture: Value = serde_json::from_str(
         &std::fs::read_to_string(
             Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -39,13 +38,24 @@ fn counts_in_fixture(value: &str) -> Value {
         .expect("the fixture reads"),
     )
     .expect("JSON");
+    fixture["smtplog"].clone()
+}
+
+/// `smtp-counts` over the fixture's rows, as the core's SQL sums them: addresses compared byte for
+/// byte, NULL counts left out, and no row a 0.
+fn counts_in_fixture(value: &str) -> Value {
+    counts_in(&fixture_rows(), value)
+}
+
+/// `smtp-counts` over `rows`, as `counts_in_fixture`.
+fn counts_in(rows: &Value, value: &str) -> Value {
     let parts: Vec<&str> = value.splitn(3, '|').collect();
     let (sender, recipient) = match parts.as_slice() {
         [sender, recipient] => (*sender, *recipient),
         _ => (value, ""),
     };
     let (mut source, mut conversation) = (0, 0);
-    for row in fixture["smtplog"].as_array().expect("rows") {
+    for row in rows.as_array().expect("rows") {
         let (Some(from), Some(to), Some(count)) =
             (row[0].as_str(), row[1].as_str(), row[2].as_i64())
         else {
@@ -740,4 +750,232 @@ async fn the_thread_module_waits_while_the_root_s_email_is_still_to_be_recorded(
         .await
         .expect("runs");
     assert!(matches!(outcome, Outcome::Delay(_)), "{outcome:?}");
+}
+
+// ---- 7.5 batch 8: the modules that read the frequency module's tags ----
+
+/// The smtplog rows `make-dumps emailtree` gave a run's `--brocess`.
+fn emailtree_rows(dump: &Dump) -> Value {
+    match (
+        dump.value["module"].as_str(),
+        dump.short_name().ends_with(".known_sender"),
+    ) {
+        (Some("email_conversation_attachment_analyzer"), true) => fixture_rows(),
+        (Some("email_conversation_link_analyzer"), true) => {
+            json!([["it@corp.example", "pat@corp.example", 9]])
+        }
+        _ => json!([]),
+    }
+}
+
+/// The dump's root as the core would send it to a module on the observable at `this`, with each
+/// conversation's frequency result and tags from ace4's frequency module over the run's rows, in
+/// place of ace3's.
+async fn emailtree_view(dump: &Dump, this: usize, leave_out: &str) -> ace_sdk::tree::TreeView {
+    use ace_results::AnalysisType;
+    use ace_results::types::brocess::EmailConversationFrequencyAnalysis;
+    let rows = emailtree_rows(dump);
+    let mut tree = dump.tree_view(this, &[leave_out, "EmailConversationFrequencyAnalysis"]);
+    for i in tree
+        .of_kind(ObservableKind::EmailConversation)
+        .collect::<Vec<_>>()
+    {
+        let value = tree.observables[i].value.clone();
+        let reads = Arc::new(FakeReads::new().answer("smtp-counts", counts_in(&rows, &value)));
+        let harness = Harness::<EmailConversationFrequencyAnalyzer>::new()
+            .expect("harness")
+            .reader(reads);
+        let Outcome::Done(result) = harness
+            .run_lookup(harness.observable(ObservableKind::EmailConversation, &value))
+            .await
+            .unwrap_or_else(|e| panic!("{}: {e}", dump.name))
+        else {
+            panic!("{}: the frequency module stored nothing", dump.name);
+        };
+        let observable = &mut tree.observables[i];
+        observable
+            .tags
+            .retain(|t| t != "new_sender" && t != "frequent_conversation");
+        observable.tags.extend(result.analyzed.tags.iter().cloned());
+        tree.results.push(ace_sdk::tree::TreeResult {
+            observable: i,
+            module: EmailConversationFrequencyAnalysis::MODULE.to_owned(),
+            analysis_type: EmailConversationFrequencyAnalysis::NAME.to_owned(),
+            tags: Vec::new(),
+            added: Vec::new(),
+        });
+    }
+    tree
+}
+
+/// What a module of the two did on each observable, ace3's from the root it left: whether it made an
+/// analysis there, whether its detection is there, and whether it gave the observable `directive`.
+fn ace3_effects(dump: &Dump, class: &str, description: &str, directive: Option<&str>) -> Value {
+    let observables = dump.value["tree_view"]["observables"]
+        .as_array()
+        .expect("observables");
+    let analyzed: Vec<usize> = dump
+        .tree_results(class)
+        .into_iter()
+        .map(|(i, _)| i)
+        .collect();
+    let mut effects = serde_json::Map::new();
+    for (i, o) in observables.iter().enumerate() {
+        let detection = o["detections"]
+            .as_array()
+            .is_some_and(|d| d.contains(&json!(description)));
+        let has = |d: &str| {
+            o["directives"]
+                .as_array()
+                .is_some_and(|ds| ds.contains(&json!(d)))
+        };
+        let added = directive.is_some_and(|d| analyzed.contains(&i) && has(d));
+        if analyzed.contains(&i) || detection {
+            effects.insert(
+                format!("{}:{}", o["type"].as_str().unwrap_or_default(), o["value"].as_str().unwrap_or_default()),
+                json!({"analysis": analyzed.contains(&i), "detection": detection, "directive": added}),
+            );
+        }
+    }
+    Value::Object(effects)
+}
+
+#[tokio::test]
+async fn the_attachment_and_link_modules_match_the_reference_dumps_or_lists_each_difference() {
+    use ace_mod_brocess::attachment::{self, EmailConversationAttachmentAnalyzer};
+    use ace_mod_brocess::link::{self, EmailConversationLinkAnalyzer};
+    use ace_results::AnalysisType;
+    use ace_results::types::file_type::FileTypeAnalysis;
+
+    let mut compared = Vec::new();
+    let mut fired = 0;
+    let dumps = Dump::all("email_conversation_attachment_analyzer").expect("the dumps read");
+    assert!(dumps.len() >= 15, "only {} attachment dumps", dumps.len());
+    for dump in dumps {
+        let mut ace4 = serde_json::Map::new();
+        let files: Vec<(usize, Value)> = dump
+            .tree_results("FileTypeAnalysis")
+            .into_iter()
+            .map(|(i, r)| (i, r["details"].clone()))
+            .collect();
+        for (i, file_type) in files {
+            let tree = emailtree_view(&dump, i, "EmailConversationAttachmentAnalysis").await;
+            let o = tree.observable(i).clone();
+            let path = o.paths.first().map(|p| p.path.clone()).unwrap_or_default();
+            let harness = Harness::<EmailConversationAttachmentAnalyzer>::new()
+                .expect("harness")
+                .dependency_result(FileTypeAnalysis::MODULE, file_type)
+                .tree(tree);
+            let observable = harness.observable(ObservableKind::File, &o.value);
+            let outcome = harness
+                .run_parser(observable)
+                .unwrap_or_else(|e| panic!("{} {path}: {e}", dump.name));
+            if dump.short_name() == "ace4/email/macro_attachment.email.rfc822"
+                && matches!(outcome, Outcome::Done(_))
+            {
+                ace_testkit::check_view_fixture("attachment_macro_attachment", &outcome);
+            }
+            match outcome {
+                Outcome::Done(result) => {
+                    fired += 1;
+                    ace4.insert(
+                        format!("file:{}", o.value),
+                        json!({
+                            "analysis": true,
+                            "detection": result.analyzed.detections.iter().any(|d| d.description == attachment::DESCRIPTION),
+                            "directive": result.analyzed.directives.iter().any(|d| d == "sandbox"),
+                        }),
+                    );
+                }
+                Outcome::Skipped(_) => {}
+                Outcome::Delay(_) => panic!("{} {path}: the module delayed", dump.name),
+            }
+        }
+        compared.push((
+            format!(
+                "email_conversation_attachment_analyzer/{}",
+                dump.short_name()
+            ),
+            diff(
+                &ace3_effects(
+                    &dump,
+                    "EmailConversationAttachmentAnalysis",
+                    attachment::DESCRIPTION,
+                    Some("sandbox"),
+                ),
+                &Value::Object(ace4),
+            ),
+        ));
+    }
+    assert!(fired >= 2, "the attachment module fired {fired} times");
+
+    let dumps = Dump::all("email_conversation_link_analyzer").expect("the dumps read");
+    assert!(dumps.len() >= 4, "only {} link dumps", dumps.len());
+    for dump in dumps {
+        let settings = if dump.short_name().ends_with(".nothing") {
+            json!({"url_pattern_none": "no-such-host"})
+        } else {
+            json!({"url_pattern_lure": r"lure-example\.(net|org)", "url_pattern_bad": "(unclosed"})
+        };
+        let urls: Vec<usize> = {
+            let tree = dump.tree_view(0, &[]);
+            tree.of_kind(ObservableKind::Url).collect()
+        };
+        let mut ace4 = serde_json::Map::new();
+        for i in urls {
+            let tree = emailtree_view(&dump, i, "EmailConversationLinkAnalysis").await;
+            let value = tree.observable(i).value.clone();
+            let harness = Harness::<EmailConversationLinkAnalyzer>::with_settings(settings.clone())
+                .expect("harness")
+                .tree(tree);
+            let outcome = harness
+                .run_parser(harness.observable(ObservableKind::Url, &value))
+                .unwrap_or_else(|e| panic!("{} {value}: {e}", dump.name));
+            if dump.short_name() == "ace4/email/lure_button.email.rfc822"
+                && value == "https://login.lure-example.net/verify?id=7"
+            {
+                ace_testkit::check_view_fixture("link_lure_button", &outcome);
+            }
+            match outcome {
+                Outcome::Done(result) => {
+                    ace4.insert(
+                        format!("url:{value}"),
+                        json!({
+                            "analysis": true,
+                            "detection": result.analyzed.detections.iter().any(|d| d.description == link::DESCRIPTION),
+                            "directive": false,
+                        }),
+                    );
+                }
+                Outcome::Skipped(_) => {}
+                Outcome::Delay(_) => panic!("{} {value}: the module delayed", dump.name),
+            }
+        }
+        compared.push((
+            format!("email_conversation_link_analyzer/{}", dump.short_name()),
+            diff(
+                &ace3_effects(
+                    &dump,
+                    "EmailConversationLinkAnalysis",
+                    link::DESCRIPTION,
+                    None,
+                ),
+                &Value::Object(ace4),
+            ),
+        ));
+    }
+    let listed = ListedDifferences::load(
+        &Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/differences.md"),
+    )
+    .expect("differences.md reads");
+    let mut listed = listed;
+    listed.rows.retain(|row| {
+        matches!(
+            row.section.as_deref(),
+            Some("email_conversation_attachment_analyzer" | "email_conversation_link_analyzer")
+        )
+    });
+    if let Err(report) = listed.check(&compared, &[]) {
+        panic!("{report}");
+    }
 }

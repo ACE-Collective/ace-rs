@@ -106,6 +106,7 @@ pub struct Harness<M: Module> {
     observables_below: Vec<ObservableRef>,
     added_by: Vec<String>,
     related_tags: Vec<RelatedTags>,
+    tree: Option<ace_sdk::tree::TreeView>,
 }
 
 impl<M: Module> Harness<M> {
@@ -139,6 +140,7 @@ impl<M: Module> Harness<M> {
             observables_below: Vec::new(),
             added_by: Vec::new(),
             related_tags: Vec::new(),
+            tree: None,
         })
     }
 
@@ -197,6 +199,21 @@ impl<M: Module> Harness<M> {
             tags: tags.iter().map(|t| (*t).to_owned()).collect(),
         });
         self
+    }
+
+    /// The root's tree, as the core sends it to a module that walks it (`Module::READS_TREE`).
+    pub fn tree(mut self, tree: ace_sdk::tree::TreeView) -> Self {
+        self.tree = Some(tree);
+        self
+    }
+
+    /// Puts a file of the tree where a module that reads it finds it (`Module::READS_TREE_FILES`),
+    /// by its sha256, as the pool downloads it.
+    pub fn tree_file(self, sha256: &str, bytes: &[u8]) -> Result<Self, HarnessError> {
+        let dir = self._dir.path().join("tree_files");
+        std::fs::create_dir_all(&dir)?;
+        std::fs::write(dir.join(sha256), bytes)?;
+        Ok(self)
     }
 
     /// A deadline in place of the manifest's, for a module that watches its own.
@@ -311,7 +328,9 @@ impl<M: Module> Harness<M> {
             .with_dependency_results(self.dependency_results.clone())
             .with_observables_below(self.observables_below.clone())
             .with_added_by(self.added_by.clone())
-            .with_related_tags(self.related_tags.clone());
+            .with_related_tags(self.related_tags.clone())
+            .with_tree(self.tree.clone())
+            .with_tree_files(Some(self._dir.path().join("tree_files")));
         let ctx = match &self.reader {
             Some(_) => ctx.with_task_id(1),
             None => ctx,

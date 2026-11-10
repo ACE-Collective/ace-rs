@@ -384,6 +384,23 @@ expression: text
       ],
       "type": "object"
     },
+    "OtherAdditions": {
+      "additionalProperties": false,
+      "description": "What a result adds to an observable already in the alert that it didn't analyze.",
+      "properties": {
+        "additions": {
+          "$ref": "#/$defs/ObservableAdditions"
+        },
+        "observable": {
+          "$ref": "#/$defs/ObservableRef"
+        }
+      },
+      "required": [
+        "observable",
+        "additions"
+      ],
+      "type": "object"
+    },
     "Relationship": {
       "additionalProperties": false,
       "description": "A relationship from the observable that carries it to `target`.",
@@ -421,6 +438,28 @@ expression: text
           "type": "string"
         }
       ]
+    },
+    "RootChanges": {
+      "additionalProperties": false,
+      "description": "What a result changes about its root.",
+      "properties": {
+        "description": {
+          "description": "The root's new description, in place of its own.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "details": {
+          "additionalProperties": true,
+          "description": "Keys merged into the root's details, each in place of one of the same name, as Python's\n`dict.update`. The root's details are the `details` its submitter gave, if it gave any.",
+          "type": [
+            "object",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
     },
     "SampleAnalysis": {
       "additionalProperties": false,
@@ -534,9 +573,27 @@ expression: text
       },
       "type": "array"
     },
+    "others": {
+      "description": "What the result adds to observables already in the alert besides the one it analyzed, as\nace3's modules that walk the tree change what they find there, such as the lure module's\n`crawl` on the URL it picks. The core takes only what the module declares (`Module::ADDS_TO_OTHERS`), and\nleaves alone an observable the alert doesn't hold.",
+      "items": {
+        "$ref": "#/$defs/OtherAdditions"
+      },
+      "type": "array"
+    },
     "redirected": {
       "$ref": "#/$defs/ObservableAdditions",
       "description": "What the result adds to the observable the analyzed one redirects to, such as the Office\ndocument a part was extracted from: ace3's YARA module sandboxes that document rather than\nthe part that matched."
+    },
+    "root": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/RootChanges"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "What the result changes about its root, for a module that declares it may, as ace3's\nmailbox module sets the root's description and details."
     },
     "schema_version": {
       "const": 1,

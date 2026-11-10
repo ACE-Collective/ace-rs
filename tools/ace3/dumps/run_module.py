@@ -117,6 +117,11 @@ def parse_args():
     parser.add_argument("--fluent-bit", action="store_true", help="keep what ace3 sends to fluent-bit in the dump")
     parser.add_argument("--tree", action="store_true", help="also write the root in the normal form to tree.json")
     parser.add_argument(
+        "--tree-view", action="store_true",
+        help="also keep the whole root in the dump, as ace4's core hands a module that walks it its tree",
+    )
+    parser.add_argument("--alert-type", default="cli_analysis", help="the root's alert type, such as mailbox")
+    parser.add_argument(
         "--sidecars", metavar="SUFFIX",
         help="keep the text of each file the run wrote under the root whose name ends in SUFFIX, such as .dom.json",
     )
@@ -623,6 +628,10 @@ TREE_MODULES = {
     "ZipEncryptionAnalysis": "zip_encryption_analyzer",
     "RarEncryptionAnalysis": "rar_encryption_analyzer",
     "PDFEncryptionAnalysis": "pdf_encryption_analyzer",
+    "LureURLAnalysis": "lure_url_analyzer",
+    "MailboxEmailAnalysis": "mailbox_email_analyzer",
+    "EmailConversationAttachmentAnalysis": "email_conversation_attachment_analyzer",
+    "EmailConversationLinkAnalysis": "email_conversation_link_analyzer",
 }
 TREE_RUN_FIELDS = {
     "EmailAnalysis": ["details/email/log_entry/date"],
@@ -641,6 +650,8 @@ TREE_RUN_FIELDS = {
     ],
     "YaraScanResults_v3_4": ["details/scan_results/*/commit", "details/scan_results/*/ruleset"],
     "NRDAnalysis": ["details/matched_at"],
+    # the uuid ace3 gives an observable is new each run, and ace4's observables have none
+    "LureURLAnalysis": ["details/primary/observable_uuid", "details/candidates/*/observable_uuid"],
 }
 # ace3's excluded_analysis holds `module:<class ...>` strings
 TREE_EXCLUDED = {
@@ -683,6 +694,10 @@ TREE_EXCLUDED = {
     "ZipEncryptionAnalyzer": "zip_encryption_analyzer",
     "RarEncryptionAnalyzer": "rar_encryption_analyzer",
     "PDFEncryptionAnalyzer": "pdf_encryption_analyzer",
+    "LureURLAnalyzer": "lure_url_analyzer",
+    "MailboxEmailAnalyzer": "mailbox_email_analyzer",
+    "EmailConversationAttachmentAnalyzer": "email_conversation_attachment_analyzer",
+    "EmailConversationLinkAnalyzer": "email_conversation_link_analyzer",
 }
 
 
@@ -875,6 +890,88 @@ def tree_form(root):
         else:
             observables[key] = entry
     return {"form": 1, "observables": observables}
+
+
+# a body the lure module reads, which ace3 doesn't read past this
+TREE_VIEW_BODY_MARKER = ".unknown_text_html"
+TREE_VIEW_BODY_MAX = 5 * 1024 * 1024
+
+
+def tree_view(root):
+    """The whole root in the shape of ace4's `ace_sdk::tree::TreeView`, which the core hands a module
+    that walks it: its observables, one per (type, value), a file's with each path and that path's
+    yara_meta types, and every analysis with what it added, by index. ace3 has a file observable per
+    path, so a file's analyses are those of each of its observables; ace4 analyzes a file once, so of
+    two analyses by one class of one file only the first is kept. Each result keeps its class, its
+    module as the trees name it, its summary and its details, for a test to compare with, and the
+    HTML bodies the lure module reads are kept as base64, by sha256."""
+    import base64
+
+    observables, index, results, bodies = [], {}, [], {}
+
+    def observable_index(observable):
+        key = (observable.type, observable.value)
+        if key not in index:
+            index[key] = len(observables)
+            observables.append({
+                "type": observable.type,
+                "value": observable.value,
+                "tags": [],
+                "directives": [],
+                "detections": [],
+                "paths": [],
+            })
+        entry = observables[index[key]]
+        for tag in sorted(str(t) for t in observable.tags):
+            if tag not in entry["tags"]:
+                entry["tags"].append(tag)
+        for directive in sorted(d for d in observable.directives if not d.startswith("yara_meta:")):
+            if directive not in entry["directives"]:
+                entry["directives"].append(directive)
+        for detection in observable.detections:
+            if detection.description not in entry["detections"]:
+                entry["detections"].append(detection.description)
+        if observable.type == "file":
+            entry["size"] = observable.size
+            if not any(p["path"] == observable.file_path for p in entry["paths"]):
+                entry["paths"].append({"path": observable.file_path, "yara_meta": sorted(observable.yara_meta_tags)})
+            if TREE_VIEW_BODY_MARKER in (observable.file_name or "") and observable.size <= TREE_VIEW_BODY_MAX:
+                with open(observable.full_path, "rb") as fp:
+                    bodies[observable.value] = base64.b64encode(fp.read()).decode()
+        return index[key]
+
+    for observable in root.all_observables:
+        observable_index(observable)
+    seen = set()
+    for observable in root.all_observables:
+        for analysis in observable.all_analysis:
+            if not analysis:
+                continue
+            analysis.load_details()
+            class_name = type(analysis).__name__
+            on = observable_index(observable)
+            if (on, class_name) in seen:
+                continue
+            seen.add((on, class_name))
+            results.append({
+                "observable": on,
+                "class": class_name,
+                "module": TREE_MODULES.get(class_name, class_name),
+                "tags": sorted(str(tag) for tag in analysis.tags),
+                "summary": analysis.summary,
+                "details": json_safe(analysis.details),
+                "added": [
+                    {"observable": observable_index(o)} | ({"path": o.file_path} if o.type == "file" else {})
+                    for o in analysis.observables
+                ],
+            })
+    return {
+        "alert_type": root.alert_type,
+        "whitelisted": root.whitelisted,
+        "observables": observables,
+        "results": results,
+        "bodies": bodies,
+    }
 
 
 def merge_tree_entry(entry, later):
@@ -1149,7 +1246,7 @@ def main():
     root.initialize_storage()
     root.tool = "ACE - Command Line Analysis"
     root.tool_instance = socket.gethostname()
-    root.alert_type = "cli_analysis"
+    root.alert_type = args.alert_type
     root.analysis_mode = ANALYSIS_MODE_CLI
     get_config().get_analysis_mode_config(root.analysis_mode).cleanup = False
     root.description = "ace4 reference dump"
@@ -1273,6 +1370,9 @@ def main():
         dump["brocess_reads"] = store.reads
     if fluent_bit is not None:
         dump["fluent_bit"] = fluent_bit
+    if args.tree_view:
+        dump["tree_view"] = tree_view(root)
+        dump["root_after"] = {"description": root.description, "details": json_safe(root.details)}
     if args.tree:
         tree = relative_paths(tree_form(root), [(root_dir, "<root>"), (work, "<work>")])
         with open(os.path.join(work, "tree.json"), "w") as fp:

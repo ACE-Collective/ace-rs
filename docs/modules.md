@@ -20,17 +20,17 @@ Versions are those of ace3's image: Python packages from `installer/requirements
 
 | Pool | Modules | Ported |
 |---|---|---|
-| parser | 53 | 44 |
+| parser | 53 | 48 |
 | lookup | 17 | 9 |
 | core | 3 | 0 |
 | sandbox | 15 | 0 |
 | scanner | 2 | 0 |
-| all | 90 | 53 |
+| all | 90 | 57 |
 
 | Step | Modules |
 |---|---|
-| done | 53 |
-| 7.5 | 27 |
+| done | 57 |
+| 7.5 | 23 |
 | 7.6 | 5 |
 | 7.7 | 2 |
 | 7.10 | 2 |
@@ -49,7 +49,7 @@ In order. Batches 10 to 13 run programs in the sandbox runner, which batch 10 bu
 5. **Office containers**: done. `onenote_extraction`, `officeparser3`, `office_xml_rel`, `xml_binary_analyzer`, `xml_plain_text_analyzer`, `extracted_ole_analyzer`, `hidden_mime`, `active_mime`, in `ace-mod-office`. OneNote, compound files, Office XML, hidden MIME and ActiveMime. XML is parsed by `ace_lxml::target`, lxml's target parser over the vendored libxml2, which matches lxml on 472 inputs; MIME by `ace-mod-oletools`' feed parser; compound files by a port of officeparser3's own reader, not olefile's, since what officeparser3 writes for a damaged file follows from how it reads one. `extracted_ole_analyzer` reads on the lease which modules added its file, and runs last; `xml_plain_text_analyzer` reads the tags of the file its file came from, and the archive module now waits for file_type, as ace3's does, so those tags are there.
 6. **RTF and scripts**: done. `microsoft_script_encoding_analysis`, `extracted_rtf_analyzer`, `vbscript_analyzer`, `nowhitespace_analyzer`, in `ace-mod-scripts`. Checks and transforms of RTF and script files. The Perl decoder ace3 runs for encoded scripts is ported and matches it byte for byte on 50,000 inputs (`docs/measurements/scripts.md`); `extracted_rtf_analyzer` reads on the lease which modules added its file, and looks for rtfole, whose `extracted_rtf` tag is what ace3 reads.
 7. **Encrypted files**: done. `zip_encryption_analyzer`, `rar_encryption_analyzer`, `pdf_encryption_analyzer`, in `ace-mod-encrypted`. No John (7.3): the email's candidates, cut by 4.11's `ace_mod_msoffice::words_from_body`, are tried in the task with the zip crate, libunrar and libqpdf, keeping what John's check accepts, which for a PDF is the user password only. The dumps cover each encryption method, a wrong, missing and full list, and no email or no body, with 0 differences but other modules' tags; a decrypted PDF matches pikepdf's copy byte for byte but for the `/ID` pikepdf takes from the clock (`docs/measurements/encrypted.md`).
-8. **Email tree**: `mailbox_email_analyzer`, `lure_url_analyzer`, `email_conversation_attachment_analyzer`, `email_conversation_link_analyzer`. Modules that read the email's analysis; the two conversation modules after 7.4's frequency analyzer.
+8. **Email tree**: done. `lure_url_analyzer` and `mailbox_email_analyzer` in `ace-mod-emailtree`, `email_conversation_attachment_analyzer` and `email_conversation_link_analyzer` in `ace-mod-brocess`, beside the frequency module whose `new_sender` tag they read. Each walks the root's tree, which the core sends on the lease (`Module::READS_TREE`, `ace_sdk::tree`), with the files it reads (`Module::READS_TREE_FILES`), the lure module's HTML bodies; a result adds to other observables in the root (`ResultEnvelope::others`) only what its module declares (`Module::ADDS_TO_OTHERS`), the lure's `crawl` and the mailbox's `tracked`, and the mailbox module's changes its root's description and details (`ResultEnvelope::root`, `Module::SETS_ROOT`). The lure module runs last, as ace3's final analysis; the attachment module looks for a macro only as far as ace3 does when it runs, so its answer doesn't depend on which task lands first; the link module, which does nothing without a pattern in ace3, is off until a site gives it a section.
 9. **Email archive**: `email_archiver`, `encrypted_archive_analyzer`, `url_email_pivot_analyzer`, `message_id_analyzer_v2`. Brings ace3's `email` router (5.6) and the `daily/partitions` task's archive half (6.7). Lookup modules, on 7.2's reads (`crates/ace-core/src/reads.md`).
 10. **PDF and image text**: `ocr`, `qrcode`, `exif`, `pdftotext`, `ssdeep`. The tools that turn PDFs and images into text YARA scans. Builds the sandbox runner and the sandbox pool's image, and adds Ghostscript's rewrite to `pdf_analyzer` and ACE archives to `archive`, which move to the sandbox pool.
 11. **Executables**: `java_class_decompiler`, `upx`, `autoit`, `de4dot`, `ilspy`. Unpackers and decompilers, on the runner; the JVM and .NET in the image wait for the owner (*External tools*).
@@ -203,9 +203,9 @@ In the config's order. ace4 is the crate a ported module is in.
 | `onenote_extraction` | `OneNoteFileAnalyzer` | `ace-mod-office` | parser | done | file | analysis, binary, cli, correlation, email, file |
 | `javascript_deobfuscation` | `JavaScriptDeobfuscationAnalyzer` | not yet | scanner | 7.7 | file | analysis, binary, cli, correlation, email, file |
 | `command_line_analyzer` | `CommandLineAnalyzer` | `ace-mod-values` | parser | done | common | analysis, binary, cli, correlation, email, file |
-| `mailbox_email_analyzer` | `MailboxEmailAnalyzer` | not yet | parser | 7.5 batch 8 | email | analysis, cli, correlation, email |
+| `mailbox_email_analyzer` | `MailboxEmailAnalyzer` | `ace-mod-emailtree` | parser | done | email | analysis, cli, correlation, email |
 | `email_analyzer` | `EmailAnalyzer` | `ace-mod-email` | parser | done | email | analysis, cli, correlation, email |
-| `lure_url_analyzer` | `LureURLAnalyzer` | not yet | parser | 7.5 batch 8 | correlation | analysis, cli, correlation |
+| `lure_url_analyzer` | `LureURLAnalyzer` | `ace-mod-emailtree` | parser | done | correlation | analysis, cli, correlation |
 | `email_archiver` | `EmailArchiveAction` | not yet | lookup | 7.5 batch 9 | - | email |
 | `encrypted_archive_analyzer` | `EncryptedArchiveAnalyzer` | not yet | lookup | 7.5 batch 9 | email | analysis, cli, correlation, email |
 | `file_location_analysis` | `FileLocationAnalyzer` | `ace-mod-values` | parser | done | file | analysis, binary, cli, correlation, email, file |
@@ -220,8 +220,8 @@ In the config's order. ace4 is the crate a ported module is in.
 | `user_analyzer` | `UserAnalyzer` | `ace-mod-user` | lookup | done | correlation | analysis, cli, correlation |
 | `email_address_fqdn_analyzer` | `EmailAddressFQDNAnalyzer` | `ace-mod-values` | parser | done | common | analysis, binary, cli, correlation, email, file |
 | `email_conversation_frequency_analyzer` | `EmailConversationFrequencyAnalyzer` | `ace-mod-brocess` | lookup | done | email | analysis, cli, correlation, email |
-| `email_conversation_attachment_analyzer` | `EmailConversationAttachmentAnalyzer` | not yet | parser | 7.5 batch 8 | email | analysis, cli, correlation, email |
-| `email_conversation_link_analyzer` | `EmailConversationLinkAnalyzer` | not yet | parser | 7.5 batch 8 | email | analysis, cli, correlation, email |
+| `email_conversation_attachment_analyzer` | `EmailConversationAttachmentAnalyzer` | `ace-mod-brocess` | parser | done | email | analysis, cli, correlation, email |
+| `email_conversation_link_analyzer` | `EmailConversationLinkAnalyzer` | `ace-mod-brocess` | parser | done | email | analysis, cli, correlation, email |
 | `email_thread_analyzer` | `EmailThreadAnalyzer` | `ace-mod-brocess` | lookup | done | correlation | analysis, cli, correlation |
 | `url_email_pivot_analyzer` | `URLEmailPivotAnalyzer` | not yet | lookup | 7.5 batch 9 | correlation | analysis, cli, correlation |
 | `email_logger` | `EmailLoggingAnalyzer` | `ace-mod-brocess` | lookup | done | - | email |
@@ -563,9 +563,9 @@ In the config's order. ace4 is the crate a ported module is in.
 ### mailbox_email_analyzer
 
 - **Section**: `analysis_module_mailbox_email_analyzer`, class `MailboxEmailAnalyzer` in `saq/modules/email/mailbox.py`, enabled by default.
-- **ace4**: not yet.
-- **Pool**: parser. Edits the tree only: no file, network or database. The SDK needs a way for a module to set the root's description and details.
-- **Step**: 7.5 batch 8 (Email tree).
+- **ace4**: ported in `ace-mod-emailtree`. It reads the root's alert type and whether it's whitelisted in the tree on the lease (`Module::READS_TREE`), the email's analysis as its dependency, and the Message-IDs that analysis added in the tree. The root's new description and the email's details merged into its own go in the result (`ResultEnvelope::root`), which the core takes only from a module that declares it (`Module::SETS_ROOT`) and lands with it: the description in the root's row, the details merged into the `details` of its origin, where a submitter inside ACE keeps them. `tracked` goes to each Message-ID through `ResultEnvelope::others`. A root's alert type is its origin's `alert_type`; nothing in ace4 submits a `mailbox` root until 6.1, so the module skips every root today. `crates/ace-mod-emailtree/tests/differences.md` has the rest.
+- **Pool**: parser. Edits the tree only: no file, network or database. The result carries the root's description and details and the Message-IDs' directive, which the core lands.
+- **Step**: done.
 - **Does**: For roots of alert_type 'mailbox' only, on the file with the original_email directive, sets the root description to 'ACE Mailbox Scanner Detection - <subject>', merges EmailAnalysis details into the root details, and marks the email's message_id observables tracked.
 - **Input**: file (required directive original_email).
 - **Groups and modes**: groups email; modes analysis, cli, correlation, email.
@@ -605,9 +605,9 @@ In the config's order. ace4 is the crate a ported module is in.
 ### lure_url_analyzer
 
 - **Section**: `analysis_module_lure_url_analyzer`, class `LureURLAnalyzer` in `saq/modules/email/lure.py`, enabled by default.
-- **ace4**: not yet.
-- **Pool**: parser. Scores URLs already in the tree and parses bodies with an HTML parser; no network or database. The core has to hand it the email's URLs at final analysis.
-- **Step**: 7.5 batch 8 (Email tree).
+- **ace4**: ported in `ace-mod-emailtree`. It runs last (`Module::RUNS_LAST`), as ace3's `execute_final_analysis`, once, where ace3 reruns it on each final pass; walks the email's subtree in the tree on the lease (`Module::READS_TREE`); and parses the email's HTML bodies, up to 5 MiB, which the core sends as the tree's files (`Module::READS_TREE_FILES`), on `ace-lxml`'s BeautifulSoup tree. URLs are spelt by `ace-urlfinder` and domains by `ace_sdk::nrd::registrable_domain`, tldextract's bundled snapshot. `crawl` on the primary goes through `ResultEnvelope::others`. The settings are `etc/lure_url.yaml`'s keys, in the site's overlay, with its values as defaults; ace3 reloads the file when analysts edit it. Each candidate has no `observable_uuid`, since ace4's observables have none, and the GUI draws the result as an analysis view rather than ace3's section of the alert page. `crates/ace-mod-emailtree/tests/differences.md` has the rest.
+- **Pool**: parser. Scores URLs already in the tree and parses the email's HTML bodies; no network or database. The core hands it the tree and the bodies when it runs last.
+- **Step**: done.
 - **Does**: For a file with EmailAnalysis, waits until final analysis and then scores every http(s) URL found in the email's body parts, attachments, QR codes, PDF link annotations and unwrapped protected URLs, picks the primary lure URL and adds the crawl directive to it.
 - **Input**: file (only those with EmailAnalysis).
 - **Groups and modes**: groups correlation; modes analysis, cli, correlation.
@@ -920,9 +920,9 @@ In the config's order. ace4 is the crate a ported module is in.
 ### email_conversation_attachment_analyzer
 
 - **Section**: `analysis_module_email_conversation_attachment_analyzer`, class `EmailConversationAttachmentAnalyzer` in `saq/modules/email/fa.py`, enabled by default.
-- **ace4**: not yet.
-- **Pool**: parser. Reads the tree only (tags and other modules' results). Needs 7.4's frequency analyzer first.
-- **Step**: 7.5 batch 8 (Email tree).
+- **ace4**: ported in `ace-mod-brocess`. It reads the tree on the lease (`Module::READS_TREE`) and delays while olevba or officeparser3 has a task on the document, or the frequency module on a conversation, as ace3 waits for them. ace3 looks for `macro` anywhere below the document, but when its own modules have run and nothing they found has been analyzed; ace4 looks at the document, its results and what they added, which is what ace3 sees then, whatever order ace4's tasks run in. `crates/ace-mod-brocess/tests/differences.md` has the rest.
+- **Pool**: parser. Reads the tree only (tags and other modules' results), on the lease.
+- **Step**: done.
 - **Does**: For an office-document file in a root that has EmailAnalysis, if anything under it is tagged macro and some email_conversation is tagged new_sender, adds the sandbox directive and a detection point.
 - **Input**: file.
 - **Groups and modes**: groups email; modes analysis, cli, correlation, email.
@@ -941,9 +941,9 @@ In the config's order. ace4 is the crate a ported module is in.
 ### email_conversation_link_analyzer
 
 - **Section**: `analysis_module_email_conversation_link_analyzer`, class `EmailConversationLinkAnalyzer` in `saq/modules/email/fa.py`, enabled by default.
-- **ace4**: not yet.
-- **Pool**: parser. Regex and the tree only. Needs 7.4's frequency analyzer first. With no url_pattern_* setting, the default, it does nothing.
-- **Step**: 7.5 batch 8 (Email tree).
+- **ace4**: ported in `ace-mod-brocess`. Its patterns are its settings' `url_pattern_*` keys, as ace3's, Python `re` on fancy-regex (`ace_mod_urls::pyre`). ace3's default config has none, so it does nothing; ace4's module is off until a site gives it a section (`Module::ENABLED_BY_DEFAULT`), so it isn't queued for every URL to do nothing. It finds the email as ace3's `search_down` does, in the tree on the lease (`Module::READS_TREE`), and delays while the email module has a task on a file on the way or the frequency module on one of the email's conversations. `crates/ace-mod-brocess/tests/differences.md` has the rest.
+- **Pool**: parser. Regex and the tree only, on the lease.
+- **Step**: done.
 - **Does**: For a URL matching one of the configured url_pattern_* regexes, finds the email it came from and adds a detection point if any of that email's conversations is tagged new_sender.
 - **Input**: url.
 - **Groups and modes**: groups email; modes analysis, cli, correlation, email.

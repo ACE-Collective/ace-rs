@@ -568,6 +568,67 @@
           "summary": "HTML JavaScript Extraction: 2 inline script(s), 1 external URL(s), 1 URI path(s), 1 event handler(s)",
           "tags": {}
         },
+        "lure_url_analyzer": {
+          "details": {
+            "candidates": [
+              {
+                "anchor_text": null,
+                "carries": [],
+                "highlights": [
+                  [],
+                  []
+                ],
+                "reasons": [
+                  "found in the email body",
+                  "not a clickable link in the body"
+                ],
+                "score": 5,
+                "sources": [
+                  "body"
+                ],
+                "url": "https://cdn.example.com/kit.js"
+              },
+              {
+                "anchor_text": null,
+                "carries": [],
+                "highlights": [
+                  [],
+                  []
+                ],
+                "reasons": [
+                  "found in the email body",
+                  "not a clickable link in the body"
+                ],
+                "score": 5,
+                "sources": [
+                  "body"
+                ],
+                "url": "https://evil.example.com/landing"
+              }
+            ],
+            "has_inner_email": false,
+            "primary": {
+              "anchor_text": null,
+              "carries": [],
+              "highlights": [
+                [],
+                []
+              ],
+              "reasons": [
+                "found in the email body",
+                "not a clickable link in the body"
+              ],
+              "score": 5,
+              "sources": [
+                "body"
+              ],
+              "url": "https://cdn.example.com/kit.js"
+            },
+            "subject": "Example"
+          },
+          "summary": "Lure URL Analysis: https://cdn.example.com/kit.js (found in the email body; not a clickable link in the body)",
+          "tags": {}
+        },
         "mhtml": {
           "details": {
             "extracted_files": [
@@ -1702,7 +1763,9 @@
     },
     "url:https://cdn.example.com/kit.js": {
       "detections": {},
-      "directives": {},
+      "directives": {
+        "crawl": true
+      },
       "excluded_analysis": {},
       "relationships": {
         "extracted_from file:50e0640b44315641c34a09463dd53e2dc0f4e808446ffb4e2422646faa82ad30": true,

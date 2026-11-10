@@ -1014,6 +1014,130 @@
           },
           "summary": null,
           "tags": {}
+        },
+        "lure_url_analyzer": {
+          "details": {
+            "candidates": [
+              {
+                "anchor_text": null,
+                "carries": [],
+                "highlights": [
+                  [
+                    "spectre.pdf"
+                  ],
+                  []
+                ],
+                "reasons": [
+                  "found in attachment spectre.pdf",
+                  "clickable link in a PDF"
+                ],
+                "score": 40,
+                "sources": [
+                  "attachment"
+                ],
+                "url": "http://cr.yp.to/papers.html#cachetiming"
+              },
+              {
+                "anchor_text": null,
+                "carries": [],
+                "highlights": [
+                  [
+                    "spectre.pdf"
+                  ],
+                  []
+                ],
+                "reasons": [
+                  "found in attachment spectre.pdf",
+                  "clickable link in a PDF"
+                ],
+                "score": 40,
+                "sources": [
+                  "attachment"
+                ],
+                "url": "http://eprint.iacr.org/2015/905"
+              },
+              {
+                "anchor_text": null,
+                "carries": [],
+                "highlights": [
+                  [
+                    "spectre.pdf"
+                  ],
+                  []
+                ],
+                "reasons": [
+                  "found in attachment spectre.pdf",
+                  "clickable link in a PDF"
+                ],
+                "score": 40,
+                "sources": [
+                  "attachment"
+                ],
+                "url": "http://eprint.iacr.org/2017/968"
+              },
+              {
+                "anchor_text": null,
+                "carries": [],
+                "highlights": [
+                  [
+                    "spectre.pdf"
+                  ],
+                  []
+                ],
+                "reasons": [
+                  "found in attachment spectre.pdf",
+                  "clickable link in a PDF"
+                ],
+                "score": 40,
+                "sources": [
+                  "attachment"
+                ],
+                "url": "http://www.cs.vu.nl/~giuffrida/papers/anc-ndss-2017.pdf"
+              },
+              {
+                "anchor_text": null,
+                "carries": [],
+                "highlights": [
+                  [
+                    "spectre.pdf"
+                  ],
+                  []
+                ],
+                "reasons": [
+                  "found in attachment spectre.pdf",
+                  "clickable link in a PDF"
+                ],
+                "score": 40,
+                "sources": [
+                  "attachment"
+                ],
+                "url": "http://www.daemonology.net/papers/htt.pdf"
+              }
+            ],
+            "has_inner_email": false,
+            "primary": {
+              "anchor_text": null,
+              "carries": [],
+              "highlights": [
+                [
+                  "spectre.pdf"
+                ],
+                []
+              ],
+              "reasons": [
+                "found in attachment spectre.pdf",
+                "clickable link in a PDF"
+              ],
+              "score": 40,
+              "sources": [
+                "attachment"
+              ],
+              "url": "http://cr.yp.to/papers.html#cachetiming"
+            },
+            "subject": "canary #1"
+          },
+          "summary": "Lure URL Analysis: http://cr.yp.to/papers.html#cachetiming (found in attachment spectre.pdf; clickable link in a PDF)",
+          "tags": {}
         }
       },
       "tags": {
@@ -2773,7 +2897,9 @@
     },
     "url:http://cr.yp.to/papers.html#cachetiming": {
       "detections": {},
-      "directives": {},
+      "directives": {
+        "crawl": true
+      },
       "excluded_analysis": {},
       "relationships": {},
       "results": {

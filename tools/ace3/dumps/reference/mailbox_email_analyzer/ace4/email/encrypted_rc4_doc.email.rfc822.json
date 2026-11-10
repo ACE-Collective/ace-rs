@@ -1,0 +1,907 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type",
+    "email_analyzer"
+  ],
+  "analyses": [
+    {
+      "class": "MailboxEmailAnalysis",
+      "details": {},
+      "detections": [],
+      "module_path": "saq.modules.email.mailbox:MailboxEmailAnalysis",
+      "observables": [],
+      "summary": null,
+      "tags": []
+    },
+    {
+      "class": "EmailAnalysis",
+      "details": {
+        "email": {
+          "authentication_failed": false,
+          "compauth_reason": null,
+          "compauth_result": null,
+          "decoded_subject": "the attached file",
+          "dkim_result": null,
+          "dmarc_result": null,
+          "env_mail_from": null,
+          "env_rcpt_to": [],
+          "from": "sender@example.com",
+          "from_address": "sender@example.com",
+          "headers": [
+            [
+              "From",
+              "sender@example.com"
+            ],
+            [
+              "To",
+              "recipient@example.com"
+            ],
+            [
+              "Subject",
+              "the attached file"
+            ],
+            [
+              "Date",
+              "Fri, 06 Nov 2026 12:00:00 +0000"
+            ],
+            [
+              "Message-ID",
+              "<encrypted_rc4_doc.email.rfc822@example.com>"
+            ],
+            [
+              "MIME-Version",
+              "1.0"
+            ],
+            [
+              "Content-Type",
+              "multipart/mixed; boundary=\"===============4867030432910374820==\""
+            ]
+          ],
+          "internal_org_sender": false,
+          "is_anonymous_direct_send": false,
+          "log_entry": {
+            "attachment_count": 2,
+            "attachment_hashes": [
+              "582a64370a82c0d0c4e9268abc9cd06b55ed292ad212e84f9cb0a6c7e5db1591",
+              "2f881ed02b6b7a84fcb77a001472d84331d76a99e7e5eb3e51dca0312f49fc76"
+            ],
+            "attachment_names": [
+              "email.rfc822.unknown_text_plain_000.txt",
+              "invoice.doc"
+            ],
+            "attachment_sizes": [
+              26,
+              22528
+            ],
+            "attachment_types": [
+              "text/plain",
+              "application/octet-stream"
+            ],
+            "authentication_failed": false,
+            "bcc": [],
+            "cc": [],
+            "compauth_reason": null,
+            "compauth_result": null,
+            "date": "2026-11-10 05:35:31.874009 +0000",
+            "dkim_result": null,
+            "dmarc_result": null,
+            "env_mail_from": null,
+            "env_rcpt_to": [],
+            "first_received": null,
+            "headers": [
+              "From: sender@example.com",
+              "To: recipient@example.com",
+              "Subject: the attached file",
+              "Date: Fri, 06 Nov 2026 12:00:00 +0000",
+              "Message-ID: <encrypted_rc4_doc.email.rfc822@example.com>",
+              "MIME-Version: 1.0",
+              "Content-Type: multipart/mixed; boundary=\"===============4867030432910374820==\""
+            ],
+            "in_reply_to": null,
+            "internal_org_sender": false,
+            "is_anonymous_direct_send": false,
+            "last_received": null,
+            "mail_from": "sender@example.com",
+            "mail_from_is_local": false,
+            "mail_to": [
+              "recipient@example.com"
+            ],
+            "message_directionality": null,
+            "message_id": "<encrypted_rc4_doc.email.rfc822@example.com>",
+            "originating_ip": null,
+            "path": [],
+            "refereneces": null,
+            "reply_to": null,
+            "size": 31077,
+            "spf_result": null,
+            "spoofed_internal": false,
+            "subject": "the attached file",
+            "subject_raw": "the attached file",
+            "thread_index": null,
+            "thread_topic": null,
+            "user_agent": null,
+            "x_mailer": null,
+            "x_sender": null
+          },
+          "mail_from_is_local": false,
+          "message-id": "<encrypted_rc4_doc.email.rfc822@example.com>",
+          "message_directionality": null,
+          "spf_result": null,
+          "spoofed_internal": false,
+          "subject": "the attached file",
+          "to": [
+            "recipient@example.com"
+          ],
+          "to_addresses": [
+            "recipient@example.com"
+          ]
+        },
+        "extraction_errors": [],
+        "parsing_error": null
+      },
+      "detections": [],
+      "module_path": "saq.modules.email.rfc822:EmailAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_from",
+          "value": "sender@example.com"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_to",
+          "value": "recipient@example.com"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_conversation",
+          "value": "sender@example.com|recipient@example.com"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "display_type": "Decoded Subject",
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_subject",
+          "value": "the attached file"
+        },
+        {
+          "detections": [],
+          "directives": [
+            "tracked"
+          ],
+          "excluded_analysis": [
+            "saq.modules.email.message_id:<class 'saq.modules.email.message_id.MessageIDAnalyzerV2'>"
+          ],
+          "relationships": [],
+          "tags": [],
+          "type": "message_id",
+          "value": "<encrypted_rc4_doc.email.rfc822@example.com>"
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls",
+            "preview",
+            "yara_meta:type=email.attachment"
+          ],
+          "excluded_analysis": [],
+          "file_path": "email.rfc822.unknown_text_plain_000.txt",
+          "relationships": [],
+          "size": 26,
+          "tags": [],
+          "type": "file",
+          "value": "582a64370a82c0d0c4e9268abc9cd06b55ed292ad212e84f9cb0a6c7e5db1591",
+          "yara_meta": [
+            "type=email.attachment"
+          ]
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls",
+            "render",
+            "yara_meta:type=email.attachment"
+          ],
+          "excluded_analysis": [],
+          "file_path": "invoice.doc",
+          "relationships": [],
+          "size": 22528,
+          "tags": [
+            "microsoft_office",
+            "ole"
+          ],
+          "type": "file",
+          "value": "2f881ed02b6b7a84fcb77a001472d84331d76a99e7e5eb3e51dca0312f49fc76",
+          "yara_meta": [
+            "type=email.attachment"
+          ]
+        },
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=email",
+            "yara_meta:type=email.headers"
+          ],
+          "excluded_analysis": [
+            "saq.modules.email.rfc822:<class 'saq.modules.email.rfc822.EmailAnalyzer'>"
+          ],
+          "file_path": "email.rfc822.headers",
+          "relationships": [],
+          "size": 269,
+          "tags": [
+            "email"
+          ],
+          "type": "file",
+          "value": "2c0545b81c767efb3909b7959b83dddfe8fb50e0f6c7f816d5d4df6117b25a94",
+          "yara_meta": [
+            "type=email",
+            "type=email.headers"
+          ]
+        },
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=email",
+            "yara_meta:type=email.combined"
+          ],
+          "excluded_analysis": [
+            "saq.modules.email.rfc822:<class 'saq.modules.email.rfc822.EmailAnalyzer'>"
+          ],
+          "file_path": "email.rfc822.combined",
+          "relationships": [],
+          "size": 299,
+          "tags": [
+            "email"
+          ],
+          "type": "file",
+          "value": "625a78db3dfea26926d31e96da832115d6c1695f1af74d27dad3d44c4632ea09",
+          "yara_meta": [
+            "type=email",
+            "type=email.combined"
+          ]
+        }
+      ],
+      "summary": "Email Analysis: From sender@example.com To recipient@example.com Subject the attached file",
+      "tags": []
+    },
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": true,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "message/rfc822",
+        "type": "news or mail, ASCII text"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [
+      "original_email"
+    ],
+    "label": "ace4/email/encrypted_rc4_doc.email.rfc822 as a mailbox alert",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "email.rfc822",
+      "size": 31077,
+      "type": "file",
+      "value": "edfe9cb24ad06153aaf690983d81ae36e7bbef7bacc9c47be64b16e8ce0bf06d"
+    }
+  },
+  "module": "mailbox_email_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "original_email",
+      "yara_meta:type=email"
+    ],
+    "excluded_analysis": [],
+    "file_path": "email.rfc822",
+    "relationships": [],
+    "size": 31077,
+    "tags": [
+      "email"
+    ],
+    "type": "file",
+    "value": "edfe9cb24ad06153aaf690983d81ae36e7bbef7bacc9c47be64b16e8ce0bf06d",
+    "yara_meta": [
+      "type=email"
+    ]
+  },
+  "root_after": {
+    "description": "ACE Mailbox Scanner Detection - the attached file",
+    "details": {
+      "comment": "ace4 reference dump",
+      "email": {
+        "authentication_failed": false,
+        "compauth_reason": null,
+        "compauth_result": null,
+        "decoded_subject": "the attached file",
+        "dkim_result": null,
+        "dmarc_result": null,
+        "env_mail_from": null,
+        "env_rcpt_to": [],
+        "from": "sender@example.com",
+        "from_address": "sender@example.com",
+        "headers": [
+          [
+            "From",
+            "sender@example.com"
+          ],
+          [
+            "To",
+            "recipient@example.com"
+          ],
+          [
+            "Subject",
+            "the attached file"
+          ],
+          [
+            "Date",
+            "Fri, 06 Nov 2026 12:00:00 +0000"
+          ],
+          [
+            "Message-ID",
+            "<encrypted_rc4_doc.email.rfc822@example.com>"
+          ],
+          [
+            "MIME-Version",
+            "1.0"
+          ],
+          [
+            "Content-Type",
+            "multipart/mixed; boundary=\"===============4867030432910374820==\""
+          ]
+        ],
+        "internal_org_sender": false,
+        "is_anonymous_direct_send": false,
+        "log_entry": {
+          "attachment_count": 2,
+          "attachment_hashes": [
+            "582a64370a82c0d0c4e9268abc9cd06b55ed292ad212e84f9cb0a6c7e5db1591",
+            "2f881ed02b6b7a84fcb77a001472d84331d76a99e7e5eb3e51dca0312f49fc76"
+          ],
+          "attachment_names": [
+            "email.rfc822.unknown_text_plain_000.txt",
+            "invoice.doc"
+          ],
+          "attachment_sizes": [
+            26,
+            22528
+          ],
+          "attachment_types": [
+            "text/plain",
+            "application/octet-stream"
+          ],
+          "authentication_failed": false,
+          "bcc": [],
+          "cc": [],
+          "compauth_reason": null,
+          "compauth_result": null,
+          "date": "2026-11-10 05:35:31.874009 +0000",
+          "dkim_result": null,
+          "dmarc_result": null,
+          "env_mail_from": null,
+          "env_rcpt_to": [],
+          "first_received": null,
+          "headers": [
+            "From: sender@example.com",
+            "To: recipient@example.com",
+            "Subject: the attached file",
+            "Date: Fri, 06 Nov 2026 12:00:00 +0000",
+            "Message-ID: <encrypted_rc4_doc.email.rfc822@example.com>",
+            "MIME-Version: 1.0",
+            "Content-Type: multipart/mixed; boundary=\"===============4867030432910374820==\""
+          ],
+          "in_reply_to": null,
+          "internal_org_sender": false,
+          "is_anonymous_direct_send": false,
+          "last_received": null,
+          "mail_from": "sender@example.com",
+          "mail_from_is_local": false,
+          "mail_to": [
+            "recipient@example.com"
+          ],
+          "message_directionality": null,
+          "message_id": "<encrypted_rc4_doc.email.rfc822@example.com>",
+          "originating_ip": null,
+          "path": [],
+          "refereneces": null,
+          "reply_to": null,
+          "size": 31077,
+          "spf_result": null,
+          "spoofed_internal": false,
+          "subject": "the attached file",
+          "subject_raw": "the attached file",
+          "thread_index": null,
+          "thread_topic": null,
+          "user_agent": null,
+          "x_mailer": null,
+          "x_sender": null
+        },
+        "mail_from_is_local": false,
+        "message-id": "<encrypted_rc4_doc.email.rfc822@example.com>",
+        "message_directionality": null,
+        "spf_result": null,
+        "spoofed_internal": false,
+        "subject": "the attached file",
+        "to": [
+          "recipient@example.com"
+        ],
+        "to_addresses": [
+          "recipient@example.com"
+        ]
+      },
+      "extraction_errors": [],
+      "parsing_error": null
+    }
+  },
+  "tree_view": {
+    "alert_type": "mailbox",
+    "bodies": {},
+    "observables": [
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [
+          {
+            "path": "email.rfc822.combined",
+            "yara_meta": [
+              "type=email",
+              "type=email.combined"
+            ]
+          }
+        ],
+        "size": 299,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "625a78db3dfea26926d31e96da832115d6c1695f1af74d27dad3d44c4632ea09"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_subject",
+        "value": "the attached file"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "tracked"
+        ],
+        "paths": [],
+        "tags": [],
+        "type": "message_id",
+        "value": "<encrypted_rc4_doc.email.rfc822@example.com>"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "original_email"
+        ],
+        "paths": [
+          {
+            "path": "email.rfc822",
+            "yara_meta": [
+              "type=email"
+            ]
+          }
+        ],
+        "size": 31077,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "edfe9cb24ad06153aaf690983d81ae36e7bbef7bacc9c47be64b16e8ce0bf06d"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "extract_urls",
+          "render"
+        ],
+        "paths": [
+          {
+            "path": "invoice.doc",
+            "yara_meta": [
+              "type=email.attachment"
+            ]
+          }
+        ],
+        "size": 22528,
+        "tags": [
+          "microsoft_office",
+          "ole"
+        ],
+        "type": "file",
+        "value": "2f881ed02b6b7a84fcb77a001472d84331d76a99e7e5eb3e51dca0312f49fc76"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_conversation",
+        "value": "sender@example.com|recipient@example.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [
+          {
+            "path": "email.rfc822.headers",
+            "yara_meta": [
+              "type=email",
+              "type=email.headers"
+            ]
+          }
+        ],
+        "size": 269,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "2c0545b81c767efb3909b7959b83dddfe8fb50e0f6c7f816d5d4df6117b25a94"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "extract_urls",
+          "preview"
+        ],
+        "paths": [
+          {
+            "path": "email.rfc822.unknown_text_plain_000.txt",
+            "yara_meta": [
+              "type=email.attachment"
+            ]
+          }
+        ],
+        "size": 26,
+        "tags": [],
+        "type": "file",
+        "value": "582a64370a82c0d0c4e9268abc9cd06b55ed292ad212e84f9cb0a6c7e5db1591"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_from",
+        "value": "sender@example.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_to",
+        "value": "recipient@example.com"
+      }
+    ],
+    "results": [
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": true,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "message/rfc822",
+          "type": "news or mail, ASCII text"
+        },
+        "module": "file_type",
+        "observable": 0,
+        "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "MailboxEmailAnalysis",
+        "details": {},
+        "module": "mailbox_email_analyzer",
+        "observable": 3,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 8
+          },
+          {
+            "observable": 9
+          },
+          {
+            "observable": 5
+          },
+          {
+            "observable": 1
+          },
+          {
+            "observable": 2
+          },
+          {
+            "observable": 7,
+            "path": "email.rfc822.unknown_text_plain_000.txt"
+          },
+          {
+            "observable": 4,
+            "path": "invoice.doc"
+          },
+          {
+            "observable": 6,
+            "path": "email.rfc822.headers"
+          },
+          {
+            "observable": 0,
+            "path": "email.rfc822.combined"
+          }
+        ],
+        "class": "EmailAnalysis",
+        "details": {
+          "email": {
+            "authentication_failed": false,
+            "compauth_reason": null,
+            "compauth_result": null,
+            "decoded_subject": "the attached file",
+            "dkim_result": null,
+            "dmarc_result": null,
+            "env_mail_from": null,
+            "env_rcpt_to": [],
+            "from": "sender@example.com",
+            "from_address": "sender@example.com",
+            "headers": [
+              [
+                "From",
+                "sender@example.com"
+              ],
+              [
+                "To",
+                "recipient@example.com"
+              ],
+              [
+                "Subject",
+                "the attached file"
+              ],
+              [
+                "Date",
+                "Fri, 06 Nov 2026 12:00:00 +0000"
+              ],
+              [
+                "Message-ID",
+                "<encrypted_rc4_doc.email.rfc822@example.com>"
+              ],
+              [
+                "MIME-Version",
+                "1.0"
+              ],
+              [
+                "Content-Type",
+                "multipart/mixed; boundary=\"===============4867030432910374820==\""
+              ]
+            ],
+            "internal_org_sender": false,
+            "is_anonymous_direct_send": false,
+            "log_entry": {
+              "attachment_count": 2,
+              "attachment_hashes": [
+                "582a64370a82c0d0c4e9268abc9cd06b55ed292ad212e84f9cb0a6c7e5db1591",
+                "2f881ed02b6b7a84fcb77a001472d84331d76a99e7e5eb3e51dca0312f49fc76"
+              ],
+              "attachment_names": [
+                "email.rfc822.unknown_text_plain_000.txt",
+                "invoice.doc"
+              ],
+              "attachment_sizes": [
+                26,
+                22528
+              ],
+              "attachment_types": [
+                "text/plain",
+                "application/octet-stream"
+              ],
+              "authentication_failed": false,
+              "bcc": [],
+              "cc": [],
+              "compauth_reason": null,
+              "compauth_result": null,
+              "date": "2026-11-10 05:35:31.874009 +0000",
+              "dkim_result": null,
+              "dmarc_result": null,
+              "env_mail_from": null,
+              "env_rcpt_to": [],
+              "first_received": null,
+              "headers": [
+                "From: sender@example.com",
+                "To: recipient@example.com",
+                "Subject: the attached file",
+                "Date: Fri, 06 Nov 2026 12:00:00 +0000",
+                "Message-ID: <encrypted_rc4_doc.email.rfc822@example.com>",
+                "MIME-Version: 1.0",
+                "Content-Type: multipart/mixed; boundary=\"===============4867030432910374820==\""
+              ],
+              "in_reply_to": null,
+              "internal_org_sender": false,
+              "is_anonymous_direct_send": false,
+              "last_received": null,
+              "mail_from": "sender@example.com",
+              "mail_from_is_local": false,
+              "mail_to": [
+                "recipient@example.com"
+              ],
+              "message_directionality": null,
+              "message_id": "<encrypted_rc4_doc.email.rfc822@example.com>",
+              "originating_ip": null,
+              "path": [],
+              "refereneces": null,
+              "reply_to": null,
+              "size": 31077,
+              "spf_result": null,
+              "spoofed_internal": false,
+              "subject": "the attached file",
+              "subject_raw": "the attached file",
+              "thread_index": null,
+              "thread_topic": null,
+              "user_agent": null,
+              "x_mailer": null,
+              "x_sender": null
+            },
+            "mail_from_is_local": false,
+            "message-id": "<encrypted_rc4_doc.email.rfc822@example.com>",
+            "message_directionality": null,
+            "spf_result": null,
+            "spoofed_internal": false,
+            "subject": "the attached file",
+            "to": [
+              "recipient@example.com"
+            ],
+            "to_addresses": [
+              "recipient@example.com"
+            ]
+          },
+          "extraction_errors": [],
+          "parsing_error": null
+        },
+        "module": "email_analyzer",
+        "observable": 3,
+        "summary": "Email Analysis: From sender@example.com To recipient@example.com Subject the attached file",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": true,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "message/rfc822",
+          "type": "news or mail, ASCII text"
+        },
+        "module": "file_type",
+        "observable": 3,
+        "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": true,
+          "is_office_ext": true,
+          "is_ole_file": true,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "application/msword",
+          "type": "Composite Document File V2 Document, Little Endian, Os: MacOS, Version 15.10, Code page: 10000, Author: Anderson, Anthony, Template: Normal.dotm, Last Saved By: Anderson, Anthony, Revision Number: 1, Name of Creating Application: Microsoft Office Word, Create Time/Date: Thu Apr 29 15:40:00 2021, Last Saved Time/Date: Thu Apr 29 15:40:00 2021, Number of Pages: 1, Number of Words: 0, Number of Characters: 0, Security: 0"
+        },
+        "module": "file_type",
+        "observable": 4,
+        "summary": "File Type Analysis: Composite Document File V2 Document, Little Endian, Os: MacOS, Version 15.10, Code page: 10000, Author: Anderson, Anthony, Template: Normal.dotm, Last Saved By: Anderson, Anthony, Revision Number: 1, Name of Creating Application: Microsoft Office Word, Create Time/Date: Thu Apr 29 15:40:00 2021, Last Saved Time/Date: Thu Apr 29 15:40:00 2021, Number of Pages: 1, Number of Words: 0, Number of Characters: 0, Security: 0 (application/msword) (ms office document) (ole compound file)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": true,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "message/rfc822",
+          "type": "news or mail, ASCII text"
+        },
+        "module": "file_type",
+        "observable": 6,
+        "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "text/plain",
+          "type": "ASCII text"
+        },
+        "module": "file_type",
+        "observable": 7,
+        "summary": "File Type Analysis: ASCII text (text/plain)",
+        "tags": []
+      }
+    ],
+    "whitelisted": false
+  }
+}

@@ -41,11 +41,13 @@ use ace_results::bytes::TextOrBytes;
 use ace_results::types::archive::ArchiveAnalysis;
 use ace_results::types::binary::BinaryFileAnalysis;
 use ace_results::types::brocess::{
-    EmailConversationFrequencyAnalysis, EmailThreadAnalysis, Lookalike, ThreadMessage,
+    EmailConversationAttachmentAnalysis, EmailConversationFrequencyAnalysis,
+    EmailConversationLinkAnalysis, EmailThreadAnalysis, Lookalike, ThreadMessage,
 };
 use ace_results::types::dhash::DHashImageAnalysis;
 use ace_results::types::dns::FqdnAnalysis;
 use ace_results::types::email::EmailAnalysis;
+use ace_results::types::emailtree::{LureCandidate, LureUrlAnalysis, MailboxEmailAnalysis};
 use ace_results::types::encrypted::{
     PdfEncryptionAnalysis, RarEncryptionAnalysis, ZipEncryptionAnalysis,
 };
@@ -237,6 +239,10 @@ impl Views {
             .with(ViewEntry::of::<ZipEncryptionAnalysis>())
             .with(ViewEntry::of::<RarEncryptionAnalysis>())
             .with(ViewEntry::of::<PdfEncryptionAnalysis>())
+            .with(ViewEntry::of::<LureUrlAnalysis>())
+            .with(ViewEntry::of::<MailboxEmailAnalysis>())
+            .with(ViewEntry::of::<EmailConversationAttachmentAnalysis>())
+            .with(ViewEntry::of::<EmailConversationLinkAnalysis>())
     }
 
     /// These views with `entry`, which takes the place of any view of the same type and version, so a
@@ -2077,5 +2083,110 @@ impl AnalysisView for NoWhiteSpaceAnalysis {
     type View<'a> = FieldsView;
     fn view(&self) -> FieldsView {
         fields_view([field("count", Some(self.count))])
+    }
+}
+
+// ---- the email tree: ace3's lure_urls.html, and default_template.html for the others ----
+
+/// `lure_url_analysis`: the primary lure URL and the other candidates, each with its score and its
+/// reasons, the values a reason highlights in bold, as ace3's alert page draws them
+/// (`analysis/lure_urls.html`).
+#[derive(Debug, Template)]
+#[template(path = "analysis/lure_url.html")]
+pub struct LureUrlView<'a> {
+    pub analysis: &'a LureUrlAnalysis,
+}
+
+/// ace3's `reason_segments`: `reason` split around `values`, in order, each value marked to draw in
+/// bold, a value it doesn't hold after what came before left out.
+pub fn reason_segments(reason: &str, values: &[String]) -> Vec<Segment> {
+    let mut segments = Vec::new();
+    let mut rest = reason;
+    for value in values {
+        let Some(index) = (!value.is_empty())
+            .then(|| rest.find(value.as_str()))
+            .flatten()
+        else {
+            continue;
+        };
+        if index > 0 {
+            segments.push(Segment {
+                text: rest[..index].to_owned(),
+                marked: false,
+            });
+        }
+        segments.push(Segment {
+            text: value.clone(),
+            marked: true,
+        });
+        rest = &rest[index + value.len()..];
+    }
+    if !rest.is_empty() {
+        segments.push(Segment {
+            text: rest.to_owned(),
+            marked: false,
+        });
+    }
+    segments
+}
+
+impl LureUrlView<'_> {
+    /// Each reason of `candidate` as its segments, as ace3's `_with_reason_segments`: a reason with
+    /// no highlights is plain.
+    pub fn reasons(&self, candidate: &LureCandidate) -> Vec<Vec<Segment>> {
+        candidate
+            .reasons
+            .iter()
+            .enumerate()
+            .map(|(i, reason)| {
+                reason_segments(
+                    reason,
+                    candidate.highlights.get(i).map_or(&[][..], Vec::as_slice),
+                )
+            })
+            .collect()
+    }
+
+    /// The candidates other than the primary.
+    pub fn runners_up(&self) -> Vec<&LureCandidate> {
+        let primary = self.analysis.primary.as_ref().map(|p| p.url.as_str());
+        self.analysis
+            .candidates
+            .iter()
+            .filter(|c| Some(c.url.as_str()) != primary)
+            .collect()
+    }
+}
+
+impl AnalysisView for LureUrlAnalysis {
+    type View<'a> = LureUrlView<'a>;
+    fn view(&self) -> LureUrlView<'_> {
+        LureUrlView { analysis: self }
+    }
+}
+
+/// `mailbox_email_analysis`, whose details are empty: what the module did is on the root and the
+/// email's Message-ID.
+impl AnalysisView for MailboxEmailAnalysis {
+    type View<'a> = FieldsView;
+    fn view(&self) -> FieldsView {
+        FieldsView { fields: Vec::new() }
+    }
+}
+
+/// `email_conversation_attachment_analysis`, whose details are empty: its detection and directive are
+/// on the document.
+impl AnalysisView for EmailConversationAttachmentAnalysis {
+    type View<'a> = FieldsView;
+    fn view(&self) -> FieldsView {
+        FieldsView { fields: Vec::new() }
+    }
+}
+
+/// `email_conversation_link_analysis`, whose details are empty: its detection is on the URL.
+impl AnalysisView for EmailConversationLinkAnalysis {
+    type View<'a> = FieldsView;
+    fn view(&self) -> FieldsView {
+        FieldsView { fields: Vec::new() }
     }
 }

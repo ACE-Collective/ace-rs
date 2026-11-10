@@ -10,7 +10,8 @@ use ace_app::{App, LookupPool, ParserPool};
 /// and MHTML), the Office container modules (OneNote, compound files, Office XML, hidden MIME and
 /// ActiveMime), the RTF and script modules (encoded scripts, hex in VBScript, an RTF's objects and
 /// its copy without whitespace), the encrypted attachment modules (zip, RAR and PDF, with the carrying
-/// email's candidate passwords), with the YARA module on the core's current ruleset (2.26), and the commands analysts
+/// email's candidate passwords), the modules that walk an email's tree (its lure URL, a mailbox alert's
+/// root, and a macro or a URL from a new sender), with the YARA module on the core's current ruleset (2.26), and the commands analysts
 /// start from the GUI (5.12).
 pub fn parser_pool() -> ParserPool {
     ParserPool::new("parsers")
@@ -58,6 +59,10 @@ pub fn parser_pool() -> ParserPool {
         .module::<ace_mod_encrypted::ZipEncryptionAnalyzer>()
         .module::<ace_mod_encrypted::RarEncryptionAnalyzer>()
         .module::<ace_mod_encrypted::PdfEncryptionAnalyzer>()
+        .module::<ace_mod_emailtree::LureUrlAnalyzer>()
+        .module::<ace_mod_emailtree::MailboxEmailAnalyzer>()
+        .module::<ace_mod_brocess::EmailConversationAttachmentAnalyzer>()
+        .module::<ace_mod_brocess::EmailConversationLinkAnalyzer>()
         .yara_rulesets::<ace_mod_yara::YaraScanner>(ace_mod_yara::check_ruleset)
         .commands()
 }

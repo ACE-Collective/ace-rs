@@ -1,0 +1,953 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type",
+    "email_analyzer"
+  ],
+  "analyses": [
+    {
+      "class": "MailboxEmailAnalysis",
+      "details": {},
+      "detections": [],
+      "module_path": "saq.modules.email.mailbox:MailboxEmailAnalysis",
+      "observables": [],
+      "summary": null,
+      "tags": []
+    },
+    {
+      "class": "EmailAnalysis",
+      "details": {
+        "email": {
+          "authentication_failed": false,
+          "compauth_reason": null,
+          "compauth_result": null,
+          "decoded_subject": "RE: Project Alpha - Design Review Discussions on March 17, 2026 | Read Meeting Report",
+          "dkim_result": null,
+          "dmarc_result": null,
+          "env_mail_from": "jane.smith@widgetsinc.com",
+          "env_rcpt_to": [
+            "john.doe@acmecorp.com"
+          ],
+          "from": "\"Smith, Jane\" <jane.smith@widgetsinc.com>",
+          "from_address": "jane.smith@widgetsinc.com",
+          "headers": [
+            [
+              "Received",
+              "from CY1PR20CA0059.namprd20.prod.outlook.com\n (2603:10b6:a03:100::10) by SJ0PR01MB0001.prod.exchangelabs.com\n (2603:10b6:a03:200::5) with Microsoft SMTP Server (version=TLS1_2,\n cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.9723.19; Tue,\n 17 Mar 2026 13:43:12 +0000"
+            ],
+            [
+              "From",
+              "\"Smith, Jane\" <jane.smith@widgetsinc.com>"
+            ],
+            [
+              "To",
+              "\"Doe, John\" <john.doe@acmecorp.com>"
+            ],
+            [
+              "Subject",
+              "RE: Project Alpha - Design Review Discussions on March 17, 2026 | Read Meeting Report"
+            ],
+            [
+              "Date",
+              "Tue, 17 Mar 2026 13:42:00 +0000"
+            ],
+            [
+              "Message-ID",
+              "<AAAAAA1111BBBBBB2222@AAAAAA1111.namprd10.prod.outlook.com>"
+            ],
+            [
+              "Content-Type",
+              "multipart/alternative;\n\tboundary=\"_inner-boundary-1234_\""
+            ],
+            [
+              "MIME-Version",
+              "1.0"
+            ]
+          ],
+          "internal_org_sender": false,
+          "is_anonymous_direct_send": false,
+          "log_entry": {
+            "attachment_count": 2,
+            "attachment_hashes": [
+              "60fbfe366f59414a1081c02008fdafa93ed5d6d4fe7ec0d7c3f26aec39cc2c4a",
+              "051e7a603f3f417a319bac4808f0bed9bc96b872b4f082fa8c973dbc458a5a53"
+            ],
+            "attachment_names": [
+              "email.rfc822.unknown_text_plain_000.txt",
+              "email.rfc822.unknown_text_html_000.html"
+            ],
+            "attachment_sizes": [
+              68,
+              101
+            ],
+            "attachment_types": [
+              "text/plain",
+              "text/html"
+            ],
+            "authentication_failed": false,
+            "bcc": [],
+            "cc": [],
+            "compauth_reason": null,
+            "compauth_result": null,
+            "date": "2026-11-10 05:31:19.427457 +0000",
+            "dkim_result": null,
+            "dmarc_result": null,
+            "env_mail_from": "jane.smith@widgetsinc.com",
+            "env_rcpt_to": [
+              "john.doe@acmecorp.com"
+            ],
+            "first_received": "from CY1PR20CA0059.namprd20.prod.outlook.com\n (2603:10b6:a03:100::10) by SJ0PR01MB0001.prod.exchangelabs.com\n (2603:10b6:a03:200::5) with Microsoft SMTP Server (version=TLS1_2,\n cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.9723.19; Tue,\n 17 Mar 2026 13:43:12 +0000",
+            "headers": [
+              "Received: from CY1PR20CA0059.namprd20.prod.outlook.com (2603:10b6:a03:100::10) by SJ0PR01MB0001.prod.exchangelabs.com (2603:10b6:a03:200::5) with Microsoft SMTP Server (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.9723.19; Tue, 17 Mar 2026 13:43:12 +0000",
+              "From: \"Smith, Jane\" <jane.smith@widgetsinc.com>",
+              "To: \"Doe, John\" <john.doe@acmecorp.com>",
+              "Subject: RE: Project Alpha - Design Review Discussions on March 17, 2026 | Read Meeting Report",
+              "Date: Tue, 17 Mar 2026 13:42:00 +0000",
+              "Message-ID: <AAAAAA1111BBBBBB2222@AAAAAA1111.namprd10.prod.outlook.com>",
+              "Content-Type: multipart/alternative;boundary=\"_inner-boundary-1234_\"",
+              "MIME-Version: 1.0"
+            ],
+            "in_reply_to": null,
+            "internal_org_sender": false,
+            "is_anonymous_direct_send": false,
+            "last_received": "from CY1PR20CA0059.namprd20.prod.outlook.com\n (2603:10b6:a03:100::10) by SJ0PR01MB0001.prod.exchangelabs.com\n (2603:10b6:a03:200::5) with Microsoft SMTP Server (version=TLS1_2,\n cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.9723.19; Tue,\n 17 Mar 2026 13:43:12 +0000",
+            "mail_from": "\"Smith, Jane\" <jane.smith@widgetsinc.com>",
+            "mail_from_is_local": false,
+            "mail_to": [
+              "\"Doe, John\" <john.doe@acmecorp.com>"
+            ],
+            "message_directionality": null,
+            "message_id": "<AAAAAA1111BBBBBB2222@AAAAAA1111.namprd10.prod.outlook.com>",
+            "originating_ip": null,
+            "path": [],
+            "refereneces": null,
+            "reply_to": null,
+            "size": 2805,
+            "spf_result": null,
+            "spoofed_internal": false,
+            "subject": "RE: Project Alpha - Design Review Discussions on March 17, 2026 | Read Meeting Report",
+            "subject_raw": "RE: Project Alpha - Design Review Discussions on March 17, 2026 | Read Meeting Report",
+            "thread_index": null,
+            "thread_topic": null,
+            "user_agent": null,
+            "x_mailer": null,
+            "x_sender": null
+          },
+          "mail_from_is_local": false,
+          "message-id": "<AAAAAA1111BBBBBB2222@AAAAAA1111.namprd10.prod.outlook.com>",
+          "message_directionality": null,
+          "spf_result": null,
+          "spoofed_internal": false,
+          "subject": "RE: Project Alpha - Design Review Discussions on March 17, 2026 | Read Meeting Report",
+          "to": [
+            "\"Doe, John\" <john.doe@acmecorp.com>"
+          ],
+          "to_addresses": [
+            "john.doe@acmecorp.com"
+          ]
+        },
+        "extraction_errors": [],
+        "parsing_error": null
+      },
+      "detections": [],
+      "module_path": "saq.modules.email.rfc822:EmailAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_from",
+          "value": "jane.smith@widgetsinc.com"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_envelope_rcpt_to",
+          "value": "john.doe@acmecorp.com"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_conversation",
+          "value": "jane.smith@widgetsinc.com|john.doe@acmecorp.com"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_to",
+          "value": "john.doe@acmecorp.com"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "display_type": "Decoded Subject",
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_subject",
+          "value": "RE: Project Alpha - Design Review Discussions on March 17, 2026 | Read Meeting Report"
+        },
+        {
+          "detections": [],
+          "directives": [
+            "tracked"
+          ],
+          "excluded_analysis": [
+            "saq.modules.email.message_id:<class 'saq.modules.email.message_id.MessageIDAnalyzerV2'>"
+          ],
+          "relationships": [],
+          "tags": [],
+          "type": "message_id",
+          "value": "<AAAAAA1111BBBBBB2222@AAAAAA1111.namprd10.prod.outlook.com>"
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls",
+            "preview",
+            "yara_meta:type=email.attachment"
+          ],
+          "excluded_analysis": [],
+          "file_path": "email.rfc822.unknown_text_plain_000.txt",
+          "relationships": [],
+          "size": 68,
+          "tags": [],
+          "type": "file",
+          "value": "60fbfe366f59414a1081c02008fdafa93ed5d6d4fe7ec0d7c3f26aec39cc2c4a",
+          "yara_meta": [
+            "type=email.attachment"
+          ]
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls",
+            "render",
+            "yara_meta:type=document.html",
+            "yara_meta:type=email.attachment"
+          ],
+          "excluded_analysis": [],
+          "file_path": "email.rfc822.unknown_text_html_000.html",
+          "relationships": [],
+          "size": 101,
+          "tags": [],
+          "type": "file",
+          "value": "051e7a603f3f417a319bac4808f0bed9bc96b872b4f082fa8c973dbc458a5a53",
+          "yara_meta": [
+            "type=document.html",
+            "type=email.attachment"
+          ]
+        },
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=email",
+            "yara_meta:type=email.headers"
+          ],
+          "excluded_analysis": [
+            "saq.modules.email.rfc822:<class 'saq.modules.email.rfc822.EmailAnalyzer'>"
+          ],
+          "file_path": "email.rfc822.headers",
+          "relationships": [],
+          "size": 666,
+          "tags": [
+            "email"
+          ],
+          "type": "file",
+          "value": "cdfdd99c50c5e0e5430954cf1d7366f8fa1d8b0e792b8ce8872c6a173af8c1b9",
+          "yara_meta": [
+            "type=email",
+            "type=email.headers"
+          ]
+        },
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=email",
+            "yara_meta:type=email.combined"
+          ],
+          "excluded_analysis": [
+            "saq.modules.email.rfc822:<class 'saq.modules.email.rfc822.EmailAnalyzer'>"
+          ],
+          "file_path": "email.rfc822.combined",
+          "relationships": [],
+          "size": 841,
+          "tags": [
+            "email"
+          ],
+          "type": "file",
+          "value": "1c0b59da5a0031fcab308b31f033bb91a68f75c20377d6cbb8145692f61af999",
+          "yara_meta": [
+            "type=email",
+            "type=email.combined"
+          ]
+        }
+      ],
+      "summary": "Email Analysis: From \"Smith, Jane\" <jane.smith@widgetsinc.com> To john.doe@acmecorp.com Subject RE: Project Alpha - Design Review Discussions on March 17, 2026 | Read Meeting Report",
+      "tags": []
+    },
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": true,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "message/rfc822",
+        "type": "SMTP mail, ASCII text"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: SMTP mail, ASCII text (message/rfc822) (email)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [
+      "original_email"
+    ],
+    "label": "ace3/email/o365_journaled_qp_meta.email.rfc822 as a mailbox alert",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "email.rfc822",
+      "size": 2805,
+      "type": "file",
+      "value": "e2b8f8ac2e981223e21989167fad128f86e9eca90953b1db417c6c07a6fdf6b1"
+    }
+  },
+  "module": "mailbox_email_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "original_email",
+      "yara_meta:type=email"
+    ],
+    "excluded_analysis": [],
+    "file_path": "email.rfc822",
+    "relationships": [],
+    "size": 2805,
+    "tags": [
+      "email"
+    ],
+    "type": "file",
+    "value": "e2b8f8ac2e981223e21989167fad128f86e9eca90953b1db417c6c07a6fdf6b1",
+    "yara_meta": [
+      "type=email"
+    ]
+  },
+  "root_after": {
+    "description": "ACE Mailbox Scanner Detection - RE: Project Alpha - Design Review Discussions on March 17, 2026 | Read Meeting Report",
+    "details": {
+      "comment": "ace4 reference dump",
+      "email": {
+        "authentication_failed": false,
+        "compauth_reason": null,
+        "compauth_result": null,
+        "decoded_subject": "RE: Project Alpha - Design Review Discussions on March 17, 2026 | Read Meeting Report",
+        "dkim_result": null,
+        "dmarc_result": null,
+        "env_mail_from": "jane.smith@widgetsinc.com",
+        "env_rcpt_to": [
+          "john.doe@acmecorp.com"
+        ],
+        "from": "\"Smith, Jane\" <jane.smith@widgetsinc.com>",
+        "from_address": "jane.smith@widgetsinc.com",
+        "headers": [
+          [
+            "Received",
+            "from CY1PR20CA0059.namprd20.prod.outlook.com\n (2603:10b6:a03:100::10) by SJ0PR01MB0001.prod.exchangelabs.com\n (2603:10b6:a03:200::5) with Microsoft SMTP Server (version=TLS1_2,\n cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.9723.19; Tue,\n 17 Mar 2026 13:43:12 +0000"
+          ],
+          [
+            "From",
+            "\"Smith, Jane\" <jane.smith@widgetsinc.com>"
+          ],
+          [
+            "To",
+            "\"Doe, John\" <john.doe@acmecorp.com>"
+          ],
+          [
+            "Subject",
+            "RE: Project Alpha - Design Review Discussions on March 17, 2026 | Read Meeting Report"
+          ],
+          [
+            "Date",
+            "Tue, 17 Mar 2026 13:42:00 +0000"
+          ],
+          [
+            "Message-ID",
+            "<AAAAAA1111BBBBBB2222@AAAAAA1111.namprd10.prod.outlook.com>"
+          ],
+          [
+            "Content-Type",
+            "multipart/alternative;\n\tboundary=\"_inner-boundary-1234_\""
+          ],
+          [
+            "MIME-Version",
+            "1.0"
+          ]
+        ],
+        "internal_org_sender": false,
+        "is_anonymous_direct_send": false,
+        "log_entry": {
+          "attachment_count": 2,
+          "attachment_hashes": [
+            "60fbfe366f59414a1081c02008fdafa93ed5d6d4fe7ec0d7c3f26aec39cc2c4a",
+            "051e7a603f3f417a319bac4808f0bed9bc96b872b4f082fa8c973dbc458a5a53"
+          ],
+          "attachment_names": [
+            "email.rfc822.unknown_text_plain_000.txt",
+            "email.rfc822.unknown_text_html_000.html"
+          ],
+          "attachment_sizes": [
+            68,
+            101
+          ],
+          "attachment_types": [
+            "text/plain",
+            "text/html"
+          ],
+          "authentication_failed": false,
+          "bcc": [],
+          "cc": [],
+          "compauth_reason": null,
+          "compauth_result": null,
+          "date": "2026-11-10 05:31:19.427457 +0000",
+          "dkim_result": null,
+          "dmarc_result": null,
+          "env_mail_from": "jane.smith@widgetsinc.com",
+          "env_rcpt_to": [
+            "john.doe@acmecorp.com"
+          ],
+          "first_received": "from CY1PR20CA0059.namprd20.prod.outlook.com\n (2603:10b6:a03:100::10) by SJ0PR01MB0001.prod.exchangelabs.com\n (2603:10b6:a03:200::5) with Microsoft SMTP Server (version=TLS1_2,\n cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.9723.19; Tue,\n 17 Mar 2026 13:43:12 +0000",
+          "headers": [
+            "Received: from CY1PR20CA0059.namprd20.prod.outlook.com (2603:10b6:a03:100::10) by SJ0PR01MB0001.prod.exchangelabs.com (2603:10b6:a03:200::5) with Microsoft SMTP Server (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.9723.19; Tue, 17 Mar 2026 13:43:12 +0000",
+            "From: \"Smith, Jane\" <jane.smith@widgetsinc.com>",
+            "To: \"Doe, John\" <john.doe@acmecorp.com>",
+            "Subject: RE: Project Alpha - Design Review Discussions on March 17, 2026 | Read Meeting Report",
+            "Date: Tue, 17 Mar 2026 13:42:00 +0000",
+            "Message-ID: <AAAAAA1111BBBBBB2222@AAAAAA1111.namprd10.prod.outlook.com>",
+            "Content-Type: multipart/alternative;boundary=\"_inner-boundary-1234_\"",
+            "MIME-Version: 1.0"
+          ],
+          "in_reply_to": null,
+          "internal_org_sender": false,
+          "is_anonymous_direct_send": false,
+          "last_received": "from CY1PR20CA0059.namprd20.prod.outlook.com\n (2603:10b6:a03:100::10) by SJ0PR01MB0001.prod.exchangelabs.com\n (2603:10b6:a03:200::5) with Microsoft SMTP Server (version=TLS1_2,\n cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.9723.19; Tue,\n 17 Mar 2026 13:43:12 +0000",
+          "mail_from": "\"Smith, Jane\" <jane.smith@widgetsinc.com>",
+          "mail_from_is_local": false,
+          "mail_to": [
+            "\"Doe, John\" <john.doe@acmecorp.com>"
+          ],
+          "message_directionality": null,
+          "message_id": "<AAAAAA1111BBBBBB2222@AAAAAA1111.namprd10.prod.outlook.com>",
+          "originating_ip": null,
+          "path": [],
+          "refereneces": null,
+          "reply_to": null,
+          "size": 2805,
+          "spf_result": null,
+          "spoofed_internal": false,
+          "subject": "RE: Project Alpha - Design Review Discussions on March 17, 2026 | Read Meeting Report",
+          "subject_raw": "RE: Project Alpha - Design Review Discussions on March 17, 2026 | Read Meeting Report",
+          "thread_index": null,
+          "thread_topic": null,
+          "user_agent": null,
+          "x_mailer": null,
+          "x_sender": null
+        },
+        "mail_from_is_local": false,
+        "message-id": "<AAAAAA1111BBBBBB2222@AAAAAA1111.namprd10.prod.outlook.com>",
+        "message_directionality": null,
+        "spf_result": null,
+        "spoofed_internal": false,
+        "subject": "RE: Project Alpha - Design Review Discussions on March 17, 2026 | Read Meeting Report",
+        "to": [
+          "\"Doe, John\" <john.doe@acmecorp.com>"
+        ],
+        "to_addresses": [
+          "john.doe@acmecorp.com"
+        ]
+      },
+      "extraction_errors": [],
+      "parsing_error": null
+    }
+  },
+  "tree_view": {
+    "alert_type": "mailbox",
+    "bodies": {
+      "051e7a603f3f417a319bac4808f0bed9bc96b872b4f082fa8c973dbc458a5a53": "PGh0bWw+PGJvZHk+PHA+VGhpcyBpcyBhIHRlc3QgZW1haWwgYm9keSBmb3IgdGhlIHF1b3RlZC1wcmludGFibGUgbWV0YSBibG9jayB0ZXN0LjwvcD48L2JvZHk+PC9odG1sPgo="
+    },
+    "observables": [
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_to",
+        "value": "john.doe@acmecorp.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_from",
+        "value": "jane.smith@widgetsinc.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [
+          {
+            "path": "email.rfc822.combined",
+            "yara_meta": [
+              "type=email",
+              "type=email.combined"
+            ]
+          }
+        ],
+        "size": 841,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "1c0b59da5a0031fcab308b31f033bb91a68f75c20377d6cbb8145692f61af999"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "tracked"
+        ],
+        "paths": [],
+        "tags": [],
+        "type": "message_id",
+        "value": "<AAAAAA1111BBBBBB2222@AAAAAA1111.namprd10.prod.outlook.com>"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "extract_urls",
+          "render"
+        ],
+        "paths": [
+          {
+            "path": "email.rfc822.unknown_text_html_000.html",
+            "yara_meta": [
+              "type=document.html",
+              "type=email.attachment"
+            ]
+          }
+        ],
+        "size": 101,
+        "tags": [],
+        "type": "file",
+        "value": "051e7a603f3f417a319bac4808f0bed9bc96b872b4f082fa8c973dbc458a5a53"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "original_email"
+        ],
+        "paths": [
+          {
+            "path": "email.rfc822",
+            "yara_meta": [
+              "type=email"
+            ]
+          }
+        ],
+        "size": 2805,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "e2b8f8ac2e981223e21989167fad128f86e9eca90953b1db417c6c07a6fdf6b1"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "extract_urls",
+          "preview"
+        ],
+        "paths": [
+          {
+            "path": "email.rfc822.unknown_text_plain_000.txt",
+            "yara_meta": [
+              "type=email.attachment"
+            ]
+          }
+        ],
+        "size": 68,
+        "tags": [],
+        "type": "file",
+        "value": "60fbfe366f59414a1081c02008fdafa93ed5d6d4fe7ec0d7c3f26aec39cc2c4a"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_envelope_rcpt_to",
+        "value": "john.doe@acmecorp.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [
+          {
+            "path": "email.rfc822.headers",
+            "yara_meta": [
+              "type=email",
+              "type=email.headers"
+            ]
+          }
+        ],
+        "size": 666,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "cdfdd99c50c5e0e5430954cf1d7366f8fa1d8b0e792b8ce8872c6a173af8c1b9"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_conversation",
+        "value": "jane.smith@widgetsinc.com|john.doe@acmecorp.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_subject",
+        "value": "RE: Project Alpha - Design Review Discussions on March 17, 2026 | Read Meeting Report"
+      }
+    ],
+    "results": [
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": true,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "message/rfc822",
+          "type": "RFC 822 mail, ASCII text"
+        },
+        "module": "file_type",
+        "observable": 2,
+        "summary": "File Type Analysis: RFC 822 mail, ASCII text (message/rfc822) (email)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "text/html",
+          "type": "HTML document, ASCII text"
+        },
+        "module": "file_type",
+        "observable": 4,
+        "summary": "File Type Analysis: HTML document, ASCII text (text/html)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "MailboxEmailAnalysis",
+        "details": {},
+        "module": "mailbox_email_analyzer",
+        "observable": 5,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 1
+          },
+          {
+            "observable": 7
+          },
+          {
+            "observable": 9
+          },
+          {
+            "observable": 0
+          },
+          {
+            "observable": 10
+          },
+          {
+            "observable": 3
+          },
+          {
+            "observable": 6,
+            "path": "email.rfc822.unknown_text_plain_000.txt"
+          },
+          {
+            "observable": 4,
+            "path": "email.rfc822.unknown_text_html_000.html"
+          },
+          {
+            "observable": 8,
+            "path": "email.rfc822.headers"
+          },
+          {
+            "observable": 2,
+            "path": "email.rfc822.combined"
+          }
+        ],
+        "class": "EmailAnalysis",
+        "details": {
+          "email": {
+            "authentication_failed": false,
+            "compauth_reason": null,
+            "compauth_result": null,
+            "decoded_subject": "RE: Project Alpha - Design Review Discussions on March 17, 2026 | Read Meeting Report",
+            "dkim_result": null,
+            "dmarc_result": null,
+            "env_mail_from": "jane.smith@widgetsinc.com",
+            "env_rcpt_to": [
+              "john.doe@acmecorp.com"
+            ],
+            "from": "\"Smith, Jane\" <jane.smith@widgetsinc.com>",
+            "from_address": "jane.smith@widgetsinc.com",
+            "headers": [
+              [
+                "Received",
+                "from CY1PR20CA0059.namprd20.prod.outlook.com\n (2603:10b6:a03:100::10) by SJ0PR01MB0001.prod.exchangelabs.com\n (2603:10b6:a03:200::5) with Microsoft SMTP Server (version=TLS1_2,\n cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.9723.19; Tue,\n 17 Mar 2026 13:43:12 +0000"
+              ],
+              [
+                "From",
+                "\"Smith, Jane\" <jane.smith@widgetsinc.com>"
+              ],
+              [
+                "To",
+                "\"Doe, John\" <john.doe@acmecorp.com>"
+              ],
+              [
+                "Subject",
+                "RE: Project Alpha - Design Review Discussions on March 17, 2026 | Read Meeting Report"
+              ],
+              [
+                "Date",
+                "Tue, 17 Mar 2026 13:42:00 +0000"
+              ],
+              [
+                "Message-ID",
+                "<AAAAAA1111BBBBBB2222@AAAAAA1111.namprd10.prod.outlook.com>"
+              ],
+              [
+                "Content-Type",
+                "multipart/alternative;\n\tboundary=\"_inner-boundary-1234_\""
+              ],
+              [
+                "MIME-Version",
+                "1.0"
+              ]
+            ],
+            "internal_org_sender": false,
+            "is_anonymous_direct_send": false,
+            "log_entry": {
+              "attachment_count": 2,
+              "attachment_hashes": [
+                "60fbfe366f59414a1081c02008fdafa93ed5d6d4fe7ec0d7c3f26aec39cc2c4a",
+                "051e7a603f3f417a319bac4808f0bed9bc96b872b4f082fa8c973dbc458a5a53"
+              ],
+              "attachment_names": [
+                "email.rfc822.unknown_text_plain_000.txt",
+                "email.rfc822.unknown_text_html_000.html"
+              ],
+              "attachment_sizes": [
+                68,
+                101
+              ],
+              "attachment_types": [
+                "text/plain",
+                "text/html"
+              ],
+              "authentication_failed": false,
+              "bcc": [],
+              "cc": [],
+              "compauth_reason": null,
+              "compauth_result": null,
+              "date": "2026-11-10 05:31:19.427457 +0000",
+              "dkim_result": null,
+              "dmarc_result": null,
+              "env_mail_from": "jane.smith@widgetsinc.com",
+              "env_rcpt_to": [
+                "john.doe@acmecorp.com"
+              ],
+              "first_received": "from CY1PR20CA0059.namprd20.prod.outlook.com\n (2603:10b6:a03:100::10) by SJ0PR01MB0001.prod.exchangelabs.com\n (2603:10b6:a03:200::5) with Microsoft SMTP Server (version=TLS1_2,\n cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.9723.19; Tue,\n 17 Mar 2026 13:43:12 +0000",
+              "headers": [
+                "Received: from CY1PR20CA0059.namprd20.prod.outlook.com (2603:10b6:a03:100::10) by SJ0PR01MB0001.prod.exchangelabs.com (2603:10b6:a03:200::5) with Microsoft SMTP Server (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.9723.19; Tue, 17 Mar 2026 13:43:12 +0000",
+                "From: \"Smith, Jane\" <jane.smith@widgetsinc.com>",
+                "To: \"Doe, John\" <john.doe@acmecorp.com>",
+                "Subject: RE: Project Alpha - Design Review Discussions on March 17, 2026 | Read Meeting Report",
+                "Date: Tue, 17 Mar 2026 13:42:00 +0000",
+                "Message-ID: <AAAAAA1111BBBBBB2222@AAAAAA1111.namprd10.prod.outlook.com>",
+                "Content-Type: multipart/alternative;boundary=\"_inner-boundary-1234_\"",
+                "MIME-Version: 1.0"
+              ],
+              "in_reply_to": null,
+              "internal_org_sender": false,
+              "is_anonymous_direct_send": false,
+              "last_received": "from CY1PR20CA0059.namprd20.prod.outlook.com\n (2603:10b6:a03:100::10) by SJ0PR01MB0001.prod.exchangelabs.com\n (2603:10b6:a03:200::5) with Microsoft SMTP Server (version=TLS1_2,\n cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.9723.19; Tue,\n 17 Mar 2026 13:43:12 +0000",
+              "mail_from": "\"Smith, Jane\" <jane.smith@widgetsinc.com>",
+              "mail_from_is_local": false,
+              "mail_to": [
+                "\"Doe, John\" <john.doe@acmecorp.com>"
+              ],
+              "message_directionality": null,
+              "message_id": "<AAAAAA1111BBBBBB2222@AAAAAA1111.namprd10.prod.outlook.com>",
+              "originating_ip": null,
+              "path": [],
+              "refereneces": null,
+              "reply_to": null,
+              "size": 2805,
+              "spf_result": null,
+              "spoofed_internal": false,
+              "subject": "RE: Project Alpha - Design Review Discussions on March 17, 2026 | Read Meeting Report",
+              "subject_raw": "RE: Project Alpha - Design Review Discussions on March 17, 2026 | Read Meeting Report",
+              "thread_index": null,
+              "thread_topic": null,
+              "user_agent": null,
+              "x_mailer": null,
+              "x_sender": null
+            },
+            "mail_from_is_local": false,
+            "message-id": "<AAAAAA1111BBBBBB2222@AAAAAA1111.namprd10.prod.outlook.com>",
+            "message_directionality": null,
+            "spf_result": null,
+            "spoofed_internal": false,
+            "subject": "RE: Project Alpha - Design Review Discussions on March 17, 2026 | Read Meeting Report",
+            "to": [
+              "\"Doe, John\" <john.doe@acmecorp.com>"
+            ],
+            "to_addresses": [
+              "john.doe@acmecorp.com"
+            ]
+          },
+          "extraction_errors": [],
+          "parsing_error": null
+        },
+        "module": "email_analyzer",
+        "observable": 5,
+        "summary": "Email Analysis: From \"Smith, Jane\" <jane.smith@widgetsinc.com> To john.doe@acmecorp.com Subject RE: Project Alpha - Design Review Discussions on March 17, 2026 | Read Meeting Report",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": true,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "message/rfc822",
+          "type": "SMTP mail, ASCII text"
+        },
+        "module": "file_type",
+        "observable": 5,
+        "summary": "File Type Analysis: SMTP mail, ASCII text (message/rfc822) (email)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "text/plain",
+          "type": "ASCII text"
+        },
+        "module": "file_type",
+        "observable": 6,
+        "summary": "File Type Analysis: ASCII text (text/plain)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": true,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "message/rfc822",
+          "type": "RFC 822 mail, ASCII text"
+        },
+        "module": "file_type",
+        "observable": 8,
+        "summary": "File Type Analysis: RFC 822 mail, ASCII text (message/rfc822) (email)",
+        "tags": []
+      }
+    ],
+    "whitelisted": false
+  }
+}

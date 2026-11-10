@@ -425,6 +425,99 @@ def make_url_emails(directory):
     return made
 
 
+def make_lure_emails(directory, macro_doc):
+    """Emails for 7.5 batch 8's modules, which ace3's fixtures don't reach: lure_url_analyzer's signals
+    (a button, call-to-action text, a click tracker, footer links, an image, a font host, a form, a
+    protected URL, an attachment, a forwarded email, links only on the sender's domain), and an Office
+    document with a macro for email_conversation_attachment_analyzer. Every byte is fixed."""
+    made = []
+
+    def message(name, subject, sender="IT Desk <it@corp.example>", to="pat@corp.example"):
+        m = email.message.EmailMessage()
+        m["From"] = sender
+        m["To"] = to
+        m["Return-Path"] = "<bounce@mailer.corp.example>"
+        m["Subject"] = subject
+        m["Date"] = "Mon, 09 Nov 2026 12:00:00 +0000"
+        m["Message-ID"] = f"<{name}@corp.example>"
+        return m
+
+    def write(name, m):
+        # every multipart its own fixed boundary, or Python picks a random one
+        for i, part in enumerate(m.walk()):
+            if part.is_multipart():
+                part.set_boundary(f"{name}-boundary" + (f"-{i}" if i else ""))
+        path = directory / f"{name}.email.rfc822"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(m.as_bytes())
+        made.append(path)
+
+    m = message("lure_button", "Action required: verify your mailbox")
+    m.set_content("Verify your mailbox at https://login.lure-example.net/verify?id=7\n")
+    m.add_alternative(
+        '<html><head><link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet"></head><body>'
+        '<p><a href="https://corp.example/"><img src="https://corp.example/logo.png" alt="Corp"></a></p>'
+        '<p>Your mailbox is almost full.</p>'
+        '<table><tr><td style="background-color:#0078d4; padding: 12px">'
+        '<a href="https://login.lure-example.net/verify?id=7">Verify your mailbox</a></td></tr></table>'
+        '<p><a class="btn-secondary" href="https://t.track-example.com/c?u=https%3A%2F%2Fdocs.lure-example.net%2Fopen%3Fd%3D1">'
+        'View the document</a></p>'
+        '<form action="https://collect.lure-example.net/post"><input name="p"></form>'
+        '<img src="https://cdn.lure-example.net/pixel.gif">'
+        '<p><a href="https://corp.example/unsubscribe">Unsubscribe</a> | '
+        '<a href="https://corp.example/privacy">Privacy</a></p></body></html>',
+        subtype="html",
+    )
+    write("lure_button", m)
+
+    m = message("lure_protected", "Payroll update")
+    m.set_content("Review the update.\n")
+    m.add_alternative(
+        '<html><body><p>Please review your payroll details.</p>'
+        '<p><a href="https://nam02.safelinks.protection.outlook.com/?url=https%3A%2F%2Fpayroll-update.lure-example.net'
+        '%2Flogin&amp;data=05%7C01&amp;reserved=0">Review payroll</a></p>'
+        '<p><a href="https://corp.example/help">Help</a></p></body></html>',
+        subtype="html",
+    )
+    write("lure_protected", m)
+
+    m = message("lure_attachment", "Invoice")
+    m.set_content("The invoice is attached.\n")
+    m.add_attachment(
+        "Pay the invoice at https://pay.lure-example.net/invoice/1001 before Friday.\n",
+        filename="invoice.txt",
+    )
+    write("lure_attachment", m)
+
+    inner = message("lure_inner", "Your account is locked", sender="Security <security@lure-example.org>")
+    # plain text only: the outer email writes the attached one's parts too, and an HTML part's two paths
+    # would get file_type's type in the order the two emails' results land (decision 15)
+    inner.set_content("Unlock it at https://unlock.lure-example.org/now\n")
+    m = message("lure_forward", "FW: Your account is locked", sender="Pat <pat@corp.example>", to="abuse@corp.example")
+    m.set_content("This looks like phishing. Our policy: https://wiki.corp.example/phishing\n")
+    m.add_alternative(
+        '<html><body><p>This looks like phishing.</p><p><a href="https://wiki.corp.example/phishing">Our policy</a></p></body></html>',
+        subtype="html",
+    )
+    m.add_attachment(inner)
+    write("lure_forward", m)
+
+    m = message("lure_footer_only", "Newsletter")
+    m.set_content("Nothing to click.\n")
+    m.add_alternative(
+        '<html><body><p>Nothing new this week.</p><p><a href="https://corp.example/unsubscribe">Unsubscribe</a> | '
+        '<a href="https://www.corp.example/legal/terms">Terms</a></p></body></html>',
+        subtype="html",
+    )
+    write("lure_footer_only", m)
+
+    m = message("macro_attachment", "the attached file", sender="sender@example.com", to="recipient@example.com")
+    m.set_content("The document is attached.\n")
+    m.add_attachment(macro_doc, maintype="application", subtype="msword", filename="receipt.doc")
+    write("macro_attachment", m)
+    return made
+
+
 def make_office_edges(directory, macro_docm):
     """Files for what ace3's olevba decides before it opens a file and when it can't, which ace3's
     fixtures don't reach. Every byte is fixed. `macro_docm` gives the last one a real VBA project."""
@@ -780,6 +873,11 @@ def main():
 
     for path in make_url_emails(SAMPLES / "ace4" / "email"):
         samples.append(entry(path, ["email"], "made by tools/samples/gather: Python email"))
+
+    receipt = (SAMPLES / "ace3" / "office" / "receipt_687790.doc").read_bytes()
+    for path in make_lure_emails(SAMPLES / "ace4" / "email", receipt):
+        kinds = ["email", "office/macro"] if path.name.startswith("macro_") else ["email"]
+        samples.append(entry(path, kinds, "made by tools/samples/gather: Python email"))
 
     docm = SAMPLES / "ace3" / "office" / "mortgage_payment-0873821-0565.docm"
     for path in make_office_edges(SAMPLES / "ace4" / "office", docm):

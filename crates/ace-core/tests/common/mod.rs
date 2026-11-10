@@ -104,6 +104,51 @@ pub mod stubs {
         &[]
     );
 
+    #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
+    #[serde(deny_unknown_fields)]
+    pub struct SetsRootOutput {}
+
+    impl AnalysisType for SetsRootOutput {
+        const NAME: &'static str = "test_sets_root";
+        const VERSION: u32 = 1;
+        const MODULE: &'static str = "test_sets_root";
+    }
+
+    /// A module that changes its root, as ace3's mailbox module does, walks the tree, and may add the
+    /// tag `x` and the directive `crawl` to other observables.
+    pub struct SetsRoot;
+
+    impl Module for SetsRoot {
+        const NAME: &'static str = "test_sets_root";
+        const INPUTS: &'static [ObservableKind] = &[ObservableKind::File];
+        const READS_TREE: bool = true;
+        const SETS_ROOT: bool = true;
+        const ADDS_TO_OTHERS: Option<ace_sdk::OtherAdditionsAllowed> =
+            Some(ace_sdk::OtherAdditionsAllowed {
+                tags: &["x"],
+                directives: &["crawl"],
+                detections: false,
+            });
+        type Output = SetsRootOutput;
+        type Settings = ();
+
+        fn init(_: &()) -> Result<Self, ModuleError> {
+            Ok(SetsRoot)
+        }
+    }
+
+    impl Lookup for SetsRoot {
+        const TCP_PORTS: &'static [u16] = &[];
+
+        async fn analyze(
+            &self,
+            _: &TaskContext<()>,
+        ) -> Result<Outcome<SetsRootOutput>, ModuleError> {
+            Ok(Outcome::Skipped("a stub".to_owned()))
+        }
+    }
+
+    pub const SETS_ROOT: Manifest = Manifest::lookup::<SetsRoot>();
     pub const DEPENDS_ON_ARCHIVE: Manifest = Manifest::lookup::<DependsOnArchive>();
     pub const ALERT_ADDED_TO_EVENT: Manifest = Manifest::lookup::<AlertAddedToEvent>();
 }

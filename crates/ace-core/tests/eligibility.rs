@@ -1257,3 +1257,227 @@ async fn a_result_links_observables_and_adds_to_what_one_redirects_to() {
     );
     assert_eq!(on_part["redirection"], json!(format!("file:{document}")));
 }
+
+/// PLAN.md 7.5 batch 8: a module that walks the tree reads it as it is, with the root's alert type,
+/// what each result added under which path, the tasks still to finish and the files it reads; a
+/// result adds to other observables in the root and drops what's for one the root doesn't hold; and
+/// only a module that declares it changes its root's description and details.
+#[tokio::test]
+async fn a_task_walks_its_roots_tree_and_a_result_changes_others_and_its_root() {
+    use ace_sdk::tree::TreeFiles;
+
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let (email, body, big) = ("a".repeat(64), "b".repeat(64), "c".repeat(64));
+    let (root, ids) = root_with(
+        db,
+        "test",
+        &[
+            (ObservableKind::File, email.as_str()),
+            (ObservableKind::File, body.as_str()),
+            (ObservableKind::File, big.as_str()),
+            (ObservableKind::Url, "https://lure.example/x"),
+            (ObservableKind::EmailConversation, "a@x|b@y"),
+        ],
+    )
+    .await;
+    let (email_id, body_id, big_id, url_id, conversation_id) =
+        (ids[0], ids[1], ids[2], ids[3], ids[4]);
+    add_result(
+        db,
+        root,
+        email_id,
+        "email_analysis",
+        json!({}),
+        &[
+            (body_id, Some("email.rfc822.unknown_text_html_000")),
+            (big_id, Some("email.rfc822.unknown_text_html_001")),
+            (conversation_id, None),
+        ],
+    )
+    .await;
+    add_result(
+        db,
+        root,
+        body_id,
+        "url_extraction_analysis",
+        json!({}),
+        &[(url_id, None)],
+    )
+    .await;
+    let mut tx = db.begin().await.expect("begins");
+    ace_core::queue::enqueue(
+        &mut tx,
+        root,
+        conversation_id,
+        "email_conversation_frequency_analyzer",
+    )
+    .await
+    .expect("queues");
+    tx.commit().await.expect("commits");
+    sqlx::query(
+        "UPDATE analysis.roots SET origin = '{\"alert_type\": \"mailbox\", \"details\": {\"query\": \"q\"}}'
+         WHERE id = $1",
+    )
+    .bind(root)
+    .execute(db.pool())
+    .await
+    .expect("sets the origin");
+    for (sha256, size) in [(&body, 10i64), (&big, 11)] {
+        sqlx::query("INSERT INTO store.objects (pool, sha256, size, mime_type) VALUES ('alert_files', $1, $2, 'text/html')")
+            .bind(sha256)
+            .bind(size)
+            .execute(db.pool())
+            .await
+            .expect("records the object");
+    }
+
+    let files = TreeFiles {
+        names_containing: &[".unknown_text_html"],
+        max_size: 10,
+    };
+    let (view, wanted) = tree::tree_view(db.pool(), root, email_id, Some(files))
+        .await
+        .expect("reads");
+    assert_eq!(view.alert_type.as_deref(), Some("mailbox"));
+    assert!(!view.whitelisted && !view.truncated);
+    assert_eq!(view.this().value, email);
+    assert_eq!(view.observables.len(), 5);
+    assert_eq!(
+        wanted,
+        [(1, body.clone())],
+        "the body no larger than the limit"
+    );
+    assert_eq!(view.observables[1].size, Some(10));
+    assert_eq!(
+        view.observables[4].pending,
+        ["email_conversation_frequency_analyzer"]
+    );
+    let email_result = view
+        .result_of(0, "email_analysis")
+        .expect("the email's result");
+    assert_eq!(
+        email_result
+            .added
+            .iter()
+            .map(|a| (a.observable, a.path.as_deref()))
+            .collect::<Vec<_>>(),
+        [
+            (1, Some("email.rfc822.unknown_text_html_000")),
+            (2, Some("email.rfc822.unknown_text_html_001")),
+            (4, None)
+        ]
+    );
+    assert_eq!(
+        view.search_up(3, |i| i == 0),
+        Some(0),
+        "the url came from the email"
+    );
+
+    // a result of the module that changes its root: crawl on the url, nothing for a url the root
+    // doesn't hold, and the root's description and details
+    // manifests()' two stubs share a type, which check_result's registry refuses
+    let orchestrator = Orchestrator::new(
+        Catalog::new([common::stubs::SETS_ROOT, ace_mod_archive::MANIFEST]),
+        modes(),
+    );
+    let changes = json!({
+        "analysis_type": "test_sets_root", "schema_version": 1, "details": {},
+        "others": [
+            {"observable": {"type": "url", "value": "https://lure.example/x"}, "additions": {"directives": ["crawl"]}},
+            {"observable": {"type": "url", "value": "https://elsewhere.example/"}, "additions": {"tags": ["x"]}},
+        ],
+        "root": {"description": "ACE Mailbox Scanner Detection - hello", "details": {"email": {"subject": "hello"}}},
+    });
+    if let Err(e) = orchestrator.check_result("test_sets_root", &changes) {
+        panic!("{} {:?}", e.error, e.fields);
+    }
+    // what a module adds to other observables is only what it declares
+    let other = |additions: serde_json::Value| {
+        json!({
+            "analysis_type": "test_sets_root", "schema_version": 1, "details": {},
+            "others": [{"observable": {"type": "url", "value": "https://lure.example/x"}, "additions": additions}],
+        })
+    };
+    for (additions, why) in [
+        (json!({"tags": ["y"]}), "the tag \"y\""),
+        (
+            json!({"directives": ["sandbox"]}),
+            "the directive \"sandbox\"",
+        ),
+        (json!({"detections": [{"description": "d"}]}), "a detection"),
+        (json!({"yara_meta": ["type=x"]}), "a yara_meta tag"),
+    ] {
+        let refused = orchestrator
+            .check_result("test_sets_root", &other(additions))
+            .expect_err("refused");
+        assert!(
+            refused.error.contains(why) && refused.error.contains("ADDS_TO_OTHERS"),
+            "{}",
+            refused.error
+        );
+    }
+    let refused = orchestrator
+        .check_result(
+            "archive",
+            &json!({"analysis_type": "archive_analysis", "schema_version": 1, "details": {},
+                    "others": [{"observable": {"type": "url", "value": "https://lure.example/x"},
+                                "additions": {"directives": ["crawl"]}}]}),
+        )
+        .expect_err("refused");
+    assert!(
+        refused
+            .error
+            .contains("doesn't declare what it adds to other observables"),
+        "{}",
+        refused.error
+    );
+    let refused = orchestrator
+        .check_result(
+            "archive",
+            &json!({"analysis_type": "archive_analysis", "schema_version": 1, "details": {},
+                    "root": {"description": "no"}}),
+        )
+        .expect_err("refused");
+    assert!(refused.error.contains("SETS_ROOT"), "{}", refused.error);
+
+    let mut tx = db.begin().await.expect("begins");
+    ace_core::queue::enqueue(&mut tx, root, email_id, "test_sets_root")
+        .await
+        .expect("queues");
+    tx.commit().await.expect("commits");
+    let changer = worker(
+        &test_db,
+        "changer",
+        &["test_sets_root"],
+        Duration::from_secs(60),
+    )
+    .await;
+    let task = changer.claim().await.expect("claims").expect("a task");
+    let mut tx = db.begin().await.expect("begins");
+    orchestrator
+        .land_result(&mut tx, &changer, &task, &result(changes))
+        .await
+        .expect("lands");
+    tx.commit().await.expect("commits");
+    let (description, origin): (String, serde_json::Value) =
+        sqlx::query_as("SELECT description, origin FROM analysis.roots WHERE id = $1")
+            .bind(root)
+            .fetch_one(db.pool())
+            .await
+            .expect("reads the root");
+    assert_eq!(description, "ACE Mailbox Scanner Detection - hello");
+    assert_eq!(
+        origin,
+        json!({"alert_type": "mailbox", "details": {"query": "q", "email": {"subject": "hello"}}})
+    );
+    let (view, _) = tree::tree_view(db.pool(), root, email_id, None)
+        .await
+        .expect("reads");
+    assert_eq!(view.observables[3].directives, ["crawl"]);
+    assert_eq!(
+        view.observables.len(),
+        5,
+        "nothing added for the url the root doesn't hold"
+    );
+}

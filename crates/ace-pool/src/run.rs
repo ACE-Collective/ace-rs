@@ -133,6 +133,35 @@ pub async fn fetch_email_body(
     Ok(Some(path))
 }
 
+/// Downloads the files of the task's tree its module reads (`Module::READS_TREE_FILES`) into a
+/// directory of their own in `dir`, each named by its sha256, for the task's user to read.
+pub async fn fetch_tree_files(
+    client: &LeaseClient,
+    task: &LeasedTask,
+    dir: &Path,
+) -> Result<Option<PathBuf>, ClientError> {
+    let Some(tree) = &task.tree else {
+        return Ok(None);
+    };
+    let files = dir.join("tree_files");
+    std::fs::create_dir_all(&files)?;
+    std::fs::set_permissions(&files, std::fs::Permissions::from_mode(0o755))?;
+    for observable in &tree.observables {
+        let Some(download) = &observable.download else {
+            continue;
+        };
+        // the core sends a file's sha256 as its value; anything else isn't a name to write
+        if observable.value.len() != 64 || !observable.value.bytes().all(|b| b.is_ascii_hexdigit())
+        {
+            continue;
+        }
+        let path = files.join(&observable.value);
+        client.download(download, &path).await?;
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o644))?;
+    }
+    Ok(Some(files))
+}
+
 /// Uploads each file a result adds from the task's output directory, then ends the task. A 422 is
 /// an end too: the core rejected the result and failed the task, and its row says why.
 pub async fn send_end(
@@ -200,6 +229,7 @@ pub async fn run_in_process(
     .instrument(tracing::info_span!("fetch_input"))
     .await?;
     let email_body = fetch_email_body(client, &task, dir.path()).await?;
+    let tree_files = fetch_tree_files(client, &task, dir.path()).await?;
     let outputs = Arc::new(LocalFileStore::new(dir.outputs())?);
     // the module's own span (ace_sdk::module::task_span) is a child of this task's
     let span = tracing::Span::current();
@@ -218,6 +248,7 @@ pub async fn run_in_process(
                     task: &owned_task,
                     input: input.as_deref(),
                     email_body: email_body.as_deref(),
+                    tree_files: tree_files.as_deref(),
                     outputs: owned_outputs,
                     cancel,
                     contained: false,
@@ -237,6 +268,7 @@ pub async fn run_in_process(
                                 task: &owned_task,
                                 input: input.as_deref(),
                                 email_body: email_body.as_deref(),
+                                tree_files: tree_files.as_deref(),
                                 outputs: owned_outputs,
                                 cancel,
                                 contained: false,

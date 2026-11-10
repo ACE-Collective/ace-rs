@@ -10,15 +10,23 @@
 //! - `email_thread_analyzer` (`thread`): ace3's `EmailThreadAnalyzer`, which lays out the
 //!   conversation the logger recorded a Message-ID in, through the `email-thread` read.
 //!
+//! - `email_conversation_attachment_analyzer` (`attachment`) and `email_conversation_link_analyzer`
+//!   (`link`): ace3's `EmailConversationAttachmentAnalyzer` and `EmailConversationLinkAnalyzer`, parsers
+//!   that read the frequency module's `new_sender` tags in the root's tree (PLAN.md 7.5 batch 8).
+//!
 //! `threads` finds an email's thread as ace3 does, and `similarity` is ace3's look-alike checks.
 
+pub mod attachment;
 pub mod fluent;
 pub mod frequency;
+pub mod link;
 pub mod logger;
 pub mod similarity;
 pub mod thread;
 pub mod threads;
 
+pub use attachment::EmailConversationAttachmentAnalyzer;
 pub use frequency::EmailConversationFrequencyAnalyzer;
+pub use link::EmailConversationLinkAnalyzer;
 pub use logger::EmailLogger;
 pub use thread::EmailThreadAnalyzer;

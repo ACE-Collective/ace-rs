@@ -1256,6 +1256,7 @@ RUNS = {
     "office": office_runs,
     "scripts": script_runs,
     "encrypted": encrypted_runs,
+    "emailtree": lambda: email_tree_runs(),
 }
 
 
@@ -1310,6 +1311,94 @@ def fake_splunk(fake_dir, job_args, query_timeout):
         yield
     finally:
         docker("exec", CONTAINER, "sh", "-c", f'kill "$(cat {fake_dir}/pid)" 2>/dev/null || true', check=False)
+
+
+# 7.5 batch 8's modules walk the email's tree, so their runs have the parsers tools/ace3/trees/make-trees
+# enables, which add the URLs and files they read. The YARA module and the lookups aren't among them:
+# YARA needs a ruleset and the lookups a network, and they add nothing the modules read. The frequency
+# module is, where a run gives it a brocess.
+EMAIL_TREE_ENABLE = [
+    "file_type", "email_analyzer", "archive", "olevba_v1_2", "rtfole", "msoffice_encryption_analyzer",
+    "xlmdeobfuscator", "pcodedmp", "pdf_analyzer", "url_extraction", "ioc_extraction", "file_hash_analyzer",
+    "binary_file_analyzer", "x509_analyzer", "lnk_parser", "dhash", "command_line_analyzer",
+    "file_location_analysis", "file_path_analysis", "network_identifier", "parse_url", "idna_analyzer",
+    "email_address_fqdn_analyzer", "protected_url_analyzer", "html_data_url_extraction", "har_extraction",
+    "html_js_extraction", "mhtml", "onenote_extraction", "officeparser3", "office_xml_rel",
+    "xml_binary_analyzer", "xml_plain_text_analyzer", "extracted_ole_analyzer", "hidden_mime", "active_mime",
+    "microsoft_script_encoding_analysis", "extracted_rtf_analyzer", "vbscript_analyzer", "nowhitespace_analyzer",
+    "zip_encryption_analyzer", "rar_encryption_analyzer", "pdf_encryption_analyzer",
+]
+EMAIL_TREE_CONFIGS = {
+    # the lure module's settings file, with fewer candidates, no crawl, a body worth nothing and no
+    # noise words
+    "lure_settings.yaml": "max_candidates: 2\ncrawl_primary: false\nnoise_keywords:\nweights:\n  body: 0\n",
+    "lure.yaml": f"analysis_module_lure_url_analyzer:\n  config_path: {REMOTE}/fixtures/emailtree/lure_settings.yaml\n",
+    "link.yaml": "analysis_module_email_conversation_link_analyzer:\n  url_pattern_lure: 'lure-example\\.(net|org)'\n"
+    "  url_pattern_bad: '(unclosed'\n",
+    "link_nothing.yaml": "analysis_module_email_conversation_link_analyzer:\n  url_pattern_none: 'no-such-host'\n",
+    # brocess with no rows, so every sender is new, and with the lure emails' sender seen
+    "empty.json": json.dumps({"smtplog": []}),
+    "lure_sender.json": json.dumps({"smtplog": [["it@corp.example", "pat@corp.example", 9]]}),
+}
+
+
+def email_tree_runs():
+    """The email-tree modules on each email sample, each run keeping the whole root (run_module.py
+    --tree-view): the lure module, alone and with a settings file; the mailbox module on a mailbox
+    alert and on another; the attachment module with no sender seen before and with the macro email's
+    sender seen; and the link module with two patterns, one that doesn't compile, and with one that
+    matches nothing."""
+    runs = []
+    configs = f"{REMOTE}/fixtures/emailtree"
+
+    def add(module, sample, suffix="", args=(), label="", enable=EMAIL_TREE_ENABLE):
+        runs.append({
+            "module": module,
+            "enable": [m for m in enable if m != module],
+            "name": sample["path"] + suffix,
+            "args": ["--file", f"{REMOTE}/samples/{sample['path']}", "--alert-path", sample["alert_path"],
+                     "--tree-view", *args],
+            "label": sample["path"] + label,
+            "service": write_email_tree_configs,
+            # lnk_parser and rtfole run the virtualenv's programs, as in make-trees
+            "env": [VENV_PATH, "PYTHONHASHSEED=0"],
+        })
+
+    emails = [s for s in manifest_samples("email") if not s["path"].startswith("local/")]
+    frequency = [*EMAIL_TREE_ENABLE, "email_conversation_frequency_analyzer"]
+    for sample in emails:
+        add("lure_url_analyzer", sample)
+        add("mailbox_email_analyzer", sample, args=["--alert-type", "mailbox", "--directive", "original_email"],
+            label=" as a mailbox alert", enable=["file_type", "email_analyzer"])
+        if any(k.startswith("office/") for k in sample["kinds"]):
+            add("email_conversation_attachment_analyzer", sample, args=["--brocess", f"{configs}/empty.json"],
+                label=", no sender seen before", enable=frequency)
+        if sample["path"].endswith("/lure_button.email.rfc822") or sample["path"].endswith("/lure_forward.email.rfc822"):
+            add("email_conversation_link_analyzer", sample,
+                args=["--brocess", f"{configs}/empty.json", "--config", f"{configs}/link.yaml"],
+                label=", no sender seen before, with url_pattern_lure", enable=frequency)
+    by_path = {s["path"]: s for s in emails}
+    lure_button = by_path["ace4/email/lure_button.email.rfc822"]
+    add("lure_url_analyzer", lure_button, ".settings", ["--config", f"{configs}/lure.yaml"], " with a settings file")
+    add("mailbox_email_analyzer", lure_button, ".cli", ["--directive", "original_email"], " as a cli alert",
+        enable=["file_type", "email_analyzer"])
+    add("email_conversation_attachment_analyzer", by_path["ace4/email/macro_attachment.email.rfc822"], ".known_sender",
+        ["--brocess", f"{REMOTE}/fixtures/brocess/smtplog.json"], ", its sender seen before", enable=frequency)
+    add("email_conversation_link_analyzer", lure_button, ".known_sender",
+        ["--brocess", f"{configs}/lure_sender.json", "--config", f"{configs}/link.yaml"],
+        ", its sender seen before, with url_pattern_lure", enable=frequency)
+    add("email_conversation_link_analyzer", by_path["ace4/email/lure_protected.email.rfc822"], ".nothing",
+        ["--brocess", f"{configs}/empty.json", "--config", f"{configs}/link_nothing.yaml"],
+        ", with a pattern that matches nothing", enable=frequency)
+    return runs
+
+
+@contextlib.contextmanager
+def write_email_tree_configs():
+    docker("exec", CONTAINER, "mkdir", "-p", f"{REMOTE}/fixtures/emailtree")
+    for name, text in EMAIL_TREE_CONFIGS.items():
+        put(f"{REMOTE}/fixtures/emailtree/{name}", text.encode())
+    yield
 
 
 def docker(*args, stdin=None, capture=True, check=True):
@@ -1439,6 +1528,11 @@ def run(spec):
         "zip_encryption_analyzer": "ZipEncryptionAnalysis",
         "rar_encryption_analyzer": "RarEncryptionAnalysis",
         "pdf_encryption_analyzer": "PDFEncryptionAnalysis",
+        "lure_url_analyzer": "LureURLAnalysis",
+        "mailbox_email_analyzer": "MailboxEmailAnalysis",
+        # these analyze what the email carries, so the email has none of theirs
+        "email_conversation_attachment_analyzer": "EmailConversationAttachmentAnalysis",
+        "email_conversation_link_analyzer": "EmailConversationLinkAnalysis",
     }[spec["module"]]
     analysis = next((a for a in parsed["analyses"] if a["class"] == target_class), None)
     return {

@@ -1619,3 +1619,188 @@ async fn measure_observable_values() {
     }
     let _ = pool.stop();
 }
+
+async fn email_tree_core(lease: Duration) -> Core {
+    Core::start(
+        vec![
+            ace_mod_files::file_type::MANIFEST,
+            ace_mod_email::MANIFEST,
+            ace_mod_urls::url_extraction::MANIFEST,
+            ace_mod_values::protected::MANIFEST,
+            ace_mod_emailtree::lure::MANIFEST,
+        ],
+        &[
+            "file_type",
+            "email_analyzer",
+            "url_extraction",
+            "protected_url_analyzer",
+            "lure_url_analyzer",
+        ],
+        lease,
+    )
+    .await
+}
+
+async fn lure_details(core: &Core, root: uuid::Uuid) -> Option<serde_json::Value> {
+    sqlx::query_scalar(
+        "SELECT details FROM analysis.results WHERE root_id = $1 AND analysis_type = 'lure_url_analysis'",
+    )
+    .bind(root)
+    .fetch_optional(core.test_db.db().pool())
+    .await
+    .expect("the result")
+}
+
+/// PLAN.md 7.5 batch 8: the lure module, last in its root, reads the tree the core sends and the
+/// email's HTML body the pool fetched for it, in a contained task process, and its crawl lands on the
+/// URL it picks.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn the_lure_module_reads_its_tree_and_its_bodies_in_a_contained_task_process() {
+    let core = email_tree_core(Duration::from_secs(60)).await;
+    let mut pool = supervisor(&core, &[]);
+    for (sample, primary, unwrapped) in [
+        (
+            "ace4/email/lure_button.email.rfc822",
+            "https://login.lure-example.net/verify?id=7",
+            false,
+        ),
+        (
+            "ace4/email/lure_protected.email.rfc822",
+            "https://payroll-update.lure-example.net/login",
+            true,
+        ),
+    ] {
+        let bytes = std::fs::read(ace_testkit::samples_dir().join(sample)).expect("the sample");
+        let (root, _) = root_with_bytes(&core, "analysis", &bytes, "email.rfc822").await;
+        wait_until_idle(&core, root, Duration::from_secs(120)).await;
+        let details = lure_details(&core, root).await.expect("a lure result");
+        assert_eq!(details["primary"]["url"], primary, "{sample}: {details}");
+        let reasons = details["primary"]["reasons"].to_string();
+        assert!(
+            reasons.contains("clickable link with text"),
+            "{sample}: the body was read: {reasons}"
+        );
+        assert_eq!(
+            reasons.contains("unwrapped from"),
+            unwrapped,
+            "{sample}: {reasons}"
+        );
+        let directives: Vec<String> = sqlx::query_scalar(
+            "SELECT unnest(directives) FROM analysis.observables WHERE root_id = $1 AND type = 'url' AND value = $2",
+        )
+        .bind(root)
+        .bind(primary)
+        .fetch_all(core.test_db.db().pool())
+        .await
+        .expect("the url");
+        assert!(
+            directives.iter().any(|d| d == "crawl"),
+            "{sample}: {directives:?}"
+        );
+    }
+    assert!(pool.running());
+    let _ = pool.stop();
+}
+
+/// What docs/measurements/email-tree.md records: emails whose HTML bodies are made to cost the lure
+/// module, each through the real supervisor `ACE4_LURE_RUNS` times (3 by default), timed from the
+/// root's start to its end, with the lure task's state and how many candidates it kept.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[ignore = "a measurement"]
+async fn measure_lure() {
+    let runs: usize = std::env::var("ACE4_LURE_RUNS")
+        .ok()
+        .and_then(|r| r.parse().ok())
+        .unwrap_or(3);
+    let core = email_tree_core(Duration::from_secs(400)).await;
+    let mut pool = supervisor(&core, &[]);
+    let mib = 1024 * 1024;
+    let fill = |unit: &str, size: usize| unit.repeat(size / unit.len());
+    let anchors: String = (0..)
+        .map(|i| format!("<a href=\"https://h{i}.example.com/x\">link {i}</a>"))
+        .scan(0usize, |len, a| {
+            *len += a.len();
+            (*len < 5 * mib - 200).then_some(a)
+        })
+        .collect();
+    let cases: Vec<(&str, Vec<String>)> = vec![
+        ("anchors_5mb", vec![anchors]),
+        (
+            "one_anchor_deep_5mb",
+            vec![format!(
+                "<a href=\"https://deep.example.com/\">{}</a>",
+                fill("<div>x", 5 * mib - 100)
+            )],
+        ),
+        (
+            "anchor_text_5mb",
+            vec![format!(
+                "<a href=\"https://text.example.com/\">{}</a>",
+                fill("word ", 5 * mib - 100)
+            )],
+        ),
+        (
+            "form_of_links_5mb",
+            vec![format!(
+                "<form action=\"https://form.example.com/\">{}</form>",
+                fill(
+                    "<a href=\"https://f.example.com/\"><b>x</b></a>",
+                    5 * mib - 100
+                )
+            )],
+        ),
+        (
+            "over_5mb",
+            vec![fill("<a href=\"https://o.example.com/\">o</a>", 6 * mib)],
+        ),
+        (
+            "bodies_20x1mb",
+            (0..20)
+                .map(|i| fill(&format!("<a href=\"https://b{i}.example.com/\">b</a>"), mib))
+                .collect(),
+        ),
+    ];
+    for (name, bodies) in &cases {
+        let mut email = String::from(
+            "From: a@example.com\r\nTo: b@example.com\r\nSubject: s\r\nMIME-Version: 1.0\r\n\
+             Content-Type: multipart/mixed; boundary=b\r\n\r\n",
+        );
+        for body in bodies {
+            email.push_str("--b\r\nContent-Type: text/html\r\n\r\n");
+            email.push_str(body);
+            email.push_str("\r\n");
+        }
+        email.push_str("--b--\r\n");
+        for run in 0..runs {
+            let (root, _) =
+                root_with_bytes(&core, "analysis", email.as_bytes(), "email.rfc822").await;
+            let started = std::time::Instant::now();
+            wait_until_idle(&core, root, Duration::from_secs(400)).await;
+            let seconds = started.elapsed().as_secs_f64();
+            let (state, error) = task_of(&core, root, "lure_url_analyzer").await;
+            let candidates = lure_details(&core, root)
+                .await
+                .and_then(|d| d["candidates"].as_array().map(Vec::len))
+                .unwrap_or(0);
+            // the lure module runs last: from the root's last other result to its own is its hold,
+            // its lease, its tree's files' download and its run
+            let last: Option<f64> = sqlx::query_scalar(
+                "SELECT EXTRACT(EPOCH FROM max(created_at) FILTER (WHERE module = 'lure_url_analyzer')
+                        - max(created_at) FILTER (WHERE module <> 'lure_url_analyzer'))::float8
+                 FROM analysis.results WHERE root_id = $1",
+            )
+            .bind(root)
+            .fetch_one(core.test_db.db().pool())
+            .await
+            .expect("the results' times");
+            let error: String = error.unwrap_or_default().chars().take(120).collect();
+            println!(
+                "{name}\t{}\t{run}\t{state}\t{seconds:.1}\t{:.2}\t{candidates}\t{error}",
+                email.len(),
+                last.unwrap_or(f64::NAN)
+            );
+        }
+    }
+    assert!(pool.running());
+    let _ = pool.stop();
+}

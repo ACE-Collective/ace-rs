@@ -196,6 +196,9 @@ pub struct LeasedTask {
     /// task's observable has a relationship to, in the order of its relationships.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub related_tags: Vec<RelatedTags>,
+    /// For a module that reads it (`Module::READS_TREE`), the root's tree when the task was leased.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tree: Option<crate::tree::TreeView>,
 }
 
 /// An observable the task's observable is related to, and its tags.

@@ -268,6 +268,100 @@
           },
           "summary": "HTML JavaScript Extraction: 1 inline script(s), 1 event handler(s)",
           "tags": {}
+        },
+        "lure_url_analyzer": {
+          "details": {
+            "candidates": [
+              {
+                "anchor_text": "View invoice",
+                "carries": [],
+                "highlights": [
+                  [],
+                  [
+                    "View invoice"
+                  ],
+                  [],
+                  []
+                ],
+                "reasons": [
+                  "found in the email body",
+                  "clickable link with text 'View invoice'",
+                  "call-to-action text (view)",
+                  "same domain as the sender (example.com)"
+                ],
+                "score": 45,
+                "sources": [
+                  "body"
+                ],
+                "url": "https://evil.example.com/inv"
+              },
+              {
+                "anchor_text": null,
+                "carries": [],
+                "highlights": [
+                  [],
+                  [],
+                  []
+                ],
+                "reasons": [
+                  "found in the email body",
+                  "not a clickable link in the body",
+                  "same domain as the sender (example.com)"
+                ],
+                "score": -15,
+                "sources": [
+                  "body"
+                ],
+                "url": "https://evil.example.com/inv?id="
+              },
+              {
+                "anchor_text": null,
+                "carries": [],
+                "highlights": [
+                  [],
+                  [],
+                  []
+                ],
+                "reasons": [
+                  "found in the email body",
+                  "not a clickable link in the body",
+                  "same domain as the sender (example.com)"
+                ],
+                "score": -15,
+                "sources": [
+                  "body"
+                ],
+                "url": "https://evil.example.com/landing?src=email"
+              }
+            ],
+            "has_inner_email": false,
+            "primary": {
+              "anchor_text": "View invoice",
+              "carries": [],
+              "highlights": [
+                [],
+                [
+                  "View invoice"
+                ],
+                [],
+                []
+              ],
+              "reasons": [
+                "found in the email body",
+                "clickable link with text 'View invoice'",
+                "call-to-action text (view)",
+                "same domain as the sender (example.com)"
+              ],
+              "score": 45,
+              "sources": [
+                "body"
+              ],
+              "url": "https://evil.example.com/inv"
+            },
+            "subject": "Invoice 2026-11"
+          },
+          "summary": "Lure URL Analysis: https://evil.example.com/inv (found in the email body; clickable link with text 'View invoice'; call-to-action text (view); same domain as the sender (example.com))",
+          "tags": {}
         }
       },
       "tags": {
@@ -1633,7 +1727,9 @@
     },
     "url:https://evil.example.com/inv": {
       "detections": {},
-      "directives": {},
+      "directives": {
+        "crawl": true
+      },
       "excluded_analysis": {},
       "relationships": {},
       "results": {

@@ -1,0 +1,30 @@
+{#- lure_url_analysis (src/analysis.rs): ace3 draws an email's lure URL on its alert page
+    (analysis/lure_urls.html), the values a reason highlights in bold. -#}
+<table class="fields">
+{%- if let Some(subject) = analysis.subject %}
+<tr><th>email</th><td>{{ subject }}</td></tr>
+{%- endif %}
+{%- if let Some(primary) = analysis.primary %}
+<tr><th>lure</th><td><code>{{ primary.url }}</code> <span class="muted">({{ primary.score }})</span><br>
+{%- for segments in self.reasons(primary) %}{% if !loop.first %}; {% endif %}{% for segment in segments %}{% if segment.marked %}<b>{{ segment.text }}</b>{% else %}{{ segment.text }}{% endif %}{% endfor %}{% endfor -%}
+</td></tr>
+{%- else %}
+<tr><th>lure</th><td><span class="muted">no lure URL identified</span></td></tr>
+{%- endif %}
+{%- if analysis.has_inner_email %}
+<tr><th>inner email</th><td>this email carries another, whose lure is its own</td></tr>
+{%- endif %}
+</table>
+{%- let others = self.runners_up() %}
+{%- if !others.is_empty() %}
+<details>
+<summary>{{ others.len() }} other candidate{% if others.len() != 1 %}s{% endif %}</summary>
+<table class="rows">
+{%- for candidate in others %}
+<tr><td>{{ candidate.score }}</td><td><code>{{ candidate.url }}</code></td><td>
+{%- for segments in self.reasons(candidate) %}{% if !loop.first %}; {% endif %}{% for segment in segments %}{% if segment.marked %}<b>{{ segment.text }}</b>{% else %}{{ segment.text }}{% endif %}{% endfor %}{% endfor -%}
+</td></tr>
+{%- endfor %}
+</table>
+</details>
+{%- endif %}

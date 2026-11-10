@@ -312,6 +312,136 @@
           },
           "summary": null,
           "tags": {}
+        },
+        "lure_url_analyzer": {
+          "details": {
+            "candidates": [
+              {
+                "anchor_text": "shop.example.net",
+                "carries": [],
+                "highlights": [
+                  [],
+                  [
+                    "shop.example.net"
+                  ]
+                ],
+                "reasons": [
+                  "found in the email body",
+                  "clickable link with text 'shop.example.net'"
+                ],
+                "score": 45,
+                "sources": [
+                  "body"
+                ],
+                "url": "https://shop.example.net/sale"
+              },
+              {
+                "anchor_text": "shop.example.net",
+                "carries": [],
+                "highlights": [
+                  [],
+                  [
+                    "shop.example.net"
+                  ]
+                ],
+                "reasons": [
+                  "found in the email body",
+                  "clickable link with text 'shop.example.net'"
+                ],
+                "score": 45,
+                "sources": [
+                  "body"
+                ],
+                "url": "https://shop.example.net/cart"
+              },
+              {
+                "anchor_text": "blog.example.org",
+                "carries": [],
+                "highlights": [
+                  [],
+                  [
+                    "blog.example.org"
+                  ]
+                ],
+                "reasons": [
+                  "found in the email body",
+                  "clickable link with text 'blog.example.org'"
+                ],
+                "score": 45,
+                "sources": [
+                  "body"
+                ],
+                "url": "https://blog.example.org/post/1"
+              },
+              {
+                "anchor_text": "track.example.info",
+                "carries": [
+                  "https://land.example.co.uk/x"
+                ],
+                "highlights": [
+                  [],
+                  [
+                    "track.example.info"
+                  ],
+                  [
+                    "land.example.co.uk/x"
+                  ]
+                ],
+                "reasons": [
+                  "found in the email body",
+                  "clickable link with text 'track.example.info'",
+                  "carries 1 URL: land.example.co.uk/x"
+                ],
+                "score": 45,
+                "sources": [
+                  "body"
+                ],
+                "url": "https://track.example.info/o?u=https%3A%2F%2Fland.example.co.uk%2Fx"
+              },
+              {
+                "anchor_text": "198.51.100.4",
+                "carries": [],
+                "highlights": [
+                  [],
+                  [
+                    "198.51.100.4"
+                  ]
+                ],
+                "reasons": [
+                  "found in the email body",
+                  "clickable link with text '198.51.100.4'"
+                ],
+                "score": 45,
+                "sources": [
+                  "body"
+                ],
+                "url": "https://198.51.100.4/x"
+              }
+            ],
+            "has_inner_email": false,
+            "primary": {
+              "anchor_text": "shop.example.net",
+              "carries": [],
+              "highlights": [
+                [],
+                [
+                  "shop.example.net"
+                ]
+              ],
+              "reasons": [
+                "found in the email body",
+                "clickable link with text 'shop.example.net'"
+              ],
+              "score": 45,
+              "sources": [
+                "body"
+              ],
+              "url": "https://shop.example.net/sale"
+            },
+            "subject": "News"
+          },
+          "summary": "Lure URL Analysis: https://shop.example.net/sale (found in the email body; clickable link with text 'shop.example.net')",
+          "tags": {}
         }
       },
       "tags": {
@@ -2047,7 +2177,9 @@
     },
     "url:https://shop.example.net/sale": {
       "detections": {},
-      "directives": {},
+      "directives": {
+        "crawl": true
+      },
       "excluded_analysis": {},
       "relationships": {},
       "results": {

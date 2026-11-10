@@ -54,6 +54,8 @@ pub struct Run<'a> {
     pub input: Option<&'a Path>,
     /// The body of the email that carried the task's file, for a module that reads it.
     pub email_body: Option<&'a Path>,
+    /// The directory of the tree's files the module reads, each named by its sha256.
+    pub tree_files: Option<&'a Path>,
     /// Where the module's output files go.
     pub outputs: Arc<dyn FileStore>,
     pub cancel: CancellationToken,
@@ -145,7 +147,9 @@ impl<M: ace_sdk::Module> Entry<M> {
         .with_dependency_results(run.task.dependency_results.clone())
         .with_observables_below(run.task.observables_below.clone())
         .with_added_by(run.task.added_by.clone())
-        .with_related_tags(run.task.related_tags.clone());
+        .with_related_tags(run.task.related_tags.clone())
+        .with_tree(run.task.tree.clone())
+        .with_tree_files(run.tree_files.map(Path::to_path_buf));
         match &run.task.delayed {
             Some(delayed) => ctx.with_delayed(delayed.clone()),
             None => ctx,
@@ -408,6 +412,7 @@ mod tests {
             observables_below: Vec::new(),
             added_by: Vec::new(),
             related_tags: Vec::new(),
+            tree: None,
         }
     }
 
@@ -456,6 +461,7 @@ mod tests {
                 task,
                 input: None,
                 email_body,
+                tree_files: None,
                 outputs: store.clone(),
                 cancel: CancellationToken::new(),
                 contained: false,

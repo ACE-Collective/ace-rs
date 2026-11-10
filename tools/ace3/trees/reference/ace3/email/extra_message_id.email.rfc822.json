@@ -845,6 +845,134 @@
           "summary": null,
           "tags": {}
         },
+        "lure_url_analyzer": {
+          "details": {
+            "candidates": [
+              {
+                "anchor_text": "[image: Avast logo]",
+                "carries": [],
+                "highlights": [
+                  [],
+                  [
+                    "[image: Avast logo]"
+                  ],
+                  []
+                ],
+                "reasons": [
+                  "found in the email body",
+                  "clickable link with text '[image: Avast logo]'",
+                  "styled as a button"
+                ],
+                "score": 60,
+                "sources": [
+                  "body"
+                ],
+                "url": "https://www.avast.com/antivirus"
+              },
+              {
+                "anchor_text": "Welcome\n to IG PETROCHEMICAL LIMITED | IG PETROCHEMICAL LIMITED",
+                "carries": [],
+                "highlights": [
+                  [],
+                  [
+                    "Welcome\n to IG PETROCHEMICAL LIMITED | IG PETROCHEMICAL LIMITED"
+                  ]
+                ],
+                "reasons": [
+                  "found in the email body",
+                  "clickable link with text 'Welcome\n to IG PETROCHEMICAL LIMITED | IG PETROCHEMICAL LIMITED'"
+                ],
+                "score": 45,
+                "sources": [
+                  "body"
+                ],
+                "url": "http://www.igpetro.com"
+              },
+              {
+                "anchor_text": null,
+                "carries": [],
+                "highlights": [
+                  [],
+                  []
+                ],
+                "reasons": [
+                  "found in the email body",
+                  "not a clickable link in the body"
+                ],
+                "score": 5,
+                "sources": [
+                  "body"
+                ],
+                "url": "https://dl-mail.ymail.com/ws/download/mailboxes/@.id==VjN-m83ISXEldnP3T3Z9zOAG2O_rV4kAJGuvyQczuPNe3y6uH_kFJNwFEzAczlKfcSRK6F676llwJijNHGM9Rx73ng/messages/@.id==AA4rCakccZBlW0Rb_QmZCEdw8Rg/content/parts/@.id==2/raw?appid=YMailNorrin&ymreqid=3109e8dd-cabe-e03f-1c02-ec000001ce00&token=zitEzqOML3j84e6ealFTT5U7-km5qEQF52lp7AcCuBZg26zr02uU5z6B1uolKzq34BgNQEb_9RqrqBvlkd0nLFP77A-_HO2u05oMfSLv6k0GYHG5zZROOYeWZBW-NzAx"
+              },
+              {
+                "anchor_text": null,
+                "carries": [],
+                "highlights": [
+                  [],
+                  []
+                ],
+                "reasons": [
+                  "found in the email body",
+                  "not a clickable link in the body"
+                ],
+                "score": 5,
+                "sources": [
+                  "body"
+                ],
+                "url": "https://dl-mail.ymail.com/ws/download/mailboxes/@.id==VjN-m83ISXEldnP3T3Z9zOAG2O_rV4kAJGuvyQczuPNe3y6uH_kFJNwFEzAczlKfcSRK6F676llwJijNHGM9Rx73ng/messages/@.id==AA4rCakccZBlW0Rb_QmZCEdw8Rg/content/parts/@.id==3/raw?appid=YMailNorrin&ymreqid=3109e8dd-cabe-e03f-1c02-ec000001ce00&token=zitEzqOML3j84e6ealFTT5U7-km5qEQF52lp7AcCuBZg26zr02uU5z6B1uolKzq34BgNQEb_9RqrqBvlkd0nLFP77A-_HO2u05oMfSLv6k0GYHG5zZROOYeWZBW-NzAx"
+              },
+              {
+                "anchor_text": null,
+                "carries": [
+                  "https://proxy.imgsmail.ru/?email=ahmed.abdullahi%40bk.ru&e=1519804183&h=DDFtSALAy7tdKfe9AP8idA&url171=c3RhdGljLmF2YXN0LmNvbS9lbWFpbHMvYXZhc3QtbWFpbC1zdGFtcC5wbmc~&is_https=0"
+                ],
+                "highlights": [
+                  [],
+                  [],
+                  [
+                    "proxy.imgsmail.ru/?email=ahmed.abdullahi...tcC5wbmc~&is_https=0"
+                  ]
+                ],
+                "reasons": [
+                  "found in the email body",
+                  "not a clickable link in the body",
+                  "carries 1 URL: proxy.imgsmail.ru/?email=ahmed.abdullahi...tcC5wbmc~&is_https=0"
+                ],
+                "score": 5,
+                "sources": [
+                  "body"
+                ],
+                "url": "https://ecp.yusercontent.com/mail?url=https%3A%2F%2Fproxy.imgsmail.ru%2F%3Femail%3Dahmed.abdullahi%2540bk.ru%26e%3D1519804183%26h%3DDDFtSALAy7tdKfe9AP8idA%26url171%3Dc3RhdGljLmF2YXN0LmNvbS9lbWFpbHMvYXZhc3QtbWFpbC1zdGFtcC5wbmc%7E%26is_https%3D0&t=1531352401&ymreqid=3109e8dd-cabe-e03f-1cf5-0f001201f400&sig=ExHusom4LyGNK.DkXZhm7A--~C"
+              }
+            ],
+            "has_inner_email": true,
+            "primary": {
+              "anchor_text": "[image: Avast logo]",
+              "carries": [],
+              "highlights": [
+                [],
+                [
+                  "[image: Avast logo]"
+                ],
+                []
+              ],
+              "reasons": [
+                "found in the email body",
+                "clickable link with text '[image: Avast logo]'",
+                "styled as a button"
+              ],
+              "score": 60,
+              "sources": [
+                "body"
+              ],
+              "url": "https://www.avast.com/antivirus"
+            },
+            "subject": "FW: URGENT RFQ-03167218 IGOL MEF project 2018"
+          },
+          "summary": "Lure URL Analysis: https://www.avast.com/antivirus (found in the email body; clickable link with text '[image: Avast logo]'; styled as a button)",
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [],
@@ -3846,7 +3974,9 @@
     },
     "url:https://www.avast.com/antivirus": {
       "detections": {},
-      "directives": {},
+      "directives": {
+        "crawl": true
+      },
       "excluded_analysis": {},
       "relationships": {},
       "results": {

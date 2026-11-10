@@ -2269,6 +2269,10 @@ fn each_module_s_view_draws_its_fixture() {
         "zip_encryption_aes256",
         "rar_encryption_rar5_headers",
         "pdf_encryption_aes_256",
+        "lure_url_button",
+        "mailbox_lure_button",
+        "attachment_macro_attachment",
+        "link_lure_button",
     ];
     let mut types = BTreeSet::new();
     for name in fixtures {
@@ -2631,6 +2635,19 @@ fn each_module_s_view_draws_its_fixture() {
                     "<summary>word_list (52)</summary>",
                 ],
             ),
+            "lure_url_button" => contains_all(
+                &html,
+                &[
+                    "<tr><th>email</th><td>Action required: verify your mailbox</td></tr>",
+                    "<code>https://login.lure-example.net/verify?id=7</code> <span class=\"muted\">(80)</span>",
+                    "clickable link with text &#39;<b>Verify your mailbox</b>&#39;; styled as a button",
+                    "other candidates</summary>",
+                    "carries 1 URL: <b>docs.lure-example.net/open?d=1</b>",
+                ],
+            ),
+            "mailbox_lure_button" | "attachment_macro_attachment" | "link_lure_button" => {
+                contains_all(&html, &["No details"])
+            }
             other => panic!("no checks for {other}"),
         }
     }
@@ -9436,4 +9453,41 @@ fn the_network_pool_s_new_views_escape_what_a_module_wrote() {
     );
     assert!(!clicker.contains("href=\"javascript:"), "{clicker}");
     assert!(clicker.contains("<td>&#60;script&#62;"), "{clicker}");
+}
+
+/// PLAN.md 7.5 batch 8: a lure URL, its anchor's text and the reasons built from them come from the
+/// email's sender, so they're escaped, the bold of a highlight around the escaped text.
+#[test]
+fn the_lure_view_escapes_what_the_email_wrote() {
+    let views = Views::builtin();
+    let hostile = "<script>alert(1)</script>";
+    let candidate = serde_json::json!({
+        "url": format!("https://x.example/{hostile}"),
+        "score": 45,
+        "sources": ["body"],
+        "anchor_text": hostile,
+        "carries": [],
+        "reasons": ["found in the email body", format!("clickable link with text '{hostile}'")],
+        "highlights": [[], [hostile]],
+    });
+    let html = drawn(
+        &views,
+        &serde_json::from_value(serde_json::json!({
+            "analysis_type": "lure_url_analysis", "schema_version": 1,
+            "details": {"primary": candidate, "candidates": [candidate], "has_inner_email": true, "subject": hostile},
+        }))
+        .expect("a result"),
+    );
+    assert!(!html.contains("<script>"), "{html}");
+    assert!(
+        html.contains(
+            "clickable link with text &#39;<b>&#60;script&#62;alert(1)&#60;/script&#62;</b>&#39;"
+        ),
+        "{html}"
+    );
+    assert!(html.contains("this email carries another"));
+    assert!(
+        !html.contains("other candidate"),
+        "the primary is the only candidate"
+    );
 }

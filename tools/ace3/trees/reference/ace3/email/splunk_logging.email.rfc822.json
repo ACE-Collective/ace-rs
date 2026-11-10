@@ -888,6 +888,73 @@
           },
           "summary": null,
           "tags": {}
+        },
+        "lure_url_analyzer": {
+          "details": {
+            "candidates": [
+              {
+                "anchor_text": "https://www.alienvault.com/",
+                "carries": [],
+                "highlights": [
+                  [],
+                  [
+                    "https://www.alienvault.com/"
+                  ]
+                ],
+                "reasons": [
+                  "found in the email body",
+                  "clickable link with text 'https://www.alienvault.com/'"
+                ],
+                "score": 45,
+                "sources": [
+                  "body"
+                ],
+                "url": "https://www.alienvault.com"
+              },
+              {
+                "anchor_text": "http://tldp.org/LDP/abs/html/",
+                "carries": [],
+                "highlights": [
+                  [],
+                  [
+                    "http://tldp.org/LDP/abs/html/"
+                  ]
+                ],
+                "reasons": [
+                  "found in the email body",
+                  "clickable link with text 'http://tldp.org/LDP/abs/html/'"
+                ],
+                "score": 45,
+                "sources": [
+                  "body"
+                ],
+                "url": "http://tldp.org/LDP/abs/html"
+              }
+            ],
+            "has_inner_email": false,
+            "primary": {
+              "anchor_text": "https://www.alienvault.com/",
+              "carries": [],
+              "highlights": [
+                [],
+                [
+                  "https://www.alienvault.com/"
+                ]
+              ],
+              "reasons": [
+                "found in the email body",
+                "clickable link with text 'https://www.alienvault.com/'"
+              ],
+              "score": 45,
+              "sources": [
+                "body"
+              ],
+              "url": "https://www.alienvault.com"
+            },
+            "subject": "canary #3"
+          },
+          "summary": "Lure URL Analysis: https://www.alienvault.com (found in the email body; clickable link with text 'https://www.alienvault.com/')",
+          "tags": {}
         }
       },
       "tags": {
@@ -1739,7 +1806,9 @@
     },
     "url:https://www.alienvault.com": {
       "detections": {},
-      "directives": {},
+      "directives": {
+        "crawl": true
+      },
       "excluded_analysis": {},
       "relationships": {},
       "results": {

@@ -20,6 +20,7 @@ use crate::files::{FileOutputError, FileStore, write_file};
 use crate::lists::{List, ListSpec, WireList};
 use crate::module::{Module, ModuleError};
 use crate::reads::{Read as DeclaredRead, ReadError, ReadKind, Reader};
+use crate::tree::TreeView;
 use crate::wire::RelatedTags;
 use crate::writes::{WireWrite, Write as DeclaredWrite, WriteKind};
 
@@ -234,6 +235,9 @@ pub struct TaskContext<S> {
     observables_below: Vec<ObservableRef>,
     added_by: Vec<String>,
     related_tags: Vec<RelatedTags>,
+    tree: Option<TreeView>,
+    /// Where the pool put the tree's files the module reads, each named by its sha256.
+    tree_files: Option<PathBuf>,
 }
 
 impl<S> TaskContext<S> {
@@ -271,6 +275,8 @@ impl<S> TaskContext<S> {
             observables_below: Vec::new(),
             added_by: Vec::new(),
             related_tags: Vec::new(),
+            tree: None,
+            tree_files: None,
         }
     }
 
@@ -366,6 +372,32 @@ impl<S> TaskContext<S> {
             .iter()
             .find(|r| &r.observable == observable)
             .map(|r| r.tags.as_slice())
+    }
+
+    /// The root's tree as the core sent it (`Module::READS_TREE`).
+    pub fn with_tree(mut self, tree: Option<TreeView>) -> Self {
+        self.tree = tree;
+        self
+    }
+
+    /// The root's tree when the task was leased, for a module that reads it. None for any other.
+    pub fn tree(&self) -> Option<&TreeView> {
+        self.tree.as_ref()
+    }
+
+    /// The directory where the pool put the tree's files the module reads, each named by its
+    /// sha256 (`Module::READS_TREE_FILES`).
+    pub fn with_tree_files(mut self, dir: Option<PathBuf>) -> Self {
+        self.tree_files = dir;
+        self
+    }
+
+    /// Where a file of the tree is on this machine, for one the module reads
+    /// (`Module::READS_TREE_FILES`) and the core sent. None for any other.
+    pub fn tree_file(&self, sha256: &str) -> Option<PathBuf> {
+        let valid = sha256.len() == 64 && sha256.bytes().all(|b| b.is_ascii_hexdigit());
+        let path = self.tree_files.as_ref()?.join(sha256);
+        (valid && path.is_file()).then_some(path)
     }
 
     /// What makes the task's reads (`Module::READS`): the pool's lease API client.

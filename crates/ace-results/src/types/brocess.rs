@@ -24,6 +24,32 @@ impl AnalysisType for EmailConversationFrequencyAnalysis {
     const MODULE: &'static str = "email_conversation_frequency_analyzer";
 }
 
+/// `email_conversation_attachment_analysis`: ace3's `EmailConversationAttachmentAnalysis`, which holds
+/// nothing. It's there only when an Office document with a macro came from a new sender, and its
+/// detection and the sandbox directive go on the document.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct EmailConversationAttachmentAnalysis {}
+
+impl AnalysisType for EmailConversationAttachmentAnalysis {
+    const NAME: &'static str = "email_conversation_attachment_analysis";
+    const VERSION: u32 = 1;
+    const MODULE: &'static str = "email_conversation_attachment_analyzer";
+}
+
+/// `email_conversation_link_analysis`: ace3's `EmailConversationLinkAnalysis`, which holds nothing. It's
+/// there for a URL that matches one of the module's patterns and came in an email; its detection goes
+/// on the URL when a conversation of that email is from a new sender.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct EmailConversationLinkAnalysis {}
+
+impl AnalysisType for EmailConversationLinkAnalysis {
+    const NAME: &'static str = "email_conversation_link_analysis";
+    const VERSION: u32 = 1;
+    const MODULE: &'static str = "email_conversation_link_analyzer";
+}
+
 /// `email_logging_analysis`: ace3's `EmailLoggingAnalysis` (`saq/modules/email/logging.py`), which
 /// the email logger never stores. It works after the rest of the root and writes to brocess and
 /// fluent-bit, so its tasks end with writes and no result.

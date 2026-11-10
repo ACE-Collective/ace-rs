@@ -1,0 +1,154 @@
+{
+  "analysis_type": "lure_url_analysis",
+  "schema_version": 1,
+  "details": {
+    "candidates": [
+      {
+        "anchor_text": "Verify your mailbox",
+        "carries": [],
+        "highlights": [
+          [],
+          [
+            "Verify your mailbox"
+          ],
+          [],
+          []
+        ],
+        "reasons": [
+          "found in the email body",
+          "clickable link with text 'Verify your mailbox'",
+          "styled as a button",
+          "call-to-action text (verify)"
+        ],
+        "score": 80,
+        "sources": [
+          "body"
+        ],
+        "url": "https://login.lure-example.net/verify?id=7"
+      },
+      {
+        "anchor_text": "View the document",
+        "carries": [
+          "https://docs.lure-example.net/open?d=1"
+        ],
+        "highlights": [
+          [],
+          [
+            "View the document"
+          ],
+          [],
+          [],
+          [
+            "docs.lure-example.net/open?d=1"
+          ]
+        ],
+        "reasons": [
+          "found in the email body",
+          "clickable link with text 'View the document'",
+          "styled as a button",
+          "call-to-action text (view)",
+          "carries 1 URL: docs.lure-example.net/open?d=1"
+        ],
+        "score": 80,
+        "sources": [
+          "body"
+        ],
+        "url": "https://t.track-example.com/c?u=https%3A%2F%2Fdocs.lure-example.net%2Fopen%3Fd%3D1"
+      },
+      {
+        "anchor_text": "",
+        "carries": [],
+        "highlights": [
+          [],
+          []
+        ],
+        "reasons": [
+          "found in the email body",
+          "clickable link"
+        ],
+        "score": 45,
+        "sources": [
+          "body"
+        ],
+        "url": "https://collect.lure-example.net/post"
+      },
+      {
+        "anchor_text": null,
+        "carries": [],
+        "highlights": [
+          [],
+          [],
+          []
+        ],
+        "reasons": [
+          "found in the email body",
+          "not a clickable link in the body",
+          "points at an image or static resource"
+        ],
+        "score": -35,
+        "sources": [
+          "body"
+        ],
+        "url": "https://cdn.lure-example.net/pixel.gif"
+      },
+      {
+        "anchor_text": null,
+        "carries": [],
+        "highlights": [
+          [],
+          [],
+          []
+        ],
+        "reasons": [
+          "found in the email body",
+          "not a clickable link in the body",
+          "benign infrastructure domain"
+        ],
+        "score": -45,
+        "sources": [
+          "body"
+        ],
+        "url": "https://fonts.googleapis.com/css?family=Roboto"
+      }
+    ],
+    "has_inner_email": false,
+    "primary": {
+      "anchor_text": "Verify your mailbox",
+      "carries": [],
+      "highlights": [
+        [],
+        [
+          "Verify your mailbox"
+        ],
+        [],
+        []
+      ],
+      "reasons": [
+        "found in the email body",
+        "clickable link with text 'Verify your mailbox'",
+        "styled as a button",
+        "call-to-action text (verify)"
+      ],
+      "score": 80,
+      "sources": [
+        "body"
+      ],
+      "url": "https://login.lure-example.net/verify?id=7"
+    },
+    "subject": "Action required: verify your mailbox"
+  },
+  "summary": "Lure URL Analysis: https://login.lure-example.net/verify?id=7 (found in the email body; clickable link with text 'Verify your mailbox'; styled as a button; call-to-action text (verify))",
+  "others": [
+    {
+      "observable": {
+        "type": "url",
+        "value": "https://login.lure-example.net/verify?id=7"
+      },
+      "additions": {
+        "directives": [
+          "crawl"
+        ]
+      }
+    }
+  ]
+}

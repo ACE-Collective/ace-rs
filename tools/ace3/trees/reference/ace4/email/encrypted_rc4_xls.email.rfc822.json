@@ -671,6 +671,67 @@
           },
           "summary": null,
           "tags": {}
+        },
+        "lure_url_analyzer": {
+          "details": {
+            "candidates": [
+              {
+                "anchor_text": null,
+                "carries": [],
+                "highlights": [
+                  [
+                    "invoice.xls"
+                  ]
+                ],
+                "reasons": [
+                  "found in attachment invoice.xls"
+                ],
+                "score": 15,
+                "sources": [
+                  "attachment"
+                ],
+                "url": "https://component.pw/wp-index.php"
+              },
+              {
+                "anchor_text": null,
+                "carries": [],
+                "highlights": [
+                  [
+                    "invoice.xls"
+                  ]
+                ],
+                "reasons": [
+                  "found in attachment invoice.xls"
+                ],
+                "score": 15,
+                "sources": [
+                  "attachment"
+                ],
+                "url": "https://component.pw/wp-index.php,$BB$54"
+              }
+            ],
+            "has_inner_email": false,
+            "primary": {
+              "anchor_text": null,
+              "carries": [],
+              "highlights": [
+                [
+                  "invoice.xls"
+                ]
+              ],
+              "reasons": [
+                "found in attachment invoice.xls"
+              ],
+              "score": 15,
+              "sources": [
+                "attachment"
+              ],
+              "url": "https://component.pw/wp-index.php"
+            },
+            "subject": "the attached file"
+          },
+          "summary": "Lure URL Analysis: https://component.pw/wp-index.php (found in attachment invoice.xls)",
+          "tags": {}
         }
       },
       "tags": {

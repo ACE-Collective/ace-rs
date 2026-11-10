@@ -900,3 +900,211 @@ pub async fn has_whitelisted(executor: impl PgExecutor<'_>, root: Uuid) -> Resul
     .fetch_one(executor)
     .await?)
 }
+
+/// The root's tree as a module that walks it reads it (`Module::READS_TREE`, `ace_sdk::tree`), as it
+/// is now, with `this` the task's observable. Of the files the module reads (`files`), each one's
+/// sha256 and index comes back beside it, for the caller to add a download. A root past
+/// `MAX_TREE_OBSERVABLES` or `MAX_TREE_RESULTS` is cut in the order its rows were added, and says
+/// so; a cut observable's results and additions are left out too. Each read is a separate
+/// statement, so a result landing between them can leave an addition naming an observable the
+/// view lacks; that addition is dropped.
+pub async fn tree_view(
+    pool: &PgPool,
+    root: Uuid,
+    this: ObservableId,
+    files: Option<ace_sdk::tree::TreeFiles>,
+) -> Result<(ace_sdk::tree::TreeView, Vec<(usize, String)>), DbError> {
+    use ace_sdk::tree::{
+        MAX_TREE_OBSERVABLES, MAX_TREE_RESULTS, TreeAddition, TreeObservable, TreePath, TreeResult,
+        TreeView,
+    };
+    use std::collections::HashMap;
+
+    let head = sqlx::query!(
+        r#"SELECT origin ->> 'alert_type' AS alert_type FROM analysis.roots WHERE id = $1"#,
+        root,
+    )
+    .fetch_optional(pool)
+    .await?;
+    let alert_type = head.and_then(|row| row.alert_type);
+    let whitelisted = has_whitelisted(pool, root).await?;
+
+    let limit = MAX_TREE_OBSERVABLES as i64 + 1;
+    let rows = sqlx::query!(
+        r#"SELECT o.id AS "id: ObservableId", o.type, o.value, o.tags, o.directives,
+                  (SELECT count(*) FROM analysis.detections d
+                   WHERE d.root_id = o.root_id AND d.observable_id = o.id) AS "detections!",
+                  (SELECT s.size FROM store.objects s
+                   WHERE o.type = 'file' AND s.pool = $3 AND s.sha256 = o.value) AS size
+           FROM analysis.observables o
+           WHERE o.root_id = $1
+           ORDER BY o.id
+           LIMIT $2"#,
+        root,
+        limit,
+        crate::bucket::ALERT_FILES,
+    )
+    .fetch_all(pool)
+    .await?;
+    let mut truncated = rows.len() > MAX_TREE_OBSERVABLES;
+    let mut index: HashMap<ObservableId, usize> = HashMap::new();
+    let mut observables = Vec::new();
+    for row in rows.into_iter().take(MAX_TREE_OBSERVABLES) {
+        let kind: ObservableKind = row
+            .r#type
+            .parse()
+            .map_err(|e| DbError::Decode(format!("observable {}: {e}", row.id.0)))?;
+        index.insert(row.id, observables.len());
+        observables.push(TreeObservable {
+            kind,
+            value: row.value,
+            tags: row.tags,
+            directives: row.directives,
+            detections: u32::try_from(row.detections).unwrap_or(u32::MAX),
+            paths: Vec::new(),
+            size: row.size.and_then(|s| u64::try_from(s).ok()),
+            pending: Vec::new(),
+            download: None,
+        });
+    }
+    let Some(&this_index) = index.get(&this) else {
+        return Err(DbError::Decode(format!(
+            "observable {} isn't among its root's first {MAX_TREE_OBSERVABLES}",
+            this.0
+        )));
+    };
+
+    let paths = sqlx::query!(
+        r#"SELECT observable_id AS "observable_id: ObservableId", path, yara_meta
+           FROM analysis.files WHERE root_id = $1
+           ORDER BY created_at, path COLLATE "C""#,
+        root,
+    )
+    .fetch_all(pool)
+    .await?;
+    for row in paths {
+        if let Some(&i) = index.get(&row.observable_id) {
+            observables[i].paths.push(TreePath {
+                path: row.path,
+                yara_meta: row.yara_meta,
+            });
+        }
+    }
+
+    let pending = sqlx::query!(
+        r#"SELECT observable_id AS "observable_id: ObservableId", module
+           FROM queue.tasks
+           WHERE root_id = $1 AND state IN ('queued', 'delayed', 'running')
+           ORDER BY id"#,
+        root,
+    )
+    .fetch_all(pool)
+    .await?;
+    for row in pending {
+        if let Some(&i) = index.get(&row.observable_id)
+            && !observables[i].pending.contains(&row.module)
+        {
+            observables[i].pending.push(row.module);
+        }
+    }
+
+    let limit = MAX_TREE_RESULTS as i64 + 1;
+    let rows = sqlx::query!(
+        r#"SELECT id AS "id: ResultId", observable_id AS "observable_id: ObservableId",
+                  module, analysis_type, tags
+           FROM analysis.results WHERE root_id = $1
+           ORDER BY id
+           LIMIT $2"#,
+        root,
+        limit,
+    )
+    .fetch_all(pool)
+    .await?;
+    truncated |= rows.len() > MAX_TREE_RESULTS;
+    let mut result_index: HashMap<ResultId, usize> = HashMap::new();
+    let mut results = Vec::new();
+    for row in rows.into_iter().take(MAX_TREE_RESULTS) {
+        let Some(&observable) = index.get(&row.observable_id) else {
+            continue;
+        };
+        result_index.insert(row.id, results.len());
+        results.push(TreeResult {
+            observable,
+            module: row.module,
+            analysis_type: row.analysis_type,
+            tags: row.tags,
+            added: Vec::new(),
+        });
+    }
+    let additions = sqlx::query!(
+        r#"SELECT result_id AS "result_id: ResultId", observable_id AS "observable_id: ObservableId",
+                  path
+           FROM analysis.result_additions WHERE root_id = $1
+           ORDER BY id"#,
+        root,
+    )
+    .fetch_all(pool)
+    .await?;
+    let mut wanted = Vec::new();
+    for row in additions {
+        let (Some(&result), Some(&observable)) = (
+            result_index.get(&row.result_id),
+            index.get(&row.observable_id),
+        ) else {
+            continue;
+        };
+        if let (Some(files), Some(path)) = (&files, &row.path) {
+            let o = &observables[observable];
+            if o.kind == ObservableKind::File
+                && files.wants(path, o.size.unwrap_or(u64::MAX))
+                && !wanted.iter().any(|(i, _)| *i == observable)
+            {
+                wanted.push((observable, o.value.clone()));
+            }
+        }
+        results[result].added.push(TreeAddition {
+            observable,
+            path: row.path,
+        });
+    }
+    Ok((
+        TreeView {
+            alert_type,
+            whitelisted,
+            this: this_index,
+            observables,
+            results,
+            truncated,
+        },
+        wanted,
+    ))
+}
+
+/// What a result changes about its root (`ResultEnvelope::root`): its description, and keys merged
+/// into its details, as Python's `dict.update` merges them. A root's details are the `details` its
+/// submitter gave in its origin; one with none gets them.
+pub async fn change_root(
+    tx: &mut Tx<'_>,
+    root: Uuid,
+    changes: &ace_results::RootChanges,
+) -> Result<(), DbError> {
+    let details = changes.details.clone().map(Value::Object);
+    sqlx::query!(
+        r#"UPDATE analysis.roots
+           SET description = COALESCE($2, description),
+               origin = CASE WHEN $3::jsonb IS NULL THEN origin
+                        ELSE jsonb_set(
+                            CASE WHEN jsonb_typeof(origin) = 'object' THEN origin ELSE '{}'::jsonb END,
+                            '{details}',
+                            CASE WHEN jsonb_typeof(origin -> 'details') = 'object'
+                                 THEN origin -> 'details' ELSE '{}'::jsonb END || $3::jsonb)
+                        END
+           WHERE id = $1"#,
+        root,
+        changes.description.as_deref(),
+        details,
+    )
+    .execute(tx.conn())
+    .await?;
+    Ok(())
+}

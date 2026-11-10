@@ -478,7 +478,11 @@
       }
     },
     "file:170b804293599496c29d816cfe408adc5a99e767eb930b0c0cf9e7db62436abe": {
-      "detections": {},
+      "detections": {
+        "An email from a new sender contained a macro.": [
+          null
+        ]
+      },
       "directives": {
         "sandbox": true
       },
@@ -491,6 +495,11 @@
         "extracted_from file:45cca7fd63944ca6b6ea4e4669078cf3520b3896956c183c9bfd0fb3d0bfaf4f": true
       },
       "results": {
+        "email_conversation_attachment_analyzer": {
+          "details": {},
+          "summary": null,
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "b78e53325f45a16ab719c392444f2983",
@@ -851,6 +860,9 @@
     },
     "file:45cca7fd63944ca6b6ea4e4669078cf3520b3896956c183c9bfd0fb3d0bfaf4f": {
       "detections": {
+        "An email from a new sender contained a macro.": [
+          null
+        ],
         "Was able to decrypt based on contents of email.": [
           null
         ]
@@ -893,6 +905,11 @@
             "file_count": 19
           },
           "summary": "Archive Analysis: extracted 19 of 19 files: ([Content_Types].xml, docProps/core.xml, docProps/app.xml, customXml/itemProps1.xml, customXml/item1.xml, word/stylesWithEffects.xml, word/fontTable.xml, word/styles.xml, word/webSettings.xml, word/vbaData.xml, word/settings.xml, word/document.xml, word/theme/theme1.xml, customXml/_rels/item1.xml.rels, word/vbaProject.bin, word/media/image1.png, word/_rels/vbaProject.bin.rels, word/_rels/document.xml.rels, _rels/.rels)",
+          "tags": {}
+        },
+        "email_conversation_attachment_analyzer": {
+          "details": {},
+          "summary": null,
           "tags": {}
         },
         "file_hash_analyzer": {

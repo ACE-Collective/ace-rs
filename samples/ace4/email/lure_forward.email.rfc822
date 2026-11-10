@@ -1,0 +1,47 @@
+From: Pat <pat@corp.example>
+To: abuse@corp.example
+Return-Path: <bounce@mailer.corp.example>
+Subject: FW: Your account is locked
+Date: Mon, 09 Nov 2026 12:00:00 +0000
+Message-ID: <lure_forward@corp.example>
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="lure_forward-boundary"
+
+--lure_forward-boundary
+Content-Type: multipart/alternative; boundary="lure_forward-boundary-1"
+
+--lure_forward-boundary-1
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+This looks like phishing. Our policy: https://wiki.corp.example/phishing
+
+--lure_forward-boundary-1
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+<html><body><p>This looks like phishing.</p><p><a href=3D"https://wiki.corp.e=
+xample/phishing">Our policy</a></p></body></html>
+
+--lure_forward-boundary-1--
+
+--lure_forward-boundary
+Content-Type: message/rfc822; boundary="lure_forward-boundary-4"
+Content-Transfer-Encoding: 8bit
+MIME-Version: 1.0
+Content-Disposition: attachment
+
+From: Security <security@lure-example.org>
+To: pat@corp.example
+Return-Path: <bounce@mailer.corp.example>
+Subject: Your account is locked
+Date: Mon, 09 Nov 2026 12:00:00 +0000
+Message-ID: <lure_inner@corp.example>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+MIME-Version: 1.0
+
+Unlock it at https://unlock.lure-example.org/now
+
+--lure_forward-boundary--

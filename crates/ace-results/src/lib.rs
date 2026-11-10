@@ -16,7 +16,8 @@ pub mod validate;
 
 pub use bytes::Bytes;
 pub use envelope::{
-    AnalysisType, EnvelopeError, NewObservable, ObservableAdditions, ResultEnvelope,
+    AnalysisType, EnvelopeError, NewObservable, ObservableAdditions, OtherAdditions,
+    ResultEnvelope, RootChanges,
 };
 pub use file::{
     AlertPath, InvalidAlertPath, InvalidSha256, InvalidYaraMeta, NewFile, Sha256, YaraMeta,

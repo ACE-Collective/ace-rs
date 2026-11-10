@@ -24,6 +24,7 @@ pub mod module;
 pub mod nrd;
 pub mod overlay;
 pub mod reads;
+pub mod tree;
 pub mod wire;
 pub mod writes;
 
@@ -32,8 +33,8 @@ pub use files::{FileOutputError, FileStore, LocalFileStore};
 pub use lists::{List, ListSpec};
 pub use manifest::{Manifest, ModuleKind, Resources, Sandbox, SettingsError, load_settings};
 pub use module::{
-    BoxError, Delay, EXCLUDE_ALL, Lookup, Module, ModuleError, Outcome, Parser, Settings,
-    WHITELISTED, run_lookup, run_parser,
+    BoxError, Delay, EXCLUDE_ALL, Lookup, Module, ModuleError, OtherAdditionsAllowed, Outcome,
+    Parser, Settings, WHITELISTED, run_lookup, run_parser,
 };
 pub use overlay::{
     Component, NrdList, NrdSection, Overlay, OverlayError, ScheduledTaskSection, SecretSource,

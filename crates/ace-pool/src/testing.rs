@@ -54,6 +54,26 @@ pub fn modules(settings: &Value) -> Result<Modules, SetupError> {
             block("archive"),
             &secrets,
         )?)
+        .with_parser(Entry::<ace_mod_emailtree::LureUrlAnalyzer>::parser(
+            block("lure_url_analyzer"),
+            &secrets,
+        )?)
+        .with_parser(Entry::<ace_mod_emailtree::MailboxEmailAnalyzer>::parser(
+            block("mailbox_email_analyzer"),
+            &secrets,
+        )?)
+        .with_parser(
+            Entry::<ace_mod_brocess::EmailConversationAttachmentAnalyzer>::parser(
+                block("email_conversation_attachment_analyzer"),
+                &secrets,
+            )?,
+        )
+        .with_parser(
+            Entry::<ace_mod_brocess::EmailConversationLinkAnalyzer>::parser(
+                block("email_conversation_link_analyzer"),
+                &secrets,
+            )?,
+        )
         .with_parser(Entry::<ace_mod_encrypted::ZipEncryptionAnalyzer>::parser(
             block("zip_encryption_analyzer"),
             &secrets,

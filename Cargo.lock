@@ -12,6 +12,7 @@ dependencies = [
  "ace-mod-brocess",
  "ace-mod-dns",
  "ace-mod-email",
+ "ace-mod-emailtree",
  "ace-mod-encrypted",
  "ace-mod-files",
  "ace-mod-html",
@@ -246,6 +247,7 @@ name = "ace-mod-brocess"
 version = "0.1.0"
 dependencies = [
  "ace-mod-email",
+ "ace-mod-urls",
  "ace-results",
  "ace-sdk",
  "ace-testkit",
@@ -294,6 +296,24 @@ dependencies = [
  "sha1",
  "sha2 0.11.1",
  "thiserror 2.0.21",
+ "tracing",
+]
+
+[[package]]
+name = "ace-mod-emailtree"
+version = "0.1.0"
+dependencies = [
+ "ace-lxml",
+ "ace-mod-email",
+ "ace-pycompat",
+ "ace-results",
+ "ace-sdk",
+ "ace-testkit",
+ "ace-urlfinder",
+ "regex",
+ "schemars 1.2.3",
+ "serde",
+ "serde_json",
  "tracing",
 ]
 
@@ -650,6 +670,7 @@ dependencies = [
  "ace-mod-archive",
  "ace-mod-brocess",
  "ace-mod-email",
+ "ace-mod-emailtree",
  "ace-mod-encrypted",
  "ace-mod-files",
  "ace-mod-html",
@@ -828,6 +849,7 @@ version = "0.1.0"
 dependencies = [
  "ace-results",
  "ace-sdk",
+ "base64 0.22.1",
  "chrono",
  "insta",
  "rcgen",

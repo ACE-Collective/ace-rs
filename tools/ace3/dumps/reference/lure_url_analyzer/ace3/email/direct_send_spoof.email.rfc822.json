@@ -1,0 +1,981 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type",
+    "email_analyzer",
+    "archive",
+    "olevba_v1_2",
+    "rtfole",
+    "msoffice_encryption_analyzer",
+    "xlmdeobfuscator",
+    "pcodedmp",
+    "pdf_analyzer",
+    "url_extraction",
+    "ioc_extraction",
+    "file_hash_analyzer",
+    "binary_file_analyzer",
+    "x509_analyzer",
+    "lnk_parser",
+    "dhash",
+    "command_line_analyzer",
+    "file_location_analysis",
+    "file_path_analysis",
+    "network_identifier",
+    "parse_url",
+    "idna_analyzer",
+    "email_address_fqdn_analyzer",
+    "protected_url_analyzer",
+    "html_data_url_extraction",
+    "har_extraction",
+    "html_js_extraction",
+    "mhtml",
+    "onenote_extraction",
+    "officeparser3",
+    "office_xml_rel",
+    "xml_binary_analyzer",
+    "xml_plain_text_analyzer",
+    "extracted_ole_analyzer",
+    "hidden_mime",
+    "active_mime",
+    "microsoft_script_encoding_analysis",
+    "extracted_rtf_analyzer",
+    "vbscript_analyzer",
+    "nowhitespace_analyzer",
+    "zip_encryption_analyzer",
+    "rar_encryption_analyzer",
+    "pdf_encryption_analyzer"
+  ],
+  "analyses": [
+    {
+      "class": "EmailAnalysis",
+      "details": {
+        "email": {
+          "authentication_failed": true,
+          "compauth_reason": "000",
+          "compauth_result": "fail",
+          "decoded_subject": "Task Submission Confirmation",
+          "dkim_result": "none",
+          "dmarc_result": "fail",
+          "env_mail_from": null,
+          "env_rcpt_to": [],
+          "first_hop_helo": "203.0.113.10",
+          "first_hop_ip": "203.0.113.10",
+          "from": "\"Chief Executive\" <ceo@company.com>",
+          "from_address": "ceo@company.com",
+          "headers": [
+            [
+              "Received",
+              "from [203.0.113.10] (203.0.113.10) by\n mx.company.com (10.0.0.5) with Microsoft SMTP Server id 15.20.0.0\n via Frontend Transport; Fri, 17 Jul 2026 23:56:26 +0000"
+            ],
+            [
+              "Authentication-Results",
+              "spf=fail (sender IP is 203.0.113.10)\n smtp.mailfrom=company.com; dkim=none (message not signed)\n header.d=none;dmarc=fail action=oreject header.from=company.com;"
+            ],
+            [
+              "Received-SPF",
+              "Fail (protection.outlook.com: domain of company.com does not\n designate 203.0.113.10 as permitted sender) receiver=protection.outlook.com;\n client-ip=203.0.113.10; helo=[127.0.0.1];"
+            ],
+            [
+              "From",
+              "\"Chief Executive\" <ceo@company.com>"
+            ],
+            [
+              "To",
+              "user@company.com"
+            ],
+            [
+              "Subject",
+              "Task Submission Confirmation"
+            ],
+            [
+              "Message-ID",
+              "<direct-send-spoof-test@company.com>"
+            ],
+            [
+              "Date",
+              "Fri, 17 Jul 2026 23:56:25 +0000"
+            ],
+            [
+              "Content-Type",
+              "text/plain; charset=utf-8"
+            ],
+            [
+              "MIME-Version",
+              "1.0"
+            ],
+            [
+              "X-MS-Exchange-Organization-MessageDirectionality",
+              "Incoming"
+            ],
+            [
+              "X-MS-Exchange-Organization-OriginalClientIPAddress",
+              "203.0.113.10"
+            ],
+            [
+              "X-MS-Exchange-Organization-CompAuthRes",
+              "fail"
+            ],
+            [
+              "X-MS-Exchange-Organization-CompAuthReason",
+              "000"
+            ],
+            [
+              "X-MS-Exchange-Organization-InternalOrgSender",
+              "True"
+            ],
+            [
+              "X-MS-Exchange-Organization-IsAnonymousDirectSend",
+              "True"
+            ]
+          ],
+          "internal_org_sender": true,
+          "is_anonymous_direct_send": true,
+          "log_entry": {
+            "attachment_count": 1,
+            "attachment_hashes": [
+              "338f9994f1661eb65a7f1ec035b91edd5dcd1d76ef4100f4ec044cf48319b798"
+            ],
+            "attachment_names": [
+              "email.rfc822.unknown_text_plain_000.txt"
+            ],
+            "attachment_sizes": [
+              57
+            ],
+            "attachment_types": [
+              "text/plain"
+            ],
+            "authentication_failed": true,
+            "bcc": [],
+            "cc": [],
+            "compauth_reason": "000",
+            "compauth_result": "fail",
+            "date": "2026-11-10 05:30:15.898891 +0000",
+            "dkim_result": "none",
+            "dmarc_result": "fail",
+            "env_mail_from": null,
+            "env_rcpt_to": [],
+            "first_received": "Fail (protection.outlook.com: domain of company.com does not\n designate 203.0.113.10 as permitted sender) receiver=protection.outlook.com;\n client-ip=203.0.113.10; helo=[127.0.0.1];",
+            "headers": [
+              "Received: from [203.0.113.10] (203.0.113.10) by mx.company.com (10.0.0.5) with Microsoft SMTP Server id 15.20.0.0 via Frontend Transport; Fri, 17 Jul 2026 23:56:26 +0000",
+              "Authentication-Results: spf=fail (sender IP is 203.0.113.10) smtp.mailfrom=company.com; dkim=none (message not signed) header.d=none;dmarc=fail action=oreject header.from=company.com;",
+              "Received-SPF: Fail (protection.outlook.com: domain of company.com does not designate 203.0.113.10 as permitted sender) receiver=protection.outlook.com; client-ip=203.0.113.10; helo=[127.0.0.1];",
+              "From: \"Chief Executive\" <ceo@company.com>",
+              "To: user@company.com",
+              "Subject: Task Submission Confirmation",
+              "Message-ID: <direct-send-spoof-test@company.com>",
+              "Date: Fri, 17 Jul 2026 23:56:25 +0000",
+              "Content-Type: text/plain; charset=utf-8",
+              "MIME-Version: 1.0"
+            ],
+            "in_reply_to": null,
+            "internal_org_sender": true,
+            "is_anonymous_direct_send": true,
+            "last_received": "from [203.0.113.10] (203.0.113.10) by\n mx.company.com (10.0.0.5) with Microsoft SMTP Server id 15.20.0.0\n via Frontend Transport; Fri, 17 Jul 2026 23:56:26 +0000",
+            "mail_from": "\"Chief Executive\" <ceo@company.com>",
+            "mail_from_is_local": false,
+            "mail_to": [
+              "user@company.com"
+            ],
+            "message_directionality": "Incoming",
+            "message_id": "<direct-send-spoof-test@company.com>",
+            "originating_ip": null,
+            "path": [
+              "203.0.113.10"
+            ],
+            "refereneces": null,
+            "reply_to": null,
+            "size": 1180,
+            "spf_result": "fail",
+            "spoofed_internal": false,
+            "subject": "Task Submission Confirmation",
+            "subject_raw": "Task Submission Confirmation",
+            "thread_index": null,
+            "thread_topic": null,
+            "user_agent": null,
+            "x_mailer": null,
+            "x_sender": null
+          },
+          "mail_from_is_local": false,
+          "message-id": "<direct-send-spoof-test@company.com>",
+          "message_directionality": "Incoming",
+          "spf_result": "fail",
+          "spoofed_internal": false,
+          "subject": "Task Submission Confirmation",
+          "to": [
+            "user@company.com"
+          ],
+          "to_addresses": [
+            "user@company.com"
+          ]
+        },
+        "extraction_errors": [],
+        "parsing_error": null
+      },
+      "detections": [],
+      "module_path": "saq.modules.email.rfc822:EmailAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_from",
+          "value": "ceo@company.com"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_to",
+          "value": "user@company.com"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_conversation",
+          "value": "ceo@company.com|user@company.com"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "display_type": "Decoded Subject",
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_subject",
+          "value": "Task Submission Confirmation"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [
+            "saq.modules.email.message_id:<class 'saq.modules.email.message_id.MessageIDAnalyzerV2'>"
+          ],
+          "relationships": [],
+          "tags": [],
+          "time": "2026-07-17 23:56:26+00:00",
+          "type": "message_id",
+          "value": "<direct-send-spoof-test@company.com>"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_first_hop_ip",
+          "value": "203.0.113.10"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_first_hop_helo",
+          "value": "203.0.113.10"
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls",
+            "preview",
+            "yara_meta:type=email.attachment"
+          ],
+          "excluded_analysis": [],
+          "file_path": "email.rfc822.unknown_text_plain_000.txt",
+          "relationships": [],
+          "size": 57,
+          "tags": [],
+          "type": "file",
+          "value": "338f9994f1661eb65a7f1ec035b91edd5dcd1d76ef4100f4ec044cf48319b798",
+          "yara_meta": [
+            "type=email.attachment"
+          ]
+        },
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=email",
+            "yara_meta:type=email.headers"
+          ],
+          "excluded_analysis": [
+            "saq.modules.email.rfc822:<class 'saq.modules.email.rfc822.EmailAnalyzer'>"
+          ],
+          "file_path": "email.rfc822.headers",
+          "relationships": [],
+          "size": 1121,
+          "tags": [
+            "email"
+          ],
+          "type": "file",
+          "value": "1d1a1213cfa072ec3cf3f64b6e52ba459be7ea70f454878a9a3d6781aab2a5c5",
+          "yara_meta": [
+            "type=email",
+            "type=email.headers"
+          ]
+        },
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=email",
+            "yara_meta:type=email.combined"
+          ],
+          "excluded_analysis": [
+            "saq.modules.email.rfc822:<class 'saq.modules.email.rfc822.EmailAnalyzer'>"
+          ],
+          "file_path": "email.rfc822.combined",
+          "relationships": [],
+          "size": 1182,
+          "tags": [
+            "email"
+          ],
+          "type": "file",
+          "value": "40d9aecb6fd9faa25e4d25dc16838dcc526fb237d5689ed8170f9b34427aa10c",
+          "yara_meta": [
+            "type=email",
+            "type=email.combined"
+          ]
+        }
+      ],
+      "summary": "Email Analysis: From \"Chief Executive\" <ceo@company.com> To user@company.com Subject Task Submission Confirmation",
+      "tags": []
+    },
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": true,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "message/rfc822",
+        "type": "RFC 822 mail, ASCII text"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: RFC 822 mail, ASCII text (message/rfc822) (email)",
+      "tags": []
+    },
+    {
+      "class": "HTMLJavaScriptExtractionAnalysis",
+      "details": {
+        "dom_snapshot_files": [],
+        "duplicate_count": 0,
+        "extracted_files": [],
+        "extracted_uri_paths": [],
+        "extracted_urls": [],
+        "inline_handlers": [],
+        "script_count": 0
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.html_js_extraction:HTMLJavaScriptExtractionAnalysis",
+      "observables": [],
+      "summary": null,
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace3/email/direct_send_spoof.email.rfc822",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "email.rfc822",
+      "size": 1180,
+      "type": "file",
+      "value": "1112b24335f68d1221335afa91ab09de34684825be51abf8abb90a36748ee61a"
+    }
+  },
+  "module": "lure_url_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email"
+    ],
+    "excluded_analysis": [],
+    "file_path": "email.rfc822",
+    "relationships": [],
+    "size": 1180,
+    "tags": [
+      "anonymous_direct_send",
+      "authentication_failed",
+      "email"
+    ],
+    "type": "file",
+    "value": "1112b24335f68d1221335afa91ab09de34684825be51abf8abb90a36748ee61a",
+    "yara_meta": [
+      "type=email"
+    ]
+  },
+  "root_after": {
+    "description": "ace4 reference dump",
+    "details": {
+      "comment": "ace4 reference dump"
+    }
+  },
+  "tree_view": {
+    "alert_type": "cli_analysis",
+    "bodies": {},
+    "observables": [
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [
+          {
+            "path": "email.rfc822.headers",
+            "yara_meta": [
+              "type=email",
+              "type=email.headers"
+            ]
+          }
+        ],
+        "size": 1121,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "1d1a1213cfa072ec3cf3f64b6e52ba459be7ea70f454878a9a3d6781aab2a5c5"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_conversation",
+        "value": "ceo@company.com|user@company.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_first_hop_helo",
+        "value": "203.0.113.10"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_from",
+        "value": "ceo@company.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_to",
+        "value": "user@company.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "fqdn",
+        "value": "company.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_first_hop_ip",
+        "value": "203.0.113.10"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "extract_urls",
+          "preview"
+        ],
+        "paths": [
+          {
+            "path": "email.rfc822.unknown_text_plain_000.txt",
+            "yara_meta": [
+              "type=email.attachment"
+            ]
+          }
+        ],
+        "size": 57,
+        "tags": [],
+        "type": "file",
+        "value": "338f9994f1661eb65a7f1ec035b91edd5dcd1d76ef4100f4ec044cf48319b798"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [
+          {
+            "path": "email.rfc822",
+            "yara_meta": [
+              "type=email"
+            ]
+          }
+        ],
+        "size": 1180,
+        "tags": [
+          "anonymous_direct_send",
+          "authentication_failed",
+          "email"
+        ],
+        "type": "file",
+        "value": "1112b24335f68d1221335afa91ab09de34684825be51abf8abb90a36748ee61a"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_subject",
+        "value": "Task Submission Confirmation"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [
+          {
+            "path": "email.rfc822.combined",
+            "yara_meta": [
+              "type=email",
+              "type=email.combined"
+            ]
+          }
+        ],
+        "size": 1182,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "40d9aecb6fd9faa25e4d25dc16838dcc526fb237d5689ed8170f9b34427aa10c"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "message_id",
+        "value": "<direct-send-spoof-test@company.com>"
+      }
+    ],
+    "results": [
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": true,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "message/rfc822",
+          "type": "RFC 822 mail, ASCII text"
+        },
+        "module": "file_type",
+        "observable": 0,
+        "summary": "File Type Analysis: RFC 822 mail, ASCII text (message/rfc822) (email)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "HTMLJavaScriptExtractionAnalysis",
+        "details": {
+          "dom_snapshot_files": [],
+          "duplicate_count": 0,
+          "extracted_files": [],
+          "extracted_uri_paths": [],
+          "extracted_urls": [],
+          "inline_handlers": [],
+          "script_count": 0
+        },
+        "module": "html_js_extraction",
+        "observable": 0,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 5
+          }
+        ],
+        "class": "EmailAddressFQDNAnalysis",
+        "details": {
+          "domain": "company.com"
+        },
+        "module": "email_address_fqdn_analyzer",
+        "observable": 3,
+        "summary": "Email Address FQDN: company.com",
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 5
+          }
+        ],
+        "class": "EmailAddressFQDNAnalysis",
+        "details": {
+          "domain": "company.com"
+        },
+        "module": "email_address_fqdn_analyzer",
+        "observable": 4,
+        "summary": "Email Address FQDN: company.com",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "NetworkIdentifierAnalysis",
+        "details": {
+          "identified_networks": []
+        },
+        "module": "network_identifier",
+        "observable": 6,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "text/plain",
+          "type": "ASCII text"
+        },
+        "module": "file_type",
+        "observable": 7,
+        "summary": "File Type Analysis: ASCII text (text/plain)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "URLExtractionAnalysis",
+        "details": {
+          "urls": [],
+          "urls_grouped_by_domain": {}
+        },
+        "module": "url_extraction",
+        "observable": 7,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 3
+          },
+          {
+            "observable": 4
+          },
+          {
+            "observable": 1
+          },
+          {
+            "observable": 9
+          },
+          {
+            "observable": 11
+          },
+          {
+            "observable": 6
+          },
+          {
+            "observable": 2
+          },
+          {
+            "observable": 7,
+            "path": "email.rfc822.unknown_text_plain_000.txt"
+          },
+          {
+            "observable": 0,
+            "path": "email.rfc822.headers"
+          },
+          {
+            "observable": 10,
+            "path": "email.rfc822.combined"
+          }
+        ],
+        "class": "EmailAnalysis",
+        "details": {
+          "email": {
+            "authentication_failed": true,
+            "compauth_reason": "000",
+            "compauth_result": "fail",
+            "decoded_subject": "Task Submission Confirmation",
+            "dkim_result": "none",
+            "dmarc_result": "fail",
+            "env_mail_from": null,
+            "env_rcpt_to": [],
+            "first_hop_helo": "203.0.113.10",
+            "first_hop_ip": "203.0.113.10",
+            "from": "\"Chief Executive\" <ceo@company.com>",
+            "from_address": "ceo@company.com",
+            "headers": [
+              [
+                "Received",
+                "from [203.0.113.10] (203.0.113.10) by\n mx.company.com (10.0.0.5) with Microsoft SMTP Server id 15.20.0.0\n via Frontend Transport; Fri, 17 Jul 2026 23:56:26 +0000"
+              ],
+              [
+                "Authentication-Results",
+                "spf=fail (sender IP is 203.0.113.10)\n smtp.mailfrom=company.com; dkim=none (message not signed)\n header.d=none;dmarc=fail action=oreject header.from=company.com;"
+              ],
+              [
+                "Received-SPF",
+                "Fail (protection.outlook.com: domain of company.com does not\n designate 203.0.113.10 as permitted sender) receiver=protection.outlook.com;\n client-ip=203.0.113.10; helo=[127.0.0.1];"
+              ],
+              [
+                "From",
+                "\"Chief Executive\" <ceo@company.com>"
+              ],
+              [
+                "To",
+                "user@company.com"
+              ],
+              [
+                "Subject",
+                "Task Submission Confirmation"
+              ],
+              [
+                "Message-ID",
+                "<direct-send-spoof-test@company.com>"
+              ],
+              [
+                "Date",
+                "Fri, 17 Jul 2026 23:56:25 +0000"
+              ],
+              [
+                "Content-Type",
+                "text/plain; charset=utf-8"
+              ],
+              [
+                "MIME-Version",
+                "1.0"
+              ],
+              [
+                "X-MS-Exchange-Organization-MessageDirectionality",
+                "Incoming"
+              ],
+              [
+                "X-MS-Exchange-Organization-OriginalClientIPAddress",
+                "203.0.113.10"
+              ],
+              [
+                "X-MS-Exchange-Organization-CompAuthRes",
+                "fail"
+              ],
+              [
+                "X-MS-Exchange-Organization-CompAuthReason",
+                "000"
+              ],
+              [
+                "X-MS-Exchange-Organization-InternalOrgSender",
+                "True"
+              ],
+              [
+                "X-MS-Exchange-Organization-IsAnonymousDirectSend",
+                "True"
+              ]
+            ],
+            "internal_org_sender": true,
+            "is_anonymous_direct_send": true,
+            "log_entry": {
+              "attachment_count": 1,
+              "attachment_hashes": [
+                "338f9994f1661eb65a7f1ec035b91edd5dcd1d76ef4100f4ec044cf48319b798"
+              ],
+              "attachment_names": [
+                "email.rfc822.unknown_text_plain_000.txt"
+              ],
+              "attachment_sizes": [
+                57
+              ],
+              "attachment_types": [
+                "text/plain"
+              ],
+              "authentication_failed": true,
+              "bcc": [],
+              "cc": [],
+              "compauth_reason": "000",
+              "compauth_result": "fail",
+              "date": "2026-11-10 05:30:15.898891 +0000",
+              "dkim_result": "none",
+              "dmarc_result": "fail",
+              "env_mail_from": null,
+              "env_rcpt_to": [],
+              "first_received": "Fail (protection.outlook.com: domain of company.com does not\n designate 203.0.113.10 as permitted sender) receiver=protection.outlook.com;\n client-ip=203.0.113.10; helo=[127.0.0.1];",
+              "headers": [
+                "Received: from [203.0.113.10] (203.0.113.10) by mx.company.com (10.0.0.5) with Microsoft SMTP Server id 15.20.0.0 via Frontend Transport; Fri, 17 Jul 2026 23:56:26 +0000",
+                "Authentication-Results: spf=fail (sender IP is 203.0.113.10) smtp.mailfrom=company.com; dkim=none (message not signed) header.d=none;dmarc=fail action=oreject header.from=company.com;",
+                "Received-SPF: Fail (protection.outlook.com: domain of company.com does not designate 203.0.113.10 as permitted sender) receiver=protection.outlook.com; client-ip=203.0.113.10; helo=[127.0.0.1];",
+                "From: \"Chief Executive\" <ceo@company.com>",
+                "To: user@company.com",
+                "Subject: Task Submission Confirmation",
+                "Message-ID: <direct-send-spoof-test@company.com>",
+                "Date: Fri, 17 Jul 2026 23:56:25 +0000",
+                "Content-Type: text/plain; charset=utf-8",
+                "MIME-Version: 1.0"
+              ],
+              "in_reply_to": null,
+              "internal_org_sender": true,
+              "is_anonymous_direct_send": true,
+              "last_received": "from [203.0.113.10] (203.0.113.10) by\n mx.company.com (10.0.0.5) with Microsoft SMTP Server id 15.20.0.0\n via Frontend Transport; Fri, 17 Jul 2026 23:56:26 +0000",
+              "mail_from": "\"Chief Executive\" <ceo@company.com>",
+              "mail_from_is_local": false,
+              "mail_to": [
+                "user@company.com"
+              ],
+              "message_directionality": "Incoming",
+              "message_id": "<direct-send-spoof-test@company.com>",
+              "originating_ip": null,
+              "path": [
+                "203.0.113.10"
+              ],
+              "refereneces": null,
+              "reply_to": null,
+              "size": 1180,
+              "spf_result": "fail",
+              "spoofed_internal": false,
+              "subject": "Task Submission Confirmation",
+              "subject_raw": "Task Submission Confirmation",
+              "thread_index": null,
+              "thread_topic": null,
+              "user_agent": null,
+              "x_mailer": null,
+              "x_sender": null
+            },
+            "mail_from_is_local": false,
+            "message-id": "<direct-send-spoof-test@company.com>",
+            "message_directionality": "Incoming",
+            "spf_result": "fail",
+            "spoofed_internal": false,
+            "subject": "Task Submission Confirmation",
+            "to": [
+              "user@company.com"
+            ],
+            "to_addresses": [
+              "user@company.com"
+            ]
+          },
+          "extraction_errors": [],
+          "parsing_error": null
+        },
+        "module": "email_analyzer",
+        "observable": 8,
+        "summary": "Email Analysis: From \"Chief Executive\" <ceo@company.com> To user@company.com Subject Task Submission Confirmation",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": true,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "message/rfc822",
+          "type": "RFC 822 mail, ASCII text"
+        },
+        "module": "file_type",
+        "observable": 8,
+        "summary": "File Type Analysis: RFC 822 mail, ASCII text (message/rfc822) (email)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "HTMLJavaScriptExtractionAnalysis",
+        "details": {
+          "dom_snapshot_files": [],
+          "duplicate_count": 0,
+          "extracted_files": [],
+          "extracted_uri_paths": [],
+          "extracted_urls": [],
+          "inline_handlers": [],
+          "script_count": 0
+        },
+        "module": "html_js_extraction",
+        "observable": 8,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": true,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "message/rfc822",
+          "type": "RFC 822 mail, ASCII text"
+        },
+        "module": "file_type",
+        "observable": 10,
+        "summary": "File Type Analysis: RFC 822 mail, ASCII text (message/rfc822) (email)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "HTMLJavaScriptExtractionAnalysis",
+        "details": {
+          "dom_snapshot_files": [],
+          "duplicate_count": 0,
+          "extracted_files": [],
+          "extracted_uri_paths": [],
+          "extracted_urls": [],
+          "inline_handlers": [],
+          "script_count": 0
+        },
+        "module": "html_js_extraction",
+        "observable": 10,
+        "summary": null,
+        "tags": []
+      }
+    ],
+    "whitelisted": false
+  }
+}

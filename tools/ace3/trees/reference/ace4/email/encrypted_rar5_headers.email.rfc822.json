@@ -372,6 +372,55 @@
           },
           "summary": null,
           "tags": {}
+        },
+        "lure_url_analyzer": {
+          "details": {
+            "candidates": [
+              {
+                "anchor_text": null,
+                "carries": [],
+                "highlights": [
+                  [
+                    "invoice.rar"
+                  ],
+                  []
+                ],
+                "reasons": [
+                  "found in attachment invoice.rar",
+                  "same domain as the sender (example.com)"
+                ],
+                "score": -5,
+                "sources": [
+                  "attachment"
+                ],
+                "url": "https://payload.example.com/invoice.txt"
+              },
+              {
+                "anchor_text": null,
+                "carries": [],
+                "highlights": [
+                  [
+                    "invoice.rar"
+                  ],
+                  []
+                ],
+                "reasons": [
+                  "found in attachment invoice.rar",
+                  "same domain as the sender (example.com)"
+                ],
+                "score": -5,
+                "sources": [
+                  "attachment"
+                ],
+                "url": "https://payload.example.com/notes.txt"
+              }
+            ],
+            "has_inner_email": false,
+            "primary": null,
+            "subject": "the attached file"
+          },
+          "summary": "Lure URL Analysis: no lure URL identified",
+          "tags": {}
         }
       },
       "tags": {
