@@ -16,6 +16,7 @@ pub mod file_type;
 pub mod html;
 pub mod ioc_extraction;
 pub mod lnk;
+pub mod macos;
 pub mod msoffice;
 pub mod nrd;
 pub mod office;

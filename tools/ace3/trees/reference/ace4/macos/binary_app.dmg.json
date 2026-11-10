@@ -1,0 +1,352 @@
+{
+  "form": 1,
+  "observables": {
+    "file:049ac777e8487c4065d28b7737e7a1cd6d9a0b5c7e95a120db95c292ea53e93f": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "binary_app.dmg": {
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "archive": {
+          "details": {
+            "extracted_files": [
+              "Tool/Tool.app/Contents/MacOS/helper.py",
+              "Tool/Tool.app/Contents/Info.plist",
+              "Tool/Tool.app/Contents/MacOS/Tool"
+            ],
+            "extraction_error": null,
+            "file_count": 3
+          },
+          "summary": "Archive Analysis: extracted 3 of 3 files: (Tool/Tool.app/Contents/MacOS/helper.py, Tool/Tool.app/Contents/Info.plist, Tool/Tool.app/Contents/MacOS/Tool)",
+          "tags": {}
+        },
+        "dmg_analyzer": {
+          "details": {
+            "file_list": [
+              "2026-11-10 18:28:44 .....          369         4096  Tool/Tool.app/Contents/Info.plist",
+              "2026-11-10 18:28:44 .....           49         4096  Tool/Tool.app/Contents/MacOS/helper.py",
+              "2026-11-10 18:28:44 .....         4092         4096  Tool/Tool.app/Contents/MacOS/Tool"
+            ],
+            "image_file": "<root>/files/binary_app.img",
+            "stderr": "\ndmg2img v1.6.5 (c) vu1tur (to@vu1tur.eu.org)\n\n<root>/files/binary_app.dmg --> image.img\n\n\ndecompressing:\nopening partition 0 ...                    \b\b\b\b\b\b\b 50.00%\b\b\b\b\b\b\b100.00%  ok\nopening partition 1 ...                    \b\b\b\b\b\b\b 50.00%\b\b\b\b\b\b\b100.00%  ok\nopening partition 2 ...                    \b\b\b\b\b\b\b 50.00%\b\b\b\b\b\b\b100.00%  ok\nopening partition 3 ...                    \b\b\b\b\b\b\b  5.88%\b\b\b\b\b\b\b 11.76%\b\b\b\b\b\b\b 17.65%\b\b\b\b\b\b\b 23.53%\b\b\b\b\b\b\b 29.41%\b\b\b\b\b\b\b 35.29%\b\b\b\b\b\b\b 41.18%\b\b\b\b\b\b\b 47.06%\b\b\b\b\b\b\b 52.94%\b\b\b\b\b\b\b 58.82%\b\b\b\b\b\b\b 64.71%\b\b\b\b\b\b\b 70.59%\b\b\b\b\b\b\b 76.47%\b\b\b\b\b\b\b 82.35%\b\b\b\b\b\b\b 88.24%\b\b\b\b\b\b\b 94.12%\b\b\b\b\b\b\b100.00%  ok\nopening partition 4 ...                    \b\b\b\b\b\b\b 50.00%\b\b\b\b\b\b\b100.00%  ok\n\nArchive successfully decompressed as image.img\n",
+            "stdout": ""
+          },
+          "summary": "DMG Analysis: file observabed (2026-11-10 18:28:44 .....          369         4096  Tool/Tool.app/Contents/Info.plist, 2026-11-10 18:28:44 .....           49         4096  Tool/Tool.app/Contents/MacOS/helper.py, 2026-11-10 18:28:44 .....         4092         4096  Tool/Tool.app/Contents/MacOS/Tool)",
+          "tags": {}
+        },
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "e1288b1c92879ae415c2140ba97e5dab",
+            "sha1": "cfef1afa5b4e508d6d94106d992d8014b45fb438",
+            "sha256": "049ac777e8487c4065d28b7737e7a1cd6d9a0b5c7e95a120db95c292ea53e93f"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/zlib",
+            "type": "zlib compressed data"
+          },
+          "summary": "File Type Analysis: zlib compressed data (application/zlib)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:43ed7c829500269d8705db6708c0da2589e5bffdf9c0d97cef06c16b01dde941": {
+      "detections": {
+        "Possible CVE-2021-30657 attack: a file in DMG format file binary_app.img is a script": [
+          null
+        ]
+      },
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "binary_app.dmg.extracted/Tool/Tool.app/Contents/MacOS/helper.py": {},
+        "binary_app.img.extracted/Tool/Tool.app/Contents/MacOS/helper.py": {},
+        "helper.py": {}
+      },
+      "relationships": {
+        "extracted_from file:049ac777e8487c4065d28b7737e7a1cd6d9a0b5c7e95a120db95c292ea53e93f": true,
+        "extracted_from file:b680a0ccecb5befe09b246735d895b052b5baebc789ad761c276bdd67a436f58": true
+      },
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "946a060e7b9815025117a339cbc80831",
+            "sha1": "0f5a9fc5cb09b0c44919b87475e5203022b9c1ec",
+            "sha256": "43ed7c829500269d8705db6708c0da2589e5bffdf9c0d97cef06c16b01dde941"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/x-script.python",
+            "type": "Python script, ASCII text executable"
+          },
+          "summary": "File Type Analysis: Python script, ASCII text executable (text/x-script.python)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "CVE-2021-30657": true
+      }
+    },
+    "file:afb491b81223df1e494d0db0e8c04de97baedd5421ad8b734e272b471ab9f057": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "binary_app.dmg.extracted/Tool/Tool.app/Contents/MacOS/Tool": {},
+        "binary_app.img.extracted/Tool/Tool.app/Contents/MacOS/Tool": {}
+      },
+      "relationships": {
+        "extracted_from file:049ac777e8487c4065d28b7737e7a1cd6d9a0b5c7e95a120db95c292ea53e93f": true,
+        "extracted_from file:b680a0ccecb5befe09b246735d895b052b5baebc789ad761c276bdd67a436f58": true
+      },
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "f8c98c7b80355a4e61ad7b3e3877fcbb",
+            "sha1": "59ffb185e1c536c05d54bad1a6821ce834355e73",
+            "sha256": "afb491b81223df1e494d0db0e8c04de97baedd5421ad8b734e272b471ab9f057"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/x-mach-binary",
+            "type": "Mach-O 64-bit arm64 executable"
+          },
+          "summary": "File Type Analysis: Mach-O 64-bit arm64 executable (application/x-mach-binary)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:b191934eb4ec874c2d7497eb5ed75c097cfd28f9d7fc7cecb416cfb6902d8ebb": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "binary_app.dmg.extracted/Tool/Tool.app/Contents/Info.plist": {},
+        "binary_app.img.extracted/Tool/Tool.app/Contents/Info.plist": {}
+      },
+      "relationships": {
+        "extracted_from file:049ac777e8487c4065d28b7737e7a1cd6d9a0b5c7e95a120db95c292ea53e93f": true,
+        "extracted_from file:b680a0ccecb5befe09b246735d895b052b5baebc789ad761c276bdd67a436f58": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/xml",
+            "type": "XML 1.0 document, ASCII text"
+          },
+          "summary": "File Type Analysis: XML 1.0 document, ASCII text (text/xml)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:b680a0ccecb5befe09b246735d895b052b5baebc789ad761c276bdd67a436f58": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "binary_app.img": {
+          "type=archive.dmg": true
+        }
+      },
+      "redirection": "file:049ac777e8487c4065d28b7737e7a1cd6d9a0b5c7e95a120db95c292ea53e93f",
+      "relationships": {},
+      "results": {
+        "archive": {
+          "details": {
+            "extracted_files": [
+              "Tool/Tool.app/Contents/MacOS/helper.py",
+              "Tool/Tool.app/Contents/Info.plist",
+              "Tool/Tool.app/Contents/MacOS/Tool"
+            ],
+            "extraction_error": null,
+            "file_count": 3
+          },
+          "summary": "Archive Analysis: extracted 3 of 3 files: (Tool/Tool.app/Contents/MacOS/helper.py, Tool/Tool.app/Contents/Info.plist, Tool/Tool.app/Contents/MacOS/Tool)",
+          "tags": {}
+        },
+        "cve_2021_30657_analyzer": {
+          "details": {
+            "suspect_files": {
+              "helper.py": "text/x-script.python"
+            }
+          },
+          "summary": "CVE-2021-30657 Analysis: helper.py",
+          "tags": {}
+        },
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "5a8b09f0587937ff5e5fed08e97615cf",
+            "sha1": "dc3079560940b8e935141e83f9ae1ff48e23d2b8",
+            "sha256": "b680a0ccecb5befe09b246735d895b052b5baebc789ad761c276bdd67a436f58"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/x-apple-diskimage",
+            "type": "Apple Driver Map, blocksize 512, blockcount 8274, devtype 0, devid 0, driver count 1, contains[@0x200]: Apple Partition Map, map block count 4, start block 1, block count 63, name Apple, type Apple_partition_map, valid, allocated, contains[@0x400]: Apple Partition Map, map block count 4, start block 64, block count 8, name Macintosh, type Apple_Driver_ATAPI, boot arguments DMMY, valid, allocated, real driver, chain driver, contains[@0x600]: Apple Partition Map, map block count 4, start block 72, block count 8192, name Mac_OS_X, type Apple_HFSX, boot arguments goon, valid, allocated, readable, writable, mount at startup, contains[@0x800]: Apple Partition Map, map block count 4, start block 8264, block count 10, type Apple_Free"
+          },
+          "summary": "File Type Analysis: Apple Driver Map, blocksize 512, blockcount 8274, devtype 0, devid 0, driver count 1, contains[@0x200]: Apple Partition Map, map block count 4, start block 1, block count 63, name Apple, type Apple_partition_map, valid, allocated, contains[@0x400]: Apple Partition Map, map block count 4, start block 64, block count 8, name Macintosh, type Apple_Driver_ATAPI, boot arguments DMMY, valid, allocated, real driver, chain driver, contains[@0x600]: Apple Partition Map, map block count 4, start block 72, block count 8192, name Mac_OS_X, type Apple_HFSX, boot arguments goon, valid, allocated, readable, writable, mount at startup, contains[@0x800]: Apple Partition Map, map block count 4, start block 8264, block count 10, type Apple_Free (application/x-apple-diskimage)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "dmg": true,
+        "macos": true
+      }
+    },
+    "md5:5a8b09f0587937ff5e5fed08e97615cf": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:b680a0ccecb5befe09b246735d895b052b5baebc789ad761c276bdd67a436f58": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:946a060e7b9815025117a339cbc80831": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:43ed7c829500269d8705db6708c0da2589e5bffdf9c0d97cef06c16b01dde941": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:e1288b1c92879ae415c2140ba97e5dab": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:049ac777e8487c4065d28b7737e7a1cd6d9a0b5c7e95a120db95c292ea53e93f": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:f8c98c7b80355a4e61ad7b3e3877fcbb": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:afb491b81223df1e494d0db0e8c04de97baedd5421ad8b734e272b471ab9f057": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:049ac777e8487c4065d28b7737e7a1cd6d9a0b5c7e95a120db95c292ea53e93f": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:049ac777e8487c4065d28b7737e7a1cd6d9a0b5c7e95a120db95c292ea53e93f": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:43ed7c829500269d8705db6708c0da2589e5bffdf9c0d97cef06c16b01dde941": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:43ed7c829500269d8705db6708c0da2589e5bffdf9c0d97cef06c16b01dde941": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:afb491b81223df1e494d0db0e8c04de97baedd5421ad8b734e272b471ab9f057": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:afb491b81223df1e494d0db0e8c04de97baedd5421ad8b734e272b471ab9f057": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:b680a0ccecb5befe09b246735d895b052b5baebc789ad761c276bdd67a436f58": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:b680a0ccecb5befe09b246735d895b052b5baebc789ad761c276bdd67a436f58": true
+      },
+      "results": {},
+      "tags": {}
+    }
+  }
+}

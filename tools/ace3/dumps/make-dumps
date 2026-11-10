@@ -1453,7 +1453,21 @@ RUNS = {
     "autoit": lambda: file_runs("autoit", [], "executable"),
     "de4dot": lambda: file_runs("de4dot", [], "executable"),
     "ilspy": lambda: file_runs("ilspy", [], "executable"),
+    # PLAN.md 7.5 batch 12: the DMG samples (tools/samples/make-macos-images), and the CVE module on the
+    # image dmg_analyzer writes for each
+    "dmg_analyzer": lambda: file_runs("dmg_analyzer", [], "macos"),
+    "cve_2021_30657_analyzer": lambda: cve_runs(),
 }
+
+
+def cve_runs():
+    """Each DMG sample with dmg_analyzer enabled, dumping the CVE module's analysis of the image it adds,
+    `<name without .dmg>.img`, which redirects to the DMG."""
+    runs = file_runs("cve_2021_30657_analyzer", ["dmg_analyzer"], "macos")
+    for spec in runs:
+        alert_path = spec["args"][spec["args"].index("--alert-path") + 1]
+        spec["args"] += ["--dump-file", alert_path[:-4] + ".img"]
+    return runs
 
 
 def splunk_runs():
@@ -1743,6 +1757,8 @@ def run(spec):
         "autoit": "AutoItAnalysis",
         "de4dot": "De4dotAnalysis",
         "ilspy": "IlspyAnalysis",
+        "dmg_analyzer": "DMGAnalysis",
+        "cve_2021_30657_analyzer": "CVE_2021_30657_Analysis",
     }[spec["module"]]
     analysis = next((a for a in parsed["analyses"] if a["class"] == target_class), None)
     return {

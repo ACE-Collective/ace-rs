@@ -1,0 +1,26 @@
+{
+  "analysis_type": "cve_2021_30657_analysis",
+  "schema_version": 1,
+  "details": {
+    "suspect_files": {
+      "Payload": "text/x-shellscript"
+    }
+  },
+  "summary": "CVE-2021-30657 Analysis: Payload",
+  "files": [
+    {
+      "path": "Payload",
+      "sha256": "00965029417194e4836e4450aa9316c306ef365dd9cb02ece2aaed8123a5e1c4",
+      "size": 105,
+      "tags": [
+        "CVE-2021-30657"
+      ],
+      "detections": [
+        {
+          "description": "Possible CVE-2021-30657 attack: a file in DMG format file script_app.img is a script",
+          "signature_uuid": "3ba358a3-b7ab-4475-a10a-f2a8070b455d"
+        }
+      ]
+    }
+  ]
+}

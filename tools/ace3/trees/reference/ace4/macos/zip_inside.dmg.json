@@ -1,0 +1,306 @@
+{
+  "form": 1,
+  "observables": {
+    "file:00965029417194e4836e4450aa9316c306ef365dd9cb02ece2aaed8123a5e1c4": {
+      "detections": {
+        "Possible CVE-2021-30657 attack: a file in DMG format file zip_inside.img is a script": [
+          null
+        ]
+      },
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "evil": {},
+        "zip_inside.dmg.extracted/Evil.app/Contents/MacOS/evil": {},
+        "zip_inside.img.extracted/Evil.app/Contents/MacOS/evil": {}
+      },
+      "relationships": {
+        "extracted_from file:4a580e3c6256c7714e5e18bd4021c9dc0568f2d9f146d3ef7ef288910b291a78": true,
+        "extracted_from file:dd7f4122628896e3e5d64e0a1eb5a76762cb981cc85ab9f1bb4f862303a127e7": true
+      },
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "6af18278b54d8deae7ae826dbaa852ea",
+            "sha1": "14c64fe8a1c34165c5115457e599c0dabfef4a31",
+            "sha256": "00965029417194e4836e4450aa9316c306ef365dd9cb02ece2aaed8123a5e1c4"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/x-shellscript",
+            "type": "Bourne-Again shell script, ASCII text executable"
+          },
+          "summary": "File Type Analysis: Bourne-Again shell script, ASCII text executable (text/x-shellscript)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "CVE-2021-30657": true
+      }
+    },
+    "file:4a580e3c6256c7714e5e18bd4021c9dc0568f2d9f146d3ef7ef288910b291a78": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "zip_inside.dmg": {
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "archive": {
+          "details": {
+            "extracted_files": [
+              "Evil.app/Contents/Info.plist",
+              "Evil.app/Contents/MacOS/evil"
+            ],
+            "extraction_error": null,
+            "file_count": 2
+          },
+          "summary": "Archive Analysis: extracted 2 of 2 files: (Evil.app/Contents/Info.plist, Evil.app/Contents/MacOS/evil)",
+          "tags": {}
+        },
+        "dmg_analyzer": {
+          "details": {
+            "file_list": [
+              "2026-11-10 12:00:00 .....          369          231  Evil.app/Contents/Info.plist",
+              "2026-11-10 12:00:00 .....          105           97  Evil.app/Contents/MacOS/evil"
+            ],
+            "image_file": "<root>/files/zip_inside.img",
+            "stderr": "\ndmg2img v1.6.5 (c) vu1tur (to@vu1tur.eu.org)\n\n<root>/files/zip_inside.dmg --> image.img\n\n\ndecompressing:\nopening partition 0 ...                    \b\b\b\b\b\b\b 50.00%\b\b\b\b\b\b\b100.00%  ok\n\nArchive successfully decompressed as image.img\n",
+            "stdout": ""
+          },
+          "summary": "DMG Analysis: file observabed (2026-11-10 12:00:00 .....          369          231  Evil.app/Contents/Info.plist, 2026-11-10 12:00:00 .....          105           97  Evil.app/Contents/MacOS/evil)",
+          "tags": {}
+        },
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "20207db9742360683bafa0e7a462ce7c",
+            "sha1": "bb3d98b5674c9945a8db6acabf7259942e82d3c8",
+            "sha256": "4a580e3c6256c7714e5e18bd4021c9dc0568f2d9f146d3ef7ef288910b291a78"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": true,
+            "mime": "application/zip",
+            "type": "Zip archive data, at least v2.0 to extract, compression method=deflate"
+          },
+          "summary": "File Type Analysis: Zip archive data, at least v2.0 to extract, compression method=deflate (application/zip) (zip archive)",
+          "tags": {}
+        },
+        "olevba_v1_2": {
+          "details": {
+            "keyword_summary": {},
+            "macros": [],
+            "type": "OpenXML"
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "zip": true
+      }
+    },
+    "file:b191934eb4ec874c2d7497eb5ed75c097cfd28f9d7fc7cecb416cfb6902d8ebb": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "zip_inside.dmg.extracted/Evil.app/Contents/Info.plist": {},
+        "zip_inside.img.extracted/Evil.app/Contents/Info.plist": {}
+      },
+      "relationships": {
+        "extracted_from file:4a580e3c6256c7714e5e18bd4021c9dc0568f2d9f146d3ef7ef288910b291a78": true,
+        "extracted_from file:dd7f4122628896e3e5d64e0a1eb5a76762cb981cc85ab9f1bb4f862303a127e7": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/xml",
+            "type": "XML 1.0 document, ASCII text"
+          },
+          "summary": "File Type Analysis: XML 1.0 document, ASCII text (text/xml)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:dd7f4122628896e3e5d64e0a1eb5a76762cb981cc85ab9f1bb4f862303a127e7": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "zip_inside.img": {
+          "type=archive.dmg": true
+        }
+      },
+      "redirection": "file:4a580e3c6256c7714e5e18bd4021c9dc0568f2d9f146d3ef7ef288910b291a78",
+      "relationships": {},
+      "results": {
+        "archive": {
+          "details": {
+            "extracted_files": [
+              "Evil.app/Contents/Info.plist",
+              "Evil.app/Contents/MacOS/evil"
+            ],
+            "extraction_error": null,
+            "file_count": 2
+          },
+          "summary": "Archive Analysis: extracted 2 of 2 files: (Evil.app/Contents/Info.plist, Evil.app/Contents/MacOS/evil)",
+          "tags": {}
+        },
+        "cve_2021_30657_analyzer": {
+          "details": {
+            "suspect_files": {
+              "evil": "text/x-shellscript"
+            }
+          },
+          "summary": "CVE-2021-30657 Analysis: evil",
+          "tags": {}
+        },
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "20025b3a2277363de94794e75ffa6265",
+            "sha1": "de50b1bad99415a04e496c3c33bf62d8a4dab722",
+            "sha256": "dd7f4122628896e3e5d64e0a1eb5a76762cb981cc85ab9f1bb4f862303a127e7"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": true,
+            "mime": "application/zip",
+            "type": "Zip archive data, at least v2.0 to extract, compression method=deflate"
+          },
+          "summary": "File Type Analysis: Zip archive data, at least v2.0 to extract, compression method=deflate (application/zip) (zip archive)",
+          "tags": {}
+        },
+        "olevba_v1_2": {
+          "details": {
+            "keyword_summary": {},
+            "macros": [],
+            "type": "OpenXML"
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "dmg": true,
+        "macos": true,
+        "zip": true
+      }
+    },
+    "md5:20025b3a2277363de94794e75ffa6265": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:dd7f4122628896e3e5d64e0a1eb5a76762cb981cc85ab9f1bb4f862303a127e7": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:20207db9742360683bafa0e7a462ce7c": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:4a580e3c6256c7714e5e18bd4021c9dc0568f2d9f146d3ef7ef288910b291a78": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:6af18278b54d8deae7ae826dbaa852ea": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:00965029417194e4836e4450aa9316c306ef365dd9cb02ece2aaed8123a5e1c4": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:00965029417194e4836e4450aa9316c306ef365dd9cb02ece2aaed8123a5e1c4": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:00965029417194e4836e4450aa9316c306ef365dd9cb02ece2aaed8123a5e1c4": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:4a580e3c6256c7714e5e18bd4021c9dc0568f2d9f146d3ef7ef288910b291a78": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:4a580e3c6256c7714e5e18bd4021c9dc0568f2d9f146d3ef7ef288910b291a78": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:dd7f4122628896e3e5d64e0a1eb5a76762cb981cc85ab9f1bb4f862303a127e7": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:dd7f4122628896e3e5d64e0a1eb5a76762cb981cc85ab9f1bb4f862303a127e7": true
+      },
+      "results": {},
+      "tags": {}
+    }
+  }
+}

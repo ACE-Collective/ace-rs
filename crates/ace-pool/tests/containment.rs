@@ -814,6 +814,76 @@ mod runner {
         );
     }
 
+    /// 7.5 batch 12: dmg2img converts a DMG, and 7z, which loads 7z.so and 7zip-rar's codec by
+    /// dlopen, lists the image and extracts a member of its HFS+ volume, under the runner as
+    /// outside it; `7z i` names the codec it loaded, so the runner read the Codecs directory.
+    #[tokio::test]
+    async fn dmg2img_and_7z_convert_list_and_extract_under_the_runner() {
+        let dirs = Dirs::new();
+        let dmg = dirs.task().join("script_app.dmg");
+        fs::copy(samples().join("ace4/macos/script_app.dmg"), &dmg).unwrap();
+        let input = dmg.to_str().unwrap();
+        let convert = exec(&dirs, "dmg2img", &[input, "image.img"], &["script_app.dmg"]);
+        let keep = Keep::Named(vec!["image.img".into()]);
+        let ran = run(&convert, LONG, Some((&keep, &dirs.kept()))).await;
+        assert_eq!(ran.status, ToolStatus::Exited(0));
+        let (plain_convert, dir) = plain("dmg2img", &[input, "image.img"]);
+        assert_eq!(ran.stderr, plain_convert.stderr);
+        let image = fs::read(&ran.kept.unwrap()["image.img"]).unwrap();
+        assert_eq!(image, fs::read(dir.path().join("image.img")).unwrap());
+
+        let dirs = Dirs::new();
+        let img = dirs.task().join("script_app.img");
+        fs::write(&img, &image).unwrap();
+        let input = img.to_str().unwrap();
+        let ran = run(
+            &exec(&dirs, "7z", &["l", input], &["script_app.img"]),
+            LONG,
+            None,
+        )
+        .await;
+        assert_eq!(ran.status, ToolStatus::Exited(0));
+        assert_eq!(
+            but_open_max(&ran.stdout),
+            but_open_max(&plain("7z", &["l", input]).0.stdout)
+        );
+        assert!(stdout(&ran).contains("Installer/Payload.app/Contents/MacOS/Payload"));
+        let member = "Installer/Payload.app/Contents/MacOS/Payload";
+        let extract = exec(
+            &dirs,
+            "7z",
+            &["x", "-o.", input, member],
+            &["script_app.img"],
+        );
+        let ran = run(&extract, LONG, Some((&Keep::Tree, &dirs.kept()))).await;
+        assert_eq!(ran.status, ToolStatus::Exited(0));
+        let (plain_extract, dir) = plain("7z", &["x", "-o.", input, member]);
+        assert!(plain_extract.status.success());
+        assert_eq!(
+            fs::read(&ran.kept.unwrap()[member]).unwrap(),
+            fs::read(dir.path().join(member)).unwrap()
+        );
+
+        let dirs = Dirs::new();
+        let ran = run(&exec(&dirs, "7z", &["i"], &[]), LONG, None).await;
+        assert_eq!(ran.status, ToolStatus::Exited(0));
+        assert_eq!(
+            but_open_max(&ran.stdout),
+            but_open_max(&plain("7z", &["i"]).0.stdout)
+        );
+        assert!(stdout(&ran).contains("/usr/lib/7zip/Codecs/Rar.so"));
+    }
+
+    /// 7z's output without the banner's `OPEN_MAX`, which is the runner's `RLIMIT_NOFILE` (1,024, as
+    /// ace3's sandbox sets it) and the container's outside it.
+    fn but_open_max(stdout: &[u8]) -> String {
+        String::from_utf8_lossy(stdout)
+            .lines()
+            .filter(|line| !line.contains("OPEN_MAX:"))
+            .collect::<Vec<_>>()
+            .join("\n")
+    }
+
     /// unautoit, Go's 4 or 5 threads, lists and extracts ace3's AutoIt executable under the runner
     /// as outside it. Its threads are counted on ace3's larger script, which it takes long enough to
     /// decompile for the count to see them: the small one's runs end in milliseconds.

@@ -186,6 +186,17 @@ pub const SANDBOX_TOOLS: &[ToolSpec] = &[
         memory_bytes: DOTNET_MEMORY_LIMIT,
         ..ToolSpec::new("ilspycmd", "/opt/dotnet/ilspycmd")
     },
+    // batch 12's: dmg2img, and 7-Zip's 7z itself, which /usr/bin/7z is a shell script to exec, and
+    // which loads its formats from 7z.so beside it and the codecs in Codecs/, 7zip-rar's, by dlopen
+    ToolSpec::new("dmg2img", "/usr/bin/dmg2img"),
+    ToolSpec {
+        reads: &[
+            "/usr/lib/7zip/7z.so",
+            "/usr/lib/7zip/Codecs",
+            "/sys/devices/system/cpu",
+        ],
+        ..ToolSpec::new("7z", "/usr/lib/7zip/7z")
+    },
 ];
 
 /// Where the sandbox image keeps CFR's jar.
@@ -532,8 +543,12 @@ pub fn check_keep(run: &ToolRun) -> Result<(), ToolError> {
     Ok(())
 }
 
+/// The longest path a system call takes, with its NUL (Linux's `PATH_MAX`).
+const PATH_MAX: usize = 4096;
+
 /// Moves what a run kept out of `workdir` into `into`: each plain file with one link that `keep`
-/// names, as ace3's `_keep_tool_output` takes them, but none of `staged`. Anything else is left
+/// names, as ace3's `_keep_tool_output` takes them, but none of `staged`, and none whose path, there
+/// or in `into`, is too long for a system call, which ace3 can't open either. Anything else is left
 /// behind. A kept file is made readable (0644), as ace3 normalizes what an extractor wrote, since the
 /// tool may have given it any mode.
 pub fn collect_outputs(
@@ -568,6 +583,14 @@ pub fn collect_outputs(
             continue;
         }
         let path = workdir.join(&name);
+        let to = into.join(&name);
+        if path.as_os_str().len() >= PATH_MAX || to.as_os_str().len() >= PATH_MAX {
+            tracing::warn!(
+                bytes = name.len(),
+                "a tool's output has a path too long to keep"
+            );
+            continue;
+        }
         let Ok(meta) = fs::symlink_metadata(&path) else {
             continue;
         };
@@ -575,7 +598,6 @@ pub fn collect_outputs(
             tracing::warn!(output = %name, "a tool's output isn't a plain file, so it isn't kept");
             continue;
         }
-        let to = into.join(&name);
         if let Some(parent) = to.parent() {
             fs::create_dir_all(parent)?;
         }
@@ -594,6 +616,11 @@ fn walk(dir: &Path, prefix: &str, into: &mut Vec<String>) -> io::Result<()> {
         let Some(name) = entry.file_name().to_str().map(str::to_owned) else {
             continue;
         };
+        // a tool can make paths no system call takes, by a directory at a time: 7z extracting a
+        // member of a folder cycle, 1,024 folders deep; nothing below one is kept
+        if entry.path().as_os_str().len() >= PATH_MAX {
+            continue;
+        }
         let relative = if prefix.is_empty() {
             name
         } else {
@@ -821,6 +848,27 @@ mod tests {
             fs::read_to_string(dir.path().join("tree/dir/inner")).unwrap(),
             "z"
         );
+    }
+
+    #[test]
+    fn a_tree_too_deep_for_a_system_call_is_left_behind() {
+        let dir = tempfile::tempdir().unwrap();
+        let work = dir.path().join("work");
+        fs::create_dir(&work).unwrap();
+        fs::write(work.join("shallow"), "x").unwrap();
+        // 20 folders of 250 characters, made a folder at a time below the last, as 7z makes them,
+        // each by the short path its descriptor has in /proc
+        use std::os::fd::AsRawFd;
+        let name = "d".repeat(250);
+        let mut folder = fs::File::open(&work).unwrap();
+        for _ in 0..20 {
+            let below = format!("/proc/self/fd/{}/{name}", folder.as_raw_fd());
+            fs::create_dir(&below).unwrap();
+            folder = fs::File::open(&below).unwrap();
+        }
+        fs::write(format!("/proc/self/fd/{}/leaf", folder.as_raw_fd()), "deep").unwrap();
+        let kept = collect_outputs(&work, &Keep::Tree, &[], &dir.path().join("tree")).unwrap();
+        assert_eq!(kept.keys().collect::<Vec<_>>(), ["shallow"]);
     }
 
     #[test]

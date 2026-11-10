@@ -64,6 +64,7 @@ use ace_results::types::html::{
 };
 use ace_results::types::ioc_extraction::IocExtractionAnalysis;
 use ace_results::types::lnk::LnkParseAnalysis;
+use ace_results::types::macos::{Cve202130657Analysis, DmgAnalysis};
 use ace_results::types::msoffice::MsofficeEncryptionAnalysis;
 use ace_results::types::nrd::NrdAnalysis;
 use ace_results::types::office::{
@@ -265,6 +266,8 @@ impl Views {
             .with(ViewEntry::of::<AutoItAnalysis>())
             .with(ViewEntry::of::<De4dotAnalysis>())
             .with(ViewEntry::of::<IlspyAnalysis>())
+            .with(ViewEntry::of::<DmgAnalysis>())
+            .with(ViewEntry::of::<Cve202130657Analysis>())
     }
 
     /// These views with `entry`, which takes the place of any view of the same type and version, so a
@@ -1966,6 +1969,45 @@ impl AnalysisView for IlspyAnalysis {
             field("exit_code", self.exit_code.as_ref()),
             field("stderr", self.stderr.as_ref()),
         ])
+    }
+}
+
+// ---- macOS images (7.5 batch 12): ace3's default_template.html ----
+
+/// `dmg_analysis`: the image dmg2img wrote, the files 7z listed in it, dmg2img's output, or why a
+/// run was stopped.
+impl AnalysisView for DmgAnalysis {
+    type View<'a> = FieldsView;
+    fn view(&self) -> FieldsView {
+        let mut fields = vec![
+            field("image_file", self.image_file.as_ref()),
+            field("stopped", self.stopped.as_ref()),
+        ];
+        fields.extend(self.file_list.iter().map(|line| field("file", Some(line))));
+        fields.push(field(
+            "stdout",
+            self.stdout.as_ref().filter(|s| !s.is_empty()),
+        ));
+        fields.push(field(
+            "stderr",
+            self.stderr.as_ref().filter(|s| !s.is_empty()),
+        ));
+        fields_view(fields)
+    }
+}
+
+/// `cve_2021_30657_analysis`: each script found in an app bundle, with its mime type, or why the
+/// members weren't all checked.
+impl AnalysisView for Cve202130657Analysis {
+    type View<'a> = FieldsView;
+    fn view(&self) -> FieldsView {
+        let mut fields: Vec<Option<Field>> = self
+            .suspect_files
+            .iter()
+            .map(|(path, mime)| field("suspect_file", Some(format!("{path} ({mime})"))))
+            .collect();
+        fields.push(field("stopped", self.stopped.as_ref()));
+        fields_view(fields)
     }
 }
 

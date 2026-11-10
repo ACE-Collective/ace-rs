@@ -3,11 +3,13 @@
 //! pdftotext), `exif` (ExifTool), `qrcode` (pdfinfo, Ghostscript and zbarimg, with OpenCV's QR
 //! decoder in the task) and `ocr` (tesseract, with OpenCV's preprocessing in the task). Batch 11's
 //! unpackers and decompilers: `java_class_decompiler` (CFR on the JVM), `upx`, `autoit`
-//! (unautoit), `de4dot` (de4dotEx) and `ilspy` (ilspycmd), the last two on .NET. They run on the
+//! (unautoit), `de4dot` (de4dotEx) and `ilspy` (ilspycmd), the last two on .NET. Batch 12's macOS
+//! images: `dmg_analyzer` (dmg2img and 7z) and `cve_2021_30657_analyzer` (7z). They run on the
 //! `sandbox` pool, whose image carries the tools at ace3's versions (docs/modules.md, *External
 //! tools*).
 
 pub mod autoit;
+pub mod dmg;
 pub mod dotnet;
 pub mod exif;
 pub mod image;
@@ -27,6 +29,7 @@ use ace_sdk::tools::ToolOutput;
 use ace_sdk::{InputFile, Observable};
 
 pub use autoit::AutoItAnalyzer;
+pub use dmg::{Cve202130657Analyzer, DmgAnalyzer};
 pub use dotnet::{De4dotAnalyzer, IlspyAnalyzer};
 pub use exif::ExifAnalyzer;
 pub use java::JavaClassDecompiler;

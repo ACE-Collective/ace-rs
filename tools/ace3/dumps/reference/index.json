@@ -886,6 +886,96 @@
     },
     {
       "ace3_commit": "f72f8946",
+      "analysis": "CVE_2021_30657_Analysis",
+      "dump": "cve_2021_30657_analyzer/ace4/macos/RAW_APP.DMG.json",
+      "input": "ace4/macos/RAW_APP.DMG",
+      "module": "cve_2021_30657_analyzer",
+      "observables_added": 1,
+      "summary": "CVE-2021-30657 Analysis: helper.py"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "CVE_2021_30657_Analysis",
+      "dump": "cve_2021_30657_analyzer/ace4/macos/binary_app.dmg.json",
+      "input": "ace4/macos/binary_app.dmg",
+      "module": "cve_2021_30657_analyzer",
+      "observables_added": 1,
+      "summary": "CVE-2021-30657 Analysis: helper.py"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "CVE_2021_30657_Analysis",
+      "dump": "cve_2021_30657_analyzer/ace4/macos/bzip2_app.dmg.json",
+      "input": "ace4/macos/bzip2_app.dmg",
+      "module": "cve_2021_30657_analyzer",
+      "observables_added": 1,
+      "summary": "CVE-2021-30657 Analysis: Payload"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "CVE_2021_30657_Analysis",
+      "dump": "cve_2021_30657_analyzer/ace4/macos/damaged.dmg.json",
+      "input": "ace4/macos/damaged.dmg",
+      "module": "cve_2021_30657_analyzer",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "CVE_2021_30657_Analysis",
+      "dump": "cve_2021_30657_analyzer/ace4/macos/documents.dmg.json",
+      "input": "ace4/macos/documents.dmg",
+      "module": "cve_2021_30657_analyzer",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "CVE_2021_30657_Analysis",
+      "dump": "cve_2021_30657_analyzer/ace4/macos/linked_app.dmg.json",
+      "input": "ace4/macos/linked_app.dmg",
+      "module": "cve_2021_30657_analyzer",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "CVE_2021_30657_Analysis",
+      "dump": "cve_2021_30657_analyzer/ace4/macos/many_members.dmg.json",
+      "input": "ace4/macos/many_members.dmg",
+      "module": "cve_2021_30657_analyzer",
+      "observables_added": 66,
+      "summary": "CVE-2021-30657 Analysis: part00, part01, part02, part03, part04, part05, part06, part07, part08, part09, part10, part11, part12, part13, part14, part15, part16, part17, part18, part19 + 46 more"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "cve_2021_30657_analyzer/ace4/macos/not_a_dmg.dmg.json",
+      "input": "ace4/macos/not_a_dmg.dmg",
+      "module": "cve_2021_30657_analyzer",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "CVE_2021_30657_Analysis",
+      "dump": "cve_2021_30657_analyzer/ace4/macos/script_app.dmg.json",
+      "input": "ace4/macos/script_app.dmg",
+      "module": "cve_2021_30657_analyzer",
+      "observables_added": 1,
+      "summary": "CVE-2021-30657 Analysis: Payload"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "CVE_2021_30657_Analysis",
+      "dump": "cve_2021_30657_analyzer/ace4/macos/zip_inside.dmg.json",
+      "input": "ace4/macos/zip_inside.dmg",
+      "module": "cve_2021_30657_analyzer",
+      "observables_added": 1,
+      "summary": "CVE-2021-30657 Analysis: evil"
+    },
+    {
+      "ace3_commit": "f72f8946",
       "analysis": null,
       "dump": "de4dot/ace3/executables/UGtZgHHT.au3.json",
       "input": "ace3/executables/UGtZgHHT.au3",
@@ -1090,6 +1180,96 @@
       "module": "dhash",
       "observables_added": 0,
       "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "DMGAnalysis",
+      "dump": "dmg_analyzer/ace4/macos/RAW_APP.DMG.json",
+      "input": "ace4/macos/RAW_APP.DMG",
+      "module": "dmg_analyzer",
+      "observables_added": 1,
+      "summary": "DMG Analysis: file observabed (2026-11-10 18:28:44 .....          369         4096  Tool/Tool.app/Contents/Info.plist, 2026-11-10 18:28:44 .....           49         4096  Tool/Tool.app/Contents/MacOS/helper.py, 2026-11-10 18:28:44 .....         4092         4096  Tool/Tool.app/Contents/MacOS/Tool)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "DMGAnalysis",
+      "dump": "dmg_analyzer/ace4/macos/binary_app.dmg.json",
+      "input": "ace4/macos/binary_app.dmg",
+      "module": "dmg_analyzer",
+      "observables_added": 1,
+      "summary": "DMG Analysis: file observabed (2026-11-10 18:28:44 .....          369         4096  Tool/Tool.app/Contents/Info.plist, 2026-11-10 18:28:44 .....           49         4096  Tool/Tool.app/Contents/MacOS/helper.py, 2026-11-10 18:28:44 .....         4092         4096  Tool/Tool.app/Contents/MacOS/Tool)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "DMGAnalysis",
+      "dump": "dmg_analyzer/ace4/macos/bzip2_app.dmg.json",
+      "input": "ace4/macos/bzip2_app.dmg",
+      "module": "dmg_analyzer",
+      "observables_added": 1,
+      "summary": "DMG Analysis: file observabed (2026-11-10 18:28:44 .....           33         4096  Installer/Read Me.txt, 2026-11-10 18:28:44 .....          369         4096  Installer/Payload.app/Contents/Info.plist, 2026-11-10 18:28:44 .....          105         4096  Installer/Payload.app/Contents/MacOS/Payload, 2026-11-10 18:28:44 .....           33         4096  Installer/Payload.app/Contents/Resources/readme.txt)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "DMGAnalysis",
+      "dump": "dmg_analyzer/ace4/macos/damaged.dmg.json",
+      "input": "ace4/macos/damaged.dmg",
+      "module": "dmg_analyzer",
+      "observables_added": 1,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "DMGAnalysis",
+      "dump": "dmg_analyzer/ace4/macos/documents.dmg.json",
+      "input": "ace4/macos/documents.dmg",
+      "module": "dmg_analyzer",
+      "observables_added": 1,
+      "summary": "DMG Analysis: file observabed (2026-11-10 18:28:44 .....           14         4096  Documents/.hidden, 2026-11-10 18:28:44 .....           14         4096  Documents/My Notes.txt, 2026-11-10 18:28:44 .....           14         4096  Documents/Reports/2026/Q1/summary.txt)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "DMGAnalysis",
+      "dump": "dmg_analyzer/ace4/macos/linked_app.dmg.json",
+      "input": "ace4/macos/linked_app.dmg",
+      "module": "dmg_analyzer",
+      "observables_added": 1,
+      "summary": "DMG Analysis: file observabed (2026-11-10 18:28:44 .....           21         4096  Linked/Linked.app/Contents/MacOS/Linked, 2026-11-10 18:28:44 .....          105         4096  Linked/Linked.app/Contents/Resources/start.sh)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "DMGAnalysis",
+      "dump": "dmg_analyzer/ace4/macos/many_members.dmg.json",
+      "input": "ace4/macos/many_members.dmg",
+      "module": "dmg_analyzer",
+      "observables_added": 1,
+      "summary": "DMG Analysis: file observabed (2026-11-10 18:28:44 .....           22         4096  Many/Many.app/Contents/MacOS/part00, 2026-11-10 18:28:44 .....           22         4096  Many/Many.app/Contents/MacOS/part01, 2026-11-10 18:28:44 .....           22         4096  Many/Many.app/Contents/MacOS/part02, 2026-11-10 18:28:44 .....           22         4096  Many/Many.app/Contents/MacOS/part03, 2026-11-10 18:28:44 .....           22         4096  Many/Many.app/Contents/MacOS/part04, 2026-11-10 18:28:44 .....           22         4096  Many/Many.app/Contents/MacOS/part05, 2026-11-10 18:28:44 .....           22         4096  Many/Many.app/Contents/MacOS/part06, 2026-11-10 18:28:44 .....           22         4096  Many/Many.app/Contents/MacOS/part07, 2026-11-10 18:28:44 .....           22         4096  Many/Many.app/Contents/MacOS/part08, 2026-11-10 18:28:44 .....           22         4096  Many/Many.app/Contents/MacOS/part09, 2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part10, 2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part11, 2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part12, 2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part13, 2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part14, 2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part15, 2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part16, 2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part17, 2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part18, 2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part19 + 46 more)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "DMGAnalysis",
+      "dump": "dmg_analyzer/ace4/macos/not_a_dmg.dmg.json",
+      "input": "ace4/macos/not_a_dmg.dmg",
+      "module": "dmg_analyzer",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "DMGAnalysis",
+      "dump": "dmg_analyzer/ace4/macos/script_app.dmg.json",
+      "input": "ace4/macos/script_app.dmg",
+      "module": "dmg_analyzer",
+      "observables_added": 1,
+      "summary": "DMG Analysis: file observabed (2026-11-10 18:28:44 .....           33         4096  Installer/Read Me.txt, 2026-11-10 18:28:44 .....          369         4096  Installer/Payload.app/Contents/Info.plist, 2026-11-10 18:28:44 .....          105         4096  Installer/Payload.app/Contents/MacOS/Payload, 2026-11-10 18:28:44 .....           33         4096  Installer/Payload.app/Contents/Resources/readme.txt)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "DMGAnalysis",
+      "dump": "dmg_analyzer/ace4/macos/zip_inside.dmg.json",
+      "input": "ace4/macos/zip_inside.dmg",
+      "module": "dmg_analyzer",
+      "observables_added": 1,
+      "summary": "DMG Analysis: file observabed (2026-11-10 12:00:00 .....          369          231  Evil.app/Contents/Info.plist, 2026-11-10 12:00:00 .....          105           97  Evil.app/Contents/MacOS/evil)"
     },
     {
       "ace3_commit": "f72f8946",

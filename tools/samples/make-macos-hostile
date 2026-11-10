@@ -1,0 +1,186 @@
+#!/usr/bin/env python3
+"""Writes the crafted DMGs PLAN.md 7.5 batch 12's macOS image modules are measured on
+(docs/measurements/macos-images.md), each named after the module it's for. Some are large, so they go
+to a directory given here, not into the repository.
+
+    tools/samples/make-macos-hostile DIR [NAME...]
+
+Decompression bombs, for dmg2img:
+- dmg_analyzer_bomb_chunks.dmg: 2,048 zlib chunks of a MiB of zeros each, 2 GiB in all.
+- dmg_analyzer_bomb_stream.dmg: one chunk of one sector whose zlib stream inflates to 4 GiB; dmg2img
+  inflates a stream to its end, whatever the chunk's size says.
+- dmg_analyzer_bomb_loop.dmg: 100,000 chunks that all point at the same 1 KB of zlib data, a MiB of
+  zeros, so the table loops over it: 100 GB.
+Huge partition tables, for dmg2img:
+- dmg_analyzer_runs_5m.dmg: one partition of 5,000,000 comment chunks, which write nothing; dmg2img
+  prints its progress, 14 bytes of stderr, after each.
+- dmg_analyzer_partitions_200k.dmg: 200,000 partitions of one zero-fill sector each.
+HFS+ trees, for 7z, from mkfs.hfsplus and libdmg-hfsplus with the folders' catalog keys moved
+(make-macos-images' patch_parent), as 7-Zip builds paths from the keys alone:
+- dmg_analyzer_deep_2000.dmg: a chain of 2,000 folders named `d`, with a file at the bottom.
+- dmg_analyzer_deep_long.dmg: a chain of 1,500 folders with names of 100 characters. (libdmg-hfsplus
+  can't add more than about 47 folders of 255-character names: its index records fail its own
+  check.)
+- dmg_analyzer_cycle_long.dmg: two folders of 100-character names, each the other's parent, holding
+  700 files, so each file's path loops through them.
+- cve_2021_30657_analyzer_cycle.dmg: folders `Contents` and `MacOS`, each the other's parent, holding
+  a script, so its path, `Contents/MacOS/Contents/MacOS/...`, is the CVE module's to extract.
+Archives as the image, which dmg2img writes from one raw chunk:
+- cve_2021_30657_analyzer_bomb.dmg: a zip whose Bomb.app/Contents/MacOS/bomb is 2 GiB of zeros.
+- cve_2021_30657_analyzer_members_5000.dmg: a zip of 5,000 scripts in Many.app/Contents/MacOS/.
+- dmg_analyzer_nested.dmg: the image is make-macos-images' script_app.dmg, so 7z opens a DMG
+  inside the DMG with its own DMG reader.
+
+Needs Docker, for make-macos-images' tools image.
+"""
+
+import importlib.machinery
+import importlib.util
+import struct
+import sys
+import tempfile
+import zipfile
+import zlib
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent.parent
+_loader = importlib.machinery.SourceFileLoader("make_macos_images", str(ROOT / "tools" / "samples" / "make-macos-images"))
+_spec = importlib.util.spec_from_loader("make_macos_images", _loader)
+images = importlib.util.module_from_spec(_spec)
+_loader.exec_module(images)
+MiB = 1024 * 1024
+SECTORS_PER_MIB = MiB // images.SECTOR
+
+
+def bomb_chunks():
+    zeros = zlib.compress(bytes(MiB), 9)
+    fork = zeros * 2048
+    chunks = [(images.BT_ZLIB, i * SECTORS_PER_MIB, SECTORS_PER_MIB, i * len(zeros), len(zeros)) for i in range(2048)]
+    return images.assemble(fork, [images.mish(chunks, 2048 * SECTORS_PER_MIB)], 2048 * SECTORS_PER_MIB)
+
+
+def bomb_stream():
+    compressor = zlib.compressobj(9)
+    block = bytes(64 * MiB)
+    fork = b"".join(compressor.compress(block) for _ in range(64)) + compressor.flush()
+    chunks = [(images.BT_ZLIB, 0, 1, 0, len(fork))]
+    return images.assemble(fork, [images.mish(chunks, 1)], 1)
+
+
+def bomb_loop():
+    zeros = zlib.compress(bytes(MiB), 9)
+    count = 100_000
+    chunks = [(images.BT_ZLIB, i * SECTORS_PER_MIB, SECTORS_PER_MIB, 0, len(zeros)) for i in range(count)]
+    return images.assemble(zeros, [images.mish(chunks, count * SECTORS_PER_MIB)], count * SECTORS_PER_MIB)
+
+
+def runs_5m():
+    count = 5_000_000
+    chunks = [(images.BT_COMMENT, 0, 0, 0, 0)] * count
+    # a data fork of a sector: dmg2img calls an image whose property list is at offset 0 corrupted
+    return images.assemble(bytes(images.SECTOR), [images.mish(chunks, 1)], 1)
+
+
+def partitions_200k():
+    count = 200_000
+    table = images.mish([(images.BT_ZERO, 0, 1, 0, 0)], 1)
+    return images.assemble(bytes(images.SECTOR), [table] * count, count)
+
+
+def zip_image(members):
+    with tempfile.SpooledTemporaryFile() as buffer:
+        with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED, allowZip64=True) as archive:
+            for name, size_or_data in members:
+                info = zipfile.ZipInfo(name, date_time=(2026, 11, 10, 12, 0, 0))
+                info.compress_type = zipfile.ZIP_DEFLATED
+                info.external_attr = 0o755 << 16
+                if isinstance(size_or_data, int):
+                    with archive.open(info, "w", force_zip64=True) as member:
+                        block = bytes(64 * MiB)
+                        for _ in range(size_or_data // len(block)):
+                            member.write(block)
+                else:
+                    archive.writestr(info, size_or_data)
+        buffer.seek(0)
+        return images.udif(buffer.read(), "raw", 1 << 20)
+
+
+def hfs_volumes(work):
+    """The HFS+ volumes, each with its folders at the top level, then moved by their keys."""
+    long_a, long_b = "a" * 100, "b" * 100
+    (work / "script.sh").write_bytes(images.SCRIPT)
+    (work / "leaf.txt").write_bytes(b"leaf\n")
+    volumes = {
+        "deep_2000.vol": ("Deep", 64, [("dir", f"/d{i:04}") for i in range(2000)] + [("file", "/leaf", "leaf.txt", "644")]),
+        "deep_long.vol": ("DeepLong", 64,
+                          [("dir", "/" + f"{i:04}".ljust(100, "x")) for i in range(1500)]
+                          + [("file", "/leaf", "leaf.txt", "644")]),
+        "cycle_long.vol": ("Cycle", 16, [("dir", f"/{long_a}"), ("dir", f"/{long_b}")]
+                           + [("file", f"/{long_b}/f{i:03}", "leaf.txt", "644") for i in range(700)]),
+        "cycle_macos.vol": ("CycleApp", 8, [("dir", "/Contents"), ("dir", "/MacOS"),
+                                            ("file", "/MacOS/run", "script.sh", "755")]),
+    }
+    images.in_tools(work, "\n".join(images.volume_script(name, *spec) for name, spec in volumes.items()))
+    out = {}
+    for name in volumes:
+        image = bytearray((work / name).read_bytes())
+        whole = (0, len(image))
+        if name == "deep_2000.vol":
+            parent = images.cnid_of(image, *whole, "d0000")
+            for i in range(1, 2000):
+                parent = images.patch_parent(image, *whole, f"d{i:04}", parent)
+            images.patch_parent(image, *whole, "leaf", parent)
+        elif name == "deep_long.vol":
+            names = [f"{i:04}".ljust(100, "x") for i in range(1500)]
+            parent = images.cnid_of(image, *whole, names[0])
+            for folder in names[1:]:
+                parent = images.patch_parent(image, *whole, folder, parent)
+            images.patch_parent(image, *whole, "leaf", parent)
+        elif name == "cycle_long.vol":
+            b = images.cnid_of(image, *whole, long_b)
+            a = images.patch_parent(image, *whole, long_a, b)
+            images.patch_parent(image, *whole, long_b, a)
+        else:
+            macos = images.cnid_of(image, *whole, "MacOS")
+            contents = images.patch_parent(image, *whole, "Contents", macos)
+            images.patch_parent(image, *whole, "MacOS", contents)
+        out[name] = bytes(image)
+    return out
+
+
+def main():
+    if len(sys.argv) < 2:
+        raise SystemExit(__doc__)
+    out = Path(sys.argv[1])
+    out.mkdir(parents=True, exist_ok=True)
+    images.tools_image()
+    files = {} if "--trees-only" in sys.argv else {
+        "dmg_analyzer_bomb_chunks.dmg": bomb_chunks,
+        "dmg_analyzer_bomb_stream.dmg": bomb_stream,
+        "dmg_analyzer_bomb_loop.dmg": bomb_loop,
+        "dmg_analyzer_runs_5m.dmg": runs_5m,
+        "dmg_analyzer_partitions_200k.dmg": partitions_200k,
+        "cve_2021_30657_analyzer_bomb.dmg": lambda: zip_image([("Bomb.app/Contents/MacOS/bomb", 2 * 1024 * MiB)]),
+        "cve_2021_30657_analyzer_members_5000.dmg": lambda: zip_image(
+            [(f"Many.app/Contents/MacOS/m{i:04}", b"#!/bin/sh\necho %d\n" % i) for i in range(5000)]),
+        "dmg_analyzer_nested.dmg": lambda: images.udif(
+            (ROOT / "samples" / "ace4" / "macos" / "script_app.dmg").read_bytes(), "raw", 1 << 20, pad=False),
+    }
+    only = [a for a in sys.argv[2:] if not a.startswith("--")]
+    for name, make in files.items():
+        if only and name not in only:
+            continue
+        (out / name).write_bytes(make())
+        print(f"{name}: {(out / name).stat().st_size} bytes", flush=True)
+    with tempfile.TemporaryDirectory() as tmp:
+        for name, volume in hfs_volumes(Path(tmp)).items():
+            target = {"deep_2000.vol": "dmg_analyzer_deep_2000.dmg", "deep_long.vol": "dmg_analyzer_deep_long.dmg",
+                      "cycle_long.vol": "dmg_analyzer_cycle_long.dmg",
+                      "cycle_macos.vol": "cve_2021_30657_analyzer_cycle.dmg"}[name]
+            (out / target).write_bytes(images.udif(volume, "zlib"))
+            print(f"{target}: {(out / target).stat().st_size} bytes", flush=True)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

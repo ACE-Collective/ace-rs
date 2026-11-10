@@ -677,6 +677,79 @@ async fn the_executable_modules_run_their_tools_as_the_task_user() {
     }
 }
 
+/// PLAN.md 7.5 batch 12: dmg2img and 7z as the task's user, under the runner: dmg_analyzer turns a
+/// DMG into its image and lists it, and the CVE module, queued on the image it added, as the core
+/// queues it in a mode, lists it again and extracts the script in its app bundle.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn the_macos_image_modules_run_their_tools_as_the_task_user() {
+    let manifests = vec![
+        ace_sdk::Manifest::parser::<ace_mod_sandbox::DmgAnalyzer>(),
+        ace_sdk::Manifest::parser::<ace_mod_sandbox::Cve202130657Analyzer>(),
+    ];
+    let modules = ["dmg_analyzer", "cve_2021_30657_analyzer"];
+    let core = Core::start(manifests, &modules, Duration::from_secs(30)).await;
+    let samples = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../samples");
+    let bytes = std::fs::read(samples.join("ace4/macos/script_app.dmg")).expect("the sample");
+    let (root, sha256) = root_with_bytes(&core, "event", &bytes, "script_app.dmg").await;
+    enqueue(&core, root, &sha256.to_hex(), "dmg_analyzer").await;
+    let mut pool = PoolProcess::start(test_pool(
+        &core,
+        &["parsers", "--task-user", "ace4-task", "--concurrency", "2"],
+    ));
+    wait_until_idle(&core, root, Duration::from_secs(180)).await;
+    let image: String = sqlx::query_scalar(
+        "SELECT value FROM analysis.observables WHERE root_id = $1 AND type = 'file' AND value <> $2",
+    )
+    .bind(root)
+    .bind(sha256.to_hex())
+    .fetch_one(core.test_db.db().pool())
+    .await
+    .expect("the image");
+    enqueue(&core, root, &image, "cve_2021_30657_analyzer").await;
+    wait_until_idle(&core, root, Duration::from_secs(180)).await;
+    let stderr = pool.stop();
+    let states: Vec<(String, String, Option<String>)> = sqlx::query_as(
+        "SELECT module, state::text, error FROM queue.tasks WHERE root_id = $1 ORDER BY module",
+    )
+    .bind(root)
+    .fetch_all(core.test_db.db().pool())
+    .await
+    .expect("the tasks");
+    assert_eq!(states.len(), 2, "{states:?}\n{stderr}");
+    for (module, state, error) in &states {
+        assert_eq!(state, "done", "{module}: {error:?}\n{stderr}");
+    }
+    let results: Vec<(String, String)> = sqlx::query_as(
+        "SELECT analysis_type, details::text FROM analysis.results WHERE root_id = $1
+         ORDER BY analysis_type",
+    )
+    .bind(root)
+    .fetch_all(core.test_db.db().pool())
+    .await
+    .expect("the results");
+    assert_eq!(results.len(), 2, "{results:?}\n{stderr}");
+    assert_eq!(results[0].0, "cve_2021_30657_analysis");
+    assert!(
+        results[0].1.contains(r#""Payload": "text/x-shellscript""#),
+        "{results:?}"
+    );
+    assert!(
+        results[1]
+            .1
+            .contains("Installer/Payload.app/Contents/MacOS/Payload"),
+        "{results:?}"
+    );
+    // the DMG, its image and the script
+    let files: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM analysis.observables WHERE root_id = $1 AND type = 'file'",
+    )
+    .bind(root)
+    .fetch_one(core.test_db.db().pool())
+    .await
+    .expect("the count");
+    assert_eq!(files, 3, "{stderr}");
+}
+
 /// docs/measurements/sandbox-modules.md and executables.md: crafted files through the sandbox modules,
 /// contained, as the pool runs them. `ACE4_CRAFTED` names a directory of them, and a file goes to the
 /// module its name starts with, or to batch 10's five when none; each line printed is a module, a
@@ -700,7 +773,10 @@ async fn crafted_files_through_the_sandbox_modules() {
         ace_sdk::Manifest::parser::<ace_mod_sandbox::AutoItAnalyzer>(),
         ace_sdk::Manifest::parser::<ace_mod_sandbox::De4dotAnalyzer>(),
         ace_sdk::Manifest::parser::<ace_mod_sandbox::IlspyAnalyzer>(),
+        ace_sdk::Manifest::parser::<ace_mod_sandbox::DmgAnalyzer>(),
+        ace_sdk::Manifest::parser::<ace_mod_sandbox::Cve202130657Analyzer>(),
     ];
+    modules.extend(["dmg_analyzer", "cve_2021_30657_analyzer"]);
     let core = Core::start(manifests, &modules, Duration::from_secs(30)).await;
     let mut pool = PoolProcess::start(test_pool(
         &core,
@@ -718,6 +794,44 @@ async fn crafted_files_through_the_sandbox_modules() {
     names.sort();
     for name in &names {
         let bytes = std::fs::read(dir.join(name)).expect("the file");
+        // batch 12's: dmg_analyzer on the DMG, then the CVE module on the image it added
+        if name.starts_with("dmg_analyzer") || name.starts_with("cve_2021_30657_analyzer") {
+            let (root, sha256) = common::root_with_file(&core, "event", &bytes, name, &[]).await;
+            for module in ["dmg_analyzer", "cve_2021_30657_analyzer"] {
+                let image: Option<String> = sqlx::query_scalar(
+                    "SELECT value FROM analysis.observables
+                     WHERE root_id = $1 AND type = 'file' AND value <> $2",
+                )
+                .bind(root)
+                .bind(sha256.to_hex())
+                .fetch_optional(core.test_db.db().pool())
+                .await
+                .expect("the image");
+                let target = match (module, image) {
+                    ("dmg_analyzer", _) => sha256.to_hex(),
+                    (_, Some(image)) => image,
+                    (_, None) => break,
+                };
+                enqueue(&core, root, &target, module).await;
+                let started = Instant::now();
+                wait_until_idle(&core, root, Duration::from_secs(600)).await;
+                let (state, error) = common::task_of(&core, root, module).await;
+                let result: Option<(String, String)> = sqlx::query_as(
+                    "SELECT coalesce(summary, ''), left(details::text, 600) FROM analysis.results
+                     WHERE root_id = $1 AND module = $2",
+                )
+                .bind(root)
+                .bind(module)
+                .fetch_optional(core.test_db.db().pool())
+                .await
+                .expect("the result");
+                println!(
+                    "{module} {name}: {state} in {:.1} s; {error:?}; {result:?}",
+                    started.elapsed().as_secs_f64()
+                );
+            }
+            continue;
+        }
         let mine: Vec<&str> = match batch_11.iter().find(|m| name.starts_with(*m)) {
             Some(module) => vec![*module],
             None => batch_10.to_vec(),

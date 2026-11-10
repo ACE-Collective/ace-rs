@@ -1,0 +1,248 @@
+{
+  "form": 1,
+  "observables": {
+    "file:2f961146136b3a277868c6769ff925bda87e49946e5e6b842ad359d6b27aada4": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "documents.dmg.extracted/Documents/.hidden": {},
+        "documents.dmg.extracted/Documents/My Notes.txt": {},
+        "documents.dmg.extracted/Documents/Reports/2026/Q1/summary.txt": {},
+        "documents.img.extracted/Documents/.hidden": {},
+        "documents.img.extracted/Documents/My Notes.txt": {},
+        "documents.img.extracted/Documents/Reports/2026/Q1/summary.txt": {}
+      },
+      "relationships": {
+        "extracted_from file:5b4b1eb993780a914c99bc5acbb3efb2303b0cbfc2ebe819dd99dbd61a3c494f": true,
+        "extracted_from file:98c626ad4454dc3d9be53a0c943e83f077d1d4ccce438b050f9b70ece2100c14": true
+      },
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "75aaddf03c73a0522b733eba8a9b1997",
+            "sha1": "3f2c3470b837fdbe022d8098dcf1404582996bdb",
+            "sha256": "2f961146136b3a277868c6769ff925bda87e49946e5e6b842ad359d6b27aada4"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:5b4b1eb993780a914c99bc5acbb3efb2303b0cbfc2ebe819dd99dbd61a3c494f": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "documents.dmg": {
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "archive": {
+          "details": {
+            "extracted_files": [
+              "Documents/My Notes.txt",
+              "Documents/.hidden",
+              "Documents/Reports/2026/Q1/summary.txt"
+            ],
+            "extraction_error": null,
+            "file_count": 3
+          },
+          "summary": "Archive Analysis: extracted 3 of 3 files: (Documents/My Notes.txt, Documents/.hidden, Documents/Reports/2026/Q1/summary.txt)",
+          "tags": {}
+        },
+        "dmg_analyzer": {
+          "details": {
+            "file_list": [
+              "2026-11-10 18:28:44 .....           14         4096  Documents/.hidden",
+              "2026-11-10 18:28:44 .....           14         4096  Documents/My Notes.txt",
+              "2026-11-10 18:28:44 .....           14         4096  Documents/Reports/2026/Q1/summary.txt"
+            ],
+            "image_file": "<root>/files/documents.img",
+            "stderr": "\ndmg2img v1.6.5 (c) vu1tur (to@vu1tur.eu.org)\n\n<root>/files/documents.dmg --> image.img\n\n\ndecompressing:\nopening partition 0 ...                    \b\b\b\b\b\b\b 50.00%\b\b\b\b\b\b\b100.00%  ok\nopening partition 1 ...                    \b\b\b\b\b\b\b 50.00%\b\b\b\b\b\b\b100.00%  ok\nopening partition 2 ...                    \b\b\b\b\b\b\b 50.00%\b\b\b\b\b\b\b100.00%  ok\nopening partition 3 ...                    \b\b\b\b\b\b\b  5.88%\b\b\b\b\b\b\b 11.76%\b\b\b\b\b\b\b 17.65%\b\b\b\b\b\b\b 23.53%\b\b\b\b\b\b\b 29.41%\b\b\b\b\b\b\b 35.29%\b\b\b\b\b\b\b 41.18%\b\b\b\b\b\b\b 47.06%\b\b\b\b\b\b\b 52.94%\b\b\b\b\b\b\b 58.82%\b\b\b\b\b\b\b 64.71%\b\b\b\b\b\b\b 70.59%\b\b\b\b\b\b\b 76.47%\b\b\b\b\b\b\b 82.35%\b\b\b\b\b\b\b 88.24%\b\b\b\b\b\b\b 94.12%\b\b\b\b\b\b\b100.00%  ok\nopening partition 4 ...                    \b\b\b\b\b\b\b 50.00%\b\b\b\b\b\b\b100.00%  ok\n\nArchive successfully decompressed as image.img\n",
+            "stdout": ""
+          },
+          "summary": "DMG Analysis: file observabed (2026-11-10 18:28:44 .....           14         4096  Documents/.hidden, 2026-11-10 18:28:44 .....           14         4096  Documents/My Notes.txt, 2026-11-10 18:28:44 .....           14         4096  Documents/Reports/2026/Q1/summary.txt)",
+          "tags": {}
+        },
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "d5454ad6d29163e40595751ba793ca70",
+            "sha1": "d9946917a49b6369fe97578fbf42597344a7db31",
+            "sha256": "5b4b1eb993780a914c99bc5acbb3efb2303b0cbfc2ebe819dd99dbd61a3c494f"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/zlib",
+            "type": "zlib compressed data"
+          },
+          "summary": "File Type Analysis: zlib compressed data (application/zlib)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:98c626ad4454dc3d9be53a0c943e83f077d1d4ccce438b050f9b70ece2100c14": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "documents.img": {
+          "type=archive.dmg": true
+        }
+      },
+      "redirection": "file:5b4b1eb993780a914c99bc5acbb3efb2303b0cbfc2ebe819dd99dbd61a3c494f",
+      "relationships": {},
+      "results": {
+        "archive": {
+          "details": {
+            "extracted_files": [
+              "Documents/My Notes.txt",
+              "Documents/.hidden",
+              "Documents/Reports/2026/Q1/summary.txt"
+            ],
+            "extraction_error": null,
+            "file_count": 3
+          },
+          "summary": "Archive Analysis: extracted 3 of 3 files: (Documents/My Notes.txt, Documents/.hidden, Documents/Reports/2026/Q1/summary.txt)",
+          "tags": {}
+        },
+        "cve_2021_30657_analyzer": {
+          "details": {
+            "suspect_files": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "f20777c469efbf68695f0c53b9e43631",
+            "sha1": "7056d99028726548dc52f7b31d6a9a3e5b3fd895",
+            "sha256": "98c626ad4454dc3d9be53a0c943e83f077d1d4ccce438b050f9b70ece2100c14"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/x-apple-diskimage",
+            "type": "Apple Driver Map, blocksize 512, blockcount 8274, devtype 0, devid 0, driver count 1, contains[@0x200]: Apple Partition Map, map block count 4, start block 1, block count 63, name Apple, type Apple_partition_map, valid, allocated, contains[@0x400]: Apple Partition Map, map block count 4, start block 64, block count 8, name Macintosh, type Apple_Driver_ATAPI, boot arguments DMMY, valid, allocated, real driver, chain driver, contains[@0x600]: Apple Partition Map, map block count 4, start block 72, block count 8192, name Mac_OS_X, type Apple_HFSX, boot arguments goon, valid, allocated, readable, writable, mount at startup, contains[@0x800]: Apple Partition Map, map block count 4, start block 8264, block count 10, type Apple_Free"
+          },
+          "summary": "File Type Analysis: Apple Driver Map, blocksize 512, blockcount 8274, devtype 0, devid 0, driver count 1, contains[@0x200]: Apple Partition Map, map block count 4, start block 1, block count 63, name Apple, type Apple_partition_map, valid, allocated, contains[@0x400]: Apple Partition Map, map block count 4, start block 64, block count 8, name Macintosh, type Apple_Driver_ATAPI, boot arguments DMMY, valid, allocated, real driver, chain driver, contains[@0x600]: Apple Partition Map, map block count 4, start block 72, block count 8192, name Mac_OS_X, type Apple_HFSX, boot arguments goon, valid, allocated, readable, writable, mount at startup, contains[@0x800]: Apple Partition Map, map block count 4, start block 8264, block count 10, type Apple_Free (application/x-apple-diskimage)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "dmg": true,
+        "macos": true
+      }
+    },
+    "md5:75aaddf03c73a0522b733eba8a9b1997": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:2f961146136b3a277868c6769ff925bda87e49946e5e6b842ad359d6b27aada4": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:d5454ad6d29163e40595751ba793ca70": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:5b4b1eb993780a914c99bc5acbb3efb2303b0cbfc2ebe819dd99dbd61a3c494f": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:f20777c469efbf68695f0c53b9e43631": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:98c626ad4454dc3d9be53a0c943e83f077d1d4ccce438b050f9b70ece2100c14": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:2f961146136b3a277868c6769ff925bda87e49946e5e6b842ad359d6b27aada4": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:2f961146136b3a277868c6769ff925bda87e49946e5e6b842ad359d6b27aada4": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:5b4b1eb993780a914c99bc5acbb3efb2303b0cbfc2ebe819dd99dbd61a3c494f": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:5b4b1eb993780a914c99bc5acbb3efb2303b0cbfc2ebe819dd99dbd61a3c494f": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:98c626ad4454dc3d9be53a0c943e83f077d1d4ccce438b050f9b70ece2100c14": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:98c626ad4454dc3d9be53a0c943e83f077d1d4ccce438b050f9b70ece2100c14": true
+      },
+      "results": {},
+      "tags": {}
+    }
+  }
+}

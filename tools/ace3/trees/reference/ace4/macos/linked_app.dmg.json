@@ -1,0 +1,276 @@
+{
+  "form": 1,
+  "observables": {
+    "file:00965029417194e4836e4450aa9316c306ef365dd9cb02ece2aaed8123a5e1c4": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "linked_app.dmg.extracted/Linked/Linked.app/Contents/Resources/start.sh": {},
+        "linked_app.img.extracted/Linked/Linked.app/Contents/Resources/start.sh": {}
+      },
+      "relationships": {
+        "extracted_from file:4b5a8eb90df5cb49a8d1637c48170150b9df2dbac2d7d1780c64d330161516a0": true,
+        "extracted_from file:a85ec8e75249dbcbbf68bb81cb7223e479eacf2bf17b2824211622021571d398": true
+      },
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "6af18278b54d8deae7ae826dbaa852ea",
+            "sha1": "14c64fe8a1c34165c5115457e599c0dabfef4a31",
+            "sha256": "00965029417194e4836e4450aa9316c306ef365dd9cb02ece2aaed8123a5e1c4"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/x-shellscript",
+            "type": "Bourne-Again shell script, ASCII text executable"
+          },
+          "summary": "File Type Analysis: Bourne-Again shell script, ASCII text executable (text/x-shellscript)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:4b5a8eb90df5cb49a8d1637c48170150b9df2dbac2d7d1780c64d330161516a0": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "linked_app.dmg": {
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "archive": {
+          "details": {
+            "extracted_files": [
+              "Linked/Linked.app/Contents/Resources/start.sh",
+              "Linked/Linked.app/Contents/MacOS/Linked"
+            ],
+            "extraction_error": null,
+            "file_count": 2
+          },
+          "summary": "Archive Analysis: extracted 2 of 2 files: (Linked/Linked.app/Contents/Resources/start.sh, Linked/Linked.app/Contents/MacOS/Linked)",
+          "tags": {}
+        },
+        "dmg_analyzer": {
+          "details": {
+            "file_list": [
+              "2026-11-10 18:28:44 .....           21         4096  Linked/Linked.app/Contents/MacOS/Linked",
+              "2026-11-10 18:28:44 .....          105         4096  Linked/Linked.app/Contents/Resources/start.sh"
+            ],
+            "image_file": "<root>/files/linked_app.img",
+            "stderr": "\ndmg2img v1.6.5 (c) vu1tur (to@vu1tur.eu.org)\n\n<root>/files/linked_app.dmg --> image.img\n\n\ndecompressing:\nopening partition 0 ...                    \b\b\b\b\b\b\b 50.00%\b\b\b\b\b\b\b100.00%  ok\nopening partition 1 ...                    \b\b\b\b\b\b\b 50.00%\b\b\b\b\b\b\b100.00%  ok\nopening partition 2 ...                    \b\b\b\b\b\b\b 50.00%\b\b\b\b\b\b\b100.00%  ok\nopening partition 3 ...                    \b\b\b\b\b\b\b  5.88%\b\b\b\b\b\b\b 11.76%\b\b\b\b\b\b\b 17.65%\b\b\b\b\b\b\b 23.53%\b\b\b\b\b\b\b 29.41%\b\b\b\b\b\b\b 35.29%\b\b\b\b\b\b\b 41.18%\b\b\b\b\b\b\b 47.06%\b\b\b\b\b\b\b 52.94%\b\b\b\b\b\b\b 58.82%\b\b\b\b\b\b\b 64.71%\b\b\b\b\b\b\b 70.59%\b\b\b\b\b\b\b 76.47%\b\b\b\b\b\b\b 82.35%\b\b\b\b\b\b\b 88.24%\b\b\b\b\b\b\b 94.12%\b\b\b\b\b\b\b100.00%  ok\nopening partition 4 ...                    \b\b\b\b\b\b\b 50.00%\b\b\b\b\b\b\b100.00%  ok\n\nArchive successfully decompressed as image.img\n",
+            "stdout": ""
+          },
+          "summary": "DMG Analysis: file observabed (2026-11-10 18:28:44 .....           21         4096  Linked/Linked.app/Contents/MacOS/Linked, 2026-11-10 18:28:44 .....          105         4096  Linked/Linked.app/Contents/Resources/start.sh)",
+          "tags": {}
+        },
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "5779b3bacb61a0016672262c25a9398f",
+            "sha1": "e203869bef1cbb1ccf4680cd98e2bcec00140534",
+            "sha256": "4b5a8eb90df5cb49a8d1637c48170150b9df2dbac2d7d1780c64d330161516a0"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/zlib",
+            "type": "zlib compressed data"
+          },
+          "summary": "File Type Analysis: zlib compressed data (application/zlib)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:a85ec8e75249dbcbbf68bb81cb7223e479eacf2bf17b2824211622021571d398": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "linked_app.img": {
+          "type=archive.dmg": true
+        }
+      },
+      "redirection": "file:4b5a8eb90df5cb49a8d1637c48170150b9df2dbac2d7d1780c64d330161516a0",
+      "relationships": {},
+      "results": {
+        "archive": {
+          "details": {
+            "extracted_files": [
+              "Linked/Linked.app/Contents/Resources/start.sh",
+              "Linked/Linked.app/Contents/MacOS/Linked"
+            ],
+            "extraction_error": null,
+            "file_count": 2
+          },
+          "summary": "Archive Analysis: extracted 2 of 2 files: (Linked/Linked.app/Contents/Resources/start.sh, Linked/Linked.app/Contents/MacOS/Linked)",
+          "tags": {}
+        },
+        "cve_2021_30657_analyzer": {
+          "details": {
+            "suspect_files": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "9c76f904c4367f043df739f4390e5fec",
+            "sha1": "b0f03f7557edaa93566999ca6e796b7988ce27f4",
+            "sha256": "a85ec8e75249dbcbbf68bb81cb7223e479eacf2bf17b2824211622021571d398"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/x-apple-diskimage",
+            "type": "Apple Driver Map, blocksize 512, blockcount 8274, devtype 0, devid 0, driver count 1, contains[@0x200]: Apple Partition Map, map block count 4, start block 1, block count 63, name Apple, type Apple_partition_map, valid, allocated, contains[@0x400]: Apple Partition Map, map block count 4, start block 64, block count 8, name Macintosh, type Apple_Driver_ATAPI, boot arguments DMMY, valid, allocated, real driver, chain driver, contains[@0x600]: Apple Partition Map, map block count 4, start block 72, block count 8192, name Mac_OS_X, type Apple_HFSX, boot arguments goon, valid, allocated, readable, writable, mount at startup, contains[@0x800]: Apple Partition Map, map block count 4, start block 8264, block count 10, type Apple_Free"
+          },
+          "summary": "File Type Analysis: Apple Driver Map, blocksize 512, blockcount 8274, devtype 0, devid 0, driver count 1, contains[@0x200]: Apple Partition Map, map block count 4, start block 1, block count 63, name Apple, type Apple_partition_map, valid, allocated, contains[@0x400]: Apple Partition Map, map block count 4, start block 64, block count 8, name Macintosh, type Apple_Driver_ATAPI, boot arguments DMMY, valid, allocated, real driver, chain driver, contains[@0x600]: Apple Partition Map, map block count 4, start block 72, block count 8192, name Mac_OS_X, type Apple_HFSX, boot arguments goon, valid, allocated, readable, writable, mount at startup, contains[@0x800]: Apple Partition Map, map block count 4, start block 8264, block count 10, type Apple_Free (application/x-apple-diskimage)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "dmg": true,
+        "macos": true
+      }
+    },
+    "file:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "linked_app.dmg.extracted/Linked/Linked.app/Contents/MacOS/Linked": {},
+        "linked_app.img.extracted/Linked/Linked.app/Contents/MacOS/Linked": {}
+      },
+      "relationships": {
+        "extracted_from file:4b5a8eb90df5cb49a8d1637c48170150b9df2dbac2d7d1780c64d330161516a0": true,
+        "extracted_from file:a85ec8e75249dbcbbf68bb81cb7223e479eacf2bf17b2824211622021571d398": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "inode/x-empty",
+            "type": "empty"
+          },
+          "summary": "File Type Analysis: empty (inode/x-empty)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "md5:5779b3bacb61a0016672262c25a9398f": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:4b5a8eb90df5cb49a8d1637c48170150b9df2dbac2d7d1780c64d330161516a0": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:6af18278b54d8deae7ae826dbaa852ea": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:00965029417194e4836e4450aa9316c306ef365dd9cb02ece2aaed8123a5e1c4": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:9c76f904c4367f043df739f4390e5fec": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:a85ec8e75249dbcbbf68bb81cb7223e479eacf2bf17b2824211622021571d398": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:00965029417194e4836e4450aa9316c306ef365dd9cb02ece2aaed8123a5e1c4": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:00965029417194e4836e4450aa9316c306ef365dd9cb02ece2aaed8123a5e1c4": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:4b5a8eb90df5cb49a8d1637c48170150b9df2dbac2d7d1780c64d330161516a0": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:4b5a8eb90df5cb49a8d1637c48170150b9df2dbac2d7d1780c64d330161516a0": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:a85ec8e75249dbcbbf68bb81cb7223e479eacf2bf17b2824211622021571d398": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:a85ec8e75249dbcbbf68bb81cb7223e479eacf2bf17b2824211622021571d398": true
+      },
+      "results": {},
+      "tags": {}
+    }
+  }
+}

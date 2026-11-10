@@ -2287,6 +2287,8 @@ fn each_module_s_view_draws_its_fixture() {
         "autoit_hello_autoit",
         "de4dot_hello_dotnet",
         "ilspy_hello_dotnet",
+        "dmg_analyzer_script_app",
+        "cve_2021_30657_analyzer_script_app",
     ];
     let mut types = BTreeSet::new();
     for name in fixtures {
@@ -2729,6 +2731,22 @@ fn each_module_s_view_draws_its_fixture() {
                 assert!(!html.contains("<b>hello"), "{html}");
             }
             "ilspy_hello_dotnet" => contains_all(&html, &["<tr><th>exit_code</th><td>0</td></tr>"]),
+            // what dmg2img prints holds the file's name, which is escaped
+            "dmg_analyzer_script_app" => {
+                contains_all(
+                    &html,
+                    &[
+                        "<tr><th>image_file</th><td>script_app.img</td></tr>",
+                        "<tr><th>file</th><td>2026-11-10 18:28:44 .....          105         4096  Installer/Payload.app/Contents/MacOS/Payload</td></tr>",
+                        "/tmp/ace4-task/&#60;b&#62;script_app.dmg --&#62; image.img",
+                    ],
+                );
+                assert!(!html.contains("<b>script_app"), "{html}");
+            }
+            "cve_2021_30657_analyzer_script_app" => contains_all(
+                &html,
+                &["<tr><th>suspect_file</th><td>Payload (text/x-shellscript)</td></tr>"],
+            ),
             other => panic!("no checks for {other}"),
         }
     }

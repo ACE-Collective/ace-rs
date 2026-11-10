@@ -1429,6 +1429,162 @@
       ]
     },
     {
+      "path": "ace4/macos/RAW_APP.DMG",
+      "sha256": "faadb96fc557f66034fca8e6c76fa7abc40096300ce310b5265a3de18d7ff5b7",
+      "size": 107321,
+      "kinds": [
+        "macos/dmg",
+        "macos/cve-2021-30657"
+      ],
+      "source": "made by tools/samples/make-macos-images: udif()",
+      "in_git": true,
+      "alert_path": "RAW_APP.DMG",
+      "meta_tags": [
+        "type=email.attachment"
+      ],
+      "note": "binary_app's volume in raw and zero-fill chunks, named in capitals"
+    },
+    {
+      "path": "ace4/macos/binary_app.dmg",
+      "sha256": "049ac777e8487c4065d28b7737e7a1cd6d9a0b5c7e95a120db95c292ea53e93f",
+      "size": 16333,
+      "kinds": [
+        "macos/dmg",
+        "macos/cve-2021-30657"
+      ],
+      "source": "made by tools/samples/make-macos-images: mkfs.hfsplus, libdmg-hfsplus' hfsplus and dmg build",
+      "in_git": true,
+      "alert_path": "binary_app.dmg",
+      "meta_tags": [
+        "type=email.attachment"
+      ],
+      "note": "a Mach-O and a Python script in Contents/MacOS"
+    },
+    {
+      "path": "ace4/macos/bzip2_app.dmg",
+      "sha256": "40e9e6aab07b5c0f4737faaf81b9da3bf42131d033f9218045d04f990530ba55",
+      "size": 2979,
+      "kinds": [
+        "macos/dmg",
+        "macos/cve-2021-30657"
+      ],
+      "source": "made by tools/samples/make-macos-images: udif()",
+      "in_git": true,
+      "alert_path": "bzip2_app.dmg",
+      "meta_tags": [
+        "type=email.attachment"
+      ],
+      "note": "script_app's volume alone, in bzip2 chunks"
+    },
+    {
+      "path": "ace4/macos/damaged.dmg",
+      "sha256": "4a4037ff25da756d0143783df175a18cf7d78e6994a1266220cd6cc225737ddd",
+      "size": 16466,
+      "kinds": [
+        "macos/dmg"
+      ],
+      "source": "made by tools/samples/make-macos-images",
+      "in_git": true,
+      "alert_path": "damaged.dmg",
+      "meta_tags": [
+        "type=email.attachment"
+      ],
+      "note": "script_app.dmg with 64 bytes of its catalog's zlib data flipped"
+    },
+    {
+      "path": "ace4/macos/documents.dmg",
+      "sha256": "5b4b1eb993780a914c99bc5acbb3efb2303b0cbfc2ebe819dd99dbd61a3c494f",
+      "size": 16025,
+      "kinds": [
+        "macos/dmg"
+      ],
+      "source": "made by tools/samples/make-macos-images: mkfs.hfsplus, libdmg-hfsplus' hfsplus and dmg build",
+      "in_git": true,
+      "alert_path": "documents.dmg",
+      "meta_tags": [
+        "type=email.attachment"
+      ],
+      "note": "no app bundle"
+    },
+    {
+      "path": "ace4/macos/linked_app.dmg",
+      "sha256": "4b5a8eb90df5cb49a8d1637c48170150b9df2dbac2d7d1780c64d330161516a0",
+      "size": 16130,
+      "kinds": [
+        "macos/dmg"
+      ],
+      "source": "made by tools/samples/make-macos-images: mkfs.hfsplus, libdmg-hfsplus' hfsplus and dmg build",
+      "in_git": true,
+      "alert_path": "linked_app.dmg",
+      "meta_tags": [
+        "type=email.attachment"
+      ],
+      "note": "Contents/MacOS/Linked is a symlink to a script"
+    },
+    {
+      "path": "ace4/macos/many_members.dmg",
+      "sha256": "576236a5b9fb2320f87cb0643c71905b67f522059d5037fdfef4151b5658a0a6",
+      "size": 18152,
+      "kinds": [
+        "macos/dmg",
+        "macos/cve-2021-30657"
+      ],
+      "source": "made by tools/samples/make-macos-images: mkfs.hfsplus, libdmg-hfsplus' hfsplus and dmg build",
+      "in_git": true,
+      "alert_path": "many_members.dmg",
+      "meta_tags": [
+        "type=email.attachment"
+      ],
+      "note": "66 scripts in Contents/MacOS"
+    },
+    {
+      "path": "ace4/macos/not_a_dmg.dmg",
+      "sha256": "7de5d2a8a35bc3f8590e85f569e43b6cc9b28f6b94e4a2e07f01022010638d2a",
+      "size": 25,
+      "kinds": [
+        "macos/dmg"
+      ],
+      "source": "made by tools/samples/make-macos-images",
+      "in_git": true,
+      "alert_path": "not_a_dmg.dmg",
+      "meta_tags": [
+        "type=email.attachment"
+      ],
+      "note": "text named .dmg"
+    },
+    {
+      "path": "ace4/macos/script_app.dmg",
+      "sha256": "cd0104f09ea3234b46c277d3a21974936fc669077835e832bd624275877c5057",
+      "size": 16466,
+      "kinds": [
+        "macos/dmg",
+        "macos/cve-2021-30657"
+      ],
+      "source": "made by tools/samples/make-macos-images: mkfs.hfsplus, libdmg-hfsplus' hfsplus and dmg build",
+      "in_git": true,
+      "alert_path": "script_app.dmg",
+      "meta_tags": [
+        "type=email.attachment"
+      ],
+      "note": "Contents/MacOS/Payload is a shell script"
+    },
+    {
+      "path": "ace4/macos/zip_inside.dmg",
+      "sha256": "4a580e3c6256c7714e5e18bd4021c9dc0568f2d9f146d3ef7ef288910b291a78",
+      "size": 2529,
+      "kinds": [
+        "macos/dmg",
+        "macos/cve-2021-30657"
+      ],
+      "source": "made by tools/samples/make-macos-images: udif()",
+      "in_git": true,
+      "alert_path": "zip_inside.dmg",
+      "meta_tags": [
+        "type=email.attachment"
+      ],
+      "note": "one raw chunk holding a zip with a script in Evil.app"
+    },
+    {
       "path": "ace4/office/encrypted_agile.docx",
       "sha256": "7a11e1342e44371796a4cdaa5906d4c67c84eb7303ab1b63dc38fd2333e1fee7",
       "size": 17920,

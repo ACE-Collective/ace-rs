@@ -1,0 +1,77 @@
+{
+  "form": 1,
+  "observables": {
+    "file:7de5d2a8a35bc3f8590e85f569e43b6cc9b28f6b94e4a2e07f01022010638d2a": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "not_a_dmg.dmg": {
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "dmg_analyzer": {
+          "details": {
+            "file_list": [],
+            "image_file": null,
+            "stderr": "\ndmg2img v1.6.5 (c) vu1tur (to@vu1tur.eu.org)\n\ndmg image is corrupted!\n",
+            "stdout": ""
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "c4deefc5e927746ca861960e2b5bef9f",
+            "sha1": "6c24cef5a43944d8f95b8f8686fb2e4452ab695e",
+            "sha256": "7de5d2a8a35bc3f8590e85f569e43b6cc9b28f6b94e4a2e07f01022010638d2a"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "md5:c4deefc5e927746ca861960e2b5bef9f": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:7de5d2a8a35bc3f8590e85f569e43b6cc9b28f6b94e4a2e07f01022010638d2a": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:7de5d2a8a35bc3f8590e85f569e43b6cc9b28f6b94e4a2e07f01022010638d2a": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:7de5d2a8a35bc3f8590e85f569e43b6cc9b28f6b94e4a2e07f01022010638d2a": true
+      },
+      "results": {},
+      "tags": {}
+    }
+  }
+}

@@ -1,0 +1,62 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "dmg_analyzer"
+  ],
+  "analyses": [
+    {
+      "class": "CVE_2021_30657_Analysis",
+      "details": {
+        "suspect_files": {}
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.cve:CVE_2021_30657_Analysis",
+      "observables": [],
+      "summary": null,
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "dump_file": "linked_app.img",
+    "label": "ace4/macos/linked_app.dmg",
+    "meta_tags": [
+      "type=archive.dmg"
+    ],
+    "observable": {
+      "file_path": "linked_app.img",
+      "size": 4236288,
+      "type": "file",
+      "value": "a85ec8e75249dbcbbf68bb81cb7223e479eacf2bf17b2824211622021571d398"
+    },
+    "tags": [
+      "dmg",
+      "macos"
+    ]
+  },
+  "module": "cve_2021_30657_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=archive.dmg"
+    ],
+    "excluded_analysis": [],
+    "file_path": "linked_app.img",
+    "redirection": {
+      "type": "file",
+      "value": "4b5a8eb90df5cb49a8d1637c48170150b9df2dbac2d7d1780c64d330161516a0"
+    },
+    "relationships": [],
+    "size": 4236288,
+    "tags": [
+      "dmg",
+      "macos"
+    ],
+    "type": "file",
+    "value": "a85ec8e75249dbcbbf68bb81cb7223e479eacf2bf17b2824211622021571d398",
+    "yara_meta": [
+      "type=archive.dmg"
+    ]
+  }
+}

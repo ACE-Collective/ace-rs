@@ -66,11 +66,11 @@ pub fn parser_pool() -> ParserPool {
         .commands()
 }
 
-/// The sandbox pool (PLAN.md 7.3, 7.5 batches 10 and 11): a parser pool whose image carries the
+/// The sandbox pool (PLAN.md 7.3, 7.5 batches 10 to 12): a parser pool whose image carries the
 /// programs its modules run in the sandbox runner (`ace_sdk::tools::SANDBOX_TOOLS`): the archive
 /// module, for ACE archives' unace; the PDF module, for Ghostscript's rewrite; pdftotext, exif,
-/// qrcode and ocr; and the unpackers and decompilers, java_class_decompiler, upx, autoit, de4dot
-/// and ilspy.
+/// qrcode and ocr; the unpackers and decompilers, java_class_decompiler, upx, autoit, de4dot
+/// and ilspy; and the macOS image modules, dmg_analyzer and cve_2021_30657_analyzer.
 pub fn sandbox_pool() -> ParserPool {
     ParserPool::new("sandbox")
         .tools(ace_sdk::tools::SANDBOX_TOOLS)
@@ -85,6 +85,8 @@ pub fn sandbox_pool() -> ParserPool {
         .module::<ace_mod_sandbox::AutoItAnalyzer>()
         .module::<ace_mod_sandbox::De4dotAnalyzer>()
         .module::<ace_mod_sandbox::IlspyAnalyzer>()
+        .module::<ace_mod_sandbox::DmgAnalyzer>()
+        .module::<ace_mod_sandbox::Cve202130657Analyzer>()
 }
 
 /// The network pool: the RDAP, DNS, snort signature, conversation frequency, email logger, email

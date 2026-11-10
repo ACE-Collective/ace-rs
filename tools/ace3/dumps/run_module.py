@@ -50,6 +50,8 @@ does (saq/cli/commands/correlate.py) with all modules disabled except the ones n
   --extracted-from file rather than by the root, such as an output of OfficeParserAnalysis3;
 - with --tag TAG, the observable carries that tag, as the module that added it would give it, such as
   rtfole's extracted_rtf; the dump's input lists it;
+- with --dump-file ALERT_PATH, the dump is of the file the run added under that path, such as the image
+  dmg_analyzer writes, when it added one;
 - with --tree, it also writes tree.json, the whole root in the normal form of PLAN.md 3.1
   (crates/ace-core/src/normal.rs), which tools/ace3/trees/make-trees collects.
 
@@ -139,6 +141,11 @@ def parse_args():
         help="the file comes as the attachment of an email, made here, whose text body is the file BODY, "
         "or whose body is the HTML file BODY when it ends in .html, or which has no body when BODY is -. "
         "The email is the root's file, email_analyzer has to be enabled, and the dump is the attachment's",
+    )
+    parser.add_argument(
+        "--dump-file", metavar="ALERT_PATH",
+        help="the dump is of the file the run added under ALERT_PATH, such as the image dmg_analyzer writes "
+        "for a DMG, when the run added one; otherwise of the observable given",
     )
     parser.add_argument("--label", default="", help="a name for the input, written into the dump")
     args = parser.parse_args(sys.argv[1:])
@@ -833,6 +840,8 @@ TREE_MODULES = {
     "AutoItAnalysis": "autoit",
     "De4dotAnalysis": "de4dot",
     "IlspyAnalysis": "ilspy",
+    "DMGAnalysis": "dmg_analyzer",
+    "CVE_2021_30657_Analysis": "cve_2021_30657_analyzer",
 }
 TREE_RUN_FIELDS = {
     "EmailAnalysis": ["details/email/log_entry/date"],
@@ -1525,6 +1534,10 @@ def main():
     if args.carrying_email:
         target = next(o for o in root.all_observables if o.type == "file" and o.file_path == args.alert_path)
         carried = carrying_email_body(root, target)
+    dumped_file = None
+    if args.dump_file:
+        dumped_file = next((o for o in root.all_observables if o.type == "file" and o.file_path == args.dump_file), None)
+        target = dumped_file or target
 
     commit = subprocess.run(
         ["git", "-C", ACE3, "rev-parse", "--short=8", "HEAD"], capture_output=True, text=True, check=False
@@ -1565,6 +1578,11 @@ def main():
         "observable_after": dump_observable(target),
         "analyses": [dump_analysis(a) for a in target.all_analysis],
     }
+    if dumped_file is not None:
+        # what the module that added the file gave it, which was there before this module ran
+        dump["input"]["meta_tags"] = dump["observable_after"]["yara_meta"]
+        dump["input"]["tags"] = dump["observable_after"]["tags"]
+        dump["input"]["dump_file"] = args.dump_file
     if args.sidecars and target.type == "file":
         files_root = target.full_path[: -len(target.file_path)].rstrip("/")
         sidecars = {}

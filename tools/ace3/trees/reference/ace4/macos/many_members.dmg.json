@@ -1,0 +1,4702 @@
+{
+  "form": 1,
+  "observables": {
+    "file:03808712ea26037b8d4f31e56e4205f5d9cd7dd26b5ff358cc005e0e763b1a08": {
+      "detections": {
+        "Possible CVE-2021-30657 attack: a file in DMG format file many_members.img is a script": [
+          null
+        ]
+      },
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "part18": {}
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "d23fa3694adbd1e451996581c5c8b2b8",
+            "sha1": "2a79d2f8a97843134b4d4f35d94deea322601f35",
+            "sha256": "03808712ea26037b8d4f31e56e4205f5d9cd7dd26b5ff358cc005e0e763b1a08"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/x-shellscript",
+            "type": "POSIX shell script, ASCII text executable"
+          },
+          "summary": "File Type Analysis: POSIX shell script, ASCII text executable (text/x-shellscript)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "CVE-2021-30657": true
+      }
+    },
+    "file:04c6d4e637932a455f6f622d53336734c09327f361939e3c6e96e6846aae36f5": {
+      "detections": {
+        "Possible CVE-2021-30657 attack: a file in DMG format file many_members.img is a script": [
+          null
+        ]
+      },
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "part34": {}
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "77ec44e74523a6e8b3ee293576c08dd9",
+            "sha1": "18171b74abb6ee991dd65d27b55deda96f918889",
+            "sha256": "04c6d4e637932a455f6f622d53336734c09327f361939e3c6e96e6846aae36f5"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/x-shellscript",
+            "type": "POSIX shell script, ASCII text executable"
+          },
+          "summary": "File Type Analysis: POSIX shell script, ASCII text executable (text/x-shellscript)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "CVE-2021-30657": true
+      }
+    },
+    "file:0e6e829b31aaabc4a4a784785bf4bc82b84a24b42b6a29a88afe7bd83a85f77e": {
+      "detections": {
+        "Possible CVE-2021-30657 attack: a file in DMG format file many_members.img is a script": [
+          null
+        ]
+      },
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "part01": {}
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "9e21e21a71a06bd3082a8d046cc9a648",
+            "sha1": "e91176afb7f2bdd67a04306095405d562317f361",
+            "sha256": "0e6e829b31aaabc4a4a784785bf4bc82b84a24b42b6a29a88afe7bd83a85f77e"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/x-shellscript",
+            "type": "POSIX shell script, ASCII text executable"
+          },
+          "summary": "File Type Analysis: POSIX shell script, ASCII text executable (text/x-shellscript)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "CVE-2021-30657": true
+      }
+    },
+    "file:10a9791fcadcb967f5e81037f4defa13ca9a9293866ee4e097c20bb172110fdb": {
+      "detections": {
+        "Possible CVE-2021-30657 attack: a file in DMG format file many_members.img is a script": [
+          null
+        ]
+      },
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "many_members.dmg.extracted/Many/Many.app/Contents/MacOS/part60": {},
+        "many_members.img.extracted/Many/Many.app/Contents/MacOS/part60": {},
+        "part60": {}
+      },
+      "relationships": {
+        "extracted_from file:576236a5b9fb2320f87cb0643c71905b67f522059d5037fdfef4151b5658a0a6": true,
+        "extracted_from file:a848449d8a39f03984a3baee597c39961ee21f259d2c98fbfc98376f089a701d": true
+      },
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "e26f3cb90f5b511380220c58b1beca53",
+            "sha1": "66db68935e87f6c36e5acef1c51df9aab262a978",
+            "sha256": "10a9791fcadcb967f5e81037f4defa13ca9a9293866ee4e097c20bb172110fdb"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/x-shellscript",
+            "type": "POSIX shell script, ASCII text executable"
+          },
+          "summary": "File Type Analysis: POSIX shell script, ASCII text executable (text/x-shellscript)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "CVE-2021-30657": true
+      }
+    },
+    "file:1767b6fe87b0322f159228a675cc7076e33a316a3d6e55e2b3bdf7de267d36c5": {
+      "detections": {
+        "Possible CVE-2021-30657 attack: a file in DMG format file many_members.img is a script": [
+          null
+        ]
+      },
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "part44": {}
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "0748895492d530af7d7b8411055d63dc",
+            "sha1": "75e689667e25fdc31f59e39deb26578f91c2a13f",
+            "sha256": "1767b6fe87b0322f159228a675cc7076e33a316a3d6e55e2b3bdf7de267d36c5"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/x-shellscript",
+            "type": "POSIX shell script, ASCII text executable"
+          },
+          "summary": "File Type Analysis: POSIX shell script, ASCII text executable (text/x-shellscript)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "CVE-2021-30657": true
+      }
+    },
+    "file:1a6184bbf0ee496ebd0a48125bfecc6cf5d2537bf895b4539bdd6bc9127ee211": {
+      "detections": {
+        "Possible CVE-2021-30657 attack: a file in DMG format file many_members.img is a script": [
+          null
+        ]
+      },
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "part27": {}
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "e6c897a620bab47b4c48a654f38f6275",
+            "sha1": "ccab343f38bdde3de920e969ef252ebab270ffd5",
+            "sha256": "1a6184bbf0ee496ebd0a48125bfecc6cf5d2537bf895b4539bdd6bc9127ee211"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/x-shellscript",
+            "type": "POSIX shell script, ASCII text executable"
+          },
+          "summary": "File Type Analysis: POSIX shell script, ASCII text executable (text/x-shellscript)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "CVE-2021-30657": true
+      }
+    },
+    "file:1f20dffbc1223c2f00cae9af7ea4cca915d20f964092fc1d09a84e0ccb06c1f1": {
+      "detections": {
+        "Possible CVE-2021-30657 attack: a file in DMG format file many_members.img is a script": [
+          null
+        ]
+      },
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "part13": {}
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "1de30f393abfbac5a488c095026232c8",
+            "sha1": "8d83520e7907fb52e8fc4c43a4bbdc62d548169f",
+            "sha256": "1f20dffbc1223c2f00cae9af7ea4cca915d20f964092fc1d09a84e0ccb06c1f1"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/x-shellscript",
+            "type": "POSIX shell script, ASCII text executable"
+          },
+          "summary": "File Type Analysis: POSIX shell script, ASCII text executable (text/x-shellscript)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "CVE-2021-30657": true
+      }
+    },
+    "file:2c67d703c96a9238bd126980e7e27743be941b8ad9fe0384c25154bea78b06c0": {
+      "detections": {
+        "Possible CVE-2021-30657 attack: a file in DMG format file many_members.img is a script": [
+          null
+        ]
+      },
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "part59": {}
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "174661297aaa0fb5c6b3d5cb78c9c0b0",
+            "sha1": "0d5f889aeeaad0c8a352afac700408c8958b729c",
+            "sha256": "2c67d703c96a9238bd126980e7e27743be941b8ad9fe0384c25154bea78b06c0"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/x-shellscript",
+            "type": "POSIX shell script, ASCII text executable"
+          },
+          "summary": "File Type Analysis: POSIX shell script, ASCII text executable (text/x-shellscript)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "CVE-2021-30657": true
+      }
+    },
+    "file:30617c13ae2e76e8493cbd1d19f5ef18395b5ce3b9f9e30eaebcab2477aa1dc8": {
+      "detections": {
+        "Possible CVE-2021-30657 attack: a file in DMG format file many_members.img is a script": [
+          null
+        ]
+      },
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "part26": {}
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "75d8a6efe76a42ffad2919b331b19034",
+            "sha1": "856af8dcf3cf92f58b0513d9d31a9a3fc2d4a39b",
+            "sha256": "30617c13ae2e76e8493cbd1d19f5ef18395b5ce3b9f9e30eaebcab2477aa1dc8"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/x-shellscript",
+            "type": "POSIX shell script, ASCII text executable"
+          },
+          "summary": "File Type Analysis: POSIX shell script, ASCII text executable (text/x-shellscript)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "CVE-2021-30657": true
+      }
+    },
+    "file:34e2586a8cff2b37fc2dd8b54a33a07301b26c586918a3ce7680f979b40ad27c": {
+      "detections": {
+        "Possible CVE-2021-30657 attack: a file in DMG format file many_members.img is a script": [
+          null
+        ]
+      },
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "part02": {}
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "66c3ddefeccb719b0eeded2be9f45782",
+            "sha1": "aab4b667e0ec0114167bbe419ba38bd471739d1c",
+            "sha256": "34e2586a8cff2b37fc2dd8b54a33a07301b26c586918a3ce7680f979b40ad27c"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/x-shellscript",
+            "type": "POSIX shell script, ASCII text executable"
+          },
+          "summary": "File Type Analysis: POSIX shell script, ASCII text executable (text/x-shellscript)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "CVE-2021-30657": true
+      }
+    },
+    "file:3cb13d9d8457e2c6467cf74e54e9c8cd7ae59ed53553f786f4081e83ddc016e4": {
+      "detections": {
+        "Possible CVE-2021-30657 attack: a file in DMG format file many_members.img is a script": [
+          null
+        ]
+      },
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "part35": {}
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "9812d5cb3893eec0852f363c5628bb17",
+            "sha1": "b2875ae7451ffbcd79aff845d72b7631a6b0fefb",
+            "sha256": "3cb13d9d8457e2c6467cf74e54e9c8cd7ae59ed53553f786f4081e83ddc016e4"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/x-shellscript",
+            "type": "POSIX shell script, ASCII text executable"
+          },
+          "summary": "File Type Analysis: POSIX shell script, ASCII text executable (text/x-shellscript)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "CVE-2021-30657": true
+      }
+    },
+    "file:4822df9e92db0d563283d76bbc11f6d7487938bcc20abb35a4e803a98fd32a5c": {
+      "detections": {
+        "Possible CVE-2021-30657 attack: a file in DMG format file many_members.img is a script": [
+          null
+        ]
+      },
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "part57": {}
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "8f0452ba8f4ac694875c24a4fa63d901",
+            "sha1": "d9d26dba90c34a31e36a2bee30d9ebe47a62beed",
+            "sha256": "4822df9e92db0d563283d76bbc11f6d7487938bcc20abb35a4e803a98fd32a5c"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/x-shellscript",
+            "type": "POSIX shell script, ASCII text executable"
+          },
+          "summary": "File Type Analysis: POSIX shell script, ASCII text executable (text/x-shellscript)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "CVE-2021-30657": true
+      }
+    },
+    "file:4f823c3bf5b674337778bb00f0a69e7b51cf5b94b52cf54232ae760e16fbef5b": {
+      "detections": {
+        "Possible CVE-2021-30657 attack: a file in DMG format file many_members.img is a script": [
+          null
+        ]
+      },
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "part32": {}
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "d8140114fac0171ca09904230763054d",
+            "sha1": "ad3ee8218f82fd6da1369fedd0b9791eec5c7b27",
+            "sha256": "4f823c3bf5b674337778bb00f0a69e7b51cf5b94b52cf54232ae760e16fbef5b"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/x-shellscript",
+            "type": "POSIX shell script, ASCII text executable"
+          },
+          "summary": "File Type Analysis: POSIX shell script, ASCII text executable (text/x-shellscript)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "CVE-2021-30657": true
+      }
+    },
+    "file:549841ea589d6b513633aa4d7e61fac344a8bbe7696788d60deb71eec0215b9b": {
+      "detections": {
+        "Possible CVE-2021-30657 attack: a file in DMG format file many_members.img is a script": [
+          null
+        ]
+      },
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "part38": {}
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "30962ab7cfbd2d95a99a1197ae35dd91",
+            "sha1": "274e3382f05b17c0ed0286eeaa8eafcddf5d19f2",
+            "sha256": "549841ea589d6b513633aa4d7e61fac344a8bbe7696788d60deb71eec0215b9b"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/x-shellscript",
+            "type": "POSIX shell script, ASCII text executable"
+          },
+          "summary": "File Type Analysis: POSIX shell script, ASCII text executable (text/x-shellscript)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "CVE-2021-30657": true
+      }
+    },
+    "file:555ca6563532c60302fe5c660ff083008f94fa325912392d4c3097d168475565": {
+      "detections": {
+        "Possible CVE-2021-30657 attack: a file in DMG format file many_members.img is a script": [
+          null
+        ]
+      },
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "part16": {}
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "f119ccb4ccfe3b778892caf97104cb67",
+            "sha1": "56342c9d3a4f7b263c2360ed7b5f557bfa05f23c",
+            "sha256": "555ca6563532c60302fe5c660ff083008f94fa325912392d4c3097d168475565"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/x-shellscript",
+            "type": "POSIX shell script, ASCII text executable"
+          },
+          "summary": "File Type Analysis: POSIX shell script, ASCII text executable (text/x-shellscript)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "CVE-2021-30657": true
+      }
+    },
+    "file:576236a5b9fb2320f87cb0643c71905b67f522059d5037fdfef4151b5658a0a6": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "many_members.dmg": {
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "archive": {
+          "details": {
+            "extracted_files": [
+              "Many/Many.app/Contents/MacOS/part65",
+              "Many/Many.app/Contents/MacOS/part64",
+              "Many/Many.app/Contents/MacOS/part63",
+              "Many/Many.app/Contents/MacOS/part62",
+              "Many/Many.app/Contents/MacOS/part61",
+              "Many/Many.app/Contents/MacOS/part60"
+            ],
+            "extraction_error": null,
+            "file_count": 66
+          },
+          "summary": "Archive Analysis: extracted 6 of 66 files: (Many/Many.app/Contents/MacOS/part65, Many/Many.app/Contents/MacOS/part64, Many/Many.app/Contents/MacOS/part63, Many/Many.app/Contents/MacOS/part62, Many/Many.app/Contents/MacOS/part61, Many/Many.app/Contents/MacOS/part60)",
+          "tags": {}
+        },
+        "dmg_analyzer": {
+          "details": {
+            "file_list": [
+              "2026-11-10 18:28:44 .....           22         4096  Many/Many.app/Contents/MacOS/part00",
+              "2026-11-10 18:28:44 .....           22         4096  Many/Many.app/Contents/MacOS/part01",
+              "2026-11-10 18:28:44 .....           22         4096  Many/Many.app/Contents/MacOS/part02",
+              "2026-11-10 18:28:44 .....           22         4096  Many/Many.app/Contents/MacOS/part03",
+              "2026-11-10 18:28:44 .....           22         4096  Many/Many.app/Contents/MacOS/part04",
+              "2026-11-10 18:28:44 .....           22         4096  Many/Many.app/Contents/MacOS/part05",
+              "2026-11-10 18:28:44 .....           22         4096  Many/Many.app/Contents/MacOS/part06",
+              "2026-11-10 18:28:44 .....           22         4096  Many/Many.app/Contents/MacOS/part07",
+              "2026-11-10 18:28:44 .....           22         4096  Many/Many.app/Contents/MacOS/part08",
+              "2026-11-10 18:28:44 .....           22         4096  Many/Many.app/Contents/MacOS/part09",
+              "2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part10",
+              "2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part11",
+              "2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part12",
+              "2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part13",
+              "2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part14",
+              "2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part15",
+              "2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part16",
+              "2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part17",
+              "2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part18",
+              "2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part19",
+              "2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part20",
+              "2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part21",
+              "2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part22",
+              "2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part23",
+              "2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part24",
+              "2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part25",
+              "2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part26",
+              "2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part27",
+              "2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part28",
+              "2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part29",
+              "2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part30",
+              "2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part31",
+              "2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part32",
+              "2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part33",
+              "2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part34",
+              "2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part35",
+              "2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part36",
+              "2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part37",
+              "2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part38",
+              "2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part39",
+              "2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part40",
+              "2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part41",
+              "2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part42",
+              "2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part43",
+              "2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part44",
+              "2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part45",
+              "2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part46",
+              "2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part47",
+              "2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part48",
+              "2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part49",
+              "2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part50",
+              "2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part51",
+              "2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part52",
+              "2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part53",
+              "2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part54",
+              "2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part55",
+              "2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part56",
+              "2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part57",
+              "2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part58",
+              "2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part59",
+              "2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part60",
+              "2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part61",
+              "2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part62",
+              "2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part63",
+              "2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part64",
+              "2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part65"
+            ],
+            "image_file": "<root>/files/many_members.img",
+            "stderr": "\ndmg2img v1.6.5 (c) vu1tur (to@vu1tur.eu.org)\n\n<root>/files/many_members.dmg --> image.img\n\n\ndecompressing:\nopening partition 0 ...                    \b\b\b\b\b\b\b 50.00%\b\b\b\b\b\b\b100.00%  ok\nopening partition 1 ...                    \b\b\b\b\b\b\b 50.00%\b\b\b\b\b\b\b100.00%  ok\nopening partition 2 ...                    \b\b\b\b\b\b\b 50.00%\b\b\b\b\b\b\b100.00%  ok\nopening partition 3 ...                    \b\b\b\b\b\b\b  5.88%\b\b\b\b\b\b\b 11.76%\b\b\b\b\b\b\b 17.65%\b\b\b\b\b\b\b 23.53%\b\b\b\b\b\b\b 29.41%\b\b\b\b\b\b\b 35.29%\b\b\b\b\b\b\b 41.18%\b\b\b\b\b\b\b 47.06%\b\b\b\b\b\b\b 52.94%\b\b\b\b\b\b\b 58.82%\b\b\b\b\b\b\b 64.71%\b\b\b\b\b\b\b 70.59%\b\b\b\b\b\b\b 76.47%\b\b\b\b\b\b\b 82.35%\b\b\b\b\b\b\b 88.24%\b\b\b\b\b\b\b 94.12%\b\b\b\b\b\b\b100.00%  ok\nopening partition 4 ...                    \b\b\b\b\b\b\b 50.00%\b\b\b\b\b\b\b100.00%  ok\n\nArchive successfully decompressed as image.img\n",
+            "stdout": ""
+          },
+          "summary": "DMG Analysis: file observabed (2026-11-10 18:28:44 .....           22         4096  Many/Many.app/Contents/MacOS/part00, 2026-11-10 18:28:44 .....           22         4096  Many/Many.app/Contents/MacOS/part01, 2026-11-10 18:28:44 .....           22         4096  Many/Many.app/Contents/MacOS/part02, 2026-11-10 18:28:44 .....           22         4096  Many/Many.app/Contents/MacOS/part03, 2026-11-10 18:28:44 .....           22         4096  Many/Many.app/Contents/MacOS/part04, 2026-11-10 18:28:44 .....           22         4096  Many/Many.app/Contents/MacOS/part05, 2026-11-10 18:28:44 .....           22         4096  Many/Many.app/Contents/MacOS/part06, 2026-11-10 18:28:44 .....           22         4096  Many/Many.app/Contents/MacOS/part07, 2026-11-10 18:28:44 .....           22         4096  Many/Many.app/Contents/MacOS/part08, 2026-11-10 18:28:44 .....           22         4096  Many/Many.app/Contents/MacOS/part09, 2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part10, 2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part11, 2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part12, 2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part13, 2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part14, 2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part15, 2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part16, 2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part17, 2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part18, 2026-11-10 18:28:44 .....           23         4096  Many/Many.app/Contents/MacOS/part19 + 46 more)",
+          "tags": {}
+        },
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "626c9937b3c5b5fdc323b1095ff74bef",
+            "sha1": "22513cea42539a6ec1400c5d46e337caba91c922",
+            "sha256": "576236a5b9fb2320f87cb0643c71905b67f522059d5037fdfef4151b5658a0a6"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/zlib",
+            "type": "zlib compressed data"
+          },
+          "summary": "File Type Analysis: zlib compressed data (application/zlib)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:600692968dfc9db6e64d3d5be179e295302cba7f83e11f569cdbb957dc3c05cf": {
+      "detections": {
+        "Possible CVE-2021-30657 attack: a file in DMG format file many_members.img is a script": [
+          null
+        ]
+      },
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "part08": {}
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "3047062fce1fc7fa381fad31f8046f1c",
+            "sha1": "68f5587387c557b42bda5c6b2fb9dd763201f7ed",
+            "sha256": "600692968dfc9db6e64d3d5be179e295302cba7f83e11f569cdbb957dc3c05cf"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/x-shellscript",
+            "type": "POSIX shell script, ASCII text executable"
+          },
+          "summary": "File Type Analysis: POSIX shell script, ASCII text executable (text/x-shellscript)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "CVE-2021-30657": true
+      }
+    },
+    "file:62e3094f1b8923394a902b52117e2389f3f66508c0d9ea26b758cbd929cff3d2": {
+      "detections": {
+        "Possible CVE-2021-30657 attack: a file in DMG format file many_members.img is a script": [
+          null
+        ]
+      },
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "part56": {}
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "0e47bd6f3088bcba81ead0a6f128123f",
+            "sha1": "c24c50ee3b315198a405b2de2f10e0b8871ab184",
+            "sha256": "62e3094f1b8923394a902b52117e2389f3f66508c0d9ea26b758cbd929cff3d2"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/x-shellscript",
+            "type": "POSIX shell script, ASCII text executable"
+          },
+          "summary": "File Type Analysis: POSIX shell script, ASCII text executable (text/x-shellscript)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "CVE-2021-30657": true
+      }
+    },
+    "file:68f1b72bf021385a762f45a2f5e0dbfe19424bf6a026825719f7527e12df4671": {
+      "detections": {
+        "Possible CVE-2021-30657 attack: a file in DMG format file many_members.img is a script": [
+          null
+        ]
+      },
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "part21": {}
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "1533e03e8dcf58a11e724e24a0c32ea6",
+            "sha1": "4b8c7649e0f03533bd00d7aca830ff0e5ad9322a",
+            "sha256": "68f1b72bf021385a762f45a2f5e0dbfe19424bf6a026825719f7527e12df4671"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/x-shellscript",
+            "type": "POSIX shell script, ASCII text executable"
+          },
+          "summary": "File Type Analysis: POSIX shell script, ASCII text executable (text/x-shellscript)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "CVE-2021-30657": true
+      }
+    },
+    "file:72c02da021560dca39771a771310ab5b211154261cdb59c37eb4137da206f5ba": {
+      "detections": {
+        "Possible CVE-2021-30657 attack: a file in DMG format file many_members.img is a script": [
+          null
+        ]
+      },
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "part58": {}
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "3c570869d05e9b8415f0b6e32ab926d9",
+            "sha1": "64f028dff16545470ca7f6984c7189e024d5af18",
+            "sha256": "72c02da021560dca39771a771310ab5b211154261cdb59c37eb4137da206f5ba"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/x-shellscript",
+            "type": "POSIX shell script, ASCII text executable"
+          },
+          "summary": "File Type Analysis: POSIX shell script, ASCII text executable (text/x-shellscript)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "CVE-2021-30657": true
+      }
+    },
+    "file:76648b428f5baf9111db4a4fd0c92d128b01b25960822f86795b45b02665ed18": {
+      "detections": {
+        "Possible CVE-2021-30657 attack: a file in DMG format file many_members.img is a script": [
+          null
+        ]
+      },
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "part23": {}
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "2750a845073b579f057fd84eaa1ba7b2",
+            "sha1": "6171466404034b9fc678928aa7f41156a523cfa4",
+            "sha256": "76648b428f5baf9111db4a4fd0c92d128b01b25960822f86795b45b02665ed18"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/x-shellscript",
+            "type": "POSIX shell script, ASCII text executable"
+          },
+          "summary": "File Type Analysis: POSIX shell script, ASCII text executable (text/x-shellscript)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "CVE-2021-30657": true
+      }
+    },
+    "file:777823c5f002a9308f21d9a681916eb0e7428125d55effdb5cebfeb8ed2a90d1": {
+      "detections": {
+        "Possible CVE-2021-30657 attack: a file in DMG format file many_members.img is a script": [
+          null
+        ]
+      },
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "part47": {}
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "6b9058c85e39434d4eba4d1c087d6f56",
+            "sha1": "78050cb594a8cd7dd82fddd6b96d103495779913",
+            "sha256": "777823c5f002a9308f21d9a681916eb0e7428125d55effdb5cebfeb8ed2a90d1"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/x-shellscript",
+            "type": "POSIX shell script, ASCII text executable"
+          },
+          "summary": "File Type Analysis: POSIX shell script, ASCII text executable (text/x-shellscript)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "CVE-2021-30657": true
+      }
+    },
+    "file:783dd831fd9aaacb022986c6d10d2f0630ba2a81386ac036758d723cab53c9a4": {
+      "detections": {
+        "Possible CVE-2021-30657 attack: a file in DMG format file many_members.img is a script": [
+          null
+        ]
+      },
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "part28": {}
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "d9f3f0ee6ec0f38b5cb4c5fd7d82a9a0",
+            "sha1": "b4b98745b444e75dcdbe5d61a1d9e4fe8db7085b",
+            "sha256": "783dd831fd9aaacb022986c6d10d2f0630ba2a81386ac036758d723cab53c9a4"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/x-shellscript",
+            "type": "POSIX shell script, ASCII text executable"
+          },
+          "summary": "File Type Analysis: POSIX shell script, ASCII text executable (text/x-shellscript)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "CVE-2021-30657": true
+      }
+    },
+    "file:79de4fdb74833cddd4d11b0a301a288914db683fab81b0ad8bb55be9719fabf0": {
+      "detections": {
+        "Possible CVE-2021-30657 attack: a file in DMG format file many_members.img is a script": [
+          null
+        ]
+      },
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "part05": {}
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "804cfbf4869dba9d8287f98517f093e0",
+            "sha1": "8b8c24a2819de4fb84401d80937e29b3efe84586",
+            "sha256": "79de4fdb74833cddd4d11b0a301a288914db683fab81b0ad8bb55be9719fabf0"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/x-shellscript",
+            "type": "POSIX shell script, ASCII text executable"
+          },
+          "summary": "File Type Analysis: POSIX shell script, ASCII text executable (text/x-shellscript)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "CVE-2021-30657": true
+      }
+    },
+    "file:7baa403be43622b1b97b4141b22ea44532206929d0df5fbc95409cb4df08ad96": {
+      "detections": {
+        "Possible CVE-2021-30657 attack: a file in DMG format file many_members.img is a script": [
+          null
+        ]
+      },
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "part48": {}
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "1b27f80625f9058e7b616d2d17061281",
+            "sha1": "dd449dac4f4c88a7b5fdbbe53ac95cea4ec47e35",
+            "sha256": "7baa403be43622b1b97b4141b22ea44532206929d0df5fbc95409cb4df08ad96"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/x-shellscript",
+            "type": "POSIX shell script, ASCII text executable"
+          },
+          "summary": "File Type Analysis: POSIX shell script, ASCII text executable (text/x-shellscript)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "CVE-2021-30657": true
+      }
+    },
+    "file:7d86a9dce86dd43f0fbf107837a5606d83eb571b85c91b34a987436ec874e436": {
+      "detections": {
+        "Possible CVE-2021-30657 attack: a file in DMG format file many_members.img is a script": [
+          null
+        ]
+      },
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "part53": {}
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "4a32a81c206a8fd31b6387056b521b77",
+            "sha1": "9df7abd3c913f704c2fde41a8b198441acdc3bbb",
+            "sha256": "7d86a9dce86dd43f0fbf107837a5606d83eb571b85c91b34a987436ec874e436"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/x-shellscript",
+            "type": "POSIX shell script, ASCII text executable"
+          },
+          "summary": "File Type Analysis: POSIX shell script, ASCII text executable (text/x-shellscript)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "CVE-2021-30657": true
+      }
+    },
+    "file:7e27c4a7a8107211a29cae2b93a9c74c0d10f7e878db12926f5250bef3640149": {
+      "detections": {
+        "Possible CVE-2021-30657 attack: a file in DMG format file many_members.img is a script": [
+          null
+        ]
+      },
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "part11": {}
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "41c84894d8bde8e107494f706c3f4a06",
+            "sha1": "db075b0830ec931f947484e343cb12a4fb1526d0",
+            "sha256": "7e27c4a7a8107211a29cae2b93a9c74c0d10f7e878db12926f5250bef3640149"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/x-shellscript",
+            "type": "POSIX shell script, ASCII text executable"
+          },
+          "summary": "File Type Analysis: POSIX shell script, ASCII text executable (text/x-shellscript)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "CVE-2021-30657": true
+      }
+    },
+    "file:82e94143274a2d5e0826d3b77f5d1be0d0696eeff1c0354b31c3f01646a6f4fb": {
+      "detections": {
+        "Possible CVE-2021-30657 attack: a file in DMG format file many_members.img is a script": [
+          null
+        ]
+      },
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "part51": {}
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "7713c9563a9d4be7705f6a2eacf2308d",
+            "sha1": "b72d83b18a003f8f5421969fb842060ed0488f6a",
+            "sha256": "82e94143274a2d5e0826d3b77f5d1be0d0696eeff1c0354b31c3f01646a6f4fb"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/x-shellscript",
+            "type": "POSIX shell script, ASCII text executable"
+          },
+          "summary": "File Type Analysis: POSIX shell script, ASCII text executable (text/x-shellscript)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "CVE-2021-30657": true
+      }
+    },
+    "file:83c49b01d616e0dd782eb6faa10e4726cf8807c7cc662b3a8e34af0fcb2745fb": {
+      "detections": {
+        "Possible CVE-2021-30657 attack: a file in DMG format file many_members.img is a script": [
+          null
+        ]
+      },
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "part22": {}
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "365a3e64f74187bc2edd3bfbe04cf568",
+            "sha1": "849c4bb76e5f47a0d1f472757fc891ed6154b77a",
+            "sha256": "83c49b01d616e0dd782eb6faa10e4726cf8807c7cc662b3a8e34af0fcb2745fb"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/x-shellscript",
+            "type": "POSIX shell script, ASCII text executable"
+          },
+          "summary": "File Type Analysis: POSIX shell script, ASCII text executable (text/x-shellscript)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "CVE-2021-30657": true
+      }
+    },
+    "file:844b1a616c41fc34192cc211b2bb42bac11d9e08c2183267e3acc4d0d3d78dda": {
+      "detections": {
+        "Possible CVE-2021-30657 attack: a file in DMG format file many_members.img is a script": [
+          null
+        ]
+      },
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "part15": {}
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "118346815c1f0619a1a2c2ab99b7efc4",
+            "sha1": "fbde92130326756b785659c59f8b199723090271",
+            "sha256": "844b1a616c41fc34192cc211b2bb42bac11d9e08c2183267e3acc4d0d3d78dda"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/x-shellscript",
+            "type": "POSIX shell script, ASCII text executable"
+          },
+          "summary": "File Type Analysis: POSIX shell script, ASCII text executable (text/x-shellscript)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "CVE-2021-30657": true
+      }
+    },
+    "file:885e3ba8832a9b049154ef552d3080abb9667e2da29462a0efee44317a2a0b6e": {
+      "detections": {
+        "Possible CVE-2021-30657 attack: a file in DMG format file many_members.img is a script": [
+          null
+        ]
+      },
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "part33": {}
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "1c039d60e9c2093640d3827df7ef6075",
+            "sha1": "f95b6e7237f485a4bc04d916ae91dd10fec7a33b",
+            "sha256": "885e3ba8832a9b049154ef552d3080abb9667e2da29462a0efee44317a2a0b6e"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/x-shellscript",
+            "type": "POSIX shell script, ASCII text executable"
+          },
+          "summary": "File Type Analysis: POSIX shell script, ASCII text executable (text/x-shellscript)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "CVE-2021-30657": true
+      }
+    },
+    "file:8eca73007609044ee0e8e82a5995441209fbae93e5748fce42eb83cde52651ba": {
+      "detections": {
+        "Possible CVE-2021-30657 attack: a file in DMG format file many_members.img is a script": [
+          null
+        ]
+      },
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "part54": {}
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "509aa03231e6d8a05825256eab36d5b8",
+            "sha1": "c7825946bbe822a99e4cd6366c65d3e14071400f",
+            "sha256": "8eca73007609044ee0e8e82a5995441209fbae93e5748fce42eb83cde52651ba"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/x-shellscript",
+            "type": "POSIX shell script, ASCII text executable"
+          },
+          "summary": "File Type Analysis: POSIX shell script, ASCII text executable (text/x-shellscript)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "CVE-2021-30657": true
+      }
+    },
+    "file:8f743d37ad742ca678fa033c724ec2c0e6969f7f8c55d06908d2483c84fb607c": {
+      "detections": {
+        "Possible CVE-2021-30657 attack: a file in DMG format file many_members.img is a script": [
+          null
+        ]
+      },
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "many_members.dmg.extracted/Many/Many.app/Contents/MacOS/part63": {},
+        "many_members.img.extracted/Many/Many.app/Contents/MacOS/part63": {},
+        "part63": {}
+      },
+      "relationships": {
+        "extracted_from file:576236a5b9fb2320f87cb0643c71905b67f522059d5037fdfef4151b5658a0a6": true,
+        "extracted_from file:a848449d8a39f03984a3baee597c39961ee21f259d2c98fbfc98376f089a701d": true
+      },
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "c56c351d479ea3ee34e7b9131d8d07ea",
+            "sha1": "ca8b4f22245d6746157ad2a2c5416e635689e06a",
+            "sha256": "8f743d37ad742ca678fa033c724ec2c0e6969f7f8c55d06908d2483c84fb607c"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/x-shellscript",
+            "type": "POSIX shell script, ASCII text executable"
+          },
+          "summary": "File Type Analysis: POSIX shell script, ASCII text executable (text/x-shellscript)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "CVE-2021-30657": true
+      }
+    },
+    "file:9016039b0612b9cf701556a7449d67ee81768d977ec426853f4bbd0abfedda80": {
+      "detections": {
+        "Possible CVE-2021-30657 attack: a file in DMG format file many_members.img is a script": [
+          null
+        ]
+      },
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "many_members.dmg.extracted/Many/Many.app/Contents/MacOS/part65": {},
+        "many_members.img.extracted/Many/Many.app/Contents/MacOS/part65": {},
+        "part65": {}
+      },
+      "relationships": {
+        "extracted_from file:576236a5b9fb2320f87cb0643c71905b67f522059d5037fdfef4151b5658a0a6": true,
+        "extracted_from file:a848449d8a39f03984a3baee597c39961ee21f259d2c98fbfc98376f089a701d": true
+      },
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "8742685ae79980e758da5335c99476eb",
+            "sha1": "46df38e66b5c703bead7b6ee0399567b6d178635",
+            "sha256": "9016039b0612b9cf701556a7449d67ee81768d977ec426853f4bbd0abfedda80"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/x-shellscript",
+            "type": "POSIX shell script, ASCII text executable"
+          },
+          "summary": "File Type Analysis: POSIX shell script, ASCII text executable (text/x-shellscript)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "CVE-2021-30657": true
+      }
+    },
+    "file:9a754da979939e75376828e2dc95270639ecd42eb51a2730467b2d0e95f36bb9": {
+      "detections": {
+        "Possible CVE-2021-30657 attack: a file in DMG format file many_members.img is a script": [
+          null
+        ]
+      },
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "part00": {}
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "e292d988bf1298c2986e8cee5809c7a0",
+            "sha1": "4bc41a791e4eab845cdba56ca464957a46f1035b",
+            "sha256": "9a754da979939e75376828e2dc95270639ecd42eb51a2730467b2d0e95f36bb9"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/x-shellscript",
+            "type": "POSIX shell script, ASCII text executable"
+          },
+          "summary": "File Type Analysis: POSIX shell script, ASCII text executable (text/x-shellscript)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "CVE-2021-30657": true
+      }
+    },
+    "file:9de718e9c056701095cd9f481d2d41ca8f7ec929582f6660ecd7b0f1996515f4": {
+      "detections": {
+        "Possible CVE-2021-30657 attack: a file in DMG format file many_members.img is a script": [
+          null
+        ]
+      },
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "part31": {}
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "88d80a0833d770da480c8f9aeef448bd",
+            "sha1": "a3f742c1bb7c4daf13daadca27eedfc2618bcfd7",
+            "sha256": "9de718e9c056701095cd9f481d2d41ca8f7ec929582f6660ecd7b0f1996515f4"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/x-shellscript",
+            "type": "POSIX shell script, ASCII text executable"
+          },
+          "summary": "File Type Analysis: POSIX shell script, ASCII text executable (text/x-shellscript)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "CVE-2021-30657": true
+      }
+    },
+    "file:a555d01e85bb884b9d24efbb19ea652f5bd313cb93fe3f90fabeed59fe56de91": {
+      "detections": {
+        "Possible CVE-2021-30657 attack: a file in DMG format file many_members.img is a script": [
+          null
+        ]
+      },
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "part50": {}
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "41cbd810f3c283db7c008ec4edfed922",
+            "sha1": "1cc4c987d1c9c5198dfc8ed5a86d879de33a4da4",
+            "sha256": "a555d01e85bb884b9d24efbb19ea652f5bd313cb93fe3f90fabeed59fe56de91"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/x-shellscript",
+            "type": "POSIX shell script, ASCII text executable"
+          },
+          "summary": "File Type Analysis: POSIX shell script, ASCII text executable (text/x-shellscript)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "CVE-2021-30657": true
+      }
+    },
+    "file:a848449d8a39f03984a3baee597c39961ee21f259d2c98fbfc98376f089a701d": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "many_members.img": {
+          "type=archive.dmg": true
+        }
+      },
+      "redirection": "file:576236a5b9fb2320f87cb0643c71905b67f522059d5037fdfef4151b5658a0a6",
+      "relationships": {},
+      "results": {
+        "archive": {
+          "details": {
+            "extracted_files": [
+              "Many/Many.app/Contents/MacOS/part65",
+              "Many/Many.app/Contents/MacOS/part64",
+              "Many/Many.app/Contents/MacOS/part63",
+              "Many/Many.app/Contents/MacOS/part62",
+              "Many/Many.app/Contents/MacOS/part61",
+              "Many/Many.app/Contents/MacOS/part60"
+            ],
+            "extraction_error": null,
+            "file_count": 66
+          },
+          "summary": "Archive Analysis: extracted 6 of 66 files: (Many/Many.app/Contents/MacOS/part65, Many/Many.app/Contents/MacOS/part64, Many/Many.app/Contents/MacOS/part63, Many/Many.app/Contents/MacOS/part62, Many/Many.app/Contents/MacOS/part61, Many/Many.app/Contents/MacOS/part60)",
+          "tags": {}
+        },
+        "cve_2021_30657_analyzer": {
+          "details": {
+            "suspect_files": {
+              "part00": "text/x-shellscript",
+              "part01": "text/x-shellscript",
+              "part02": "text/x-shellscript",
+              "part03": "text/x-shellscript",
+              "part04": "text/x-shellscript",
+              "part05": "text/x-shellscript",
+              "part06": "text/x-shellscript",
+              "part07": "text/x-shellscript",
+              "part08": "text/x-shellscript",
+              "part09": "text/x-shellscript",
+              "part10": "text/x-shellscript",
+              "part11": "text/x-shellscript",
+              "part12": "text/x-shellscript",
+              "part13": "text/x-shellscript",
+              "part14": "text/x-shellscript",
+              "part15": "text/x-shellscript",
+              "part16": "text/x-shellscript",
+              "part17": "text/x-shellscript",
+              "part18": "text/x-shellscript",
+              "part19": "text/x-shellscript",
+              "part20": "text/x-shellscript",
+              "part21": "text/x-shellscript",
+              "part22": "text/x-shellscript",
+              "part23": "text/x-shellscript",
+              "part24": "text/x-shellscript",
+              "part25": "text/x-shellscript",
+              "part26": "text/x-shellscript",
+              "part27": "text/x-shellscript",
+              "part28": "text/x-shellscript",
+              "part29": "text/x-shellscript",
+              "part30": "text/x-shellscript",
+              "part31": "text/x-shellscript",
+              "part32": "text/x-shellscript",
+              "part33": "text/x-shellscript",
+              "part34": "text/x-shellscript",
+              "part35": "text/x-shellscript",
+              "part36": "text/x-shellscript",
+              "part37": "text/x-shellscript",
+              "part38": "text/x-shellscript",
+              "part39": "text/x-shellscript",
+              "part40": "text/x-shellscript",
+              "part41": "text/x-shellscript",
+              "part42": "text/x-shellscript",
+              "part43": "text/x-shellscript",
+              "part44": "text/x-shellscript",
+              "part45": "text/x-shellscript",
+              "part46": "text/x-shellscript",
+              "part47": "text/x-shellscript",
+              "part48": "text/x-shellscript",
+              "part49": "text/x-shellscript",
+              "part50": "text/x-shellscript",
+              "part51": "text/x-shellscript",
+              "part52": "text/x-shellscript",
+              "part53": "text/x-shellscript",
+              "part54": "text/x-shellscript",
+              "part55": "text/x-shellscript",
+              "part56": "text/x-shellscript",
+              "part57": "text/x-shellscript",
+              "part58": "text/x-shellscript",
+              "part59": "text/x-shellscript",
+              "part60": "text/x-shellscript",
+              "part61": "text/x-shellscript",
+              "part62": "text/x-shellscript",
+              "part63": "text/x-shellscript",
+              "part64": "text/x-shellscript",
+              "part65": "text/x-shellscript"
+            }
+          },
+          "summary": "CVE-2021-30657 Analysis: part00, part01, part02, part03, part04, part05, part06, part07, part08, part09, part10, part11, part12, part13, part14, part15, part16, part17, part18, part19 + 46 more",
+          "tags": {}
+        },
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "66d7256265f585e78fbff9d8c92f0d43",
+            "sha1": "4311c8d130833f5d14e90966bc149cec72e70503",
+            "sha256": "a848449d8a39f03984a3baee597c39961ee21f259d2c98fbfc98376f089a701d"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/x-apple-diskimage",
+            "type": "Apple Driver Map, blocksize 512, blockcount 8274, devtype 0, devid 0, driver count 1, contains[@0x200]: Apple Partition Map, map block count 4, start block 1, block count 63, name Apple, type Apple_partition_map, valid, allocated, contains[@0x400]: Apple Partition Map, map block count 4, start block 64, block count 8, name Macintosh, type Apple_Driver_ATAPI, boot arguments DMMY, valid, allocated, real driver, chain driver, contains[@0x600]: Apple Partition Map, map block count 4, start block 72, block count 8192, name Mac_OS_X, type Apple_HFSX, boot arguments goon, valid, allocated, readable, writable, mount at startup, contains[@0x800]: Apple Partition Map, map block count 4, start block 8264, block count 10, type Apple_Free"
+          },
+          "summary": "File Type Analysis: Apple Driver Map, blocksize 512, blockcount 8274, devtype 0, devid 0, driver count 1, contains[@0x200]: Apple Partition Map, map block count 4, start block 1, block count 63, name Apple, type Apple_partition_map, valid, allocated, contains[@0x400]: Apple Partition Map, map block count 4, start block 64, block count 8, name Macintosh, type Apple_Driver_ATAPI, boot arguments DMMY, valid, allocated, real driver, chain driver, contains[@0x600]: Apple Partition Map, map block count 4, start block 72, block count 8192, name Mac_OS_X, type Apple_HFSX, boot arguments goon, valid, allocated, readable, writable, mount at startup, contains[@0x800]: Apple Partition Map, map block count 4, start block 8264, block count 10, type Apple_Free (application/x-apple-diskimage)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "dmg": true,
+        "macos": true
+      }
+    },
+    "file:a9a8828ea1836c3420d32890864f615db3376a07f533a02f9781f9893b327d71": {
+      "detections": {
+        "Possible CVE-2021-30657 attack: a file in DMG format file many_members.img is a script": [
+          null
+        ]
+      },
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "many_members.dmg.extracted/Many/Many.app/Contents/MacOS/part64": {},
+        "many_members.img.extracted/Many/Many.app/Contents/MacOS/part64": {},
+        "part64": {}
+      },
+      "relationships": {
+        "extracted_from file:576236a5b9fb2320f87cb0643c71905b67f522059d5037fdfef4151b5658a0a6": true,
+        "extracted_from file:a848449d8a39f03984a3baee597c39961ee21f259d2c98fbfc98376f089a701d": true
+      },
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "5518a199dcc68d4158c779aa9cbfcb02",
+            "sha1": "1b14559c6329937b2956ce938fb5751704c92194",
+            "sha256": "a9a8828ea1836c3420d32890864f615db3376a07f533a02f9781f9893b327d71"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/x-shellscript",
+            "type": "POSIX shell script, ASCII text executable"
+          },
+          "summary": "File Type Analysis: POSIX shell script, ASCII text executable (text/x-shellscript)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "CVE-2021-30657": true
+      }
+    },
+    "file:aae1e9d8c891587c0112669ab706d2423003e8c867fcaaef6b49553a0fc175bd": {
+      "detections": {
+        "Possible CVE-2021-30657 attack: a file in DMG format file many_members.img is a script": [
+          null
+        ]
+      },
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "part52": {}
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "d0dd18ea376f6ea97e2060375cded24b",
+            "sha1": "ddd51632af10aa5e6d12e839ffe10ab812867d54",
+            "sha256": "aae1e9d8c891587c0112669ab706d2423003e8c867fcaaef6b49553a0fc175bd"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/x-shellscript",
+            "type": "POSIX shell script, ASCII text executable"
+          },
+          "summary": "File Type Analysis: POSIX shell script, ASCII text executable (text/x-shellscript)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "CVE-2021-30657": true
+      }
+    },
+    "file:b1b3921ece016234a33576d923eea3bdd4941a2efe0a6c5e1d025cc35573e693": {
+      "detections": {
+        "Possible CVE-2021-30657 attack: a file in DMG format file many_members.img is a script": [
+          null
+        ]
+      },
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "part40": {}
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "f11225203530606e6ef1eabbc1b09ce4",
+            "sha1": "3dea61299d0f0ac0319aef24fa26f9996a37e562",
+            "sha256": "b1b3921ece016234a33576d923eea3bdd4941a2efe0a6c5e1d025cc35573e693"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/x-shellscript",
+            "type": "POSIX shell script, ASCII text executable"
+          },
+          "summary": "File Type Analysis: POSIX shell script, ASCII text executable (text/x-shellscript)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "CVE-2021-30657": true
+      }
+    },
+    "file:b2151be93bec531e8f11d2692672151ba406c16c5555ed84205e0ca6e111c9ad": {
+      "detections": {
+        "Possible CVE-2021-30657 attack: a file in DMG format file many_members.img is a script": [
+          null
+        ]
+      },
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "part03": {}
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "c9edbbb76a5b9fdb79431c0d119da9b4",
+            "sha1": "935b4421488186136549eef6c3c81a348bc203d3",
+            "sha256": "b2151be93bec531e8f11d2692672151ba406c16c5555ed84205e0ca6e111c9ad"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/x-shellscript",
+            "type": "POSIX shell script, ASCII text executable"
+          },
+          "summary": "File Type Analysis: POSIX shell script, ASCII text executable (text/x-shellscript)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "CVE-2021-30657": true
+      }
+    },
+    "file:b5aacbc5b2cdee7a4b3e905a7dd03ec06d7f12857d57ac1ce59d0eecf0d8af05": {
+      "detections": {
+        "Possible CVE-2021-30657 attack: a file in DMG format file many_members.img is a script": [
+          null
+        ]
+      },
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "part07": {}
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "655c239de99ac67ad351eb7bca1ff2a7",
+            "sha1": "c6e0b873f252d293eed4ee149fff9ed448d01f7c",
+            "sha256": "b5aacbc5b2cdee7a4b3e905a7dd03ec06d7f12857d57ac1ce59d0eecf0d8af05"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/x-shellscript",
+            "type": "POSIX shell script, ASCII text executable"
+          },
+          "summary": "File Type Analysis: POSIX shell script, ASCII text executable (text/x-shellscript)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "CVE-2021-30657": true
+      }
+    },
+    "file:b6c61aadb334d19668ca9236c77bfaa798ff6d15d2e3a32f7396544bb0343e34": {
+      "detections": {
+        "Possible CVE-2021-30657 attack: a file in DMG format file many_members.img is a script": [
+          null
+        ]
+      },
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "part42": {}
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "827ad43465c593377ee26fc73c758564",
+            "sha1": "97d30e8448f464c1b23d84a26989348eb14376a5",
+            "sha256": "b6c61aadb334d19668ca9236c77bfaa798ff6d15d2e3a32f7396544bb0343e34"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/x-shellscript",
+            "type": "POSIX shell script, ASCII text executable"
+          },
+          "summary": "File Type Analysis: POSIX shell script, ASCII text executable (text/x-shellscript)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "CVE-2021-30657": true
+      }
+    },
+    "file:c3b92744f5ec24245c982d2524069bc750e14304bc4f700af9040733414fd9e4": {
+      "detections": {
+        "Possible CVE-2021-30657 attack: a file in DMG format file many_members.img is a script": [
+          null
+        ]
+      },
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "part45": {}
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "7b7479b3dde6ce127cb4c7925399ae85",
+            "sha1": "c944350fa942f3584cf7176249d0c4cf20dbe476",
+            "sha256": "c3b92744f5ec24245c982d2524069bc750e14304bc4f700af9040733414fd9e4"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/x-shellscript",
+            "type": "POSIX shell script, ASCII text executable"
+          },
+          "summary": "File Type Analysis: POSIX shell script, ASCII text executable (text/x-shellscript)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "CVE-2021-30657": true
+      }
+    },
+    "file:c3e3af18fcd1458922f27ec3fcda060862a8804facbf094a272552c5d31d5c57": {
+      "detections": {
+        "Possible CVE-2021-30657 attack: a file in DMG format file many_members.img is a script": [
+          null
+        ]
+      },
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "part55": {}
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "8377c1751bdc21cf728f0f99abebdae6",
+            "sha1": "9050af3aba6bb867715240df443aeabd4b2556a9",
+            "sha256": "c3e3af18fcd1458922f27ec3fcda060862a8804facbf094a272552c5d31d5c57"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/x-shellscript",
+            "type": "POSIX shell script, ASCII text executable"
+          },
+          "summary": "File Type Analysis: POSIX shell script, ASCII text executable (text/x-shellscript)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "CVE-2021-30657": true
+      }
+    },
+    "file:c3ea87a525b691237c62e66f8a01239cae6f7995a5e9bf886b1af6bfac2ef7c6": {
+      "detections": {
+        "Possible CVE-2021-30657 attack: a file in DMG format file many_members.img is a script": [
+          null
+        ]
+      },
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "many_members.dmg.extracted/Many/Many.app/Contents/MacOS/part62": {},
+        "many_members.img.extracted/Many/Many.app/Contents/MacOS/part62": {},
+        "part62": {}
+      },
+      "relationships": {
+        "extracted_from file:576236a5b9fb2320f87cb0643c71905b67f522059d5037fdfef4151b5658a0a6": true,
+        "extracted_from file:a848449d8a39f03984a3baee597c39961ee21f259d2c98fbfc98376f089a701d": true
+      },
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "58e6afc7e1b0b24fd2f13cae54717b3e",
+            "sha1": "6d46b8aa90468b003a40fa72d57ddb4263568e82",
+            "sha256": "c3ea87a525b691237c62e66f8a01239cae6f7995a5e9bf886b1af6bfac2ef7c6"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/x-shellscript",
+            "type": "POSIX shell script, ASCII text executable"
+          },
+          "summary": "File Type Analysis: POSIX shell script, ASCII text executable (text/x-shellscript)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "CVE-2021-30657": true
+      }
+    },
+    "file:cf5e4325cca354cf1d733a9c576e1c095be79f611de0a624b0828fbccfb5fdf1": {
+      "detections": {
+        "Possible CVE-2021-30657 attack: a file in DMG format file many_members.img is a script": [
+          null
+        ]
+      },
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "part06": {}
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "58389702d989c135ddc31db466520ce8",
+            "sha1": "a598e07d0d2cb8918f189d6593c1ba2df3e33523",
+            "sha256": "cf5e4325cca354cf1d733a9c576e1c095be79f611de0a624b0828fbccfb5fdf1"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/x-shellscript",
+            "type": "POSIX shell script, ASCII text executable"
+          },
+          "summary": "File Type Analysis: POSIX shell script, ASCII text executable (text/x-shellscript)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "CVE-2021-30657": true
+      }
+    },
+    "file:d3009dc7fb81492961638c29fc5b6f624ab99e43f4efd96d3bc134c458214d46": {
+      "detections": {
+        "Possible CVE-2021-30657 attack: a file in DMG format file many_members.img is a script": [
+          null
+        ]
+      },
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "part19": {}
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "ff4e8d994fa24049144a74719fd7893f",
+            "sha1": "4b6beb327bb658579ebdf5da2e8ad2acc6c70e77",
+            "sha256": "d3009dc7fb81492961638c29fc5b6f624ab99e43f4efd96d3bc134c458214d46"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/x-shellscript",
+            "type": "POSIX shell script, ASCII text executable"
+          },
+          "summary": "File Type Analysis: POSIX shell script, ASCII text executable (text/x-shellscript)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "CVE-2021-30657": true
+      }
+    },
+    "file:d38d99dd67aa331f8c8e0c76fd00b56fdc6351054a9b40cf011e094069589b23": {
+      "detections": {
+        "Possible CVE-2021-30657 attack: a file in DMG format file many_members.img is a script": [
+          null
+        ]
+      },
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "many_members.dmg.extracted/Many/Many.app/Contents/MacOS/part61": {},
+        "many_members.img.extracted/Many/Many.app/Contents/MacOS/part61": {},
+        "part61": {}
+      },
+      "relationships": {
+        "extracted_from file:576236a5b9fb2320f87cb0643c71905b67f522059d5037fdfef4151b5658a0a6": true,
+        "extracted_from file:a848449d8a39f03984a3baee597c39961ee21f259d2c98fbfc98376f089a701d": true
+      },
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "3d4a38126a967ad4488dcaa557946ff9",
+            "sha1": "7d9066c87fe71d988f57d0798ed0ce629cb28924",
+            "sha256": "d38d99dd67aa331f8c8e0c76fd00b56fdc6351054a9b40cf011e094069589b23"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/x-shellscript",
+            "type": "POSIX shell script, ASCII text executable"
+          },
+          "summary": "File Type Analysis: POSIX shell script, ASCII text executable (text/x-shellscript)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "CVE-2021-30657": true
+      }
+    },
+    "file:d50febba981636da9c9c7a3bc14a6ed13a5d1b99690ae52ef4d6347752b06756": {
+      "detections": {
+        "Possible CVE-2021-30657 attack: a file in DMG format file many_members.img is a script": [
+          null
+        ]
+      },
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "part30": {}
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "c260a8d26eca41afa912ae8716e61af6",
+            "sha1": "f55614214b53b04a088c9316d89afc273ac6ed87",
+            "sha256": "d50febba981636da9c9c7a3bc14a6ed13a5d1b99690ae52ef4d6347752b06756"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/x-shellscript",
+            "type": "POSIX shell script, ASCII text executable"
+          },
+          "summary": "File Type Analysis: POSIX shell script, ASCII text executable (text/x-shellscript)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "CVE-2021-30657": true
+      }
+    },
+    "file:d7990fcd177ad1f8664ac2620d84b2a77c0eb6c09c820a89c6b101ba8b6b105e": {
+      "detections": {
+        "Possible CVE-2021-30657 attack: a file in DMG format file many_members.img is a script": [
+          null
+        ]
+      },
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "part10": {}
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "79c78a038457c60ae3d65eff848c3872",
+            "sha1": "163ccbf3712fafd2467a21c4b41e454f245dfbef",
+            "sha256": "d7990fcd177ad1f8664ac2620d84b2a77c0eb6c09c820a89c6b101ba8b6b105e"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/x-shellscript",
+            "type": "POSIX shell script, ASCII text executable"
+          },
+          "summary": "File Type Analysis: POSIX shell script, ASCII text executable (text/x-shellscript)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "CVE-2021-30657": true
+      }
+    },
+    "file:d8712f75cca87895e2ddec677c48f64288a8e610fdacc6db6f148970e4eec267": {
+      "detections": {
+        "Possible CVE-2021-30657 attack: a file in DMG format file many_members.img is a script": [
+          null
+        ]
+      },
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "part36": {}
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "7ce1d008bfec8bea01153239a9d5ac60",
+            "sha1": "3385fee3dad561e8350f56b838d2ec817ead6cde",
+            "sha256": "d8712f75cca87895e2ddec677c48f64288a8e610fdacc6db6f148970e4eec267"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/x-shellscript",
+            "type": "POSIX shell script, ASCII text executable"
+          },
+          "summary": "File Type Analysis: POSIX shell script, ASCII text executable (text/x-shellscript)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "CVE-2021-30657": true
+      }
+    },
+    "file:dc2c5ada464b8acfb985eba589ddf6f9fb46ca80124206bd867d5f6f48af61a1": {
+      "detections": {
+        "Possible CVE-2021-30657 attack: a file in DMG format file many_members.img is a script": [
+          null
+        ]
+      },
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "part29": {}
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "d46a0228c5ca4f09fa6b972a64c6b0f4",
+            "sha1": "9de0dde64220bfd022cbcad044f5dad153898a72",
+            "sha256": "dc2c5ada464b8acfb985eba589ddf6f9fb46ca80124206bd867d5f6f48af61a1"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/x-shellscript",
+            "type": "POSIX shell script, ASCII text executable"
+          },
+          "summary": "File Type Analysis: POSIX shell script, ASCII text executable (text/x-shellscript)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "CVE-2021-30657": true
+      }
+    },
+    "file:dd7bc8c4df78e83bb9a0c2b78c7895265c8ae0fe080595507793c7a608531815": {
+      "detections": {
+        "Possible CVE-2021-30657 attack: a file in DMG format file many_members.img is a script": [
+          null
+        ]
+      },
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "part39": {}
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "922519d212c8cbdd629f62e8a5e1976f",
+            "sha1": "f509a1819b7734843b3dddbc252a2974847dd561",
+            "sha256": "dd7bc8c4df78e83bb9a0c2b78c7895265c8ae0fe080595507793c7a608531815"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/x-shellscript",
+            "type": "POSIX shell script, ASCII text executable"
+          },
+          "summary": "File Type Analysis: POSIX shell script, ASCII text executable (text/x-shellscript)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "CVE-2021-30657": true
+      }
+    },
+    "file:de31abd235e917e73b8f3361b974cd1afa5da2adaec73009ba4053877e99d16a": {
+      "detections": {
+        "Possible CVE-2021-30657 attack: a file in DMG format file many_members.img is a script": [
+          null
+        ]
+      },
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "part41": {}
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "680f43652b69fcfec35a87a6eca042d5",
+            "sha1": "4bc7374ada6689db670e083b8858f2e83e2a1b55",
+            "sha256": "de31abd235e917e73b8f3361b974cd1afa5da2adaec73009ba4053877e99d16a"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/x-shellscript",
+            "type": "POSIX shell script, ASCII text executable"
+          },
+          "summary": "File Type Analysis: POSIX shell script, ASCII text executable (text/x-shellscript)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "CVE-2021-30657": true
+      }
+    },
+    "file:e5024663d4ef249cafc971cbd9f285b82e63e7c022bc421ea0fb738437c3c32a": {
+      "detections": {
+        "Possible CVE-2021-30657 attack: a file in DMG format file many_members.img is a script": [
+          null
+        ]
+      },
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "part14": {}
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "42bde20529ad992ee399a0143611f4ec",
+            "sha1": "b2f4e5418839d9b9ec42df715743d826c4417c9c",
+            "sha256": "e5024663d4ef249cafc971cbd9f285b82e63e7c022bc421ea0fb738437c3c32a"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/x-shellscript",
+            "type": "POSIX shell script, ASCII text executable"
+          },
+          "summary": "File Type Analysis: POSIX shell script, ASCII text executable (text/x-shellscript)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "CVE-2021-30657": true
+      }
+    },
+    "file:e63ee4976c65999ef230cd6413a6858320055268c3fd6b62f498136fc84b0214": {
+      "detections": {
+        "Possible CVE-2021-30657 attack: a file in DMG format file many_members.img is a script": [
+          null
+        ]
+      },
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "part20": {}
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "bab825df8d3c773f7af0b9c5fcdee469",
+            "sha1": "86c2550ea3e5c9b20e2fbd50b5370906563ff874",
+            "sha256": "e63ee4976c65999ef230cd6413a6858320055268c3fd6b62f498136fc84b0214"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/x-shellscript",
+            "type": "POSIX shell script, ASCII text executable"
+          },
+          "summary": "File Type Analysis: POSIX shell script, ASCII text executable (text/x-shellscript)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "CVE-2021-30657": true
+      }
+    },
+    "file:ead5d2cf65508ca112303850be28a5f370e90eafca62a4bb1c25b45a15d36365": {
+      "detections": {
+        "Possible CVE-2021-30657 attack: a file in DMG format file many_members.img is a script": [
+          null
+        ]
+      },
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "part43": {}
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "67fa5d0e6294769d9ef4d485a051eb37",
+            "sha1": "0f91d971804ead15474674bdf25b69082a357711",
+            "sha256": "ead5d2cf65508ca112303850be28a5f370e90eafca62a4bb1c25b45a15d36365"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/x-shellscript",
+            "type": "POSIX shell script, ASCII text executable"
+          },
+          "summary": "File Type Analysis: POSIX shell script, ASCII text executable (text/x-shellscript)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "CVE-2021-30657": true
+      }
+    },
+    "file:ecbf6cb36df945c418c29e9530c470ddd40c31e1e88b4f0c50145c3f0f70076e": {
+      "detections": {
+        "Possible CVE-2021-30657 attack: a file in DMG format file many_members.img is a script": [
+          null
+        ]
+      },
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "part49": {}
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "da6019f3272a5ff5abcfa46ea7b8c3c6",
+            "sha1": "20a8db82e86aa0813036e799ce01cd6b58ee2b61",
+            "sha256": "ecbf6cb36df945c418c29e9530c470ddd40c31e1e88b4f0c50145c3f0f70076e"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/x-shellscript",
+            "type": "POSIX shell script, ASCII text executable"
+          },
+          "summary": "File Type Analysis: POSIX shell script, ASCII text executable (text/x-shellscript)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "CVE-2021-30657": true
+      }
+    },
+    "file:efb6302b96266307d354ddda8b219089d8794be4d775fe690e39d0110456c4a3": {
+      "detections": {
+        "Possible CVE-2021-30657 attack: a file in DMG format file many_members.img is a script": [
+          null
+        ]
+      },
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "part12": {}
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "16ff4ea53fcc3f180245432dbd6db696",
+            "sha1": "f7ba9dd0b0d157d8504460ab9e2335aa7617c0f1",
+            "sha256": "efb6302b96266307d354ddda8b219089d8794be4d775fe690e39d0110456c4a3"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/x-shellscript",
+            "type": "POSIX shell script, ASCII text executable"
+          },
+          "summary": "File Type Analysis: POSIX shell script, ASCII text executable (text/x-shellscript)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "CVE-2021-30657": true
+      }
+    },
+    "file:f1bbd27add36ee072867a97b701eb2750cc5cdb9553a0f08fe597402f02dfcd2": {
+      "detections": {
+        "Possible CVE-2021-30657 attack: a file in DMG format file many_members.img is a script": [
+          null
+        ]
+      },
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "part37": {}
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "ecd8b91fdbc69345849f8b15e577f696",
+            "sha1": "9ba67ccb881d44721337828a344a4a490f34495c",
+            "sha256": "f1bbd27add36ee072867a97b701eb2750cc5cdb9553a0f08fe597402f02dfcd2"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/x-shellscript",
+            "type": "POSIX shell script, ASCII text executable"
+          },
+          "summary": "File Type Analysis: POSIX shell script, ASCII text executable (text/x-shellscript)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "CVE-2021-30657": true
+      }
+    },
+    "file:f1c23d2e977380dd87b9af35a37601a480b6af5ecfc208e16a7242979999d632": {
+      "detections": {
+        "Possible CVE-2021-30657 attack: a file in DMG format file many_members.img is a script": [
+          null
+        ]
+      },
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "part04": {}
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "052f15d3f729461c11a98b85d8103908",
+            "sha1": "93969c7ffedacca4567440acd5611d7fb5d0b656",
+            "sha256": "f1c23d2e977380dd87b9af35a37601a480b6af5ecfc208e16a7242979999d632"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/x-shellscript",
+            "type": "POSIX shell script, ASCII text executable"
+          },
+          "summary": "File Type Analysis: POSIX shell script, ASCII text executable (text/x-shellscript)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "CVE-2021-30657": true
+      }
+    },
+    "file:f3fa9fe1f1a3fe3bcd4179ba888c09e7fbfb09b0309c29d39f47e76be10011ca": {
+      "detections": {
+        "Possible CVE-2021-30657 attack: a file in DMG format file many_members.img is a script": [
+          null
+        ]
+      },
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "part09": {}
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "392c1d836f788a146c4a3da20e59cf7b",
+            "sha1": "0f25d6b06e7d3f7c5e5770938ed2885d244eab3c",
+            "sha256": "f3fa9fe1f1a3fe3bcd4179ba888c09e7fbfb09b0309c29d39f47e76be10011ca"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/x-shellscript",
+            "type": "POSIX shell script, ASCII text executable"
+          },
+          "summary": "File Type Analysis: POSIX shell script, ASCII text executable (text/x-shellscript)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "CVE-2021-30657": true
+      }
+    },
+    "file:f513ca89cee25c0c1b888ff59f021f6adc690229776530750445375670011235": {
+      "detections": {
+        "Possible CVE-2021-30657 attack: a file in DMG format file many_members.img is a script": [
+          null
+        ]
+      },
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "part17": {}
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "33acb0e8b45e1ea1d1eedbf78cdd7eda",
+            "sha1": "51f360faa20b9d7f3372ffff329a8e45bdd70137",
+            "sha256": "f513ca89cee25c0c1b888ff59f021f6adc690229776530750445375670011235"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/x-shellscript",
+            "type": "POSIX shell script, ASCII text executable"
+          },
+          "summary": "File Type Analysis: POSIX shell script, ASCII text executable (text/x-shellscript)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "CVE-2021-30657": true
+      }
+    },
+    "file:f7a6969200cdddd85b9b29cbd81d9b07a1e120180e1b36df31f084750cda113b": {
+      "detections": {
+        "Possible CVE-2021-30657 attack: a file in DMG format file many_members.img is a script": [
+          null
+        ]
+      },
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "part24": {}
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "ea93890de5d3c457e8b50a1cf8d1083d",
+            "sha1": "cd7216c0e85140014339179b079acbeb86b0f36d",
+            "sha256": "f7a6969200cdddd85b9b29cbd81d9b07a1e120180e1b36df31f084750cda113b"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/x-shellscript",
+            "type": "POSIX shell script, ASCII text executable"
+          },
+          "summary": "File Type Analysis: POSIX shell script, ASCII text executable (text/x-shellscript)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "CVE-2021-30657": true
+      }
+    },
+    "file:fb4dc8a598a8a73a3d1631ffa95f55c21bb1ee92f3568fecd2a6718a8bcd851e": {
+      "detections": {
+        "Possible CVE-2021-30657 attack: a file in DMG format file many_members.img is a script": [
+          null
+        ]
+      },
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "part25": {}
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "7702001aaf0383d7be9ba1b1f55f3dab",
+            "sha1": "aa3316ee771c89af465e4c75b8cb0c33e59765b1",
+            "sha256": "fb4dc8a598a8a73a3d1631ffa95f55c21bb1ee92f3568fecd2a6718a8bcd851e"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/x-shellscript",
+            "type": "POSIX shell script, ASCII text executable"
+          },
+          "summary": "File Type Analysis: POSIX shell script, ASCII text executable (text/x-shellscript)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "CVE-2021-30657": true
+      }
+    },
+    "file:fce42ba3fc3c54eec934b9d4be903d009cb3f1eccc4f0fcc3a041c28ca6704e8": {
+      "detections": {
+        "Possible CVE-2021-30657 attack: a file in DMG format file many_members.img is a script": [
+          null
+        ]
+      },
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "part46": {}
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "d361b8dddf1ada62899e6b1d175cca16",
+            "sha1": "05260f189f24d3cd40de2ee8b58264c2affc8d32",
+            "sha256": "fce42ba3fc3c54eec934b9d4be903d009cb3f1eccc4f0fcc3a041c28ca6704e8"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/x-shellscript",
+            "type": "POSIX shell script, ASCII text executable"
+          },
+          "summary": "File Type Analysis: POSIX shell script, ASCII text executable (text/x-shellscript)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "CVE-2021-30657": true
+      }
+    },
+    "md5:052f15d3f729461c11a98b85d8103908": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:f1c23d2e977380dd87b9af35a37601a480b6af5ecfc208e16a7242979999d632": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:0748895492d530af7d7b8411055d63dc": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:1767b6fe87b0322f159228a675cc7076e33a316a3d6e55e2b3bdf7de267d36c5": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:0e47bd6f3088bcba81ead0a6f128123f": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:62e3094f1b8923394a902b52117e2389f3f66508c0d9ea26b758cbd929cff3d2": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:118346815c1f0619a1a2c2ab99b7efc4": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:844b1a616c41fc34192cc211b2bb42bac11d9e08c2183267e3acc4d0d3d78dda": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:1533e03e8dcf58a11e724e24a0c32ea6": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:68f1b72bf021385a762f45a2f5e0dbfe19424bf6a026825719f7527e12df4671": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:16ff4ea53fcc3f180245432dbd6db696": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:efb6302b96266307d354ddda8b219089d8794be4d775fe690e39d0110456c4a3": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:174661297aaa0fb5c6b3d5cb78c9c0b0": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:2c67d703c96a9238bd126980e7e27743be941b8ad9fe0384c25154bea78b06c0": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:1b27f80625f9058e7b616d2d17061281": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:7baa403be43622b1b97b4141b22ea44532206929d0df5fbc95409cb4df08ad96": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:1c039d60e9c2093640d3827df7ef6075": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:885e3ba8832a9b049154ef552d3080abb9667e2da29462a0efee44317a2a0b6e": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:1de30f393abfbac5a488c095026232c8": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:1f20dffbc1223c2f00cae9af7ea4cca915d20f964092fc1d09a84e0ccb06c1f1": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:2750a845073b579f057fd84eaa1ba7b2": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:76648b428f5baf9111db4a4fd0c92d128b01b25960822f86795b45b02665ed18": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:3047062fce1fc7fa381fad31f8046f1c": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:600692968dfc9db6e64d3d5be179e295302cba7f83e11f569cdbb957dc3c05cf": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:30962ab7cfbd2d95a99a1197ae35dd91": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:549841ea589d6b513633aa4d7e61fac344a8bbe7696788d60deb71eec0215b9b": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:33acb0e8b45e1ea1d1eedbf78cdd7eda": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:f513ca89cee25c0c1b888ff59f021f6adc690229776530750445375670011235": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:365a3e64f74187bc2edd3bfbe04cf568": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:83c49b01d616e0dd782eb6faa10e4726cf8807c7cc662b3a8e34af0fcb2745fb": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:392c1d836f788a146c4a3da20e59cf7b": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:f3fa9fe1f1a3fe3bcd4179ba888c09e7fbfb09b0309c29d39f47e76be10011ca": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:3c570869d05e9b8415f0b6e32ab926d9": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:72c02da021560dca39771a771310ab5b211154261cdb59c37eb4137da206f5ba": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:3d4a38126a967ad4488dcaa557946ff9": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:d38d99dd67aa331f8c8e0c76fd00b56fdc6351054a9b40cf011e094069589b23": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:41c84894d8bde8e107494f706c3f4a06": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:7e27c4a7a8107211a29cae2b93a9c74c0d10f7e878db12926f5250bef3640149": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:41cbd810f3c283db7c008ec4edfed922": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:a555d01e85bb884b9d24efbb19ea652f5bd313cb93fe3f90fabeed59fe56de91": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:42bde20529ad992ee399a0143611f4ec": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:e5024663d4ef249cafc971cbd9f285b82e63e7c022bc421ea0fb738437c3c32a": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:4a32a81c206a8fd31b6387056b521b77": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:7d86a9dce86dd43f0fbf107837a5606d83eb571b85c91b34a987436ec874e436": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:509aa03231e6d8a05825256eab36d5b8": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:8eca73007609044ee0e8e82a5995441209fbae93e5748fce42eb83cde52651ba": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:5518a199dcc68d4158c779aa9cbfcb02": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:a9a8828ea1836c3420d32890864f615db3376a07f533a02f9781f9893b327d71": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:58389702d989c135ddc31db466520ce8": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:cf5e4325cca354cf1d733a9c576e1c095be79f611de0a624b0828fbccfb5fdf1": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:58e6afc7e1b0b24fd2f13cae54717b3e": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:c3ea87a525b691237c62e66f8a01239cae6f7995a5e9bf886b1af6bfac2ef7c6": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:626c9937b3c5b5fdc323b1095ff74bef": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:576236a5b9fb2320f87cb0643c71905b67f522059d5037fdfef4151b5658a0a6": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:655c239de99ac67ad351eb7bca1ff2a7": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:b5aacbc5b2cdee7a4b3e905a7dd03ec06d7f12857d57ac1ce59d0eecf0d8af05": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:66c3ddefeccb719b0eeded2be9f45782": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:34e2586a8cff2b37fc2dd8b54a33a07301b26c586918a3ce7680f979b40ad27c": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:66d7256265f585e78fbff9d8c92f0d43": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:a848449d8a39f03984a3baee597c39961ee21f259d2c98fbfc98376f089a701d": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:67fa5d0e6294769d9ef4d485a051eb37": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:ead5d2cf65508ca112303850be28a5f370e90eafca62a4bb1c25b45a15d36365": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:680f43652b69fcfec35a87a6eca042d5": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:de31abd235e917e73b8f3361b974cd1afa5da2adaec73009ba4053877e99d16a": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:6b9058c85e39434d4eba4d1c087d6f56": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:777823c5f002a9308f21d9a681916eb0e7428125d55effdb5cebfeb8ed2a90d1": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:75d8a6efe76a42ffad2919b331b19034": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:30617c13ae2e76e8493cbd1d19f5ef18395b5ce3b9f9e30eaebcab2477aa1dc8": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:7702001aaf0383d7be9ba1b1f55f3dab": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:fb4dc8a598a8a73a3d1631ffa95f55c21bb1ee92f3568fecd2a6718a8bcd851e": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:7713c9563a9d4be7705f6a2eacf2308d": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:82e94143274a2d5e0826d3b77f5d1be0d0696eeff1c0354b31c3f01646a6f4fb": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:77ec44e74523a6e8b3ee293576c08dd9": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:04c6d4e637932a455f6f622d53336734c09327f361939e3c6e96e6846aae36f5": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:79c78a038457c60ae3d65eff848c3872": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:d7990fcd177ad1f8664ac2620d84b2a77c0eb6c09c820a89c6b101ba8b6b105e": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:7b7479b3dde6ce127cb4c7925399ae85": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:c3b92744f5ec24245c982d2524069bc750e14304bc4f700af9040733414fd9e4": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:7ce1d008bfec8bea01153239a9d5ac60": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:d8712f75cca87895e2ddec677c48f64288a8e610fdacc6db6f148970e4eec267": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:804cfbf4869dba9d8287f98517f093e0": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:79de4fdb74833cddd4d11b0a301a288914db683fab81b0ad8bb55be9719fabf0": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:827ad43465c593377ee26fc73c758564": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:b6c61aadb334d19668ca9236c77bfaa798ff6d15d2e3a32f7396544bb0343e34": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:8377c1751bdc21cf728f0f99abebdae6": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:c3e3af18fcd1458922f27ec3fcda060862a8804facbf094a272552c5d31d5c57": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:8742685ae79980e758da5335c99476eb": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:9016039b0612b9cf701556a7449d67ee81768d977ec426853f4bbd0abfedda80": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:88d80a0833d770da480c8f9aeef448bd": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:9de718e9c056701095cd9f481d2d41ca8f7ec929582f6660ecd7b0f1996515f4": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:8f0452ba8f4ac694875c24a4fa63d901": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:4822df9e92db0d563283d76bbc11f6d7487938bcc20abb35a4e803a98fd32a5c": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:922519d212c8cbdd629f62e8a5e1976f": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:dd7bc8c4df78e83bb9a0c2b78c7895265c8ae0fe080595507793c7a608531815": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:9812d5cb3893eec0852f363c5628bb17": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:3cb13d9d8457e2c6467cf74e54e9c8cd7ae59ed53553f786f4081e83ddc016e4": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:9e21e21a71a06bd3082a8d046cc9a648": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:0e6e829b31aaabc4a4a784785bf4bc82b84a24b42b6a29a88afe7bd83a85f77e": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:bab825df8d3c773f7af0b9c5fcdee469": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:e63ee4976c65999ef230cd6413a6858320055268c3fd6b62f498136fc84b0214": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:c260a8d26eca41afa912ae8716e61af6": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:d50febba981636da9c9c7a3bc14a6ed13a5d1b99690ae52ef4d6347752b06756": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:c56c351d479ea3ee34e7b9131d8d07ea": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:8f743d37ad742ca678fa033c724ec2c0e6969f7f8c55d06908d2483c84fb607c": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:c9edbbb76a5b9fdb79431c0d119da9b4": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:b2151be93bec531e8f11d2692672151ba406c16c5555ed84205e0ca6e111c9ad": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:d0dd18ea376f6ea97e2060375cded24b": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:aae1e9d8c891587c0112669ab706d2423003e8c867fcaaef6b49553a0fc175bd": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:d23fa3694adbd1e451996581c5c8b2b8": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:03808712ea26037b8d4f31e56e4205f5d9cd7dd26b5ff358cc005e0e763b1a08": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:d361b8dddf1ada62899e6b1d175cca16": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:fce42ba3fc3c54eec934b9d4be903d009cb3f1eccc4f0fcc3a041c28ca6704e8": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:d46a0228c5ca4f09fa6b972a64c6b0f4": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:dc2c5ada464b8acfb985eba589ddf6f9fb46ca80124206bd867d5f6f48af61a1": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:d8140114fac0171ca09904230763054d": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:4f823c3bf5b674337778bb00f0a69e7b51cf5b94b52cf54232ae760e16fbef5b": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:d9f3f0ee6ec0f38b5cb4c5fd7d82a9a0": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:783dd831fd9aaacb022986c6d10d2f0630ba2a81386ac036758d723cab53c9a4": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:da6019f3272a5ff5abcfa46ea7b8c3c6": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:ecbf6cb36df945c418c29e9530c470ddd40c31e1e88b4f0c50145c3f0f70076e": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:e26f3cb90f5b511380220c58b1beca53": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:10a9791fcadcb967f5e81037f4defa13ca9a9293866ee4e097c20bb172110fdb": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:e292d988bf1298c2986e8cee5809c7a0": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:9a754da979939e75376828e2dc95270639ecd42eb51a2730467b2d0e95f36bb9": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:e6c897a620bab47b4c48a654f38f6275": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:1a6184bbf0ee496ebd0a48125bfecc6cf5d2537bf895b4539bdd6bc9127ee211": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:ea93890de5d3c457e8b50a1cf8d1083d": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:f7a6969200cdddd85b9b29cbd81d9b07a1e120180e1b36df31f084750cda113b": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:ecd8b91fdbc69345849f8b15e577f696": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:f1bbd27add36ee072867a97b701eb2750cc5cdb9553a0f08fe597402f02dfcd2": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:f11225203530606e6ef1eabbc1b09ce4": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:b1b3921ece016234a33576d923eea3bdd4941a2efe0a6c5e1d025cc35573e693": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:f119ccb4ccfe3b778892caf97104cb67": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:555ca6563532c60302fe5c660ff083008f94fa325912392d4c3097d168475565": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:ff4e8d994fa24049144a74719fd7893f": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:d3009dc7fb81492961638c29fc5b6f624ab99e43f4efd96d3bc134c458214d46": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:03808712ea26037b8d4f31e56e4205f5d9cd7dd26b5ff358cc005e0e763b1a08": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:03808712ea26037b8d4f31e56e4205f5d9cd7dd26b5ff358cc005e0e763b1a08": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:04c6d4e637932a455f6f622d53336734c09327f361939e3c6e96e6846aae36f5": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:04c6d4e637932a455f6f622d53336734c09327f361939e3c6e96e6846aae36f5": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:0e6e829b31aaabc4a4a784785bf4bc82b84a24b42b6a29a88afe7bd83a85f77e": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:0e6e829b31aaabc4a4a784785bf4bc82b84a24b42b6a29a88afe7bd83a85f77e": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:10a9791fcadcb967f5e81037f4defa13ca9a9293866ee4e097c20bb172110fdb": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:10a9791fcadcb967f5e81037f4defa13ca9a9293866ee4e097c20bb172110fdb": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:1767b6fe87b0322f159228a675cc7076e33a316a3d6e55e2b3bdf7de267d36c5": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:1767b6fe87b0322f159228a675cc7076e33a316a3d6e55e2b3bdf7de267d36c5": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:1a6184bbf0ee496ebd0a48125bfecc6cf5d2537bf895b4539bdd6bc9127ee211": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:1a6184bbf0ee496ebd0a48125bfecc6cf5d2537bf895b4539bdd6bc9127ee211": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:1f20dffbc1223c2f00cae9af7ea4cca915d20f964092fc1d09a84e0ccb06c1f1": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:1f20dffbc1223c2f00cae9af7ea4cca915d20f964092fc1d09a84e0ccb06c1f1": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:2c67d703c96a9238bd126980e7e27743be941b8ad9fe0384c25154bea78b06c0": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:2c67d703c96a9238bd126980e7e27743be941b8ad9fe0384c25154bea78b06c0": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:30617c13ae2e76e8493cbd1d19f5ef18395b5ce3b9f9e30eaebcab2477aa1dc8": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:30617c13ae2e76e8493cbd1d19f5ef18395b5ce3b9f9e30eaebcab2477aa1dc8": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:34e2586a8cff2b37fc2dd8b54a33a07301b26c586918a3ce7680f979b40ad27c": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:34e2586a8cff2b37fc2dd8b54a33a07301b26c586918a3ce7680f979b40ad27c": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:3cb13d9d8457e2c6467cf74e54e9c8cd7ae59ed53553f786f4081e83ddc016e4": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:3cb13d9d8457e2c6467cf74e54e9c8cd7ae59ed53553f786f4081e83ddc016e4": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:4822df9e92db0d563283d76bbc11f6d7487938bcc20abb35a4e803a98fd32a5c": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:4822df9e92db0d563283d76bbc11f6d7487938bcc20abb35a4e803a98fd32a5c": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:4f823c3bf5b674337778bb00f0a69e7b51cf5b94b52cf54232ae760e16fbef5b": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:4f823c3bf5b674337778bb00f0a69e7b51cf5b94b52cf54232ae760e16fbef5b": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:549841ea589d6b513633aa4d7e61fac344a8bbe7696788d60deb71eec0215b9b": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:549841ea589d6b513633aa4d7e61fac344a8bbe7696788d60deb71eec0215b9b": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:555ca6563532c60302fe5c660ff083008f94fa325912392d4c3097d168475565": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:555ca6563532c60302fe5c660ff083008f94fa325912392d4c3097d168475565": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:576236a5b9fb2320f87cb0643c71905b67f522059d5037fdfef4151b5658a0a6": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:576236a5b9fb2320f87cb0643c71905b67f522059d5037fdfef4151b5658a0a6": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:600692968dfc9db6e64d3d5be179e295302cba7f83e11f569cdbb957dc3c05cf": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:600692968dfc9db6e64d3d5be179e295302cba7f83e11f569cdbb957dc3c05cf": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:62e3094f1b8923394a902b52117e2389f3f66508c0d9ea26b758cbd929cff3d2": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:62e3094f1b8923394a902b52117e2389f3f66508c0d9ea26b758cbd929cff3d2": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:68f1b72bf021385a762f45a2f5e0dbfe19424bf6a026825719f7527e12df4671": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:68f1b72bf021385a762f45a2f5e0dbfe19424bf6a026825719f7527e12df4671": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:72c02da021560dca39771a771310ab5b211154261cdb59c37eb4137da206f5ba": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:72c02da021560dca39771a771310ab5b211154261cdb59c37eb4137da206f5ba": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:76648b428f5baf9111db4a4fd0c92d128b01b25960822f86795b45b02665ed18": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:76648b428f5baf9111db4a4fd0c92d128b01b25960822f86795b45b02665ed18": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:777823c5f002a9308f21d9a681916eb0e7428125d55effdb5cebfeb8ed2a90d1": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:777823c5f002a9308f21d9a681916eb0e7428125d55effdb5cebfeb8ed2a90d1": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:783dd831fd9aaacb022986c6d10d2f0630ba2a81386ac036758d723cab53c9a4": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:783dd831fd9aaacb022986c6d10d2f0630ba2a81386ac036758d723cab53c9a4": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:79de4fdb74833cddd4d11b0a301a288914db683fab81b0ad8bb55be9719fabf0": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:79de4fdb74833cddd4d11b0a301a288914db683fab81b0ad8bb55be9719fabf0": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:7baa403be43622b1b97b4141b22ea44532206929d0df5fbc95409cb4df08ad96": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:7baa403be43622b1b97b4141b22ea44532206929d0df5fbc95409cb4df08ad96": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:7d86a9dce86dd43f0fbf107837a5606d83eb571b85c91b34a987436ec874e436": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:7d86a9dce86dd43f0fbf107837a5606d83eb571b85c91b34a987436ec874e436": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:7e27c4a7a8107211a29cae2b93a9c74c0d10f7e878db12926f5250bef3640149": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:7e27c4a7a8107211a29cae2b93a9c74c0d10f7e878db12926f5250bef3640149": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:82e94143274a2d5e0826d3b77f5d1be0d0696eeff1c0354b31c3f01646a6f4fb": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:82e94143274a2d5e0826d3b77f5d1be0d0696eeff1c0354b31c3f01646a6f4fb": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:83c49b01d616e0dd782eb6faa10e4726cf8807c7cc662b3a8e34af0fcb2745fb": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:83c49b01d616e0dd782eb6faa10e4726cf8807c7cc662b3a8e34af0fcb2745fb": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:844b1a616c41fc34192cc211b2bb42bac11d9e08c2183267e3acc4d0d3d78dda": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:844b1a616c41fc34192cc211b2bb42bac11d9e08c2183267e3acc4d0d3d78dda": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:885e3ba8832a9b049154ef552d3080abb9667e2da29462a0efee44317a2a0b6e": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:885e3ba8832a9b049154ef552d3080abb9667e2da29462a0efee44317a2a0b6e": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:8eca73007609044ee0e8e82a5995441209fbae93e5748fce42eb83cde52651ba": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:8eca73007609044ee0e8e82a5995441209fbae93e5748fce42eb83cde52651ba": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:8f743d37ad742ca678fa033c724ec2c0e6969f7f8c55d06908d2483c84fb607c": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:8f743d37ad742ca678fa033c724ec2c0e6969f7f8c55d06908d2483c84fb607c": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:9016039b0612b9cf701556a7449d67ee81768d977ec426853f4bbd0abfedda80": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:9016039b0612b9cf701556a7449d67ee81768d977ec426853f4bbd0abfedda80": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:9a754da979939e75376828e2dc95270639ecd42eb51a2730467b2d0e95f36bb9": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:9a754da979939e75376828e2dc95270639ecd42eb51a2730467b2d0e95f36bb9": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:9de718e9c056701095cd9f481d2d41ca8f7ec929582f6660ecd7b0f1996515f4": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:9de718e9c056701095cd9f481d2d41ca8f7ec929582f6660ecd7b0f1996515f4": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:a555d01e85bb884b9d24efbb19ea652f5bd313cb93fe3f90fabeed59fe56de91": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:a555d01e85bb884b9d24efbb19ea652f5bd313cb93fe3f90fabeed59fe56de91": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:a848449d8a39f03984a3baee597c39961ee21f259d2c98fbfc98376f089a701d": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:a848449d8a39f03984a3baee597c39961ee21f259d2c98fbfc98376f089a701d": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:a9a8828ea1836c3420d32890864f615db3376a07f533a02f9781f9893b327d71": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:a9a8828ea1836c3420d32890864f615db3376a07f533a02f9781f9893b327d71": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:aae1e9d8c891587c0112669ab706d2423003e8c867fcaaef6b49553a0fc175bd": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:aae1e9d8c891587c0112669ab706d2423003e8c867fcaaef6b49553a0fc175bd": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:b1b3921ece016234a33576d923eea3bdd4941a2efe0a6c5e1d025cc35573e693": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:b1b3921ece016234a33576d923eea3bdd4941a2efe0a6c5e1d025cc35573e693": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:b2151be93bec531e8f11d2692672151ba406c16c5555ed84205e0ca6e111c9ad": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:b2151be93bec531e8f11d2692672151ba406c16c5555ed84205e0ca6e111c9ad": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:b5aacbc5b2cdee7a4b3e905a7dd03ec06d7f12857d57ac1ce59d0eecf0d8af05": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:b5aacbc5b2cdee7a4b3e905a7dd03ec06d7f12857d57ac1ce59d0eecf0d8af05": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:b6c61aadb334d19668ca9236c77bfaa798ff6d15d2e3a32f7396544bb0343e34": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:b6c61aadb334d19668ca9236c77bfaa798ff6d15d2e3a32f7396544bb0343e34": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:c3b92744f5ec24245c982d2524069bc750e14304bc4f700af9040733414fd9e4": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:c3b92744f5ec24245c982d2524069bc750e14304bc4f700af9040733414fd9e4": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:c3e3af18fcd1458922f27ec3fcda060862a8804facbf094a272552c5d31d5c57": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:c3e3af18fcd1458922f27ec3fcda060862a8804facbf094a272552c5d31d5c57": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:c3ea87a525b691237c62e66f8a01239cae6f7995a5e9bf886b1af6bfac2ef7c6": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:c3ea87a525b691237c62e66f8a01239cae6f7995a5e9bf886b1af6bfac2ef7c6": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:cf5e4325cca354cf1d733a9c576e1c095be79f611de0a624b0828fbccfb5fdf1": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:cf5e4325cca354cf1d733a9c576e1c095be79f611de0a624b0828fbccfb5fdf1": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:d3009dc7fb81492961638c29fc5b6f624ab99e43f4efd96d3bc134c458214d46": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:d3009dc7fb81492961638c29fc5b6f624ab99e43f4efd96d3bc134c458214d46": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:d38d99dd67aa331f8c8e0c76fd00b56fdc6351054a9b40cf011e094069589b23": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:d38d99dd67aa331f8c8e0c76fd00b56fdc6351054a9b40cf011e094069589b23": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:d50febba981636da9c9c7a3bc14a6ed13a5d1b99690ae52ef4d6347752b06756": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:d50febba981636da9c9c7a3bc14a6ed13a5d1b99690ae52ef4d6347752b06756": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:d7990fcd177ad1f8664ac2620d84b2a77c0eb6c09c820a89c6b101ba8b6b105e": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:d7990fcd177ad1f8664ac2620d84b2a77c0eb6c09c820a89c6b101ba8b6b105e": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:d8712f75cca87895e2ddec677c48f64288a8e610fdacc6db6f148970e4eec267": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:d8712f75cca87895e2ddec677c48f64288a8e610fdacc6db6f148970e4eec267": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:dc2c5ada464b8acfb985eba589ddf6f9fb46ca80124206bd867d5f6f48af61a1": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:dc2c5ada464b8acfb985eba589ddf6f9fb46ca80124206bd867d5f6f48af61a1": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:dd7bc8c4df78e83bb9a0c2b78c7895265c8ae0fe080595507793c7a608531815": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:dd7bc8c4df78e83bb9a0c2b78c7895265c8ae0fe080595507793c7a608531815": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:de31abd235e917e73b8f3361b974cd1afa5da2adaec73009ba4053877e99d16a": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:de31abd235e917e73b8f3361b974cd1afa5da2adaec73009ba4053877e99d16a": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:e5024663d4ef249cafc971cbd9f285b82e63e7c022bc421ea0fb738437c3c32a": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:e5024663d4ef249cafc971cbd9f285b82e63e7c022bc421ea0fb738437c3c32a": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:e63ee4976c65999ef230cd6413a6858320055268c3fd6b62f498136fc84b0214": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:e63ee4976c65999ef230cd6413a6858320055268c3fd6b62f498136fc84b0214": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:ead5d2cf65508ca112303850be28a5f370e90eafca62a4bb1c25b45a15d36365": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:ead5d2cf65508ca112303850be28a5f370e90eafca62a4bb1c25b45a15d36365": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:ecbf6cb36df945c418c29e9530c470ddd40c31e1e88b4f0c50145c3f0f70076e": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:ecbf6cb36df945c418c29e9530c470ddd40c31e1e88b4f0c50145c3f0f70076e": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:efb6302b96266307d354ddda8b219089d8794be4d775fe690e39d0110456c4a3": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:efb6302b96266307d354ddda8b219089d8794be4d775fe690e39d0110456c4a3": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:f1bbd27add36ee072867a97b701eb2750cc5cdb9553a0f08fe597402f02dfcd2": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:f1bbd27add36ee072867a97b701eb2750cc5cdb9553a0f08fe597402f02dfcd2": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:f1c23d2e977380dd87b9af35a37601a480b6af5ecfc208e16a7242979999d632": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:f1c23d2e977380dd87b9af35a37601a480b6af5ecfc208e16a7242979999d632": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:f3fa9fe1f1a3fe3bcd4179ba888c09e7fbfb09b0309c29d39f47e76be10011ca": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:f3fa9fe1f1a3fe3bcd4179ba888c09e7fbfb09b0309c29d39f47e76be10011ca": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:f513ca89cee25c0c1b888ff59f021f6adc690229776530750445375670011235": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:f513ca89cee25c0c1b888ff59f021f6adc690229776530750445375670011235": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:f7a6969200cdddd85b9b29cbd81d9b07a1e120180e1b36df31f084750cda113b": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:f7a6969200cdddd85b9b29cbd81d9b07a1e120180e1b36df31f084750cda113b": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:fb4dc8a598a8a73a3d1631ffa95f55c21bb1ee92f3568fecd2a6718a8bcd851e": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:fb4dc8a598a8a73a3d1631ffa95f55c21bb1ee92f3568fecd2a6718a8bcd851e": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:fce42ba3fc3c54eec934b9d4be903d009cb3f1eccc4f0fcc3a041c28ca6704e8": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:fce42ba3fc3c54eec934b9d4be903d009cb3f1eccc4f0fcc3a041c28ca6704e8": true
+      },
+      "results": {},
+      "tags": {}
+    }
+  }
+}

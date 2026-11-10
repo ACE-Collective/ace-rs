@@ -160,7 +160,7 @@ CMD ["ace-parsers"]
 # image has for zbarimg, Ghostscript, pdftotext and ExifTool. Batch 11 adds the JVM with CFR 0.151,
 # upx, unautoit, and .NET's 10.0.14 runtime with ilspycmd and de4dotEx (decision 18): the headless
 # JRE, where ace3's default-jre adds the GUI libraries nothing here uses, and the runtime from
-# Microsoft's repository, where ace3 installs the whole SDK.
+# Microsoft's repository, where ace3 installs the whole SDK. Batch 12 adds dmg2img and 7-Zip.
 FROM runtime AS sandbox
 ADD --checksum=sha256:d0c2f69250c6ce0d4c6220b142f999d039a3c560af7f980b943687d106ca8e38 \
     https://packages.microsoft.com/config/debian/13/packages-microsoft-prod.deb /tmp/packages-microsoft-prod.deb
@@ -188,6 +188,13 @@ RUN sed -i -e '/^Components: main$/ s/$/ contrib non-free/' /etc/apt/sources.lis
     && rm -rf /var/lib/apt/lists/* \
     && useradd --system --uid 10001 --user-group --no-create-home --home-dir /nonexistent \
         --shell /usr/sbin/nologin ace4-task
+# Batch 12's macOS image tools, at ace3's versions: dmg2img, and 7-Zip, whose 7z loads its formats from
+# 7z.so beside it and RAR's codecs from 7zip-rar's Codecs/Rar.so, in non-free, as ace3's does. A layer
+# of their own, so the one above stays cached.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        dmg2img=1.6.7+git20201227.a3e4134-0.1 7zip=25.01+dfsg-1~deb13u2 7zip-rar=25.00+ds-1+deb13u1 \
+    && rm -rf /var/lib/apt/lists/*
 # installed rather than added in place: ADD's --chmod would give the directory it makes the file's mode
 # too, and the task's user couldn't reach the jar
 ADD --checksum=sha256:316e9015b9af2953fcff4fe86bf3bba705f32e7cd25bd6e535c698de8a25e837 \

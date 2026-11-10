@@ -258,6 +258,14 @@ pub fn modules(settings: &Value) -> Result<Modules, SetupError> {
         .with_parser(Entry::<ace_mod_sandbox::IlspyAnalyzer>::parser(
             block("ilspy"),
             &secrets,
+        )?)
+        .with_parser(Entry::<ace_mod_sandbox::DmgAnalyzer>::parser(
+            block("dmg_analyzer"),
+            &secrets,
+        )?)
+        .with_parser(Entry::<ace_mod_sandbox::Cve202130657Analyzer>::parser(
+            block("cve_2021_30657_analyzer"),
+            &secrets,
         )?))
 }
 

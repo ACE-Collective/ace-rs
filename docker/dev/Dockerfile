@@ -134,7 +134,7 @@ CMD ["poll-host-changes"]
 RUN useradd --system --uid 10001 --user-group --no-create-home --home-dir /nonexistent \
         --shell /usr/sbin/nologin ace4-task
 
-# The sandbox pool's tools (PLAN.md 7.5 batches 10 and 11, docs/modules.md's *External tools*), at the
+# The sandbox pool's tools (PLAN.md 7.5 batches 10 to 12, docs/modules.md's *External tools*), at the
 # versions docker/ace4/Dockerfile's sandbox image pins, which are ace3's, so the sandbox runner's
 # tests and the modules' tests run the programs ace3 runs. unace is in non-free. strace is for
 # finding what a tool opens. libclang is what the `opencv` crate generates its bindings with, over
@@ -164,6 +164,11 @@ RUN sed -i -e '/^Components: main$/ s/$/ contrib non-free/' /etc/apt/sources.lis
         upx-ucl=4.2.4-1.1 \
         dotnet-runtime-10.0=10.0.14-1 dotnet-hostfxr-10.0=10.0.14-1 dotnet-host=10.0.14-1 \
         dotnet-runtime-deps-10.0=10.0.14-1 \
+    && rm -rf /var/lib/apt/lists/*
+# batch 12's, in a layer of their own as in the sandbox image
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        dmg2img=1.6.7+git20201227.a3e4134-0.1 7zip=25.01+dfsg-1~deb13u2 7zip-rar=25.00+ds-1+deb13u1 \
     && rm -rf /var/lib/apt/lists/*
 # installed rather than added in place: ADD's --chmod would give the directory it makes the file's mode
 # too, and the task's user couldn't reach the jar
