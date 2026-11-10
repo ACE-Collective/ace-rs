@@ -27,6 +27,36 @@
           "summary": "Archive Analysis: extracted 5 of 5 files: ([Content_Types].xml, xl/workbook.xml, xl/macrosheets/sheet1.xml, xl/_rels/workbook.xml.rels, _rels/.rels)",
           "tags": {}
         },
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:31:39+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:31:39+00:00",
+              "File:FileModifyDate": "2026:11:07 14:35:12+00:00",
+              "File:FileName": "xlm_branch_r1c1.xlsm",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 2591,
+              "File:FileType": "XLSM",
+              "File:FileTypeExtension": "XLSM",
+              "File:MIMEType": "application/vnd.ms-excel.sheet.macroEnabled.12",
+              "SourceFile": "<root>/files/xlm_branch_r1c1.xlsm",
+              "ZIP:ZipBitFlag": 0,
+              "ZIP:ZipCRC": 4246890357,
+              "ZIP:ZipCompressedSize": 508,
+              "ZIP:ZipCompression": 0,
+              "ZIP:ZipFileName": "[Content_Types].xml",
+              "ZIP:ZipModifyDate": "2020:01:01 00:00:00",
+              "ZIP:ZipRequiredVersion": 20,
+              "ZIP:ZipUncompressedSize": 508
+            },
+            "output_dir": "<root>/files/xlm_branch_r1c1.xlsm.exif"
+          },
+          "summary": "Exiftool Analysis: ZipRequiredVersion=20, ZipBitFlag=0, ZipCompression=0, ZipModifyDate=2020:01:01 00:00:00, ZipCRC=4246890357, ZipCompressedSize=508, ZipUncompressedSize=508, ZipFileName=[Content_Types].xml",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "ad4a9dfd806d12e61db3e025b684516c",
@@ -449,6 +479,24 @@
           "tags": {}
         }
       },
+      "tags": {}
+    },
+    "file:9bdb23a849e61bbfd4910fbf2a906c60a88e04a3ca8d75299a1cd91d3e3dc649": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "xlm_branch_r1c1.xlsm.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:153565d69cd9d8463f3c4f7aace68bb690fb00ca741a0552b5a53ac0954b4030": true
+      },
+      "results": {},
       "tags": {}
     },
     "file:a955d6732c555882ea09ef61407ab7a5d767083b60964b35bc8a4ca0fd336060": {

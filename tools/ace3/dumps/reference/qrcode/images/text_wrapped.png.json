@@ -1,0 +1,43 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "QRCodeAnalysis",
+      "details": {
+        "extracted_text": null,
+        "inverted": false
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.qrcode:QRCodeAnalysis",
+      "observables": [],
+      "summary": null,
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/images/text_wrapped.png",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "text_wrapped.png",
+      "size": 16797,
+      "type": "file",
+      "value": "60b73c2a2d255bd061c18356cd5b3a57d837a7f6eedb71c247eaf13a70b80b55"
+    }
+  },
+  "module": "qrcode",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "text_wrapped.png",
+    "relationships": [],
+    "size": 16797,
+    "tags": [],
+    "type": "file",
+    "value": "60b73c2a2d255bd061c18356cd5b3a57d837a7f6eedb71c247eaf13a70b80b55",
+    "yara_meta": []
+  }
+}

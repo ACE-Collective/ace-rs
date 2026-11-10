@@ -213,6 +213,7 @@ services:
       ACE4_LEASE_SECONDS: ${ACE4_LEASE_SECONDS:-60}
       ACE4_POOL_TOKEN_PARSERS: ${ACE4_POOL_TOKEN_PARSERS:-ace4-dev-parsers-token}
       ACE4_POOL_TOKEN_LOOKUPS: ${ACE4_POOL_TOKEN_LOOKUPS:-ace4-dev-lookups-token}
+      ACE4_POOL_TOKEN_SANDBOX: ${ACE4_POOL_TOKEN_SANDBOX:-ace4-dev-sandbox-token}
       ACE4_ADMIN_TOKEN: ${ACE4_ADMIN_TOKEN:-ace4-dev-admin-token}
       # the email archive's key (64 hex digits), which only this service holds; with none, nothing is
       # archived or opened
@@ -235,7 +236,7 @@ services:
       start_period: 30s
       retries: 5
 
-  # The parser pool: the email, archive and YARA modules, one contained process per task, as
+  # The parser pool: the email, YARA and other file modules, one contained process per task, as
   # the ace4-task user. It leases nothing until the core's first YARA ruleset has loaded.
   parsers:
     build:
@@ -262,6 +263,38 @@ services:
     restart: unless-stopped
     healthcheck:
       # the pool writes this file every 5 seconds while its runtime runs
+      test: ["CMD-SHELL", "test -n \"$$(find /tmp/ace4-health -newermt '-20 seconds')\""]
+      interval: 5s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+
+  # The sandbox pool (PLAN.md 7.3): the parser pool of the modules that run tools, such as
+  # Ghostscript, tesseract and ExifTool, whose image carries them. Its supervisor runs each tool a
+  # task asks for as a contained process of its own, as ace4-task.
+  sandbox:
+    build:
+      context: .
+      dockerfile: docker/ace4/Dockerfile
+      target: sandbox
+    image: ace4-sandbox:latest
+    depends_on:
+      ace:
+        condition: service_healthy
+    init: true
+    environment:
+      ACE4_API_URL: http://ace:8080
+      ACE4_POOL_TOKEN: ${ACE4_POOL_TOKEN_SANDBOX:-ace4-dev-sandbox-token}
+      ACE4_OVERLAY: /etc/ace4/overlay.yaml
+      ACE4_CONCURRENCY: ${ACE4_SANDBOX_CONCURRENCY:-4}
+      ACE4_LOG: ${ACE4_LOG:-info}
+      NO_PROXY: localhost,127.0.0.1,ace,bucket,collector
+      no_proxy: localhost,127.0.0.1,ace,bucket,collector
+    volumes:
+      - ${ACE4_SITE:-./docker/site}:/etc/ace4:ro
+    mem_limit: ${ACE4_SANDBOX_MEM_LIMIT:-4g}
+    restart: unless-stopped
+    healthcheck:
       test: ["CMD-SHELL", "test -n \"$$(find /tmp/ace4-health -newermt '-20 seconds')\""]
       interval: 5s
       timeout: 5s

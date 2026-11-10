@@ -1,6 +1,24 @@
 {
   "form": 1,
   "observables": {
+    "file:04b1f7e6d0b80986da1aae62d83f6ce999d731834358afbf275331ec381f4b5b": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "xlm_branch_loops.xlsm.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:8ee420ccaa2b168dd39d9dd21e818076d395e7707b6d87316e57840bd95bfd59": true
+      },
+      "results": {},
+      "tags": {}
+    },
     "file:44b1ae0ea5f7b1e87bd6e59f523ab73602e2e32331798edfb03fb8da6b13eb9b": {
       "detections": {},
       "directives": {
@@ -347,6 +365,36 @@
             "file_count": 5
           },
           "summary": "Archive Analysis: extracted 5 of 5 files: ([Content_Types].xml, xl/workbook.xml, xl/macrosheets/sheet1.xml, xl/_rels/workbook.xml.rels, _rels/.rels)",
+          "tags": {}
+        },
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:31:19+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:31:19+00:00",
+              "File:FileModifyDate": "2026:11:07 14:35:12+00:00",
+              "File:FileName": "xlm_branch_loops.xlsm",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 2988,
+              "File:FileType": "XLSM",
+              "File:FileTypeExtension": "XLSM",
+              "File:MIMEType": "application/vnd.ms-excel.sheet.macroEnabled.12",
+              "SourceFile": "<root>/files/xlm_branch_loops.xlsm",
+              "ZIP:ZipBitFlag": 0,
+              "ZIP:ZipCRC": 4246890357,
+              "ZIP:ZipCompressedSize": 508,
+              "ZIP:ZipCompression": 0,
+              "ZIP:ZipFileName": "[Content_Types].xml",
+              "ZIP:ZipModifyDate": "2020:01:01 00:00:00",
+              "ZIP:ZipRequiredVersion": 20,
+              "ZIP:ZipUncompressedSize": 508
+            },
+            "output_dir": "<root>/files/xlm_branch_loops.xlsm.exif"
+          },
+          "summary": "Exiftool Analysis: ZipRequiredVersion=20, ZipBitFlag=0, ZipCompression=0, ZipModifyDate=2020:01:01 00:00:00, ZipCRC=4246890357, ZipCompressedSize=508, ZipUncompressedSize=508, ZipFileName=[Content_Types].xml",
           "tags": {}
         },
         "file_hash_analyzer": {

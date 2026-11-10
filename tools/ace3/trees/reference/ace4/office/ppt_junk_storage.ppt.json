@@ -65,6 +65,29 @@
       },
       "relationships": {},
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:27:19+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:27:19+00:00",
+              "File:FileModifyDate": "2026:11:07 15:11:53+00:00",
+              "File:FileName": "ppt_junk_storage.ppt",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 2560,
+              "File:FileType": "PPT",
+              "File:FileTypeExtension": "PPT",
+              "File:MIMEType": "application/vnd.ms-powerpoint",
+              "FlashPix:CurrentUser": "a",
+              "SourceFile": "<root>/files/ppt_junk_storage.ppt"
+            },
+            "output_dir": "<root>/files/ppt_junk_storage.ppt.exif"
+          },
+          "summary": "Exiftool Analysis: CurrentUser=a",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "f15d1291c2b93f87b2c215affc4caf0d",
@@ -168,6 +191,24 @@
           "tags": {}
         }
       },
+      "tags": {}
+    },
+    "file:eccb30b6246ebc1819d62dd46ea18fd06840579e3fbe3bb3b4946ab82b120196": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "ppt_junk_storage.ppt.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:7590c212e4152ea350b0e8f76dbc75fd02729269a8313baa1aba6ee63139c43d": true
+      },
+      "results": {},
       "tags": {}
     },
     "md5:f15d1291c2b93f87b2c215affc4caf0d": {

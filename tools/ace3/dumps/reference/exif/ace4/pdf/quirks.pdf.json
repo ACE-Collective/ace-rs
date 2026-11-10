@@ -1,0 +1,123 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "ExifAnalysis",
+      "details": {
+        "error": null,
+        "exifdata": {
+          "ExifTool:ExifToolVersion": 13.25,
+          "ExifTool:Warning": "Invalid xref table",
+          "File:Directory": "<root>/files",
+          "File:FileAccessDate": "2026:11:10 11:04:48+00:00",
+          "File:FileInodeChangeDate": "2026:11:10 11:04:48+00:00",
+          "File:FileModifyDate": "2026:11:07 04:47:50+00:00",
+          "File:FileName": "quirks.pdf",
+          "File:FilePermissions": 100644,
+          "File:FileSize": 1136,
+          "File:FileType": "PDF",
+          "File:FileTypeExtension": "PDF",
+          "File:MIMEType": "application/pdf",
+          "PDF:Linearized": false,
+          "PDF:PDFVersion": 1.4,
+          "SourceFile": "<root>/files/quirks.pdf"
+        },
+        "output_dir": "<root>/files/quirks.pdf.exif"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.exif:ExifAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=metadata.exif"
+          ],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.file_type:<class 'saq.modules.file_analysis.file_type.FileTypeAnalyzer'>",
+            "saq.modules.file_analysis.hash:<class 'saq.modules.file_analysis.hash.FileHashAnalyzer'>"
+          ],
+          "file_path": "quirks.pdf.exif/exiftool.out",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "01940d8e00316615efbbc86cc54902f0afb11fee57536db4f908c1c0fbda3aa4"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 642,
+          "tags": [],
+          "type": "file",
+          "value": "c0ed4509b762f9a8e7e1c5726163f37de75c7e1e4a8bf7e3f561fac409572d4a",
+          "yara_meta": [
+            "type=metadata.exif"
+          ]
+        }
+      ],
+      "summary": "Exiftool Analysis: PDFVersion=1.4, Linearized=False",
+      "tags": []
+    },
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": true,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "application/pdf",
+        "type": "PDF document, version 1.4, 1 page(s)"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: PDF document, version 1.4, 1 page(s) (application/pdf) (pdf document)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace4/pdf/quirks.pdf",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "quirks.pdf",
+      "size": 1136,
+      "type": "file",
+      "value": "01940d8e00316615efbbc86cc54902f0afb11fee57536db4f908c1c0fbda3aa4"
+    }
+  },
+  "module": "exif",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=document.pdf",
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "quirks.pdf",
+    "relationships": [],
+    "size": 1136,
+    "tags": [
+      "pdf"
+    ],
+    "type": "file",
+    "value": "01940d8e00316615efbbc86cc54902f0afb11fee57536db4f908c1c0fbda3aa4",
+    "yara_meta": [
+      "type=document.pdf",
+      "type=email.attachment"
+    ]
+  }
+}

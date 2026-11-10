@@ -12,6 +12,29 @@
       },
       "relationships": {},
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:27:14+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:27:14+00:00",
+              "File:FileModifyDate": "2026:11:07 15:11:53+00:00",
+              "File:FileName": "ppt_bad_info.ppt",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 2560,
+              "File:FileType": "PPT",
+              "File:FileTypeExtension": "PPT",
+              "File:MIMEType": "application/vnd.ms-powerpoint",
+              "FlashPix:CurrentUser": "a",
+              "SourceFile": "<root>/files/ppt_bad_info.ppt"
+            },
+            "output_dir": "<root>/files/ppt_bad_info.ppt.exif"
+          },
+          "summary": "Exiftool Analysis: CurrentUser=a",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "abaffdc1282a743e3555f864d1f491eb",
@@ -165,6 +188,24 @@
           "tags": {}
         }
       },
+      "tags": {}
+    },
+    "file:ece56dacf247fe2b3927ca4869ac6108cfe9ec4aab1365d7bcadcac872b9e5c2": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "ppt_bad_info.ppt.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:1015c2bf2724c015bbb5e6f9296fa1f861a370dd2f1ea32d6e29a26cbcefa651": true
+      },
+      "results": {},
       "tags": {}
     },
     "md5:abaffdc1282a743e3555f864d1f491eb": {

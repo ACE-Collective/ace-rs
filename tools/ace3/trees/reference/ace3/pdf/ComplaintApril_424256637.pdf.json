@@ -33,57 +33,6 @@
       },
       "tags": {}
     },
-    "file:087942d427187ab658a0b996d01bf05943024a92b5d684ffc65f876c24c2d9a7": {
-      "detections": {},
-      "directives": {
-        "extract_urls": true
-      },
-      "excluded_analysis": {
-        "pdf_analyzer": true
-      },
-      "paths": {
-        "ComplaintApril_424256637.pdf.gs.pdf": {
-          "type=document.pdf": true,
-          "type=document.pdf.rendered": true
-        }
-      },
-      "redirection": "file:f68ba01d524f39a2832632eeb77772feb30440d2dbbf92fc83de39494cff4076",
-      "relationships": {
-        "extracted_from file:f68ba01d524f39a2832632eeb77772feb30440d2dbbf92fc83de39494cff4076": true
-      },
-      "results": {
-        "file_type": {
-          "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": true,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "application/pdf",
-            "type": "PDF document, version 1.7, 1 page(s)"
-          },
-          "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
-          "tags": {}
-        },
-        "url_extraction": {
-          "details": {
-            "urls": [],
-            "urls_grouped_by_domain": {}
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {
-        "pdf": true
-      }
-    },
     "file:234001d104b81822d825068e6e39b434c768df40b979eefe9a12f8fc5434c417": {
       "detections": {},
       "directives": {},
@@ -134,6 +83,92 @@
       },
       "tags": {
         "decrypted_pdf": true,
+        "pdf": true
+      }
+    },
+    "file:3f5fe4a6cbe6a3a98bc3b8fde6e5908517b80b84b9240dfbaa7d07ffc381c20f": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "ComplaintApril_424256637.pdf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:f68ba01d524f39a2832632eeb77772feb30440d2dbbf92fc83de39494cff4076": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "file:7a5071719c8c8ad76e97ff9181042766b9b73b105ddfcd654b1506742d2e98fd": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {
+        "pdf_analyzer": true
+      },
+      "paths": {
+        "ComplaintApril_424256637.pdf.gs.pdf": {
+          "type=document.pdf": true,
+          "type=document.pdf.rendered": true
+        }
+      },
+      "redirection": "file:f68ba01d524f39a2832632eeb77772feb30440d2dbbf92fc83de39494cff4076",
+      "relationships": {
+        "extracted_from file:f68ba01d524f39a2832632eeb77772feb30440d2dbbf92fc83de39494cff4076": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": true,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/pdf",
+            "type": "PDF document, version 1.7, 1 page(s)"
+          },
+          "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
+          "tags": {}
+        },
+        "pdftotext": {
+          "details": {
+            "output_path": "9e2edecc508b0c464ba6b6532134756b915fee713bdd0efd18f98ffbb2fb3238",
+            "stderr": "",
+            "stdout": ""
+          },
+          "summary": "PDF Text Analysis",
+          "tags": {}
+        },
+        "qrcode": {
+          "details": {
+            "extracted_text": null,
+            "inverted": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
         "pdf": true
       }
     },
@@ -260,6 +295,48 @@
       },
       "tags": {}
     },
+    "file:9e2edecc508b0c464ba6b6532134756b915fee713bdd0efd18f98ffbb2fb3238": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "archive": true
+      },
+      "paths": {
+        "ComplaintApril_424256637.pdf.gs.pdf.txt": {
+          "type=document.pdf.text": true
+        },
+        "ComplaintApril_424256637.pdf.txt": {
+          "type=document.pdf.text": true
+        }
+      },
+      "redirection": "file:7a5071719c8c8ad76e97ff9181042766b9b73b105ddfcd654b1506742d2e98fd",
+      "relationships": {
+        "extracted_from file:7a5071719c8c8ad76e97ff9181042766b9b73b105ddfcd654b1506742d2e98fd": true,
+        "extracted_from file:f68ba01d524f39a2832632eeb77772feb30440d2dbbf92fc83de39494cff4076": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "Unicode text, UTF-8 text"
+          },
+          "summary": "File Type Analysis: Unicode text, UTF-8 text (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:f3494a3ad0d407af43a45d0b12de066f1830d28bca30f3f4a29ab437faaa73fd": {
       "detections": {},
       "directives": {
@@ -318,6 +395,48 @@
       },
       "relationships": {},
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "ExifTool:Warning": "[minor] Decryption is very slow for encryption V5.6 or higher",
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:10:49+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:10:49+00:00",
+              "File:FileModifyDate": "2026:11:06 19:20:07+00:00",
+              "File:FileName": "ComplaintApril_424256637.pdf",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 92914,
+              "File:FileType": "PDF",
+              "File:FileTypeExtension": "PDF",
+              "File:MIMEType": "application/pdf",
+              "PDF:CreateDate": "2023:03:21 18:18:57+03:00",
+              "PDF:Creator": "Adobe Acrobat Pro (64-bit) 22.3.20322",
+              "PDF:Encryption": "Standard V5.6 (256-bit)",
+              "PDF:HasXFA": false,
+              "PDF:Linearized": false,
+              "PDF:ModifyDate": "2023:04:06 19:13:31+03:00",
+              "PDF:PDFVersion": 1.7,
+              "PDF:PageCount": 1,
+              "PDF:Producer": "Adobe Acrobat Pro (64-bit) 22.3.20322",
+              "PDF:UserAccess": 2852,
+              "SourceFile": "<root>/files/ComplaintApril_424256637.pdf",
+              "XMP:CreateDate": "2023:03:21 18:18:57+03:00",
+              "XMP:CreatorTool": "Adobe Acrobat Pro (64-bit) 22.3.20322",
+              "XMP:DocumentID": "uuid:e9d459e0-cb40-4f39-9ce2-e9a32af069ed",
+              "XMP:Format": "application/pdf",
+              "XMP:InstanceID": "uuid:24d52c12-e325-4077-9591-0b14642055e3",
+              "XMP:MetadataDate": "2023:04:06 19:13:31+03:00",
+              "XMP:ModifyDate": "2023:04:06 19:13:31+03:00",
+              "XMP:Producer": "Adobe Acrobat Pro (64-bit) 22.3.20322",
+              "XMP:XMPToolkit": "Adobe XMP Core 6.0-c006 79.164648, 2021/01/12-15:52:29        "
+            },
+            "output_dir": "<root>/files/ComplaintApril_424256637.pdf.exif"
+          },
+          "summary": "Exiftool Analysis: PDFVersion=1.7, Linearized=False, Encryption=Standard V5.6 (256-bit), UserAccess=2852, CreateDate=2023:03:21 18:18:57+03:00, Creator=Adobe Acrobat Pro (64-bit) 22.3.20322, ModifyDate=2023:04:06 19:13:31+03:00, Producer=Adobe Acrobat Pro (64-bit) 22.3.20322, HasXFA=False, PageCount=1, XMPToolkit=Adobe XMP Core 6.0-c006 79.164648, 2021/01/12-15:52:29        , ModifyDate=2023:04:06 19:13:31+03:00, CreateDate=2023:03:21 18:18:57+03:00, MetadataDate=2023:04:06 19:13:31+03:00, CreatorTool=Adobe Acrobat Pro (64-bit) 22.3.20322, Format=application/pdf, DocumentID=uuid:e9d459e0-cb40-4f39-9ce2-e9a32af069ed, InstanceID=uuid:24d52c12-e325-4077-9591-0b14642055e3, Producer=Adobe Acrobat Pro (64-bit) 22.3.20322",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "7ce09edcfb50c83c332e47c96420e288",
@@ -369,6 +488,23 @@
             }
           },
           "summary": "PDF Analysis: encrypted (aesv3 256-bit, R6, P -1052), opens with an empty user password",
+          "tags": {}
+        },
+        "pdftotext": {
+          "details": {
+            "output_path": "9e2edecc508b0c464ba6b6532134756b915fee713bdd0efd18f98ffbb2fb3238",
+            "stderr": "",
+            "stdout": ""
+          },
+          "summary": "PDF Text Analysis",
+          "tags": {}
+        },
+        "qrcode": {
+          "details": {
+            "extracted_text": null,
+            "inverted": false
+          },
+          "summary": null,
           "tags": {}
         }
       },

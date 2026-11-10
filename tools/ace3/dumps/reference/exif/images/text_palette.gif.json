@@ -1,0 +1,60 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "image/gif",
+        "type": "GIF image data, version 87a, 1600 x 400"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: GIF image data, version 87a, 1600 x 400 (image/gif)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/images/text_palette.gif",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "text_palette.gif",
+      "size": 12090,
+      "type": "file",
+      "value": "60770a8932f599739298a159a4c7d96425545324d80a4439a5199737f44c7ce7"
+    }
+  },
+  "module": "exif",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=image"
+    ],
+    "excluded_analysis": [],
+    "file_path": "text_palette.gif",
+    "relationships": [],
+    "size": 12090,
+    "tags": [],
+    "type": "file",
+    "value": "60770a8932f599739298a159a4c7d96425545324d80a4439a5199737f44c7ce7",
+    "yara_meta": [
+      "type=image"
+    ]
+  }
+}

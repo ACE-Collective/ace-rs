@@ -8,7 +8,7 @@
 //! ```
 //!
 //! Every result the harness returns has passed its type's JSON Schema and read back unchanged
-//! from JSON. The root uuid and the task's clock are fixed, so snapshots are stable. Output files
+//! from JSON. A module's tools run as plain processes (`ace_sdk::tools::LocalRunner`). The root uuid and the task's clock are fixed, so snapshots are stable. Output files
 //! go to a store in a temporary directory, where `read_output` finds them.
 
 pub mod dns;
@@ -330,7 +330,8 @@ impl<M: Module> Harness<M> {
             .with_added_by(self.added_by.clone())
             .with_related_tags(self.related_tags.clone())
             .with_tree(self.tree.clone())
-            .with_tree_files(Some(self._dir.path().join("tree_files")));
+            .with_tree_files(Some(self._dir.path().join("tree_files")))
+            .with_tool_runner(tool_runner::<M>());
         let ctx = match &self.reader {
             Some(_) => ctx.with_task_id(1),
             None => ctx,
@@ -435,6 +436,18 @@ pub fn snapshot_value<D: AnalysisType>(outcome: &Outcome<D>) -> Value {
         Outcome::Skipped(reason) => json!({"outcome": "skipped", "reason": reason}),
     };
     sort_json_keys(value)
+}
+
+/// A runner of `M`'s tools as plain processes, the sandbox image's at their paths, which the dev
+/// container has (PLAN.md 7.5 batch 10). None for a module that runs none. Each task gets its own,
+/// so each counts its runs from none.
+fn tool_runner<M: Module>() -> Option<Arc<dyn ace_sdk::tools::ToolRunner>> {
+    if M::TOOLS.is_empty() {
+        return None;
+    }
+    let runner = ace_sdk::tools::LocalRunner::new(ace_sdk::tools::SANDBOX_TOOLS, M::TOOLS)
+        .expect("a directory for the tools' runs");
+    Some(Arc::new(runner))
 }
 
 /// Snapshots an outcome with insta, in the calling crate's `snapshots` directory.

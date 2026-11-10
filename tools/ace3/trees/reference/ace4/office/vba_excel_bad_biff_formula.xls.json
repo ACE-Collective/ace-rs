@@ -33,6 +33,24 @@
       },
       "tags": {}
     },
+    "file:09e0ec9262358caf6d829df55d01a4b24633dbf08154264d18f154bb0929de48": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "vba_excel_bad_biff_formula.xls.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:80f131942b7e835716a465a83c954fb906773bd9a42cb440366b7f0d65f36f43": true
+      },
+      "results": {},
+      "tags": {}
+    },
     "file:1e85c37df423fa45af669a3d0225466a36e57ab1eb898f102f8ff2ec3196d4eb": {
       "detections": {},
       "directives": {
@@ -214,6 +232,28 @@
       },
       "relationships": {},
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:28:02+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:28:02+00:00",
+              "File:FileModifyDate": "2026:11:07 15:11:53+00:00",
+              "File:FileName": "vba_excel_bad_biff_formula.xls",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 4608,
+              "File:FileType": "XLS",
+              "File:FileTypeExtension": "XLS",
+              "File:MIMEType": "application/vnd.ms-excel",
+              "SourceFile": "<root>/files/vba_excel_bad_biff_formula.xls"
+            },
+            "output_dir": "<root>/files/vba_excel_bad_biff_formula.xls.exif"
+          },
+          "summary": "Exiftool Analysis: ",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "74df42fc33483f0a1917678d7cd96e89",

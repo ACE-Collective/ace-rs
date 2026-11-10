@@ -122,6 +122,28 @@
         "extracted_from file:537160beef312d6a731b54d143fd5af4bfad45f5309622a6faa9685484285ac0": true
       },
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files/zip_bad_types.docm.extracted/word",
+              "File:FileAccessDate": "2026:11:10 11:33:36+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:33:36+00:00",
+              "File:FileModifyDate": "2026:01:01 00:00:00+00:00",
+              "File:FileName": "vbaProject.bin",
+              "File:FilePermissions": 100664,
+              "File:FileSize": 23552,
+              "File:FileType": "FPX",
+              "File:FileTypeExtension": "FPX",
+              "File:MIMEType": "image/vnd.fpx",
+              "SourceFile": "<root>/files/zip_bad_types.docm.extracted/word/vbaProject.bin"
+            },
+            "output_dir": "<root>/files/zip_bad_types.docm.extracted/word/vbaProject.bin.exif"
+          },
+          "summary": "Exiftool Analysis: ",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "b78e53325f45a16ab719c392444f2983",
@@ -322,6 +344,36 @@
           "summary": "Archive Analysis: extracted 3 of 3 files: ([Content_Types].xml, word/vbaProject.bin, _rels/.rels)",
           "tags": {}
         },
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:33:35+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:33:35+00:00",
+              "File:FileModifyDate": "2026:11:07 15:11:53+00:00",
+              "File:FileName": "zip_bad_types.docm",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 11164,
+              "File:FileType": "ZIP",
+              "File:FileTypeExtension": "ZIP",
+              "File:MIMEType": "application/zip",
+              "SourceFile": "<root>/files/zip_bad_types.docm",
+              "ZIP:ZipBitFlag": 0,
+              "ZIP:ZipCRC": 1385509727,
+              "ZIP:ZipCompressedSize": 149,
+              "ZIP:ZipCompression": 8,
+              "ZIP:ZipFileName": "_rels/.rels",
+              "ZIP:ZipModifyDate": "2026:01:01 00:00:00",
+              "ZIP:ZipRequiredVersion": 20,
+              "ZIP:ZipUncompressedSize": 263
+            },
+            "output_dir": "<root>/files/zip_bad_types.docm.exif"
+          },
+          "summary": "Exiftool Analysis: ZipRequiredVersion=20, ZipBitFlag=0, ZipCompression=8, ZipModifyDate=2026:01:01 00:00:00, ZipCRC=1385509727, ZipCompressedSize=149, ZipUncompressedSize=263, ZipFileName=_rels/.rels",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "1431c7c42eff73f42856088a92d1a93d",
@@ -457,6 +509,24 @@
       },
       "tags": {}
     },
+    "file:765fcff657e7246c84b76625d97f6b5b5d7c77597e604d7a26effc8b464a2562": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "zip_bad_types.docm.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:537160beef312d6a731b54d143fd5af4bfad45f5309622a6faa9685484285ac0": true
+      },
+      "results": {},
+      "tags": {}
+    },
     "file:827ef1fb270218d5b261add9b3dd6877a72a3870bef4632df04c9d52b03a1661": {
       "detections": {},
       "directives": {
@@ -506,6 +576,24 @@
           "tags": {}
         }
       },
+      "tags": {}
+    },
+    "file:c067629ea8a37435aa40a10dea93e8f6d5e3fc72fe2e998cdd25ce3257060cf0": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "zip_bad_types.docm.extracted/word/vbaProject.bin.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:170b804293599496c29d816cfe408adc5a99e767eb930b0c0cf9e7db62436abe": true
+      },
+      "results": {},
       "tags": {}
     },
     "file:ce49436dec0282ca0c2acb2966441b42d2620cd614f363ac0b43420dfdd687ed": {

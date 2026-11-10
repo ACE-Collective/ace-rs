@@ -3,8 +3,8 @@
 
 use ace_app::{App, LookupPool, ParserPool};
 
-/// The parser pool: the email, archive, PDF, olevba, rtfole, YARA, URL and IOC extraction, file type,
-/// file hash, binary file, shortcut, certificate and dhash modules, the modules that read an
+/// The parser pool: the email, olevba, rtfole, YARA, URL and IOC extraction, file type, file hash,
+/// binary file, shortcut, certificate, dhash and ssdeep modules, the modules that read an
 /// observable's value (command lines, file paths and locations, networks, URLs, IDNA, email
 /// addresses' domains and protected URLs), the HTML modules (data URLs, HTTP archives, scripts in HTML
 /// and MHTML), the Office container modules (OneNote, compound files, Office XML, hidden MIME and
@@ -16,8 +16,6 @@ use ace_app::{App, LookupPool, ParserPool};
 pub fn parser_pool() -> ParserPool {
     ParserPool::new("parsers")
         .module::<ace_mod_email::EmailAnalyzer>()
-        .module::<ace_mod_archive::ArchiveAnalyzer>()
-        .module::<ace_mod_pdf::PdfAnalyzer>()
         .module::<ace_mod_oletools::Olevba>()
         .module::<ace_mod_oletools::RtfOle>()
         .module::<ace_mod_msoffice::MsofficeEncryption>()
@@ -32,6 +30,7 @@ pub fn parser_pool() -> ParserPool {
         .module::<ace_mod_files::LnkParseAnalyzer>()
         .module::<ace_mod_files::X509Analyzer>()
         .module::<ace_mod_files::DHashImageAnalyzer>()
+        .module::<ace_mod_files::SsdeepAnalyzer>()
         .module::<ace_mod_values::CommandLineAnalyzer>()
         .module::<ace_mod_values::FilePathAnalyzer>()
         .module::<ace_mod_values::FileLocationAnalyzer>()
@@ -67,6 +66,20 @@ pub fn parser_pool() -> ParserPool {
         .commands()
 }
 
+/// The sandbox pool (PLAN.md 7.3, 7.5 batch 10): a parser pool whose image carries the programs its
+/// modules run in the sandbox runner (`ace_sdk::tools::SANDBOX_TOOLS`): the archive module, for ACE
+/// archives' unace; the PDF module, for Ghostscript's rewrite; pdftotext, exif, qrcode and ocr.
+pub fn sandbox_pool() -> ParserPool {
+    ParserPool::new("sandbox")
+        .tools(ace_sdk::tools::SANDBOX_TOOLS)
+        .module::<ace_mod_archive::ArchiveAnalyzer>()
+        .module::<ace_mod_pdf::PdfAnalyzer>()
+        .module::<ace_mod_sandbox::PdfTextAnalyzer>()
+        .module::<ace_mod_sandbox::ExifAnalyzer>()
+        .module::<ace_mod_sandbox::QrCodeAnalyzer>()
+        .module::<ace_mod_sandbox::OcrAnalyzer>()
+}
+
 /// The network pool: the RDAP, DNS, snort signature, conversation frequency, email logger, email
 /// thread, newly registered domains, user (LDAP), Splunk and Splunk clicker detection modules, the
 /// one that follows 1drv.ms links for the protected URL module, and the four on the email archive
@@ -90,13 +103,14 @@ pub fn lookup_pool() -> LookupPool {
         .module::<ace_mod_emailarchive::MessageIdAnalyzer>()
 }
 
-/// The open-source binaries' list: the two pools, no observable types beyond ace3's, ace3's
+/// The open-source binaries' list: the three pools, no observable types beyond ace3's, ace3's
 /// one open-source hunt type, Splunk (PLAN.md 6.2), and the script command types that stand in for
 /// the signatures' hunt scripts (decision 16). `ace hunter` checks the Splunk instance a hunt
 /// names against its configuration's (6.4); elsewhere a hunt's `splunk_config` isn't checked.
 pub fn app() -> App {
     let mut app = App::new()
         .parser_pool(parser_pool())
+        .parser_pool(sandbox_pool())
         .lookup_pool(lookup_pool())
         // ace3's protected_url_analyzer is in its common group, and this does its network half
         .module_in_group("common", "protected_url_one_drive")

@@ -45,6 +45,31 @@
       },
       "relationships": {},
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "ExifTool:Warning": "Error reading xref table",
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:35:19+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:35:19+00:00",
+              "File:FileModifyDate": "2026:11:07 04:47:50+00:00",
+              "File:FileName": "broken_startxref.pdf",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 1176,
+              "File:FileType": "PDF",
+              "File:FileTypeExtension": "PDF",
+              "File:MIMEType": "application/pdf",
+              "PDF:Linearized": false,
+              "PDF:PDFVersion": 1.7,
+              "SourceFile": "<root>/files/broken_startxref.pdf"
+            },
+            "output_dir": "<root>/files/broken_startxref.pdf.exif"
+          },
+          "summary": "Exiftool Analysis: PDFVersion=1.7, Linearized=False",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "f60121b541014bca7ec0f28ad4bf0a13",
@@ -76,6 +101,15 @@
         "pdf_analyzer": {
           "details": {},
           "summary": null,
+          "tags": {}
+        },
+        "pdftotext": {
+          "details": {
+            "output_path": "ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977",
+            "stderr": "Syntax Error (701): Dictionary key must be a name object\nSyntax Warning: Illegal URI-type link\nSyntax Error: Bad bounding box for annotation\nSyntax Warning: Annotation destination array is too short\nSyntax Error: Bad bounding box for annotation\n",
+            "stdout": ""
+          },
+          "summary": "PDF Text Analysis",
           "tags": {}
         }
       },
@@ -139,7 +173,7 @@
       },
       "tags": {}
     },
-    "file:10e48c0e239a22af16cd417e99b5ec9208c1d2a6ac4c01f5c2b0a18775047f1e": {
+    "file:3670ab999fe49548d79a75c4c2e2551515a73eea652ecc1e69201c362a9dfe57": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -177,6 +211,23 @@
           "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
           "tags": {}
         },
+        "pdftotext": {
+          "details": {
+            "output_path": "ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977",
+            "stderr": "",
+            "stdout": ""
+          },
+          "summary": "PDF Text Analysis",
+          "tags": {}
+        },
+        "qrcode": {
+          "details": {
+            "extracted_text": null,
+            "inverted": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [],
@@ -189,6 +240,24 @@
       "tags": {
         "pdf": true
       }
+    },
+    "file:5f016d4adde9481124c6ddb6b825af2870a735834beb49a5a78750cf120f0d65": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "broken_startxref.pdf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:04078f3d66cfabdc6d48fd8ec0c2d63141df254a2a3acd63d9827da81aca1d6b": true
+      },
+      "results": {},
+      "tags": {}
     },
     "file:7485896e9be2727603200c88a41c8eb0f081feb974a04e072d4872b69bda1e66": {
       "detections": {},
@@ -256,6 +325,48 @@
             }
           },
           "summary": "URL Extraction Analysis (example.com)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "archive": true
+      },
+      "paths": {
+        "broken_startxref.pdf.gs.pdf.txt": {
+          "type=document.pdf.text": true
+        },
+        "broken_startxref.pdf.txt": {
+          "type=document.pdf.text": true
+        }
+      },
+      "redirection": "file:3670ab999fe49548d79a75c4c2e2551515a73eea652ecc1e69201c362a9dfe57",
+      "relationships": {
+        "extracted_from file:04078f3d66cfabdc6d48fd8ec0c2d63141df254a2a3acd63d9827da81aca1d6b": true,
+        "extracted_from file:3670ab999fe49548d79a75c4c2e2551515a73eea652ecc1e69201c362a9dfe57": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "very short file (no magic)"
+          },
+          "summary": "File Type Analysis: very short file (no magic) (application/octet-stream)",
           "tags": {}
         }
       },

@@ -349,6 +349,73 @@
       },
       "relationships": {},
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:13:48+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:13:48+00:00",
+              "File:FileModifyDate": "2026:11:10 11:13:48+00:00",
+              "File:FileName": "invoice.doc",
+              "File:FilePermissions": 100664,
+              "File:FileSize": 22528,
+              "File:FileType": "DOC",
+              "File:FileTypeExtension": "DOC",
+              "File:MIMEType": "application/msword",
+              "FlashPix:AppVersion": 16.0,
+              "FlashPix:Author": "Anderson, Anthony",
+              "FlashPix:CharCountWithSpaces": 0,
+              "FlashPix:Characters": 0,
+              "FlashPix:CodePage": 10000,
+              "FlashPix:Comments": "",
+              "FlashPix:CompObjUserType": "Microsoft Word 97-2003 Document",
+              "FlashPix:CompObjUserTypeLen": 32,
+              "FlashPix:Company": "",
+              "FlashPix:CreateDate": "2021:04:29 15:40:00",
+              "FlashPix:DocFlags": 4864,
+              "FlashPix:HeadingPairs": [
+                "Title",
+                1
+              ],
+              "FlashPix:HyperlinksChanged": 0,
+              "FlashPix:Identification": 42476,
+              "FlashPix:Keywords": "",
+              "FlashPix:LanguageCode": 1033,
+              "FlashPix:LastModifiedBy": "Anderson, Anthony",
+              "FlashPix:Lines": 0,
+              "FlashPix:LinksUpToDate": 0,
+              "FlashPix:MSIP_Label_05286d43-84a8-4841-b019-e300711b2821_ActionId": "e6af03b3-d938-4af7-ab06-0f699ed86484",
+              "FlashPix:MSIP_Label_05286d43-84a8-4841-b019-e300711b2821_ContentBits": 0,
+              "FlashPix:MSIP_Label_05286d43-84a8-4841-b019-e300711b2821_Enabled": true,
+              "FlashPix:MSIP_Label_05286d43-84a8-4841-b019-e300711b2821_Method": "Standard",
+              "FlashPix:MSIP_Label_05286d43-84a8-4841-b019-e300711b2821_Name": "Internal Use - No Footer",
+              "FlashPix:MSIP_Label_05286d43-84a8-4841-b019-e300711b2821_SetDate": "2021-04-29T15:40:15Z",
+              "FlashPix:MSIP_Label_05286d43-84a8-4841-b019-e300711b2821_SiteId": "cfddba29-ca2a-450c-a415-595e7fcce8e5",
+              "FlashPix:ModifyDate": "2021:04:29 15:40:00",
+              "FlashPix:Pages": 1,
+              "FlashPix:Paragraphs": 0,
+              "FlashPix:RevisionNumber": 1,
+              "FlashPix:ScaleCrop": 0,
+              "FlashPix:Security": 0,
+              "FlashPix:SharedDoc": 0,
+              "FlashPix:Software": "Microsoft Office Word",
+              "FlashPix:Subject": "",
+              "FlashPix:System": 1,
+              "FlashPix:Template": "Normal.dotm",
+              "FlashPix:Title": "",
+              "FlashPix:TitleOfParts": "",
+              "FlashPix:TotalEditTime": 0,
+              "FlashPix:Word97": 0,
+              "FlashPix:Words": 0,
+              "SourceFile": "<root>/files/invoice.doc"
+            },
+            "output_dir": "<root>/files/invoice.doc.exif"
+          },
+          "summary": "Exiftool Analysis: Identification=42476, LanguageCode=1033, DocFlags=4864, System=1, Word97=0, Title=, Subject=, Author=Anderson, Anthony, Keywords=, Comments=, Template=Normal.dotm, LastModifiedBy=Anderson, Anthony, RevisionNumber=1, Software=Microsoft Office Word, TotalEditTime=0, CreateDate=2021:04:29 15:40:00, ModifyDate=2021:04:29 15:40:00, Pages=1, Words=0, Characters=0 + 22 more",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "8d680f4190fc9603561925de02a4034e",
@@ -697,6 +764,42 @@
       },
       "tags": {}
     },
+    "file:b6d0a63ac75310b2df3a4adf9ba2ad9576c08ef1985d07198517894aaa2a1e76": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "invoice.doc.decrypted.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:cdfc3417b58de583128af96d82784e8782ae9b8ceb9d1fafd115bf0719052dd3": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "file:bb722c00f8f011f1104c95e5315eac223dd8d63feae8e274bba96403797c1358": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "invoice.doc.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:2f881ed02b6b7a84fcb77a001472d84331d76a99e7e5eb3e51dca0312f49fc76": true
+      },
+      "results": {},
+      "tags": {}
+    },
     "file:bef41d8d52d763e89e3d7d0fca5f2bce2a96c29e923b226127a162e701a53de5": {
       "detections": {},
       "directives": {
@@ -840,6 +943,74 @@
       },
       "relationships": {},
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:13:48+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:13:48+00:00",
+              "File:FileModifyDate": "2026:11:10 11:13:48+00:00",
+              "File:FileName": "invoice.doc.decrypted",
+              "File:FilePermissions": 100666,
+              "File:FileSize": 22528,
+              "File:FileType": "DOC",
+              "File:FileTypeExtension": "DOC",
+              "File:MIMEType": "application/msword",
+              "FlashPix:AppVersion": 16.0,
+              "FlashPix:Author": "Anderson, Anthony",
+              "FlashPix:CharCountWithSpaces": 0,
+              "FlashPix:Characters": 0,
+              "FlashPix:CodePage": 10000,
+              "FlashPix:Comments": "",
+              "FlashPix:CompObjUserType": "Microsoft Word 97-2003 Document",
+              "FlashPix:CompObjUserTypeLen": 32,
+              "FlashPix:Company": "",
+              "FlashPix:CreateDate": "2021:04:29 15:40:00",
+              "FlashPix:DocFlags": 4608,
+              "FlashPix:HeadingPairs": [
+                "Title",
+                1
+              ],
+              "FlashPix:HyperlinksChanged": 0,
+              "FlashPix:Identification": 42476,
+              "FlashPix:Keywords": "",
+              "FlashPix:LanguageCode": 1033,
+              "FlashPix:LastModifiedBy": "Anderson, Anthony",
+              "FlashPix:LastPrinted": "0000:00:00 00:00:00",
+              "FlashPix:Lines": 0,
+              "FlashPix:LinksUpToDate": 0,
+              "FlashPix:MSIP_Label_05286d43-84a8-4841-b019-e300711b2821_ActionId": "e6af03b3-d938-4af7-ab06-0f699ed86484",
+              "FlashPix:MSIP_Label_05286d43-84a8-4841-b019-e300711b2821_ContentBits": 0,
+              "FlashPix:MSIP_Label_05286d43-84a8-4841-b019-e300711b2821_Enabled": true,
+              "FlashPix:MSIP_Label_05286d43-84a8-4841-b019-e300711b2821_Method": "Standard",
+              "FlashPix:MSIP_Label_05286d43-84a8-4841-b019-e300711b2821_Name": "Internal Use - No Footer",
+              "FlashPix:MSIP_Label_05286d43-84a8-4841-b019-e300711b2821_SetDate": "2021-04-29T15:40:15Z",
+              "FlashPix:MSIP_Label_05286d43-84a8-4841-b019-e300711b2821_SiteId": "cfddba29-ca2a-450c-a415-595e7fcce8e5",
+              "FlashPix:ModifyDate": "2021:04:29 15:40:00",
+              "FlashPix:Pages": 1,
+              "FlashPix:Paragraphs": 0,
+              "FlashPix:RevisionNumber": 1,
+              "FlashPix:ScaleCrop": 0,
+              "FlashPix:Security": 0,
+              "FlashPix:SharedDoc": 0,
+              "FlashPix:Software": "Microsoft Office Word",
+              "FlashPix:Subject": "",
+              "FlashPix:System": 1,
+              "FlashPix:Template": "Normal.dotm",
+              "FlashPix:Title": "",
+              "FlashPix:TitleOfParts": "",
+              "FlashPix:TotalEditTime": 0,
+              "FlashPix:Word97": 0,
+              "FlashPix:Words": 0,
+              "SourceFile": "<root>/files/invoice.doc.decrypted"
+            },
+            "output_dir": "<root>/files/invoice.doc.decrypted.exif"
+          },
+          "summary": "Exiftool Analysis: Identification=42476, LanguageCode=1033, DocFlags=4608, System=1, Word97=0, Title=, Subject=, Author=Anderson, Anthony, Keywords=, Comments=, Template=Normal.dotm, LastModifiedBy=Anderson, Anthony, Software=Microsoft Office Word, CreateDate=2021:04:29 15:40:00, ModifyDate=2021:04:29 15:40:00, Security=0, Company=, CharCountWithSpaces=0, AppVersion=16.0, ScaleCrop=0 + 23 more",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "48fa4eb93d6a4c7dc3c726b2d4adb053",

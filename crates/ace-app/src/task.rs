@@ -52,7 +52,10 @@ pub fn run(app: &App, command: TaskCommand) -> Result<ExitCode> {
             &overlay,
             &ace_pool::secrets::process_env,
         );
-        let modules = registry.build(std::slice::from_ref(component), &secrets)?;
+        // with every pool's tools, which a replay runs as plain processes
+        let modules = registry
+            .build(std::slice::from_ref(component), &secrets)?
+            .with_tools(&app.tools());
         let temp;
         let dir = match keep {
             Some(dir) => {

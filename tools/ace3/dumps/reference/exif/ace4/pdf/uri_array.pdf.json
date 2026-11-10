@@ -1,0 +1,123 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "ExifAnalysis",
+      "details": {
+        "error": null,
+        "exifdata": {
+          "ExifTool:ExifToolVersion": 13.25,
+          "File:Directory": "<root>/files",
+          "File:FileAccessDate": "2026:11:10 11:04:50+00:00",
+          "File:FileInodeChangeDate": "2026:11:10 11:04:50+00:00",
+          "File:FileModifyDate": "2026:11:07 04:47:50+00:00",
+          "File:FileName": "uri_array.pdf",
+          "File:FilePermissions": 100644,
+          "File:FileSize": 407,
+          "File:FileType": "PDF",
+          "File:FileTypeExtension": "PDF",
+          "File:MIMEType": "application/pdf",
+          "PDF:Linearized": false,
+          "PDF:PDFVersion": 1.7,
+          "PDF:PageCount": 1,
+          "SourceFile": "<root>/files/uri_array.pdf"
+        },
+        "output_dir": "<root>/files/uri_array.pdf.exif"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.exif:ExifAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=metadata.exif"
+          ],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.file_type:<class 'saq.modules.file_analysis.file_type.FileTypeAnalyzer'>",
+            "saq.modules.file_analysis.hash:<class 'saq.modules.file_analysis.hash.FileHashAnalyzer'>"
+          ],
+          "file_path": "uri_array.pdf.exif/exiftool.out",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "b7e0ea2ab9a29fbf6060877a204f10a5ea37a3dd2f6da9f5244fe3650be112cb"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 631,
+          "tags": [],
+          "type": "file",
+          "value": "4d7a784c596732856f564bc6cc4d789fec8d35b184c7c4646337a2879382b06e",
+          "yara_meta": [
+            "type=metadata.exif"
+          ]
+        }
+      ],
+      "summary": "Exiftool Analysis: PDFVersion=1.7, Linearized=False, PageCount=1",
+      "tags": []
+    },
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": true,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "application/pdf",
+        "type": "PDF document, version 1.7, 1 page(s)"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace4/pdf/uri_array.pdf",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "uri_array.pdf",
+      "size": 407,
+      "type": "file",
+      "value": "b7e0ea2ab9a29fbf6060877a204f10a5ea37a3dd2f6da9f5244fe3650be112cb"
+    }
+  },
+  "module": "exif",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=document.pdf",
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "uri_array.pdf",
+    "relationships": [],
+    "size": 407,
+    "tags": [
+      "pdf"
+    ],
+    "type": "file",
+    "value": "b7e0ea2ab9a29fbf6060877a204f10a5ea37a3dd2f6da9f5244fe3650be112cb",
+    "yara_meta": [
+      "type=document.pdf",
+      "type=email.attachment"
+    ]
+  }
+}

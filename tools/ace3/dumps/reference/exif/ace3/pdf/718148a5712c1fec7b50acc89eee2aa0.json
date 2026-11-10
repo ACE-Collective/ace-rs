@@ -1,0 +1,123 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "ExifAnalysis",
+      "details": {
+        "error": null,
+        "exifdata": {
+          "ExifTool:ExifToolVersion": 13.25,
+          "ExifTool:Warning": "Invalid xref table",
+          "File:Directory": "<root>/files",
+          "File:FileAccessDate": "2026:11:10 11:00:14+00:00",
+          "File:FileInodeChangeDate": "2026:11:10 11:00:14+00:00",
+          "File:FileModifyDate": "2026:11:06 19:20:07+00:00",
+          "File:FileName": "718148a5712c1fec7b50acc89eee2aa0",
+          "File:FilePermissions": 100644,
+          "File:FileSize": 283542,
+          "File:FileType": "PDF",
+          "File:FileTypeExtension": "PDF",
+          "File:MIMEType": "application/pdf",
+          "PDF:Linearized": false,
+          "PDF:PDFVersion": 1.7,
+          "SourceFile": "<root>/files/718148a5712c1fec7b50acc89eee2aa0"
+        },
+        "output_dir": "<root>/files/718148a5712c1fec7b50acc89eee2aa0.exif"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.exif:ExifAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=metadata.exif"
+          ],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.file_type:<class 'saq.modules.file_analysis.file_type.FileTypeAnalyzer'>",
+            "saq.modules.file_analysis.hash:<class 'saq.modules.file_analysis.hash.FileHashAnalyzer'>"
+          ],
+          "file_path": "718148a5712c1fec7b50acc89eee2aa0.exif/exiftool.out",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "5b677d297fb862c2d223973697479ee53a91d03073b14556f421b3d74f136b9d"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 732,
+          "tags": [],
+          "type": "file",
+          "value": "c5a6d113a9982939b17a0a6acdc67cc85d7cb86494456cd3e57f87c7874db2c0",
+          "yara_meta": [
+            "type=metadata.exif"
+          ]
+        }
+      ],
+      "summary": "Exiftool Analysis: PDFVersion=1.7, Linearized=False",
+      "tags": []
+    },
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": true,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "application/pdf",
+        "type": "PDF document, version 1.7, 1 page(s) (zip deflate encoded)"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (zip deflate encoded) (application/pdf) (pdf document)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace3/pdf/718148a5712c1fec7b50acc89eee2aa0",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "718148a5712c1fec7b50acc89eee2aa0",
+      "size": 283542,
+      "type": "file",
+      "value": "5b677d297fb862c2d223973697479ee53a91d03073b14556f421b3d74f136b9d"
+    }
+  },
+  "module": "exif",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=document.pdf",
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "718148a5712c1fec7b50acc89eee2aa0",
+    "relationships": [],
+    "size": 283542,
+    "tags": [
+      "pdf"
+    ],
+    "type": "file",
+    "value": "5b677d297fb862c2d223973697479ee53a91d03073b14556f421b3d74f136b9d",
+    "yara_meta": [
+      "type=document.pdf",
+      "type=email.attachment"
+    ]
+  }
+}

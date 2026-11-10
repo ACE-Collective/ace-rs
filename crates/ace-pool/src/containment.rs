@@ -20,6 +20,18 @@
 //! After that the process can't start a thread or a process. It stays one thread with no
 //! children, so killing its PID ends all of it (#981).
 //!
+//! `contain_tool` is the variant for a tool the sandbox runner runs (PLAN.md 7.3, `crate::tools`):
+//! `contain_before_exec`, which 4.13 removed, brought back with a filter that lets threads through.
+//! The pool's binary, exec'd as the task's user in its `tool` mode and running one thread, contains
+//! itself and then execs the tool, and all of it holds through that exec and for every thread the
+//! tool starts. It sets the address-space, CPU-time, file-size, open-file and core-file limits and
+//! `no_new_privs`; Landlock lets the tool read only what its profile names (the program and its
+//! libraries, its data, and the task's files the request names), write only its working directory,
+//! run only the program, its interpreter and the dynamic loader, and connect to no TCP port; and the
+//! tool filter (`seccomp::install_tool_filter`) allows a thread, kills a new process, refuses a socket
+//! that isn't `AF_UNIX`, and hands every exec to the supervisor through its listener, which lets only
+//! the first through.
+//!
 //! `contain_pool` is the variant for an async pool's process (PLAN.md 2.16), which runs many
 //! lookups at once on tokio's threads. It applies the same Landlock rules and the address-space
 //! and core-file limits, before the runtime starts any thread, so every thread the runtime
@@ -65,6 +77,7 @@
 
 use std::fs;
 use std::io;
+use std::os::fd::{AsFd, OwnedFd};
 use std::path::{Path, PathBuf};
 
 use ace_sdk::{Manifest, Resources, Sandbox};
@@ -215,6 +228,111 @@ pub fn contain_pool(profile: &SandboxProfile) -> Result<Contained, ContainmentEr
     set_rlimit(libc::RLIMIT_CORE, "RLIMIT_CORE", 0, 0)?;
     set_no_new_privs()?;
     restrict_files_and_ports(profile)
+}
+
+/// What a tool may touch once `contain_tool` applies, each path already open: a descriptor holds
+/// the file or directory it was opened on, whatever its path later names.
+#[derive(Debug, Default)]
+pub struct ToolProfile {
+    /// Files and directories it may read, with everything beneath them.
+    pub reads: Vec<OwnedFd>,
+    /// Files it may read and write, such as `/dev/null`.
+    pub read_write_files: Vec<OwnedFd>,
+    /// The directory it may read, write, create and remove things beneath: its working directory.
+    pub writes: Vec<OwnedFd>,
+    /// The files it may run: the program, its interpreter and the dynamic loader.
+    pub executes: Vec<OwnedFd>,
+    pub address_space_bytes: u64,
+    /// `RLIMIT_CPU`, which counts the CPU time of every thread.
+    pub cpu_seconds: u64,
+    /// `RLIMIT_FSIZE`: SIGXFSZ at a write past it.
+    pub file_size_bytes: u64,
+    /// `RLIMIT_NOFILE`.
+    pub open_files: u64,
+}
+
+/// Contains this process for the tool it execs next (see the module docs), and returns the tool
+/// filter's listener, which the supervisor must hold and answer for the exec to go ahead. On an
+/// error the process may be partly contained, so it must not exec the tool.
+pub fn contain_tool(profile: &ToolProfile) -> Result<(Contained, OwnedFd), ContainmentError> {
+    let threads = count_threads().map_err(ContainmentError::CountThreads)?;
+    if threads != 1 {
+        return Err(ContainmentError::Threads(threads));
+    }
+    let bytes = profile.address_space_bytes;
+    set_rlimit(libc::RLIMIT_AS, "RLIMIT_AS", bytes, bytes)?;
+    let seconds = profile.cpu_seconds;
+    set_rlimit(
+        libc::RLIMIT_CPU,
+        "RLIMIT_CPU",
+        seconds,
+        seconds.saturating_add(1),
+    )?;
+    let size = profile.file_size_bytes;
+    set_rlimit(libc::RLIMIT_FSIZE, "RLIMIT_FSIZE", size, size)?;
+    let files = profile.open_files;
+    set_rlimit(libc::RLIMIT_NOFILE, "RLIMIT_NOFILE", files, files)?;
+    set_rlimit(libc::RLIMIT_CORE, "RLIMIT_CORE", 0, 0)?;
+    set_no_new_privs()?;
+    let contained = restrict_tool(profile)?;
+    let listener = seccomp::install_tool_filter().map_err(ContainmentError::Seccomp)?;
+    Ok((contained, listener))
+}
+
+fn restrict_tool(profile: &ToolProfile) -> Result<Contained, ContainmentError> {
+    let mut ruleset = Ruleset::default()
+        .set_compatibility(CompatLevel::HardRequirement)
+        .handle_access(AccessFs::from_all(REQUIRED_LANDLOCK_ABI))?
+        .handle_access(AccessNet::from_all(REQUIRED_LANDLOCK_ABI))?
+        .set_compatibility(CompatLevel::BestEffort)
+        .handle_access(AccessFs::from_all(TARGET_LANDLOCK_ABI))?
+        .scope(Scope::from_all(TARGET_LANDLOCK_ABI))?
+        .create()?;
+    for fd in &profile.reads {
+        ruleset = ruleset.add_rule(fd_rule(fd, read_access())?)?;
+    }
+    for fd in &profile.read_write_files {
+        ruleset = ruleset.add_rule(fd_rule(fd, AccessFs::ReadFile | AccessFs::WriteFile)?)?;
+    }
+    for fd in &profile.writes {
+        ruleset = ruleset.add_rule(fd_rule(fd, write_access())?)?;
+    }
+    for fd in &profile.executes {
+        ruleset = ruleset.add_rule(fd_rule(fd, AccessFs::ReadFile | AccessFs::Execute)?)?;
+    }
+    // no TCP port: every connect and bind is refused
+    let status = ruleset.restrict_self()?;
+    let landlock_abi = match status.landlock {
+        LandlockStatus::Available { effective_abi, .. } => effective_abi,
+        _ => ABI::Unsupported,
+    };
+    match status.ruleset {
+        RulesetStatus::NotEnforced => Err(ContainmentError::LandlockNotEnforced),
+        enforced => Ok(Contained {
+            landlock_abi,
+            landlock_fully_enforced: enforced == RulesetStatus::FullyEnforced,
+        }),
+    }
+}
+
+/// A rule allowing `access` beneath the file or directory `fd` is open on, cut to a file's rights
+/// for a file.
+fn fd_rule(
+    fd: &OwnedFd,
+    access: BitFlags<AccessFs>,
+) -> Result<PathBeneath<std::os::fd::BorrowedFd<'_>>, ContainmentError> {
+    let error = |source| ContainmentError::Path {
+        path: PathBuf::from(format!("descriptor {fd:?}")),
+        source,
+    };
+    let file = fs::File::from(fd.try_clone().map_err(error)?);
+    let is_dir = file.metadata().map_err(error)?.is_dir();
+    let access = if is_dir {
+        access
+    } else {
+        access & AccessFs::from_file(TARGET_LANDLOCK_ABI)
+    };
+    Ok(PathBeneath::new(fd.as_fd(), access))
 }
 
 /// The `Threads:` count in `/proc/self/status`.

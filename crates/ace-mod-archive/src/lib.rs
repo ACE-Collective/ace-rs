@@ -11,7 +11,13 @@
 //! document, so whatever a part matches sandboxes the document.
 //!
 //! Encrypted members are tried with the password `infected`, as ace3 does.
+//!
+//! An ACE archive, which no crate reads, is listed and extracted by unace in the sandbox runner
+//! (PLAN.md 7.3, 7.5 batch 10), as ace3 runs it: on a copy of the archive in a directory of its own,
+//! `unace l` for its file count and `unace x -y -o` to extract it, keeping what it wrote before a
+//! timeout. That puts the module on the sandbox pool.
 
+mod ace;
 pub mod formats;
 
 use std::collections::BTreeMap;
@@ -19,6 +25,7 @@ use std::fs::File;
 use std::io::Read;
 
 use ace_results::types::archive::ArchiveAnalysis;
+use ace_results::types::file_type::FileTypeAnalysis;
 use ace_results::{
     Detection, NewFile, ObservableKind, ObservableRef, Relationship, RelationshipKind,
     ResultEnvelope,
@@ -73,6 +80,7 @@ impl Module for ArchiveAnalyzer {
     /// ace3's config makes it wait for file_type, so a file's tags are there before what's
     /// extracted from it is analyzed, which `xml_plain_text_analyzer` reads (7.5 batch 5).
     const DEPENDS_ON: &'static [&'static str] = &["file_type"];
+    const TOOLS: &'static [&'static str] = &["unace"];
     type Output = ArchiveAnalysis;
     type Settings = ArchiveSettings;
 
@@ -214,8 +222,14 @@ fn format_of(file: &InputFile, head: &[u8], entries_hint: &dyn Fn() -> bool) -> 
     None
 }
 
-fn is_ace(file: &InputFile, head: &[u8]) -> bool {
-    head.get(7..14) == Some(b"**ACE**") || file.path.as_str().to_lowercase().ends_with(".ace")
+/// ace3's `is_ace_file`: file_type says `ACE archive data`, or the name ends in `.ace`. Without
+/// file_type's result, libmagic's own test of the header.
+fn is_ace(file: &InputFile, head: &[u8], file_type: Option<&FileTypeAnalysis>) -> bool {
+    let by_type = match file_type {
+        Some(analysis) => analysis.file_type.contains("ACE archive data"),
+        None => head.get(7..14) == Some(b"**ACE**"),
+    };
+    by_type || file.path.as_str().to_lowercase().ends_with(".ace")
 }
 
 /// `is_office_file`: an Office file name or mime type.
@@ -285,10 +299,9 @@ impl Parser for ArchiveAnalyzer {
                 .unwrap_or(false)
         };
         let Some(format) = format_of(file, &head, &has_manifest) else {
-            if is_ace(file, &head) {
-                return Ok(Outcome::Skipped(
-                    "an ACE archive, which ace3 opens with unace and ace4 can't".to_owned(),
-                ));
+            let file_type = ctx.dependency_result::<FileTypeAnalysis>()?;
+            if is_ace(file, &head, file_type.as_ref()) {
+                return ace::analyze(ctx, file);
             }
             return Ok(Outcome::Skipped("not an archive ace4 opens".to_owned()));
         };
@@ -398,56 +411,69 @@ impl Parser for ArchiveAnalyzer {
             return Err(failure);
         }
 
-        let archive_ref = ObservableRef::new(ObservableKind::File, file.sha256.to_hex());
-        let mut analysis = ArchiveAnalysis {
-            file_count: count,
-            extracted_files: Vec::new(),
-        };
-        let mut result = ResultEnvelope::new(ArchiveAnalysis::default());
-        let mut names_so_far: Vec<String> = Vec::new();
+        let mut members = Vec::new();
         for path in &order {
             let index = by_path[path].index;
-            let Some(mut new_file) = written.remove(&index) else {
-                continue;
-            };
-            analysis
-                .extracted_files
-                .push(path[base.len() + 1..].to_owned());
-            new_file.relationships.push(Relationship::new(
-                RelationshipKind::ExtractedFrom,
-                archive_ref.clone(),
-            ));
-            if is_office {
-                new_file.redirection = Some(archive_ref.clone());
+            if let Some(new_file) = written.remove(&index) {
+                members.push((path[base.len() + 1..].to_owned(), new_file));
             }
-            let name = new_file.name().to_owned();
-            let ext = name.rsplit_once('.').map(|(_, ext)| ext.to_lowercase());
-            if matches!(ext.as_deref(), Some("xps" | "rels" | "xml")) {
-                new_file.add_directive("extract_urls");
-            }
-            names_so_far.push(name.to_lowercase());
-            if count == 1 {
-                add_tag(&mut result.tags, "single_file_zip");
-                new_file.add_directive("sandbox");
-                // ace3 checks every file the analysis holds so far, for the file just added
-                for seen in &names_so_far {
-                    for (endings, tag, description) in LONE_FILE_KINDS {
-                        if endings.iter().any(|e| seen.ends_with(e)) {
-                            add_tag(&mut result.tags, tag);
-                            new_file.detections.push(
-                                Detection::new(*description)
-                                    .with_signature(ARCHIVE_SINGLE_DANGEROUS_FILE),
-                            );
-                        }
+        }
+        Ok(Outcome::Done(result_of(file, count, is_office, members)))
+    }
+}
+
+/// The result for the members extracted, each by its path in the `.extracted` directory, in the
+/// order they're added: `extracted_from` the archive, redirected to it in an Office document,
+/// sandboxed and maybe a detection when it's the only one.
+fn result_of(
+    file: &InputFile,
+    count: u64,
+    is_office: bool,
+    members: Vec<(String, NewFile)>,
+) -> ResultEnvelope<ArchiveAnalysis> {
+    let archive_ref = ObservableRef::new(ObservableKind::File, file.sha256.to_hex());
+    let mut analysis = ArchiveAnalysis {
+        file_count: count,
+        extracted_files: Vec::new(),
+    };
+    let mut result = ResultEnvelope::new(ArchiveAnalysis::default());
+    let mut names_so_far: Vec<String> = Vec::new();
+    for (relative, mut new_file) in members {
+        analysis.extracted_files.push(relative);
+        new_file.relationships.push(Relationship::new(
+            RelationshipKind::ExtractedFrom,
+            archive_ref.clone(),
+        ));
+        if is_office {
+            new_file.redirection = Some(archive_ref.clone());
+        }
+        let name = new_file.name().to_owned();
+        let ext = name.rsplit_once('.').map(|(_, ext)| ext.to_lowercase());
+        if matches!(ext.as_deref(), Some("xps" | "rels" | "xml")) {
+            new_file.add_directive("extract_urls");
+        }
+        names_so_far.push(name.to_lowercase());
+        if count == 1 {
+            add_tag(&mut result.tags, "single_file_zip");
+            new_file.add_directive("sandbox");
+            // ace3 checks every file the analysis holds so far, for the file just added
+            for seen in &names_so_far {
+                for (endings, tag, description) in LONE_FILE_KINDS {
+                    if endings.iter().any(|e| seen.ends_with(e)) {
+                        add_tag(&mut result.tags, tag);
+                        new_file.detections.push(
+                            Detection::new(*description)
+                                .with_signature(ARCHIVE_SINGLE_DANGEROUS_FILE),
+                        );
                     }
                 }
             }
-            result.files.push(new_file);
         }
-        result.summary = summary(&analysis);
-        result.details = analysis;
-        Ok(Outcome::Done(result))
+        result.files.push(new_file);
     }
+    result.summary = summary(&analysis);
+    result.details = analysis;
+    result
 }
 
 /// Says whether a read failed, because a failed write of a file doesn't say which side it was.

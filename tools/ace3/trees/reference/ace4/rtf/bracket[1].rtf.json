@@ -1,6 +1,24 @@
 {
   "form": 1,
   "observables": {
+    "file:2599417b13208c5be6ef6452bde3b51ab7f8183934535308a3b18e07b56566c6": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "bracket[1].rtf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:4532a9df01925fcd7da833b5d7c56f491d3a5b9d64c7204a2dac5623a335e730": true
+      },
+      "results": {},
+      "tags": {}
+    },
     "file:4532a9df01925fcd7da833b5d7c56f491d3a5b9d64c7204a2dac5623a335e730": {
       "detections": {},
       "directives": {},
@@ -16,6 +34,28 @@
         "binary_file_analyzer": {
           "details": {},
           "summary": null,
+          "tags": {}
+        },
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:42:21+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:42:21+00:00",
+              "File:FileModifyDate": "2026:11:07 00:31:29+00:00",
+              "File:FileName": "bracket[1].rtf",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 380,
+              "File:FileType": "RTF",
+              "File:FileTypeExtension": "RTF",
+              "File:MIMEType": "text/rtf",
+              "SourceFile": "<root>/files/bracket[1].rtf"
+            },
+            "output_dir": "<root>/files/bracket[1].rtf.exif"
+          },
+          "summary": "Exiftool Analysis: ",
           "tags": {}
         },
         "file_hash_analyzer": {

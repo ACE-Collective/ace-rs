@@ -13,6 +13,31 @@
       },
       "relationships": {},
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "ExifTool:Warning": "Invalid xref table",
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:35:25+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:35:25+00:00",
+              "File:FileModifyDate": "2026:11:07 04:47:50+00:00",
+              "File:FileName": "broken_truncated.pdf",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 783,
+              "File:FileType": "PDF",
+              "File:FileTypeExtension": "PDF",
+              "File:MIMEType": "application/pdf",
+              "PDF:Linearized": false,
+              "PDF:PDFVersion": 1.7,
+              "SourceFile": "<root>/files/broken_truncated.pdf"
+            },
+            "output_dir": "<root>/files/broken_truncated.pdf.exif"
+          },
+          "summary": "Exiftool Analysis: PDFVersion=1.7, Linearized=False",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "fc2de9a46a0eb5f0f87fa608486e8c19",
@@ -45,54 +70,12 @@
           "details": {},
           "summary": null,
           "tags": {}
-        }
-      },
-      "tags": {
-        "pdf": true
-      }
-    },
-    "file:88df7192525ae823b0a20fecb15ca99d5e2c2416539029d87834b2b439ffe42f": {
-      "detections": {},
-      "directives": {
-        "extract_urls": true
-      },
-      "excluded_analysis": {
-        "pdf_analyzer": true
-      },
-      "paths": {
-        "broken_truncated.pdf.gs.pdf": {
-          "type=document.pdf": true,
-          "type=document.pdf.rendered": true
-        }
-      },
-      "redirection": "file:09dbfb2461b10124e2695910b26c2907bfc1c851703cf15b0b8d9ff95289a94f",
-      "relationships": {
-        "extracted_from file:09dbfb2461b10124e2695910b26c2907bfc1c851703cf15b0b8d9ff95289a94f": true
-      },
-      "results": {
-        "file_type": {
-          "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": true,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "application/pdf",
-            "type": "PDF document, version 1.7, 1 page(s)"
-          },
-          "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
-          "tags": {}
         },
-        "url_extraction": {
+        "pdftotext": {
           "details": {
-            "urls": [],
-            "urls_grouped_by_domain": {}
+            "output_path": null,
+            "stderr": "Syntax Error: Couldn't find trailer dictionary\nSyntax Error: Couldn't find trailer dictionary\nSyntax Error: Couldn't read xref table\n",
+            "stdout": ""
           },
           "summary": null,
           "tags": {}
@@ -101,6 +84,24 @@
       "tags": {
         "pdf": true
       }
+    },
+    "file:20edabd90a5913a797c342bdf8c89b6d4649b7a708e9ba6702d23523e7c9cea4": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "broken_truncated.pdf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:09dbfb2461b10124e2695910b26c2907bfc1c851703cf15b0b8d9ff95289a94f": true
+      },
+      "results": {},
+      "tags": {}
     },
     "file:c423343fc7bb0e711cf03089fa0db625a4beb7a2936b057d97b99bd73e0f032a": {
       "detections": {},
@@ -143,6 +144,112 @@
             "urls_grouped_by_domain": {}
           },
           "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:ee910ad531f7ff6107422aa2a316d3be1f6d00ab7cf265ff690d32ef72f9dbfa": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {
+        "pdf_analyzer": true
+      },
+      "paths": {
+        "broken_truncated.pdf.gs.pdf": {
+          "type=document.pdf": true,
+          "type=document.pdf.rendered": true
+        }
+      },
+      "redirection": "file:09dbfb2461b10124e2695910b26c2907bfc1c851703cf15b0b8d9ff95289a94f",
+      "relationships": {
+        "extracted_from file:09dbfb2461b10124e2695910b26c2907bfc1c851703cf15b0b8d9ff95289a94f": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": true,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/pdf",
+            "type": "PDF document, version 1.7, 1 page(s)"
+          },
+          "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
+          "tags": {}
+        },
+        "pdftotext": {
+          "details": {
+            "output_path": "ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977",
+            "stderr": "",
+            "stdout": ""
+          },
+          "summary": "PDF Text Analysis",
+          "tags": {}
+        },
+        "qrcode": {
+          "details": {
+            "extracted_text": null,
+            "inverted": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "pdf": true
+      }
+    },
+    "file:ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "archive": true
+      },
+      "paths": {
+        "broken_truncated.pdf.gs.pdf.txt": {
+          "type=document.pdf.text": true
+        }
+      },
+      "redirection": "file:ee910ad531f7ff6107422aa2a316d3be1f6d00ab7cf265ff690d32ef72f9dbfa",
+      "relationships": {
+        "extracted_from file:ee910ad531f7ff6107422aa2a316d3be1f6d00ab7cf265ff690d32ef72f9dbfa": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "very short file (no magic)"
+          },
+          "summary": "File Type Analysis: very short file (no magic) (application/octet-stream)",
           "tags": {}
         }
       },

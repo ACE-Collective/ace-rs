@@ -11,6 +11,7 @@ use std::sync::Arc;
 
 use ace_results::AnalysisType;
 use ace_sdk::reads::Reader;
+use ace_sdk::tools::{LocalRunner, ToolRunner, ToolSpec};
 use ace_sdk::wire::{LeasedTask, TaskEnd};
 use ace_sdk::writes::WireWrite;
 use ace_sdk::{
@@ -64,6 +65,8 @@ pub struct Run<'a> {
     pub contained: bool,
     /// What makes the task's reads of ACE's data (PLAN.md 7.2): the lease API, for a lookup.
     pub reader: Option<Arc<dyn Reader>>,
+    /// What runs the module's tools (PLAN.md 7.3): the supervisor, for a contained task.
+    pub tools: Option<Arc<dyn ToolRunner>>,
 }
 
 impl Run<'_> {
@@ -149,7 +152,8 @@ impl<M: ace_sdk::Module> Entry<M> {
         .with_added_by(run.task.added_by.clone())
         .with_related_tags(run.task.related_tags.clone())
         .with_tree(run.task.tree.clone())
-        .with_tree_files(run.tree_files.map(Path::to_path_buf));
+        .with_tree_files(run.tree_files.map(Path::to_path_buf))
+        .with_tool_runner(run.tools.clone());
         match &run.task.delayed {
             Some(delayed) => ctx.with_delayed(delayed.clone()),
             None => ctx,
@@ -228,11 +232,12 @@ pub fn task_end<D: AnalysisType>(
     }
 }
 
-/// The modules one pool runs, by name.
+/// The modules one pool runs, by name, and the tools its image carries.
 #[derive(Default)]
 pub struct Modules {
     parsers: BTreeMap<String, Box<dyn PoolParser>>,
     lookups: BTreeMap<String, Box<dyn PoolLookup>>,
+    tools: Vec<ToolSpec>,
 }
 
 impl Modules {
@@ -250,6 +255,39 @@ impl Modules {
         self.lookups
             .insert(lookup.key().to_owned(), Box::new(lookup));
         self
+    }
+
+    /// The tools the pool's image carries, which its modules may declare (PLAN.md 7.3).
+    pub fn with_tools(mut self, tools: &[ToolSpec]) -> Self {
+        self.tools = tools.to_vec();
+        self
+    }
+
+    pub fn tools(&self) -> &[ToolSpec] {
+        &self.tools
+    }
+
+    /// The tools a module declares that the pool doesn't carry, as `module: tool`.
+    pub fn missing_tools(&self) -> Vec<String> {
+        self.manifests()
+            .iter()
+            .flat_map(|m| m.tools.iter().map(move |tool| (m.name, *tool)))
+            .filter(|(_, tool)| ace_sdk::tools::find(&self.tools, tool).is_none())
+            .map(|(module, tool)| format!("{module}: {tool}"))
+            .collect()
+    }
+
+    /// A runner of `module`'s tools as plain processes, for a task run in this process with no
+    /// containment (`run_in_process`, a replay). None for a module that declares none.
+    pub fn local_tools(&self, module: &str) -> std::io::Result<Option<Arc<dyn ToolRunner>>> {
+        let Some(parser) = self.parser(module) else {
+            return Ok(None);
+        };
+        let declared = parser.manifest().tools;
+        if declared.is_empty() {
+            return Ok(None);
+        }
+        Ok(Some(Arc::new(LocalRunner::new(&self.tools, declared)?)))
     }
 
     pub fn parser(&self, name: &str) -> Option<&dyn PoolParser> {
@@ -466,6 +504,7 @@ mod tests {
                 cancel: CancellationToken::new(),
                 contained: false,
                 reader: None,
+                tools: None,
             }
             .carrying_email()
         };

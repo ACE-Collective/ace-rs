@@ -16,6 +16,10 @@
 //! test-pool command
 //!     a GUI command's process: read a command on stdin, contain, run one of
 //!     `testing::run_test_command`'s commands
+//! test-pool tool
+//!     the sandbox runner's tool process: read what to run on stdin, contain, exec it
+//! test-pool parsers ... --tool NAME=PATH
+//!     the same, with a tool its modules may run, PATH run as NAME with no data of its own
 //! test-pool task [--settings JSON]
 //!     a task process: read a task on stdin, contain, run it, write its end on stdout
 //! test-pool replay ID [--settings JSON]
@@ -49,6 +53,7 @@ struct Args {
     rulesets: Option<std::path::PathBuf>,
     ruleset_poll: Duration,
     commands: bool,
+    tools: Vec<ace_sdk::tools::ToolSpec>,
 }
 
 fn parse() -> Result<Args, String> {
@@ -68,6 +73,8 @@ fn parse() -> Result<Args, String> {
         rulesets: None,
         ruleset_poll: ace_pool::rulesets::DEFAULT_EVERY,
         commands: false,
+        // the dev image's, which are the sandbox image's
+        tools: ace_sdk::tools::SANDBOX_TOOLS.to_vec(),
     };
     while let Some(arg) = args.next() {
         match arg.as_str() {
@@ -78,6 +85,14 @@ fn parse() -> Result<Args, String> {
             }
             "--contained" => parsed.contained = true,
             "--commands" => parsed.commands = true,
+            "--tool" => {
+                let spec = args.next().ok_or("--tool takes NAME=PATH")?;
+                let (name, path) = spec.split_once('=').ok_or("--tool takes NAME=PATH")?;
+                parsed.tools.push(ace_pool::testing::test_tool(
+                    name.to_owned(),
+                    path.to_owned(),
+                ));
+            }
             "--task-user" => {
                 parsed.task_user = Some(args.next().ok_or("--task-user takes a name")?)
             }
@@ -111,6 +126,10 @@ fn main() -> ExitCode {
     if std::env::args().nth(1).as_deref() == Some("command") {
         return ace_pool::commands::process_main(&ace_pool::testing::run_test_command);
     }
+    // a tool's: it must still be one thread
+    if std::env::args().nth(1).as_deref() == Some("tool") {
+        return ace_pool::tools::tool_main();
+    }
     // logs now; span export, which starts threads, once any containment is in place
     let mut telemetry = ace_pool::telemetry::init("ace4-test-pool", "info");
     let args = match parse() {
@@ -124,7 +143,7 @@ fn main() -> ExitCode {
     };
     // modules and the client are built before any thread starts, so containment can follow
     let modules = match ace_pool::testing::modules(&args.settings) {
-        Ok(modules) => Arc::new(modules),
+        Ok(modules) => Arc::new(modules.with_tools(&args.tools)),
         Err(e) => {
             eprintln!("setup failed: {e}");
             return ExitCode::from(if args.mode == "task" { 10 } else { 2 });
@@ -207,6 +226,14 @@ fn main() -> ExitCode {
                 user,
                 concurrency: args.concurrency,
                 read_paths: args.read_paths,
+                tools: match ace_pool::tools::ToolTable::resolve(&args.tools) {
+                    Ok(table) => Arc::new(table),
+                    Err(e) => {
+                        eprintln!("{e}");
+                        return ExitCode::from(2);
+                    }
+                },
+                tool_args: Vec::new(),
             };
             let watcher = args.rulesets.map(|dir| {
                 RulesetWatcher::new(client.clone(), dir, Arc::new(ace_mod_yara::check_ruleset))

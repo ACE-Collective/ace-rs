@@ -194,6 +194,24 @@
       },
       "tags": {}
     },
+    "file:57412998ebb1db1b26390144135d07288e3193076b85924388941adad22e079a": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "invoice.docx.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:a1040eae21a229a1435b0bf019fd65887811abcac9ae900e41e3a3fa8cab8dc4": true
+      },
+      "results": {},
+      "tags": {}
+    },
     "file:5b0bab3732443808206ca47ec7c2125aac009722235718fe1a89f83d68d78a13": {
       "detections": {},
       "directives": {
@@ -303,6 +321,28 @@
       },
       "relationships": {},
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:11:36+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:11:36+00:00",
+              "File:FileModifyDate": "2026:11:10 11:11:36+00:00",
+              "File:FileName": "invoice.docx",
+              "File:FilePermissions": 100664,
+              "File:FileSize": 17920,
+              "File:FileType": "DOCX",
+              "File:FileTypeExtension": "DOCX",
+              "File:MIMEType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+              "SourceFile": "<root>/files/invoice.docx"
+            },
+            "output_dir": "<root>/files/invoice.docx.exif"
+          },
+          "summary": "Exiftool Analysis: ",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "fc684fd763b65bbfa1897190bd566ba8",

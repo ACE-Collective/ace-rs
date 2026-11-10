@@ -1,0 +1,119 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "ExifAnalysis",
+      "details": {
+        "error": null,
+        "exifdata": {
+          "ExifTool:ExifToolVersion": 13.25,
+          "File:Directory": "<root>/files",
+          "File:FileAccessDate": "2026:11:10 10:54:59+00:00",
+          "File:FileInodeChangeDate": "2026:11:10 10:54:59+00:00",
+          "File:FileModifyDate": "2026:11:07 10:46:15+00:00",
+          "File:FileName": "encrypted_agile_sha1.docx",
+          "File:FilePermissions": 100644,
+          "File:FileSize": 17920,
+          "File:FileType": "DOCX",
+          "File:FileTypeExtension": "DOCX",
+          "File:MIMEType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          "SourceFile": "<root>/files/encrypted_agile_sha1.docx"
+        },
+        "output_dir": "<root>/files/encrypted_agile_sha1.docx.exif"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.exif:ExifAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=metadata.exif"
+          ],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.file_type:<class 'saq.modules.file_analysis.file_type.FileTypeAnalyzer'>",
+            "saq.modules.file_analysis.hash:<class 'saq.modules.file_analysis.hash.FileHashAnalyzer'>"
+          ],
+          "file_path": "encrypted_agile_sha1.docx.exif/exiftool.out",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "3c32d3d78324204d11407d30c736a71564c75a9d4582aa6215cac2379ee44cbd"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 674,
+          "tags": [],
+          "type": "file",
+          "value": "eabfe6c53ecc7b4aeb6f329bb84d0e05b5ea65f4e20e8fe7ef07708df444fbd0",
+          "yara_meta": [
+            "type=metadata.exif"
+          ]
+        }
+      ],
+      "summary": "Exiftool Analysis: ",
+      "tags": []
+    },
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": true,
+        "is_office_ext": true,
+        "is_ole_file": true,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "application/encrypted",
+        "type": "CDFV2 Encrypted"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: CDFV2 Encrypted (application/encrypted) (ms office document) (ole compound file)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace4/office/encrypted_agile_sha1.docx",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "encrypted_agile_sha1.docx",
+      "size": 17920,
+      "type": "file",
+      "value": "3c32d3d78324204d11407d30c736a71564c75a9d4582aa6215cac2379ee44cbd"
+    }
+  },
+  "module": "exif",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "encrypted_agile_sha1.docx",
+    "relationships": [],
+    "size": 17920,
+    "tags": [
+      "microsoft_office",
+      "ole"
+    ],
+    "type": "file",
+    "value": "3c32d3d78324204d11407d30c736a71564c75a9d4582aa6215cac2379ee44cbd",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

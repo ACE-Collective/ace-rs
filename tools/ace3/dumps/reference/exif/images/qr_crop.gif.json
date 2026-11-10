@@ -1,0 +1,60 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "image/gif",
+        "type": "GIF image data, version 87a, 449 x 449"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: GIF image data, version 87a, 449 x 449 (image/gif)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/images/qr_crop.gif",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "qr_crop.gif",
+      "size": 7865,
+      "type": "file",
+      "value": "61720af1212952d0145ceba93621a6f35d63b463add3274a6e07c49af43b0624"
+    }
+  },
+  "module": "exif",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=image"
+    ],
+    "excluded_analysis": [],
+    "file_path": "qr_crop.gif",
+    "relationships": [],
+    "size": 7865,
+    "tags": [],
+    "type": "file",
+    "value": "61720af1212952d0145ceba93621a6f35d63b463add3274a6e07c49af43b0624",
+    "yara_meta": [
+      "type=image"
+    ]
+  }
+}

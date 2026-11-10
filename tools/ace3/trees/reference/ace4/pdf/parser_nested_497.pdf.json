@@ -1,7 +1,7 @@
 {
   "form": 1,
   "observables": {
-    "file:3c0dcc08d383ea2216adf8000e9035ce319fa5a76b9350c5154520e85ac7d7ad": {
+    "file:1e537fe517e6f2a544bd2d49957b87ecb342e4c8d25b680b628b6704dfb79862": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -39,6 +39,23 @@
           "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
           "tags": {}
         },
+        "pdftotext": {
+          "details": {
+            "output_path": "ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977",
+            "stderr": "",
+            "stdout": ""
+          },
+          "summary": "PDF Text Analysis",
+          "tags": {}
+        },
+        "qrcode": {
+          "details": {
+            "extracted_text": null,
+            "inverted": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [],
@@ -64,6 +81,31 @@
       },
       "relationships": {},
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "ExifTool:Warning": "Invalid xref table",
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:40:14+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:40:14+00:00",
+              "File:FileModifyDate": "2026:11:07 04:47:50+00:00",
+              "File:FileName": "parser_nested_497.pdf",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 3512,
+              "File:FileType": "PDF",
+              "File:FileTypeExtension": "PDF",
+              "File:MIMEType": "application/pdf",
+              "PDF:Linearized": false,
+              "PDF:PDFVersion": 1.7,
+              "SourceFile": "<root>/files/parser_nested_497.pdf"
+            },
+            "output_dir": "<root>/files/parser_nested_497.pdf.exif"
+          },
+          "summary": "Exiftool Analysis: PDFVersion=1.7, Linearized=False",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "b61fc93033e45bb55fd50cf1774dc0e1",
@@ -94,6 +136,15 @@
         },
         "pdf_analyzer": {
           "details": {},
+          "summary": null,
+          "tags": {}
+        },
+        "pdftotext": {
+          "details": {
+            "output_path": null,
+            "stderr": "Syntax Error: Couldn't find trailer dictionary\nSyntax Error: Couldn't find trailer dictionary\nSyntax Error: Couldn't read xref table\n",
+            "stdout": ""
+          },
           "summary": null,
           "tags": {}
         }
@@ -143,6 +194,62 @@
             "urls_grouped_by_domain": {}
           },
           "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:d3bf31c892cdf3b8c15bdb3eb903f1d12846c0a56cd95a1d88a997de297ddbd8": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "parser_nested_497.pdf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:4a867afcdb2ecce06175420c53606b9cf3c06cefab50e904333bdafa3dbb79b0": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "file:ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "archive": true
+      },
+      "paths": {
+        "parser_nested_497.pdf.gs.pdf.txt": {
+          "type=document.pdf.text": true
+        }
+      },
+      "redirection": "file:1e537fe517e6f2a544bd2d49957b87ecb342e4c8d25b680b628b6704dfb79862",
+      "relationships": {
+        "extracted_from file:1e537fe517e6f2a544bd2d49957b87ecb342e4c8d25b680b628b6704dfb79862": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "very short file (no magic)"
+          },
+          "summary": "File Type Analysis: very short file (no magic) (application/octet-stream)",
           "tags": {}
         }
       },

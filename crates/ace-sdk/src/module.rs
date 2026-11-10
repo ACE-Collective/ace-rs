@@ -104,6 +104,10 @@ pub trait Module: Sized + Send + Sync + 'static {
     /// The writes to ACE's own data the module makes (PLAN.md 7.2), with `TaskContext::write`.
     /// They land with the task's end, in its transaction. Only a lookup may declare one.
     const WRITES: &'static [Write] = &[];
+    /// The programs the module runs (PLAN.md 7.3), by the names its pool's image maps to programs
+    /// (`crate::tools::ToolSpec`), with `TaskContext::run_tool`. Only a parser may declare one, and
+    /// only a pool whose image has each runs it.
+    const TOOLS: &'static [&'static str] = &[];
     /// False for a module whose tasks end with writes and never a result, as ace3's email logger,
     /// which creates no analysis. Its type needs no view.
     const STORES_RESULTS: bool = true;

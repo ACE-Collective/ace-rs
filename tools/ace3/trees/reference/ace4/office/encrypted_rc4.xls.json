@@ -103,6 +103,24 @@
       },
       "tags": {}
     },
+    "file:6886d5c1f8e058a4f0f92b275c4780fa9876887f2f85bb65c049f1457c5adf3c": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "encrypted_rc4.xls.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:8ff8e52eb1b97ac21b0b4348d81f143f6f25d0ea817d7748b7f8ddae27637857": true
+      },
+      "results": {},
+      "tags": {}
+    },
     "file:7a75bfc74e9bae899d38cb18102e56509c65c15c0aed4549a1acd7fab5f0fc83": {
       "detections": {},
       "directives": {
@@ -161,6 +179,51 @@
       },
       "relationships": {},
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:18:03+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:18:03+00:00",
+              "File:FileModifyDate": "2026:11:07 10:46:15+00:00",
+              "File:FileName": "encrypted_rc4.xls",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 69125,
+              "File:FileType": "XLS",
+              "File:FileTypeExtension": "XLS",
+              "File:MIMEType": "application/vnd.ms-excel",
+              "FlashPix:AppVersion": 16.0,
+              "FlashPix:Author": "",
+              "FlashPix:CodePage": 1252,
+              "FlashPix:Company": "",
+              "FlashPix:CreateDate": "2015:06:05 18:17:20",
+              "FlashPix:HeadingPairs": [
+                "Worksheets",
+                1,
+                "Excel 4.0 Macros",
+                1
+              ],
+              "FlashPix:HyperlinksChanged": 0,
+              "FlashPix:LastModifiedBy": "",
+              "FlashPix:LinksUpToDate": 0,
+              "FlashPix:ModifyDate": "2020:09:07 15:00:28",
+              "FlashPix:ScaleCrop": 0,
+              "FlashPix:Security": 1,
+              "FlashPix:SharedDoc": 0,
+              "FlashPix:Software": "Microsoft Excel",
+              "FlashPix:TitleOfParts": [
+                "Sheet1",
+                "lh"
+              ],
+              "SourceFile": "<root>/files/encrypted_rc4.xls"
+            },
+            "output_dir": "<root>/files/encrypted_rc4.xls.exif"
+          },
+          "summary": "Exiftool Analysis: Author=, LastModifiedBy=, Software=Microsoft Excel, CreateDate=2015:06:05 18:17:20, ModifyDate=2020:09:07 15:00:28, Security=1, CodePage=1252, Company=, AppVersion=16.0, ScaleCrop=0, LinksUpToDate=0, SharedDoc=0, HyperlinksChanged=0, TitleOfParts=['Sheet1', 'lh'], HeadingPairs=['Worksheets', 1, 'Excel 4.0 Macros', 1]",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "784ab044a8c877b36ce6452b8ef6f4f6",

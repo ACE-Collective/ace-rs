@@ -13,6 +13,31 @@
       },
       "relationships": {},
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "ExifTool:Warning": "Invalid xref table",
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:41:47+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:41:47+00:00",
+              "File:FileModifyDate": "2026:11:07 04:47:50+00:00",
+              "File:FileName": "quirks.pdf",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 1136,
+              "File:FileType": "PDF",
+              "File:FileTypeExtension": "PDF",
+              "File:MIMEType": "application/pdf",
+              "PDF:Linearized": false,
+              "PDF:PDFVersion": 1.4,
+              "SourceFile": "<root>/files/quirks.pdf"
+            },
+            "output_dir": "<root>/files/quirks.pdf.exif"
+          },
+          "summary": "Exiftool Analysis: PDFVersion=1.4, Linearized=False",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "831c5c6f99841b085700b894db0788a9",
@@ -44,6 +69,15 @@
         "pdf_analyzer": {
           "details": {},
           "summary": null,
+          "tags": {}
+        },
+        "pdftotext": {
+          "details": {
+            "output_path": "ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977",
+            "stderr": "Syntax Error (164): Dictionary key must be a name object\nSyntax Error (203): Dictionary key must be a name object\nSyntax Error (164): Dictionary key must be a name object\nSyntax Error (203): Dictionary key must be a name object\nSyntax Error (164): Dictionary key must be a name object\nSyntax Error (203): Dictionary key must be a name object\nSyntax Error (164): Dictionary key must be a name object\nSyntax Error (203): Dictionary key must be a name object\n",
+            "stdout": ""
+          },
+          "summary": "PDF Text Analysis",
           "tags": {}
         }
       },
@@ -97,7 +131,67 @@
       },
       "tags": {}
     },
-    "file:782f676442fc1e672fcea7b557847ecfceb43f54cc6e72fe7723c5e6cde42310": {
+    "file:3280f678bbad898b690244c0d71507099782bd27d66498d204101e33bf50392c": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "quirks.pdf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:01940d8e00316615efbbc86cc54902f0afb11fee57536db4f908c1c0fbda3aa4": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "file:ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "archive": true
+      },
+      "paths": {
+        "quirks.pdf.gs.pdf.txt": {
+          "type=document.pdf.text": true
+        },
+        "quirks.pdf.txt": {
+          "type=document.pdf.text": true
+        }
+      },
+      "redirection": "file:f50800d2e99b7a192cdb4a36fd9f5048f4c8098f9673f1a5edd262ad94503a96",
+      "relationships": {
+        "extracted_from file:01940d8e00316615efbbc86cc54902f0afb11fee57536db4f908c1c0fbda3aa4": true,
+        "extracted_from file:f50800d2e99b7a192cdb4a36fd9f5048f4c8098f9673f1a5edd262ad94503a96": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "very short file (no magic)"
+          },
+          "summary": "File Type Analysis: very short file (no magic) (application/octet-stream)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:f50800d2e99b7a192cdb4a36fd9f5048f4c8098f9673f1a5edd262ad94503a96": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -133,6 +227,23 @@
             "type": "PDF document, version 1.7, 1 page(s)"
           },
           "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
+          "tags": {}
+        },
+        "pdftotext": {
+          "details": {
+            "output_path": "ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977",
+            "stderr": "",
+            "stdout": ""
+          },
+          "summary": "PDF Text Analysis",
+          "tags": {}
+        },
+        "qrcode": {
+          "details": {
+            "extracted_text": null,
+            "inverted": false
+          },
+          "summary": null,
           "tags": {}
         },
         "url_extraction": {

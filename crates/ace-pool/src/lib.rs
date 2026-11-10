@@ -5,7 +5,8 @@
 //! through presigned URLs the API hands out (2.14).
 //! Containment (2.18) is what a parser's task process applies to itself before the module runs.
 //! A parser pool's supervisor can also run the commands analysts start from the GUI (`commands`, 5.12),
-//! each in a contained process of its own.
+//! each in a contained process of its own. A parser pool whose image carries programs runs them at a task's
+//! request in the sandbox runner (`tools`, PLAN.md 7.3).
 
 pub mod client;
 pub mod commands;
@@ -21,5 +22,8 @@ pub mod task_process;
 pub mod telemetry;
 #[cfg(feature = "test-pools")]
 pub mod testing;
+pub mod tools;
 
-pub use containment::{Contained, ContainmentError, SandboxProfile, contain, contain_pool};
+pub use containment::{
+    Contained, ContainmentError, SandboxProfile, ToolProfile, contain, contain_pool, contain_tool,
+};

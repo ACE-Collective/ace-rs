@@ -161,6 +161,24 @@
       },
       "tags": {}
     },
+    "file:a8204a6dace0bf1e46bc7d6ff31677a78edf6041760a0787468c86cf92dab14f": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "encrypted_bad_salt.docx.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:ddb6c71704f1015796b5d5ac67a837abdbaeb9b978701079cc9d22bc3df93909": true
+      },
+      "results": {},
+      "tags": {}
+    },
     "file:ad7facb2586fc6e966c004d7d1d16b024f5805ff7cb47c7a85dabd8b48892ca7": {
       "detections": {},
       "directives": {
@@ -274,6 +292,28 @@
       },
       "relationships": {},
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:16:44+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:16:44+00:00",
+              "File:FileModifyDate": "2026:11:07 10:46:15+00:00",
+              "File:FileName": "encrypted_bad_salt.docx",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 9216,
+              "File:FileType": "DOCX",
+              "File:FileTypeExtension": "DOCX",
+              "File:MIMEType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+              "SourceFile": "<root>/files/encrypted_bad_salt.docx"
+            },
+            "output_dir": "<root>/files/encrypted_bad_salt.docx.exif"
+          },
+          "summary": "Exiftool Analysis: ",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "fac8fd0c683eb9bd09d21117196a71a4",

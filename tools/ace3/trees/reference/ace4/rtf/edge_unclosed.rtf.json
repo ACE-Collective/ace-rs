@@ -65,6 +65,24 @@
         "rtf": true
       }
     },
+    "file:2ea7ce47e7d30606a9b048d0cb1bf8ec1e385263e1cbf9673f4b983f0951eddc": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "edge_unclosed.rtf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:8f9a78539b7e9743551b09459652c16ad52999f7d39163f9e535099792d5e916": true
+      },
+      "results": {},
+      "tags": {}
+    },
     "file:8f9a78539b7e9743551b09459652c16ad52999f7d39163f9e535099792d5e916": {
       "detections": {},
       "directives": {},
@@ -80,6 +98,29 @@
         "binary_file_analyzer": {
           "details": {},
           "summary": null,
+          "tags": {}
+        },
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "ExifTool:Warning": "Unspecified RTF encoding. Will assume Latin",
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:42:45+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:42:45+00:00",
+              "File:FileModifyDate": "2026:11:07 15:11:53+00:00",
+              "File:FileName": "edge_unclosed.rtf",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 30,
+              "File:FileType": "RTF",
+              "File:FileTypeExtension": "RTF",
+              "File:MIMEType": "text/rtf",
+              "SourceFile": "<root>/files/edge_unclosed.rtf"
+            },
+            "output_dir": "<root>/files/edge_unclosed.rtf.exif"
+          },
+          "summary": "Exiftool Analysis: ",
           "tags": {}
         },
         "file_hash_analyzer": {

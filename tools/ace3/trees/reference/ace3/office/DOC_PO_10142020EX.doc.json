@@ -625,6 +625,68 @@
       },
       "relationships": {},
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:09:23+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:09:23+00:00",
+              "File:FileModifyDate": "2026:11:06 19:20:07+00:00",
+              "File:FileName": "DOC_PO_10142020EX.doc",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 132953,
+              "File:FileType": "DOC",
+              "File:FileTypeExtension": "DOC",
+              "File:MIMEType": "application/msword",
+              "FlashPix:AppVersion": 15.0,
+              "FlashPix:Author": "Adrien Perrot",
+              "FlashPix:CharCountWithSpaces": 10331,
+              "FlashPix:Characters": 8807,
+              "FlashPix:CodePage": 1200,
+              "FlashPix:Comments": "",
+              "FlashPix:CompObjUserType": "Microsoft Word 97-2003 Document",
+              "FlashPix:CompObjUserTypeLen": 32,
+              "FlashPix:Company": "",
+              "FlashPix:CreateDate": "2020:10:14 12:13:00",
+              "FlashPix:DocFlags": 4616,
+              "FlashPix:HeadingPairs": [
+                "Title",
+                1
+              ],
+              "FlashPix:HyperlinksChanged": 0,
+              "FlashPix:Identification": 42476,
+              "FlashPix:Keywords": "",
+              "FlashPix:LanguageCode": 1033,
+              "FlashPix:LastModifiedBy": "",
+              "FlashPix:LastPrinted": "0000:00:00 00:00:00",
+              "FlashPix:Lines": 73,
+              "FlashPix:LinksUpToDate": 0,
+              "FlashPix:LocaleIndicator": 1033,
+              "FlashPix:ModifyDate": "2020:10:14 12:14:00",
+              "FlashPix:Pages": 1,
+              "FlashPix:Paragraphs": 20,
+              "FlashPix:RevisionNumber": 1,
+              "FlashPix:ScaleCrop": 0,
+              "FlashPix:Security": 8,
+              "FlashPix:SharedDoc": 0,
+              "FlashPix:Software": "Microsoft Office Word",
+              "FlashPix:Subject": "",
+              "FlashPix:System": 0,
+              "FlashPix:Template": "Normal.dotm",
+              "FlashPix:Title": "Iure.",
+              "FlashPix:TitleOfParts": "",
+              "FlashPix:TotalEditTime": 0,
+              "FlashPix:Word97": 0,
+              "FlashPix:Words": 1544,
+              "SourceFile": "<root>/files/DOC_PO_10142020EX.doc"
+            },
+            "output_dir": "<root>/files/DOC_PO_10142020EX.doc.exif"
+          },
+          "summary": "Exiftool Analysis: Identification=42476, LanguageCode=1033, DocFlags=4616, System=0, Word97=0, Title=Iure., Subject=, Author=Adrien Perrot, Keywords=, Comments=, Template=Normal.dotm, LastModifiedBy=, Software=Microsoft Office Word, CreateDate=2020:10:14 12:13:00, ModifyDate=2020:10:14 12:14:00, Security=8, Company=, CharCountWithSpaces=10331, AppVersion=15.0, ScaleCrop=0 + 17 more",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "4ffcb03e5638679058e8be355f4c7e18",
@@ -2033,6 +2095,24 @@
           "tags": {}
         }
       },
+      "tags": {}
+    },
+    "file:fd4b1e485ae02f136348cfb5bbea4e46ec81dc5fcb28208648ef1a17a1e9e8d3": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "DOC_PO_10142020EX.doc.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a": true
+      },
+      "results": {},
       "tags": {}
     },
     "md5:4ffcb03e5638679058e8be355f4c7e18": {

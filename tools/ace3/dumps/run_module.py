@@ -823,6 +823,11 @@ TREE_MODULES = {
     "EncryptedArchiveAnalysis": "encrypted_archive_analyzer",
     "URLEmailPivotAnalysis_v2": "url_email_pivot_analyzer",
     "MessageIDAnalysisV2": "message_id_analyzer_v2",
+    "PDFTextAnalysis": "pdftotext",
+    "ExifAnalysis": "exif",
+    "QRCodeAnalysis": "qrcode",
+    "OCRAnalysis": "ocr",
+    "SsdeepAnalysis": "ssdeep",
 }
 TREE_RUN_FIELDS = {
     "EmailAnalysis": ["details/email/log_entry/date"],
@@ -860,6 +865,9 @@ TREE_EXCLUDED = {
     "PDFTextAnalyzer": "pdftotext",
     "ExifAnalyzer": "exif",
     "QRCodeAnalyzer": "qrcode",
+    "OCRAnalyzer": "ocr",
+    "FileHashAnalyzer": "file_hash_analyzer",
+    "FileTypeAnalyzer": "file_type",
     "XLMMacroDeobfuscatorAnalyzer": "xlmdeobfuscator",
     "YaraScanner_v3_4": "yara_scanner_v3_4",
     "URLExtractionAnalyzer": "url_extraction",

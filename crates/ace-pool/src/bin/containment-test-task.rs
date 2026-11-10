@@ -9,6 +9,9 @@
 //! It prints `contained` once containment applies, then a line when the action finishes, and
 //! exits 0. It exits 3 when containment fails and 4 when the action fails with an error, and
 //! prints the error. A blocked call or a limit kills it with a signal instead.
+//!
+//! `containment-test-task tool` is the sandbox runner's tool process (`ace_pool::tools::tool_main`),
+//! so the runner's tests can run this binary, `--uncontained`, as the tool it contains.
 
 use std::env;
 use std::fs;
@@ -36,6 +39,9 @@ struct Args {
 }
 
 fn main() -> ExitCode {
+    if env::args().nth(1).as_deref() == Some("tool") {
+        return ace_pool::tools::tool_main();
+    }
     let args = match parse(env::args().skip(1)) {
         Ok(args) => args,
         Err(error) => {
@@ -182,6 +188,51 @@ fn act(action: &str, argument: Option<&str>) -> io::Result<String> {
             // until the test closes stdin
             io::stdin().read_to_end(&mut Vec::new())?;
             Ok("stdin closed".into())
+        }
+        "sleep" => {
+            let seconds: u64 = argument()?.parse().map_err(io::Error::other)?;
+            thread::sleep(std::time::Duration::from_secs(seconds));
+            Ok(format!("slept {seconds} s"))
+        }
+        "socket" => {
+            // a TCP socket, which a tool may not make
+            TcpStream::connect(("127.0.0.1", port()?))?;
+            Ok("connected".into())
+        }
+        "write-mb" => {
+            // a file of this many MB in the working directory
+            let megabytes: usize = argument()?.parse().map_err(io::Error::other)?;
+            let mut file = fs::File::create("big")?;
+            let block = vec![b'x'; 1024 * 1024];
+            for _ in 0..megabytes {
+                file.write_all(&block)?;
+            }
+            Ok(format!("wrote {megabytes} MB"))
+        }
+        "open-files" => {
+            let count: usize = argument()?.parse().map_err(io::Error::other)?;
+            let mut files = Vec::new();
+            for _ in 0..count {
+                files.push(fs::File::open("/dev/null")?);
+            }
+            Ok(format!("opened {} files", files.len()))
+        }
+        "print-mb" => {
+            let megabytes: usize = argument()?.parse().map_err(io::Error::other)?;
+            let block = vec![b'y'; 1024 * 1024];
+            let mut stdout = io::stdout().lock();
+            for _ in 0..megabytes {
+                stdout.write_all(&block)?;
+            }
+            Ok(String::new())
+        }
+        "keep" => {
+            // a file to keep, and a symlink and a hard link that mustn't be
+            fs::write("out", "kept\n")?;
+            std::os::unix::fs::symlink("/etc/passwd", "link")?;
+            fs::write("twice", "linked\n")?;
+            fs::hard_link("twice", "twice-again")?;
+            Ok("left files".into())
         }
         _ => Err(io::Error::other(format!("unknown action {action}"))),
     }

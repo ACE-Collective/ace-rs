@@ -1,0 +1,126 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "ExifAnalysis",
+      "details": {
+        "error": null,
+        "exifdata": {
+          "ExifTool:ExifToolVersion": 13.25,
+          "File:Directory": "<root>/files",
+          "File:FileAccessDate": "2026:11:10 11:01:29+00:00",
+          "File:FileInodeChangeDate": "2026:11:10 11:01:29+00:00",
+          "File:FileModifyDate": "2026:11:07 04:47:50+00:00",
+          "File:FileName": "encrypted_aes_256_r5.pdf",
+          "File:FilePermissions": 100644,
+          "File:FileSize": 2520,
+          "File:FileType": "PDF",
+          "File:FileTypeExtension": "PDF",
+          "File:MIMEType": "application/pdf",
+          "PDF:Encryption": "Standard V5.5 (256-bit)",
+          "PDF:HasXFA": false,
+          "PDF:Linearized": false,
+          "PDF:PDFVersion": 1.7,
+          "PDF:PageCount": 1,
+          "PDF:UserAccess": 2876,
+          "SourceFile": "<root>/files/encrypted_aes_256_r5.pdf"
+        },
+        "output_dir": "<root>/files/encrypted_aes_256_r5.pdf.exif"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.exif:ExifAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=metadata.exif"
+          ],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.file_type:<class 'saq.modules.file_analysis.file_type.FileTypeAnalyzer'>",
+            "saq.modules.file_analysis.hash:<class 'saq.modules.file_analysis.hash.FileHashAnalyzer'>"
+          ],
+          "file_path": "encrypted_aes_256_r5.pdf.exif/exiftool.out",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "de308323882d512dc816d216084b9b5bd59059b0e74c0d49c9ca1168218cc6cf"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 769,
+          "tags": [],
+          "type": "file",
+          "value": "e88ef1435249bd23634bcd4d3f28541439e820b4f8f9375678e30a126402bd57",
+          "yara_meta": [
+            "type=metadata.exif"
+          ]
+        }
+      ],
+      "summary": "Exiftool Analysis: PDFVersion=1.7, Linearized=False, Encryption=Standard V5.5 (256-bit), UserAccess=2876, HasXFA=False, PageCount=1",
+      "tags": []
+    },
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": true,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "application/pdf",
+        "type": "PDF document, version 1.7, 1 page(s)"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace4/pdf/encrypted_aes_256_r5.pdf",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "encrypted_aes_256_r5.pdf",
+      "size": 2520,
+      "type": "file",
+      "value": "de308323882d512dc816d216084b9b5bd59059b0e74c0d49c9ca1168218cc6cf"
+    }
+  },
+  "module": "exif",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=document.pdf",
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "encrypted_aes_256_r5.pdf",
+    "relationships": [],
+    "size": 2520,
+    "tags": [
+      "pdf"
+    ],
+    "type": "file",
+    "value": "de308323882d512dc816d216084b9b5bd59059b0e74c0d49c9ca1168218cc6cf",
+    "yara_meta": [
+      "type=document.pdf",
+      "type=email.attachment"
+    ]
+  }
+}

@@ -143,6 +143,24 @@
         "email": true
       }
     },
+    "file:11e477406aa3de1bcafedf1ab67ae6e1755d61fb743d36cf0710ef9bc81fb147": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "invoice_000.docx.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:2ed4859b4203569d8720219e128039963af868b98f9b04ced3d2db0e49d4bfd2": true
+      },
+      "results": {},
+      "tags": {}
+    },
     "file:167181108f6fd083cd67d569e9906a592ca923bc2d4c571ed1242caf92ed48f8": {
       "detections": {},
       "directives": {
@@ -264,6 +282,28 @@
       },
       "relationships": {},
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:12:47+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:12:47+00:00",
+              "File:FileModifyDate": "2026:11:10 11:12:47+00:00",
+              "File:FileName": "invoice.docx",
+              "File:FilePermissions": 100664,
+              "File:FileSize": 17920,
+              "File:FileType": "DOCX",
+              "File:FileTypeExtension": "DOCX",
+              "File:MIMEType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+              "SourceFile": "<root>/files/invoice.docx"
+            },
+            "output_dir": "<root>/files/invoice.docx.exif"
+          },
+          "summary": "Exiftool Analysis: ",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "ddd6f7ab251689ad79c76277def777fd",
@@ -2017,6 +2057,24 @@
           "tags": {}
         }
       },
+      "tags": {}
+    },
+    "file:f57f4d024163ea844bb4e287c354674f4b9a83b9de776574bcb9b34268fb3a19": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "invoice.docx.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:2ed4859b4203569d8720219e128039963af868b98f9b04ced3d2db0e49d4bfd2": true
+      },
+      "results": {},
       "tags": {}
     },
     "file:ffc4f29dc8c2ef23c77a785de8471f235f8d325dffa1873978f2b4119a889346": {

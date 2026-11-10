@@ -649,6 +649,24 @@
       },
       "tags": {}
     },
+    "file:502b19e199aba911560ee9cf20671bff449065c66b14405cd816997be26ea71f": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "info_3805.xls.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:e42f4cd8ff57dc0c9756242193462dcb03b4e7fef955985a2e953a6053324055": true
+      },
+      "results": {},
+      "tags": {}
+    },
     "file:5afdbe5aa42339a6936769e916c7094d70eb370458480dcd1e36de8ce99106d6": {
       "detections": {},
       "directives": {
@@ -833,6 +851,24 @@
           "tags": {}
         }
       },
+      "tags": {}
+    },
+    "file:b75e02f82135024eed1afd99b82fe60e10f7859cfabe30ae3a79dd4656bb25e4": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "info_3805.xls.decrypted.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:ce3af53d22189d65f561fa45ff655a020c9ef96c17c83e748cd773eff8ef96e8": true
+      },
+      "results": {},
       "tags": {}
     },
     "file:be9ce3733c126f844e3bf872e7c10da1d4ca66940419671f337bdb889fdd00f8": {
@@ -1204,6 +1240,51 @@
       },
       "relationships": {},
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:07:29+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:07:29+00:00",
+              "File:FileModifyDate": "2026:11:10 11:07:29+00:00",
+              "File:FileName": "info_3805.xls.decrypted",
+              "File:FilePermissions": 100666,
+              "File:FileSize": 69125,
+              "File:FileType": "XLS",
+              "File:FileTypeExtension": "XLS",
+              "File:MIMEType": "application/vnd.ms-excel",
+              "FlashPix:AppVersion": 16.0,
+              "FlashPix:Author": "",
+              "FlashPix:CodePage": 1252,
+              "FlashPix:Company": "",
+              "FlashPix:CreateDate": "2015:06:05 18:17:20",
+              "FlashPix:HeadingPairs": [
+                "Worksheets",
+                1,
+                "Excel 4.0 Macros",
+                1
+              ],
+              "FlashPix:HyperlinksChanged": 0,
+              "FlashPix:LastModifiedBy": "",
+              "FlashPix:LinksUpToDate": 0,
+              "FlashPix:ModifyDate": "2020:09:07 15:00:28",
+              "FlashPix:ScaleCrop": 0,
+              "FlashPix:Security": 1,
+              "FlashPix:SharedDoc": 0,
+              "FlashPix:Software": "Microsoft Excel",
+              "FlashPix:TitleOfParts": [
+                "Sheet1",
+                "lh"
+              ],
+              "SourceFile": "<root>/files/info_3805.xls.decrypted"
+            },
+            "output_dir": "<root>/files/info_3805.xls.decrypted.exif"
+          },
+          "summary": "Exiftool Analysis: Author=, LastModifiedBy=, Software=Microsoft Excel, CreateDate=2015:06:05 18:17:20, ModifyDate=2020:09:07 15:00:28, Security=1, CodePage=1252, Company=, AppVersion=16.0, ScaleCrop=0, LinksUpToDate=0, SharedDoc=0, HyperlinksChanged=0, TitleOfParts=['Sheet1', 'lh'], HeadingPairs=['Worksheets', 1, 'Excel 4.0 Macros', 1]",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "866195ca1ecf838967b5bbf59d0799fc",
@@ -1325,6 +1406,51 @@
       },
       "relationships": {},
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:07:22+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:07:22+00:00",
+              "File:FileModifyDate": "2026:11:10 11:07:22+00:00",
+              "File:FileName": "info_3805.xls",
+              "File:FilePermissions": 100664,
+              "File:FileSize": 69125,
+              "File:FileType": "XLS",
+              "File:FileTypeExtension": "XLS",
+              "File:MIMEType": "application/vnd.ms-excel",
+              "FlashPix:AppVersion": 16.0,
+              "FlashPix:Author": "",
+              "FlashPix:CodePage": 1252,
+              "FlashPix:Company": "",
+              "FlashPix:CreateDate": "2015:06:05 18:17:20",
+              "FlashPix:HeadingPairs": [
+                "Worksheets",
+                1,
+                "Excel 4.0 Macros",
+                1
+              ],
+              "FlashPix:HyperlinksChanged": 0,
+              "FlashPix:LastModifiedBy": "",
+              "FlashPix:LinksUpToDate": 0,
+              "FlashPix:ModifyDate": "2020:09:07 15:00:28",
+              "FlashPix:ScaleCrop": 0,
+              "FlashPix:Security": 1,
+              "FlashPix:SharedDoc": 0,
+              "FlashPix:Software": "Microsoft Excel",
+              "FlashPix:TitleOfParts": [
+                "Sheet1",
+                "lh"
+              ],
+              "SourceFile": "<root>/files/info_3805.xls"
+            },
+            "output_dir": "<root>/files/info_3805.xls.exif"
+          },
+          "summary": "Exiftool Analysis: Author=, LastModifiedBy=, Software=Microsoft Excel, CreateDate=2015:06:05 18:17:20, ModifyDate=2020:09:07 15:00:28, Security=1, CodePage=1252, Company=, AppVersion=16.0, ScaleCrop=0, LinksUpToDate=0, SharedDoc=0, HyperlinksChanged=0, TitleOfParts=['Sheet1', 'lh'], HeadingPairs=['Worksheets', 1, 'Excel 4.0 Macros', 1]",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "af93ae2e4dc1d242f984a2325d709e86",

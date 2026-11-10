@@ -27,6 +27,36 @@
           "summary": "Archive Analysis: extracted 5 of 5 files: ([Content_Types].xml, xl/workbook.xml, xl/macrosheets/sheet1.xml, xl/_rels/workbook.xml.rels, _rels/.rels)",
           "tags": {}
         },
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:31:54+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:31:54+00:00",
+              "File:FileModifyDate": "2026:11:07 14:35:12+00:00",
+              "File:FileName": "xlm_broken.xlsm",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 1712,
+              "File:FileType": "XLSM",
+              "File:FileTypeExtension": "XLSM",
+              "File:MIMEType": "application/vnd.ms-excel.sheet.macroEnabled.12",
+              "SourceFile": "<root>/files/xlm_broken.xlsm",
+              "ZIP:ZipBitFlag": 0,
+              "ZIP:ZipCRC": 4246890357,
+              "ZIP:ZipCompressedSize": 508,
+              "ZIP:ZipCompression": 0,
+              "ZIP:ZipFileName": "[Content_Types].xml",
+              "ZIP:ZipModifyDate": "2020:01:01 00:00:00",
+              "ZIP:ZipRequiredVersion": 20,
+              "ZIP:ZipUncompressedSize": 508
+            },
+            "output_dir": "<root>/files/xlm_broken.xlsm.exif"
+          },
+          "summary": "Exiftool Analysis: ZipRequiredVersion=20, ZipBitFlag=0, ZipCompression=0, ZipModifyDate=2020:01:01 00:00:00, ZipCRC=4246890357, ZipCompressedSize=508, ZipUncompressedSize=508, ZipFileName=[Content_Types].xml",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "b7a02e7c5e6d93371537e7fde9f8247d",
@@ -183,6 +213,24 @@
           "tags": {}
         }
       },
+      "tags": {}
+    },
+    "file:5acf286e495630fba47f4283160d71a94619a393f8997993c77bd82a961f8ad4": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "xlm_broken.xlsm.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:0f2ad4aa51c6493b9c190b3bd80466bc971ceb7b38b473be2ea4fab288f9fe10": true
+      },
+      "results": {},
       "tags": {}
     },
     "file:757f605160b829c805f9f579db5b87db542ac34f416e61128fb322fe4ef9c856": {

@@ -8,6 +8,11 @@
 //! so it runs one thread, can't start a thread or a process, reads only its input and writes
 //! only its output directory.
 //!
+//! A task whose module runs tools (PLAN.md 7.3) gets a Unix socket as its descriptor 3, on which
+//! the supervisor runs them for it in the sandbox runner (`crate::tools`), and two more
+//! directories: `scratch`, which it may write, for the files it hands a tool, and `results`, which
+//! it may read, where each run's output lands.
+//!
 //! The task process's exit code says which side failed (#847): 0 and 20 put the task's end on
 //! stdout (20 when the module failed), 10 is a setup failure before the module ran, 101 is a
 //! panic, and a signal is a crash or a limit, such as SIGSYS for a blocked call or SIGXCPU for
@@ -33,6 +38,7 @@ use crate::containment::SandboxProfile;
 use crate::modules::Modules;
 use crate::pool::{PoolStats, Runner, SHUTDOWN_GRACE, lease_loop};
 use crate::run::{LeaseKeeper, TaskDir, fetch_email_body, fetch_input, fetch_tree_files, finish};
+use crate::tools::{TOOL_FD, ToolDirs, ToolHost, ToolTable};
 
 /// The task's end is on stdout.
 pub const EXIT_DONE: i32 = 0;
@@ -64,6 +70,10 @@ pub struct TaskRequest {
     pub outputs: PathBuf,
     /// What the task process may touch once it contains itself.
     pub profile: SandboxProfile,
+    /// For a module that runs tools: its scratch directory. The supervisor serves its runs on
+    /// `TOOL_FD`.
+    #[serde(default)]
+    pub tools: Option<PathBuf>,
 }
 
 /// How a supervisor starts task processes.
@@ -80,6 +90,11 @@ pub struct SupervisorConfig {
     pub concurrency: usize,
     /// Files and directories every task may read besides its input.
     pub read_paths: Vec<PathBuf>,
+    /// The tools the pool's image carries, resolved (PLAN.md 7.3). A parser pool without tools
+    /// never starts the `tool` mode.
+    pub tools: Arc<ToolTable>,
+    /// The arguments of the binary's `tool` mode, before `tool` itself.
+    pub tool_args: Vec<String>,
 }
 
 /// The uid and gid of a user, by name.
@@ -221,6 +236,13 @@ pub async fn run_task_process(
     let tree_files = fetch_tree_files(client, &task, dir.path()).await?;
 
     let mut profile = SandboxProfile::for_manifest(&manifest).allow_write(dir.outputs());
+    let tool_dirs = if manifest.tools.is_empty() {
+        None
+    } else {
+        let dirs = ToolDirs::create(dir.path(), config.user)?;
+        profile = profile.allow_write(&dirs.scratch).allow_read(&dirs.results);
+        Some(dirs)
+    };
     if let Some(input) = &input {
         profile = profile.allow_read(input);
     }
@@ -240,9 +262,43 @@ pub async fn run_task_process(
         tree_files,
         outputs: dir.outputs(),
         profile,
+        tools: tool_dirs.as_ref().map(|dirs| dirs.scratch.clone()),
     };
-    let end = match run_process(config, &request, keeper.token(), manifest.resources.timeout).await
-    {
+    let deadline = manifest.resources.timeout;
+    let host = match tool_dirs {
+        Some(dirs) => {
+            let (ours, theirs) = std::os::unix::net::UnixStream::pair()?;
+            ours.set_nonblocking(true)?;
+            let host = ToolHost {
+                table: config.tools.clone(),
+                declared: manifest.tools,
+                dirs,
+                user: config.user,
+                program: config.program.clone(),
+                args: config.tool_args.clone(),
+                deadline: std::time::Instant::now() + deadline,
+            };
+            let socket = tokio::net::UnixStream::from_std(ours)?;
+            let serving = tokio::spawn(async move { host.serve(socket).await });
+            Some((serving, theirs))
+        }
+        None => None,
+    };
+    let (serving, socket) = match host {
+        Some((serving, socket)) => (Some(serving), Some(socket)),
+        None => (None, None),
+    };
+    let ran = run_process(config, &request, keeper.token(), deadline, socket).await;
+    if let Some(serving) = serving {
+        // the task process is gone, so its socket is closed; a run still going is killed
+        serving.abort();
+        if let Err(e) = serving.await
+            && !e.is_cancelled()
+        {
+            tracing::warn!("serving the task's tools: {e}");
+        }
+    }
+    let end = match ran {
         Ok(end) => end,
         Err(e) => TaskEnd::Failed {
             error: format!("the task process didn't run: {e}"),
@@ -279,6 +335,7 @@ async fn run_process(
     request: &TaskRequest,
     cancel: &CancellationToken,
     deadline: Duration,
+    tools: Option<std::os::unix::net::UnixStream>,
 ) -> std::io::Result<TaskEnd> {
     let mut command = tokio::process::Command::new(&config.program);
     command
@@ -294,7 +351,22 @@ async fn run_process(
         // std drops the supplementary groups when it sets the uid as root
         command.uid(uid).gid(gid);
     }
+    if let Some(socket) = &tools {
+        use std::os::fd::AsRawFd;
+        let fd = socket.as_raw_fd();
+        // SAFETY: dup2 is async-signal-safe, and the closure touches nothing else. The original
+        // stays close-on-exec, so only this task process gets the socket.
+        unsafe {
+            command.pre_exec(move || {
+                if libc::dup2(fd, TOOL_FD) < 0 {
+                    return Err(std::io::Error::last_os_error());
+                }
+                Ok(())
+            });
+        }
+    }
     let mut child = command.spawn()?;
+    drop(tools);
     let (Some(mut stdin), Some(mut stdout), Some(mut stderr)) =
         (child.stdin.take(), child.stdout.take(), child.stderr.take())
     else {

@@ -173,6 +173,28 @@
         "extracted_from file:f50d459cdb507027309bc0e674295160e43d28c339e0b11b1b74451063d445d8": true
       },
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files/vba_excel_macro_sheet.xlsm.extracted/xl",
+              "File:FileAccessDate": "2026:11:10 11:28:11+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:28:10+00:00",
+              "File:FileModifyDate": "2026:01:01 00:00:00+00:00",
+              "File:FileName": "vbaProject.bin",
+              "File:FilePermissions": 100664,
+              "File:FileSize": 23552,
+              "File:FileType": "FPX",
+              "File:FileTypeExtension": "FPX",
+              "File:MIMEType": "image/vnd.fpx",
+              "SourceFile": "<root>/files/vba_excel_macro_sheet.xlsm.extracted/xl/vbaProject.bin"
+            },
+            "output_dir": "<root>/files/vba_excel_macro_sheet.xlsm.extracted/xl/vbaProject.bin.exif"
+          },
+          "summary": "Exiftool Analysis: ",
+          "tags": {}
+        },
         "file_type": {
           "details": {
             "is_email_file": false,
@@ -675,6 +697,24 @@
       },
       "tags": {}
     },
+    "file:890989455ee8a71a02048542b0498d97244b7560ebcfebdc597cf1907967d3fb": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "vba_excel_macro_sheet.xlsm.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:f50d459cdb507027309bc0e674295160e43d28c339e0b11b1b74451063d445d8": true
+      },
+      "results": {},
+      "tags": {}
+    },
     "file:ce49436dec0282ca0c2acb2966441b42d2620cd614f363ac0b43420dfdd687ed": {
       "detections": {},
       "directives": {
@@ -726,6 +766,24 @@
       },
       "tags": {}
     },
+    "file:d26a7be3a26e2265eb35ae6cb58ccbb3d9ea845e4210453a1217ed481e52d5c0": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "vba_excel_macro_sheet.xlsm.extracted/xl/vbaProject.bin.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:170b804293599496c29d816cfe408adc5a99e767eb930b0c0cf9e7db62436abe": true
+      },
+      "results": {},
+      "tags": {}
+    },
     "file:f50d459cdb507027309bc0e674295160e43d28c339e0b11b1b74451063d445d8": {
       "detections": {},
       "directives": {
@@ -752,6 +810,36 @@
             "file_count": 5
           },
           "summary": "Archive Analysis: extracted 5 of 5 files: ([Content_Types].xml, xl/workbook.xml, xl/macrosheets/sheet1.xml, xl/vbaProject.bin, _rels/.rels)",
+          "tags": {}
+        },
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:28:09+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:28:09+00:00",
+              "File:FileModifyDate": "2026:11:07 15:11:53+00:00",
+              "File:FileName": "vba_excel_macro_sheet.xlsm",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 11674,
+              "File:FileType": "XLSM",
+              "File:FileTypeExtension": "XLSM",
+              "File:MIMEType": "application/vnd.ms-excel.sheet.macroEnabled.12",
+              "SourceFile": "<root>/files/vba_excel_macro_sheet.xlsm",
+              "ZIP:ZipBitFlag": 0,
+              "ZIP:ZipCRC": 3478320526,
+              "ZIP:ZipCompressedSize": 208,
+              "ZIP:ZipCompression": 8,
+              "ZIP:ZipFileName": "[Content_Types].xml",
+              "ZIP:ZipModifyDate": "2026:01:01 00:00:00",
+              "ZIP:ZipRequiredVersion": 20,
+              "ZIP:ZipUncompressedSize": 344
+            },
+            "output_dir": "<root>/files/vba_excel_macro_sheet.xlsm.exif"
+          },
+          "summary": "Exiftool Analysis: ZipRequiredVersion=20, ZipBitFlag=0, ZipCompression=8, ZipModifyDate=2026:01:01 00:00:00, ZipCRC=3478320526, ZipCompressedSize=208, ZipUncompressedSize=344, ZipFileName=[Content_Types].xml",
           "tags": {}
         },
         "file_hash_analyzer": {

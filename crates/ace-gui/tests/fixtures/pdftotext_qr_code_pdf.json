@@ -1,0 +1,36 @@
+{
+  "analysis_type": "pdf_text_analysis",
+  "schema_version": 1,
+  "details": {
+    "output_path": "5ae85ff95b5a1314ed5c8432f8320c91847d4bc6ee64f0c8269a6a7145759a81",
+    "stderr": "",
+    "stdout": ""
+  },
+  "summary": "PDF Text Analysis",
+  "files": [
+    {
+      "path": "sample_pdf_with_qr_code.pdf.txt",
+      "sha256": "5ae85ff95b5a1314ed5c8432f8320c91847d4bc6ee64f0c8269a6a7145759a81",
+      "size": 1699,
+      "yara_meta": [
+        "type=document.pdf.text"
+      ],
+      "exclude_modules": [
+        "archive"
+      ],
+      "relationships": [
+        {
+          "type": "extracted_from",
+          "target": {
+            "type": "file",
+            "value": "4efb0032a6de86d9c0dabc0d2814533aac30811ee40e433d26092eaf988ca110"
+          }
+        }
+      ],
+      "redirection": {
+        "type": "file",
+        "value": "4efb0032a6de86d9c0dabc0d2814533aac30811ee40e433d26092eaf988ca110"
+      }
+    }
+  ]
+}

@@ -286,6 +286,51 @@
       },
       "relationships": {},
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:18:29+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:18:29+00:00",
+              "File:FileModifyDate": "2026:11:07 01:34:09+00:00",
+              "File:FileName": "encrypted_xor.xls",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 69125,
+              "File:FileType": "XLS",
+              "File:FileTypeExtension": "XLS",
+              "File:MIMEType": "application/vnd.ms-excel",
+              "FlashPix:AppVersion": 16.0,
+              "FlashPix:Author": "",
+              "FlashPix:CodePage": 1252,
+              "FlashPix:Company": "",
+              "FlashPix:CreateDate": "2015:06:05 18:17:20",
+              "FlashPix:HeadingPairs": [
+                "Worksheets",
+                1,
+                "Excel 4.0 Macros",
+                1
+              ],
+              "FlashPix:HyperlinksChanged": 0,
+              "FlashPix:LastModifiedBy": "",
+              "FlashPix:LinksUpToDate": 0,
+              "FlashPix:ModifyDate": "2020:09:07 15:00:28",
+              "FlashPix:ScaleCrop": 0,
+              "FlashPix:Security": 1,
+              "FlashPix:SharedDoc": 0,
+              "FlashPix:Software": "Microsoft Excel",
+              "FlashPix:TitleOfParts": [
+                "Sheet1",
+                "lh"
+              ],
+              "SourceFile": "<root>/files/encrypted_xor.xls"
+            },
+            "output_dir": "<root>/files/encrypted_xor.xls.exif"
+          },
+          "summary": "Exiftool Analysis: Author=, LastModifiedBy=, Software=Microsoft Excel, CreateDate=2015:06:05 18:17:20, ModifyDate=2020:09:07 15:00:28, Security=1, CodePage=1252, Company=, AppVersion=16.0, ScaleCrop=0, LinksUpToDate=0, SharedDoc=0, HyperlinksChanged=0, TitleOfParts=['Sheet1', 'lh'], HeadingPairs=['Worksheets', 1, 'Excel 4.0 Macros', 1]",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "038aa3f1f5a8ef9d2bfc5e4f6c619a7c",
@@ -408,6 +453,24 @@
           "tags": {}
         }
       },
+      "tags": {}
+    },
+    "file:cd1a1628cc8a99d46b6390d13cce9fe651c113846280327b551ba1b24d5e1022": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "encrypted_xor.xls.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:74df8a6cc0be1a600c6b4e15e7ca82957ccd6790a26c60374fbd26b5501d4bcb": true
+      },
+      "results": {},
       "tags": {}
     },
     "file:d2d8276ca63e307268dbf1bef2fbf45ba4c65c27494555a7742761c22984f1af": {

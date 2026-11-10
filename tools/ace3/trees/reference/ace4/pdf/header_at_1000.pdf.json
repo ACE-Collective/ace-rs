@@ -162,7 +162,152 @@
       },
       "tags": {}
     },
-    "file:83efb81983eb328f428096d52b8d4efae0bb4857d456334d19a6e5e01d4ee4fb": {
+    "file:c775e87edfb8f58488614b35c659ee403e1c56786b45067eb8a985d93e0b5a60": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "header_at_1000.pdf": {
+          "type=document.pdf": true,
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:38:28+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:38:28+00:00",
+              "File:FileModifyDate": "2026:11:07 04:47:50+00:00",
+              "File:FileName": "header_at_1000.pdf",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 2176,
+              "File:FileType": "TXT",
+              "File:FileTypeExtension": "TXT",
+              "File:LineCount": 27,
+              "File:MIMEEncoding": "iso-8859-1",
+              "File:MIMEType": "text/plain",
+              "File:Newlines": "\n",
+              "File:WordCount": 98,
+              "SourceFile": "<root>/files/header_at_1000.pdf"
+            },
+            "output_dir": "<root>/files/header_at_1000.pdf.exif"
+          },
+          "summary": "Exiftool Analysis: ",
+          "tags": {}
+        },
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "42652d6da18e0238a1b48353eab6c0dd",
+            "sha1": "02ed4d8d52446f951601cddae5bac77d293ae80d",
+            "sha256": "c775e87edfb8f58488614b35c659ee403e1c56786b45067eb8a985d93e0b5a60"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": true,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/pdf",
+            "type": "PDF document, version 1.7, 1 page(s), ISO-8859 text, with very long lines (1000)"
+          },
+          "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s), ISO-8859 text, with very long lines (1000) (application/pdf) (pdf document)",
+          "tags": {}
+        },
+        "pdf_analyzer": {
+          "details": {},
+          "summary": null,
+          "tags": {}
+        },
+        "pdftotext": {
+          "details": {
+            "output_path": "ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977",
+            "stderr": "Syntax Error (1702): Dictionary key must be a name object\nSyntax Warning: Illegal URI-type link\nSyntax Error: Bad bounding box for annotation\nSyntax Warning: Annotation destination array is too short\nSyntax Error: Bad bounding box for annotation\n",
+            "stdout": ""
+          },
+          "summary": "PDF Text Analysis",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "pdf": true
+      }
+    },
+    "file:ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "archive": true
+      },
+      "paths": {
+        "header_at_1000.pdf.gs.pdf.txt": {
+          "type=document.pdf.text": true
+        },
+        "header_at_1000.pdf.txt": {
+          "type=document.pdf.text": true
+        }
+      },
+      "redirection": "file:fcce23452fcea1e0e15fff750104f7e21593f5e0b8777ac351dbb97bc7fcce83",
+      "relationships": {
+        "extracted_from file:c775e87edfb8f58488614b35c659ee403e1c56786b45067eb8a985d93e0b5a60": true,
+        "extracted_from file:fcce23452fcea1e0e15fff750104f7e21593f5e0b8777ac351dbb97bc7fcce83": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "very short file (no magic)"
+          },
+          "summary": "File Type Analysis: very short file (no magic) (application/octet-stream)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:f4576e16f90253f2c3e6e1df09fb0e70256b5d68d274328241c6214047ca8366": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "header_at_1000.pdf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:c775e87edfb8f58488614b35c659ee403e1c56786b45067eb8a985d93e0b5a60": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "file:fcce23452fcea1e0e15fff750104f7e21593f5e0b8777ac351dbb97bc7fcce83": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -200,61 +345,28 @@
           "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
           "tags": {}
         },
+        "pdftotext": {
+          "details": {
+            "output_path": "ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977",
+            "stderr": "",
+            "stdout": ""
+          },
+          "summary": "PDF Text Analysis",
+          "tags": {}
+        },
+        "qrcode": {
+          "details": {
+            "extracted_text": null,
+            "inverted": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
           },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {
-        "pdf": true
-      }
-    },
-    "file:c775e87edfb8f58488614b35c659ee403e1c56786b45067eb8a985d93e0b5a60": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {},
-      "paths": {
-        "header_at_1000.pdf": {
-          "type=document.pdf": true,
-          "type=email.attachment": true
-        }
-      },
-      "relationships": {},
-      "results": {
-        "file_hash_analyzer": {
-          "details": {
-            "md5": "42652d6da18e0238a1b48353eab6c0dd",
-            "sha1": "02ed4d8d52446f951601cddae5bac77d293ae80d",
-            "sha256": "c775e87edfb8f58488614b35c659ee403e1c56786b45067eb8a985d93e0b5a60"
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "file_type": {
-          "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": true,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "application/pdf",
-            "type": "PDF document, version 1.7, 1 page(s), ISO-8859 text, with very long lines (1000)"
-          },
-          "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s), ISO-8859 text, with very long lines (1000) (application/pdf) (pdf document)",
-          "tags": {}
-        },
-        "pdf_analyzer": {
-          "details": {},
           "summary": null,
           "tags": {}
         }

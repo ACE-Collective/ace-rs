@@ -1,0 +1,140 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "ExifAnalysis",
+      "details": {
+        "error": null,
+        "exifdata": {
+          "ExifTool:ExifToolVersion": 13.25,
+          "ExifTool:Warning": "[minor] Decryption is very slow for encryption V5.6 or higher",
+          "File:Directory": "<root>/files",
+          "File:FileAccessDate": "2026:11:10 11:00:16+00:00",
+          "File:FileInodeChangeDate": "2026:11:10 11:00:16+00:00",
+          "File:FileModifyDate": "2026:11:06 19:20:07+00:00",
+          "File:FileName": "ComplaintApril_424256637.pdf",
+          "File:FilePermissions": 100644,
+          "File:FileSize": 92914,
+          "File:FileType": "PDF",
+          "File:FileTypeExtension": "PDF",
+          "File:MIMEType": "application/pdf",
+          "PDF:CreateDate": "2023:03:21 18:18:57+03:00",
+          "PDF:Creator": "Adobe Acrobat Pro (64-bit) 22.3.20322",
+          "PDF:Encryption": "Standard V5.6 (256-bit)",
+          "PDF:HasXFA": false,
+          "PDF:Linearized": false,
+          "PDF:ModifyDate": "2023:04:06 19:13:31+03:00",
+          "PDF:PDFVersion": 1.7,
+          "PDF:PageCount": 1,
+          "PDF:Producer": "Adobe Acrobat Pro (64-bit) 22.3.20322",
+          "PDF:UserAccess": 2852,
+          "SourceFile": "<root>/files/ComplaintApril_424256637.pdf",
+          "XMP:CreateDate": "2023:03:21 18:18:57+03:00",
+          "XMP:CreatorTool": "Adobe Acrobat Pro (64-bit) 22.3.20322",
+          "XMP:DocumentID": "uuid:e9d459e0-cb40-4f39-9ce2-e9a32af069ed",
+          "XMP:Format": "application/pdf",
+          "XMP:InstanceID": "uuid:24d52c12-e325-4077-9591-0b14642055e3",
+          "XMP:MetadataDate": "2023:04:06 19:13:31+03:00",
+          "XMP:ModifyDate": "2023:04:06 19:13:31+03:00",
+          "XMP:Producer": "Adobe Acrobat Pro (64-bit) 22.3.20322",
+          "XMP:XMPToolkit": "Adobe XMP Core 6.0-c006 79.164648, 2021/01/12-15:52:29        "
+        },
+        "output_dir": "<root>/files/ComplaintApril_424256637.pdf.exif"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.exif:ExifAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=metadata.exif"
+          ],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.file_type:<class 'saq.modules.file_analysis.file_type.FileTypeAnalyzer'>",
+            "saq.modules.file_analysis.hash:<class 'saq.modules.file_analysis.hash.FileHashAnalyzer'>"
+          ],
+          "file_path": "ComplaintApril_424256637.pdf.exif/exiftool.out",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "f68ba01d524f39a2832632eeb77772feb30440d2dbbf92fc83de39494cff4076"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 1641,
+          "tags": [],
+          "type": "file",
+          "value": "8201c290cd8bea19cb5c11da85b9d2767ae69ebca47da63d2512969f6b000e06",
+          "yara_meta": [
+            "type=metadata.exif"
+          ]
+        }
+      ],
+      "summary": "Exiftool Analysis: PDFVersion=1.7, Linearized=False, Encryption=Standard V5.6 (256-bit), UserAccess=2852, CreateDate=2023:03:21 18:18:57+03:00, Creator=Adobe Acrobat Pro (64-bit) 22.3.20322, ModifyDate=2023:04:06 19:13:31+03:00, Producer=Adobe Acrobat Pro (64-bit) 22.3.20322, HasXFA=False, PageCount=1, XMPToolkit=Adobe XMP Core 6.0-c006 79.164648, 2021/01/12-15:52:29        , ModifyDate=2023:04:06 19:13:31+03:00, CreateDate=2023:03:21 18:18:57+03:00, MetadataDate=2023:04:06 19:13:31+03:00, CreatorTool=Adobe Acrobat Pro (64-bit) 22.3.20322, Format=application/pdf, DocumentID=uuid:e9d459e0-cb40-4f39-9ce2-e9a32af069ed, InstanceID=uuid:24d52c12-e325-4077-9591-0b14642055e3, Producer=Adobe Acrobat Pro (64-bit) 22.3.20322",
+      "tags": []
+    },
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": true,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "application/pdf",
+        "type": "PDF document, version 1.7 (zip deflate encoded)"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: PDF document, version 1.7 (zip deflate encoded) (application/pdf) (pdf document)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace3/pdf/ComplaintApril_424256637.pdf",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "ComplaintApril_424256637.pdf",
+      "size": 92914,
+      "type": "file",
+      "value": "f68ba01d524f39a2832632eeb77772feb30440d2dbbf92fc83de39494cff4076"
+    }
+  },
+  "module": "exif",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=document.pdf",
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "ComplaintApril_424256637.pdf",
+    "relationships": [],
+    "size": 92914,
+    "tags": [
+      "pdf"
+    ],
+    "type": "file",
+    "value": "f68ba01d524f39a2832632eeb77772feb30440d2dbbf92fc83de39494cff4076",
+    "yara_meta": [
+      "type=document.pdf",
+      "type=email.attachment"
+    ]
+  }
+}

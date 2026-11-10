@@ -839,6 +839,24 @@
       },
       "tags": {}
     },
+    "file:85e8f575bf1ff5c905d9d11b3e8870e9eb06c056c6ac886150b993f6f4f81014": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "Paid Invoice.doc.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:fb9fc26235d7b3f7465a6da2d0a60ebf395785372d06a16c9f558b773b0b2c01": true
+      },
+      "results": {},
+      "tags": {}
+    },
     "file:8b28d726a1b118a0d64cf9b6af0744185238f046e3175aa12c3ad54e2c25ddeb": {
       "detections": {},
       "directives": {
@@ -1291,6 +1309,66 @@
       },
       "relationships": {},
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:09:35+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:09:35+00:00",
+              "File:FileModifyDate": "2026:11:06 19:20:07+00:00",
+              "File:FileName": "Paid Invoice.doc",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 134656,
+              "File:FileType": "DOC",
+              "File:FileTypeExtension": "DOC",
+              "File:MIMEType": "application/msword",
+              "FlashPix:AppVersion": 16.0,
+              "FlashPix:Author": "bczbRaSZ",
+              "FlashPix:CharCountWithSpaces": 1,
+              "FlashPix:Characters": 1,
+              "FlashPix:CodePage": 1252,
+              "FlashPix:CompObjUserType": "Microsoft Word 97-2003 Document",
+              "FlashPix:CompObjUserTypeLen": 32,
+              "FlashPix:Company": "",
+              "FlashPix:CreateDate": "2018:02:12 09:29:00",
+              "FlashPix:DocFlags": 4616,
+              "FlashPix:HeadingPairs": [
+                "Title",
+                1
+              ],
+              "FlashPix:HyperlinksChanged": 0,
+              "FlashPix:Identification": 42476,
+              "FlashPix:Keywords": "",
+              "FlashPix:LanguageCode": 1033,
+              "FlashPix:LastModifiedBy": "",
+              "FlashPix:LastPrinted": "0000:00:00 00:00:00",
+              "FlashPix:Lines": 1,
+              "FlashPix:LinksUpToDate": 0,
+              "FlashPix:ModifyDate": "2018:02:12 09:29:00",
+              "FlashPix:Pages": 1,
+              "FlashPix:Paragraphs": 1,
+              "FlashPix:RevisionNumber": 1,
+              "FlashPix:ScaleCrop": 0,
+              "FlashPix:Security": 0,
+              "FlashPix:SharedDoc": 0,
+              "FlashPix:Software": "Microsoft Office Word",
+              "FlashPix:Subject": "",
+              "FlashPix:System": 0,
+              "FlashPix:Template": "Normal.dotm",
+              "FlashPix:Title": "",
+              "FlashPix:TitleOfParts": "",
+              "FlashPix:TotalEditTime": 0,
+              "FlashPix:Word97": 0,
+              "FlashPix:Words": 0,
+              "SourceFile": "<root>/files/Paid Invoice.doc"
+            },
+            "output_dir": "<root>/files/Paid Invoice.doc.exif"
+          },
+          "summary": "Exiftool Analysis: Identification=42476, LanguageCode=1033, DocFlags=4616, System=0, Word97=0, Title=, Subject=, Author=bczbRaSZ, Keywords=, Template=Normal.dotm, LastModifiedBy=, Software=Microsoft Office Word, CreateDate=2018:02:12 09:29:00, ModifyDate=2018:02:12 09:29:00, Security=0, CodePage=1252, Company=, CharCountWithSpaces=1, AppVersion=16.0, ScaleCrop=0 + 15 more",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "bfdbff64acdad0e1446402d4160c552e",

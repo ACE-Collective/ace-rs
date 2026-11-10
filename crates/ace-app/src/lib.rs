@@ -97,6 +97,8 @@ pub struct ParserPool {
     rulesets: Option<Rulesets>,
     /// It runs the commands analysts start from the GUI (PLAN.md 5.12).
     commands: bool,
+    /// The programs its image carries, which its modules run in the sandbox runner (PLAN.md 7.3).
+    tools: Vec<ace_sdk::tools::ToolSpec>,
 }
 
 /// A network pool: lookups, many at a time as async tasks in one contained process (2.16).
@@ -337,6 +339,19 @@ impl App {
         })
     }
 
+    /// Every parser pool's tools.
+    fn tools(&self) -> Vec<ace_sdk::tools::ToolSpec> {
+        let mut tools: Vec<ace_sdk::tools::ToolSpec> = Vec::new();
+        for pool in &self.parser_pools {
+            for tool in &pool.tools {
+                if !tools.iter().any(|t| t.name == tool.name) {
+                    tools.push(*tool);
+                }
+            }
+        }
+        tools
+    }
+
     /// Every pool's modules.
     fn registry(&self) -> Registry {
         self.parser_pools
@@ -394,7 +409,16 @@ impl ParserPool {
             registry: Registry::new(),
             rulesets: None,
             commands: false,
+            tools: Vec::new(),
         }
+    }
+
+    /// The programs the pool's image carries (PLAN.md 7.3), such as `ace_sdk::tools::SANDBOX_TOOLS`.
+    /// Its modules may declare these and no others; the pool won't start with a module that
+    /// declares a tool it hasn't, or a tool that isn't in its image.
+    pub fn tools(mut self, tools: &[ace_sdk::tools::ToolSpec]) -> ParserPool {
+        self.tools.extend_from_slice(tools);
+        self
     }
 
     /// Runs the commands analysts start from the GUI's CLI page (PLAN.md 5.12), each in a contained

@@ -154,6 +154,24 @@
       },
       "tags": {}
     },
+    "file:8e263f1bdb1b78fa94013c34561d72cd0f619215dff69e1d08502843a45407e9": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "vba_form_strings.doc.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:cb9b4fbce26078135c8fd041589c04f7bbdfc7dacae6f5d950c1d9e10b0d8a73": true
+      },
+      "results": {},
+      "tags": {}
+    },
     "file:9209d9f87d9a971a3c75208a0303e66e48b0a0fc923c0e81254bec0fb6368437": {
       "detections": {},
       "directives": {
@@ -275,6 +293,28 @@
       },
       "relationships": {},
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:28:25+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:28:25+00:00",
+              "File:FileModifyDate": "2026:11:07 15:11:53+00:00",
+              "File:FileName": "vba_form_strings.doc",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 4608,
+              "File:FileType": "DOC",
+              "File:FileTypeExtension": "DOC",
+              "File:MIMEType": "application/msword",
+              "SourceFile": "<root>/files/vba_form_strings.doc"
+            },
+            "output_dir": "<root>/files/vba_form_strings.doc.exif"
+          },
+          "summary": "Exiftool Analysis: ",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "21e4d0f944d40554535018551f8ca69f",

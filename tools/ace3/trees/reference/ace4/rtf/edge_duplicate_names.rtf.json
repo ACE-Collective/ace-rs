@@ -70,6 +70,29 @@
           "summary": null,
           "tags": {}
         },
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "ExifTool:Warning": "Unspecified RTF encoding. Will assume Latin",
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:42:23+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:42:23+00:00",
+              "File:FileModifyDate": "2026:11:07 15:11:53+00:00",
+              "File:FileName": "edge_duplicate_names.rtf",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 321,
+              "File:FileType": "RTF",
+              "File:FileTypeExtension": "RTF",
+              "File:MIMEType": "text/rtf",
+              "SourceFile": "<root>/files/edge_duplicate_names.rtf"
+            },
+            "output_dir": "<root>/files/edge_duplicate_names.rtf.exif"
+          },
+          "summary": "Exiftool Analysis: ",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "b1d81695758f5d00c147cb210a994892",
@@ -226,6 +249,24 @@
       "tags": {
         "extracted_rtf": true
       }
+    },
+    "file:7de76718ec762e0c37b17cf284e7c2ba8ba0595f03b1805fe49bca8e264d8c7d": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "edge_duplicate_names.rtf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:1b01733f3052bf6cb22e87433888f36196a0e7f46441277126ee38a360b12a20": true
+      },
+      "results": {},
+      "tags": {}
     },
     "file:aca5296ebe131b28772ee6d31c9070313f977576e3993f0e1734ac0ae224a5cc": {
       "detections": {},

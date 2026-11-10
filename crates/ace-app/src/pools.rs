@@ -16,7 +16,9 @@
 //! ```
 //!
 //! which gets the overlay's path and the ruleset directory as arguments, since it starts with
-//! an empty environment. A pool that runs GUI commands (`ParserPool::commands`, PLAN.md 5.12) also
+//! an empty environment. A pool whose image carries tools (`ParserPool::tools`, PLAN.md 7.3) runs
+//! each of its tasks' tools as `<binary> tool`, which contains itself and execs the tool
+//! (`ace_pool::tools`). A pool that runs GUI commands (`ParserPool::commands`, PLAN.md 5.12) also
 //! leases those, `ACE4_COMMAND_CONCURRENCY` (3) at once, and runs each as `<binary> command`, contained
 //! with no paths and no ports (`ace_pool::commands`), on `ace`'s own command line (`cli::run_contained`).
 //!
@@ -216,6 +218,8 @@ pub fn parser_main(pool: &ParserPool) -> ExitCode {
         Some("command") if pool.commands => {
             ace_pool::commands::process_main(&crate::cli::run_contained)
         }
+        // the sandbox runner's tool process (PLAN.md 7.3), which must still be one thread
+        Some("tool") if !pool.tools.is_empty() => ace_pool::tools::tool_main(),
         _ => supervisor(pool),
     }
 }
@@ -278,12 +282,29 @@ fn supervisor(pool: &ParserPool) -> ExitCode {
         )
         .map_err(|e| e.to_string())
     }) {
-        Ok(modules) => Arc::new(modules),
+        Ok(modules) => modules.with_tools(&pool.tools),
         Err(e) => {
             eprintln!("setup failed: {e}");
             return ExitCode::from(2);
         }
     };
+    let missing = modules.missing_tools();
+    if !missing.is_empty() {
+        eprintln!(
+            "setup failed: these modules run tools the pool doesn't carry: {}",
+            missing.join(", ")
+        );
+        return ExitCode::from(2);
+    }
+    // each tool, its libraries and its data, as this image has them
+    let tools = match ace_pool::tools::ToolTable::resolve(&pool.tools) {
+        Ok(tools) => Arc::new(tools),
+        Err(e) => {
+            eprintln!("setup failed: {e}");
+            return ExitCode::from(2);
+        }
+    };
+    let modules = Arc::new(modules);
     let user_name = var("ACE4_TASK_USER", "ace4-task");
     let Some(user) = ace_pool::supervisor::user_ids(&user_name) else {
         eprintln!("no user {user_name} for task processes");
@@ -319,6 +340,8 @@ fn supervisor(pool: &ParserPool) -> ExitCode {
         user: Some(user),
         concurrency: number("ACE4_CONCURRENCY", 4),
         read_paths: Vec::new(),
+        tools,
+        tool_args: Vec::new(),
     };
     let poll = Duration::from_secs(number("ACE4_RULESET_POLL_SECONDS", 30) as u64);
     let watcher = rulesets.map(|(rulesets, dir)| {

@@ -512,3 +512,168 @@ async fn a_cancel_or_a_stopping_pool_kills_a_command() {
     );
     assert!(!alive(pid));
 }
+
+// PLAN.md 7.5 batch 10: a task whose tool is stopped, killed or refused ends with the reason in its
+// result, not a hang. `test_runs_tool` runs the containment test task as its tool, with the arguments
+// its input holds, through the supervisor's sandbox runner, as the task's user.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_task_whose_tool_is_stopped_or_refused_ends_with_the_reason() {
+    let core = Core::start(
+        testing::test_manifests(),
+        &["test_runs_tool"],
+        Duration::from_secs(30),
+    )
+    .await;
+    let tool = format!("test-tool={}", env!("CARGO_BIN_EXE_containment-test-task"));
+    let cases: &[(&str, &str)] = &[
+        ("--uncontained\nthread", "exited 0; stdout \"a thread ran\""),
+        ("--uncontained\nfork", "stopped: Process"),
+        ("--uncontained\nexec", "stopped: Program"),
+        ("--uncontained\nsleep\n60", "stopped: Timeout"),
+        ("--uncontained\nprint-mb\n80", "stopped: Output"),
+        ("--uncontained\nread\n/etc/passwd", "exited 4"),
+        ("--uncontained\nread\n{input}", "exited 0; stdout \"read "),
+        ("--uncontained\nkeep", "kept [\"out\"]"),
+    ];
+    let mut roots = Vec::new();
+    for (i, (args, _)) in cases.iter().enumerate() {
+        let (root, sha256) =
+            root_with_bytes(&core, "event", args.as_bytes(), &format!("case-{i}")).await;
+        enqueue(&core, root, &sha256.to_hex(), "test_runs_tool").await;
+        roots.push(root);
+    }
+    let started = Instant::now();
+    let mut pool = PoolProcess::start(test_pool(
+        &core,
+        &[
+            "parsers",
+            "--task-user",
+            "ace4-task",
+            "--concurrency",
+            "4",
+            "--tool",
+            &tool,
+        ],
+    ));
+    for root in &roots {
+        wait_until_idle(&core, *root, Duration::from_secs(60)).await;
+    }
+    let stderr = pool.stop();
+    println!("ended after {:?}", started.elapsed());
+    for (root, (args, wanted)) in roots.iter().zip(cases) {
+        let note: Option<String> =
+            sqlx::query_scalar("SELECT details->>'note' FROM analysis.results WHERE root_id = $1")
+                .bind(root)
+                .fetch_optional(core.test_db.db().pool())
+                .await
+                .expect("the result");
+        let (state, error) = common::task_of(&core, *root, "test_runs_tool").await;
+        println!("{args:?}: {state} {error:?} {note:?}");
+        assert_eq!(state, "done", "{args:?}: {error:?}\n{stderr}");
+        let note = note.unwrap_or_default();
+        assert!(
+            note.contains(wanted),
+            "{args:?}: {wanted} in {note}\n{stderr}"
+        );
+    }
+}
+
+// PLAN.md 7.5 batch 10: OpenCV, which the ocr and qrcode modules run in the task, runs on the task's
+// one thread under containment, and tesseract, zbarimg and Ghostscript in the runner, as the pool's
+// task user. A blank image is a clean negative for qrcode, after zbarimg, OpenCV's decoder and the
+// inverted scan; a small screenshot is scaled, sharpened and denoised for ocr.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn the_sandbox_modules_run_opencv_contained() {
+    let manifests = vec![
+        ace_sdk::Manifest::parser::<ace_mod_sandbox::QrCodeAnalyzer>(),
+        ace_sdk::Manifest::parser::<ace_mod_sandbox::OcrAnalyzer>(),
+    ];
+    let core = Core::start(manifests, &["qrcode", "ocr"], Duration::from_secs(30)).await;
+    let images = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../tools/ace3/dumps/fixtures/images");
+    let blank = std::fs::read(images.join("blank.png")).expect("the fixture");
+    let text = std::fs::read(images.join("text_small.png")).expect("the fixture");
+    let (qr_root, qr_sha) = root_with_bytes(&core, "event", &blank, "blank.png").await;
+    enqueue(&core, qr_root, &qr_sha.to_hex(), "qrcode").await;
+    let (ocr_root, ocr_sha) =
+        common::root_with_file(&core, "event", &text, "text_small.png", &["ocr"]).await;
+    enqueue(&core, ocr_root, &ocr_sha.to_hex(), "ocr").await;
+    let mut pool = PoolProcess::start(test_pool(
+        &core,
+        &["parsers", "--task-user", "ace4-task", "--concurrency", "2"],
+    ));
+    for root in [qr_root, ocr_root] {
+        wait_until_idle(&core, root, Duration::from_secs(120)).await;
+    }
+    let stderr = pool.stop();
+    for (root, module) in [(qr_root, "qrcode"), (ocr_root, "ocr")] {
+        let (state, error) = common::task_of(&core, root, module).await;
+        assert_eq!(state, "done", "{module}: {error:?}\n{stderr}");
+    }
+    let ocr: Option<bool> = sqlx::query_scalar(
+        "SELECT (details->>'ocr')::bool FROM analysis.results WHERE root_id = $1",
+    )
+    .bind(ocr_root)
+    .fetch_optional(core.test_db.db().pool())
+    .await
+    .expect("the result");
+    assert_eq!(ocr, Some(true), "{stderr}");
+}
+
+/// docs/measurements/sandbox-modules.md: crafted files through the sandbox modules, contained, as the
+/// pool runs them. `ACE4_CRAFTED` names a directory of them; each line printed is a module, a file,
+/// how its task ended and how long it took.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[ignore = "a measurement, run by hand"]
+async fn crafted_files_through_the_sandbox_modules() {
+    let dir = std::path::PathBuf::from(std::env::var("ACE4_CRAFTED").expect("ACE4_CRAFTED"));
+    let modules = ["qrcode", "ocr", "pdftotext", "exif", "pdf_analyzer"];
+    let manifests = vec![
+        ace_sdk::Manifest::parser::<ace_mod_sandbox::QrCodeAnalyzer>(),
+        ace_sdk::Manifest::parser::<ace_mod_sandbox::OcrAnalyzer>(),
+        ace_sdk::Manifest::parser::<ace_mod_sandbox::PdfTextAnalyzer>(),
+        ace_sdk::Manifest::parser::<ace_mod_sandbox::ExifAnalyzer>(),
+        ace_sdk::Manifest::parser::<ace_mod_pdf::PdfAnalyzer>(),
+    ];
+    let core = Core::start(manifests, &modules, Duration::from_secs(30)).await;
+    let mut pool = PoolProcess::start(test_pool(
+        &core,
+        &["parsers", "--task-user", "ace4-task", "--concurrency", "1"],
+    ));
+    let mut names: Vec<String> = std::fs::read_dir(&dir)
+        .expect("the directory")
+        .map(|e| {
+            e.expect("an entry")
+                .file_name()
+                .into_string()
+                .expect("a name")
+        })
+        .collect();
+    names.sort();
+    for name in &names {
+        let bytes = std::fs::read(dir.join(name)).expect("the file");
+        for module in modules {
+            if module == "ocr" && !name.ends_with(".png") {
+                continue;
+            }
+            let (root, sha256) =
+                common::root_with_file(&core, "event", &bytes, name, &["ocr"]).await;
+            enqueue(&core, root, &sha256.to_hex(), module).await;
+            let started = Instant::now();
+            wait_until_idle(&core, root, Duration::from_secs(600)).await;
+            let (state, error) = common::task_of(&core, root, module).await;
+            let summary: Option<String> = sqlx::query_scalar(
+                "SELECT coalesce(summary, '') FROM analysis.results WHERE root_id = $1",
+            )
+            .bind(root)
+            .fetch_optional(core.test_db.db().pool())
+            .await
+            .expect("the result");
+            println!(
+                "{module} {name}: {state} in {:.1} s; {error:?}; {summary:?}",
+                started.elapsed().as_secs_f64()
+            );
+        }
+    }
+    pool.stop();
+}

@@ -1,0 +1,60 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "image/bmp",
+        "type": "PC bitmap, Windows 3.x format, 449 x 449 x 24, image size 605252, resolution 3780 x 3780 px/m, cbSize 605306, bits offset 54"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: PC bitmap, Windows 3.x format, 449 x 449 x 24, image size 605252, resolution 3780 x 3780 px/m, cbSize 605306, bits offset 54 (image/bmp)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/images/qr_crop.bmp",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "qr_crop.bmp",
+      "size": 605306,
+      "type": "file",
+      "value": "69fa0fb0f2217a9cea9218e87b69dd2fddba5630560ca03e77bbcc04d78bb871"
+    }
+  },
+  "module": "exif",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=image"
+    ],
+    "excluded_analysis": [],
+    "file_path": "qr_crop.bmp",
+    "relationships": [],
+    "size": 605306,
+    "tags": [],
+    "type": "file",
+    "value": "69fa0fb0f2217a9cea9218e87b69dd2fddba5630560ca03e77bbcc04d78bb871",
+    "yara_meta": [
+      "type=image"
+    ]
+  }
+}

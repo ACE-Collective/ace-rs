@@ -20,6 +20,28 @@
           "summary": null,
           "tags": {}
         },
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:42:57+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:42:57+00:00",
+              "File:FileModifyDate": "2026:11:09 05:23:12+00:00",
+              "File:FileName": "nul_byte.rtf",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 70,
+              "File:FileType": "RTF",
+              "File:FileTypeExtension": "RTF",
+              "File:MIMEType": "text/rtf",
+              "SourceFile": "<root>/files/nul_byte.rtf"
+            },
+            "output_dir": "<root>/files/nul_byte.rtf.exif"
+          },
+          "summary": "Exiftool Analysis: ",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "6379c9bee990b72dab0e65449ab969c2",
@@ -71,6 +93,24 @@
         "rtf": true,
         "unexpected_binary_data": true
       }
+    },
+    "file:5b64b9d6048c4385d54b1efcd7ca84f10248c611843c1c8f646172d4dcef5146": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "nul_byte.rtf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:2fc8f016584d950c5288f79848b62356e4517fe8b0b33feb99a2a829f39e8fac": true
+      },
+      "results": {},
+      "tags": {}
     },
     "file:76fa2f41a069908de6738ee8af3de47cd0988e9c0ac300b695bcaface0c352b7": {
       "detections": {},

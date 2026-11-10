@@ -80,6 +80,29 @@
           "summary": null,
           "tags": {}
         },
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "ExifTool:Warning": "Unspecified RTF encoding. Will assume Latin",
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:42:31+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:42:31+00:00",
+              "File:FileModifyDate": "2026:11:07 15:11:53+00:00",
+              "File:FileName": "edge_long_word.rtf",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 311,
+              "File:FileType": "RTF",
+              "File:FileTypeExtension": "RTF",
+              "File:MIMEType": "text/rtf",
+              "SourceFile": "<root>/files/edge_long_word.rtf"
+            },
+            "output_dir": "<root>/files/edge_long_word.rtf.exif"
+          },
+          "summary": "Exiftool Analysis: ",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "0a2cb9000fb6ef92532b9853ace64fa3",
@@ -130,6 +153,24 @@
         "microsoft_office": true,
         "rtf": true
       }
+    },
+    "file:7e30045dc24a06242f8a0d9634a5982930f545076703ea9dd3ff943b06835cdd": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "edge_long_word.rtf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:6f8b4f9fe71e95d7c8436b73ce40e772213c11475cc3b710f390232a521a8714": true
+      },
+      "results": {},
+      "tags": {}
     },
     "md5:0a2cb9000fb6ef92532b9853ace64fa3": {
       "detections": {},

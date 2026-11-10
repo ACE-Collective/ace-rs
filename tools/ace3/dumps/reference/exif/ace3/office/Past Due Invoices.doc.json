@@ -1,0 +1,157 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "ExifAnalysis",
+      "details": {
+        "error": null,
+        "exifdata": {
+          "ExifTool:ExifToolVersion": 13.25,
+          "File:Directory": "<root>/files",
+          "File:FileAccessDate": "2026:11:10 10:54:01+00:00",
+          "File:FileInodeChangeDate": "2026:11:10 10:54:01+00:00",
+          "File:FileModifyDate": "2026:11:06 19:20:07+00:00",
+          "File:FileName": "Past Due Invoices.doc",
+          "File:FilePermissions": 100644,
+          "File:FileSize": 143360,
+          "File:FileType": "DOC",
+          "File:FileTypeExtension": "DOC",
+          "File:MIMEType": "application/msword",
+          "FlashPix:AppVersion": 16.0,
+          "FlashPix:Author": "WNWrpQiR",
+          "FlashPix:CharCountWithSpaces": 1,
+          "FlashPix:Characters": 1,
+          "FlashPix:CodePage": 1252,
+          "FlashPix:CompObjUserType": "Microsoft Word 97-2003 Document",
+          "FlashPix:CompObjUserTypeLen": 32,
+          "FlashPix:Company": "",
+          "FlashPix:CreateDate": "2018:02:15 15:36:00",
+          "FlashPix:DocFlags": 4616,
+          "FlashPix:HeadingPairs": [
+            "Title",
+            1
+          ],
+          "FlashPix:HyperlinksChanged": 0,
+          "FlashPix:Identification": 42476,
+          "FlashPix:Keywords": "",
+          "FlashPix:LanguageCode": 1033,
+          "FlashPix:LastModifiedBy": "",
+          "FlashPix:LastPrinted": "0000:00:00 00:00:00",
+          "FlashPix:Lines": 1,
+          "FlashPix:LinksUpToDate": 0,
+          "FlashPix:ModifyDate": "2018:02:15 15:36:00",
+          "FlashPix:Pages": 1,
+          "FlashPix:Paragraphs": 1,
+          "FlashPix:RevisionNumber": 1,
+          "FlashPix:ScaleCrop": 0,
+          "FlashPix:Security": 0,
+          "FlashPix:SharedDoc": 0,
+          "FlashPix:Software": "Microsoft Office Word",
+          "FlashPix:Subject": "",
+          "FlashPix:System": 0,
+          "FlashPix:Template": "Normal.dotm",
+          "FlashPix:Title": "",
+          "FlashPix:TitleOfParts": "",
+          "FlashPix:TotalEditTime": 0,
+          "FlashPix:Word97": 0,
+          "FlashPix:Words": 0,
+          "SourceFile": "<root>/files/Past Due Invoices.doc"
+        },
+        "output_dir": "<root>/files/Past Due Invoices.doc.exif"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.exif:ExifAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=metadata.exif"
+          ],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.file_type:<class 'saq.modules.file_analysis.file_type.FileTypeAnalyzer'>",
+            "saq.modules.file_analysis.hash:<class 'saq.modules.file_analysis.hash.FileHashAnalyzer'>"
+          ],
+          "file_path": "Past Due Invoices.doc.exif/exiftool.out",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 1760,
+          "tags": [],
+          "type": "file",
+          "value": "f477bba72d9959e0d0a8903763336a5db06da01feefd8b486f5e21fbcf7c6e95",
+          "yara_meta": [
+            "type=metadata.exif"
+          ]
+        }
+      ],
+      "summary": "Exiftool Analysis: Identification=42476, LanguageCode=1033, DocFlags=4616, System=0, Word97=0, Title=, Subject=, Author=WNWrpQiR, Keywords=, Template=Normal.dotm, LastModifiedBy=, Software=Microsoft Office Word, CreateDate=2018:02:15 15:36:00, ModifyDate=2018:02:15 15:36:00, Security=0, CodePage=1252, Company=, CharCountWithSpaces=1, AppVersion=16.0, ScaleCrop=0 + 15 more",
+      "tags": []
+    },
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": true,
+        "is_office_ext": true,
+        "is_ole_file": true,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "application/msword",
+        "type": "Composite Document File V2 Document, Little Endian, Os: Windows, Version 6.1, Code page: 1252, Author: WNWrpQiR, Template: Normal.dotm, Revision Number: 1, Name of Creating Application: Microsoft Office Word, Create Time/Date: Thu Feb 15 15:36:00 2018, Last Saved Time/Date: Thu Feb 15 15:36:00 2018, Number of Pages: 1, Number of Words: 0, Number of Characters: 1, Security: 0"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: Composite Document File V2 Document, Little Endian, Os: Windows, Version 6.1, Code page: 1252, Author: WNWrpQiR, Template: Normal.dotm, Revision Number: 1, Name of Creating Application: Microsoft Office Word, Create Time/Date: Thu Feb 15 15:36:00 2018, Last Saved Time/Date: Thu Feb 15 15:36:00 2018, Number of Pages: 1, Number of Words: 0, Number of Characters: 1, Security: 0 (application/msword) (ms office document) (ole compound file)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace3/office/Past Due Invoices.doc",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "Past Due Invoices.doc",
+      "size": 143360,
+      "type": "file",
+      "value": "b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f"
+    }
+  },
+  "module": "exif",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "Past Due Invoices.doc",
+    "relationships": [],
+    "size": 143360,
+    "tags": [
+      "microsoft_office",
+      "ole"
+    ],
+    "type": "file",
+    "value": "b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

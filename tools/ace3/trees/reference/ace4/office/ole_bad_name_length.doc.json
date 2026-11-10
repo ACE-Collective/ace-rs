@@ -167,6 +167,28 @@
       },
       "relationships": {},
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:19:54+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:19:54+00:00",
+              "File:FileModifyDate": "2026:11:07 15:11:53+00:00",
+              "File:FileName": "ole_bad_name_length.doc",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 3584,
+              "File:FileType": "DOC",
+              "File:FileTypeExtension": "DOC",
+              "File:MIMEType": "application/msword",
+              "SourceFile": "<root>/files/ole_bad_name_length.doc"
+            },
+            "output_dir": "<root>/files/ole_bad_name_length.doc.exif"
+          },
+          "summary": "Exiftool Analysis: ",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "c2c04a5a60766e3138ecde257a00c075",
@@ -429,6 +451,24 @@
           "tags": {}
         }
       },
+      "tags": {}
+    },
+    "file:ff0f753486fcede6e6d8e1d721e6c4c0ccd398596c8c58395ac734596c8e5cbd": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "ole_bad_name_length.doc.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:62e712a65f3f7e5e54ad9361795e93b0d79cdb1eecd90c65f3d25c7ac3f75c00": true
+      },
+      "results": {},
       "tags": {}
     },
     "fqdn:example.com": {

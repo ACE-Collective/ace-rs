@@ -212,6 +212,24 @@
       },
       "tags": {}
     },
+    "file:9cb59460560f1cf4b6abb1e93c387bc8ee60be45d0e159519d216fa8babedfd1": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "encrypted_agile_sha384.docx.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:b9e770383258d57dfebd40d8963e20ca1ff832aacc107b12d8cfccf6335973bf": true
+      },
+      "results": {},
+      "tags": {}
+    },
     "file:b520d7662070c97304b0bbff09af9f61baaa6872976663ed1a886abc7c29cb15": {
       "detections": {},
       "directives": {
@@ -274,6 +292,28 @@
       },
       "relationships": {},
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:16:16+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:16:16+00:00",
+              "File:FileModifyDate": "2026:11:07 10:46:15+00:00",
+              "File:FileName": "encrypted_agile_sha384.docx",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 17920,
+              "File:FileType": "DOCX",
+              "File:FileTypeExtension": "DOCX",
+              "File:MIMEType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+              "SourceFile": "<root>/files/encrypted_agile_sha384.docx"
+            },
+            "output_dir": "<root>/files/encrypted_agile_sha384.docx.exif"
+          },
+          "summary": "Exiftool Analysis: ",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "fe3ae355bbadcf14b0fa9a49621e3716",

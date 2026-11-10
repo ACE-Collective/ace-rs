@@ -173,6 +173,28 @@
         "extracted_from file:4558d5fd273bce9b9251c4b3b8abec915d5256936c215997408e84f504759325": true
       },
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files/vba_excel.xlsb.extracted/xl",
+              "File:FileAccessDate": "2026:11:10 11:27:49+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:27:49+00:00",
+              "File:FileModifyDate": "2026:01:01 00:00:00+00:00",
+              "File:FileName": "vbaProject.bin",
+              "File:FilePermissions": 100664,
+              "File:FileSize": 23552,
+              "File:FileType": "FPX",
+              "File:FileTypeExtension": "FPX",
+              "File:MIMEType": "image/vnd.fpx",
+              "SourceFile": "<root>/files/vba_excel.xlsb.extracted/xl/vbaProject.bin"
+            },
+            "output_dir": "<root>/files/vba_excel.xlsb.extracted/xl/vbaProject.bin.exif"
+          },
+          "summary": "Exiftool Analysis: ",
+          "tags": {}
+        },
         "file_type": {
           "details": {
             "is_email_file": false,
@@ -370,6 +392,24 @@
       },
       "tags": {}
     },
+    "file:397e7df3f5c4c32d633b44cb97ca91c8204991cae199f606e03f86f8b4b53832": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "vba_excel.xlsb.extracted/xl/vbaProject.bin.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:170b804293599496c29d816cfe408adc5a99e767eb930b0c0cf9e7db62436abe": true
+      },
+      "results": {},
+      "tags": {}
+    },
     "file:4558d5fd273bce9b9251c4b3b8abec915d5256936c215997408e84f504759325": {
       "detections": {},
       "directives": {
@@ -395,6 +435,36 @@
             "file_count": 4
           },
           "summary": "Archive Analysis: extracted 4 of 4 files: ([Content_Types].xml, xl/vbaProject.bin, xl/workbook.bin, _rels/.rels)",
+          "tags": {}
+        },
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:27:48+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:27:48+00:00",
+              "File:FileModifyDate": "2026:11:07 15:11:53+00:00",
+              "File:FileName": "vba_excel.xlsb",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 11470,
+              "File:FileType": "XLSB",
+              "File:FileTypeExtension": "XLSB",
+              "File:MIMEType": "application/vnd.ms-excel.sheet.binary.macroEnabled.12",
+              "SourceFile": "<root>/files/vba_excel.xlsb",
+              "ZIP:ZipBitFlag": 0,
+              "ZIP:ZipCRC": 2965358108,
+              "ZIP:ZipCompressedSize": 205,
+              "ZIP:ZipCompression": 8,
+              "ZIP:ZipFileName": "[Content_Types].xml",
+              "ZIP:ZipModifyDate": "2026:01:01 00:00:00",
+              "ZIP:ZipRequiredVersion": 20,
+              "ZIP:ZipUncompressedSize": 347
+            },
+            "output_dir": "<root>/files/vba_excel.xlsb.exif"
+          },
+          "summary": "Exiftool Analysis: ZipRequiredVersion=20, ZipBitFlag=0, ZipCompression=8, ZipModifyDate=2026:01:01 00:00:00, ZipCRC=2965358108, ZipCompressedSize=205, ZipUncompressedSize=347, ZipFileName=[Content_Types].xml",
           "tags": {}
         },
         "file_hash_analyzer": {
@@ -603,6 +673,24 @@
           "tags": {}
         }
       },
+      "tags": {}
+    },
+    "file:953f6dacd7be3004ab9ba62043f080aa74d6abda1dde189d293f536fa83bd194": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "vba_excel.xlsb.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:4558d5fd273bce9b9251c4b3b8abec915d5256936c215997408e84f504759325": true
+      },
+      "results": {},
       "tags": {}
     },
     "file:ce49436dec0282ca0c2acb2966441b42d2620cd614f363ac0b43420dfdd687ed": {

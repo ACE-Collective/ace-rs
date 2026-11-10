@@ -1,0 +1,169 @@
+#!/usr/bin/env python3
+"""Makes the files PLAN.md 7.5 batch 10's ocr and qrcode modules are compared on, and ssdeep's.
+
+    tools/samples/make-image-files    writes tools/ace3/dumps/fixtures/images and
+                                      tools/ace3/dumps/fixtures/ssdeep
+
+The images are made in ace3's dev container (ace-dev-1), with its Pillow and Ghostscript, under
+/tmp/ace4-images, which is removed after:
+
+- qr_*: the page of samples/ace3/pdf/sample_pdf_with_qr_code.pdf with the QR code, as Ghostscript
+  renders it for the qrcode module, and the code cut out of it in several formats, inverted, with an
+  icon over its middle, shrunk and turned, so each of the module's scans has a case;
+- text_*: lines of text in DejaVu Sans, with a URL, defanged indicators, curly quotes and a URL
+  wrapped over two lines, in black on white, white on black, small, in RGBA, as a palette GIF and as a
+  greyscale JPEG, for the ocr module's preprocessing and its two passes; blank.png has no text;
+- broken.png: a PNG cut short, which Pillow opens and nothing can decode.
+
+The ssdeep files are seeded: a text file, copies of it edited a little and a lot, an unrelated file,
+a file of one repeated short run and an edited copy of that (the case fuzzyhash scores 100 where ssdeep
+scores 0, docs/measurements/ssdeep.md), and a file under ssdeep's 1 KB minimum. known_hashes is
+ssdeep 2.14.1's `ssdeep -s -b` of the base files, the list the module matches against.
+"""
+
+import io
+import random
+import subprocess
+import tarfile
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent.parent
+FIXTURES = ROOT / "tools" / "ace3" / "dumps" / "fixtures"
+CONTAINER = "ace-dev-1"
+REMOTE = "/tmp/ace4-images"
+QR_PDF = ROOT / "samples" / "ace3" / "pdf" / "sample_pdf_with_qr_code.pdf"
+
+SCRIPT = r'''
+import subprocess, sys
+from PIL import Image, ImageDraw, ImageFont, ImageOps
+
+out = sys.argv[1]
+subprocess.run(["gs", "-q", "-sDEVICE=pngalpha", "-o", f"{out}/page-%d.png", "-r144", f"{out}/qr.pdf"], check=True)
+page = Image.open(f"{out}/page-2.png")
+page.save(f"{out}/qr_page.png")
+xml = subprocess.run(["zbarimg", "--xml", "-q", "--nodbus", f"{out}/qr_page.png"], capture_output=True, text=True).stdout
+points = [tuple(int(v) for v in p.split(","))
+          for p in xml.split("<polygon points='")[1].split("'")[0].split()]
+xs, ys = [p[0] for p in points], [p[1] for p in points]
+margin = 24
+crop = page.convert("RGB").crop((min(xs) - margin, min(ys) - margin, max(xs) + margin, max(ys) + margin))
+crop.save(f"{out}/qr_crop.png")
+crop.save(f"{out}/qr_crop.jpg", quality=90)
+crop.convert("P").save(f"{out}/qr_crop.gif")
+crop.save(f"{out}/qr_crop.bmp")
+ImageOps.invert(crop).save(f"{out}/qr_inverted.png")
+icon = crop.copy()
+w, h = icon.size
+ImageDraw.Draw(icon).rectangle((w * 0.35, h * 0.35, w * 0.65, h * 0.65), fill=(200, 30, 30))
+icon.save(f"{out}/qr_icon.png")
+crop.resize((w // 5, h // 5), Image.BILINEAR).save(f"{out}/qr_small.png")
+crop.rotate(30, expand=True, fillcolor=(255, 255, 255)).save(f"{out}/qr_rotated.png")
+
+font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 28)
+lines = [
+    "Your account was suspended. Sign in at",
+    "https://login.example-portal.com/verify?id=42",
+    "or write to support@example-help.net today.",
+    "Indicators: evil[.]example[.]com and 192[.]0[.]2[.]10",
+    "“Quoted” text — with a dash…",
+]
+wrapped = [
+    "Open the document at https://files.example-",
+    "storage.com/shared/invoice and confirm the",
+    "payment before Friday.",
+]
+
+
+def text_image(rows, size=(1600, 400), fg="black", bg="white", mode="RGB"):
+    image = Image.new(mode, size, bg)
+    draw = ImageDraw.Draw(image)
+    for i, row in enumerate(rows):
+        draw.text((40, 30 + i * 60), row, font=font, fill=fg)
+    return image
+
+
+text_image(lines).save(f"{out}/text_plain.png")
+text_image(lines, fg="white", bg=(20, 20, 30)).save(f"{out}/text_dark.png")
+small = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 14)
+image = Image.new("RGB", (420, 120), "white")
+draw = ImageDraw.Draw(image)
+draw.text((10, 10), "Reset at https://reset.example.org/a", font=small, fill="black")
+draw.text((10, 40), "Code: 7731-ALPHA", font=small, fill="black")
+image.save(f"{out}/text_small.png")
+text_image(wrapped, size=(1500, 260)).save(f"{out}/text_wrapped.png")
+text_image(lines, fg=(0, 0, 0, 255), bg=(255, 255, 255, 0), mode="RGBA").save(f"{out}/text_rgba.png")
+text_image(lines).convert("P").save(f"{out}/text_palette.gif")
+text_image(lines).convert("L").save(f"{out}/text_gray.jpg", quality=85)
+Image.new("RGB", (800, 300), "white").save(f"{out}/blank.png")
+data = open(f"{out}/text_plain.png", "rb").read()
+open(f"{out}/broken.png", "wb").write(data[: len(data) // 3])
+'''
+
+NAMES = [
+    "qr_page.png", "qr_crop.png", "qr_crop.jpg", "qr_crop.gif", "qr_crop.bmp", "qr_inverted.png",
+    "qr_icon.png", "qr_small.png", "qr_rotated.png", "text_plain.png", "text_dark.png",
+    "text_small.png", "text_wrapped.png", "text_rgba.png", "text_palette.gif", "text_gray.jpg",
+    "blank.png", "broken.png",
+]
+
+
+def docker(*args, stdin=None):
+    return subprocess.run(["docker", *args], input=stdin, capture_output=True, check=True)
+
+
+def images():
+    docker("exec", CONTAINER, "rm", "-rf", REMOTE)
+    docker("exec", CONTAINER, "mkdir", "-p", REMOTE)
+    docker("exec", "-i", CONTAINER, "sh", "-c", f"cat > {REMOTE}/qr.pdf", stdin=QR_PDF.read_bytes())
+    docker("exec", "-i", CONTAINER, "/venv/bin/python3", "-I", "-", REMOTE, stdin=SCRIPT.encode())
+    archive = docker("exec", CONTAINER, "tar", "-C", REMOTE, "-cf", "-", *NAMES).stdout
+    target = FIXTURES / "images"
+    target.mkdir(parents=True, exist_ok=True)
+    with tarfile.open(fileobj=io.BytesIO(archive)) as tar:
+        for member in tar.getmembers():
+            (target / member.name).write_bytes(tar.extractfile(member).read())
+    return target
+
+
+def ssdeep_files():
+    rnd = random.Random(10)
+    words = [b"invoice ", b"payment ", b"the ", b"of ", b"function ", b"var ", b"http://example.com/ ", b"\n"]
+    base = b"".join(rnd.choice(words) for _ in range(1500))
+    files = {"base_text": base}
+    edited = bytearray(base)
+    for _ in range(5):
+        edited[rnd.randrange(len(edited))] = rnd.randrange(256)
+    files["edited_little"] = bytes(edited)
+    edited = bytearray(base)
+    for _ in range(400):
+        edited[rnd.randrange(len(edited))] = rnd.randrange(256)
+    files["edited_much"] = bytes(edited)
+    files["unrelated"] = bytes(rnd.getrandbits(8) for _ in range(9000))
+    run = bytes(rnd.getrandbits(8) for _ in range(37))
+    files["base_repeated"] = (run * 2000)[:60000]
+    repeated = bytearray(files["base_repeated"])
+    for _ in range(20):
+        repeated[rnd.randrange(len(repeated))] = rnd.randrange(256)
+    files["repeated_edited"] = bytes(repeated)
+    files["too_small"] = base[:1000]
+    target = FIXTURES / "ssdeep"
+    target.mkdir(parents=True, exist_ok=True)
+    for name, data in files.items():
+        (target / name).write_bytes(data)
+    # ace3's ssdeep makes the list of known hashes
+    docker("exec", CONTAINER, "rm", "-rf", REMOTE)
+    docker("exec", CONTAINER, "mkdir", "-p", REMOTE)
+    for name in ("base_text", "unrelated", "base_repeated"):
+        docker("exec", "-i", CONTAINER, "sh", "-c", f"cat > {REMOTE}/{name}", stdin=files[name])
+    hashes = docker("exec", "-w", REMOTE, CONTAINER, "ssdeep", "-s", "-b", "base_text", "unrelated", "base_repeated").stdout
+    (target / "known_hashes").write_bytes(hashes)
+
+
+def main():
+    images()
+    ssdeep_files()
+    docker("exec", CONTAINER, "rm", "-rf", REMOTE)
+
+
+if __name__ == "__main__":
+    main()

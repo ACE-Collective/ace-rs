@@ -13,6 +13,30 @@
       },
       "relationships": {},
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:34:58+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:34:58+00:00",
+              "File:FileModifyDate": "2026:11:07 04:47:50+00:00",
+              "File:FileName": "broken_no_pages.pdf",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 147,
+              "File:FileType": "PDF",
+              "File:FileTypeExtension": "PDF",
+              "File:MIMEType": "application/pdf",
+              "PDF:Linearized": false,
+              "PDF:PDFVersion": 1.7,
+              "SourceFile": "<root>/files/broken_no_pages.pdf"
+            },
+            "output_dir": "<root>/files/broken_no_pages.pdf.exif"
+          },
+          "summary": "Exiftool Analysis: PDFVersion=1.7, Linearized=False",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "89317cce2e452d2b6eff5a05075c22df",
@@ -45,13 +69,22 @@
           "details": {},
           "summary": null,
           "tags": {}
+        },
+        "pdftotext": {
+          "details": {
+            "output_path": null,
+            "stderr": "Syntax Error: Catalog dictionary does not contain a valid \"Pages\" entry\nCommand Line Error: Wrong page range given: the first page (1) can not be after the last page (0).\n",
+            "stdout": ""
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {
         "pdf": true
       }
     },
-    "file:9f8610ed08af9c22d35293b22ea69fa5d41041df7a765a264c7372daf8dc1b56": {
+    "file:3e0559ab31b3959e5bc6e3aba566f377a45e2c0471985e961526cebb722ab8a2": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -89,6 +122,23 @@
           "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
           "tags": {}
         },
+        "pdftotext": {
+          "details": {
+            "output_path": "ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977",
+            "stderr": "",
+            "stdout": ""
+          },
+          "summary": "PDF Text Analysis",
+          "tags": {}
+        },
+        "qrcode": {
+          "details": {
+            "extracted_text": null,
+            "inverted": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [],
@@ -101,6 +151,24 @@
       "tags": {
         "pdf": true
       }
+    },
+    "file:7bf9b0d4d3b1cab09b3695c3ae81e6c2d018e46686ac5e82c74b79d6fe30926a": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "broken_no_pages.pdf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:2129c62f1d72a64373b1fbfe7bad7e3e27588ef188793b42b1c5feff6f3660a7": true
+      },
+      "results": {},
+      "tags": {}
     },
     "file:a8e4843f5f907b3ce7b9dcb123d969231a0ed3f3eae67d78ab9a4f84b265765e": {
       "detections": {},
@@ -143,6 +211,44 @@
             "urls_grouped_by_domain": {}
           },
           "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "archive": true
+      },
+      "paths": {
+        "broken_no_pages.pdf.gs.pdf.txt": {
+          "type=document.pdf.text": true
+        }
+      },
+      "redirection": "file:3e0559ab31b3959e5bc6e3aba566f377a45e2c0471985e961526cebb722ab8a2",
+      "relationships": {
+        "extracted_from file:3e0559ab31b3959e5bc6e3aba566f377a45e2c0471985e961526cebb722ab8a2": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "very short file (no magic)"
+          },
+          "summary": "File Type Analysis: very short file (no magic) (application/octet-stream)",
           "tags": {}
         }
       },

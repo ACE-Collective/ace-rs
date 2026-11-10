@@ -1,0 +1,36 @@
+{
+  "analysis_type": "ocr_analysis",
+  "schema_version": 1,
+  "details": {
+    "error": null,
+    "ocr": true
+  },
+  "summary": "OCR Analysis",
+  "files": [
+    {
+      "path": "text_plain.png.ocr/text_plain.png.ocr",
+      "sha256": "5d0a03753e8ec6b7f527b9c54a9650a95df3dcbaf5cb843edce6c89d54bd038c",
+      "size": 984,
+      "yara_meta": [
+        "type=document.text.ocr"
+      ],
+      "directives": [
+        "extract_urls",
+        "extract_urls_domain_as_url"
+      ],
+      "relationships": [
+        {
+          "type": "extracted_from",
+          "target": {
+            "type": "file",
+            "value": "bf8e54a180fee13cf76b1185bbf6a9f115ea3e153eaf8c78a93dc482ec8c96a8"
+          }
+        }
+      ],
+      "redirection": {
+        "type": "file",
+        "value": "bf8e54a180fee13cf76b1185bbf6a9f115ea3e153eaf8c78a93dc482ec8c96a8"
+      }
+    }
+  ]
+}

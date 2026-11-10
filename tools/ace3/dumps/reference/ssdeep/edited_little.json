@@ -1,0 +1,51 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "SsdeepAnalysis",
+      "details": {
+        "matches": [
+          {
+            "file": "base_text",
+            "score": 97
+          }
+        ]
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.ssdeep:SsdeepAnalysis",
+      "observables": [],
+      "summary": "Ssdeep Analysis (1 matches 97% highest match)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/ssdeep/edited_little",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "edited_little",
+      "size": 11007,
+      "type": "file",
+      "value": "a60a9e04683812cc67fa00984eb60a14d9cf1888c9e57fdb3059f7874267c24a"
+    }
+  },
+  "module": "ssdeep",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "sandbox"
+    ],
+    "excluded_analysis": [],
+    "file_path": "edited_little",
+    "relationships": [],
+    "size": 11007,
+    "tags": [
+      "ssdeep"
+    ],
+    "type": "file",
+    "value": "a60a9e04683812cc67fa00984eb60a14d9cf1888c9e57fdb3059f7874267c24a",
+    "yara_meta": []
+  }
+}

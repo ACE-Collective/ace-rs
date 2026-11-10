@@ -1,0 +1,130 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "ExifAnalysis",
+      "details": {
+        "error": null,
+        "exifdata": {
+          "ExifTool:ExifToolVersion": 13.25,
+          "File:Directory": "<root>/files",
+          "File:FileAccessDate": "2026:11:10 11:00:25+00:00",
+          "File:FileInodeChangeDate": "2026:11:10 11:00:25+00:00",
+          "File:FileModifyDate": "2026:11:06 19:20:07+00:00",
+          "File:FileName": "sample_pdf_with_qr_code.pdf",
+          "File:FilePermissions": 100644,
+          "File:FileSize": 151801,
+          "File:FileType": "PDF",
+          "File:FileTypeExtension": "PDF",
+          "File:MIMEType": "application/pdf",
+          "PDF:CreateDate": "2026:01:07 15:45:21+00:00",
+          "PDF:Creator": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36",
+          "PDF:Language": "en-US",
+          "PDF:Linearized": false,
+          "PDF:ModifyDate": "2026:01:07 15:45:21+00:00",
+          "PDF:PDFVersion": 1.4,
+          "PDF:PageCount": 3,
+          "PDF:Producer": "Skia/PDF m143",
+          "PDF:TaggedPDF": true,
+          "PDF:Title": "BANCO BV Employee Bonus & Benefits Update",
+          "SourceFile": "<root>/files/sample_pdf_with_qr_code.pdf"
+        },
+        "output_dir": "<root>/files/sample_pdf_with_qr_code.pdf.exif"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.exif:ExifAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=metadata.exif"
+          ],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.file_type:<class 'saq.modules.file_analysis.file_type.FileTypeAnalyzer'>",
+            "saq.modules.file_analysis.hash:<class 'saq.modules.file_analysis.hash.FileHashAnalyzer'>"
+          ],
+          "file_path": "sample_pdf_with_qr_code.pdf.exif/exiftool.out",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "4efb0032a6de86d9c0dabc0d2814533aac30811ee40e433d26092eaf988ca110"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 1087,
+          "tags": [],
+          "type": "file",
+          "value": "a5154b54127032c78755061d467fe698c8c65f54299d7aa7ce1d816fc2dd840a",
+          "yara_meta": [
+            "type=metadata.exif"
+          ]
+        }
+      ],
+      "summary": "Exiftool Analysis: PDFVersion=1.4, Linearized=False, PageCount=3, TaggedPDF=True, Language=en-US, Title=BANCO BV Employee Bonus & Benefits Update, Creator=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36, Producer=Skia/PDF m143, CreateDate=2026:01:07 15:45:21+00:00, ModifyDate=2026:01:07 15:45:21+00:00",
+      "tags": []
+    },
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": true,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "application/pdf",
+        "type": "PDF document, version 1.4, 3 page(s)"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: PDF document, version 1.4, 3 page(s) (application/pdf) (pdf document)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace3/pdf/sample_pdf_with_qr_code.pdf",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "sample_pdf_with_qr_code.pdf",
+      "size": 151801,
+      "type": "file",
+      "value": "4efb0032a6de86d9c0dabc0d2814533aac30811ee40e433d26092eaf988ca110"
+    }
+  },
+  "module": "exif",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=document.pdf",
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "sample_pdf_with_qr_code.pdf",
+    "relationships": [],
+    "size": 151801,
+    "tags": [
+      "pdf"
+    ],
+    "type": "file",
+    "value": "4efb0032a6de86d9c0dabc0d2814533aac30811ee40e433d26092eaf988ca110",
+    "yara_meta": [
+      "type=document.pdf",
+      "type=email.attachment"
+    ]
+  }
+}

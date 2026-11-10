@@ -92,6 +92,24 @@
         "macro": true
       }
     },
+    "file:83b233243492bdcdea2dd8a3d1d5c278916d3818d0e05c8b82b729224b4822b9": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "vba_powerpoint.ppt.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:8dcf7a426180ccef025629b4e523a8a49fe25c4ccb1486578eaab4a5ef72b2bd": true
+      },
+      "results": {},
+      "tags": {}
+    },
     "file:8dcf7a426180ccef025629b4e523a8a49fe25c4ccb1486578eaab4a5ef72b2bd": {
       "detections": {},
       "directives": {
@@ -105,6 +123,29 @@
       },
       "relationships": {},
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:28:35+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:28:35+00:00",
+              "File:FileModifyDate": "2026:11:07 15:11:53+00:00",
+              "File:FileName": "vba_powerpoint.ppt",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 13312,
+              "File:FileType": "PPT",
+              "File:FileTypeExtension": "PPT",
+              "File:MIMEType": "application/vnd.ms-powerpoint",
+              "FlashPix:CurrentUser": "a",
+              "SourceFile": "<root>/files/vba_powerpoint.ppt"
+            },
+            "output_dir": "<root>/files/vba_powerpoint.ppt.exif"
+          },
+          "summary": "Exiftool Analysis: CurrentUser=a",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "0aba605a8d795d86a3ba1e17be88bd6d",

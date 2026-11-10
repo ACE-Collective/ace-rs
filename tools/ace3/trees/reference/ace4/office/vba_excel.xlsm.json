@@ -173,6 +173,28 @@
         "extracted_from file:95981e1be1514afe910b0e0c98b45f7a72399a189dd3823f7366873bbf5b8a02": true
       },
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files/vba_excel.xlsm.extracted/xl",
+              "File:FileAccessDate": "2026:11:10 11:27:54+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:27:53+00:00",
+              "File:FileModifyDate": "2026:01:01 00:00:00+00:00",
+              "File:FileName": "vbaProject.bin",
+              "File:FilePermissions": 100664,
+              "File:FileSize": 23552,
+              "File:FileType": "FPX",
+              "File:FileTypeExtension": "FPX",
+              "File:MIMEType": "image/vnd.fpx",
+              "SourceFile": "<root>/files/vba_excel.xlsm.extracted/xl/vbaProject.bin"
+            },
+            "output_dir": "<root>/files/vba_excel.xlsm.extracted/xl/vbaProject.bin.exif"
+          },
+          "summary": "Exiftool Analysis: ",
+          "tags": {}
+        },
         "file_type": {
           "details": {
             "is_email_file": false,
@@ -381,6 +403,42 @@
         "macro": true
       }
     },
+    "file:5fa49bf2134c25b8a3c462ea98ac0b13830df1f16740a1a0fcf9f35d2e7be2b3": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "vba_excel.xlsm.extracted/xl/vbaProject.bin.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:170b804293599496c29d816cfe408adc5a99e767eb930b0c0cf9e7db62436abe": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "file:6281e84b3b2bc098f34c7ffae530e89b301bb9506ce2cc4fd7c65750821111a4": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "vba_excel.xlsm.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:95981e1be1514afe910b0e0c98b45f7a72399a189dd3823f7366873bbf5b8a02": true
+      },
+      "results": {},
+      "tags": {}
+    },
     "file:6abcffd4b8ab01c91122f2a8e6dffad54560556425cd0591005816b5b292d431": {
       "detections": {},
       "directives": {
@@ -559,6 +617,36 @@
             "file_count": 4
           },
           "summary": "Archive Analysis: extracted 4 of 4 files: ([Content_Types].xml, xl/workbook.xml, xl/vbaProject.bin, _rels/.rels)",
+          "tags": {}
+        },
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:27:52+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:27:52+00:00",
+              "File:FileModifyDate": "2026:11:07 15:11:53+00:00",
+              "File:FileName": "vba_excel.xlsm",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 11473,
+              "File:FileType": "XLSM",
+              "File:FileTypeExtension": "XLSM",
+              "File:MIMEType": "application/vnd.ms-excel.sheet.macroEnabled.12",
+              "SourceFile": "<root>/files/vba_excel.xlsm",
+              "ZIP:ZipBitFlag": 0,
+              "ZIP:ZipCRC": 3478320526,
+              "ZIP:ZipCompressedSize": 208,
+              "ZIP:ZipCompression": 8,
+              "ZIP:ZipFileName": "[Content_Types].xml",
+              "ZIP:ZipModifyDate": "2026:01:01 00:00:00",
+              "ZIP:ZipRequiredVersion": 20,
+              "ZIP:ZipUncompressedSize": 344
+            },
+            "output_dir": "<root>/files/vba_excel.xlsm.exif"
+          },
+          "summary": "Exiftool Analysis: ZipRequiredVersion=20, ZipBitFlag=0, ZipCompression=8, ZipModifyDate=2026:01:01 00:00:00, ZipCRC=3478320526, ZipCompressedSize=208, ZipUncompressedSize=344, ZipFileName=[Content_Types].xml",
           "tags": {}
         },
         "file_hash_analyzer": {

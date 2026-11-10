@@ -1,0 +1,78 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "OCRAnalysis",
+      "details": {
+        "error": null,
+        "ocr": true
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.ocr:OCRAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls",
+            "extract_urls_domain_as_url",
+            "yara_meta:type=document.text.ocr"
+          ],
+          "excluded_analysis": [],
+          "file_path": "text_wrapped.png.ocr/text_wrapped.png.ocr",
+          "redirection": {
+            "type": "file",
+            "value": "60b73c2a2d255bd061c18356cd5b3a57d837a7f6eedb71c247eaf13a70b80b55"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "60b73c2a2d255bd061c18356cd5b3a57d837a7f6eedb71c247eaf13a70b80b55"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 568,
+          "tags": [],
+          "type": "file",
+          "value": "3aaadf0437507b8eba1654a4e02033986f9637d9f73d7a9dfaf8b185c9439f1e",
+          "yara_meta": [
+            "type=document.text.ocr"
+          ]
+        }
+      ],
+      "summary": "OCR Analysis",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [
+      "ocr"
+    ],
+    "label": "fixtures/images/text_wrapped.png",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "text_wrapped.png",
+      "size": 16797,
+      "type": "file",
+      "value": "60b73c2a2d255bd061c18356cd5b3a57d837a7f6eedb71c247eaf13a70b80b55"
+    }
+  },
+  "module": "ocr",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "ocr"
+    ],
+    "excluded_analysis": [],
+    "file_path": "text_wrapped.png",
+    "relationships": [],
+    "size": 16797,
+    "tags": [],
+    "type": "file",
+    "value": "60b73c2a2d255bd061c18356cd5b3a57d837a7f6eedb71c247eaf13a70b80b55",
+    "yara_meta": []
+  }
+}

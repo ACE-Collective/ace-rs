@@ -157,6 +157,28 @@
       },
       "relationships": {},
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:12:15+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:12:15+00:00",
+              "File:FileModifyDate": "2026:11:10 11:12:15+00:00",
+              "File:FileName": "invoice.docm",
+              "File:FilePermissions": 100664,
+              "File:FileSize": 79360,
+              "File:FileType": "DOCM",
+              "File:FileTypeExtension": "DOCM",
+              "File:MIMEType": "application/vnd.ms-word.document.macroEnabled.12",
+              "SourceFile": "<root>/files/invoice.docm"
+            },
+            "output_dir": "<root>/files/invoice.docm.exif"
+          },
+          "summary": "Exiftool Analysis: ",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "ebcccc98b8d7da9569542ae187be5640",
@@ -500,6 +522,28 @@
           "summary": null,
           "tags": {}
         },
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files/invoice.docm.decrypted.extracted/word",
+              "File:FileAccessDate": "2026:11:10 11:12:18+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:12:18+00:00",
+              "File:FileModifyDate": "1980:01:01 00:00:00+00:00",
+              "File:FileName": "vbaProject.bin",
+              "File:FilePermissions": 100664,
+              "File:FileSize": 23552,
+              "File:FileType": "FPX",
+              "File:FileTypeExtension": "FPX",
+              "File:MIMEType": "image/vnd.fpx",
+              "SourceFile": "<root>/files/invoice.docm.decrypted.extracted/word/vbaProject.bin"
+            },
+            "output_dir": "<root>/files/invoice.docm.decrypted.extracted/word/vbaProject.bin.exif"
+          },
+          "summary": "Exiftool Analysis: ",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "b78e53325f45a16ab719c392444f2983",
@@ -723,6 +767,24 @@
           "tags": {}
         }
       },
+      "tags": {}
+    },
+    "file:2d53354ac6cbd1c1dcf3bd1b6122bd995c626b4e25bb37d1b742e56fe07d3ffe": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "invoice.docm.decrypted.extracted/word/vbaProject.bin.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:170b804293599496c29d816cfe408adc5a99e767eb930b0c0cf9e7db62436abe": true
+      },
+      "results": {},
       "tags": {}
     },
     "file:2de8631b2a69ae54c962af917bb57a9ae06949e606da5088f256b866df8cdaba": {
@@ -1025,6 +1087,24 @@
           "tags": {}
         }
       },
+      "tags": {}
+    },
+    "file:576cadab6ea18630b10fa3c4f621dd337ac870acad945d3f0138cbffa68d9f51": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "invoice.docm.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:0587627f0391dcbb29925b0c90a7640f7286b4dca8240d81d61756c8f648acf4": true
+      },
+      "results": {},
       "tags": {}
     },
     "file:5b0bab3732443808206ca47ec7c2125aac009722235718fe1a89f83d68d78a13": {
@@ -1884,6 +1964,14 @@
             "type": "PNG image data, 1014 x 548, 8-bit/color RGB, non-interlaced"
           },
           "summary": "File Type Analysis: PNG image data, 1014 x 548, 8-bit/color RGB, non-interlaced (image/png)",
+          "tags": {}
+        },
+        "qrcode": {
+          "details": {
+            "extracted_text": null,
+            "inverted": false
+          },
+          "summary": null,
           "tags": {}
         }
       },

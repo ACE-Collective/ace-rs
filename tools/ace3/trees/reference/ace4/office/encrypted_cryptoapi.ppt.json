@@ -1,6 +1,24 @@
 {
   "form": 1,
   "observables": {
+    "file:1a9abcb5ee3ad6ec323bd81731c2821972ea68d59091f1dfc8654f8e2166d15c": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "encrypted_cryptoapi.ppt.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:560f5ccd8b5c88d60634dceef0382d47d39756d195ff1e0602cec3b2994ebfe2": true
+      },
+      "results": {},
+      "tags": {}
+    },
     "file:560f5ccd8b5c88d60634dceef0382d47d39756d195ff1e0602cec3b2994ebfe2": {
       "detections": {},
       "directives": {},
@@ -12,6 +30,29 @@
       },
       "relationships": {},
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:17:23+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:17:23+00:00",
+              "File:FileModifyDate": "2026:11:07 10:46:15+00:00",
+              "File:FileName": "encrypted_cryptoapi.ppt",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 2560,
+              "File:FileType": "PPT",
+              "File:FileTypeExtension": "PPT",
+              "File:MIMEType": "application/vnd.ms-powerpoint",
+              "FlashPix:CurrentUser": "a",
+              "SourceFile": "<root>/files/encrypted_cryptoapi.ppt"
+            },
+            "output_dir": "<root>/files/encrypted_cryptoapi.ppt.exif"
+          },
+          "summary": "Exiftool Analysis: CurrentUser=a",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "df392c378f4db91570b03fc34eb6f79e",

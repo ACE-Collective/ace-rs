@@ -1,6 +1,24 @@
 {
   "form": 1,
   "observables": {
+    "file:64673beda085c75732c0fb71b73e964369f8f1e9535457393d39341fde81a34e": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "source.doc.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:6bf5d5bcf09fa01ccd96afff48a129551aec278d450d96357f8f05677616918f": true
+      },
+      "results": {},
+      "tags": {}
+    },
     "file:6bf5d5bcf09fa01ccd96afff48a129551aec278d450d96357f8f05677616918f": {
       "detections": {},
       "directives": {
@@ -14,6 +32,29 @@
       },
       "relationships": {},
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:27:27+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:27:27+00:00",
+              "File:FileModifyDate": "2026:11:06 23:46:42+00:00",
+              "File:FileName": "source.doc",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 71,
+              "File:FileType": "XML",
+              "File:FileTypeExtension": "XML",
+              "File:MIMEType": "application/xml",
+              "SourceFile": "<root>/files/source.doc",
+              "XMP:TagA": "\nSub AutoOpen()\nShell \"calc.exe\"\nEnd Sub\n"
+            },
+            "output_dir": "<root>/files/source.doc.exif"
+          },
+          "summary": "Exiftool Analysis: TagA=\nSub AutoOpen()\nShell \"calc.exe\"\nEnd Sub\n",
+          "tags": {}
+        },
         "file_type": {
           "details": {
             "is_email_file": false,

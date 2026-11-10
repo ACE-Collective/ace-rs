@@ -63,6 +63,36 @@
           "summary": "Archive Analysis: extracted 5 of 5 files: ([Content_Types].xml, xl/workbook.xml, xl/macrosheets/sheet1.xml, xl/_rels/workbook.xml.rels, _rels/.rels)",
           "tags": {}
         },
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:44:54+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:44:54+00:00",
+              "File:FileModifyDate": "2026:11:06 20:12:38+00:00",
+              "File:FileName": "invoice.xlsm",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 1727,
+              "File:FileType": "XLSM",
+              "File:FileTypeExtension": "XLSM",
+              "File:MIMEType": "application/vnd.ms-excel.sheet.macroEnabled.12",
+              "SourceFile": "<root>/files/invoice.xlsm",
+              "ZIP:ZipBitFlag": 0,
+              "ZIP:ZipCRC": 4246890357,
+              "ZIP:ZipCompressedSize": 253,
+              "ZIP:ZipCompression": 8,
+              "ZIP:ZipFileName": "[Content_Types].xml",
+              "ZIP:ZipModifyDate": "2026:10:29 00:00:00",
+              "ZIP:ZipRequiredVersion": 20,
+              "ZIP:ZipUncompressedSize": 508
+            },
+            "output_dir": "<root>/files/invoice.xlsm.exif"
+          },
+          "summary": "Exiftool Analysis: ZipRequiredVersion=20, ZipBitFlag=0, ZipCompression=8, ZipModifyDate=2026:10:29 00:00:00, ZipCRC=4246890357, ZipCompressedSize=253, ZipUncompressedSize=508, ZipFileName=[Content_Types].xml",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "9625c5da65edb69f10f5210cfe6dde7e",
@@ -547,6 +577,24 @@
           "tags": {}
         }
       },
+      "tags": {}
+    },
+    "file:dc5050daee3b2e34edbe9c4a1e3a0626737d2ece2b440df2529beb30c14dba92": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "invoice.xlsm.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:07d430f63c363448ab0ff2b8cca02da59fcc09d3be421405b513421aa9fe0a44": true
+      },
+      "results": {},
       "tags": {}
     },
     "file:fad6cc33adbceef8f1dfffc77512072d2bd024ae5e88264b4c5b83582de1e3bd": {

@@ -1,0 +1,158 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "ExifAnalysis",
+      "details": {
+        "error": null,
+        "exifdata": {
+          "ExifTool:ExifToolVersion": 13.25,
+          "File:Directory": "<root>/files",
+          "File:FileAccessDate": "2026:11:10 10:54:09+00:00",
+          "File:FileInodeChangeDate": "2026:11:10 10:54:09+00:00",
+          "File:FileModifyDate": "2026:11:06 19:20:07+00:00",
+          "File:FileName": "js_ole_obj.docx",
+          "File:FilePermissions": 100644,
+          "File:FileSize": 61807,
+          "File:FileType": "DOCX",
+          "File:FileTypeExtension": "DOCX",
+          "File:MIMEType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          "SourceFile": "<root>/files/js_ole_obj.docx",
+          "XML:AppVersion": 16.0,
+          "XML:Application": "Microsoft Office Word",
+          "XML:Characters": 330,
+          "XML:CharactersWithSpaces": 373,
+          "XML:Company": "",
+          "XML:CreateDate": "2018:03:29 22:25:00Z",
+          "XML:DocSecurity": 0,
+          "XML:HeadingPairs": [
+            "Название",
+            1,
+            "Title",
+            1
+          ],
+          "XML:HyperlinksChanged": false,
+          "XML:LastModifiedBy": "RePack by Diakov",
+          "XML:Lines": 18,
+          "XML:LinksUpToDate": false,
+          "XML:ModifyDate": "2018:03:30 00:29:00Z",
+          "XML:Pages": 1,
+          "XML:Paragraphs": 13,
+          "XML:RevisionNumber": 3,
+          "XML:ScaleCrop": false,
+          "XML:SharedDoc": false,
+          "XML:Template": "EssentialResume.dotx",
+          "XML:TitlesOfParts": [
+            "",
+            ""
+          ],
+          "XML:TotalEditTime": 13,
+          "XML:Words": 56,
+          "XMP:Creator": "Invoice",
+          "ZIP:ZipBitFlag": 6,
+          "ZIP:ZipCRC": 2572126879,
+          "ZIP:ZipCompressedSize": 505,
+          "ZIP:ZipCompression": 8,
+          "ZIP:ZipFileName": "[Content_Types].xml",
+          "ZIP:ZipModifyDate": "1980:01:01 00:00:00",
+          "ZIP:ZipRequiredVersion": 20,
+          "ZIP:ZipUncompressedSize": 3274
+        },
+        "output_dir": "<root>/files/js_ole_obj.docx.exif"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.exif:ExifAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=metadata.exif"
+          ],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.file_type:<class 'saq.modules.file_analysis.file_type.FileTypeAnalyzer'>",
+            "saq.modules.file_analysis.hash:<class 'saq.modules.file_analysis.hash.FileHashAnalyzer'>"
+          ],
+          "file_path": "js_ole_obj.docx.exif/exiftool.out",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "6955bbde3060e80da7cb2dc86cc8e363ee34003e6eb596fd067027de5da867cc"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 1591,
+          "tags": [],
+          "type": "file",
+          "value": "a06d16792fb3d68df71991976f512dd7003388a74f54acf2b25ac47877d97093",
+          "yara_meta": [
+            "type=metadata.exif"
+          ]
+        }
+      ],
+      "summary": "Exiftool Analysis: ZipRequiredVersion=20, ZipBitFlag=6, ZipCompression=8, ZipModifyDate=1980:01:01 00:00:00, ZipCRC=2572126879, ZipCompressedSize=505, ZipUncompressedSize=3274, ZipFileName=[Content_Types].xml, Template=EssentialResume.dotx, TotalEditTime=13, Pages=1, Words=56, Characters=330, Application=Microsoft Office Word, DocSecurity=0, Lines=18, Paragraphs=13, ScaleCrop=False, HeadingPairs=['Название', 1, 'Title', 1], TitlesOfParts=['', ''] + 11 more",
+      "tags": []
+    },
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": true,
+        "is_office_ext": true,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": true,
+        "mime": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "type": "Microsoft Word 2007+"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: Microsoft Word 2007+ (application/vnd.openxmlformats-officedocument.wordprocessingml.document) (ms office document) (zip archive)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace3/office/js_ole_obj.docx",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "js_ole_obj.docx",
+      "size": 61807,
+      "type": "file",
+      "value": "6955bbde3060e80da7cb2dc86cc8e363ee34003e6eb596fd067027de5da867cc"
+    }
+  },
+  "module": "exif",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "js_ole_obj.docx",
+    "relationships": [],
+    "size": 61807,
+    "tags": [
+      "microsoft_office",
+      "zip"
+    ],
+    "type": "file",
+    "value": "6955bbde3060e80da7cb2dc86cc8e363ee34003e6eb596fd067027de5da867cc",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

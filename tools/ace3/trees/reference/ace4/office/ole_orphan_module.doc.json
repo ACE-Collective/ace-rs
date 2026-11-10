@@ -154,6 +154,24 @@
       },
       "tags": {}
     },
+    "file:58117129cee8d784abfbb77d3dfc4eea5061d1f3dd2d51f456486259058dd946": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "ole_orphan_module.doc.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:6f4208bad09e45239811d43e149d9285c926a064cafa8adb614335157740ae7b": true
+      },
+      "results": {},
+      "tags": {}
+    },
     "file:6f4208bad09e45239811d43e149d9285c926a064cafa8adb614335157740ae7b": {
       "detections": {},
       "directives": {
@@ -167,6 +185,28 @@
       },
       "relationships": {},
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:24:45+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:24:45+00:00",
+              "File:FileModifyDate": "2026:11:07 15:11:53+00:00",
+              "File:FileName": "ole_orphan_module.doc",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 3584,
+              "File:FileType": "DOC",
+              "File:FileTypeExtension": "DOC",
+              "File:MIMEType": "application/msword",
+              "SourceFile": "<root>/files/ole_orphan_module.doc"
+            },
+            "output_dir": "<root>/files/ole_orphan_module.doc.exif"
+          },
+          "summary": "Exiftool Analysis: ",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "acbf820c019b20a131e9daea69413b41",

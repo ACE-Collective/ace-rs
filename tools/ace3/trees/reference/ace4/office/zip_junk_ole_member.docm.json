@@ -105,6 +105,24 @@
       },
       "tags": {}
     },
+    "file:7cbe4aa8c14465e553df8c527a7cb0cf96b43c0a6a8bd2450f74bda5017d4033": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "zip_junk_ole_member.docm.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:d8289946067ea027b9d49334a5fa2a519a5a61e456760954ba8af236f7af1153": true
+      },
+      "results": {},
+      "tags": {}
+    },
     "file:a51b129d94cbc0c953907adaa3aab3e4a44b85515d6374925ae7c934d5006236": {
       "detections": {},
       "directives": {},
@@ -117,6 +135,14 @@
         "extracted_from file:d8289946067ea027b9d49334a5fa2a519a5a61e456760954ba8af236f7af1153": true
       },
       "results": {
+        "exif": {
+          "details": {
+            "error": "Error reading FAT from sector 0",
+            "exifdata": {}
+          },
+          "summary": "Exiftool Analysis: ⚠ Error reading FAT from sector 0",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "bdd8184a44c79d46357f48dce5df9a63",
@@ -185,6 +211,36 @@
             "file_count": 4
           },
           "summary": "Archive Analysis: extracted 4 of 4 files: ([Content_Types].xml, word/document.xml, word/vbaProject.bin, _rels/.rels)",
+          "tags": {}
+        },
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:33:39+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:33:39+00:00",
+              "File:FileModifyDate": "2026:11:07 15:11:53+00:00",
+              "File:FileName": "zip_junk_ole_member.docm",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 914,
+              "File:FileType": "DOCM",
+              "File:FileTypeExtension": "DOCM",
+              "File:MIMEType": "application/vnd.ms-word.document.macroEnabled.12",
+              "SourceFile": "<root>/files/zip_junk_ole_member.docm",
+              "ZIP:ZipBitFlag": 0,
+              "ZIP:ZipCRC": 2615452004,
+              "ZIP:ZipCompressedSize": 206,
+              "ZIP:ZipCompression": 8,
+              "ZIP:ZipFileName": "[Content_Types].xml",
+              "ZIP:ZipModifyDate": "2026:01:01 00:00:00",
+              "ZIP:ZipRequiredVersion": 20,
+              "ZIP:ZipUncompressedSize": 348
+            },
+            "output_dir": "<root>/files/zip_junk_ole_member.docm.exif"
+          },
+          "summary": "Exiftool Analysis: ZipRequiredVersion=20, ZipBitFlag=0, ZipCompression=8, ZipModifyDate=2026:01:01 00:00:00, ZipCRC=2615452004, ZipCompressedSize=206, ZipUncompressedSize=348, ZipFileName=[Content_Types].xml",
           "tags": {}
         },
         "file_hash_analyzer": {

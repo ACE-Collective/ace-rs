@@ -1,0 +1,127 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "ExifAnalysis",
+      "details": {
+        "error": null,
+        "exifdata": {
+          "ExifTool:ExifToolVersion": 13.25,
+          "ExifTool:Warning": "[minor] Decryption is very slow for encryption V5.6 or higher",
+          "File:Directory": "<root>/files",
+          "File:FileAccessDate": "2026:11:10 11:01:57+00:00",
+          "File:FileInodeChangeDate": "2026:11:10 11:01:57+00:00",
+          "File:FileModifyDate": "2026:11:07 04:47:50+00:00",
+          "File:FileName": "encrypted_object_streams.pdf",
+          "File:FilePermissions": 100644,
+          "File:FileSize": 2385,
+          "File:FileType": "PDF",
+          "File:FileTypeExtension": "PDF",
+          "File:MIMEType": "application/pdf",
+          "PDF:Encryption": "Standard V5.6 (256-bit)",
+          "PDF:HasXFA": false,
+          "PDF:Linearized": false,
+          "PDF:PDFVersion": 1.7,
+          "PDF:PageCount": 1,
+          "PDF:UserAccess": 2876,
+          "SourceFile": "<root>/files/encrypted_object_streams.pdf"
+        },
+        "output_dir": "<root>/files/encrypted_object_streams.pdf.exif"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.exif:ExifAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=metadata.exif"
+          ],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.file_type:<class 'saq.modules.file_analysis.file_type.FileTypeAnalyzer'>",
+            "saq.modules.file_analysis.hash:<class 'saq.modules.file_analysis.hash.FileHashAnalyzer'>"
+          ],
+          "file_path": "encrypted_object_streams.pdf.exif/exiftool.out",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "5d1750d419cbc04c7bd652b4e13aa041f0fe64aeadb9f2b53b7c3a47b38a0efe"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 895,
+          "tags": [],
+          "type": "file",
+          "value": "c4710d26b94818fcdb514ebb226541fdd7434563464f974e2addeb9211dd7bbd",
+          "yara_meta": [
+            "type=metadata.exif"
+          ]
+        }
+      ],
+      "summary": "Exiftool Analysis: PDFVersion=1.7, Linearized=False, Encryption=Standard V5.6 (256-bit), UserAccess=2876, HasXFA=False, PageCount=1",
+      "tags": []
+    },
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": true,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "application/pdf",
+        "type": "PDF document, version 1.7"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: PDF document, version 1.7 (application/pdf) (pdf document)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace4/pdf/encrypted_object_streams.pdf",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "encrypted_object_streams.pdf",
+      "size": 2385,
+      "type": "file",
+      "value": "5d1750d419cbc04c7bd652b4e13aa041f0fe64aeadb9f2b53b7c3a47b38a0efe"
+    }
+  },
+  "module": "exif",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=document.pdf",
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "encrypted_object_streams.pdf",
+    "relationships": [],
+    "size": 2385,
+    "tags": [
+      "pdf"
+    ],
+    "type": "file",
+    "value": "5d1750d419cbc04c7bd652b4e13aa041f0fe64aeadb9f2b53b7c3a47b38a0efe",
+    "yara_meta": [
+      "type=document.pdf",
+      "type=email.attachment"
+    ]
+  }
+}

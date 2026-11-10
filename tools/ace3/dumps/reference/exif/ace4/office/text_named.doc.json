@@ -1,0 +1,122 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "ExifAnalysis",
+      "details": {
+        "error": null,
+        "exifdata": {
+          "ExifTool:ExifToolVersion": 13.25,
+          "File:Directory": "<root>/files",
+          "File:FileAccessDate": "2026:11:10 10:57:37+00:00",
+          "File:FileInodeChangeDate": "2026:11:10 10:57:37+00:00",
+          "File:FileModifyDate": "2026:11:06 23:46:42+00:00",
+          "File:FileName": "text_named.doc",
+          "File:FilePermissions": 100644,
+          "File:FileSize": 41,
+          "File:FileType": "TXT",
+          "File:FileTypeExtension": "TXT",
+          "File:LineCount": 1,
+          "File:MIMEEncoding": "us-ascii",
+          "File:MIMEType": "text/plain",
+          "File:Newlines": "\n",
+          "File:WordCount": 8,
+          "SourceFile": "<root>/files/text_named.doc"
+        },
+        "output_dir": "<root>/files/text_named.doc.exif"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.exif:ExifAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=metadata.exif"
+          ],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.file_type:<class 'saq.modules.file_analysis.file_type.FileTypeAnalyzer'>",
+            "saq.modules.file_analysis.hash:<class 'saq.modules.file_analysis.hash.FileHashAnalyzer'>"
+          ],
+          "file_path": "text_named.doc.exif/exiftool.out",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "1dd7ff60f2b7a0bb45549f943e88e160f3e360ffaffc8c1d0d40055483fde696"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 666,
+          "tags": [],
+          "type": "file",
+          "value": "f58d43032ded3369cfc5feded37d62db99944508d3d5f0c034b7d8ea85f6c45e",
+          "yara_meta": [
+            "type=metadata.exif"
+          ]
+        }
+      ],
+      "summary": "Exiftool Analysis: ",
+      "tags": []
+    },
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": true,
+        "is_office_ext": true,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "text/plain",
+        "type": "ASCII text"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: ASCII text (text/plain) (ms office document)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace4/office/text_named.doc",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "text_named.doc",
+      "size": 41,
+      "type": "file",
+      "value": "1dd7ff60f2b7a0bb45549f943e88e160f3e360ffaffc8c1d0d40055483fde696"
+    }
+  },
+  "module": "exif",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "text_named.doc",
+    "relationships": [],
+    "size": 41,
+    "tags": [
+      "microsoft_office"
+    ],
+    "type": "file",
+    "value": "1dd7ff60f2b7a0bb45549f943e88e160f3e360ffaffc8c1d0d40055483fde696",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

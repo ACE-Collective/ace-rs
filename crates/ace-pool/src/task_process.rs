@@ -17,6 +17,8 @@ use tokio_util::sync::CancellationToken;
 use crate::containment::contain;
 use crate::modules::{Modules, Run};
 use crate::supervisor::{EXIT_MODULE, EXIT_SETUP, TaskRequest};
+use crate::tools::SocketRunner;
+use ace_sdk::tools::ToolRunner;
 
 fn setup_failed(why: impl std::fmt::Display) -> ExitCode {
     eprintln!("setup failed: {why}");
@@ -44,6 +46,14 @@ pub fn main(modules: &Modules) -> ExitCode {
         Ok(outputs) => Arc::new(outputs),
         Err(e) => return setup_failed(format!("the output directory: {e}")),
     };
+    // the supervisor's socket for the module's tools, taken before containment
+    let tools: Option<Arc<dyn ToolRunner>> = match &request.tools {
+        Some(scratch) => match SocketRunner::from_fd(scratch.clone()) {
+            Ok(runner) => Some(Arc::new(runner)),
+            Err(e) => return setup_failed(format!("the tool socket: {e}")),
+        },
+        None => None,
+    };
     match contain(&request.profile) {
         Ok(contained) => eprintln!("contained: {contained:?}"),
         Err(e) => return setup_failed(format!("containment: {e}")),
@@ -59,6 +69,7 @@ pub fn main(modules: &Modules) -> ExitCode {
         contained: true,
         // a parser declares no reads
         reader: None,
+        tools,
     });
     let reply = match serde_json::to_vec(&end) {
         Ok(reply) => reply,

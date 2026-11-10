@@ -1,0 +1,127 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "ExifAnalysis",
+      "details": {
+        "error": null,
+        "exifdata": {
+          "ExifTool:ExifToolVersion": 13.25,
+          "File:Directory": "<root>/files",
+          "File:FileAccessDate": "2026:11:10 11:00:08+00:00",
+          "File:FileInodeChangeDate": "2026:11:10 11:00:08+00:00",
+          "File:FileModifyDate": "2026:11:07 15:11:53+00:00",
+          "File:FileName": "zip_no_part_name.docm",
+          "File:FilePermissions": 100644,
+          "File:FileSize": 481,
+          "File:FileType": "ZIP",
+          "File:FileTypeExtension": "ZIP",
+          "File:MIMEType": "application/zip",
+          "SourceFile": "<root>/files/zip_no_part_name.docm",
+          "ZIP:ZipBitFlag": 0,
+          "ZIP:ZipCRC": 1385509727,
+          "ZIP:ZipCompressedSize": 149,
+          "ZIP:ZipCompression": 8,
+          "ZIP:ZipFileName": "_rels/.rels",
+          "ZIP:ZipModifyDate": "2026:01:01 00:00:00",
+          "ZIP:ZipRequiredVersion": 20,
+          "ZIP:ZipUncompressedSize": 263
+        },
+        "output_dir": "<root>/files/zip_no_part_name.docm.exif"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.exif:ExifAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=metadata.exif"
+          ],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.file_type:<class 'saq.modules.file_analysis.file_type.FileTypeAnalyzer'>",
+            "saq.modules.file_analysis.hash:<class 'saq.modules.file_analysis.hash.FileHashAnalyzer'>"
+          ],
+          "file_path": "zip_no_part_name.docm.exif/exiftool.out",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "aa870e220274ab9616f844e51f7097f13098b5958d2549d36cb35e704232ee24"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 848,
+          "tags": [],
+          "type": "file",
+          "value": "137b058bb4c0e27df9fba5a619c386970ae901627c5f9b39dded475269a2f54c",
+          "yara_meta": [
+            "type=metadata.exif"
+          ]
+        }
+      ],
+      "summary": "Exiftool Analysis: ZipRequiredVersion=20, ZipBitFlag=0, ZipCompression=8, ZipModifyDate=2026:01:01 00:00:00, ZipCRC=1385509727, ZipCompressedSize=149, ZipUncompressedSize=263, ZipFileName=_rels/.rels",
+      "tags": []
+    },
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": true,
+        "is_office_ext": true,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": true,
+        "mime": "application/zip",
+        "type": "Zip archive data, made by v2.0, extract using at least v2.0, last modified Jan 01 2026 00:00:00, uncompressed size 263, method=deflate"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: Zip archive data, made by v2.0, extract using at least v2.0, last modified Jan 01 2026 00:00:00, uncompressed size 263, method=deflate (application/zip) (ms office document) (zip archive)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace4/office/zip_no_part_name.docm",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "zip_no_part_name.docm",
+      "size": 481,
+      "type": "file",
+      "value": "aa870e220274ab9616f844e51f7097f13098b5958d2549d36cb35e704232ee24"
+    }
+  },
+  "module": "exif",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "zip_no_part_name.docm",
+    "relationships": [],
+    "size": 481,
+    "tags": [
+      "microsoft_office",
+      "zip"
+    ],
+    "type": "file",
+    "value": "aa870e220274ab9616f844e51f7097f13098b5958d2549d36cb35e704232ee24",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

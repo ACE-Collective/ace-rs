@@ -1,0 +1,81 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "PDFTextAnalysis",
+      "details": {
+        "output_path": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr": "Syntax Error: Page annotations object (page 1) is wrong type (name)\nSyntax Error: Failed to create page (page 1)\n",
+        "stdout": ""
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.pdf:PDFTextAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=document.pdf.text"
+          ],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.archive:<class 'saq.modules.file_analysis.archive.ArchiveAnalyzer'>"
+          ],
+          "file_path": "annots_name.pdf.txt",
+          "redirection": {
+            "type": "file",
+            "value": "cf4a8f14329c4626ad49b1931611a8673379710f5a47efc0b3111668ca5e458c"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "cf4a8f14329c4626ad49b1931611a8673379710f5a47efc0b3111668ca5e458c"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 0,
+          "tags": [],
+          "type": "file",
+          "value": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "yara_meta": [
+            "type=document.pdf.text"
+          ]
+        }
+      ],
+      "summary": "PDF Text Analysis",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace4/pdf/annots_name.pdf",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "annots_name.pdf",
+      "size": 328,
+      "type": "file",
+      "value": "cf4a8f14329c4626ad49b1931611a8673379710f5a47efc0b3111668ca5e458c"
+    }
+  },
+  "module": "pdftotext",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "annots_name.pdf",
+    "relationships": [],
+    "size": 328,
+    "tags": [],
+    "type": "file",
+    "value": "cf4a8f14329c4626ad49b1931611a8673379710f5a47efc0b3111668ca5e458c",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

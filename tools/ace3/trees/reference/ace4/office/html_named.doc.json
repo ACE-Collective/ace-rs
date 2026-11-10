@@ -1,6 +1,24 @@
 {
   "form": 1,
   "observables": {
+    "file:1d45542db9bdfa81edd609bc9110987fe77f0ab310909bdfc8b662b4c1858e11": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "html_named.doc.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:c7adecb278fcff407858c2be8ab67837370598bc1ff322673a29c9fefed472eb": true
+      },
+      "results": {},
+      "tags": {}
+    },
     "file:c7adecb278fcff407858c2be8ab67837370598bc1ff322673a29c9fefed472eb": {
       "detections": {},
       "directives": {},
@@ -13,6 +31,28 @@
       },
       "relationships": {},
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:18:56+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:18:56+00:00",
+              "File:FileModifyDate": "2026:11:06 23:46:42+00:00",
+              "File:FileName": "html_named.doc",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 46,
+              "File:FileType": "HTML",
+              "File:FileTypeExtension": "HTML",
+              "File:MIMEType": "text/html",
+              "SourceFile": "<root>/files/html_named.doc"
+            },
+            "output_dir": "<root>/files/html_named.doc.exif"
+          },
+          "summary": "Exiftool Analysis: ",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "2a6156712bc776b7b32a196bfefeb874",

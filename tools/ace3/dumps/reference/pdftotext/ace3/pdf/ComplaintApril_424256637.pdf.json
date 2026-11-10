@@ -1,0 +1,81 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "PDFTextAnalysis",
+      "details": {
+        "output_path": "9e2edecc508b0c464ba6b6532134756b915fee713bdd0efd18f98ffbb2fb3238",
+        "stderr": "",
+        "stdout": ""
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.pdf:PDFTextAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=document.pdf.text"
+          ],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.archive:<class 'saq.modules.file_analysis.archive.ArchiveAnalyzer'>"
+          ],
+          "file_path": "ComplaintApril_424256637.pdf.txt",
+          "redirection": {
+            "type": "file",
+            "value": "f68ba01d524f39a2832632eeb77772feb30440d2dbbf92fc83de39494cff4076"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "f68ba01d524f39a2832632eeb77772feb30440d2dbbf92fc83de39494cff4076"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 585,
+          "tags": [],
+          "type": "file",
+          "value": "9e2edecc508b0c464ba6b6532134756b915fee713bdd0efd18f98ffbb2fb3238",
+          "yara_meta": [
+            "type=document.pdf.text"
+          ]
+        }
+      ],
+      "summary": "PDF Text Analysis",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace3/pdf/ComplaintApril_424256637.pdf",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "ComplaintApril_424256637.pdf",
+      "size": 92914,
+      "type": "file",
+      "value": "f68ba01d524f39a2832632eeb77772feb30440d2dbbf92fc83de39494cff4076"
+    }
+  },
+  "module": "pdftotext",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "ComplaintApril_424256637.pdf",
+    "relationships": [],
+    "size": 92914,
+    "tags": [],
+    "type": "file",
+    "value": "f68ba01d524f39a2832632eeb77772feb30440d2dbbf92fc83de39494cff4076",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

@@ -46,6 +46,28 @@
       },
       "relationships": {},
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:22:52+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:22:52+00:00",
+              "File:FileModifyDate": "2026:11:07 15:11:53+00:00",
+              "File:FileName": "ole_dir_cycle.doc",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 3584,
+              "File:FileType": "DOC",
+              "File:FileTypeExtension": "DOC",
+              "File:MIMEType": "application/msword",
+              "SourceFile": "<root>/files/ole_dir_cycle.doc"
+            },
+            "output_dir": "<root>/files/ole_dir_cycle.doc.exif"
+          },
+          "summary": "Exiftool Analysis: ",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "eea641a208751d6b52cd7ad4334dc92b",
@@ -287,6 +309,24 @@
           "tags": {}
         }
       },
+      "tags": {}
+    },
+    "file:9419eb7d23d8e2ca6f9184d02fc2fb12f91c400f77b5b1da92ca6fb05a3272d1": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "ole_dir_cycle.doc.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:1e446899e5036a3fb6e2ca40fd4c7d73c2401e293707190ddf009544b92610c9": true
+      },
+      "results": {},
       "tags": {}
     },
     "file:cdeaf2a6c8b044b1779b04b3578860b126c0c55265e040798e3f2898ef413226": {

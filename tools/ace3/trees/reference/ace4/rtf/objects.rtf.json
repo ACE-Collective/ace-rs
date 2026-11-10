@@ -85,6 +85,24 @@
         "extracted_rtf": true
       }
     },
+    "file:032fec5e2319d882f5e6da6ea497a928780a39eefd188b3bbd98fb0372047bd4": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "objects.rtf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:0d652dc8b0cc3ecb9d3111ea218e2f1f78fbe553fac50594a1aafc80e81a000b": true
+      },
+      "results": {},
+      "tags": {}
+    },
     "file:03ba05db6317fd6bd7227583402ca28e41454fb99641e279bf19404d5dd00ba7": {
       "detections": {},
       "directives": {},
@@ -103,6 +121,28 @@
         "binary_file_analyzer": {
           "details": {},
           "summary": null,
+          "tags": {}
+        },
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files/objects.rtf.rtfobj",
+              "File:FileAccessDate": "2026:11:10 11:43:00+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:43:00+00:00",
+              "File:FileModifyDate": "2026:11:10 11:43:00+00:00",
+              "File:FileName": "objects.rtf_inner.rtf",
+              "File:FilePermissions": 100666,
+              "File:FileSize": 284,
+              "File:FileType": "RTF",
+              "File:FileTypeExtension": "RTF",
+              "File:MIMEType": "text/rtf",
+              "SourceFile": "<root>/files/objects.rtf.rtfobj/objects.rtf_inner.rtf"
+            },
+            "output_dir": "<root>/files/objects.rtf.rtfobj/objects.rtf_inner.rtf.exif"
+          },
+          "summary": "Exiftool Analysis: ",
           "tags": {}
         },
         "extracted_rtf_analyzer": {
@@ -273,6 +313,28 @@
         "binary_file_analyzer": {
           "details": {},
           "summary": null,
+          "tags": {}
+        },
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:42:59+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:42:59+00:00",
+              "File:FileModifyDate": "2026:11:07 00:31:29+00:00",
+              "File:FileName": "objects.rtf",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 443613,
+              "File:FileType": "RTF",
+              "File:FileTypeExtension": "RTF",
+              "File:MIMEType": "text/rtf",
+              "SourceFile": "<root>/files/objects.rtf"
+            },
+            "output_dir": "<root>/files/objects.rtf.exif"
+          },
+          "summary": "Exiftool Analysis: ",
           "tags": {}
         },
         "file_hash_analyzer": {
@@ -840,6 +902,24 @@
       "tags": {
         "extracted_rtf": true
       }
+    },
+    "file:2ffcac371e26f3435131b178c06fa0d2ec6cfa2b2c0df67f969a631b34e20e78": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "objects.rtf.rtfobj/objects.rtf_inner.rtf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:03ba05db6317fd6bd7227583402ca28e41454fb99641e279bf19404d5dd00ba7": true
+      },
+      "results": {},
+      "tags": {}
     },
     "file:3014ac6f7fa1988efd048410cbedbc699b789907617e026c5c6555a94211619b": {
       "detections": {},
@@ -2696,6 +2776,24 @@
       },
       "tags": {}
     },
+    "file:99fdce7cf64a41bbeec0fa9b67e4fd1e75e3edbb50843340a0115fa8743a2f52": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "objects.rtf.rtfobj/objects.rtf_object_00000C9B.doc.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:a363fb24edce3162326238d0152b99845d0dd0be53191183aad2ceba2d168a2a": true
+      },
+      "results": {},
+      "tags": {}
+    },
     "file:a0692041ce67161b0c41b424c249653c35048366dab70d5d7e2a4f9429c05b32": {
       "detections": {},
       "directives": {},
@@ -2933,6 +3031,67 @@
         "extracted_from file:0d652dc8b0cc3ecb9d3111ea218e2f1f78fbe553fac50594a1aafc80e81a000b": true
       },
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files/objects.rtf.rtfobj",
+              "File:FileAccessDate": "2026:11:10 11:43:00+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:43:00+00:00",
+              "File:FileModifyDate": "2026:11:10 11:43:00+00:00",
+              "File:FileName": "objects.rtf_object_00000C9B.doc",
+              "File:FilePermissions": 100666,
+              "File:FileSize": 219648,
+              "File:FileType": "DOC",
+              "File:FileTypeExtension": "DOC",
+              "File:MIMEType": "application/msword",
+              "FlashPix:AppVersion": 15.0,
+              "FlashPix:Author": "nigan",
+              "FlashPix:CharCountWithSpaces": 21313,
+              "FlashPix:Characters": 18168,
+              "FlashPix:CodePage": 1252,
+              "FlashPix:Comments": "",
+              "FlashPix:CompObjUserType": "Microsoft Word 97-2003 Document",
+              "FlashPix:CompObjUserTypeLen": 32,
+              "FlashPix:Company": "",
+              "FlashPix:CreateDate": "2018:01:31 15:32:00",
+              "FlashPix:DocFlags": 4616,
+              "FlashPix:HeadingPairs": [
+                "Title",
+                1
+              ],
+              "FlashPix:HyperlinksChanged": 0,
+              "FlashPix:Identification": 42476,
+              "FlashPix:Keywords": "",
+              "FlashPix:LanguageCode": 1033,
+              "FlashPix:LastModifiedBy": "nigan",
+              "FlashPix:LastPrinted": "0000:00:00 00:00:00",
+              "FlashPix:Lines": 151,
+              "FlashPix:LinksUpToDate": 0,
+              "FlashPix:ModifyDate": "2018:01:31 15:42:00",
+              "FlashPix:Pages": 24,
+              "FlashPix:Paragraphs": 42,
+              "FlashPix:RevisionNumber": 3,
+              "FlashPix:ScaleCrop": 0,
+              "FlashPix:Security": 8,
+              "FlashPix:SharedDoc": 0,
+              "FlashPix:Software": "Microsoft Office Word",
+              "FlashPix:Subject": "",
+              "FlashPix:System": 0,
+              "FlashPix:Template": "Normal",
+              "FlashPix:Title": "",
+              "FlashPix:TitleOfParts": "",
+              "FlashPix:TotalEditTime": 3,
+              "FlashPix:Word97": 0,
+              "FlashPix:Words": 3187,
+              "SourceFile": "<root>/files/objects.rtf.rtfobj/objects.rtf_object_00000C9B.doc"
+            },
+            "output_dir": "<root>/files/objects.rtf.rtfobj/objects.rtf_object_00000C9B.doc.exif"
+          },
+          "summary": "Exiftool Analysis: Identification=42476, LanguageCode=1033, DocFlags=4616, System=0, Word97=0, Title=, Subject=, Author=nigan, Keywords=, Comments=, Template=Normal, LastModifiedBy=nigan, Software=Microsoft Office Word, CreateDate=2018:01:31 15:32:00, ModifyDate=2018:01:31 15:42:00, Security=8, CodePage=1252, Company=, CharCountWithSpaces=21313, AppVersion=15.0 + 16 more",
+          "tags": {}
+        },
         "extracted_rtf_analyzer": {
           "details": {},
           "summary": null,

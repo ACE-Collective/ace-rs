@@ -217,6 +217,35 @@
       },
       "relationships": {},
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "ExifTool:Warning": "[minor] Decryption is very slow for encryption V5.6 or higher",
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:36:44+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:36:44+00:00",
+              "File:FileModifyDate": "2026:11:07 04:47:50+00:00",
+              "File:FileName": "encrypted_object_streams.pdf",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 2385,
+              "File:FileType": "PDF",
+              "File:FileTypeExtension": "PDF",
+              "File:MIMEType": "application/pdf",
+              "PDF:Encryption": "Standard V5.6 (256-bit)",
+              "PDF:HasXFA": false,
+              "PDF:Linearized": false,
+              "PDF:PDFVersion": 1.7,
+              "PDF:PageCount": 1,
+              "PDF:UserAccess": 2876,
+              "SourceFile": "<root>/files/encrypted_object_streams.pdf"
+            },
+            "output_dir": "<root>/files/encrypted_object_streams.pdf.exif"
+          },
+          "summary": "Exiftool Analysis: PDFVersion=1.7, Linearized=False, Encryption=Standard V5.6 (256-bit), UserAccess=2876, HasXFA=False, PageCount=1",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "8e1d4c4d1463d31bed335eef87659435",
@@ -268,6 +297,23 @@
             }
           },
           "summary": "PDF Analysis: encrypted (aesv3 256-bit, R6, P -1028), opens with an empty user password",
+          "tags": {}
+        },
+        "pdftotext": {
+          "details": {
+            "output_path": "ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977",
+            "stderr": "Syntax Error (254): Warning: name token is longer than what the specification says it can be\nSyntax Error (254): Warning: name token is longer than what the specification says it can be\nSyntax Error (254): Warning: name token is longer than what the specification says it can be\nSyntax Error (254): Warning: name token is longer than what the specification says it can be\nSyntax Error (254): Warning: name token is longer than what the specification says it can be\nSyntax Error: Unknown font tag 'F1'\nSyntax Error: No font in show\nSyntax Warning: Direct object in rootFields\nSyntax Warning: Direct object in rootFields\n",
+            "stdout": ""
+          },
+          "summary": "PDF Text Analysis",
+          "tags": {}
+        },
+        "qrcode": {
+          "details": {
+            "extracted_text": null,
+            "inverted": false
+          },
+          "summary": null,
           "tags": {}
         }
       },
@@ -511,7 +557,63 @@
       },
       "tags": {}
     },
-    "file:9dd172ee7737ee4f5c995738734cb99f9bedb572016a46c952a7019285f75465": {
+    "file:a62e2fd14228e52df1262da33959d78073459ba41543704cb44bb5c0a12867a5": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "archive": true
+      },
+      "paths": {
+        "encrypted_object_streams.pdf.gs.pdf.txt": {
+          "type=document.pdf.text": true
+        }
+      },
+      "redirection": "file:ded4ebc57775c9db6aa1e592f3bba061e9c423d12a3e0cc6b33298e558efa819",
+      "relationships": {
+        "extracted_from file:ded4ebc57775c9db6aa1e592f3bba061e9c423d12a3e0cc6b33298e558efa819": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:be2460f60f4b8b6fd2497723158dd98f9ffc746957960b067914ee444a5b8504": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "encrypted_object_streams.pdf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:5d1750d419cbc04c7bd652b4e13aa041f0fe64aeadb9f2b53b7c3a47b38a0efe": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "file:ded4ebc57775c9db6aa1e592f3bba061e9c423d12a3e0cc6b33298e558efa819": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -549,6 +651,23 @@
           "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
           "tags": {}
         },
+        "pdftotext": {
+          "details": {
+            "output_path": "a62e2fd14228e52df1262da33959d78073459ba41543704cb44bb5c0a12867a5",
+            "stderr": "",
+            "stdout": ""
+          },
+          "summary": "PDF Text Analysis",
+          "tags": {}
+        },
+        "qrcode": {
+          "details": {
+            "extracted_text": null,
+            "inverted": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [],
@@ -561,6 +680,44 @@
       "tags": {
         "pdf": true
       }
+    },
+    "file:ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "archive": true
+      },
+      "paths": {
+        "encrypted_object_streams.pdf.txt": {
+          "type=document.pdf.text": true
+        }
+      },
+      "redirection": "file:5d1750d419cbc04c7bd652b4e13aa041f0fe64aeadb9f2b53b7c3a47b38a0efe",
+      "relationships": {
+        "extracted_from file:5d1750d419cbc04c7bd652b4e13aa041f0fe64aeadb9f2b53b7c3a47b38a0efe": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "very short file (no magic)"
+          },
+          "summary": "File Type Analysis: very short file (no magic) (application/octet-stream)",
+          "tags": {}
+        }
+      },
+      "tags": {}
     },
     "fqdn:example.com": {
       "detections": {},

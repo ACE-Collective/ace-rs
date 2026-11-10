@@ -449,7 +449,6 @@
         "ole_deep_directory.doc.officeparser/stream_496_0.dat": {},
         "ole_deep_directory.doc.officeparser/stream_497_0.dat": {},
         "ole_deep_directory.doc.officeparser/stream_498_0.dat": {},
-        "ole_deep_directory.doc.officeparser/stream_499_0.dat": {},
         "ole_deep_directory.doc.officeparser/stream_49_0.dat": {},
         "ole_deep_directory.doc.officeparser/stream_4_0.dat": {},
         "ole_deep_directory.doc.officeparser/stream_50_0.dat": {},
@@ -550,6 +549,24 @@
       },
       "tags": {}
     },
+    "file:981814189450c8f0cd3adfb9cb11cad8da8012ca2dec5d9babae57e385e23ed1": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "ole_deep_directory.doc.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:d398d2b59b94270cf3fbd62f954f627f5d9c54e0d09dbfbb76369f4e29e1f377": true
+      },
+      "results": {},
+      "tags": {}
+    },
     "file:d398d2b59b94270cf3fbd62f954f627f5d9c54e0d09dbfbb76369f4e29e1f377": {
       "detections": {},
       "directives": {
@@ -563,6 +580,28 @@
       },
       "relationships": {},
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:20:08+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:20:08+00:00",
+              "File:FileModifyDate": "2026:11:07 15:11:53+00:00",
+              "File:FileName": "ole_deep_directory.doc",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 238592,
+              "File:FileType": "DOC",
+              "File:FileTypeExtension": "DOC",
+              "File:MIMEType": "application/msword",
+              "SourceFile": "<root>/files/ole_deep_directory.doc"
+            },
+            "output_dir": "<root>/files/ole_deep_directory.doc.exif"
+          },
+          "summary": "Exiftool Analysis: ",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "c692bbd175834566d1043f17ba9278fa",
@@ -1091,11 +1130,10 @@
               "stream_495_0.dat",
               "stream_496_0.dat",
               "stream_497_0.dat",
-              "stream_498_0.dat",
-              "stream_499_0.dat"
+              "stream_498_0.dat"
             ]
           },
-          "summary": "OfficeParser3 Analysis: extracted 499 files",
+          "summary": "OfficeParser3 Analysis: extracted 498 files",
           "tags": {}
         },
         "olevba_v1_2": {

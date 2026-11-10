@@ -65,6 +65,29 @@
       },
       "relationships": {},
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:28:42+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:28:42+00:00",
+              "File:FileModifyDate": "2026:11:07 15:11:53+00:00",
+              "File:FileName": "vba_powerpoint_raw.ppt",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 26624,
+              "File:FileType": "PPT",
+              "File:FileTypeExtension": "PPT",
+              "File:MIMEType": "application/vnd.ms-powerpoint",
+              "FlashPix:CurrentUser": "a",
+              "SourceFile": "<root>/files/vba_powerpoint_raw.ppt"
+            },
+            "output_dir": "<root>/files/vba_powerpoint_raw.ppt.exif"
+          },
+          "summary": "Exiftool Analysis: CurrentUser=a",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "e761062bf54950dd680637a379462a32",
@@ -177,6 +200,24 @@
       "tags": {
         "macro": true
       }
+    },
+    "file:768bbff1c6a34c5013acc4374a66b73ecb6287d16589e072655cda40a722f461": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "vba_powerpoint_raw.ppt.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:2f45d1313c776ad2a0d0c3c75b0f549a3cf2775725f0906b34ebc09d61e48d13": true
+      },
+      "results": {},
+      "tags": {}
     },
     "file:9f2c0f2548ffc2a5660aa3b8280ad4b889e6024f2e8ce867c88fee7a74f86860": {
       "detections": {},

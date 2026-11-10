@@ -247,6 +247,7 @@ pub async fn run_in_process(
         outputs.clone(),
         client.reads(),
     );
+    let tools = modules.local_tools(&task.module)?;
     let joined = if modules.parser(&task.module).is_some() {
         tokio::task::spawn_blocking(move || match owned_modules.parser(&owned_task.module) {
             Some(parser) => span.in_scope(|| {
@@ -259,6 +260,7 @@ pub async fn run_in_process(
                     cancel,
                     contained: false,
                     reader: None,
+                    tools,
                 })
             }),
             None => unknown_module(&owned_task),
@@ -279,6 +281,7 @@ pub async fn run_in_process(
                                 cancel,
                                 contained: false,
                                 reader: Some(Arc::new(reads)),
+                                tools: None,
                             })
                             .await
                     }

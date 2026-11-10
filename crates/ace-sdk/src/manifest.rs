@@ -112,6 +112,8 @@ pub struct Manifest {
     pub writes: &'static [Write],
     /// The module's tasks end with a result when they find something (`Module::STORES_RESULTS`).
     pub stores_results: bool,
+    /// The programs the module runs (`Module::TOOLS`).
+    pub tools: &'static [&'static str],
     settings_schema: fn() -> Schema,
     check_settings: fn(Option<&Value>) -> Result<(), SettingsError>,
 }
@@ -133,6 +135,10 @@ impl Manifest {
     }
 
     pub const fn lookup<M: Lookup>() -> Self {
+        assert!(
+            M::TOOLS.is_empty(),
+            "a lookup can't declare tools (Module::TOOLS)"
+        );
         Manifest::of::<M>(
             ModuleKind::Lookup,
             Sandbox::Network {
@@ -172,6 +178,7 @@ impl Manifest {
             reads: M::READS,
             writes: M::WRITES,
             stores_results: M::STORES_RESULTS,
+            tools: M::TOOLS,
             settings_schema: settings_schema::<M::Settings>,
             check_settings: check_settings::<M::Settings>,
         }
@@ -234,6 +241,7 @@ impl Manifest {
             "secrets": self.secrets,
             "reads": self.reads.iter().map(|r| r.name).collect::<Vec<_>>(),
             "writes": self.writes.iter().map(|w| w.name).collect::<Vec<_>>(),
+            "tools": self.tools,
             "required_directives": self.required_directives,
             "settings_schema": self.settings_schema(),
         })

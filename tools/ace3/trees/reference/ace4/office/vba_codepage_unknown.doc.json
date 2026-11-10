@@ -170,6 +170,28 @@
       },
       "relationships": {},
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:27:42+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:27:42+00:00",
+              "File:FileModifyDate": "2026:11:07 15:11:53+00:00",
+              "File:FileName": "vba_codepage_unknown.doc",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 3584,
+              "File:FileType": "DOC",
+              "File:FileTypeExtension": "DOC",
+              "File:MIMEType": "application/msword",
+              "SourceFile": "<root>/files/vba_codepage_unknown.doc"
+            },
+            "output_dir": "<root>/files/vba_codepage_unknown.doc.exif"
+          },
+          "summary": "Exiftool Analysis: ",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "2125b1de879952a7c806c867d82fef67",
@@ -283,6 +305,24 @@
           "tags": {}
         }
       },
+      "tags": {}
+    },
+    "file:71dd888e916a53e3fa20516c78c20fb66402bd49b04c06c574a45708de356b1d": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "vba_codepage_unknown.doc.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:215d0ac0c460504e67fc536f5965260addfddda8cc8f92d19914bd859d05088a": true
+      },
+      "results": {},
       "tags": {}
     },
     "file:a2982fd01877e34c3240428597204753c26397cb08e18522ec8783b5ef17d5bb": {

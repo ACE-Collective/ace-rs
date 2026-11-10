@@ -54,6 +54,24 @@
       },
       "tags": {}
     },
+    "file:2e8d556db751a2a16443fa301b5026230be2b511105200b003a6f6bd2fc64d9f": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "zip_no_part_name.docm.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:aa870e220274ab9616f844e51f7097f13098b5958d2549d36cb35e704232ee24": true
+      },
+      "results": {},
+      "tags": {}
+    },
     "file:aa870e220274ab9616f844e51f7097f13098b5958d2549d36cb35e704232ee24": {
       "detections": {},
       "directives": {
@@ -77,6 +95,36 @@
             "file_count": 2
           },
           "summary": "Archive Analysis: extracted 2 of 2 files: ([Content_Types].xml, _rels/.rels)",
+          "tags": {}
+        },
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:33:42+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:33:42+00:00",
+              "File:FileModifyDate": "2026:11:07 15:11:53+00:00",
+              "File:FileName": "zip_no_part_name.docm",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 481,
+              "File:FileType": "ZIP",
+              "File:FileTypeExtension": "ZIP",
+              "File:MIMEType": "application/zip",
+              "SourceFile": "<root>/files/zip_no_part_name.docm",
+              "ZIP:ZipBitFlag": 0,
+              "ZIP:ZipCRC": 1385509727,
+              "ZIP:ZipCompressedSize": 149,
+              "ZIP:ZipCompression": 8,
+              "ZIP:ZipFileName": "_rels/.rels",
+              "ZIP:ZipModifyDate": "2026:01:01 00:00:00",
+              "ZIP:ZipRequiredVersion": 20,
+              "ZIP:ZipUncompressedSize": 263
+            },
+            "output_dir": "<root>/files/zip_no_part_name.docm.exif"
+          },
+          "summary": "Exiftool Analysis: ZipRequiredVersion=20, ZipBitFlag=0, ZipCompression=8, ZipModifyDate=2026:01:01 00:00:00, ZipCRC=1385509727, ZipCompressedSize=149, ZipUncompressedSize=263, ZipFileName=_rels/.rels",
           "tags": {}
         },
         "file_hash_analyzer": {

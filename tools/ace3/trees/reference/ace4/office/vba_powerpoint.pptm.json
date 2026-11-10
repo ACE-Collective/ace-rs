@@ -122,6 +122,28 @@
         "extracted_from file:51033c0fde249aea99d9ed95904de1c3558d84a3b865e93f7e21e6cde33a2887": true
       },
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files/vba_powerpoint.pptm.extracted/ppt",
+              "File:FileAccessDate": "2026:11:10 11:28:40+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:28:39+00:00",
+              "File:FileModifyDate": "2026:01:01 00:00:00+00:00",
+              "File:FileName": "vbaProject.bin",
+              "File:FilePermissions": 100664,
+              "File:FileSize": 23552,
+              "File:FileType": "FPX",
+              "File:FileTypeExtension": "FPX",
+              "File:MIMEType": "image/vnd.fpx",
+              "SourceFile": "<root>/files/vba_powerpoint.pptm.extracted/ppt/vbaProject.bin"
+            },
+            "output_dir": "<root>/files/vba_powerpoint.pptm.extracted/ppt/vbaProject.bin.exif"
+          },
+          "summary": "Exiftool Analysis: ",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "b78e53325f45a16ab719c392444f2983",
@@ -243,6 +265,24 @@
       },
       "tags": {}
     },
+    "file:250ed4a962741123d59c5a04ce651b12b1280e3fe5862c26dcb2e9a9bd9fb034": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "vba_powerpoint.pptm.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:51033c0fde249aea99d9ed95904de1c3558d84a3b865e93f7e21e6cde33a2887": true
+      },
+      "results": {},
+      "tags": {}
+    },
     "file:29114363f749a0226b6988dda3ca2492a954117ab6b5f382706c20300dabc079": {
       "detections": {},
       "directives": {
@@ -321,6 +361,36 @@
             "file_count": 4
           },
           "summary": "Archive Analysis: extracted 4 of 4 files: ([Content_Types].xml, ppt/presentation.xml, ppt/vbaProject.bin, _rels/.rels)",
+          "tags": {}
+        },
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:28:38+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:28:38+00:00",
+              "File:FileModifyDate": "2026:11:07 15:11:53+00:00",
+              "File:FileName": "vba_powerpoint.pptm",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 11485,
+              "File:FileType": "PPTM",
+              "File:FileTypeExtension": "PPTM",
+              "File:MIMEType": "application/vnd.ms-powerpoint.presentation.macroEnabled.12",
+              "SourceFile": "<root>/files/vba_powerpoint.pptm",
+              "ZIP:ZipBitFlag": 0,
+              "ZIP:ZipCRC": 780177294,
+              "ZIP:ZipCompressedSize": 208,
+              "ZIP:ZipCompression": 8,
+              "ZIP:ZipFileName": "[Content_Types].xml",
+              "ZIP:ZipModifyDate": "2026:01:01 00:00:00",
+              "ZIP:ZipRequiredVersion": 20,
+              "ZIP:ZipUncompressedSize": 361
+            },
+            "output_dir": "<root>/files/vba_powerpoint.pptm.exif"
+          },
+          "summary": "Exiftool Analysis: ZipRequiredVersion=20, ZipBitFlag=0, ZipCompression=8, ZipModifyDate=2026:01:01 00:00:00, ZipCRC=780177294, ZipCompressedSize=208, ZipUncompressedSize=361, ZipFileName=[Content_Types].xml",
           "tags": {}
         },
         "file_hash_analyzer": {
@@ -428,6 +498,24 @@
       "tags": {
         "macro": true
       }
+    },
+    "file:6394efc718e17a2d242dcc549a1cb3fd64df184823a5dc4868b542e8187c5eb6": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "vba_powerpoint.pptm.extracted/ppt/vbaProject.bin.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:170b804293599496c29d816cfe408adc5a99e767eb930b0c0cf9e7db62436abe": true
+      },
+      "results": {},
+      "tags": {}
     },
     "file:6abcffd4b8ab01c91122f2a8e6dffad54560556425cd0591005816b5b292d431": {
       "detections": {},

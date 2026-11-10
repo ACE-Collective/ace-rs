@@ -106,6 +106,73 @@
       },
       "relationships": {},
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:19:16+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:19:16+00:00",
+              "File:FileModifyDate": "2026:11:07 10:46:11+00:00",
+              "File:FileName": "msoffcrypto_plain.ppt",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 43008,
+              "File:FileType": "PPT",
+              "File:FileTypeExtension": "PPT",
+              "File:MIMEType": "application/vnd.ms-powerpoint",
+              "FlashPix:AppVersion": 16.0,
+              "FlashPix:Author": "Microsoft Office User",
+              "FlashPix:Bytes": 38706,
+              "FlashPix:Category": "",
+              "FlashPix:CodePage": 10000,
+              "FlashPix:Comments": "",
+              "FlashPix:Company": "",
+              "FlashPix:CreateDate": "2019:03:20 13:43:09",
+              "FlashPix:CurrentUser": "Microsoft Office User\b",
+              "FlashPix:HeadingPairs": [
+                "Fonts Used",
+                3,
+                "Theme",
+                1,
+                "Slide Titles",
+                1
+              ],
+              "FlashPix:HiddenSlides": 0,
+              "FlashPix:HyperlinkBase": "",
+              "FlashPix:HyperlinksChanged": 0,
+              "FlashPix:Keywords": "",
+              "FlashPix:LastModifiedBy": "Microsoft Office User",
+              "FlashPix:LinksUpToDate": 0,
+              "FlashPix:MMClips": 0,
+              "FlashPix:Manager": "",
+              "FlashPix:ModifyDate": "2019:03:20 13:44:24",
+              "FlashPix:Notes": 0,
+              "FlashPix:Paragraphs": 1,
+              "FlashPix:PresentationTarget": "Widescreen",
+              "FlashPix:RevisionNumber": 2,
+              "FlashPix:ScaleCrop": 0,
+              "FlashPix:SharedDoc": 0,
+              "FlashPix:Slides": 1,
+              "FlashPix:Software": "Microsoft Macintosh PowerPoint",
+              "FlashPix:Subject": "",
+              "FlashPix:Title": "Lorem ipsum",
+              "FlashPix:TitleOfParts": [
+                "Calibri",
+                "Arial",
+                "Calibri Light",
+                "Office Theme",
+                "Lorem ipsum"
+              ],
+              "FlashPix:TotalEditTime": 75.211,
+              "FlashPix:Words": 2,
+              "SourceFile": "<root>/files/msoffcrypto_plain.ppt"
+            },
+            "output_dir": "<root>/files/msoffcrypto_plain.ppt.exif"
+          },
+          "summary": "Exiftool Analysis: Title=Lorem ipsum, Subject=, Author=Microsoft Office User, Keywords=, Comments=, LastModifiedBy=Microsoft Office User, RevisionNumber=2, Software=Microsoft Macintosh PowerPoint, TotalEditTime=75.211, CreateDate=2019:03:20 13:43:09, ModifyDate=2019:03:20 13:44:24, Words=2, Category=, PresentationTarget=Widescreen, Manager=, Company=, Bytes=38706, Paragraphs=1, Slides=1, Notes=0 + 12 more",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "7e1d21aa05bcf4305aff35cb934fb9cf",
@@ -423,6 +490,24 @@
           "tags": {}
         }
       },
+      "tags": {}
+    },
+    "file:e5fa36e55204e6ab5084e82e206d79d50d8d04a9728aebdaa1a8224acc035a7a": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "msoffcrypto_plain.ppt.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:18555251635eaab62a1fce9886026156d375615bd96f5639df7dc005e2488347": true
+      },
+      "results": {},
       "tags": {}
     },
     "md5:7e1d21aa05bcf4305aff35cb934fb9cf": {

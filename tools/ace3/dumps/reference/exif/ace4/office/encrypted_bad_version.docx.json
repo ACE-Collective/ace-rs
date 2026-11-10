@@ -1,0 +1,119 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "ExifAnalysis",
+      "details": {
+        "error": null,
+        "exifdata": {
+          "ExifTool:ExifToolVersion": 13.25,
+          "File:Directory": "<root>/files",
+          "File:FileAccessDate": "2026:11:10 10:55:31+00:00",
+          "File:FileInodeChangeDate": "2026:11:10 10:55:31+00:00",
+          "File:FileModifyDate": "2026:11:07 10:46:15+00:00",
+          "File:FileName": "encrypted_bad_version.docx",
+          "File:FilePermissions": 100644,
+          "File:FileSize": 8192,
+          "File:FileType": "DOCX",
+          "File:FileTypeExtension": "DOCX",
+          "File:MIMEType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          "SourceFile": "<root>/files/encrypted_bad_version.docx"
+        },
+        "output_dir": "<root>/files/encrypted_bad_version.docx.exif"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.exif:ExifAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=metadata.exif"
+          ],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.file_type:<class 'saq.modules.file_analysis.file_type.FileTypeAnalyzer'>",
+            "saq.modules.file_analysis.hash:<class 'saq.modules.file_analysis.hash.FileHashAnalyzer'>"
+          ],
+          "file_path": "encrypted_bad_version.docx.exif/exiftool.out",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "dc27508854fe8e33a7319b53b6d01a2c4f3fd7131a28660ab298f085b99b6faf"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 677,
+          "tags": [],
+          "type": "file",
+          "value": "9b572c778b831c14d0f75862d5945d0c5367da30dbed1234560835b31ff59966",
+          "yara_meta": [
+            "type=metadata.exif"
+          ]
+        }
+      ],
+      "summary": "Exiftool Analysis: ",
+      "tags": []
+    },
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": true,
+        "is_office_ext": true,
+        "is_ole_file": true,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "application/encrypted",
+        "type": "CDFV2 Encrypted"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: CDFV2 Encrypted (application/encrypted) (ms office document) (ole compound file)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace4/office/encrypted_bad_version.docx",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "encrypted_bad_version.docx",
+      "size": 8192,
+      "type": "file",
+      "value": "dc27508854fe8e33a7319b53b6d01a2c4f3fd7131a28660ab298f085b99b6faf"
+    }
+  },
+  "module": "exif",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "encrypted_bad_version.docx",
+    "relationships": [],
+    "size": 8192,
+    "tags": [
+      "microsoft_office",
+      "ole"
+    ],
+    "type": "file",
+    "value": "dc27508854fe8e33a7319b53b6d01a2c4f3fd7131a28660ab298f085b99b6faf",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

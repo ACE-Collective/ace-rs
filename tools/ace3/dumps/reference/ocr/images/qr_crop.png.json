@@ -1,0 +1,47 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "OCRAnalysis",
+      "details": {
+        "error": null,
+        "ocr": false
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.ocr:OCRAnalysis",
+      "observables": [],
+      "summary": null,
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [
+      "ocr"
+    ],
+    "label": "fixtures/images/qr_crop.png",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "qr_crop.png",
+      "size": 2650,
+      "type": "file",
+      "value": "3c9e6f392ccf18798ffd51775dfae0222de8f978d8b0d6ad7e4b63eb5a94cebf"
+    }
+  },
+  "module": "ocr",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "ocr"
+    ],
+    "excluded_analysis": [],
+    "file_path": "qr_crop.png",
+    "relationships": [],
+    "size": 2650,
+    "tags": [],
+    "type": "file",
+    "value": "3c9e6f392ccf18798ffd51775dfae0222de8f978d8b0d6ad7e4b63eb5a94cebf",
+    "yara_meta": []
+  }
+}

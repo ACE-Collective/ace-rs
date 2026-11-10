@@ -1,0 +1,127 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "ExifAnalysis",
+      "details": {
+        "error": null,
+        "exifdata": {
+          "ExifTool:ExifToolVersion": 13.25,
+          "File:Directory": "<root>/files",
+          "File:FileAccessDate": "2026:11:10 10:59:53+00:00",
+          "File:FileInodeChangeDate": "2026:11:10 10:59:53+00:00",
+          "File:FileModifyDate": "2026:11:07 14:35:12+00:00",
+          "File:FileName": "xlm_unknown_cell.xlsm",
+          "File:FilePermissions": 100644,
+          "File:FileSize": 2565,
+          "File:FileType": "XLSM",
+          "File:FileTypeExtension": "XLSM",
+          "File:MIMEType": "application/vnd.ms-excel.sheet.macroEnabled.12",
+          "SourceFile": "<root>/files/xlm_unknown_cell.xlsm",
+          "ZIP:ZipBitFlag": 0,
+          "ZIP:ZipCRC": 4246890357,
+          "ZIP:ZipCompressedSize": 508,
+          "ZIP:ZipCompression": 0,
+          "ZIP:ZipFileName": "[Content_Types].xml",
+          "ZIP:ZipModifyDate": "2020:01:01 00:00:00",
+          "ZIP:ZipRequiredVersion": 20,
+          "ZIP:ZipUncompressedSize": 508
+        },
+        "output_dir": "<root>/files/xlm_unknown_cell.xlsm.exif"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.exif:ExifAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=metadata.exif"
+          ],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.file_type:<class 'saq.modules.file_analysis.file_type.FileTypeAnalyzer'>",
+            "saq.modules.file_analysis.hash:<class 'saq.modules.file_analysis.hash.FileHashAnalyzer'>"
+          ],
+          "file_path": "xlm_unknown_cell.xlsm.exif/exiftool.out",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "e0bdf818f85c6a6d29a8f403e70ea6c248170b78fcfa008d5162979f179d04a4"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 890,
+          "tags": [],
+          "type": "file",
+          "value": "982b07dbd057f43873a7dbd47ddc9d39268008f930ea6a8afbe2df7da9a3503c",
+          "yara_meta": [
+            "type=metadata.exif"
+          ]
+        }
+      ],
+      "summary": "Exiftool Analysis: ZipRequiredVersion=20, ZipBitFlag=0, ZipCompression=0, ZipModifyDate=2020:01:01 00:00:00, ZipCRC=4246890357, ZipCompressedSize=508, ZipUncompressedSize=508, ZipFileName=[Content_Types].xml",
+      "tags": []
+    },
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": true,
+        "is_office_ext": true,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": true,
+        "mime": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "type": "Microsoft Excel 2007+"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: Microsoft Excel 2007+ (application/vnd.openxmlformats-officedocument.spreadsheetml.sheet) (ms office document) (zip archive)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace4/office/xlm_unknown_cell.xlsm",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "xlm_unknown_cell.xlsm",
+      "size": 2565,
+      "type": "file",
+      "value": "e0bdf818f85c6a6d29a8f403e70ea6c248170b78fcfa008d5162979f179d04a4"
+    }
+  },
+  "module": "exif",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "xlm_unknown_cell.xlsm",
+    "relationships": [],
+    "size": 2565,
+    "tags": [
+      "microsoft_office",
+      "zip"
+    ],
+    "type": "file",
+    "value": "e0bdf818f85c6a6d29a8f403e70ea6c248170b78fcfa008d5162979f179d04a4",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

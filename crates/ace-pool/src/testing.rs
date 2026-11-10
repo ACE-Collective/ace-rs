@@ -221,7 +221,37 @@ pub fn modules(settings: &Value) -> Result<Modules, SetupError> {
             block(WritesFiles::NAME),
             &secrets,
         )?)
-        .with_lookup(Entry::<Hung>::lookup(block(Hung::NAME), &secrets)?))
+        .with_lookup(Entry::<Hung>::lookup(block(Hung::NAME), &secrets)?)
+        .with_parser(Entry::<RunsTool>::parser(block(RunsTool::NAME), &secrets)?)
+        .with_parser(Entry::<ace_mod_sandbox::QrCodeAnalyzer>::parser(
+            block("qrcode"),
+            &secrets,
+        )?)
+        .with_parser(Entry::<ace_mod_sandbox::OcrAnalyzer>::parser(
+            block("ocr"),
+            &secrets,
+        )?)
+        .with_parser(Entry::<ace_mod_sandbox::PdfTextAnalyzer>::parser(
+            block("pdftotext"),
+            &secrets,
+        )?)
+        .with_parser(Entry::<ace_mod_sandbox::ExifAnalyzer>::parser(
+            block("exif"),
+            &secrets,
+        )?))
+}
+
+/// A tool named `name` that runs `program`, with no data of its own, for `test-pool --tool`.
+pub fn test_tool(name: String, program: String) -> ace_sdk::tools::ToolSpec {
+    ace_sdk::tools::ToolSpec {
+        name: Box::leak(name.into_boxed_str()),
+        program: Box::leak(program.into_boxed_str()),
+        interpreter: None,
+        reads: &[],
+        env: &[],
+        request_env: &[],
+        memory_bytes: 1024 * 1024 * 1024,
+    }
 }
 
 /// The manifests of the test modules, for a core's catalog.
@@ -236,6 +266,7 @@ pub fn test_manifests() -> Vec<ace_sdk::Manifest> {
         ace_sdk::Manifest::parser::<Stuck>(),
         ace_sdk::Manifest::parser::<WritesFiles>(),
         ace_sdk::Manifest::lookup::<Hung>(),
+        ace_sdk::Manifest::parser::<RunsTool>(),
     ]
 }
 
@@ -266,6 +297,7 @@ note_type!(
     "test_writes_files"
 );
 note_type!(HungNote, "test_hung_note", "test_hung");
+note_type!(RunsToolNote, "test_runs_tool_note", "test_runs_tool");
 note_type!(ConnectNote, "test_connect_note", "test_connect");
 note_type!(
     CapabilitiesNote,
@@ -671,4 +703,57 @@ fn test_command(argv: &[String]) -> std::io::Result<u8> {
             2
         }
     })
+}
+
+/// A parser that runs the tool `test-tool` (`test-pool --tool test-tool=PATH`) with the arguments its
+/// input file holds, one a line, `{input}` standing for the input's path, keeping a file named `out`,
+/// and says how the run ended: `stopped: REASON`, `exited CODE`, `signal N`, or `error: WHY` for a
+/// run that didn't happen, with the start of its stdout and what it kept.
+pub struct RunsTool;
+
+impl Module for RunsTool {
+    const NAME: &'static str = "test_runs_tool";
+    const INPUTS: &'static [ObservableKind] = &[ObservableKind::File];
+    const TOOLS: &'static [&'static str] = &["test-tool"];
+    const RESOURCES: ace_sdk::Resources = ace_sdk::Resources {
+        timeout: Duration::from_secs(30),
+        memory_mb: 1024,
+        cpu_seconds: 60,
+    };
+    type Output = RunsToolNote;
+    type Settings = ();
+
+    fn init(_: &()) -> Result<Self, ModuleError> {
+        Ok(RunsTool)
+    }
+}
+
+impl ace_sdk::Parser for RunsTool {
+    fn analyze(&self, ctx: &TaskContext<()>) -> Result<Outcome<RunsToolNote>, ModuleError> {
+        use ace_sdk::tools::{ToolRun, ToolStatus};
+        let file = ctx.input_file()?;
+        let input = file.local_path.display().to_string();
+        let text = std::fs::read_to_string(&file.local_path)?;
+        let args: Vec<String> = text.lines().map(|l| l.replace("{input}", &input)).collect();
+        let run = ToolRun::new("test-tool", args)
+            .read(&file.local_path)
+            .keep("out")
+            .timeout(Duration::from_secs(5));
+        let note = match ctx.run_tool(run) {
+            Ok(output) => {
+                let status = match output.status {
+                    ToolStatus::Stopped(stop) => format!("stopped: {stop:?}"),
+                    ToolStatus::Exited(code) => format!("exited {code}"),
+                    ToolStatus::Signaled(signal) => format!("signal {signal}"),
+                };
+                let stdout: String = output.stdout_text().trim().chars().take(100).collect();
+                format!(
+                    "{status}; stdout {stdout:?}; kept {:?}",
+                    output.outputs.keys().collect::<Vec<_>>()
+                )
+            }
+            Err(e) => format!("error: {e}"),
+        };
+        Ok(Outcome::Done(ResultEnvelope::new(RunsToolNote { note })))
+    }
 }

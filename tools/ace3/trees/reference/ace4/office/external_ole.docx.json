@@ -33,6 +33,24 @@
       },
       "tags": {}
     },
+    "file:33daa021a33078be6f2fb344a4f9f9f4d1943c770bd118abfb61c860f6dc0c6c": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "external_ole.docx.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:c64b0c7a028512ace7fd98bb12c5fe0812f04e100b09577edce2f05ad864aa36": true
+      },
+      "results": {},
+      "tags": {}
+    },
     "file:6424ee6d774e7d59de0baae81b959e11f44c3a2bb190565836790d877e8f0f39": {
       "detections": {},
       "directives": {},
@@ -265,6 +283,36 @@
             "file_count": 4
           },
           "summary": "Archive Analysis: extracted 4 of 4 files: ([Content_Types].xml, word/document.xml, word/_rels/document.xml.rels, _rels/.rels)",
+          "tags": {}
+        },
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:18:44+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:18:44+00:00",
+              "File:FileModifyDate": "2026:11:09 13:16:33+00:00",
+              "File:FileName": "external_ole.docx",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 1273,
+              "File:FileType": "DOCX",
+              "File:FileTypeExtension": "DOCX",
+              "File:MIMEType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+              "SourceFile": "<root>/files/external_ole.docx",
+              "ZIP:ZipBitFlag": 0,
+              "ZIP:ZipCRC": 3812569706,
+              "ZIP:ZipCompressedSize": 210,
+              "ZIP:ZipCompression": 8,
+              "ZIP:ZipFileName": "[Content_Types].xml",
+              "ZIP:ZipModifyDate": "2026:01:01 00:00:00",
+              "ZIP:ZipRequiredVersion": 20,
+              "ZIP:ZipUncompressedSize": 395
+            },
+            "output_dir": "<root>/files/external_ole.docx.exif"
+          },
+          "summary": "Exiftool Analysis: ZipRequiredVersion=20, ZipBitFlag=0, ZipCompression=8, ZipModifyDate=2026:01:01 00:00:00, ZipCRC=3812569706, ZipCompressedSize=210, ZipUncompressedSize=395, ZipFileName=[Content_Types].xml",
           "tags": {}
         },
         "file_hash_analyzer": {

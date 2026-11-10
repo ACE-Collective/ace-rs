@@ -1,0 +1,30 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [],
+  "input": {
+    "directives": [],
+    "label": "fixtures/ssdeep/too_small at threshold 1",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "too_small",
+      "size": 1000,
+      "type": "file",
+      "value": "463061dfaf31a10fb8cc2ca8a8fb3edb779a6ceec963efa7acf871c09ccf0132"
+    }
+  },
+  "module": "ssdeep",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "too_small",
+    "relationships": [],
+    "size": 1000,
+    "tags": [],
+    "type": "file",
+    "value": "463061dfaf31a10fb8cc2ca8a8fb3edb779a6ceec963efa7acf871c09ccf0132",
+    "yara_meta": []
+  }
+}

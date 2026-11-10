@@ -201,6 +201,24 @@
       },
       "tags": {}
     },
+    "file:9a44337dfada8850ae73d8847a0c0a47daca35ca0b2bbd27c6cd2c51e34981c1": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "encrypted_cryptoapi.xls.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:bfaf3e11ba55bd415768ec8ae682c2f4635d9a794a3d852ba182ff4e0275633c": true
+      },
+      "results": {},
+      "tags": {}
+    },
     "file:bfaf3e11ba55bd415768ec8ae682c2f4635d9a794a3d852ba182ff4e0275633c": {
       "detections": {},
       "directives": {},
@@ -212,6 +230,51 @@
       },
       "relationships": {},
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:17:26+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:17:26+00:00",
+              "File:FileModifyDate": "2026:11:07 10:46:15+00:00",
+              "File:FileName": "encrypted_cryptoapi.xls",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 69125,
+              "File:FileType": "XLS",
+              "File:FileTypeExtension": "XLS",
+              "File:MIMEType": "application/vnd.ms-excel",
+              "FlashPix:AppVersion": 16.0,
+              "FlashPix:Author": "",
+              "FlashPix:CodePage": 1252,
+              "FlashPix:Company": "",
+              "FlashPix:CreateDate": "2015:06:05 18:17:20",
+              "FlashPix:HeadingPairs": [
+                "Worksheets",
+                1,
+                "Excel 4.0 Macros",
+                1
+              ],
+              "FlashPix:HyperlinksChanged": 0,
+              "FlashPix:LastModifiedBy": "",
+              "FlashPix:LinksUpToDate": 0,
+              "FlashPix:ModifyDate": "2020:09:07 15:00:28",
+              "FlashPix:ScaleCrop": 0,
+              "FlashPix:Security": 1,
+              "FlashPix:SharedDoc": 0,
+              "FlashPix:Software": "Microsoft Excel",
+              "FlashPix:TitleOfParts": [
+                "Sheet1",
+                "lh"
+              ],
+              "SourceFile": "<root>/files/encrypted_cryptoapi.xls"
+            },
+            "output_dir": "<root>/files/encrypted_cryptoapi.xls.exif"
+          },
+          "summary": "Exiftool Analysis: Author=, LastModifiedBy=, Software=Microsoft Excel, CreateDate=2015:06:05 18:17:20, ModifyDate=2020:09:07 15:00:28, Security=1, CodePage=1252, Company=, AppVersion=16.0, ScaleCrop=0, LinksUpToDate=0, SharedDoc=0, HyperlinksChanged=0, TitleOfParts=['Sheet1', 'lh'], HeadingPairs=['Worksheets', 1, 'Excel 4.0 Macros', 1]",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "748f7903eb51f2194368c5ba5c59681a",

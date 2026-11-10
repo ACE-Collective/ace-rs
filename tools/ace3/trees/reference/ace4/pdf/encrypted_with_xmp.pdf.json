@@ -33,6 +33,74 @@
       },
       "tags": {}
     },
+    "file:047f9b3b1285f12e41b11b50b10efd35f678ec5aacb32de76647eb047eee9298": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {
+        "pdf_analyzer": true
+      },
+      "paths": {
+        "encrypted_with_xmp.pdf.gs.pdf": {
+          "type=document.pdf": true,
+          "type=document.pdf.rendered": true
+        }
+      },
+      "redirection": "file:47cbea31a7e3df897df099a04f44e0f49503b5800168f745f0d31a86c84bbec3",
+      "relationships": {
+        "extracted_from file:47cbea31a7e3df897df099a04f44e0f49503b5800168f745f0d31a86c84bbec3": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": true,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/pdf",
+            "type": "PDF document, version 1.7, 1 page(s)"
+          },
+          "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
+          "tags": {}
+        },
+        "pdftotext": {
+          "details": {
+            "output_path": "a62e2fd14228e52df1262da33959d78073459ba41543704cb44bb5c0a12867a5",
+            "stderr": "",
+            "stdout": ""
+          },
+          "summary": "PDF Text Analysis",
+          "tags": {}
+        },
+        "qrcode": {
+          "details": {
+            "extracted_text": null,
+            "inverted": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "pdf": true
+      }
+    },
     "file:0b420e15805f62e150c409fc16c012d93a7a6077b46e2acb89f6a67448f42925": {
       "detections": {},
       "directives": {
@@ -217,6 +285,36 @@
       },
       "relationships": {},
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "ExifTool:Warning": "[minor] Decryption is very slow for encryption V5.6 or higher",
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:37:36+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:37:36+00:00",
+              "File:FileModifyDate": "2026:11:07 04:47:50+00:00",
+              "File:FileName": "encrypted_with_xmp.pdf",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 2916,
+              "File:FileType": "PDF",
+              "File:FileTypeExtension": "PDF",
+              "File:MIMEType": "application/pdf",
+              "PDF:Encryption": "Standard V5.6 (256-bit)",
+              "PDF:HasXFA": false,
+              "PDF:Linearized": false,
+              "PDF:PDFVersion": 1.7,
+              "PDF:PageCount": 1,
+              "PDF:UserAccess": 2876,
+              "SourceFile": "<root>/files/encrypted_with_xmp.pdf",
+              "XMP:Producer": "make-pdf"
+            },
+            "output_dir": "<root>/files/encrypted_with_xmp.pdf.exif"
+          },
+          "summary": "Exiftool Analysis: PDFVersion=1.7, Linearized=False, Encryption=Standard V5.6 (256-bit), UserAccess=2876, HasXFA=False, PageCount=1, Producer=make-pdf",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "0214ce5b8b1b180f515c50bcaa4e46aa",
@@ -268,6 +366,23 @@
             }
           },
           "summary": "PDF Analysis: encrypted (aesv3 256-bit, R6, P -1028), opens with an empty user password",
+          "tags": {}
+        },
+        "pdftotext": {
+          "details": {
+            "output_path": "ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977",
+            "stderr": "Syntax Error (254): Warning: name token is longer than what the specification says it can be\nSyntax Error (254): Warning: name token is longer than what the specification says it can be\nSyntax Error (254): Warning: name token is longer than what the specification says it can be\nSyntax Error (254): Warning: name token is longer than what the specification says it can be\nSyntax Error (254): Warning: name token is longer than what the specification says it can be\nSyntax Error: Unknown font tag 'F1'\nSyntax Error: No font in show\nSyntax Warning: Direct object in rootFields\nSyntax Warning: Direct object in rootFields\n",
+            "stdout": ""
+          },
+          "summary": "PDF Text Analysis",
+          "tags": {}
+        },
+        "qrcode": {
+          "details": {
+            "extracted_text": null,
+            "inverted": false
+          },
+          "summary": null,
           "tags": {}
         }
       },
@@ -455,6 +570,62 @@
         "pdf": true
       }
     },
+    "file:9c68f5d0cf89a8de2a58c72260009df653975f065ac56e1f8d0a62371271ecea": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "encrypted_with_xmp.pdf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:47cbea31a7e3df897df099a04f44e0f49503b5800168f745f0d31a86c84bbec3": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "file:a62e2fd14228e52df1262da33959d78073459ba41543704cb44bb5c0a12867a5": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "archive": true
+      },
+      "paths": {
+        "encrypted_with_xmp.pdf.gs.pdf.txt": {
+          "type=document.pdf.text": true
+        }
+      },
+      "redirection": "file:047f9b3b1285f12e41b11b50b10efd35f678ec5aacb32de76647eb047eee9298",
+      "relationships": {
+        "extracted_from file:047f9b3b1285f12e41b11b50b10efd35f678ec5aacb32de76647eb047eee9298": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:eb13cd1e3fc3c3e32c1e778173e7a5fdd29547c4f55aaed78c6a51edad3907f4": {
       "detections": {},
       "directives": {
@@ -511,18 +682,15 @@
       },
       "tags": {}
     },
-    "file:edb403c0a795c64d3ad74aa02ceca4606ef08f5aa6ad8f9303086363de5b6301": {
+    "file:ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977": {
       "detections": {},
-      "directives": {
-        "extract_urls": true
-      },
+      "directives": {},
       "excluded_analysis": {
-        "pdf_analyzer": true
+        "archive": true
       },
       "paths": {
-        "encrypted_with_xmp.pdf.gs.pdf": {
-          "type=document.pdf": true,
-          "type=document.pdf.rendered": true
+        "encrypted_with_xmp.pdf.txt": {
+          "type=document.pdf.text": true
         }
       },
       "redirection": "file:47cbea31a7e3df897df099a04f44e0f49503b5800168f745f0d31a86c84bbec3",
@@ -538,29 +706,19 @@
             "is_office_document": false,
             "is_office_ext": false,
             "is_ole_file": false,
-            "is_pdf_file": true,
+            "is_pdf_file": false,
             "is_pe_file": false,
             "is_rtf_file": false,
             "is_x509": false,
             "is_zip_file": false,
-            "mime": "application/pdf",
-            "type": "PDF document, version 1.7, 1 page(s)"
+            "mime": "application/octet-stream",
+            "type": "very short file (no magic)"
           },
-          "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
-          "tags": {}
-        },
-        "url_extraction": {
-          "details": {
-            "urls": [],
-            "urls_grouped_by_domain": {}
-          },
-          "summary": null,
+          "summary": "File Type Analysis: very short file (no magic) (application/octet-stream)",
           "tags": {}
         }
       },
-      "tags": {
-        "pdf": true
-      }
+      "tags": {}
     },
     "fqdn:example.com": {
       "detections": {},

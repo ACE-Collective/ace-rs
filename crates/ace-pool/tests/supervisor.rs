@@ -187,6 +187,8 @@ async fn the_pdf_module_reads_an_aes_pdf_in_a_contained_task_process() {
             "doc.pdf.decrypted.pdf",
             "doc.pdf.decrypted.pdf.pdfparser",
             "doc.pdf.field_payload_decoded.bin",
+            // Ghostscript's rewrite, from the sandbox runner, as the task's user
+            "doc.pdf.gs.pdf",
             "doc.pdf.js_script.js",
             "doc.pdf.js_stream.js",
             "doc.pdf.pdfparser",

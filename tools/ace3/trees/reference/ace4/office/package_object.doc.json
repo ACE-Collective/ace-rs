@@ -604,6 +604,24 @@
         "macro": true
       }
     },
+    "file:e623090a5878cc1ba3f745ebb76f6f0b4fe2abc9b966f0e0179f01b4fea8850e": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "package_object.doc.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:eecb200c85b4d29b859fe3d4415c4c410e5d498d141c371928b797ab04309476": true
+      },
+      "results": {},
+      "tags": {}
+    },
     "file:eecb200c85b4d29b859fe3d4415c4c410e5d498d141c371928b797ab04309476": {
       "detections": {},
       "directives": {
@@ -617,6 +635,36 @@
       },
       "relationships": {},
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "ExifTool:Warning": "Error extracting value for ModifyDate",
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:27:10+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:27:10+00:00",
+              "File:FileModifyDate": "2026:11:09 13:16:33+00:00",
+              "File:FileName": "package_object.doc",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 5147,
+              "File:FileType": "DOC",
+              "File:FileTypeExtension": "DOC",
+              "File:MIMEType": "application/msword",
+              "FlashPix:CompObjUserType": "",
+              "FlashPix:CompObjUserTypeLen": 0,
+              "FlashPix:DocFlags": 0,
+              "FlashPix:Identification": 42476,
+              "FlashPix:LanguageCode": 0,
+              "FlashPix:System": 0,
+              "FlashPix:Word97": 0,
+              "SourceFile": "<root>/files/package_object.doc"
+            },
+            "output_dir": "<root>/files/package_object.doc.exif"
+          },
+          "summary": "Exiftool Analysis: CompObjUserTypeLen=0, CompObjUserType=, Identification=42476, LanguageCode=0, DocFlags=0, System=0, Word97=0",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "e90745552a0fb8af0574be82d5ec09f4",

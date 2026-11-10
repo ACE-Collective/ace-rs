@@ -696,6 +696,24 @@
         "macro": true
       }
     },
+    "file:5b4c01e0356af2794d7286765e70b61037c2fd5c0384a8258a6d0a70adf3894b": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "Past Due Invoices.doc.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f": true
+      },
+      "results": {},
+      "tags": {}
+    },
     "file:644077429eb7ab18f50b5ba5e57d566d20c9368cb95df9223f5c71facc8e75a1": {
       "detections": {},
       "directives": {
@@ -1058,6 +1076,66 @@
       },
       "relationships": {},
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:09:40+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:09:40+00:00",
+              "File:FileModifyDate": "2026:11:06 19:20:07+00:00",
+              "File:FileName": "Past Due Invoices.doc",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 143360,
+              "File:FileType": "DOC",
+              "File:FileTypeExtension": "DOC",
+              "File:MIMEType": "application/msword",
+              "FlashPix:AppVersion": 16.0,
+              "FlashPix:Author": "WNWrpQiR",
+              "FlashPix:CharCountWithSpaces": 1,
+              "FlashPix:Characters": 1,
+              "FlashPix:CodePage": 1252,
+              "FlashPix:CompObjUserType": "Microsoft Word 97-2003 Document",
+              "FlashPix:CompObjUserTypeLen": 32,
+              "FlashPix:Company": "",
+              "FlashPix:CreateDate": "2018:02:15 15:36:00",
+              "FlashPix:DocFlags": 4616,
+              "FlashPix:HeadingPairs": [
+                "Title",
+                1
+              ],
+              "FlashPix:HyperlinksChanged": 0,
+              "FlashPix:Identification": 42476,
+              "FlashPix:Keywords": "",
+              "FlashPix:LanguageCode": 1033,
+              "FlashPix:LastModifiedBy": "",
+              "FlashPix:LastPrinted": "0000:00:00 00:00:00",
+              "FlashPix:Lines": 1,
+              "FlashPix:LinksUpToDate": 0,
+              "FlashPix:ModifyDate": "2018:02:15 15:36:00",
+              "FlashPix:Pages": 1,
+              "FlashPix:Paragraphs": 1,
+              "FlashPix:RevisionNumber": 1,
+              "FlashPix:ScaleCrop": 0,
+              "FlashPix:Security": 0,
+              "FlashPix:SharedDoc": 0,
+              "FlashPix:Software": "Microsoft Office Word",
+              "FlashPix:Subject": "",
+              "FlashPix:System": 0,
+              "FlashPix:Template": "Normal.dotm",
+              "FlashPix:Title": "",
+              "FlashPix:TitleOfParts": "",
+              "FlashPix:TotalEditTime": 0,
+              "FlashPix:Word97": 0,
+              "FlashPix:Words": 0,
+              "SourceFile": "<root>/files/Past Due Invoices.doc"
+            },
+            "output_dir": "<root>/files/Past Due Invoices.doc.exif"
+          },
+          "summary": "Exiftool Analysis: Identification=42476, LanguageCode=1033, DocFlags=4616, System=0, Word97=0, Title=, Subject=, Author=WNWrpQiR, Keywords=, Template=Normal.dotm, LastModifiedBy=, Software=Microsoft Office Word, CreateDate=2018:02:15 15:36:00, ModifyDate=2018:02:15 15:36:00, Security=0, CodePage=1252, Company=, CharCountWithSpaces=1, AppVersion=16.0, ScaleCrop=0 + 15 more",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "f453c7f705ff80f70832a00b958ecb2b",

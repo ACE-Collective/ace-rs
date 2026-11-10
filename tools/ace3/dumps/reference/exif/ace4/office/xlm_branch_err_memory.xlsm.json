@@ -1,0 +1,127 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "ExifAnalysis",
+      "details": {
+        "error": null,
+        "exifdata": {
+          "ExifTool:ExifToolVersion": 13.25,
+          "File:Directory": "<root>/files",
+          "File:FileAccessDate": "2026:11:10 10:58:52+00:00",
+          "File:FileInodeChangeDate": "2026:11:10 10:58:52+00:00",
+          "File:FileModifyDate": "2026:11:07 14:35:12+00:00",
+          "File:FileName": "xlm_branch_err_memory.xlsm",
+          "File:FilePermissions": 100644,
+          "File:FileSize": 2425,
+          "File:FileType": "XLSM",
+          "File:FileTypeExtension": "XLSM",
+          "File:MIMEType": "application/vnd.ms-excel.sheet.macroEnabled.12",
+          "SourceFile": "<root>/files/xlm_branch_err_memory.xlsm",
+          "ZIP:ZipBitFlag": 0,
+          "ZIP:ZipCRC": 4246890357,
+          "ZIP:ZipCompressedSize": 508,
+          "ZIP:ZipCompression": 0,
+          "ZIP:ZipFileName": "[Content_Types].xml",
+          "ZIP:ZipModifyDate": "2020:01:01 00:00:00",
+          "ZIP:ZipRequiredVersion": 20,
+          "ZIP:ZipUncompressedSize": 508
+        },
+        "output_dir": "<root>/files/xlm_branch_err_memory.xlsm.exif"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.exif:ExifAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=metadata.exif"
+          ],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.file_type:<class 'saq.modules.file_analysis.file_type.FileTypeAnalyzer'>",
+            "saq.modules.file_analysis.hash:<class 'saq.modules.file_analysis.hash.FileHashAnalyzer'>"
+          ],
+          "file_path": "xlm_branch_err_memory.xlsm.exif/exiftool.out",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "920f4926ede7a064982e6b0d162c3fd0352e941c908411705c6a225b8ffafed6"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 910,
+          "tags": [],
+          "type": "file",
+          "value": "ee45e284321d90e3574c0ad258579733db07ef897dd099752c23fb8ba1a4d1e0",
+          "yara_meta": [
+            "type=metadata.exif"
+          ]
+        }
+      ],
+      "summary": "Exiftool Analysis: ZipRequiredVersion=20, ZipBitFlag=0, ZipCompression=0, ZipModifyDate=2020:01:01 00:00:00, ZipCRC=4246890357, ZipCompressedSize=508, ZipUncompressedSize=508, ZipFileName=[Content_Types].xml",
+      "tags": []
+    },
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": true,
+        "is_office_ext": true,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": true,
+        "mime": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "type": "Microsoft Excel 2007+"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: Microsoft Excel 2007+ (application/vnd.openxmlformats-officedocument.spreadsheetml.sheet) (ms office document) (zip archive)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace4/office/xlm_branch_err_memory.xlsm",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "xlm_branch_err_memory.xlsm",
+      "size": 2425,
+      "type": "file",
+      "value": "920f4926ede7a064982e6b0d162c3fd0352e941c908411705c6a225b8ffafed6"
+    }
+  },
+  "module": "exif",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "xlm_branch_err_memory.xlsm",
+    "relationships": [],
+    "size": 2425,
+    "tags": [
+      "microsoft_office",
+      "zip"
+    ],
+    "type": "file",
+    "value": "920f4926ede7a064982e6b0d162c3fd0352e941c908411705c6a225b8ffafed6",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

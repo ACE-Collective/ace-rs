@@ -213,6 +213,24 @@
       },
       "tags": {}
     },
+    "file:2d882b7d87561c9eb4b7e7c8b6e8ed32c1787d7f8abfe6882c6c86ce8af25b14": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "xlm_xlsb.xlsb.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:a1021c3991487674597bfd9db6b9859d36e3b713ba220f381994caac53c12360": true
+      },
+      "results": {},
+      "tags": {}
+    },
     "file:2f1c94184d061ecb6f5048513fc045c42942d45db77fcdeb427fcc0ce0c33fbb": {
       "detections": {},
       "directives": {
@@ -374,6 +392,36 @@
             "file_count": 5
           },
           "summary": "Archive Analysis: extracted 5 of 5 files: ([Content_Types].xml, xl/workbook.bin, xl/macrosheets/sheet1.bin, xl/_rels/workbook.bin.rels, _rels/.rels)",
+          "tags": {}
+        },
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:33:18+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:33:18+00:00",
+              "File:FileModifyDate": "2026:11:07 14:35:12+00:00",
+              "File:FileName": "xlm_xlsb.xlsb",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 2435,
+              "File:FileType": "XLSB",
+              "File:FileTypeExtension": "XLSB",
+              "File:MIMEType": "application/vnd.ms-excel.sheet.binary.macroEnabled.12",
+              "SourceFile": "<root>/files/xlm_xlsb.xlsb",
+              "ZIP:ZipBitFlag": 0,
+              "ZIP:ZipCRC": 2175702475,
+              "ZIP:ZipCompressedSize": 587,
+              "ZIP:ZipCompression": 0,
+              "ZIP:ZipFileName": "[Content_Types].xml",
+              "ZIP:ZipModifyDate": "2020:01:01 00:00:00",
+              "ZIP:ZipRequiredVersion": 20,
+              "ZIP:ZipUncompressedSize": 587
+            },
+            "output_dir": "<root>/files/xlm_xlsb.xlsb.exif"
+          },
+          "summary": "Exiftool Analysis: ZipRequiredVersion=20, ZipBitFlag=0, ZipCompression=0, ZipModifyDate=2020:01:01 00:00:00, ZipCRC=2175702475, ZipCompressedSize=587, ZipUncompressedSize=587, ZipFileName=[Content_Types].xml",
           "tags": {}
         },
         "file_hash_analyzer": {

@@ -1,0 +1,124 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "ExifAnalysis",
+      "details": {
+        "error": null,
+        "exifdata": {
+          "ExifTool:ExifToolVersion": 13.25,
+          "File:Directory": "<root>/files",
+          "File:FileAccessDate": "2026:11:10 11:02:36+00:00",
+          "File:FileInodeChangeDate": "2026:11:10 11:02:36+00:00",
+          "File:FileModifyDate": "2026:11:07 04:47:50+00:00",
+          "File:FileName": "fields_integer.pdf",
+          "File:FilePermissions": 100644,
+          "File:FileSize": 339,
+          "File:FileType": "PDF",
+          "File:FileTypeExtension": "PDF",
+          "File:MIMEType": "application/pdf",
+          "PDF:HasXFA": false,
+          "PDF:Linearized": false,
+          "PDF:PDFVersion": 1.7,
+          "PDF:PageCount": 1,
+          "SourceFile": "<root>/files/fields_integer.pdf"
+        },
+        "output_dir": "<root>/files/fields_integer.pdf.exif"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.exif:ExifAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=metadata.exif"
+          ],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.file_type:<class 'saq.modules.file_analysis.file_type.FileTypeAnalyzer'>",
+            "saq.modules.file_analysis.hash:<class 'saq.modules.file_analysis.hash.FileHashAnalyzer'>"
+          ],
+          "file_path": "fields_integer.pdf.exif/exiftool.out",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "cd6bd2e1f6ece4278636ee6193576480db2bff0a374054dc36cb65e9244d238d"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 673,
+          "tags": [],
+          "type": "file",
+          "value": "871c57081bd086d9b75164cffcb07ebabd78feb6a5515b048c2abc01f748f87d",
+          "yara_meta": [
+            "type=metadata.exif"
+          ]
+        }
+      ],
+      "summary": "Exiftool Analysis: PDFVersion=1.7, Linearized=False, PageCount=1, HasXFA=False",
+      "tags": []
+    },
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": true,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "application/pdf",
+        "type": "PDF document, version 1.7, 1 page(s)"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace4/pdf/fields_integer.pdf",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "fields_integer.pdf",
+      "size": 339,
+      "type": "file",
+      "value": "cd6bd2e1f6ece4278636ee6193576480db2bff0a374054dc36cb65e9244d238d"
+    }
+  },
+  "module": "exif",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=document.pdf",
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "fields_integer.pdf",
+    "relationships": [],
+    "size": 339,
+    "tags": [
+      "pdf"
+    ],
+    "type": "file",
+    "value": "cd6bd2e1f6ece4278636ee6193576480db2bff0a374054dc36cb65e9244d238d",
+    "yara_meta": [
+      "type=document.pdf",
+      "type=email.attachment"
+    ]
+  }
+}

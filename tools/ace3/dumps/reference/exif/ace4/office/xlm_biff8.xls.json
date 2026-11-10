@@ -1,0 +1,119 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "ExifAnalysis",
+      "details": {
+        "error": null,
+        "exifdata": {
+          "ExifTool:ExifToolVersion": 13.25,
+          "File:Directory": "<root>/files",
+          "File:FileAccessDate": "2026:11:10 10:58:27+00:00",
+          "File:FileInodeChangeDate": "2026:11:10 10:58:27+00:00",
+          "File:FileModifyDate": "2026:11:07 14:35:12+00:00",
+          "File:FileName": "xlm_biff8.xls",
+          "File:FilePermissions": 100644,
+          "File:FileSize": 5632,
+          "File:FileType": "XLS",
+          "File:FileTypeExtension": "XLS",
+          "File:MIMEType": "application/vnd.ms-excel",
+          "SourceFile": "<root>/files/xlm_biff8.xls"
+        },
+        "output_dir": "<root>/files/xlm_biff8.xls.exif"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.exif:ExifAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=metadata.exif"
+          ],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.file_type:<class 'saq.modules.file_analysis.file_type.FileTypeAnalyzer'>",
+            "saq.modules.file_analysis.hash:<class 'saq.modules.file_analysis.hash.FileHashAnalyzer'>"
+          ],
+          "file_path": "xlm_biff8.xls.exif/exiftool.out",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "6f6e50a6b29203c9e893782e92c340196c6447cc06051f5d3bfc8686236f4e70"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 576,
+          "tags": [],
+          "type": "file",
+          "value": "846e82d9856be910d29741d7ba0bf3dfc21ee73b1cb8300e2bebe0726202985c",
+          "yara_meta": [
+            "type=metadata.exif"
+          ]
+        }
+      ],
+      "summary": "Exiftool Analysis: ",
+      "tags": []
+    },
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": true,
+        "is_office_ext": true,
+        "is_ole_file": true,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "application/vnd.ms-excel",
+        "type": "CDFV2 Microsoft Excel"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: CDFV2 Microsoft Excel (application/vnd.ms-excel) (ms office document) (ole compound file)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace4/office/xlm_biff8.xls",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "xlm_biff8.xls",
+      "size": 5632,
+      "type": "file",
+      "value": "6f6e50a6b29203c9e893782e92c340196c6447cc06051f5d3bfc8686236f4e70"
+    }
+  },
+  "module": "exif",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "xlm_biff8.xls",
+    "relationships": [],
+    "size": 5632,
+    "tags": [
+      "microsoft_office",
+      "ole"
+    ],
+    "type": "file",
+    "value": "6f6e50a6b29203c9e893782e92c340196c6447cc06051f5d3bfc8686236f4e70",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

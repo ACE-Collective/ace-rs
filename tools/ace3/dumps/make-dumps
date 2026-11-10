@@ -1309,6 +1309,108 @@ def write_pivot_config():
     yield
 
 
+def exif_runs():
+    """Every Office document and PDF in the sample set, with file_type, whose result ace3's
+    is_office_file reads; and the images, which it skips."""
+    runs = []
+    for prefix in ("office", "pdf"):
+        runs += file_runs("exif", ["file_type"], prefix)
+    return runs + image_runs("exif", ["file_type"], [], "")
+
+
+def image_runs(module, enable, args, suffix):
+    """The batch 10 image fixtures (tools/samples/make-image-files), each as itself."""
+    names = sorted(p.name for p in (HERE / "fixtures" / "images").iterdir() if p.name != ".DS_Store")
+    return [
+        {
+            "module": module,
+            "enable": enable,
+            "name": f"images/{name}{suffix}",
+            "args": ["--file", f"{REMOTE}/fixtures/images/{name}", "--alert-path", name, *args],
+            "label": f"fixtures/images/{name}",
+        }
+        for name in names
+    ]
+
+
+# The qrcode module's URL filter: ace3 reads it from <analyst_data_dir>/qrcode.filter.
+QRCODE_FILTER = f"""\
+global:
+  analyst_data_dir: {REMOTE}/fixtures/images_analyst
+"""
+
+
+def write_qrcode_filter():
+    docker("exec", CONTAINER, "mkdir", "-p", f"{REMOTE}/fixtures/images_analyst")
+    put(f"{REMOTE}/fixtures/images_analyst/qrcode.filter", b"emmetcrcs\\.org\n")
+    put(f"{REMOTE}/fixtures/images_analyst/analyst.yaml", QRCODE_FILTER.encode())
+    return contextlib.nullcontext()
+
+
+def qrcode_runs():
+    """Every PDF in the sample set, the image fixtures, and two with a filter that drops the URL."""
+    runs = file_runs("qrcode", [], "pdf") + image_runs("qrcode", [], [], "")
+    for name in ("qr_crop.png", "qr_inverted.png"):
+        runs.append({
+            "module": "qrcode",
+            "enable": [],
+            "name": f"images/{name}.filtered",
+            "args": ["--file", f"{REMOTE}/fixtures/images/{name}", "--alert-path", name,
+                     "--config", f"{REMOTE}/fixtures/images_analyst/analyst.yaml"],
+            "label": f"fixtures/images/{name} with a qrcode.filter matching its URL",
+            "service": write_qrcode_filter,
+        })
+    return runs
+
+
+def ocr_runs():
+    """The image fixtures with the ocr directive, which the module requires, and one without it."""
+    return image_runs("ocr", [], ["--directive", "ocr"], "") + [{
+        "module": "ocr",
+        "enable": [],
+        "name": "images/text_plain.png.no_directive",
+        "args": ["--file", f"{REMOTE}/fixtures/images/text_plain.png", "--alert-path", "text_plain.png"],
+        "label": "fixtures/images/text_plain.png without the ocr directive",
+    }]
+
+
+SSDEEP_CONFIG = f"""\
+analysis_module_ssdeep:
+  ssdeep_hashes: {REMOTE}/fixtures/ssdeep/known_hashes
+"""
+
+
+def write_ssdeep_config():
+    put(f"{REMOTE}/fixtures/ssdeep.yaml", SSDEEP_CONFIG.encode())
+    return contextlib.nullcontext()
+
+
+def ssdeep_runs():
+    """Each ssdeep fixture against known_hashes, at ace3's threshold and at 1, which keeps every
+    match ssdeep prints."""
+    names = sorted(p.name for p in (HERE / "fixtures" / "ssdeep").iterdir()
+                   if p.name not in (".DS_Store", "known_hashes"))
+    runs = []
+    for threshold in (None, 1):
+        config = SSDEEP_CONFIG + (f"  ssdeep_match_threshold: {threshold}\n" if threshold else "")
+        path = f"{REMOTE}/fixtures/ssdeep{'_' + str(threshold) if threshold else ''}.yaml"
+
+        def service(path=path, config=config):
+            put(path, config.encode())
+            return contextlib.nullcontext()
+
+        for name in names:
+            runs.append({
+                "module": "ssdeep",
+                "enable": [],
+                "name": f"{name}{'.threshold_' + str(threshold) if threshold else ''}",
+                "args": ["--file", f"{REMOTE}/fixtures/ssdeep/{name}", "--alert-path", name, "--config", path],
+                "label": f"fixtures/ssdeep/{name}" + (f" at threshold {threshold}" if threshold else ""),
+                "service": service,
+            })
+    return runs
+
+
 RUNS = {
     "email": lambda: file_runs("email_analyzer", ["file_type"], "email"),
     "archive": lambda: file_runs("archive", ["file_type"], "archive/"),
@@ -1339,6 +1441,11 @@ RUNS = {
     "encrypted": encrypted_runs,
     "emailtree": lambda: email_tree_runs(),
     "email_archive": email_archive_runs,
+    "pdftotext": lambda: file_runs("pdftotext", [], "pdf"),
+    "exif": exif_runs,
+    "qrcode": qrcode_runs,
+    "ocr": ocr_runs,
+    "ssdeep": ssdeep_runs,
 }
 
 
@@ -1619,6 +1726,11 @@ def run(spec):
         "encrypted_archive_analyzer": "EncryptedArchiveAnalysis",
         "url_email_pivot_analyzer": "URLEmailPivotAnalysis_v2",
         "message_id_analyzer_v2": "MessageIDAnalysisV2",
+        "pdftotext": "PDFTextAnalysis",
+        "exif": "ExifAnalysis",
+        "qrcode": "QRCodeAnalysis",
+        "ocr": "OCRAnalysis",
+        "ssdeep": "SsdeepAnalysis",
     }[spec["module"]]
     analysis = next((a for a in parsed["analyses"] if a["class"] == target_class), None)
     return {

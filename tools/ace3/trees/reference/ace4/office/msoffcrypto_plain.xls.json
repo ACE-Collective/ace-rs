@@ -55,6 +55,46 @@
       },
       "relationships": {},
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:19:19+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:19:19+00:00",
+              "File:FileModifyDate": "2026:11:07 10:46:11+00:00",
+              "File:FileName": "msoffcrypto_plain.xls",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 25600,
+              "File:FileType": "XLS",
+              "File:FileTypeExtension": "XLS",
+              "File:MIMEType": "application/vnd.ms-excel",
+              "FlashPix:AppVersion": 16.0,
+              "FlashPix:Author": "",
+              "FlashPix:CodePage": 10000,
+              "FlashPix:Company": "",
+              "FlashPix:CreateDate": "2018:09:11 09:53:58",
+              "FlashPix:HeadingPairs": [
+                "Worksheets",
+                1
+              ],
+              "FlashPix:HyperlinksChanged": 0,
+              "FlashPix:LastModifiedBy": "",
+              "FlashPix:LinksUpToDate": 0,
+              "FlashPix:ModifyDate": "2018:09:11 09:55:27",
+              "FlashPix:ScaleCrop": 0,
+              "FlashPix:Security": 0,
+              "FlashPix:SharedDoc": 0,
+              "FlashPix:Software": "Microsoft Macintosh Excel",
+              "FlashPix:TitleOfParts": "Sheet1",
+              "SourceFile": "<root>/files/msoffcrypto_plain.xls"
+            },
+            "output_dir": "<root>/files/msoffcrypto_plain.xls.exif"
+          },
+          "summary": "Exiftool Analysis: Author=, LastModifiedBy=, Software=Microsoft Macintosh Excel, CreateDate=2018:09:11 09:53:58, ModifyDate=2018:09:11 09:55:27, Security=0, CodePage=10000, Company=, AppVersion=16.0, ScaleCrop=0, LinksUpToDate=0, SharedDoc=0, HyperlinksChanged=0, TitleOfParts=Sheet1, HeadingPairs=['Worksheets', 1]",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "51811b5285e553238e5cfc29a45588d4",
@@ -416,6 +456,24 @@
           "tags": {}
         }
       },
+      "tags": {}
+    },
+    "file:bdb1422f813f0d7c78051b27baf6ec8a8763e8ff9ae17cf189f8b74f2a100b0d": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "msoffcrypto_plain.xls.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:0d57ed3cb8f9e09b0986a7d8d76407de6cb2dce84a2f30048eab9103225437f5": true
+      },
+      "results": {},
       "tags": {}
     },
     "file:d2d8276ca63e307268dbf1bef2fbf45ba4c65c27494555a7742761c22984f1af": {

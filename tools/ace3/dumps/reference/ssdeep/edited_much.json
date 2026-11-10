@@ -1,0 +1,30 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [],
+  "input": {
+    "directives": [],
+    "label": "fixtures/ssdeep/edited_much",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "edited_much",
+      "size": 11007,
+      "type": "file",
+      "value": "92b2dec0e0ab08b40e6d8cb22a48978899be97318847f2c1f09c1039a13f3f66"
+    }
+  },
+  "module": "ssdeep",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "edited_much",
+    "relationships": [],
+    "size": 11007,
+    "tags": [],
+    "type": "file",
+    "value": "92b2dec0e0ab08b40e6d8cb22a48978899be97318847f2c1f09c1039a13f3f66",
+    "yara_meta": []
+  }
+}

@@ -103,6 +103,24 @@
       },
       "tags": {}
     },
+    "file:4888afefa6c77bcc663337f8eee1420a5f5e62906bfe69ab22b0052eeb95f954": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "doc.docx.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:6a65fb99c4c7ecb88273b7f1d49b00640de95cb682cb1a63df0c08764f0ef24d": true
+      },
+      "results": {},
+      "tags": {}
+    },
     "file:6a65fb99c4c7ecb88273b7f1d49b00640de95cb682cb1a63df0c08764f0ef24d": {
       "detections": {},
       "directives": {},
@@ -134,6 +152,68 @@
             "file_count": 12
           },
           "summary": "Archive Analysis: extracted 12 of 12 files: ([Content_Types].xml, docProps/app.xml, docProps/custom.xml, docProps/core.xml, word/styles.xml, word/webSettings.xml, word/fontTable.xml, word/settings.xml, word/document.xml, word/theme/theme1.xml, word/_rels/document.xml.rels, _rels/.rels)",
+          "tags": {}
+        },
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:10:02+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:10:02+00:00",
+              "File:FileModifyDate": "2026:11:06 19:20:07+00:00",
+              "File:FileName": "doc.docx",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 12529,
+              "File:FileType": "DOCX",
+              "File:FileTypeExtension": "DOCX",
+              "File:MIMEType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+              "SourceFile": "<root>/files/doc.docx",
+              "XML:AppVersion": 16.0,
+              "XML:Application": "Microsoft Office Word",
+              "XML:Characters": 0,
+              "XML:CharactersWithSpaces": 0,
+              "XML:Company": "",
+              "XML:CreateDate": "2021:04:28 21:44:00Z",
+              "XML:DocSecurity": 0,
+              "XML:HyperlinksChanged": false,
+              "XML:Keywords": "",
+              "XML:LastModifiedBy": "Anderson, Anthony",
+              "XML:Lines": 0,
+              "XML:LinksUpToDate": false,
+              "XML:MSIP_Label_05286d43-84a8-4841-b019-e300711b2821_ActionId": "797c971c-6ed8-4842-b11e-03fd4cd1ae41",
+              "XML:MSIP_Label_05286d43-84a8-4841-b019-e300711b2821_ContentBits": 0,
+              "XML:MSIP_Label_05286d43-84a8-4841-b019-e300711b2821_Enabled": true,
+              "XML:MSIP_Label_05286d43-84a8-4841-b019-e300711b2821_Method": "Standard",
+              "XML:MSIP_Label_05286d43-84a8-4841-b019-e300711b2821_Name": "Internal Use - No Footer",
+              "XML:MSIP_Label_05286d43-84a8-4841-b019-e300711b2821_SetDate": "2021-04-28T21:44:43Z",
+              "XML:MSIP_Label_05286d43-84a8-4841-b019-e300711b2821_SiteId": "cfddba29-ca2a-450c-a415-595e7fcce8e5",
+              "XML:ModifyDate": "2021:04:28 21:44:00Z",
+              "XML:Pages": 1,
+              "XML:Paragraphs": 0,
+              "XML:RevisionNumber": 1,
+              "XML:ScaleCrop": false,
+              "XML:SharedDoc": false,
+              "XML:Template": "Normal.dotm",
+              "XML:TotalEditTime": 0,
+              "XML:Words": 0,
+              "XMP:Creator": "Anderson, Anthony",
+              "XMP:Description": "",
+              "XMP:Subject": "",
+              "XMP:Title": "",
+              "ZIP:ZipBitFlag": 6,
+              "ZIP:ZipCRC": 2653774994,
+              "ZIP:ZipCompressedSize": 357,
+              "ZIP:ZipCompression": 8,
+              "ZIP:ZipFileName": "[Content_Types].xml",
+              "ZIP:ZipModifyDate": "1980:01:01 00:00:00",
+              "ZIP:ZipRequiredVersion": 20,
+              "ZIP:ZipUncompressedSize": 1437
+            },
+            "output_dir": "<root>/files/doc.docx.exif"
+          },
+          "summary": "Exiftool Analysis: ZipRequiredVersion=20, ZipBitFlag=6, ZipCompression=8, ZipModifyDate=1980:01:01 00:00:00, ZipCRC=2653774994, ZipCompressedSize=357, ZipUncompressedSize=1437, ZipFileName=[Content_Types].xml, Title=, Subject=, Creator=Anderson, Anthony, Description=, Keywords=, LastModifiedBy=Anderson, Anthony, RevisionNumber=1, CreateDate=2021:04:28 21:44:00Z, ModifyDate=2021:04:28 21:44:00Z, MSIP_Label_05286d43-84a8-4841-b019-e300711b2821_Enabled=True, MSIP_Label_05286d43-84a8-4841-b019-e300711b2821_SetDate=2021-04-28T21:44:43Z, MSIP_Label_05286d43-84a8-4841-b019-e300711b2821_Method=Standard + 20 more",
           "tags": {}
         },
         "file_hash_analyzer": {

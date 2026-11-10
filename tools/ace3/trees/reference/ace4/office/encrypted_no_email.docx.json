@@ -1,6 +1,24 @@
 {
   "form": 1,
   "observables": {
+    "file:00ed5e0c479093ae257e21bf3b1bb55a8a3786d0757781d38a32b503cf2ecb6b": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "encrypted_no_email.docx.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:331bbc4db116c378b57566005a5070982edc6206e29d7dd45e87603efe32936a": true
+      },
+      "results": {},
+      "tags": {}
+    },
     "file:167181108f6fd083cd67d569e9906a592ca923bc2d4c571ed1242caf92ed48f8": {
       "detections": {},
       "directives": {
@@ -121,6 +139,28 @@
       },
       "relationships": {},
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:17:47+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:17:47+00:00",
+              "File:FileModifyDate": "2026:11:07 01:34:09+00:00",
+              "File:FileName": "encrypted_no_email.docx",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 17920,
+              "File:FileType": "DOCX",
+              "File:FileTypeExtension": "DOCX",
+              "File:MIMEType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+              "SourceFile": "<root>/files/encrypted_no_email.docx"
+            },
+            "output_dir": "<root>/files/encrypted_no_email.docx.exif"
+          },
+          "summary": "Exiftool Analysis: ",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "7274649e4c323c0fe46fb64873146e10",

@@ -47,7 +47,25 @@
       },
       "tags": {}
     },
-    "file:ce7ddbafd440f2aafabea25e691abd717c641fdbd95d30578906e6681c9db5d1": {
+    "file:57caba643bc617abd5f1b8d25f7dc53f991c8bd6546eab2619f5440562f0dae8": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "annots_integer.pdf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:e0fca7da436c7742c93570806eac2e7e1c89465412f9ebe521d79e66206966dd": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "file:dea581d78fc57e54b0804c80f00c133273f46be31ba0ed63a914626d9d8a6ac4": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -85,6 +103,23 @@
           "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
           "tags": {}
         },
+        "pdftotext": {
+          "details": {
+            "output_path": "ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977",
+            "stderr": "",
+            "stdout": ""
+          },
+          "summary": "PDF Text Analysis",
+          "tags": {}
+        },
+        "qrcode": {
+          "details": {
+            "extracted_text": null,
+            "inverted": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [],
@@ -110,6 +145,31 @@
       },
       "relationships": {},
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:34:20+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:34:20+00:00",
+              "File:FileModifyDate": "2026:11:07 04:47:50+00:00",
+              "File:FileName": "annots_integer.pdf",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 326,
+              "File:FileType": "PDF",
+              "File:FileTypeExtension": "PDF",
+              "File:MIMEType": "application/pdf",
+              "PDF:Linearized": false,
+              "PDF:PDFVersion": 1.7,
+              "PDF:PageCount": 1,
+              "SourceFile": "<root>/files/annots_integer.pdf"
+            },
+            "output_dir": "<root>/files/annots_integer.pdf.exif"
+          },
+          "summary": "Exiftool Analysis: PDFVersion=1.7, Linearized=False, PageCount=1",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "bd3861131a7003342c20e495ad89b917",
@@ -142,11 +202,104 @@
           "details": {},
           "summary": null,
           "tags": {}
+        },
+        "pdftotext": {
+          "details": {
+            "output_path": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stderr": "Syntax Error: Page annotations object (page 1) is wrong type (integer)\nSyntax Error: Failed to create page (page 1)\n",
+            "stdout": ""
+          },
+          "summary": "PDF Text Analysis",
+          "tags": {}
+        },
+        "qrcode": {
+          "details": {
+            "extracted_text": null,
+            "inverted": false
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {
         "pdf": true
       }
+    },
+    "file:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "archive": true
+      },
+      "paths": {
+        "annots_integer.pdf.txt": {
+          "type=document.pdf.text": true
+        }
+      },
+      "redirection": "file:e0fca7da436c7742c93570806eac2e7e1c89465412f9ebe521d79e66206966dd",
+      "relationships": {
+        "extracted_from file:e0fca7da436c7742c93570806eac2e7e1c89465412f9ebe521d79e66206966dd": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "inode/x-empty",
+            "type": "empty"
+          },
+          "summary": "File Type Analysis: empty (inode/x-empty)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "archive": true
+      },
+      "paths": {
+        "annots_integer.pdf.gs.pdf.txt": {
+          "type=document.pdf.text": true
+        }
+      },
+      "redirection": "file:dea581d78fc57e54b0804c80f00c133273f46be31ba0ed63a914626d9d8a6ac4",
+      "relationships": {
+        "extracted_from file:dea581d78fc57e54b0804c80f00c133273f46be31ba0ed63a914626d9d8a6ac4": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "very short file (no magic)"
+          },
+          "summary": "File Type Analysis: very short file (no magic) (application/octet-stream)",
+          "tags": {}
+        }
+      },
+      "tags": {}
     },
     "md5:bd3861131a7003342c20e495ad89b917": {
       "detections": {},

@@ -1,0 +1,36 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [],
+  "input": {
+    "directives": [],
+    "label": "ace4/pdf/broken_xref_offsets.pdf",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "broken_xref_offsets.pdf",
+      "size": 1175,
+      "type": "file",
+      "value": "22cfcfb3ffdc3490d1b5f360f8d86b8459b35cc3094b62927bb7624631945409"
+    }
+  },
+  "module": "qrcode",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "broken_xref_offsets.pdf",
+    "relationships": [],
+    "size": 1175,
+    "tags": [],
+    "type": "file",
+    "value": "22cfcfb3ffdc3490d1b5f360f8d86b8459b35cc3094b62927bb7624631945409",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

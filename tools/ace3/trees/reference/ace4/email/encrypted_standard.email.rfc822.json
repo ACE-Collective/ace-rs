@@ -499,6 +499,28 @@
           "summary": null,
           "tags": {}
         },
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files/invoice.docm.decrypted.extracted/word",
+              "File:FileAccessDate": "2026:11:10 11:14:11+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:14:11+00:00",
+              "File:FileModifyDate": "1980:01:01 00:00:00+00:00",
+              "File:FileName": "vbaProject.bin",
+              "File:FilePermissions": 100664,
+              "File:FileSize": 23552,
+              "File:FileType": "FPX",
+              "File:FileTypeExtension": "FPX",
+              "File:MIMEType": "image/vnd.fpx",
+              "SourceFile": "<root>/files/invoice.docm.decrypted.extracted/word/vbaProject.bin"
+            },
+            "output_dir": "<root>/files/invoice.docm.decrypted.extracted/word/vbaProject.bin.exif"
+          },
+          "summary": "Exiftool Analysis: ",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "b78e53325f45a16ab719c392444f2983",
@@ -1535,6 +1557,24 @@
       },
       "tags": {}
     },
+    "file:92664346da45acdaec1673afa8a2d320a1d38c64c7244b53c7f4a2daa43fdd68": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "invoice.docm.decrypted.extracted/word/vbaProject.bin.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:170b804293599496c29d816cfe408adc5a99e767eb930b0c0cf9e7db62436abe": true
+      },
+      "results": {},
+      "tags": {}
+    },
     "file:990349482cd707ba3093d6fff5bb72167a38f0831e58789a92c25cdeb01f7f93": {
       "detections": {},
       "directives": {
@@ -1675,6 +1715,28 @@
       },
       "relationships": {},
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:14:09+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:14:09+00:00",
+              "File:FileModifyDate": "2026:11:10 11:14:09+00:00",
+              "File:FileName": "invoice.docm",
+              "File:FilePermissions": 100664,
+              "File:FileSize": 78336,
+              "File:FileType": "DOCM",
+              "File:FileTypeExtension": "DOCM",
+              "File:MIMEType": "application/vnd.ms-word.document.macroEnabled.12",
+              "SourceFile": "<root>/files/invoice.docm"
+            },
+            "output_dir": "<root>/files/invoice.docm.exif"
+          },
+          "summary": "Exiftool Analysis: ",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "170522fa33e0cf177d71cab737d7de09",
@@ -1868,6 +1930,24 @@
       },
       "tags": {}
     },
+    "file:bf83055cefee6a8310b43f303c4962dc9a18c15531f97cf90134f8411556f5cb": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "invoice.docm.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:af5cf1c2683de873f126b0dddc8756c964bb692f63a10c5fdb2cfa486b42184f": true
+      },
+      "results": {},
+      "tags": {}
+    },
     "file:c362d7f5d4365ecb4419de678c7babc002e86f46c94b612e120aa45a811919c4": {
       "detections": {},
       "directives": {
@@ -2001,6 +2081,14 @@
             "type": "PNG image data, 1014 x 548, 8-bit/color RGB, non-interlaced"
           },
           "summary": "File Type Analysis: PNG image data, 1014 x 548, 8-bit/color RGB, non-interlaced (image/png)",
+          "tags": {}
+        },
+        "qrcode": {
+          "details": {
+            "extracted_text": null,
+            "inverted": false
+          },
+          "summary": null,
           "tags": {}
         }
       },

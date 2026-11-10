@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 
 use ace_mod_files::{
     BinaryFileAnalyzer, DHashImageAnalyzer, FileHashAnalyzer, FileType, LnkParseAnalyzer,
-    X509Analyzer,
+    SsdeepAnalyzer, X509Analyzer,
 };
 use ace_sdk::Parser;
 use ace_testkit::Harness;
@@ -20,6 +20,10 @@ fn fixtures() -> PathBuf {
 /// `fixtures/files/<name> as <alert path>`, or a sample, labelled by its path under `samples/`.
 fn file_of(dump: &Dump) -> (PathBuf, String) {
     let label = dump.value["input"]["label"].as_str().expect("a label");
+    if let Some(rest) = label.strip_prefix("fixtures/ssdeep/") {
+        let name = rest.split(' ').next().expect("a name");
+        return (fixtures().join("../ssdeep").join(name), name.to_owned());
+    }
     if let Some(rest) = label.strip_prefix("fixtures/dhash/images/") {
         let name = rest.split(' ').next().expect("a name");
         return (
@@ -138,6 +142,18 @@ fn matches_the_reference_dumps_or_lists_each_difference() {
         Some(("brand.jpg", "dhash_brand_jpg")),
         serde_json::json!({"source_dir": fixtures().join("../dhash/analyst_data/dhash")}),
     ));
+    // ace3's threshold, and 1, which keeps every match ssdeep prints
+    let hashes = fixtures().join("../ssdeep/known_hashes");
+    for (threshold, suffix) in [(90, false), (1, true)] {
+        let mut runs = compare_with::<SsdeepAnalyzer>(
+            "ssdeep",
+            "SsdeepAnalysis",
+            (!suffix).then_some(("edited_little", "ssdeep_edited_little")),
+            serde_json::json!({"ssdeep_hashes": hashes, "ssdeep_match_threshold": threshold}),
+        );
+        runs.retain(|(name, _)| name.ends_with(".threshold_1") == suffix);
+        compared.extend(runs);
+    }
     assert!(
         compared.len() >= 100,
         "only {} dumps compared",

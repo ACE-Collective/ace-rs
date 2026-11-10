@@ -20,6 +20,7 @@ use crate::files::{FileOutputError, FileStore, write_file};
 use crate::lists::{List, ListSpec, WireList};
 use crate::module::{Module, ModuleError};
 use crate::reads::{Read as DeclaredRead, ReadError, ReadKind, Reader};
+use crate::tools::{TIMEOUT_MARGIN, ToolError, ToolOutput, ToolRun, ToolRunner};
 use crate::tree::TreeView;
 use crate::wire::RelatedTags;
 use crate::writes::{WireWrite, Write as DeclaredWrite, WriteKind};
@@ -243,6 +244,9 @@ pub struct TaskContext<S> {
     tree: Option<TreeView>,
     /// Where the pool put the tree's files the module reads, each named by its sha256.
     tree_files: Option<PathBuf>,
+    declared_tools: &'static [&'static str],
+    /// What runs the module's tools (PLAN.md 7.3).
+    tools: Option<Arc<dyn ToolRunner>>,
 }
 
 impl<S> TaskContext<S> {
@@ -282,7 +286,44 @@ impl<S> TaskContext<S> {
             related_tags: Vec::new(),
             tree: None,
             tree_files: None,
+            declared_tools: M::TOOLS,
+            tools: None,
         }
+    }
+
+    /// What runs the task's tools: the supervisor, or a `LocalRunner`.
+    pub fn with_tool_runner(mut self, runner: Option<Arc<dyn ToolRunner>>) -> Self {
+        self.tools = runner;
+        self
+    }
+
+    /// Runs a tool the module declared in `Module::TOOLS` (PLAN.md 7.3) and waits for it. Its timeout
+    /// is cut to the task's time left, less ace3's margin, and is at least a second. A run that was
+    /// stopped, at its timeout or for its output, is an `Ok` whose status says so; an `Err` is a tool
+    /// the module or the pool doesn't have, or one that couldn't start, which fails the task.
+    pub fn run_tool(&self, run: ToolRun) -> Result<ToolOutput, ModuleError> {
+        if !self.declared_tools.contains(&run.tool.as_str()) {
+            return Err(ModuleError::other(ToolError::Undeclared(run.tool)));
+        }
+        let runner = self
+            .tools
+            .as_ref()
+            .ok_or_else(|| ModuleError::other(ToolError::NoRunner))?;
+        let allowed = self
+            .time_left()
+            .saturating_sub(TIMEOUT_MARGIN)
+            .max(Duration::from_secs(1));
+        let run = ToolRun {
+            timeout: run.timeout.min(allowed),
+            ..run
+        };
+        runner.run(&run).map_err(ModuleError::other)
+    }
+
+    /// The directory where the module puts files it hands to its tools, such as an image it made.
+    /// None when the task has no tool runner.
+    pub fn scratch_dir(&self) -> Option<&std::path::Path> {
+        self.tools.as_deref().map(ToolRunner::scratch)
     }
 
     /// Writes to ACE's own data (PLAN.md 7.2), a write the module declared in `Module::WRITES`.

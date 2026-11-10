@@ -358,6 +358,12 @@ fn ace3_module_name(excluded: &str) -> String {
         "HTMLJavaScriptExtractor" => "html_js_extraction",
         "MHTMLAnalysisModule" => "mhtml",
         "OCRAnalyzer" => "ocr",
+        "FileHashAnalyzer" => "file_hash_analyzer",
+        "FileTypeAnalyzer" => "file_type",
+        "PDFAnalyzer" => "pdf_analyzer",
+        "PDFTextAnalyzer" => "pdftotext",
+        "ExifAnalyzer" => "exif",
+        "QRCodeAnalyzer" => "qrcode",
         other => other,
     }
     .to_owned()

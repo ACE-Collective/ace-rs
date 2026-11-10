@@ -45,6 +45,32 @@
       },
       "relationships": {},
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:38:22+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:38:22+00:00",
+              "File:FileModifyDate": "2026:11:07 04:47:50+00:00",
+              "File:FileName": "form_fields.pdf",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 1764,
+              "File:FileType": "PDF",
+              "File:FileTypeExtension": "PDF",
+              "File:MIMEType": "application/pdf",
+              "PDF:HasXFA": false,
+              "PDF:Linearized": false,
+              "PDF:PDFVersion": 1.7,
+              "PDF:PageCount": 1,
+              "SourceFile": "<root>/files/form_fields.pdf"
+            },
+            "output_dir": "<root>/files/form_fields.pdf.exif"
+          },
+          "summary": "Exiftool Analysis: PDFVersion=1.7, Linearized=False, PageCount=1, HasXFA=False",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "e07480dfd47ceee13d018c1278164ea6",
@@ -75,6 +101,23 @@
         },
         "pdf_analyzer": {
           "details": {},
+          "summary": null,
+          "tags": {}
+        },
+        "pdftotext": {
+          "details": {
+            "output_path": "ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977",
+            "stderr": "Syntax Error (217): Warning: name token is longer than what the specification says it can be\nSyntax Error (396): Warning: name token is longer than what the specification says it can be\nSyntax Error (563): Warning: name token is longer than what the specification says it can be\nSyntax Error (217): Warning: name token is longer than what the specification says it can be\nSyntax Error (396): Warning: name token is longer than what the specification says it can be\nSyntax Error (563): Warning: name token is longer than what the specification says it can be\nSyntax Error (217): Warning: name token is longer than what the specification says it can be\nSyntax Error (396): Warning: name token is longer than what the specification says it can be\nSyntax Error (563): Warning: name token is longer than what the specification says it can be\nSyntax Error (217): Warning: name token is longer than what the specification says it can be\nSyntax Error (396): Warning: name token is longer than what the specification says it can be\nSyntax Error (563): Warning: name token is longer than what the specification says it can be\nSyntax Error (217): Warning: name token is longer than what the specification says it can be\nSyntax Error (396): Warning: name token is longer than what the specification says it can be\nSyntax Error (563): Warning: name token is longer than what the specification says it can be\nSyntax Warning: Direct object in rootFields\nSyntax Warning: Direct object in rootFields\nSyntax Warning: Direct object in rootFields\nSyntax Warning: Direct object in rootFields\nSyntax Warning: Direct object in rootFields\nSyntax Warning: Direct object in rootFields\nSyntax Warning: Direct object in rootFields\nSyntax Warning: Direct object in rootFields\nSyntax Warning: Direct object in rootFields\nSyntax Warning: Direct object in rootFields\nSyntax Warning: Direct object in rootFields\nSyntax Warning: Direct object in rootFields\nSyntax Warning: Direct object in rootFields\nSyntax Warning: Direct object in rootFields\nSyntax Warning: Direct object in rootFields\nSyntax Warning: Direct object in rootFields\nSyntax Warning: Direct object in rootFields\nSyntax Warning: Direct object in rootFields\nSyntax Error (1451): Warning: name token is longer than what the specification says it can be\n",
+            "stdout": ""
+          },
+          "summary": "PDF Text Analysis",
+          "tags": {}
+        },
+        "qrcode": {
+          "details": {
+            "extracted_text": null,
+            "inverted": false
+          },
           "summary": null,
           "tags": {}
         }
@@ -212,56 +255,23 @@
       },
       "tags": {}
     },
-    "file:7f5fc319dc83056b93f269503138b53b549e57928d35113ce68b37ad89a334f9": {
+    "file:863354020bf39561f976d07f1717b850109778942bae5c46cb2e7e0dde871330": {
       "detections": {},
-      "directives": {
-        "extract_urls": true
-      },
+      "directives": {},
       "excluded_analysis": {
-        "pdf_analyzer": true
+        "file_hash_analyzer": true,
+        "file_type": true
       },
       "paths": {
-        "form_fields.pdf.gs.pdf": {
-          "type=document.pdf": true,
-          "type=document.pdf.rendered": true
+        "form_fields.pdf.exif/exiftool.out": {
+          "type=metadata.exif": true
         }
       },
-      "redirection": "file:13bf1c5d8231274a2afdf57df33c500e40f553fcb590f9e92b33658afd9d994b",
       "relationships": {
         "extracted_from file:13bf1c5d8231274a2afdf57df33c500e40f553fcb590f9e92b33658afd9d994b": true
       },
-      "results": {
-        "file_type": {
-          "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": true,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "application/pdf",
-            "type": "PDF document, version 1.7, 1 page(s)"
-          },
-          "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
-          "tags": {}
-        },
-        "url_extraction": {
-          "details": {
-            "urls": [],
-            "urls_grouped_by_domain": {}
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {
-        "pdf": true
-      }
+      "results": {},
+      "tags": {}
     },
     "file:863b51743a5398fab2322260e68b993fc4093b09508a04753959d6bf184acb03": {
       "detections": {},
@@ -373,6 +383,116 @@
             }
           },
           "summary": "URL Extraction Analysis (example.com)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:a5abb8c7407608062a269d956a11fce8b7d6f690c1fd6eed0c94355a77f03a19": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {
+        "pdf_analyzer": true
+      },
+      "paths": {
+        "form_fields.pdf.gs.pdf": {
+          "type=document.pdf": true,
+          "type=document.pdf.rendered": true
+        }
+      },
+      "redirection": "file:13bf1c5d8231274a2afdf57df33c500e40f553fcb590f9e92b33658afd9d994b",
+      "relationships": {
+        "extracted_from file:13bf1c5d8231274a2afdf57df33c500e40f553fcb590f9e92b33658afd9d994b": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": true,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/pdf",
+            "type": "PDF document, version 1.7, 1 page(s)"
+          },
+          "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
+          "tags": {}
+        },
+        "pdftotext": {
+          "details": {
+            "output_path": "ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977",
+            "stderr": "",
+            "stdout": ""
+          },
+          "summary": "PDF Text Analysis",
+          "tags": {}
+        },
+        "qrcode": {
+          "details": {
+            "extracted_text": null,
+            "inverted": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "pdf": true
+      }
+    },
+    "file:ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "archive": true
+      },
+      "paths": {
+        "form_fields.pdf.gs.pdf.txt": {
+          "type=document.pdf.text": true
+        },
+        "form_fields.pdf.txt": {
+          "type=document.pdf.text": true
+        }
+      },
+      "redirection": "file:a5abb8c7407608062a269d956a11fce8b7d6f690c1fd6eed0c94355a77f03a19",
+      "relationships": {
+        "extracted_from file:13bf1c5d8231274a2afdf57df33c500e40f553fcb590f9e92b33658afd9d994b": true,
+        "extracted_from file:a5abb8c7407608062a269d956a11fce8b7d6f690c1fd6eed0c94355a77f03a19": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "very short file (no magic)"
+          },
+          "summary": "File Type Analysis: very short file (no magic) (application/octet-stream)",
           "tags": {}
         }
       },

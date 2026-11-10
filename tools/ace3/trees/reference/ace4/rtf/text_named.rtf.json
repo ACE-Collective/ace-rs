@@ -1,6 +1,24 @@
 {
   "form": 1,
   "observables": {
+    "file:500fe7a38ea8ccb54d8e404e7ea4b2ac179022ea72fa6c2e1d09fca55211040d": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "text_named.rtf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:5cc9cf9b25e852d4c4f29fee898f66ca3b087d819278f8aca0e0f0131f8e34ff": true
+      },
+      "results": {},
+      "tags": {}
+    },
     "file:5cc9cf9b25e852d4c4f29fee898f66ca3b087d819278f8aca0e0f0131f8e34ff": {
       "detections": {},
       "directives": {},
@@ -12,6 +30,32 @@
       },
       "relationships": {},
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:43:20+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:43:20+00:00",
+              "File:FileModifyDate": "2026:11:07 00:31:29+00:00",
+              "File:FileName": "text_named.rtf",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 37,
+              "File:FileType": "TXT",
+              "File:FileTypeExtension": "TXT",
+              "File:LineCount": 1,
+              "File:MIMEEncoding": "us-ascii",
+              "File:MIMEType": "text/plain",
+              "File:Newlines": "\n",
+              "File:WordCount": 8,
+              "SourceFile": "<root>/files/text_named.rtf"
+            },
+            "output_dir": "<root>/files/text_named.rtf.exif"
+          },
+          "summary": "Exiftool Analysis: ",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "06b7ee293efb56deb09809b888f2d8a1",

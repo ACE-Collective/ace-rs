@@ -1,0 +1,49 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "QRCodeAnalysis",
+      "details": {
+        "extracted_text": null,
+        "inverted": false
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.qrcode:QRCodeAnalysis",
+      "observables": [],
+      "summary": null,
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace4/pdf/encrypted_no_permissions_aes_128.pdf",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "encrypted_no_permissions_aes_128.pdf",
+      "size": 2220,
+      "type": "file",
+      "value": "0b3c2c1590e9e5135f412902408d888a604cb7b2237191113e1a6791bf068094"
+    }
+  },
+  "module": "qrcode",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "encrypted_no_permissions_aes_128.pdf",
+    "relationships": [],
+    "size": 2220,
+    "tags": [],
+    "type": "file",
+    "value": "0b3c2c1590e9e5135f412902408d888a604cb7b2237191113e1a6791bf068094",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

@@ -1,0 +1,62 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "text/xml",
+        "type": "XML 1.0 document, ASCII text, with very long lines (5033), with no line terminators"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: XML 1.0 document, ASCII text, with very long lines (5033), with no line terminators (text/xml)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace4/office/vba_flatopc.xml",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "vba_flatopc.xml",
+      "size": 5033,
+      "type": "file",
+      "value": "6991f57fafd63a746b55f93c38e487c3ce07552f072c2eb2a6373c2964e3c21a"
+    }
+  },
+  "module": "exif",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "vba_flatopc.xml",
+    "relationships": [],
+    "size": 5033,
+    "tags": [],
+    "type": "file",
+    "value": "6991f57fafd63a746b55f93c38e487c3ce07552f072c2eb2a6373c2964e3c21a",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

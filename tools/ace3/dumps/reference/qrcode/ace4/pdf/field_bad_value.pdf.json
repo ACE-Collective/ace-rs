@@ -1,0 +1,49 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "QRCodeAnalysis",
+      "details": {
+        "extracted_text": null,
+        "inverted": false
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.qrcode:QRCodeAnalysis",
+      "observables": [],
+      "summary": null,
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace4/pdf/field_bad_value.pdf",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "field_bad_value.pdf",
+      "size": 529,
+      "type": "file",
+      "value": "3873ddd61761b0ac9e39a435798d8d3e3c84fd5e0ea6fdc2aa075b2e02525e5b"
+    }
+  },
+  "module": "qrcode",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "field_bad_value.pdf",
+    "relationships": [],
+    "size": 529,
+    "tags": [],
+    "type": "file",
+    "value": "3873ddd61761b0ac9e39a435798d8d3e3c84fd5e0ea6fdc2aa075b2e02525e5b",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

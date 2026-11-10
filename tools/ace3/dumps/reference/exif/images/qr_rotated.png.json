@@ -1,0 +1,60 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "image/png",
+        "type": "PNG image data, 615 x 615, 8-bit/color RGB, non-interlaced"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: PNG image data, 615 x 615, 8-bit/color RGB, non-interlaced (image/png)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/images/qr_rotated.png",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "qr_rotated.png",
+      "size": 17250,
+      "type": "file",
+      "value": "da9f7aad5bad4a59d1a3eb33326f8844503f294a13c7859fc9797b6699323f5e"
+    }
+  },
+  "module": "exif",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=image"
+    ],
+    "excluded_analysis": [],
+    "file_path": "qr_rotated.png",
+    "relationships": [],
+    "size": 17250,
+    "tags": [],
+    "type": "file",
+    "value": "da9f7aad5bad4a59d1a3eb33326f8844503f294a13c7859fc9797b6699323f5e",
+    "yara_meta": [
+      "type=image"
+    ]
+  }
+}

@@ -1,6 +1,24 @@
 {
   "form": 1,
   "observables": {
+    "file:144c7c4a32f6796049ff9be0d4c310c91cbd95fd2887a4412ffd69fafcb61b35": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "parser_nested_trailer_495.pdf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:f8dcba4900bf5c623d9ba7460c150d61fdff2e9b4036c32c355d40a907b1f1f7": true
+      },
+      "results": {},
+      "tags": {}
+    },
     "file:2cffd282744bd74edaa57da0016c53d79e20ba433f655d42ffb5039af7a45b82": {
       "detections": {},
       "directives": {
@@ -47,7 +65,7 @@
       },
       "tags": {}
     },
-    "file:74c2d4899031e6cccd0228a839bcbdd4fb7d45af7016d331e6c0626822382e43": {
+    "file:b92b27d2c5839a2d1703ae20f569c6318fcdb9374b0645a0e570a341ff56cec5": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -85,6 +103,23 @@
           "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
           "tags": {}
         },
+        "pdftotext": {
+          "details": {
+            "output_path": "ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977",
+            "stderr": "",
+            "stdout": ""
+          },
+          "summary": "PDF Text Analysis",
+          "tags": {}
+        },
+        "qrcode": {
+          "details": {
+            "extracted_text": null,
+            "inverted": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [],
@@ -98,6 +133,44 @@
         "pdf": true
       }
     },
+    "file:ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "archive": true
+      },
+      "paths": {
+        "parser_nested_trailer_495.pdf.gs.pdf.txt": {
+          "type=document.pdf.text": true
+        }
+      },
+      "redirection": "file:b92b27d2c5839a2d1703ae20f569c6318fcdb9374b0645a0e570a341ff56cec5",
+      "relationships": {
+        "extracted_from file:b92b27d2c5839a2d1703ae20f569c6318fcdb9374b0645a0e570a341ff56cec5": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "very short file (no magic)"
+          },
+          "summary": "File Type Analysis: very short file (no magic) (application/octet-stream)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:f8dcba4900bf5c623d9ba7460c150d61fdff2e9b4036c32c355d40a907b1f1f7": {
       "detections": {},
       "directives": {},
@@ -110,6 +183,31 @@
       },
       "relationships": {},
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "ExifTool:Warning": "Invalid xref table",
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:41:01+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:41:01+00:00",
+              "File:FileModifyDate": "2026:11:07 04:47:50+00:00",
+              "File:FileName": "parser_nested_trailer_495.pdf",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 3503,
+              "File:FileType": "PDF",
+              "File:FileTypeExtension": "PDF",
+              "File:MIMEType": "application/pdf",
+              "PDF:Linearized": false,
+              "PDF:PDFVersion": 1.7,
+              "SourceFile": "<root>/files/parser_nested_trailer_495.pdf"
+            },
+            "output_dir": "<root>/files/parser_nested_trailer_495.pdf.exif"
+          },
+          "summary": "Exiftool Analysis: PDFVersion=1.7, Linearized=False",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "56fd192c153ac7ff695976a94ef62499",
@@ -140,6 +238,15 @@
         },
         "pdf_analyzer": {
           "details": {},
+          "summary": null,
+          "tags": {}
+        },
+        "pdftotext": {
+          "details": {
+            "output_path": null,
+            "stderr": "Syntax Error: Couldn't find trailer dictionary\nSyntax Error: Couldn't find trailer dictionary\nSyntax Error: Couldn't read xref table\n",
+            "stdout": ""
+          },
           "summary": null,
           "tags": {}
         }

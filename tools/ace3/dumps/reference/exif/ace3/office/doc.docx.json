@@ -1,0 +1,159 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "ExifAnalysis",
+      "details": {
+        "error": null,
+        "exifdata": {
+          "ExifTool:ExifToolVersion": 13.25,
+          "File:Directory": "<root>/files",
+          "File:FileAccessDate": "2026:11:10 10:54:07+00:00",
+          "File:FileInodeChangeDate": "2026:11:10 10:54:07+00:00",
+          "File:FileModifyDate": "2026:11:06 19:20:07+00:00",
+          "File:FileName": "doc.docx",
+          "File:FilePermissions": 100644,
+          "File:FileSize": 12529,
+          "File:FileType": "DOCX",
+          "File:FileTypeExtension": "DOCX",
+          "File:MIMEType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          "SourceFile": "<root>/files/doc.docx",
+          "XML:AppVersion": 16.0,
+          "XML:Application": "Microsoft Office Word",
+          "XML:Characters": 0,
+          "XML:CharactersWithSpaces": 0,
+          "XML:Company": "",
+          "XML:CreateDate": "2021:04:28 21:44:00Z",
+          "XML:DocSecurity": 0,
+          "XML:HyperlinksChanged": false,
+          "XML:Keywords": "",
+          "XML:LastModifiedBy": "Anderson, Anthony",
+          "XML:Lines": 0,
+          "XML:LinksUpToDate": false,
+          "XML:MSIP_Label_05286d43-84a8-4841-b019-e300711b2821_ActionId": "797c971c-6ed8-4842-b11e-03fd4cd1ae41",
+          "XML:MSIP_Label_05286d43-84a8-4841-b019-e300711b2821_ContentBits": 0,
+          "XML:MSIP_Label_05286d43-84a8-4841-b019-e300711b2821_Enabled": true,
+          "XML:MSIP_Label_05286d43-84a8-4841-b019-e300711b2821_Method": "Standard",
+          "XML:MSIP_Label_05286d43-84a8-4841-b019-e300711b2821_Name": "Internal Use - No Footer",
+          "XML:MSIP_Label_05286d43-84a8-4841-b019-e300711b2821_SetDate": "2021-04-28T21:44:43Z",
+          "XML:MSIP_Label_05286d43-84a8-4841-b019-e300711b2821_SiteId": "cfddba29-ca2a-450c-a415-595e7fcce8e5",
+          "XML:ModifyDate": "2021:04:28 21:44:00Z",
+          "XML:Pages": 1,
+          "XML:Paragraphs": 0,
+          "XML:RevisionNumber": 1,
+          "XML:ScaleCrop": false,
+          "XML:SharedDoc": false,
+          "XML:Template": "Normal.dotm",
+          "XML:TotalEditTime": 0,
+          "XML:Words": 0,
+          "XMP:Creator": "Anderson, Anthony",
+          "XMP:Description": "",
+          "XMP:Subject": "",
+          "XMP:Title": "",
+          "ZIP:ZipBitFlag": 6,
+          "ZIP:ZipCRC": 2653774994,
+          "ZIP:ZipCompressedSize": 357,
+          "ZIP:ZipCompression": 8,
+          "ZIP:ZipFileName": "[Content_Types].xml",
+          "ZIP:ZipModifyDate": "1980:01:01 00:00:00",
+          "ZIP:ZipRequiredVersion": 20,
+          "ZIP:ZipUncompressedSize": 1437
+        },
+        "output_dir": "<root>/files/doc.docx.exif"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.exif:ExifAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=metadata.exif"
+          ],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.file_type:<class 'saq.modules.file_analysis.file_type.FileTypeAnalyzer'>",
+            "saq.modules.file_analysis.hash:<class 'saq.modules.file_analysis.hash.FileHashAnalyzer'>"
+          ],
+          "file_path": "doc.docx.exif/exiftool.out",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "6a65fb99c4c7ecb88273b7f1d49b00640de95cb682cb1a63df0c08764f0ef24d"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 2215,
+          "tags": [],
+          "type": "file",
+          "value": "0345a75971f57d7a22ac4195924e37270f63b0d7f1de8a97859fbe660fdf9e49",
+          "yara_meta": [
+            "type=metadata.exif"
+          ]
+        }
+      ],
+      "summary": "Exiftool Analysis: ZipRequiredVersion=20, ZipBitFlag=6, ZipCompression=8, ZipModifyDate=1980:01:01 00:00:00, ZipCRC=2653774994, ZipCompressedSize=357, ZipUncompressedSize=1437, ZipFileName=[Content_Types].xml, Title=, Subject=, Creator=Anderson, Anthony, Description=, Keywords=, LastModifiedBy=Anderson, Anthony, RevisionNumber=1, CreateDate=2021:04:28 21:44:00Z, ModifyDate=2021:04:28 21:44:00Z, MSIP_Label_05286d43-84a8-4841-b019-e300711b2821_Enabled=True, MSIP_Label_05286d43-84a8-4841-b019-e300711b2821_SetDate=2021-04-28T21:44:43Z, MSIP_Label_05286d43-84a8-4841-b019-e300711b2821_Method=Standard + 20 more",
+      "tags": []
+    },
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": true,
+        "is_office_ext": true,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": true,
+        "mime": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "type": "Microsoft Word 2007+"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: Microsoft Word 2007+ (application/vnd.openxmlformats-officedocument.wordprocessingml.document) (ms office document) (zip archive)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace3/office/doc.docx",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "doc.docx",
+      "size": 12529,
+      "type": "file",
+      "value": "6a65fb99c4c7ecb88273b7f1d49b00640de95cb682cb1a63df0c08764f0ef24d"
+    }
+  },
+  "module": "exif",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "doc.docx",
+    "relationships": [],
+    "size": 12529,
+    "tags": [
+      "microsoft_office",
+      "zip"
+    ],
+    "type": "file",
+    "value": "6a65fb99c4c7ecb88273b7f1d49b00640de95cb682cb1a63df0c08764f0ef24d",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

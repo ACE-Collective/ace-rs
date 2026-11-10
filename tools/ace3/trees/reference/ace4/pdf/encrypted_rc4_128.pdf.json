@@ -152,6 +152,24 @@
       },
       "tags": {}
     },
+    "file:13d38be99556c83802e5858be6ea331590cc8621cb8321d613a89b98bb143439": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "encrypted_rc4_128.pdf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:2cb12e385bef85af88c77ce1f145fddc15e8344e3236dcda3a28f3b4d48907c7": true
+      },
+      "results": {},
+      "tags": {}
+    },
     "file:2b827014b27d850fa53f2250136dbb00258e9ce0ddbddab8bf6fad2126ed88f4": {
       "detections": {},
       "directives": {
@@ -215,57 +233,6 @@
       },
       "tags": {}
     },
-    "file:2bcfbf90715063f25f85fe7cc1c468ed7cab39b5959447164e352dd150cb9aa8": {
-      "detections": {},
-      "directives": {
-        "extract_urls": true
-      },
-      "excluded_analysis": {
-        "pdf_analyzer": true
-      },
-      "paths": {
-        "encrypted_rc4_128.pdf.gs.pdf": {
-          "type=document.pdf": true,
-          "type=document.pdf.rendered": true
-        }
-      },
-      "redirection": "file:2cb12e385bef85af88c77ce1f145fddc15e8344e3236dcda3a28f3b4d48907c7",
-      "relationships": {
-        "extracted_from file:2cb12e385bef85af88c77ce1f145fddc15e8344e3236dcda3a28f3b4d48907c7": true
-      },
-      "results": {
-        "file_type": {
-          "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": true,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "application/pdf",
-            "type": "PDF document, version 1.7, 1 page(s)"
-          },
-          "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
-          "tags": {}
-        },
-        "url_extraction": {
-          "details": {
-            "urls": [],
-            "urls_grouped_by_domain": {}
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {
-        "pdf": true
-      }
-    },
     "file:2cb12e385bef85af88c77ce1f145fddc15e8344e3236dcda3a28f3b4d48907c7": {
       "detections": {},
       "directives": {},
@@ -278,6 +245,34 @@
       },
       "relationships": {},
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:37:11+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:37:11+00:00",
+              "File:FileModifyDate": "2026:11:07 04:47:50+00:00",
+              "File:FileName": "encrypted_rc4_128.pdf",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 1726,
+              "File:FileType": "PDF",
+              "File:FileTypeExtension": "PDF",
+              "File:MIMEType": "application/pdf",
+              "PDF:Encryption": "Standard V2.3 (128-bit)",
+              "PDF:HasXFA": false,
+              "PDF:Linearized": false,
+              "PDF:PDFVersion": 1.7,
+              "PDF:PageCount": 1,
+              "PDF:UserAccess": 2876,
+              "SourceFile": "<root>/files/encrypted_rc4_128.pdf"
+            },
+            "output_dir": "<root>/files/encrypted_rc4_128.pdf.exif"
+          },
+          "summary": "Exiftool Analysis: PDFVersion=1.7, Linearized=False, Encryption=Standard V2.3 (128-bit), UserAccess=2876, HasXFA=False, PageCount=1",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "b7ce37c1f94337dca0f2c0cb712b2c85",
@@ -329,6 +324,23 @@
             }
           },
           "summary": "PDF Analysis: encrypted (rc4 128-bit, R3, P -1028), opens with an empty user password",
+          "tags": {}
+        },
+        "pdftotext": {
+          "details": {
+            "output_path": "ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977",
+            "stderr": "Syntax Error (204): Warning: name token is longer than what the specification says it can be\nSyntax Error (204): Warning: name token is longer than what the specification says it can be\nSyntax Error (204): Warning: name token is longer than what the specification says it can be\nSyntax Error (204): Warning: name token is longer than what the specification says it can be\nSyntax Error (204): Warning: name token is longer than what the specification says it can be\nSyntax Error: Unknown font tag 'F1'\nSyntax Error: No font in show\nSyntax Warning: Direct object in rootFields\nSyntax Warning: Direct object in rootFields\n",
+            "stdout": ""
+          },
+          "summary": "PDF Text Analysis",
+          "tags": {}
+        },
+        "qrcode": {
+          "details": {
+            "extracted_text": null,
+            "inverted": false
+          },
+          "summary": null,
           "tags": {}
         }
       },
@@ -509,6 +521,44 @@
       },
       "tags": {}
     },
+    "file:a62e2fd14228e52df1262da33959d78073459ba41543704cb44bb5c0a12867a5": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "archive": true
+      },
+      "paths": {
+        "encrypted_rc4_128.pdf.gs.pdf.txt": {
+          "type=document.pdf.text": true
+        }
+      },
+      "redirection": "file:d638b4036d0d0a02c4bb39597817907eb0975a0b03b470e0572ed526e81b2f4b",
+      "relationships": {
+        "extracted_from file:d638b4036d0d0a02c4bb39597817907eb0975a0b03b470e0572ed526e81b2f4b": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:c321e51c3df931b807d4ed4448962b1a489356fefd2cd7bf433607adc6743cd2": {
       "detections": {},
       "directives": {},
@@ -561,6 +611,112 @@
         "decrypted_pdf": true,
         "pdf": true
       }
+    },
+    "file:d638b4036d0d0a02c4bb39597817907eb0975a0b03b470e0572ed526e81b2f4b": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {
+        "pdf_analyzer": true
+      },
+      "paths": {
+        "encrypted_rc4_128.pdf.gs.pdf": {
+          "type=document.pdf": true,
+          "type=document.pdf.rendered": true
+        }
+      },
+      "redirection": "file:2cb12e385bef85af88c77ce1f145fddc15e8344e3236dcda3a28f3b4d48907c7",
+      "relationships": {
+        "extracted_from file:2cb12e385bef85af88c77ce1f145fddc15e8344e3236dcda3a28f3b4d48907c7": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": true,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/pdf",
+            "type": "PDF document, version 1.7, 1 page(s)"
+          },
+          "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
+          "tags": {}
+        },
+        "pdftotext": {
+          "details": {
+            "output_path": "a62e2fd14228e52df1262da33959d78073459ba41543704cb44bb5c0a12867a5",
+            "stderr": "",
+            "stdout": ""
+          },
+          "summary": "PDF Text Analysis",
+          "tags": {}
+        },
+        "qrcode": {
+          "details": {
+            "extracted_text": null,
+            "inverted": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "pdf": true
+      }
+    },
+    "file:ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "archive": true
+      },
+      "paths": {
+        "encrypted_rc4_128.pdf.txt": {
+          "type=document.pdf.text": true
+        }
+      },
+      "redirection": "file:2cb12e385bef85af88c77ce1f145fddc15e8344e3236dcda3a28f3b4d48907c7",
+      "relationships": {
+        "extracted_from file:2cb12e385bef85af88c77ce1f145fddc15e8344e3236dcda3a28f3b4d48907c7": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "very short file (no magic)"
+          },
+          "summary": "File Type Analysis: very short file (no magic) (application/octet-stream)",
+          "tags": {}
+        }
+      },
+      "tags": {}
     },
     "fqdn:example.com": {
       "detections": {},

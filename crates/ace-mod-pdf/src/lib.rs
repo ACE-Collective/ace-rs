@@ -15,8 +15,10 @@
 //! - `<file>.js_<name>.js`, a script of the document's JavaScript name tree
 //!   (`type=script.javascript`).
 //!
-//! ace3 also runs Ghostscript here and scans its rewritten PDF. A contained task can't start a
-//! process, so that's left out (`tools/ace3/trees/differences.md`, and PLAN.md 7.3).
+//! - `<file>.gs.pdf`, Ghostscript's rewrite of the PDF (`gs -sDEVICE=pdfwrite`), which ace3 scans for
+//!   the URLs of AES-encrypted PDFs (`type=document.pdf.rendered`). It runs in the sandbox runner
+//!   (PLAN.md 7.3, 7.5 batch 10), so the module is on the sandbox pool. Its bytes differ from run to
+//!   run, as ace3's do: Ghostscript writes the time and an `/ID` from it.
 
 pub mod objects;
 pub mod pdfparser;
@@ -44,6 +46,8 @@ use crate::qpdf::{Document, Kind};
 pub const MANIFEST: Manifest = Manifest::parser::<PdfAnalyzer>();
 
 const EXTRACT_URLS: &str = "extract_urls";
+/// ace3's `GS_TIMEOUT_SECONDS`.
+const GS_TIMEOUT: Duration = Duration::from_secs(10);
 /// ace3's modules that mustn't read the decrypted copy, by their names in `saq.default.yaml`, as
 /// well as this one.
 const NOT_ON_THE_COPY: &[&str] = &["pdftotext", "exif", "qrcode"];
@@ -62,6 +66,7 @@ pub struct PdfAnalyzer;
 impl Module for PdfAnalyzer {
     const NAME: &'static str = "pdf_analyzer";
     const INPUTS: &'static [ObservableKind] = &[ObservableKind::File];
+    const TOOLS: &'static [&'static str] = &["gs"];
     // ace3's global maximum_analysis_time, in which it gives each tool 10 s. libqpdf runs here with
     // nothing to stop it but the supervisor's deadline. Memory: `docs/measurements/pdf-hostile.md`.
     const RESOURCES: Resources = Resources {
@@ -300,6 +305,8 @@ impl Parser for PdfAnalyzer {
         output.add_pdfparser(&format!("{path}.pdfparser"), &run, &source)?;
         drop(run);
         ctx.check_cancelled()?;
+        rewrite(ctx, file, &mut output)?;
+        ctx.check_cancelled()?;
 
         match Document::open(&file.local_path) {
             Ok(document) => read_document(&document, file, &mut output, &limits)?,
@@ -309,6 +316,43 @@ impl Parser for PdfAnalyzer {
         }
         Ok(Outcome::Done(output.result))
     }
+}
+
+/// Ghostscript's rewrite: `gs -sDEVICE=pdfwrite -o output.pdf -f <file>`, kept whatever gs exited
+/// with, and added when it isn't empty, as ace3's block does.
+fn rewrite(
+    ctx: &TaskContext<PdfSettings>,
+    file: &InputFile,
+    output: &mut Output<'_>,
+) -> Result<(), ModuleError> {
+    let local = file.local_path.display().to_string();
+    let run = ace_sdk::tools::ToolRun::new(
+        "gs",
+        [
+            "-sDEVICE=pdfwrite",
+            "-o",
+            "output.pdf",
+            "-f",
+            local.as_str(),
+        ],
+    )
+    .read(&file.local_path)
+    .keep("output.pdf")
+    .timeout(GS_TIMEOUT);
+    let ran = ctx.run_tool(run)?;
+    if let Some(stop) = ran.stopped() {
+        tracing::warn!(?stop, "Ghostscript was stopped");
+    }
+    let target = format!("{}.gs.pdf", file.path.as_str());
+    let Some(rewritten) = ran.output("output.pdf") else {
+        return Ok(());
+    };
+    if std::fs::metadata(rewritten)?.len() == 0 || !name_fits(&target) {
+        return Ok(());
+    }
+    let bytes = std::fs::read(rewritten)?;
+    let source = output.file_ref.clone();
+    output.add(&target, &bytes, "document.pdf.rendered", &source)
 }
 
 fn read_document(
@@ -589,8 +633,17 @@ mod tests {
 
         use super::super::*;
 
-        /// What the module writes for a sample: name, yara_meta type and the file's record.
+        /// What the module writes for a sample but Ghostscript's rewrite, which `rewritten` returns.
         fn run(sample: &str) -> Option<ResultEnvelope<PdfAnalysis>> {
+            let mut result = rewritten(sample)?;
+            result
+                .files
+                .retain(|f| !f.path.as_str().ends_with(".gs.pdf"));
+            Some(result)
+        }
+
+        /// Everything the module writes for a sample, Ghostscript's rewrite included.
+        fn rewritten(sample: &str) -> Option<ResultEnvelope<PdfAnalysis>> {
             let harness = Harness::<PdfAnalyzer>::new().expect("harness");
             let input = harness.sample(sample).expect("a sample");
             match harness.run_parser(input).expect("runs") {
@@ -623,6 +676,20 @@ mod tests {
                 assert!(result.details.encryption.is_none());
                 assert!(result.summary.is_none());
             }
+        }
+
+        /// ace3's `gs -sDEVICE=pdfwrite`, after the dump: `extract_urls`, redirected to the PDF, and
+        /// not for this module.
+        #[test]
+        fn ghostscripts_rewrite_follows_the_dump() {
+            let result = rewritten("ace4/pdf/uris.pdf").expect("a result");
+            let gs = &result.files[1];
+            assert_eq!(gs.path.as_str(), "uris.pdf.gs.pdf");
+            assert_eq!(gs.yara_meta[0].as_str(), "type=document.pdf.rendered");
+            assert_eq!(gs.directives, ["extract_urls"]);
+            assert_eq!(gs.exclude_modules, ["pdf_analyzer"]);
+            assert!(gs.redirection.is_some());
+            assert!(gs.size > 0);
         }
 
         #[test]

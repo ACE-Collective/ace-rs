@@ -1,0 +1,34 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [],
+  "input": {
+    "directives": [
+      "ocr"
+    ],
+    "label": "fixtures/images/broken.png",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "broken.png",
+      "size": 11290,
+      "type": "file",
+      "value": "4043d3f94413427db669a1317fe40a80e06a615d25011505fe5e2081bd124817"
+    }
+  },
+  "module": "ocr",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "ocr"
+    ],
+    "excluded_analysis": [],
+    "file_path": "broken.png",
+    "relationships": [],
+    "size": 11290,
+    "tags": [],
+    "type": "file",
+    "value": "4043d3f94413427db669a1317fe40a80e06a615d25011505fe5e2081bd124817",
+    "yara_meta": []
+  }
+}

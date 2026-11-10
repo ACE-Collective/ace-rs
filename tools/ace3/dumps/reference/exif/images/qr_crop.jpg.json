@@ -1,0 +1,60 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "image/jpeg",
+        "type": "JPEG image data, JFIF standard 1.01, aspect ratio, density 1x1, segment length 16, baseline, precision 8, 449x449, components 3"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: JPEG image data, JFIF standard 1.01, aspect ratio, density 1x1, segment length 16, baseline, precision 8, 449x449, components 3 (image/jpeg)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/images/qr_crop.jpg",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "qr_crop.jpg",
+      "size": 47660,
+      "type": "file",
+      "value": "989689b636f2dde51c5e8eedefcb1fd8d8eb0388ed6ba84cbe4fd19472e51ef3"
+    }
+  },
+  "module": "exif",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=image"
+    ],
+    "excluded_analysis": [],
+    "file_path": "qr_crop.jpg",
+    "relationships": [],
+    "size": 47660,
+    "tags": [],
+    "type": "file",
+    "value": "989689b636f2dde51c5e8eedefcb1fd8d8eb0388ed6ba84cbe4fd19472e51ef3",
+    "yara_meta": [
+      "type=image"
+    ]
+  }
+}

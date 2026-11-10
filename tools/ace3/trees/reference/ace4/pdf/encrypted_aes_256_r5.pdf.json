@@ -275,57 +275,6 @@
       },
       "tags": {}
     },
-    "file:6a8a87b37547b29445429dce960ae570854a25d16aaf7b8a284cba985237183e": {
-      "detections": {},
-      "directives": {
-        "extract_urls": true
-      },
-      "excluded_analysis": {
-        "pdf_analyzer": true
-      },
-      "paths": {
-        "encrypted_aes_256_r5.pdf.gs.pdf": {
-          "type=document.pdf": true,
-          "type=document.pdf.rendered": true
-        }
-      },
-      "redirection": "file:de308323882d512dc816d216084b9b5bd59059b0e74c0d49c9ca1168218cc6cf",
-      "relationships": {
-        "extracted_from file:de308323882d512dc816d216084b9b5bd59059b0e74c0d49c9ca1168218cc6cf": true
-      },
-      "results": {
-        "file_type": {
-          "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": true,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "application/pdf",
-            "type": "PDF document, version 1.7, 1 page(s)"
-          },
-          "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
-          "tags": {}
-        },
-        "url_extraction": {
-          "details": {
-            "urls": [],
-            "urls_grouped_by_domain": {}
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {
-        "pdf": true
-      }
-    },
     "file:778680bd6222c6efb604412bcfc74402e3b85d8f4f7d15cdc9f1605f9d8b18ec": {
       "detections": {},
       "directives": {
@@ -503,6 +452,34 @@
       },
       "relationships": {},
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:35:47+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:35:47+00:00",
+              "File:FileModifyDate": "2026:11:07 04:47:50+00:00",
+              "File:FileName": "encrypted_aes_256_r5.pdf",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 2520,
+              "File:FileType": "PDF",
+              "File:FileTypeExtension": "PDF",
+              "File:MIMEType": "application/pdf",
+              "PDF:Encryption": "Standard V5.5 (256-bit)",
+              "PDF:HasXFA": false,
+              "PDF:Linearized": false,
+              "PDF:PDFVersion": 1.7,
+              "PDF:PageCount": 1,
+              "PDF:UserAccess": 2876,
+              "SourceFile": "<root>/files/encrypted_aes_256_r5.pdf"
+            },
+            "output_dir": "<root>/files/encrypted_aes_256_r5.pdf.exif"
+          },
+          "summary": "Exiftool Analysis: PDFVersion=1.7, Linearized=False, Encryption=Standard V5.5 (256-bit), UserAccess=2876, HasXFA=False, PageCount=1",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "ec864ada2baecba511d12380cc70e7c9",
@@ -555,10 +532,147 @@
           },
           "summary": "PDF Analysis: encrypted (aesv3 256-bit, R5, P -1028), opens with an empty user password",
           "tags": {}
+        },
+        "pdftotext": {
+          "details": {
+            "output_path": "ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977",
+            "stderr": "Syntax Error (254): Warning: name token is longer than what the specification says it can be\nSyntax Error (254): Warning: name token is longer than what the specification says it can be\nSyntax Error (254): Warning: name token is longer than what the specification says it can be\nSyntax Error (254): Warning: name token is longer than what the specification says it can be\nSyntax Error (254): Warning: name token is longer than what the specification says it can be\nSyntax Error: Unknown font tag 'F1'\nSyntax Error: No font in show\nSyntax Warning: Direct object in rootFields\nSyntax Warning: Direct object in rootFields\n",
+            "stdout": ""
+          },
+          "summary": "PDF Text Analysis",
+          "tags": {}
         }
       },
       "tags": {
         "encrypted_pdf_empty_password": true,
+        "pdf": true
+      }
+    },
+    "file:e3e9e4d60a0db9b1da371409c9975f1c385f5a75f278324b2b326b904fbc2672": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "encrypted_aes_256_r5.pdf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:de308323882d512dc816d216084b9b5bd59059b0e74c0d49c9ca1168218cc6cf": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "file:ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "archive": true
+      },
+      "paths": {
+        "encrypted_aes_256_r5.pdf.gs.pdf.txt": {
+          "type=document.pdf.text": true
+        },
+        "encrypted_aes_256_r5.pdf.txt": {
+          "type=document.pdf.text": true
+        }
+      },
+      "redirection": "file:fe4e2eb33226b9e6d20217e9e6c71a581e31a9b2c602a7faf2dcf4795462e10e",
+      "relationships": {
+        "extracted_from file:de308323882d512dc816d216084b9b5bd59059b0e74c0d49c9ca1168218cc6cf": true,
+        "extracted_from file:fe4e2eb33226b9e6d20217e9e6c71a581e31a9b2c602a7faf2dcf4795462e10e": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "very short file (no magic)"
+          },
+          "summary": "File Type Analysis: very short file (no magic) (application/octet-stream)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:fe4e2eb33226b9e6d20217e9e6c71a581e31a9b2c602a7faf2dcf4795462e10e": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {
+        "pdf_analyzer": true
+      },
+      "paths": {
+        "encrypted_aes_256_r5.pdf.gs.pdf": {
+          "type=document.pdf": true,
+          "type=document.pdf.rendered": true
+        }
+      },
+      "redirection": "file:de308323882d512dc816d216084b9b5bd59059b0e74c0d49c9ca1168218cc6cf",
+      "relationships": {
+        "extracted_from file:de308323882d512dc816d216084b9b5bd59059b0e74c0d49c9ca1168218cc6cf": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": true,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/pdf",
+            "type": "PDF document, version 1.7, 1 page(s)"
+          },
+          "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
+          "tags": {}
+        },
+        "pdftotext": {
+          "details": {
+            "output_path": "ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977",
+            "stderr": "",
+            "stdout": ""
+          },
+          "summary": "PDF Text Analysis",
+          "tags": {}
+        },
+        "qrcode": {
+          "details": {
+            "extracted_text": null,
+            "inverted": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
         "pdf": true
       }
     },

@@ -13,6 +13,31 @@
       },
       "relationships": {},
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:34:27+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:34:27+00:00",
+              "File:FileModifyDate": "2026:11:07 04:47:50+00:00",
+              "File:FileName": "annots_real.pdf",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 327,
+              "File:FileType": "PDF",
+              "File:FileTypeExtension": "PDF",
+              "File:MIMEType": "application/pdf",
+              "PDF:Linearized": false,
+              "PDF:PDFVersion": 1.7,
+              "PDF:PageCount": 1,
+              "SourceFile": "<root>/files/annots_real.pdf"
+            },
+            "output_dir": "<root>/files/annots_real.pdf.exif"
+          },
+          "summary": "Exiftool Analysis: PDFVersion=1.7, Linearized=False, PageCount=1",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "12fd8c9391a1ac6ae18b457639ac4232",
@@ -45,13 +70,30 @@
           "details": {},
           "summary": null,
           "tags": {}
+        },
+        "pdftotext": {
+          "details": {
+            "output_path": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stderr": "Syntax Error: Page annotations object (page 1) is wrong type (real)\nSyntax Error: Failed to create page (page 1)\n",
+            "stdout": ""
+          },
+          "summary": "PDF Text Analysis",
+          "tags": {}
+        },
+        "qrcode": {
+          "details": {
+            "extracted_text": null,
+            "inverted": false
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {
         "pdf": true
       }
     },
-    "file:5e8d5747aafa912d8ff3b9b5169e742c3f372f1731cb9df9b095f40af5c8542f": {
+    "file:1631ba1446fce8773bc8d4c902740c37c8062f4fe11cab3d0d0bc938f2764f71": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -87,6 +129,23 @@
             "type": "PDF document, version 1.7, 1 page(s)"
           },
           "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
+          "tags": {}
+        },
+        "pdftotext": {
+          "details": {
+            "output_path": "ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977",
+            "stderr": "",
+            "stdout": ""
+          },
+          "summary": "PDF Text Analysis",
+          "tags": {}
+        },
+        "qrcode": {
+          "details": {
+            "extracted_text": null,
+            "inverted": false
+          },
+          "summary": null,
           "tags": {}
         },
         "url_extraction": {
@@ -143,6 +202,100 @@
             "urls_grouped_by_domain": {}
           },
           "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:b95980880c81257d3eb308bf32abf2d9ffc6d78dfd03eecdb252e247ad63737b": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "annots_real.pdf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:151cebaa36f99b2dc8bc3b5c1da79c446db268032424ae812e9f544fb9111d18": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "file:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "archive": true
+      },
+      "paths": {
+        "annots_real.pdf.txt": {
+          "type=document.pdf.text": true
+        }
+      },
+      "redirection": "file:151cebaa36f99b2dc8bc3b5c1da79c446db268032424ae812e9f544fb9111d18",
+      "relationships": {
+        "extracted_from file:151cebaa36f99b2dc8bc3b5c1da79c446db268032424ae812e9f544fb9111d18": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "inode/x-empty",
+            "type": "empty"
+          },
+          "summary": "File Type Analysis: empty (inode/x-empty)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "archive": true
+      },
+      "paths": {
+        "annots_real.pdf.gs.pdf.txt": {
+          "type=document.pdf.text": true
+        }
+      },
+      "redirection": "file:1631ba1446fce8773bc8d4c902740c37c8062f4fe11cab3d0d0bc938f2764f71",
+      "relationships": {
+        "extracted_from file:1631ba1446fce8773bc8d4c902740c37c8062f4fe11cab3d0d0bc938f2764f71": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "very short file (no magic)"
+          },
+          "summary": "File Type Analysis: very short file (no magic) (application/octet-stream)",
           "tags": {}
         }
       },

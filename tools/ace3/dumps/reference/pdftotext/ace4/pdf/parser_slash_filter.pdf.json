@@ -1,0 +1,50 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "PDFTextAnalysis",
+      "details": {
+        "output_path": null,
+        "stderr": "Syntax Error: Couldn't find trailer dictionary\nSyntax Error: Couldn't find trailer dictionary\nSyntax Error: Couldn't read xref table\n",
+        "stdout": ""
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.pdf:PDFTextAnalysis",
+      "observables": [],
+      "summary": null,
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace4/pdf/parser_slash_filter.pdf",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "parser_slash_filter.pdf",
+      "size": 52,
+      "type": "file",
+      "value": "eaff6e19a40b1d271069375b46a5ff943be52dd1ff17f38e254b75f8710e9cf1"
+    }
+  },
+  "module": "pdftotext",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "parser_slash_filter.pdf",
+    "relationships": [],
+    "size": 52,
+    "tags": [],
+    "type": "file",
+    "value": "eaff6e19a40b1d271069375b46a5ff943be52dd1ff17f38e254b75f8710e9cf1",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

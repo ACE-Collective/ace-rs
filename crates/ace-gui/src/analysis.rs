@@ -73,11 +73,13 @@ use ace_results::types::pcode::PCodeAnalysis;
 use ace_results::types::pdf::PdfAnalysis;
 use ace_results::types::rdap::RdapAnalysis;
 use ace_results::types::rtf::RtfOleObjectAnalysis;
+use ace_results::types::sandbox::{ExifAnalysis, OcrAnalysis, PdfTextAnalysis, QrCodeAnalysis};
 use ace_results::types::scripts::{
     ExtractedRtfAnalysis, MicrosoftScriptEncodingAnalysis, NoWhiteSpaceAnalysis, VbScriptAnalysis,
 };
 use ace_results::types::snort::SnortSignatureAnalysis;
 use ace_results::types::splunk::{SplunkApiAnalysis, SplunkClickerDetectionAnalysis};
+use ace_results::types::ssdeep::SsdeepAnalysis;
 use ace_results::types::url_extraction::UrlExtractionAnalysis;
 use ace_results::types::user::UserAnalysis;
 use ace_results::types::values::{
@@ -250,6 +252,11 @@ impl Views {
             .with(ViewEntry::of::<EncryptedArchiveAnalysis>())
             .with(ViewEntry::of::<UrlEmailPivotAnalysis>())
             .with(ViewEntry::of::<MessageIdAnalysis>())
+            .with(ViewEntry::of::<PdfTextAnalysis>())
+            .with(ViewEntry::of::<ExifAnalysis>())
+            .with(ViewEntry::of::<QrCodeAnalysis>())
+            .with(ViewEntry::of::<OcrAnalysis>())
+            .with(ViewEntry::of::<SsdeepAnalysis>())
     }
 
     /// These views with `entry`, which takes the place of any view of the same type and version, so a
@@ -1809,6 +1816,74 @@ impl AnalysisView for MessageIdAnalysis {
             field("error", self.error.as_ref()),
             field("extracted_email", self.extracted_email.as_ref()),
         ])
+    }
+}
+
+// ---- PDF and image text (7.5 batch 10): ace3's default_template.html ----
+
+/// `pdf_text_analysis`: what pdftotext printed, and the text file's sha256.
+impl AnalysisView for PdfTextAnalysis {
+    type View<'a> = FieldsView;
+    fn view(&self) -> FieldsView {
+        fields_view([
+            field("output_path", self.output_path.as_ref()),
+            field("stdout", self.stdout.as_ref().filter(|s| !s.is_empty())),
+            field("stderr", self.stderr.as_ref().filter(|s| !s.is_empty())),
+        ])
+    }
+}
+
+/// `exif_analysis`: ExifTool's tags, a field each, or why it gave none.
+impl AnalysisView for ExifAnalysis {
+    type View<'a> = FieldsView;
+    fn view(&self) -> FieldsView {
+        let mut fields = vec![field("error", self.error.as_ref())];
+        for (name, value) in &self.exifdata {
+            let text = match value {
+                serde_json::Value::String(text) => text.clone(),
+                other => other.to_string(),
+            };
+            fields.push(Some(Field {
+                name: "tag",
+                value: format!("{name} = {text}"),
+            }));
+        }
+        fields_view(fields)
+    }
+}
+
+/// `qr_code_analysis`: the URLs read, and whether from the image inverted.
+impl AnalysisView for QrCodeAnalysis {
+    type View<'a> = FieldsView;
+    fn view(&self) -> FieldsView {
+        fields_view([
+            field("extracted_text", self.extracted_text.as_ref()),
+            field("inverted", self.inverted.then_some("yes")),
+        ])
+    }
+}
+
+/// `ocr_analysis`, whose text is the file it added.
+impl AnalysisView for OcrAnalysis {
+    type View<'a> = FieldsView;
+    fn view(&self) -> FieldsView {
+        fields_view([
+            field("error", self.error.as_ref()),
+            field("ocr", self.ocr.then_some("text found")),
+        ])
+    }
+}
+
+/// `ssdeep_analysis`: each known file matched, with its score.
+impl AnalysisView for SsdeepAnalysis {
+    type View<'a> = FieldsView;
+    fn view(&self) -> FieldsView {
+        fields_view(self.matches.iter().map(|m| {
+            Some(Field {
+                name: "match",
+                value: format!("{} ({}%)", m.file, m.score),
+            })
+        }))
     }
 }
 

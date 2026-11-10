@@ -1,0 +1,148 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "ExifAnalysis",
+      "details": {
+        "error": null,
+        "exifdata": {
+          "ExifTool:ExifToolVersion": 13.25,
+          "File:Directory": "<root>/files",
+          "File:FileAccessDate": "2026:11:10 10:54:11+00:00",
+          "File:FileInodeChangeDate": "2026:11:10 10:54:11+00:00",
+          "File:FileModifyDate": "2026:11:06 19:20:07+00:00",
+          "File:FileName": "mortgage_payment-0873821-0565.docm",
+          "File:FilePermissions": 100644,
+          "File:FileSize": 73622,
+          "File:FileType": "DOCM",
+          "File:FileTypeExtension": "DOCM",
+          "File:MIMEType": "application/vnd.ms-word.document.macroEnabled.12",
+          "SourceFile": "<root>/files/mortgage_payment-0873821-0565.docm",
+          "XML:AppVersion": 14.0,
+          "XML:Characters": 74,
+          "XML:CharactersWithSpaces": 85,
+          "XML:CreateDate": "2018:01:28 18:42:00Z",
+          "XML:DocSecurity": 0,
+          "XML:HeadingPairs": [
+            "Название",
+            1
+          ],
+          "XML:HyperlinksChanged": false,
+          "XML:Lines": 1,
+          "XML:LinksUpToDate": false,
+          "XML:ModifyDate": "2018:02:07 01:36:00Z",
+          "XML:Pages": 1,
+          "XML:Paragraphs": 1,
+          "XML:ScaleCrop": false,
+          "XML:SharedDoc": false,
+          "XML:Template": "Normal.dotm",
+          "XML:TitlesOfParts": "",
+          "XML:TotalEditTime": 8,
+          "XML:Words": 12,
+          "ZIP:ZipBitFlag": 6,
+          "ZIP:ZipCRC": 3821436455,
+          "ZIP:ZipCompressedSize": 462,
+          "ZIP:ZipCompression": 8,
+          "ZIP:ZipFileName": "[Content_Types].xml",
+          "ZIP:ZipModifyDate": "1980:01:01 00:00:00",
+          "ZIP:ZipRequiredVersion": 20,
+          "ZIP:ZipUncompressedSize": 1745
+        },
+        "output_dir": "<root>/files/mortgage_payment-0873821-0565.docm.exif"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.exif:ExifAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=metadata.exif"
+          ],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.file_type:<class 'saq.modules.file_analysis.file_type.FileTypeAnalyzer'>",
+            "saq.modules.file_analysis.hash:<class 'saq.modules.file_analysis.hash.FileHashAnalyzer'>"
+          ],
+          "file_path": "mortgage_payment-0873821-0565.docm.exif/exiftool.out",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "45cca7fd63944ca6b6ea4e4669078cf3520b3896956c183c9bfd0fb3d0bfaf4f"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 1451,
+          "tags": [],
+          "type": "file",
+          "value": "261db6697066576c7d6e64ffb42f4f57b4c9a25255107db6332ef68d4afb8e70",
+          "yara_meta": [
+            "type=metadata.exif"
+          ]
+        }
+      ],
+      "summary": "Exiftool Analysis: ZipRequiredVersion=20, ZipBitFlag=6, ZipCompression=8, ZipModifyDate=1980:01:01 00:00:00, ZipCRC=3821436455, ZipCompressedSize=462, ZipUncompressedSize=1745, ZipFileName=[Content_Types].xml, Template=Normal.dotm, TotalEditTime=8, Pages=1, Words=12, Characters=74, DocSecurity=0, Lines=1, Paragraphs=1, ScaleCrop=False, HeadingPairs=['Название', 1], TitlesOfParts=, LinksUpToDate=False + 6 more",
+      "tags": []
+    },
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": true,
+        "is_office_ext": true,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": true,
+        "mime": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "type": "Microsoft Word 2007+"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: Microsoft Word 2007+ (application/vnd.openxmlformats-officedocument.wordprocessingml.document) (ms office document) (zip archive)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace3/office/mortgage_payment-0873821-0565.docm",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "mortgage_payment-0873821-0565.docm",
+      "size": 73622,
+      "type": "file",
+      "value": "45cca7fd63944ca6b6ea4e4669078cf3520b3896956c183c9bfd0fb3d0bfaf4f"
+    }
+  },
+  "module": "exif",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "mortgage_payment-0873821-0565.docm",
+    "relationships": [],
+    "size": 73622,
+    "tags": [
+      "microsoft_office",
+      "zip"
+    ],
+    "type": "file",
+    "value": "45cca7fd63944ca6b6ea4e4669078cf3520b3896956c183c9bfd0fb3d0bfaf4f",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

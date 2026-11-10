@@ -216,6 +216,28 @@
       },
       "relationships": {},
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:16:53+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:16:53+00:00",
+              "File:FileModifyDate": "2026:11:07 10:46:15+00:00",
+              "File:FileName": "encrypted_bad_standard_name.docx",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 8192,
+              "File:FileType": "DOCX",
+              "File:FileTypeExtension": "DOCX",
+              "File:MIMEType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+              "SourceFile": "<root>/files/encrypted_bad_standard_name.docx"
+            },
+            "output_dir": "<root>/files/encrypted_bad_standard_name.docx.exif"
+          },
+          "summary": "Exiftool Analysis: ",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "01aef54593b7eec555f3be626d15959c",
@@ -322,6 +344,24 @@
           "tags": {}
         }
       },
+      "tags": {}
+    },
+    "file:d327f826021065831fc263bbddf4d23e45860d1c1f66599d202b5915bf4d2aa1": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "encrypted_bad_standard_name.docx.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:b3ec160f5339033e6e381a190364b063bc67095b6c855e42ec45e3785f1bce22": true
+      },
+      "results": {},
       "tags": {}
     },
     "file:e81d2d7f4d8b4aa96a9d1ac9aad489caa06f24c3de2b66471479daf34672ce3a": {

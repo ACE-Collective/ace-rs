@@ -1,0 +1,135 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "ExifAnalysis",
+      "details": {
+        "error": null,
+        "exifdata": {
+          "ExifTool:ExifToolVersion": 13.25,
+          "File:Directory": "<root>/files",
+          "File:FileAccessDate": "2026:11:10 11:00:23+00:00",
+          "File:FileInodeChangeDate": "2026:11:10 11:00:23+00:00",
+          "File:FileModifyDate": "2026:11:06 19:20:07+00:00",
+          "File:FileName": "Payment_Advice.pdf",
+          "File:FilePermissions": 100644,
+          "File:FileSize": 29664,
+          "File:FileType": "PDF",
+          "File:FileTypeExtension": "PDF",
+          "File:MIMEType": "application/pdf",
+          "PDF:Author": "fe dsre",
+          "PDF:CreateDate": "2018:03:08 19:33:15+01:00",
+          "PDF:Creator": "Soda PDF",
+          "PDF:Linearized": true,
+          "PDF:ModifyDate": "2018:03:19 01:39:18+01:00",
+          "PDF:PDFVersion": 1.7,
+          "PDF:PageCount": 1,
+          "PDF:Producer": "ilovepdf.com",
+          "SourceFile": "<root>/files/Payment_Advice.pdf",
+          "XMP:CreateDate": "2018:03:08 19:33:15+01:00",
+          "XMP:Creator": "fe dsre",
+          "XMP:CreatorTool": "Soda PDF",
+          "XMP:Format": "application/pdf",
+          "XMP:ModifyDate": "2018:03:19 01:39:18+01:00",
+          "XMP:Producer": "ilovepdf.com",
+          "XMP:XMPToolkit": "XMP Core 4.4.0-soda"
+        },
+        "output_dir": "<root>/files/Payment_Advice.pdf.exif"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.exif:ExifAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=metadata.exif"
+          ],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.file_type:<class 'saq.modules.file_analysis.file_type.FileTypeAnalyzer'>",
+            "saq.modules.file_analysis.hash:<class 'saq.modules.file_analysis.hash.FileHashAnalyzer'>"
+          ],
+          "file_path": "Payment_Advice.pdf.exif/exiftool.out",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "fa13c652534f9207beec811a50948860f5b3194aeae686fcdecac645fae65d15"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 1099,
+          "tags": [],
+          "type": "file",
+          "value": "dbf60018e2422f4e6e2125bf3f1ac83a48a43f98ed495d3504bb1a0dc1495b5d",
+          "yara_meta": [
+            "type=metadata.exif"
+          ]
+        }
+      ],
+      "summary": "Exiftool Analysis: PDFVersion=1.7, Linearized=True, Author=fe dsre, CreateDate=2018:03:08 19:33:15+01:00, Creator=Soda PDF, ModifyDate=2018:03:19 01:39:18+01:00, Producer=ilovepdf.com, PageCount=1, XMPToolkit=XMP Core 4.4.0-soda, Format=application/pdf, CreatorTool=Soda PDF, ModifyDate=2018:03:19 01:39:18+01:00, CreateDate=2018:03:08 19:33:15+01:00, Creator=fe dsre, Producer=ilovepdf.com",
+      "tags": []
+    },
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": true,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "application/pdf",
+        "type": "PDF document, version 1.7 (zip deflate encoded)"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: PDF document, version 1.7 (zip deflate encoded) (application/pdf) (pdf document)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace3/pdf/Payment_Advice.pdf",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "Payment_Advice.pdf",
+      "size": 29664,
+      "type": "file",
+      "value": "fa13c652534f9207beec811a50948860f5b3194aeae686fcdecac645fae65d15"
+    }
+  },
+  "module": "exif",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=document.pdf",
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "Payment_Advice.pdf",
+    "relationships": [],
+    "size": 29664,
+    "tags": [
+      "pdf"
+    ],
+    "type": "file",
+    "value": "fa13c652534f9207beec811a50948860f5b3194aeae686fcdecac645fae65d15",
+    "yara_meta": [
+      "type=document.pdf",
+      "type=email.attachment"
+    ]
+  }
+}

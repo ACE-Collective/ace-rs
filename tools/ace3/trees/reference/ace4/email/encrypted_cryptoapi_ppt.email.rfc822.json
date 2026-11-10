@@ -92,6 +92,24 @@
       },
       "tags": {}
     },
+    "file:22a6ddb584c6dc93343e5530c2de4846f3d990210268c43428e06bfe27e5637a": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "invoice.ppt.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:560f5ccd8b5c88d60634dceef0382d47d39756d195ff1e0602cec3b2994ebfe2": true
+      },
+      "results": {},
+      "tags": {}
+    },
     "file:283b1396b1f2df6f102be289de48537a5077be826ec492daa3b83a2a5baaab4a": {
       "detections": {},
       "directives": {
@@ -252,6 +270,29 @@
       },
       "relationships": {},
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:11:53+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:11:53+00:00",
+              "File:FileModifyDate": "2026:11:10 11:11:53+00:00",
+              "File:FileName": "invoice.ppt",
+              "File:FilePermissions": 100664,
+              "File:FileSize": 2560,
+              "File:FileType": "PPT",
+              "File:FileTypeExtension": "PPT",
+              "File:MIMEType": "application/vnd.ms-powerpoint",
+              "FlashPix:CurrentUser": "a",
+              "SourceFile": "<root>/files/invoice.ppt"
+            },
+            "output_dir": "<root>/files/invoice.ppt.exif"
+          },
+          "summary": "Exiftool Analysis: CurrentUser=a",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "df392c378f4db91570b03fc34eb6f79e",
@@ -380,6 +421,29 @@
       },
       "relationships": {},
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:11:53+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:11:53+00:00",
+              "File:FileModifyDate": "2026:11:10 11:11:53+00:00",
+              "File:FileName": "invoice.ppt.decrypted",
+              "File:FilePermissions": 100666,
+              "File:FileSize": 2560,
+              "File:FileType": "FPX",
+              "File:FileTypeExtension": "FPX",
+              "File:MIMEType": "image/vnd.fpx",
+              "FlashPix:CurrentUser": "a",
+              "SourceFile": "<root>/files/invoice.ppt.decrypted"
+            },
+            "output_dir": "<root>/files/invoice.ppt.decrypted.exif"
+          },
+          "summary": "Exiftool Analysis: CurrentUser=a",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "4b212f7098b5d7d33aa1f43eb39a5c40",
@@ -760,6 +824,24 @@
           "tags": {}
         }
       },
+      "tags": {}
+    },
+    "file:d15523840474890263073c44a02b7ba36ccd207edde0da21a4d1635c29d5eb56": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "invoice.ppt.decrypted.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:6a31409a43eb61fb673a2c6cb0dddc479b589d33663016c5a1fa26dde87fc189": true
+      },
+      "results": {},
       "tags": {}
     },
     "file:ebcbd5f378239f5638a26a8fc2256df5e0b976ed9ee28ba9d10b88266ffbc790": {

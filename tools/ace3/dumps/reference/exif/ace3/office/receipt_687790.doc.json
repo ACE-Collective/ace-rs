@@ -1,0 +1,158 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "ExifAnalysis",
+      "details": {
+        "error": null,
+        "exifdata": {
+          "ExifTool:ExifToolVersion": 13.25,
+          "File:Directory": "<root>/files",
+          "File:FileAccessDate": "2026:11:10 10:54:13+00:00",
+          "File:FileInodeChangeDate": "2026:11:10 10:54:13+00:00",
+          "File:FileModifyDate": "2026:11:06 19:20:07+00:00",
+          "File:FileName": "receipt_687790.doc",
+          "File:FilePermissions": 100644,
+          "File:FileSize": 219648,
+          "File:FileType": "DOC",
+          "File:FileTypeExtension": "DOC",
+          "File:MIMEType": "application/msword",
+          "FlashPix:AppVersion": 15.0,
+          "FlashPix:Author": "nigan",
+          "FlashPix:CharCountWithSpaces": 21313,
+          "FlashPix:Characters": 18168,
+          "FlashPix:CodePage": 1252,
+          "FlashPix:Comments": "",
+          "FlashPix:CompObjUserType": "Microsoft Word 97-2003 Document",
+          "FlashPix:CompObjUserTypeLen": 32,
+          "FlashPix:Company": "",
+          "FlashPix:CreateDate": "2018:01:31 15:32:00",
+          "FlashPix:DocFlags": 4616,
+          "FlashPix:HeadingPairs": [
+            "Title",
+            1
+          ],
+          "FlashPix:HyperlinksChanged": 0,
+          "FlashPix:Identification": 42476,
+          "FlashPix:Keywords": "",
+          "FlashPix:LanguageCode": 1033,
+          "FlashPix:LastModifiedBy": "nigan",
+          "FlashPix:LastPrinted": "0000:00:00 00:00:00",
+          "FlashPix:Lines": 151,
+          "FlashPix:LinksUpToDate": 0,
+          "FlashPix:ModifyDate": "2018:01:31 15:42:00",
+          "FlashPix:Pages": 24,
+          "FlashPix:Paragraphs": 42,
+          "FlashPix:RevisionNumber": 3,
+          "FlashPix:ScaleCrop": 0,
+          "FlashPix:Security": 8,
+          "FlashPix:SharedDoc": 0,
+          "FlashPix:Software": "Microsoft Office Word",
+          "FlashPix:Subject": "",
+          "FlashPix:System": 0,
+          "FlashPix:Template": "Normal",
+          "FlashPix:Title": "",
+          "FlashPix:TitleOfParts": "",
+          "FlashPix:TotalEditTime": 3,
+          "FlashPix:Word97": 0,
+          "FlashPix:Words": 3187,
+          "SourceFile": "<root>/files/receipt_687790.doc"
+        },
+        "output_dir": "<root>/files/receipt_687790.doc.exif"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.exif:ExifAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=metadata.exif"
+          ],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.file_type:<class 'saq.modules.file_analysis.file_type.FileTypeAnalyzer'>",
+            "saq.modules.file_analysis.hash:<class 'saq.modules.file_analysis.hash.FileHashAnalyzer'>"
+          ],
+          "file_path": "receipt_687790.doc.exif/exiftool.out",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "a363fb24edce3162326238d0152b99845d0dd0be53191183aad2ceba2d168a2a"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 1746,
+          "tags": [],
+          "type": "file",
+          "value": "4f6c575a4093b140624b49abb6f2c74ee23a1b7cf049e7a17fee749c590dd996",
+          "yara_meta": [
+            "type=metadata.exif"
+          ]
+        }
+      ],
+      "summary": "Exiftool Analysis: Identification=42476, LanguageCode=1033, DocFlags=4616, System=0, Word97=0, Title=, Subject=, Author=nigan, Keywords=, Comments=, Template=Normal, LastModifiedBy=nigan, Software=Microsoft Office Word, CreateDate=2018:01:31 15:32:00, ModifyDate=2018:01:31 15:42:00, Security=8, CodePage=1252, Company=, CharCountWithSpaces=21313, AppVersion=15.0 + 16 more",
+      "tags": []
+    },
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": true,
+        "is_office_ext": true,
+        "is_ole_file": true,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "application/msword",
+        "type": "Composite Document File V2 Document, Little Endian, Os: Windows, Version 6.1, Code page: 1252, Author: nigan, Template: Normal, Last Saved By: nigan, Revision Number: 3, Name of Creating Application: Microsoft Office Word, Total Editing Time: 03:00, Create Time/Date: Sun Dec 31 15:32:00 2017, Last Saved Time/Date: Sun Dec 31 15:42:00 2017, Number of Pages: 24, Number of Words: 3187, Number of Characters: 18168, Security: 8"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: Composite Document File V2 Document, Little Endian, Os: Windows, Version 6.1, Code page: 1252, Author: nigan, Template: Normal, Last Saved By: nigan, Revision Number: 3, Name of Creating Application: Microsoft Office Word, Total Editing Time: 03:00, Create Time/Date: Sun Dec 31 15:32:00 2017, Last Saved Time/Date: Sun Dec 31 15:42:00 2017, Number of Pages: 24, Number of Words: 3187, Number of Characters: 18168, Security: 8 (application/msword) (ms office document) (ole compound file)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace3/office/receipt_687790.doc",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "receipt_687790.doc",
+      "size": 219648,
+      "type": "file",
+      "value": "a363fb24edce3162326238d0152b99845d0dd0be53191183aad2ceba2d168a2a"
+    }
+  },
+  "module": "exif",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "receipt_687790.doc",
+    "relationships": [],
+    "size": 219648,
+    "tags": [
+      "microsoft_office",
+      "ole"
+    ],
+    "type": "file",
+    "value": "a363fb24edce3162326238d0152b99845d0dd0be53191183aad2ceba2d168a2a",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

@@ -1,0 +1,134 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "ExifAnalysis",
+      "details": {
+        "error": null,
+        "exifdata": {
+          "ExifTool:ExifToolVersion": 13.25,
+          "File:Directory": "<root>/files",
+          "File:FileAccessDate": "2026:11:10 10:54:03+00:00",
+          "File:FileInodeChangeDate": "2026:11:10 10:54:03+00:00",
+          "File:FileModifyDate": "2026:11:06 19:20:07+00:00",
+          "File:FileName": "demo.odt",
+          "File:FilePermissions": 100644,
+          "File:FileSize": 7668,
+          "File:FileType": "ODT",
+          "File:FileTypeExtension": "ODT",
+          "File:MIMEType": "application/vnd.oasis.opendocument.text",
+          "File:PreviewPNG": "(Binary data 728 bytes, use -b option to extract)",
+          "SourceFile": "<root>/files/demo.odt",
+          "XMP:Creation-date": "2017:02:06 15:15:47.35",
+          "XMP:Creator": "sinn3r ",
+          "XMP:Date": "2017:02:06 15:21:59.64",
+          "XMP:Document-statisticCharacter-count": 0,
+          "XMP:Document-statisticImage-count": 0,
+          "XMP:Document-statisticObject-count": 0,
+          "XMP:Document-statisticPage-count": 1,
+          "XMP:Document-statisticParagraph-count": 0,
+          "XMP:Document-statisticTable-count": 0,
+          "XMP:Document-statisticWord-count": 0,
+          "XMP:Editing-cycles": 2,
+          "XMP:Editing-duration": "PT4M16S",
+          "XMP:Generator": "OpenOffice/4.1.3$Win32 OpenOffice.org_project/413m1$Build-9783",
+          "XMP:Initial-creator": "sinn3r "
+        },
+        "output_dir": "<root>/files/demo.odt.exif"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.exif:ExifAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=metadata.exif"
+          ],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.file_type:<class 'saq.modules.file_analysis.file_type.FileTypeAnalyzer'>",
+            "saq.modules.file_analysis.hash:<class 'saq.modules.file_analysis.hash.FileHashAnalyzer'>"
+          ],
+          "file_path": "demo.odt.exif/exiftool.out",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "8495d37825dab8744f7d2c8049fc6b70b1777b9184f0abe69ce314795480ce39"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 1254,
+          "tags": [],
+          "type": "file",
+          "value": "ab8c23c82fdf93db50bc5c709cf41186a037c905eba7565957f3dd26b5f38212",
+          "yara_meta": [
+            "type=metadata.exif"
+          ]
+        }
+      ],
+      "summary": "Exiftool Analysis: Initial-creator=sinn3r , Creation-date=2017:02:06 15:15:47.35, Date=2017:02:06 15:21:59.64, Creator=sinn3r , Editing-duration=PT4M16S, Editing-cycles=2, Generator=OpenOffice/4.1.3$Win32 OpenOffice.org_project/413m1$Build-9783, Document-statisticTable-count=0, Document-statisticImage-count=0, Document-statisticObject-count=0, Document-statisticPage-count=1, Document-statisticParagraph-count=0, Document-statisticWord-count=0, Document-statisticCharacter-count=0",
+      "tags": []
+    },
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": true,
+        "is_office_ext": true,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": true,
+        "mime": "application/vnd.oasis.opendocument.text",
+        "type": "OpenDocument Text"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: OpenDocument Text (application/vnd.oasis.opendocument.text) (ms office document) (zip archive)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace3/office/demo.odt",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "demo.odt",
+      "size": 7668,
+      "type": "file",
+      "value": "8495d37825dab8744f7d2c8049fc6b70b1777b9184f0abe69ce314795480ce39"
+    }
+  },
+  "module": "exif",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "demo.odt",
+    "relationships": [],
+    "size": 7668,
+    "tags": [
+      "microsoft_office",
+      "zip"
+    ],
+    "type": "file",
+    "value": "8495d37825dab8744f7d2c8049fc6b70b1777b9184f0abe69ce314795480ce39",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

@@ -2277,6 +2277,11 @@ fn each_module_s_view_draws_its_fixture() {
         "encrypted_archive_sealed_v0",
         "url_pivot_shared",
         "message_id_archived_2",
+        "pdftotext_qr_code_pdf",
+        "exif_doc_docx",
+        "qrcode_qr_code_pdf",
+        "ocr_text_plain",
+        "ssdeep_edited_little",
     ];
     let mut types = BTreeSet::new();
     for name in fixtures {
@@ -2665,6 +2670,31 @@ fn each_module_s_view_draws_its_fixture() {
                 &["<tr><th>decrypted_file</th><td>files/sealed_v0.rfc822</td></tr>"],
             ),
             "url_pivot_shared" => contains_all(&html, &["<tr><th>count</th><td>3</td></tr>"]),
+            "pdftotext_qr_code_pdf" => contains_all(
+                &html,
+                &[
+                    "<tr><th>output_path</th><td>5ae85ff95b5a1314ed5c8432f8320c91847d4bc6ee64f0c8269a6a7145759a81</td></tr>",
+                ],
+            ),
+            // a tag's value is escaped, as anything from the file is
+            "exif_doc_docx" => {
+                contains_all(
+                    &html,
+                    &[
+                        "<tr><th>tag</th><td>File:FileType = DOCX</td></tr>",
+                        "<tr><th>tag</th><td>XMP:Creator = &#60;script&#62;Anderson&#60;/script&#62;</td></tr>",
+                    ],
+                );
+                assert!(!html.contains("<script>Anderson"), "{html}");
+            }
+            "qrcode_qr_code_pdf" => contains_all(
+                &html,
+                &["<tr><th>extracted_text</th><td>https://sever.emmetcrcs.org/#</td></tr>"],
+            ),
+            "ocr_text_plain" => contains_all(&html, &["<tr><th>ocr</th><td>text found</td></tr>"]),
+            "ssdeep_edited_little" => {
+                contains_all(&html, &["<tr><th>match</th><td>base_text (97%)</td></tr>"])
+            }
             other => panic!("no checks for {other}"),
         }
     }

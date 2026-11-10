@@ -1,0 +1,60 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "image/png",
+        "type": "PNG image data, 1500 x 260, 8-bit/color RGB, non-interlaced"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: PNG image data, 1500 x 260, 8-bit/color RGB, non-interlaced (image/png)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/images/text_wrapped.png",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "text_wrapped.png",
+      "size": 16797,
+      "type": "file",
+      "value": "60b73c2a2d255bd061c18356cd5b3a57d837a7f6eedb71c247eaf13a70b80b55"
+    }
+  },
+  "module": "exif",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=image"
+    ],
+    "excluded_analysis": [],
+    "file_path": "text_wrapped.png",
+    "relationships": [],
+    "size": 16797,
+    "tags": [],
+    "type": "file",
+    "value": "60b73c2a2d255bd061c18356cd5b3a57d837a7f6eedb71c247eaf13a70b80b55",
+    "yara_meta": [
+      "type=image"
+    ]
+  }
+}

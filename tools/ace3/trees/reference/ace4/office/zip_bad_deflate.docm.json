@@ -1,6 +1,24 @@
 {
   "form": 1,
   "observables": {
+    "file:16887b7d672924ed901cfe90d9b9352c9d9603d77fa8908b711ea52699b41ea1": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "zip_bad_deflate.docm.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:d100fd50935e779f722a91518cdad9487e0e7a370a174d849192c44563f39fe8": true
+      },
+      "results": {},
+      "tags": {}
+    },
     "file:1b64a7354e519be9704767a735fc623c0eff61205ab257fb75985ab648a2c4b2": {
       "detections": {},
       "directives": {
@@ -130,6 +148,36 @@
             "file_count": 4
           },
           "summary": "Archive Analysis: extracted 4 of 4 files: ([Content_Types].xml, word/document.xml, word/vbaProject.bin, _rels/.rels)",
+          "tags": {}
+        },
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:33:29+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:33:29+00:00",
+              "File:FileModifyDate": "2026:11:07 15:11:53+00:00",
+              "File:FileName": "zip_bad_deflate.docm",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 11478,
+              "File:FileType": "DOCM",
+              "File:FileTypeExtension": "DOCM",
+              "File:MIMEType": "application/vnd.ms-word.document.macroEnabled.12",
+              "SourceFile": "<root>/files/zip_bad_deflate.docm",
+              "ZIP:ZipBitFlag": 0,
+              "ZIP:ZipCRC": 2615452004,
+              "ZIP:ZipCompressedSize": 206,
+              "ZIP:ZipCompression": 8,
+              "ZIP:ZipFileName": "[Content_Types].xml",
+              "ZIP:ZipModifyDate": "2026:01:01 00:00:00",
+              "ZIP:ZipRequiredVersion": 20,
+              "ZIP:ZipUncompressedSize": 348
+            },
+            "output_dir": "<root>/files/zip_bad_deflate.docm.exif"
+          },
+          "summary": "Exiftool Analysis: ZipRequiredVersion=20, ZipBitFlag=0, ZipCompression=8, ZipModifyDate=2026:01:01 00:00:00, ZipCRC=2615452004, ZipCompressedSize=206, ZipUncompressedSize=348, ZipFileName=[Content_Types].xml",
           "tags": {}
         },
         "file_hash_analyzer": {

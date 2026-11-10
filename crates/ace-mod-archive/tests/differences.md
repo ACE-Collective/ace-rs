@@ -6,7 +6,6 @@ In the Dumps column, `*` matches any text in a dump's name. In the Path column, 
 
 | Dumps | Path | Why |
 |---|---|---|
-| `ace3/archive/dhl_report.ace` | `/` | ACE archives aren't read: ace3 runs `unace`, and no Rust crate reads the format. The module skips the file, so there is no result. |
 | `*` | `/analyzed/tags/zip` | ace3's file_type module tags a zip file `zip`. The dumps ran it as the archive module's dependency. In ace4 that's `file_type`'s own result (`crates/ace-mod-files`), which this test doesn't run; the trees compare its tags. |
 | `*` | `/analyzed/tags/jar` | file_type's tag for a JAR. |
 | `*` | `/analyzed/yara_meta/type=archive.jar` | file_type's `yara_meta` tag for a JAR. |
@@ -37,7 +36,7 @@ These follow ace3 on purpose, so they aren't differences, but they're easy to ge
 
 These depart from ace3:
 
-- Formats: zip (and JAR and the Office formats built on it), 7z, RAR and gzip are read. ace3's `7z` also opens cab, tar, ISO, MSI, bzip2, xz, arj, lzh and others, and `unace` ACE archives; those are skipped until a port needs them.
+- Formats: zip (and JAR and the Office formats built on it), 7z, RAR and gzip are read. ACE archives go to unace in the sandbox runner, as ace3 runs it (7.5 batch 10). ace3's `7z` also opens cab, tar, ISO, MSI, bzip2, xz, arj, lzh and others; those are skipped until a port needs them.
 - A RAR's members are tried with the password `infected` too. ace3 passes `unrar` no password, so it extracts nothing from an encrypted RAR.
 - An entry that fails to extract, other than a password's, is logged and the others are still extracted. ace3's JAR extraction stops at the first entry that fails, and its other tools carry on.
 - When two entries extract to the same path, the later one wins, as 7z's `-y` and unrar's `-o+` overwrite. Each extracted file is its own result file, even when two have the same bytes.

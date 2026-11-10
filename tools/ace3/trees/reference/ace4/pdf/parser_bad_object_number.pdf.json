@@ -1,7 +1,7 @@
 {
   "form": 1,
   "observables": {
-    "file:10620b18bebbca75d0993f745771377ad11f12d8a7c773b20677ec83a3a60bae": {
+    "file:35a2ad5ce88cf42aaa216cb1250b627523b2e2d2affda30023334631a9971f7b": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -37,6 +37,23 @@
             "type": "PDF document, version 1.7, 1 page(s)"
           },
           "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
+          "tags": {}
+        },
+        "pdftotext": {
+          "details": {
+            "output_path": "ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977",
+            "stderr": "",
+            "stdout": ""
+          },
+          "summary": "PDF Text Analysis",
+          "tags": {}
+        },
+        "qrcode": {
+          "details": {
+            "extracted_text": null,
+            "inverted": false
+          },
+          "summary": null,
           "tags": {}
         },
         "url_extraction": {
@@ -98,6 +115,62 @@
       },
       "tags": {}
     },
+    "file:c53b401a88bbdb213e35d1bdf126ad988331c7a42b0852774fb5a2a2dcbc2899": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "parser_bad_object_number.pdf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:f4be9b5e5e1d9c4aacf342947c427462727a6ff7a284ca67f8ec5b429548aad9": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "file:ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "archive": true
+      },
+      "paths": {
+        "parser_bad_object_number.pdf.gs.pdf.txt": {
+          "type=document.pdf.text": true
+        }
+      },
+      "redirection": "file:35a2ad5ce88cf42aaa216cb1250b627523b2e2d2affda30023334631a9971f7b",
+      "relationships": {
+        "extracted_from file:35a2ad5ce88cf42aaa216cb1250b627523b2e2d2affda30023334631a9971f7b": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "very short file (no magic)"
+          },
+          "summary": "File Type Analysis: very short file (no magic) (application/octet-stream)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:f4be9b5e5e1d9c4aacf342947c427462727a6ff7a284ca67f8ec5b429548aad9": {
       "detections": {},
       "directives": {},
@@ -110,6 +183,31 @@
       },
       "relationships": {},
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "ExifTool:Warning": "Invalid xref table",
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:39:39+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:39:39+00:00",
+              "File:FileModifyDate": "2026:11:07 04:47:50+00:00",
+              "File:FileName": "parser_bad_object_number.pdf",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 30,
+              "File:FileType": "PDF",
+              "File:FileTypeExtension": "PDF",
+              "File:MIMEType": "application/pdf",
+              "PDF:Linearized": false,
+              "PDF:PDFVersion": 1.7,
+              "SourceFile": "<root>/files/parser_bad_object_number.pdf"
+            },
+            "output_dir": "<root>/files/parser_bad_object_number.pdf.exif"
+          },
+          "summary": "Exiftool Analysis: PDFVersion=1.7, Linearized=False",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "11127ba026aea0216e2560a9f091b756",
@@ -140,6 +238,15 @@
         },
         "pdf_analyzer": {
           "details": {},
+          "summary": null,
+          "tags": {}
+        },
+        "pdftotext": {
+          "details": {
+            "output_path": null,
+            "stderr": "Syntax Error: Couldn't find trailer dictionary\nSyntax Error: Couldn't find trailer dictionary\nSyntax Error: Couldn't read xref table\n",
+            "stdout": ""
+          },
           "summary": null,
           "tags": {}
         }

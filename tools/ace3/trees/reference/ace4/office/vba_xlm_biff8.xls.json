@@ -272,6 +272,28 @@
       },
       "relationships": {},
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:28:55+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:28:55+00:00",
+              "File:FileModifyDate": "2026:11:07 15:11:53+00:00",
+              "File:FileName": "vba_xlm_biff8.xls",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 8192,
+              "File:FileType": "XLS",
+              "File:FileTypeExtension": "XLS",
+              "File:MIMEType": "application/vnd.ms-excel",
+              "SourceFile": "<root>/files/vba_xlm_biff8.xls"
+            },
+            "output_dir": "<root>/files/vba_xlm_biff8.xls.exif"
+          },
+          "summary": "Exiftool Analysis: ",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "631b6aca399b51c25443bc27e4d72bb5",
@@ -358,6 +380,24 @@
         "olevba": true,
         "xlm4": true
       }
+    },
+    "file:865a8f4c7efeb077285364b6cbb5c4a82a156f3ec21f93b53985b74dca4fd5ea": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "vba_xlm_biff8.xls.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:691dba66dbcf8e2426d636d273e8f6fc8e8d0f5008169543424d08d6aa71117e": true
+      },
+      "results": {},
+      "tags": {}
     },
     "file:8a08b87dc510d4907d3d735ffc6ed148b844462a2bb3a9902f328eba9c5df4b3": {
       "detections": {},

@@ -1,0 +1,81 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "PDFTextAnalysis",
+      "details": {
+        "output_path": "ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977",
+        "stderr": "Syntax Error (164): Dictionary key must be a name object\nSyntax Error (203): Dictionary key must be a name object\nSyntax Error (164): Dictionary key must be a name object\nSyntax Error (203): Dictionary key must be a name object\nSyntax Error (164): Dictionary key must be a name object\nSyntax Error (203): Dictionary key must be a name object\nSyntax Error (164): Dictionary key must be a name object\nSyntax Error (203): Dictionary key must be a name object\n",
+        "stdout": ""
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.pdf:PDFTextAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=document.pdf.text"
+          ],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.archive:<class 'saq.modules.file_analysis.archive.ArchiveAnalyzer'>"
+          ],
+          "file_path": "quirks.pdf.txt",
+          "redirection": {
+            "type": "file",
+            "value": "01940d8e00316615efbbc86cc54902f0afb11fee57536db4f908c1c0fbda3aa4"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "01940d8e00316615efbbc86cc54902f0afb11fee57536db4f908c1c0fbda3aa4"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 1,
+          "tags": [],
+          "type": "file",
+          "value": "ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977",
+          "yara_meta": [
+            "type=document.pdf.text"
+          ]
+        }
+      ],
+      "summary": "PDF Text Analysis",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace4/pdf/quirks.pdf",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "quirks.pdf",
+      "size": 1136,
+      "type": "file",
+      "value": "01940d8e00316615efbbc86cc54902f0afb11fee57536db4f908c1c0fbda3aa4"
+    }
+  },
+  "module": "pdftotext",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "quirks.pdf",
+    "relationships": [],
+    "size": 1136,
+    "tags": [],
+    "type": "file",
+    "value": "01940d8e00316615efbbc86cc54902f0afb11fee57536db4f908c1c0fbda3aa4",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

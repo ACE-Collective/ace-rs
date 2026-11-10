@@ -52,6 +52,24 @@
       },
       "tags": {}
     },
+    "file:3dbe2d85207ea4287c8b1cb03b618df0b8a7e4e40ac3ebc31499a78fcced4d14": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "ppt_bad_zlib.ppt.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:89cda29aedc3344557e064ea49951df36164f64a841f78706bae0a231c5cc7d9": true
+      },
+      "results": {},
+      "tags": {}
+    },
     "file:65ff3e8dfec34e2e579cf71d073f90daff29db1215869dd83f184f75f80b861c": {
       "detections": {},
       "directives": {
@@ -116,6 +134,29 @@
       },
       "relationships": {},
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:27:16+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:27:16+00:00",
+              "File:FileModifyDate": "2026:11:07 15:11:53+00:00",
+              "File:FileName": "ppt_bad_zlib.ppt",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 2560,
+              "File:FileType": "PPT",
+              "File:FileTypeExtension": "PPT",
+              "File:MIMEType": "application/vnd.ms-powerpoint",
+              "FlashPix:CurrentUser": "a",
+              "SourceFile": "<root>/files/ppt_bad_zlib.ppt"
+            },
+            "output_dir": "<root>/files/ppt_bad_zlib.ppt.exif"
+          },
+          "summary": "Exiftool Analysis: CurrentUser=a",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "36563d696d705592d110c7379d1da883",

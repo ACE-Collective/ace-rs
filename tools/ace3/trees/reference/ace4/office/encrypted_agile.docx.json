@@ -172,6 +172,28 @@
       },
       "relationships": {},
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:16:03+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:16:03+00:00",
+              "File:FileModifyDate": "2026:11:07 10:46:15+00:00",
+              "File:FileName": "encrypted_agile.docx",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 17920,
+              "File:FileType": "DOCX",
+              "File:FileTypeExtension": "DOCX",
+              "File:MIMEType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+              "SourceFile": "<root>/files/encrypted_agile.docx"
+            },
+            "output_dir": "<root>/files/encrypted_agile.docx.exif"
+          },
+          "summary": "Exiftool Analysis: ",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "e89db9e69f17dd34963c9587b1655ec1",
@@ -396,6 +418,24 @@
           "tags": {}
         }
       },
+      "tags": {}
+    },
+    "file:f527d98b5d432aeea261d656a79167f9d76658857f87c421362359f5ee6f2667": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "encrypted_agile.docx.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:7a11e1342e44371796a4cdaa5906d4c67c84eb7303ab1b63dc38fd2333e1fee7": true
+      },
+      "results": {},
       "tags": {}
     },
     "md5:e89db9e69f17dd34963c9587b1655ec1": {

@@ -12,6 +12,32 @@
       },
       "relationships": {},
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:27:24+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:27:24+00:00",
+              "File:FileModifyDate": "2026:11:07 15:11:53+00:00",
+              "File:FileName": "slk.slk",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 80,
+              "File:FileType": "TXT",
+              "File:FileTypeExtension": "TXT",
+              "File:LineCount": 6,
+              "File:MIMEEncoding": "us-ascii",
+              "File:MIMEType": "text/plain",
+              "File:Newlines": "\r\n",
+              "File:WordCount": 6,
+              "SourceFile": "<root>/files/slk.slk"
+            },
+            "output_dir": "<root>/files/slk.slk.exif"
+          },
+          "summary": "Exiftool Analysis: ",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "56d1c7aeafde6cae96671457c373eee6",
@@ -53,6 +79,24 @@
       "tags": {
         "microsoft_office": true
       }
+    },
+    "file:88ac7a8a8faf85beaa7f42a26c2e1259cc7ef91924ce373fb57d5a767eedfb7e": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "slk.slk.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:3f33a9afa5ba4d38cbbfa5b1947f80958ebb61a351b529aeb55e469f2c13903e": true
+      },
+      "results": {},
+      "tags": {}
     },
     "md5:56d1c7aeafde6cae96671457c373eee6": {
       "detections": {},

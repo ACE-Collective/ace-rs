@@ -1,0 +1,78 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "ExifAnalysis",
+      "details": {
+        "error": "File format error",
+        "exifdata": {}
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.exif:ExifAnalysis",
+      "observables": [],
+      "summary": "Exiftool Analysis: ⚠ File format error",
+      "tags": []
+    },
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": true,
+        "is_office_ext": true,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "image/x-tga",
+        "type": "Targa image data - RGBA (1027-1541) 3340 x 3854 x 16 +2312 +2826 - 1-bit alpha - right"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: Targa image data - RGBA (1027-1541) 3340 x 3854 x 16 +2312 +2826 - 1-bit alpha - right (image/x-tga) (ms office document)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace4/office/garbage.doc",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "garbage.doc",
+      "size": 2048,
+      "type": "file",
+      "value": "10fc3c51a152e90e5b90319b601d92ccf37290ef53c35ff92507687d8a911a08"
+    }
+  },
+  "module": "exif",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment",
+      "yara_meta:type=image"
+    ],
+    "excluded_analysis": [],
+    "file_path": "garbage.doc",
+    "relationships": [],
+    "size": 2048,
+    "tags": [
+      "microsoft_office"
+    ],
+    "type": "file",
+    "value": "10fc3c51a152e90e5b90319b601d92ccf37290ef53c35ff92507687d8a911a08",
+    "yara_meta": [
+      "type=email.attachment",
+      "type=image"
+    ]
+  }
+}

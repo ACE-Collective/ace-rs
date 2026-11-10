@@ -52,6 +52,24 @@
       },
       "tags": {}
     },
+    "file:90119d36afb569395aefcec19a387cda3b4a408c404a436f2fe5ab12d372a75c": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "encrypted_bad_xml.docx.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:c527dc9e446dbf48b28a871b500590128899250c71ccd5caf592fe369855b0e4": true
+      },
+      "results": {},
+      "tags": {}
+    },
     "file:990349482cd707ba3093d6fff5bb72167a38f0831e58789a92c25cdeb01f7f93": {
       "detections": {},
       "directives": {
@@ -216,6 +234,28 @@
       },
       "relationships": {},
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:17:10+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:17:10+00:00",
+              "File:FileModifyDate": "2026:11:07 10:46:15+00:00",
+              "File:FileName": "encrypted_bad_xml.docx",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 9216,
+              "File:FileType": "DOCX",
+              "File:FileTypeExtension": "DOCX",
+              "File:MIMEType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+              "SourceFile": "<root>/files/encrypted_bad_xml.docx"
+            },
+            "output_dir": "<root>/files/encrypted_bad_xml.docx.exif"
+          },
+          "summary": "Exiftool Analysis: ",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "fb303ca4aa154dd76b3668ff4155c7f9",

@@ -122,6 +122,28 @@
           "summary": null,
           "tags": {}
         },
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:42:52+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:42:52+00:00",
+              "File:FileModifyDate": "2026:11:07 00:31:29+00:00",
+              "File:FileName": "long_name.rtf",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 2544,
+              "File:FileType": "RTF",
+              "File:FileTypeExtension": "RTF",
+              "File:MIMEType": "text/rtf",
+              "SourceFile": "<root>/files/long_name.rtf"
+            },
+            "output_dir": "<root>/files/long_name.rtf.exif"
+          },
+          "summary": "Exiftool Analysis: ",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "d9e60e1daa615984baee4cd62e2f8739",
@@ -344,6 +366,24 @@
         "microsoft_office": true,
         "rtf": true
       }
+    },
+    "file:cd85f7062c1927eb51b87cf2abb0a1aa94b00f4f5619816dc388a5a2cb83a43b": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "long_name.rtf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:425846d005aa14f4e2bbd18ddbe33c1c80f5be23786538abac31c636b8c525d7": true
+      },
+      "results": {},
+      "tags": {}
     },
     "md5:10849b3ea036f28072ecc165ab1c8cb3": {
       "detections": {},

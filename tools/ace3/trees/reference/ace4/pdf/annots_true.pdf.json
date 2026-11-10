@@ -1,7 +1,25 @@
 {
   "form": 1,
   "observables": {
-    "file:5d0cceb19abbbc1ef03d3ea5a2e75466013d8040a065a4414a0d8fe8e02213ac": {
+    "file:5121f36a9af29b9244eda81769ad9576361e376b8c2690f0a436a12318d14eec": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "annots_true.pdf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:98d353c613e26b2b1ff6f33a2dbd905950ea69bf254aca47534dc7a17b4d6b99": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "file:774660ef933f9fcd76a2363dcaa66df03bbfcf9e27db7a9c209b19b8b7c53c9e": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -39,6 +57,23 @@
           "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
           "tags": {}
         },
+        "pdftotext": {
+          "details": {
+            "output_path": "ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977",
+            "stderr": "",
+            "stdout": ""
+          },
+          "summary": "PDF Text Analysis",
+          "tags": {}
+        },
+        "qrcode": {
+          "details": {
+            "extracted_text": null,
+            "inverted": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [],
@@ -64,6 +99,31 @@
       },
       "relationships": {},
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:34:36+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:34:36+00:00",
+              "File:FileModifyDate": "2026:11:07 04:47:50+00:00",
+              "File:FileName": "annots_true.pdf",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 328,
+              "File:FileType": "PDF",
+              "File:FileTypeExtension": "PDF",
+              "File:MIMEType": "application/pdf",
+              "PDF:Linearized": false,
+              "PDF:PDFVersion": 1.7,
+              "PDF:PageCount": 1,
+              "SourceFile": "<root>/files/annots_true.pdf"
+            },
+            "output_dir": "<root>/files/annots_true.pdf.exif"
+          },
+          "summary": "Exiftool Analysis: PDFVersion=1.7, Linearized=False, PageCount=1",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "3ebcc63e2a394b4e48184731bb67d6a4",
@@ -94,6 +154,23 @@
         },
         "pdf_analyzer": {
           "details": {},
+          "summary": null,
+          "tags": {}
+        },
+        "pdftotext": {
+          "details": {
+            "output_path": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stderr": "Syntax Error: Page annotations object (page 1) is wrong type (boolean)\nSyntax Error: Failed to create page (page 1)\n",
+            "stdout": ""
+          },
+          "summary": "PDF Text Analysis",
+          "tags": {}
+        },
+        "qrcode": {
+          "details": {
+            "extracted_text": null,
+            "inverted": false
+          },
           "summary": null,
           "tags": {}
         }
@@ -143,6 +220,82 @@
             "urls_grouped_by_domain": {}
           },
           "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "archive": true
+      },
+      "paths": {
+        "annots_true.pdf.txt": {
+          "type=document.pdf.text": true
+        }
+      },
+      "redirection": "file:98d353c613e26b2b1ff6f33a2dbd905950ea69bf254aca47534dc7a17b4d6b99",
+      "relationships": {
+        "extracted_from file:98d353c613e26b2b1ff6f33a2dbd905950ea69bf254aca47534dc7a17b4d6b99": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "inode/x-empty",
+            "type": "empty"
+          },
+          "summary": "File Type Analysis: empty (inode/x-empty)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "archive": true
+      },
+      "paths": {
+        "annots_true.pdf.gs.pdf.txt": {
+          "type=document.pdf.text": true
+        }
+      },
+      "redirection": "file:774660ef933f9fcd76a2363dcaa66df03bbfcf9e27db7a9c209b19b8b7c53c9e",
+      "relationships": {
+        "extracted_from file:774660ef933f9fcd76a2363dcaa66df03bbfcf9e27db7a9c209b19b8b7c53c9e": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "very short file (no magic)"
+          },
+          "summary": "File Type Analysis: very short file (no magic) (application/octet-stream)",
           "tags": {}
         }
       },

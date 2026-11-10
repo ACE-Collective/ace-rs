@@ -424,6 +424,24 @@
       },
       "tags": {}
     },
+    "file:41d0b34e3135e3049f4e4bebe9083392baea24e2fc8ade7163851790c216460e": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "Outstanding Invoices.doc.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:e3b01e57c810dfdefc08e93b5131438d31ef4108834cfc11a6f6fd9b44a1f0ab": true
+      },
+      "results": {},
+      "tags": {}
+    },
     "file:4322d89fedaa55d42fd60ba18e03365a244a86e0107d46b11bf58acaa60115a3": {
       "detections": {},
       "directives": {
@@ -1112,6 +1130,66 @@
       },
       "relationships": {},
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:09:30+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:09:30+00:00",
+              "File:FileModifyDate": "2026:11:06 19:20:07+00:00",
+              "File:FileName": "Outstanding Invoices.doc",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 139776,
+              "File:FileType": "DOC",
+              "File:FileTypeExtension": "DOC",
+              "File:MIMEType": "application/msword",
+              "FlashPix:AppVersion": 16.0,
+              "FlashPix:Author": "qXwOYRZF",
+              "FlashPix:CharCountWithSpaces": 1,
+              "FlashPix:Characters": 1,
+              "FlashPix:CodePage": 1252,
+              "FlashPix:CompObjUserType": "Microsoft Word 97-2003 Document",
+              "FlashPix:CompObjUserTypeLen": 32,
+              "FlashPix:Company": "",
+              "FlashPix:CreateDate": "2018:02:13 11:06:00",
+              "FlashPix:DocFlags": 4616,
+              "FlashPix:HeadingPairs": [
+                "Title",
+                1
+              ],
+              "FlashPix:HyperlinksChanged": 0,
+              "FlashPix:Identification": 42476,
+              "FlashPix:Keywords": "",
+              "FlashPix:LanguageCode": 1033,
+              "FlashPix:LastModifiedBy": "",
+              "FlashPix:LastPrinted": "0000:00:00 00:00:00",
+              "FlashPix:Lines": 1,
+              "FlashPix:LinksUpToDate": 0,
+              "FlashPix:ModifyDate": "2018:02:13 11:06:00",
+              "FlashPix:Pages": 1,
+              "FlashPix:Paragraphs": 1,
+              "FlashPix:RevisionNumber": 1,
+              "FlashPix:ScaleCrop": 0,
+              "FlashPix:Security": 0,
+              "FlashPix:SharedDoc": 0,
+              "FlashPix:Software": "Microsoft Office Word",
+              "FlashPix:Subject": "",
+              "FlashPix:System": 0,
+              "FlashPix:Template": "Normal.dotm",
+              "FlashPix:Title": "",
+              "FlashPix:TitleOfParts": "",
+              "FlashPix:TotalEditTime": 0,
+              "FlashPix:Word97": 0,
+              "FlashPix:Words": 0,
+              "SourceFile": "<root>/files/Outstanding Invoices.doc"
+            },
+            "output_dir": "<root>/files/Outstanding Invoices.doc.exif"
+          },
+          "summary": "Exiftool Analysis: Identification=42476, LanguageCode=1033, DocFlags=4616, System=0, Word97=0, Title=, Subject=, Author=qXwOYRZF, Keywords=, Template=Normal.dotm, LastModifiedBy=, Software=Microsoft Office Word, CreateDate=2018:02:13 11:06:00, ModifyDate=2018:02:13 11:06:00, Security=0, CodePage=1252, Company=, CharCountWithSpaces=1, AppVersion=16.0, ScaleCrop=0 + 15 more",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "9dd2eeb8e19cc4fc51641fb8b4356d52",

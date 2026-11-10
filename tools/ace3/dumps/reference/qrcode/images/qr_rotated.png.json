@@ -1,0 +1,74 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "QRCodeAnalysis",
+      "details": {
+        "extracted_text": "https://sever.emmetcrcs.org/#",
+        "inverted": false
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.qrcode:QRCodeAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "crawl_extracted_urls",
+            "extract_urls",
+            "yara_meta:type=document.text.qrcode"
+          ],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.hash:<class 'saq.modules.file_analysis.hash.FileHashAnalyzer'>"
+          ],
+          "file_path": "qr_rotated.png.qrcode",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "da9f7aad5bad4a59d1a3eb33326f8844503f294a13c7859fc9797b6699323f5e"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 30,
+          "tags": [
+            "qr-code"
+          ],
+          "type": "file",
+          "value": "697b2795ffaa9b58347c9b3c5699769cc76e1a7298785500f5927fe5af6430c8",
+          "yara_meta": [
+            "type=document.text.qrcode"
+          ]
+        }
+      ],
+      "summary": "QR Code Analysis: https://sever.emmetcrcs.org/#",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/images/qr_rotated.png",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "qr_rotated.png",
+      "size": 17250,
+      "type": "file",
+      "value": "da9f7aad5bad4a59d1a3eb33326f8844503f294a13c7859fc9797b6699323f5e"
+    }
+  },
+  "module": "qrcode",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "qr_rotated.png",
+    "relationships": [],
+    "size": 17250,
+    "tags": [],
+    "type": "file",
+    "value": "da9f7aad5bad4a59d1a3eb33326f8844503f294a13c7859fc9797b6699323f5e",
+    "yara_meta": []
+  }
+}

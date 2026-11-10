@@ -154,6 +154,24 @@
       },
       "tags": {}
     },
+    "file:80767d7fd1e7da67949b03be6361e883c7671e9ae2f6f721e8086863b599205e": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "ole_broken_minifat.doc.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:ef55398e3ea7f174e47cec4e0cb143d2e74f8de63416d9e16b046f8678e56836": true
+      },
+      "results": {},
+      "tags": {}
+    },
     "file:9209d9f87d9a971a3c75208a0303e66e48b0a0fc923c0e81254bec0fb6368437": {
       "detections": {},
       "directives": {
@@ -360,6 +378,28 @@
       },
       "relationships": {},
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:20:03+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:20:03+00:00",
+              "File:FileModifyDate": "2026:11:07 15:11:53+00:00",
+              "File:FileName": "ole_broken_minifat.doc",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 3584,
+              "File:FileType": "DOC",
+              "File:FileTypeExtension": "DOC",
+              "File:MIMEType": "application/msword",
+              "SourceFile": "<root>/files/ole_broken_minifat.doc"
+            },
+            "output_dir": "<root>/files/ole_broken_minifat.doc.exif"
+          },
+          "summary": "Exiftool Analysis: ",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "eefd5191eba2a37d66227c005cf4ba0f",

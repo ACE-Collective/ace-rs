@@ -119,6 +119,28 @@
       },
       "relationships": {},
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files/word2003.xml.xml/word",
+              "File:FileAccessDate": "2026:11:10 11:29:18+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:29:18+00:00",
+              "File:FileModifyDate": "2026:11:10 11:29:18+00:00",
+              "File:FileName": "vbaProject.bin",
+              "File:FilePermissions": 100664,
+              "File:FileSize": 23552,
+              "File:FileType": "FPX",
+              "File:FileTypeExtension": "FPX",
+              "File:MIMEType": "image/vnd.fpx",
+              "SourceFile": "<root>/files/word2003.xml.xml/word/vbaProject.bin"
+            },
+            "output_dir": "<root>/files/word2003.xml.xml/word/vbaProject.bin.exif"
+          },
+          "summary": "Exiftool Analysis: ",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "b78e53325f45a16ab719c392444f2983",
@@ -371,6 +393,24 @@
           "tags": {}
         }
       },
+      "tags": {}
+    },
+    "file:7d1625f8f287f4178cc5c3256259c09f5835e2eda7bd612beaa2feaefa0e6760": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "word2003.xml.xml/word/vbaProject.bin.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:170b804293599496c29d816cfe408adc5a99e767eb930b0c0cf9e7db62436abe": true
+      },
+      "results": {},
       "tags": {}
     },
     "file:827ef1fb270218d5b261add9b3dd6877a72a3870bef4632df04c9d52b03a1661": {

@@ -173,6 +173,28 @@
         "extracted_from file:45cca7fd63944ca6b6ea4e4669078cf3520b3896956c183c9bfd0fb3d0bfaf4f": true
       },
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files/mortgage_payment-0873821-0565.docm.extracted/word",
+              "File:FileAccessDate": "2026:11:10 11:10:15+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:10:14+00:00",
+              "File:FileModifyDate": "1980:01:01 00:00:00+00:00",
+              "File:FileName": "vbaProject.bin",
+              "File:FilePermissions": 100664,
+              "File:FileSize": 23552,
+              "File:FileType": "FPX",
+              "File:FileTypeExtension": "FPX",
+              "File:MIMEType": "image/vnd.fpx",
+              "SourceFile": "<root>/files/mortgage_payment-0873821-0565.docm.extracted/word/vbaProject.bin"
+            },
+            "output_dir": "<root>/files/mortgage_payment-0873821-0565.docm.extracted/word/vbaProject.bin.exif"
+          },
+          "summary": "Exiftool Analysis: ",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "b78e53325f45a16ab719c392444f2983",
@@ -573,6 +595,57 @@
           "summary": "Archive Analysis: extracted 19 of 19 files: ([Content_Types].xml, docProps/core.xml, docProps/app.xml, customXml/itemProps1.xml, customXml/item1.xml, word/stylesWithEffects.xml, word/fontTable.xml, word/styles.xml, word/webSettings.xml, word/vbaData.xml, word/settings.xml, word/document.xml, word/theme/theme1.xml, customXml/_rels/item1.xml.rels, word/vbaProject.bin, word/media/image1.png, word/_rels/vbaProject.bin.rels, word/_rels/document.xml.rels, _rels/.rels)",
           "tags": {}
         },
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:10:13+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:10:13+00:00",
+              "File:FileModifyDate": "2026:11:06 19:20:07+00:00",
+              "File:FileName": "mortgage_payment-0873821-0565.docm",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 73622,
+              "File:FileType": "DOCM",
+              "File:FileTypeExtension": "DOCM",
+              "File:MIMEType": "application/vnd.ms-word.document.macroEnabled.12",
+              "SourceFile": "<root>/files/mortgage_payment-0873821-0565.docm",
+              "XML:AppVersion": 14.0,
+              "XML:Characters": 74,
+              "XML:CharactersWithSpaces": 85,
+              "XML:CreateDate": "2018:01:28 18:42:00Z",
+              "XML:DocSecurity": 0,
+              "XML:HeadingPairs": [
+                "Название",
+                1
+              ],
+              "XML:HyperlinksChanged": false,
+              "XML:Lines": 1,
+              "XML:LinksUpToDate": false,
+              "XML:ModifyDate": "2018:02:07 01:36:00Z",
+              "XML:Pages": 1,
+              "XML:Paragraphs": 1,
+              "XML:ScaleCrop": false,
+              "XML:SharedDoc": false,
+              "XML:Template": "Normal.dotm",
+              "XML:TitlesOfParts": "",
+              "XML:TotalEditTime": 8,
+              "XML:Words": 12,
+              "ZIP:ZipBitFlag": 6,
+              "ZIP:ZipCRC": 3821436455,
+              "ZIP:ZipCompressedSize": 462,
+              "ZIP:ZipCompression": 8,
+              "ZIP:ZipFileName": "[Content_Types].xml",
+              "ZIP:ZipModifyDate": "1980:01:01 00:00:00",
+              "ZIP:ZipRequiredVersion": 20,
+              "ZIP:ZipUncompressedSize": 1745
+            },
+            "output_dir": "<root>/files/mortgage_payment-0873821-0565.docm.exif"
+          },
+          "summary": "Exiftool Analysis: ZipRequiredVersion=20, ZipBitFlag=6, ZipCompression=8, ZipModifyDate=1980:01:01 00:00:00, ZipCRC=3821436455, ZipCompressedSize=462, ZipUncompressedSize=1745, ZipFileName=[Content_Types].xml, Template=Normal.dotm, TotalEditTime=8, Pages=1, Words=12, Characters=74, DocSecurity=0, Lines=1, Paragraphs=1, ScaleCrop=False, HeadingPairs=['Название', 1], TitlesOfParts=, LinksUpToDate=False + 6 more",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "449f40a587fdbea4020358d67413da33",
@@ -685,6 +758,24 @@
           "tags": {}
         }
       },
+      "tags": {}
+    },
+    "file:51e6c97c5fdf6d8e397d33cc46841e60011360e8829d1a0c10f3461b616fbc4d": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "mortgage_payment-0873821-0565.docm.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:45cca7fd63944ca6b6ea4e4669078cf3520b3896956c183c9bfd0fb3d0bfaf4f": true
+      },
+      "results": {},
       "tags": {}
     },
     "file:5f6215a036890aff7ce33ebbda20fc8beb7ca7d1d1ebd71364750df0ab3ba5f9": {
@@ -939,6 +1030,24 @@
           "tags": {}
         }
       },
+      "tags": {}
+    },
+    "file:7b1c4afba0dcaa05ed78536b567e1875034d868629637008975c0494c086b142": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "mortgage_payment-0873821-0565.docm.extracted/word/vbaProject.bin.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:170b804293599496c29d816cfe408adc5a99e767eb930b0c0cf9e7db62436abe": true
+      },
+      "results": {},
       "tags": {}
     },
     "file:80482f86e196171d66001e0e74d1900408a3aaf2463e54005d251b5f2db9a0b0": {
@@ -1289,6 +1398,14 @@
             "type": "PNG image data, 1014 x 548, 8-bit/color RGB, non-interlaced"
           },
           "summary": "File Type Analysis: PNG image data, 1014 x 548, 8-bit/color RGB, non-interlaced (image/png)",
+          "tags": {}
+        },
+        "qrcode": {
+          "details": {
+            "extracted_text": null,
+            "inverted": false
+          },
+          "summary": null,
           "tags": {}
         }
       },

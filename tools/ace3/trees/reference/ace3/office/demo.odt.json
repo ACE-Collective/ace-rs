@@ -324,6 +324,43 @@
           "summary": "Archive Analysis: extracted 12 of 12 files: (settings.xml, styles.xml, content.xml, meta.xml, Basic/script-lc.xml, Basic/Standard/script-lb.xml, Basic/Standard/Module1.xml, META-INF/manifest.xml, Configurations2/accelerator/current.xml, manifest.rdf, mimetype, Thumbnails/thumbnail.png)",
           "tags": {}
         },
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:09:50+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:09:50+00:00",
+              "File:FileModifyDate": "2026:11:06 19:20:07+00:00",
+              "File:FileName": "demo.odt",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 7668,
+              "File:FileType": "ODT",
+              "File:FileTypeExtension": "ODT",
+              "File:MIMEType": "application/vnd.oasis.opendocument.text",
+              "File:PreviewPNG": "(Binary data 728 bytes, use -b option to extract)",
+              "SourceFile": "<root>/files/demo.odt",
+              "XMP:Creation-date": "2017:02:06 15:15:47.35",
+              "XMP:Creator": "sinn3r ",
+              "XMP:Date": "2017:02:06 15:21:59.64",
+              "XMP:Document-statisticCharacter-count": 0,
+              "XMP:Document-statisticImage-count": 0,
+              "XMP:Document-statisticObject-count": 0,
+              "XMP:Document-statisticPage-count": 1,
+              "XMP:Document-statisticParagraph-count": 0,
+              "XMP:Document-statisticTable-count": 0,
+              "XMP:Document-statisticWord-count": 0,
+              "XMP:Editing-cycles": 2,
+              "XMP:Editing-duration": "PT4M16S",
+              "XMP:Generator": "OpenOffice/4.1.3$Win32 OpenOffice.org_project/413m1$Build-9783",
+              "XMP:Initial-creator": "sinn3r "
+            },
+            "output_dir": "<root>/files/demo.odt.exif"
+          },
+          "summary": "Exiftool Analysis: Initial-creator=sinn3r , Creation-date=2017:02:06 15:15:47.35, Date=2017:02:06 15:21:59.64, Creator=sinn3r , Editing-duration=PT4M16S, Editing-cycles=2, Generator=OpenOffice/4.1.3$Win32 OpenOffice.org_project/413m1$Build-9783, Document-statisticTable-count=0, Document-statisticImage-count=0, Document-statisticObject-count=0, Document-statisticPage-count=1, Document-statisticParagraph-count=0, Document-statisticWord-count=0, Document-statisticCharacter-count=0",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "2b8205c7ab16752cf63ec437ba12011a",
@@ -366,6 +403,24 @@
         "microsoft_office": true,
         "zip": true
       }
+    },
+    "file:8b6a2d22d6313df723e8e80e71758ae24c6ea1379fc9d20353573945eec0b1b4": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "demo.odt.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:8495d37825dab8744f7d2c8049fc6b70b1777b9184f0abe69ce314795480ce39": true
+      },
+      "results": {},
+      "tags": {}
     },
     "file:8fbddec35c26494c0b123a5900c32e1cbb8de7e6e5f5e235dd9bc6b470170d3f": {
       "detections": {},
@@ -598,6 +653,14 @@
             "type": "PNG image data, 198 x 256, 8-bit/color RGB, non-interlaced"
           },
           "summary": "File Type Analysis: PNG image data, 198 x 256, 8-bit/color RGB, non-interlaced (image/png)",
+          "tags": {}
+        },
+        "qrcode": {
+          "details": {
+            "extracted_text": null,
+            "inverted": false
+          },
+          "summary": null,
           "tags": {}
         }
       },

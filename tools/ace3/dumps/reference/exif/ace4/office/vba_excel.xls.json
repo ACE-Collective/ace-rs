@@ -1,0 +1,119 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "ExifAnalysis",
+      "details": {
+        "error": null,
+        "exifdata": {
+          "ExifTool:ExifToolVersion": 13.25,
+          "File:Directory": "<root>/files",
+          "File:FileAccessDate": "2026:11:10 10:57:45+00:00",
+          "File:FileInodeChangeDate": "2026:11:10 10:57:45+00:00",
+          "File:FileModifyDate": "2026:11:07 15:11:53+00:00",
+          "File:FileName": "vba_excel.xls",
+          "File:FilePermissions": 100644,
+          "File:FileSize": 28160,
+          "File:FileType": "XLS",
+          "File:FileTypeExtension": "XLS",
+          "File:MIMEType": "application/vnd.ms-excel",
+          "SourceFile": "<root>/files/vba_excel.xls"
+        },
+        "output_dir": "<root>/files/vba_excel.xls.exif"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.exif:ExifAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=metadata.exif"
+          ],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.file_type:<class 'saq.modules.file_analysis.file_type.FileTypeAnalyzer'>",
+            "saq.modules.file_analysis.hash:<class 'saq.modules.file_analysis.hash.FileHashAnalyzer'>"
+          ],
+          "file_path": "vba_excel.xls.exif/exiftool.out",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "b3cc32f1f58086b8c0ffd7a164e8c39d6631e26c9971495bdc7ae670e0142432"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 577,
+          "tags": [],
+          "type": "file",
+          "value": "bdb3d6becf0f72fb5213ffc280bc941c3445278ab765e482848a87d10b4cf55d",
+          "yara_meta": [
+            "type=metadata.exif"
+          ]
+        }
+      ],
+      "summary": "Exiftool Analysis: ",
+      "tags": []
+    },
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": true,
+        "is_office_ext": true,
+        "is_ole_file": true,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "application/vnd.ms-excel",
+        "type": "CDFV2 Microsoft Excel"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: CDFV2 Microsoft Excel (application/vnd.ms-excel) (ms office document) (ole compound file)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace4/office/vba_excel.xls",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "vba_excel.xls",
+      "size": 28160,
+      "type": "file",
+      "value": "b3cc32f1f58086b8c0ffd7a164e8c39d6631e26c9971495bdc7ae670e0142432"
+    }
+  },
+  "module": "exif",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "vba_excel.xls",
+    "relationships": [],
+    "size": 28160,
+    "tags": [
+      "microsoft_office",
+      "ole"
+    ],
+    "type": "file",
+    "value": "b3cc32f1f58086b8c0ffd7a164e8c39d6631e26c9971495bdc7ae670e0142432",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

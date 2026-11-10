@@ -451,6 +451,24 @@
       },
       "tags": {}
     },
+    "file:5b2e28866954d009555cc7c10c0d4709f03ff8372329ffc32b4bcd9860aec26b": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "ole_wide_directory.doc.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:60ac6b02726e1b36f9d674f8982e80d61c6e05e155a2b89b8143e3e5efe78e47": true
+      },
+      "results": {},
+      "tags": {}
+    },
     "file:60ac6b02726e1b36f9d674f8982e80d61c6e05e155a2b89b8143e3e5efe78e47": {
       "detections": {},
       "directives": {},
@@ -462,6 +480,28 @@
       },
       "relationships": {},
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:25:05+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:25:05+00:00",
+              "File:FileModifyDate": "2026:11:07 15:11:53+00:00",
+              "File:FileName": "ole_wide_directory.doc",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 80896,
+              "File:FileType": "DOC",
+              "File:FileTypeExtension": "DOC",
+              "File:MIMEType": "application/msword",
+              "SourceFile": "<root>/files/ole_wide_directory.doc"
+            },
+            "output_dir": "<root>/files/ole_wide_directory.doc.exif"
+          },
+          "summary": "Exiftool Analysis: ",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "15e7566fa366530cd25b9b075d8315a3",

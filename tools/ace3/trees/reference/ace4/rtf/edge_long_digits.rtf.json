@@ -1,6 +1,24 @@
 {
   "form": 1,
   "observables": {
+    "file:084a24e3a94a64c30d239503f0be0e7491ec4a506ceb506b4df90e8bab5d3ab6": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "edge_long_digits.rtf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:145c307de52de795fce4439b06dfe58db8e2fbe7859a8a9bcd28de60c7f1410c": true
+      },
+      "results": {},
+      "tags": {}
+    },
     "file:0c577f54395aca1207ea411e143d6cfc98451f2955a40f60e90d85d3d6ffa9e9": {
       "detections": {},
       "directives": {},
@@ -80,6 +98,29 @@
         "binary_file_analyzer": {
           "details": {},
           "summary": null,
+          "tags": {}
+        },
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "ExifTool:Warning": "Unspecified RTF encoding. Will assume Latin",
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:42:29+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:42:29+00:00",
+              "File:FileModifyDate": "2026:11:07 15:11:53+00:00",
+              "File:FileName": "edge_long_digits.rtf",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 322,
+              "File:FileType": "RTF",
+              "File:FileTypeExtension": "RTF",
+              "File:MIMEType": "text/rtf",
+              "SourceFile": "<root>/files/edge_long_digits.rtf"
+            },
+            "output_dir": "<root>/files/edge_long_digits.rtf.exif"
+          },
+          "summary": "Exiftool Analysis: ",
           "tags": {}
         },
         "file_hash_analyzer": {

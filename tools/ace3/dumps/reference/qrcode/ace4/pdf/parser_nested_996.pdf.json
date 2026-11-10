@@ -1,0 +1,36 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [],
+  "input": {
+    "directives": [],
+    "label": "ace4/pdf/parser_nested_996.pdf",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "parser_nested_996.pdf",
+      "size": 7005,
+      "type": "file",
+      "value": "cf8ad610c8459c522337bece57d2bffa15499e1cc04ef6b1995f7e9e566c3461"
+    }
+  },
+  "module": "qrcode",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "parser_nested_996.pdf",
+    "relationships": [],
+    "size": 7005,
+    "tags": [],
+    "type": "file",
+    "value": "cf8ad610c8459c522337bece57d2bffa15499e1cc04ef6b1995f7e9e566c3461",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

@@ -105,6 +105,29 @@
       },
       "relationships": {},
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "ExifTool:Warning": "[minor] Invalid FIB signature",
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:28:45+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:28:45+00:00",
+              "File:FileModifyDate": "2026:11:07 15:11:53+00:00",
+              "File:FileName": "vba_stomped.doc",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 20480,
+              "File:FileType": "DOC",
+              "File:FileTypeExtension": "DOC",
+              "File:MIMEType": "application/msword",
+              "SourceFile": "<root>/files/vba_stomped.doc"
+            },
+            "output_dir": "<root>/files/vba_stomped.doc.exif"
+          },
+          "summary": "Exiftool Analysis: ",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "1baf3d90cec53d57356533806274fd1c",
@@ -181,6 +204,24 @@
         "ole": true,
         "olevba": true
       }
+    },
+    "file:5ac96ccb750b2e7327a4ddf1c08086c48166a3fe0163f01dfcecff54090b20b0": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "vba_stomped.doc.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:5197a148421ecdc0f499e91c0dd7d9b865e5d6c78a403cc30f8a513ced225238": true
+      },
+      "results": {},
+      "tags": {}
     },
     "file:6abcffd4b8ab01c91122f2a8e6dffad54560556425cd0591005816b5b292d431": {
       "detections": {},

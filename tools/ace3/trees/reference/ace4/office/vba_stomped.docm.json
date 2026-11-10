@@ -103,6 +103,24 @@
       },
       "tags": {}
     },
+    "file:1ed5894b3a00571850cc981362786a1e556d5e29a9701a3fed9646a8da69d14a": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "vba_stomped.docm.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:9317501fcf3e1f4d13c4396777ed2da61133e409911f15c8c5e705787ad36c8e": true
+      },
+      "results": {},
+      "tags": {}
+    },
     "file:29114363f749a0226b6988dda3ca2492a954117ab6b5f382706c20300dabc079": {
       "detections": {},
       "directives": {
@@ -258,6 +276,24 @@
       },
       "tags": {}
     },
+    "file:8a61ac37fdac83ddef2178c73e33147763ce1b756d9c0d43ecb3adbbe0be2e8b": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "vba_stomped.docm.extracted/word/vbaProject.bin.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:fbc9567b0deadf45ce1265c2620d702dcecde8a9db8473ba88af9059cf18d1ce": true
+      },
+      "results": {},
+      "tags": {}
+    },
     "file:9317501fcf3e1f4d13c4396777ed2da61133e409911f15c8c5e705787ad36c8e": {
       "detections": {},
       "directives": {},
@@ -281,6 +317,36 @@
             "file_count": 4
           },
           "summary": "Archive Analysis: extracted 4 of 4 files: ([Content_Types].xml, word/document.xml, word/vbaProject.bin, _rels/.rels)",
+          "tags": {}
+        },
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:28:49+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:28:49+00:00",
+              "File:FileModifyDate": "2026:11:07 15:11:53+00:00",
+              "File:FileName": "vba_stomped.docm",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 7783,
+              "File:FileType": "DOCM",
+              "File:FileTypeExtension": "DOCM",
+              "File:MIMEType": "application/vnd.ms-word.document.macroEnabled.12",
+              "SourceFile": "<root>/files/vba_stomped.docm",
+              "ZIP:ZipBitFlag": 0,
+              "ZIP:ZipCRC": 2615452004,
+              "ZIP:ZipCompressedSize": 206,
+              "ZIP:ZipCompression": 8,
+              "ZIP:ZipFileName": "[Content_Types].xml",
+              "ZIP:ZipModifyDate": "2026:01:01 00:00:00",
+              "ZIP:ZipRequiredVersion": 20,
+              "ZIP:ZipUncompressedSize": 348
+            },
+            "output_dir": "<root>/files/vba_stomped.docm.exif"
+          },
+          "summary": "Exiftool Analysis: ZipRequiredVersion=20, ZipBitFlag=0, ZipCompression=8, ZipModifyDate=2026:01:01 00:00:00, ZipCRC=2615452004, ZipCompressedSize=206, ZipUncompressedSize=348, ZipFileName=[Content_Types].xml",
           "tags": {}
         },
         "file_hash_analyzer": {
@@ -542,6 +608,28 @@
         "extracted_from file:9317501fcf3e1f4d13c4396777ed2da61133e409911f15c8c5e705787ad36c8e": true
       },
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files/vba_stomped.docm.extracted/word",
+              "File:FileAccessDate": "2026:11:10 11:28:50+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:28:50+00:00",
+              "File:FileModifyDate": "2026:01:01 00:00:00+00:00",
+              "File:FileName": "vbaProject.bin",
+              "File:FilePermissions": 100664,
+              "File:FileSize": 19456,
+              "File:FileType": "FPX",
+              "File:FileTypeExtension": "FPX",
+              "File:MIMEType": "image/vnd.fpx",
+              "SourceFile": "<root>/files/vba_stomped.docm.extracted/word/vbaProject.bin"
+            },
+            "output_dir": "<root>/files/vba_stomped.docm.extracted/word/vbaProject.bin.exif"
+          },
+          "summary": "Exiftool Analysis: ",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "d1ebd6a8bb8021e793e56f52458887c3",

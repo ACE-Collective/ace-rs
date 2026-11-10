@@ -1,0 +1,38 @@
+{
+  "analysis_type": "qr_code_analysis",
+  "schema_version": 1,
+  "details": {
+    "extracted_text": "https://sever.emmetcrcs.org/#",
+    "inverted": false
+  },
+  "summary": "QR Code Analysis: https://sever.emmetcrcs.org/#",
+  "files": [
+    {
+      "path": "sample_pdf_with_qr_code.pdf.qrcode",
+      "sha256": "697b2795ffaa9b58347c9b3c5699769cc76e1a7298785500f5927fe5af6430c8",
+      "size": 30,
+      "yara_meta": [
+        "type=document.text.qrcode"
+      ],
+      "tags": [
+        "qr-code"
+      ],
+      "directives": [
+        "extract_urls",
+        "crawl_extracted_urls"
+      ],
+      "exclude_modules": [
+        "file_hash_analyzer"
+      ],
+      "relationships": [
+        {
+          "type": "extracted_from",
+          "target": {
+            "type": "file",
+            "value": "4efb0032a6de86d9c0dabc0d2814533aac30811ee40e433d26092eaf988ca110"
+          }
+        }
+      ]
+    }
+  ]
+}

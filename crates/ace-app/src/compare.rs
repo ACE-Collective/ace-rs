@@ -55,8 +55,15 @@
 //! - *unexplained*: no row. A port isn't accepted with any of these (`docs/acceptance.md`).
 //!
 //! A row's fourth cell narrows it: `ace4 only` matches only what ace3 doesn't have,
-//! `ace3 holds <text>` only a value of ace3's with that text in it, and `same members` only an
-//! element of a list that holds the same values on both sides, in another order.
+//! `ace3 holds <text>` only a value of ace3's with that text in it, `ace4 holds <text>` only a value
+//! of ace4's with it, and `same members` only an element of a list that holds the same values on
+//! both sides, in another order.
+//!
+//! Some files have new bytes each run, on both systems: Ghostscript's rewrite of a PDF, `.gs.pdf`,
+//! which holds the time and an `/ID` from it, and ExifTool's metadata, `.exif/exiftool.out`, which
+//! holds the file's path and dates (`VOLATILE_FILES`). Their sha256s can't match, so before the diff
+//! each such file is keyed by its path on both sides, `file:<path>`, and every reference to it
+//! follows; what ran on it is then compared like anything else.
 //!
 //! # What makes it fail
 //!
@@ -268,6 +275,8 @@ enum When {
     Ace4Only,
     /// ace3's value holds this text.
     Ace3Holds(String),
+    /// ace4's value holds this text.
+    Ace4Holds(String),
     /// The list the difference is an element of holds the same values on each side.
     SameMembers,
 }
@@ -278,10 +287,18 @@ impl When {
             None => Ok(When::Always),
             Some("ace4 only") => Ok(When::Ace4Only),
             Some("same members") => Ok(When::SameMembers),
-            Some(when) => when
-                .strip_prefix("ace3 holds ")
-                .map(|text| When::Ace3Holds(text.to_owned()))
-                .ok_or_else(|| anyhow!("the row for {} has the condition {when:?}", row.path)),
+            Some(when) => {
+                if let Some(text) = when.strip_prefix("ace3 holds ") {
+                    Ok(When::Ace3Holds(text.to_owned()))
+                } else if let Some(text) = when.strip_prefix("ace4 holds ") {
+                    Ok(When::Ace4Holds(text.to_owned()))
+                } else {
+                    Err(anyhow!(
+                        "the row for {} has the condition {when:?}",
+                        row.path
+                    ))
+                }
+            }
         }
     }
 
@@ -294,6 +311,10 @@ impl When {
             When::Ace4Only => difference.ace3.is_none(),
             When::Ace3Holds(text) => difference
                 .ace3
+                .as_ref()
+                .is_some_and(|value| value.to_string().contains(text)),
+            When::Ace4Holds(text) => difference
+                .ace4
                 .as_ref()
                 .is_some_and(|value| value.to_string().contains(text)),
         }
@@ -467,6 +488,53 @@ fn category(path: &str) -> String {
     out
 }
 
+/// The ends of the paths of files whose bytes differ from run to run on both systems: Ghostscript's
+/// rewrite of a PDF (`pdf.py`), and ExifTool's pretty-printed metadata (`exif.py`).
+const VOLATILE_FILES: &[&str] = &[".gs.pdf", ".exif/exiftool.out"];
+
+/// Keys each file observable whose every path ends in one of `VOLATILE_FILES` by its first path,
+/// `file:<path>`, in place of its sha256, and every reference to it in the form with it.
+fn key_volatile_files(form: &mut Value) -> Result<()> {
+    let Some(observables) = form["observables"].as_object() else {
+        return Ok(());
+    };
+    let mut renames: Vec<(String, String)> = Vec::new();
+    for (key, observable) in observables {
+        if !key.starts_with("file:") {
+            continue;
+        }
+        let Some(paths) = observable["paths"].as_object() else {
+            continue;
+        };
+        let mut names: Vec<&String> = paths.keys().collect();
+        names.sort();
+        let volatile = !names.is_empty()
+            && names
+                .iter()
+                .all(|path| VOLATILE_FILES.iter().any(|end| path.ends_with(end)));
+        if volatile {
+            renames.push((key.clone(), format!("file:{}", names[0])));
+        }
+    }
+    if renames.is_empty() {
+        return Ok(());
+    }
+    // the key is in the form's text as a key, a relationship's and a redirection, always whole
+    let mut text = serde_json::to_string(form)?;
+    for (from, to) in &renames {
+        let escaped = serde_json::to_string(to)?;
+        let escaped = &escaped[1..escaped.len() - 1];
+        for (before, after) in [("\"", "\""), (" ", "\"")] {
+            text = text.replace(
+                &format!("{before}{from}{after}"),
+                &format!("{before}{escaped}{after}"),
+            );
+        }
+    }
+    *form = serde_json::from_str(&text)?;
+    Ok(())
+}
+
 /// Diffs one sample's two forms.
 fn compare_forms(
     sample: &str,
@@ -484,6 +552,8 @@ fn compare_forms(
         }
     }
     let mut skipped = remove_skipped(&mut ace3, ported);
+    key_volatile_files(&mut ace3)?;
+    key_volatile_files(&mut ace4)?;
     for (module, count) in remove_skipped(&mut ace4, ported) {
         *skipped.entry(module).or_insert(0) += count;
     }
@@ -1392,6 +1462,49 @@ mod tests {
         assert_eq!(rows.matched, [0]);
     }
 
+    /// A Ghostscript rewrite and ExifTool's metadata are keyed by their paths, with every reference to
+    /// them, so the two sides' copies, with their own bytes, are compared as one file.
+    #[test]
+    fn a_volatile_file_is_keyed_by_its_path() {
+        let mut form = json!({"observables": {
+            "file:aaaa": {"paths": {"x.pdf": {}}},
+            "file:bbbb": {
+                "paths": {"x.pdf.gs.pdf": {"type=document.pdf.rendered": true}},
+                "redirection": "file:aaaa",
+                "relationships": {"extracted_from file:aaaa": true},
+                "results": {"file_hash_analyzer": {"details": {"sha256": "bbbb"}}},
+            },
+            "md5:cccc": {"relationships": {"is_hash_of file:bbbb": true}},
+            "file:dddd": {"paths": {"x.pdf.exif/exiftool.out": {}}, "redirection": "file:bbbb"},
+        }});
+        key_volatile_files(&mut form).expect("rekeyed");
+        let observables = form["observables"].as_object().expect("observables");
+        let mut keys: Vec<&String> = observables.keys().collect();
+        keys.sort();
+        assert_eq!(
+            keys,
+            [
+                "file:aaaa",
+                "file:x.pdf.exif/exiftool.out",
+                "file:x.pdf.gs.pdf",
+                "md5:cccc"
+            ]
+        );
+        assert_eq!(
+            form["observables"]["md5:cccc"]["relationships"],
+            json!({"is_hash_of file:x.pdf.gs.pdf": true})
+        );
+        assert_eq!(
+            form["observables"]["file:x.pdf.exif/exiftool.out"]["redirection"],
+            "file:x.pdf.gs.pdf"
+        );
+        // the hash itself is still the file's own
+        assert_eq!(
+            form["observables"]["file:x.pdf.gs.pdf"]["results"]["file_hash_analyzer"]["details"]["sha256"],
+            "bbbb"
+        );
+    }
+
     #[test]
     fn same_members_matches_a_list_in_another_order_only() {
         let mut rows = Rows::new(ListedDifferences {
@@ -1436,15 +1549,19 @@ mod tests {
     #[test]
     fn a_row_s_condition_narrows_it() {
         let mut rows = Rows::new(ListedDifferences {
-            rows: [("/a", "ace4 only"), ("/b", "ace3 holds nothing recorded")]
-                .map(|(path, when)| Listed {
-                    dumps: "*".to_owned(),
-                    path: path.to_owned(),
-                    why: String::new(),
-                    section: None,
-                    when: Some(when.to_owned()),
-                })
-                .to_vec(),
+            rows: [
+                ("/a", "ace4 only"),
+                ("/b", "ace3 holds nothing recorded"),
+                ("/c", "ace4 holds .gs.pdf"),
+            ]
+            .map(|(path, when)| Listed {
+                dumps: "*".to_owned(),
+                path: path.to_owned(),
+                why: String::new(),
+                section: None,
+                when: Some(when.to_owned()),
+            })
+            .to_vec(),
         })
         .expect("conditions read");
         let difference = |path: &str, ace3: Option<Value>, ace4: Option<Value>| Difference {
@@ -1471,6 +1588,17 @@ mod tests {
             rows.classify("s", &difference("/b", Some(json!("a real error")), None)),
             Class::Unexplained
         );
+        assert_eq!(
+            rows.classify(
+                "s",
+                &difference("/c", None, Some(json!({"is_hash_of file:a.gs.pdf": true})))
+            ),
+            Class::Explained
+        );
+        assert_eq!(
+            rows.classify("s", &difference("/c", Some(json!("a.gs.pdf")), None)),
+            Class::Unexplained
+        );
         assert!(
             Rows::new(ListedDifferences {
                 rows: vec![Listed {
@@ -1491,7 +1619,8 @@ mod tests {
             Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tools/ace3/trees/differences.md");
         let rows =
             Rows::new(ListedDifferences::load(&path).expect("reads")).expect("its conditions read");
-        for class in [Class::Explained, Class::Unported, Class::Harness] {
+        // since 7.5 batch 10 no module ace3's trees run is missing here, so nothing is unported
+        for class in [Class::Explained, Class::Harness] {
             assert!(
                 rows.listed.iter().any(|row| Rows::class_of(row) == class),
                 "no row is {}",

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """PLAN.md 2.30: the end-to-end test, against the Compose stack's own images.
 
-It brings up postgres, bucket, ace, the parser and network pools and the e2e profile's
+It brings up postgres, bucket, ace, the parser, sandbox and network pools and the e2e profile's
 responder under a project of its own (ace4-e2e), with:
 
 - a signatures repository it makes under target/e2e/ from tools/ace3/trees/signatures, holding
@@ -143,7 +143,7 @@ ENV = {
 }
 ENV.pop("COMPOSE_PROJECT_NAME", None)
 COMPOSE = ["docker", "compose", "-f", str(COMPOSE_FILE), "--profile", "e2e"]
-SERVICES = ["postgres", "bucket", "ace", "parsers", "lookups", "responder"]
+SERVICES = ["postgres", "bucket", "ace", "parsers", "sandbox", "lookups", "responder"]
 # The analyst the browser test logs in as, and the GUI as the browser reaches it on the stack's network.
 ANALYST = "e2e-analyst"
 ANALYST_PASSWORD = "e2e analyst password, not a secret"
@@ -1182,7 +1182,8 @@ def main(argv):
                     "in differences.md, and every row matched one")
     finally:
         if failures or keep:
-            for service in ("ace", "parsers", "lookups", "responder", *(["browser"] if browser else [])):
+            for service in ("ace", "parsers", "sandbox", "lookups", "responder",
+                            *(["browser"] if browser else [])):
                 print(f"----- {service} logs (last 40 lines)")
                 print(compose("logs", "--no-color", "--tail", "40", service, capture=True,
                               check=False))

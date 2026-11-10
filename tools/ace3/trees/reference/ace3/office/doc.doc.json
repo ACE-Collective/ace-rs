@@ -294,6 +294,74 @@
       },
       "relationships": {},
       "results": {
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:10 11:09:58+00:00",
+              "File:FileInodeChangeDate": "2026:11:10 11:09:58+00:00",
+              "File:FileModifyDate": "2026:11:06 19:20:07+00:00",
+              "File:FileName": "doc.doc",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 22528,
+              "File:FileType": "DOC",
+              "File:FileTypeExtension": "DOC",
+              "File:MIMEType": "application/msword",
+              "FlashPix:AppVersion": 16.0,
+              "FlashPix:Author": "Anderson, Anthony",
+              "FlashPix:CharCountWithSpaces": 0,
+              "FlashPix:Characters": 0,
+              "FlashPix:CodePage": 10000,
+              "FlashPix:Comments": "",
+              "FlashPix:CompObjUserType": "Microsoft Word 97-2003 Document",
+              "FlashPix:CompObjUserTypeLen": 32,
+              "FlashPix:Company": "",
+              "FlashPix:CreateDate": "2021:04:29 15:40:00",
+              "FlashPix:DocFlags": 4608,
+              "FlashPix:HeadingPairs": [
+                "Title",
+                1
+              ],
+              "FlashPix:HyperlinksChanged": 0,
+              "FlashPix:Identification": 42476,
+              "FlashPix:Keywords": "",
+              "FlashPix:LanguageCode": 1033,
+              "FlashPix:LastModifiedBy": "Anderson, Anthony",
+              "FlashPix:LastPrinted": "0000:00:00 00:00:00",
+              "FlashPix:Lines": 0,
+              "FlashPix:LinksUpToDate": 0,
+              "FlashPix:MSIP_Label_05286d43-84a8-4841-b019-e300711b2821_ActionId": "e6af03b3-d938-4af7-ab06-0f699ed86484",
+              "FlashPix:MSIP_Label_05286d43-84a8-4841-b019-e300711b2821_ContentBits": 0,
+              "FlashPix:MSIP_Label_05286d43-84a8-4841-b019-e300711b2821_Enabled": true,
+              "FlashPix:MSIP_Label_05286d43-84a8-4841-b019-e300711b2821_Method": "Standard",
+              "FlashPix:MSIP_Label_05286d43-84a8-4841-b019-e300711b2821_Name": "Internal Use - No Footer",
+              "FlashPix:MSIP_Label_05286d43-84a8-4841-b019-e300711b2821_SetDate": "2021-04-29T15:40:15Z",
+              "FlashPix:MSIP_Label_05286d43-84a8-4841-b019-e300711b2821_SiteId": "cfddba29-ca2a-450c-a415-595e7fcce8e5",
+              "FlashPix:ModifyDate": "2021:04:29 15:40:00",
+              "FlashPix:Pages": 1,
+              "FlashPix:Paragraphs": 0,
+              "FlashPix:RevisionNumber": 1,
+              "FlashPix:ScaleCrop": 0,
+              "FlashPix:Security": 0,
+              "FlashPix:SharedDoc": 0,
+              "FlashPix:Software": "Microsoft Office Word",
+              "FlashPix:Subject": "",
+              "FlashPix:System": 1,
+              "FlashPix:Template": "Normal.dotm",
+              "FlashPix:Title": "",
+              "FlashPix:TitleOfParts": "",
+              "FlashPix:TotalEditTime": 0,
+              "FlashPix:Word97": 0,
+              "FlashPix:Words": 0,
+              "SourceFile": "<root>/files/doc.doc"
+            },
+            "output_dir": "<root>/files/doc.doc.exif"
+          },
+          "summary": "Exiftool Analysis: Identification=42476, LanguageCode=1033, DocFlags=4608, System=1, Word97=0, Title=, Subject=, Author=Anderson, Anthony, Keywords=, Comments=, Template=Normal.dotm, LastModifiedBy=Anderson, Anthony, Software=Microsoft Office Word, CreateDate=2021:04:29 15:40:00, ModifyDate=2021:04:29 15:40:00, Security=0, Company=, CharCountWithSpaces=0, AppVersion=16.0, ScaleCrop=0 + 23 more",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "343e961cda6c80fca054810ac273d542",
@@ -350,6 +418,24 @@
         "ole": true,
         "zip": true
       }
+    },
+    "file:84f59216d15cf61efe232cc809b73582aeb9dd5c1387a9f5334d7d29f5241aa9": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "doc.doc.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:80f5e4db83b6b9062f17b67460d80e257b315f83999eb570e11d78beab556add": true
+      },
+      "results": {},
+      "tags": {}
     },
     "file:938ef462261cb6bdbfc3255d222c3de5bda8632043244a14fb986871990b4e8b": {
       "detections": {},
