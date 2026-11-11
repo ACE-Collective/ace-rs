@@ -617,6 +617,66 @@
       "note": "VBA project with its source stripped, so only the p-code is left"
     },
     {
+      "path": "ace3/pcap/http_tls.pcapng",
+      "sha256": "d62e8e38b1bed05360dd8b2e1a70cc42736aaf0881e482a3c4e7c977fe2451ed",
+      "size": 11652,
+      "kinds": [
+        "pcap"
+      ],
+      "source": "ace3 f72f8946: tests/saq/modules/file_analysis/test_pcap/http_tls.pcapng",
+      "in_git": true,
+      "alert_path": "http_tls.pcapng",
+      "meta_tags": [
+        "type=email.attachment"
+      ],
+      "note": "a loopback capture of curl over HTTP, TLS 1.2 and TLS 1.3"
+    },
+    {
+      "path": "ace3/pcap/http_tls_dsb.pcapng",
+      "sha256": "7a03c507f77ebdef771856eccfe25f4e44f77898cd03b5421827086848f32902",
+      "size": 12788,
+      "kinds": [
+        "pcap"
+      ],
+      "source": "ace3 f72f8946: tests/saq/modules/file_analysis/test_pcap/http_tls_dsb.pcapng",
+      "in_git": true,
+      "alert_path": "http_tls_dsb.pcapng",
+      "meta_tags": [
+        "type=email.attachment"
+      ],
+      "note": "http_tls.pcapng with its TLS keys in Decryption Secrets Blocks (editcap --inject-secrets)"
+    },
+    {
+      "path": "ace3/pcap/network.pcap",
+      "sha256": "4470c2938bede3f47a2e823cad96dc556bd1ca77b47d50ef55a95a0539067338",
+      "size": 870,
+      "kinds": [
+        "pcap"
+      ],
+      "source": "ace3 f72f8946: tests/saq/modules/file_analysis/test_pcap/network.pcap",
+      "in_git": true,
+      "alert_path": "network.pcap",
+      "meta_tags": [
+        "type=email.attachment"
+      ],
+      "note": "hand-built DHCP, NBNS and DNS frames (synthesize_frames.py)"
+    },
+    {
+      "path": "ace3/pcap/sslkeylog.txt",
+      "sha256": "76f3b3e668343641d138e1121f7be54778c87bf38fe98f27723be8be971ff8e3",
+      "size": 1114,
+      "kinds": [
+        "pcap/keylog"
+      ],
+      "source": "ace3 f72f8946: tests/saq/modules/file_analysis/test_pcap/sslkeylog.txt",
+      "in_git": true,
+      "alert_path": "sslkeylog.txt",
+      "meta_tags": [
+        "type=email.attachment"
+      ],
+      "note": "curl's TLS key log for http_tls.pcapng"
+    },
+    {
       "path": "ace3/pdf/718148a5712c1fec7b50acc89eee2aa0",
       "sha256": "5b677d297fb862c2d223973697479ee53a91d03073b14556f421b3d74f136b9d",
       "size": 283542,
@@ -3783,6 +3843,174 @@
       "meta_tags": [
         "type=email.attachment"
       ]
+    },
+    {
+      "path": "ace4/pcap/bad_certificate.pcap",
+      "sha256": "c39c6091200f2264884ba9746241b27e8762d2af0b389317e4debd402158f271",
+      "size": 1686,
+      "kinds": [
+        "pcap"
+      ],
+      "source": "made by tools/samples/make-pcaps",
+      "in_git": true,
+      "alert_path": "bad_certificate.pcap",
+      "meta_tags": [
+        "type=email.attachment"
+      ],
+      "note": "a certificate that isn't one, and a ClientHello without SNI"
+    },
+    {
+      "path": "ace4/pcap/dsb_keys.zip",
+      "sha256": "fdb2694a547178a9eb2173f08b3a3f18b95ece457d23d9a801edc8e3964c0754",
+      "size": 10116,
+      "kinds": [
+        "pcap",
+        "archive/zip"
+      ],
+      "source": "made by tools/samples/make-pcaps",
+      "in_git": true,
+      "alert_path": "dsb_keys.zip",
+      "meta_tags": [
+        "type=email.attachment"
+      ],
+      "note": "ace3's capture with embedded secrets and the same key log: nothing new to decrypt"
+    },
+    {
+      "path": "ace4/pcap/http_tls_keys.zip",
+      "sha256": "ed2ca0b60fb01a271232c576b6d3c8a6871aaaee5caba4b2175b94b6809b0587",
+      "size": 9385,
+      "kinds": [
+        "pcap",
+        "archive/zip"
+      ],
+      "source": "made by tools/samples/make-pcaps",
+      "in_git": true,
+      "alert_path": "http_tls_keys.zip",
+      "meta_tags": [
+        "type=email.attachment"
+      ],
+      "note": "ace3's TLS capture and its key log, which the decryption finds in the tree"
+    },
+    {
+      "path": "ace4/pcap/ipv6_hosts.pcapng",
+      "sha256": "a3ea7255ba2abba0c7427b80cd98487c8bce07367223502c84a1ecee17f8de34",
+      "size": 2908,
+      "kinds": [
+        "pcap"
+      ],
+      "source": "made by tools/samples/make-pcaps",
+      "in_git": true,
+      "alert_path": "ipv6_hosts.pcapng",
+      "meta_tags": [
+        "type=email.attachment"
+      ],
+      "note": "IPv6 DNS, DHCP and NBNS hostnames, link-local and multicast addresses, as pcapng"
+    },
+    {
+      "path": "ace4/pcap/keylog_mixed.txt",
+      "sha256": "6b398d4881e1db90a0a350b2f26f311e7fd2ecb2b37b392e274754d6384f8898",
+      "size": 929,
+      "kinds": [
+        "pcap/keylog"
+      ],
+      "source": "made by tools/samples/make-pcaps",
+      "in_git": true,
+      "alert_path": "keylog_mixed.txt",
+      "meta_tags": [
+        "type=email.attachment"
+      ],
+      "note": "a TLS key log with comments, an RSA line and every NSS label"
+    },
+    {
+      "path": "ace4/pcap/many_files.pcap",
+      "sha256": "7999536b2fc852a456515b6dcc6aa4d97279d39e4caeb9eb0c2986b517c8a2e7",
+      "size": 100204,
+      "kinds": [
+        "pcap"
+      ],
+      "source": "made by tools/samples/make-pcaps",
+      "in_git": true,
+      "alert_path": "many_files.pcap",
+      "meta_tags": [
+        "type=email.attachment"
+      ],
+      "note": "120 HTTP downloads, TFTP, SMTP and two certificates: past the 100 files carved"
+    },
+    {
+      "path": "ace4/pcap/many_hosts.pcap",
+      "sha256": "b00be5dc67c8d2046ac8469dc352902a86351a852898236f53396884aec08097",
+      "size": 264101,
+      "kinds": [
+        "pcap"
+      ],
+      "source": "made by tools/samples/make-pcaps",
+      "in_git": true,
+      "alert_path": "many_hosts.pcap",
+      "meta_tags": [
+        "type=email.attachment"
+      ],
+      "note": "600 names looked up, 70 TLS ClientHellos and 70 HTTP hosts: past each table's 500 rows and each type's 50 observables"
+    },
+    {
+      "path": "ace4/pcap/not_a_capture.pcap",
+      "sha256": "afefea342bba88add0d0d37a2b97c203c924a34c4898a1c7f7466100c506ad68",
+      "size": 42,
+      "kinds": [
+        "pcap"
+      ],
+      "source": "made by tools/samples/make-pcaps",
+      "in_git": true,
+      "alert_path": "not_a_capture.pcap",
+      "meta_tags": [
+        "type=email.attachment"
+      ],
+      "note": "text, which isn't a capture"
+    },
+    {
+      "path": "ace4/pcap/not_a_keylog.txt",
+      "sha256": "3d729561ea0892bb7f5bb7356249b8e1a3a2cb7449f380b0aea90ba504567575",
+      "size": 197,
+      "kinds": [
+        "pcap/keylog"
+      ],
+      "source": "made by tools/samples/make-pcaps",
+      "in_git": true,
+      "alert_path": "not_a_keylog.txt",
+      "meta_tags": [
+        "type=email.attachment"
+      ],
+      "note": "key log lines, then one that isn't"
+    },
+    {
+      "path": "ace4/pcap/rsa_keys.zip",
+      "sha256": "7665923187d5d5e057cc89f1f735f6e98e244747a6b1d3d2c67f82e1e6de2f3f",
+      "size": 8888,
+      "kinds": [
+        "pcap",
+        "archive/zip"
+      ],
+      "source": "made by tools/samples/make-pcaps",
+      "in_git": true,
+      "alert_path": "rsa_keys.zip",
+      "meta_tags": [
+        "type=email.attachment"
+      ],
+      "note": "ace3's TLS capture and a key log of one RSA line"
+    },
+    {
+      "path": "ace4/pcap/truncated.pcap",
+      "sha256": "aedb6f3ab79a5a424cb03e0534af4f68e5798bfd9fcf34d1ceea6e6a6a021832",
+      "size": 3972,
+      "kinds": [
+        "pcap"
+      ],
+      "source": "made by tools/samples/make-pcaps",
+      "in_git": true,
+      "alert_path": "truncated.pcap",
+      "meta_tags": [
+        "type=email.attachment"
+      ],
+      "note": "a capture cut in the middle of a frame"
     },
     {
       "path": "ace4/pdf/acroform_integer.pdf",

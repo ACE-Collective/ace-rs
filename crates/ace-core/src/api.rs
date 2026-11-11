@@ -912,19 +912,35 @@ impl Api {
         if let Err(rejected) = orchestrator.check_result(&task.module, &result) {
             return Err(self.reject(worker, &task, &result, rejected).await);
         }
-        let result: ResultEnvelope<Value> = serde_json::from_value(result)
+        let mut result: ResultEnvelope<Value> = serde_json::from_value(result)
             .map_err(|e| Failure::BadRequest(format!("the result doesn't read: {e}")))?;
         let bucket = &self.inner.bucket;
         let mut files = Vec::new();
-        for file in &result.files {
+        // what the result stores for its root without adding it (`ResultEnvelope::stored`) must
+        // have been uploaded, as a file it adds must
+        let mut stored = Vec::new();
+        for file in &result.stored {
+            if stored.contains(&file.sha256) || result.files.iter().any(|f| f.sha256 == file.sha256)
+            {
+                continue;
+            }
+            stored.push(file.sha256);
+            files.push(bucket.fetch_upload(task.id.0, &file.sha256).await?);
+        }
+        for file in &mut result.files {
             match bucket.fetch_upload(task.id.0, &file.sha256).await {
                 Ok(spooled) => files.push(spooled),
                 Err(missing @ BucketError::Store(ace_store::StoreError::NotFound { .. })) => {
-                    // a file a read put in the root comes with no upload (reads.md); any other
-                    // missing upload could still be put right, so the task stays the worker's
-                    if let Err(why) = self.read_file_in_root(&task, &file.sha256).await? {
-                        tracing::warn!(task = %task.id, "{why}");
-                        return Err(missing.into());
+                    // a file a read put in the root, or another module's result stored there,
+                    // comes with no upload (reads.md, `Module::ADDS_STORED_FILES`); any other
+                    // missing upload could still be put right, so the task stays the worker's.
+                    // Its size is the bucket's, which a module that didn't upload it may not know.
+                    match self.read_file_in_root(&task, &file.sha256).await? {
+                        Ok(size) => file.size = size,
+                        Err(why) => {
+                            tracing::warn!(task = %task.id, "{why}");
+                            return Err(missing.into());
+                        }
                     }
                 }
                 Err(e) => return Err(e.into()),
@@ -960,42 +976,45 @@ impl Api {
         Ok(())
     }
 
-    /// Whether a file a result adds with no upload is one a read put in the task's root: the
-    /// module declares a read that does (`ace_sdk::reads::FILE_READS`), and the bucket holds the file
-    /// for the root. The error says why not, which rejects the result.
+    /// Whether a file a result adds with no upload is one a read put in the task's root, or one
+    /// another result stored there: the module declares a read that does
+    /// (`ace_sdk::reads::FILE_READS`) or that it adds stored files (`Module::ADDS_STORED_FILES`), and
+    /// the bucket holds the file for the root. Its size there, or why not, which rejects the result.
     async fn read_file_in_root(
         &self,
         task: &Task,
         sha256: &Sha256,
-    ) -> Result<Result<(), String>, Failure> {
+    ) -> Result<Result<u64, String>, Failure> {
         let catalog = self.inner.orchestrator.catalog();
         let reads_files = catalog.get(&task.module).is_some_and(|manifest| {
-            manifest
-                .reads
-                .iter()
-                .any(|r| ace_sdk::reads::FILE_READS.contains(r))
+            manifest.adds_stored_files
+                || manifest
+                    .reads
+                    .iter()
+                    .any(|r| ace_sdk::reads::FILE_READS.contains(r))
         });
         if !reads_files {
             return Ok(Err(format!(
                 "the result adds file {sha256}, which wasn't uploaded, and {} declares no read that \
-                 puts a file in the root",
+                 puts a file in the root and doesn't add stored files",
                 task.module
             )));
         }
         let held = sqlx::query_scalar!(
-            r#"SELECT EXISTS (SELECT 1 FROM store.holds h
-                              JOIN store.objects o ON o.pool = h.pool AND o.sha256 = h.sha256
-                              WHERE h.pool = $1 AND h.sha256 = $2 AND h.holder_kind = 'root'
-                                AND h.holder_id = $3 AND o.state = 'present') AS "held!""#,
+            r#"SELECT o.size FROM store.holds h
+               JOIN store.objects o ON o.pool = h.pool AND o.sha256 = h.sha256
+               WHERE h.pool = $1 AND h.sha256 = $2 AND h.holder_kind = 'root'
+                 AND h.holder_id = $3 AND o.state = 'present'
+               LIMIT 1"#,
             ALERT_FILES,
             sha256.to_hex(),
             task.root.to_string(),
         )
-        .fetch_one(self.inner.db.pool())
+        .fetch_optional(self.inner.db.pool())
         .await
         .map_err(|e| Failure::Internal(format!("the bucket's index: {e}")))?;
-        if held {
-            Ok(Ok(()))
+        if let Some(size) = held {
+            Ok(Ok(size as u64))
         } else {
             Ok(Err(format!(
                 "the result adds file {sha256}, which wasn't uploaded and the root doesn't hold"

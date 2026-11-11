@@ -73,6 +73,10 @@ use ace_results::types::office::{
     XmlPlainTextAnalysis,
 };
 use ace_results::types::olevba::{OlevbaAnalysis, OlevbaMacro};
+use ace_results::types::pcap::{
+    PcapAnalysis, PcapDnsAnalysis, PcapFilesAnalysis, PcapHttpAnalysis, PcapTlsAnalysis,
+    PcapTlsDecryptionAnalysis, TlsKeylogAnalysis,
+};
 use ace_results::types::pcode::PCodeAnalysis;
 use ace_results::types::pdf::PdfAnalysis;
 use ace_results::types::rdap::RdapAnalysis;
@@ -128,6 +132,8 @@ pub const MAX_JSON: usize = 256 << 10;
 ///
 /// and its binary's list names it, `App::new().analysis_view::<TicketAnalysis>()`, as
 /// `ace-site-example` does.
+pub mod pcap;
+
 pub trait AnalysisView: AnalysisType + DeserializeOwned {
     type View<'a>: Template
     where
@@ -268,6 +274,13 @@ impl Views {
             .with(ViewEntry::of::<IlspyAnalysis>())
             .with(ViewEntry::of::<DmgAnalysis>())
             .with(ViewEntry::of::<Cve202130657Analysis>())
+            .with(ViewEntry::of::<PcapAnalysis>())
+            .with(ViewEntry::of::<PcapDnsAnalysis>())
+            .with(ViewEntry::of::<PcapTlsAnalysis>())
+            .with(ViewEntry::of::<PcapHttpAnalysis>())
+            .with(ViewEntry::of::<PcapFilesAnalysis>())
+            .with(ViewEntry::of::<PcapTlsDecryptionAnalysis>())
+            .with(ViewEntry::of::<TlsKeylogAnalysis>())
     }
 
     /// These views with `entry`, which takes the place of any view of the same type and version, so a

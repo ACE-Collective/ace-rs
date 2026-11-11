@@ -3023,3 +3023,158 @@ async fn the_archive_write_is_refused_unless_it_s_the_task_s_own_email() {
     assert!(error.expect("why").contains("no encryption key"));
     assert_eq!(rows(&keyless).await, 0);
 }
+
+// ---- PLAN.md 7.5 batch 13: files a result stores for its root, which another module adds ----
+
+const PCAP_MODULES: [&str; 3] = ["pcap_analyzer", "pcap_files", "pcap_dns"];
+
+/// pcap_analyzer stores the objects and certificates it carves for the root without adding them
+/// (`ResultEnvelope::stored`), and pcap_files adds them with no upload, which the core takes from a
+/// module that declares `Module::ADDS_STORED_FILES` when the root holds the file, giving it the
+/// bucket's size; a module that doesn't declare it, or a file the root doesn't hold, is refused as a
+/// missing upload is (400), and nothing lands.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn pcap_files_adds_what_pcap_analyzer_stored() {
+    let core = Core::start(
+        vec![
+            ace_sdk::Manifest::parser::<ace_mod_pcap::PcapAnalyzer>(),
+            ace_sdk::Manifest::parser::<ace_mod_pcap::PcapFiles>(),
+            ace_sdk::Manifest::parser::<ace_mod_pcap::PcapDns>(),
+        ],
+        &PCAP_MODULES,
+        Duration::from_secs(60),
+    )
+    .await;
+    let client =
+        ace_pool::client::LeaseClient::new(&core.url, common::TOKEN, "pool").expect("a client");
+    let modules = std::sync::Arc::new(
+        ace_pool::modules::Modules::new()
+            .with_tools(ace_sdk::tools::SANDBOX_TOOLS)
+            .with_parser(
+                ace_pool::modules::Entry::<ace_mod_pcap::PcapAnalyzer>::parser(
+                    None,
+                    &ace_sdk::Secrets::new(),
+                )
+                .expect("the module"),
+            )
+            .with_parser(
+                ace_pool::modules::Entry::<ace_mod_pcap::PcapFiles>::parser(
+                    None,
+                    &ace_sdk::Secrets::new(),
+                )
+                .expect("the module"),
+            ),
+    );
+    let sample = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../samples/ace3/pcap/http_tls.pcapng");
+    let root = file_root(&core, &sample, "http_tls.pcapng", "pcap_analyzer").await;
+    let run = |module: &'static str| {
+        let (client, modules) = (&client, &modules);
+        async move {
+            let task = lease_one(client, module).await;
+            let end = ace_pool::run::run_in_process(
+                client,
+                modules,
+                task,
+                &tokio_util::sync::CancellationToken::new(),
+            )
+            .await
+            .expect("runs");
+            assert!(
+                matches!(end, ace_sdk::wire::TaskEnd::Done { .. }),
+                "{module}: {end:?}"
+            );
+        }
+    };
+    run("pcap_analyzer").await;
+    // what it stored is the root's, and no file of the alert yet
+    let payload = Sha256(sha2::Sha256::digest(b"plaintext payload carried over http\n").into());
+    let held: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM store.holds WHERE pool = $1 AND holder_kind = 'root' AND holder_id = $2",
+    )
+    .bind(ALERT_FILES)
+    .bind(root.to_string())
+    .fetch_one(core.test_db.db().pool())
+    .await
+    .expect("counts");
+    // the capture, its payload and its certificate
+    assert_eq!(held, 3);
+    let files = |root: uuid::Uuid| {
+        let pool = core.test_db.db().pool().clone();
+        async move {
+            let rows: Vec<(String, String)> = sqlx::query_as(
+                "SELECT f.path, o.value FROM analysis.files f
+                 JOIN analysis.observables o ON o.root_id = f.root_id AND o.id = f.observable_id
+                 WHERE f.root_id = $1 ORDER BY f.path",
+            )
+            .bind(root)
+            .fetch_all(&pool)
+            .await
+            .expect("the files");
+            rows
+        }
+    };
+    assert_eq!(files(root).await.len(), 1);
+    let pcap: (i64,) =
+        sqlx::query_as("SELECT id FROM analysis.observables WHERE root_id = $1 AND type = 'file'")
+            .bind(root)
+            .fetch_one(core.test_db.db().pool())
+            .await
+            .expect("the capture");
+    let mut tx = core.test_db.db().begin().await.expect("begins");
+    for module in ["pcap_files", "pcap_dns"] {
+        ace_core::queue::enqueue(&mut tx, root, ace_core::tree::ObservableId(pcap.0), module)
+            .await
+            .expect("queues");
+    }
+    tx.commit().await.expect("commits");
+    run("pcap_files").await;
+    let added = files(root).await;
+    assert_eq!(
+        added,
+        [
+            ("http_tls.pcapng".to_owned(), added[0].1.clone()),
+            (
+                "http_tls.pcapng.pcap_objects/http/payload.txt".to_owned(),
+                payload.to_hex()
+            ),
+        ]
+    );
+    // the size is the bucket's, which pcap_files gave as 0
+    let size: i64 =
+        sqlx::query_scalar("SELECT size FROM store.objects WHERE pool = $1 AND sha256 = $2")
+            .bind(ALERT_FILES)
+            .bind(payload.to_hex())
+            .fetch_one(core.test_db.db().pool())
+            .await
+            .expect("the object");
+    assert_eq!(size, 36);
+
+    // pcap_dns doesn't declare that it adds stored files
+    let task = lease_one(&client, "pcap_dns").await;
+    let mut result =
+        ace_results::ResultEnvelope::new(ace_results::types::pcap::PcapDnsAnalysis::default());
+    result.files.push(ace_results::NewFile::new(
+        ace_results::AlertPath::new("http_tls.pcapng.pcap_objects/http/copy.txt").expect("a path"),
+        payload,
+        0,
+    ));
+    let refused = client
+        .end(
+            task.id,
+            &ace_sdk::wire::TaskEnd::Done {
+                result: result.to_raw().expect("JSON"),
+                writes: Vec::new(),
+            },
+        )
+        .await;
+    assert!(
+        matches!(
+            &refused,
+            Err(ace_pool::client::ClientError::Api { status: 400, .. })
+        ),
+        "{refused:?}"
+    );
+    assert_eq!(common::task_of(&core, root, "pcap_dns").await.0, "running");
+    assert_eq!(files(root).await.len(), 2);
+}

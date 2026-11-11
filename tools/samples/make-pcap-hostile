@@ -1,0 +1,185 @@
+#!/usr/bin/env python3
+"""Writes the crafted captures PLAN.md 7.5 batch 13's pcap modules are measured on
+(docs/measurements/pcap.md), each named after the module it's for. Some are large, so they go to a
+directory given here, not into the repository. Frames are written by hand (tools/samples/pcaplib.py),
+in a Linux container that has tshark's tools:
+
+    docker compose exec -T dev python3 -I tools/samples/make-pcap-hostile DIR [NAME...]
+
+- pcap_analyzer_reassembly.pcap: one HTTP POST whose Content-Length is 2 GB and whose body, 200 MB
+  in 150,000 segments, never ends, so tshark holds the whole stream for reassembly; and 50,000 more
+  connections, each with a request header that never ends.
+- pcap_analyzer_gzip_bomb.pcap: an HTTP response whose gzip body inflates to 8 GiB of zeros.
+- pcap_analyzer_nested.pcap: frames of 2,000 IPv4 headers each inside the last (IP in IP), with a
+  DNS query at the bottom, and frames of 1,000 stacked VLAN tags.
+- pcap_analyzer_quadratic.pcap: an HTTP request header sent a byte a segment, 200,000 segments,
+  that never ends: tshark looks for the header's end in the whole of it again with every segment.
+- pcap_analyzer_dns_flood.pcap: 60,000 DNS responses of 120 A records each, whose JSON is past the
+  runner's 64 MiB.
+- pcap_analyzer_scan.pcap: 500,000 one-packet UDP conversations, whose statistics are past 64 MiB.
+- pcap_files_many.pcap: 20,000 HTTP downloads of different bytes.
+"""
+
+import importlib.util
+import struct
+import sys
+import zlib
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+_spec = importlib.util.spec_from_file_location("pcaplib", HERE / "pcaplib.py")
+lib = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(lib)
+
+CLIENT_MAC = lib.mac("02:00:00:aa:00:01")
+SERVER_MAC = lib.mac("02:00:00:bb:00:02")
+CLIENT, SERVER = "10.20.30.40", "198.51.100.80"
+
+
+class Writer:
+    """A pcap written frame by frame, so a large one needn't be held."""
+
+    def __init__(self, path: Path):
+        self.fp = open(path, "wb")
+        self.fp.write(struct.pack("<IHHiIII", 0xA1B2C3D4, 2, 4, 0, 0, 262144, 1))
+        self.n = 0
+
+    def append(self, frame: bytes):
+        micros = self.n * 10
+        self.fp.write(struct.pack("<IIII", lib.BASE_TIME + micros // 1_000_000, micros % 1_000_000, len(frame),
+                                  len(frame)))
+        self.fp.write(frame)
+        self.n += 1
+
+    def extend(self, frames):
+        for frame in frames:
+            self.append(frame)
+
+    def close(self):
+        self.fp.close()
+
+
+class StreamFlow(lib.TcpFlow):
+    """A TcpFlow whose frames go to a Writer as they're made."""
+
+    def __init__(self, writer: Writer, client, server, mss=1400):
+        super().__init__(_Sink(writer), client, server, mss)
+
+
+class _Sink(list):
+    def __init__(self, writer):
+        super().__init__()
+        self.writer = writer
+
+    def append(self, frame):
+        self.writer.append(frame)
+
+
+def reassembly(path: Path):
+    w = Writer(path)
+    flow = StreamFlow(w, (CLIENT_MAC, CLIENT, 40000), (SERVER_MAC, SERVER, 80))
+    flow.send(True, b"POST /upload HTTP/1.1\r\nHost: reassembly.example\r\nContent-Length: 2000000000\r\n\r\n")
+    chunk = bytes(range(256)) * 5 + b"0123456789" * 12
+    for _ in range(150_000):
+        flow.send(True, chunk[:1400])
+    for i in range(50_000):
+        client = (CLIENT_MAC, f"10.21.{i // 250}.{i % 250 + 1}", 41000 + i % 20000)
+        flow = StreamFlow(w, client, (SERVER_MAC, SERVER, 80))
+        flow.send(True, b"GET /never-ends HTTP/1.1\r\nHost: reassembly.example\r\nX-Pad: " + b"a" * 200)
+    w.close()
+
+
+def gzip_bomb(path: Path):
+    compressor = zlib.compressobj(9, zlib.DEFLATED, 31)
+    zeros = bytes(1 << 20)
+    body = b"".join(compressor.compress(zeros) for _ in range(8 * 1024)) + compressor.flush()
+    w = Writer(path)
+    flow = StreamFlow(w, (CLIENT_MAC, CLIENT, 40001), (SERVER_MAC, SERVER, 80))
+    flow.send(True, lib.http_request("bomb.example", "/zeros.bin", "bomb-agent/1.0"))
+    flow.send(False, lib.http_response(body, "application/octet-stream", headers=("Content-Encoding: gzip",)))
+    flow.close()
+    w.close()
+
+
+def nested(path: Path):
+    w = Writer(path)
+    inner = lib.udp_frame(CLIENT_MAC, SERVER_MAC, CLIENT, SERVER, 50000, 53, lib.dns_query(1, "nested.example"))[14:]
+    for _ in range(20):
+        packet = inner
+        for _ in range(2000):
+            header = struct.pack("!BBHHHBBH4s4s", 0x45, 0, (20 + len(packet)) & 0xFFFF, 1, 0, 64, 4, 0,
+                                 bytes([10, 20, 30, 40]), bytes([198, 51, 100, 80]))
+            header = header[:10] + struct.pack("!H", lib.checksum(header)) + header[12:]
+            packet = header + packet
+        w.append(SERVER_MAC + CLIENT_MAC + b"\x08\x00" + packet)
+    for _ in range(20):
+        tags = b"".join(b"\x81\x00" + struct.pack("!H", i % 4094 + 1) for i in range(1000))
+        w.append(SERVER_MAC + CLIENT_MAC + tags + b"\x08\x00" + inner)
+    w.close()
+
+
+def quadratic(path: Path):
+    w = Writer(path)
+    flow = StreamFlow(w, (CLIENT_MAC, CLIENT, 40002), (SERVER_MAC, SERVER, 80))
+    header = b"GET /slow HTTP/1.1\r\nHost: quadratic.example\r\nX-Pad: "
+    for byte in header + b"b" * (200_000 - len(header)):
+        flow.send(True, bytes([byte]))
+    w.close()
+
+
+def dns_flood(path: Path):
+    w = Writer(path)
+    for i in range(60_000):
+        name = f"flood{i}.example"
+        answers = [lib.a_rr(name, f"203.0.113.{j % 254 + 1}") for j in range(120)]
+        w.append(lib.udp_frame(SERVER_MAC, CLIENT_MAC, "10.20.30.1", CLIENT, 53, 40000 + i % 20000,
+                               lib.dns_response(i & 0xFFFF, name, answers)))
+    w.close()
+
+
+def scan(path: Path):
+    w = Writer(path)
+    for i in range(500_000):
+        w.append(lib.udp_frame(CLIENT_MAC, SERVER_MAC, CLIENT, f"198.18.{i // 65536}.{(i // 256) % 256}",
+                               1024 + i % 60000, 1 + i % 65000, b"x"))
+    w.close()
+
+
+def many_files(path: Path):
+    w = Writer(path)
+    for i in range(20_000):
+        client = (CLIENT_MAC, CLIENT, 1024 + i % 60000)
+        server = (SERVER_MAC, f"198.51.{100 + i // 5000}.{i % 250 + 1}", 80)
+        body = f"object {i} of many\n".encode() * 4
+        flow = StreamFlow(w, client, server)
+        flow.send(True, lib.http_request("files.example", f"/objects/object{i:05}.txt", "many-agent/1.0"))
+        flow.send(False, lib.http_response(body))
+        flow.close()
+    w.close()
+
+
+MAKERS = {
+    "pcap_analyzer_reassembly.pcap": reassembly,
+    "pcap_analyzer_gzip_bomb.pcap": gzip_bomb,
+    "pcap_analyzer_nested.pcap": nested,
+    "pcap_analyzer_quadratic.pcap": quadratic,
+    "pcap_analyzer_dns_flood.pcap": dns_flood,
+    "pcap_analyzer_scan.pcap": scan,
+    "pcap_files_many.pcap": many_files,
+}
+
+
+def main():
+    if len(sys.argv) < 2:
+        raise SystemExit(__doc__)
+    out = Path(sys.argv[1])
+    out.mkdir(parents=True, exist_ok=True)
+    for name in sys.argv[2:] or list(MAKERS):
+        print(name, flush=True)
+        MAKERS[name](out / name)
+        print(f"  {(out / name).stat().st_size:,} bytes", flush=True)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

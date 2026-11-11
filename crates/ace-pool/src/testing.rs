@@ -266,6 +266,26 @@ pub fn modules(settings: &Value) -> Result<Modules, SetupError> {
         .with_parser(Entry::<ace_mod_sandbox::Cve202130657Analyzer>::parser(
             block("cve_2021_30657_analyzer"),
             &secrets,
+        )?)
+        .with_parser(Entry::<ace_mod_pcap::PcapAnalyzer>::parser(
+            block("pcap_analyzer"),
+            &secrets,
+        )?)
+        .with_parser(Entry::<ace_mod_pcap::PcapFiles>::parser(
+            block("pcap_files"),
+            &secrets,
+        )?)
+        .with_parser(Entry::<ace_mod_pcap::PcapTls>::parser(
+            block("pcap_tls"),
+            &secrets,
+        )?)
+        .with_parser(Entry::<ace_mod_pcap::PcapDns>::parser(
+            block("pcap_dns"),
+            &secrets,
+        )?)
+        .with_parser(Entry::<ace_mod_pcap::PcapHttp>::parser(
+            block("pcap_http"),
+            &secrets,
         )?))
 }
 
@@ -280,6 +300,7 @@ pub fn test_tool(name: String, program: String) -> ace_sdk::tools::ToolSpec {
         env: &[],
         request_env: &[],
         memory_bytes: 1024 * 1024 * 1024,
+        file_size_bytes: ace_sdk::tools::FILE_SIZE_LIMIT,
     }
 }
 

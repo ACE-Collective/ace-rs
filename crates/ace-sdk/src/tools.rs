@@ -41,6 +41,11 @@ pub const MEMORY_LIMIT: u64 = 4 * 1024 * 1024 * 1024;
 pub const OPEN_FILES_LIMIT: u64 = 1024;
 /// How many tools one task may run.
 pub const MAX_RUNS: u32 = 64;
+/// The most files a run keeps, and the most bytes of their names, which its answer lists: past
+/// them the rest are left in the working directory, which goes with the run (7.5 batch 13, where a
+/// capture of 20,000 HTTP objects made tshark export as many files).
+pub const MAX_KEPT_FILES: usize = 50_000;
+pub const MAX_KEPT_NAME_BYTES: usize = 4 << 20;
 /// How much of a tool's stderr ace3's sandbox keeps: its end (`STDERR_TAIL_BYTES`).
 pub const STDERR_TAIL_BYTES: usize = 16 * 1024;
 /// How much of the task's time a run leaves, as ace3's `TOOL_TIMEOUT_MARGIN_SECONDS`.
@@ -59,12 +64,15 @@ pub struct ToolSpec {
     pub args: &'static [&'static str],
     /// The files and directories it reads besides its own libraries, such as its data.
     pub reads: &'static [&'static str],
-    /// Variables it always gets, besides `PATH`, `LANG`, `HOME` and `TMPDIR`.
+    /// Variables it always gets, besides `PATH`, `LANG`, `HOME` and `TMPDIR`; one of those four named
+    /// here takes its place, as tshark's `HOME` does.
     pub env: &'static [(&'static str, &'static str)],
     /// Variables a request may set, such as tesseract's `OMP_THREAD_LIMIT`.
     pub request_env: &'static [&'static str],
     /// Its address-space limit.
     pub memory_bytes: u64,
+    /// The largest file it may write (`RLIMIT_FSIZE`).
+    pub file_size_bytes: u64,
 }
 
 impl ToolSpec {
@@ -78,6 +86,7 @@ impl ToolSpec {
             env: &[],
             request_env: &[],
             memory_bytes: MEMORY_LIMIT,
+            file_size_bytes: FILE_SIZE_LIMIT,
         }
     }
 }
@@ -197,7 +206,35 @@ pub const SANDBOX_TOOLS: &[ToolSpec] = &[
         ],
         ..ToolSpec::new("7z", "/usr/lib/7zip/7z")
     },
+    // batch 13's: tshark and capinfos, Wireshark 4.4.19. tshark reads its data and loads its
+    // plugins' modules, which the runner resolves from the plugin directory; reading a file, it
+    // starts threads and no process, and never runs dumpcap or an extcap helper, whose directory it
+    // can't read. `HOME` and `WIRESHARK_CONFIG_DIR` name a directory that doesn't exist, which it
+    // couldn't read if it did, in place of its working directory, so it reads no personal
+    // preferences, profiles or plugins, Lua scripts among them: the only Lua it can load is in the
+    // image's plugin directory, which has none. A file it writes, such as an exported object, may be
+    // 256 MiB, ace3's `pcap.sandbox.file_size_limit`.
+    ToolSpec {
+        reads: &["/usr/share/wireshark", WIRESHARK_PLUGINS],
+        env: WIRESHARK_ENV,
+        file_size_bytes: WIRESHARK_FILE_SIZE_LIMIT,
+        ..ToolSpec::new("tshark", "/usr/bin/tshark")
+    },
+    ToolSpec {
+        env: WIRESHARK_ENV,
+        file_size_bytes: WIRESHARK_FILE_SIZE_LIMIT,
+        ..ToolSpec::new("capinfos", "/usr/bin/capinfos")
+    },
 ];
+
+/// Where tshark and capinfos look for a home and personal configuration: nowhere that exists.
+pub const NO_HOME: &str = "/nonexistent/ace4-tool-home";
+const WIRESHARK_ENV: &[(&str, &str)] = &[("HOME", NO_HOME), ("WIRESHARK_CONFIG_DIR", NO_HOME)];
+const WIRESHARK_FILE_SIZE_LIMIT: u64 = 256 * 1024 * 1024;
+#[cfg(target_arch = "aarch64")]
+const WIRESHARK_PLUGINS: &str = "/usr/lib/aarch64-linux-gnu/wireshark/plugins";
+#[cfg(not(target_arch = "aarch64"))]
+const WIRESHARK_PLUGINS: &str = "/usr/lib/x86_64-linux-gnu/wireshark/plugins";
 
 /// Where the sandbox image keeps CFR's jar.
 pub const CFR_JAR: &str = "/usr/local/share/java/cfr-0.151.jar";
@@ -382,7 +419,8 @@ pub enum ToolStop {
     Timeout,
     /// It wrote more than `MAX_OUTPUT_BYTES` to stdout or to stderr and was killed.
     Output,
-    /// It wrote a file past `FILE_SIZE_LIMIT` and died of SIGXFSZ.
+    /// It wrote a file past its spec's size limit (`FILE_SIZE_LIMIT` unless the spec says) and died
+    /// of SIGXFSZ.
     FileSize,
     /// It tried to start a process, and the tool filter killed it with SIGSYS.
     Process,
@@ -507,11 +545,10 @@ pub fn environment(
         ("HOME".to_owned(), workdir.clone()),
         ("TMPDIR".to_owned(), workdir),
     ];
-    env.extend(
-        spec.env
-            .iter()
-            .map(|(name, value)| ((*name).to_owned(), (*value).to_owned())),
-    );
+    for (name, value) in spec.env {
+        env.retain(|(n, _)| n != name);
+        env.push(((*name).to_owned(), (*value).to_owned()));
+    }
     for (name, value) in &run.env {
         if !spec.request_env.contains(&name.as_str()) {
             return Err(ToolError::Refused(format!(
@@ -578,9 +615,17 @@ pub fn collect_outputs(
         }
     };
     let mut kept = BTreeMap::new();
+    let mut name_bytes = 0;
     for name in names {
         if staged.contains(&name) {
             continue;
+        }
+        if kept.len() >= MAX_KEPT_FILES || name_bytes + name.len() > MAX_KEPT_NAME_BYTES {
+            tracing::warn!(
+                kept = kept.len(),
+                "a run left more files than are kept; the rest stay behind"
+            );
+            break;
         }
         let path = workdir.join(&name);
         let to = into.join(&name);
@@ -603,6 +648,7 @@ pub fn collect_outputs(
         }
         fs::rename(&path, &to)?;
         fs::set_permissions(&to, fs::Permissions::from_mode(0o644))?;
+        name_bytes += name.len();
         kept.insert(name, to);
     }
     Ok(kept)

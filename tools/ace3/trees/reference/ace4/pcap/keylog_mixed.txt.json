@@ -1,0 +1,85 @@
+{
+  "form": 1,
+  "observables": {
+    "file:6b398d4881e1db90a0a350b2f26f311e7fd2ecb2b37b392e274754d6384f8898": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "keylog_mixed.txt": {
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "d97799ca707603139c6151eff1c36dc5",
+            "sha1": "2ee8192eb934fd2005403e4f60c3aa5965a999b9",
+            "sha256": "6b398d4881e1db90a0a350b2f26f311e7fd2ecb2b37b392e274754d6384f8898"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        },
+        "tls_keylog": {
+          "details": {
+            "applied_to": [],
+            "client_randoms": 2,
+            "label_counts": {
+              "CLIENT_EARLY_TRAFFIC_SECRET": 1,
+              "CLIENT_RANDOM": 1,
+              "EARLY_EXPORTER_SECRET": 1,
+              "EXPORTER_SECRET": 1,
+              "RSA": 1
+            },
+            "skipped": []
+          },
+          "summary": "TLS Key Log: 5 secrets for 2 TLS sessions (1 CLIENT_EARLY_TRAFFIC_SECRET, 1 CLIENT_RANDOM, 1 EARLY_EXPORTER_SECRET, 1 EXPORTER_SECRET, 1 RSA)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "tls_keylog": true
+      }
+    },
+    "md5:d97799ca707603139c6151eff1c36dc5": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:6b398d4881e1db90a0a350b2f26f311e7fd2ecb2b37b392e274754d6384f8898": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:6b398d4881e1db90a0a350b2f26f311e7fd2ecb2b37b392e274754d6384f8898": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:6b398d4881e1db90a0a350b2f26f311e7fd2ecb2b37b392e274754d6384f8898": true
+      },
+      "results": {},
+      "tags": {}
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "analysis_type": "tls_keylog_analysis",
+  "schema_version": 1,
+  "details": {
+    "applied_to": [],
+    "client_randoms": 2,
+    "label_counts": {
+      "CLIENT_HANDSHAKE_TRAFFIC_SECRET": 1,
+      "CLIENT_RANDOM": 1,
+      "CLIENT_TRAFFIC_SECRET_0": 1,
+      "EXPORTER_SECRET": 1,
+      "SERVER_HANDSHAKE_TRAFFIC_SECRET": 1,
+      "SERVER_TRAFFIC_SECRET_0": 1
+    },
+    "skipped": []
+  },
+  "summary": "TLS Key Log: 6 secrets for 2 TLS sessions (1 CLIENT_HANDSHAKE_TRAFFIC_SECRET, 1 CLIENT_RANDOM, 1 CLIENT_TRAFFIC_SECRET_0, 1 EXPORTER_SECRET, 1 SERVER_HANDSHAKE_TRAFFIC_SECRET, 1 SERVER_TRAFFIC_SECRET_0)",
+  "analyzed": {
+    "tags": [
+      "tls_keylog"
+    ]
+  }
+}

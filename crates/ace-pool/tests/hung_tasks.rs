@@ -750,6 +750,91 @@ async fn the_macos_image_modules_run_their_tools_as_the_task_user() {
     assert_eq!(files, 3, "{stderr}");
 }
 
+/// PLAN.md 7.5 batch 13: tshark and capinfos as the task's user, under the runner: pcap_analyzer
+/// dissects ace3's TLS capture and stores what it carves, and pcap_files and pcap_tls, queued on it
+/// as the core queues them in a mode, add the payload and the certificate with no upload.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn the_pcap_modules_run_tshark_as_the_task_user() {
+    let manifests = vec![
+        ace_sdk::Manifest::parser::<ace_mod_pcap::PcapAnalyzer>(),
+        ace_sdk::Manifest::parser::<ace_mod_pcap::PcapFiles>(),
+        ace_sdk::Manifest::parser::<ace_mod_pcap::PcapTls>(),
+    ];
+    let modules = ["pcap_analyzer", "pcap_files", "pcap_tls"];
+    let core = Core::start(manifests, &modules, Duration::from_secs(30)).await;
+    let samples = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../samples");
+    let bytes = std::fs::read(samples.join("ace3/pcap/http_tls.pcapng")).expect("the sample");
+    let (root, sha256) = root_with_bytes(&core, "event", &bytes, "http_tls.pcapng").await;
+    enqueue(&core, root, &sha256.to_hex(), "pcap_analyzer").await;
+    let mut pool = PoolProcess::start(test_pool(
+        &core,
+        &["parsers", "--task-user", "ace4-task", "--concurrency", "2"],
+    ));
+    wait_until_idle(&core, root, Duration::from_secs(180)).await;
+    for module in ["pcap_files", "pcap_tls"] {
+        enqueue(&core, root, &sha256.to_hex(), module).await;
+    }
+    wait_until_idle(&core, root, Duration::from_secs(180)).await;
+    let stderr = pool.stop();
+    let states: Vec<(String, String, Option<String>)> = sqlx::query_as(
+        "SELECT module, state::text, error FROM queue.tasks WHERE root_id = $1 ORDER BY module",
+    )
+    .bind(root)
+    .fetch_all(core.test_db.db().pool())
+    .await
+    .expect("the tasks");
+    assert_eq!(states.len(), 3, "{states:?}\n{stderr}");
+    for (module, state, error) in &states {
+        assert_eq!(state, "done", "{module}: {error:?}\n{stderr}");
+    }
+    let summaries: Vec<(String, String)> = sqlx::query_as(
+        "SELECT module, summary FROM analysis.results WHERE root_id = $1 ORDER BY module",
+    )
+    .bind(root)
+    .fetch_all(core.test_db.db().pool())
+    .await
+    .expect("the results");
+    assert_eq!(
+        summaries,
+        [
+            (
+                "pcap_analyzer".to_owned(),
+                "PCAP Analysis: 41 packets, 3 flows, 2 TLS sessions".to_owned()
+            ),
+            (
+                "pcap_files".to_owned(),
+                "PCAP Files: 1 files (1 file)".to_owned()
+            ),
+            (
+                "pcap_tls".to_owned(),
+                "PCAP TLS: 2 entries (1 file, 2 fqdn, 2 ja4)".to_owned()
+            ),
+        ],
+        "{stderr}"
+    );
+    let files: Vec<(String, i64)> = sqlx::query_as(
+        "SELECT f.path, s.size FROM analysis.files f
+         JOIN analysis.observables o ON o.root_id = f.root_id AND o.id = f.observable_id
+         JOIN store.objects s ON s.pool = 'alert_files' AND s.sha256 = o.value
+         WHERE f.root_id = $1 ORDER BY f.path",
+    )
+    .bind(root)
+    .fetch_all(core.test_db.db().pool())
+    .await
+    .expect("the files");
+    assert_eq!(
+        files,
+        [
+            ("http_tls.pcapng".to_owned(), 11652),
+            (
+                "http_tls.pcapng.pcap_objects/certificates/46601b3e65dc50aef3998a71b5ccdbd0f5fc1aa13488ed38349b3abe15543fad.der".to_owned(),
+                848
+            ),
+            ("http_tls.pcapng.pcap_objects/http/payload.txt".to_owned(), 36),
+        ]
+    );
+}
+
 /// docs/measurements/sandbox-modules.md and executables.md: crafted files through the sandbox modules,
 /// contained, as the pool runs them. `ACE4_CRAFTED` names a directory of them, and a file goes to the
 /// module its name starts with, or to batch 10's five when none; each line printed is a module, a
@@ -775,8 +860,21 @@ async fn crafted_files_through_the_sandbox_modules() {
         ace_sdk::Manifest::parser::<ace_mod_sandbox::IlspyAnalyzer>(),
         ace_sdk::Manifest::parser::<ace_mod_sandbox::DmgAnalyzer>(),
         ace_sdk::Manifest::parser::<ace_mod_sandbox::Cve202130657Analyzer>(),
+        ace_sdk::Manifest::parser::<ace_mod_pcap::PcapAnalyzer>(),
+        ace_sdk::Manifest::parser::<ace_mod_pcap::PcapHttp>(),
+        ace_sdk::Manifest::parser::<ace_mod_pcap::PcapFiles>(),
+        ace_sdk::Manifest::parser::<ace_mod_pcap::PcapDns>(),
+        ace_sdk::Manifest::parser::<ace_mod_pcap::PcapTls>(),
     ];
     modules.extend(["dmg_analyzer", "cve_2021_30657_analyzer"]);
+    let pcap_modules = [
+        "pcap_analyzer",
+        "pcap_http",
+        "pcap_files",
+        "pcap_dns",
+        "pcap_tls",
+    ];
+    modules.extend(pcap_modules);
     let core = Core::start(manifests, &modules, Duration::from_secs(30)).await;
     let mut pool = PoolProcess::start(test_pool(
         &core,
@@ -794,6 +892,43 @@ async fn crafted_files_through_the_sandbox_modules() {
     names.sort();
     for name in &names {
         let bytes = std::fs::read(dir.join(name)).expect("the file");
+        // batch 13's: pcap_analyzer on the capture, then the categories on its index
+        if name.starts_with("pcap_") {
+            let (root, sha256) = common::root_with_file(&core, "event", &bytes, name, &[]).await;
+            for step in [&pcap_modules[..1], &pcap_modules[1..]] {
+                for module in step {
+                    enqueue(&core, root, &sha256.to_hex(), module).await;
+                }
+                let started = Instant::now();
+                wait_until_idle(&core, root, Duration::from_secs(900)).await;
+                println!(
+                    "{name}: {:?} idle in {:.1} s",
+                    step,
+                    started.elapsed().as_secs_f64()
+                );
+            }
+            for module in pcap_modules {
+                let (state, error) = common::task_of(&core, root, module).await;
+                let result: Option<(String, String)> = sqlx::query_as(
+                    "SELECT coalesce(summary, ''), left(details::text, 400) FROM analysis.results
+                     WHERE root_id = $1 AND module = $2",
+                )
+                .bind(root)
+                .bind(module)
+                .fetch_optional(core.test_db.db().pool())
+                .await
+                .expect("the result");
+                println!("{module} {name}: {state}; {error:?}; {result:?}");
+            }
+            let files: i64 =
+                sqlx::query_scalar("SELECT count(*) FROM analysis.files WHERE root_id = $1")
+                    .bind(root)
+                    .fetch_one(core.test_db.db().pool())
+                    .await
+                    .expect("counts");
+            println!("{name}: {files} files in the alert");
+            continue;
+        }
         // batch 12's: dmg_analyzer on the DMG, then the CVE module on the image it added
         if name.starts_with("dmg_analyzer") || name.starts_with("cve_2021_30657_analyzer") {
             let (root, sha256) = common::root_with_file(&core, "event", &bytes, name, &[]).await;

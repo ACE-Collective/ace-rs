@@ -1,0 +1,67 @@
+{
+  "form": 1,
+  "observables": {
+    "file:3d729561ea0892bb7f5bb7356249b8e1a3a2cb7449f380b0aea90ba504567575": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "not_a_keylog.txt": {
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "672d3cc8236126038d2675ee7d686637",
+            "sha1": "81a25676f3b7b205ec6b269d3ba00618ed28eb1c",
+            "sha256": "3d729561ea0892bb7f5bb7356249b8e1a3a2cb7449f380b0aea90ba504567575"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "md5:672d3cc8236126038d2675ee7d686637": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:3d729561ea0892bb7f5bb7356249b8e1a3a2cb7449f380b0aea90ba504567575": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:3d729561ea0892bb7f5bb7356249b8e1a3a2cb7449f380b0aea90ba504567575": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:3d729561ea0892bb7f5bb7356249b8e1a3a2cb7449f380b0aea90ba504567575": true
+      },
+      "results": {},
+      "tags": {}
+    }
+  }
+}

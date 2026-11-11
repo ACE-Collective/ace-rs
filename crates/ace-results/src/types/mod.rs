@@ -21,6 +21,7 @@ pub mod msoffice;
 pub mod nrd;
 pub mod office;
 pub mod olevba;
+pub mod pcap;
 pub mod pcode;
 pub mod pdf;
 pub mod rdap;

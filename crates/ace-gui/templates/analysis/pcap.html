@@ -1,0 +1,31 @@
+{#- pcap_analysis, pcap_dns_analysis, pcap_tls_analysis, pcap_http_analysis, pcap_files_analysis,
+    pcap_tls_decryption_analysis and tls_keylog_analysis (src/analysis/pcap.rs), from ace3's
+    analysis/pcap_analysis.html: the capture, what the page lacks, and each table, with how many
+    rows it had when it was cut. -#}
+{%- if let Some(error) = self.error %}
+<p class="error">Failed: {{ error }}</p>
+{%- endif %}
+{%- if !self.capture.is_empty() %}
+<p>{{ self.capture.join(" · ") }}</p>
+{%- endif %}
+{%- if let Some(notice) = self.notice %}
+<p>{{ notice }}</p>
+{%- endif %}
+{%- for t in self.tables %}
+<h3>{{ t.title }}{% if t.cut() %} ({{ t.rows.len() }} of {{ t.total }}){% endif %}</h3>
+{%- if let Some(order) = t.order %}
+<p>{{ order }}</p>
+{%- endif %}
+{%- if let Some(note) = t.note %}
+<p>{{ note }}</p>
+{%- endif %}
+<table>
+<tr>{% for column in t.columns %}<th>{{ column }}</th>{% endfor %}</tr>
+{%- for row in t.rows %}
+<tr>{% for cell in row %}<td>{{ cell }}</td>{% endfor %}</tr>
+{%- endfor %}
+</table>
+{%- endfor %}
+{%- if self.error.is_none() && self.tables.is_empty() %}
+<p>No tables: the capture had nothing for this part.</p>
+{%- endif %}

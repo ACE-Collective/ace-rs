@@ -1,0 +1,196 @@
+{
+  "analysis_type": "pcap_tls_decryption_analysis",
+  "schema_version": 1,
+  "details": {
+    "added": {
+      "file": 2,
+      "url": 2
+    },
+    "capture": {
+      "application": "Dumpcap (Wireshark) 4.4.19",
+      "duration": 0.044872099,
+      "encapsulations": [
+        "Ethernet"
+      ],
+      "file_name": "http_tls.pcapng",
+      "first": 1792604746.451967,
+      "format": "pcapng",
+      "interfaces": 1,
+      "last": 1792604746.496839,
+      "packets": 41,
+      "size": 11652,
+      "strict_time_order": true
+    },
+    "error": null,
+    "index": {
+      "carved_sha256": [
+        "46601b3e65dc50aef3998a71b5ccdbd0f5fc1aa13488ed38349b3abe15543fad",
+        "58291beed38be310dca3536326c58a416cb57b3196c548c6536a02bfdc478579",
+        "b85503dc0f3e55d9e1f46d7812974fbf2ee362bd4afec065a59f62e5eb697ab0"
+      ],
+      "certificates": [
+        {
+          "issuer": "pcap-tls.example",
+          "path": null,
+          "san_total": 2,
+          "sans": [
+            "pcap-tls12.example",
+            "pcap-tls13.example"
+          ],
+          "sha256": "46601b3e65dc50aef3998a71b5ccdbd0f5fc1aa13488ed38349b3abe15543fad",
+          "subject": "pcap-tls.example"
+        }
+      ],
+      "certificates_total": 1,
+      "dns": [],
+      "dns_total": 0,
+      "field_packet_limit": 50000,
+      "hostnames": [],
+      "hostnames_total": 0,
+      "http": [
+        {
+          "content_type": "text/plain",
+          "host": "pcap-http.example:18080",
+          "method": "GET",
+          "status": "200",
+          "url": "http://pcap-http.example:18080/payload.txt",
+          "user_agent": "pcap-fixture-agent/1.0"
+        },
+        {
+          "content_type": "text/plain",
+          "host": "pcap-tls12.example:18443",
+          "method": "GET",
+          "status": "200",
+          "url": "https://pcap-tls12.example:18443/secret12.txt",
+          "user_agent": "pcap-fixture-agent/1.0"
+        },
+        {
+          "content_type": "text/plain",
+          "host": "pcap-tls13.example:18444",
+          "method": "GET",
+          "status": "200",
+          "url": "https://pcap-tls13.example:18444/secret13.txt",
+          "user_agent": "pcap-fixture-agent/1.0"
+        }
+      ],
+      "http_total": 3,
+      "objects": [
+        {
+          "file_name": "secret12.txt",
+          "path": "http_tls.pcapng.pcap_decrypted/http/secret12.txt",
+          "protocol": "http",
+          "sha256": "b85503dc0f3e55d9e1f46d7812974fbf2ee362bd4afec065a59f62e5eb697ab0",
+          "size": 36,
+          "url": "https://pcap-tls12.example:18443/secret12.txt"
+        },
+        {
+          "file_name": "secret13.txt",
+          "path": "http_tls.pcapng.pcap_decrypted/http/secret13.txt",
+          "protocol": "http",
+          "sha256": "58291beed38be310dca3536326c58a416cb57b3196c548c6536a02bfdc478579",
+          "size": 36,
+          "url": "https://pcap-tls13.example:18444/secret13.txt"
+        }
+      ],
+      "objects_total": 2,
+      "tls": [
+        {
+          "certificates": [
+            "46601b3e65dc50aef3998a71b5ccdbd0f5fc1aa13488ed38349b3abe15543fad"
+          ],
+          "client": "127.0.0.1:36704",
+          "client_random": "be401d9c38e74ed55c59ecc279468bae1062bacd07759010cb2c9c80f7e0afaf",
+          "flow": "tcp:1",
+          "ja4": "t12d2708h1_a2460661a67a_eed5f1524d5c",
+          "server": "127.0.0.1:18443",
+          "sni": "pcap-tls12.example"
+        },
+        {
+          "certificates": [
+            "46601b3e65dc50aef3998a71b5ccdbd0f5fc1aa13488ed38349b3abe15543fad"
+          ],
+          "client": "127.0.0.1:60236",
+          "client_random": "a061545337b7aa4a20b7e29568e8f4ae598fd99176ad9c1d35fe49c1ed1d7a4f",
+          "flow": "tcp:2",
+          "ja4": "t13d0312h1_55b375c5d22e_e035b0d0e93b",
+          "server": "127.0.0.1:18444",
+          "sni": "pcap-tls13.example"
+        }
+      ],
+      "tls_total": 2
+    },
+    "keylogs": [
+      {
+        "file_name": "sslkeylog.txt",
+        "label_counts": {
+          "CLIENT_HANDSHAKE_TRAFFIC_SECRET": 1,
+          "CLIENT_RANDOM": 1,
+          "CLIENT_TRAFFIC_SECRET_0": 1,
+          "EXPORTER_SECRET": 1,
+          "SERVER_HANDSHAKE_TRAFFIC_SECRET": 1,
+          "SERVER_TRAFFIC_SECRET_0": 1
+        },
+        "sha256": "76f3b3e668343641d138e1121f7be54778c87bf38fe98f27723be8be971ff8e3"
+      }
+    ],
+    "omitted": {},
+    "sessions": 2,
+    "sessions_with_embedded_keys": 0,
+    "sessions_with_keys": 2
+  },
+  "summary": "PCAP TLS Decryption: keys for 2 of 2 TLS sessions (1 key logs), new: 2 file, 2 url",
+  "observables": [
+    {
+      "type": "url",
+      "value": "https://pcap-tls12.example:18443/secret12.txt"
+    },
+    {
+      "type": "url",
+      "value": "https://pcap-tls13.example:18444/secret13.txt"
+    }
+  ],
+  "files": [
+    {
+      "path": "http_tls.pcapng.pcap_decrypted/http/secret12.txt",
+      "sha256": "b85503dc0f3e55d9e1f46d7812974fbf2ee362bd4afec065a59f62e5eb697ab0",
+      "size": 36,
+      "relationships": [
+        {
+          "type": "extracted_from",
+          "target": {
+            "type": "file",
+            "value": "d62e8e38b1bed05360dd8b2e1a70cc42736aaf0881e482a3c4e7c977fe2451ed"
+          }
+        },
+        {
+          "type": "downloaded_from",
+          "target": {
+            "type": "url",
+            "value": "https://pcap-tls12.example:18443/secret12.txt"
+          }
+        }
+      ]
+    },
+    {
+      "path": "http_tls.pcapng.pcap_decrypted/http/secret13.txt",
+      "sha256": "58291beed38be310dca3536326c58a416cb57b3196c548c6536a02bfdc478579",
+      "size": 36,
+      "relationships": [
+        {
+          "type": "extracted_from",
+          "target": {
+            "type": "file",
+            "value": "d62e8e38b1bed05360dd8b2e1a70cc42736aaf0881e482a3c4e7c977fe2451ed"
+          }
+        },
+        {
+          "type": "downloaded_from",
+          "target": {
+            "type": "url",
+            "value": "https://pcap-tls13.example:18444/secret13.txt"
+          }
+        }
+      ]
+    }
+  ]
+}

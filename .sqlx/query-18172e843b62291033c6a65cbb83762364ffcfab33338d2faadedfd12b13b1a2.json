@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT o.size FROM store.holds h\n               JOIN store.objects o ON o.pool = h.pool AND o.sha256 = h.sha256\n               WHERE h.pool = $1 AND h.sha256 = $2 AND h.holder_kind = 'root'\n                 AND h.holder_id = $3 AND o.state = 'present'\n               LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "size",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "store.objects",
+            "name": "size"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "18172e843b62291033c6a65cbb83762364ffcfab33338d2faadedfd12b13b1a2"
+}

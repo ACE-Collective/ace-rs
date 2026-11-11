@@ -66,10 +66,32 @@ pub struct ResultEnvelope<D> {
     /// Files the result adds to the alert.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub files: Vec<NewFile>,
+    /// Files the result stores for its root without adding them, for a module that depends on its
+    /// module to add (`Module::ADDS_STORED_FILES`), as ace3's pcap_analyzer writes the objects it
+    /// carves beside the capture and pcap_files adds them.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub stored: Vec<StoredFile>,
     /// What the result changes about its root, for a module that declares it may, as ace3's
     /// mailbox module sets the root's description and details.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub root: Option<RootChanges>,
+}
+
+/// A file a result stores for its root without adding it (`ResultEnvelope::stored`).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct StoredFile {
+    pub sha256: crate::file::Sha256,
+    pub size: u64,
+}
+
+impl From<&NewFile> for StoredFile {
+    fn from(file: &NewFile) -> StoredFile {
+        StoredFile {
+            sha256: file.sha256,
+            size: file.size,
+        }
+    }
 }
 
 /// What a result adds to an observable already in the alert that it didn't analyze.
@@ -108,6 +130,7 @@ impl<D: AnalysisType> ResultEnvelope<D> {
             others: Vec::new(),
             observables: Vec::new(),
             files: Vec::new(),
+            stored: Vec::new(),
             root: None,
         }
     }
@@ -138,6 +161,7 @@ impl<D: AnalysisType> ResultEnvelope<D> {
             others: self.others.clone(),
             observables: self.observables.clone(),
             files: self.files.clone(),
+            stored: self.stored.clone(),
             root: self.root.clone(),
         })
     }

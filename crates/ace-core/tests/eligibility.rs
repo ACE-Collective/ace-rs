@@ -1335,6 +1335,7 @@ async fn a_task_walks_its_roots_tree_and_a_result_changes_others_and_its_root() 
     let files = TreeFiles {
         names_containing: &[".unknown_text_html"],
         max_size: 10,
+        tagged: None,
     };
     let (view, wanted) = tree::tree_view(db.pool(), root, email_id, Some(files))
         .await

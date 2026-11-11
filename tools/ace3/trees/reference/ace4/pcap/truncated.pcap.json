@@ -1,0 +1,1712 @@
+{
+  "form": 1,
+  "observables": {
+    "email_address:alice@example.com": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "email_address_fqdn_analyzer": {
+          "details": {
+            "domain": "example.com"
+          },
+          "summary": "Email Address FQDN: example.com",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "email_address:bob@example.com": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "email_address_fqdn_analyzer": {
+          "details": {
+            "domain": "example.com"
+          },
+          "summary": "Email Address FQDN: example.com",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:25f32d5cdf3298658a601c0e71d44607c3c133f983615d9b0328807e658efda5": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "truncated.pcap.pcap_objects/http/file000.txt": {}
+      },
+      "relationships": {
+        "downloaded_from url:http://files00.many-files.example/downloads/file000.txt": true,
+        "extracted_from file:aedb6f3ab79a5a424cb03e0534af4f68e5798bfd9fcf34d1ceea6e6a6a021832": true
+      },
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "939e8638dc1711ea4391e7332d77b18a",
+            "sha1": "d6bae1273f3355d5c7a7bac3487f7a0c42942152",
+            "sha256": "25f32d5cdf3298658a601c0e71d44607c3c133f983615d9b0328807e658efda5"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:281db3380aa640f7ad0f27b2bd3f57c60bee8d1fd2ce7d6bbd66a1d4a32f66c7": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "truncated.pcap.pcap_objects/http/file001.txt": {}
+      },
+      "relationships": {
+        "downloaded_from url:http://files01.many-files.example/downloads/file001.txt": true,
+        "extracted_from file:aedb6f3ab79a5a424cb03e0534af4f68e5798bfd9fcf34d1ceea6e6a6a021832": true
+      },
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "c6a01442748e8965f1107a8b33f77eb5",
+            "sha1": "03871e1eeb4eef959e712adb54e036d3f47c94e7",
+            "sha256": "281db3380aa640f7ad0f27b2bd3f57c60bee8d1fd2ce7d6bbd66a1d4a32f66c7"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:402b6b82ded6274c4b4f4344ae583a7327157209bfa06c55c3c737dfa7c553a5": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "truncated.pcap.pcap_objects/http/file003.txt": {}
+      },
+      "relationships": {
+        "downloaded_from url:http://files03.many-files.example/downloads/file003.txt": true,
+        "extracted_from file:aedb6f3ab79a5a424cb03e0534af4f68e5798bfd9fcf34d1ceea6e6a6a021832": true
+      },
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "12adf37e37577b5f1205c544dd6ae033",
+            "sha1": "df900bb805de1306033cfe5272e4ded1a0eebe83",
+            "sha256": "402b6b82ded6274c4b4f4344ae583a7327157209bfa06c55c3c737dfa7c553a5"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:505aca5b663138a8778a6cbd1d9adb5bafcca62a27ea47800d1d34b506b89f93": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "truncated.pcap.pcap_objects/http/file004.txt": {}
+      },
+      "relationships": {
+        "downloaded_from url:http://files04.many-files.example/downloads/file004.txt": true,
+        "extracted_from file:aedb6f3ab79a5a424cb03e0534af4f68e5798bfd9fcf34d1ceea6e6a6a021832": true
+      },
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "6c07a41c8634c0e77463adb02202803a",
+            "sha1": "f375c3ca7cc518893f1bdd495d997b96b2f95247",
+            "sha256": "505aca5b663138a8778a6cbd1d9adb5bafcca62a27ea47800d1d34b506b89f93"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:643e195c38bd8daf09d0d650540523fef659a5c1406be7fdb7e5a9cdccc2f953": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "truncated.pcap.pcap_objects/http/file002.txt": {}
+      },
+      "relationships": {
+        "downloaded_from url:http://files02.many-files.example/downloads/file002.txt": true,
+        "extracted_from file:aedb6f3ab79a5a424cb03e0534af4f68e5798bfd9fcf34d1ceea6e6a6a021832": true
+      },
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "a3139c8377a986aba75fb0ce0706e6e6",
+            "sha1": "a0db80fb62b61e9b513727059b1020d1dbb9f16e",
+            "sha256": "643e195c38bd8daf09d0d650540523fef659a5c1406be7fdb7e5a9cdccc2f953"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:aedb6f3ab79a5a424cb03e0534af4f68e5798bfd9fcf34d1ceea6e6a6a021832": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "truncated.pcap": {
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/vnd.tcpdump.pcap",
+            "type": "pcap capture file, microsecond ts (little-endian) - version 2.4 (Ethernet, capture length 262144)"
+          },
+          "summary": "File Type Analysis: pcap capture file, microsecond ts (little-endian) - version 2.4 (Ethernet, capture length 262144) (application/vnd.tcpdump.pcap)",
+          "tags": {}
+        },
+        "pcap_analyzer": {
+          "details": {
+            "added": {
+              "ip": 6,
+              "mac_address": 2
+            },
+            "error": null,
+            "index": {
+              "capture": {
+                "application": null,
+                "duration": 0.038,
+                "encapsulations": [
+                  "Ethernet"
+                ],
+                "file_name": "truncated.pcap",
+                "first": 1767225600.0,
+                "format": "pcap",
+                "interfaces": 1,
+                "last": 1767225600.038,
+                "packets": 39,
+                "size": 3972,
+                "strict_time_order": true
+              },
+              "carved_sha256": [
+                "25f32d5cdf3298658a601c0e71d44607c3c133f983615d9b0328807e658efda5",
+                "281db3380aa640f7ad0f27b2bd3f57c60bee8d1fd2ce7d6bbd66a1d4a32f66c7",
+                "402b6b82ded6274c4b4f4344ae583a7327157209bfa06c55c3c737dfa7c553a5",
+                "505aca5b663138a8778a6cbd1d9adb5bafcca62a27ea47800d1d34b506b89f93",
+                "643e195c38bd8daf09d0d650540523fef659a5c1406be7fdb7e5a9cdccc2f953"
+              ],
+              "certificates": [],
+              "certificates_total": 0,
+              "dns": [],
+              "dns_total": 0,
+              "field_packet_limit": 50000,
+              "hostnames": [],
+              "hostnames_total": 0,
+              "http": [
+                {
+                  "content_type": "text/plain",
+                  "host": "files00.many-files.example",
+                  "method": "GET",
+                  "status": "200",
+                  "url": "http://files00.many-files.example/downloads/file000.txt",
+                  "user_agent": "many-files-agent/1.0"
+                },
+                {
+                  "content_type": "text/plain",
+                  "host": "files01.many-files.example",
+                  "method": "GET",
+                  "status": "200",
+                  "url": "http://files01.many-files.example/downloads/file001.txt",
+                  "user_agent": "many-files-agent/1.0"
+                },
+                {
+                  "content_type": "text/plain",
+                  "host": "files02.many-files.example",
+                  "method": "GET",
+                  "status": "200",
+                  "url": "http://files02.many-files.example/downloads/file002.txt",
+                  "user_agent": "many-files-agent/1.0"
+                },
+                {
+                  "content_type": "text/plain",
+                  "host": "files03.many-files.example",
+                  "method": "GET",
+                  "status": "200",
+                  "url": "http://files03.many-files.example/downloads/file003.txt",
+                  "user_agent": "many-files-agent/1.0"
+                },
+                {
+                  "content_type": "text/plain",
+                  "host": "files04.many-files.example",
+                  "method": "GET",
+                  "status": "200",
+                  "url": "http://files04.many-files.example/downloads/file004.txt",
+                  "user_agent": "many-files-agent/1.0"
+                }
+              ],
+              "http_total": 5,
+              "objects": [
+                {
+                  "file_name": "file000.txt",
+                  "path": "truncated.pcap.pcap_objects/http/file000.txt",
+                  "protocol": "http",
+                  "sha256": "25f32d5cdf3298658a601c0e71d44607c3c133f983615d9b0328807e658efda5",
+                  "size": 63,
+                  "url": "http://files00.many-files.example/downloads/file000.txt"
+                },
+                {
+                  "file_name": "file001.txt",
+                  "path": "truncated.pcap.pcap_objects/http/file001.txt",
+                  "protocol": "http",
+                  "sha256": "281db3380aa640f7ad0f27b2bd3f57c60bee8d1fd2ce7d6bbd66a1d4a32f66c7",
+                  "size": 63,
+                  "url": "http://files01.many-files.example/downloads/file001.txt"
+                },
+                {
+                  "file_name": "file002.txt",
+                  "path": "truncated.pcap.pcap_objects/http/file002.txt",
+                  "protocol": "http",
+                  "sha256": "643e195c38bd8daf09d0d650540523fef659a5c1406be7fdb7e5a9cdccc2f953",
+                  "size": 63,
+                  "url": "http://files02.many-files.example/downloads/file002.txt"
+                },
+                {
+                  "file_name": "file003.txt",
+                  "path": "truncated.pcap.pcap_objects/http/file003.txt",
+                  "protocol": "http",
+                  "sha256": "402b6b82ded6274c4b4f4344ae583a7327157209bfa06c55c3c737dfa7c553a5",
+                  "size": 63,
+                  "url": "http://files03.many-files.example/downloads/file003.txt"
+                },
+                {
+                  "file_name": "file004.txt",
+                  "path": "truncated.pcap.pcap_objects/http/file004.txt",
+                  "protocol": "http",
+                  "sha256": "505aca5b663138a8778a6cbd1d9adb5bafcca62a27ea47800d1d34b506b89f93",
+                  "size": 63,
+                  "url": "http://files04.many-files.example/downloads/file004.txt"
+                }
+              ],
+              "objects_total": 5,
+              "statistics": {
+                "bytes": 3281,
+                "flows": [
+                  {
+                    "a": "10.20.30.40:30000",
+                    "b": "192.0.2.1:80",
+                    "bytes": "667 bytes",
+                    "duration": 0.007,
+                    "frames": 8,
+                    "protocol": "tcp",
+                    "start": 0.0
+                  },
+                  {
+                    "a": "10.20.30.40:30001",
+                    "b": "192.0.2.2:80",
+                    "bytes": "667 bytes",
+                    "duration": 0.007,
+                    "frames": 8,
+                    "protocol": "tcp",
+                    "start": 0.008
+                  },
+                  {
+                    "a": "10.20.30.40:30002",
+                    "b": "192.0.2.3:80",
+                    "bytes": "667 bytes",
+                    "duration": 0.007,
+                    "frames": 8,
+                    "protocol": "tcp",
+                    "start": 0.016
+                  },
+                  {
+                    "a": "10.20.30.40:30003",
+                    "b": "192.0.2.4:80",
+                    "bytes": "667 bytes",
+                    "duration": 0.007,
+                    "frames": 8,
+                    "protocol": "tcp",
+                    "start": 0.024
+                  },
+                  {
+                    "a": "10.20.30.40:30004",
+                    "b": "192.0.2.5:80",
+                    "bytes": "613 bytes",
+                    "duration": 0.006,
+                    "frames": 7,
+                    "protocol": "tcp",
+                    "start": 0.032
+                  }
+                ],
+                "flows_total": 5,
+                "ip": [
+                  {
+                    "address": "10.20.30.40",
+                    "bytes": 3281,
+                    "packets": 39
+                  },
+                  {
+                    "address": "192.0.2.1",
+                    "bytes": 667,
+                    "packets": 8
+                  },
+                  {
+                    "address": "192.0.2.2",
+                    "bytes": 667,
+                    "packets": 8
+                  },
+                  {
+                    "address": "192.0.2.3",
+                    "bytes": 667,
+                    "packets": 8
+                  },
+                  {
+                    "address": "192.0.2.4",
+                    "bytes": 667,
+                    "packets": 8
+                  },
+                  {
+                    "address": "192.0.2.5",
+                    "bytes": 613,
+                    "packets": 7
+                  }
+                ],
+                "ip_total": 6,
+                "mac": [
+                  {
+                    "address": "02:00:00:aa:00:01",
+                    "bytes": 3281,
+                    "packets": 39
+                  },
+                  {
+                    "address": "02:00:00:bb:00:02",
+                    "bytes": 3281,
+                    "packets": 39
+                  }
+                ],
+                "mac_total": 2,
+                "packets": 39
+              },
+              "statistics_error": null,
+              "tls": [],
+              "tls_client_randoms": [],
+              "tls_total": 0
+            },
+            "omitted": {}
+          },
+          "summary": "PCAP Analysis: 39 packets, 5 flows, 0 TLS sessions (6 ip, 2 mac_address)",
+          "tags": {}
+        },
+        "pcap_files": {
+          "details": {
+            "added": {
+              "file": 5
+            },
+            "capture": {
+              "application": null,
+              "duration": 0.038,
+              "encapsulations": [
+                "Ethernet"
+              ],
+              "file_name": "truncated.pcap",
+              "first": 1767225600.0,
+              "format": "pcap",
+              "interfaces": 1,
+              "last": 1767225600.038,
+              "packets": 39,
+              "size": 3972,
+              "strict_time_order": true
+            },
+            "category": "files",
+            "field_packet_limit": 50000,
+            "omitted": {},
+            "rows": [
+              {
+                "file_name": "file000.txt",
+                "path": "truncated.pcap.pcap_objects/http/file000.txt",
+                "protocol": "http",
+                "sha256": "25f32d5cdf3298658a601c0e71d44607c3c133f983615d9b0328807e658efda5",
+                "size": 63,
+                "url": "http://files00.many-files.example/downloads/file000.txt"
+              },
+              {
+                "file_name": "file001.txt",
+                "path": "truncated.pcap.pcap_objects/http/file001.txt",
+                "protocol": "http",
+                "sha256": "281db3380aa640f7ad0f27b2bd3f57c60bee8d1fd2ce7d6bbd66a1d4a32f66c7",
+                "size": 63,
+                "url": "http://files01.many-files.example/downloads/file001.txt"
+              },
+              {
+                "file_name": "file002.txt",
+                "path": "truncated.pcap.pcap_objects/http/file002.txt",
+                "protocol": "http",
+                "sha256": "643e195c38bd8daf09d0d650540523fef659a5c1406be7fdb7e5a9cdccc2f953",
+                "size": 63,
+                "url": "http://files02.many-files.example/downloads/file002.txt"
+              },
+              {
+                "file_name": "file003.txt",
+                "path": "truncated.pcap.pcap_objects/http/file003.txt",
+                "protocol": "http",
+                "sha256": "402b6b82ded6274c4b4f4344ae583a7327157209bfa06c55c3c737dfa7c553a5",
+                "size": 63,
+                "url": "http://files03.many-files.example/downloads/file003.txt"
+              },
+              {
+                "file_name": "file004.txt",
+                "path": "truncated.pcap.pcap_objects/http/file004.txt",
+                "protocol": "http",
+                "sha256": "505aca5b663138a8778a6cbd1d9adb5bafcca62a27ea47800d1d34b506b89f93",
+                "size": 63,
+                "url": "http://files04.many-files.example/downloads/file004.txt"
+              }
+            ],
+            "total": 5
+          },
+          "summary": "PCAP Files: 5 files (5 file)",
+          "tags": {}
+        },
+        "pcap_http": {
+          "details": {
+            "added": {
+              "fqdn": 5,
+              "url": 5,
+              "user_agent": 1
+            },
+            "capture": {
+              "application": null,
+              "duration": 0.038,
+              "encapsulations": [
+                "Ethernet"
+              ],
+              "file_name": "truncated.pcap",
+              "first": 1767225600.0,
+              "format": "pcap",
+              "interfaces": 1,
+              "last": 1767225600.038,
+              "packets": 39,
+              "size": 3972,
+              "strict_time_order": true
+            },
+            "category": "http",
+            "field_packet_limit": 50000,
+            "omitted": {},
+            "rows": [
+              {
+                "content_type": "text/plain",
+                "host": "files00.many-files.example",
+                "method": "GET",
+                "status": "200",
+                "url": "http://files00.many-files.example/downloads/file000.txt",
+                "user_agent": "many-files-agent/1.0"
+              },
+              {
+                "content_type": "text/plain",
+                "host": "files01.many-files.example",
+                "method": "GET",
+                "status": "200",
+                "url": "http://files01.many-files.example/downloads/file001.txt",
+                "user_agent": "many-files-agent/1.0"
+              },
+              {
+                "content_type": "text/plain",
+                "host": "files02.many-files.example",
+                "method": "GET",
+                "status": "200",
+                "url": "http://files02.many-files.example/downloads/file002.txt",
+                "user_agent": "many-files-agent/1.0"
+              },
+              {
+                "content_type": "text/plain",
+                "host": "files03.many-files.example",
+                "method": "GET",
+                "status": "200",
+                "url": "http://files03.many-files.example/downloads/file003.txt",
+                "user_agent": "many-files-agent/1.0"
+              },
+              {
+                "content_type": "text/plain",
+                "host": "files04.many-files.example",
+                "method": "GET",
+                "status": "200",
+                "url": "http://files04.many-files.example/downloads/file004.txt",
+                "user_agent": "many-files-agent/1.0"
+              }
+            ],
+            "total": 5
+          },
+          "summary": "PCAP HTTP: 5 entries (5 fqdn, 5 url, 1 user_agent)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "fqdn:example.com": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "fqdn_analyzer": {
+          "details": {
+            "aliaslist": [],
+            "all_resolutions": [
+              "192.0.2.10",
+              "192.0.2.2"
+            ],
+            "ip_address": "192.0.2.10",
+            "mx": [
+              "backup.example.com",
+              "mail.example.com"
+            ],
+            "resolution_count": 2,
+            "status": "ok",
+            "wildcard_dns": false
+          },
+          "summary": "DNS Analysis: ip addresses (192.0.2.10, 192.0.2.2) mx (backup.example.com, mail.example.com)",
+          "tags": {}
+        },
+        "proxy_domain_splunk": {
+          "details": {
+            "dispatch_state": "DONE",
+            "gui_link": null,
+            "query": "index=proxy hostname=\"example.com\"",
+            "query_error": null,
+            "query_results": [
+              {
+                "_time": "2026-10-30T14:02:11.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "https://www.example.com/login",
+                "src_ip": "192.0.2.10",
+                "src_translated_ip": "198.51.100.7",
+                "user": "alice@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:05:42.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "http://www.example.com/",
+                "src_ip": "192.0.2.11",
+                "src_translated_ip": "198.51.100.7",
+                "user": "bob@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:09:03.000+00:00",
+                "dest_ip": "198.51.100.21",
+                "full_url": "https://www.example.com/static/app.js",
+                "src_ip": "192.0.2.12"
+              }
+            ],
+            "query_summary": "Proxy correlation",
+            "question": "Was this domain seen in proxy logs?"
+          },
+          "summary": "Proxy correlation: (3 results)",
+          "tags": {}
+        },
+        "rdap_analyzer": {
+          "details": {
+            "assignment_type": null,
+            "country": null,
+            "datetime_created": "1995-08-14 04:00:00+00:00",
+            "datetime_expiration": "2027-08-13 04:00:00+00:00",
+            "datetime_of_last_update": "2026-08-14 08:01:43+00:00",
+            "domain_name": "EXAMPLE.COM",
+            "emails": [],
+            "error": null,
+            "ip_version": null,
+            "lookup_protocol": "rdap",
+            "name_servers": [
+              "ELLIOTT.NS.CLOUDFLARE.COM",
+              "HERA.NS.CLOUDFLARE.COM"
+            ],
+            "network_cidr": null,
+            "network_name": null,
+            "rdap_attempt_error": null,
+            "rdap_data": {
+              "copyright_notice": "",
+              "description": [],
+              "dnssec": true,
+              "dnssec_ds_data": [
+                {
+                  "algorithm": 13,
+                  "digest": "C988EC423E3880EB8DD8A46FE06CA230EE23F35B578D64E78B29C3E1C83D245A",
+                  "digest_type": 2,
+                  "key_tag": 2371
+                }
+              ],
+              "dnssec_key_data": [],
+              "entities": {
+                "abuse": [
+                  {
+                    "name": "",
+                    "parent_handle": "376",
+                    "parent_name": "RESERVED-Internet Assigned Numbers Authority",
+                    "type": "entity"
+                  }
+                ],
+                "registrar": [
+                  {
+                    "handle": "376",
+                    "name": "RESERVED-Internet Assigned Numbers Authority",
+                    "public_ids": [
+                      {
+                        "identifier": "376",
+                        "type": "IANA Registrar ID"
+                      }
+                    ],
+                    "type": "entity"
+                  }
+                ]
+              },
+              "events": [
+                {
+                  "action": "registration",
+                  "actor": "",
+                  "date": "1995-08-14T04:00:00.000000+0000"
+                },
+                {
+                  "action": "expiration",
+                  "actor": "",
+                  "date": "2027-08-13T04:00:00.000000+0000"
+                },
+                {
+                  "action": "last changed",
+                  "actor": "",
+                  "date": "2026-08-14T08:01:43.000000+0000"
+                },
+                {
+                  "action": "last update of rdap database",
+                  "actor": "",
+                  "date": "2026-11-02T15:28:17.000000+0000"
+                }
+              ],
+              "expiration_date": "2027-08-13T04:00:00.000000+0000",
+              "handle": "2336799_DOMAIN_COM-VRSN",
+              "last_changed_date": "2026-08-14T08:01:43.000000+0000",
+              "links": [
+                {
+                  "href": "https://rdap.verisign.com/com/v1/domain/example.com",
+                  "rel": "self",
+                  "type": "application/rdap+json"
+                }
+              ],
+              "name": "EXAMPLE.COM",
+              "nameserver_ips": {
+                "ELLIOTT.NS.CLOUDFLARE.COM": [],
+                "HERA.NS.CLOUDFLARE.COM": []
+              },
+              "nameservers": [
+                "ELLIOTT.NS.CLOUDFLARE.COM",
+                "HERA.NS.CLOUDFLARE.COM"
+              ],
+              "notices": [
+                {
+                  "description": [
+                    "Service subject to Terms of Use."
+                  ],
+                  "links": [
+                    "https://www.verisign.com/domain-names/registration-data-access-protocol/terms-service/index.xhtml"
+                  ],
+                  "title": "Terms of Service",
+                  "type": ""
+                },
+                {
+                  "description": [
+                    "For more information on domain status codes, please visit https://icann.org/epp"
+                  ],
+                  "links": [
+                    "https://icann.org/epp"
+                  ],
+                  "title": "Status Codes",
+                  "type": ""
+                },
+                {
+                  "description": [
+                    "URL of the ICANN RDDS Inaccuracy Complaint Form: https://icann.org/wicf"
+                  ],
+                  "links": [
+                    "https://icann.org/wicf"
+                  ],
+                  "title": "RDDS Inaccuracy Complaint Form",
+                  "type": ""
+                }
+              ],
+              "parent_handle": "",
+              "public_ids": [],
+              "redacted": [],
+              "registrar_url": "",
+              "registration_date": "1995-08-14T04:00:00.000000+0000",
+              "remarks": [],
+              "rir": "",
+              "status": [
+                "client delete prohibited",
+                "client transfer prohibited",
+                "client update prohibited"
+              ],
+              "terms_of_service_url": "https://www.verisign.com/domain-names/registration-data-access-protocol/terms-service/index.xhtml",
+              "type": "domain",
+              "unicode_name": "",
+              "url": "https://rdap.verisign.com/com/v1/domain/example.com",
+              "whois_server": ""
+            },
+            "rdap_raw_json": "{\"objectClassName\":\"domain\",\"handle\":\"2336799_DOMAIN_COM-VRSN\",\"ldhName\":\"EXAMPLE.COM\",\"links\":[{\"value\":\"https://rdap.verisign.com/com/v1/domain/example.com\",\"rel\":\"self\",\"href\":\"https://rdap.verisign.com/com/v1/domain/example.com\",\"type\":\"application/rdap+json\"}],\"status\":[\"client delete prohibited\",\"client transfer prohibited\",\"client update prohibited\"],\"entities\":[{\"objectClassName\":\"entity\",\"handle\":\"376\",\"roles\":[\"registrar\"],\"publicIds\":[{\"type\":\"IANA Registrar ID\",\"identifier\":\"376\"}],\"vcardArray\":[\"vcard\",[[\"version\",{},\"text\",\"4.0\"],[\"fn\",{},\"text\",\"RESERVED-Internet Assigned Numbers Authority\"]]],\"entities\":[{\"objectClassName\":\"entity\",\"roles\":[\"abuse\"],\"vcardArray\":[\"vcard\",[[\"version\",{},\"text\",\"4.0\"],[\"fn\",{},\"text\",\"\"],[\"tel\",{\"type\":\"voice\"},\"uri\",\"\"],[\"email\",{},\"text\",\"\"]]]}]}],\"events\":[{\"eventAction\":\"registration\",\"eventDate\":\"1995-08-14T04:00:00Z\"},{\"eventAction\":\"expiration\",\"eventDate\":\"2027-08-13T04:00:00Z\"},{\"eventAction\":\"last changed\",\"eventDate\":\"2026-08-14T08:01:43Z\"},{\"eventAction\":\"last update of RDAP database\",\"eventDate\":\"2026-11-02T15:28:17Z\"}],\"secureDNS\":{\"delegationSigned\":true,\"dsData\":[{\"keyTag\":2371,\"algorithm\":13,\"digestType\":2,\"digest\":\"C988EC423E3880EB8DD8A46FE06CA230EE23F35B578D64E78B29C3E1C83D245A\"}]},\"nameservers\":[{\"objectClassName\":\"nameserver\",\"ldhName\":\"ELLIOTT.NS.CLOUDFLARE.COM\"},{\"objectClassName\":\"nameserver\",\"ldhName\":\"HERA.NS.CLOUDFLARE.COM\"}],\"rdapConformance\":[\"rdap_level_0\",\"icann_rdap_technical_implementation_guide_1\",\"icann_rdap_response_profile_1\"],\"notices\":[{\"title\":\"Terms of Service\",\"description\":[\"Service subject to Terms of Use.\"],\"links\":[{\"href\":\"https://www.verisign.com/domain-names/registration-data-access-protocol/terms-service/index.xhtml\",\"type\":\"text/html\",\"value\":\"https://rdap.verisign.com/com/v1/domain/example.com\",\"rel\":\"terms-of-service\"}]},{\"title\":\"Status Codes\",\"description\":[\"For more information on domain status codes, please visit https://icann.org/epp\"],\"links\":[{\"href\":\"https://icann.org/epp\",\"type\":\"text/html\",\"value\":\"https://rdap.verisign.com/com/v1/domain/example.com\",\"rel\":\"glossary\"}]},{\"title\":\"RDDS Inaccuracy Complaint Form\",\"description\":[\"URL of the ICANN RDDS Inaccuracy Complaint Form: https://icann.org/wicf\"],\"links\":[{\"href\":\"https://icann.org/wicf\",\"type\":\"text/html\",\"value\":\"https://rdap.verisign.com/com/v1/domain/example.com\",\"rel\":\"help\"}]}]}",
+            "rdap_service_url": "https://rdap.verisign.com/com/v1/domain/example.com",
+            "registrar": "RESERVED-Internet Assigned Numbers Authority",
+            "whois_data": null,
+            "whois_raw_text": null
+          },
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "fqdn:files00.many-files.example": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "fqdn_analyzer": {
+          "details": {
+            "aliaslist": [],
+            "all_resolutions": [],
+            "ip_address": null,
+            "mx": null,
+            "resolution_count": null,
+            "status": "nxdomain",
+            "wildcard_dns": null
+          },
+          "summary": "DNS Analysis: does not exist (nxdomain)",
+          "tags": {}
+        },
+        "proxy_domain_splunk": {
+          "details": {
+            "dispatch_state": "DONE",
+            "gui_link": null,
+            "query": "index=proxy hostname=\"files00.many-files.example\"",
+            "query_error": null,
+            "query_results": [
+              {
+                "_time": "2026-10-30T14:02:11.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "https://www.example.com/login",
+                "src_ip": "192.0.2.10",
+                "src_translated_ip": "198.51.100.7",
+                "user": "alice@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:05:42.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "http://www.example.com/",
+                "src_ip": "192.0.2.11",
+                "src_translated_ip": "198.51.100.7",
+                "user": "bob@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:09:03.000+00:00",
+                "dest_ip": "198.51.100.21",
+                "full_url": "https://www.example.com/static/app.js",
+                "src_ip": "192.0.2.12"
+              }
+            ],
+            "query_summary": "Proxy correlation",
+            "question": "Was this domain seen in proxy logs?"
+          },
+          "summary": "Proxy correlation: (3 results)",
+          "tags": {}
+        },
+        "rdap_analyzer": {
+          "details": {
+            "assignment_type": null,
+            "country": null,
+            "datetime_created": null,
+            "datetime_expiration": null,
+            "datetime_of_last_update": null,
+            "domain_name": null,
+            "emails": null,
+            "error": "rdap: no RDAP service for TLD: TLD \"example\" has no known RDAP endpoint and is unsupported. It may be supported by overrides, try using whoisit.bootstrap(overrides=True); whois: no WHOIS in a replay",
+            "ip_version": null,
+            "lookup_protocol": null,
+            "name_servers": null,
+            "network_cidr": null,
+            "network_name": null,
+            "rdap_attempt_error": "no RDAP service for TLD: TLD \"example\" has no known RDAP endpoint and is unsupported. It may be supported by overrides, try using whoisit.bootstrap(overrides=True)",
+            "rdap_data": null,
+            "rdap_raw_json": null,
+            "rdap_service_url": null,
+            "registrar": null,
+            "whois_data": null,
+            "whois_raw_text": null
+          },
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "fqdn:files01.many-files.example": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "fqdn_analyzer": {
+          "details": {
+            "aliaslist": [],
+            "all_resolutions": [],
+            "ip_address": null,
+            "mx": null,
+            "resolution_count": null,
+            "status": "nxdomain",
+            "wildcard_dns": null
+          },
+          "summary": "DNS Analysis: does not exist (nxdomain)",
+          "tags": {}
+        },
+        "proxy_domain_splunk": {
+          "details": {
+            "dispatch_state": "DONE",
+            "gui_link": null,
+            "query": "index=proxy hostname=\"files01.many-files.example\"",
+            "query_error": null,
+            "query_results": [
+              {
+                "_time": "2026-10-30T14:02:11.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "https://www.example.com/login",
+                "src_ip": "192.0.2.10",
+                "src_translated_ip": "198.51.100.7",
+                "user": "alice@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:05:42.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "http://www.example.com/",
+                "src_ip": "192.0.2.11",
+                "src_translated_ip": "198.51.100.7",
+                "user": "bob@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:09:03.000+00:00",
+                "dest_ip": "198.51.100.21",
+                "full_url": "https://www.example.com/static/app.js",
+                "src_ip": "192.0.2.12"
+              }
+            ],
+            "query_summary": "Proxy correlation",
+            "question": "Was this domain seen in proxy logs?"
+          },
+          "summary": "Proxy correlation: (3 results)",
+          "tags": {}
+        },
+        "rdap_analyzer": {
+          "details": {
+            "assignment_type": null,
+            "country": null,
+            "datetime_created": null,
+            "datetime_expiration": null,
+            "datetime_of_last_update": null,
+            "domain_name": null,
+            "emails": null,
+            "error": "rdap: no RDAP service for TLD: TLD \"example\" has no known RDAP endpoint and is unsupported. It may be supported by overrides, try using whoisit.bootstrap(overrides=True); whois: no WHOIS in a replay",
+            "ip_version": null,
+            "lookup_protocol": null,
+            "name_servers": null,
+            "network_cidr": null,
+            "network_name": null,
+            "rdap_attempt_error": "no RDAP service for TLD: TLD \"example\" has no known RDAP endpoint and is unsupported. It may be supported by overrides, try using whoisit.bootstrap(overrides=True)",
+            "rdap_data": null,
+            "rdap_raw_json": null,
+            "rdap_service_url": null,
+            "registrar": null,
+            "whois_data": null,
+            "whois_raw_text": null
+          },
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "fqdn:files02.many-files.example": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "fqdn_analyzer": {
+          "details": {
+            "aliaslist": [],
+            "all_resolutions": [],
+            "ip_address": null,
+            "mx": null,
+            "resolution_count": null,
+            "status": "nxdomain",
+            "wildcard_dns": null
+          },
+          "summary": "DNS Analysis: does not exist (nxdomain)",
+          "tags": {}
+        },
+        "proxy_domain_splunk": {
+          "details": {
+            "dispatch_state": "DONE",
+            "gui_link": null,
+            "query": "index=proxy hostname=\"files02.many-files.example\"",
+            "query_error": null,
+            "query_results": [
+              {
+                "_time": "2026-10-30T14:02:11.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "https://www.example.com/login",
+                "src_ip": "192.0.2.10",
+                "src_translated_ip": "198.51.100.7",
+                "user": "alice@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:05:42.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "http://www.example.com/",
+                "src_ip": "192.0.2.11",
+                "src_translated_ip": "198.51.100.7",
+                "user": "bob@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:09:03.000+00:00",
+                "dest_ip": "198.51.100.21",
+                "full_url": "https://www.example.com/static/app.js",
+                "src_ip": "192.0.2.12"
+              }
+            ],
+            "query_summary": "Proxy correlation",
+            "question": "Was this domain seen in proxy logs?"
+          },
+          "summary": "Proxy correlation: (3 results)",
+          "tags": {}
+        },
+        "rdap_analyzer": {
+          "details": {
+            "assignment_type": null,
+            "country": null,
+            "datetime_created": null,
+            "datetime_expiration": null,
+            "datetime_of_last_update": null,
+            "domain_name": null,
+            "emails": null,
+            "error": "rdap: no RDAP service for TLD: TLD \"example\" has no known RDAP endpoint and is unsupported. It may be supported by overrides, try using whoisit.bootstrap(overrides=True); whois: no WHOIS in a replay",
+            "ip_version": null,
+            "lookup_protocol": null,
+            "name_servers": null,
+            "network_cidr": null,
+            "network_name": null,
+            "rdap_attempt_error": "no RDAP service for TLD: TLD \"example\" has no known RDAP endpoint and is unsupported. It may be supported by overrides, try using whoisit.bootstrap(overrides=True)",
+            "rdap_data": null,
+            "rdap_raw_json": null,
+            "rdap_service_url": null,
+            "registrar": null,
+            "whois_data": null,
+            "whois_raw_text": null
+          },
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "fqdn:files03.many-files.example": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "fqdn_analyzer": {
+          "details": {
+            "aliaslist": [],
+            "all_resolutions": [],
+            "ip_address": null,
+            "mx": null,
+            "resolution_count": null,
+            "status": "nxdomain",
+            "wildcard_dns": null
+          },
+          "summary": "DNS Analysis: does not exist (nxdomain)",
+          "tags": {}
+        },
+        "proxy_domain_splunk": {
+          "details": {
+            "dispatch_state": "DONE",
+            "gui_link": null,
+            "query": "index=proxy hostname=\"files03.many-files.example\"",
+            "query_error": null,
+            "query_results": [
+              {
+                "_time": "2026-10-30T14:02:11.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "https://www.example.com/login",
+                "src_ip": "192.0.2.10",
+                "src_translated_ip": "198.51.100.7",
+                "user": "alice@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:05:42.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "http://www.example.com/",
+                "src_ip": "192.0.2.11",
+                "src_translated_ip": "198.51.100.7",
+                "user": "bob@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:09:03.000+00:00",
+                "dest_ip": "198.51.100.21",
+                "full_url": "https://www.example.com/static/app.js",
+                "src_ip": "192.0.2.12"
+              }
+            ],
+            "query_summary": "Proxy correlation",
+            "question": "Was this domain seen in proxy logs?"
+          },
+          "summary": "Proxy correlation: (3 results)",
+          "tags": {}
+        },
+        "rdap_analyzer": {
+          "details": {
+            "assignment_type": null,
+            "country": null,
+            "datetime_created": null,
+            "datetime_expiration": null,
+            "datetime_of_last_update": null,
+            "domain_name": null,
+            "emails": null,
+            "error": "rdap: no RDAP service for TLD: TLD \"example\" has no known RDAP endpoint and is unsupported. It may be supported by overrides, try using whoisit.bootstrap(overrides=True); whois: no WHOIS in a replay",
+            "ip_version": null,
+            "lookup_protocol": null,
+            "name_servers": null,
+            "network_cidr": null,
+            "network_name": null,
+            "rdap_attempt_error": "no RDAP service for TLD: TLD \"example\" has no known RDAP endpoint and is unsupported. It may be supported by overrides, try using whoisit.bootstrap(overrides=True)",
+            "rdap_data": null,
+            "rdap_raw_json": null,
+            "rdap_service_url": null,
+            "registrar": null,
+            "whois_data": null,
+            "whois_raw_text": null
+          },
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "fqdn:files04.many-files.example": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "fqdn_analyzer": {
+          "details": {
+            "aliaslist": [],
+            "all_resolutions": [],
+            "ip_address": null,
+            "mx": null,
+            "resolution_count": null,
+            "status": "nxdomain",
+            "wildcard_dns": null
+          },
+          "summary": "DNS Analysis: does not exist (nxdomain)",
+          "tags": {}
+        },
+        "proxy_domain_splunk": {
+          "details": {
+            "dispatch_state": "DONE",
+            "gui_link": null,
+            "query": "index=proxy hostname=\"files04.many-files.example\"",
+            "query_error": null,
+            "query_results": [
+              {
+                "_time": "2026-10-30T14:02:11.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "https://www.example.com/login",
+                "src_ip": "192.0.2.10",
+                "src_translated_ip": "198.51.100.7",
+                "user": "alice@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:05:42.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "http://www.example.com/",
+                "src_ip": "192.0.2.11",
+                "src_translated_ip": "198.51.100.7",
+                "user": "bob@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:09:03.000+00:00",
+                "dest_ip": "198.51.100.21",
+                "full_url": "https://www.example.com/static/app.js",
+                "src_ip": "192.0.2.12"
+              }
+            ],
+            "query_summary": "Proxy correlation",
+            "question": "Was this domain seen in proxy logs?"
+          },
+          "summary": "Proxy correlation: (3 results)",
+          "tags": {}
+        },
+        "rdap_analyzer": {
+          "details": {
+            "assignment_type": null,
+            "country": null,
+            "datetime_created": null,
+            "datetime_expiration": null,
+            "datetime_of_last_update": null,
+            "domain_name": null,
+            "emails": null,
+            "error": "rdap: no RDAP service for TLD: TLD \"example\" has no known RDAP endpoint and is unsupported. It may be supported by overrides, try using whoisit.bootstrap(overrides=True); whois: no WHOIS in a replay",
+            "ip_version": null,
+            "lookup_protocol": null,
+            "name_servers": null,
+            "network_cidr": null,
+            "network_name": null,
+            "rdap_attempt_error": "no RDAP service for TLD: TLD \"example\" has no known RDAP endpoint and is unsupported. It may be supported by overrides, try using whoisit.bootstrap(overrides=True)",
+            "rdap_data": null,
+            "rdap_raw_json": null,
+            "rdap_service_url": null,
+            "registrar": null,
+            "whois_data": null,
+            "whois_raw_text": null
+          },
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "ip:10.20.30.40": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "network_identifier": {
+          "details": {
+            "identified_networks": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "ip:192.0.2.1": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "network_identifier": {
+          "details": {
+            "identified_networks": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "ip:192.0.2.10": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "network_identifier": {
+          "details": {
+            "identified_networks": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "ip:192.0.2.2": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "network_identifier": {
+          "details": {
+            "identified_networks": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "ip:192.0.2.3": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "network_identifier": {
+          "details": {
+            "identified_networks": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "ip:192.0.2.4": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "network_identifier": {
+          "details": {
+            "identified_networks": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "ip:192.0.2.5": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "network_identifier": {
+          "details": {
+            "identified_networks": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "mac_address:02-00-00-aa-00-01": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
+    },
+    "mac_address:02-00-00-bb-00-02": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
+    },
+    "md5:12adf37e37577b5f1205c544dd6ae033": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:402b6b82ded6274c4b4f4344ae583a7327157209bfa06c55c3c737dfa7c553a5": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:6c07a41c8634c0e77463adb02202803a": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:505aca5b663138a8778a6cbd1d9adb5bafcca62a27ea47800d1d34b506b89f93": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:939e8638dc1711ea4391e7332d77b18a": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:25f32d5cdf3298658a601c0e71d44607c3c133f983615d9b0328807e658efda5": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:a3139c8377a986aba75fb0ce0706e6e6": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:643e195c38bd8daf09d0d650540523fef659a5c1406be7fdb7e5a9cdccc2f953": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:c6a01442748e8965f1107a8b33f77eb5": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:281db3380aa640f7ad0f27b2bd3f57c60bee8d1fd2ce7d6bbd66a1d4a32f66c7": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:25f32d5cdf3298658a601c0e71d44607c3c133f983615d9b0328807e658efda5": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:25f32d5cdf3298658a601c0e71d44607c3c133f983615d9b0328807e658efda5": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:281db3380aa640f7ad0f27b2bd3f57c60bee8d1fd2ce7d6bbd66a1d4a32f66c7": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:281db3380aa640f7ad0f27b2bd3f57c60bee8d1fd2ce7d6bbd66a1d4a32f66c7": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:402b6b82ded6274c4b4f4344ae583a7327157209bfa06c55c3c737dfa7c553a5": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:402b6b82ded6274c4b4f4344ae583a7327157209bfa06c55c3c737dfa7c553a5": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:505aca5b663138a8778a6cbd1d9adb5bafcca62a27ea47800d1d34b506b89f93": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:505aca5b663138a8778a6cbd1d9adb5bafcca62a27ea47800d1d34b506b89f93": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:643e195c38bd8daf09d0d650540523fef659a5c1406be7fdb7e5a9cdccc2f953": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:643e195c38bd8daf09d0d650540523fef659a5c1406be7fdb7e5a9cdccc2f953": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "uri_path:/downloads/file000.txt": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
+    },
+    "uri_path:/downloads/file001.txt": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
+    },
+    "uri_path:/downloads/file002.txt": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
+    },
+    "uri_path:/downloads/file003.txt": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
+    },
+    "uri_path:/downloads/file004.txt": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
+    },
+    "url:http://files00.many-files.example/downloads/file000.txt": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "parse_url": {
+          "details": {
+            "fragment": "",
+            "netloc": "files00.many-files.example",
+            "params": null,
+            "path": "/downloads/file000.txt",
+            "query": "",
+            "scheme": "http"
+          },
+          "summary": "URL Parser: scheme=http, netloc=files00.many-files.example, path=/downloads/file000.txt",
+          "tags": {}
+        },
+        "protected_url_analyzer": {
+          "details": {
+            "extracted_url": "http://files00.many-files.example/downloads/file000.txt",
+            "protection_type": "unprotected"
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "url:http://files01.many-files.example/downloads/file001.txt": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "parse_url": {
+          "details": {
+            "fragment": "",
+            "netloc": "files01.many-files.example",
+            "params": null,
+            "path": "/downloads/file001.txt",
+            "query": "",
+            "scheme": "http"
+          },
+          "summary": "URL Parser: scheme=http, netloc=files01.many-files.example, path=/downloads/file001.txt",
+          "tags": {}
+        },
+        "protected_url_analyzer": {
+          "details": {
+            "extracted_url": "http://files01.many-files.example/downloads/file001.txt",
+            "protection_type": "unprotected"
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "url:http://files02.many-files.example/downloads/file002.txt": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "parse_url": {
+          "details": {
+            "fragment": "",
+            "netloc": "files02.many-files.example",
+            "params": null,
+            "path": "/downloads/file002.txt",
+            "query": "",
+            "scheme": "http"
+          },
+          "summary": "URL Parser: scheme=http, netloc=files02.many-files.example, path=/downloads/file002.txt",
+          "tags": {}
+        },
+        "protected_url_analyzer": {
+          "details": {
+            "extracted_url": "http://files02.many-files.example/downloads/file002.txt",
+            "protection_type": "unprotected"
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "url:http://files03.many-files.example/downloads/file003.txt": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "parse_url": {
+          "details": {
+            "fragment": "",
+            "netloc": "files03.many-files.example",
+            "params": null,
+            "path": "/downloads/file003.txt",
+            "query": "",
+            "scheme": "http"
+          },
+          "summary": "URL Parser: scheme=http, netloc=files03.many-files.example, path=/downloads/file003.txt",
+          "tags": {}
+        },
+        "protected_url_analyzer": {
+          "details": {
+            "extracted_url": "http://files03.many-files.example/downloads/file003.txt",
+            "protection_type": "unprotected"
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "url:http://files04.many-files.example/downloads/file004.txt": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "parse_url": {
+          "details": {
+            "fragment": "",
+            "netloc": "files04.many-files.example",
+            "params": null,
+            "path": "/downloads/file004.txt",
+            "query": "",
+            "scheme": "http"
+          },
+          "summary": "URL Parser: scheme=http, netloc=files04.many-files.example, path=/downloads/file004.txt",
+          "tags": {}
+        },
+        "protected_url_analyzer": {
+          "details": {
+            "extracted_url": "http://files04.many-files.example/downloads/file004.txt",
+            "protection_type": "unprotected"
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "user_agent:many-files-agent/1.0": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
+    }
+  }
+}

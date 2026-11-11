@@ -1056,7 +1056,7 @@ pub async fn tree_view(
         if let (Some(files), Some(path)) = (&files, &row.path) {
             let o = &observables[observable];
             if o.kind == ObservableKind::File
-                && files.wants(path, o.size.unwrap_or(u64::MAX))
+                && files.wants(path, o.size.unwrap_or(u64::MAX), &o.tags)
                 && !wanted.iter().any(|(i, _)| *i == observable)
             {
                 wanted.push((observable, o.value.clone()));

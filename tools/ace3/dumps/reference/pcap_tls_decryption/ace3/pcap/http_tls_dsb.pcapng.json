@@ -1,0 +1,280 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "pcap_analyzer"
+  ],
+  "analyses": [
+    {
+      "class": "PcapAnalysis",
+      "details": {
+        "added": {},
+        "error": null,
+        "index": {
+          "capture": {
+            "application": "Dumpcap (Wireshark) 4.4.19",
+            "duration": 0.044872099,
+            "encapsulations": [
+              "Ethernet"
+            ],
+            "file_name": "http_tls_dsb.pcapng",
+            "first": 1792604746.451967,
+            "format": "pcapng",
+            "interfaces": 1,
+            "last": 1792604746.496839,
+            "packets": 41,
+            "size": 12788,
+            "strict_time_order": true
+          },
+          "carved_sha256": [
+            "46601b3e65dc50aef3998a71b5ccdbd0f5fc1aa13488ed38349b3abe15543fad",
+            "58291beed38be310dca3536326c58a416cb57b3196c548c6536a02bfdc478579",
+            "672d3d731cf058315a0a2f876cda8e70a71f388ef515bcfc3a8bcebe535fe933",
+            "b85503dc0f3e55d9e1f46d7812974fbf2ee362bd4afec065a59f62e5eb697ab0"
+          ],
+          "certificates": [
+            {
+              "issuer": "pcap-tls.example",
+              "path": "http_tls_dsb.pcapng.pcap_objects/certificates/46601b3e65dc50aef3998a71b5ccdbd0f5fc1aa13488ed38349b3abe15543fad.der",
+              "san_total": 2,
+              "sans": [
+                "pcap-tls12.example",
+                "pcap-tls13.example"
+              ],
+              "sha256": "46601b3e65dc50aef3998a71b5ccdbd0f5fc1aa13488ed38349b3abe15543fad",
+              "subject": "pcap-tls.example"
+            }
+          ],
+          "certificates_total": 1,
+          "dns": [],
+          "dns_total": 0,
+          "embedded_secrets": {
+            "keyed_client_randoms": [
+              "a061545337b7aa4a20b7e29568e8f4ae598fd99176ad9c1d35fe49c1ed1d7a4f",
+              "be401d9c38e74ed55c59ecc279468bae1062bacd07759010cb2c9c80f7e0afaf"
+            ],
+            "label_counts": {
+              "CLIENT_HANDSHAKE_TRAFFIC_SECRET": 1,
+              "CLIENT_RANDOM": 1,
+              "CLIENT_TRAFFIC_SECRET_0": 1,
+              "EXPORTER_SECRET": 1,
+              "SERVER_HANDSHAKE_TRAFFIC_SECRET": 1,
+              "SERVER_TRAFFIC_SECRET_0": 1
+            },
+            "types": {
+              "TLS": 1
+            }
+          },
+          "field_packet_limit": 50000,
+          "hostnames": [],
+          "hostnames_total": 0,
+          "http": [
+            {
+              "content_type": "text/plain",
+              "host": "pcap-http.example:18080",
+              "method": "GET",
+              "status": "200",
+              "url": "http://pcap-http.example:18080/payload.txt",
+              "user_agent": "pcap-fixture-agent/1.0"
+            },
+            {
+              "content_type": "text/plain",
+              "host": "pcap-tls12.example:18443",
+              "method": "GET",
+              "status": "200",
+              "url": "https://pcap-tls12.example:18443/secret12.txt",
+              "user_agent": "pcap-fixture-agent/1.0"
+            },
+            {
+              "content_type": "text/plain",
+              "host": "pcap-tls13.example:18444",
+              "method": "GET",
+              "status": "200",
+              "url": "https://pcap-tls13.example:18444/secret13.txt",
+              "user_agent": "pcap-fixture-agent/1.0"
+            }
+          ],
+          "http_total": 3,
+          "objects": [
+            {
+              "file_name": "payload.txt",
+              "path": "http_tls_dsb.pcapng.pcap_objects/http/payload.txt",
+              "protocol": "http",
+              "sha256": "672d3d731cf058315a0a2f876cda8e70a71f388ef515bcfc3a8bcebe535fe933",
+              "size": 36,
+              "url": "http://pcap-http.example:18080/payload.txt"
+            },
+            {
+              "file_name": "secret12.txt",
+              "path": "http_tls_dsb.pcapng.pcap_objects/http/secret12.txt",
+              "protocol": "http",
+              "sha256": "b85503dc0f3e55d9e1f46d7812974fbf2ee362bd4afec065a59f62e5eb697ab0",
+              "size": 36,
+              "url": "https://pcap-tls12.example:18443/secret12.txt"
+            },
+            {
+              "file_name": "secret13.txt",
+              "path": "http_tls_dsb.pcapng.pcap_objects/http/secret13.txt",
+              "protocol": "http",
+              "sha256": "58291beed38be310dca3536326c58a416cb57b3196c548c6536a02bfdc478579",
+              "size": 36,
+              "url": "https://pcap-tls13.example:18444/secret13.txt"
+            }
+          ],
+          "objects_total": 3,
+          "statistics": {
+            "bytes": 10167,
+            "flows": [
+              {
+                "a": "127.0.0.1:36704",
+                "b": "127.0.0.1:18443",
+                "bytes": "3093 bytes",
+                "duration": 0.0085,
+                "frames": 15,
+                "protocol": "tcp",
+                "start": 0.018660592
+              },
+              {
+                "a": "127.0.0.1:60236",
+                "b": "127.0.0.1:18444",
+                "bytes": "5935 bytes",
+                "duration": 0.0074,
+                "frames": 14,
+                "protocol": "tcp",
+                "start": 0.037516367
+              },
+              {
+                "a": "127.0.0.1:41536",
+                "b": "127.0.0.1:18080",
+                "bytes": "1139 bytes",
+                "duration": 0.0061,
+                "frames": 12,
+                "protocol": "tcp",
+                "start": 0.0
+              }
+            ],
+            "flows_total": 3,
+            "ip": [
+              {
+                "address": "127.0.0.1",
+                "bytes": 20334,
+                "packets": 82
+              }
+            ],
+            "ip_total": 1,
+            "mac": [
+              {
+                "address": "00:00:00:00:00:00",
+                "bytes": 20334,
+                "packets": 82
+              }
+            ],
+            "mac_total": 1,
+            "packets": 41
+          },
+          "statistics_error": null,
+          "tls": [
+            {
+              "certificates": [
+                "46601b3e65dc50aef3998a71b5ccdbd0f5fc1aa13488ed38349b3abe15543fad"
+              ],
+              "client": "127.0.0.1:36704",
+              "client_random": "be401d9c38e74ed55c59ecc279468bae1062bacd07759010cb2c9c80f7e0afaf",
+              "flow": "tcp:1",
+              "ja4": "t12d2708h1_a2460661a67a_eed5f1524d5c",
+              "server": "127.0.0.1:18443",
+              "sni": "pcap-tls12.example"
+            },
+            {
+              "certificates": [
+                "46601b3e65dc50aef3998a71b5ccdbd0f5fc1aa13488ed38349b3abe15543fad"
+              ],
+              "client": "127.0.0.1:60236",
+              "client_random": "a061545337b7aa4a20b7e29568e8f4ae598fd99176ad9c1d35fe49c1ed1d7a4f",
+              "flow": "tcp:2",
+              "ja4": "t13d0312h1_55b375c5d22e_e035b0d0e93b",
+              "server": "127.0.0.1:18444",
+              "sni": "pcap-tls13.example"
+            }
+          ],
+          "tls_client_randoms": [
+            "a061545337b7aa4a20b7e29568e8f4ae598fd99176ad9c1d35fe49c1ed1d7a4f",
+            "be401d9c38e74ed55c59ecc279468bae1062bacd07759010cb2c9c80f7e0afaf"
+          ],
+          "tls_total": 2
+        },
+        "omitted": {}
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.pcap:PcapAnalysis",
+      "observables": [],
+      "summary": "PCAP Analysis: 41 packets, 3 flows, 2 TLS sessions, decryption keys embedded (TLS keys for 2 sessions)",
+      "tags": []
+    },
+    {
+      "class": "PcapTlsDecryptionAnalysis",
+      "details": {
+        "added": {},
+        "capture": {
+          "application": "Dumpcap (Wireshark) 4.4.19",
+          "duration": 0.044872099,
+          "encapsulations": [
+            "Ethernet"
+          ],
+          "file_name": "http_tls_dsb.pcapng",
+          "first": 1792604746.451967,
+          "format": "pcapng",
+          "interfaces": 1,
+          "last": 1792604746.496839,
+          "packets": 41,
+          "size": 12788,
+          "strict_time_order": true
+        },
+        "error": null,
+        "index": null,
+        "keylogs": [],
+        "omitted": {},
+        "sessions": 2,
+        "sessions_with_embedded_keys": 2,
+        "sessions_with_keys": 2
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.pcap:PcapTlsDecryptionAnalysis",
+      "observables": [],
+      "summary": "PCAP TLS Decryption: keys for 2 of 2 TLS sessions (embedded in the capture)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace3/pcap/http_tls_dsb.pcapng",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "http_tls_dsb.pcapng",
+      "size": 12788,
+      "type": "file",
+      "value": "7a03c507f77ebdef771856eccfe25f4e44f77898cd03b5421827086848f32902"
+    }
+  },
+  "module": "pcap_tls_decryption",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "http_tls_dsb.pcapng",
+    "relationships": [],
+    "size": 12788,
+    "tags": [
+      "pcap_embedded_tls_keys"
+    ],
+    "type": "file",
+    "value": "7a03c507f77ebdef771856eccfe25f4e44f77898cd03b5421827086848f32902",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

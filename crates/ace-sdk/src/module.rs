@@ -94,6 +94,12 @@ pub trait Module: Sized + Send + Sync + 'static {
     /// True for a module that changes its root's description and details, as ace3's mailbox module
     /// does (`ResultEnvelope::root`). The core refuses a result that changes them from any other.
     const SETS_ROOT: bool = false;
+    /// True for a module that adds files another module's result stored for the root without
+    /// adding them (`ResultEnvelope::stored`), as ace3's pcap_files adds the objects pcap_analyzer
+    /// carved. Such a module depends on the one that stores them, and adds each by its sha256 and
+    /// size with no upload; the core takes such a file only from a module that declares this, and
+    /// only when the root holds it.
+    const ADDS_STORED_FILES: bool = false;
     /// The analyst-edited lists the module reads (PLAN.md 5.14), such as the email module's
     /// whitelists. The core adds each to the module's tasks as it is when the task is leased, and
     /// the module reads it with `TaskContext::list`. The lists a binary knows are its modules'.

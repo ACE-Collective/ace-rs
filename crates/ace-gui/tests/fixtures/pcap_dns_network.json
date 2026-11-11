@@ -1,0 +1,80 @@
+{
+  "analysis_type": "pcap_dns_analysis",
+  "schema_version": 1,
+  "details": {
+    "added": {
+      "fqdn": 2,
+      "ip": 1
+    },
+    "capture": {
+      "application": null,
+      "duration": 4.0,
+      "encapsulations": [
+        "Ethernet"
+      ],
+      "file_name": "network.pcap",
+      "first": 1767225600.0,
+      "format": "pcap",
+      "interfaces": 1,
+      "last": 1767225604.0,
+      "packets": 5,
+      "size": 870,
+      "strict_time_order": true
+    },
+    "category": "dns",
+    "field_packet_limit": 50000,
+    "omitted": {},
+    "rows": [
+      {
+        "answer_times": {
+          "198.51.100.7": 1767225603.0,
+          "cdn.pcap-dns.example": 1767225603.0
+        },
+        "answers": [
+          "198.51.100.7",
+          "cdn.pcap-dns.example"
+        ],
+        "name": "www.pcap-dns.example",
+        "queries": 1,
+        "responses": 1,
+        "seen_as": []
+      },
+      {
+        "answers": [],
+        "name": "cdn.pcap-dns.example",
+        "queries": 0,
+        "responses": 0,
+        "seen_as": [
+          "cname"
+        ]
+      },
+      {
+        "answers": [],
+        "name": "7.100.51.198.in-addr.arpa",
+        "queries": 1,
+        "responses": 0,
+        "seen_as": []
+      }
+    ],
+    "total": 3
+  },
+  "summary": "PCAP DNS: 3 entries (2 fqdn, 1 ip)",
+  "observables": [
+    {
+      "type": "fqdn",
+      "value": "www.pcap-dns.example",
+      "display_type": "DNS Query Name"
+    },
+    {
+      "type": "fqdn",
+      "value": "cdn.pcap-dns.example",
+      "display_type": "DNS CNAME Target"
+    },
+    {
+      "type": "ip",
+      "value": "198.51.100.7",
+      "time": "2026-01-01T00:00:03Z",
+      "display_type": "DNS Answer IP"
+    }
+  ]
+}

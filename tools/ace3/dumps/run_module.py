@@ -842,7 +842,20 @@ TREE_MODULES = {
     "IlspyAnalysis": "ilspy",
     "DMGAnalysis": "dmg_analyzer",
     "CVE_2021_30657_Analysis": "cve_2021_30657_analyzer",
+    "PcapAnalysis": "pcap_analyzer",
+    "PcapTlsDecryptionAnalysis": "pcap_tls_decryption",
+    "TlsKeylogAnalysis": "tls_keylog",
 }
+
+
+def tree_module(analysis):
+    """The module a result is named by in a tree. ace3's pcap_dns, pcap_tls, pcap_http and pcap_files
+    are instances of one class, PcapCategoryAnalyzer, each named by its instance."""
+    class_name = type(analysis).__name__
+    if class_name == "PcapCategoryAnalysis":
+        return f"pcap_{analysis.instance}"
+    return TREE_MODULES.get(class_name, class_name)
+
 TREE_RUN_FIELDS = {
     "EmailAnalysis": ["details/email/log_entry/date"],
     "RdapAnalysis": [
@@ -1083,7 +1096,7 @@ def tree_form(root):
                 # the candidates come out of a set, whose order changes from run to run; the port sorts them
                 if isinstance(result["details"].get("word_list"), list):
                     result["details"]["word_list"] = sorted(result["details"]["word_list"])
-            entry["results"][TREE_MODULES.get(class_name, class_name)] = renamed_strings(result, renames)
+            entry["results"][tree_module(analysis)] = renamed_strings(result, renames)
         for detection in detections:
             entry["detections"].setdefault(detection.description, []).append(json_safe(detection.details))
         for details in entry["detections"].values():
@@ -1166,13 +1179,13 @@ def tree_view(root):
             analysis.load_details()
             class_name = type(analysis).__name__
             on = observable_index(observable)
-            if (on, class_name) in seen:
+            if (on, tree_module(analysis)) in seen:
                 continue
-            seen.add((on, class_name))
+            seen.add((on, tree_module(analysis)))
             results.append({
                 "observable": on,
                 "class": class_name,
-                "module": TREE_MODULES.get(class_name, class_name),
+                "module": tree_module(analysis),
                 "tags": sorted(str(tag) for tag in analysis.tags),
                 "summary": analysis.summary,
                 "details": json_safe(analysis.details),
@@ -1370,6 +1383,9 @@ def dump_analysis(analysis):
         ],
         "observables": [dump_observable(o) for o in analysis.observables],
     } | (
+        # one class configured as several instances, such as ace3's PcapCategoryAnalyzer
+        {"instance": analysis.instance} if getattr(analysis, "instance", None) else {}
+    ) | (
         {
             "deterministic_id_sha256": {
                 o.file_path: deterministic_id_copy(o.full_path, analysis.observable.full_path, analysis.details["password"])

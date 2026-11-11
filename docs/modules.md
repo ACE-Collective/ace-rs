@@ -20,17 +20,16 @@ Versions are those of ace3's image: Python packages from `installer/requirements
 
 | Pool | Modules | Ported |
 |---|---|---|
-| parser | 52 | 47 |
+| parser | 53 | 52 |
 | lookup | 17 | 13 |
 | core | 3 | 0 |
-| sandbox | 16 | 13 |
+| sandbox | 15 | 15 |
 | scanner | 2 | 0 |
-| all | 90 | 73 |
+| all | 90 | 80 |
 
 | Step | Modules |
 |---|---|
-| done | 73 |
-| 7.5 | 7 |
+| done | 80 |
 | 7.6 | 5 |
 | 7.7 | 2 |
 | 7.10 | 2 |
@@ -54,7 +53,7 @@ In order. Batches 10 to 13 run programs in the sandbox runner, which batch 10 bu
 10. **PDF and image text**: done. `ocr`, `qrcode`, `exif` and `pdftotext` in `ace-mod-sandbox`, on the sandbox pool, and `ssdeep` in `ace-mod-files`, on the parser pool. Builds the sandbox runner (`ace_pool::tools`, *The sandbox runner* below) and the sandbox pool's image (*Image*), and adds Ghostscript's rewrite to `pdf_analyzer` and ACE archives to `archive`, which move to the sandbox pool. OpenCV is 5.0.0, ace3's, built with the wheel's defaults and linked statically; tesseract's output matches ace3's on every dump. ssdeep is fuzzyhash's hash with ssdeep 2.14.1's comparison, which matches ssdeep's `-m` on all 420 measured files. The comparison keys Ghostscript's rewrite and ExifTool's metadata, whose bytes change every run on both systems, by their paths (`ace compare`'s `VOLATILE_FILES`), so what runs on them is compared.
 11. **Executables**: done. `java_class_decompiler`, `upx`, `autoit`, `de4dot`, `ilspy`, in `ace-mod-sandbox`, on the sandbox runner as it was built, under the filter that lets threads through: CFR on OpenJDK 21, upx, unautoit, and de4dotEx and ilspycmd on .NET 10, each at ace3's version, the .NET tools and unautoit byte for byte (*Image*). Every tool ran contained, with its threads, to the same output as plain (`docs/measurements/sandbox-runner.md`); the runner needed no change to its filter or Landlock, only fixed arguments in a tool's spec and the dlopen'd modules of a tool's data allowed to need a library the image lacks (*The sandbox runner*). Crafted files and what stops each are in `docs/measurements/executables.md`.
 12. **macOS images**: done. `dmg_analyzer` and `cve_2021_30657_analyzer`, in `ace-mod-sandbox`: dmg2img 1.6.7 and 7-Zip 25.01, ace3's, on the sandbox runner as it was built, with no change to its filter or Landlock; 7z is the program `/usr/bin/7z` execs, reading the `7z.so` and the RAR codec (7zip-rar's, as ace3 has) it loads. ace3 has no DMG sample, so `tools/samples/make-macos-images` makes ten on Linux (HFS+ by mkfs.hfsplus and libdmg-hfsplus, UDIF by libdmg-hfsplus and by hand), and the CVE module lists the image again rather than read the DMG's result. Crafted images and what stops each are in `docs/measurements/macos-images.md`.
-13. **Packet captures**: `pcap_analyzer`, `pcap_dns`, `pcap_tls`, `pcap_http`, `pcap_files`, `pcap_tls_decryption`, `tls_keylog`. tshark on the sandbox runner.
+13. **Packet captures**: done. `pcap_analyzer`, `pcap_dns`, `pcap_tls`, `pcap_http`, `pcap_files`, `pcap_tls_decryption` and `tls_keylog`, in `ace-mod-pcap`: tshark 4.4.19 and capinfos, ace3's, on the sandbox runner as it was built, with no change to its filter or Landlock. pcap_analyzer and the decryption are on the sandbox pool; the four categories, which ace3 configures as instances of one class, and tls_keylog, which ace4 never has to run tshark for, are on the parser pool. tshark reads a file only (`-n -r`): asked to capture or list interfaces it runs dumpcap or an extcap helper, and the runner kills it. Its spec gives it a home and a personal configuration directory that don't exist, so it loads no Lua or preferences a working directory could hold (`ace_pool`'s containment tests). pcap_analyzer stores the objects and certificates it carves for the root without adding them (`ResultEnvelope::stored`), and pcap_files and pcap_tls add them with no upload, which the core takes from a module that declares `Module::ADDS_STORED_FILES` when the root holds the file, with the bucket's size. The categories work out their share of each type's 50 observables from the same index, in the order ace3's trees run them, rather than read each other's results. The decryption reads the key logs tls_keylog tagged (`TreeFiles::tagged`), and their key lines reach tshark through the task's scratch directory and nowhere else. ace3's late key log, which an analyst adds to an analyzed alert, has no case in ace4 (the crate's docs). The dumps (`make-dumps pcap_analyzer pcap_dns pcap_tls pcap_http pcap_files pcap_tls_decryption tls_keylog`) match with no row; ace3's fixtures and `tools/samples/make-pcaps`' captures are the samples, and crafted captures are in `docs/measurements/pcap.md`.
 
 7.4 ports, in this workspace, all done: `fqdn_analyzer`, `nrd_analyzer`, `snort_signature_analysis_v1`, `user_analyzer`, `email_conversation_frequency_analyzer`, `email_thread_analyzer`, `email_logger`, `clicker_detection_splunk`. The brocess modules (`email_logger` writes what `email_conversation_frequency_analyzer` and `email_thread_analyzer` read) go together, after 7.2's endpoints.
 
@@ -116,13 +115,14 @@ ace3's runner (`ace3/saq/sandbox/`) runs a program under `launcher.py`, `prlimit
 
 The sandbox image's packages, by Debian's installed size: the JRE 199 MB, Wireshark's libraries 134 MB, the .NET 10 runtime 86 MB with de4dotEx (90 MB as ace3 publishes it, self-contained) and ilspycmd 22 MB, Perl 60 MB with ExifTool 28 MB, Ghostscript 24 MB, ImageMagick and zbar 14 MB, tesseract with its data and Leptonica 24 MB, unautoit 11 MB, 7-Zip 7 MB, poppler 6 MB, upx 3 MB, dmg2img and unace under 1 MB: about 710 MB before OpenCV. ace3's one image carries all of that and also the .NET SDK (436 MB, where the runtime is enough), John's build (310 MB) and Node.js (237 MB), which ace4 doesn't need. The JVM and .NET together are about 400 MB for three modules (`java_class_decompiler`, `de4dot`, `ilspy`); the owner kept them in the sandbox image (PLAN.md decision 18), since each module's output (decompiled Java, deobfuscated assemblies, IL) has no other source. The licences don't stop anything: every GPL or AGPL program here (Ghostscript, poppler, unautoit, de4dot, upx, dmg2img, tshark) runs as a separate program, as ace3 runs it, and none is linked into ace4's Apache-2.0 binaries. That is also why Ghostscript, poppler and libautoit aren't crates.
 
-Batch 10's image (`docker/ace4/Dockerfile`'s `sandbox` target, on `debian:13.7-slim`) pins ace3's versions, from `dpkg-query` in ace3's dev container: tesseract-ocr 5.5.0-1+b1 with tesseract-ocr-eng and tesseract-ocr-osd 1:4.1.0-2 (ace3's language data), libtesseract5 5.5.0-1+b1, libleptonica6 1.84.1-4; zbar-tools and libzbar0t64 0.23.93-8, ImageMagick 8:7.1.1.43+dfsg1-1+deb13u14 with its extra coders; libimage-exiftool-perl 13.25+dfsg-1 with libarchive-zip-perl 1.68-1, which ExifTool reads OOXML and OpenDocument with, on Perl 5.40.1-6+deb13u1; poppler-utils and libpoppler147 25.03.0-5+deb13u4, poppler-data 0.4.12-1; ghostscript, libgs10 and libgs10-common 10.05.1~dfsg-1+deb13u3, fonts-urw-base35 20200910-8; unace-nonfree 2.5-10, from non-free; hunspell-en-us 1:2020.12.07-4, the dictionary ace3's enchant uses. OpenCV 5.0.0 is ace3's opencv-python 5.0.0.93's release, built in a stage of its own and linked into the binaries, so the image carries no OpenCV library. ssdeep is a crate. Batch 11 adds, at ace3's versions: openjdk-21-jre-headless 21.0.13+9-1~deb13u2 (ace3's default-jre also pulls openjdk-21-jre's GUI libraries, which CFR doesn't load) with CFR 0.151's jar, the release's, sha256 `316e9015...e837`, at `/usr/local/share/java/cfr-0.151.jar`; upx-ucl 4.2.4-1.1; dotnet-runtime-10.0, dotnet-hostfxr-10.0, dotnet-host and dotnet-runtime-deps-10.0 10.0.14-1 from Microsoft's Debian 13 repository, where ace3 installs the SDK; ilspycmd 11.0.0.9375 as a .NET tool in `/opt/dotnet` and de4dotEx 3.10.0 (commit `5ffdf0f0`) published self-contained to `/opt/de4dotEx`, both made in the `dotnet-tools` stage on dotnet-sdk-10.0 10.0.403-1 with its packs pinned at 10.0.14-1, as ace3's are, so all 283 files are ace3's byte for byte; and unautoit, built from `vendor/unautoit` with Go 1.27.3 as ace3's Dockerfile builds it, the same binary as ace3's (sha256 `571da970...0c77` on arm64), with its licences in `/usr/local/share/doc/unautoit`. ace4-sandbox:latest was 687 MB before batch 11 and is 1.28 GB after (`docker images`, 1,278,887,026 bytes), 591 MB more. Batch 12 adds, at ace3's versions, in a layer of their own: dmg2img 1.6.7+git20201227.a3e4134-0.1, 7zip 25.01+dfsg-1~deb13u2 and 7zip-rar 25.00+ds-1+deb13u1 (non-free), whose `Codecs/Rar.so` ace3's 7z loads too, so an image that is a RAR archive lists and extracts as in ace3.
+Batch 10's image (`docker/ace4/Dockerfile`'s `sandbox` target, on `debian:13.7-slim`) pins ace3's versions, from `dpkg-query` in ace3's dev container: tesseract-ocr 5.5.0-1+b1 with tesseract-ocr-eng and tesseract-ocr-osd 1:4.1.0-2 (ace3's language data), libtesseract5 5.5.0-1+b1, libleptonica6 1.84.1-4; zbar-tools and libzbar0t64 0.23.93-8, ImageMagick 8:7.1.1.43+dfsg1-1+deb13u14 with its extra coders; libimage-exiftool-perl 13.25+dfsg-1 with libarchive-zip-perl 1.68-1, which ExifTool reads OOXML and OpenDocument with, on Perl 5.40.1-6+deb13u1; poppler-utils and libpoppler147 25.03.0-5+deb13u4, poppler-data 0.4.12-1; ghostscript, libgs10 and libgs10-common 10.05.1~dfsg-1+deb13u3, fonts-urw-base35 20200910-8; unace-nonfree 2.5-10, from non-free; hunspell-en-us 1:2020.12.07-4, the dictionary ace3's enchant uses. OpenCV 5.0.0 is ace3's opencv-python 5.0.0.93's release, built in a stage of its own and linked into the binaries, so the image carries no OpenCV library. ssdeep is a crate. Batch 11 adds, at ace3's versions: openjdk-21-jre-headless 21.0.13+9-1~deb13u2 (ace3's default-jre also pulls openjdk-21-jre's GUI libraries, which CFR doesn't load) with CFR 0.151's jar, the release's, sha256 `316e9015...e837`, at `/usr/local/share/java/cfr-0.151.jar`; upx-ucl 4.2.4-1.1; dotnet-runtime-10.0, dotnet-hostfxr-10.0, dotnet-host and dotnet-runtime-deps-10.0 10.0.14-1 from Microsoft's Debian 13 repository, where ace3 installs the SDK; ilspycmd 11.0.0.9375 as a .NET tool in `/opt/dotnet` and de4dotEx 3.10.0 (commit `5ffdf0f0`) published self-contained to `/opt/de4dotEx`, both made in the `dotnet-tools` stage on dotnet-sdk-10.0 10.0.403-1 with its packs pinned at 10.0.14-1, as ace3's are, so all 283 files are ace3's byte for byte; and unautoit, built from `vendor/unautoit` with Go 1.27.3 as ace3's Dockerfile builds it, the same binary as ace3's (sha256 `571da970...0c77` on arm64), with its licences in `/usr/local/share/doc/unautoit`. ace4-sandbox:latest was 687 MB before batch 11 and is 1.28 GB after (`docker images`, 1,278,887,026 bytes), 591 MB more. Batch 12 adds, at ace3's versions, in a layer of their own: dmg2img 1.6.7+git20201227.a3e4134-0.1, 7zip 25.01+dfsg-1~deb13u2 and 7zip-rar 25.00+ds-1+deb13u1 (non-free), whose `Codecs/Rar.so` ace3's 7z loads too, so an image that is a RAR archive lists and extracts as in ace3. Batch 13 adds, at ace3's version, in a layer of its own with wireshark-common's debconf question answered as ace3's Dockerfile answers it (dumpcap not setuid): tshark, wireshark-common, libwireshark18, libwiretap15, libwsutil16 and libwireshark-data 4.4.19-0+deb13u1, from Debian's security archive, with capinfos and the plugins Debian ships, none of them Lua. ace4-sandbox:latest is 1.49 GB after it (1,486,151,498 bytes), which includes the batch's own code.
 
 ### Tools
 
 | Tool | Modules | Threads and children | Options | Decision | Image and licence |
 |---|---|---|---|---|---|
-| tshark 4.4.19, capinfos | `pcap_analyzer`, `pcap_tls_decryption`, `tls_keylog` | tshark: 3 threads (statistics and JSON runs), no process; capinfos: none. tshark's JSON run gave the same output under the tool filter. | none: the plan keeps tshark in the sandbox runner | **runner**, as the plan says. It starts no process, so it runs without children. | tshark, libwireshark18 and wireshark-common, 134 MB; GPL-2 |
+| tshark 4.4.19, capinfos | `pcap_analyzer`, `pcap_tls_decryption` | tshark: 3 threads (statistics and JSON runs), no process; capinfos: none. Under the runner (batch 13) the field run with a key log and its object export gave the same JSON and objects as plain, and strace showed no exec but tshark's own, no fork or process `clone`, and no socket but its `AF_UNIX` lookups of nscd. Asked to capture or list interfaces, it runs dumpcap or an extcap helper, which the runner stops (`containment.rs`' `tshark_is_stopped_when_it_would_capture`). | none: the plan keeps tshark in the sandbox runner | **runner**, as the plan says. It starts no process, so it runs without children. Its spec gives it `HOME` and `WIRESHARK_CONFIG_DIR` that don't exist, so it reads no personal preferences or plugins, Lua among them (`tshark_reads_no_lua_or_configuration_from_a_home`), and a 256 MiB file size, ace3's `pcap.sandbox`. | tshark, libwireshark18, libwiretap15, libwsutil16, wireshark-common and libwireshark-data 4.4.19-0+deb13u1, 134 MB; GPL-2 |
+| tshark, for a late key log | `tls_keylog` | not run | ace3 runs it only for a key log that arrives after a capture's decryption finished, which an analyst adding a file to an analyzed alert causes; ace4 has no such case (`ace-mod-pcap`'s docs) | **none** | none |
 | exiftool 13.25 (Perl) | `exif` | none, on a PDF and a DOCX; the same JSON under the parser's filter | kamadak-exif 0.6.2 (BSD-2, kept up) and nom-exif 3.8.0 read EXIF in images and media; little_exif 0.6.23 is for writing. None reads a PDF's Info and XMP, OLE property sets or OOXML document properties under ExifTool's `Group:Tag` names, which the module stores whole and summarizes. | **runner** | libimage-exiftool-perl 28 MB and Perl 5.40, 60 MB; GPL-1+ or Artistic |
 | java (OpenJDK 21) with CFR 0.151 | `java_class_decompiler` | 29 threads with ace3's options, 13 with one CPU, the serial GC and one compiler thread; no process. The parser's filter kills it; the tool filter gives the same source. | no Rust decompiler of Java classes | **runner** | openjdk-21-jre-headless 199 MB, cfr.jar 2 MB; GPL-2 with the Classpath exception, CFR MIT. Kept by decision 18 (Image). |
 | upx 4.2.4 | `upx` | none, for `-t` and `-d`; the same output under the parser's filter | no crate unpacks UPX; goblin and object read a PE but not UPX's compressed sections | **runner** | upx-ucl 3 MB; GPL-2+ with UPX's exception |
@@ -154,7 +154,7 @@ Batch 10's image (`docker/ace4/Dockerfile`'s `sandbox` target, on `debian:13.7-s
 |---|---|---|---|
 | `pcap_analyzer` | sandbox | tshark 4.4.19 (and capinfos 4.4.19 from the same dir) via saq.sandbox.runner.run_sandboxed + build_sandbox_argv directly (NOT AnalysisModule.run_sandboxed_tool): argv is `python3 -I -S saq/sandbox/launcher.py --max-processes=64 --deadline=... -- /usr/bin/prlimit --as --fsize --nofile --cpu --core=0 -- setpriv --no-new-privs --landlock-access fs ... -- tshark -n -r input ...`; env is only PATH/LANG/HOME; refuses to run when landlock_available() is false (PcapNodeError); runs: `capinfos -M -S input` (30 s timeout), `tshark -n -r input -q -z io,stat,0 -z endpoints,eth -z endpoints,ip -z endpoints,ipv6 -z conv,tcp -z conv,udp`, then `tshark -n -r input -T json -Y 'frame.number <= max_field_packets && (dns \|\| tls.handshake \|\| http.request \|\| http.response \|\| http2.headers \|\| dhcp \|\| nbns)' -e <38 fields> --export-objects http\|smb\|ftp-data\|tftp\|imf,objects/<proto>` (pcap.tshark_timeout 120 s each) | tshark, capinfos: **runner** |
 | `pcap_tls_decryption` | sandbox | tshark 4.4.19 (and capinfos 4.4.19 from the same dir) via saq.sandbox.runner.run_sandboxed + build_sandbox_argv directly (NOT AnalysisModule.run_sandboxed_tool): argv is `python3 -I -S saq/sandbox/launcher.py --max-processes=64 --deadline=... -- /usr/bin/prlimit --as --fsize --nofile --cpu --core=0 -- setpriv --no-new-privs --landlock-access fs ... -- tshark -n -r input ...`; env is only PATH/LANG/HOME; refuses to run when landlock_available() is false (PcapNodeError); one run: `tshark -n -r input -T json -Y ... -e ... --export-objects ... -o tls.keylog_file:keylog` (no statistics/capinfos pass) | tshark: **runner** |
-| `tls_keylog` | sandbox | tshark 4.4.19 (and capinfos 4.4.19 from the same dir) via saq.sandbox.runner.run_sandboxed + build_sandbox_argv directly (NOT AnalysisModule.run_sandboxed_tool): argv is `python3 -I -S saq/sandbox/launcher.py --max-processes=64 --deadline=... -- /usr/bin/prlimit --as --fsize --nofile --cpu --core=0 -- setpriv --no-new-privs --landlock-access fs ... -- tshark -n -r input ...`; env is only PATH/LANG/HOME; refuses to run when landlock_available() is false (PcapNodeError) -- only for late key logs: one tshark run per pcap with a completed PcapTlsDecryptionAnalysis that this key log has new session keys (or RSA keys) for | tshark: **runner** |
+| `tls_keylog` | parser | tshark 4.4.19 (and capinfos 4.4.19 from the same dir) via saq.sandbox.runner.run_sandboxed + build_sandbox_argv directly (NOT AnalysisModule.run_sandboxed_tool): argv is `python3 -I -S saq/sandbox/launcher.py --max-processes=64 --deadline=... -- /usr/bin/prlimit --as --fsize --nofile --cpu --core=0 -- setpriv --no-new-privs --landlock-access fs ... -- tshark -n -r input ...`; env is only PATH/LANG/HOME; refuses to run when landlock_available() is false (PcapNodeError) -- only for late key logs: one tshark run per pcap with a completed PcapTlsDecryptionAnalysis that this key log has new session keys (or RSA keys) for | tshark: **none** |
 | `javascript_deobfuscation` | scanner | none started by ACE itself; the js-deobfuscator manager container (docker:dind image, Alpine python3 venv with celery[redis] + pyyaml, unpinned) runs `docker run --rm --network none -v <stack>_js-deobfuscator:/js-deobfuscator ${ACE3_JS_DEOBFUSCATOR_IMAGE_URL:-js-deobfuscator} node /opt/app/harness.js <input> <output>/deobfuscated.js` via subprocess.Popen on the host docker socket, killed after scanner_timeout (30 s); scanner image: node:26-alpine with webcrack 2.15.1 (npm, --ignore-scripts, isolated-vm not built); harness.js uses node:vm (webcrack sandbox 10 s timeout, dynamic run 5 s per script) | **scanner** (7.7) |
 | `ssdeep` | parser | ssdeep 2.14.1 via run_tool (plain subprocess.run, unsandboxed): `ssdeep -m <ssdeep_hashes> <file>` | ssdeep: **crate** (fuzzyhash's hashes, ssdeep 2.14.1's comparison) |
 | `archive` | sandbox | 7z (7zip 25.01, with 7zip-rar 25.00) via run_sandboxed_tool: `7z -y -pinfected l` and `7z -y -pinfected -o<dir> x` (and `7z -y -o<dir> x` for MSI); unrar 7.1.8 via run_sandboxed_tool: `unrar la` and `unrar e -y -o+ -idq -kb`; unzip via run_sandboxed_tool: `unzip -l -P infected` and `unzip -qq ... -x xl/activeX/* ... -d <dir>`; unace-nonfree 2.5 via run_sandboxed_tool on a copy in a temp staging dir: `unace l` and `unace x -y -o`; bin/unjar (python3 script using custom_zipfile.extractall) via run_sandboxed_tool for jar files; file via Popen `file -b -L` (unsandboxed, no timeout) in is_msi_file, called up to twice | 7z, unrar, unzip, unjar: **crate** (1.29); unace: **runner**; file: **crate** |
@@ -194,13 +194,13 @@ In the config's order. ace4 is the crate a ported module is in.
 |---|---|---|---|---|---|---|
 | `html_data_url_extraction` | `HTMLDataURLAnalyzer` | `ace-mod-html` | parser | done | file | analysis, binary, cli, correlation, email, file |
 | `har_extraction` | `HARExtractor` | `ace-mod-html` | parser | done | file | analysis, binary, cli, correlation, email, file |
-| `pcap_analyzer` | `PcapAnalyzer` | not yet | sandbox | 7.5 batch 13 | file | analysis, binary, cli, correlation, email, file |
-| `pcap_dns` | `PcapCategoryAnalyzer` | not yet | parser | 7.5 batch 13 | file | analysis, binary, cli, correlation, email, file |
-| `pcap_tls` | `PcapCategoryAnalyzer` | not yet | parser | 7.5 batch 13 | file | analysis, binary, cli, correlation, email, file |
-| `pcap_http` | `PcapCategoryAnalyzer` | not yet | parser | 7.5 batch 13 | file | analysis, binary, cli, correlation, email, file |
-| `pcap_files` | `PcapCategoryAnalyzer` | not yet | parser | 7.5 batch 13 | file | analysis, binary, cli, correlation, email, file |
-| `pcap_tls_decryption` | `PcapTlsDecryptor` | not yet | sandbox | 7.5 batch 13 | file | analysis, binary, cli, correlation, email, file |
-| `tls_keylog` | `TlsKeylogAnalyzer` | not yet | sandbox | 7.5 batch 13 | file | analysis, binary, cli, correlation, email, file |
+| `pcap_analyzer` | `PcapAnalyzer` | `ace-mod-pcap` | sandbox | done | file | analysis, binary, cli, correlation, email, file |
+| `pcap_dns` | `PcapCategoryAnalyzer` | `ace-mod-pcap` | parser | done | file | analysis, binary, cli, correlation, email, file |
+| `pcap_tls` | `PcapCategoryAnalyzer` | `ace-mod-pcap` | parser | done | file | analysis, binary, cli, correlation, email, file |
+| `pcap_http` | `PcapCategoryAnalyzer` | `ace-mod-pcap` | parser | done | file | analysis, binary, cli, correlation, email, file |
+| `pcap_files` | `PcapCategoryAnalyzer` | `ace-mod-pcap` | parser | done | file | analysis, binary, cli, correlation, email, file |
+| `pcap_tls_decryption` | `PcapTlsDecryptor` | `ace-mod-pcap` | sandbox | done | file | analysis, binary, cli, correlation, email, file |
+| `tls_keylog` | `TlsKeylogAnalyzer` | `ace-mod-pcap` | parser | done | file | analysis, binary, cli, correlation, email, file |
 | `html_js_extraction` | `HTMLJavaScriptExtractor` | `ace-mod-html` | parser | done | file | analysis, binary, cli, correlation, email, file |
 | `onenote_extraction` | `OneNoteFileAnalyzer` | `ace-mod-office` | parser | done | file | analysis, binary, cli, correlation, email, file |
 | `javascript_deobfuscation` | `JavaScriptDeobfuscationAnalyzer` | not yet | scanner | 7.7 | file | analysis, binary, cli, correlation, email, file |
@@ -330,16 +330,16 @@ In the config's order. ace4 is the crate a ported module is in.
 ### pcap_analyzer
 
 - **Section**: `analysis_module_pcap_analyzer`, class `PcapAnalyzer` in `saq/modules/file_analysis/pcap.py`, enabled by default.
-- **ace4**: not yet.
-- **Pool**: sandbox. Runs tshark and capinfos, which stay in ACE's sandbox runner. tshark starts 3 threads and no process, so it runs there without children (*External tools*).
-- **Step**: 7.5 batch 13 (Packet captures).
+- **ace4**: ported in `ace-mod-pcap`. Its `analyzer` module: capinfos and the two tshark runs in the sandbox runner, the index built as ace3 builds it, the hosts added, and the objects and certificates it carves stored for the root (`ResultEnvelope::stored`), for pcap_files and pcap_tls to add, as ace3 writes them beside the capture. tshark reads the task's copy of the capture where it is, rather than a copy in its working directory, which ace3 makes so tshark can't write the evidence: Landlock lets it read the task's files only. Its JSON is parsed by serde_json, and by `ace-pycompat`'s `json.loads` when that refuses it, for Python's error. A node that can't run the tools fails the task, as every sandbox module's does, where ace3 records `PcapNodeError` on the analysis. Observables aren't volatile, which ace4 doesn't have. Its 10 dumps match.
+- **Pool**: sandbox. Runs tshark and capinfos, which stay in ACE's sandbox runner. tshark starts threads and no process, so it runs there without children (*External tools*).
+- **Step**: done.
 - **Does**: Dissects a pcap/pcapng file (detected by magic, not extension) with sandboxed capinfos and two tshark runs, stores the capture index (capture metadata, endpoints, flows, DNS/TLS/HTTP/hostnames, carved objects, certificates, embedded pcapng decryption secrets) and adds the host observables (IP, MAC, hostname).
 - **Input**: file.
 - **Groups and modes**: groups file; modes analysis, binary, cli, correlation, email, file.
 - **Depends on**: none.
 - **Libraries**: cryptography 50.0.2 (x509 DER cert parsing via saq/x509.py); pydantic 2.14.1 (config).
 - **Tools**: tshark 4.4.19 (and capinfos 4.4.19 from the same dir) via saq.sandbox.runner.run_sandboxed + build_sandbox_argv directly (NOT AnalysisModule.run_sandboxed_tool): argv is `python3 -I -S saq/sandbox/launcher.py --max-processes=64 --deadline=... -- /usr/bin/prlimit --as --fsize --nofile --cpu --core=0 -- setpriv --no-new-privs --landlock-access fs ... -- tshark -n -r input ...`; env is only PATH/LANG/HOME; refuses to run when landlock_available() is false (PcapNodeError); runs: `capinfos -M -S input` (30 s timeout), `tshark -n -r input -q -z io,stat,0 -z endpoints,eth -z endpoints,ip -z endpoints,ipv6 -z conv,tcp -z conv,udp`, then `tshark -n -r input -T json -Y 'frame.number <= max_field_packets && (dns || tls.handshake || http.request || http.response || http2.headers || dhcp || nbns)' -e <38 fields> --export-objects http|smb|ftp-data|tftp|imf,objects/<proto>` (pcap.tshark_timeout 120 s each).
-- **Threads and children**: each run is a chain of processes: the sandbox launcher (a Python interpreter) -> prlimit -> setpriv -> tshark/capinfos; the launcher caps the tree at sandbox.max_processes (64) and kills the session on deadline/cancel; whether tshark itself starts threads: unsure
+- **Threads and children**: each run is a chain of processes: the sandbox launcher (a Python interpreter) -> prlimit -> setpriv -> tshark/capinfos; the launcher caps the tree at sandbox.max_processes (64) and kills the session on deadline/cancel. tshark itself starts threads (2 or 3 under strace, short-lived) and no process; capinfos none (batch 13).
 - **Writes**: {pcap}.pcap_objects/<protocol>/<exported object name> (tshark --export-objects, moved out of the workdir; _NNN suffix on collision); {pcap}.pcap_objects/certificates/<sha256>.der (handshake certificates); DATA_DIR/var/pcap_sandbox/<tmp>/input (temporary copy, deleted).
 - **yara_meta**: none.
 - **ACE's data**: none.
@@ -352,9 +352,9 @@ In the config's order. ace4 is the crate a ported module is in.
 ### pcap_dns
 
 - **Section**: `analysis_module_pcap_dns` (instance `dns`), class `PcapCategoryAnalyzer` in `saq/modules/file_analysis/pcap.py`, enabled by default.
-- **ace4**: not yet.
-- **Pool**: parser. Turns pcap_analyzer's index into observables; no process. Could become part of pcap_analyzer's result in ace4.
-- **Step**: 7.5 batch 13 (Packet captures).
+- **ace4**: ported in `ace-mod-pcap`. Its `category` module makes one module of each instance, each reading pcap_analyzer's result on the capture (`Module::DEPENDS_ON`). A capture's 50 observables of a type are shared by its results in ace3's order, which ace3 takes from a set (in its trees: http, files, dns, tls); each category works it out from the same index (`ace_mod_pcap::budget`), so the shares are the same on every run, and the `categories` setting names the categories a site runs, as one it turns off gives the others its share in ace3. Its dumps match.
+- **Pool**: parser. Turns pcap_analyzer's index into observables; no process.
+- **Step**: done.
 - **Does**: Turns the 'dns' part of the PcapAnalysis index of a pcap file into observables under its own 'PCAP DNS' node; does no dissection itself.
 - **Input**: file.
 - **Groups and modes**: groups file; modes analysis, binary, cli, correlation, email, file.
@@ -373,9 +373,9 @@ In the config's order. ace4 is the crate a ported module is in.
 ### pcap_tls
 
 - **Section**: `analysis_module_pcap_tls` (instance `tls`), class `PcapCategoryAnalyzer` in `saq/modules/file_analysis/pcap.py`, enabled by default.
-- **ace4**: not yet.
+- **ace4**: ported in `ace-mod-pcap`. Its `category` module, as pcap_dns. pcap_tls and pcap_files add the files pcap_analyzer stored with no upload (`Module::ADDS_STORED_FILES`); the core gives each the bucket's size, which the index doesn't hold for a certificate. Its dumps match.
 - **Pool**: parser. As pcap_dns.
-- **Step**: 7.5 batch 13 (Packet captures).
+- **Step**: done.
 - **Does**: Turns the 'tls' part of the PcapAnalysis index of a pcap file into observables under its own 'PCAP TLS' node plus the carved handshake certificates; does no dissection itself.
 - **Input**: file.
 - **Groups and modes**: groups file; modes analysis, binary, cli, correlation, email, file.
@@ -394,9 +394,9 @@ In the config's order. ace4 is the crate a ported module is in.
 ### pcap_http
 
 - **Section**: `analysis_module_pcap_http` (instance `http`), class `PcapCategoryAnalyzer` in `saq/modules/file_analysis/pcap.py`, enabled by default.
-- **ace4**: not yet.
+- **ace4**: ported in `ace-mod-pcap`. Its `category` module, as pcap_dns. Its dumps match.
 - **Pool**: parser. As pcap_dns.
-- **Step**: 7.5 batch 13 (Packet captures).
+- **Step**: done.
 - **Does**: Turns the 'http' part of the PcapAnalysis index of a pcap file into observables under its own 'PCAP HTTP' node; does no dissection itself.
 - **Input**: file.
 - **Groups and modes**: groups file; modes analysis, binary, cli, correlation, email, file.
@@ -415,9 +415,9 @@ In the config's order. ace4 is the crate a ported module is in.
 ### pcap_files
 
 - **Section**: `analysis_module_pcap_files` (instance `files`), class `PcapCategoryAnalyzer` in `saq/modules/file_analysis/pcap.py`, enabled by default.
-- **ace4**: not yet.
+- **ace4**: ported in `ace-mod-pcap`. Its `category` module, as pcap_dns. pcap_tls and pcap_files add the files pcap_analyzer stored with no upload (`Module::ADDS_STORED_FILES`); the core gives each the bucket's size, which the index doesn't hold for a certificate. Its dumps match.
 - **Pool**: parser. As pcap_dns.
-- **Step**: 7.5 batch 13 (Packet captures).
+- **Step**: done.
 - **Does**: Turns the 'files' part of the PcapAnalysis index of a pcap file into observables under its own 'PCAP Files' node; does no dissection itself.
 - **Input**: file.
 - **Groups and modes**: groups file; modes analysis, binary, cli, correlation, email, file.
@@ -436,16 +436,16 @@ In the config's order. ace4 is the crate a ported module is in.
 ### pcap_tls_decryption
 
 - **Section**: `analysis_module_pcap_tls_decryption`, class `PcapTlsDecryptor` in `saq/modules/file_analysis/pcap.py`, enabled by default.
-- **ace4**: not yet.
+- **ace4**: ported in `ace-mod-pcap`. Its `decryption` module runs last (`Module::RUNS_LAST`), as ace3's final analysis, and reads the files tls_keylog tagged `tls_keylog` (`TreeFiles::tagged`), which ace3 finds by the same sniff of every file in the alert, so the pool downloads only those. Their key lines go to a file in the task's scratch directory, which tshark reads in the runner and which is removed after; no log line or result holds one. Its 9 dumps match.
 - **Pool**: sandbox. Runs tshark with key logs, in the sandbox runner.
-- **Step**: 7.5 batch 13 (Packet captures).
+- **Step**: done.
 - **Does**: In final analysis, finds every TLS key log (SSLKEYLOGFILE format, by content) among the alert's file observables and re-runs tshark on a pcap with those keys, adding the DNS/TLS/HTTP/file observables the decrypted traffic shows beyond the plaintext index.
 - **Input**: file.
 - **Groups and modes**: groups file; modes analysis, binary, cli, correlation, email, file.
 - **Depends on**: pcap_analyzer (reads PcapAnalysis via get_and_load_analysis in execute_final_analysis, no wait_for; needs index.tls non-empty); scans all file observables in the root for key logs (find_keylog_observables).
 - **Libraries**: cryptography 50.0.2 (certificate names via saq/x509.py).
 - **Tools**: tshark 4.4.19 (and capinfos 4.4.19 from the same dir) via saq.sandbox.runner.run_sandboxed + build_sandbox_argv directly (NOT AnalysisModule.run_sandboxed_tool): argv is `python3 -I -S saq/sandbox/launcher.py --max-processes=64 --deadline=... -- /usr/bin/prlimit --as --fsize --nofile --cpu --core=0 -- setpriv --no-new-privs --landlock-access fs ... -- tshark -n -r input ...`; env is only PATH/LANG/HOME; refuses to run when landlock_available() is false (PcapNodeError); one run: `tshark -n -r input -T json -Y ... -e ... --export-objects ... -o tls.keylog_file:keylog` (no statistics/capinfos pass).
-- **Threads and children**: each run is a chain of processes: the sandbox launcher (a Python interpreter) -> prlimit -> setpriv -> tshark/capinfos; the launcher caps the tree at sandbox.max_processes (64) and kills the session on deadline/cancel; whether tshark itself starts threads: unsure
+- **Threads and children**: each run is a chain of processes: the sandbox launcher (a Python interpreter) -> prlimit -> setpriv -> tshark/capinfos; the launcher caps the tree at sandbox.max_processes (64) and kills the session on deadline/cancel. tshark itself starts threads (2 or 3 under strace, short-lived) and no process; capinfos none (batch 13).
 - **Writes**: {pcap}.pcap_decrypted/<protocol>/<exported object name>; {pcap}.pcap_decrypted/certificates/<sha256>.der; DATA_DIR/var/pcap_sandbox/<tmp>/keylog (the merged key log lines, i.e. the TLS secrets, written into the temporary sandbox workdir; deleted with it).
 - **yara_meta**: none.
 - **ACE's data**: none.
@@ -458,16 +458,16 @@ In the config's order. ace4 is the crate a ported module is in.
 ### tls_keylog
 
 - **Section**: `analysis_module_tls_keylog`, class `TlsKeylogAnalyzer` in `saq/modules/file_analysis/pcap.py`, enabled by default.
-- **ace4**: not yet.
-- **Pool**: sandbox. Recognizing a key log is parser work, but a late key log runs tshark again, so it goes with tshark; 7.5 may split it.
-- **Step**: 7.5 batch 13 (Packet captures).
+- **ace4**: ported in `ace-mod-pcap`. Its `keylog` module: the sniff, the labels and the tag. ace3's late application, a tshark run on a capture whose decryption finished before the key log arrived, is left out: in ace3 an analyst adding a key log to an analyzed alert causes it, and ace4 has no way to add a file to one; its decryption runs once everything else in the alert has, this module among them, and finds every key log. A module that runs last adding a key log is the one case left, which no ported module does with a key log. `applied_to` and `skipped` stay empty. Its 4 dumps match.
+- **Pool**: parser. It runs no program in ace4 (above).
+- **Step**: done.
 - **Does**: Recognizes a file as a TLS key log (NSS SSLKEYLOGFILE lines) by content, records label counts and session count, tags it, and when the key log arrives after a pcap's TLS decryption already completed, decrypts that pcap again with it via sandboxed tshark.
 - **Input**: file.
 - **Groups and modes**: groups file; modes analysis, binary, cli, correlation, email, file.
 - **Depends on**: reads other observables' PcapTlsDecryptionAnalysis (must be completed) and PcapAnalysis via get_and_load_analysis; no wait_for.
 - **Libraries**: cryptography 50.0.2 (only on the late-apply path, via certificate parsing).
 - **Tools**: tshark 4.4.19 (and capinfos 4.4.19 from the same dir) via saq.sandbox.runner.run_sandboxed + build_sandbox_argv directly (NOT AnalysisModule.run_sandboxed_tool): argv is `python3 -I -S saq/sandbox/launcher.py --max-processes=64 --deadline=... -- /usr/bin/prlimit --as --fsize --nofile --cpu --core=0 -- setpriv --no-new-privs --landlock-access fs ... -- tshark -n -r input ...`; env is only PATH/LANG/HOME; refuses to run when landlock_available() is false (PcapNodeError) -- only for late key logs: one tshark run per pcap with a completed PcapTlsDecryptionAnalysis that this key log has new session keys (or RSA keys) for.
-- **Threads and children**: each run is a chain of processes: the sandbox launcher (a Python interpreter) -> prlimit -> setpriv -> tshark/capinfos; the launcher caps the tree at sandbox.max_processes (64) and kills the session on deadline/cancel; whether tshark itself starts threads: unsure
+- **Threads and children**: each run is a chain of processes: the sandbox launcher (a Python interpreter) -> prlimit -> setpriv -> tshark/capinfos; the launcher caps the tree at sandbox.max_processes (64) and kills the session on deadline/cancel. tshark itself starts threads (2 or 3 under strace, short-lived) and no process; capinfos none (batch 13).
 - **Writes**: {pcap}.pcap_decrypted/<protocol>/<name> and {pcap}.pcap_decrypted/certificates/<sha256>.der (late apply, added to the pcap's existing PCAP TLS Decryption analysis); DATA_DIR/var/pcap_sandbox/<tmp>/keylog (temporary).
 - **yara_meta**: none.
 - **ACE's data**: none.

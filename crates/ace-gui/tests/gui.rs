@@ -1073,9 +1073,17 @@ fn every_template_escapes_html() {
     // The one value askama doesn't escape is a view's HTML, which only `Views::draw` makes from a
     // template's output (src/analysis.rs).
     let mut safe = 0;
-    for entry in std::fs::read_dir(root.join("src")).expect("reads the source") {
-        let source = std::fs::read_to_string(entry.expect("an entry").path()).expect("reads");
-        safe += source.matches("HtmlSafe for").count();
+    let mut dirs = vec![root.join("src")];
+    while let Some(dir) = dirs.pop() {
+        for entry in std::fs::read_dir(dir).expect("reads the source") {
+            let path = entry.expect("an entry").path();
+            if path.is_dir() {
+                dirs.push(path);
+                continue;
+            }
+            let source = std::fs::read_to_string(path).expect("reads");
+            safe += source.matches("HtmlSafe for").count();
+        }
     }
     assert_eq!(safe, 1, "one type is marked as already escaped");
     let source = std::fs::read_to_string(root.join("src/templates.rs")).expect("reads the source");
@@ -2289,6 +2297,13 @@ fn each_module_s_view_draws_its_fixture() {
         "ilspy_hello_dotnet",
         "dmg_analyzer_script_app",
         "cve_2021_30657_analyzer_script_app",
+        "pcap_analyzer_network",
+        "pcap_dns_network",
+        "pcap_tls_http_tls",
+        "pcap_http_http_tls",
+        "pcap_files_many_files",
+        "pcap_tls_decryption_http_tls",
+        "tls_keylog_sslkeylog",
     ];
     let mut types = BTreeSet::new();
     for name in fixtures {
@@ -2747,6 +2762,56 @@ fn each_module_s_view_draws_its_fixture() {
                 &html,
                 &["<tr><th>suspect_file</th><td>Payload (text/x-shellscript)</td></tr>"],
             ),
+            "pcap_analyzer_network" => contains_all(
+                &html,
+                &[
+                    "<p>network.pcap · pcap · 870 B · Ethernet, 1 interface · 5 packets · 2026-01-01 00:00:00 to 00:00:04 UTC (4.0 s)</p>",
+                    "<h3>Hostnames</h3>",
+                    "<tr><td>pcap-workstation</td><td>dhcp</td><td>02:00:00:aa:00:01</td></tr>",
+                    "<tr><td>10.20.30.40</td><td>4</td><td>456</td></tr>",
+                    "<tr><td>udp</td><td>10.20.30.40:53001</td><td>10.20.30.1:53</td><td>2</td><td>261 bytes</td><td>2</td><td>1</td></tr>",
+                ],
+            ),
+            "pcap_dns_network" => contains_all(
+                &html,
+                &[
+                    "<tr><td>www.pcap-dns.example</td><td>198.51.100.7, cdn.pcap-dns.example</td><td>1</td><td>1</td></tr>",
+                ],
+            ),
+            "pcap_tls_http_tls" => contains_all(
+                &html,
+                &[
+                    "<p>http_tls.pcapng · pcapng · 11.38 KB · Ethernet, 1 interface · 41 packets",
+                    "written by Dumpcap (Wireshark) 4.4.19</p>",
+                    "<td>127.0.0.1:18443</td><td>pcap-tls12.example</td><td>t12d2708h1_a2460661a67a_eed5f1524d5c</td>",
+                    "pcap-tls.example (SAN: pcap-tls12.example, pcap-tls13.example) \u{2014} self-signed",
+                ],
+            ),
+            "pcap_http_http_tls" => contains_all(
+                &html,
+                &[
+                    "<tr><td>GET</td><td>http://pcap-http.example:18080/payload.txt</td><td>200</td><td>text/plain</td><td>pcap-fixture-agent/1.0</td></tr>",
+                ],
+            ),
+            "pcap_files_many_files" => contains_all(
+                &html,
+                &[
+                    "<h3>Carved Files</h3>",
+                    "<td>http</td><td>copy.txt</td><td>63</td>",
+                    "<td>imf</td><td>carved over smtp.eml</td>",
+                ],
+            ),
+            "pcap_tls_decryption_http_tls" => contains_all(
+                &html,
+                &[
+                    "<h3>Key Sources</h3>",
+                    "<td>sslkeylog.txt</td><td>76f3b3e668343641d138e1121f7be54778c87bf38fe98f27723be8be971ff8e3</td>",
+                    "<td>https://pcap-tls13.example:18444/secret13.txt</td>",
+                ],
+            ),
+            "tls_keylog_sslkeylog" => {
+                contains_all(&html, &["<tr><td>CLIENT_RANDOM</td><td>1</td></tr>"])
+            }
             other => panic!("no checks for {other}"),
         }
     }
@@ -2849,6 +2914,22 @@ fn a_view_escapes_bytes_and_bounds_what_a_module_wrote() {
         "{html}"
     );
     assert!(html.contains("X-&#60;b&#62;: &#60;script&#62;"));
+
+    // a capture's URLs, user agents and file names are the sender's (7.5 batch 13)
+    let http = view_fixture("pcap_http_http_tls");
+    let mut details = http.details.clone();
+    details["rows"][0]["user_agent"] = serde_json::json!(hostile);
+    details["capture"]["file_name"] = serde_json::json!(hostile);
+    let html = views
+        .draw("pcap_http_analysis", 1, &details)
+        .html
+        .as_str()
+        .to_owned();
+    assert!(!html.contains("<script>"), "{html}");
+    assert!(
+        html.contains("<td>&#60;script&#62;alert(1)&#60;/script&#62;"),
+        "{html}"
+    );
 }
 
 /// A type with no view, or details its view can't read, is its details as JSON, as ace3's default

@@ -99,6 +99,15 @@ impl Dump {
             .find(|a| a["class"] == class)
     }
 
+    /// The analysis of ace3 class `class` by the module's configured instance `instance`, such as
+    /// `PcapCategoryAnalysis` by `dns`, which ace3 configures as pcap_dns.
+    pub fn instance_analysis(&self, class: &str, instance: &str) -> Option<&Value> {
+        self.value["analyses"]
+            .as_array()?
+            .iter()
+            .find(|a| a["class"] == class && a["instance"] == instance)
+    }
+
     /// The details of ace3's file_type analysis of the input, which a module that depends on
     /// file_type gets as its dependency result.
     pub fn file_type(&self) -> Option<&Value> {
@@ -215,9 +224,21 @@ impl Dump {
 
     /// The dump of ace3 class `class` in the normal form. Null when ace3 made no analysis.
     pub fn normal_form(&self, class: &str) -> Value {
-        let Some(analysis) = self.analysis(class) else {
-            return Value::Null;
-        };
+        match self.analysis(class) {
+            Some(analysis) => self.analysis_normal_form(analysis),
+            None => Value::Null,
+        }
+    }
+
+    /// `normal_form` of the analysis of class `class` by instance `instance`.
+    pub fn normal_form_instance(&self, class: &str, instance: &str) -> Value {
+        match self.instance_analysis(class, instance) {
+            Some(analysis) => self.analysis_normal_form(analysis),
+            None => Value::Null,
+        }
+    }
+
+    fn analysis_normal_form(&self, analysis: &Value) -> Value {
         let after = &self.value["observable_after"];
         let input = &self.value["input"];
         // what the module added to the observable it analyzed: what's there after the run that

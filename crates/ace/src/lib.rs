@@ -11,7 +11,8 @@ use ace_app::{App, LookupPool, ParserPool};
 /// ActiveMime), the RTF and script modules (encoded scripts, hex in VBScript, an RTF's objects and
 /// its copy without whitespace), the encrypted attachment modules (zip, RAR and PDF, with the carrying
 /// email's candidate passwords), the modules that walk an email's tree (its lure URL, a mailbox alert's
-/// root, and a macro or a URL from a new sender), with the YARA module on the core's current ruleset (2.26), and the commands analysts
+/// root, and a macro or a URL from a new sender), the packet capture modules that read
+/// pcap_analyzer's index (DNS, TLS, HTTP and files) and the TLS key log module, with the YARA module on the core's current ruleset (2.26), and the commands analysts
 /// start from the GUI (5.12).
 pub fn parser_pool() -> ParserPool {
     ParserPool::new("parsers")
@@ -62,6 +63,11 @@ pub fn parser_pool() -> ParserPool {
         .module::<ace_mod_emailtree::MailboxEmailAnalyzer>()
         .module::<ace_mod_brocess::EmailConversationAttachmentAnalyzer>()
         .module::<ace_mod_brocess::EmailConversationLinkAnalyzer>()
+        .module::<ace_mod_pcap::PcapDns>()
+        .module::<ace_mod_pcap::PcapTls>()
+        .module::<ace_mod_pcap::PcapHttp>()
+        .module::<ace_mod_pcap::PcapFiles>()
+        .module::<ace_mod_pcap::TlsKeylogAnalyzer>()
         .yara_rulesets::<ace_mod_yara::YaraScanner>(ace_mod_yara::check_ruleset)
         .commands()
 }
@@ -70,7 +76,8 @@ pub fn parser_pool() -> ParserPool {
 /// programs its modules run in the sandbox runner (`ace_sdk::tools::SANDBOX_TOOLS`): the archive
 /// module, for ACE archives' unace; the PDF module, for Ghostscript's rewrite; pdftotext, exif,
 /// qrcode and ocr; the unpackers and decompilers, java_class_decompiler, upx, autoit, de4dot
-/// and ilspy; and the macOS image modules, dmg_analyzer and cve_2021_30657_analyzer.
+/// and ilspy; the macOS image modules, dmg_analyzer and cve_2021_30657_analyzer; and the two
+/// packet capture modules that run tshark, pcap_analyzer and pcap_tls_decryption.
 pub fn sandbox_pool() -> ParserPool {
     ParserPool::new("sandbox")
         .tools(ace_sdk::tools::SANDBOX_TOOLS)
@@ -87,6 +94,8 @@ pub fn sandbox_pool() -> ParserPool {
         .module::<ace_mod_sandbox::IlspyAnalyzer>()
         .module::<ace_mod_sandbox::DmgAnalyzer>()
         .module::<ace_mod_sandbox::Cve202130657Analyzer>()
+        .module::<ace_mod_pcap::PcapAnalyzer>()
+        .module::<ace_mod_pcap::PcapTlsDecryptor>()
 }
 
 /// The network pool: the RDAP, DNS, snort signature, conversation frequency, email logger, email

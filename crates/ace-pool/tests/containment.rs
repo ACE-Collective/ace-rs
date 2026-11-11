@@ -283,7 +283,7 @@ mod runner {
 
     use ace_pool::tools::{Keeping, Ran, ToolExec, ToolTable, execute_keeping};
     use ace_sdk::tools::{
-        FILE_SIZE_LIMIT, Keep, OPEN_FILES_LIMIT, SANDBOX_TOOLS, ToolStatus, ToolStop,
+        Keep, OPEN_FILES_LIMIT, SANDBOX_TOOLS, ToolRun, ToolStatus, ToolStop, environment,
     };
 
     use super::TASK;
@@ -329,15 +329,17 @@ mod runner {
         let mut argv = vec![tool.spec.program.to_owned()];
         argv.extend(tool.spec.args.iter().map(|a| a.to_string()));
         argv.extend(args.iter().map(|a| a.to_string()));
+        // the environment the supervisor gives it, with what its spec adds
+        let env = environment(
+            &tool.spec,
+            &ToolRun::new(tool.spec.name, args.iter().copied()),
+            &dirs.workdir(),
+        )
+        .expect("the environment");
         ToolExec {
             program: PathBuf::from(tool.spec.program),
             argv,
-            env: vec![
-                ("PATH".into(), "/usr/bin:/bin".into()),
-                ("LANG".into(), "C.UTF-8".into()),
-                ("HOME".into(), dirs.workdir().display().to_string()),
-                ("TMPDIR".into(), dirs.workdir().display().to_string()),
-            ],
+            env,
             workdir: dirs.workdir(),
             task_dir: dirs.task().to_owned(),
             task_reads: task_reads.iter().map(PathBuf::from).collect(),
@@ -345,7 +347,7 @@ mod runner {
             executes: tool.executes.clone(),
             address_space_bytes: tool.spec.memory_bytes,
             cpu_seconds: 60,
-            file_size_bytes: FILE_SIZE_LIMIT,
+            file_size_bytes: tool.spec.file_size_bytes,
             open_files: OPEN_FILES_LIMIT,
         }
     }
@@ -564,6 +566,50 @@ mod runner {
         let kept = ran.kept.expect("what it kept");
         assert_eq!(kept.keys().collect::<Vec<_>>(), ["out"]);
         assert_eq!(fs::read_to_string(&kept["out"]).unwrap(), "kept\n");
+    }
+
+    /// A run keeps at most `MAX_KEPT_FILES` files, the first by name, and its answer lists them
+    /// (7.5 batch 13: tshark exporting 20,000 objects); the rest go with the working directory.
+    #[tokio::test]
+    async fn a_run_keeps_at_most_max_kept_files() {
+        use ace_sdk::tools::MAX_KEPT_FILES;
+        let dirs = Dirs::new();
+        let ran = run(
+            &test_task(&dirs, &["keep-many"]),
+            LONG,
+            Some((&Keep::Tree, &dirs.kept())),
+        )
+        .await;
+        assert_eq!(ran.status, ToolStatus::Exited(0));
+        let kept = ran.kept.expect("what it kept");
+        assert_eq!(kept.len(), MAX_KEPT_FILES);
+        assert_eq!(kept.keys().next().map(String::as_str), Some("many/000000"));
+        assert!(!kept.contains_key(&format!("many/{MAX_KEPT_FILES:06}")));
+        // the answer that names them all fits its frame
+        let answer = ace_pool::tools::ToolAnswer::Ran {
+            status: ran.status,
+            stdout: dirs.kept().join("stdout"),
+            stderr: dirs.kept().join("stderr"),
+            outputs: kept,
+        };
+        let mut bytes = Vec::new();
+        assert!(
+            ace_pool::tools::write_frame(&mut bytes, &answer).is_err(),
+            "past MAX_FRAME"
+        );
+        let json = serde_json::to_vec(&answer).unwrap();
+        assert!(
+            json.len() > ace_pool::tools::MAX_FRAME
+                && json.len() < ace_pool::tools::MAX_ANSWER_FRAME
+        );
+        let mut framed = (json.len() as u32).to_be_bytes().to_vec();
+        framed.extend(&json);
+        let back: ace_pool::tools::ToolAnswer = ace_pool::tools::read_frame_up_to(
+            &mut framed.as_slice(),
+            ace_pool::tools::MAX_ANSWER_FRAME,
+        )
+        .unwrap();
+        assert_eq!(back, answer);
     }
 
     /// The most threads a process named `name` had while `work` ran.
@@ -986,6 +1032,204 @@ mod runner {
         assert!(il.len() > 1_000_000, "{} bytes", il.len());
         println!("most threads: ilspycmd {threads}");
         assert!(threads > 1, "ilspycmd {threads}");
+    }
+
+    // ---- PLAN.md 7.5 batch 13: tshark and capinfos ----
+
+    /// tshark's field run as pcap_analyzer makes it, with ace3's key log and its object export.
+    const TSHARK_FIELDS: &[&str] = &[
+        "-n",
+        "-r",
+        "input.pcapng",
+        "-T",
+        "json",
+        "-Y",
+        "frame.number <= 50000 && (dns || tls.handshake || http.request || http.response)",
+        "-e",
+        "frame.number",
+        "-e",
+        "ip.src",
+        "-e",
+        "tcp.stream",
+        "-e",
+        "tls.handshake.type",
+        "-e",
+        "tls.handshake.extensions_server_name",
+        "-e",
+        "tls.handshake.ja4",
+        "-e",
+        "tls.handshake.random",
+        "-e",
+        "tls.handshake.certificate",
+        "-e",
+        "http.request.full_uri",
+        "--export-objects",
+        "http,objects/http",
+        "-o",
+        "tls.keylog_file:sslkeylog.txt",
+    ];
+
+    /// The capture and key log ace3's tests decrypt, in the run's working directory, where the
+    /// module's runs read them.
+    fn capture_in(dir: &Path) {
+        for (from, to) in [
+            ("ace3/pcap/http_tls.pcapng", "input.pcapng"),
+            ("ace3/pcap/sslkeylog.txt", "sslkeylog.txt"),
+        ] {
+            fs::copy(samples().join(from), dir.join(to)).unwrap();
+        }
+    }
+
+    /// tshark dissects, decrypts with a key log and exports objects with its threads under the
+    /// runner as outside it: the same JSON, and the same objects, the payload of each TLS session
+    /// among them. capinfos gives the same summary. Neither starts a process (7.3's strace).
+    #[tokio::test]
+    async fn tshark_and_capinfos_read_a_capture_under_the_runner() {
+        let dirs = Dirs::new();
+        capture_in(&dirs.workdir());
+        let tshark = exec(&dirs, "tshark", TSHARK_FIELDS, &[]);
+        let keep = Keep::Tree;
+        let (ran, threads) =
+            most_threads_of("tshark", run(&tshark, LONG, Some((&keep, &dirs.kept())))).await;
+        assert_eq!(ran.status, ToolStatus::Exited(0));
+        // outside the runner, with the same environment
+        let dir = tempfile::tempdir().unwrap();
+        capture_in(dir.path());
+        let plain_run = std::process::Command::new("/usr/bin/tshark")
+            .args(TSHARK_FIELDS)
+            .env_clear()
+            .envs(tshark.env.iter().map(|(k, v)| (k.as_str(), v.as_str())))
+            .current_dir(dir.path())
+            .output()
+            .unwrap();
+        assert!(plain_run.status.success());
+        assert_eq!(ran.stdout, plain_run.stdout);
+        let kept = ran.kept.unwrap();
+        for name in [
+            "objects/http/payload.txt",
+            "objects/http/secret12.txt",
+            "objects/http/secret13.txt",
+        ] {
+            assert_eq!(
+                fs::read(&kept[name]).unwrap(),
+                fs::read(dir.path().join(name)).unwrap(),
+                "{name}"
+            );
+        }
+        println!("most threads: tshark {threads}");
+        assert!(threads > 1, "tshark {threads}");
+        let dirs = Dirs::new();
+        capture_in(&dirs.workdir());
+        let args = ["-M", "-S", "input.pcapng"];
+        let ran = run(&exec(&dirs, "capinfos", &args, &[]), LONG, None).await;
+        assert_eq!(ran.status, ToolStatus::Exited(0));
+        let dir = tempfile::tempdir().unwrap();
+        capture_in(dir.path());
+        let plain_run = std::process::Command::new("/usr/bin/capinfos")
+            .args(args)
+            .env_clear()
+            .current_dir(dir.path())
+            .output()
+            .unwrap();
+        assert_eq!(ran.stdout, plain_run.stdout);
+        assert!(
+            stdout(&ran).contains("Number of packets:   41"),
+            "{}",
+            stdout(&ran)
+        );
+    }
+
+    /// `exec` under the runner as `nobody`, as a pool runs a tool as its task's user: tshark runs no
+    /// Lua at all as root. The task's directories are opened to it first.
+    async fn run_as_nobody(dirs: &Dirs, exec: &ToolExec) -> Ran {
+        use std::os::unix::fs::PermissionsExt;
+        fn open_up(path: &Path) {
+            let mode = if path.is_dir() { 0o777 } else { 0o644 };
+            fs::set_permissions(path, fs::Permissions::from_mode(mode)).unwrap();
+            if path.is_dir() {
+                for entry in fs::read_dir(path).unwrap().flatten() {
+                    open_up(&entry.path());
+                }
+            }
+        }
+        open_up(dirs.task());
+        let ran = execute_keeping(Path::new(TASK), &[], Some((65534, 65534)), exec, LONG, None)
+            .await
+            .expect("the tool starts");
+        println!(
+            "{:?} as nobody: {:?}\nstdout: {}\nstderr: {}\n",
+            exec.argv,
+            ran.status,
+            String::from_utf8_lossy(&ran.stdout),
+            String::from_utf8_lossy(&ran.stderr)
+        );
+        ran
+    }
+
+    /// tshark loads no Lua script and no personal configuration from its working directory, which
+    /// the runner otherwise gives a tool as its home: one run can't leave one there for a later run
+    /// to load, and nothing staged there is read as configuration. With the home the runner gives
+    /// other tools, the same files are loaded and run, so it's the spec's `HOME` and
+    /// `WIRESHARK_CONFIG_DIR` that keep them out.
+    #[tokio::test]
+    async fn tshark_reads_no_lua_or_configuration_from_a_home() {
+        let plant = |dirs: &Dirs| {
+            let workdir = dirs.workdir();
+            capture_in(&workdir);
+            fs::create_dir_all(workdir.join(".local/lib/wireshark/plugins")).unwrap();
+            fs::write(
+                workdir.join(".local/lib/wireshark/plugins/planted.lua"),
+                "print(\"planted plugin ran\")\n",
+            )
+            .unwrap();
+            fs::create_dir_all(workdir.join(".config/wireshark")).unwrap();
+            fs::write(
+                workdir.join(".config/wireshark/init.lua"),
+                "print(\"planted init ran\")\n",
+            )
+            .unwrap();
+        };
+        let dirs = Dirs::new();
+        plant(&dirs);
+        let args = ["-n", "-r", "input.pcapng", "-c", "1"];
+        let ran = run_as_nobody(&dirs, &exec(&dirs, "tshark", &args, &[])).await;
+        assert_eq!(ran.status, ToolStatus::Exited(0));
+        let out = format!("{}{}", stdout(&ran), String::from_utf8_lossy(&ran.stderr));
+        assert!(!out.contains("planted"), "{out}");
+        assert!(!out.contains("Lua"), "{out}");
+        // the control: the runner's usual home, the working directory
+        let dirs = Dirs::new();
+        plant(&dirs);
+        let mut exec = exec(&dirs, "tshark", &args, &[]);
+        let workdir = dirs.workdir().display().to_string();
+        for (name, value) in &mut exec.env {
+            if name == "HOME" {
+                *value = workdir.clone();
+            }
+        }
+        exec.env.retain(|(name, _)| name != "WIRESHARK_CONFIG_DIR");
+        let ran = run_as_nobody(&dirs, &exec).await;
+        let out = stdout(&ran);
+        assert!(out.contains("planted plugin ran"), "{out}");
+        assert!(out.contains("planted init ran"), "{out}");
+    }
+
+    /// tshark asked to capture, or to list interfaces, runs dumpcap or the extcap helpers, which the
+    /// runner kills it for: a pcap module only reads a file, and nothing else is let through.
+    #[tokio::test]
+    async fn tshark_is_stopped_when_it_would_capture() {
+        for args in [&["-n", "-i", "lo", "-c", "1"][..], &["-D"][..]] {
+            let dirs = Dirs::new();
+            let ran = run(&exec(&dirs, "tshark", args, &[]), LONG, None).await;
+            assert!(
+                matches!(
+                    ran.status,
+                    ToolStatus::Stopped(ToolStop::Program | ToolStop::Process)
+                ),
+                "{args:?}: {:?}",
+                ran.status
+            );
+        }
     }
 
     /// The one read the .NET tools needed beyond 7.3's: OpenSSL. An assembly whose references carry

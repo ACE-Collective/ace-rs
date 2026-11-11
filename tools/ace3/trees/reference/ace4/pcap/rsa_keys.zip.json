@@ -1,0 +1,1462 @@
+{
+  "form": 1,
+  "observables": {
+    "email_address:alice@example.com": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "email_address_fqdn_analyzer": {
+          "details": {
+            "domain": "example.com"
+          },
+          "summary": "Email Address FQDN: example.com",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "email_address:bob@example.com": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "email_address_fqdn_analyzer": {
+          "details": {
+            "domain": "example.com"
+          },
+          "summary": "Email Address FQDN: example.com",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:46601b3e65dc50aef3998a71b5ccdbd0f5fc1aa13488ed38349b3abe15543fad": {
+      "detections": {},
+      "directives": {
+        "no_crawl": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "rsa_keys.zip.extracted/http_tls.pcapng.pcap_objects/certificates/46601b3e65dc50aef3998a71b5ccdbd0f5fc1aa13488ed38349b3abe15543fad.der": {
+          "type=certificate.x509": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:d62e8e38b1bed05360dd8b2e1a70cc42736aaf0881e482a3c4e7c977fe2451ed": true
+      },
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "8c3df097f2faa32f2a24102ca7cfd4c8",
+            "sha1": "1f7a40117b49cc3a644d7f67433678650a75bf41",
+            "sha256": "46601b3e65dc50aef3998a71b5ccdbd0f5fc1aa13488ed38349b3abe15543fad"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": true,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "Certificate, Version=3"
+          },
+          "summary": "File Type Analysis: Certificate, Version=3 (application/octet-stream) (x.509 certificate)",
+          "tags": {}
+        },
+        "x509_analyzer": {
+          "details": {
+            "common_name": "pcap-tls.example",
+            "extensions": [
+              {
+                "SubjectKeyIdentifier": [
+                  "digest: b\"\\xd8\\xbdGWr'\\xb0\\x07\\xedH\\xcc^\\xc8\\xd9\\x90-\\x18)\\x07o\"",
+                  "from_public_key: <bound method SubjectKeyIdentifier.from_public_key of <class 'cryptography.x509.extensions.SubjectKeyIdentifier'>>",
+                  "key_identifier: b\"\\xd8\\xbdGWr'\\xb0\\x07\\xedH\\xcc^\\xc8\\xd9\\x90-\\x18)\\x07o\"",
+                  "oid: <ObjectIdentifier(oid=2.5.29.14, name=subjectKeyIdentifier)>",
+                  "public_bytes: <bound method SubjectKeyIdentifier.public_bytes of <SubjectKeyIdentifier(digest=b\"\\xd8\\xbdGWr'\\xb0\\x07\\xedH\\xcc^\\xc8\\xd9\\x90-\\x18)\\x07o\")>>"
+                ]
+              },
+              {
+                "AuthorityKeyIdentifier": [
+                  "authority_cert_issuer: None",
+                  "authority_cert_serial_number: None",
+                  "from_issuer_public_key: <bound method AuthorityKeyIdentifier.from_issuer_public_key of <class 'cryptography.x509.extensions.AuthorityKeyIdentifier'>>",
+                  "from_issuer_subject_key_identifier: <bound method AuthorityKeyIdentifier.from_issuer_subject_key_identifier of <class 'cryptography.x509.extensions.AuthorityKeyIdentifier'>>",
+                  "key_identifier: b\"\\xd8\\xbdGWr'\\xb0\\x07\\xedH\\xcc^\\xc8\\xd9\\x90-\\x18)\\x07o\"",
+                  "oid: <ObjectIdentifier(oid=2.5.29.35, name=authorityKeyIdentifier)>",
+                  "public_bytes: <bound method AuthorityKeyIdentifier.public_bytes of <AuthorityKeyIdentifier(key_identifier=b\"\\xd8\\xbdGWr'\\xb0\\x07\\xedH\\xcc^\\xc8\\xd9\\x90-\\x18)\\x07o\", authority_cert_issuer=None, authority_cert_serial_number=None)>>"
+                ]
+              },
+              {
+                "BasicConstraints: CRITICAL": [
+                  "ca: True",
+                  "oid: <ObjectIdentifier(oid=2.5.29.19, name=basicConstraints)>",
+                  "path_length: None",
+                  "public_bytes: <bound method BasicConstraints.public_bytes of <BasicConstraints(ca=True, path_length=None)>>"
+                ]
+              },
+              {
+                "SubjectAlternativeName": [
+                  "DNSName: pcap-tls12.example",
+                  "DNSName: pcap-tls13.example"
+                ]
+              }
+            ],
+            "issuer": "CN=pcap-tls.example",
+            "not_valid_after": "2036-10-18T17:45:43.000000+0000",
+            "not_valid_before": "2026-10-21T17:45:43.000000+0000",
+            "serial_number": 18736430411083193525923055945902754122570357911,
+            "sha256_hash": "46601b3e65dc50aef3998a71b5ccdbd0f5fc1aa13488ed38349b3abe15543fad",
+            "subject": "CN=pcap-tls.example",
+            "subject_alternative_names": {
+              "san_dns_names": [
+                "pcap-tls12.example",
+                "pcap-tls13.example"
+              ],
+              "san_ip_addresses": []
+            }
+          },
+          "summary": "X509 Analysis: pcap-tls.example | Issuer=CN=pcap-tls.example | NotValidBefore=2026-10-21 17:45:43+00:00 | Subject Alternative Names: pcap-tls12.example, pcap-tls13.example DNS Names,  IP Addresses",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "x509": true
+      }
+    },
+    "file:672d3d731cf058315a0a2f876cda8e70a71f388ef515bcfc3a8bcebe535fe933": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "rsa_keys.zip.extracted/http_tls.pcapng.pcap_objects/http/payload.txt": {}
+      },
+      "relationships": {
+        "downloaded_from url:http://pcap-http.example:18080/payload.txt": true,
+        "extracted_from file:d62e8e38b1bed05360dd8b2e1a70cc42736aaf0881e482a3c4e7c977fe2451ed": true
+      },
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "5241a2fdf31673ada85af553cba02b31",
+            "sha1": "deccbc93307010ec7eb4d63b263b1ed8d52893f5",
+            "sha256": "672d3d731cf058315a0a2f876cda8e70a71f388ef515bcfc3a8bcebe535fe933"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:7665923187d5d5e057cc89f1f735f6e98e244747a6b1d3d2c67f82e1e6de2f3f": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "rsa_keys.zip": {
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "archive": {
+          "details": {
+            "extracted_files": [
+              "rsa_keys.txt",
+              "http_tls.pcapng"
+            ],
+            "extraction_error": null,
+            "file_count": 2
+          },
+          "summary": "Archive Analysis: extracted 2 of 2 files: (rsa_keys.txt, http_tls.pcapng)",
+          "tags": {}
+        },
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "0fcc60b2352427437f5f794ba296b807",
+            "sha1": "760e3f2e92d9bef3d804fc321255780a24520853",
+            "sha256": "7665923187d5d5e057cc89f1f735f6e98e244747a6b1d3d2c67f82e1e6de2f3f"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": true,
+            "mime": "application/zip",
+            "type": "Zip archive data, made by v2.0 UNIX, extract using at least v2.0, last modified Nov 10 2026 12:00:00, uncompressed size 11652, method=deflate"
+          },
+          "summary": "File Type Analysis: Zip archive data, made by v2.0 UNIX, extract using at least v2.0, last modified Nov 10 2026 12:00:00, uncompressed size 11652, method=deflate (application/zip) (zip archive)",
+          "tags": {}
+        },
+        "olevba_v1_2": {
+          "details": {
+            "keyword_summary": {},
+            "macros": [],
+            "type": "OpenXML"
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "zip": true
+      }
+    },
+    "file:bc040b3afb27c9c945c7fe8a18aa3ad45b48f4fe2385b1e6e159abd884248081": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "rsa_keys.zip.extracted/rsa_keys.txt": {}
+      },
+      "relationships": {
+        "extracted_from file:7665923187d5d5e057cc89f1f735f6e98e244747a6b1d3d2c67f82e1e6de2f3f": true
+      },
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "44d891f42feefc7d9ec348691bef1c9b",
+            "sha1": "eef4eab6ab8f7ba1cdb590d41fbe24ef87451b8f",
+            "sha256": "bc040b3afb27c9c945c7fe8a18aa3ad45b48f4fe2385b1e6e159abd884248081"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        },
+        "tls_keylog": {
+          "details": {
+            "applied_to": [],
+            "client_randoms": 0,
+            "label_counts": {
+              "RSA": 1
+            },
+            "skipped": []
+          },
+          "summary": "TLS Key Log: 1 secrets for 0 TLS sessions (1 RSA)",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "tls_keylog": true
+      }
+    },
+    "file:d62e8e38b1bed05360dd8b2e1a70cc42736aaf0881e482a3c4e7c977fe2451ed": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "rsa_keys.zip.extracted/http_tls.pcapng": {}
+      },
+      "relationships": {
+        "extracted_from file:7665923187d5d5e057cc89f1f735f6e98e244747a6b1d3d2c67f82e1e6de2f3f": true
+      },
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "83c251185eaa3b25518ee82215c97912",
+            "sha1": "f163feed20954758a5ac486b53ec2ba9962090e1",
+            "sha256": "d62e8e38b1bed05360dd8b2e1a70cc42736aaf0881e482a3c4e7c977fe2451ed"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "pcapng capture file - version 1.0"
+          },
+          "summary": "File Type Analysis: pcapng capture file - version 1.0 (application/octet-stream)",
+          "tags": {}
+        },
+        "pcap_analyzer": {
+          "details": {
+            "added": {},
+            "error": null,
+            "index": {
+              "capture": {
+                "application": "Dumpcap (Wireshark) 4.4.19",
+                "duration": 0.044872099,
+                "encapsulations": [
+                  "Ethernet"
+                ],
+                "file_name": "http_tls.pcapng",
+                "first": 1792604746.451967,
+                "format": "pcapng",
+                "interfaces": 1,
+                "last": 1792604746.496839,
+                "packets": 41,
+                "size": 11652,
+                "strict_time_order": true
+              },
+              "carved_sha256": [
+                "46601b3e65dc50aef3998a71b5ccdbd0f5fc1aa13488ed38349b3abe15543fad",
+                "672d3d731cf058315a0a2f876cda8e70a71f388ef515bcfc3a8bcebe535fe933"
+              ],
+              "certificates": [
+                {
+                  "issuer": "pcap-tls.example",
+                  "path": "http_tls.pcapng.pcap_objects/certificates/46601b3e65dc50aef3998a71b5ccdbd0f5fc1aa13488ed38349b3abe15543fad.der",
+                  "san_total": 2,
+                  "sans": [
+                    "pcap-tls12.example",
+                    "pcap-tls13.example"
+                  ],
+                  "sha256": "46601b3e65dc50aef3998a71b5ccdbd0f5fc1aa13488ed38349b3abe15543fad",
+                  "subject": "pcap-tls.example"
+                }
+              ],
+              "certificates_total": 1,
+              "dns": [],
+              "dns_total": 0,
+              "field_packet_limit": 50000,
+              "hostnames": [],
+              "hostnames_total": 0,
+              "http": [
+                {
+                  "content_type": "text/plain",
+                  "host": "pcap-http.example:18080",
+                  "method": "GET",
+                  "status": "200",
+                  "url": "http://pcap-http.example:18080/payload.txt",
+                  "user_agent": "pcap-fixture-agent/1.0"
+                }
+              ],
+              "http_total": 1,
+              "objects": [
+                {
+                  "file_name": "payload.txt",
+                  "path": "http_tls.pcapng.pcap_objects/http/payload.txt",
+                  "protocol": "http",
+                  "sha256": "672d3d731cf058315a0a2f876cda8e70a71f388ef515bcfc3a8bcebe535fe933",
+                  "size": 36,
+                  "url": "http://pcap-http.example:18080/payload.txt"
+                }
+              ],
+              "objects_total": 1,
+              "statistics": {
+                "bytes": 10167,
+                "flows": [
+                  {
+                    "a": "127.0.0.1:36704",
+                    "b": "127.0.0.1:18443",
+                    "bytes": "3093 bytes",
+                    "duration": 0.0085,
+                    "frames": 15,
+                    "protocol": "tcp",
+                    "start": 0.018660592
+                  },
+                  {
+                    "a": "127.0.0.1:60236",
+                    "b": "127.0.0.1:18444",
+                    "bytes": "5935 bytes",
+                    "duration": 0.0074,
+                    "frames": 14,
+                    "protocol": "tcp",
+                    "start": 0.037516367
+                  },
+                  {
+                    "a": "127.0.0.1:41536",
+                    "b": "127.0.0.1:18080",
+                    "bytes": "1139 bytes",
+                    "duration": 0.0061,
+                    "frames": 12,
+                    "protocol": "tcp",
+                    "start": 0.0
+                  }
+                ],
+                "flows_total": 3,
+                "ip": [
+                  {
+                    "address": "127.0.0.1",
+                    "bytes": 20334,
+                    "packets": 82
+                  }
+                ],
+                "ip_total": 1,
+                "mac": [
+                  {
+                    "address": "00:00:00:00:00:00",
+                    "bytes": 20334,
+                    "packets": 82
+                  }
+                ],
+                "mac_total": 1,
+                "packets": 41
+              },
+              "statistics_error": null,
+              "tls": [
+                {
+                  "certificates": [
+                    "46601b3e65dc50aef3998a71b5ccdbd0f5fc1aa13488ed38349b3abe15543fad"
+                  ],
+                  "client": "127.0.0.1:36704",
+                  "client_random": "be401d9c38e74ed55c59ecc279468bae1062bacd07759010cb2c9c80f7e0afaf",
+                  "flow": "tcp:1",
+                  "ja4": "t12d2708h1_a2460661a67a_eed5f1524d5c",
+                  "server": "127.0.0.1:18443",
+                  "sni": "pcap-tls12.example"
+                },
+                {
+                  "certificates": [],
+                  "client": "127.0.0.1:60236",
+                  "client_random": "a061545337b7aa4a20b7e29568e8f4ae598fd99176ad9c1d35fe49c1ed1d7a4f",
+                  "flow": "tcp:2",
+                  "ja4": "t13d0312h1_55b375c5d22e_e035b0d0e93b",
+                  "server": "127.0.0.1:18444",
+                  "sni": "pcap-tls13.example"
+                }
+              ],
+              "tls_client_randoms": [
+                "a061545337b7aa4a20b7e29568e8f4ae598fd99176ad9c1d35fe49c1ed1d7a4f",
+                "be401d9c38e74ed55c59ecc279468bae1062bacd07759010cb2c9c80f7e0afaf"
+              ],
+              "tls_total": 2
+            },
+            "omitted": {}
+          },
+          "summary": "PCAP Analysis: 41 packets, 3 flows, 2 TLS sessions",
+          "tags": {}
+        },
+        "pcap_files": {
+          "details": {
+            "added": {
+              "file": 1
+            },
+            "capture": {
+              "application": "Dumpcap (Wireshark) 4.4.19",
+              "duration": 0.044872099,
+              "encapsulations": [
+                "Ethernet"
+              ],
+              "file_name": "http_tls.pcapng",
+              "first": 1792604746.451967,
+              "format": "pcapng",
+              "interfaces": 1,
+              "last": 1792604746.496839,
+              "packets": 41,
+              "size": 11652,
+              "strict_time_order": true
+            },
+            "category": "files",
+            "field_packet_limit": 50000,
+            "omitted": {},
+            "rows": [
+              {
+                "file_name": "payload.txt",
+                "path": "http_tls.pcapng.pcap_objects/http/payload.txt",
+                "protocol": "http",
+                "sha256": "672d3d731cf058315a0a2f876cda8e70a71f388ef515bcfc3a8bcebe535fe933",
+                "size": 36,
+                "url": "http://pcap-http.example:18080/payload.txt"
+              }
+            ],
+            "total": 1
+          },
+          "summary": "PCAP Files: 1 files (1 file)",
+          "tags": {}
+        },
+        "pcap_http": {
+          "details": {
+            "added": {
+              "fqdn": 1,
+              "url": 1,
+              "user_agent": 1
+            },
+            "capture": {
+              "application": "Dumpcap (Wireshark) 4.4.19",
+              "duration": 0.044872099,
+              "encapsulations": [
+                "Ethernet"
+              ],
+              "file_name": "http_tls.pcapng",
+              "first": 1792604746.451967,
+              "format": "pcapng",
+              "interfaces": 1,
+              "last": 1792604746.496839,
+              "packets": 41,
+              "size": 11652,
+              "strict_time_order": true
+            },
+            "category": "http",
+            "field_packet_limit": 50000,
+            "omitted": {},
+            "rows": [
+              {
+                "content_type": "text/plain",
+                "host": "pcap-http.example:18080",
+                "method": "GET",
+                "status": "200",
+                "url": "http://pcap-http.example:18080/payload.txt",
+                "user_agent": "pcap-fixture-agent/1.0"
+              }
+            ],
+            "total": 1
+          },
+          "summary": "PCAP HTTP: 1 entries (1 fqdn, 1 url, 1 user_agent)",
+          "tags": {}
+        },
+        "pcap_tls": {
+          "details": {
+            "added": {
+              "file": 1,
+              "fqdn": 2,
+              "ja4": 2
+            },
+            "capture": {
+              "application": "Dumpcap (Wireshark) 4.4.19",
+              "duration": 0.044872099,
+              "encapsulations": [
+                "Ethernet"
+              ],
+              "file_name": "http_tls.pcapng",
+              "first": 1792604746.451967,
+              "format": "pcapng",
+              "interfaces": 1,
+              "last": 1792604746.496839,
+              "packets": 41,
+              "size": 11652,
+              "strict_time_order": true
+            },
+            "category": "tls",
+            "certificates": [
+              {
+                "issuer": "pcap-tls.example",
+                "path": "http_tls.pcapng.pcap_objects/certificates/46601b3e65dc50aef3998a71b5ccdbd0f5fc1aa13488ed38349b3abe15543fad.der",
+                "san_total": 2,
+                "sans": [
+                  "pcap-tls12.example",
+                  "pcap-tls13.example"
+                ],
+                "sha256": "46601b3e65dc50aef3998a71b5ccdbd0f5fc1aa13488ed38349b3abe15543fad",
+                "subject": "pcap-tls.example"
+              }
+            ],
+            "field_packet_limit": 50000,
+            "omitted": {},
+            "rows": [
+              {
+                "certificates": [
+                  "46601b3e65dc50aef3998a71b5ccdbd0f5fc1aa13488ed38349b3abe15543fad"
+                ],
+                "client": "127.0.0.1:36704",
+                "client_random": "be401d9c38e74ed55c59ecc279468bae1062bacd07759010cb2c9c80f7e0afaf",
+                "flow": "tcp:1",
+                "ja4": "t12d2708h1_a2460661a67a_eed5f1524d5c",
+                "server": "127.0.0.1:18443",
+                "sni": "pcap-tls12.example"
+              },
+              {
+                "certificates": [],
+                "client": "127.0.0.1:60236",
+                "client_random": "a061545337b7aa4a20b7e29568e8f4ae598fd99176ad9c1d35fe49c1ed1d7a4f",
+                "flow": "tcp:2",
+                "ja4": "t13d0312h1_55b375c5d22e_e035b0d0e93b",
+                "server": "127.0.0.1:18444",
+                "sni": "pcap-tls13.example"
+              }
+            ],
+            "total": 2
+          },
+          "summary": "PCAP TLS: 2 entries (1 file, 2 fqdn, 2 ja4)",
+          "tags": {}
+        },
+        "pcap_tls_decryption": {
+          "details": {
+            "added": {},
+            "capture": {
+              "application": "Dumpcap (Wireshark) 4.4.19",
+              "duration": 0.044872099,
+              "encapsulations": [
+                "Ethernet"
+              ],
+              "file_name": "http_tls.pcapng",
+              "first": 1792604746.451967,
+              "format": "pcapng",
+              "interfaces": 1,
+              "last": 1792604746.496839,
+              "packets": 41,
+              "size": 11652,
+              "strict_time_order": true
+            },
+            "error": null,
+            "index": {
+              "carved_sha256": [
+                "46601b3e65dc50aef3998a71b5ccdbd0f5fc1aa13488ed38349b3abe15543fad"
+              ],
+              "certificates": [
+                {
+                  "issuer": "pcap-tls.example",
+                  "path": null,
+                  "san_total": 2,
+                  "sans": [
+                    "pcap-tls12.example",
+                    "pcap-tls13.example"
+                  ],
+                  "sha256": "46601b3e65dc50aef3998a71b5ccdbd0f5fc1aa13488ed38349b3abe15543fad",
+                  "subject": "pcap-tls.example"
+                }
+              ],
+              "certificates_total": 1,
+              "dns": [],
+              "dns_total": 0,
+              "field_packet_limit": 50000,
+              "hostnames": [],
+              "hostnames_total": 0,
+              "http": [
+                {
+                  "content_type": "text/plain",
+                  "host": "pcap-http.example:18080",
+                  "method": "GET",
+                  "status": "200",
+                  "url": "http://pcap-http.example:18080/payload.txt",
+                  "user_agent": "pcap-fixture-agent/1.0"
+                }
+              ],
+              "http_total": 1,
+              "objects": [],
+              "objects_total": 0,
+              "tls": [
+                {
+                  "certificates": [
+                    "46601b3e65dc50aef3998a71b5ccdbd0f5fc1aa13488ed38349b3abe15543fad"
+                  ],
+                  "client": "127.0.0.1:36704",
+                  "client_random": "be401d9c38e74ed55c59ecc279468bae1062bacd07759010cb2c9c80f7e0afaf",
+                  "flow": "tcp:1",
+                  "ja4": "t12d2708h1_a2460661a67a_eed5f1524d5c",
+                  "server": "127.0.0.1:18443",
+                  "sni": "pcap-tls12.example"
+                },
+                {
+                  "certificates": [],
+                  "client": "127.0.0.1:60236",
+                  "client_random": "a061545337b7aa4a20b7e29568e8f4ae598fd99176ad9c1d35fe49c1ed1d7a4f",
+                  "flow": "tcp:2",
+                  "ja4": "t13d0312h1_55b375c5d22e_e035b0d0e93b",
+                  "server": "127.0.0.1:18444",
+                  "sni": "pcap-tls13.example"
+                }
+              ],
+              "tls_total": 2
+            },
+            "keylogs": [
+              {
+                "file_name": "rsa_keys.txt",
+                "label_counts": {
+                  "RSA": 1
+                },
+                "sha256": "bc040b3afb27c9c945c7fe8a18aa3ad45b48f4fe2385b1e6e159abd884248081"
+              }
+            ],
+            "omitted": {},
+            "sessions": 2,
+            "sessions_with_embedded_keys": 0,
+            "sessions_with_keys": 0
+          },
+          "summary": "PCAP TLS Decryption: keys for 0 of 2 TLS sessions (1 key logs)",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "fqdn:example.com": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "fqdn_analyzer": {
+          "details": {
+            "aliaslist": [],
+            "all_resolutions": [
+              "192.0.2.10",
+              "192.0.2.2"
+            ],
+            "ip_address": "192.0.2.10",
+            "mx": [
+              "backup.example.com",
+              "mail.example.com"
+            ],
+            "resolution_count": 2,
+            "status": "ok",
+            "wildcard_dns": false
+          },
+          "summary": "DNS Analysis: ip addresses (192.0.2.10, 192.0.2.2) mx (backup.example.com, mail.example.com)",
+          "tags": {}
+        },
+        "proxy_domain_splunk": {
+          "details": {
+            "dispatch_state": "DONE",
+            "gui_link": null,
+            "query": "index=proxy hostname=\"example.com\"",
+            "query_error": null,
+            "query_results": [
+              {
+                "_time": "2026-10-30T14:02:11.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "https://www.example.com/login",
+                "src_ip": "192.0.2.10",
+                "src_translated_ip": "198.51.100.7",
+                "user": "alice@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:05:42.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "http://www.example.com/",
+                "src_ip": "192.0.2.11",
+                "src_translated_ip": "198.51.100.7",
+                "user": "bob@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:09:03.000+00:00",
+                "dest_ip": "198.51.100.21",
+                "full_url": "https://www.example.com/static/app.js",
+                "src_ip": "192.0.2.12"
+              }
+            ],
+            "query_summary": "Proxy correlation",
+            "question": "Was this domain seen in proxy logs?"
+          },
+          "summary": "Proxy correlation: (3 results)",
+          "tags": {}
+        },
+        "rdap_analyzer": {
+          "details": {
+            "assignment_type": null,
+            "country": null,
+            "datetime_created": "1995-08-14 04:00:00+00:00",
+            "datetime_expiration": "2027-08-13 04:00:00+00:00",
+            "datetime_of_last_update": "2026-08-14 08:01:43+00:00",
+            "domain_name": "EXAMPLE.COM",
+            "emails": [],
+            "error": null,
+            "ip_version": null,
+            "lookup_protocol": "rdap",
+            "name_servers": [
+              "ELLIOTT.NS.CLOUDFLARE.COM",
+              "HERA.NS.CLOUDFLARE.COM"
+            ],
+            "network_cidr": null,
+            "network_name": null,
+            "rdap_attempt_error": null,
+            "rdap_data": {
+              "copyright_notice": "",
+              "description": [],
+              "dnssec": true,
+              "dnssec_ds_data": [
+                {
+                  "algorithm": 13,
+                  "digest": "C988EC423E3880EB8DD8A46FE06CA230EE23F35B578D64E78B29C3E1C83D245A",
+                  "digest_type": 2,
+                  "key_tag": 2371
+                }
+              ],
+              "dnssec_key_data": [],
+              "entities": {
+                "abuse": [
+                  {
+                    "name": "",
+                    "parent_handle": "376",
+                    "parent_name": "RESERVED-Internet Assigned Numbers Authority",
+                    "type": "entity"
+                  }
+                ],
+                "registrar": [
+                  {
+                    "handle": "376",
+                    "name": "RESERVED-Internet Assigned Numbers Authority",
+                    "public_ids": [
+                      {
+                        "identifier": "376",
+                        "type": "IANA Registrar ID"
+                      }
+                    ],
+                    "type": "entity"
+                  }
+                ]
+              },
+              "events": [
+                {
+                  "action": "registration",
+                  "actor": "",
+                  "date": "1995-08-14T04:00:00.000000+0000"
+                },
+                {
+                  "action": "expiration",
+                  "actor": "",
+                  "date": "2027-08-13T04:00:00.000000+0000"
+                },
+                {
+                  "action": "last changed",
+                  "actor": "",
+                  "date": "2026-08-14T08:01:43.000000+0000"
+                },
+                {
+                  "action": "last update of rdap database",
+                  "actor": "",
+                  "date": "2026-11-02T15:28:17.000000+0000"
+                }
+              ],
+              "expiration_date": "2027-08-13T04:00:00.000000+0000",
+              "handle": "2336799_DOMAIN_COM-VRSN",
+              "last_changed_date": "2026-08-14T08:01:43.000000+0000",
+              "links": [
+                {
+                  "href": "https://rdap.verisign.com/com/v1/domain/example.com",
+                  "rel": "self",
+                  "type": "application/rdap+json"
+                }
+              ],
+              "name": "EXAMPLE.COM",
+              "nameserver_ips": {
+                "ELLIOTT.NS.CLOUDFLARE.COM": [],
+                "HERA.NS.CLOUDFLARE.COM": []
+              },
+              "nameservers": [
+                "ELLIOTT.NS.CLOUDFLARE.COM",
+                "HERA.NS.CLOUDFLARE.COM"
+              ],
+              "notices": [
+                {
+                  "description": [
+                    "Service subject to Terms of Use."
+                  ],
+                  "links": [
+                    "https://www.verisign.com/domain-names/registration-data-access-protocol/terms-service/index.xhtml"
+                  ],
+                  "title": "Terms of Service",
+                  "type": ""
+                },
+                {
+                  "description": [
+                    "For more information on domain status codes, please visit https://icann.org/epp"
+                  ],
+                  "links": [
+                    "https://icann.org/epp"
+                  ],
+                  "title": "Status Codes",
+                  "type": ""
+                },
+                {
+                  "description": [
+                    "URL of the ICANN RDDS Inaccuracy Complaint Form: https://icann.org/wicf"
+                  ],
+                  "links": [
+                    "https://icann.org/wicf"
+                  ],
+                  "title": "RDDS Inaccuracy Complaint Form",
+                  "type": ""
+                }
+              ],
+              "parent_handle": "",
+              "public_ids": [],
+              "redacted": [],
+              "registrar_url": "",
+              "registration_date": "1995-08-14T04:00:00.000000+0000",
+              "remarks": [],
+              "rir": "",
+              "status": [
+                "client delete prohibited",
+                "client transfer prohibited",
+                "client update prohibited"
+              ],
+              "terms_of_service_url": "https://www.verisign.com/domain-names/registration-data-access-protocol/terms-service/index.xhtml",
+              "type": "domain",
+              "unicode_name": "",
+              "url": "https://rdap.verisign.com/com/v1/domain/example.com",
+              "whois_server": ""
+            },
+            "rdap_raw_json": "{\"objectClassName\":\"domain\",\"handle\":\"2336799_DOMAIN_COM-VRSN\",\"ldhName\":\"EXAMPLE.COM\",\"links\":[{\"value\":\"https://rdap.verisign.com/com/v1/domain/example.com\",\"rel\":\"self\",\"href\":\"https://rdap.verisign.com/com/v1/domain/example.com\",\"type\":\"application/rdap+json\"}],\"status\":[\"client delete prohibited\",\"client transfer prohibited\",\"client update prohibited\"],\"entities\":[{\"objectClassName\":\"entity\",\"handle\":\"376\",\"roles\":[\"registrar\"],\"publicIds\":[{\"type\":\"IANA Registrar ID\",\"identifier\":\"376\"}],\"vcardArray\":[\"vcard\",[[\"version\",{},\"text\",\"4.0\"],[\"fn\",{},\"text\",\"RESERVED-Internet Assigned Numbers Authority\"]]],\"entities\":[{\"objectClassName\":\"entity\",\"roles\":[\"abuse\"],\"vcardArray\":[\"vcard\",[[\"version\",{},\"text\",\"4.0\"],[\"fn\",{},\"text\",\"\"],[\"tel\",{\"type\":\"voice\"},\"uri\",\"\"],[\"email\",{},\"text\",\"\"]]]}]}],\"events\":[{\"eventAction\":\"registration\",\"eventDate\":\"1995-08-14T04:00:00Z\"},{\"eventAction\":\"expiration\",\"eventDate\":\"2027-08-13T04:00:00Z\"},{\"eventAction\":\"last changed\",\"eventDate\":\"2026-08-14T08:01:43Z\"},{\"eventAction\":\"last update of RDAP database\",\"eventDate\":\"2026-11-02T15:28:17Z\"}],\"secureDNS\":{\"delegationSigned\":true,\"dsData\":[{\"keyTag\":2371,\"algorithm\":13,\"digestType\":2,\"digest\":\"C988EC423E3880EB8DD8A46FE06CA230EE23F35B578D64E78B29C3E1C83D245A\"}]},\"nameservers\":[{\"objectClassName\":\"nameserver\",\"ldhName\":\"ELLIOTT.NS.CLOUDFLARE.COM\"},{\"objectClassName\":\"nameserver\",\"ldhName\":\"HERA.NS.CLOUDFLARE.COM\"}],\"rdapConformance\":[\"rdap_level_0\",\"icann_rdap_technical_implementation_guide_1\",\"icann_rdap_response_profile_1\"],\"notices\":[{\"title\":\"Terms of Service\",\"description\":[\"Service subject to Terms of Use.\"],\"links\":[{\"href\":\"https://www.verisign.com/domain-names/registration-data-access-protocol/terms-service/index.xhtml\",\"type\":\"text/html\",\"value\":\"https://rdap.verisign.com/com/v1/domain/example.com\",\"rel\":\"terms-of-service\"}]},{\"title\":\"Status Codes\",\"description\":[\"For more information on domain status codes, please visit https://icann.org/epp\"],\"links\":[{\"href\":\"https://icann.org/epp\",\"type\":\"text/html\",\"value\":\"https://rdap.verisign.com/com/v1/domain/example.com\",\"rel\":\"glossary\"}]},{\"title\":\"RDDS Inaccuracy Complaint Form\",\"description\":[\"URL of the ICANN RDDS Inaccuracy Complaint Form: https://icann.org/wicf\"],\"links\":[{\"href\":\"https://icann.org/wicf\",\"type\":\"text/html\",\"value\":\"https://rdap.verisign.com/com/v1/domain/example.com\",\"rel\":\"help\"}]}]}",
+            "rdap_service_url": "https://rdap.verisign.com/com/v1/domain/example.com",
+            "registrar": "RESERVED-Internet Assigned Numbers Authority",
+            "whois_data": null,
+            "whois_raw_text": null
+          },
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "fqdn:pcap-http.example": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "fqdn_analyzer": {
+          "details": {
+            "aliaslist": [],
+            "all_resolutions": [],
+            "ip_address": null,
+            "mx": null,
+            "resolution_count": null,
+            "status": "nxdomain",
+            "wildcard_dns": null
+          },
+          "summary": "DNS Analysis: does not exist (nxdomain)",
+          "tags": {}
+        },
+        "proxy_domain_splunk": {
+          "details": {
+            "dispatch_state": "DONE",
+            "gui_link": null,
+            "query": "index=proxy hostname=\"pcap-http.example\"",
+            "query_error": null,
+            "query_results": [
+              {
+                "_time": "2026-10-30T14:02:11.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "https://www.example.com/login",
+                "src_ip": "192.0.2.10",
+                "src_translated_ip": "198.51.100.7",
+                "user": "alice@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:05:42.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "http://www.example.com/",
+                "src_ip": "192.0.2.11",
+                "src_translated_ip": "198.51.100.7",
+                "user": "bob@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:09:03.000+00:00",
+                "dest_ip": "198.51.100.21",
+                "full_url": "https://www.example.com/static/app.js",
+                "src_ip": "192.0.2.12"
+              }
+            ],
+            "query_summary": "Proxy correlation",
+            "question": "Was this domain seen in proxy logs?"
+          },
+          "summary": "Proxy correlation: (3 results)",
+          "tags": {}
+        },
+        "rdap_analyzer": {
+          "details": {
+            "assignment_type": null,
+            "country": null,
+            "datetime_created": null,
+            "datetime_expiration": null,
+            "datetime_of_last_update": null,
+            "domain_name": null,
+            "emails": null,
+            "error": "rdap: no RDAP service for TLD: TLD \"example\" has no known RDAP endpoint and is unsupported. It may be supported by overrides, try using whoisit.bootstrap(overrides=True); whois: no WHOIS in a replay",
+            "ip_version": null,
+            "lookup_protocol": null,
+            "name_servers": null,
+            "network_cidr": null,
+            "network_name": null,
+            "rdap_attempt_error": "no RDAP service for TLD: TLD \"example\" has no known RDAP endpoint and is unsupported. It may be supported by overrides, try using whoisit.bootstrap(overrides=True)",
+            "rdap_data": null,
+            "rdap_raw_json": null,
+            "rdap_service_url": null,
+            "registrar": null,
+            "whois_data": null,
+            "whois_raw_text": null
+          },
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "fqdn:pcap-tls.example": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "fqdn_analyzer": {
+          "details": {
+            "aliaslist": [],
+            "all_resolutions": [],
+            "ip_address": null,
+            "mx": null,
+            "resolution_count": null,
+            "status": "nxdomain",
+            "wildcard_dns": null
+          },
+          "summary": "DNS Analysis: does not exist (nxdomain)",
+          "tags": {}
+        },
+        "proxy_domain_splunk": {
+          "details": {
+            "dispatch_state": "DONE",
+            "gui_link": null,
+            "query": "index=proxy hostname=\"pcap-tls.example\"",
+            "query_error": null,
+            "query_results": [
+              {
+                "_time": "2026-10-30T14:02:11.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "https://www.example.com/login",
+                "src_ip": "192.0.2.10",
+                "src_translated_ip": "198.51.100.7",
+                "user": "alice@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:05:42.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "http://www.example.com/",
+                "src_ip": "192.0.2.11",
+                "src_translated_ip": "198.51.100.7",
+                "user": "bob@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:09:03.000+00:00",
+                "dest_ip": "198.51.100.21",
+                "full_url": "https://www.example.com/static/app.js",
+                "src_ip": "192.0.2.12"
+              }
+            ],
+            "query_summary": "Proxy correlation",
+            "question": "Was this domain seen in proxy logs?"
+          },
+          "summary": "Proxy correlation: (3 results)",
+          "tags": {}
+        },
+        "rdap_analyzer": {
+          "details": {
+            "assignment_type": null,
+            "country": null,
+            "datetime_created": null,
+            "datetime_expiration": null,
+            "datetime_of_last_update": null,
+            "domain_name": null,
+            "emails": null,
+            "error": "rdap: no RDAP service for TLD: TLD \"example\" has no known RDAP endpoint and is unsupported. It may be supported by overrides, try using whoisit.bootstrap(overrides=True); whois: no WHOIS in a replay",
+            "ip_version": null,
+            "lookup_protocol": null,
+            "name_servers": null,
+            "network_cidr": null,
+            "network_name": null,
+            "rdap_attempt_error": "no RDAP service for TLD: TLD \"example\" has no known RDAP endpoint and is unsupported. It may be supported by overrides, try using whoisit.bootstrap(overrides=True)",
+            "rdap_data": null,
+            "rdap_raw_json": null,
+            "rdap_service_url": null,
+            "registrar": null,
+            "whois_data": null,
+            "whois_raw_text": null
+          },
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "fqdn:pcap-tls12.example": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "fqdn_analyzer": {
+          "details": {
+            "aliaslist": [],
+            "all_resolutions": [],
+            "ip_address": null,
+            "mx": null,
+            "resolution_count": null,
+            "status": "nxdomain",
+            "wildcard_dns": null
+          },
+          "summary": "DNS Analysis: does not exist (nxdomain)",
+          "tags": {}
+        },
+        "proxy_domain_splunk": {
+          "details": {
+            "dispatch_state": "DONE",
+            "gui_link": null,
+            "query": "index=proxy hostname=\"pcap-tls12.example\"",
+            "query_error": null,
+            "query_results": [
+              {
+                "_time": "2026-10-30T14:02:11.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "https://www.example.com/login",
+                "src_ip": "192.0.2.10",
+                "src_translated_ip": "198.51.100.7",
+                "user": "alice@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:05:42.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "http://www.example.com/",
+                "src_ip": "192.0.2.11",
+                "src_translated_ip": "198.51.100.7",
+                "user": "bob@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:09:03.000+00:00",
+                "dest_ip": "198.51.100.21",
+                "full_url": "https://www.example.com/static/app.js",
+                "src_ip": "192.0.2.12"
+              }
+            ],
+            "query_summary": "Proxy correlation",
+            "question": "Was this domain seen in proxy logs?"
+          },
+          "summary": "Proxy correlation: (3 results)",
+          "tags": {}
+        },
+        "rdap_analyzer": {
+          "details": {
+            "assignment_type": null,
+            "country": null,
+            "datetime_created": null,
+            "datetime_expiration": null,
+            "datetime_of_last_update": null,
+            "domain_name": null,
+            "emails": null,
+            "error": "rdap: no RDAP service for TLD: TLD \"example\" has no known RDAP endpoint and is unsupported. It may be supported by overrides, try using whoisit.bootstrap(overrides=True); whois: no WHOIS in a replay",
+            "ip_version": null,
+            "lookup_protocol": null,
+            "name_servers": null,
+            "network_cidr": null,
+            "network_name": null,
+            "rdap_attempt_error": "no RDAP service for TLD: TLD \"example\" has no known RDAP endpoint and is unsupported. It may be supported by overrides, try using whoisit.bootstrap(overrides=True)",
+            "rdap_data": null,
+            "rdap_raw_json": null,
+            "rdap_service_url": null,
+            "registrar": null,
+            "whois_data": null,
+            "whois_raw_text": null
+          },
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "fqdn:pcap-tls13.example": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "fqdn_analyzer": {
+          "details": {
+            "aliaslist": [],
+            "all_resolutions": [],
+            "ip_address": null,
+            "mx": null,
+            "resolution_count": null,
+            "status": "nxdomain",
+            "wildcard_dns": null
+          },
+          "summary": "DNS Analysis: does not exist (nxdomain)",
+          "tags": {}
+        },
+        "proxy_domain_splunk": {
+          "details": {
+            "dispatch_state": "DONE",
+            "gui_link": null,
+            "query": "index=proxy hostname=\"pcap-tls13.example\"",
+            "query_error": null,
+            "query_results": [
+              {
+                "_time": "2026-10-30T14:02:11.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "https://www.example.com/login",
+                "src_ip": "192.0.2.10",
+                "src_translated_ip": "198.51.100.7",
+                "user": "alice@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:05:42.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "http://www.example.com/",
+                "src_ip": "192.0.2.11",
+                "src_translated_ip": "198.51.100.7",
+                "user": "bob@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:09:03.000+00:00",
+                "dest_ip": "198.51.100.21",
+                "full_url": "https://www.example.com/static/app.js",
+                "src_ip": "192.0.2.12"
+              }
+            ],
+            "query_summary": "Proxy correlation",
+            "question": "Was this domain seen in proxy logs?"
+          },
+          "summary": "Proxy correlation: (3 results)",
+          "tags": {}
+        },
+        "rdap_analyzer": {
+          "details": {
+            "assignment_type": null,
+            "country": null,
+            "datetime_created": null,
+            "datetime_expiration": null,
+            "datetime_of_last_update": null,
+            "domain_name": null,
+            "emails": null,
+            "error": "rdap: no RDAP service for TLD: TLD \"example\" has no known RDAP endpoint and is unsupported. It may be supported by overrides, try using whoisit.bootstrap(overrides=True); whois: no WHOIS in a replay",
+            "ip_version": null,
+            "lookup_protocol": null,
+            "name_servers": null,
+            "network_cidr": null,
+            "network_name": null,
+            "rdap_attempt_error": "no RDAP service for TLD: TLD \"example\" has no known RDAP endpoint and is unsupported. It may be supported by overrides, try using whoisit.bootstrap(overrides=True)",
+            "rdap_data": null,
+            "rdap_raw_json": null,
+            "rdap_service_url": null,
+            "registrar": null,
+            "whois_data": null,
+            "whois_raw_text": null
+          },
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "ip:192.0.2.10": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "network_identifier": {
+          "details": {
+            "identified_networks": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "ja4:t12d2708h1_a2460661a67a_eed5f1524d5c": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
+    },
+    "ja4:t13d0312h1_55b375c5d22e_e035b0d0e93b": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
+    },
+    "md5:0fcc60b2352427437f5f794ba296b807": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:7665923187d5d5e057cc89f1f735f6e98e244747a6b1d3d2c67f82e1e6de2f3f": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:44d891f42feefc7d9ec348691bef1c9b": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:bc040b3afb27c9c945c7fe8a18aa3ad45b48f4fe2385b1e6e159abd884248081": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:5241a2fdf31673ada85af553cba02b31": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:672d3d731cf058315a0a2f876cda8e70a71f388ef515bcfc3a8bcebe535fe933": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:83c251185eaa3b25518ee82215c97912": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:d62e8e38b1bed05360dd8b2e1a70cc42736aaf0881e482a3c4e7c977fe2451ed": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "md5:8c3df097f2faa32f2a24102ca7cfd4c8": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:46601b3e65dc50aef3998a71b5ccdbd0f5fc1aa13488ed38349b3abe15543fad": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:46601b3e65dc50aef3998a71b5ccdbd0f5fc1aa13488ed38349b3abe15543fad": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:46601b3e65dc50aef3998a71b5ccdbd0f5fc1aa13488ed38349b3abe15543fad": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:672d3d731cf058315a0a2f876cda8e70a71f388ef515bcfc3a8bcebe535fe933": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:672d3d731cf058315a0a2f876cda8e70a71f388ef515bcfc3a8bcebe535fe933": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:7665923187d5d5e057cc89f1f735f6e98e244747a6b1d3d2c67f82e1e6de2f3f": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:7665923187d5d5e057cc89f1f735f6e98e244747a6b1d3d2c67f82e1e6de2f3f": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:bc040b3afb27c9c945c7fe8a18aa3ad45b48f4fe2385b1e6e159abd884248081": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:bc040b3afb27c9c945c7fe8a18aa3ad45b48f4fe2385b1e6e159abd884248081": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "sha256:d62e8e38b1bed05360dd8b2e1a70cc42736aaf0881e482a3c4e7c977fe2451ed": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:d62e8e38b1bed05360dd8b2e1a70cc42736aaf0881e482a3c4e7c977fe2451ed": true
+      },
+      "results": {},
+      "tags": {}
+    },
+    "uri_path:/payload.txt": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
+    },
+    "url:http://pcap-http.example:18080/payload.txt": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "parse_url": {
+          "details": {
+            "fragment": "",
+            "netloc": "pcap-http.example:18080",
+            "params": null,
+            "path": "/payload.txt",
+            "query": "",
+            "scheme": "http"
+          },
+          "summary": "URL Parser: scheme=http, netloc=pcap-http.example:18080, path=/payload.txt",
+          "tags": {}
+        },
+        "protected_url_analyzer": {
+          "details": {
+            "extracted_url": "http://pcap-http.example:18080/payload.txt",
+            "protection_type": "unprotected"
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "user_agent:pcap-fixture-agent/1.0": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
+    }
+  }
+}

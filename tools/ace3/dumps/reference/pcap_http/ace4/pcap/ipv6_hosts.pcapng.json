@@ -1,0 +1,466 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "pcap_analyzer"
+  ],
+  "analyses": [
+    {
+      "class": "PcapAnalysis",
+      "details": {
+        "added": {
+          "hostname": 4,
+          "ip": 5,
+          "mac_address": 3
+        },
+        "error": null,
+        "index": {
+          "capture": {
+            "application": "Editcap (Wireshark) 4.4.19",
+            "duration": 0.016,
+            "encapsulations": [
+              "Ethernet"
+            ],
+            "file_name": "ipv6_hosts.pcapng",
+            "first": 1767225600.0,
+            "format": "pcapng",
+            "interfaces": 1,
+            "last": 1767225600.016,
+            "packets": 17,
+            "size": 2908,
+            "strict_time_order": true
+          },
+          "carved_sha256": [
+            "31115802f0e15cde2b572f6b241cdc47738fac13b7c42fa5bc016928c9dbbf6f"
+          ],
+          "certificates": [],
+          "certificates_total": 0,
+          "dns": [
+            {
+              "answer_times": {
+                "2001:db8:99::1": 1767225600.001,
+                "2001:db8:99::2": 1767225600.001,
+                "edge.ipv6-hosts.example": 1767225600.001
+              },
+              "answers": [
+                "2001:db8:99::1",
+                "2001:db8:99::2",
+                "edge.ipv6-hosts.example"
+              ],
+              "name": "www.ipv6-hosts.example",
+              "queries": 1,
+              "responses": 1,
+              "seen_as": []
+            },
+            {
+              "answers": [],
+              "name": "edge.ipv6-hosts.example",
+              "queries": 0,
+              "responses": 0,
+              "seen_as": [
+                "cname"
+              ]
+            }
+          ],
+          "dns_total": 2,
+          "field_packet_limit": 50000,
+          "hostnames": [
+            {
+              "mac": "02:00:00:aa:00:01",
+              "name": "ipv6-workstation",
+              "source": "dhcp"
+            },
+            {
+              "mac": "02:00:00:dd:00:04",
+              "name": "Second-Laptop",
+              "source": "dhcp"
+            },
+            {
+              "mac": null,
+              "name": "IPV6NBNSHOST",
+              "source": "nbns"
+            },
+            {
+              "mac": null,
+              "name": "FILESERVER",
+              "source": "nbns"
+            }
+          ],
+          "hostnames_total": 4,
+          "http": [
+            {
+              "content_type": "text/plain",
+              "host": "[2001:db8:99::1]:80",
+              "method": "GET",
+              "status": "200",
+              "url": "http://[2001:db8:99::1]:80/v6.txt",
+              "user_agent": "ipv6-agent/1.0"
+            }
+          ],
+          "http_total": 1,
+          "objects": [
+            {
+              "file_name": "v6.txt",
+              "path": "ipv6_hosts.pcapng.pcap_objects/http/v6.txt",
+              "protocol": "http",
+              "sha256": "31115802f0e15cde2b572f6b241cdc47738fac13b7c42fa5bc016928c9dbbf6f",
+              "size": 10,
+              "url": "http://[2001:db8:99::1]:80/v6.txt"
+            }
+          ],
+          "objects_total": 1,
+          "statistics": {
+            "bytes": 2245,
+            "flows": [
+              {
+                "a": "2001:db8:20::40:46000",
+                "b": "2001:db8:99::1:80",
+                "bytes": "746 bytes",
+                "duration": 0.007,
+                "frames": 8,
+                "protocol": "tcp",
+                "start": 0.009
+              },
+              {
+                "a": "10.20.30.40:137",
+                "b": "10.20.30.255:137",
+                "bytes": "440 bytes",
+                "duration": 0.003,
+                "frames": 4,
+                "protocol": "udp",
+                "start": 0.005
+              },
+              {
+                "a": "2001:db8:20::40:45000",
+                "b": "2001:db8:20::1:53",
+                "bytes": "376 bytes",
+                "duration": 0.001,
+                "frames": 2,
+                "protocol": "udp",
+                "start": 0.0
+              },
+              {
+                "a": "0.0.0.0:68",
+                "b": "255.255.255.255:67",
+                "bytes": "617 bytes",
+                "duration": 0.001,
+                "frames": 2,
+                "protocol": "udp",
+                "start": 0.003
+              },
+              {
+                "a": "fe80::200:ff:feaa:1:546",
+                "b": "ff02::1:2:547",
+                "bytes": "66 bytes",
+                "duration": 0.0,
+                "frames": 1,
+                "protocol": "udp",
+                "start": 0.002
+              }
+            ],
+            "flows_total": 5,
+            "ip": [
+              {
+                "address": "2001:db8:20::40",
+                "bytes": 1122,
+                "packets": 10
+              },
+              {
+                "address": "2001:db8:99::1",
+                "bytes": 746,
+                "packets": 8
+              },
+              {
+                "address": "10.20.30.40",
+                "bytes": 440,
+                "packets": 4
+              },
+              {
+                "address": "10.20.30.255",
+                "bytes": 440,
+                "packets": 4
+              },
+              {
+                "address": "2001:db8:20::1",
+                "bytes": 376,
+                "packets": 2
+              },
+              {
+                "address": "0.0.0.0",
+                "bytes": 617,
+                "packets": 2
+              },
+              {
+                "address": "255.255.255.255",
+                "bytes": 617,
+                "packets": 2
+              },
+              {
+                "address": "fe80::200:ff:feaa:1",
+                "bytes": 66,
+                "packets": 1
+              },
+              {
+                "address": "ff02::1:2",
+                "bytes": 66,
+                "packets": 1
+              }
+            ],
+            "ip_total": 9,
+            "mac": [
+              {
+                "address": "02:00:00:aa:00:01",
+                "bytes": 1938,
+                "packets": 16
+              },
+              {
+                "address": "02:00:00:bb:00:02",
+                "bytes": 1122,
+                "packets": 10
+              },
+              {
+                "address": "ff:ff:ff:ff:ff:ff",
+                "bytes": 1057,
+                "packets": 6
+              },
+              {
+                "address": "33:33:00:01:00:02",
+                "bytes": 66,
+                "packets": 1
+              },
+              {
+                "address": "02:00:00:dd:00:04",
+                "bytes": 307,
+                "packets": 1
+              }
+            ],
+            "mac_total": 5,
+            "packets": 17
+          },
+          "statistics_error": null,
+          "tls": [],
+          "tls_client_randoms": [],
+          "tls_total": 0
+        },
+        "omitted": {}
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.pcap:PcapAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "ip",
+          "value": "2001:db8:20::40"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "ip",
+          "value": "2001:db8:99::1"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "ip",
+          "value": "10.20.30.40"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "ip",
+          "value": "10.20.30.255"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "ip",
+          "value": "2001:db8:20::1"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "mac_address",
+          "value": "02-00-00-aa-00-01"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "mac_address",
+          "value": "02-00-00-bb-00-02"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "mac_address",
+          "value": "02-00-00-dd-00-04"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "hostname",
+          "value": "ipv6-workstation"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "hostname",
+          "value": "Second-Laptop"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "hostname",
+          "value": "IPV6NBNSHOST"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "hostname",
+          "value": "FILESERVER"
+        }
+      ],
+      "summary": "PCAP Analysis: 17 packets, 5 flows, 0 TLS sessions (4 hostname, 5 ip, 3 mac_address)",
+      "tags": []
+    },
+    {
+      "class": "PcapCategoryAnalysis",
+      "details": {
+        "added": {
+          "ip": 1,
+          "url": 1,
+          "user_agent": 1
+        },
+        "capture": {
+          "application": "Editcap (Wireshark) 4.4.19",
+          "duration": 0.016,
+          "encapsulations": [
+            "Ethernet"
+          ],
+          "file_name": "ipv6_hosts.pcapng",
+          "first": 1767225600.0,
+          "format": "pcapng",
+          "interfaces": 1,
+          "last": 1767225600.016,
+          "packets": 17,
+          "size": 2908,
+          "strict_time_order": true
+        },
+        "category": "http",
+        "field_packet_limit": 50000,
+        "omitted": {},
+        "rows": [
+          {
+            "content_type": "text/plain",
+            "host": "[2001:db8:99::1]:80",
+            "method": "GET",
+            "status": "200",
+            "url": "http://[2001:db8:99::1]:80/v6.txt",
+            "user_agent": "ipv6-agent/1.0"
+          }
+        ],
+        "total": 1
+      },
+      "detections": [],
+      "instance": "http",
+      "module_path": "saq.modules.file_analysis.pcap:PcapCategoryAnalysis:http",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "url",
+          "value": "http://[2001:db8:99::1]:80/v6.txt"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "ip",
+          "value": "2001:db8:99::1"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "user_agent",
+          "value": "ipv6-agent/1.0"
+        }
+      ],
+      "summary": "PCAP HTTP: 1 entries (1 ip, 1 url, 1 user_agent)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace4/pcap/ipv6_hosts.pcapng",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "ipv6_hosts.pcapng",
+      "size": 2908,
+      "type": "file",
+      "value": "a3ea7255ba2abba0c7427b80cd98487c8bce07367223502c84a1ecee17f8de34"
+    }
+  },
+  "module": "pcap_http",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "ipv6_hosts.pcapng",
+    "relationships": [],
+    "size": 2908,
+    "tags": [],
+    "type": "file",
+    "value": "a3ea7255ba2abba0c7427b80cd98487c8bce07367223502c84a1ecee17f8de34",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

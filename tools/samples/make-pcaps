@@ -1,0 +1,328 @@
+#!/usr/bin/env python3
+"""Writes the samples of PLAN.md 7.5 batch 13's pcap modules (pcap_analyzer, pcap_dns, pcap_tls,
+pcap_http, pcap_files, pcap_tls_decryption, tls_keylog) into samples/ace4/pcap/ and adds them to
+samples/manifest.json, replacing any it added before. ace3's own fixtures (network.pcap,
+http_tls.pcapng, http_tls_dsb.pcapng and sslkeylog.txt, a loopback capture of curl over TLS 1.2 and
+1.3 with its key log) are in samples/ace3/pcap/.
+
+The captures are frames written by hand (tools/samples/pcaplib.py, after ace3's
+synthesize_frames.py), turned into pcapng where a sample says so by editcap, with certificates made
+by openssl, and each is checked to read with capinfos. Run it in a Linux container that has
+tshark's tools and openssl, such as the dev container:
+
+    docker compose exec -T dev python3 -I tools/samples/make-pcaps
+
+- many_hosts.pcap: 600 names looked up and answered (CNAMEs, AAAA, an NXDOMAIN with its SOA, NS
+  records, a root query, an .arpa and a .local name), 70 TLS ClientHellos with SNI and two JA4s,
+  one without SNI, and 70 HTTP requests to as many hosts: past max_table_rows (500) and each
+  type's 50 observables, so the categories share the budget as ace3's do.
+- many_files.pcap: 120 HTTP downloads, three with the same file name and two with the same bytes, a
+  TFTP transfer and an SMTP message, and a TLS server's two certificates (a CA's leaf with 12 SANs
+  and a self-signed one): past max_extracted_files (100).
+- ipv6_hosts.pcapng: IPv6 DNS with AAAA answers and link-local and multicast addresses, DHCP
+  hostnames, NBNS names (one with a service suffix, one starting with `_`), as pcapng.
+- bad_certificate.pcap: a TLS server whose certificate is bytes that aren't one, and a ClientHello
+  without SNI.
+- truncated.pcap: many_files.pcap's first 40 frames, the last cut in the middle.
+- not_a_capture.pcap: text, which isn't a capture whatever its name.
+- keylog_mixed.txt: a key log with comments, a blank line, every NSS label but RSA, and an RSA line;
+  sslkeylog.txt's lines for the TLS 1.2 session.
+- not_a_keylog.txt: key log lines and then one that isn't.
+- http_tls_keys.zip: ace3's http_tls.pcapng and sslkeylog.txt, so the decryption finds the key log in
+  the tree.
+- dsb_keys.zip: http_tls_dsb.pcapng, which carries the same keys, and sslkeylog.txt: nothing new.
+- rsa_keys.zip: http_tls.pcapng and a key log of one RSA line, which tshark runs for.
+"""
+
+import hashlib
+import importlib.util
+import json
+import subprocess
+import sys
+import tempfile
+import zipfile
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+REPO = HERE.parent.parent
+SAMPLES = REPO / "samples"
+OUT = SAMPLES / "ace4" / "pcap"
+ACE3 = SAMPLES / "ace3" / "pcap"
+
+_spec = importlib.util.spec_from_file_location("pcaplib", HERE / "pcaplib.py")
+lib = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(lib)
+
+CLIENT_MAC = lib.mac("02:00:00:aa:00:01")
+SERVER_MAC = lib.mac("02:00:00:bb:00:02")
+ROUTER_MAC = lib.mac("02:00:00:cc:00:03")
+CLIENT = "10.20.30.40"
+RESOLVER = "10.20.30.1"
+
+
+def answer_ip(i: int) -> str:
+    """The i-th of 762 documentation addresses (TEST-NET-1, 2 and 3)."""
+    net = ["192.0.2", "198.51.100", "203.0.113"][i // 254]
+    return f"{net}.{i % 254 + 1}"
+
+
+def many_hosts() -> list[bytes]:
+    frames = []
+    for i in range(600):
+        name = f"host{i:03}.many-hosts.example"
+        frames.append(lib.udp_frame(CLIENT_MAC, SERVER_MAC, CLIENT, RESOLVER, 40000 + i, 53, lib.dns_query(i, name)))
+        if i % 10 == 0:
+            target = f"cdn{i:03}.many-hosts.example"
+            answers = [lib.cname_rr(name, target), lib.a_rr(target, answer_ip(i))]
+        else:
+            answers = [lib.a_rr(name, answer_ip(i))]
+        frames.append(lib.udp_frame(SERVER_MAC, CLIENT_MAC, RESOLVER, CLIENT, 53, 40000 + i,
+                                    lib.dns_response(i, name, answers)))
+    # AAAA, an NXDOMAIN with its zone's SOA, a delegation's NS records, a root query, PTR, .local
+    frames.append(lib.udp_frame(CLIENT_MAC, SERVER_MAC, CLIENT, RESOLVER, 41000, 53,
+                                lib.dns_query(1000, "v6.many-hosts.example", 28)))
+    frames.append(lib.udp_frame(SERVER_MAC, CLIENT_MAC, RESOLVER, CLIENT, 53, 41000,
+                                lib.dns_response(1000, "v6.many-hosts.example",
+                                                 [lib.aaaa_rr("v6.many-hosts.example", "2001:db8::7")], qtype=28)))
+    frames.append(lib.udp_frame(SERVER_MAC, CLIENT_MAC, RESOLVER, CLIENT, 53, 41001,
+                                lib.dns_response(1001, "missing.many-hosts.example", [],
+                                                 [lib.soa_rr("many-hosts.example")], rcode=3)))
+    frames.append(lib.udp_frame(SERVER_MAC, CLIENT_MAC, RESOLVER, CLIENT, 53, 41002,
+                                lib.dns_response(1002, "sub.delegated.example", [],
+                                                 [lib.ns_rr("delegated.example", "ns1.delegated.example")])))
+    frames.append(lib.udp_frame(CLIENT_MAC, SERVER_MAC, CLIENT, RESOLVER, 41003, 53, lib.dns_query(1003, ".", 2)))
+    frames.append(lib.udp_frame(CLIENT_MAC, SERVER_MAC, CLIENT, RESOLVER, 41004, 53,
+                                lib.dns_query(1004, "1.2.0.192.in-addr.arpa", 12)))
+    frames.append(lib.udp_frame(CLIENT_MAC, SERVER_MAC, CLIENT, "224.0.0.251", 5353, 5353,
+                                lib.dns_query(1005, "printer.local")))
+    for i in range(70):
+        client = (CLIENT_MAC, CLIENT, 50000 + i)
+        server = (ROUTER_MAC, answer_ip(i), 443)
+        ciphers = (0x1301, 0x1302, 0xc02b, 0xc02f) if i % 2 else (0x1301, 0xc02f)
+        lib.tls_exchange(frames, client, server, bytes([i]) * 32, f"tls{i:02}.many-hosts.example", ciphers=ciphers)
+    lib.tls_exchange(frames, (CLIENT_MAC, CLIENT, 50999), (ROUTER_MAC, "198.51.100.200", 443), b"\xee" * 32, None)
+    for i in range(70):
+        client = (CLIENT_MAC, CLIENT, 52000 + i)
+        server = (ROUTER_MAC, answer_ip(300 + i), 80)
+        agent = f"many-hosts-agent/{i % 7}"
+        lib.http_exchange(frames, client, server, f"http{i:02}.many-hosts.example", f"/page{i}.html", agent,
+                          f"<html>page {i}</html>".encode(), "text/html")
+    return frames
+
+
+def certificates(work: Path) -> tuple[bytes, bytes]:
+    """A leaf a CA issued, with 12 SANs, and a self-signed certificate, as DER."""
+    def run(*args):
+        subprocess.run(args, check=True, capture_output=True, cwd=work)
+    run("openssl", "req", "-x509", "-newkey", "ec", "-pkeyopt", "ec_paramgen_curve:P-256", "-nodes", "-days",
+        "3650", "-subj", "/CN=Many Files Test CA/O=ACE4 Samples", "-keyout", "ca.key", "-out", "ca.pem")
+    sans = ",".join(f"DNS:files{i:02}.many-files.example" for i in range(12))
+    run("openssl", "req", "-newkey", "ec", "-pkeyopt", "ec_paramgen_curve:P-256", "-nodes", "-subj",
+        "/CN=downloads.many-files.example", "-keyout", "leaf.key", "-out", "leaf.csr")
+    (work / "leaf.ext").write_text(f"subjectAltName={sans}\n")
+    run("openssl", "x509", "-req", "-in", "leaf.csr", "-CA", "ca.pem", "-CAkey", "ca.key", "-CAcreateserial",
+        "-days", "3650", "-extfile", "leaf.ext", "-outform", "DER", "-out", "leaf.der")
+    run("openssl", "req", "-x509", "-newkey", "ec", "-pkeyopt", "ec_paramgen_curve:P-256", "-nodes", "-days",
+        "3650", "-subj", "/O=Self Signed Only", "-outform", "DER", "-keyout", "self.key", "-out", "self.der")
+    return (work / "leaf.der").read_bytes(), (work / "self.der").read_bytes()
+
+
+def tftp(frames: list):
+    client, server = (CLIENT_MAC, CLIENT, 61000), (SERVER_MAC, "198.51.100.69", 69)
+    request = b"\x00\x01" + b"firmware.bin\x00octet\x00"
+    frames.append(lib.udp_frame(CLIENT_MAC, SERVER_MAC, CLIENT, server[1], client[2], 69, request))
+    data = bytes(range(256)) * 2 + b"tftp tail"
+    for block, start in enumerate(range(0, len(data) + 1, 512), start=1):
+        chunk = data[start:start + 512]
+        frames.append(lib.udp_frame(SERVER_MAC, CLIENT_MAC, server[1], CLIENT, 61069, client[2],
+                                    b"\x00\x03" + block.to_bytes(2, "big") + chunk))
+        frames.append(lib.udp_frame(CLIENT_MAC, SERVER_MAC, CLIENT, server[1], client[2], 61069,
+                                    b"\x00\x04" + block.to_bytes(2, "big")))
+
+
+def smtp(frames: list):
+    flow = lib.TcpFlow(frames, (CLIENT_MAC, CLIENT, 62000), (SERVER_MAC, "198.51.100.25", 25))
+    message = (b"From: sender@many-files.example\r\nTo: rcpt@many-files.example\r\n"
+               b"Subject: carved over smtp\r\n\r\nThe body of a message tshark exports.\r\n")
+    for from_client, line in [
+        (False, b"220 mx.many-files.example ESMTP\r\n"), (True, b"EHLO client.many-files.example\r\n"),
+        (False, b"250 mx.many-files.example\r\n"), (True, b"MAIL FROM:<sender@many-files.example>\r\n"),
+        (False, b"250 OK\r\n"), (True, b"RCPT TO:<rcpt@many-files.example>\r\n"), (False, b"250 OK\r\n"),
+        (True, b"DATA\r\n"), (False, b"354 go ahead\r\n"), (True, message + b".\r\n"), (False, b"250 queued\r\n"),
+        (True, b"QUIT\r\n"), (False, b"221 bye\r\n"),
+    ]:
+        flow.send(from_client, line)
+    flow.close()
+
+
+def many_files(leaf: bytes, self_signed: bytes) -> list[bytes]:
+    frames = []
+    for i in range(120):
+        client = (CLIENT_MAC, CLIENT, 30000 + i)
+        server = (SERVER_MAC, answer_ip(i % 20), 80)
+        if i in (10, 11, 12):
+            name, body = "same.txt", f"one of three files named same.txt: {i}\n".encode()
+        elif i == 13:
+            name, body = "copy.txt", b"file 0 of many-files\n" * 3
+        else:
+            name, body = f"file{i:03}.txt", f"file {i} of many-files\n".encode() * 3
+        agent = "many-files-agent/1.0"
+        lib.http_exchange(frames, client, server, f"files{i % 20:02}.many-files.example", f"/downloads/{name}",
+                          agent, body)
+    tftp(frames)
+    smtp(frames)
+    lib.tls_exchange(frames, (CLIENT_MAC, CLIENT, 31000), (SERVER_MAC, "203.0.113.10", 443), b"\x42" * 32,
+                     "downloads.many-files.example", ders=[leaf, self_signed])
+    return frames
+
+
+def ipv6_hosts() -> list[bytes]:
+    frames = []
+    client6, resolver6 = "2001:db8:20::40", "2001:db8:20::1"
+    link_local = "fe80::200:ff:feaa:1"
+    frames.append(lib.udp_frame(CLIENT_MAC, SERVER_MAC, client6, resolver6, 45000, 53,
+                                lib.dns_query(1, "www.ipv6-hosts.example", 28)))
+    frames.append(lib.udp_frame(SERVER_MAC, CLIENT_MAC, resolver6, client6, 53, 45000,
+                                lib.dns_response(1, "www.ipv6-hosts.example",
+                                                 [lib.cname_rr("www.ipv6-hosts.example", "edge.ipv6-hosts.example"),
+                                                  lib.aaaa_rr("edge.ipv6-hosts.example", "2001:db8:99::1"),
+                                                  lib.aaaa_rr("edge.ipv6-hosts.example", "2001:db8:99::2")], qtype=28)))
+    frames.append(lib.udp_frame(CLIENT_MAC, lib.mac("33:33:00:01:00:02"), link_local, "ff02::1:2", 546, 547,
+                                b"\x01\x00\x00\x01"))
+    frames.append(lib.udp_frame(CLIENT_MAC, lib.mac("ff:ff:ff:ff:ff:ff"), "0.0.0.0", "255.255.255.255", 68, 67,
+                                lib.dhcp_request(CLIENT_MAC, CLIENT, "ipv6-workstation")))
+    other_mac = lib.mac("02:00:00:dd:00:04")
+    frames.append(lib.udp_frame(other_mac, lib.mac("ff:ff:ff:ff:ff:ff"), "0.0.0.0", "255.255.255.255", 68, 67,
+                                lib.dhcp_request(other_mac, "10.20.30.41", "Second-Laptop")))
+    for name, suffix in [("IPV6NBNSHOST", 0), ("IPV6NBNSHOST", 0x20), ("FILESERVER", 0x20), ("__MSBROWSE__", 1)]:
+        frames.append(lib.udp_frame(CLIENT_MAC, lib.mac("ff:ff:ff:ff:ff:ff"), CLIENT, "10.20.30.255", 137, 137,
+                                    lib.nbns_registration(name, CLIENT, suffix)))
+    flow = (CLIENT_MAC, client6, 46000), (SERVER_MAC, "2001:db8:99::1", 80)
+    lib.http_exchange(frames, *flow, "[2001:db8:99::1]:80", "/v6.txt", "ipv6-agent/1.0", b"over ipv6\n")
+    return frames
+
+
+def bad_certificate() -> list[bytes]:
+    frames = []
+    lib.tls_exchange(frames, (CLIENT_MAC, CLIENT, 33000), (SERVER_MAC, "203.0.113.66", 443), b"\x66" * 32,
+                     "bad-certificate.example", ders=[b"\x30\x82\x01\x00" + b"not a certificate" * 10])
+    lib.tls_exchange(frames, (CLIENT_MAC, CLIENT, 33001), (SERVER_MAC, "203.0.113.67", 8443), b"\x67" * 32, None)
+    return frames
+
+
+def truncate(source: Path, target: Path, frames: int):
+    """source's first `frames` frames, the last cut halfway through."""
+    data = source.read_bytes()
+    at = 24
+    for _ in range(frames - 1):
+        at += 16 + int.from_bytes(data[at + 8:at + 12], "little")
+    length = int.from_bytes(data[at + 8:at + 12], "little")
+    target.write_bytes(data[:at + 16 + length // 2])
+
+
+def keylogs():
+    lines = (ACE3 / "sslkeylog.txt").read_text().splitlines()
+    tls12 = [line for line in lines if line.startswith("CLIENT_RANDOM")]
+    mixed = ["# SSL/TLS secrets log file, generated by NSS", "", *tls12,
+             "EXPORTER_SECRET " + "ab" * 32 + " " + "cd" * 48,
+             "EARLY_EXPORTER_SECRET " + "ab" * 32 + " " + "ef" * 48,
+             "CLIENT_EARLY_TRAFFIC_SECRET " + "ab" * 32 + " " + "01" * 48,
+             "RSA " + "aa" * 8 + " " + "bb" * 48,
+             "not a key log line, which is dropped"]
+    (OUT / "keylog_mixed.txt").write_text("\n".join(mixed) + "\n")
+    (OUT / "not_a_keylog.txt").write_text("\n".join([*tls12[:2], "this line is not one", *tls12[2:]]) + "\n")
+    return "RSA " + "aa" * 8 + " " + "bb" * 48 + "\n"
+
+
+def write_zip(path: Path, members: list[tuple[str, bytes]]):
+    with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as archive:
+        for name, data in members:
+            info = zipfile.ZipInfo(name, date_time=(2026, 11, 10, 12, 0, 0))
+            info.compress_type = zipfile.ZIP_DEFLATED
+            info.external_attr = 0o644 << 16
+            archive.writestr(info, data)
+
+
+def check(path: Path):
+    """capinfos reads it (a truncated capture's error is expected)."""
+    result = subprocess.run(["capinfos", "-c", str(path)], capture_output=True, text=True)
+    print(f"{path.name}: {result.stdout.strip().splitlines()[-1] if result.stdout.strip() else result.stderr.strip()}")
+
+
+NOTES = {
+    "many_hosts.pcap": "600 names looked up, 70 TLS ClientHellos and 70 HTTP hosts: past each table's 500 rows and "
+                       "each type's 50 observables",
+    "many_files.pcap": "120 HTTP downloads, TFTP, SMTP and two certificates: past the 100 files carved",
+    "ipv6_hosts.pcapng": "IPv6 DNS, DHCP and NBNS hostnames, link-local and multicast addresses, as pcapng",
+    "bad_certificate.pcap": "a certificate that isn't one, and a ClientHello without SNI",
+    "truncated.pcap": "a capture cut in the middle of a frame",
+    "not_a_capture.pcap": "text, which isn't a capture",
+    "keylog_mixed.txt": "a TLS key log with comments, an RSA line and every NSS label",
+    "not_a_keylog.txt": "key log lines, then one that isn't",
+    "http_tls_keys.zip": "ace3's TLS capture and its key log, which the decryption finds in the tree",
+    "dsb_keys.zip": "ace3's capture with embedded secrets and the same key log: nothing new to decrypt",
+    "rsa_keys.zip": "ace3's TLS capture and a key log of one RSA line",
+}
+KINDS = {".pcap": ["pcap"], ".pcapng": ["pcap"], ".txt": ["pcap/keylog"], ".zip": ["pcap", "archive/zip"]}
+
+
+def manifest(written: list[Path]):
+    samples = []
+    for path in sorted(written):
+        data = path.read_bytes()
+        samples.append({
+            "path": str(path.relative_to(SAMPLES)),
+            "sha256": hashlib.sha256(data).hexdigest(),
+            "size": len(data),
+            "kinds": KINDS[path.suffix],
+            "source": "made by tools/samples/make-pcaps",
+            "in_git": True,
+            "alert_path": path.name,
+            "meta_tags": ["type=email.attachment"],
+            "note": NOTES[path.name],
+        })
+    manifest_path = SAMPLES / "manifest.json"
+    data = json.loads(manifest_path.read_text())
+    paths = {s["path"] for s in samples}
+    kept = [s for s in data["samples"] if s["path"] not in paths]
+    data["samples"] = sorted(kept + samples, key=lambda sample: sample["path"])
+    manifest_path.write_text(json.dumps(data, indent=2) + "\n")
+
+
+def main():
+    OUT.mkdir(parents=True, exist_ok=True)
+    written = []
+    with tempfile.TemporaryDirectory() as work:
+        work = Path(work)
+        leaf, self_signed = certificates(work)
+        for name, frames in [("many_hosts.pcap", many_hosts()), ("many_files.pcap", many_files(leaf, self_signed)),
+                             ("bad_certificate.pcap", bad_certificate())]:
+            lib.write_pcap(OUT / name, frames)
+            written.append(OUT / name)
+        lib.write_pcap(work / "ipv6.pcap", ipv6_hosts())
+        subprocess.run(["editcap", "-F", "pcapng", str(work / "ipv6.pcap"), str(OUT / "ipv6_hosts.pcapng")],
+                       check=True)
+        written.append(OUT / "ipv6_hosts.pcapng")
+    truncate(OUT / "many_files.pcap", OUT / "truncated.pcap", 40)
+    written.append(OUT / "truncated.pcap")
+    (OUT / "not_a_capture.pcap").write_text("This is a text file named like a capture.\n")
+    written.append(OUT / "not_a_capture.pcap")
+    rsa = keylogs()
+    written += [OUT / "keylog_mixed.txt", OUT / "not_a_keylog.txt"]
+    keys = (ACE3 / "sslkeylog.txt").read_bytes()
+    write_zip(OUT / "http_tls_keys.zip", [("http_tls.pcapng", (ACE3 / "http_tls.pcapng").read_bytes()),
+                                          ("sslkeylog.txt", keys)])
+    write_zip(OUT / "dsb_keys.zip", [("http_tls_dsb.pcapng", (ACE3 / "http_tls_dsb.pcapng").read_bytes()),
+                                     ("sslkeylog.txt", keys)])
+    write_zip(OUT / "rsa_keys.zip", [("http_tls.pcapng", (ACE3 / "http_tls.pcapng").read_bytes()),
+                                     ("rsa_keys.txt", rsa.encode())])
+    written += [OUT / "http_tls_keys.zip", OUT / "dsb_keys.zip", OUT / "rsa_keys.zip"]
+    for path in written:
+        if path.suffix in (".pcap", ".pcapng"):
+            check(path)
+    manifest(written)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

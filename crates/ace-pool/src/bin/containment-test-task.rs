@@ -226,6 +226,14 @@ fn act(action: &str, argument: Option<&str>) -> io::Result<String> {
             }
             Ok(String::new())
         }
+        "keep-many" => {
+            // more files than a run keeps
+            fs::create_dir("many")?;
+            for i in 0..ace_sdk::tools::MAX_KEPT_FILES + 10 {
+                fs::write(format!("many/{i:06}"), "x")?;
+            }
+            Ok("left many files".into())
+        }
         "keep" => {
             // a file to keep, and a symlink and a hard link that mustn't be
             fs::write("out", "kept\n")?;

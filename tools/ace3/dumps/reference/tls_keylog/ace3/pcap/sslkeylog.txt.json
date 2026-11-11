@@ -1,0 +1,60 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "TlsKeylogAnalysis",
+      "details": {
+        "applied_to": [],
+        "client_randoms": 2,
+        "label_counts": {
+          "CLIENT_HANDSHAKE_TRAFFIC_SECRET": 1,
+          "CLIENT_RANDOM": 1,
+          "CLIENT_TRAFFIC_SECRET_0": 1,
+          "EXPORTER_SECRET": 1,
+          "SERVER_HANDSHAKE_TRAFFIC_SECRET": 1,
+          "SERVER_TRAFFIC_SECRET_0": 1
+        },
+        "skipped": []
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.pcap:TlsKeylogAnalysis",
+      "observables": [],
+      "summary": "TLS Key Log: 6 secrets for 2 TLS sessions (1 CLIENT_HANDSHAKE_TRAFFIC_SECRET, 1 CLIENT_RANDOM, 1 CLIENT_TRAFFIC_SECRET_0, 1 EXPORTER_SECRET, 1 SERVER_HANDSHAKE_TRAFFIC_SECRET, 1 SERVER_TRAFFIC_SECRET_0)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace3/pcap/sslkeylog.txt",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "sslkeylog.txt",
+      "size": 1114,
+      "type": "file",
+      "value": "76f3b3e668343641d138e1121f7be54778c87bf38fe98f27723be8be971ff8e3"
+    }
+  },
+  "module": "tls_keylog",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "sslkeylog.txt",
+    "relationships": [],
+    "size": 1114,
+    "tags": [
+      "tls_keylog"
+    ],
+    "type": "file",
+    "value": "76f3b3e668343641d138e1121f7be54778c87bf38fe98f27723be8be971ff8e3",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

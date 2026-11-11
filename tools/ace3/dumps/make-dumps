@@ -1457,7 +1457,69 @@ RUNS = {
     # image dmg_analyzer writes for each
     "dmg_analyzer": lambda: file_runs("dmg_analyzer", [], "macos"),
     "cve_2021_30657_analyzer": lambda: cve_runs(),
+    # PLAN.md 7.5 batch 13: the captures (samples/ace3/pcap, and tools/samples/make-pcaps'), each through
+    # pcap_analyzer and each category with it; the decryption with key logs in the root; the key logs
+    "pcap_analyzer": lambda: pcap_runs("pcap_analyzer", []),
+    "pcap_dns": lambda: pcap_runs("pcap_dns", ["pcap_analyzer"]),
+    "pcap_tls": lambda: pcap_runs("pcap_tls", ["pcap_analyzer"]),
+    "pcap_http": lambda: pcap_runs("pcap_http", ["pcap_analyzer"]),
+    "pcap_files": lambda: pcap_runs("pcap_files", ["pcap_analyzer"]),
+    "pcap_tls_decryption": lambda: pcap_decryption_runs(),
+    "tls_keylog": lambda: tls_keylog_runs(),
 }
+
+# the key logs each capture's decryption dump has in its root, by sample path; None for none
+PCAP_DECRYPTIONS = [
+    ("ace3/pcap/http_tls.pcapng", None),
+    ("ace3/pcap/http_tls.pcapng", "ace3/pcap/sslkeylog.txt"),
+    ("ace3/pcap/http_tls.pcapng", "ace4/pcap/keylog_mixed.txt"),
+    ("ace3/pcap/http_tls.pcapng", "ace4/pcap/not_a_keylog.txt"),
+    ("ace3/pcap/http_tls_dsb.pcapng", None),
+    ("ace3/pcap/http_tls_dsb.pcapng", "ace3/pcap/sslkeylog.txt"),
+    ("ace3/pcap/network.pcap", "ace3/pcap/sslkeylog.txt"),
+    ("ace4/pcap/many_hosts.pcap", "ace4/pcap/keylog_mixed.txt"),
+    ("ace4/pcap/bad_certificate.pcap", "ace3/pcap/sslkeylog.txt"),
+]
+
+
+def pcap_samples():
+    """The captures, and the files named like one that aren't."""
+    return [s for s in manifest_samples("pcap") if s["path"].endswith((".pcap", ".pcapng"))]
+
+
+def pcap_runs(module, enable):
+    return [run for run in file_runs(module, enable, "pcap") if run["name"].endswith((".pcap", ".pcapng"))]
+
+
+def pcap_decryption_runs():
+    """The decryption, with pcap_analyzer, on a capture whose root also holds a key log, as an archive
+    of both does: the key log is the root's other file (--extracted-from), which the module finds by
+    its content."""
+    samples = {s["path"]: s for s in pcap_samples()}
+    runs = []
+    for path, keylog in PCAP_DECRYPTIONS:
+        sample = samples[path]
+        args = ["--file", f"{REMOTE}/samples/{path}", "--alert-path", sample["alert_path"]]
+        args += [arg for tag in sample["meta_tags"] for arg in ("--meta-tag", tag)]
+        name = path
+        if keylog is not None:
+            args += ["--extracted-from", f"{REMOTE}/samples/{keylog}", keylog.rsplit("/", 1)[-1]]
+            name = f"{path}.with_{keylog.rsplit('/', 1)[-1]}"
+        runs.append({
+            "module": "pcap_tls_decryption",
+            "enable": ["pcap_analyzer"],
+            "name": name,
+            "args": args,
+            "label": path if keylog is None else f"{path} with {keylog}",
+        })
+    return runs
+
+
+def tls_keylog_runs():
+    """Each key log sample, and a capture, which isn't one."""
+    runs = file_runs("tls_keylog", [], "pcap/keylog")
+    runs += [run for run in file_runs("tls_keylog", [], "pcap") if run["name"] == "ace3/pcap/http_tls.pcapng"]
+    return runs
 
 
 def cve_runs():
@@ -1759,8 +1821,20 @@ def run(spec):
         "ilspy": "IlspyAnalysis",
         "dmg_analyzer": "DMGAnalysis",
         "cve_2021_30657_analyzer": "CVE_2021_30657_Analysis",
+        "pcap_analyzer": "PcapAnalysis",
+        "pcap_dns": "PcapCategoryAnalysis",
+        "pcap_tls": "PcapCategoryAnalysis",
+        "pcap_http": "PcapCategoryAnalysis",
+        "pcap_files": "PcapCategoryAnalysis",
+        "pcap_tls_decryption": "PcapTlsDecryptionAnalysis",
+        "tls_keylog": "TlsKeylogAnalysis",
     }[spec["module"]]
-    analysis = next((a for a in parsed["analyses"] if a["class"] == target_class), None)
+    # ace3's pcap_dns, pcap_tls, pcap_http and pcap_files are instances of one class
+    instance = spec["module"].removeprefix("pcap_") if target_class == "PcapCategoryAnalysis" else None
+    analysis = next(
+        (a for a in parsed["analyses"] if a["class"] == target_class and (instance is None or a.get("instance") == instance)),
+        None,
+    )
     return {
         "module": spec["module"],
         "input": spec["label"],

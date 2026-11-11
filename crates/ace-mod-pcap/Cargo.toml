@@ -1,0 +1,35 @@
+[package]
+name = "ace-mod-pcap"
+version = "0.1.0"
+description = "PLAN.md 7.5 batch 13's packet capture modules: pcap_analyzer, pcap_dns, pcap_tls, pcap_http, pcap_files, pcap_tls_decryption and tls_keylog, on tshark in the sandbox runner"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+# Python's json.loads, str methods and urlsplit, as ace3's pcap.py runs them
+ace-pycompat = { path = "../ace-pycompat" }
+ace-results = { path = "../ace-results" }
+ace-sdk = { path = "../ace-sdk" }
+# what ace3's observable classes do to a value (FQDN, IP, URL, MAC address)
+ace-mod-values = { path = "../ace-mod-values" }
+# cryptography's certificate names, for a handshake's certificates
+ace-x509 = { path = "../ace-x509" }
+chrono = { version = "0.4.45", default-features = false, features = ["clock", "std"] }
+# Python's re patterns of ace3's parsers of tshark's and capinfos' text, which need nothing the
+# regex crate lacks
+regex = "1.13.1"
+schemars = "1.2.3"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+sha2 = "0.11.1"
+tracing = "0.1.44"
+
+[dev-dependencies]
+ace-testkit = { path = "../ace-testkit" }
+serde_json = "1.0.154"
+tempfile = "3.27.0"
+
+[lints]
+workspace = true

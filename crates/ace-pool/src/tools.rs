@@ -68,8 +68,8 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use ace_sdk::tools::{
-    FILE_SIZE_LIMIT, Keep, MAX_OUTPUT_BYTES, MAX_RUNS, OPEN_FILES_LIMIT, ToolError, ToolOutput,
-    ToolRun, ToolRunner, ToolSpec, ToolStatus, ToolStop, check_keep, collect_outputs, environment,
+    Keep, MAX_OUTPUT_BYTES, MAX_RUNS, OPEN_FILES_LIMIT, ToolError, ToolOutput, ToolRun, ToolRunner,
+    ToolSpec, ToolStatus, ToolStop, check_keep, collect_outputs, environment,
 };
 use serde::{Deserialize, Serialize};
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
@@ -79,8 +79,12 @@ use crate::containment::{ToolProfile, contain_tool};
 /// The task process's descriptor for its supervisor's tools, and a `tool` process's for its
 /// supervisor.
 pub const TOOL_FD: RawFd = 3;
-/// The largest frame either side sends.
+/// The largest frame either side sends, but an answer.
 pub const MAX_FRAME: usize = 1 << 20;
+/// The largest answer the supervisor sends a task: it names each file a run kept, up to
+/// `ace_sdk::tools::MAX_KEPT_FILES` of them, which a tshark export of 20,000 objects took past
+/// `MAX_FRAME` (7.5 batch 13). A request, which the task writes, stays at `MAX_FRAME`.
+pub const MAX_ANSWER_FRAME: usize = 16 << 20;
 /// How long the supervisor waits for a `tool` process to contain itself.
 const SETUP_TIMEOUT: Duration = Duration::from_secs(30);
 /// The exit code of a `tool` process that couldn't contain itself or exec.
@@ -100,7 +104,7 @@ pub enum ToolAnswer {
     Failed(String),
 }
 
-/// Writes one frame.
+/// Writes one frame of at most `MAX_FRAME`.
 pub fn write_frame<T: Serialize>(to: &mut impl Write, message: &T) -> io::Result<()> {
     let bytes = serde_json::to_vec(message).map_err(io::Error::other)?;
     if bytes.len() > MAX_FRAME {
@@ -112,12 +116,20 @@ pub fn write_frame<T: Serialize>(to: &mut impl Write, message: &T) -> io::Result
     to.flush()
 }
 
-/// Reads one frame.
+/// Reads one frame of at most `MAX_FRAME`.
 pub fn read_frame<T: for<'de> Deserialize<'de>>(from: &mut impl Read) -> io::Result<T> {
+    read_frame_up_to(from, MAX_FRAME)
+}
+
+/// Reads one frame of at most `max` bytes.
+pub fn read_frame_up_to<T: for<'de> Deserialize<'de>>(
+    from: &mut impl Read,
+    max: usize,
+) -> io::Result<T> {
     let mut length = [0u8; 4];
     from.read_exact(&mut length)?;
     let length = u32::from_be_bytes(length) as usize;
-    if length > MAX_FRAME {
+    if length > max {
         return Err(io::Error::other(format!("a frame of {length} bytes")));
     }
     let mut bytes = vec![0u8; length];
@@ -130,6 +142,9 @@ async fn write_frame_async<T: Serialize>(
     message: &T,
 ) -> io::Result<()> {
     let bytes = serde_json::to_vec(message).map_err(io::Error::other)?;
+    if bytes.len() > MAX_ANSWER_FRAME {
+        return Err(io::Error::other("the message is too large to send"));
+    }
     let length = u32::try_from(bytes.len()).map_err(io::Error::other)?;
     to.write_all(&length.to_be_bytes()).await?;
     to.write_all(&bytes).await?;
@@ -206,7 +221,8 @@ impl ToolRunner for SocketRunner {
             .lock()
             .map_err(|_| io_error(io::Error::other("the tool socket is poisoned")))?;
         write_frame(&mut *stream, run).map_err(io_error)?;
-        let answer: ToolAnswer = read_frame(&mut *stream).map_err(io_error)?;
+        let answer: ToolAnswer =
+            read_frame_up_to(&mut *stream, MAX_ANSWER_FRAME).map_err(io_error)?;
         match answer {
             ToolAnswer::Ran {
                 status,
@@ -765,7 +781,7 @@ impl ToolHost {
             address_space_bytes: tool.spec.memory_bytes,
             // ace3 gives a tool its timeout times the cores: the limit counts every thread
             cpu_seconds: timeout.as_secs().max(1).saturating_mul(cpus),
-            file_size_bytes: FILE_SIZE_LIMIT,
+            file_size_bytes: tool.spec.file_size_bytes,
             open_files: OPEN_FILES_LIMIT,
         };
         let outputs = results.join("outputs");

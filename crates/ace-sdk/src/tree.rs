@@ -20,19 +20,23 @@ use crate::wire::Presigned;
 pub const MAX_TREE_OBSERVABLES: usize = 20_000;
 pub const MAX_TREE_RESULTS: usize = 20_000;
 
-/// The files of the tree whose bytes a module reads (`Module::READS_TREE_FILES`): those added
-/// under a path whose last part contains one of `names_containing`, no larger than `max_size`.
+/// The files of the tree whose bytes a module reads (`Module::READS_TREE_FILES`): those no larger
+/// than `max_size` added under a path whose last part contains one of `names_containing`, or
+/// tagged `tagged`, such as the TLS key logs tls_keylog tags.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct TreeFiles {
     pub names_containing: &'static [&'static str],
     pub max_size: u64,
+    pub tagged: Option<&'static str>,
 }
 
 impl TreeFiles {
-    /// Whether the core sends the file added under `path`, of `size` bytes.
-    pub fn wants(&self, path: &str, size: u64) -> bool {
+    /// Whether the core sends the file added under `path`, of `size` bytes, with `tags`.
+    pub fn wants(&self, path: &str, size: u64, tags: &[String]) -> bool {
         let name = path.rsplit('/').next().unwrap_or_default();
-        size <= self.max_size && self.names_containing.iter().any(|part| name.contains(part))
+        size <= self.max_size
+            && (self.names_containing.iter().any(|part| name.contains(part))
+                || self.tagged.is_some_and(|tag| tags.iter().any(|t| t == tag)))
     }
 }
 
@@ -359,9 +363,18 @@ mod tests {
         let files = TreeFiles {
             names_containing: &[".unknown_text_html"],
             max_size: 10,
+            tagged: None,
         };
-        assert!(files.wants("email.rfc822.unknown_text_html_000", 10));
-        assert!(!files.wants("email.rfc822.unknown_text_html_000", 11));
-        assert!(!files.wants("a.unknown_text_html/other", 1));
+        assert!(files.wants("email.rfc822.unknown_text_html_000", 10, &[]));
+        assert!(!files.wants("email.rfc822.unknown_text_html_000", 11, &[]));
+        assert!(!files.wants("a.unknown_text_html/other", 1, &[]));
+        let tagged = TreeFiles {
+            names_containing: &[],
+            max_size: 10,
+            tagged: Some("tls_keylog"),
+        };
+        assert!(tagged.wants("keys.txt", 10, &["tls_keylog".to_owned()]));
+        assert!(!tagged.wants("keys.txt", 11, &["tls_keylog".to_owned()]));
+        assert!(!tagged.wants("keys.txt", 1, &["other".to_owned()]));
     }
 }

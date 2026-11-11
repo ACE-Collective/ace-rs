@@ -104,6 +104,9 @@ pub struct Manifest {
     pub adds_to_others: Option<OtherAdditionsAllowed>,
     /// The module changes its root's description and details (`Module::SETS_ROOT`).
     pub sets_root: bool,
+    /// The module adds files a module it depends on stored for the root
+    /// (`Module::ADDS_STORED_FILES`).
+    pub adds_stored_files: bool,
     /// The analyst-edited lists the module reads (`Module::LISTS`).
     pub lists: &'static [ListSpec],
     /// The reads of ACE's own data the module makes (`Module::READS`).
@@ -174,6 +177,7 @@ impl Manifest {
             reads_tree_files: M::READS_TREE_FILES,
             adds_to_others: M::ADDS_TO_OTHERS,
             sets_root: M::SETS_ROOT,
+            adds_stored_files: M::ADDS_STORED_FILES,
             lists: M::LISTS,
             reads: M::READS,
             writes: M::WRITES,

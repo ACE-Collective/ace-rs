@@ -188,6 +188,7 @@ impl Module for LureUrlAnalyzer {
     const READS_TREE_FILES: Option<TreeFiles> = Some(TreeFiles {
         names_containing: &[HTML_BODY_MARKER],
         max_size: MAX_BODY_BYTES,
+        tagged: None,
     });
     type Output = LureUrlAnalysis;
     type Settings = LureSettings;

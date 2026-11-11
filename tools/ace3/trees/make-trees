@@ -62,7 +62,8 @@ ENABLE = [
     "mailbox_email_analyzer", "email_conversation_attachment_analyzer", "email_conversation_link_analyzer",
     "email_archiver", "encrypted_archive_analyzer", "url_email_pivot_analyzer", "message_id_analyzer_v2",
     "pdftotext", "exif", "qrcode", "ocr", "java_class_decompiler", "upx", "autoit", "de4dot", "ilspy",
-    "dmg_analyzer", "cve_2021_30657_analyzer",
+    "dmg_analyzer", "cve_2021_30657_analyzer", "pcap_analyzer", "pcap_dns", "pcap_tls", "pcap_http", "pcap_files",
+    "pcap_tls_decryption", "tls_keylog",
 ]
 BROCESS = HERE / "brocess.json"
 NRD = HERE / "nrd.json"

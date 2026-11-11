@@ -160,7 +160,8 @@ CMD ["ace-parsers"]
 # image has for zbarimg, Ghostscript, pdftotext and ExifTool. Batch 11 adds the JVM with CFR 0.151,
 # upx, unautoit, and .NET's 10.0.14 runtime with ilspycmd and de4dotEx (decision 18): the headless
 # JRE, where ace3's default-jre adds the GUI libraries nothing here uses, and the runtime from
-# Microsoft's repository, where ace3 installs the whole SDK. Batch 12 adds dmg2img and 7-Zip.
+# Microsoft's repository, where ace3 installs the whole SDK. Batch 12 adds dmg2img and 7-Zip, and batch
+# 13 tshark.
 FROM runtime AS sandbox
 ADD --checksum=sha256:d0c2f69250c6ce0d4c6220b142f999d039a3c560af7f980b943687d106ca8e38 \
     https://packages.microsoft.com/config/debian/13/packages-microsoft-prod.deb /tmp/packages-microsoft-prod.deb
@@ -204,6 +205,15 @@ COPY --from=unautoit /out/unautoit /usr/local/bin/unautoit
 COPY --from=unautoit /out/doc /usr/local/share/doc/unautoit
 COPY --from=dotnet-tools /opt/dotnet /opt/dotnet
 COPY --from=dotnet-tools /opt/de4dotEx /opt/de4dotEx
+# Batch 13's tshark and capinfos, at ace3's version (4.4.19, Debian's security update). wireshark-common's
+# debconf question is answered as ace3's Dockerfile answers it: dumpcap isn't installed setuid, and
+# nothing runs it, since a pcap module only reads a file.
+RUN echo "wireshark-common wireshark-common/install-setuid boolean false" | debconf-set-selections \
+    && apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        tshark=4.4.19-0+deb13u1 wireshark-common=4.4.19-0+deb13u1 libwireshark18=4.4.19-0+deb13u1 \
+        libwiretap15=4.4.19-0+deb13u1 libwsutil16=4.4.19-0+deb13u1 libwireshark-data=4.4.19-0+deb13u1 \
+    && rm -rf /var/lib/apt/lists/*
 COPY --from=build /out/ace-sandbox /usr/local/bin/ace-sandbox
 CMD ["ace-sandbox"]
 

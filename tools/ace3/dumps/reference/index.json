@@ -11200,6 +11200,492 @@
     },
     {
       "ace3_commit": "f72f8946",
+      "analysis": "PcapAnalysis",
+      "dump": "pcap_analyzer/ace3/pcap/http_tls.pcapng.json",
+      "input": "ace3/pcap/http_tls.pcapng",
+      "module": "pcap_analyzer",
+      "observables_added": 0,
+      "summary": "PCAP Analysis: 41 packets, 3 flows, 2 TLS sessions"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "PcapAnalysis",
+      "dump": "pcap_analyzer/ace3/pcap/http_tls_dsb.pcapng.json",
+      "input": "ace3/pcap/http_tls_dsb.pcapng",
+      "module": "pcap_analyzer",
+      "observables_added": 0,
+      "summary": "PCAP Analysis: 41 packets, 3 flows, 2 TLS sessions, decryption keys embedded (TLS keys for 2 sessions)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "PcapAnalysis",
+      "dump": "pcap_analyzer/ace3/pcap/network.pcap.json",
+      "input": "ace3/pcap/network.pcap",
+      "module": "pcap_analyzer",
+      "observables_added": 7,
+      "summary": "PCAP Analysis: 5 packets, 4 flows, 0 TLS sessions (2 hostname, 3 ip, 2 mac_address)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "PcapAnalysis",
+      "dump": "pcap_analyzer/ace4/pcap/bad_certificate.pcap.json",
+      "input": "ace4/pcap/bad_certificate.pcap",
+      "module": "pcap_analyzer",
+      "observables_added": 5,
+      "summary": "PCAP Analysis: 16 packets, 2 flows, 2 TLS sessions (3 ip, 2 mac_address)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "PcapAnalysis",
+      "dump": "pcap_analyzer/ace4/pcap/ipv6_hosts.pcapng.json",
+      "input": "ace4/pcap/ipv6_hosts.pcapng",
+      "module": "pcap_analyzer",
+      "observables_added": 12,
+      "summary": "PCAP Analysis: 17 packets, 5 flows, 0 TLS sessions (4 hostname, 5 ip, 3 mac_address)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "PcapAnalysis",
+      "dump": "pcap_analyzer/ace4/pcap/many_files.pcap.json",
+      "input": "ace4/pcap/many_files.pcap",
+      "module": "pcap_analyzer",
+      "observables_added": 26,
+      "summary": "PCAP Analysis: 992 packets, 124 flows, 1 TLS sessions (24 ip, 2 mac_address)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "PcapAnalysis",
+      "dump": "pcap_analyzer/ace4/pcap/many_hosts.pcap.json",
+      "input": "ace4/pcap/many_hosts.pcap",
+      "module": "pcap_analyzer",
+      "observables_added": 53,
+      "summary": "PCAP Analysis: 2335 packets, 747 flows, 71 TLS sessions (50 ip, 3 mac_address)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "pcap_analyzer/ace4/pcap/not_a_capture.pcap.json",
+      "input": "ace4/pcap/not_a_capture.pcap",
+      "module": "pcap_analyzer",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "PcapAnalysis",
+      "dump": "pcap_analyzer/ace4/pcap/truncated.pcap.json",
+      "input": "ace4/pcap/truncated.pcap",
+      "module": "pcap_analyzer",
+      "observables_added": 8,
+      "summary": "PCAP Analysis: 39 packets, 5 flows, 0 TLS sessions (6 ip, 2 mac_address)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "pcap_dns/ace3/pcap/http_tls.pcapng.json",
+      "input": "ace3/pcap/http_tls.pcapng",
+      "module": "pcap_dns",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "pcap_dns/ace3/pcap/http_tls_dsb.pcapng.json",
+      "input": "ace3/pcap/http_tls_dsb.pcapng",
+      "module": "pcap_dns",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "PcapCategoryAnalysis",
+      "dump": "pcap_dns/ace3/pcap/network.pcap.json",
+      "input": "ace3/pcap/network.pcap",
+      "module": "pcap_dns",
+      "observables_added": 3,
+      "summary": "PCAP DNS: 3 entries (2 fqdn, 1 ip)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "pcap_dns/ace4/pcap/bad_certificate.pcap.json",
+      "input": "ace4/pcap/bad_certificate.pcap",
+      "module": "pcap_dns",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "PcapCategoryAnalysis",
+      "dump": "pcap_dns/ace4/pcap/ipv6_hosts.pcapng.json",
+      "input": "ace4/pcap/ipv6_hosts.pcapng",
+      "module": "pcap_dns",
+      "observables_added": 4,
+      "summary": "PCAP DNS: 2 entries (2 fqdn, 2 ip)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "pcap_dns/ace4/pcap/many_files.pcap.json",
+      "input": "ace4/pcap/many_files.pcap",
+      "module": "pcap_dns",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "PcapCategoryAnalysis",
+      "dump": "pcap_dns/ace4/pcap/many_hosts.pcap.json",
+      "input": "ace4/pcap/many_hosts.pcap",
+      "module": "pcap_dns",
+      "observables_added": 50,
+      "summary": "PCAP DNS: 666 entries (50 fqdn), 904 over the limit"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "pcap_dns/ace4/pcap/not_a_capture.pcap.json",
+      "input": "ace4/pcap/not_a_capture.pcap",
+      "module": "pcap_dns",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "pcap_dns/ace4/pcap/truncated.pcap.json",
+      "input": "ace4/pcap/truncated.pcap",
+      "module": "pcap_dns",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "PcapCategoryAnalysis",
+      "dump": "pcap_files/ace3/pcap/http_tls.pcapng.json",
+      "input": "ace3/pcap/http_tls.pcapng",
+      "module": "pcap_files",
+      "observables_added": 2,
+      "summary": "PCAP Files: 1 files (1 file)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "PcapCategoryAnalysis",
+      "dump": "pcap_files/ace3/pcap/http_tls_dsb.pcapng.json",
+      "input": "ace3/pcap/http_tls_dsb.pcapng",
+      "module": "pcap_files",
+      "observables_added": 6,
+      "summary": "PCAP Files: 3 files (3 file)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "pcap_files/ace3/pcap/network.pcap.json",
+      "input": "ace3/pcap/network.pcap",
+      "module": "pcap_files",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "pcap_files/ace4/pcap/bad_certificate.pcap.json",
+      "input": "ace4/pcap/bad_certificate.pcap",
+      "module": "pcap_files",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "PcapCategoryAnalysis",
+      "dump": "pcap_files/ace4/pcap/ipv6_hosts.pcapng.json",
+      "input": "ace4/pcap/ipv6_hosts.pcapng",
+      "module": "pcap_files",
+      "observables_added": 2,
+      "summary": "PCAP Files: 1 files (1 file)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "PcapCategoryAnalysis",
+      "dump": "pcap_files/ace4/pcap/many_files.pcap.json",
+      "input": "ace4/pcap/many_files.pcap",
+      "module": "pcap_files",
+      "observables_added": 100,
+      "summary": "PCAP Files: 121 files (50 file), 50 over the limit"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "PcapCategoryAnalysis",
+      "dump": "pcap_files/ace4/pcap/many_hosts.pcap.json",
+      "input": "ace4/pcap/many_hosts.pcap",
+      "module": "pcap_files",
+      "observables_added": 100,
+      "summary": "PCAP Files: 70 files (50 file), 20 over the limit"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "pcap_files/ace4/pcap/not_a_capture.pcap.json",
+      "input": "ace4/pcap/not_a_capture.pcap",
+      "module": "pcap_files",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "PcapCategoryAnalysis",
+      "dump": "pcap_files/ace4/pcap/truncated.pcap.json",
+      "input": "ace4/pcap/truncated.pcap",
+      "module": "pcap_files",
+      "observables_added": 10,
+      "summary": "PCAP Files: 5 files (5 file)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "PcapCategoryAnalysis",
+      "dump": "pcap_http/ace3/pcap/http_tls.pcapng.json",
+      "input": "ace3/pcap/http_tls.pcapng",
+      "module": "pcap_http",
+      "observables_added": 3,
+      "summary": "PCAP HTTP: 1 entries (1 fqdn, 1 url, 1 user_agent)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "PcapCategoryAnalysis",
+      "dump": "pcap_http/ace3/pcap/http_tls_dsb.pcapng.json",
+      "input": "ace3/pcap/http_tls_dsb.pcapng",
+      "module": "pcap_http",
+      "observables_added": 7,
+      "summary": "PCAP HTTP: 3 entries (3 fqdn, 3 url, 1 user_agent)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "pcap_http/ace3/pcap/network.pcap.json",
+      "input": "ace3/pcap/network.pcap",
+      "module": "pcap_http",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "pcap_http/ace4/pcap/bad_certificate.pcap.json",
+      "input": "ace4/pcap/bad_certificate.pcap",
+      "module": "pcap_http",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "PcapCategoryAnalysis",
+      "dump": "pcap_http/ace4/pcap/ipv6_hosts.pcapng.json",
+      "input": "ace4/pcap/ipv6_hosts.pcapng",
+      "module": "pcap_http",
+      "observables_added": 3,
+      "summary": "PCAP HTTP: 1 entries (1 ip, 1 url, 1 user_agent)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "PcapCategoryAnalysis",
+      "dump": "pcap_http/ace4/pcap/many_files.pcap.json",
+      "input": "ace4/pcap/many_files.pcap",
+      "module": "pcap_http",
+      "observables_added": 71,
+      "summary": "PCAP HTTP: 120 entries (20 fqdn, 50 url, 1 user_agent), 70 over the limit"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "PcapCategoryAnalysis",
+      "dump": "pcap_http/ace4/pcap/many_hosts.pcap.json",
+      "input": "ace4/pcap/many_hosts.pcap",
+      "module": "pcap_http",
+      "observables_added": 107,
+      "summary": "PCAP HTTP: 70 entries (50 fqdn, 50 url, 7 user_agent), 40 over the limit"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "pcap_http/ace4/pcap/not_a_capture.pcap.json",
+      "input": "ace4/pcap/not_a_capture.pcap",
+      "module": "pcap_http",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "PcapCategoryAnalysis",
+      "dump": "pcap_http/ace4/pcap/truncated.pcap.json",
+      "input": "ace4/pcap/truncated.pcap",
+      "module": "pcap_http",
+      "observables_added": 11,
+      "summary": "PCAP HTTP: 5 entries (5 fqdn, 5 url, 1 user_agent)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "PcapCategoryAnalysis",
+      "dump": "pcap_tls/ace3/pcap/http_tls.pcapng.json",
+      "input": "ace3/pcap/http_tls.pcapng",
+      "module": "pcap_tls",
+      "observables_added": 5,
+      "summary": "PCAP TLS: 2 entries (1 file, 2 fqdn, 2 ja4)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "PcapCategoryAnalysis",
+      "dump": "pcap_tls/ace3/pcap/http_tls_dsb.pcapng.json",
+      "input": "ace3/pcap/http_tls_dsb.pcapng",
+      "module": "pcap_tls",
+      "observables_added": 5,
+      "summary": "PCAP TLS: 2 entries (1 file, 2 fqdn, 2 ja4)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "pcap_tls/ace3/pcap/network.pcap.json",
+      "input": "ace3/pcap/network.pcap",
+      "module": "pcap_tls",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "PcapCategoryAnalysis",
+      "dump": "pcap_tls/ace4/pcap/bad_certificate.pcap.json",
+      "input": "ace4/pcap/bad_certificate.pcap",
+      "module": "pcap_tls",
+      "observables_added": 3,
+      "summary": "PCAP TLS: 2 entries (1 fqdn, 2 ja4)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "pcap_tls/ace4/pcap/ipv6_hosts.pcapng.json",
+      "input": "ace4/pcap/ipv6_hosts.pcapng",
+      "module": "pcap_tls",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "PcapCategoryAnalysis",
+      "dump": "pcap_tls/ace4/pcap/many_files.pcap.json",
+      "input": "ace4/pcap/many_files.pcap",
+      "module": "pcap_tls",
+      "observables_added": 2,
+      "summary": "PCAP TLS: 1 entries (1 fqdn, 1 ja4)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "PcapCategoryAnalysis",
+      "dump": "pcap_tls/ace4/pcap/many_hosts.pcap.json",
+      "input": "ace4/pcap/many_hosts.pcap",
+      "module": "pcap_tls",
+      "observables_added": 53,
+      "summary": "PCAP TLS: 71 entries (50 fqdn, 3 ja4), 20 over the limit"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "pcap_tls/ace4/pcap/not_a_capture.pcap.json",
+      "input": "ace4/pcap/not_a_capture.pcap",
+      "module": "pcap_tls",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "pcap_tls/ace4/pcap/truncated.pcap.json",
+      "input": "ace4/pcap/truncated.pcap",
+      "module": "pcap_tls",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "PcapTlsDecryptionAnalysis",
+      "dump": "pcap_tls_decryption/ace3/pcap/http_tls.pcapng.json",
+      "input": "ace3/pcap/http_tls.pcapng",
+      "module": "pcap_tls_decryption",
+      "observables_added": 0,
+      "summary": "PCAP TLS Decryption: no TLS key log found (2 TLS sessions)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "PcapTlsDecryptionAnalysis",
+      "dump": "pcap_tls_decryption/ace3/pcap/http_tls.pcapng.with_keylog_mixed.txt.json",
+      "input": "ace3/pcap/http_tls.pcapng with ace4/pcap/keylog_mixed.txt",
+      "module": "pcap_tls_decryption",
+      "observables_added": 2,
+      "summary": "PCAP TLS Decryption: keys for 1 of 2 TLS sessions (1 key logs), new: 1 file, 1 url"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "PcapTlsDecryptionAnalysis",
+      "dump": "pcap_tls_decryption/ace3/pcap/http_tls.pcapng.with_not_a_keylog.txt.json",
+      "input": "ace3/pcap/http_tls.pcapng with ace4/pcap/not_a_keylog.txt",
+      "module": "pcap_tls_decryption",
+      "observables_added": 0,
+      "summary": "PCAP TLS Decryption: no TLS key log found (2 TLS sessions)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "PcapTlsDecryptionAnalysis",
+      "dump": "pcap_tls_decryption/ace3/pcap/http_tls.pcapng.with_sslkeylog.txt.json",
+      "input": "ace3/pcap/http_tls.pcapng with ace3/pcap/sslkeylog.txt",
+      "module": "pcap_tls_decryption",
+      "observables_added": 4,
+      "summary": "PCAP TLS Decryption: keys for 2 of 2 TLS sessions (1 key logs), new: 2 file, 2 url"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "PcapTlsDecryptionAnalysis",
+      "dump": "pcap_tls_decryption/ace3/pcap/http_tls_dsb.pcapng.json",
+      "input": "ace3/pcap/http_tls_dsb.pcapng",
+      "module": "pcap_tls_decryption",
+      "observables_added": 0,
+      "summary": "PCAP TLS Decryption: keys for 2 of 2 TLS sessions (embedded in the capture)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "PcapTlsDecryptionAnalysis",
+      "dump": "pcap_tls_decryption/ace3/pcap/http_tls_dsb.pcapng.with_sslkeylog.txt.json",
+      "input": "ace3/pcap/http_tls_dsb.pcapng with ace3/pcap/sslkeylog.txt",
+      "module": "pcap_tls_decryption",
+      "observables_added": 0,
+      "summary": "PCAP TLS Decryption: keys for 2 of 2 TLS sessions (embedded in the capture and 1 key logs)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "pcap_tls_decryption/ace3/pcap/network.pcap.with_sslkeylog.txt.json",
+      "input": "ace3/pcap/network.pcap with ace3/pcap/sslkeylog.txt",
+      "module": "pcap_tls_decryption",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "PcapTlsDecryptionAnalysis",
+      "dump": "pcap_tls_decryption/ace4/pcap/bad_certificate.pcap.with_sslkeylog.txt.json",
+      "input": "ace4/pcap/bad_certificate.pcap with ace3/pcap/sslkeylog.txt",
+      "module": "pcap_tls_decryption",
+      "observables_added": 0,
+      "summary": "PCAP TLS Decryption: keys for 0 of 2 TLS sessions (1 key logs)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "PcapTlsDecryptionAnalysis",
+      "dump": "pcap_tls_decryption/ace4/pcap/many_hosts.pcap.with_keylog_mixed.txt.json",
+      "input": "ace4/pcap/many_hosts.pcap with ace4/pcap/keylog_mixed.txt",
+      "module": "pcap_tls_decryption",
+      "observables_added": 0,
+      "summary": "PCAP TLS Decryption: keys for 0 of 71 TLS sessions (1 key logs)"
+    },
+    {
+      "ace3_commit": "f72f8946",
       "analysis": null,
       "dump": "pdf_encryption_analyzer/ace4/pdf/encrypted_aes_128.pdf.json",
       "input": "ace4/pdf/encrypted_aes_128.pdf",
@@ -14455,6 +14941,42 @@
       "module": "ssdeep",
       "observables_added": 0,
       "summary": "Ssdeep Analysis (1 matches 100% highest match)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "tls_keylog/ace3/pcap/http_tls.pcapng.json",
+      "input": "ace3/pcap/http_tls.pcapng",
+      "module": "tls_keylog",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "TlsKeylogAnalysis",
+      "dump": "tls_keylog/ace3/pcap/sslkeylog.txt.json",
+      "input": "ace3/pcap/sslkeylog.txt",
+      "module": "tls_keylog",
+      "observables_added": 0,
+      "summary": "TLS Key Log: 6 secrets for 2 TLS sessions (1 CLIENT_HANDSHAKE_TRAFFIC_SECRET, 1 CLIENT_RANDOM, 1 CLIENT_TRAFFIC_SECRET_0, 1 EXPORTER_SECRET, 1 SERVER_HANDSHAKE_TRAFFIC_SECRET, 1 SERVER_TRAFFIC_SECRET_0)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "TlsKeylogAnalysis",
+      "dump": "tls_keylog/ace4/pcap/keylog_mixed.txt.json",
+      "input": "ace4/pcap/keylog_mixed.txt",
+      "module": "tls_keylog",
+      "observables_added": 0,
+      "summary": "TLS Key Log: 5 secrets for 2 TLS sessions (1 CLIENT_EARLY_TRAFFIC_SECRET, 1 CLIENT_RANDOM, 1 EARLY_EXPORTER_SECRET, 1 EXPORTER_SECRET, 1 RSA)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "tls_keylog/ace4/pcap/not_a_keylog.txt.json",
+      "input": "ace4/pcap/not_a_keylog.txt",
+      "module": "tls_keylog",
+      "observables_added": 0,
+      "summary": null
     },
     {
       "ace3_commit": "f72f8946",

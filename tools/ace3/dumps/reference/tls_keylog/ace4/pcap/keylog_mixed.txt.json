@@ -1,0 +1,59 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "TlsKeylogAnalysis",
+      "details": {
+        "applied_to": [],
+        "client_randoms": 2,
+        "label_counts": {
+          "CLIENT_EARLY_TRAFFIC_SECRET": 1,
+          "CLIENT_RANDOM": 1,
+          "EARLY_EXPORTER_SECRET": 1,
+          "EXPORTER_SECRET": 1,
+          "RSA": 1
+        },
+        "skipped": []
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.pcap:TlsKeylogAnalysis",
+      "observables": [],
+      "summary": "TLS Key Log: 5 secrets for 2 TLS sessions (1 CLIENT_EARLY_TRAFFIC_SECRET, 1 CLIENT_RANDOM, 1 EARLY_EXPORTER_SECRET, 1 EXPORTER_SECRET, 1 RSA)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace4/pcap/keylog_mixed.txt",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "keylog_mixed.txt",
+      "size": 929,
+      "type": "file",
+      "value": "6b398d4881e1db90a0a350b2f26f311e7fd2ecb2b37b392e274754d6384f8898"
+    }
+  },
+  "module": "tls_keylog",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "keylog_mixed.txt",
+    "relationships": [],
+    "size": 929,
+    "tags": [
+      "tls_keylog"
+    ],
+    "type": "file",
+    "value": "6b398d4881e1db90a0a350b2f26f311e7fd2ecb2b37b392e274754d6384f8898",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

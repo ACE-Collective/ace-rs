@@ -10,7 +10,7 @@ pub mod email_address;
 pub mod file_path;
 mod iptools;
 pub mod network;
-mod observable;
+pub mod observable;
 pub mod protected;
 pub mod py;
 pub mod urls;

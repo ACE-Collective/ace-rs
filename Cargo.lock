@@ -21,6 +21,7 @@ dependencies = [
  "ace-mod-nrd",
  "ace-mod-office",
  "ace-mod-oletools",
+ "ace-mod-pcap",
  "ace-mod-pdf",
  "ace-mod-rdap",
  "ace-mod-sandbox",
@@ -509,6 +510,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "ace-mod-pcap"
+version = "0.1.0"
+dependencies = [
+ "ace-mod-values",
+ "ace-pycompat",
+ "ace-results",
+ "ace-sdk",
+ "ace-testkit",
+ "ace-x509",
+ "chrono",
+ "regex",
+ "schemars 1.2.3",
+ "serde",
+ "serde_json",
+ "sha2 0.11.1",
+ "tempfile",
+ "tracing",
+]
+
+[[package]]
 name = "ace-mod-pdf"
 version = "0.1.0"
 dependencies = [
@@ -724,6 +745,7 @@ dependencies = [
  "ace-mod-nrd",
  "ace-mod-office",
  "ace-mod-oletools",
+ "ace-mod-pcap",
  "ace-mod-pdf",
  "ace-mod-sandbox",
  "ace-mod-scripts",

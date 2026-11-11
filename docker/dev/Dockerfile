@@ -1,5 +1,5 @@
 # The dev container: the pinned toolchain plus mold, sccache and bacon, and the sandbox pool's
-# tools and OpenCV (PLAN.md 7.5 batches 10 and 11).
+# tools and OpenCV (PLAN.md 7.5 batches 10 to 13).
 
 # OpenCV 5.0.0, the release ace3's opencv-python 5.0.0.93 is built from, for the ocr and qrcode
 # modules' `opencv` crate (PLAN.md 7.3). It keeps the wheel's defaults, so the same code runs: its
@@ -134,7 +134,7 @@ CMD ["poll-host-changes"]
 RUN useradd --system --uid 10001 --user-group --no-create-home --home-dir /nonexistent \
         --shell /usr/sbin/nologin ace4-task
 
-# The sandbox pool's tools (PLAN.md 7.5 batches 10 to 12, docs/modules.md's *External tools*), at the
+# The sandbox pool's tools (PLAN.md 7.5 batches 10 to 13, docs/modules.md's *External tools*), at the
 # versions docker/ace4/Dockerfile's sandbox image pins, which are ace3's, so the sandbox runner's
 # tests and the modules' tests run the programs ace3 runs. unace is in non-free. strace is for
 # finding what a tool opens. libclang is what the `opencv` crate generates its bindings with, over
@@ -186,3 +186,13 @@ ENV LIBCLANG_PATH=/usr/lib/llvm-19/lib \
     OPENCV_INCLUDE_PATHS=/opt/opencv/include/opencv5 \
     OPENCV_LINK_PATHS=/opt/opencv/lib,/opt/opencv/lib/opencv5/3rdparty \
     OPENCV_LINK_LIBS=static=opencv_objdetect,static=opencv_photo,static=opencv_features,static=opencv_flann,static=opencv_imgcodecs,static=opencv_imgproc,static=opencv_geometry,static=opencv_core,static=liblibjpeg-turbo,static=liblibopenjp2,static=liblibpng,static=liblibtiff,static=liblibwebp,static=zlib,static=kleidicv_hal,static=kleidicv_thread,static=kleidicv,static=tegra_hal,static=ittnotify,stdc++
+# batch 13's tshark and capinfos, at ace3's version (4.4.19, Debian's security update), in a layer of
+# their own at the end so the layers above stay cached. wireshark-common's debconf question is
+# answered as ace3's Dockerfile answers it: dumpcap isn't installed setuid. Nothing runs dumpcap: a
+# pcap module only reads a file.
+RUN echo "wireshark-common wireshark-common/install-setuid boolean false" | debconf-set-selections \
+    && apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        tshark=4.4.19-0+deb13u1 wireshark-common=4.4.19-0+deb13u1 libwireshark18=4.4.19-0+deb13u1 \
+        libwiretap15=4.4.19-0+deb13u1 libwsutil16=4.4.19-0+deb13u1 libwireshark-data=4.4.19-0+deb13u1 \
+    && rm -rf /var/lib/apt/lists/*

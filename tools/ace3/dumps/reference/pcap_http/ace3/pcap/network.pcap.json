@@ -1,0 +1,284 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "pcap_analyzer"
+  ],
+  "analyses": [
+    {
+      "class": "PcapAnalysis",
+      "details": {
+        "added": {
+          "hostname": 2,
+          "ip": 3,
+          "mac_address": 2
+        },
+        "error": null,
+        "index": {
+          "capture": {
+            "application": null,
+            "duration": 4.0,
+            "encapsulations": [
+              "Ethernet"
+            ],
+            "file_name": "network.pcap",
+            "first": 1767225600.0,
+            "format": "pcap",
+            "interfaces": 1,
+            "last": 1767225604.0,
+            "packets": 5,
+            "size": 870,
+            "strict_time_order": true
+          },
+          "carved_sha256": [],
+          "certificates": [],
+          "certificates_total": 0,
+          "dns": [
+            {
+              "answer_times": {
+                "198.51.100.7": 1767225603.0,
+                "cdn.pcap-dns.example": 1767225603.0
+              },
+              "answers": [
+                "198.51.100.7",
+                "cdn.pcap-dns.example"
+              ],
+              "name": "www.pcap-dns.example",
+              "queries": 1,
+              "responses": 1,
+              "seen_as": []
+            },
+            {
+              "answers": [],
+              "name": "cdn.pcap-dns.example",
+              "queries": 0,
+              "responses": 0,
+              "seen_as": [
+                "cname"
+              ]
+            },
+            {
+              "answers": [],
+              "name": "7.100.51.198.in-addr.arpa",
+              "queries": 1,
+              "responses": 0,
+              "seen_as": []
+            }
+          ],
+          "dns_total": 3,
+          "field_packet_limit": 50000,
+          "hostnames": [
+            {
+              "mac": "02:00:00:aa:00:01",
+              "name": "pcap-workstation",
+              "source": "dhcp"
+            },
+            {
+              "mac": null,
+              "name": "PCAPNBNSHOST",
+              "source": "nbns"
+            }
+          ],
+          "hostnames_total": 2,
+          "http": [],
+          "http_total": 0,
+          "objects": [],
+          "objects_total": 0,
+          "statistics": {
+            "bytes": 766,
+            "flows": [
+              {
+                "a": "10.20.30.40:53001",
+                "b": "10.20.30.1:53",
+                "bytes": "261 bytes",
+                "duration": 1.0,
+                "frames": 2,
+                "protocol": "udp",
+                "start": 2.0
+              },
+              {
+                "a": "0.0.0.0:68",
+                "b": "255.255.255.255:67",
+                "bytes": "310 bytes",
+                "duration": 0.0,
+                "frames": 1,
+                "protocol": "udp",
+                "start": 0.0
+              },
+              {
+                "a": "10.20.30.40:137",
+                "b": "10.20.30.255:137",
+                "bytes": "110 bytes",
+                "duration": 0.0,
+                "frames": 1,
+                "protocol": "udp",
+                "start": 1.0
+              },
+              {
+                "a": "10.20.30.40:53002",
+                "b": "10.20.30.1:53",
+                "bytes": "85 bytes",
+                "duration": 0.0,
+                "frames": 1,
+                "protocol": "udp",
+                "start": 4.0
+              }
+            ],
+            "flows_total": 4,
+            "ip": [
+              {
+                "address": "10.20.30.40",
+                "bytes": 456,
+                "packets": 4
+              },
+              {
+                "address": "10.20.30.1",
+                "bytes": 346,
+                "packets": 3
+              },
+              {
+                "address": "0.0.0.0",
+                "bytes": 310,
+                "packets": 1
+              },
+              {
+                "address": "255.255.255.255",
+                "bytes": 310,
+                "packets": 1
+              },
+              {
+                "address": "10.20.30.255",
+                "bytes": 110,
+                "packets": 1
+              }
+            ],
+            "ip_total": 5,
+            "mac": [
+              {
+                "address": "02:00:00:aa:00:01",
+                "bytes": 766,
+                "packets": 5
+              },
+              {
+                "address": "02:00:00:bb:00:02",
+                "bytes": 346,
+                "packets": 3
+              },
+              {
+                "address": "ff:ff:ff:ff:ff:ff",
+                "bytes": 420,
+                "packets": 2
+              }
+            ],
+            "mac_total": 3,
+            "packets": 5
+          },
+          "statistics_error": null,
+          "tls": [],
+          "tls_client_randoms": [],
+          "tls_total": 0
+        },
+        "omitted": {}
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.pcap:PcapAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "ip",
+          "value": "10.20.30.40"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "ip",
+          "value": "10.20.30.1"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "ip",
+          "value": "10.20.30.255"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "mac_address",
+          "value": "02-00-00-aa-00-01"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "mac_address",
+          "value": "02-00-00-bb-00-02"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "hostname",
+          "value": "pcap-workstation"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "hostname",
+          "value": "PCAPNBNSHOST"
+        }
+      ],
+      "summary": "PCAP Analysis: 5 packets, 4 flows, 0 TLS sessions (2 hostname, 3 ip, 2 mac_address)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace3/pcap/network.pcap",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "network.pcap",
+      "size": 870,
+      "type": "file",
+      "value": "4470c2938bede3f47a2e823cad96dc556bd1ca77b47d50ef55a95a0539067338"
+    }
+  },
+  "module": "pcap_http",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "network.pcap",
+    "relationships": [],
+    "size": 870,
+    "tags": [],
+    "type": "file",
+    "value": "4470c2938bede3f47a2e823cad96dc556bd1ca77b47d50ef55a95a0539067338",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

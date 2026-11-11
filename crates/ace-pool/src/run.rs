@@ -171,14 +171,19 @@ pub async fn send_end(
     end: &TaskEnd,
 ) -> Result<(), ClientError> {
     if let TaskEnd::Done { result, .. } = end {
-        for file in &result.files {
-            let path = outputs.path_of(&file.sha256);
-            // a file a read put in the root is already in the bucket, and the core checks that it
-            // is, and that the module may add one (`reads.md`)
-            if !path.exists() {
+        let files = result.files.iter().map(|f| (&f.sha256, f.size));
+        let stored = result.stored.iter().map(|f| (&f.sha256, f.size));
+        let mut sent = Vec::new();
+        for (sha256, size) in files.chain(stored) {
+            let path = outputs.path_of(sha256);
+            // a file a read put in the root, or another result stored there, is already in the
+            // bucket, and the core checks that it is, and that the module may add one (`reads.md`,
+            // `Module::ADDS_STORED_FILES`)
+            if !path.exists() || sent.contains(&sha256) {
                 continue;
             }
-            let url = client.upload_url(task.id, &file.sha256, file.size).await?;
+            sent.push(sha256);
+            let url = client.upload_url(task.id, sha256, size).await?;
             client.upload(&url, &path).await?;
         }
     }

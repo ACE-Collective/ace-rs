@@ -1,0 +1,55 @@
+{
+  "analysis_type": "pcap_http_analysis",
+  "schema_version": 1,
+  "details": {
+    "added": {
+      "fqdn": 1,
+      "url": 1,
+      "user_agent": 1
+    },
+    "capture": {
+      "application": "Dumpcap (Wireshark) 4.4.19",
+      "duration": 0.044872099,
+      "encapsulations": [
+        "Ethernet"
+      ],
+      "file_name": "http_tls.pcapng",
+      "first": 1792604746.451967,
+      "format": "pcapng",
+      "interfaces": 1,
+      "last": 1792604746.496839,
+      "packets": 41,
+      "size": 11652,
+      "strict_time_order": true
+    },
+    "category": "http",
+    "field_packet_limit": 50000,
+    "omitted": {},
+    "rows": [
+      {
+        "content_type": "text/plain",
+        "host": "pcap-http.example:18080",
+        "method": "GET",
+        "status": "200",
+        "url": "http://pcap-http.example:18080/payload.txt",
+        "user_agent": "pcap-fixture-agent/1.0"
+      }
+    ],
+    "total": 1
+  },
+  "summary": "PCAP HTTP: 1 entries (1 fqdn, 1 url, 1 user_agent)",
+  "observables": [
+    {
+      "type": "url",
+      "value": "http://pcap-http.example:18080/payload.txt"
+    },
+    {
+      "type": "fqdn",
+      "value": "pcap-http.example"
+    },
+    {
+      "type": "user_agent",
+      "value": "pcap-fixture-agent/1.0"
+    }
+  ]
+}

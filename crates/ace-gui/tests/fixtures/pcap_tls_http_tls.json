@@ -1,0 +1,107 @@
+{
+  "analysis_type": "pcap_tls_analysis",
+  "schema_version": 1,
+  "details": {
+    "added": {
+      "file": 1,
+      "fqdn": 2,
+      "ja4": 2
+    },
+    "capture": {
+      "application": "Dumpcap (Wireshark) 4.4.19",
+      "duration": 0.044872099,
+      "encapsulations": [
+        "Ethernet"
+      ],
+      "file_name": "http_tls.pcapng",
+      "first": 1792604746.451967,
+      "format": "pcapng",
+      "interfaces": 1,
+      "last": 1792604746.496839,
+      "packets": 41,
+      "size": 11652,
+      "strict_time_order": true
+    },
+    "category": "tls",
+    "certificates": [
+      {
+        "issuer": "pcap-tls.example",
+        "path": "http_tls.pcapng.pcap_objects/certificates/46601b3e65dc50aef3998a71b5ccdbd0f5fc1aa13488ed38349b3abe15543fad.der",
+        "san_total": 2,
+        "sans": [
+          "pcap-tls12.example",
+          "pcap-tls13.example"
+        ],
+        "sha256": "46601b3e65dc50aef3998a71b5ccdbd0f5fc1aa13488ed38349b3abe15543fad",
+        "subject": "pcap-tls.example"
+      }
+    ],
+    "field_packet_limit": 50000,
+    "omitted": {},
+    "rows": [
+      {
+        "certificates": [
+          "46601b3e65dc50aef3998a71b5ccdbd0f5fc1aa13488ed38349b3abe15543fad"
+        ],
+        "client": "127.0.0.1:36704",
+        "client_random": "be401d9c38e74ed55c59ecc279468bae1062bacd07759010cb2c9c80f7e0afaf",
+        "flow": "tcp:1",
+        "ja4": "t12d2708h1_a2460661a67a_eed5f1524d5c",
+        "server": "127.0.0.1:18443",
+        "sni": "pcap-tls12.example"
+      },
+      {
+        "certificates": [],
+        "client": "127.0.0.1:60236",
+        "client_random": "a061545337b7aa4a20b7e29568e8f4ae598fd99176ad9c1d35fe49c1ed1d7a4f",
+        "flow": "tcp:2",
+        "ja4": "t13d0312h1_55b375c5d22e_e035b0d0e93b",
+        "server": "127.0.0.1:18444",
+        "sni": "pcap-tls13.example"
+      }
+    ],
+    "total": 2
+  },
+  "summary": "PCAP TLS: 2 entries (1 file, 2 fqdn, 2 ja4)",
+  "observables": [
+    {
+      "type": "fqdn",
+      "value": "pcap-tls12.example",
+      "display_type": "TLS SNI"
+    },
+    {
+      "type": "ja4",
+      "value": "t12d2708h1_a2460661a67a_eed5f1524d5c",
+      "display_type": "JA4 client fingerprint (TLS ClientHello), seen to pcap-tls12.example"
+    },
+    {
+      "type": "fqdn",
+      "value": "pcap-tls13.example",
+      "display_type": "TLS SNI"
+    },
+    {
+      "type": "ja4",
+      "value": "t13d0312h1_55b375c5d22e_e035b0d0e93b",
+      "display_type": "JA4 client fingerprint (TLS ClientHello), seen to pcap-tls13.example"
+    }
+  ],
+  "files": [
+    {
+      "path": "http_tls.pcapng.pcap_objects/certificates/46601b3e65dc50aef3998a71b5ccdbd0f5fc1aa13488ed38349b3abe15543fad.der",
+      "sha256": "46601b3e65dc50aef3998a71b5ccdbd0f5fc1aa13488ed38349b3abe15543fad",
+      "size": 848,
+      "directives": [
+        "no_crawl"
+      ],
+      "relationships": [
+        {
+          "type": "extracted_from",
+          "target": {
+            "type": "file",
+            "value": "d62e8e38b1bed05360dd8b2e1a70cc42736aaf0881e482a3c4e7c977fe2451ed"
+          }
+        }
+      ]
+    }
+  ]
+}
